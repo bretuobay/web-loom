@@ -50,7 +50,6 @@ body {
 }
 */
 
-
 /* General h1 styles can be kept if they don't conflict with specific component styles
    or shared utility classes. shared-styles.css has more specific h1 styles within
    .post-detail-container etc.
@@ -59,7 +58,6 @@ h1 {
   /* font-size: 3.2em; -- This is quite large, shared-styles has more contextual h1 sizes */
   /* line-height: 1.1; */
 }
-
 
 /* Button styles: shared-styles.css doesn't have generic button styles,
    but it does style .card-link which acts like a button.
@@ -121,9 +119,7 @@ button:focus-visible {
   /* Ensure #app can fill height */
   display: flex;
   flex-direction: column;
-
 }
-
 
 /* The @media (prefers-color-scheme: light) rules here define a light theme.
    shared-styles.css also defines a light theme. These will conflict.
