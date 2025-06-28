@@ -1,35 +1,29 @@
 {
-  "name": "@web-loom/store-core",
-  "description": "A minimal client state management library for building reactive web applications.",
+  "name": "@web-loom/event-bus-core",
+  "description": "A lightweight, framework-agnostic Event Bus library.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": false,
-  "version": "0.0.3",
+  "version": "0.0.1",
   "type": "module",
   "files": [
     "dist"
   ],
-  "main": "./dist/store-core.umd.js",
-  "module": "./dist/store-core.es.js",
+  "main": "./dist/event-bus-core.umd.js",
+  "module": "./dist/event-bus-core.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/store-core.es.js",
-      "require": "./dist/store-core.umd.js"
+      "import": "./dist/event-bus-core.es.js",
+      "require": "./dist/event-bus-core.umd.js"
     }
   },
   "keywords": [
-    "mvvm",
-    "rxjs",
-    "zod",
-    "web-framework",
-    "frontend",
-    "react",
-    "angular",
-    "vue",
+    "event-bus",
+    "publish-subscribe",
     "typescript",
-    "dashboard"
+    "framework-agnostic"
   ],
   "scripts": {
     "dev": "vite",
