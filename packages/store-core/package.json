@@ -1,6 +1,6 @@
 {
-  "name": "@web-loom/query-core",
-  "description": "A minimal server state management library for building reactive web applications.",
+  "name": "@web-loom/store-core",
+  "description": "A minimal client state management library for building reactive web applications.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": false,
@@ -9,14 +9,14 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/query-core.umd.js",
-  "module": "./dist/query-core.es.js",
+  "main": "./dist/store-core.umd.js",
+  "module": "./dist/store-core.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/query-core.es.js",
-      "require": "./dist/query-core.umd.js"
+      "import": "./dist/store-core.es.js",
+      "require": "./dist/store-core.umd.js"
     }
   },
   "keywords": [
