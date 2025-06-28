@@ -61,15 +61,17 @@ ul.list li {
 
 /* Link Styles */
 a {
-  color: #0047AB;
+  color: #0047ab;
   /* Primary blue for links */
   text-decoration: none;
-  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+  transition:
+    color 0.2s ease-in-out,
+    background-color 0.2s ease-in-out;
 }
 
 a:hover,
 a:focus {
-  color: #00FFFF;
+  color: #00ffff;
   /* Cyan for hover/focus - a bit of blueish */
   text-decoration: underline;
 }
@@ -103,7 +105,7 @@ nav {
   /* Padding for nav */
   margin-bottom: 30px;
   /* Increased space below nav */
-  border-bottom: 2px solid #0047AB;
+  border-bottom: 2px solid #0047ab;
   /* Accent border with primary blue */
   background-color: #fff;
   /* White background for nav */
@@ -118,9 +120,12 @@ nav a,
   /* Slightly larger nav links */
   padding: 10px 20px;
   border-radius: 6px;
-  color: #0047AB;
+  color: #0047ab;
   /* Links are primary blue */
-  transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    transform 0.2s ease;
 }
 
 /* For Vue Router, active class is often 'router-link-exact-active' or 'router-link-active' */
@@ -128,7 +133,7 @@ nav a.router-link-exact-active,
 nav a.router-link-active,
 nav a.active,
 .nav-link.active {
-  background-color: #0047AB;
+  background-color: #0047ab;
   /* Primary blue background for active link */
   color: #ffffff;
   /* White text for active link */
@@ -139,7 +144,7 @@ nav a:hover,
 .nav-link:hover {
   background-color: #eef6ff;
   /* Very light blue on hover, derived from #0047AB */
-  color: #002B69;
+  color: #002b69;
   /* Darker blue for text on hover */
   text-decoration: none;
   transform: translateY(-2px);
@@ -153,7 +158,6 @@ nav a:hover,
   padding: 0 20px;
   /* Add some horizontal padding to content area */
 }
-
 
 /* Dashboard Specific Styles */
 .dashboard-container {
@@ -176,7 +180,9 @@ nav a:hover,
   /* Increased padding */
   box-shadow: 0 8px 25px rgba(0, 71, 171, 0.1);
   /* Softer, more diffused blueish shadow */
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   flex-basis: calc(50% - 15px);
   /* Each card takes up to half the width minus half the gap. Ensures two cards horizontally */
   max-width: calc(50% - 15px);
@@ -199,7 +205,7 @@ nav a:hover,
 .card-title {
   font-size: 3em;
   /* Significantly larger font for card title */
-  color: #0047AB;
+  color: #0047ab;
   /* Primary blue title */
   margin-top: 0;
   margin-bottom: 20px;
@@ -239,17 +245,19 @@ nav a:hover,
   /* Pushes link to the bottom of the card if card content varies */
   padding: 12px 25px;
   /* Larger padding for link button */
-  background-color: #0047AB;
+  background-color: #0047ab;
   color: #ffffff;
   /* White text */
   border-radius: 6px;
   font-weight: bold;
   text-align: center;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  transition:
+    background-color 0.3s ease,
+    transform 0.2s ease;
 }
 
 .card-link:hover {
-  background-color: #002B69;
+  background-color: #002b69;
   /* Darker blue for card link hover */
   color: #ffffff;
   text-decoration: none;
@@ -267,7 +275,7 @@ nav a:hover,
 }
 
 .posts-list-container h1 {
-  color: #0047AB;
+  color: #0047ab;
   font-size: 2.8em;
   text-align: center;
   margin-bottom: 30px;
@@ -285,7 +293,9 @@ nav a:hover,
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .posts-list li:hover {
@@ -297,12 +307,12 @@ nav a:hover,
   font-weight: bold;
   font-size: 1.4em;
   /* Larger font for post titles in list */
-  color: #0047AB;
+  color: #0047ab;
   /* Consistent link color */
 }
 
 .posts-list li a:hover {
-  color: #00FFFF;
+  color: #00ffff;
   /* Hover color */
 }
 
@@ -312,7 +322,6 @@ nav a:hover,
   color: #555;
   margin-top: 10px;
 }
-
 
 /* Post Detail Styles */
 .post-detail-container {
@@ -330,7 +339,7 @@ nav a:hover,
 }
 
 .post-detail-container h1 {
-  color: #0047AB;
+  color: #0047ab;
   /* Primary blue for title */
   font-size: 3.2em;
   /* Large title */
@@ -350,14 +359,13 @@ nav a:hover,
 .post-detail-container a.back-link {
   display: inline-block;
   margin-bottom: 25px;
-  color: #0047AB;
+  color: #0047ab;
   font-weight: bold;
 }
 
 .post-detail-container a.back-link:hover {
-  color: #00FFFF;
+  color: #00ffff;
 }
-
 
 /* Utility classes */
 .text-center {
@@ -382,7 +390,6 @@ nav a:hover,
 
 /* Responsive adjustments */
 @media (max-width: 992px) {
-
   /* Adjusted breakpoint for cards */
   .card {
     flex-basis: calc(50% - 15px);
