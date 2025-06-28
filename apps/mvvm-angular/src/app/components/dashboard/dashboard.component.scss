@@ -1,0 +1,26 @@
+.dashboard-container {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.dashboard-container h1 {
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive grid */
+  gap: 20px; /* Space between cards */
+}
+
+/* Ensure cards take up full width of their grid cell if needed,
+   though the card's own styling might handle this.
+   This is more of a container for the cards. */
+app-greenhouse-card,
+app-sensor-card,
+app-sensor-reading-card,
+app-threshold-alert-card {
+  width: 100%; /* Make card components fill their grid area if they don't by default */
+}

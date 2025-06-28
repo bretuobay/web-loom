@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    // "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist",
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    // in test files for vi to be available
+    "types": ["vitest/globals"]
+  },
+  "include": ["src"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "tests",
+    "coverage",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "tests",
+    "__tests__",
+    "**/*.broken.ts"
+  ]
+}

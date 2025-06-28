@@ -1,0 +1,71 @@
+# .github/workflows/publish.yml
+
+name: Publish to npm
+
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use a Node.js version compatible with your project
+          registry-url: 'https://registry.npmjs.org' # Important for npm authentication
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build package
+        # Crucial: The package must be built BEFORE publishing.
+        # This runs the 'build' script defined in your package.json.
+        run: npm run build
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # Use a GitHub Secret for your npm token
+        run: |
+          # Set shell options for robustness:
+          # -e: Exit immediately if a command exits with a non-zero status (default for GHA, but good to be explicit)
+          # -u: Treat unset variables as an error
+          # -o pipefail: The return value of a pipeline is the status of the last command to exit with a non-zero status
+          set -euo pipefail 
+
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+
+          echo "--- Package Information ---"
+          echo "Package Name: $PACKAGE_NAME"
+          echo "Package Version: $PACKAGE_VERSION"
+          echo "--------------------------"
+
+          # Check if version already exists on npm:
+          # 1. Temporarily disable 'exit on error' (`set +e`) for the `npm view` command
+          # 2. Redirect both stdout and stderr to /dev/null to keep the console clean
+          # 3. Capture the exit code immediately after the command
+          # 4. Re-enable 'exit on error' (`set -e`)
+          set +e 
+          npm view "$PACKAGE_NAME@$PACKAGE_VERSION" > /dev/null 2>&1
+          NPM_VIEW_EXIT_CODE=$? # Capture the exit code of npm view
+          set -e # Re-enable exit on error for subsequent commands
+
+          if [ "$NPM_VIEW_EXIT_CODE" -eq 0 ]; then
+            echo "✅ Package version $PACKAGE_VERSION already exists on npm. Skipping publish."
+            exit 0 # Exit the step successfully
+          else
+            # If npm view exited non-zero, it means the version doesn't exist or an error occurred.
+            # We assume here that a non-zero exit code for `npm view` (when given a version)
+            # indicates that the specific version is not found, which is what we want for publishing.
+            echo "🚀 Package version $PACKAGE_VERSION is new. Attempting to publish."
+            npm publish --access public --verbose # --verbose for detailed npm output
+          fi
+
+          echo "--- Publish process completed ---"

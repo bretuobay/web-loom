@@ -1,0 +1,195 @@
+/*
+ * CSS Utility for Dashboard/Demo Applications
+ *
+ * This stylesheet provides a flat design aesthetic with large fonts,
+ * primarily for demonstrative dashboards.
+ *
+ * General Styling:
+ * - Font color: Black
+ * - Background: White
+ * - Borders: Well-defined black
+ */
+
+/* --- Base Styles --- */
+body {
+  font-family: Arial, sans-serif;
+  /* Or choose a modern sans-serif font */
+  margin: 0;
+  padding: 0;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* --- Application Header --- */
+.header {
+  background-color: #ffffff;
+  border-bottom: 2px solid #000000;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.5em;
+  /* Large font for header */
+  font-weight: bold;
+}
+
+.header-item {
+  margin: 0 15px;
+  color: #000000;
+  text-decoration: none;
+}
+
+.header-item:hover {
+  color: #333333;
+  /* Slightly lighter black on hover */
+}
+
+/* --- Cards --- */
+.card {
+  background-color: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 5px;
+  /* Slightly rounded corners for cards */
+  padding: 25px;
+  margin: 20px;
+  box-shadow: 5px 5px 0px #000000;
+  /* Flat design shadow */
+  font-size: 1.8em;
+  /* Large font for card content */
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title {
+  font-size: 1.2em;
+  /* Slightly larger for card titles */
+  font-weight: bold;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #000000;
+  padding-bottom: 10px;
+}
+
+.card-content {
+  line-height: 1.4;
+}
+
+/* --- Lists --- */
+.list {
+  background-color: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 5px;
+  margin: 20px;
+  padding: 0;
+  /* Remove default ul padding */
+  list-style: none;
+  /* Remove default bullet points */
+  font-size: 1.6em;
+  /* Large font for list items */
+}
+
+.list-item {
+  padding: 15px 25px;
+  border-bottom: 1px solid #000000;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+  /* No border on the last item */
+}
+
+.list-item:hover {
+  background-color: #f0f0f0;
+  /* Slight background change on hover */
+}
+
+/* --- Footer --- */
+.footer {
+  background-color: #ffffff;
+  border-top: 2px solid #000000;
+  padding: 20px;
+  text-align: center;
+  font-size: 1.4em;
+  /* Decent size for footer */
+  color: #000000;
+  margin-top: 40px;
+  /* Space above footer */
+}
+
+/* --- Flex Utilities --- */
+.flex-container {
+  display: flex;
+  gap: 20px;
+  /* Space between flex items */
+  flex-wrap: wrap;
+  /* Allow items to wrap to next line */
+}
+
+.flex-center {
+  justify-content: center;
+  align-items: center;
+}
+
+.flex-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 128px);
+  /* Full viewport height for app */
+  width: 1280px;
+}
+
+.flex-start {
+  justify-content: flex-start;
+}
+
+.flex-end {
+  justify-content: flex-end;
+}
+
+.flex-between {
+  justify-content: space-between;
+}
+
+.flex-around {
+  justify-content: space-around;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.flex-row {
+  flex-direction: row;
+}
+
+.flex-item {
+  /* Basic styling for flex items if needed, e.g., for sizing */
+  flex: 1;
+  /* Allows items to grow and shrink */
+  min-width: 300px;
+  /* Minimum width for flex items before wrapping */
+}
+
+.flex-item-grow {
+  flex-grow: 1;
+}
+
+.flex-item-no-grow {
+  flex-grow: 0;
+}
+
+.back-arrow {
+  width: 36px;
+  height: 36px;
+}
+
+.back-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* width: 100%; */
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}

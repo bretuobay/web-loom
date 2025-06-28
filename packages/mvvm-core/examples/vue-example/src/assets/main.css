@@ -1,0 +1,10 @@
+/* Global styles for the Vue application */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}

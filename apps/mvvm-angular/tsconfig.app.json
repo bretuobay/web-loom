@@ -1,0 +1,26 @@
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/app",
+    "types": [],
+    "baseUrl": ".",
+    "paths": {
+      "@repo/models": ["../../packages/models/src"],
+      "@repo/models/*": ["../../packages/models/src/*"],
+      "@repo/view-models": ["../../packages/view-models/src"],
+      "@repo/view-models/*": ["../../packages/view-models/src/*"]
+    }
+  },
+  "references": [
+    {
+      "path": "../../packages/models/tsconfig.json"
+    },
+    {
+      "path": "../../packages/view-models/tsconfig.json"
+    }
+  ],
+  "files": ["src/main.ts"],
+  "include": ["src/**/*.d.ts"]
+}

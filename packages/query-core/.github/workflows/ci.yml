@@ -1,0 +1,41 @@
+# .github/workflows/ci.yml
+
+name: CI - Build & Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest # Or windows-latest, macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use a Node.js version compatible with your project
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests (Vitest)
+        run: npm test
+
+      - name: Build package
+        run: npm run build
+
+      - name: Upload build artifacts (Optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-build-artifacts
+          path: dist/
+          # This will upload the 'dist' folder as an artifact.
+          # Useful for inspection or if other workflows need the build output.

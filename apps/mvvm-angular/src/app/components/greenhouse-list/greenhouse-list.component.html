@@ -1,0 +1,101 @@
+<a routerLink="/" class="back-button">
+  <back-icon></back-icon>
+</a>
+<section class="flex-container flex-row">
+  <form [formGroup]="greenhouseForm" (ngSubmit)="handleSubmit()" class="form-container">
+    <div class="form-group">
+      <label for="name">Greenhouse Name:</label>
+      <input
+        type="text"
+        id="name"
+        formControlName="name"
+        required
+        class="input-field"
+        placeholder="Enter greenhouse name"
+      />
+      <div
+        *ngIf="
+          greenhouseForm.get('name')?.invalid &&
+          (greenhouseForm.get('name')?.dirty || greenhouseForm.get('name')?.touched)
+        "
+        class="error-message"
+      >
+        Name is required.
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="location">Location:</label>
+      <textarea
+        id="location"
+        formControlName="location"
+        required
+        rows="3"
+        class="textarea-field"
+        placeholder="Location"
+      ></textarea>
+      <div
+        *ngIf="
+          greenhouseForm.get('location')?.invalid &&
+          (greenhouseForm.get('location')?.dirty || greenhouseForm.get('location')?.touched)
+        "
+        class="error-message"
+      >
+        Location is required.
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="size">Size:</label>
+      <select id="size" formControlName="size" class="select-field" required>
+        <option value="">Select size</option>
+        <option value="25sqm">25sqm / Small</option>
+        <option value="50sqm">50sqm / Medium</option>
+        <option value="100sqm">100sqm / Large</option>
+      </select>
+      <div
+        *ngIf="
+          greenhouseForm.get('size')?.invalid &&
+          (greenhouseForm.get('size')?.dirty || greenhouseForm.get('size')?.touched)
+        "
+        class="error-message"
+      >
+        Size is required.
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="cropType">Crop Type:</label>
+      <input type="text" id="cropType" formControlName="cropType" class="input-field" placeholder="Enter crop type" />
+    </div>
+
+    <button type="submit" class="button" [disabled]="greenhouseForm.invalid">Submit</button>
+  </form>
+
+  <div class="card" style="max-width: 600px">
+    <h1 class="card-title">Greenhouses</h1>
+    <div *ngIf="loading$ | async" class="card-content">
+      <p>Loading greenhouses...</p>
+    </div>
+    <ng-container *ngIf="greenhouses$ | async as greenhouseList">
+      <div *ngIf="greenhouseList && greenhouseList.length > 0; else noGreenhouses">
+        <ul class="card-content list">
+          <li
+            *ngFor="let gh of greenhouseList"
+            class="list-item"
+            style="font-size: 1.8rem; justify-content: space-between"
+          >
+            <span>{{ gh.name }}</span>
+            <div class="button-group">
+              <button class="button-tiny button-tiny-delete" (click)="handleDelete(gh?.id)">Delete</button>
+              <button class="button-tiny button-tiny-edit" (click)="handleUpdateForm(gh?.id)">Edit</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </ng-container>
+    <ng-template #noGreenhouses>
+      <p *ngIf="!(loading$ | async)" class="card-content">No greenhouses found.</p>
+    </ng-template>
+  </div>
+</section>

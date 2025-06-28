@@ -1,0 +1,23 @@
+{
+  "name": "@repo/shared",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@types/node": "^22.15.3",
+    "eslint": "^9.26.0",
+    "typescript": "5.8.2"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  }
+}

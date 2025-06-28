@@ -1,0 +1,10 @@
+.sensor-reading-card {
+  width: 100%;
+  display: flex;
+  // max-width: 300px; // Limit the width of the card
+  flex-direction: column; // Ensure proper layout for card content
+}
+
+.card-content {
+  max-height: 200px;
+}

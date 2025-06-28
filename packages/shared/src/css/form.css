@@ -1,0 +1,261 @@
+/*
+ * CSS Styling for Form Elements
+ *
+ * This stylesheet provides a flat design aesthetic with large fonts for form elements,
+ * suitable for demonstrative dashboards.
+ *
+ * General Styling Principles:
+ * - Font color: Black
+ * - Background: White
+ * - Borders: Well-defined black
+ * - Rounded corners for a softer flat look
+ */
+
+/* --- Input Fields (Text, Email, Password, Number, etc.) --- */
+.input-field {
+    width: 100%;
+    /* Full width within its container */
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    /* Space below each input */
+    border: 2px solid #000000;
+    border-radius: 5px;
+    /* Slightly rounded corners */
+    background-color: #ffffff;
+    color: #000000;
+    font-size: 1.4em;
+    /* Large font size */
+    outline: none;
+    /* Remove default outline */
+    box-shadow: 2px 2px 0px #000000;
+    /* Flat design shadow */
+    transition: all 0.2s ease-in-out;
+    /* Smooth transition for focus */
+    box-sizing: border-box;
+    /* Include padding and border in the element's total width and height */
+}
+
+.input-field::placeholder {
+    color: #555555;
+    /* Lighter color for placeholder text */
+    opacity: 1;
+    /* Ensure placeholder is visible */
+}
+
+.input-field:focus {
+    border-color: #333333;
+    /* Slightly darker border on focus */
+    box-shadow: 4px 4px 0px #000000;
+    /* Enhanced shadow on focus */
+}
+
+/* --- Text Area --- */
+.textarea-field {
+    width: 100%;
+    /* Full width within its container */
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    /* Space below text area */
+    border: 2px solid #000000;
+    border-radius: 5px;
+    background-color: #ffffff;
+    color: #000000;
+    font-size: 1.4em;
+    /* Large font size */
+    outline: none;
+    resize: vertical;
+    /* Allow vertical resizing only */
+    min-height: 120px;
+    /* Minimum height for usability */
+    box-shadow: 2px 2px 0px #000000;
+    /* Flat design shadow */
+    transition: all 0.2s ease-in-out;
+    box-sizing: border-box;
+}
+
+.textarea-field::placeholder {
+    color: #555555;
+    opacity: 1;
+}
+
+.textarea-field:focus {
+    border-color: #333333;
+    box-shadow: 4px 4px 0px #000000;
+}
+
+/* --- Select Dropdowns --- */
+.select-field {
+    width: 100%;
+    /* Full width within its container */
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    /* Space below select */
+    border: 2px solid #000000;
+    border-radius: 5px;
+    background-color: #ffffff;
+    color: #000000;
+    font-size: 1.4em;
+    /* Large font size */
+    outline: none;
+    box-shadow: 2px 2px 0px #000000;
+    /* Flat design shadow */
+    transition: all 0.2s ease-in-out;
+    box-sizing: border-box;
+    cursor: pointer;
+    /* Remove default browser styling for consistency */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* Add a custom arrow using a background image */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-down"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 20px;
+    /* Size of the custom arrow */
+}
+
+.select-field:focus {
+    border-color: #333333;
+    /* Slightly darker border on focus */
+    box-shadow: 4px 4px 0px #000000;
+    /* Enhanced shadow on focus */
+}
+
+
+/* --- Buttons --- */
+.button {
+    display: inline-block;
+    padding: 15px 30px;
+    margin: 10px 0;
+    /* Space above/below buttons */
+    border: 2px solid #000000;
+    border-radius: 5px;
+    background-color: #ffffff;
+    color: #000000;
+    font-size: 1.5em;
+    /* Larger font for buttons */
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    /* Remove underline for anchor buttons */
+    box-shadow: 4px 4px 0px #000000;
+    /* Flat design shadow */
+    transition: all 0.2s ease-in-out;
+    /* Smooth transitions for hover/active states */
+    -webkit-appearance: none;
+    /* Reset default button styles for cross-browser consistency */
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.button:hover {
+    background-color: #f0f0f0;
+    /* Slight background change on hover */
+    box-shadow: 6px 6px 0px #000000;
+    /* Larger shadow on hover */
+    transform: translate(-2px, -2px);
+    /* Slight lift effect */
+}
+
+.button:active {
+    background-color: #e0e0e0;
+    /* Darker background on click */
+    box-shadow: 2px 2px 0px #000000;
+    /* Smaller shadow on active */
+    transform: translate(2px, 2px);
+    /* Push-in effect */
+}
+
+.button:disabled {
+    background-color: #cccccc;
+    color: #777777;
+    border-color: #777777;
+    box-shadow: 2px 2px 0px #777777;
+    cursor: not-allowed;
+    transform: none;
+    /* No transform when disabled */
+}
+
+/* --- Tiny Button Variants for Edit/Delete --- */
+.button-tiny {
+    /* Inherit base button styles or set common tiny button properties */
+    display: inline-block;
+    padding: 4px 12px;
+    /* Smaller padding */
+    margin: 5px;
+    /* Smaller margin */
+    border: 2px solid #000000;
+    border-radius: 5px;
+    font-size: 0.8em;
+    /* Smaller font size */
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: 2px 2px 0px #000000;
+    /* Smaller shadow */
+    transition: all 0.2s ease-in-out;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.button-tiny:hover {
+    box-shadow: 3px 3px 0px #000000;
+    transform: translate(-1px, -1px);
+}
+
+.button-tiny:active {
+    box-shadow: 1px 1px 0px #000000;
+    transform: translate(1px, 1px);
+}
+
+.button-tiny-edit {
+    background-color: #f8f8f8;
+    /* Light grey for edit */
+    color: #000000;
+    border-color: #000000;
+}
+
+.button-tiny-edit:hover {
+    background-color: #e8e8e8;
+    /* Darker grey on hover */
+}
+
+.button-tiny-delete {
+    background-color: #fff0f0;
+    /* Very light red for delete */
+    color: #000000;
+    border-color: #000000;
+}
+
+.button-tiny-delete:hover {
+    background-color: #ffe0e0;
+    /* Slightly darker red on hover */
+}
+
+.button-tiny:disabled {
+    background-color: #cccccc;
+    color: #777777;
+    border-color: #777777;
+    box-shadow: 1px 1px 0px #777777;
+    cursor: not-allowed;
+    transform: none;
+}
+
+
+/* --- Optional: Utility for form groups (e.g., labels + inputs) --- */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    /* Label on its own line */
+    margin-bottom: 8px;
+    font-size: 1.3em;
+    /* Font size for labels */
+    font-weight: bold;
+    color: #000000;
+}

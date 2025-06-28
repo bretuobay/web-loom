@@ -1,0 +1,18 @@
+<a routerLink="/" class="back-button">
+  <back-icon> </back-icon>
+</a>
+<div class="card">
+  <h2 class="card-title">Sensor List</h2>
+  <ul class="list" *ngIf="data$ | async as sensors">
+    <li *ngFor="let sensor of sensors" class="list-item">
+      <h3>{{ sensor.status }} ({{ sensor.id }})</h3>
+      <p>Type:{{ sensor.type }}</p>
+      <p>Greenhouse: {{ sensor.greenhouse.name }}</p>
+      <p>
+        Status:
+        <span [ngClass]="getStatusClass(sensor.status)">{{ sensor.status }}</span>
+      </p>
+    </li>
+  </ul>
+  <p *ngIf="loading$ | async">Loading.....</p>
+</div>

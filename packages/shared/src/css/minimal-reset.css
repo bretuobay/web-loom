@@ -1,0 +1,113 @@
+/* Minimal CSS Reset */
+
+/* Use border-box for everything */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Remove default margin and padding */
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+  padding: 0;
+}
+
+/* Set consistent line-height and font-smoothing */
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Remove list styles */
+ul,
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Remove default link styles */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Reset images and media to be responsive */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Reset form elements to inherit font */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  outline: none;
+}
+
+/* Make buttons clickable */
+button {
+  cursor: pointer;
+  background-color: transparent;
+}
+
+/* Normalize HTML5 elements */
+article,
+aside,
+footer,
+header,
+nav,
+section,
+main {
+  display: block;
+}
+
+a {
+  color: #2563eb;
+  /* blue-600 from Tailwind (royal blue) */
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #1d4ed8;
+  /* blue-700 - darker on hover */
+}
+
+@media (prefers-color-scheme: dark) {
+  a {
+    color: #60a5fa;
+    /* blue-400 - lighter for dark backgrounds */
+  }
+
+  a:hover {
+    color: #3b82f6;
+    /* blue-500 */
+  }
+}

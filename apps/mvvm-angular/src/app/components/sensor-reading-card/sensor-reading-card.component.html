@@ -1,0 +1,19 @@
+<div class="card sensor-reading-card">
+  <div class="card-title">
+    <a routerLink="/sensor-readings">Sensor Readings</a>
+  </div>
+  <div class="card-content">
+    <ng-container *ngIf="loading$ | async">
+      <p>Loading sensor readings...</p>
+    </ng-container>
+    <ng-container *ngIf="error$ | async as error">
+      <p class="error">Error: {{ error?.message || error }}</p>
+    </ng-container>
+    <!-- <ng-template #chartBlock> -->
+    <ng-container *ngIf="data$ | async as data">
+      <canvas #readingsChart width="400" height="200"></canvas>
+    </ng-container>
+    <!-- </ng-template> -->
+  </div>
+  <p>Total: {{ (data$ | async)?.length }}</p>
+</div>

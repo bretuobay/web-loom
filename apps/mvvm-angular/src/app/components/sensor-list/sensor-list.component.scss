@@ -1,0 +1,64 @@
+/* Base list styles - copied from greenhouse-list.component.scss */
+.list-container {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.list-container h2 {
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.item-list {
+  list-style-type: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.item-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.item-card:hover {
+  transform: translateY(-5px);
+}
+
+.item-card h3 {
+  color: #007bff;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.item-card p {
+  font-size: 0.9em;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.item-card p strong {
+  color: #333;
+}
+
+/* Status-specific styles */
+.status-online {
+  color: green;
+  font-weight: bold;
+}
+
+.status-offline {
+  color: grey;
+  font-weight: bold;
+}
+
+.status-error {
+  color: red;
+  font-weight: bold;
+}
