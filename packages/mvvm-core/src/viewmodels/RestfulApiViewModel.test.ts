@@ -48,11 +48,19 @@ class MockRestfulApiModel<TData> extends RestfulApiModel<TData, typeof ItemSchem
     this._isLoading$.next(true);
     this._error$.next(null);
     try {
-      if (id) { // Simulate fetching single item or specific items
-        const item = { id: Array.isArray(id) ? id[0] : id, name: `Fetched ${Array.isArray(id) ? id[0] : id}` } as unknown as TData;
+      if (id) {
+        // Simulate fetching single item or specific items
+        const item = {
+          id: Array.isArray(id) ? id[0] : id,
+          name: `Fetched ${Array.isArray(id) ? id[0] : id}`,
+        } as unknown as TData;
         this._data$.next(item);
-      } else { // Simulate fetching collection
-        const items: ItemArray = [{ id: '1', name: 'Item 1' }, { id: '2', name: 'Item 2' }];
+      } else {
+        // Simulate fetching collection
+        const items: ItemArray = [
+          { id: '1', name: 'Item 1' },
+          { id: '2', name: 'Item 2' },
+        ];
         this._data$.next(items as unknown as TData);
       }
     } catch (e) {
@@ -71,19 +79,26 @@ class MockRestfulApiModel<TData> extends RestfulApiModel<TData, typeof ItemSchem
       const currentData = this._data$.getValue();
       let result: ExtractItemType<TData> | ExtractItemType<TData>[] | undefined;
 
-      if (Array.isArray(payload)) { // Batch create
-        const newItems = payload.map((p, i) => ({ id: `new-batch-${Date.now()}-${i}`, ...(p as object) })) as ExtractItemType<TData>[];
+      if (Array.isArray(payload)) {
+        // Batch create
+        const newItems = payload.map((p, i) => ({
+          id: `new-batch-${Date.now()}-${i}`,
+          ...(p as object),
+        })) as ExtractItemType<TData>[];
         if (Array.isArray(currentData)) {
           this._data$.next([...currentData, ...newItems] as unknown as TData);
-        } else { // Assuming currentData becomes an array
+        } else {
+          // Assuming currentData becomes an array
           this._data$.next(newItems as unknown as TData);
         }
         result = newItems;
-      } else { // Single create
+      } else {
+        // Single create
         const newItem = { id: `new-${Date.now()}`, ...(payload as object) } as ExtractItemType<TData>;
         if (Array.isArray(currentData)) {
           this._data$.next([...currentData, newItem] as unknown as TData);
-        } else { // currentData is single item or null
+        } else {
+          // currentData is single item or null
           this._data$.next(newItem as unknown as TData);
         }
         result = newItem;
@@ -105,9 +120,7 @@ class MockRestfulApiModel<TData> extends RestfulApiModel<TData, typeof ItemSchem
       const updatedItem = { id, ...(payload as object) } as ExtractItemType<TData>;
       const currentData = this._data$.getValue();
       if (Array.isArray(currentData)) {
-        this._data$.next(
-          currentData.map((item: any) => (item.id === id ? updatedItem : item)) as unknown as TData,
-        );
+        this._data$.next(currentData.map((item: any) => (item.id === id ? updatedItem : item)) as unknown as TData);
       } else if (currentData && (currentData as any).id === id) {
         this._data$.next(updatedItem as unknown as TData);
       }
@@ -146,7 +159,6 @@ class MockRestfulApiModel<TData> extends RestfulApiModel<TData, typeof ItemSchem
     super.dispose();
   });
 }
-
 
 describe('RestfulApiViewModel', () => {
   // Test with TData = ItemArray (collection)
@@ -226,17 +238,17 @@ describe('RestfulApiViewModel', () => {
     // So, this test might expect an error or specific handling if the model is strictly single-item.
     // For the ViewModel, it will pass it to the model, which should then handle it.
     it('createCommand with array payload on single item model (should be handled by model)', async () => {
-        const payloadArray: Partial<Item>[] = [{ name: 'Batch Item 1' }];
-        // Mocking the model's create to throw, as per RestfulApiModel's logic
-        mockModelSingle.create.mockImplementation(async () => {
-            throw new Error('Cannot create multiple items when model data is a single item.');
-        });
+      const payloadArray: Partial<Item>[] = [{ name: 'Batch Item 1' }];
+      // Mocking the model's create to throw, as per RestfulApiModel's logic
+      mockModelSingle.create.mockImplementation(async () => {
+        throw new Error('Cannot create multiple items when model data is a single item.');
+      });
 
-        await expect(viewModelSingle.createCommand.execute(payloadArray))
-            .rejects.toThrow('Cannot create multiple items when model data is a single item.');
-        expect(mockModelSingle.create).toHaveBeenCalledWith(payloadArray);
+      await expect(viewModelSingle.createCommand.execute(payloadArray)).rejects.toThrow(
+        'Cannot create multiple items when model data is a single item.',
+      );
+      expect(mockModelSingle.create).toHaveBeenCalledWith(payloadArray);
     });
-
 
     it('updateCommand should call model.update (for single item model)', async () => {
       const existingItem: Item = { id: 'item-single', name: 'Original Single Name' };
@@ -267,8 +279,9 @@ describe('RestfulApiViewModel', () => {
   // Top-level afterEach for cleaning up common instances
   afterEach(() => {
     vi.clearAllMocks();
-    if (commonViewModel) { // Ensure it exists before trying to dispose
-        commonViewModel.dispose();
+    if (commonViewModel) {
+      // Ensure it exists before trying to dispose
+      commonViewModel.dispose();
     }
   });
 
@@ -388,7 +401,8 @@ describe('RestfulApiViewModel', () => {
     const existingItem: Item = { id: '1', name: 'Original Name' };
     const payload: Partial<Item> = { name: 'Updated Name' };
 
-    beforeEach(() => { // This beforeEach is scoped to 'updateCommand'
+    beforeEach(() => {
+      // This beforeEach is scoped to 'updateCommand'
       commonMockModel._data$.next([existingItem]);
     });
 
@@ -411,7 +425,9 @@ describe('RestfulApiViewModel', () => {
         throw updateError;
       });
 
-      await expect(commonViewModel.updateCommand.execute({ id: existingItem.id, payload })).rejects.toThrow(updateError);
+      await expect(commonViewModel.updateCommand.execute({ id: existingItem.id, payload })).rejects.toThrow(
+        updateError,
+      );
 
       expect(await firstValueFrom(commonViewModel.error$)).toBe(updateError);
       expect(await firstValueFrom(commonViewModel.isLoading$)).toBe(false);
@@ -422,7 +438,8 @@ describe('RestfulApiViewModel', () => {
   describe('deleteCommand', () => {
     const itemToDelete: Item = { id: '1', name: 'To Be Deleted' };
 
-    beforeEach(() => { // Scoped to 'deleteCommand'
+    beforeEach(() => {
+      // Scoped to 'deleteCommand'
       commonMockModel._data$.next([itemToDelete, { id: '2', name: 'Keep Me' }]);
     });
 
@@ -460,7 +477,8 @@ describe('RestfulApiViewModel', () => {
       { id: 'c', name: 'Charlie' },
     ];
 
-    beforeEach(() => { // Scoped to 'selectedItem$'
+    beforeEach(() => {
+      // Scoped to 'selectedItem$'
       commonMockModel._data$.next(items);
     });
 
@@ -509,7 +527,10 @@ describe('RestfulApiViewModel', () => {
       commonViewModel.selectItem('a');
       expect(await firstValueFrom(commonViewModel.selectedItem$.pipe(skip(1)))).toEqual(items[0]);
 
-      const newItems: ItemArray = [ { id: 'b', name: 'Bob' }, { id: 'c', name: 'Charlie' } ];
+      const newItems: ItemArray = [
+        { id: 'b', name: 'Bob' },
+        { id: 'c', name: 'Charlie' },
+      ];
       commonMockModel._data$.next(newItems);
 
       await vi.waitFor(async () => {

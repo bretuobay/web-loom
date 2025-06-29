@@ -7,19 +7,20 @@
 This library allows components or modules to communicate without direct dependencies on each other. Publishers can emit events, and subscribers can listen for these events, facilitating a more modular and maintainable architecture.
 
 Key features include:
--   **Type Safety:** Full TypeScript support for event names and their corresponding payload types, ensuring robust type checking and autocompletion.
--   **Framework Agnostic:** Usable with any JavaScript framework (React, Vue, Angular, Svelte) or vanilla JavaScript.
--   **Simple API:** Intuitive methods for event registration (`on`), unregistration (`off`), single-shot listening (`once`), and emission (`emit`).
--   **Lightweight:** Minimal bundle size and efficient performance.
--   **Decoupled Architecture:** Helps reduce coupling between different parts of your application.
+
+- **Type Safety:** Full TypeScript support for event names and their corresponding payload types, ensuring robust type checking and autocompletion.
+- **Framework Agnostic:** Usable with any JavaScript framework (React, Vue, Angular, Svelte) or vanilla JavaScript.
+- **Simple API:** Intuitive methods for event registration (`on`), unregistration (`off`), single-shot listening (`once`), and emission (`emit`).
+- **Lightweight:** Minimal bundle size and efficient performance.
+- **Decoupled Architecture:** Helps reduce coupling between different parts of your application.
 
 ## Core Concepts
 
--   **Event Bus Instance:** The central object (`createEventBus()`) responsible for managing event registrations and emissions.
--   **Event Name:** A string identifier for a specific type of event.
--   **Listener/Handler:** A callback function that is executed when a specific event is emitted.
--   **Payload:** Data associated with an event, passed to the listener when the event is emitted.
--   **EventMap:** A TypeScript type you define to map event names to their expected payload types, enabling type safety.
+- **Event Bus Instance:** The central object (`createEventBus()`) responsible for managing event registrations and emissions.
+- **Event Name:** A string identifier for a specific type of event.
+- **Listener/Handler:** A callback function that is executed when a specific event is emitted.
+- **Payload:** Data associated with an event, passed to the listener when the event is emitted.
+- **EventMap:** A TypeScript type you define to map event names to their expected payload types, enabling type safety.
 
 ## Installation
 
@@ -57,7 +58,6 @@ const onNotification = (payload: { message: string; type: 'info' | 'error' }) =>
 };
 eventBus.on('notification:show', onNotification);
 
-
 // You can also register a listener for multiple events:
 // Note: Ensure the handler is generic enough or checks payload types if they differ.
 const handleMultipleEvents = (payload: any) => {
@@ -72,13 +72,11 @@ const handleMultipleEvents = (payload: any) => {
 };
 eventBus.on(['user:login', 'notification:show'], handleMultipleEvents);
 
-
 // 4. Emit events
 eventBus.emit('user:login', { userId: '123', username: 'Alice' });
 // Output:
 // User logged in: Alice (ID: 123)
 // Login event from multi-listener: { userId: '123', username: 'Alice' }
-
 
 eventBus.emit('notification:show', { message: 'Profile updated!', type: 'info' });
 // Output:
@@ -113,33 +111,36 @@ eventBus.emit('notification:show', { message: 'Another notification', type: 'err
 
 ### `createEventBus<M extends EventMap>()`
 
--   `M` (optional): An `EventMap` interface defining your event names and their payload types.
-    Example: `interface MyEvents extends EventMap { 'eventA': [string, number]; 'eventB': [] }`
+- `M` (optional): An `EventMap` interface defining your event names and their payload types.
+  Example: `interface MyEvents extends EventMap { 'eventA': [string, number]; 'eventB': [] }`
 
 Returns a new `EventBus<M>` instance.
 
 ### `EventBus<M>` instance
 
--   `on<K extends keyof M>(event: K | K[], listener: Listener<K, M>): void`
-    -   Registers a `listener` for one or more `event` names.
--   `once<K extends keyof M>(event: K, listener: Listener<K, M>): void`
-    -   Registers a `listener` that will be invoked at most once for the given `event`. It's automatically removed after invocation.
--   `off<K extends keyof M>(event?: K, listener?: Listener<K, M> | GenericListener): void`
-    -   Unregisters listeners.
-        -   `off(event, listener)`: Removes a specific `listener` for an `event`.
-        -   `off(event)`: Removes all listeners for an `event`.
-        -   `off()`: Removes all listeners for all events.
--   `emit<K extends keyof M>(event: K, ...args: M[K] extends any[] ? M[K] : []): void`
-    -   Emits an `event`, calling all registered listeners with the provided `args` (payload).
+- `on<K extends keyof M>(event: K | K[], listener: Listener<K, M>): void`
+  - Registers a `listener` for one or more `event` names.
+- `once<K extends keyof M>(event: K, listener: Listener<K, M>): void`
+  - Registers a `listener` that will be invoked at most once for the given `event`. It's automatically removed after invocation.
+- `off<K extends keyof M>(event?: K, listener?: Listener<K, M> | GenericListener): void`
+  - Unregisters listeners.
+    - `off(event, listener)`: Removes a specific `listener` for an `event`.
+    - `off(event)`: Removes all listeners for an `event`.
+    - `off()`: Removes all listeners for all events.
+- `emit<K extends keyof M>(event: K, ...args: M[K] extends any[] ? M[K] : []): void`
+  - Emits an `event`, calling all registered listeners with the provided `args` (payload).
 
 ### Types
 
--   `EventMap`: `Record<string, any[] | undefined>`
-    -   A base type for defining your application's events and their payload signatures.
--   `Listener<K, M>`: `(...args: M[K] extends any[] ? M[K] : []) => void`
-    -   A typed listener function for a specific event `K` in an `EventMap` `M`.
--   `GenericListener`: `(...args: any[]) => void`
-    -   A generic listener that can accept any arguments.
+- `EventMap`: `Record<string, any[] | undefined>`
+  - A base type for defining your application's events and their payload signatures.
+- `Listener<K, M>`: `(...args: M[K] extends any[] ? M[K] : []) => void`
+  - A typed listener function for a specific event `K` in an `EventMap` `M`.
+- `GenericListener`: `(...args: any[]) => void`
+  - A generic listener that can accept any arguments.
 
 For more detailed information on the design and technical requirements, please refer to the [Product Requirements Document.md](./Product%20Requirements%20Document.md).
+
+```
+
 ```

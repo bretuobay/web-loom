@@ -25,28 +25,30 @@ describe('GlobalErrorService', () => {
 
     // Mock browser environment
     if (typeof window !== 'undefined') {
-        mockWindowAddEventListener = vi.spyOn(window, 'addEventListener');
-        // mockWindowRemoveEventListener = vi.spyOn(window, 'removeEventListener');
-    } else { // Simulate browser environment for tests if not present
-        global.window = {
-            addEventListener: vi.fn(),
-            removeEventListener: vi.fn(),
-        } as any;
-        mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
-        // mockWindowRemoveEventListener = vi.spyOn(global.window, 'removeEventListener');
+      mockWindowAddEventListener = vi.spyOn(window, 'addEventListener');
+      // mockWindowRemoveEventListener = vi.spyOn(window, 'removeEventListener');
+    } else {
+      // Simulate browser environment for tests if not present
+      global.window = {
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      } as any;
+      mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
+      // mockWindowRemoveEventListener = vi.spyOn(global.window, 'removeEventListener');
     }
 
     // Mock Node.js environment
     if (typeof process !== 'undefined' && typeof process.on === 'function') {
-        mockProcessOn = vi.spyOn(process, 'on');
-        // mockProcessRemoveListener = vi.spyOn(process, 'removeListener');
-    } else { // Simulate Node.js process for tests if not present
-        global.process = {
-            on: vi.fn(),
-            removeListener: vi.fn(),
-        } as any;
-        mockProcessOn = vi.spyOn(global.process, 'on');
-        // mockProcessRemoveListener = vi.spyOn(global.process, 'removeListener');
+      mockProcessOn = vi.spyOn(process, 'on');
+      // mockProcessRemoveListener = vi.spyOn(process, 'removeListener');
+    } else {
+      // Simulate Node.js process for tests if not present
+      global.process = {
+        on: vi.fn(),
+        removeListener: vi.fn(),
+      } as any;
+      mockProcessOn = vi.spyOn(global.process, 'on');
+      // mockProcessRemoveListener = vi.spyOn(global.process, 'removeListener');
     }
 
     service = new GlobalErrorService();
@@ -115,7 +117,6 @@ describe('GlobalErrorService', () => {
     expect(handledError2.error).toBe(testError);
   });
 
-
   it('dispose should complete the uncaughtErrors$ observable', async () => {
     let isCompleted = false;
     const subscription = service.uncaughtErrors$.subscribe({
@@ -128,111 +129,112 @@ describe('GlobalErrorService', () => {
     // Check completion asynchronously if needed, or trust that .complete() works
     // For a Subject, once complete, new subscriptions also complete immediately.
     // We can test this by trying to subscribe after completion or checking a flag.
-    await new Promise(resolve => setTimeout(resolve,0)); // allow microtasks to run
+    await new Promise((resolve) => setTimeout(resolve, 0)); // allow microtasks to run
     expect(isCompleted).toBe(true);
     subscription.unsubscribe();
   });
 
   describe('Global Error Handler Setup', () => {
     it('should attempt to setup browser global error handlers if window is defined', () => {
-        service.dispose();
-        const tempWindow = global.window;
-        if(!global.window) global.window = { addEventListener: vi.fn() } as any;
+      service.dispose();
+      const tempWindow = global.window;
+      if (!global.window) global.window = { addEventListener: vi.fn() } as any;
 
-        mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
-        service = new GlobalErrorService(); // Re-init with mocked window
+      mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
+      service = new GlobalErrorService(); // Re-init with mocked window
 
-        expect(mockWindowAddEventListener).toHaveBeenCalledWith('error', expect.any(Function));
-        expect(mockWindowAddEventListener).toHaveBeenCalledWith('unhandledrejection', expect.any(Function));
+      expect(mockWindowAddEventListener).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(mockWindowAddEventListener).toHaveBeenCalledWith('unhandledrejection', expect.any(Function));
 
-        global.window = tempWindow;
+      global.window = tempWindow;
     });
 
     it('should attempt to setup Node.js global error handlers if process is defined and window is not', () => {
-        service.dispose();
+      service.dispose();
 
-        const tempWindow = global.window;
-        const tempProcess = global.process;
-        delete (global as any).window;
-        if(!global.process || !global.process.on) global.process = { on: vi.fn() } as any;
+      const tempWindow = global.window;
+      const tempProcess = global.process;
+      delete (global as any).window;
+      if (!global.process || !global.process.on) global.process = { on: vi.fn() } as any;
 
-        mockProcessOn = vi.spyOn(global.process, 'on');
-        service = new GlobalErrorService(); // Re-init
+      mockProcessOn = vi.spyOn(global.process, 'on');
+      service = new GlobalErrorService(); // Re-init
 
-        expect(mockProcessOn).toHaveBeenCalledWith('uncaughtException', expect.any(Function));
-        expect(mockProcessOn).toHaveBeenCalledWith('unhandledRejection', expect.any(Function));
+      expect(mockProcessOn).toHaveBeenCalledWith('uncaughtException', expect.any(Function));
+      expect(mockProcessOn).toHaveBeenCalledWith('unhandledRejection', expect.any(Function));
 
-        global.window = tempWindow;
-        global.process = tempProcess;
+      global.window = tempWindow;
+      global.process = tempProcess;
     });
 
     it('browser "error" event handler should call handleError', () => {
-        service.dispose();
-        const tempWindow = global.window;
-        if(!global.window) global.window = { addEventListener: vi.fn() } as any;
-        mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
-        service = new GlobalErrorService();
+      service.dispose();
+      const tempWindow = global.window;
+      if (!global.window) global.window = { addEventListener: vi.fn() } as any;
+      mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
+      service = new GlobalErrorService();
 
-        const errorHandler = mockWindowAddEventListener?.mock.calls.find(call => call[0] === 'error')?.[1];
-        expect(errorHandler).toBeDefined();
+      const errorHandler = mockWindowAddEventListener?.mock.calls.find((call) => call[0] === 'error')?.[1];
+      expect(errorHandler).toBeDefined();
 
-        const mockErrorEvent = {
-            message: 'A wild error appeared!',
-            error: new Error('Wild Error'),
-            filename: 'test.js'
-        } as ErrorEvent;
+      const mockErrorEvent = {
+        message: 'A wild error appeared!',
+        error: new Error('Wild Error'),
+        filename: 'test.js',
+      } as ErrorEvent;
 
-        const handleErrorSpy = vi.spyOn(service, 'handleError');
-        if (errorHandler) {
-            errorHandler(mockErrorEvent);
-        }
+      const handleErrorSpy = vi.spyOn(service, 'handleError');
+      if (errorHandler) {
+        errorHandler(mockErrorEvent);
+      }
 
-        expect(handleErrorSpy).toHaveBeenCalledWith(mockErrorEvent.error, `window.onerror: ${mockErrorEvent.filename}`);
-        handleErrorSpy.mockRestore();
-        global.window = tempWindow;
+      expect(handleErrorSpy).toHaveBeenCalledWith(mockErrorEvent.error, `window.onerror: ${mockErrorEvent.filename}`);
+      handleErrorSpy.mockRestore();
+      global.window = tempWindow;
     });
 
     it('browser "unhandledrejection" event handler should call handleError', () => {
-        service.dispose();
-        const tempWindow = global.window;
-        if(!global.window) global.window = { addEventListener: vi.fn() } as any;
-        mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
-        service = new GlobalErrorService();
+      service.dispose();
+      const tempWindow = global.window;
+      if (!global.window) global.window = { addEventListener: vi.fn() } as any;
+      mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
+      service = new GlobalErrorService();
 
-        const rejectionHandler = mockWindowAddEventListener?.mock.calls.find(call => call[0] === 'unhandledrejection')?.[1];
-        expect(rejectionHandler).toBeDefined();
+      const rejectionHandler = mockWindowAddEventListener?.mock.calls.find(
+        (call) => call[0] === 'unhandledrejection',
+      )?.[1];
+      expect(rejectionHandler).toBeDefined();
 
-        const mockRejectionEvent = { reason: 'Promise rejected badly' } as PromiseRejectionEvent;
+      const mockRejectionEvent = { reason: 'Promise rejected badly' } as PromiseRejectionEvent;
 
-        const handleErrorSpy = vi.spyOn(service, 'handleError');
-        if (rejectionHandler) {
-            rejectionHandler(mockRejectionEvent);
-        }
+      const handleErrorSpy = vi.spyOn(service, 'handleError');
+      if (rejectionHandler) {
+        rejectionHandler(mockRejectionEvent);
+      }
 
-        expect(handleErrorSpy).toHaveBeenCalledWith(mockRejectionEvent.reason, 'window.onunhandledrejection');
-        handleErrorSpy.mockRestore();
-        global.window = tempWindow;
+      expect(handleErrorSpy).toHaveBeenCalledWith(mockRejectionEvent.reason, 'window.onunhandledrejection');
+      handleErrorSpy.mockRestore();
+      global.window = tempWindow;
     });
 
-
     it('browser "error" event handler should suppress ResizeObserver loop limit error', () => {
-        service.dispose();
-        const tempWindow = global.window;
-        if(!global.window) global.window = { addEventListener: vi.fn() } as any;
-        mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
-        service = new GlobalErrorService();
+      service.dispose();
+      const tempWindow = global.window;
+      if (!global.window) global.window = { addEventListener: vi.fn() } as any;
+      mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
+      service = new GlobalErrorService();
 
-        const errorHandler = mockWindowAddEventListener?.mock.calls.find(call => call[0] === 'error')?.[1];
-        const mockResizeObserverErrorEvent = { message: 'ResizeObserver loop limit exceeded' } as ErrorEvent;
+      const errorHandler = mockWindowAddEventListener?.mock.calls.find((call) => call[0] === 'error')?.[1];
+      const mockResizeObserverErrorEvent = { message: 'ResizeObserver loop limit exceeded' } as ErrorEvent;
 
-        const handleErrorSpy = vi.spyOn(service, 'handleError');
-        if (errorHandler) {
-            errorHandler(mockResizeObserverErrorEvent);
-        }
+      const handleErrorSpy = vi.spyOn(service, 'handleError');
+      if (errorHandler) {
+        errorHandler(mockResizeObserverErrorEvent);
+      }
 
-        expect(handleErrorSpy).not.toHaveBeenCalled();
-        handleErrorSpy.mockRestore();
-        global.window = tempWindow;
+      expect(handleErrorSpy).not.toHaveBeenCalled();
+      handleErrorSpy.mockRestore();
+      global.window = tempWindow;
     });
   });
 });

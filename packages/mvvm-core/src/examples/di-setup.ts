@@ -22,7 +22,7 @@ class DataFetcherService {
   constructor(
     private config: AppConfig,
     private errorService: GlobalErrorService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
   ) {
     this.notificationService.showInfo('DataFetcherService initialized.', 1000);
   }
@@ -30,7 +30,7 @@ class DataFetcherService {
   fetchData(endpoint: string): Observable<any> {
     this.notificationService.showInfo(`Fetching data from ${this.config.apiUrl}/${endpoint}`, 2000);
     if (!this.config.featureFlags.enableLogging) {
-        console.warn("Logging is disabled in DataFetcherService via feature flag.");
+      console.warn('Logging is disabled in DataFetcherService via feature flag.');
     }
     // Simulate API call
     if (endpoint === 'fail') {
@@ -55,7 +55,6 @@ const UserProfileSchema = z.object({
   email: z.string().email(),
 });
 type UserProfile = z.infer<typeof UserProfileSchema>;
-
 
 // --- 2. Augment ServiceRegistry with all application services ---
 declare module '../core/di-container' {
@@ -99,9 +98,8 @@ export function initializeApplicationServices() {
   const newDashboardFlagFactory: Factory<boolean> = (config: AppConfig) => config.featureFlags.newDashboard;
   SimpleDIContainer.register('featureFlag_newDashboard', newDashboardFlagFactory, {
     dependencies: ['appConfig'],
-    isSingleton: true // Flags derived from config are effectively singletons if config is
+    isSingleton: true, // Flags derived from config are effectively singletons if config is
   });
-
 
   // Register Application Specific Services
   SimpleDIContainer.register('dataFetcher', DataFetcherService, {
@@ -113,23 +111,24 @@ export function initializeApplicationServices() {
   // Factory for UserProfileForm
   const userProfileFormFactory: Factory<FormViewModel<UserProfile, typeof UserProfileSchema, UserProfile>> = (
     notificationService: NotificationService, // Example: Form may use notifications
-    globalErrorService: GlobalErrorService
+    globalErrorService: GlobalErrorService,
   ) => {
     return new FormViewModel<UserProfile, typeof UserProfileSchema, UserProfile>(
       { name: '', email: '' }, // Initial data
       UserProfileSchema,
-      async (data) => { // Submit handler
+      async (data) => {
+        // Submit handler
         notificationService.showInfo('Submitting profile...', 2000);
         // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         if (data.email.includes('fail')) {
-            const err = new Error("Simulated profile submission error for email containing 'fail'");
-            globalErrorService.handleError(err, 'UserProfileForm.Submit');
-            throw err;
+          const err = new Error("Simulated profile submission error for email containing 'fail'");
+          globalErrorService.handleError(err, 'UserProfileForm.Submit');
+          throw err;
         }
         notificationService.showSuccess('Profile submitted successfully!', 3000);
         return { ...data }; // Return submitted data
-      }
+      },
     );
   };
   SimpleDIContainer.register('userProfileForm', userProfileFormFactory, {
@@ -158,7 +157,8 @@ export function demonstrateDISetup() {
   console.log('\n--- Demonstrating DI Setup Usage ---');
 
   // Ensure services are initialized (in a real app, this happens once at startup)
-  if (!SimpleDIContainer.isRegistered('appConfig')) { // Check if already initialized
+  if (!SimpleDIContainer.isRegistered('appConfig')) {
+    // Check if already initialized
     initializeApplicationServices();
   }
 
@@ -167,11 +167,9 @@ export function demonstrateDISetup() {
   console.log('Resolved App API URL:', config.apiUrl);
   console.log('New Dashboard Feature Flag:', SimpleDIContainer.resolve('featureFlag_newDashboard'));
 
-
   const dataFetcher = SimpleDIContainer.resolve('dataFetcher');
-  dataFetcher.fetchData('users').subscribe(response => console.log('DataFetcher Response (users):', response));
-  dataFetcher.fetchData('fail').subscribe(response => console.log('DataFetcher Response (fail):', response));
-
+  dataFetcher.fetchData('users').subscribe((response) => console.log('DataFetcher Response (users):', response));
+  dataFetcher.fetchData('fail').subscribe((response) => console.log('DataFetcher Response (fail):', response));
 
   // Resolve a transient ViewModel instance
   const form1 = SimpleDIContainer.resolve('userProfileForm');
@@ -183,24 +181,29 @@ export function demonstrateDISetup() {
   form2.updateField('name', 'Bob');
 
   if (form1 === form2) {
-    console.error("DI ERROR: userProfileForm should be transient but got same instance!");
+    console.error('DI ERROR: userProfileForm should be transient but got same instance!');
   } else {
-    console.log("DI SUCCESS: userProfileForm instances are different (transient).");
+    console.log('DI SUCCESS: userProfileForm instances are different (transient).');
   }
-
 
   // Resolve a singleton ViewModel instance
   const productList1 = SimpleDIContainer.resolve('productListVM');
   productList1.setFilter('Laptop');
-  console.log('ProductList1 Page 1 (Filtered):', productList1.paginatedItems$.getValue().map(p=>p.name));
+  console.log(
+    'ProductList1 Page 1 (Filtered):',
+    productList1.paginatedItems$.getValue().map((p) => p.name),
+  );
 
   const productList2 = SimpleDIContainer.resolve('productListVM'); // Should be the same instance
-  console.log('ProductList2 Page 1 (Should also be Filtered):', productList2.paginatedItems$.getValue().map(p=>p.name));
+  console.log(
+    'ProductList2 Page 1 (Should also be Filtered):',
+    productList2.paginatedItems$.getValue().map((p) => p.name),
+  );
 
   if (productList1 !== productList2) {
-    console.error("DI ERROR: productListVM should be singleton but got different instances!");
+    console.error('DI ERROR: productListVM should be singleton but got different instances!');
   } else {
-    console.log("DI SUCCESS: productListVM instances are the same (singleton).");
+    console.log('DI SUCCESS: productListVM instances are the same (singleton).');
   }
 
   // Clean up by resetting the container if you were to run this multiple times in a test suite, for example.
@@ -210,6 +213,6 @@ export function demonstrateDISetup() {
 
 // To run this example:
 if (require.main === module) {
-    demonstrateDISetup();
-    // Note: initializeApplicationServices() is called by demonstrateDISetup() if needed.
+  demonstrateDISetup();
+  // Note: initializeApplicationServices() is called by demonstrateDISetup() if needed.
 }

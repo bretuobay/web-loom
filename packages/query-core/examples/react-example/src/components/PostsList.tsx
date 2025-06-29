@@ -28,7 +28,7 @@ const PostsList: React.FC = () => {
       const currentState = queryCore.getState<Post[]>(POSTS_ENDPOINT_KEY);
       if (!currentState.isLoading && !currentState.data) {
         // Check if data is undefined or empty array before refetching
-         queryCore.refetch<Post[]>(POSTS_ENDPOINT_KEY);
+        queryCore.refetch<Post[]>(POSTS_ENDPOINT_KEY);
       }
     }
 
@@ -46,7 +46,11 @@ const PostsList: React.FC = () => {
   }
 
   if (postsState.isError) {
-    return <div className="text-center mt-2 error-message">Error fetching posts: {postsState.error?.message || 'Unknown error'}</div>;
+    return (
+      <div className="text-center mt-2 error-message">
+        Error fetching posts: {postsState.error?.message || 'Unknown error'}
+      </div>
+    );
   }
 
   return (
@@ -56,9 +60,7 @@ const PostsList: React.FC = () => {
         <ul className="posts-list">
           {postsState.data.map((post) => (
             <li key={post.id}>
-              <Link to={`/posts/${post.id}`}>
-                {post.title}
-              </Link>
+              <Link to={`/posts/${post.id}`}>{post.title}</Link>
               {/* Optional: Add a snippet of post.body if desired, or style differently */}
               {/* <p>{post.body.substring(0, 100)}...</p> */}
             </li>

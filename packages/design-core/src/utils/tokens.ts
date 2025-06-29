@@ -57,7 +57,6 @@ function processTokenNode(node: any): TokenValue | TokenGroup | TokenCategory {
   return node as TokenValue; // Return primitive value as is
 }
 
-
 // --- Function to load and process tokens ---
 // This is a conceptual function. Actual file reading needs a Node.js environment.
 // For now, it will log that it needs to be implemented.
@@ -125,7 +124,7 @@ function resolveTokenReferences(tokens: DesignTokens): void {
     // This shouldn't happen if processTokenNode was used correctly, as it unwraps .value
     // But as a safeguard or if direct values are objects.
     if (typeof current === 'object' && current !== null && 'value' in current) {
-        return current.value;
+      return current.value;
     }
     return current as TokenValue;
   }
@@ -139,10 +138,10 @@ function resolveTokenReferences(tokens: DesignTokens): void {
         if (resolvedValue !== undefined) {
           // Update the value in the tokens object
           let parent = tokens;
-          for (let i = 0; i < path_array.length -1; i++) {
+          for (let i = 0; i < path_array.length - 1; i++) {
             parent = parent[path_array[i]] as TokenCategory | TokenGroup;
           }
-          (parent as any)[path_array[path_array.length -1]] = resolvedValue;
+          (parent as any)[path_array[path_array.length - 1]] = resolvedValue;
         } else {
           console.warn(`Token reference "${value}" at path "${path_array.join('.')}" could not be resolved.`);
         }
@@ -153,10 +152,10 @@ function resolveTokenReferences(tokens: DesignTokens): void {
 
 // Helper to walk through nested token objects
 function function_walker(
-    obj: DesignTokens | TokenCategory | TokenGroup,
-    callback: (value: TokenValue, path: string[]) => void,
-    currentPath: string[] = []
-  ) {
+  obj: DesignTokens | TokenCategory | TokenGroup,
+  callback: (value: TokenValue, path: string[]) => void,
+  currentPath: string[] = [],
+) {
   for (const key in obj) {
     const value = (obj as any)[key];
     const newPath = currentPath.concat(key);
@@ -167,7 +166,6 @@ function function_walker(
     }
   }
 }
-
 
 // --- Public API ---
 

@@ -68,7 +68,11 @@ const PostDetail: React.FC = () => {
   }
 
   if (postState.isError) {
-    return <div className="text-center mt-2 error-message">Error fetching post {id}: {postState.error?.message || 'Unknown error'}</div>;
+    return (
+      <div className="text-center mt-2 error-message">
+        Error fetching post {id}: {postState.error?.message || 'Unknown error'}
+      </div>
+    );
   }
 
   if (!postState.data) {

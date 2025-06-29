@@ -25,14 +25,14 @@ export class GlobalErrorService {
    */
   public readonly processedErrors$: Observable<HandledError>;
 
-
   constructor() {
     // This stream helps manage the 'processed' flag if needed.
     // For simple cases, uncaughtErrors$ is often enough.
-    this.processedErrors$ = this._errorSubject$.pipe(
-        // Example: One handler could mark error as processed to prevent others from also showing a UI message.
-        // tap(error => { if (!error.processed) error.processed = true; })
-    );
+    this.processedErrors$ = this._errorSubject$
+      .pipe
+      // Example: One handler could mark error as processed to prevent others from also showing a UI message.
+      // tap(error => { if (!error.processed) error.processed = true; })
+      ();
 
     // Optional: Setup global listeners for truly unhandled errors
     // This is environment-dependent (browser vs. Node.js) and might need careful consideration.
@@ -75,19 +75,19 @@ export class GlobalErrorService {
         // Filter out some common non-critical errors if needed
         // For example, ResizeObserver loop limit exceeded is often benign.
         if (event.message && event.message.includes('ResizeObserver loop limit exceeded')) {
-            // console.warn("GlobalErrorHandler: Suppressed ResizeObserver loop limit error.");
-            return;
+          // console.warn("GlobalErrorHandler: Suppressed ResizeObserver loop limit error.");
+          return;
         }
         this.handleError(event.error || event.message, `window.onerror: ${event.filename || 'unknown file'}`);
         // return true; // To prevent default browser error handling (e.g., console message)
-                      // Usually, you want the default handling too, so don't return true unless specific reason.
+        // Usually, you want the default handling too, so don't return true unless specific reason.
       });
 
       // Handles unhandled promise rejections
       window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
         this.handleError(event.reason, 'window.onunhandledrejection');
         // event.preventDefault(); // To prevent default browser handling (e.g., console message)
-                                // Usually, you want the default handling too.
+        // Usually, you want the default handling too.
       });
     }
     // --- Node.js Environment (Basic Example) ---

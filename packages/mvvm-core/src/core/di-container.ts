@@ -68,7 +68,7 @@ export class SimpleDIContainer {
     options: {
       isSingleton?: boolean;
       dependencies?: (keyof ServiceRegistry)[];
-    } = {}
+    } = {},
   ): void {
     if (this.registry.has(key) && (options.isSingleton ?? false)) {
       // console.warn(`DI Container: Service key "${String(key)}" is already registered as a singleton. Re-registration may occur.`);
@@ -90,7 +90,10 @@ export class SimpleDIContainer {
    * @returns An instance of the resolved service.
    * @throws Error if the service is not registered or if a circular dependency is detected (basic check).
    */
-  public static resolve<K extends keyof ServiceRegistry>(key: K, resolutionPath: (keyof ServiceRegistry)[] = []): NonNullable<ServiceRegistry[K]> {
+  public static resolve<K extends keyof ServiceRegistry>(
+    key: K,
+    resolutionPath: (keyof ServiceRegistry)[] = [],
+  ): NonNullable<ServiceRegistry[K]> {
     const registration = this.registry.get(key);
 
     if (!registration) {
@@ -98,9 +101,9 @@ export class SimpleDIContainer {
     }
 
     if (resolutionPath.includes(key)) {
-        throw new Error(
-            `DI Container: Circular dependency detected for key "${String(key)}". Path: ${resolutionPath.join(' -> ')} -> ${String(key)}`
-        );
+      throw new Error(
+        `DI Container: Circular dependency detected for key "${String(key)}". Path: ${resolutionPath.join(' -> ')} -> ${String(key)}`,
+      );
     }
 
     if (registration.isSingleton && registration.instance !== undefined) {
@@ -108,11 +111,14 @@ export class SimpleDIContainer {
     }
 
     const currentResolutionPath = [...resolutionPath, key];
-    const dependencies = (registration.dependencies || []).map(depKey => {
-        if (depKey === key) { // Self-dependency, only allowed if not a direct circular constructor call
-             throw new Error(`DI Container: Service "${String(key)}" cannot directly depend on itself in the dependencies array.`);
-        }
-        return this.resolve(depKey, currentResolutionPath);
+    const dependencies = (registration.dependencies || []).map((depKey) => {
+      if (depKey === key) {
+        // Self-dependency, only allowed if not a direct circular constructor call
+        throw new Error(
+          `DI Container: Service "${String(key)}" cannot directly depend on itself in the dependencies array.`,
+        );
+      }
+      return this.resolve(depKey, currentResolutionPath);
     });
 
     let instance: NonNullable<ServiceRegistry[K]>;
@@ -125,9 +131,8 @@ export class SimpleDIContainer {
         instance = registration.resolver(...dependencies);
       }
     } catch (e: any) {
-        throw new Error(`DI Container: Error instantiating service "${String(key)}". Original error: ${e.message}`);
+      throw new Error(`DI Container: Error instantiating service "${String(key)}". Original error: ${e.message}`);
     }
-
 
     if (registration.isSingleton) {
       registration.instance = instance;
@@ -152,7 +157,9 @@ export class SimpleDIContainer {
     // Factories are functions but their prototype property might not be as distinct,
     // or they might be arrow functions without a prototype.
     // This check is heuristic and might not cover all edge cases for complex factory types.
-    return typeof resolver === 'function' && resolver.prototype !== undefined && resolver.prototype.constructor === resolver;
+    return (
+      typeof resolver === 'function' && resolver.prototype !== undefined && resolver.prototype.constructor === resolver
+    );
   }
 
   /**

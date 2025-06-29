@@ -12,16 +12,11 @@ export {
   getTokenVar,
   getResolvedTokenVar,
   generateCssVariablesMap,
-  generateCssVariablesString
+  generateCssVariablesString,
 } from './cssVariables';
 
 // Export functions and types from theme.ts
-export {
-  createTheme,
-  applyTheme,
-  setTheme,
-  getCurrentTheme
-} from './theme';
+export { createTheme, applyTheme, setTheme, getCurrentTheme } from './theme';
 export type { Theme } from './theme'; // Export Theme interface specifically if not covered by '*'
 
 // This index file serves as the public API for the utilities directory.

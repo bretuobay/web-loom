@@ -1,6 +1,7 @@
 import type { DesignTokenValue } from './token-value';
 
-export interface OpacityValue extends DesignTokenValue<string> { // Or number, if values are strictly numeric
+export interface OpacityValue extends DesignTokenValue<string> {
+  // Or number, if values are strictly numeric
   type: 'opacity';
 }
 

@@ -21,7 +21,7 @@ export class NotificationService {
   public showNotification(
     message: string,
     type: Notification['type'],
-    duration?: number // If duration is 0 or undefined, it's persistent
+    duration?: number, // If duration is 0 or undefined, it's persistent
   ): string {
     const id = this.generateId();
     const isPersistent = duration === undefined || duration <= 0;
@@ -38,11 +38,15 @@ export class NotificationService {
 
     if (!isPersistent && duration && duration > 0) {
       timer(duration)
-        .pipe(takeUntil(this._notifications$.pipe(
-            // Stop the timer if the notification is manually dismissed before the duration.
-            // The condition for stopping is when the notification is NO LONGER found.
-            filter(notifications => !notifications.some(n => n.id === id))
-        )))
+        .pipe(
+          takeUntil(
+            this._notifications$.pipe(
+              // Stop the timer if the notification is manually dismissed before the duration.
+              // The condition for stopping is when the notification is NO LONGER found.
+              filter((notifications) => !notifications.some((n) => n.id === id)),
+            ),
+          ),
+        )
         .subscribe(() => {
           // This will only be called if takeUntil hasn't already completed the stream.
           this.dismissNotification(id);
@@ -84,22 +88,17 @@ export class NotificationService {
     return this.showNotification(message, 'warning', 0);
   }
 
-
   public dismissNotification(id: string): void {
     const currentNotifications = this._notifications$.getValue();
-    const notificationExists = currentNotifications.some(n => n.id === id);
+    const notificationExists = currentNotifications.some((n) => n.id === id);
     if (notificationExists) {
-        this._notifications$.next(
-            currentNotifications.filter(n => n.id !== id)
-        );
+      this._notifications$.next(currentNotifications.filter((n) => n.id !== id));
     }
   }
 
   public clearAll(type?: Notification['type']): void {
     if (type) {
-      this._notifications$.next(
-        this._notifications$.getValue().filter(n => n.type !== type)
-      );
+      this._notifications$.next(this._notifications$.getValue().filter((n) => n.type !== type));
     } else {
       this._notifications$.next([]);
     }

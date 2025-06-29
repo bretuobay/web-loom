@@ -13,7 +13,6 @@ export interface TransitionPropertyValue extends DesignTokenValue<string> {
   type: 'transition';
 }
 
-
 export interface TransitionDuration {
   fast: DurationValue;
   medium: DurationValue;

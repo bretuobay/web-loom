@@ -3,12 +3,12 @@ import { QueryableCollectionViewModel } from './queryable-collection-view-model'
 import { firstValueFrom, skip, Observable, BehaviorSubject, take, toArray } from 'rxjs';
 
 // Helper for advancing timers and flushing microtasks
-const advanceCollectionTimers = async (time = 200) => { // Default to filter debounce time
+const advanceCollectionTimers = async (time = 200) => {
+  // Default to filter debounce time
   vi.advanceTimersByTime(time);
   await Promise.resolve(); // Flush microtasks related to Promise.resolve().then() in VM
   await Promise.resolve(); // Sometimes an extra tick helps for complex observable chains
 };
-
 
 interface TestItem {
   id: number;
@@ -129,7 +129,7 @@ describe('QueryableCollectionViewModel', () => {
       expect(paginatedItems[0].id).toBe(1);
     });
 
-     it.skip('should adjust current page if it becomes out of bounds after page size change', async () => {
+    it.skip('should adjust current page if it becomes out of bounds after page size change', async () => {
       viewModel.goToPage(3);
       await advanceCollectionTimers(0);
       expect(await firstValueFrom(viewModel.currentPage$)).toBe(3);
@@ -149,14 +149,22 @@ describe('QueryableCollectionViewModel', () => {
       const totalItems = await firstValueFrom(viewModel.totalItems$);
       const totalPages = await firstValueFrom(viewModel.totalPages$);
       const pageSize = await firstValueFrom(viewModel.pageSize$);
-      const expectedFruitCount = sampleData.filter(item => item.category === 'Fruit' || item.name.toLowerCase().includes('fruit') || String(item.value).includes('fruit')).length;
+      const expectedFruitCount = sampleData.filter(
+        (item) =>
+          item.category === 'Fruit' ||
+          item.name.toLowerCase().includes('fruit') ||
+          String(item.value).includes('fruit'),
+      ).length;
       expect(totalItems).toBe(expectedFruitCount);
-      expect(paginatedItems.every(item =>
-        item.category === 'Fruit' ||
-        item.name.toLowerCase().includes('fruit') ||
-        String(item.value).toLowerCase().includes('fruit')
-      )).toBe(true);
-      expect(totalPages).toBe(Math.ceil(expectedFruitCount / pageSize ));
+      expect(
+        paginatedItems.every(
+          (item) =>
+            item.category === 'Fruit' ||
+            item.name.toLowerCase().includes('fruit') ||
+            String(item.value).toLowerCase().includes('fruit'),
+        ),
+      ).toBe(true);
+      expect(totalPages).toBe(Math.ceil(expectedFruitCount / pageSize));
     });
 
     it.skip('setFilter with empty string should show all items', async () => {
@@ -220,27 +228,27 @@ describe('QueryableCollectionViewModel', () => {
     });
 
     it('setSort should default to asc for a new key', async () => {
-        // This test was passing
-        viewModel.setSort('value', 'desc');
-        await advanceCollectionTimers(10);
-        expect(await firstValueFrom(viewModel.sortDirection$)).toBe('desc');
+      // This test was passing
+      viewModel.setSort('value', 'desc');
+      await advanceCollectionTimers(10);
+      expect(await firstValueFrom(viewModel.sortDirection$)).toBe('desc');
 
-        viewModel.setSort('name');
-        await advanceCollectionTimers(10);
-        expect(await firstValueFrom(viewModel.sortBy$)).toBe('name');
-        expect(await firstValueFrom(viewModel.sortDirection$)).toBe('asc');
+      viewModel.setSort('name');
+      await advanceCollectionTimers(10);
+      expect(await firstValueFrom(viewModel.sortBy$)).toBe('name');
+      expect(await firstValueFrom(viewModel.sortDirection$)).toBe('asc');
     });
 
     it.skip('sorting should handle numeric values correctly', async () => {
       viewModel.setSort('value', 'asc');
       await advanceCollectionTimers(10);
       let paginatedItems = await firstValueFrom(viewModel.paginatedItems$);
-      expect(paginatedItems.map(p => p.value)).toEqual([5, 8, 10, 12, 15]);
+      expect(paginatedItems.map((p) => p.value)).toEqual([5, 8, 10, 12, 15]);
 
       viewModel.setSort('value', 'desc');
       await advanceCollectionTimers(10);
       paginatedItems = await firstValueFrom(viewModel.paginatedItems$);
-      expect(paginatedItems.map(p => p.value)).toEqual([100, 50, 40, 30, 25]);
+      expect(paginatedItems.map((p) => p.value)).toEqual([100, 50, 40, 30, 25]);
     });
 
     it.skip('sorting should handle null or undefined values by placing them first in asc and last in desc', async () => {
@@ -255,12 +263,12 @@ describe('QueryableCollectionViewModel', () => {
       vmWithNulls.setSort('nullableProp', 'asc');
       await advanceCollectionTimers(10);
       let items = await firstValueFrom(vmWithNulls.paginatedItems$);
-      expect(items.map(i => i.nullableProp)).toEqual([null, undefined, 'X', 'Z']);
+      expect(items.map((i) => i.nullableProp)).toEqual([null, undefined, 'X', 'Z']);
 
       vmWithNulls.setSort('nullableProp', 'desc');
       await advanceCollectionTimers(10);
       items = await firstValueFrom(vmWithNulls.paginatedItems$);
-      expect(items.map(i => i.nullableProp)).toEqual(['Z', 'X', null, undefined]);
+      expect(items.map((i) => i.nullableProp)).toEqual(['Z', 'X', null, undefined]);
 
       vmWithNulls.dispose();
     });
@@ -279,47 +287,46 @@ describe('QueryableCollectionViewModel', () => {
     });
 
     it.skip('addItem should add an item to the collection', async () => {
-        const newItem: TestItem = { id: 13, name: 'Mango', category: 'Fruit', value: 35 };
-        const initialTotal = await firstValueFrom(viewModel.totalItems$); // Needs to account for startWith/debounce
-        viewModel.addItem(newItem);
-        await advanceCollectionTimers(10); // For allItems$ update
-        // Re-evaluate how to get totalItems reliably
-        const currentTotalItems = await firstValueFrom(viewModel.totalItems$.pipe(skip(1))); // Skip startWith
-        expect(currentTotalItems).toBe(initialTotal + 1);
+      const newItem: TestItem = { id: 13, name: 'Mango', category: 'Fruit', value: 35 };
+      const initialTotal = await firstValueFrom(viewModel.totalItems$); // Needs to account for startWith/debounce
+      viewModel.addItem(newItem);
+      await advanceCollectionTimers(10); // For allItems$ update
+      // Re-evaluate how to get totalItems reliably
+      const currentTotalItems = await firstValueFrom(viewModel.totalItems$.pipe(skip(1))); // Skip startWith
+      expect(currentTotalItems).toBe(initialTotal + 1);
 
-
-        viewModel.setFilter('Mango');
-        await advanceCollectionTimers(); // For filter
-        const filteredItems = await firstValueFrom(viewModel.paginatedItems$.pipe(skip(1))); // Skip previous state
-        expect(filteredItems.length).toBe(1);
-        expect(filteredItems[0].id).toBe(13);
+      viewModel.setFilter('Mango');
+      await advanceCollectionTimers(); // For filter
+      const filteredItems = await firstValueFrom(viewModel.paginatedItems$.pipe(skip(1))); // Skip previous state
+      expect(filteredItems.length).toBe(1);
+      expect(filteredItems[0].id).toBe(13);
     });
 
     it.skip('removeItem should remove an item from the collection', async () => {
-        const initialTotal = await firstValueFrom(viewModel.totalItems$.pipe(skip(1))); // Account for startWith/debounce
-        viewModel.removeItem('id', 1);
-        await advanceCollectionTimers(10);
-        expect(await firstValueFrom(viewModel.totalItems$.pipe(skip(1)))).toBe(initialTotal - 1);
+      const initialTotal = await firstValueFrom(viewModel.totalItems$.pipe(skip(1))); // Account for startWith/debounce
+      viewModel.removeItem('id', 1);
+      await advanceCollectionTimers(10);
+      expect(await firstValueFrom(viewModel.totalItems$.pipe(skip(1)))).toBe(initialTotal - 1);
 
-        viewModel.setFilter('Apple');
-        await advanceCollectionTimers(); // For filter
-        const filteredItems = await firstValueFrom(viewModel.paginatedItems$.pipe(skip(1)));
-        expect(filteredItems.length).toBe(0);
+      viewModel.setFilter('Apple');
+      await advanceCollectionTimers(); // For filter
+      const filteredItems = await firstValueFrom(viewModel.paginatedItems$.pipe(skip(1)));
+      expect(filteredItems.length).toBe(0);
     });
 
     it.skip('updateItem should modify an existing item', async () => {
-        viewModel.updateItem('id', 2, { name: 'Golden Banana', value: 25 });
-        await advanceCollectionTimers(10); // For allItems$ update
+      viewModel.updateItem('id', 2, { name: 'Golden Banana', value: 25 });
+      await advanceCollectionTimers(10); // For allItems$ update
 
-        viewModel.setFilter('Golden Banana'); // This will trigger its own debounce for processedItems
-        await advanceCollectionTimers(); // For filter debounce
+      viewModel.setFilter('Golden Banana'); // This will trigger its own debounce for processedItems
+      await advanceCollectionTimers(); // For filter debounce
 
-        // Need to skip potentially multiple emissions if paginatedItems was already emitting
-        const items = await firstValueFrom(viewModel.paginatedItems$.pipe(skip(1))); // Adjust skip as needed
-        expect(items.length).toBe(1);
-        expect(items[0].name).toBe('Golden Banana');
-        expect(items[0].value).toBe(25);
-        expect(items[0].category).toBe('Fruit'); // Original category should persist
+      // Need to skip potentially multiple emissions if paginatedItems was already emitting
+      const items = await firstValueFrom(viewModel.paginatedItems$.pipe(skip(1))); // Adjust skip as needed
+      expect(items.length).toBe(1);
+      expect(items[0].name).toBe('Golden Banana');
+      expect(items[0].value).toBe(25);
+      expect(items[0].category).toBe('Fruit'); // Original category should persist
     });
   });
 
@@ -332,15 +339,15 @@ describe('QueryableCollectionViewModel', () => {
       viewModel.sortBy$,
       viewModel.sortDirection$,
     ];
-    const completionPromises = observables.map(obs =>
-        new Promise<void>(resolve => obs.subscribe({ complete: () => resolve() }))
+    const completionPromises = observables.map(
+      (obs) => new Promise<void>((resolve) => obs.subscribe({ complete: () => resolve() })),
     );
     viewModel.dispose();
     await Promise.all(completionPromises); // This might need runAllTimers if dispose has async cleanup
     for (const obs of observables) {
-        let completed = false;
-        obs.subscribe({ complete: () => completed = true });
-        expect(completed).toBe(true);
+      let completed = false;
+      obs.subscribe({ complete: () => (completed = true) });
+      expect(completed).toBe(true);
     }
   });
 

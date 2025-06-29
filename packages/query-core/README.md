@@ -9,9 +9,9 @@ QueryCore is a lightweight, zero-dependency library for managing asynchronous da
 - **State Management:** Endpoints maintain their own state (data, loading, error, last updated).
 - **Subscription Model:** Components can subscribe to endpoint state changes and reactively update.
 - **Automatic Refetching:**
-    - Refetches stale data when a component subscribes.
-    - Refetches observed queries when the browser window becomes visible.
-    - Refetches observed queries when the network connection is restored.
+  - Refetches stale data when a component subscribes.
+  - Refetches observed queries when the browser window becomes visible.
+  - Refetches observed queries when the network connection is restored.
 - **Manual Control:** Methods to manually trigger refetches or invalidate cached data.
 - **Deep Cloning of Data:** Ensures data immutability for subscribers by providing structured clones of the state's data.
 
@@ -24,7 +24,8 @@ npm install query-core
 # yarn
 yarn add query-core
 ```
-*(Note: This assumes QueryCore will be published as an npm package. For now, you can use it directly from the `src` directory.)*
+
+_(Note: This assumes QueryCore will be published as an npm package. For now, you can use it directly from the `src` directory.)_
 
 ## Core Concepts
 
@@ -53,6 +54,7 @@ export interface QueryCoreOptions {
   defaultRefetchAfter?: number; // Global default for refetchAfter (in milliseconds)
 }
 ```
+
 - `cacheProvider`: Specifies the default caching mechanism. Can be a string (`'inMemory'`, `'localStorage'`, `'indexedDB'`) or a custom object implementing the `CacheProvider` interface.
 - `defaultRefetchAfter`: A global default (in milliseconds) indicating how long data is considered fresh before a refetch is attempted upon subscription or window focus.
 
@@ -66,6 +68,7 @@ export interface EndpointOptions {
   cacheProvider?: 'inMemory' | 'localStorage' | 'indexedDB' | CacheProvider; // Override global cache provider
 }
 ```
+
 - `refetchAfter`: Endpoint-specific duration (in milliseconds) after which data is considered stale.
 - `cacheProvider`: Endpoint-specific cache provider (can be `'inMemory'`, `'localStorage'`, `'indexedDB'`, or a custom provider).
 
@@ -82,6 +85,7 @@ export interface EndpointState<TData> {
   lastUpdated: number | undefined; // Timestamp of when data was last successfully fetched and cached
 }
 ```
+
 - `data`: The fetched data for the endpoint. `undefined` if not yet fetched, or an error occurred.
 - `isLoading`: `true` if a fetch operation is currently in progress.
 - `isError`: `true` if the last fetch attempt resulted in an error.
@@ -149,8 +153,8 @@ Manually triggers a data refetch for an endpoint.
 
 - `endpointKey` (string): The key of the endpoint to refetch.
 - `forceRefetch` (boolean, optional, default: `false`):
-    - If `true`, the refetch will occur regardless of whether the data is considered stale (based on `refetchAfter`).
-    - If `false`, the refetch will only occur if the data is stale or has never been fetched.
+  - If `true`, the refetch will occur regardless of whether the data is considered stale (based on `refetchAfter`).
+  - If `false`, the refetch will only occur if the data is stale or has never been fetched.
 
 ```typescript
 // Refetch posts only if stale or never fetched
@@ -159,6 +163,7 @@ await queryCore.refetch('allPosts');
 // Force a refetch, even if data is considered fresh
 await queryCore.refetch('allPosts', true);
 ```
+
 If a fetch is already in progress for the endpoint, subsequent `refetch` calls (for the same endpoint) will be ignored until the current fetch completes.
 
 ### `async invalidate(endpointKey: string): Promise<void>`
@@ -205,7 +210,7 @@ async function fetchUserDetails(userId: string) {
 await queryClient.defineEndpoint(
   'userDetails/1',
   () => fetchUserDetails('1'),
-  { cacheProvider: 'localStorage' } // Override global cache provider for this endpoint
+  { cacheProvider: 'localStorage' }, // Override global cache provider for this endpoint
 );
 
 // 3. Subscribe to endpoint state (e.g., in a UI component)
@@ -234,6 +239,7 @@ const unsubscribe = queryClient.subscribe('userDetails/1', (state) => {
 ## Cache Providers
 
 QueryCore supports three built-in cache providers:
+
 - `InMemoryCacheProvider`: (Default) Uses an in-memory JavaScript `Map`. Data is lost when the page is refreshed or closed. Ideal for short-lived data or testing.
 - `LocalStorageCacheProvider`: Uses browser `localStorage`. Data is stored as JSON strings and persists across sessions.
 - `IndexedDBCacheProvider`: Uses browser `IndexedDB`. Offers more robust client-side storage and persists across sessions.
@@ -255,6 +261,7 @@ export interface CacheProvider {
   clearAll?(): Promise<void>; // Optional: for clearing all items managed by this provider
 }
 ```
+
 (Note: The interface name in the documentation was `CacheItem`, but in the code it's `CachedItem`. The `clear` method is `clearAll` in the code.)
 
 Then, pass an instance of your custom provider:

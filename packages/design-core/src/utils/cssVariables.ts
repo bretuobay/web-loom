@@ -55,7 +55,7 @@ export async function getResolvedTokenVar(path: string): Promise<string | undefi
 function flattenTokensToCssVars(
   tokens: DesignTokens | TokenCategory | TokenGroup,
   currentPath: string = '',
-  cssVarsMap: Record<string, TokenValue> = {}
+  cssVarsMap: Record<string, TokenValue> = {},
 ): Record<string, TokenValue> {
   for (const key in tokens) {
     const value = (tokens as any)[key];

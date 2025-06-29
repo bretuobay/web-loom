@@ -22,7 +22,7 @@ const UserSchema = z.object({
   email: z.string().email('Invalid email address'),
   age: z.number().min(18, 'You must be 18 or older to register').optional(),
   bio: z.string().max(200, 'Bio is too long').optional(),
-  agreeToTerms: z.boolean().refine(val => val === true, {
+  agreeToTerms: z.boolean().refine((val) => val === true, {
     message: 'You must agree to the terms and conditions',
   }),
 });
@@ -35,7 +35,7 @@ class UserFormViewModel extends FormViewModel<UserData, typeof UserSchema, UserD
     initialData: Partial<UserData>,
     // In a real app, this would likely come from DI too
     private notificationService: NotificationService,
-    private errorService: GlobalErrorService
+    private errorService: GlobalErrorService,
   ) {
     super(initialData, UserSchema, (data) => this.submitUserData(data));
   }
@@ -52,8 +52,8 @@ class UserFormViewModel extends FormViewModel<UserData, typeof UserSchema, UserD
           throw new Error('Simulated server validation failed for username "errorUser"');
         }
         if (data.username === 'networkError') {
-            this.notificationService.showError('Simulated network error.', 5000);
-            return throwError(() => new Error("Simulated Network Error"));
+          this.notificationService.showError('Simulated network error.', 5000);
+          return throwError(() => new Error('Simulated Network Error'));
         }
 
         const resultData: UserData = { ...data, id: data.id || `user-${Date.now()}` };
@@ -61,13 +61,13 @@ class UserFormViewModel extends FormViewModel<UserData, typeof UserSchema, UserD
         console.log('[UserFormViewModel] Submission successful:', resultData);
         return resultData;
       }),
-      catchError(err => {
+      catchError((err) => {
         console.error('[UserFormViewModel] Submission error:', err);
         // Use global error service for unexpected errors
         this.errorService.handleError(err, 'UserFormViewModel.submitUserData');
         // Propagate the error so the command's error handler can also react
         return throwError(() => err);
-      })
+      }),
     );
   }
 }
@@ -82,7 +82,8 @@ function setupDI() {
   }
 
   // Register the UserFormViewModel using a factory to inject dependencies
-  SimpleDIContainer.register('userFormViewModel',
+  SimpleDIContainer.register(
+    'userFormViewModel',
     (notificationService: NotificationService, globalErrorService: GlobalErrorService) => {
       const initialFormData: Partial<UserData> = {
         username: '',
@@ -93,8 +94,8 @@ function setupDI() {
     },
     {
       dependencies: ['notificationService', 'globalErrorService'],
-      isSingleton: false // Typically forms are transient, one per instance of a form UI
-    }
+      isSingleton: false, // Typically forms are transient, one per instance of a form UI
+    },
   );
 }
 
@@ -113,54 +114,53 @@ export async function runUserFormExample() {
   // --- 5. Subscribe to Form Observables (Simulating UI Binding) ---
   console.log('Initial Form Data:', userForm.formData$.getValue());
 
-  userForm.formData$.subscribe(data => {
+  userForm.formData$.subscribe((data) => {
     // In a real UI, you'd update input field values here
     // console.log('Form Data Changed:', data);
   });
 
-  userForm.isValid$.subscribe(isValid => {
+  userForm.isValid$.subscribe((isValid) => {
     console.log('Is Form Valid?:', isValid);
     // In a real UI, you might enable/disable a submit button
   });
 
-  userForm.isDirty$.subscribe(isDirty => {
+  userForm.isDirty$.subscribe((isDirty) => {
     console.log('Is Form Dirty?:', isDirty);
   });
 
-  userForm.fieldErrors$.subscribe(errors => {
+  userForm.fieldErrors$.subscribe((errors) => {
     // In a real UI, you'd display these errors next to respective fields
     if (Object.keys(errors).length > 0) {
       console.warn('Field Errors:', errors);
     }
   });
 
-  userForm.submitCommand.canExecute$.subscribe(canExecute => {
+  userForm.submitCommand.canExecute$.subscribe((canExecute) => {
     console.log('Can Submit?:', canExecute);
   });
 
   // --- 6. Simulate User Input ---
   console.log('\nSimulating user input...');
   userForm.updateField('username', 'Jo'); // Invalid (too short)
-  await new Promise(resolve => setTimeout(resolve, 100)); // Allow validation to run
+  await new Promise((resolve) => setTimeout(resolve, 100)); // Allow validation to run
 
   userForm.updateField('username', 'JohnDoe');
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   userForm.updateField('email', 'johndoe@example'); // Invalid email
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   userForm.updateField('email', 'johndoe@example.com');
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   userForm.updateField('age', 25);
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   // userForm.updateField('agreeToTerms', false); // Will cause validation error
   // await new Promise(resolve => setTimeout(resolve, 100));
 
   userForm.updateField('agreeToTerms', true);
-  await new Promise(resolve => setTimeout(resolve, 100));
-
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   // --- 7. Simulate Form Submission ---
   console.log('\nAttempting form submission...');
@@ -173,13 +173,13 @@ export async function runUserFormExample() {
       error: (err) => {
         console.error('Submission Failed (View/Component Level):', err.message);
         // Error is already handled by form's submit logic and global error handler
-      }
+      },
     });
   } else {
     console.error('Cannot submit form, it is not valid or cannot execute.');
   }
 
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for submission to complete
+  await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for submission to complete
 
   // --- 8. Simulate another submission that fails server-side ---
   console.log('\nSimulating submission that causes server error...');
@@ -187,15 +187,15 @@ export async function runUserFormExample() {
   userForm.updateField('username', 'errorUser');
   userForm.updateField('email', 'error@example.com');
   userForm.updateField('agreeToTerms', true);
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   if (userForm.submitCommand.canExecute$.getValue()) {
     userForm.submitCommand.execute().subscribe({
       next: (result) => console.log('Submission Succeeded (should not happen for errorUser):', result),
-      error: (err) => console.error('Submission Failed for errorUser (View/Component Level):', err.message)
+      error: (err) => console.error('Submission Failed for errorUser (View/Component Level):', err.message),
     });
   }
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait
+  await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait
 
   // --- 9. Demonstrate Reset ---
   console.log('\nDemonstrating form reset...');
@@ -206,7 +206,6 @@ export async function runUserFormExample() {
   console.log('Form data after reset:', userForm.formData$.getValue());
   console.log('Is dirty after reset:', userForm.isDirty$.getValue());
   console.log('Field errors after reset:', userForm.fieldErrors$.getValue());
-
 
   // --- Cleanup (important if objects have subscriptions that need to be manually managed)
   // userForm.dispose(); // If FormViewModel has subscriptions it manages internally that need explicit cleanup
@@ -224,7 +223,7 @@ export async function runUserFormExample() {
 
 // Example of how to run it if this file is executed directly with ts-node:
 if (require.main === module) {
-    runUserFormExample().catch(err => {
-        console.error("Unhandled error in example execution:", err);
-    });
+  runUserFormExample().catch((err) => {
+    console.error('Unhandled error in example execution:', err);
+  });
 }

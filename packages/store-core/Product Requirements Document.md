@@ -139,70 +139,70 @@ Product Requirements Document: Framework-Agnostic Client-State Library
   createActions: (set: (updater: (state: S) => S) => void, get: () => S, actions: A) => A
   ): Store<S, A>;
 
-3.3 Immutability
-All state updates must be immutable. This means that when an action modifies the state, it should return a new state object with the changes, rather than directly mutating the original state object. This ensures predictable state changes and simplifies debugging.
-3.4 Performance Considerations
-The library should be designed for efficient updates. Subscribers should only be notified when the state actually changes (i.e., the new state object reference is different from the old one). 4. Non-Functional Requirements
-4.1 Technology Stack
-Language: TypeScript (strict mode enabled).
-Runtime Environment: Modern JavaScript environments (ES2018+).
-4.2 Testing
-Testing Framework: Vitest.
-Test Coverage: High test coverage for all core functionalities.
-Types: Type definitions must be correct and provide strong type inference.
-4.3 Performance
-Minimal overhead for state updates and subscriptions.
-Fast subscription notification mechanism.
-4.4 Usability / Developer Experience (DX)
-Clear and concise API.
-Intuitive patterns for state management.
-Comprehensive TypeScript types for auto-completion and compile-time error checking.
-4.5 Bundle Size
-The library should be lightweight with a minimal footprint. Avoid unnecessary dependencies. 5. Technical Design (High-Level Principles)
-Observer Pattern: The subscription mechanism will be implemented using the Observer pattern, where the store acts as the "subject" and listeners are "observers."
-Plain Objects: State will be represented as plain JavaScript objects. No proxies or complex data structures are strictly required for the core functionality, although an internal mechanism for immutability (e.g., shallow cloning) will be needed.
-No External Dependencies: The library should have zero external runtime dependencies beyond what's provided by the JavaScript environment and TypeScript compilation.
-Function Composition: Actions will be functions that receive utility functions (set, get) to interact with the store, promoting a functional approach. 6. Test Cases
-The following test cases, written using Vitest, should be implemented to ensure the correctness and robustness of the library.
-6.1 Basic State Management
-TC.1.1: Initial State Retrieval:
-Description: Verify that getState() returns the initial state passed during store creation.
-Expected Outcome: store.getState() equals the initial state.
-TC.1.2: State Update via Action:
-Description: Verify that state can be updated correctly through a defined action.
-Expected Outcome: getState() returns the new state after the action is called.
-TC.1.3: Immutability of State:
-Description: Verify that the original state object reference changes after an update, ensuring immutability.
-Expected Outcome: oldState !== newState after an update.
-6.2 Subscription Mechanism
-TC.2.1: Single Subscriber Notification:
-Description: Verify that a single subscribed listener is called when the state changes.
-Expected Outcome: The listener function is called exactly once with the correct newState and oldState.
-TC.2.2: Multiple Subscribers Notification:
-Description: Verify that multiple subscribed listeners are all called when the state changes.
-Expected Outcome: All listener functions are called with the correct states.
-TC.2.3: Unsubscribe Functionality:
-Description: Verify that an unsubscribed listener is no longer called when the state changes.
-Expected Outcome: The unsubscribed listener is not called, while other active listeners are.
-TC.2.4: No Notification on Identical State:
-Description: If an action is called but results in no actual state change (e.g., setState is called with an updater that returns the same object), listeners should not be notified.
-Expected Outcome: Listeners are not called. (This can be initially out of scope if setState always creates a new object, but it's good for optimization).
-TC.2.5: Unsubscribe within Listener:
-Description: Verify that unsubscribing within a listener doesn't break the notification chain for other listeners.
-Expected Outcome: Other listeners are still called correctly.
-6.3 Selector Functionality
-TC.3.1: Basic Selector Usage:
-Description: Verify that a selector correctly derives data from the state.
-Expected Outcome: The selector returns the expected derived value based on the current state.
-TC.3.2: Selector Re-evaluation on State Change:
-Description: Verify that the selector's output reflects the latest state after an update.
-Expected Outcome: Selector returns the new derived value.
-6.4 Store Lifecycle
-TC.4.1: Store Destruction:
-Description: Verify that calling destroy() clears all listeners and prevents further notifications.
-Expected Outcome: No listeners are called after destroy() is invoked, even if actions are dispatched. 7. Future Considerations (Out of Scope for Initial Version)
-Middleware: Support for applying middleware to actions (e.g., for logging, async operations, side effects).
-DevTools Integration: Compatibility with browser developer tools extensions for state inspection and time-travel debugging.
-Async Actions: Built-in support or patterns for handling asynchronous operations.
-Shallow vs. Deep Comparisons: Options for different levels of state comparison for subscriber notifications.
-Batching Updates: Optimizations to batch multiple state updates into a single notification cycle.
+  3.3 Immutability
+  All state updates must be immutable. This means that when an action modifies the state, it should return a new state object with the changes, rather than directly mutating the original state object. This ensures predictable state changes and simplifies debugging.
+  3.4 Performance Considerations
+  The library should be designed for efficient updates. Subscribers should only be notified when the state actually changes (i.e., the new state object reference is different from the old one). 4. Non-Functional Requirements
+  4.1 Technology Stack
+  Language: TypeScript (strict mode enabled).
+  Runtime Environment: Modern JavaScript environments (ES2018+).
+  4.2 Testing
+  Testing Framework: Vitest.
+  Test Coverage: High test coverage for all core functionalities.
+  Types: Type definitions must be correct and provide strong type inference.
+  4.3 Performance
+  Minimal overhead for state updates and subscriptions.
+  Fast subscription notification mechanism.
+  4.4 Usability / Developer Experience (DX)
+  Clear and concise API.
+  Intuitive patterns for state management.
+  Comprehensive TypeScript types for auto-completion and compile-time error checking.
+  4.5 Bundle Size
+  The library should be lightweight with a minimal footprint. Avoid unnecessary dependencies. 5. Technical Design (High-Level Principles)
+  Observer Pattern: The subscription mechanism will be implemented using the Observer pattern, where the store acts as the "subject" and listeners are "observers."
+  Plain Objects: State will be represented as plain JavaScript objects. No proxies or complex data structures are strictly required for the core functionality, although an internal mechanism for immutability (e.g., shallow cloning) will be needed.
+  No External Dependencies: The library should have zero external runtime dependencies beyond what's provided by the JavaScript environment and TypeScript compilation.
+  Function Composition: Actions will be functions that receive utility functions (set, get) to interact with the store, promoting a functional approach. 6. Test Cases
+  The following test cases, written using Vitest, should be implemented to ensure the correctness and robustness of the library.
+  6.1 Basic State Management
+  TC.1.1: Initial State Retrieval:
+  Description: Verify that getState() returns the initial state passed during store creation.
+  Expected Outcome: store.getState() equals the initial state.
+  TC.1.2: State Update via Action:
+  Description: Verify that state can be updated correctly through a defined action.
+  Expected Outcome: getState() returns the new state after the action is called.
+  TC.1.3: Immutability of State:
+  Description: Verify that the original state object reference changes after an update, ensuring immutability.
+  Expected Outcome: oldState !== newState after an update.
+  6.2 Subscription Mechanism
+  TC.2.1: Single Subscriber Notification:
+  Description: Verify that a single subscribed listener is called when the state changes.
+  Expected Outcome: The listener function is called exactly once with the correct newState and oldState.
+  TC.2.2: Multiple Subscribers Notification:
+  Description: Verify that multiple subscribed listeners are all called when the state changes.
+  Expected Outcome: All listener functions are called with the correct states.
+  TC.2.3: Unsubscribe Functionality:
+  Description: Verify that an unsubscribed listener is no longer called when the state changes.
+  Expected Outcome: The unsubscribed listener is not called, while other active listeners are.
+  TC.2.4: No Notification on Identical State:
+  Description: If an action is called but results in no actual state change (e.g., setState is called with an updater that returns the same object), listeners should not be notified.
+  Expected Outcome: Listeners are not called. (This can be initially out of scope if setState always creates a new object, but it's good for optimization).
+  TC.2.5: Unsubscribe within Listener:
+  Description: Verify that unsubscribing within a listener doesn't break the notification chain for other listeners.
+  Expected Outcome: Other listeners are still called correctly.
+  6.3 Selector Functionality
+  TC.3.1: Basic Selector Usage:
+  Description: Verify that a selector correctly derives data from the state.
+  Expected Outcome: The selector returns the expected derived value based on the current state.
+  TC.3.2: Selector Re-evaluation on State Change:
+  Description: Verify that the selector's output reflects the latest state after an update.
+  Expected Outcome: Selector returns the new derived value.
+  6.4 Store Lifecycle
+  TC.4.1: Store Destruction:
+  Description: Verify that calling destroy() clears all listeners and prevents further notifications.
+  Expected Outcome: No listeners are called after destroy() is invoked, even if actions are dispatched. 7. Future Considerations (Out of Scope for Initial Version)
+  Middleware: Support for applying middleware to actions (e.g., for logging, async operations, side effects).
+  DevTools Integration: Compatibility with browser developer tools extensions for state inspection and time-travel debugging.
+  Async Actions: Built-in support or patterns for handling asynchronous operations.
+  Shallow vs. Deep Comparisons: Options for different levels of state comparison for subscriber notifications.
+  Batching Updates: Optimizations to batch multiple state updates into a single notification cycle.

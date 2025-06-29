@@ -42,10 +42,7 @@ export class RestfulApiViewModel<TData, TSchema extends ZodSchema<TData>> {
 
   // Commands for CRUD operations
   public readonly fetchCommand: Command<string | string[] | void, void>;
-  public readonly createCommand: Command<
-    Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[],
-    void
-  >;
+  public readonly createCommand: Command<Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[], void>;
   public readonly updateCommand: Command<{ id: string; payload: Partial<ExtractItemType<TData>> }, void>;
   public readonly deleteCommand: Command<string, void>;
 
@@ -85,9 +82,11 @@ export class RestfulApiViewModel<TData, TSchema extends ZodSchema<TData>> {
       },
     );
 
-    this.updateCommand = new Command(async ({ id, payload }: { id: string; payload: Partial<ExtractItemType<TData>> }) => {
-      await this.model.update(id, payload);
-    });
+    this.updateCommand = new Command(
+      async ({ id, payload }: { id: string; payload: Partial<ExtractItemType<TData>> }) => {
+        await this.model.update(id, payload);
+      },
+    );
 
     this.deleteCommand = new Command(async (id: string) => {
       await this.model.delete(id);

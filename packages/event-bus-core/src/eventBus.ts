@@ -5,7 +5,7 @@ class EventBusImpl<M extends EventMap> implements EventBus<M> {
 
   on<K extends keyof M>(event: K | K[], listener: Listener<K, M>): void {
     const eventNames = Array.isArray(event) ? event : [event];
-    eventNames.forEach(eventName => {
+    eventNames.forEach((eventName) => {
       if (!this.listeners.has(eventName)) {
         this.listeners.set(eventName, new Set());
       }
@@ -15,10 +15,10 @@ class EventBusImpl<M extends EventMap> implements EventBus<M> {
 
   once<K extends keyof M>(event: K, listener: Listener<K, M>): void {
     const onceListener: GenericListener = (...args: any[]) => {
-      this.off(event, onceListener as Listener<K,M>);
+      this.off(event, onceListener as Listener<K, M>);
       (listener as GenericListener)(...args);
     };
-    this.on(event, onceListener as Listener<K,M>);
+    this.on(event, onceListener as Listener<K, M>);
   }
 
   off<K extends keyof M>(event?: K, listener?: Listener<K, M> | GenericListener): void {

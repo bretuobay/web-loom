@@ -31,7 +31,6 @@ class AdvancedLogger implements ILogger {
   }
 }
 
-
 class UserService {
   constructor(public logger: ILogger) {}
 
@@ -65,12 +64,11 @@ declare module './di-container' {
 
 // For circular dependency tests
 class CircularA {
-    constructor(public b: CircularB) {}
+  constructor(public b: CircularB) {}
 }
 class CircularB {
-    constructor(public a: CircularA) {}
+  constructor(public a: CircularA) {}
 }
-
 
 describe('SimpleDIContainer', () => {
   beforeEach(() => {
@@ -122,7 +120,9 @@ describe('SimpleDIContainer', () => {
   });
 
   it('should throw an error if trying to resolve an unregistered service', () => {
-    expect(() => SimpleDIContainer.resolve('logger')).toThrow('DI Container: Service with key "logger" not registered.');
+    expect(() => SimpleDIContainer.resolve('logger')).toThrow(
+      'DI Container: Service with key "logger" not registered.',
+    );
   });
 
   it('should register and resolve using a factory function', () => {
@@ -146,8 +146,8 @@ describe('SimpleDIContainer', () => {
   it('factory function as singleton should return same instance', () => {
     let factoryCallCount = 0;
     const myFactory: Factory<{ id: number }> = () => {
-        factoryCallCount++;
-        return { id: Math.random() };
+      factoryCallCount++;
+      return { id: Math.random() };
     };
     SimpleDIContainer.register('logger', myFactory, { isSingleton: true }); // Key 'logger' reused for convenience
 
@@ -157,7 +157,6 @@ describe('SimpleDIContainer', () => {
     expect(instance1).toBe(instance2);
     expect(factoryCallCount).toBe(1);
   });
-
 
   it('reset() should clear all registrations', () => {
     SimpleDIContainer.register('logger', ConsoleLogger);
@@ -189,18 +188,21 @@ describe('SimpleDIContainer', () => {
     SimpleDIContainer.register('circularA', CircularA, { dependencies: ['circularB'] });
     SimpleDIContainer.register('circularB', CircularB, { dependencies: ['circularA'] });
 
-    expect(() => SimpleDIContainer.resolve('circularA'))
-      .toThrow('DI Container: Circular dependency detected for key "circularA". Path: circularA -> circularB -> circularA');
+    expect(() => SimpleDIContainer.resolve('circularA')).toThrow(
+      'DI Container: Circular dependency detected for key "circularA". Path: circularA -> circularB -> circularA',
+    );
 
     // Also test starting resolution from B
-     expect(() => SimpleDIContainer.resolve('circularB'))
-      .toThrow('DI Container: Circular dependency detected for key "circularB". Path: circularB -> circularA -> circularB');
+    expect(() => SimpleDIContainer.resolve('circularB')).toThrow(
+      'DI Container: Circular dependency detected for key "circularB". Path: circularB -> circularA -> circularB',
+    );
   });
 
   it('should throw error if a service lists itself as a direct dependency', () => {
     SimpleDIContainer.register('logger', ConsoleLogger, { dependencies: ['logger'] as any }); // 'as any' to bypass stricter typing if ServiceRegistry implies non-self deps
-    expect(() => SimpleDIContainer.resolve('logger'))
-        .toThrow('DI Container: Service "logger" cannot directly depend on itself in the dependencies array.');
+    expect(() => SimpleDIContainer.resolve('logger')).toThrow(
+      'DI Container: Service "logger" cannot directly depend on itself in the dependencies array.',
+    );
   });
 
   it('should handle re-registration of a service (last one wins)', () => {
@@ -209,14 +211,14 @@ describe('SimpleDIContainer', () => {
     expect(instance1).toBeInstanceOf(ConsoleLogger);
 
     // Re-register with a different implementation (or factory)
-    const advancedLoggerFactory: Factory<AdvancedLogger> = () => new AdvancedLogger("override");
+    const advancedLoggerFactory: Factory<AdvancedLogger> = () => new AdvancedLogger('override');
     SimpleDIContainer.register('logger', advancedLoggerFactory, { isSingleton: true });
 
     const instance2 = SimpleDIContainer.resolve('logger');
     expect(instance2).toBeInstanceOf(AdvancedLogger);
     expect((instance2 as AdvancedLogger).getLogs()).toEqual([]); // Fresh instance
-    (instance2 as AdvancedLogger).log("message");
-    expect((instance2 as AdvancedLogger).getLogs()).toEqual(["[override] message"]);
+    (instance2 as AdvancedLogger).log('message');
+    expect((instance2 as AdvancedLogger).getLogs()).toEqual(['[override] message']);
 
     // Ensure the old singleton instance is gone if it was a singleton
     const instance3 = SimpleDIContainer.resolve('logger');
@@ -225,20 +227,22 @@ describe('SimpleDIContainer', () => {
 
   it('should throw if constructor/factory throws during instantiation', () => {
     class FailingService {
-        constructor() {
-            throw new Error("Constructor failed!");
-        }
+      constructor() {
+        throw new Error('Constructor failed!');
+      }
     }
     SimpleDIContainer.register('logger', FailingService); // Key 'logger' reused
-    expect(() => SimpleDIContainer.resolve('logger'))
-        .toThrow('DI Container: Error instantiating service "logger". Original error: Constructor failed!');
+    expect(() => SimpleDIContainer.resolve('logger')).toThrow(
+      'DI Container: Error instantiating service "logger". Original error: Constructor failed!',
+    );
 
     const failingFactory: Factory<any> = () => {
-        throw new Error("Factory failed!");
+      throw new Error('Factory failed!');
     };
     SimpleDIContainer.register('userService', failingFactory); // Key 'userService' reused
-    expect(() => SimpleDIContainer.resolve('userService'))
-        .toThrow('DI Container: Error instantiating service "userService". Original error: Factory failed!');
+    expect(() => SimpleDIContainer.resolve('userService')).toThrow(
+      'DI Container: Error instantiating service "userService". Original error: Factory failed!',
+    );
   });
 
   it('should allow dependencies to be undefined if service does not require them', () => {
@@ -252,5 +256,4 @@ describe('SimpleDIContainer', () => {
     const logger = SimpleDIContainer.resolve('logger');
     expect(logger).toBeInstanceOf(ConsoleLogger);
   });
-
 });

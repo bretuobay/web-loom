@@ -382,12 +382,15 @@ describe('FormViewModel', () => {
 
     errorSub.unsubscribe();
 
-    const distinctErrorStates = collectedErrors.reduce((acc, current) => {
-      if (acc.length === 0 || JSON.stringify(acc[acc.length - 1]) !== JSON.stringify(current)) {
-        acc.push(current);
-      }
-      return acc;
-    }, [] as Record<keyof TestData, string[] | undefined>[]);
+    const distinctErrorStates = collectedErrors.reduce(
+      (acc, current) => {
+        if (acc.length === 0 || JSON.stringify(acc[acc.length - 1]) !== JSON.stringify(current)) {
+          acc.push(current);
+        }
+        return acc;
+      },
+      [] as Record<keyof TestData, string[] | undefined>[],
+    );
 
     expect(distinctErrorStates.find((state) => Object.keys(state).length === 0)).toBeDefined();
     const nameErrorState = distinctErrorStates.find(

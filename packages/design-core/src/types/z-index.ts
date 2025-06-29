@@ -1,6 +1,7 @@
 import type { DesignTokenValue } from './token-value';
 
-export interface ZIndexValue extends DesignTokenValue<string | number> { // Value can be 'auto' or a number
+export interface ZIndexValue extends DesignTokenValue<string | number> {
+  // Value can be 'auto' or a number
   type: 'zIndex';
 }
 
