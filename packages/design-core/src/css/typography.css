@@ -1,0 +1,25 @@
+:root {
+  --typography-font-family-base: 'Inter', sans-serif;
+  --typography-font-family-heading: 'Poppins', sans-serif;
+  --typography-font-size-xs: 12px;
+  --typography-font-size-sm: 14px;
+  --typography-font-size-md: 16px;
+  --typography-font-size-lg: 18px;
+  --typography-font-size-xl: 20px;
+  --typography-font-size-2xl: 24px;
+  --typography-font-size-3xl: 30px;
+  --typography-font-weight-light: 300;
+  --typography-font-weight-regular: 400;
+  --typography-font-weight-medium: 500;
+  --typography-font-weight-bold: 700;
+  --typography-font-weight-extrabold: 800;
+  --typography-lineHeight-tight: 1.25;
+  --typography-lineHeight-normal: 1.5;
+  --typography-lineHeight-loose: 2;
+  --typography-letterSpacing-tight: -0.05em;
+  --typography-letterSpacing-normal: normal;
+  --typography-letterSpacing-wide: 0.05em;
+  --typography-textCase-uppercase: uppercase;
+  --typography-textCase-lowercase: lowercase;
+  --typography-textCase-capitalize: capitalize;
+}

@@ -1,0 +1,13 @@
+:root {
+  --transition-duration-fast: 150ms;
+  --transition-duration-medium: 300ms;
+  --transition-duration-slow: 500ms;
+  --transition-timingFunction-linear: linear;
+  --transition-timingFunction-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --transition-timingFunction-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --transition-timingFunction-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-delay-none: 0ms;
+  --transition-delay-short: 100ms;
+  --transition-delay-long: 200ms;
+  --transition-motion-prefersReducedMotion: (prefers-reduced-motion: reduce);
+}

@@ -1,0 +1,29 @@
+:root {
+  --sizing-width-xs: 160px;
+  --sizing-width-sm: 240px;
+  --sizing-width-md: 320px;
+  --sizing-width-lg: 480px;
+  --sizing-width-xl: 640px;
+  --sizing-width-full: 100%;
+  --sizing-height-xs: 160px;
+  --sizing-height-sm: 240px;
+  --sizing-height-md: 320px;
+  --sizing-height-lg: 480px;
+  --sizing-height-xl: 640px;
+  --sizing-height-full: 100%;
+  --sizing-maxWidth-xs: 160px;
+  --sizing-maxWidth-sm: 240px;
+  --sizing-maxWidth-md: 320px;
+  --sizing-maxWidth-lg: 480px;
+  --sizing-maxWidth-xl: 640px;
+  --sizing-maxWidth-screen: 100vw;
+  --sizing-minHeight-xs: 160px;
+  --sizing-minHeight-sm: 240px;
+  --sizing-minHeight-md: 320px;
+  --sizing-minHeight-lg: 480px;
+  --sizing-minHeight-xl: 640px;
+  --sizing-minHeight-screen: 100vh;
+  --sizing-icon-sm: 16px;
+  --sizing-icon-md: 24px;
+  --sizing-icon-lg: 32px;
+}

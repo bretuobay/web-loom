@@ -1,0 +1,11 @@
+:root {
+  --cursor-auto: auto;
+  --cursor-default: default;
+  --cursor-pointer: pointer;
+  --cursor-wait: wait;
+  --cursor-text: text;
+  --cursor-move: move;
+  --cursor-not-allowed: not-allowed;
+  --cursor-grab: grab;
+  --cursor-grabbing: grabbing;
+}
