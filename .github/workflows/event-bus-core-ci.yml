@@ -33,7 +33,7 @@ jobs:
         run: npm test --workspace=@web-loom/event-bus-core
 
       - name: Build @web-loom/event-bus-core
-        run: turbo run build --filter=@web-loom/event-bus-core
+        run: npx turbo run build --filter=@web-loom/event-bus-core
 
       - name: Upload build artifacts (Optional)
         uses: actions/upload-artifact@v4

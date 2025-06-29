@@ -27,7 +27,7 @@ jobs:
         run: npm install
 
       - name: Build @web-loom/mvvm-core
-        run: turbo run build --filter=@web-loom/mvvm-core
+        run: npx turbo run build --filter=@web-loom/mvvm-core
 
       - name: Publish @web-loom/mvvm-core to npm
         env:

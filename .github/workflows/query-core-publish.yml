@@ -27,7 +27,7 @@ jobs:
         run: npm install
 
       - name: Build @web-loom/query-core
-        run: turbo run build --filter=@web-loom/query-core
+        run: npx turbo run build --filter=@web-loom/query-core
 
       - name: Publish @web-loom/query-core to npm
         env:

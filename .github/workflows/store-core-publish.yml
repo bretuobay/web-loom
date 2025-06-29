@@ -27,7 +27,7 @@ jobs:
         run: npm install # Installs all workspace dependencies from the root
 
       - name: Build @web-loom/store-core
-        run: turbo run build --filter=@web-loom/store-core
+        run: npx turbo run build --filter=@web-loom/store-core
 
       - name: Publish @web-loom/store-core to npm
         env:
