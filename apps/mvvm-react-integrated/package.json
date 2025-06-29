@@ -13,6 +13,10 @@
   "dependencies": {
     "@repo/view-models": "*",
     "@repo/shared": "*",
+    "@web-loom/design-core": "*",
+    "@web-loom/store-core": "*",
+    "@web-loom/query-core": "*",
+    "@web-loom/event-bus-core": "*",
     "chart.js": "^4.4.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
