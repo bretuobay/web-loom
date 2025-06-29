@@ -3,10 +3,13 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "skipLibCheck": true,
-
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -14,7 +17,53 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
-
+    /* Path mappings for monorepo packages */
+    "baseUrl": ".",
+    "paths": {
+      "@web-loom/design-core": [
+        "../../packages/design-core/src"
+      ],
+      "@web-loom/design-core/*": [
+        "../../packages/design-core/src/*",
+        "../../packages/design-core/*"
+      ],
+      "@web-loom/store-core": [
+        "../../packages/store-core/src"
+      ],
+      "@web-loom/store-core/*": [
+        "../../packages/store-core/src/*"
+      ],
+      "@web-loom/mvvm-core": [
+        "../../packages/mvvm-core/src"
+      ],
+      "@web-loom/mvvm-core/*": [
+        "../../packages/mvvm-core/src/*"
+      ],
+      "@web-loom/query-core": [
+        "../../packages/query-core/src"
+      ],
+      "@web-loom/query-core/*": [
+        "../../packages/query-core/src/*"
+      ],
+      "@web-loom/event-bus-core": [
+        "../../packages/event-bus-core/src"
+      ],
+      "@web-loom/event-bus-core/*": [
+        "../../packages/event-bus-core/src/*"
+      ],
+      "@repo/shared": [
+        "../../packages/shared/src"
+      ],
+      "@repo/shared/*": [
+        "../../packages/shared/src/*"
+      ],
+      "@repo/view-models": [
+        "../../packages/view-models/src"
+      ],
+      "@repo/view-models/*": [
+        "../../packages/view-models/src/*"
+      ]
+    },
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
@@ -23,5 +72,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

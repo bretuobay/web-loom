@@ -10,7 +10,7 @@ const ThresholdAlertCard: React.FC<ThresholdAlertCardProps> = ({ thresholdAlerts
   return (
     <div className="card">
       <Link to="/threshold-alerts" className="card-header-link">
-        <h3 className="class-title">Alerts</h3>
+        <h3 className="card-title">Alerts</h3>
       </Link>
       <p className="card-content">Total Alerts: {thresholdAlerts.length}</p>
     </div>
