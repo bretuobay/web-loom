@@ -2,11 +2,6 @@
 
 name: CI - @web-loom/store-core
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'packages/store-core/**'
   pull_request:
     branches:
       - main

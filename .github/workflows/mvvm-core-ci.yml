@@ -2,11 +2,6 @@
 
 name: CI - @web-loom/mvvm-core
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'packages/mvvm-core/**'
   pull_request:
     branches:
       - main
