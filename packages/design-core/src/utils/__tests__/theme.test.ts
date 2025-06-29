@@ -1,5 +1,5 @@
 // packages/design-core/src/utils/__tests__/theme.test.ts
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createTheme, applyTheme, setTheme, getCurrentTheme, Theme } from '../theme';
 
 // Mock cssVariables' pathToCssVar because flattenThemeOverridesToCssVars uses it.

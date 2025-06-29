@@ -100,7 +100,7 @@ vi.mock('../tokens/z-index.json', () => ({
   },
 }));
 
-describe.skip('Design Token Utilities', () => {
+describe('Design Token Utilities', () => {
   // Reset modules before each test to clear cache and re-initialize masterTokens
   beforeEach(() => {
     // This is a way to reset the internal state of tokens.ts if it caches.
