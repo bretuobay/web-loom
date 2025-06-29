@@ -1,0 +1,62 @@
+# .github/workflows/store-core-publish.yml
+
+name: Publish - @web-loom/store-core
+
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch
+    paths:
+      - 'packages/store-core/**' # Only run if store-core files changed
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install # Installs all workspace dependencies from the root
+
+      - name: Build @web-loom/store-core
+        run: turbo run build --filter=@web-loom/store-core
+
+      - name: Publish @web-loom/store-core to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Navigate to the package directory
+          cd packages/store-core
+
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+
+          echo "--- Package Information ---"
+          echo "Package Name: $PACKAGE_NAME"
+          echo "Package Version: $PACKAGE_VERSION"
+          echo "--------------------------"
+
+          set +e
+          npm view "$PACKAGE_NAME@$PACKAGE_VERSION" > /dev/null 2>&1
+          NPM_VIEW_EXIT_CODE=$?
+          set -e
+
+          if [ "$NPM_VIEW_EXIT_CODE" -eq 0 ]; then
+            echo "✅ Package version $PACKAGE_VERSION already exists on npm. Skipping publish for $PACKAGE_NAME."
+            exit 0
+          else
+            echo "🚀 Package version $PACKAGE_VERSION is new. Attempting to publish $PACKAGE_NAME."
+            npm publish --access public --verbose
+          fi
+
+          echo "--- Publish process completed for $PACKAGE_NAME ---"

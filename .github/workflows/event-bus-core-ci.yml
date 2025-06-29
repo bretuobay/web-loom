@@ -1,0 +1,42 @@
+# .github/workflows/event-bus-core-ci.yml
+
+name: CI - @web-loom/event-bus-core
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/event-bus-core/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/event-bus-core/**'
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests for @web-loom/event-bus-core
+        run: npm test --workspace=@web-loom/event-bus-core
+
+      - name: Build @web-loom/event-bus-core
+        run: turbo run build --filter=@web-loom/event-bus-core
+
+      - name: Upload build artifacts (Optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: event-bus-core-dist-build-artifacts
+          path: packages/event-bus-core/dist/
