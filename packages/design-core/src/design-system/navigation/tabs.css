@@ -1,0 +1,223 @@
+/* packages/design-core/src/design-system/navigation/tabs.css */
+
+.tab-list {
+  display: flex;
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0; /* Or var(--spacing-4) if space is desired below tabs */
+  border-bottom: var(--border-width-2) var(--border-style-solid) var(--color-neutral-gray-300); /* Underline for the whole tab list */
+  position: relative; /* For absolute positioning of active indicator */
+}
+
+[data-theme="dark"] .tab-list {
+  border-bottom-color: var(--color-neutral-gray-700);
+}
+[data-theme="high-contrast"] .tab-list {
+  border-bottom: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}
+
+.tab-item {
+  /* Container for each tab link/button */
+}
+
+.tab-link { /* Can be an <a> or <button> */
+  display: block;
+  padding: var(--spacing-3) var(--spacing-4);
+  margin-bottom: -2px; /* Overlap the tab-list border-bottom for active state */
+  color: var(--color-neutral-gray-600);
+  font-size: var(--typography-font-size-md);
+  font-weight: var(--typography-font-weight-regular);
+  text-decoration: none;
+  text-align: center;
+  border: var(--border-width-2) var(--border-style-solid) transparent; /* Transparent border for spacing and active state */
+  border-bottom-width: var(--border-width-2); /* Ensure bottom border width matches tab-list for seamless active look */
+  background: none;
+  cursor: pointer;
+  transition: color var(--timing-fast) ease-in-out, border-color var(--timing-fast) ease-in-out;
+}
+
+.tab-link:hover,
+.tab-link:focus {
+  color: var(--color-base-primary);
+  border-bottom-color: var(--color-neutral-gray-400); /* Indicate hover on bottom */
+  outline: none;
+}
+
+.tab-link.active {
+  color: var(--color-base-primary);
+  font-weight: var(--typography-font-weight-medium);
+  border-color: var(--color-neutral-gray-300); /* Match tab-list border */
+  border-bottom-color: var(--color-themed-light-background); /* "Cut out" effect for active tab */
+  /* For some designs, active tab might have top and side borders more prominent */
+  /* border-top-left-radius: var(--radius-sm); */
+  /* border-top-right-radius: var(--radius-sm); */
+}
+[data-theme="dark"] .tab-link.active {
+   border-bottom-color: var(--color-themed-dark-background);
+}
+
+
+/* Theme adaptations for tab-link */
+[data-theme="dark"] .tab-link {
+  color: var(--color-neutral-gray-400);
+}
+[data-theme="dark"] .tab-link:hover,
+[data-theme="dark"] .tab-link:focus {
+  color: var(--color-neutral-gray-100);
+  border-bottom-color: var(--color-neutral-gray-500);
+}
+[data-theme="dark"] .tab-link.active {
+  color: var(--color-neutral-gray-100);
+  border-color: var(--color-neutral-gray-700); /* Match dark tab-list border */
+  border-bottom-color: var(--color-themed-dark-background);
+}
+
+
+[data-theme="high-contrast"] .tab-link {
+  color: var(--color-neutral-white);
+  border-width: var(--border-width-1); /* Thinner default border */
+  border-bottom-width: var(--border-width-2); /* Keep bottom border consistent */
+  border-color: transparent;
+}
+[data-theme="high-contrast"] .tab-link:hover,
+[data-theme="high-contrast"] .tab-link:focus {
+  color: var(--color-neutral-black);
+  background-color: var(--color-neutral-white);
+  border-color: var(--color-neutral-white);
+  outline: var(--border-width-1) var(--border-style-solid) var(--color-neutral-black);
+  outline-offset: 1px;
+}
+[data-theme="high-contrast"] .tab-link.active {
+  color: var(--color-neutral-black);
+  background-color: var(--color-neutral-white); /* Active tab stands out */
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  border-bottom-color: var(--color-neutral-white); /* Seamless with background */
+  font-weight: var(--typography-font-weight-bold);
+}
+[data-theme="high-contrast"] .tab-list .tab-link.active {
+  /* Ensure active tab in HC "cuts out" the border from tab-list */
+  /* This is tricky with pure CSS if tab background is different from page background.
+     One approach is to make the active tab's bottom border match the page background
+     if page background is known and simple (e.g., black). */
+  border-bottom-color: var(--color-neutral-black); /* Assuming page bg is black */
+  /* If active tab itself has a different background (e.g. white),
+     its bottom border should match that background to appear seamless against the tab-list border. */
+}
+/* Re-adjusting HC active tab for clarity if its background is white */
+[data-theme="high-contrast"] .tab-link.active {
+    background-color: var(--color-neutral-white);
+    color: var(--color-neutral-black);
+    border-color: var(--color-neutral-white); /* All sides white */
+    /* The tab-list's bottom border will appear "under" this active tab */
+    /* To make it look like it cuts out, the tab-list border itself needs to be handled carefully,
+       or the active tab needs a negative margin and a top border matching the page bg.
+       Simpler: let the active tab's border be prominent. */
+}
+
+
+
+
+.tab-content {
+  padding: var(--spacing-5);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+  border-top: none; /* Top border is handled by tab-list */
+  /* Apply .bordered-component to .tab-content for a full border if needed, adjust border-top */
+}
+[data-theme="dark"] .tab-content {
+  border-color: var(--color-neutral-gray-700);
+}
+[data-theme="high-contrast"] .tab-content {
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  border-top: none; /* Still no top border */
+  background-color: var(--color-neutral-black); /* Ensure content area has HC bg */
+  color: var(--color-neutral-white); /* And text */
+}
+
+.tab-pane {
+  display: none; /* Hidden by default, shown by JS or :target */
+}
+.tab-pane.active {
+  display: block;
+}
+
+
+/* Vertical Tabs */
+.tab-list-vertical {
+  flex-direction: column;
+  border-bottom: none;
+  border-right: var(--border-width-2) var(--border-style-solid) var(--color-neutral-gray-300);
+  margin-right: 0; /* No margin needed typically */
+  min-width: var(--sizing-48); /* Example min-width for vertical tabs */
+}
+[data-theme="dark"] .tab-list-vertical {
+  border-right-color: var(--color-neutral-gray-700);
+}
+[data-theme="high-contrast"] .tab-list-vertical {
+  border-right-color: var(--color-neutral-white);
+}
+
+
+.tab-list-vertical .tab-link {
+  margin-bottom: 0;
+  margin-right: -2px; /* Overlap the tab-list border-right */
+  border-bottom: var(--border-width-2) var(--border-style-solid) transparent; /* Reset bottom border */
+  border-right: var(--border-width-2) var(--border-style-solid) transparent; /* Set right border for active state */
+  text-align: left;
+}
+
+.tab-list-vertical .tab-link:hover,
+.tab-list-vertical .tab-link:focus {
+  border-bottom-color: transparent; /* No bottom hover effect */
+  border-right-color: var(--color-neutral-gray-400); /* Indicate hover on right */
+}
+
+.tab-list-vertical .tab-link.active {
+  border-color: var(--color-neutral-gray-300); /* Match tab-list border */
+  border-right-color: var(--color-themed-light-background); /* "Cut out" effect */
+  /* border-top-right-radius: 0; */
+  /* border-bottom-left-radius: var(--radius-sm); */
+}
+[data-theme="dark"] .tab-list-vertical .tab-link.active {
+  border-right-color: var(--color-themed-dark-background);
+}
+
+[data-theme="dark"] .tab-list-vertical .tab-link:hover,
+[data-theme="dark"] .tab-list-vertical .tab-link:focus {
+  border-right-color: var(--color-neutral-gray-500);
+}
+[data-theme="dark"] .tab-list-vertical .tab-link.active {
+  border-color: var(--color-neutral-gray-700);
+  border-right-color: var(--color-themed-dark-background);
+}
+
+
+[data-theme="high-contrast"] .tab-list-vertical .tab-link {
+  border-width: var(--border-width-1);
+  border-right-width: var(--border-width-2);
+}
+[data-theme="high-contrast"] .tab-list-vertical .tab-link:hover,
+[data-theme="high-contrast"] .tab-list-vertical .tab-link:focus {
+  border-right-color: var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .tab-list-vertical .tab-link.active {
+  border-color: var(--color-neutral-white);
+  border-right-color: var(--color-neutral-black); /* Assuming page bg is black */
+  /* Or if active tab bg is white: border-right-color: var(--color-neutral-white); */
+}
+
+
+.tabs-vertical-container {
+  display: flex;
+}
+.tabs-vertical-container .tab-content {
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+  border-left: none; /* Left border handled by vertical tab list */
+  flex-grow: 1;
+}
+[data-theme="dark"] .tabs-vertical-container .tab-content {
+  border-color: var(--color-neutral-gray-700);
+}
+[data-theme="high-contrast"] .tabs-vertical-container .tab-content {
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  border-left: none;
+}

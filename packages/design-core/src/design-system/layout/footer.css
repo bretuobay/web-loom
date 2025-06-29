@@ -1,0 +1,71 @@
+/* packages/design-core/src/design-system/layout/footer.css */
+
+.page-footer {
+  padding: var(--spacing-6) var(--spacing-gutter);
+  background-color: var(--color-neutral-gray-50); /* Slightly different background for footer */
+  border-top: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
+  text-align: center;
+  font-size: var(--typography-font-size-sm);
+  color: var(--color-neutral-gray-600);
+}
+
+[data-theme="dark"] .page-footer {
+  background-color: var(--color-neutral-gray-800); /* Darker footer background */
+  border-top-color: var(--color-neutral-gray-700);
+  color: var(--color-neutral-gray-400); /* Lighter text for dark footer */
+}
+
+[data-theme="high-contrast"] .page-footer {
+  background-color: var(--color-neutral-black);
+  border-top: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  color: var(--color-neutral-white);
+}
+
+.footer-links {
+  margin-bottom: var(--spacing-2);
+}
+
+.footer-links a {
+  color: var(--color-base-secondary); /* Using secondary color for footer links */
+  margin: 0 var(--spacing-2);
+  text-decoration: none;
+}
+
+[data-theme="dark"] .footer-links a {
+  color: var(--color-neutral-gray-300);
+}
+
+[data-theme="high-contrast"] .footer-links a {
+  color: var(--color-neutral-white);
+  text-decoration: underline; /* More prominent links in high contrast */
+}
+
+.footer-links a:hover,
+.footer-links a:focus {
+  text-decoration: underline;
+  color: var(--color-base-primary);
+}
+
+[data-theme="dark"] .footer-links a:hover,
+[data-theme="dark"] .footer-links a:focus {
+  color: var(--color-neutral-gray-100);
+}
+
+[data-theme="high-contrast"] .footer-links a:hover,
+[data-theme="high-contrast"] .footer-links a:focus {
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+}
+
+.footer-branding {
+  font-size: var(--typography-font-size-xs);
+  color: var(--color-neutral-gray-500);
+}
+
+[data-theme="dark"] .footer-branding {
+  color: var(--color-neutral-gray-500);
+}
+
+[data-theme="high-contrast"] .footer-branding {
+  color: var(--color-neutral-white);
+}

@@ -1,0 +1,48 @@
+/* packages/design-core/src/design-system/index.css */
+
+/* Import base styles (including all token definitions) */
+@import "./base.css";
+
+/*
+  Component styles will be imported below.
+  As each component CSS file is created, an @import rule will be added here.
+  Example:
+  @import "./layout/page-header.css";
+  @import "./forms/input.css";
+*/
+
+/* Layout components */
+@import "./layout/container.css";
+@import "./layout/footer.css";
+@import "./layout/page-content.css";
+@import "./layout/page-header.css";
+
+/* Display components */
+@import "./display/avatar.css";
+@import "./display/badge.css";
+@import "./display/card.css";
+@import "./display/list.css";
+@import "./display/table.css";
+
+/* Forms components */
+@import "./forms/button.css"; /* Note: Button is listed under Utility in prompt, but often styled with forms */
+@import "./forms/checkbox.css";
+@import "./forms/input.css";
+@import "./forms/radio-group.css";
+@import "./forms/select.css";
+@import "./forms/switch.css";
+@import "./forms/textarea.css";
+
+/* Navigation components */
+@import "./navigation/navigation-bar.css";
+@import "./navigation/sidebar.css";
+@import "./navigation/tabs.css";
+
+/* Overlays components */
+@import "./overlays/modal.css";
+@import "./overlays/toast.css";
+@import "./overlays/tooltip.css";
+
+/* Utility components */
+/* @import "./utility/button.css"; */ /* Moved to forms for styling consistency, can be separate if pure utility */
+@import "./utility/loader.css";

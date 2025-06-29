@@ -1,0 +1,256 @@
+/* packages/design-core/src/design-system/forms/input.css */
+
+.form-group {
+  margin-bottom: var(--spacing-4);
+}
+
+.form-label {
+  display: block;
+  font-size: var(--typography-font-size-sm);
+  font-weight: var(--typography-font-weight-medium);
+  margin-bottom: var(--spacing-1);
+  color: var(--color-neutral-gray-700);
+}
+
+[data-theme="dark"] .form-label {
+  color: var(--color-neutral-gray-200);
+}
+
+[data-theme="high-contrast"] .form-label {
+  color: var(--color-neutral-white);
+}
+
+.input-base { /* Base styles for input, textarea, select */
+  display: block;
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--typography-font-size-md);
+  font-family: var(--typography-font-family-base);
+  line-height: var(--typography-lineHeight-normal);
+  color: var(--color-neutral-gray-900);
+  background-color: var(--color-themed-light-background);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-inner); /* Subtle inner shadow */
+  transition: border-color var(--timing-fast) ease-in-out, box-shadow var(--timing-fast) ease-in-out;
+}
+
+.input-base::placeholder {
+  color: var(--color-neutral-gray-400);
+  opacity: 1; /* Firefox fix */
+}
+
+.input-base:focus {
+  outline: none;
+  border-color: var(--color-base-primary);
+  box-shadow: var(--shadow-focus), var(--shadow-inner); /* Combine focus ring with inner shadow */
+}
+
+.input-base:disabled,
+.input-base[readonly] {
+  background-color: var(--color-neutral-gray-100);
+  color: var(--color-neutral-gray-500);
+  cursor: not-allowed;
+  border-color: var(--color-neutral-gray-200);
+  box-shadow: none;
+}
+
+[data-theme="dark"] .input-base {
+  color: var(--color-neutral-gray-100);
+  background-color: var(--color-neutral-gray-800);
+  border-color: var(--color-neutral-gray-600);
+}
+
+[data-theme="dark"] .input-base::placeholder {
+  color: var(--color-neutral-gray-500);
+}
+
+[data-theme="dark"] .input-base:focus {
+  border-color: var(--color-base-primary); /* Primary color should be visible in dark theme */
+  /* box-shadow is defined by --shadow-focus which should have its own dark theme considerations if needed */
+}
+
+[data-theme="dark"] .input-base:disabled,
+[data-theme="dark"] .input-base[readonly] {
+  background-color: var(--color-neutral-gray-700);
+  color: var(--color-neutral-gray-400);
+  border-color: var(--color-neutral-gray-600);
+}
+
+[data-theme="high-contrast"] .input-base {
+  color: var(--color-neutral-white);
+  background-color: var(--color-neutral-black);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  box-shadow: none;
+}
+
+[data-theme="high-contrast"] .input-base::placeholder {
+  color: var(--color-neutral-gray-300); /* Lighter placeholder for HC dark */
+}
+
+[data-theme="high-contrast"] .input-base:focus {
+  outline: var(--border-width-2) var(--border-style-solid) var(--color-base-primary); /* Use a prominent outline */
+  outline-offset: var(--spacing-0);
+  border-color: var(--color-base-primary); /* Change border color as well */
+  box-shadow: none;
+}
+
+[data-theme="high-contrast"] .input-base:disabled,
+[data-theme="high-contrast"] .input-base[readonly] {
+  background-color: var(--color-neutral-black);
+  color: var(--color-neutral-gray-400); /* Grayed out text */
+  border-color: var(--color-neutral-gray-500); /* Grayed out border */
+}
+
+
+/* Specific Input field styling (if any deviation from .input-base) */
+.input {
+  composes: input-base; /* If using CSS Modules or similar, otherwise copy styles */
+}
+
+/* Input with error state */
+.input-error, .input-base.input-error { /* Allow adding .input-error to .input-base styled elements */
+  border-color: var(--color-base-danger);
+  color: var(--color-base-danger);
+}
+.input-error:focus, .input-base.input-error:focus {
+  border-color: var(--color-base-danger);
+  box-shadow: 0 0 0 var(--border-width-2) var(--color-alpha-black-50); /* Red focus shadow */
+}
+[data-theme="dark"] .input-error,
+[data-theme="dark"] .input-base.input-error {
+  border-color: var(--color-base-danger); /* Danger color should be visible */
+}
+[data-theme="high-contrast"] .input-error,
+[data-theme="high-contrast"] .input-base.input-error {
+  border-color: var(--color-base-danger);
+  background-color: var(--color-neutral-black); /* Ensure background remains dark */
+  color: var(--color-base-danger); /* Keep text color as danger */
+}
+[data-theme="high-contrast"] .input-error:focus,
+[data-theme="high-contrast"] .input-base.input-error:focus {
+   outline-color: var(--color-base-danger);
+}
+
+
+.form-hint, .form-error-message {
+  display: block;
+  font-size: var(--typography-font-size-xs);
+  margin-top: var(--spacing-1);
+  color: var(--color-neutral-gray-500);
+}
+
+.form-error-message {
+  color: var(--color-base-danger);
+  font-weight: var(--typography-font-weight-medium);
+}
+
+[data-theme="dark"] .form-hint {
+  color: var(--color-neutral-gray-400);
+}
+[data-theme="dark"] .form-error-message {
+  color: var(--color-base-danger); /* Ensure danger color is visible */
+}
+
+[data-theme="high-contrast"] .form-hint {
+  color: var(--color-neutral-gray-300);
+}
+[data-theme="high-contrast"] .form-error-message {
+  color: var(--color-base-danger); /* Or a high-contrast version of danger */
+}
+
+/* Input with icon */
+.input-group {
+  position: relative;
+  display: flex;
+  align-items: stretch; /* Make sure all parts of the group are the same height */
+}
+
+.input-group .input-base {
+  flex-grow: 1;
+  /* Adjust border-radius when part of a group */
+}
+
+.input-group-addon {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--typography-font-size-md);
+  font-weight: var(--typography-font-weight-regular);
+  line-height: var(--typography-lineHeight-normal);
+  color: var(--color-neutral-gray-600);
+  text-align: center;
+  background-color: var(--color-neutral-gray-100);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+}
+[data-theme="dark"] .input-group-addon {
+  color: var(--color-neutral-gray-300);
+  background-color: var(--color-neutral-gray-700);
+  border-color: var(--color-neutral-gray-600);
+}
+[data-theme="high-contrast"] .input-group-addon {
+  color: var(--color-neutral-white);
+  background-color: var(--color-neutral-black);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}
+
+
+/* Adjust border radius for grouped elements */
+.input-group .input-base:not(:first-child):not(:last-child) {
+  border-radius: 0;
+}
+.input-group .input-base:first-child:not(:last-child),
+.input-group .input-group-addon:first-child:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right-width: 0; /* Avoid double borders when addons are on the right */
+}
+.input-group .input-base:last-child:not(:first-child),
+.input-group .input-group-addon:last-child:not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left-width: 0; /* Avoid double borders when addons are on the left */
+}
+/* If addon is on the left, its right border should be there */
+.input-group .input-group-addon:first-child + .input-base {
+    border-left-width: 1px; /* Ensure border is visible */
+}
+[data-theme="high-contrast"] .input-group .input-group-addon:first-child + .input-base {
+    border-left-width: 2px;
+}
+
+/* If addon is on the right, its left border should be there */
+.input-group .input-base + .input-group-addon:last-child {
+    border-left-width: 1px;
+}
+[data-theme="high-contrast"] .input-group .input-base + .input-group-addon:last-child {
+    border-left-width: 2px;
+}
+
+.input-group-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: var(--spacing-2);
+  color: var(--color-neutral-gray-400);
+  pointer-events: none; /* So it doesn't interfere with input clicks */
+}
+.input-group-icon.icon-left {
+  left: var(--spacing-1);
+}
+.input-group-icon.icon-right {
+  right: var(--spacing-1);
+}
+.input-with-icon-left {
+  padding-left: calc(var(--spacing-2) + var(--spacing-3) + var(--spacing-2)); /* padding + icon width + spacing */
+}
+.input-with-icon-right {
+  padding-right: calc(var(--spacing-2) + var(--spacing-3) + var(--spacing-2));
+}
+
+[data-theme="dark"] .input-group-icon {
+  color: var(--color-neutral-gray-500);
+}
+[data-theme="high-contrast"] .input-group-icon {
+  color: var(--color-neutral-white);
+}

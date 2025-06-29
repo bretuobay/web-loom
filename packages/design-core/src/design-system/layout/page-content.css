@@ -1,0 +1,16 @@
+/* packages/design-core/src/design-system/layout/page-content.css */
+
+.page-content {
+  padding-top: var(--spacing-6);
+  padding-bottom: var(--spacing-6);
+  /* Uses .container class for width constraints and centering */
+}
+
+/* If page-content needs its own border, it can use .bordered-component */
+.page-content.bordered-component {
+  margin-left: var(--spacing-gutter); /* Example margin if bordered and not full-width */
+  margin-right: var(--spacing-gutter);
+  padding-left: var(--spacing-4); /* Additional padding if bordered */
+  padding-right: var(--spacing-4);
+  /* border logic is in base.css via .bordered-component */
+}

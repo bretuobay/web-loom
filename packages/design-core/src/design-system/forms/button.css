@@ -1,0 +1,211 @@
+/* packages/design-core/src/design-system/forms/button.css */
+
+.btn {
+  display: inline-flex; /* Allows icon and text to align nicely */
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2) var(--spacing-4);
+  font-family: var(--typography-font-family-base); /* Or heading for more prominent buttons */
+  font-size: var(--typography-font-size-md);
+  font-weight: var(--typography-font-weight-medium);
+  line-height: var(--typography-lineHeight-normal);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap; /* Prevent text wrapping */
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none; /* Prevent text selection on click */
+  border: var(--border-width-1) var(--border-style-solid) transparent; /* Transparent border initially */
+  border-radius: var(--radius-md);
+  transition: background-color var(--timing-fast) ease-in-out,
+              border-color var(--timing-fast) ease-in-out,
+              color var(--timing-fast) ease-in-out,
+              box-shadow var(--timing-fast) ease-in-out;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: var(--shadow-focus); /* Default focus ring */
+}
+
+.btn:disabled,
+.btn.disabled { /* Allow .disabled class for non-button elements styled as buttons */
+  opacity: var(--opacity-50, 0.5); /* Use opacity token if available */
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Primary Button */
+.btn-primary {
+  background-color: var(--color-base-primary);
+  color: var(--color-neutral-white);
+  border-color: var(--color-base-primary);
+}
+.btn-primary:hover {
+  background-color: var(--color-alpha-primary-50); /* Slightly darker/different shade for hover */
+  border-color: var(--color-alpha-primary-50);
+}
+.btn-primary:active {
+  background-color: var(--color-base-primary); /* Even darker/different for active */
+  border-color: var(--color-base-primary);
+}
+[data-theme="dark"] .btn-primary {
+  /* Primary button might be the same in dark mode or adjusted if needed */
+}
+[data-theme="high-contrast"] .btn-primary {
+  background-color: var(--color-base-primary);
+  color: var(--color-neutral-white);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white); /* High contrast border */
+}
+[data-theme="high-contrast"] .btn-primary:hover,
+[data-theme="high-contrast"] .btn-primary:active {
+  background-color: var(--color-neutral-white);
+  color: var(--color-base-primary);
+  border-color: var(--color-base-primary);
+}
+[data-theme="high-contrast"] .btn-primary:focus {
+  outline: var(--border-width-2) var(--border-style-solid) var(--color-neutral-black); /* Inverse outline */
+  outline-offset: var(--spacing-0-5, 2px);
+  box-shadow: none;
+}
+
+
+/* Secondary Button (Outline) */
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-base-primary);
+  border-color: var(--color-base-primary);
+}
+.btn-secondary:hover {
+  background-color: var(--color-alpha-primary-50); /* Light primary fill on hover */
+  color: var(--color-neutral-white);
+  border-color: var(--color-alpha-primary-50);
+}
+.btn-secondary:active {
+  background-color: var(--color-base-primary);
+  color: var(--color-neutral-white);
+  border-color: var(--color-base-primary);
+}
+[data-theme="dark"] .btn-secondary {
+  color: var(--color-base-primary); /* Ensure primary is visible */
+  border-color: var(--color-base-primary);
+}
+[data-theme="dark"] .btn-secondary:hover {
+  background-color: var(--color-base-primary);
+  color: var(--color-neutral-black); /* Text that contrasts with primary */
+  border-color: var(--color-base-primary);
+}
+[data-theme="high-contrast"] .btn-secondary {
+  background-color: transparent;
+  color: var(--color-neutral-white);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .btn-secondary:hover,
+[data-theme="high-contrast"] .btn-secondary:active {
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black); /* Text becomes black */
+  border-color: var(--color-neutral-white);
+}
+
+
+/* Tertiary / Ghost / Text Button */
+.btn-tertiary, .btn-ghost, .btn-text {
+  background-color: transparent;
+  color: var(--color-base-primary);
+  border-color: transparent;
+}
+.btn-tertiary:hover, .btn-ghost:hover, .btn-text:hover {
+  background-color: var(--color-neutral-gray-100); /* Subtle background on hover */
+  color: var(--color-base-primary);
+}
+.btn-tertiary:active, .btn-ghost:active, .btn-text:active {
+  background-color: var(--color-neutral-gray-200);
+}
+[data-theme="dark"] .btn-tertiary,
+[data-theme="dark"] .btn-ghost,
+[data-theme="dark"] .btn-text {
+  color: var(--color-base-primary); /* Or a lighter blue if primary is too dark */
+}
+[data-theme="dark"] .btn-tertiary:hover,
+[data-theme="dark"] .btn-ghost:hover,
+[data-theme="dark"] .btn-text:hover {
+  background-color: var(--color-neutral-gray-700);
+}
+[data-theme="high-contrast"] .btn-tertiary,
+[data-theme="high-contrast"] .btn-ghost,
+[data-theme="high-contrast"] .btn-text {
+  color: var(--color-neutral-white);
+  border: var(--border-width-1) var(--border-style-dashed) var(--color-neutral-white); /* Dashed to differentiate */
+}
+[data-theme="high-contrast"] .btn-tertiary:hover,
+[data-theme="high-contrast"] .btn-ghost:hover,
+[data-theme="high-contrast"] .btn-text:hover {
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+}
+
+/* Danger Button */
+.btn-danger {
+  background-color: var(--color-base-danger);
+  color: var(--color-neutral-white);
+  border-color: var(--color-base-danger);
+}
+.btn-danger:hover {
+  background-color: var(--color-alpha-black-50); /* Darken danger color, needs specific token */
+  border-color: var(--color-alpha-black-50);
+}
+[data-theme="high-contrast"] .btn-danger {
+  background-color: var(--color-base-danger);
+  color: var(--color-neutral-white);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .btn-danger:hover {
+  background-color: var(--color-neutral-white);
+  color: var(--color-base-danger);
+}
+
+
+/* Button Sizes */
+.btn-sm {
+  padding: var(--spacing-1) var(--spacing-2);
+  font-size: var(--typography-font-size-sm);
+}
+.btn-lg {
+  padding: var(--spacing-3) var(--spacing-5);
+  font-size: var(--typography-font-size-lg);
+}
+
+/* Full width button */
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+/* Icon Button (minimal padding, often square) */
+.btn-icon {
+  padding: var(--spacing-2); /* Equal padding for a more square look */
+  line-height: 1; /* Important for icon-only buttons */
+}
+.btn-icon .icon { /* Assuming icons are used with an .icon class */
+  margin: 0; /* Remove margin if text is absent */
+}
+
+/* Button with icon and text */
+.btn .icon {
+  margin-right: var(--spacing-2); /* Default spacing for icon on the left */
+}
+.btn .icon-right { /* If icon is on the right */
+  margin-left: var(--spacing-2);
+  margin-right: 0;
+}
+
+/* Ensure focus ring is visible on all themed buttons */
+[data-theme="dark"] .btn:focus {
+  box-shadow: var(--shadow-focus); /* Ensure --shadow-focus is dark-theme compatible */
+}
+[data-theme="high-contrast"] .btn:focus {
+  /* HC buttons have specific focus styles defined above, this is a fallback */
+  outline: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  outline-offset: var(--spacing-0-5, 2px);
+  box-shadow: none;
+}

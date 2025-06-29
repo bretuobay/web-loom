@@ -1,0 +1,77 @@
+/* packages/design-core/src/design-system/display/card.css */
+
+.card {
+  background-color: var(--color-themed-light-background);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
+  border-radius: var(--radius-lg); /* Larger radius for cards */
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-5);
+  overflow: hidden; /* Ensures content respects border radius */
+}
+
+[data-theme="dark"] .card {
+  background-color: var(--color-neutral-gray-800);
+  border-color: var(--color-neutral-gray-700);
+  box-shadow: var(--shadow-sm); /* Dark themes might need adjusted shadows if they are too subtle */
+}
+
+[data-theme="high-contrast"] .card {
+  background-color: var(--color-neutral-black);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  box-shadow: none; /* Shadows might reduce contrast */
+  color: var(--color-neutral-white);
+}
+
+.card-header {
+  font-size: var(--typography-font-size-lg);
+  font-weight: var(--typography-font-weight-medium);
+  padding-bottom: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
+}
+
+[data-theme="dark"] .card-header {
+  border-bottom-color: var(--color-neutral-gray-700);
+}
+
+[data-theme="high-contrast"] .card-header {
+  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+  color: inherit;
+}
+
+.card-body {
+  /* Default body styles, mostly spacing handled by content or direct children */
+  font-size: var(--typography-font-size-md);
+}
+
+.card-footer {
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
+  font-size: var(--typography-font-size-sm);
+  color: var(--color-neutral-gray-500);
+}
+
+[data-theme="dark"] .card-footer {
+  border-top-color: var(--color-neutral-gray-700);
+  color: var(--color-neutral-gray-400);
+}
+
+[data-theme="high-contrast"] .card-footer {
+  border-top: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+  color: inherit;
+}
+
+/* Elevated card variant */
+.card-elevated {
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .card-elevated {
+  box-shadow: var(--shadow-lg); /* Consider if dark theme shadows need adjustments */
+}
+
+[data-theme="high-contrast"] .card-elevated {
+  /* No shadow for high contrast, border is the primary distinction */
+  border-width: var(--border-width-2); /* Emphasize border more if elevated */
+}

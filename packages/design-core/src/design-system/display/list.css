@@ -1,0 +1,76 @@
+/* packages/design-core/src/design-system/display/list.css */
+
+.list {
+  list-style: none; /* Remove default browser list styles */
+  padding-left: 0;
+  margin-top: 0;
+  margin-bottom: var(--spacing-4);
+}
+
+.list-item {
+  padding: var(--spacing-2) 0;
+  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+[data-theme="dark"] .list-item {
+  border-bottom-color: var(--color-neutral-gray-700);
+}
+
+[data-theme="high-contrast"] .list-item {
+  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+}
+
+/* For lists that should have a containing border */
+.list.bordered-component {
+  padding: var(--spacing-3);
+  /* border styles from .bordered-component in base.css */
+}
+
+[data-theme="dark"] .list.bordered-component .list-item {
+  /* If list items inside a bordered dark list need different borders */
+  /* border-bottom-color: var(--color-neutral-gray-600); */
+}
+
+/* Numbered list */
+.list-ordered {
+  list-style: decimal inside; /* Example for ordered list */
+  padding-left: var(--spacing-5);
+}
+
+.list-ordered .list-item {
+  border-bottom: none; /* Typically ordered lists don't have item borders */
+  padding: var(--spacing-1) 0;
+}
+
+/* Bulleted list */
+.list-bulleted {
+  list-style: disc inside;
+  padding-left: var(--spacing-5);
+}
+
+.list-bulleted .list-item {
+  border-bottom: none;
+  padding: var(--spacing-1) 0;
+}
+
+/* Custom list styles */
+.list-custom .list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.list-custom .list-item-icon {
+  /* Placeholder for icon styling */
+  flex-shrink: 0;
+  width: var(--sizing-5); /* Example size */
+  height: var(--sizing-5); /* Example size */
+}
+
+.list-custom .list-item-content {
+  flex-grow: 1;
+}

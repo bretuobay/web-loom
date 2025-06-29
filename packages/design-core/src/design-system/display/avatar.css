@@ -1,0 +1,116 @@
+/* packages/design-core/src/design-system/display/avatar.css */
+
+.avatar {
+  display: inline-flex; /* Aligns well with text and other inline elements */
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  vertical-align: middle; /* Better alignment with text */
+  border-radius: var(--radius-full); /* Circular avatar */
+  overflow: hidden; /* Clip image to circle */
+  background-color: var(--color-neutral-gray-300); /* Fallback background */
+  color: var(--color-neutral-gray-700); /* For text/initials fallback */
+  font-weight: var(--typography-font-weight-medium);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-400); /* Subtle border */
+}
+
+[data-theme="dark"] .avatar {
+  background-color: var(--color-neutral-gray-600);
+  color: var(--color-neutral-gray-100);
+  border-color: var(--color-neutral-gray-500);
+}
+
+[data-theme="high-contrast"] .avatar {
+  background-color: var(--color-neutral-black);
+  color: var(--color-neutral-white);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Ensure image covers the area without distortion */
+}
+
+/* Sizes */
+.avatar-xs {
+  width: var(--sizing-6);  /* 24px if --sizing-1 is 4px */
+  height: var(--sizing-6);
+  font-size: var(--typography-font-size-xs);
+}
+
+.avatar-sm {
+  width: var(--sizing-8);  /* 32px */
+  height: var(--sizing-8);
+  font-size: var(--typography-font-size-sm);
+}
+
+.avatar-md {
+  width: var(--sizing-10); /* 40px */
+  height: var(--sizing-10);
+  font-size: var(--typography-font-size-md);
+}
+
+.avatar-lg {
+  width: var(--sizing-12); /* 48px */
+  height: var(--sizing-12);
+  font-size: var(--typography-font-size-lg);
+}
+
+.avatar-xl {
+  width: var(--sizing-16); /* 64px */
+  height: var(--sizing-16);
+  font-size: var(--typography-font-size-xl);
+}
+
+/* Avatar with status indicator */
+.avatar-status::after {
+  content: '';
+  position: absolute;
+  bottom: 5%; /* Adjust for desired position */
+  right: 5%;  /* Adjust for desired position */
+  width: 25%; /* Relative to avatar size */
+  height: 25%; /* Relative to avatar size */
+  border-radius: var(--radius-full);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-themed-light-background); /* Border matches avatar background for separation */
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .avatar-status::after {
+  border-color: var(--color-themed-dark-background);
+}
+
+[data-theme="high-contrast"] .avatar-status::after {
+  border-color: var(--color-neutral-black); /* Contrasting border for indicator */
+}
+
+.avatar-status-online::after { background-color: var(--color-base-success); }
+.avatar-status-offline::after { background-color: var(--color-neutral-gray-400); }
+.avatar-status-busy::after { background-color: var(--color-base-danger); }
+.avatar-status-away::after { background-color: var(--color-base-warning); }
+
+
+/* Avatar Group */
+.avatar-group {
+  display: flex;
+  padding-left: var(--spacing-3); /* To compensate for negative margin on children */
+}
+
+.avatar-group .avatar {
+  margin-left: calc(var(--spacing-3) * -1); /* Overlap avatars */
+  border: var(--border-width-2) var(--border-style-solid) var(--color-themed-light-background); /* Creates separation */
+}
+
+[data-theme="dark"] .avatar-group .avatar {
+  border-color: var(--color-themed-dark-background);
+}
+
+[data-theme="high-contrast"] .avatar-group .avatar {
+  border-color: var(--color-neutral-black); /* High contrast separation */
+}
+
+.avatar-group .avatar:hover {
+  z-index: 1; /* Bring hovered avatar to front */
+  transform: scale(1.1); /* Slight zoom effect */
+  transition: transform var(--timing-fast) ease-in-out;
+}

@@ -1,0 +1,66 @@
+/* packages/design-core/src/design-system/layout/page-header.css */
+
+.page-header {
+  padding: var(--spacing-4) var(--spacing-gutter);
+  background-color: var(--color-neutral-gray-100); /* Light background for header */
+  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+  display: flex; /* For alignment of items like logo and nav */
+  align-items: center;
+  justify-content: space-between;
+}
+
+[data-theme="dark"] .page-header {
+  background-color: var(--color-neutral-gray-800);
+  border-bottom-color: var(--color-neutral-gray-700);
+}
+
+[data-theme="high-contrast"] .page-header {
+  background-color: var(--color-neutral-black); /* Stark background */
+  border-bottom: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white); /* High contrast border */
+  color: var(--color-neutral-white); /* Ensure text within is high contrast */
+}
+
+.page-header-title {
+  font-size: var(--typography-font-size-xl);
+  font-weight: var(--typography-font-weight-bold);
+  color: inherit; /* Inherits from .page-header or themed parent */
+  margin: 0;
+}
+
+.page-header-nav {
+  /* Styles for navigation links within the header */
+  display: flex;
+  gap: var(--spacing-4);
+}
+
+.page-header-nav a {
+  color: var(--color-base-primary);
+  text-decoration: none;
+  font-size: var(--typography-font-size-md);
+}
+
+[data-theme="dark"] .page-header-nav a {
+  color: var(--color-neutral-gray-100); /* Lighter link color for dark header */
+}
+[data-theme="high-contrast"] .page-header-nav a {
+  color: var(--color-neutral-white); /* Ensure link visibility */
+}
+
+
+.page-header-nav a:hover,
+.page-header-nav a:focus {
+  text-decoration: underline;
+  color: var(--color-alpha-primary-50); /* Adjust hover color if needed for themes */
+}
+
+[data-theme="dark"] .page-header-nav a:hover,
+[data-theme="dark"] .page-header-nav a:focus {
+  color: var(--color-neutral-gray-300);
+}
+
+[data-theme="high-contrast"] .page-header-nav a:hover,
+[data-theme="high-contrast"] .page-header-nav a:focus {
+  background-color: var(--color-neutral-white); /* Invert colors on hover/focus */
+  color: var(--color-neutral-black);
+  outline: var(--border-width-1) var(--border-style-solid) var(--color-neutral-black);
+}

@@ -127,7 +127,25 @@ async function setupGlobalCssVariables() {
 // }
 ```
 
-Once injected, you can use these variables in your CSS:
+Alternatively, you can link the pre-generated CSS files directly in your HTML or import them into your main CSS/JS files. The core tokens are available as individual CSS files:
+
+```html
+<!-- Example: Link specific token CSS files in HTML -->
+<link rel="stylesheet" href="node_modules/@web-loom/design-core/src/css/colors.css">
+<link rel="stylesheet" href="node_modules/@web-loom/design-core/src/css/spacing.css">
+<!-- etc. -->
+```
+
+Or import them in your JavaScript entry point (if your bundler supports CSS imports):
+```javascript
+// main.js or App.js
+import '@web-loom/design-core/src/css/colors.css';
+import '@web-loom/design-core/src/css/spacing.css';
+// ... import other required token CSS files
+```
+
+
+Once injected or linked, you can use these variables in your CSS:
 
 ```css
 /* Example CSS */
@@ -309,6 +327,8 @@ function switchToLightTheme() {
 // setTimeout(switchToLightTheme, 3000);
 ```
 
+It's important that the CSS for the theme (e.g., `[data-theme="dark"] { ... }`) is loaded *before* `setTheme` is called. `applyTheme` handles this injection.
+
 #### `getCurrentTheme(): string | null`
 
 Gets the name of the currently active theme. It reads the `data-theme` attribute from the `<html>` element or falls back to an internally tracked name.
@@ -368,3 +388,82 @@ import { DesignTokens, ColorTokens } from '@design-core'; // Example type import
 ```
 
 This provides type safety and autocompletion when working with tokens and theme objects in a TypeScript environment.
+
+## Lightweight Design System (CSS Styles)
+
+Beyond the core tokens and utilities, `@design-core` also provides a lightweight, optional CSS-based design system built on top of these tokens. This includes pre-styled components for common UI elements.
+
+**Location:** `packages/design-core/src/design-system/`
+
+### How to Use
+
+You can import the entire design system's CSS, or import styles for specific components.
+
+**1. Import all styles:**
+
+This is the simplest way to get all component styles. Import it in your main JavaScript/TypeScript file (if your bundler supports CSS imports) or link it in your HTML.
+
+*In your main JS/TS file:*
+```javascript
+import '@web-loom/design-core/design-system'; // if using package exports
+// or directly:
+// import '@web-loom/design-core/src/design-system/index.css';
+```
+
+*In your HTML `head`:*
+```html
+<link rel="stylesheet" href="node_modules/@web-loom/design-core/src/design-system/index.css">
+```
+This will include `base.css` (which itself imports all token CSS) and all component styles.
+
+**2. Import individual component styles:**
+
+If you only need styles for specific components, you can import them directly. This can help reduce the amount of CSS included in your application if you're not using all components.
+
+*In your JS/TS file (e.g., for a specific component or view):*
+```javascript
+// Example: Only import button and card styles
+import '@web-loom/design-core/src/design-system/forms/button.css';
+import '@web-loom/design-core/src/design-system/display/card.css';
+// Don't forget to also include base styles if not importing the full index.css
+import '@web-loom/design-core/src/design-system/base.css';
+// Or ensure all token css files from src/css/* are loaded
+```
+*Note: Individual component CSS files rely on the CSS Custom Properties defined by the token CSS files (`packages/design-core/src/css/*.css`). The `base.css` file within the design system imports all of these. If you import component styles individually without `base.css` or the main `index.css`, ensure the token CSS files are loaded separately.*
+
+**Using the component classes:**
+
+Once the CSS is imported, you can use the defined classes in your HTML:
+
+```html
+<button class="btn btn-primary">Primary Button</button>
+
+<div class="card">
+  <div class="card-header">Card Title</div>
+  <div class="card-body">
+    This is a simple card.
+  </div>
+</div>
+
+<div class="form-group">
+  <label for="myInput" class="form-label">My Input</label>
+  <input type="text" id="myInput" class="input-base" placeholder="Enter text...">
+</div>
+```
+
+Refer to the CSS files within `packages/design-core/src/design-system/` subdirectories (e.g., `layout`, `display`, `forms`) to see available classes and component structures. The design aims for a flat look with well-defined borders.
+
+### Theming the Design System
+
+The design system components are built using the CSS Custom Properties derived from the design tokens. This means they will automatically respond to theme changes implemented via the `applyTheme` and `setTheme` utilities described earlier. For example, switching to a "dark" theme will adjust the appearance of buttons, cards, inputs, etc., provided the dark theme overrides the relevant color and style tokens.
+
+```html
+<!-- Set a theme on the HTML element -->
+<html data-theme="dark">
+  <body>
+    <!-- Components will now use dark theme styles -->
+    <button class="btn btn-secondary">Dark Theme Button</button>
+  </body>
+</html>
+```
+Ensure your theme definitions in `createTheme` cover the tokens used by the design system components for complete theming.

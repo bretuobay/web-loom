@@ -1,0 +1,151 @@
+/* packages/design-core/src/design-system/forms/select.css */
+
+/*
+  Select styles also build upon .input-base from input.css for consistency.
+*/
+
+.select-wrapper {
+  position: relative;
+  display: block; /* Or inline-block if preferred */
+  width: 100%; /* Or auto if inline-block */
+}
+
+.select {
+  /* This effectively "extends" .input-base.
+     If not using a system that supports 'composes', copy .input-base styles here. */
+  /* composes: input-base from "./input.css"; */
+
+  /* Apply base styles directly if not using composes */
+  display: block;
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--typography-font-size-md);
+  font-family: var(--typography-font-family-base);
+  line-height: var(--typography-lineHeight-normal);
+  color: var(--color-neutral-gray-900);
+  background-color: var(--color-themed-light-background);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-inner);
+  transition: border-color var(--timing-fast) ease-in-out, box-shadow var(--timing-fast) ease-in-out;
+
+  /* Select-specific appearance */
+  appearance: none; /* Remove default system appearance */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: calc(var(--spacing-3) + var(--spacing-6)); /* Make space for custom arrow */
+  background-repeat: no-repeat;
+  background-position: right var(--spacing-3) center;
+  background-size: var(--sizing-4) var(--sizing-4); /* Size of the arrow icon */
+  /* SVG for dropdown arrow - encoded for CSS */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236B7280'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E");
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-base-primary);
+  box-shadow: var(--shadow-focus), var(--shadow-inner);
+}
+
+.select:disabled,
+.select[readonly] { /* readonly is not standard for select but included for consistency */
+  background-color: var(--color-neutral-gray-100);
+  color: var(--color-neutral-gray-500);
+  cursor: not-allowed;
+  border-color: var(--color-neutral-gray-200);
+  box-shadow: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E"); /* Dimmed arrow */
+}
+
+/* Dark theme adaptations */
+[data-theme="dark"] .select {
+  color: var(--color-neutral-gray-100);
+  background-color: var(--color-neutral-gray-800);
+  border-color: var(--color-neutral-gray-600);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23D1D5DB'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E"); /* Lighter arrow for dark bg */
+}
+
+[data-theme="dark"] .select:focus {
+  border-color: var(--color-base-primary);
+}
+
+[data-theme="dark"] .select:disabled,
+[data-theme="dark"] .select[readonly] {
+  background-color: var(--color-neutral-gray-700);
+  color: var(--color-neutral-gray-400);
+  border-color: var(--color-neutral-gray-600);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236B7280'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E"); /* Darker, dimmed arrow */
+}
+
+/* High contrast adaptations */
+[data-theme="high-contrast"] .select {
+  color: var(--color-neutral-white);
+  background-color: var(--color-neutral-black);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  box-shadow: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FFFFFF'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E"); /* White arrow */
+}
+
+[data-theme="high-contrast"] .select:focus {
+  outline: var(--border-width-2) var(--border-style-solid) var(--color-base-primary);
+  outline-offset: var(--spacing-0);
+  border-color: var(--color-base-primary);
+  box-shadow: none;
+}
+
+[data-theme="high-contrast"] .select:disabled,
+[data-theme="high-contrast"] .select[readonly] {
+  background-color: var(--color-neutral-black);
+  color: var(--color-neutral-gray-400);
+  border-color: var(--color-neutral-gray-500);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E"); /* Grayed arrow */
+}
+
+/* Select with error state */
+.select.input-error { /* Assuming .input-error class is defined in input.css */
+  border-color: var(--color-base-danger);
+  color: var(--color-base-danger); /* Text color for error state */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23EF4444'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E"); /* Red arrow */
+}
+.select.input-error:focus {
+  border-color: var(--color-base-danger);
+  box-shadow: 0 0 0 var(--border-width-2) var(--color-alpha-black-50); /* Red focus shadow */
+}
+
+[data-theme="dark"] .select.input-error {
+  border-color: var(--color-base-danger);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F87171'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E"); /* Lighter red arrow for dark bg */
+}
+[data-theme="high-contrast"] .select.input-error {
+  border-color: var(--color-base-danger);
+  color: var(--color-base-danger);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23EF4444'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E"); /* Red arrow */
+}
+[data-theme="high-contrast"] .select.input-error:focus {
+   outline-color: var(--color-base-danger);
+}
+
+/* Styling for <option> elements (limited cross-browser support) */
+.select option {
+  background-color: var(--color-themed-light-background);
+  color: var(--color-neutral-gray-900);
+}
+
+[data-theme="dark"] .select option {
+  background-color: var(--color-neutral-gray-800);
+  color: var(--color-neutral-gray-100);
+}
+
+[data-theme="high-contrast"] .select option {
+  background-color: var(--color-neutral-black); /* Or system default if better */
+  color: var(--color-neutral-white);
+}
+
+/* Custom dropdown / select simulation (if not using native select) */
+/* This would involve more complex HTML and JS. For now, focusing on native select styling. */
+/*
+.custom-select { ... }
+.custom-select-trigger { ... }
+.custom-select-options { ... }
+.custom-select-option { ... }
+*/
