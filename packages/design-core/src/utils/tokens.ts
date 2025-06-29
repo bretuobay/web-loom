@@ -75,8 +75,9 @@ function walkTokens(
  * Internal helper: Resolves token references within the token object.
  * References are strings like "{colors.base.primary.value}".
  * @param tokens The DesignTokens object to resolve references in (mutated directly).
+ * exported for use in tests or other utilities.
  */
-function resolveTokenReferences(tokens: DesignTokens): void {
+export function resolveTokenReferences(tokens: DesignTokens): void {
   const referenceRegex = /^{([^}]+)\.value}$/; // Matches {path.to.token.value}
 
   const getReferencedValue = (path: string, allTokens: DesignTokens): TokenValue | undefined => {
@@ -134,7 +135,10 @@ async function initializeMasterTokens(): Promise<void> {
       const tokenModule = await import(`../tokens/${fileName}`);
       rawTokens[categoryName] = tokenModule.default || tokenModule;
     } catch (error) {
-      console.error(`Error loading token file ${fileName}. Ensure it exists at '../tokens/${fileName}' and is valid JSON.`, error);
+      console.error(
+        `Error loading token file ${fileName}. Ensure it exists at '../tokens/${fileName}' and is valid JSON.`,
+        error,
+      );
       rawTokens[categoryName] = {}; // Fallback to empty object for this category
     }
   }

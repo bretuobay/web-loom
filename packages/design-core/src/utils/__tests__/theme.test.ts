@@ -4,7 +4,7 @@ import { createTheme, applyTheme, setTheme, getCurrentTheme, Theme } from '../th
 
 // Mock cssVariables' pathToCssVar because flattenThemeOverridesToCssVars uses it.
 vi.mock('../cssVariables', async (importOriginal) => {
-  const original = await importOriginal();
+  const original = (await importOriginal()) as typeof import('../cssVariables');
   return {
     ...original,
     pathToCssVar: vi.fn((path: string) => `--${path.replace(/\./g, '-')}`),
@@ -69,7 +69,7 @@ describe('Theme Utilities', () => {
       expect(getCurrentTheme()).toBe('temp'); // Falls back to S_currentThemeName
     });
 
-    it.skip('should return null if no theme attribute and S_currentThemeName is null', () => {
+    it('should return null if no theme attribute and S_currentThemeName is null', () => {
       // To ensure S_currentThemeName is null, we'd need to reset module or have an internal reset.
       // For this test, we assume a clean state or that previous tests don't interfere with S_currentThemeName's fallback.
       // The beforeEach clears the attribute. If S_currentThemeName was also reset, this would be null.
@@ -80,6 +80,7 @@ describe('Theme Utilities', () => {
       // If we call setTheme(null) or similar, it might clear S_currentThemeName.
       // However, setTheme expects a string.
       // The most direct test for S_currentThemeName fallback is the one above.
+      setTheme(null as unknown as string); // This should clear S_currentThemeName if it was set.
       document.documentElement.removeAttribute('data-theme');
       // To truly test S_currentThemeName being null, we'd need to ensure it is.
       // This scenario is hard to isolate perfectly without module resets or an internal reset fn.
@@ -164,7 +165,7 @@ describe('Theme Utilities', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const originalDocument = global.document;
-      // @ts-ignore
+      // @ts-expect-error global.document is not defined in Node.js
       delete global.document; // Simulate non-browser environment
 
       await applyTheme(testTheme);

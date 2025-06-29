@@ -11,7 +11,7 @@ import * as _tokens from '../tokens'; // Import all exports
 
 // Mock the tokens module
 vi.mock('../tokens', async (importOriginal) => {
-  const originalModule = await importOriginal();
+  const originalModule = (await importOriginal()) as typeof _tokens;
   return {
     ...originalModule,
     getTokenValue: vi.fn(),
@@ -103,7 +103,7 @@ describe('CSS Variable Utilities', () => {
   });
 
   describe('generateCssVariablesString', () => {
-    it.skip('should generate a CSS string with variables under the specified selector', async () => {
+    it('should generate a CSS string with variables under the specified selector', async () => {
       // Instead of mocking generateCssVariablesMap, we can rely on its test via getAllTokens mock
       const mockTokensForString = {
         colors: { primary: 'blue' },
@@ -112,9 +112,9 @@ describe('CSS Variable Utilities', () => {
       mockedGetAllTokens.mockResolvedValue(mockTokensForString); // generateCssVariablesMap uses getAllTokens
 
       const result = await generateCssVariablesString(':root');
-      const expectedStringLines = [':root {', '  --colors-primary: blue;', '  --spacing-small: 5px;', '}'];
+      const expectedStringLines = [':root{', '--colors-primary:blue;', '--spacing-small:5px;', '}'];
       // Normalize whitespace and line breaks for comparison
-      expect(result.replace(/\s+/g, ' ').trim()).toBe(expectedStringLines.join(' ').trim());
+      expect(result.replace(/\s+/g, '').trim()).toBe(expectedStringLines.join('').trim());
     });
 
     it('should use :root as the default selector', async () => {
