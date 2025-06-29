@@ -1,0 +1,6 @@
+:root {
+  --gradient-primary-to-secondary: linear-gradient(to right, #1E40AF, #64748B);
+  --gradient-success-to-primary: linear-gradient(to right, #10B981, #1E40AF);
+  --gradient-multicolor-diagonal: linear-gradient(to bottom right, #1E40AF, #EF4444, #F59E0B);
+  --gradient-radial-primary: radial-gradient(circle, #1E40AF, #FFFFFF);
+}

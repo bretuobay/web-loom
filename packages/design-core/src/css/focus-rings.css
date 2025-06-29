@@ -1,0 +1,12 @@
+:root {
+  --focusRing-color-default: #1E40AF;
+  --focusRing-color-error: #EF4444;
+  --focusRing-offset-none: 0px;
+  --focusRing-offset-sm: 1px;
+  --focusRing-offset-md: 2px;
+  --focusRing-width-sm: 1px;
+  --focusRing-width-md: 2px;
+  --focusRing-width-lg: 3px;
+  --focusRing-default: 2px solid #1E40AF;
+  --focusRing-error: 2px solid #EF4444;
+}

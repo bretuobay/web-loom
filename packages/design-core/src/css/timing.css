@@ -1,0 +1,9 @@
+:root {
+  --timing-delay-none: 0ms;
+  --timing-delay-short: 100ms;
+  --timing-delay-medium: 200ms;
+  --timing-delay-long: 300ms;
+  --timing-duration-short: 100ms;
+  --timing-duration-medium: 250ms;
+  --timing-duration-long: 500ms;
+}
