@@ -1,0 +1,49 @@
+{
+  "cursor": {
+    "auto": {
+      "value": "auto",
+      "type": "cursor",
+      "description": "Auto cursor"
+    },
+    "default": {
+      "value": "default",
+      "type": "cursor",
+      "description": "Default cursor"
+    },
+    "pointer": {
+      "value": "pointer",
+      "type": "cursor",
+      "description": "Pointer cursor"
+    },
+    "wait": {
+      "value": "wait",
+      "type": "cursor",
+      "description": "Wait cursor"
+    },
+    "text": {
+      "value": "text",
+      "type": "cursor",
+      "description": "Text cursor"
+    },
+    "move": {
+      "value": "move",
+      "type": "cursor",
+      "description": "Move cursor"
+    },
+    "not-allowed": {
+      "value": "not-allowed",
+      "type": "cursor",
+      "description": "Not-allowed cursor"
+    },
+    "grab": {
+      "value": "grab",
+      "type": "cursor",
+      "description": "Grab cursor"
+    },
+    "grabbing": {
+      "value": "grabbing",
+      "type": "cursor",
+      "description": "Grabbing cursor"
+    }
+  }
+}

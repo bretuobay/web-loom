@@ -1,0 +1,144 @@
+{
+  "color": {
+    "base": {
+      "primary": {
+        "value": "#1E40AF",
+        "type": "color",
+        "description": "Primary brand color"
+      },
+      "secondary": {
+        "value": "#64748B",
+        "type": "color",
+        "description": "Secondary brand color"
+      },
+      "success": {
+        "value": "#10B981",
+        "type": "color",
+        "description": "Success color"
+      },
+      "warning": {
+        "value": "#F59E0B",
+        "type": "color",
+        "description": "Warning color"
+      },
+      "danger": {
+        "value": "#EF4444",
+        "type": "color",
+        "description": "Danger color"
+      }
+    },
+    "neutral": {
+      "black": {
+        "value": "#000000",
+        "type": "color",
+        "description": "Pure black"
+      },
+      "white": {
+        "value": "#FFFFFF",
+        "type": "color",
+        "description": "Pure white"
+      },
+      "gray": {
+        "50": {
+          "value": "#F9FAFB",
+          "type": "color",
+          "description": "Lightest gray"
+        },
+        "100": {
+          "value": "#F3F4F6",
+          "type": "color",
+          "description": "Lightest gray"
+        },
+        "200": {
+          "value": "#E5E7EB",
+          "type": "color",
+          "description": "Light gray"
+        },
+        "300": {
+          "value": "#D1D5DB",
+          "type": "color",
+          "description": "Light gray"
+        },
+        "400": {
+          "value": "#9CA3AF",
+          "type": "color",
+          "description": "Medium gray"
+        },
+        "500": {
+          "value": "#6B7280",
+          "type": "color",
+          "description": "Medium gray"
+        },
+        "600": {
+          "value": "#4B5563",
+          "type": "color",
+          "description": "Dark gray"
+        },
+        "700": {
+          "value": "#374151",
+          "type": "color",
+          "description": "Dark gray"
+        },
+        "800": {
+          "value": "#1F2937",
+          "type": "color",
+          "description": "Darkest gray"
+        },
+        "900": {
+          "value": "#111827",
+          "type": "color",
+          "description": "Darkest gray"
+        }
+      }
+    },
+    "themed": {
+      "light": {
+        "background": {
+          "value": "{color.neutral.white.value}",
+          "type": "color"
+        },
+        "text": {
+          "value": "{color.neutral.black.value}",
+          "type": "color"
+        }
+      },
+      "dark": {
+        "background": {
+          "value": "{color.neutral.900.value}",
+          "type": "color"
+        },
+        "text": {
+          "value": "{color.neutral.white.value}",
+          "type": "color"
+        }
+      },
+      "high-contrast": {
+        "background": {
+          "value": "{color.neutral.black.value}",
+          "type": "color"
+        },
+        "text": {
+          "value": "{color.neutral.white.value}",
+          "type": "color"
+        }
+      }
+    },
+    "alpha": {
+      "primary-50": {
+        "value": "rgba(30, 64, 175, 0.5)",
+        "type": "color",
+        "description": "Primary color with 50% opacity"
+      },
+      "primary-100": {
+        "value": "rgba(30, 64, 175, 1)",
+        "type": "color",
+        "description": "Primary color with 100% opacity"
+      },
+      "black-50": {
+        "value": "rgba(0, 0, 0, 0.5)",
+        "type": "color",
+        "description": "Black with 50% opacity"
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "breakpoint": {
+    "xs": {
+      "value": "0px",
+      "type": "breakpoint",
+      "description": "Extra small breakpoint (mobile-first)"
+    },
+    "sm": {
+      "value": "640px",
+      "type": "breakpoint",
+      "description": "Small breakpoint (tablets)"
+    },
+    "md": {
+      "value": "768px",
+      "type": "breakpoint",
+      "description": "Medium breakpoint (small laptops)"
+    },
+    "lg": {
+      "value": "1024px",
+      "type": "breakpoint",
+      "description": "Large breakpoint (desktops)"
+    },
+    "xl": {
+      "value": "1280px",
+      "type": "breakpoint",
+      "description": "Extra large breakpoint (large desktops)"
+    },
+    "2xl": {
+      "value": "1536px",
+      "type": "breakpoint",
+      "description": "2X large breakpoint (widescreens)"
+    },
+    "orientation": {
+      "portrait": {
+        "value": "(orientation: portrait)",
+        "type": "mediaQuery"
+      },
+      "landscape": {
+        "value": "(orientation: landscape)",
+        "type": "mediaQuery"
+      }
+    }
+  }
+}

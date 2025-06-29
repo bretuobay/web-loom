@@ -1,0 +1,24 @@
+{
+  "gradient": {
+    "primary-to-secondary": {
+      "value": "linear-gradient(to right, {color.base.primary.value}, {color.base.secondary.value})",
+      "type": "gradient",
+      "description": "Gradient from primary to secondary color"
+    },
+    "success-to-primary": {
+      "value": "linear-gradient(to right, {color.base.success.value}, {color.base.primary.value})",
+      "type": "gradient",
+      "description": "Gradient from success to primary color"
+    },
+    "multicolor-diagonal": {
+      "value": "linear-gradient(to bottom right, {color.base.primary.value}, {color.base.danger.value}, {color.base.warning.value})",
+      "type": "gradient",
+      "description": "Diagonal gradient with multiple color stops"
+    },
+    "radial-primary": {
+      "value": "radial-gradient(circle, {color.base.primary.value}, {color.neutral.white.value})",
+      "type": "gradient",
+      "description": "Radial gradient with primary color at the center"
+    }
+  }
+}

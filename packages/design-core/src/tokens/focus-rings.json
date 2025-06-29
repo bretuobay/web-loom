@@ -1,0 +1,57 @@
+{
+  "focusRing": {
+    "color": {
+      "default": {
+        "value": "{color.base.primary.value}",
+        "type": "color",
+        "description": "Default focus ring color"
+      },
+      "error": {
+        "value": "{color.base.danger.value}",
+        "type": "color",
+        "description": "Focus ring color for error states"
+      }
+    },
+    "offset": {
+      "none": {
+        "value": "0px",
+        "type": "spacing",
+        "description": "No offset for focus ring"
+      },
+      "sm": {
+        "value": "1px",
+        "type": "spacing",
+        "description": "Small offset for focus ring"
+      },
+      "md": {
+        "value": "2px",
+        "type": "spacing",
+        "description": "Medium offset for focus ring"
+      }
+    },
+    "width": {
+      "sm": {
+        "value": "1px",
+        "type": "borderWidth"
+      },
+      "md": {
+        "value": "2px",
+        "type": "borderWidth"
+      },
+      "lg": {
+        "value": "3px",
+        "type": "borderWidth"
+      }
+    },
+    "default": {
+        "value": "{focusRing.width.md.value} solid {focusRing.color.default.value}",
+        "type": "focusRing",
+        "description": "Default focus ring style"
+    },
+    "error": {
+        "value": "{focusRing.width.md.value} solid {focusRing.color.error.value}",
+        "type": "focusRing",
+        "description": "Error focus ring style"
+    }
+  }
+}

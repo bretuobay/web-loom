@@ -1,0 +1,72 @@
+{
+  "transition": {
+    "duration": {
+      "fast": {
+        "value": "150ms",
+        "type": "duration",
+        "description": "Fast transition duration"
+      },
+      "medium": {
+        "value": "300ms",
+        "type": "duration",
+        "description": "Medium transition duration"
+      },
+      "slow": {
+        "value": "500ms",
+        "type": "duration",
+        "description": "Slow transition duration"
+      }
+    },
+    "timingFunction": {
+      "linear": {
+        "value": "linear",
+        "type": "timingFunction",
+        "description": "Linear timing function"
+      },
+      "ease-in": {
+        "value": "cubic-bezier(0.4, 0, 1, 1)",
+        "type": "timingFunction",
+        "description": "Ease-in timing function"
+      },
+      "ease-out": {
+        "value": "cubic-bezier(0, 0, 0.2, 1)",
+        "type": "timingFunction",
+        "description": "Ease-out timing function"
+      },
+      "ease-in-out": {
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "type": "timingFunction",
+        "description": "Ease-in-out timing function"
+      }
+    },
+    "delay": {
+      "none": {
+        "value": "0ms",
+        "type": "duration",
+        "description": "No transition delay"
+      },
+      "short": {
+        "value": "100ms",
+        "type": "duration",
+        "description": "Short transition delay"
+      },
+      "long": {
+        "value": "200ms",
+        "type": "duration",
+        "description": "Long transition delay"
+      }
+    },
+    "motion": {
+      "prefersReducedMotion": {
+        "value": "(prefers-reduced-motion: reduce)",
+        "type": "mediaQuery"
+      },
+      "default": {
+        "property": "all",
+        "duration": "{transition.duration.medium.value}",
+        "timingFunction": "{transition.timingFunction.ease-in-out.value}",
+        "type": "transition"
+      }
+    }
+  }
+}

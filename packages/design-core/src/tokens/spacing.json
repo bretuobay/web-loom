@@ -1,0 +1,92 @@
+{
+  "spacing": {
+    "0": {
+      "value": "0px",
+      "type": "spacing",
+      "description": "Spacing unit 0"
+    },
+    "1": {
+      "value": "4px",
+      "type": "spacing",
+      "description": "Spacing unit 1"
+    },
+    "2": {
+      "value": "8px",
+      "type": "spacing",
+      "description": "Spacing unit 2"
+    },
+    "3": {
+      "value": "12px",
+      "type": "spacing",
+      "description": "Spacing unit 3"
+    },
+    "4": {
+      "value": "16px",
+      "type": "spacing",
+      "description": "Spacing unit 4"
+    },
+    "5": {
+      "value": "20px",
+      "type": "spacing",
+      "description": "Spacing unit 5"
+    },
+    "6": {
+      "value": "24px",
+      "type": "spacing",
+      "description": "Spacing unit 6"
+    },
+    "7": {
+      "value": "28px",
+      "type": "spacing",
+      "description": "Spacing unit 7"
+    },
+    "8": {
+      "value": "32px",
+      "type": "spacing",
+      "description": "Spacing unit 8"
+    },
+    "9": {
+      "value": "36px",
+      "type": "spacing",
+      "description": "Spacing unit 9"
+    },
+    "10": {
+      "value": "40px",
+      "type": "spacing",
+      "description": "Spacing unit 10"
+    },
+    "gutter": {
+      "value": "{spacing.4.value}",
+      "type": "spacing",
+      "description": "Default gutter size"
+    },
+    "padding": {
+      "sm": {
+        "value": "{spacing.2.value}",
+        "type": "spacing"
+      },
+      "md": {
+        "value": "{spacing.4.value}",
+        "type": "spacing"
+      },
+      "lg": {
+        "value": "{spacing.6.value}",
+        "type": "spacing"
+      }
+    },
+    "margin": {
+      "sm": {
+        "value": "{spacing.2.value}",
+        "type": "spacing"
+      },
+      "md": {
+        "value": "{spacing.4.value}",
+        "type": "spacing"
+      },
+      "lg": {
+        "value": "{spacing.6.value}",
+        "type": "spacing"
+      }
+    }
+  }
+}

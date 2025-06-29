@@ -1,0 +1,24 @@
+{
+  "radius": {
+    "sm": {
+      "value": "4px",
+      "type": "borderRadius",
+      "description": "Small border radius"
+    },
+    "md": {
+      "value": "8px",
+      "type": "borderRadius",
+      "description": "Medium border radius"
+    },
+    "lg": {
+      "value": "16px",
+      "type": "borderRadius",
+      "description": "Large border radius"
+    },
+    "full": {
+      "value": "9999px",
+      "type": "borderRadius",
+      "description": "Full border radius (pill shape)"
+    }
+  }
+}
