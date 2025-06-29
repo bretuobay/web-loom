@@ -9,10 +9,10 @@ interface ThresholdAlertCardProps {
 const ThresholdAlertCard: React.FC<ThresholdAlertCardProps> = ({ thresholdAlerts }) => {
   return (
     <div className="card">
-      <Link to="/threshold-alerts" className="card-header-link">
-        <h3 className="card-title">Alerts</h3>
+      <Link to="/threshold-alerts">
+        <h3 className="card-header">Alerts</h3>
       </Link>
-      <p className="card-content">Total Alerts: {thresholdAlerts.length}</p>
+      <p className="card-body">Total Alerts: {thresholdAlerts.length}</p>
     </div>
   );
 };

@@ -10,10 +10,10 @@ const GreenhouseCard: React.FC<GreenhouseCardProps> = ({ greenHouses }) => {
   if (!greenHouses) return null;
   return (
     <div className="card">
-      <Link to="/greenhouses" className="card-header-link">
-        <h3 className="card-title">Greenhouses</h3>
+      <Link to="/greenhouses">
+        <h3 className="card-header">Greenhouses</h3>
       </Link>
-      <p className="card-content">Total: {greenHouses.length}</p>
+      <p className="card-body">Total: {greenHouses.length}</p>
     </div>
   );
 };

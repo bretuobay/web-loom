@@ -10,10 +10,10 @@ const SensorCard: React.FC<SensorCardProps> = ({ sensors }) => {
   if (!sensors) return null;
   return (
     <div className="card">
-      <Link to="/sensors" className="card-header-link">
-        <h3 className="card-title">Sensors</h3>
+      <Link to="/sensors">
+        <h3 className="card-header">Sensors</h3>
       </Link>
-      <p className="card-content">Total: {sensors.length}</p>
+      <p className="card-body">Total: {sensors.length}</p>
     </div>
   );
 };

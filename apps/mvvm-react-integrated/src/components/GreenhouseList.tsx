@@ -135,9 +135,9 @@ export function GreenhouseList() {
         </form>
 
         <div className="card" style={{ maxWidth: '600px' }}>
-          <h1 className="card-title">Greenhouses</h1>
+          <h1 className="card-header">Greenhouses</h1>
           {greenHouses && greenHouses.length > 0 ? (
-            <ul className="card-content list">
+            <ul className="card-body list">
               {greenHouses.map((gh) => (
                 <li key={gh.id} className="list-item" style={{ fontSize: '1.8rem', justifyContent: 'space-between' }}>
                   <span>{gh.name}</span>

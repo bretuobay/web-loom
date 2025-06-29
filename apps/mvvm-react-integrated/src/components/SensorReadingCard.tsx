@@ -99,12 +99,12 @@ const SensorReadingCard: React.FC<SensorReadingCardProps> = ({ sensorReadings })
   return (
     <div className="card">
       <Link to="/sensor-readings" className="card-header-link">
-        <h3 className="card-title">Sensor Readings</h3>
+        <h3 className="card-header">Sensor Readings</h3>
       </Link>
-      <div className="card-content">
+      <div className="card-body">
         <canvas id="sensorReadingsChart"></canvas>
       </div>
-      <p className="card-content">Total Readings: {sensorReadings.length}</p>
+      <p className="card-body">Total Readings: {sensorReadings.length}</p>
     </div>
   );
 };

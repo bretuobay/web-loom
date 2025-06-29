@@ -1,27 +1,6 @@
-import { QueryCore } from '@web-loom/query-core';
 import { createStore } from '@web-loom/store-core';
-
-// 1. Define your state interface
-// interface CounterState {
-//   count: number;
-// }
-
-// // 2. Define your actions interface
-// interface CounterActions {
-//   increment: () => void;
-//   decrement: () => void;
-//   add: (amount: number) => void;
-// }
-
-// // 3. Create the store
-// const store = createStore<CounterState, CounterActions>(
-//   { count: 0 }, // Initial state
-//   (set, get, actions) => ({
-//     increment: () => set((state) => ({ ...state, count: state.count + 1 })),
-//     decrement: () => set((state) => ({ ...state, count: state.count - 1 })),
-//     add: (amount: number) => set((state) => ({ ...state, count: state.count + amount })),
-//   }),
-// );
+import { QueryCore } from '@web-loom/query-core';
+import { createContext, useContext } from 'react';
 
 type User = {
   id: string;
@@ -37,20 +16,49 @@ type AppStore = {
 type AppActions = {
   login: (user: User) => void;
   logout: () => void;
-  updateUser: (user: Partial<User | null>) => void;
+  updateUser: (user: Partial<User>) => void;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const store = createStore<AppStore, AppActions>(
   {
     isLoggedIn: false,
     user: null,
   },
-  (set, get, actions) => ({
-    login: (user: User) => set({ isLoggedIn: true, user }),
-    logout: () => set({ isLoggedIn: false, user: null }),
-    updateUser: (user: Partial<User | null>) => {
+  (set, get) => ({
+    login: (user: User) => set((state) => ({ ...state, isLoggedIn: true, user })),
+    logout: () => set((state) => ({ ...state, isLoggedIn: false, user: null })),
+    updateUser: (user: Partial<User>) => {
       const currentUser = get().user;
-      set({ user: { ...currentUser, ...user } });
+      if (currentUser) {
+        set((state) => ({ ...state, user: { ...currentUser, ...user } }));
+      }
     },
   }),
 );
+
+const queryCore = new QueryCore({
+  cacheProvider: 'localStorage', // Default for all endpoints
+  defaultRefetchAfter: 5 * 60 * 1000, // Global default: refetch after 5 minutes
+});
+
+const AppContext = createContext<{
+  store: typeof store;
+  queryCore: QueryCore;
+}>({
+  store,
+  queryCore,
+});
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useAppContext = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useAppContext must be used within an AppProvider');
+  }
+  return context;
+};
+
+export function AppProvider({ children }: { children: React.ReactNode }) {
+  return <AppContext.Provider value={{ store, queryCore }}>{children}</AppContext.Provider>;
+}
