@@ -26,7 +26,7 @@
     "framework-agnostic"
   ],
   "scripts": {
-    "dev": "vite",
+    "dev": "vite build --watch",
     "build": "vite build",
     "test": "vitest --watch=false",
     "test:watch": "vitest --watch",
