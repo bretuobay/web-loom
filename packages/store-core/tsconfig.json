@@ -22,11 +22,7 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    // in test files for vi to be available
-    "types": [
-      "vitest/globals"
-    ]
+    "noFallthroughCasesInSwitch": true
   },
   "include": [
     "src"
