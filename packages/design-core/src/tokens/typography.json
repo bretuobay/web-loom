@@ -1,0 +1,133 @@
+{
+  "typography": {
+    "font": {
+      "family": {
+        "base": {
+          "value": "'Inter', sans-serif",
+          "type": "fontFamily",
+          "description": "Base font family for body text"
+        },
+        "heading": {
+          "value": "'Poppins', sans-serif",
+          "type": "fontFamily",
+          "description": "Font family for headings"
+        }
+      },
+      "size": {
+        "xs": {
+          "value": "12px",
+          "type": "fontSize",
+          "description": "Extra small font size"
+        },
+        "sm": {
+          "value": "14px",
+          "type": "fontSize",
+          "description": "Small font size"
+        },
+        "md": {
+          "value": "16px",
+          "type": "fontSize",
+          "description": "Medium font size"
+        },
+        "lg": {
+          "value": "18px",
+          "type": "fontSize",
+          "description": "Large font size"
+        },
+        "xl": {
+          "value": "20px",
+          "type": "fontSize",
+          "description": "Extra large font size"
+        },
+        "2xl": {
+          "value": "24px",
+          "type": "fontSize",
+          "description": "2X large font size"
+        },
+        "3xl": {
+          "value": "30px",
+          "type": "fontSize",
+          "description": "3X large font size"
+        }
+      },
+      "weight": {
+        "light": {
+          "value": "300",
+          "type": "fontWeight",
+          "description": "Light font weight"
+        },
+        "regular": {
+          "value": "400",
+          "type": "fontWeight",
+          "description": "Regular font weight"
+        },
+        "medium": {
+          "value": "500",
+          "type": "fontWeight",
+          "description": "Medium font weight"
+        },
+        "bold": {
+          "value": "700",
+          "type": "fontWeight",
+          "description": "Bold font weight"
+        },
+        "extrabold": {
+          "value": "800",
+          "type": "fontWeight",
+          "description": "Extra bold font weight"
+        }
+      }
+    },
+    "lineHeight": {
+      "tight": {
+        "value": "1.25",
+        "type": "lineHeight",
+        "description": "Tight line height"
+      },
+      "normal": {
+        "value": "1.5",
+        "type": "lineHeight",
+        "description": "Normal line height"
+      },
+      "loose": {
+        "value": "2",
+        "type": "lineHeight",
+        "description": "Loose line height"
+      }
+    },
+    "letterSpacing": {
+      "tight": {
+        "value": "-0.05em",
+        "type": "letterSpacing",
+        "description": "Tight letter spacing"
+      },
+      "normal": {
+        "value": "normal",
+        "type": "letterSpacing",
+        "description": "Normal letter spacing"
+      },
+      "wide": {
+        "value": "0.05em",
+        "type": "letterSpacing",
+        "description": "Wide letter spacing"
+      }
+    },
+    "textCase": {
+      "uppercase": {
+        "value": "uppercase",
+        "type": "textCase",
+        "description": "Uppercase text transformation"
+      },
+      "lowercase": {
+        "value": "lowercase",
+        "type": "textCase",
+        "description": "Lowercase text transformation"
+      },
+      "capitalize": {
+        "value": "capitalize",
+        "type": "textCase",
+        "description": "Capitalize text transformation"
+      }
+    }
+  }
+}

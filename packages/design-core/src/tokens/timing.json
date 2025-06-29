@@ -1,0 +1,43 @@
+{
+  "timing": {
+    "delay": {
+      "none": {
+        "value": "0ms",
+        "type": "duration",
+        "description": "No delay"
+      },
+      "short": {
+        "value": "100ms",
+        "type": "duration",
+        "description": "Short delay for animations"
+      },
+      "medium": {
+        "value": "200ms",
+        "type": "duration",
+        "description": "Medium delay for animations"
+      },
+      "long": {
+        "value": "300ms",
+        "type": "duration",
+        "description": "Long delay for animations"
+      }
+    },
+    "duration": {
+      "short": {
+        "value": "100ms",
+        "type": "duration",
+        "description": "Short duration for animations"
+      },
+      "medium": {
+        "value": "250ms",
+        "type": "duration",
+        "description": "Medium duration for animations"
+      },
+      "long": {
+        "value": "500ms",
+        "type": "duration",
+        "description": "Long duration for animations"
+      }
+    }
+  }
+}

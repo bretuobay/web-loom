@@ -1,0 +1,44 @@
+{
+  "zIndex": {
+    "auto": {
+      "value": "auto",
+      "type": "zIndex",
+      "description": "Auto z-index"
+    },
+    "0": {
+      "value": "0",
+      "type": "zIndex",
+      "description": "Z-index 0"
+    },
+    "10": {
+      "value": "10",
+      "type": "zIndex",
+      "description": "Z-index 10 (e.g., base elements)"
+    },
+    "20": {
+      "value": "20",
+      "type": "zIndex",
+      "description": "Z-index 20 (e.g., dropdowns)"
+    },
+    "30": {
+      "value": "30",
+      "type": "zIndex",
+      "description": "Z-index 30 (e.g., fixed/sticky elements)"
+    },
+    "40": {
+      "value": "40",
+      "type": "zIndex",
+      "description": "Z-index 40 (e.g., modals)"
+    },
+    "50": {
+      "value": "50",
+      "type": "zIndex",
+      "description": "Z-index 50 (e.g., tooltips, popovers)"
+    },
+    "max": {
+      "value": "9999",
+      "type": "zIndex",
+      "description": "Maximum z-index"
+    }
+  }
+}

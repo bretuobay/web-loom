@@ -1,0 +1,43 @@
+{
+  "border": {
+    "width": {
+      "1": {
+        "value": "1px",
+        "type": "borderWidth",
+        "description": "Border width 1px"
+      },
+      "2": {
+        "value": "2px",
+        "type": "borderWidth",
+        "description": "Border width 2px"
+      },
+      "4": {
+        "value": "4px",
+        "type": "borderWidth",
+        "description": "Border width 4px"
+      }
+    },
+    "style": {
+      "solid": {
+        "value": "solid",
+        "type": "borderStyle",
+        "description": "Solid border style"
+      },
+      "dashed": {
+        "value": "dashed",
+        "type": "borderStyle",
+        "description": "Dashed border style"
+      },
+      "dotted": {
+        "value": "dotted",
+        "type": "borderStyle",
+        "description": "Dotted border style"
+      },
+      "none": {
+        "value": "none",
+        "type": "borderStyle",
+        "description": "No border"
+      }
+    }
+  }
+}
