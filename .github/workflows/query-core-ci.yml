@@ -2,11 +2,6 @@
 
 name: CI - @web-loom/query-core
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'packages/query-core/**'
   pull_request:
     branches:
       - main
