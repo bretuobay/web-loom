@@ -1,0 +1,214 @@
+/* packages/design-core/src/design-system/navigation/sidebar.css */
+
+.sidebar, .drawer { /* Using .sidebar and .drawer interchangeably for styling */
+  position: fixed; /* Or absolute, depending on layout needs */
+  top: 0;
+  height: 100vh; /* Full viewport height */
+  width: var(--sizing-72, 288px); /* Default width, sizing-72 assumes 4px base -> 288px */
+  background-color: var(--color-neutral-gray-50);
+  border-right: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
+  padding: var(--spacing-5);
+  overflow-y: auto; /* Allow scrolling for content longer than sidebar height */
+  z-index: var(--z-index-drawer, 100); /* Ensure it's above most content */
+  box-shadow: var(--shadow-lg);
+
+  /* Transitions for drawer opening/closing */
+  transition: transform var(--timing-normal) var(--transitions-ease-in-out);
+}
+
+/* Placement */
+.sidebar-left, .drawer-left {
+  left: 0;
+  transform: translateX(-100%); /* Initially off-screen to the left */
+  border-right: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
+  border-left: none;
+}
+.sidebar-left.open, .drawer-left.open {
+  transform: translateX(0); /* Slide in */
+}
+
+.sidebar-right, .drawer-right {
+  right: 0;
+  transform: translateX(100%); /* Initially off-screen to the right */
+  border-left: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
+  border-right: none;
+}
+.sidebar-right.open, .drawer-right.open {
+  transform: translateX(0); /* Slide in */
+}
+
+
+/* Dark theme */
+[data-theme="dark"] .sidebar,
+[data-theme="dark"] .drawer {
+  background-color: var(--color-neutral-gray-800);
+  border-color: var(--color-neutral-gray-700); /* General border, specific sides below */
+}
+[data-theme="dark"] .sidebar-left,
+[data-theme="dark"] .drawer-left {
+  border-right-color: var(--color-neutral-gray-700);
+}
+[data-theme="dark"] .sidebar-right,
+[data-theme="dark"] .drawer-right {
+  border-left-color: var(--color-neutral-gray-700);
+}
+
+
+/* High contrast theme */
+[data-theme="high-contrast"] .sidebar,
+[data-theme="high-contrast"] .drawer {
+  background-color: var(--color-neutral-black);
+  color: var(--color-neutral-white); /* Ensure text inside is visible */
+  border-width: var(--border-width-2);
+  border-style: var(--border-style-solid);
+  border-color: var(--color-neutral-white); /* General border, specific sides below */
+  box-shadow: none; /* Shadows reduce contrast */
+}
+[data-theme="high-contrast"] .sidebar-left,
+[data-theme="high-contrast"] .drawer-left {
+  border-right-color: var(--color-neutral-white);
+  border-left: none;
+}
+[data-theme="high-contrast"] .sidebar-right,
+[data-theme="high-contrast"] .drawer-right {
+  border-left-color: var(--color-neutral-white);
+  border-right: none;
+}
+
+
+/* Sidebar/Drawer Header */
+.sidebar-header, .drawer-header {
+  font-size: var(--typography-font-size-xl);
+  font-weight: var(--typography-font-weight-bold);
+  padding-bottom: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+[data-theme="dark"] .sidebar-header,
+[data-theme="dark"] .drawer-header {
+  border-bottom-color: var(--color-neutral-gray-700);
+}
+[data-theme="high-contrast"] .sidebar-header,
+[data-theme="high-contrast"] .drawer-header {
+  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+}
+
+/* Close button for drawer (often in header) */
+.drawer-close-btn {
+  /* Uses .btn-icon, .btn-ghost styles from button.css */
+  /* Example: <button class="btn btn-icon btn-ghost drawer-close-btn">...</button> */
+  padding: var(--spacing-1); /* Smaller padding for close button */
+  color: var(--color-neutral-gray-500);
+}
+.drawer-close-btn:hover {
+  color: var(--color-neutral-gray-800);
+  background-color: var(--color-neutral-gray-200);
+}
+[data-theme="dark"] .drawer-close-btn {
+  color: var(--color-neutral-gray-400);
+}
+[data-theme="dark"] .drawer-close-btn:hover {
+  color: var(--color-neutral-gray-100);
+  background-color: var(--color-neutral-gray-600);
+}
+[data-theme="high-contrast"] .drawer-close-btn {
+  color: var(--color-neutral-white);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .drawer-close-btn:hover {
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+}
+
+
+/* Sidebar/Drawer Navigation (similar to .navbar-nav but vertical) */
+.sidebar-nav, .drawer-nav {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+.sidebar-nav .nav-item, .drawer-nav .nav-item {
+  /* Optional: if items need specific styling */
+}
+.sidebar-nav .nav-link, .drawer-nav .nav-link {
+  display: block;
+  padding: var(--spacing-2) var(--spacing-0); /* Less horizontal padding */
+  color: var(--color-neutral-gray-700);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--timing-fast) ease-in-out, color var(--timing-fast) ease-in-out;
+}
+.sidebar-nav .nav-link:hover, .sidebar-nav .nav-link:focus,
+.drawer-nav .nav-link:hover, .drawer-nav .nav-link:focus {
+  color: var(--color-base-primary);
+  background-color: var(--color-neutral-gray-100);
+  outline: none;
+}
+.sidebar-nav .nav-link.active, .drawer-nav .nav-link.active {
+  color: var(--color-base-primary);
+  font-weight: var(--typography-font-weight-medium);
+  background-color: var(--color-neutral-gray-200); /* More prominent active state */
+}
+
+[data-theme="dark"] .sidebar-nav .nav-link,
+[data-theme="dark"] .drawer-nav .nav-link {
+  color: var(--color-neutral-gray-300);
+}
+[data-theme="dark"] .sidebar-nav .nav-link:hover,
+[data-theme="dark"] .sidebar-nav .nav-link:focus,
+[data-theme="dark"] .drawer-nav .nav-link:hover,
+[data-theme="dark"] .drawer-nav .nav-link:focus {
+  color: var(--color-neutral-white);
+  background-color: var(--color-neutral-gray-700);
+}
+[data-theme="dark"] .sidebar-nav .nav-link.active,
+[data-theme="dark"] .drawer-nav .nav-link.active {
+  color: var(--color-neutral-white);
+  background-color: var(--color-neutral-gray-600);
+}
+
+[data-theme="high-contrast"] .sidebar-nav .nav-link,
+[data-theme="high-contrast"] .drawer-nav .nav-link {
+  color: var(--color-neutral-white);
+  padding: var(--spacing-2); /* Ensure padding for borders */
+  border: var(--border-width-1) var(--border-style-solid) transparent;
+}
+[data-theme="high-contrast"] .sidebar-nav .nav-link:hover,
+[data-theme="high-contrast"] .sidebar-nav .nav-link:focus,
+[data-theme="high-contrast"] .drawer-nav .nav-link:hover,
+[data-theme="high-contrast"] .drawer-nav .nav-link:focus {
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  border-color: var(--color-neutral-white);
+  outline: var(--border-width-1) var(--border-style-solid) var(--color-neutral-black);
+  outline-offset: 1px;
+}
+[data-theme="high-contrast"] .sidebar-nav .nav-link.active,
+[data-theme="high-contrast"] .drawer-nav .nav-link.active {
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-black); /* Inverted border for active */
+  font-weight: var(--typography-font-weight-bold);
+}
+
+
+/* Overlay for when drawer is open (optional, requires JS to toggle) */
+.drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--color-alpha-black-50); /* Semi-transparent black */
+  z-index: var(--z-index-overlay, 90); /* Below drawer, above content */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--timing-normal) ease-in-out, visibility var(--timing-normal) ease-in-out;
+}
+.drawer-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}

@@ -1,0 +1,257 @@
+/* packages/design-core/src/design-system/overlays/toast.css */
+
+/* Container for all toasts/snackbars, fixed position on screen */
+.toast-container {
+  position: fixed;
+  z-index: var(--z-index-toast, 1060); /* Very high, above most things */
+  width: auto; /* Or a fixed width like 300px */
+  max-width: 90%; /* Prevent full width on small screens */
+  padding: var(--spacing-0); /* No padding on container, toasts have their own */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+/* Positioning the container */
+.toast-container-top-right {
+  top: var(--spacing-5);
+  right: var(--spacing-5);
+  align-items: flex-end; /* Toasts stack from top-right */
+}
+.toast-container-top-left {
+  top: var(--spacing-5);
+  left: var(--spacing-5);
+  align-items: flex-start;
+}
+.toast-container-bottom-right {
+  bottom: var(--spacing-5);
+  right: var(--spacing-5);
+  align-items: flex-end;
+  flex-direction: column-reverse; /* Toasts stack upwards from bottom-right */
+}
+.toast-container-bottom-left {
+  bottom: var(--spacing-5);
+  left: var(--spacing-5);
+  align-items: flex-start;
+  flex-direction: column-reverse;
+}
+.toast-container-top-center {
+  top: var(--spacing-5);
+  left: 50%;
+  transform: translateX(-50%);
+  align-items: center;
+}
+.toast-container-bottom-center {
+  bottom: var(--spacing-5);
+  left: 50%;
+  transform: translateX(-50%);
+  align-items: center;
+  flex-direction: column-reverse;
+}
+
+
+.toast, .snackbar { /* Using .toast and .snackbar interchangeably */
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-3) var(--spacing-4);
+  background-color: var(--color-neutral-gray-700); /* Default darkish toast */
+  color: var(--color-neutral-white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: var(--sizing-64, 250px); /* Min width for toast */
+  max-width: var(--sizing-96, 384px); /* Max width for toast */
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-600); /* Subtle border */
+  opacity: 0;
+  transform: translateY(20px); /* Initial position for animation */
+  transition: opacity var(--timing-normal) var(--transitions-ease-in-out),
+              transform var(--timing-normal) var(--transitions-ease-in-out);
+}
+
+.toast.show, .snackbar.show { /* Class added by JS to show */
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Dark theme for toast (default is already dark, but can be adjusted) */
+[data-theme="dark"] .toast,
+[data-theme="dark"] .snackbar {
+  background-color: var(--color-neutral-gray-800); /* Even darker or different shade */
+  color: var(--color-neutral-gray-100);
+  border-color: var(--color-neutral-gray-700);
+}
+
+/* High contrast theme for toast */
+[data-theme="high-contrast"] .toast,
+[data-theme="high-contrast"] .snackbar {
+  background-color: var(--color-neutral-black);
+  color: var(--color-neutral-white);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  box-shadow: none;
+}
+
+
+.toast-icon, .snackbar-icon {
+  margin-right: var(--spacing-3);
+  font-size: var(--typography-font-size-xl); /* Icon size */
+  flex-shrink: 0;
+  /* Specific icon colors will be handled by type (success, error, etc.) */
+}
+
+.toast-message, .snackbar-message {
+  flex-grow: 1;
+  font-size: var(--typography-font-size-md);
+}
+
+.toast-close-btn, .snackbar-close-btn {
+  /* Based on .btn-icon, .btn-ghost */
+  margin-left: var(--spacing-4);
+  background: none;
+  border: none;
+  color: inherit; /* Inherits color from toast text */
+  opacity: var(--opacity-75, 0.75);
+  padding: var(--spacing-0-5, 2px);
+  font-size: var(--typography-font-size-lg);
+  line-height: 1;
+  cursor: pointer;
+}
+.toast-close-btn:hover, .snackbar-close-btn:hover {
+  opacity: 1;
+  background-color: var(--color-alpha-white-10, rgba(255,255,255,0.1)); /* Subtle hover on dark toast */
+}
+[data-theme="dark"] .toast-close-btn:hover,
+[data-theme="dark"] .snackbar-close-btn:hover {
+  background-color: var(--color-alpha-white-20, rgba(255,255,255,0.2));
+}
+[data-theme="high-contrast"] .toast-close-btn,
+[data-theme="high-contrast"] .snackbar-close-btn {
+  color: var(--color-neutral-white);
+  border: var(--border-width-1) var(--border-style-solid) transparent;
+}
+[data-theme="high-contrast"] .toast-close-btn:hover,
+[data-theme="high-contrast"] .snackbar-close-btn:hover {
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  border-color: var(--color-neutral-white);
+}
+
+
+/* Toast types */
+.toast-success, .snackbar-success {
+  background-color: var(--color-base-success);
+  color: var(--color-neutral-white); /* Or black if success is light */
+  border-color: var(--color-base-success);
+}
+[data-theme="high-contrast"] .toast-success,
+[data-theme="high-contrast"] .snackbar-success {
+  background-color: var(--color-base-success);
+  color: var(--color-neutral-black); /* Green is often light, needs dark text for HC */
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-black);
+}
+[data-theme="high-contrast"] .toast-success .toast-close-btn,
+[data-theme="high-contrast"] .snackbar-success .snackbar-close-btn {
+  color: var(--color-neutral-black);
+}
+[data-theme="high-contrast"] .toast-success .toast-close-btn:hover,
+[data-theme="high-contrast"] .snackbar-success .snackbar-close-btn:hover {
+  background-color: var(--color-neutral-black);
+  color: var(--color-neutral-white);
+}
+
+
+.toast-error, .snackbar-error {
+  background-color: var(--color-base-danger);
+  color: var(--color-neutral-white);
+  border-color: var(--color-base-danger);
+}
+[data-theme="high-contrast"] .toast-error,
+[data-theme="high-contrast"] .snackbar-error {
+  background-color: var(--color-base-danger);
+  color: var(--color-neutral-white);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .toast-error .toast-close-btn,
+[data-theme="high-contrast"] .snackbar-error .snackbar-close-btn {
+  color: var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .toast-error .toast-close-btn:hover,
+[data-theme="high-contrast"] .snackbar-error .snackbar-close-btn:hover {
+  background-color: var(--color-neutral-white);
+  color: var(--color-base-danger);
+}
+
+
+.toast-warning, .snackbar-warning {
+  background-color: var(--color-base-warning);
+  color: var(--color-neutral-black); /* Warning yellow often needs dark text */
+  border-color: var(--color-base-warning);
+}
+[data-theme="high-contrast"] .toast-warning,
+[data-theme="high-contrast"] .snackbar-warning {
+  background-color: var(--color-base-warning);
+  color: var(--color-neutral-black);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-black);
+}
+[data-theme="high-contrast"] .toast-warning .toast-close-btn,
+[data-theme="high-contrast"] .snackbar-warning .snackbar-close-btn {
+  color: var(--color-neutral-black);
+}
+[data-theme="high-contrast"] .toast-warning .toast-close-btn:hover,
+[data-theme="high-contrast"] .snackbar-warning .snackbar-close-btn:hover {
+  background-color: var(--color-neutral-black);
+  color: var(--color-neutral-white);
+}
+
+
+.toast-info, .snackbar-info {
+  background-color: var(--color-base-secondary); /* Using secondary as info, or a dedicated info blue */
+  color: var(--color-neutral-white);
+  border-color: var(--color-base-secondary);
+}
+[data-theme="high-contrast"] .toast-info,
+[data-theme="high-contrast"] .snackbar-info {
+  background-color: var(--color-base-secondary);
+  color: var(--color-neutral-white);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .toast-info .toast-close-btn,
+[data-theme="high-contrast"] .snackbar-info .snackbar-close-btn {
+  color: var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .toast-info .toast-close-btn:hover,
+[data-theme="high-contrast"] .snackbar-info .snackbar-close-btn:hover {
+  background-color: var(--color-neutral-white);
+  color: var(--color-base-secondary);
+}
+
+/* Example: Action button within a snackbar */
+.snackbar-action-btn {
+  /* Based on .btn, .btn-text, or a specific style */
+  /* Example: <button class="btn btn-text snackbar-action-btn">Action</button> */
+  margin-left: var(--spacing-3);
+  color: var(--color-neutral-white); /* Contrasting with snackbar background */
+  font-weight: var(--typography-font-weight-bold);
+  text-transform: var(--typography-textCase-uppercase);
+  padding: var(--spacing-1) var(--spacing-2);
+}
+.snackbar-action-btn:hover {
+  background-color: var(--color-alpha-white-10, rgba(255,255,255,0.1));
+}
+
+[data-theme="high-contrast"] .snackbar-action-btn {
+    color: var(--color-neutral-white);
+    border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .snackbar-action-btn:hover {
+    background-color: var(--color-neutral-white);
+    color: var(--color-neutral-black); /* Color of the snackbar text, if bg is black */
+}
+
+/* Adjust for specific types in HC */
+[data-theme="high-contrast"] .snackbar-success .snackbar-action-btn {
+    color: var(--color-neutral-black);
+    border-color: var(--color-neutral-black);
+}
+[data-theme="high-contrast"] .snackbar-success .snackbar-action-btn:hover {
+    background-color: var(--color-neutral-black);
+    color: var(--color-neutral-white);
+}

@@ -1,0 +1,149 @@
+/* packages/design-core/src/design-system/utility/loader.css */
+
+.loader, .spinner { /* Using .loader and .spinner interchangeably */
+  display: inline-block; /* Or block if it should take full width */
+  border-radius: var(--radius-full); /* Makes it circular */
+  border-style: var(--border-style-solid);
+  border-color: var(--color-alpha-primary-50); /* Lighter shade of primary for the track */
+  border-top-color: var(--color-base-primary); /* Solid primary for the moving part */
+  width: var(--sizing-8); /* Default size: 32px */
+  height: var(--sizing-8);
+  border-width: var(--border-width-2); /* Thickness of the spinner */
+
+  animation: spin var(--timing-slow) linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Sizes */
+.loader-sm, .spinner-sm {
+  width: var(--sizing-5); /* 20px */
+  height: var(--sizing-5);
+  border-width: var(--border-width-1); /* Thinner for smaller size */
+}
+
+.loader-lg, .spinner-lg {
+  width: var(--sizing-12); /* 48px */
+  height: var(--sizing-12);
+  border-width: var(--border-width-4); /* Thicker for larger size */
+}
+
+/* Loader/Spinner inside a button or other components */
+.btn .loader, .btn .spinner {
+  margin-right: var(--spacing-2);
+  /* Adjust color to contrast with button background if needed */
+  /* For example, if button is primary, loader might need white/lighter colors */
+}
+.btn-primary .loader, .btn-primary .spinner {
+  border-color: var(--color-alpha-white-50, rgba(255,255,255,0.5));
+  border-top-color: var(--color-neutral-white);
+}
+.btn-secondary .loader, .btn-secondary .spinner {
+  /* Inherits default primary color, which is fine for secondary outline */
+}
+
+
+/* Dark theme adaptations */
+[data-theme="dark"] .loader,
+[data-theme="dark"] .spinner {
+  border-color: var(--color-alpha-primary-50); /* Ensure this alpha is visible on dark bg */
+  /* Or use a specific dark theme primary alpha if available */
+  /* e.g., var(--color-alpha-primary-dark-theme-50) */
+  border-top-color: var(--color-base-primary); /* Primary color should be visible */
+}
+
+/* High contrast theme adaptations */
+[data-theme="high-contrast"] .loader,
+[data-theme="high-contrast"] .spinner {
+  border-color: var(--color-neutral-gray-500); /* Contrasting track */
+  border-top-color: var(--color-neutral-white); /* Moving part is white */
+  border-width: var(--border-width-2); /* Ensure visibility */
+}
+[data-theme="high-contrast"] .loader-sm,
+[data-theme="high-contrast"] .spinner-sm {
+  border-width: var(--border-width-2); /* Keep it visible for HC */
+}
+[data-theme="high-contrast"] .loader-lg,
+[data-theme="high-contrast"] .spinner-lg {
+  border-width: var(--border-width-4);
+}
+
+[data-theme="high-contrast"] .btn-primary .loader,
+[data-theme="high-contrast"] .btn-primary .spinner {
+  border-color: var(--color-neutral-gray-300); /* Track color on primary bg */
+  border-top-color: var(--color-neutral-black); /* Spinner part color on primary bg */
+}
+[data-theme="high-contrast"] .btn-secondary .loader,
+[data-theme="high-contrast"] .btn-secondary .spinner {
+  border-color: var(--color-neutral-gray-400); /* Track color on transparent bg */
+  border-top-color: var(--color-neutral-white); /* Spinner part color on transparent bg */
+}
+
+
+/* Alternative loader: Dots */
+.loader-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-dots span {
+  display: inline-block;
+  width: var(--sizing-2); /* 8px */
+  height: var(--sizing-2);
+  margin: 0 var(--spacing-0-5, 2px);
+  background-color: var(--color-base-primary);
+  border-radius: var(--radius-full);
+  animation: dots-bounce 1.4s infinite ease-in-out both;
+}
+
+.loader-dots span:nth-child(1) { animation-delay: -0.32s; }
+.loader-dots span:nth-child(2) { animation-delay: -0.16s; }
+/* .loader-dots span:nth-child(3) { animation-delay: 0s; } */
+
+
+@keyframes dots-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1.0);
+  }
+}
+
+[data-theme="dark"] .loader-dots span {
+  background-color: var(--color-base-primary); /* Adjust if primary needs to change for dark */
+}
+[data-theme="high-contrast"] .loader-dots span {
+  background-color: var(--color-neutral-white);
+}
+
+/* Centered page loader example */
+.page-loader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--color-alpha-white-50, rgba(255,255,255,0.5)); /* Semi-transparent overlay */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-index-overlay-loader, 2000); /* Very high */
+}
+[data-theme="dark"] .page-loader-overlay {
+  background-color: var(--color-alpha-black-50);
+}
+[data-theme="high-contrast"] .page-loader-overlay {
+  background-color: var(--color-alpha-black-75, rgba(0,0,0,0.75)); /* Darker overlay for HC */
+}
+/* Use .loader or .loader-dots inside .page-loader-overlay */
+.page-loader-overlay .loader-lg { /* Example: use large spinner */
+  width: var(--sizing-16); /* 64px */
+  height: var(--sizing-16);
+  border-width: var(--border-width-4);
+}

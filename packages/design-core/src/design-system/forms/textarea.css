@@ -1,0 +1,120 @@
+/* packages/design-core/src/design-system/forms/textarea.css */
+
+/*
+  Most textarea styles are inherited from .input-base defined in input.css.
+  Ensure input.css is imported before or alongside this file if used in isolation.
+  Typically, input.css provides .form-group, .form-label, .input-base, etc.
+*/
+
+.textarea {
+  /* This effectively "extends" .input-base.
+     If not using a system that supports 'composes', copy .input-base styles here. */
+  /* composes: input-base from "./input.css"; */ /* For CSS Modules like syntax */
+
+  /* Apply base styles directly if not using composes */
+  display: block;
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--typography-font-size-md);
+  font-family: var(--typography-font-family-base);
+  line-height: var(--typography-lineHeight-normal);
+  color: var(--color-neutral-gray-900);
+  background-color: var(--color-themed-light-background);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-inner);
+  transition: border-color var(--timing-fast) ease-in-out, box-shadow var(--timing-fast) ease-in-out;
+  min-height: 80px; /* Default min-height for textarea */
+  resize: vertical; /* Allow vertical resizing, disable horizontal */
+}
+
+.textarea::placeholder {
+  color: var(--color-neutral-gray-400);
+  opacity: 1;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-base-primary);
+  box-shadow: var(--shadow-focus), var(--shadow-inner);
+}
+
+.textarea:disabled,
+.textarea[readonly] {
+  background-color: var(--color-neutral-gray-100);
+  color: var(--color-neutral-gray-500);
+  cursor: not-allowed;
+  border-color: var(--color-neutral-gray-200);
+  box-shadow: none;
+  resize: none;
+}
+
+/* Dark theme adaptations */
+[data-theme="dark"] .textarea {
+  color: var(--color-neutral-gray-100);
+  background-color: var(--color-neutral-gray-800);
+  border-color: var(--color-neutral-gray-600);
+}
+
+[data-theme="dark"] .textarea::placeholder {
+  color: var(--color-neutral-gray-500);
+}
+
+[data-theme="dark"] .textarea:focus {
+  border-color: var(--color-base-primary);
+  /* box-shadow from --shadow-focus should adapt or be overridden if needed */
+}
+
+[data-theme="dark"] .textarea:disabled,
+[data-theme="dark"] .textarea[readonly] {
+  background-color: var(--color-neutral-gray-700);
+  color: var(--color-neutral-gray-400);
+  border-color: var(--color-neutral-gray-600);
+}
+
+/* High contrast adaptations */
+[data-theme="high-contrast"] .textarea {
+  color: var(--color-neutral-white);
+  background-color: var(--color-neutral-black);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  box-shadow: none;
+}
+
+[data-theme="high-contrast"] .textarea::placeholder {
+  color: var(--color-neutral-gray-300);
+}
+
+[data-theme="high-contrast"] .textarea:focus {
+  outline: var(--border-width-2) var(--border-style-solid) var(--color-base-primary);
+  outline-offset: var(--spacing-0);
+  border-color: var(--color-base-primary);
+  box-shadow: none;
+}
+
+[data-theme="high-contrast"] .textarea:disabled,
+[data-theme="high-contrast"] .textarea[readonly] {
+  background-color: var(--color-neutral-black);
+  color: var(--color-neutral-gray-400);
+  border-color: var(--color-neutral-gray-500);
+}
+
+/* Textarea with error state */
+.textarea.input-error { /* Assuming .input-error class is defined in input.css */
+  border-color: var(--color-base-danger);
+  color: var(--color-base-danger); /* Text color for error state */
+}
+.textarea.input-error:focus {
+  border-color: var(--color-base-danger);
+  box-shadow: 0 0 0 var(--border-width-2) var(--color-alpha-black-50); /* Red focus shadow */
+}
+
+[data-theme="dark"] .textarea.input-error {
+  border-color: var(--color-base-danger);
+}
+[data-theme="high-contrast"] .textarea.input-error {
+  border-color: var(--color-base-danger);
+  color: var(--color-base-danger);
+}
+[data-theme="high-contrast"] .textarea.input-error:focus {
+   outline-color: var(--color-base-danger);
+}

@@ -1,0 +1,169 @@
+/* packages/design-core/src/design-system/forms/checkbox.css */
+
+.form-check {
+  display: flex; /* Changed from block to flex for better alignment */
+  align-items: center; /* Vertically align checkbox and label */
+  position: relative;
+  margin-bottom: var(--spacing-2); /* Spacing between multiple checkboxes */
+  min-height: var(--sizing-6); /* Ensure enough height for touch targets, aligns with checkbox size */
+  padding-left: calc(var(--sizing-6) + var(--spacing-2)); /* Space for the custom checkbox */
+  cursor: pointer; /* Make the whole area clickable */
+}
+
+.form-check-input {
+  position: absolute;
+  opacity: 0; /* Hide the native checkbox */
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.form-check-label {
+  font-size: var(--typography-font-size-md);
+  color: var(--color-neutral-gray-700);
+  user-select: none; /* Prevent text selection on click */
+  /* No margin-left needed due to padding on .form-check */
+}
+
+[data-theme="dark"] .form-check-label {
+  color: var(--color-neutral-gray-200);
+}
+[data-theme="high-contrast"] .form-check-label {
+  color: var(--color-neutral-white);
+}
+
+
+/* Custom checkbox appearance */
+.form-check-input + .form-check-label::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: var(--sizing-5); /* 20px */
+  width: var(--sizing-5);  /* 20px */
+  background-color: var(--color-themed-light-background);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-400);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--timing-fast) ease-in-out, border-color var(--timing-fast) ease-in-out;
+}
+
+/* Checked state */
+.form-check-input:checked + .form-check-label::before {
+  background-color: var(--color-base-primary);
+  border-color: var(--color-base-primary);
+}
+
+/* Checkmark icon (SVG) */
+.form-check-input:checked + .form-check-label::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--sizing-5) / 2 - var(--sizing-5) / 3.8 / 2 ); /* Position checkmark */
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg) scale(0.9); /* Center and rotate */
+  width: calc(var(--sizing-5) / 3.8); /* Adjust size of checkmark */
+  height: calc(var(--sizing-5) / 2);  /* Adjust size of checkmark */
+  border: solid var(--color-neutral-white);
+  border-width: 0 var(--border-width-2) var(--border-width-2) 0; /* L-shape for checkmark */
+  transition: opacity var(--timing-fast) ease-in-out;
+}
+
+
+/* Focus state */
+.form-check-input:focus + .form-check-label::before {
+  outline: none;
+  border-color: var(--color-base-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Disabled state */
+.form-check-input:disabled + .form-check-label {
+  color: var(--color-neutral-gray-400);
+  cursor: not-allowed;
+}
+.form-check-input:disabled + .form-check-label::before {
+  background-color: var(--color-neutral-gray-200);
+  border-color: var(--color-neutral-gray-300);
+  cursor: not-allowed;
+}
+.form-check-input:disabled:checked + .form-check-label::before {
+  background-color: var(--color-neutral-gray-400); /* Dimmed checked state */
+  border-color: var(--color-neutral-gray-400);
+}
+.form-check-input:disabled:checked + .form-check-label::after {
+  border-color: var(--color-neutral-gray-200); /* Dimmed checkmark */
+}
+
+
+/* Dark theme adaptations */
+[data-theme="dark"] .form-check-input + .form-check-label::before {
+  background-color: var(--color-neutral-gray-800);
+  border-color: var(--color-neutral-gray-500);
+}
+[data-theme="dark"] .form-check-input:checked + .form-check-label::before {
+  background-color: var(--color-base-primary); /* Primary color should be visible */
+  border-color: var(--color-base-primary);
+}
+[data-theme="dark"] .form-check-input:checked + .form-check-label::after {
+  border-color: var(--color-neutral-black); /* Checkmark color against primary */
+}
+[data-theme="dark"] .form-check-input:focus + .form-check-label::before {
+  /* Focus shadow should adapt or be defined for dark theme */
+   border-color: var(--color-base-primary);
+}
+[data-theme="dark"] .form-check-input:disabled + .form-check-label {
+  color: var(--color-neutral-gray-500);
+}
+[data-theme="dark"] .form-check-input:disabled + .form-check-label::before {
+  background-color: var(--color-neutral-gray-700);
+  border-color: var(--color-neutral-gray-600);
+}
+[data-theme="dark"] .form-check-input:disabled:checked + .form-check-label::before {
+  background-color: var(--color-neutral-gray-600);
+  border-color: var(--color-neutral-gray-600);
+}
+[data-theme="dark"] .form-check-input:disabled:checked + .form-check-label::after {
+  border-color: var(--color-neutral-gray-800);
+}
+
+/* High contrast adaptations */
+[data-theme="high-contrast"] .form-check-input + .form-check-label::before {
+  background-color: var(--color-neutral-black);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .form-check-input:checked + .form-check-label::before {
+  background-color: var(--color-base-primary); /* Keep primary for checked state */
+  border-color: var(--color-neutral-white); /* Contrasting border */
+}
+[data-theme="high-contrast"] .form-check-input:checked + .form-check-label::after {
+  border-color: var(--color-neutral-black); /* Black checkmark on primary background */
+}
+[data-theme="high-contrast"] .form-check-input:focus + .form-check-label::before {
+  outline: var(--border-width-2) var(--border-style-solid) var(--color-base-primary);
+  outline-offset: var(--spacing-1);
+  box-shadow: none;
+}
+[data-theme="high-contrast"] .form-check-input:disabled + .form-check-label {
+  color: var(--color-neutral-gray-400);
+}
+[data-theme="high-contrast"] .form-check-input:disabled + .form-check-label::before {
+  background-color: var(--color-neutral-black);
+  border-color: var(--color-neutral-gray-500); /* Grayed out border */
+}
+[data-theme="high-contrast"] .form-check-input:disabled:checked + .form-check-label::before {
+  background-color: var(--color-neutral-gray-700); /* Dimmed primary */
+  border-color: var(--color-neutral-gray-500);
+}
+[data-theme="high-contrast"] .form-check-input:disabled:checked + .form-check-label::after {
+  border-color: var(--color-neutral-black); /* Ensure checkmark is visible or hidden if not applicable */
+}
+
+/* Checkbox group (inline) */
+.form-check-inline {
+  display: inline-flex; /* Align items inline */
+  margin-right: var(--spacing-4); /* Space between inline items */
+  /* padding-left will still apply from .form-check */
+}
+.form-check-inline:last-child {
+  margin-right: 0;
+}

@@ -1,0 +1,201 @@
+/* packages/design-core/src/design-system/navigation/navigation-bar.css */
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Common layout for navbar */
+  padding: var(--spacing-3) var(--spacing-gutter);
+  background-color: var(--color-neutral-gray-100); /* Default light navbar */
+  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+  /* This class can be combined with .page-header for a site header that is also a navbar */
+}
+
+[data-theme="dark"] .navbar {
+  background-color: var(--color-neutral-gray-800);
+  border-bottom-color: var(--color-neutral-gray-700);
+}
+
+[data-theme="high-contrast"] .navbar {
+  background-color: var(--color-neutral-black);
+  border-bottom: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  color: var(--color-neutral-white); /* Text inside should be white */
+}
+
+.navbar-brand {
+  font-size: var(--typography-font-size-lg);
+  font-weight: var(--typography-font-weight-bold);
+  color: var(--color-neutral-gray-800); /* Or primary color */
+  text-decoration: none;
+}
+[data-theme="dark"] .navbar-brand {
+  color: var(--color-neutral-gray-100);
+}
+[data-theme="high-contrast"] .navbar-brand {
+  color: var(--color-neutral-white);
+}
+
+
+.navbar-nav {
+  display: flex;
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+  gap: var(--spacing-1); /* Minimal gap, links will have padding */
+}
+
+.nav-item {
+  /* Individual item container, if needed for more complex structures */
+}
+
+.nav-link {
+  display: block;
+  padding: var(--spacing-2) var(--spacing-3);
+  color: var(--color-neutral-gray-700);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  border: var(--border-width-1) var(--border-style-solid) transparent; /* For active/focus indication */
+  transition: background-color var(--timing-fast) ease-in-out, color var(--timing-fast) ease-in-out, border-color var(--timing-fast) ease-in-out;
+}
+
+.nav-link:hover,
+.nav-link:focus {
+  color: var(--color-base-primary);
+  background-color: var(--color-neutral-gray-200);
+  border-color: var(--color-neutral-gray-300); /* Subtle border on hover/focus */
+  outline: none;
+}
+
+.nav-link.active {
+  color: var(--color-base-primary);
+  font-weight: var(--typography-font-weight-medium);
+  background-color: var(--color-neutral-gray-50); /* Slightly different bg for active */
+  border-color: var(--color-neutral-gray-200);
+}
+
+[data-theme="dark"] .nav-link {
+  color: var(--color-neutral-gray-300);
+}
+[data-theme="dark"] .nav-link:hover,
+[data-theme="dark"] .nav-link:focus {
+  color: var(--color-neutral-white);
+  background-color: var(--color-neutral-gray-700);
+  border-color: var(--color-neutral-gray-600);
+}
+[data-theme="dark"] .nav-link.active {
+  color: var(--color-neutral-white);
+  background-color: var(--color-neutral-gray-600);
+  border-color: var(--color-neutral-gray-500);
+}
+
+[data-theme="high-contrast"] .nav-link {
+  color: var(--color-neutral-white);
+  border: var(--border-width-1) var(--border-style-solid) transparent;
+}
+[data-theme="high-contrast"] .nav-link:hover,
+[data-theme="high-contrast"] .nav-link:focus {
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  border-color: var(--color-neutral-white);
+  outline: var(--border-width-1) var(--border-style-solid) var(--color-neutral-black); /* Inverse outline */
+  outline-offset: 1px;
+}
+[data-theme="high-contrast"] .nav-link.active {
+  background-color: var(--color-neutral-white); /* Prominent active state */
+  color: var(--color-neutral-black);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white); /* Thicker border for active */
+  font-weight: var(--typography-font-weight-bold);
+}
+
+/* Navbar toggle for mobile (requires JS for functionality) */
+.navbar-toggler {
+  display: none; /* Hidden by default, shown in mobile views via media query */
+  padding: var(--spacing-2);
+  background-color: transparent;
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-400);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.navbar-toggler-icon { /* Typically a burger icon */
+  display: block;
+  width: var(--sizing-6);
+  height: var(--sizing-6);
+  /* background-image: url("..."); */
+  background-color: var(--color-neutral-gray-600); /* Placeholder */
+}
+[data-theme="dark"] .navbar-toggler {
+  border-color: var(--color-neutral-gray-500);
+}
+[data-theme="dark"] .navbar-toggler-icon {
+  background-color: var(--color-neutral-gray-300);
+}
+[data-theme="high-contrast"] .navbar-toggler {
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .navbar-toggler-icon {
+  background-color: var(--color-neutral-white);
+}
+
+
+/* Collapsible content area for mobile */
+.navbar-collapse {
+  /* display: none; initially, shown by JS or :target selector or media query */
+  flex-basis: 100%; /* Takes full width when stacked */
+  flex-grow: 1;
+  align-items: center;
+}
+
+/* Example media query for mobile stacking and toggler display */
+/* This is a basic example; actual breakpoints depend on --breakpoint-md variable */
+/* @media (max-width: calc(var(--breakpoint-md, 768px) - 1px)) {
+  .navbar-toggler {
+    display: block;
+  }
+  .navbar-nav {
+    flex-direction: column;
+    width: 100%;
+  }
+  .nav-item {
+    width: 100%;
+  }
+  .nav-link {
+    text-align: left;
+    border: none; // Remove borders for stacked items or adjust
+    border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
+  }
+  .navbar-collapse {
+     // Styles to show/hide, e.g., display: none by default, .show for display: flex
+  }
+  [data-theme="dark"] .nav-link {
+    border-bottom-color: var(--color-neutral-gray-700);
+  }
+  [data-theme="high-contrast"] .nav-link {
+    border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+  }
+} */
+
+/* Vertical Navbar variation */
+.navbar-vertical {
+  flex-direction: column;
+  align-items: flex-start; /* Align items to the start */
+  width: var(--sizing-64); /* Example fixed width for a vertical navbar */
+  height: 100vh; /* Full height */
+  padding: var(--spacing-4);
+  border-right: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+  border-bottom: none; /* Remove bottom border if it's vertical */
+}
+.navbar-vertical .navbar-nav {
+  flex-direction: column;
+  width: 100%; /* Nav items take full width of vertical navbar */
+}
+.navbar-vertical .nav-item {
+  width: 100%;
+}
+.navbar-vertical .nav-link {
+  /* Adjust padding or other styles for vertical layout */
+}
+[data-theme="dark"] .navbar-vertical {
+  border-right-color: var(--color-neutral-gray-700);
+}
+[data-theme="high-contrast"] .navbar-vertical {
+  border-right: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}

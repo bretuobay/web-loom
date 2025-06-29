@@ -1,0 +1,114 @@
+/* packages/design-core/src/design-system/display/table.css */
+
+.table-wrapper {
+  overflow-x: auto; /* For responsive tables */
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse; /* Clean look for borders */
+  font-size: var(--typography-font-size-sm);
+  /* Apply .bordered-component class to .table for an outer border */
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
+}
+
+[data-theme="dark"] .table th,
+[data-theme="dark"] .table td {
+  border-bottom-color: var(--color-neutral-gray-700);
+}
+
+[data-theme="high-contrast"] .table th,
+[data-theme="high-contrast"] .table td {
+  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+  color: var(--color-neutral-white); /* Ensure text is visible */
+}
+[data-theme="high-contrast"] .table {
+   color: var(--color-neutral-white); /* Ensure text is visible */
+}
+
+
+.table th {
+  font-weight: var(--typography-font-weight-medium);
+  background-color: var(--color-neutral-gray-50); /* Light header background */
+}
+
+[data-theme="dark"] .table th {
+  background-color: var(--color-neutral-gray-800); /* Darker header for dark theme */
+}
+
+[data-theme="high-contrast"] .table th {
+  background-color: var(--color-neutral-black); /* High contrast header */
+  border-bottom-width: var(--border-width-2); /* Thicker border under header */
+}
+
+.table tbody tr:hover {
+  background-color: var(--color-neutral-gray-100);
+}
+
+[data-theme="dark"] .table tbody tr:hover {
+  background-color: var(--color-neutral-gray-700); /* Darker hover for dark theme */
+}
+
+[data-theme="high-contrast"] .table tbody tr:hover {
+  background-color: var(--color-neutral-white); /* Invert for hover */
+  color: var(--color-neutral-black);
+}
+
+/* Striped table */
+.table-striped tbody tr:nth-child(odd) {
+  background-color: var(--color-neutral-gray-50);
+}
+
+[data-theme="dark"] .table-striped tbody tr:nth-child(odd) {
+  background-color: var(--color-neutral-gray-800); /* Darker stripe for dark theme */
+}
+
+[data-theme="high-contrast"] .table-striped tbody tr:nth-child(odd) {
+  background-color: var(--color-neutral-gray-300); /* A visible stripe for HC */
+  color: var(--color-neutral-black);
+}
+[data-theme="high-contrast"] .table-striped tbody tr:nth-child(even) {
+  background-color: var(--color-neutral-black);
+  color: var(--color-neutral-white);
+}
+
+
+/* Table with explicit cell borders */
+.table-bordered th,
+.table-bordered td {
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+}
+
+[data-theme="dark"] .table-bordered th,
+[data-theme="dark"] .table-bordered td {
+  border-color: var(--color-neutral-gray-600);
+}
+
+[data-theme="high-contrast"] .table-bordered th,
+[data-theme="high-contrast"] .table-bordered td {
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+}
+
+/* Apply .bordered-component for the overall table container border */
+.table.bordered-component {
+  /* border is handled by .bordered-component in base.css */
+  border-radius: 0; /* Usually tables don't have rounded corners on the main element if cells are bordered */
+}
+
+.table.bordered-component th:first-child,
+.table.bordered-component td:first-child {
+   /* border-left: none; */ /* Optional: if the main border acts as the first col left border */
+}
+.table.bordered-component th:last-child,
+.table.bordered-component td:last-child {
+   /* border-right: none; */ /* Optional: if the main border acts as the last col right border */
+}
+.table.bordered-component tr:last-child td {
+    /* border-bottom: none; */ /* Optional: if the main border acts as the last row bottom border */
+}

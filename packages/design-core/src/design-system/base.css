@@ -1,0 +1,117 @@
+/* packages/design-core/src/design-system/base.css */
+
+/* Import all core token CSS files */
+@import "../css/borders.css";
+@import "../css/breakpoints.css";
+@import "../css/colors.css";
+@import "../css/cursor-styles.css";
+@import "../css/focus-rings.css";
+@import "../css/gradients.css";
+@import "../css/opacity.css";
+@import "../css/radii.css";
+@import "../css/shadows.css";
+@import "../css/sizing.css";
+@import "../css/spacing.css";
+@import "../css/timing.css";
+@import "../css/transitions.css";
+@import "../css/typography.css";
+@import "../css/z-index.css";
+
+body {
+  font-family: var(--typography-font-family-base);
+  font-size: var(--typography-font-size-md);
+  line-height: var(--typography-lineHeight-normal);
+  color: var(--color-themed-light-text); /* Default to light theme text */
+  background-color: var(--color-themed-light-background); /* Default to light theme background */
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark theme support */
+[data-theme="dark"] body {
+  color: var(--color-themed-dark-text);
+  background-color: var(--color-themed-dark-background);
+}
+
+/* High contrast theme support */
+[data-theme="high-contrast"] body {
+  color: var(--color-themed-high-contrast-text);
+  background-color: var(--color-themed-high-contrast-background);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--typography-font-family-heading);
+  font-weight: var(--typography-font-weight-bold);
+  margin-top: var(--spacing-6);
+  margin-bottom: var(--spacing-3);
+  color: inherit; /* Inherit color from body or themed parent */
+}
+
+h1 { font-size: var(--typography-font-size-3xl); }
+h2 { font-size: var(--typography-font-size-2xl); }
+h3 { font-size: var(--typography-font-size-xl); }
+h4 { font-size: var(--typography-font-size-lg); }
+h5 { font-size: var(--typography-font-size-md); }
+h6 { font-size: var(--typography-font-size-sm); }
+
+p {
+  margin-bottom: var(--spacing-4);
+}
+
+a {
+  color: var(--color-base-primary);
+  text-decoration: none;
+  transition: color var(--timing-fast) var(--transitions-ease-in-out);
+}
+
+a:hover, a:focus {
+  color: var(--color-alpha-primary-50); /* Assuming a hover state, adjust token if needed */
+  text-decoration: underline;
+  outline: var(--border-width-2) var(--border-style-solid) var(--color-base-primary); /* Basic focus outline */
+}
+
+/* Focus ring styles for accessibility */
+*:focus-visible {
+  outline: var(--border-width-2) var(--border-style-solid) var(--color-base-primary);
+  outline-offset: var(--spacing-1);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Utility class for visually hidden content (accessibility) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Basic box-sizing reset */
+html {
+  box-sizing: border-box;
+}
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+/* Define a general border for components */
+.bordered-component {
+    border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+    border-radius: var(--radius-md);
+}
+
+/* Dark theme border adjustment */
+[data-theme="dark"] .bordered-component {
+    border-color: var(--color-neutral-gray-700);
+}
+
+/* High contrast theme border adjustment */
+[data-theme="high-contrast"] .bordered-component {
+    border-color: var(--color-neutral-white); /* Ensure visibility against dark background */
+}

@@ -8,7 +8,8 @@
   "type": "module",
   "files": [
     "dist",
-    "src/css"
+    "src/css",
+    "src/design-system"
   ],
   "main": "./dist/design-core.umd.js",
   "module": "./dist/design-core.es.js",
@@ -23,6 +24,16 @@
       "import": "./src/css/*.css",
       "style": "./src/css/*.css",
       "default": "./src/css/*.css"
+    },
+    "./design-system": {
+      "import": "./src/design-system/index.css",
+      "style": "./src/design-system/index.css",
+      "default": "./src/design-system/index.css"
+    },
+    "./design-system/*": {
+      "import": "./src/design-system/*.css",
+      "style": "./src/design-system/*.css",
+      "default": "./src/design-system/*.css"
     }
   },
   "keywords": [

@@ -1,0 +1,210 @@
+/* packages/design-core/src/design-system/overlays/tooltip.css */
+
+/*
+  Tooltips are typically implemented with JavaScript.
+  These styles define the appearance of the tooltip bubble.
+  A common approach is to have a trigger element and a tooltip element
+  that is positioned relative to the trigger.
+  Example HTML structure (simplified):
+  <span class="tooltip-trigger">
+    Hover me
+    <span class="tooltip" role="tooltip">Tooltip text here</span>
+  </span>
+*/
+
+.tooltip-trigger {
+  position: relative; /* Establishes a positioning context for the tooltip */
+  display: inline-block; /* Or block, depending on the trigger element */
+  cursor: help; /* Indicate that help is available on hover/focus */
+}
+
+.tooltip {
+  position: absolute;
+  z-index: var(--z-index-tooltip, 1050); /* Above most elements, but below modals if necessary */
+  background-color: var(--color-neutral-gray-800); /* Dark background for good contrast */
+  color: var(--color-neutral-white);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--typography-font-size-sm);
+  line-height: var(--typography-lineHeight-tight);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap; /* Keep tooltip on one line unless it's very long */
+  max-width: var(--sizing-64, 256px); /* Max width for longer tooltips */
+
+  /* Initially hidden, shown by JS or :hover/:focus on trigger */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none; /* Tooltip itself shouldn't be interactive */
+  transition: opacity var(--timing-fast) var(--transitions-ease-in-out),
+              visibility var(--timing-fast) var(--transitions-ease-in-out),
+              transform var(--timing-fast) var(--transitions-ease-in-out);
+
+  /* Default positioning (bottom) - JS will typically adjust this */
+  bottom: 100%; /* Position above the trigger */
+  left: 50%;
+  transform: translateX(-50%) translateY(-var(--spacing-1)); /* Move up by spacing */
+}
+
+/* Arrow for the tooltip (optional, but common) */
+.tooltip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  margin-left: -5px; /* Half of arrow width */
+  border-width: 5px;
+  border-style: solid;
+  /* Default arrow pointing up (tooltip is below trigger) */
+  /* This will be overridden by placement classes */
+}
+
+
+/* Visibility: typically controlled by JS by adding an 'active' or 'show' class */
+.tooltip-trigger:hover .tooltip,
+.tooltip-trigger:focus .tooltip, /* For keyboard accessibility */
+.tooltip-trigger .tooltip.show { /* If JS controls visibility with a class */
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto; /* Allow interaction if needed, though usually not for tooltips */
+  transform: translateX(-50%) translateY(0); /* Final position */
+}
+
+
+/* Placement variations */
+/* Tooltip on top */
+.tooltip-top {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(calc(-1 * var(--spacing-2))); /* Start further up */
+}
+.tooltip-trigger:hover .tooltip-top,
+.tooltip-trigger:focus .tooltip-top,
+.tooltip-trigger .tooltip-top.show {
+  transform: translateX(-50%) translateY(calc(-1 * var(--spacing-1))); /* Move slightly down to final position */
+}
+.tooltip-top::after {
+  top: 100%; /* Arrow at the bottom of the tooltip */
+  border-color: var(--color-neutral-gray-800) transparent transparent transparent; /* Arrow pointing down */
+}
+
+/* Tooltip on bottom */
+.tooltip-bottom {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(var(--spacing-2)); /* Start further down */
+}
+.tooltip-trigger:hover .tooltip-bottom,
+.tooltip-trigger:focus .tooltip-bottom,
+.tooltip-trigger .tooltip-bottom.show {
+  transform: translateX(-50%) translateY(var(--spacing-1)); /* Move slightly up to final position */
+}
+.tooltip-bottom::after {
+  bottom: 100%; /* Arrow at the top of the tooltip */
+  border-color: transparent transparent var(--color-neutral-gray-800) transparent; /* Arrow pointing up */
+}
+
+/* Tooltip on left */
+.tooltip-left {
+  top: 50%;
+  right: 100%;
+  transform: translateY(-50%) translateX(calc(-1 * var(--spacing-2))); /* Start further left */
+}
+.tooltip-trigger:hover .tooltip-left,
+.tooltip-trigger:focus .tooltip-left,
+.tooltip-trigger .tooltip-left.show {
+  transform: translateY(-50%) translateX(calc(-1 * var(--spacing-1))); /* Move slightly right */
+}
+.tooltip-left::after {
+  top: 50%;
+  left: 100%; /* Arrow on the right side of the tooltip */
+  margin-top: -5px; /* Center arrow vertically */
+  margin-left: 0;
+  border-color: transparent transparent transparent var(--color-neutral-gray-800); /* Arrow pointing right */
+}
+
+/* Tooltip on right */
+.tooltip-right {
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%) translateX(var(--spacing-2)); /* Start further right */
+}
+.tooltip-trigger:hover .tooltip-right,
+.tooltip-trigger:focus .tooltip-right,
+.tooltip-trigger .tooltip-right.show {
+  transform: translateY(-50%) translateX(var(--spacing-1)); /* Move slightly left */
+}
+.tooltip-right::after {
+  top: 50%;
+  right: 100%; /* Arrow on the left side of the tooltip */
+  margin-top: -5px;
+  margin-left: 0; /* Reset margin-left */
+  border-color: transparent var(--color-neutral-gray-800) transparent transparent; /* Arrow pointing left */
+}
+
+
+/* Theme Adaptations */
+/* Default tooltip is already dark, so it works well on light backgrounds. */
+
+/* For dark theme, the tooltip might need to be lighter if the dark bg is similar to tooltip bg */
+[data-theme="dark"] .tooltip {
+  background-color: var(--color-neutral-gray-100); /* Light tooltip for dark theme */
+  color: var(--color-neutral-gray-800);
+  box-shadow: var(--shadow-md); /* Shadow might need adjustment if not visible */
+}
+[data-theme="dark"] .tooltip-top::after {
+  border-color: var(--color-neutral-gray-100) transparent transparent transparent;
+}
+[data-theme="dark"] .tooltip-bottom::after {
+  border-color: transparent transparent var(--color-neutral-gray-100) transparent;
+}
+[data-theme="dark"] .tooltip-left::after {
+  border-color: transparent transparent transparent var(--color-neutral-gray-100);
+}
+[data-theme="dark"] .tooltip-right::after {
+  border-color: transparent var(--color-neutral-gray-100) transparent transparent;
+}
+
+
+/* High contrast theme */
+[data-theme="high-contrast"] .tooltip {
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-black); /* Border for HC */
+  box-shadow: none;
+}
+[data-theme="high-contrast"] .tooltip-top::after {
+  border-color: var(--color-neutral-white) transparent transparent transparent;
+  /* May need an additional border for the arrow itself in HC */
+}
+[data-theme="high-contrast"] .tooltip-bottom::after {
+  border-color: transparent transparent var(--color-neutral-white) transparent;
+}
+[data-theme="high-contrast"] .tooltip-left::after {
+  border-color: transparent transparent transparent var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .tooltip-right::after {
+  border-color: transparent var(--color-neutral-white) transparent transparent;
+}
+
+/* High contrast arrow borders (example for tooltip-top) */
+[data-theme="high-contrast"] .tooltip-top::before { /* Pseudo-element for arrow border */
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: calc(5px + var(--border-width-1)); /* Arrow size + border width */
+  border-color: var(--color-neutral-black) transparent transparent transparent; /* Border color */
+  z-index: -1; /* Behind the main arrow */
+}
+/* Similar ::before rules would be needed for other placements in HC if bordered arrows are desired */
+
+/* Tooltip with a well-defined border (general use, not just HC) */
+.tooltip-bordered {
+    border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-500);
+}
+[data-theme="dark"] .tooltip-bordered {
+    border-color: var(--color-neutral-gray-300);
+}

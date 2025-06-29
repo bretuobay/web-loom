@@ -1,0 +1,165 @@
+/* packages/design-core/src/design-system/display/badge.css */
+
+.badge, .tag { /* Using .badge and .tag interchangeably */
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-1) var(--spacing-2);
+  font-size: var(--typography-font-size-xs);
+  font-weight: var(--typography-font-weight-medium);
+  line-height: var(--typography-lineHeight-tight);
+  border-radius: var(--radius-sm); /* Smaller radius for badges */
+  border: var(--border-width-1) var(--border-style-solid) transparent; /* Default no border, colors define it */
+  text-transform: var(--typography-textCase-uppercase); /* Common for badges */
+  white-space: nowrap; /* Prevent wrapping */
+}
+
+/* Default badge style (subtle) */
+.badge-default, .tag-default {
+  background-color: var(--color-neutral-gray-200);
+  color: var(--color-neutral-gray-700);
+  border-color: var(--color-neutral-gray-300); /* Defined border */
+}
+
+[data-theme="dark"] .badge-default,
+[data-theme="dark"] .tag-default {
+  background-color: var(--color-neutral-gray-700);
+  color: var(--color-neutral-gray-100);
+  border-color: var(--color-neutral-gray-600);
+}
+
+[data-theme="high-contrast"] .badge-default,
+[data-theme="high-contrast"] .tag-default {
+  background-color: var(--color-neutral-black);
+  color: var(--color-neutral-white);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+}
+
+/* Primary badge */
+.badge-primary, .tag-primary {
+  background-color: var(--color-base-primary);
+  color: var(--color-neutral-white);
+  border-color: var(--color-base-primary);
+}
+[data-theme="high-contrast"] .badge-primary,
+[data-theme="high-contrast"] .tag-primary {
+  background-color: var(--color-base-primary); /* Keep brand color */
+  color: var(--color-neutral-white); /* Ensure contrast */
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white); /* Contrasting border */
+}
+
+
+/* Secondary badge */
+.badge-secondary, .tag-secondary {
+  background-color: var(--color-base-secondary);
+  color: var(--color-neutral-white);
+  border-color: var(--color-base-secondary);
+}
+[data-theme="high-contrast"] .badge-secondary,
+[data-theme="high-contrast"] .tag-secondary {
+  background-color: var(--color-base-secondary);
+  color: var(--color-neutral-white);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+}
+
+/* Success badge */
+.badge-success, .tag-success {
+  background-color: var(--color-base-success);
+  color: var(--color-neutral-white);
+  border-color: var(--color-base-success);
+}
+[data-theme="high-contrast"] .badge-success,
+[data-theme="high-contrast"] .tag-success {
+  background-color: var(--color-base-success);
+  color: var(--color-neutral-black); /* Success green is often light, black text for HC */
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-black);
+}
+
+
+/* Warning badge */
+.badge-warning, .tag-warning {
+  background-color: var(--color-base-warning);
+  color: var(--color-neutral-black); /* Warning yellow often needs dark text */
+  border-color: var(--color-base-warning);
+}
+[data-theme="high-contrast"] .badge-warning,
+[data-theme="high-contrast"] .tag-warning {
+  background-color: var(--color-base-warning);
+  color: var(--color-neutral-black);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-black);
+}
+
+/* Danger badge */
+.badge-danger, .tag-danger {
+  background-color: var(--color-base-danger);
+  color: var(--color-neutral-white);
+  border-color: var(--color-base-danger);
+}
+[data-theme="high-contrast"] .badge-danger,
+[data-theme="high-contrast"] .tag-danger {
+  background-color: var(--color-base-danger);
+  color: var(--color-neutral-white);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-white);
+}
+
+
+/* Pill-shaped badges (fully rounded) */
+.badge-pill, .tag-pill {
+  border-radius: var(--radius-full);
+}
+
+/* Outline style badges */
+.badge-outline, .tag-outline {
+  background-color: transparent;
+}
+
+.badge-outline.badge-default, .tag-outline.tag-default {
+  color: var(--color-neutral-gray-700);
+  border-color: var(--color-neutral-gray-400);
+}
+[data-theme="dark"] .badge-outline.badge-default,
+[data-theme="dark"] .tag-outline.tag-default {
+  color: var(--color-neutral-gray-200);
+  border-color: var(--color-neutral-gray-500);
+}
+
+.badge-outline.badge-primary, .tag-outline.tag-primary {
+  color: var(--color-base-primary);
+  border-color: currentColor; /* Uses the text color for border */
+}
+/* ... similar outline styles for secondary, success, warning, danger ... */
+/* For example: */
+.badge-outline.badge-success, .tag-outline.tag-success {
+  color: var(--color-base-success);
+  border-color: currentColor;
+}
+
+[data-theme="high-contrast"] .badge-outline,
+[data-theme="high-contrast"] .tag-outline {
+  border-width: var(--border-width-2); /* Thicker border for HC outline */
+  padding: calc(var(--spacing-1) - 1px) calc(var(--spacing-2) - 1px); /* Adjust padding for thicker border */
+}
+[data-theme="high-contrast"] .badge-outline.badge-default,
+[data-theme="high-contrast"] .tag-outline.tag-default {
+  color: var(--color-neutral-white);
+  border-color: var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .badge-outline.badge-primary,
+[data-theme="high-contrast"] .tag-outline.tag-primary {
+  color: var(--color-base-primary); /* Keep brand color */
+  border-color: var(--color-base-primary);
+}
+[data-theme="high-contrast"] .badge-outline.badge-success,
+[data-theme="high-contrast"] .tag-outline.tag-success {
+  color: var(--color-base-success);
+  border-color: var(--color-base-success);
+}
+[data-theme="high-contrast"] .badge-outline.badge-warning,
+[data-theme="high-contrast"] .tag-outline.tag-warning {
+  color: var(--color-base-warning);
+  border-color: var(--color-base-warning);
+}
+[data-theme="high-contrast"] .badge-outline.badge-danger,
+[data-theme="high-contrast"] .tag-outline.tag-danger {
+  color: var(--color-base-danger);
+  border-color: var(--color-base-danger);
+}

@@ -1,0 +1,158 @@
+/* packages/design-core/src/design-system/forms/switch.css */
+
+/* Switch also uses the .form-check structure but with different visual presentation */
+.switch {
+  /* .form-check class provides basic layout: display:flex, align-items:center, padding-left */
+  /* Example: <label class="form-check switch">...</label> */
+}
+
+/* Hide native input, rely on label's ::before and ::after for custom look */
+.switch .form-check-input {
+  /* Styles from .form-check-input in checkbox.css (opacity:0, position:absolute etc.) */
+}
+
+/* Custom switch track (the ::before part of the label) */
+.switch .form-check-label::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--sizing-10); /* 40px track width */
+  height: var(--sizing-6); /* 24px track height */
+  background-color: var(--color-neutral-gray-300);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-400);
+  border-radius: var(--radius-full); /* Pill shape for the track */
+  transition: background-color var(--timing-fast) ease-in-out, border-color var(--timing-fast) ease-in-out;
+}
+
+/* Custom switch thumb (the ::after part of the label) */
+.switch .form-check-label::after {
+  content: "";
+  position: absolute;
+  left: var(--spacing-0-5, 2px); /* Small offset from the left of the track */
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(var(--sizing-6) - (var(--spacing-0-5, 2px) * 2)); /* Thumb diameter, slightly smaller than track height */
+  height: calc(var(--sizing-6) - (var(--spacing-0-5, 2px) * 2));
+  background-color: var(--color-neutral-white);
+  border-radius: var(--radius-full); /* Circular thumb */
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--timing-fast) ease-in-out, background-color var(--timing-fast) ease-in-out;
+  border: none; /* Reset border from checkbox if it was inherited */
+}
+
+/* Checked state: move thumb to the right and change track color */
+.switch .form-check-input:checked + .form-check-label::before {
+  background-color: var(--color-base-success); /* Use success color for "on" state */
+  border-color: var(--color-base-success);
+}
+
+.switch .form-check-input:checked + .form-check-label::after {
+  transform: translate(calc(var(--sizing-10) - var(--sizing-6)), -50%); /* Move thumb to the right end of the track */
+  /* translateX = track width - thumb width - (2 * offset if thumb is smaller than track height and centered) */
+  /* Simplified: track width - thumb container height */
+}
+
+/* Focus state: apply focus ring to the track */
+.switch .form-check-input:focus + .form-check-label::before {
+  outline: none;
+  border-color: var(--color-base-primary); /* Or use success color if preferred for "on" state focus */
+  box-shadow: var(--shadow-focus);
+}
+
+/* Disabled state */
+.switch .form-check-input:disabled + .form-check-label {
+  /* color from .form-check-label:disabled in checkbox.css */
+}
+.switch .form-check-input:disabled + .form-check-label::before {
+  background-color: var(--color-neutral-gray-200);
+  border-color: var(--color-neutral-gray-300);
+}
+.switch .form-check-input:disabled + .form-check-label::after {
+  background-color: var(--color-neutral-gray-100); /* Dimmed thumb */
+}
+.switch .form-check-input:disabled:checked + .form-check-label::before {
+  background-color: var(--color-neutral-gray-400); /* Dimmed "on" state */
+  border-color: var(--color-neutral-gray-400);
+}
+.switch .form-check-input:disabled:checked + .form-check-label::after {
+  background-color: var(--color-neutral-gray-300); /* Dimmed thumb for "on" disabled */
+}
+
+
+/* Dark theme adaptations */
+[data-theme="dark"] .switch .form-check-label::before {
+  background-color: var(--color-neutral-gray-700);
+  border-color: var(--color-neutral-gray-600);
+}
+[data-theme="dark"] .switch .form-check-label::after {
+  background-color: var(--color-neutral-gray-300); /* Lighter thumb for dark track */
+}
+[data-theme="dark"] .switch .form-check-input:checked + .form-check-label::before {
+  background-color: var(--color-base-success); /* Success color should be visible */
+  border-color: var(--color-base-success);
+}
+[data-theme="dark"] .switch .form-check-input:checked + .form-check-label::after {
+  background-color: var(--color-neutral-white); /* Bright thumb for "on" state */
+}
+[data-theme="dark"] .switch .form-check-input:focus + .form-check-label::before {
+  border-color: var(--color-base-primary);
+}
+[data-theme="dark"] .switch .form-check-input:disabled + .form-check-label::before {
+  background-color: var(--color-neutral-gray-600);
+  border-color: var(--color-neutral-gray-500);
+}
+[data-theme="dark"] .switch .form-check-input:disabled + .form-check-label::after {
+  background-color: var(--color-neutral-gray-400);
+}
+[data-theme="dark"] .switch .form-check-input:disabled:checked + .form-check-label::before {
+  background-color: var(--color-neutral-gray-500); /* Dimmed success */
+  border-color: var(--color-neutral-gray-500);
+}
+[data-theme="dark"] .switch .form-check-input:disabled:checked + .form-check-label::after {
+  background-color: var(--color-neutral-gray-700);
+}
+
+
+/* High contrast adaptations */
+[data-theme="high-contrast"] .switch .form-check-label::before {
+  background-color: var(--color-neutral-black);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .switch .form-check-label::after {
+  background-color: var(--color-neutral-white); /* White thumb on black track */
+}
+[data-theme="high-contrast"] .switch .form-check-input:checked + .form-check-label::before {
+  background-color: var(--color-base-success); /* Keep success color */
+  border-color: var(--color-neutral-white); /* Contrasting border */
+}
+[data-theme="high-contrast"] .switch .form-check-input:checked + .form-check-label::after {
+  background-color: var(--color-neutral-black); /* Black thumb on success track for contrast */
+}
+[data-theme="high-contrast"] .switch .form-check-input:focus + .form-check-label::before {
+  outline: var(--border-width-2) var(--border-style-solid) var(--color-base-primary);
+  outline-offset: var(--spacing-1);
+  box-shadow: none;
+}
+[data-theme="high-contrast"] .switch .form-check-input:disabled + .form-check-label::before {
+  border-color: var(--color-neutral-gray-500);
+}
+[data-theme="high-contrast"] .switch .form-check-input:disabled + .form-check-label::after {
+  background-color: var(--color-neutral-gray-400); /* Gray thumb for disabled */
+}
+[data-theme="high-contrast"] .switch .form-check-input:disabled:checked + .form-check-label::before {
+  background-color: var(--color-neutral-gray-700); /* Dimmed success */
+  border-color: var(--color-neutral-gray-500);
+}
+[data-theme="high-contrast"] .switch .form-check-input:disabled:checked + .form-check-label::after {
+  background-color: var(--color-neutral-black);
+}
+
+/* The label text itself needs enough padding-left on .form-check to not overlap the switch */
+/* .form-check should have padding-left: calc(var(--sizing-10) + var(--spacing-2)); */
+/* This is managed by .form-check in checkbox.css, ensure it's sufficient or override here. */
+/* If switch is wider than checkbox, adjust padding on .form-check.switch or a wrapper. */
+.switch.form-check {
+  padding-left: calc(var(--sizing-10) + var(--spacing-3)); /* Track width + gap */
+}

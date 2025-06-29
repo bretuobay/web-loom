@@ -1,0 +1,133 @@
+/* packages/design-core/src/design-system/forms/radio-group.css */
+
+/* Radio buttons use many of the same base classes as checkboxes (.form-check, .form-check-input, .form-check-label) */
+/* Ensure checkbox.css is conceptually available or styles are duplicated/adjusted if needed. */
+
+/* Custom radio button appearance */
+/* The .form-check structure is reused from checkbox.css */
+/* Override the ::before for radio's circular shape */
+.form-check-input[type="radio"] + .form-check-label::before {
+  border-radius: var(--radius-full); /* Makes it a circle */
+}
+
+/* Checked state for radio */
+.form-check-input[type="radio"]:checked + .form-check-label::before {
+  background-color: var(--color-base-primary);
+  border-color: var(--color-base-primary);
+}
+
+/* Inner dot for checked radio (replaces checkmark from checkbox) */
+.form-check-input[type="radio"]:checked + .form-check-label::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--sizing-5) / 2 - var(--sizing-5) / 4 / 2); /* Center the dot */
+  top: 50%;
+  transform: translateY(-50%) scale(1); /* Ensure it's visible, no rotation */
+  width: calc(var(--sizing-5) / 2.5);  /* Size of the inner dot */
+  height: calc(var(--sizing-5) / 2.5); /* Size of the inner dot */
+  border-radius: var(--radius-full); /* Make dot circular */
+  background-color: var(--color-neutral-white); /* Color of the inner dot */
+  border: none; /* No L-shape border needed */
+  transition: background-color var(--timing-fast) ease-in-out;
+}
+
+/* Focus state for radio */
+.form-check-input[type="radio"]:focus + .form-check-label::before {
+  outline: none;
+  border-color: var(--color-base-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Disabled state for radio */
+.form-check-input[type="radio"]:disabled + .form-check-label {
+  color: var(--color-neutral-gray-400);
+  cursor: not-allowed;
+}
+.form-check-input[type="radio"]:disabled + .form-check-label::before {
+  background-color: var(--color-neutral-gray-200);
+  border-color: var(--color-neutral-gray-300);
+}
+.form-check-input[type="radio"]:disabled:checked + .form-check-label::before {
+  background-color: var(--color-neutral-gray-400); /* Dimmed checked state */
+  border-color: var(--color-neutral-gray-400);
+}
+.form-check-input[type="radio"]:disabled:checked + .form-check-label::after {
+  background-color: var(--color-neutral-gray-200); /* Dimmed inner dot */
+}
+
+
+/* Dark theme adaptations for radio */
+[data-theme="dark"] .form-check-input[type="radio"] + .form-check-label::before {
+  background-color: var(--color-neutral-gray-800);
+  border-color: var(--color-neutral-gray-500);
+}
+[data-theme="dark"] .form-check-input[type="radio"]:checked + .form-check-label::before {
+  background-color: var(--color-base-primary);
+  border-color: var(--color-base-primary);
+}
+[data-theme="dark"] .form-check-input[type="radio"]:checked + .form-check-label::after {
+  background-color: var(--color-neutral-black); /* Dot color against primary */
+}
+[data-theme="dark"] .form-check-input[type="radio"]:focus + .form-check-label::before {
+   border-color: var(--color-base-primary);
+}
+[data-theme="dark"] .form-check-input[type="radio"]:disabled + .form-check-label {
+  color: var(--color-neutral-gray-500);
+}
+[data-theme="dark"] .form-check-input[type="radio"]:disabled + .form-check-label::before {
+  background-color: var(--color-neutral-gray-700);
+  border-color: var(--color-neutral-gray-600);
+}
+[data-theme="dark"] .form-check-input[type="radio"]:disabled:checked + .form-check-label::before {
+  background-color: var(--color-neutral-gray-600);
+  border-color: var(--color-neutral-gray-600);
+}
+[data-theme="dark"] .form-check-input[type="radio"]:disabled:checked + .form-check-label::after {
+  background-color: var(--color-neutral-gray-800);
+}
+
+/* High contrast adaptations for radio */
+[data-theme="high-contrast"] .form-check-input[type="radio"] + .form-check-label::before {
+  background-color: var(--color-neutral-black);
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+}
+[data-theme="high-contrast"] .form-check-input[type="radio"]:checked + .form-check-label::before {
+  background-color: var(--color-base-primary); /* Keep primary for checked state */
+  border-color: var(--color-neutral-white); /* Contrasting border */
+}
+[data-theme="high-contrast"] .form-check-input[type="radio"]:checked + .form-check-label::after {
+  background-color: var(--color-neutral-black); /* Black dot on primary background */
+}
+[data-theme="high-contrast"] .form-check-input[type="radio"]:focus + .form-check-label::before {
+  outline: var(--border-width-2) var(--border-style-solid) var(--color-base-primary);
+  outline-offset: var(--spacing-1);
+  box-shadow: none;
+}
+[data-theme="high-contrast"] .form-check-input[type="radio"]:disabled + .form-check-label {
+  color: var(--color-neutral-gray-400);
+}
+[data-theme="high-contrast"] .form-check-input[type="radio"]:disabled + .form-check-label::before {
+  background-color: var(--color-neutral-black);
+  border-color: var(--color-neutral-gray-500); /* Grayed out border */
+}
+[data-theme="high-contrast"] .form-check-input[type="radio"]:disabled:checked + .form-check-label::before {
+  background-color: var(--color-neutral-gray-700); /* Dimmed primary */
+  border-color: var(--color-neutral-gray-500);
+}
+[data-theme="high-contrast"] .form-check-input[type="radio"]:disabled:checked + .form-check-label::after {
+  background-color: var(--color-neutral-black);
+}
+
+/* Radio group legend styling (optional, if using fieldset/legend for groups) */
+.radio-group-legend {
+  font-size: var(--typography-font-size-md);
+  font-weight: var(--typography-font-weight-medium);
+  margin-bottom: var(--spacing-2);
+  color: var(--color-neutral-gray-700);
+}
+[data-theme="dark"] .radio-group-legend {
+  color: var(--color-neutral-gray-200);
+}
+[data-theme="high-contrast"] .radio-group-legend {
+  color: var(--color-neutral-white);
+}
