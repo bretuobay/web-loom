@@ -30,28 +30,23 @@ export interface DesignTokens {
 }
 
 /**
- * A more specific type for color tokens, assuming they are strings.
+ * Represents a category of color tokens.
+ * Assumes color token values are strings.
  */
-export interface ColorTokenGroup {
-  [key: string]: string | ColorTokenGroup;
-}
-
 export interface ColorTokens {
-  [key: string]: string | ColorTokenGroup;
+  [key: string]: string | ColorTokens; // Allows for nested color groups
 }
 
 /**
- * A more specific type for spacing tokens, assuming they are numbers or strings.
+ * Represents a category of spacing tokens.
+ * Assumes spacing values are numbers or strings.
  */
-export interface SpacingTokenGroup {
-  [key: string]: number | string | SpacingTokenGroup;
-}
 export interface SpacingTokens {
-  [key: string]: number | string | SpacingTokenGroup;
+  [key: string]: number | string | SpacingTokens; // Allows for nested spacing groups
 }
 
 /**
- * A more specific type for typography tokens.
+ * Represents an individual font style definition.
  */
 export interface FontStyleToken {
   fontFamily?: string;
@@ -60,18 +55,24 @@ export interface FontStyleToken {
   lineHeight?: string | number;
   letterSpacing?: string;
 }
-export interface TypographyTokenGroup {
-  [key: string]: FontStyleToken | TypographyTokenGroup;
-}
 
+/**
+ * Represents a category of typography tokens.
+ * Values can be FontStyleToken objects or nested TypographyTokens groups.
+ */
 export interface TypographyTokens {
-  [key: string]: FontStyleToken | TypographyTokenGroup;
+  [key: string]: FontStyleToken | TypographyTokens; // Allows for nested typography groups
 }
 
-// Example of how specific tokens might look
-export interface SpecificDesignTokens {
-  colors: ColorTokens;
-  spacing: SpacingTokens;
-  typography: TypographyTokens;
-  // Add other categories like borderRadius, shadows, etc.
+/**
+ * Example of a more specific DesignTokens interface, tailored to known categories.
+ * This provides more precise type information for consumers.
+ */
+export interface SpecificDesignTokens extends DesignTokens {
+  colors?: ColorTokens;
+  spacing?: SpacingTokens;
+  typography?: TypographyTokens;
+  // Consumers can extend this with other known categories like
+  // borderRadius?: TokenCategory;
+  // shadows?: TokenCategory;
 }

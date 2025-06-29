@@ -10,14 +10,15 @@ export { getAllTokens, getTokenValue } from './tokens';
 export {
   pathToCssVar,
   getTokenVar,
-  getResolvedTokenVar,
+  getSafeTokenVar, // Renamed from getResolvedTokenVar
   generateCssVariablesMap,
   generateCssVariablesString,
 } from './cssVariables';
 
 // Export functions and types from theme.ts
+// Explicitly export named functions and the Theme interface.
 export { createTheme, applyTheme, setTheme, getCurrentTheme } from './theme';
-export type { Theme } from './theme'; // Export Theme interface specifically if not covered by '*'
+export type { Theme } from './theme';
 
 // This index file serves as the public API for the utilities directory.
 // Consumers of the @design-core/utils package (or internal consumers)

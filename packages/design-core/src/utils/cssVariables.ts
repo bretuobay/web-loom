@@ -1,133 +1,146 @@
 // packages/design-core/src/utils/cssVariables.ts
 
 import { DesignTokens, TokenValue, TokenCategory, TokenGroup } from './tokens.d';
-import { getAllTokens, getTokenValue } from './tokens'; // Assuming this is the processed token getter
+import { getAllTokens, getTokenValue } from './tokens';
 
 /**
- * Generates a CSS variable name from a token path.
- * Example: `colors.primary.main` becomes `--colors-primary-main`.
+ * Converts a token path string (e.g., "colors.primary.main") into a CSS variable name
+ * (e.g., "--colors-primary-main").
  *
- * @param path The token path string (e.g., "colors.primary.main").
- * @returns The CSS variable name string.
+ * @param path The token path string.
+ * @returns The corresponding CSS variable name.
+ * @example
+ * const cssVarName = pathToCssVar("colors.brand.primary"); // "--colors-brand-primary"
  */
 export function pathToCssVar(path: string): string {
   return `--${path.replace(/\./g, '-')}`;
 }
 
 /**
- * Resolves a token path to its CSS variable string `var(--name)`.
- * This function does not check if the token or variable exists.
+ * Converts a token path string into a CSS variable reference string `var(--name)`.
+ * This function does not check if the token or CSS variable exists.
  *
  * @param path The token path string (e.g., "colors.primary.main").
  * @returns The CSS variable reference (e.g., "var(--colors-primary-main)").
+ * @example
+ * const cssVarRef = getTokenVar("colors.brand.primary"); // "var(--colors-brand-primary)"
  */
 export function getTokenVar(path: string): string {
   return `var(${pathToCssVar(path)})`;
 }
 
 /**
- * Retrieves the actual value of a token and returns its CSS variable representation.
- * This is useful if you want to apply a token that might be a direct value or a CSS var.
- * For now, it primarily focuses on generating the var string.
+ * Checks if a token exists for the given path and, if so, returns its CSS variable reference string `var(--name)`.
+ * If the token does not exist, it logs a warning and returns `undefined`.
  *
  * @param path The token path (e.g., "colors.base.primary").
- * @returns A promise that resolves to the CSS variable string like "var(--colors-base-primary)".
+ * @returns A promise that resolves to the CSS variable string (e.g., "var(--colors-base-primary)") if the token exists, otherwise `undefined`.
+ * @example
+ * async function getSafeCssVar() {
+ *   const primaryColorVar = await getSafeTokenVar("colors.brand.primary");
+ *   if (primaryColorVar) {
+ *     // Use primaryColorVar, e.g., element.style.color = primaryColorVar;
+ *   }
+ *   const nonExistentVar = await getSafeTokenVar("colors.brand.undefined"); // undefined, logs warning
+ * }
  */
-export async function getResolvedTokenVar(path: string): Promise<string | undefined> {
-  const value = await getTokenValue(path);
+export async function getSafeTokenVar(path: string): Promise<string | undefined> {
+  const value = await getTokenValue(path); // Check if the token path is valid
   if (value === undefined) {
-    console.warn(`Token not found for path: ${path} when trying to generate CSS variable.`);
+    // Warning already logged by getTokenValue if path is invalid
+    // console.warn(`Token not found for path: ${path} when trying to generate CSS variable string.`);
     return undefined;
   }
-  // Even if we have the value, the goal is to return the CSS variable string.
-  return getTokenVar(path);
+  return getTokenVar(path); // Return "var(--css-variable-name)"
 }
 
 /**
- * Flattens the token structure and generates a map of CSS custom properties.
- *
- * @param tokens The design tokens object.
- * @param currentPath Internal: The current path prefix for recursion.
- * @param cssVarsMap Internal: The map being built.
+ * Internal helper: Flattens a nested token structure into a flat map of CSS custom properties.
+ * @param tokens The design tokens object or a part of it.
+ * @param currentPath The current path prefix for recursion.
+ * @param cssVarsMap The map being built.
  * @returns A flat object where keys are CSS variable names (e.g., "--colors-primary-main")
  *          and values are the corresponding token values.
  */
-function flattenTokensToCssVars(
+function flattenTokensToCssVarsRecursive(
   tokens: DesignTokens | TokenCategory | TokenGroup,
   currentPath: string = '',
   cssVarsMap: Record<string, TokenValue> = {},
 ): Record<string, TokenValue> {
   for (const key in tokens) {
-    const value = (tokens as any)[key];
-    const newPath = currentPath ? `${currentPath}.${key}` : key;
+    // Ensure 'key' is a property of 'tokens' and not from prototype chain for safety,
+    // though typically not an issue with well-structured JSON/objects.
+    if (Object.prototype.hasOwnProperty.call(tokens, key)) {
+      const value = (tokens as any)[key];
+      const newPath = currentPath ? `${currentPath}.${key}` : key;
 
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      // It's a nested group, recurse
-      flattenTokensToCssVars(value, newPath, cssVarsMap);
-    } else if (value !== undefined && value !== null) {
-      // It's a leaf node (a token value)
-      cssVarsMap[pathToCssVar(newPath)] = value as TokenValue;
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        // It's a nested group, recurse
+        flattenTokensToCssVarsRecursive(value, newPath, cssVarsMap);
+      } else if (value !== undefined && value !== null) {
+        // It's a leaf node (a token value)
+        cssVarsMap[pathToCssVar(newPath)] = value as TokenValue;
+      }
     }
   }
   return cssVarsMap;
 }
 
 /**
- * Asynchronously loads all tokens, flattens them, and generates a map of
+ * Asynchronously loads all design tokens, flattens them, and generates a map of
  * CSS custom properties (e.g., { "--colors-base-primary": "#1E40AF" }).
- * This map can then be used to inject CSS variables into the document.
+ * This map can be used, for example, to set multiple CSS variables on an element's style property.
  *
- * @returns A promise that resolves to a Record<string, TokenValue> representing the CSS variables.
+ * @returns A promise that resolves to a Record<string, TokenValue> representing the CSS variables map.
+ * @example
+ * async function applyVariablesToElement() {
+ *   const styleMap = await generateCssVariablesMap();
+ *   // const element = document.getElementById('my-element');
+ *   // if (element) {
+ *   //   for (const varName in styleMap) {
+ *   //     element.style.setProperty(varName, styleMap[varName].toString());
+ *   //   }
+ *   // }
+ * }
  */
 export async function generateCssVariablesMap(): Promise<Record<string, TokenValue>> {
-  const allTokens = await getAllTokens(); // Gets the fully processed tokens
-  return flattenTokensToCssVars(allTokens);
+  const allTokens = await getAllTokens();
+  return flattenTokensToCssVarsRecursive(allTokens);
 }
 
 /**
- * Generates a string of CSS custom properties to be injected into a stylesheet or style tag.
+ * Generates a string of CSS custom property definitions from all design tokens,
+ * ready to be injected into a stylesheet or a `<style>` tag.
  *
- * @param selector The CSS selector under which variables will be defined (e.g., ":root").
+ * @param selector The CSS selector under which variables will be defined (default: ":root").
  * @returns A promise that resolves to a string containing CSS variable definitions.
+ * @example
+ * async function injectGlobalCssVariables() {
+ *   const cssString = await generateCssVariablesString(':root');
+ *   // const styleTag = document.createElement('style');
+ *   // styleTag.id = 'design-tokens-variables';
+ *   // styleTag.textContent = cssString;
+ *   // document.head.appendChild(styleTag);
+ *   // console.log(cssString);
+ *   // Output might be:
+ *   // :root {
+ *   //   --colors-base-primary: #1E40AF;
+ *   //   --spacing-1: 4px;
+ *   //   ...
+ *   // }
+ * }
  */
 export async function generateCssVariablesString(selector: string = ':root'): Promise<string> {
   const cssVarsMap = await generateCssVariablesMap();
+  if (Object.keys(cssVarsMap).length === 0) {
+    return `${selector} {}\n`; // Return empty block if no variables
+  }
   let cssString = `${selector} {\n`;
   for (const varName in cssVarsMap) {
-    cssString += `  ${varName}: ${cssVarsMap[varName]};\n`;
+    if (Object.prototype.hasOwnProperty.call(cssVarsMap, varName)) {
+      cssString += `  ${varName}: ${cssVarsMap[varName]};\n`;
+    }
   }
   cssString += `}\n`;
   return cssString;
 }
-
-// Example Usage:
-//
-// import { getTokenVar, generateCssVariablesString, pathToCssVar } from './cssVariables';
-//
-// // Get a specific CSS variable reference
-// const primaryColorVar = getTokenVar('colors.base.primary'); // "var(--colors-base-primary)"
-// console.log(primaryColorVar);
-//
-// // Generate CSS variables string for :root
-// generateCssVariablesString(':root').then(css => {
-//   console.log(css);
-//   /*
-//   :root {
-//     --colors-base-primary: #1E40AF;
-//     --colors-base-secondary: #64748B;
-//     ...
-//     --spacing-0: 0px;
-//     --spacing-1: 4px;
-//     ...
-//   }
-//   */
-//
-//   // This string can be injected into a <style> tag in the document head.
-//   // const styleTag = document.createElement('style');
-//   // styleTag.textContent = css;
-//   // document.head.appendChild(styleTag);
-// });
-
-// // Get a path to a css var
-// const primaryColorPath = pathToCssVar('colors.base.primary'); // "--colors-base-primary"
-// console.log(primaryColorPath);
