@@ -1,0 +1,42 @@
+# .github/workflows/mvvm-core-ci.yml
+
+name: CI - @web-loom/mvvm-core
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/mvvm-core/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/mvvm-core/**'
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests for @web-loom/mvvm-core
+        run: npm test --workspace=@web-loom/mvvm-core
+
+      - name: Build @web-loom/mvvm-core
+        run: npx turbo run build --filter=@web-loom/mvvm-core
+
+      - name: Upload build artifacts (Optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvvm-core-dist-build-artifacts
+          path: packages/mvvm-core/dist/

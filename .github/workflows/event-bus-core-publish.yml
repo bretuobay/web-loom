@@ -1,0 +1,61 @@
+# .github/workflows/event-bus-core-publish.yml
+
+name: Publish - @web-loom/event-bus-core
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/event-bus-core/**'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build @web-loom/event-bus-core
+        run: npx turbo run build --filter=@web-loom/event-bus-core
+
+      - name: Publish @web-loom/event-bus-core to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          cd packages/event-bus-core
+
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+
+          echo "--- Package Information ---"
+          echo "Package Name: $PACKAGE_NAME"
+          echo "Package Version: $PACKAGE_VERSION"
+          echo "--------------------------"
+
+          set +e
+          npm view "$PACKAGE_NAME@$PACKAGE_VERSION" > /dev/null 2>&1
+          NPM_VIEW_EXIT_CODE=$?
+          set -e
+
+          if [ "$NPM_VIEW_EXIT_CODE" -eq 0 ]; then
+            echo "✅ Package version $PACKAGE_VERSION already exists on npm. Skipping publish for $PACKAGE_NAME."
+            exit 0
+          else
+            echo "🚀 Package version $PACKAGE_VERSION is new. Attempting to publish $PACKAGE_NAME."
+            npm publish --access public --verbose
+          fi
+
+          echo "--- Publish process completed for $PACKAGE_NAME ---"

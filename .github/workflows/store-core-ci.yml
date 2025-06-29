@@ -1,0 +1,44 @@
+# .github/workflows/store-core-ci.yml
+
+name: CI - @web-loom/store-core
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/store-core/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/store-core/**'
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use a Node.js version compatible with your project
+
+      - name: Install dependencies
+        run: npm install # Installs all workspace dependencies from the root
+
+      - name: Run tests for @web-loom/store-core
+        run: npm test --workspace=@web-loom/store-core # Runs 'vitest --watch=false' in packages/store-core
+
+      - name: Build @web-loom/store-core
+        run: npx turbo run build --filter=@web-loom/store-core # Runs 'vite build' in packages/store-core
+
+      - name: Upload build artifacts (Optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-core-dist-build-artifacts
+          path: packages/store-core/dist/
+          # This will upload the 'packages/store-core/dist' folder as an artifact.
+          # Useful for inspection or if other workflows need the build output.
