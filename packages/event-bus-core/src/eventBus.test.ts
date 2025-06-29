@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createEventBus, EventBus, EventMap } from './index';
+import { createEventBus, EventBus, EventMap, Listener } from './index';
 
 interface TestEvents extends EventMap {
   'test-event': [payload: string];
@@ -67,7 +67,6 @@ describe('EventBus', () => {
     expect(listener).toHaveBeenCalledTimes(2);
     expect(listener).toHaveBeenLastCalledWith('message for b');
   });
-
 
   // TC.2.1: Unregister Specific Listener
   it('TC.2.1: should unregister a specific listener', () => {
@@ -187,14 +186,13 @@ describe('EventBus', () => {
 
     // Check call order
     const order = [
-        listenerA.mock.invocationCallOrder[0],
-        listenerOther.mock.invocationCallOrder[0], // other-event is emitted and its listeners run before the next test-event listener
-        listenerB.mock.invocationCallOrder[0]
+      listenerA.mock.invocationCallOrder[0],
+      listenerOther.mock.invocationCallOrder[0], // other-event is emitted and its listeners run before the next test-event listener
+      listenerB.mock.invocationCallOrder[0],
     ];
     expect(order[0]).toBeLessThan(order[1]);
     expect(order[1]).toBeLessThan(order[2]);
   });
-
 
   // TC.4.2: Unsubscribe within Listener
   it('TC.4.2: should allow unsubscribing within a listener without disrupting other listeners in the same emission cycle', () => {
@@ -308,7 +306,9 @@ describe('EventBus - Additional Edge Cases', () => {
 
     eventBus = createEventBus<TestEvents>(); // Reset
     const listener1 = vi.fn();
-    const errorListener = vi.fn(() => { throw new Error("Listener error"); });
+    const errorListener = vi.fn(() => {
+      throw new Error('Listener error');
+    });
     const listener2 = vi.fn();
 
     eventBus.on('test-event', listener1);
@@ -317,15 +317,15 @@ describe('EventBus - Additional Edge Cases', () => {
 
     let thrownError: any = null;
     try {
-        eventBus.emit('test-event', 'test');
+      eventBus.emit('test-event', 'test');
     } catch (e) {
-        thrownError = e;
+      thrownError = e;
     }
 
     expect(listener1).toHaveBeenCalledTimes(1);
     expect(errorListener).toHaveBeenCalledTimes(1);
     expect(thrownError).toBeInstanceOf(Error);
-    expect(thrownError.message).toBe("Listener error");
+    expect(thrownError.message).toBe('Listener error');
     // Since the error in `errorListener` is not caught by the `emit` method's loop,
     // `listener2` which is registered after `errorListener` will not be executed.
     expect(listener2).not.toHaveBeenCalled();
@@ -358,9 +358,9 @@ describe('EventBus - Additional Edge Cases', () => {
 
     // Check call order: listener1 -> otherEventListener -> listener2
     const order = [
-        listener1.mock.invocationCallOrder[0],
-        otherEventListener.mock.invocationCallOrder[0],
-        listener2.mock.invocationCallOrder[0]
+      listener1.mock.invocationCallOrder[0],
+      otherEventListener.mock.invocationCallOrder[0],
+      listener2.mock.invocationCallOrder[0],
     ];
     expect(order[0]).toBeLessThan(order[1]);
     expect(order[1]).toBeLessThan(order[2]);
@@ -374,7 +374,7 @@ describe('EventBus - Additional Edge Cases', () => {
     expect(listener2).toHaveBeenLastCalledWith('second emit');
   });
 
-   it('off() should not affect listeners of different events', () => {
+  it('off() should not affect listeners of different events', () => {
     const testEventListener = vi.fn();
     const otherEventListener = vi.fn();
     eventBus.on('test-event', testEventListener);
@@ -471,7 +471,7 @@ describe('EventBus - Additional Edge Cases', () => {
     expect(listener).toHaveBeenCalledTimes(1); // Called once due to Set behavior
   });
 
-   it('should handle multiple events in on() method correctly', () => {
+  it('should handle multiple events in on() method correctly', () => {
     const listener = vi.fn();
     eventBus.on(['event-a', 'event-b'], listener);
 
@@ -479,24 +479,23 @@ describe('EventBus - Additional Edge Cases', () => {
     expect(listener).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenLastCalledWith();
 
-    eventBus.emit('event-b', "message for B");
+    eventBus.emit('event-b', 'message for B');
     expect(listener).toHaveBeenCalledTimes(2);
-    expect(listener).toHaveBeenLastCalledWith("message for B");
+    expect(listener).toHaveBeenLastCalledWith('message for B');
 
-    eventBus.emit('test-event', "other message"); // Should not be called
+    eventBus.emit('test-event', 'other message'); // Should not be called
     expect(listener).toHaveBeenCalledTimes(2);
 
     eventBus.off('event-a', listener);
     eventBus.emit('event-a');
     expect(listener).toHaveBeenCalledTimes(2); // Not called for event-a anymore
 
-    eventBus.emit('event-b', "message for B again");
+    eventBus.emit('event-b', 'message for B again');
     expect(listener).toHaveBeenCalledTimes(3); // Still called for event-b
-    expect(listener).toHaveBeenLastCalledWith("message for B again");
+    expect(listener).toHaveBeenLastCalledWith('message for B again');
 
     eventBus.off('event-b', listener);
-    eventBus.emit('event-b', "message for B final");
+    eventBus.emit('event-b', 'message for B final');
     expect(listener).toHaveBeenCalledTimes(3); // Not called for event-b anymore
   });
-
 });
