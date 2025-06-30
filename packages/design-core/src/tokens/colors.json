@@ -25,6 +25,16 @@
         "value": "#EF4444",
         "type": "color",
         "description": "Danger color"
+      },
+      "accent1": {
+        "value": "#0CD4F3",
+        "type": "color",
+        "description": "Accent color 1"
+      },
+      "accent2": {
+        "value": "#F32B0C",
+        "type": "color",
+        "description": "Accent color 2"
       }
     },
     "neutral": {

@@ -2,17 +2,17 @@
 
 .card {
   background-color: var(--color-themed-light-background);
-  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-200);
-  border-radius: var(--radius-lg); /* Larger radius for cards */
-  box-shadow: var(--shadow-sm);
+  border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300); /* Slightly darker border */
+  border-radius: var(--radius-md); /* Standard Material Design radius */
+  box-shadow: var(--shadow-md); /* More pronounced shadow */
   padding: var(--spacing-5);
   overflow: hidden; /* Ensures content respects border radius */
 }
 
 [data-theme="dark"] .card {
   background-color: var(--color-neutral-gray-800);
-  border-color: var(--color-neutral-gray-700);
-  box-shadow: var(--shadow-sm); /* Dark themes might need adjusted shadows if they are too subtle */
+  border-color: var(--color-neutral-gray-600); /* Adjusted for dark theme */
+  box-shadow: var(--shadow-md); /* Ensure shadow is visible on dark backgrounds */
 }
 
 [data-theme="high-contrast"] .card {

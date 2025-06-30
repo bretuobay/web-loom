@@ -8,28 +8,50 @@
   padding-right: var(--spacing-gutter);
 }
 
-/* Responsive container widths based on breakpoints */
+/* Fluid container - covers entire screen width */
+.container-fluid {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--spacing-gutter); /* Retain gutter padding */
+  padding-right: var(--spacing-gutter); /* Retain gutter padding */
+}
+
+/* Responsive container widths based on breakpoints (for .container, not .container-fluid) */
 /* Ensure breakpoint tokens are defined, e.g., --breakpoint-sm: 640px; */
 @media (min-width: var(--breakpoint-sm, 640px)) { /* Default fallback if token not present */
-  .container {
-    max-width: calc(var(--breakpoint-sm, 640px) - (var(--spacing-gutter) * 2));
+  .container:not(.container-fluid) { /* Apply max-width only if not fluid */
+    max-width: calc(var(--breakpoint-sm, 640px) - (var(--spacing-gutter, 0px) * 2));
   }
 }
 @media (min-width: var(--breakpoint-md, 768px)) {
-  .container {
-    max-width: calc(var(--breakpoint-md, 768px) - (var(--spacing-gutter) * 2));
+  .container:not(.container-fluid) {
+    max-width: calc(var(--breakpoint-md, 768px) - (var(--spacing-gutter, 0px) * 2));
   }
 }
 @media (min-width: var(--breakpoint-lg, 1024px)) {
-  .container {
-    max-width: calc(var(--breakpoint-lg, 1024px) - (var(--spacing-gutter) * 2));
+  .container:not(.container-fluid) {
+    max-width: calc(var(--breakpoint-lg, 1024px) - (var(--spacing-gutter, 0px) * 2));
   }
 }
 @media (min-width: var(--breakpoint-xl, 1280px)) {
-  .container {
-    max-width: calc(var(--breakpoint-xl, 1280px) - (var(--spacing-gutter) * 2));
+  .container:not(.container-fluid) {
+    max-width: calc(var(--breakpoint-xl, 1280px) - (var(--spacing-gutter, 0px) * 2));
   }
 }
+
+/* Ensure page content has padding for fixed header and footer */
+.page-content .container,
+.page-content .container-fluid {
+  padding-top: calc(var(--header-height, 60px) + var(--spacing-5)); /* Example header height, adjust as needed */
+  padding-bottom: calc(var(--footer-height, 40px) + var(--spacing-5)); /* Example footer height, adjust as needed */
+}
+/*
+   Note: --header-height and --footer-height should ideally be defined as CSS variables
+   based on the actual rendered height of your header and footer.
+   For now, using example values. These could also be set via JavaScript if heights are dynamic.
+*/
+
 
 /* Simple Grid System */
 .grid {
