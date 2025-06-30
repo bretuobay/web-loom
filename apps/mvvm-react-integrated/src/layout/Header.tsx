@@ -5,13 +5,13 @@ import { useObservable } from '../hooks/useObservable';
 export const Header = () => {
   const navigation = useObservable(navigationViewModel.navigationList.items$, []);
   return (
-    <header className="header">
-      <Link to="/" className="header-item">
+    <header className="page-header navbar">
+      <Link to="/" className="page-header-nav">
         Dashboard
       </Link>
       <nav className="flex-container">
         {navigation.map((item) => (
-          <Link key={item.id} to={`/${item.id}`} className="header-item">
+          <Link key={item.id} to={`/${item.id}`} className="page-header-nav">
             <i className={`icon-${item.icon}`}></i> {item.label}
           </Link>
         ))}
