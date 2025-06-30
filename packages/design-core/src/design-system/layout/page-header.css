@@ -2,22 +2,35 @@
 
 .page-header {
   padding: var(--spacing-4) var(--spacing-gutter);
-  background-color: var(--color-neutral-gray-100); /* Light background for header */
-  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
-  display: flex; /* For alignment of items like logo and nav */
+  background-color: var(--color-base-primary); /* Updated to primary color */
+  color: var(--color-neutral-white); /* Text color on primary background */
+  border-bottom: var(--border-width-2) var(--border-style-solid) var(--color-neutral-gray-700); /* Pronounced border */
+  display: flex;
   align-items: center;
   justify-content: space-between;
+
+  /* Full-screen mode and attached to top */
+  position: fixed; /* Or 'sticky' if preferred and parent scrolling is a factor */
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: var(--z-index-sticky); /* Ensure header is above other content */
+  box-shadow: var(--shadow-md); /* Material Design shadow for header */
 }
 
 [data-theme="dark"] .page-header {
-  background-color: var(--color-neutral-gray-800);
-  border-bottom-color: var(--color-neutral-gray-700);
+  background-color: var(--color-neutral-gray-900); /* Darker header for dark theme */
+  border-bottom-color: var(--color-neutral-gray-700); /* Ensure border is visible */
+  color: var(--color-neutral-gray-100);
 }
 
 [data-theme="high-contrast"] .page-header {
-  background-color: var(--color-neutral-black); /* Stark background */
-  border-bottom: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white); /* High contrast border */
-  color: var(--color-neutral-white); /* Ensure text within is high contrast */
+  background-color: var(--color-neutral-black);
+  border-bottom: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  color: var(--color-neutral-white);
+  box-shadow: none; /* No shadow in high contrast */
+  /* Position properties remain the same for high-contrast */
 }
 
 .page-header-title {
