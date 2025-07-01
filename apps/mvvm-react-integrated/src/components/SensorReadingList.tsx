@@ -60,7 +60,7 @@ export function SensorReadingList() {
   console.log('[SensorReadingList] Reading List:', readingList.data);
 
   return (
-    <>
+    <div className="container-fluid">
       <Link to="/" className="back-button">
         <img src={BackArrow} alt="Back to dashboard" style={{ width: '36px', height: '36px' }} />
       </Link>
@@ -79,6 +79,6 @@ export function SensorReadingList() {
           <p>No sensor readings found or still loading...</p>
         )}
       </div>
-    </>
+    </div>
   );
 }

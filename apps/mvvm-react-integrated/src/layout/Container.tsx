@@ -1,6 +1,6 @@
 const Container = ({ children }: { children: React.ReactNode }) => {
   return (
-    <main className="flex-container flex-column flex-app" style={{ padding: '20px' }}>
+    <main className="container-fluid" style={{ padding: 'var(--spacing-5)' }}>
       {children}
     </main>
   );

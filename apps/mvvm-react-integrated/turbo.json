@@ -2,7 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "dev": {
-      "with": ["api#dev", "@web-loom/mvvm-core#dev"],
+      "with": ["api#dev", "@web-loom/mvvm-core#dev", "@repo/view-models#dev", "@repo/models#dev", "@repo/shared#dev"],
       "persistent": true,
       "cache": false
     }

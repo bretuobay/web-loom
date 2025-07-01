@@ -2,26 +2,34 @@
 
 .page-header {
   padding: var(--spacing-4) var(--spacing-gutter);
-  background-color: var(--color-base-primary); /* Updated to primary color */
-  color: var(--color-neutral-white); /* Text color on primary background */
-  border-bottom: var(--border-width-2) var(--border-style-solid) var(--color-neutral-gray-700); /* Pronounced border */
+  background-color: var(--color-base-primary);
+  /* Updated to primary color */
+  color: var(--color-neutral-white);
+  /* Text color on primary background */
+  border-bottom: var(--border-width-2) var(--border-style-solid) var(--color-base-accent1);
+  /* Pronounced border */
   display: flex;
   align-items: center;
   justify-content: space-between;
 
   /* Full-screen mode and attached to top */
-  position: fixed; /* Or 'sticky' if preferred and parent scrolling is a factor */
+  position: fixed;
+  /* Or 'sticky' if preferred and parent scrolling is a factor */
   top: 0;
   left: 0;
   right: 0;
   width: 100%;
-  z-index: var(--z-index-sticky); /* Ensure header is above other content */
-  box-shadow: var(--shadow-md); /* Material Design shadow for header */
+  z-index: var(--z-index-sticky);
+  /* Ensure header is above other content */
+  box-shadow: var(--shadow-md);
+  /* Material Design shadow for header */
 }
 
 [data-theme="dark"] .page-header {
-  background-color: var(--color-neutral-gray-900); /* Darker header for dark theme */
-  border-bottom-color: var(--color-neutral-gray-700); /* Ensure border is visible */
+  background-color: var(--color-neutral-gray-900);
+  /* Darker header for dark theme */
+  border-bottom-color: var(--color-neutral-gray-700);
+  /* Ensure border is visible */
   color: var(--color-neutral-gray-100);
 }
 
@@ -29,14 +37,16 @@
   background-color: var(--color-neutral-black);
   border-bottom: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
   color: var(--color-neutral-white);
-  box-shadow: none; /* No shadow in high contrast */
+  box-shadow: none;
+  /* No shadow in high contrast */
   /* Position properties remain the same for high-contrast */
 }
 
 .page-header-title {
   font-size: var(--typography-font-size-xl);
   font-weight: var(--typography-font-weight-bold);
-  color: inherit; /* Inherits from .page-header or themed parent */
+  color: inherit;
+  /* Inherits from .page-header or themed parent */
   margin: 0;
 }
 
@@ -53,17 +63,21 @@
 }
 
 [data-theme="dark"] .page-header-nav a {
-  color: var(--color-neutral-gray-100); /* Lighter link color for dark header */
+  color: var(--color-neutral-gray-100);
+  /* Lighter link color for dark header */
 }
+
 [data-theme="high-contrast"] .page-header-nav a {
-  color: var(--color-neutral-white); /* Ensure link visibility */
+  color: var(--color-neutral-white);
+  /* Ensure link visibility */
 }
 
 
 .page-header-nav a:hover,
 .page-header-nav a:focus {
   text-decoration: underline;
-  color: var(--color-alpha-primary-50); /* Adjust hover color if needed for themes */
+  color: var(--color-alpha-primary-50);
+  /* Adjust hover color if needed for themes */
 }
 
 [data-theme="dark"] .page-header-nav a:hover,
@@ -73,7 +87,8 @@
 
 [data-theme="high-contrast"] .page-header-nav a:hover,
 [data-theme="high-contrast"] .page-header-nav a:focus {
-  background-color: var(--color-neutral-white); /* Invert colors on hover/focus */
+  background-color: var(--color-neutral-white);
+  /* Invert colors on hover/focus */
   color: var(--color-neutral-black);
   outline: var(--border-width-1) var(--border-style-solid) var(--color-neutral-black);
 }

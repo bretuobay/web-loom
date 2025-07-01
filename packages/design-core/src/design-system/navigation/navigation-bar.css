@@ -3,10 +3,12 @@
 .navbar {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Common layout for navbar */
+  justify-content: space-between;
+  /* Common layout for navbar */
   padding: var(--spacing-3) var(--spacing-gutter);
-  background-color: var(--color-neutral-gray-100); /* Default light navbar */
-  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
+  background-color: var(--color-neutral-gray-100);
+  /* Default light navbar */
+  border-bottom: var(--border-width-1) var(--border-style-solid) var(--color-base-accent1);
   /* This class can be combined with .page-header for a site header that is also a navbar */
 }
 
@@ -18,18 +20,22 @@
 [data-theme="high-contrast"] .navbar {
   background-color: var(--color-neutral-black);
   border-bottom: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
-  color: var(--color-neutral-white); /* Text inside should be white */
+  color: var(--color-neutral-white);
+  /* Text inside should be white */
 }
 
 .navbar-brand {
   font-size: var(--typography-font-size-lg);
   font-weight: var(--typography-font-weight-bold);
-  color: var(--color-neutral-gray-800); /* Or primary color */
+  color: var(--color-neutral-gray-800);
+  /* Or primary color */
   text-decoration: none;
 }
+
 [data-theme="dark"] .navbar-brand {
   color: var(--color-neutral-gray-100);
 }
+
 [data-theme="high-contrast"] .navbar-brand {
   color: var(--color-neutral-white);
 }
@@ -40,7 +46,8 @@
   list-style: none;
   padding-left: 0;
   margin-bottom: 0;
-  gap: var(--spacing-1); /* Minimal gap, links will have padding */
+  gap: var(--spacing-1);
+  /* Minimal gap, links will have padding */
 }
 
 .nav-item {
@@ -53,7 +60,8 @@
   color: var(--color-neutral-gray-700);
   text-decoration: none;
   border-radius: var(--radius-sm);
-  border: var(--border-width-1) var(--border-style-solid) transparent; /* For active/focus indication */
+  border: var(--border-width-1) var(--border-style-solid) transparent;
+  /* For active/focus indication */
   transition: background-color var(--timing-fast) ease-in-out, color var(--timing-fast) ease-in-out, border-color var(--timing-fast) ease-in-out;
 }
 
@@ -61,26 +69,30 @@
 .nav-link:focus {
   color: var(--color-base-primary);
   background-color: var(--color-neutral-gray-200);
-  border-color: var(--color-neutral-gray-300); /* Subtle border on hover/focus */
+  border-color: var(--color-neutral-gray-300);
+  /* Subtle border on hover/focus */
   outline: none;
 }
 
 .nav-link.active {
   color: var(--color-base-primary);
   font-weight: var(--typography-font-weight-medium);
-  background-color: var(--color-neutral-gray-50); /* Slightly different bg for active */
-  border-color: var(--color-neutral-gray-200);
+  background-color: var(--color-neutral-gray-50);
+  /* Slightly different bg for active */
+  /* border-color: var(--color-neutral-gray-200); */
 }
 
 [data-theme="dark"] .nav-link {
   color: var(--color-neutral-gray-300);
 }
+
 [data-theme="dark"] .nav-link:hover,
 [data-theme="dark"] .nav-link:focus {
   color: var(--color-neutral-white);
   background-color: var(--color-neutral-gray-700);
   border-color: var(--color-neutral-gray-600);
 }
+
 [data-theme="dark"] .nav-link.active {
   color: var(--color-neutral-white);
   background-color: var(--color-neutral-gray-600);
@@ -91,46 +103,59 @@
   color: var(--color-neutral-white);
   border: var(--border-width-1) var(--border-style-solid) transparent;
 }
+
 [data-theme="high-contrast"] .nav-link:hover,
 [data-theme="high-contrast"] .nav-link:focus {
   background-color: var(--color-neutral-white);
   color: var(--color-neutral-black);
   border-color: var(--color-neutral-white);
-  outline: var(--border-width-1) var(--border-style-solid) var(--color-neutral-black); /* Inverse outline */
+  outline: var(--border-width-1) var(--border-style-solid) var(--color-neutral-black);
+  /* Inverse outline */
   outline-offset: 1px;
 }
+
 [data-theme="high-contrast"] .nav-link.active {
-  background-color: var(--color-neutral-white); /* Prominent active state */
+  background-color: var(--color-neutral-white);
+  /* Prominent active state */
   color: var(--color-neutral-black);
-  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white); /* Thicker border for active */
+  border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
+  /* Thicker border for active */
   font-weight: var(--typography-font-weight-bold);
 }
 
 /* Navbar toggle for mobile (requires JS for functionality) */
 .navbar-toggler {
-  display: none; /* Hidden by default, shown in mobile views via media query */
+  display: none;
+  /* Hidden by default, shown in mobile views via media query */
   padding: var(--spacing-2);
   background-color: transparent;
   border: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-400);
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
-.navbar-toggler-icon { /* Typically a burger icon */
+
+.navbar-toggler-icon {
+  /* Typically a burger icon */
   display: block;
   width: var(--sizing-6);
   height: var(--sizing-6);
   /* background-image: url("..."); */
-  background-color: var(--color-neutral-gray-600); /* Placeholder */
+  background-color: var(--color-neutral-gray-600);
+  /* Placeholder */
 }
+
 [data-theme="dark"] .navbar-toggler {
   border-color: var(--color-neutral-gray-500);
 }
+
 [data-theme="dark"] .navbar-toggler-icon {
   background-color: var(--color-neutral-gray-300);
 }
+
 [data-theme="high-contrast"] .navbar-toggler {
   border: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
 }
+
 [data-theme="high-contrast"] .navbar-toggler-icon {
   background-color: var(--color-neutral-white);
 }
@@ -139,7 +164,8 @@
 /* Collapsible content area for mobile */
 .navbar-collapse {
   /* display: none; initially, shown by JS or :target selector or media query */
-  flex-basis: 100%; /* Takes full width when stacked */
+  flex-basis: 100%;
+  /* Takes full width when stacked */
   flex-grow: 1;
   align-items: center;
 }
@@ -176,26 +202,36 @@
 /* Vertical Navbar variation */
 .navbar-vertical {
   flex-direction: column;
-  align-items: flex-start; /* Align items to the start */
-  width: var(--sizing-64); /* Example fixed width for a vertical navbar */
-  height: 100vh; /* Full height */
+  align-items: flex-start;
+  /* Align items to the start */
+  width: var(--sizing-64);
+  /* Example fixed width for a vertical navbar */
+  height: 100vh;
+  /* Full height */
   padding: var(--spacing-4);
   border-right: var(--border-width-1) var(--border-style-solid) var(--color-neutral-gray-300);
-  border-bottom: none; /* Remove bottom border if it's vertical */
+  border-bottom: none;
+  /* Remove bottom border if it's vertical */
 }
+
 .navbar-vertical .navbar-nav {
   flex-direction: column;
-  width: 100%; /* Nav items take full width of vertical navbar */
+  width: 100%;
+  /* Nav items take full width of vertical navbar */
 }
+
 .navbar-vertical .nav-item {
   width: 100%;
 }
+
 .navbar-vertical .nav-link {
   /* Adjust padding or other styles for vertical layout */
 }
+
 [data-theme="dark"] .navbar-vertical {
   border-right-color: var(--color-neutral-gray-700);
 }
+
 [data-theme="high-contrast"] .navbar-vertical {
   border-right: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
 }

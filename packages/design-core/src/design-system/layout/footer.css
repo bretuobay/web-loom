@@ -1,10 +1,14 @@
 /* packages/design-core/src/design-system/layout/footer.css */
 
 .page-footer {
-  padding: var(--spacing-4) var(--spacing-gutter); /* Adjusted padding */
-  background-color: var(--color-neutral-gray-100); /* Consistent with Material's lighter surfaces */
-  color: var(--color-neutral-gray-700); /* Darker text for better contrast on light bg */
-  border-top: var(--border-width-2) var(--border-style-solid) var(--color-neutral-gray-300); /* Pronounced border */
+  padding: var(--spacing-4) var(--spacing-gutter);
+  /* Adjusted padding */
+  background-color: var(--color-neutral-gray-100);
+  /* Consistent with Material's lighter surfaces */
+  color: var(--color-neutral-gray-700);
+  /* Darker text for better contrast on light bg */
+  border-top: var(--border-width-2) var(--border-style-solid) var(--color-base-accent1);
+  /* Pronounced border */
   text-align: center;
   font-size: var(--typography-font-size-sm);
 
@@ -14,8 +18,10 @@
   left: 0;
   right: 0;
   width: 100%;
-  z-index: var(--z-index-sticky); /* Ensure footer can be above or below other fixed elements as needed */
-  box-shadow: var(--shadow-md-top); /* Custom shadow for elements fixed to the bottom */
+  z-index: var(--z-index-sticky);
+  /* Ensure footer can be above or below other fixed elements as needed */
+  box-shadow: var(--shadow-md-top);
+  /* Custom shadow for elements fixed to the bottom */
 }
 
 /* It's good practice to define a specific shadow for elements fixed to the bottom,
@@ -28,7 +34,8 @@
 
 [data-theme="dark"] .page-footer {
   background-color: var(--color-neutral-gray-800);
-  border-top-color: var(--color-neutral-gray-600); /* Adjusted for dark theme */
+  border-top-color: var(--color-neutral-gray-600);
+  /* Adjusted for dark theme */
   color: var(--color-neutral-gray-300);
 }
 
@@ -36,7 +43,8 @@
   background-color: var(--color-neutral-black);
   border-top: var(--border-width-2) var(--border-style-solid) var(--color-neutral-white);
   color: var(--color-neutral-white);
-  box-shadow: none; /* No shadow in high contrast */
+  box-shadow: none;
+  /* No shadow in high contrast */
   /* Position properties remain the same for high-contrast */
 }
 
@@ -45,7 +53,8 @@
 }
 
 .footer-links a {
-  color: var(--color-base-secondary); /* Using secondary color for footer links */
+  color: var(--color-base-secondary);
+  /* Using secondary color for footer links */
   margin: 0 var(--spacing-2);
   text-decoration: none;
 }
@@ -56,7 +65,8 @@
 
 [data-theme="high-contrast"] .footer-links a {
   color: var(--color-neutral-white);
-  text-decoration: underline; /* More prominent links in high contrast */
+  text-decoration: underline;
+  /* More prominent links in high contrast */
 }
 
 .footer-links a:hover,
