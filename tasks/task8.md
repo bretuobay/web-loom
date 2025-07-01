@@ -1,3 +1,13 @@
+Read and understand below the description below of how to integrate these two libraries into the models of and mvvm architecture.
+Write a document at the root of the repository called MVVM Integration.md.
+to explain how to use the libraries. Use the example of an e-commerce site.
+Read carefully and write a detailed integration of these libraries. You can suggest changes that needs to be made to make the integration possible
+
+packages/query-core/src/QueryCore.ts
+and
+packages/store-core/src/index.ts
+with packages/mvvm-core/src/models/BaseModel.ts
+
 Read and understand:
 packages/query-core/src/QueryCore.ts
 and its documentation.
@@ -7,15 +17,6 @@ read and understand
 packages/store-core/src/index.ts
 and its documentation
 packages/store-core/README.md
-
-Read and understand below the description below of how to integrate these two libraries into the models of and mvvm architecture.
-Write a document at the root of the repository called MVVM Integration.md.
-to explain how to use the libraries. Use the example of an e-commerce site
-
-packages/query-core/src/QueryCore.ts
-and
-packages/store-core/src/index.ts
-with packages/mvvm-core/src/models/BaseModel.ts
 
 ## Integration Notes:
 
