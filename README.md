@@ -1,4 +1,4 @@
-# MVVM Architecture
+# Web loom is a collection of tools and libraries to implement MVVM Architecture for web applications.
 
 This project is to illustrate mvvm architecture in various frontend frameworks.
 
@@ -28,6 +28,8 @@ This Turborepo includes the following packages/apps:
 - `packages/view-models`: contains the view models for the applications
 - `packages/store-core`: a minimal client-side state management library.
 - `packages/event-bus-core`: a lightweight, framework-agnostic Event Bus library.
+- `packages/design-core`: a lightweight, framework-agnostic design token and design system library.
+- `packages/mvvm-core`: MVVM libraries using rxjs and zod
 
 Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
 
