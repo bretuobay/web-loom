@@ -26,10 +26,13 @@ This Turborepo includes the following packages/apps:
 - `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
 - `packages/models`: contains the data models for the applications
 - `packages/view-models`: contains the view models for the applications
-- `packages/store-core`: a minimal client-side state management library.
+- `packages/store-core`: is a minimal, framework-agnostic client-side state management library designed for building reactive web applications. It provides a simple and efficient way to manage UI state with a focus on type safety and predictability.
 - `packages/event-bus-core`: a lightweight, framework-agnostic Event Bus library.
-- `packages/design-core`: a lightweight, framework-agnostic design token and design system library.
-- `packages/mvvm-core`: MVVM libraries using rxjs and zod
+- `packages/design-core`:provides a foundational layer for building design systems. It includes a comprehensive set of design tokens and utilities to manage and apply these tokens effectively in various JavaScript environments and CSS styling approaches.
+
+- `packages/mvvm-core`: A framework-agnostic web library for building robust client-side applications using the Model-View-ViewModel (MVVM) pattern. This library leverages the power of RxJS for reactive data flow and Zod for strong data validation, aiming to simplify state management and API interactions across various frontend frameworks like React, Angular, and Vue.
+
+- `packages/query-core`: QueryCore is a lightweight, zero-dependency library for managing asynchronous data fetching, caching, and state management in JavaScript applications.
 
 Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
 
