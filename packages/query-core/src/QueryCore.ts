@@ -1,4 +1,4 @@
-import { CacheProvider } from './cacheProviders/CacheProvider';
+import type { CacheProvider } from './cacheProviders/CacheProvider';
 import { LocalStorageCacheProvider } from './cacheProviders/LocalStorageCacheProvider';
 import { IndexedDBCacheProvider } from './cacheProviders/IndexedDBCacheProvider';
 import { InMemoryCacheProvider } from './cacheProviders/InMemoryCacheProvider'; // Added import

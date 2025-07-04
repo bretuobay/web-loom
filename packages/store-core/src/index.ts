@@ -22,6 +22,7 @@ export type Listener<S extends State> = (newState: S, oldState: S) => void;
  * Represents the structure for defining actions within the store.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// @ts-expect-error unused generic 'S' is removed
 export type Actions<S extends State, A> = {
   [K in keyof A]: A[K] extends (...args: infer P) => void ? (...args: P) => void : never;
 };
