@@ -1,20 +1,30 @@
 import { ZodSchema } from 'zod';
 import { BaseModel, IBaseModel } from './BaseModel';
 import { EndpointState, QueryCore } from '@web-loom/query-core'; // Assuming QueryCore is available via this path
+import { IStore, State } from './Store'; // Import IStore
 
 // Helper type to extract the underlying type if T is an array, otherwise returns T
 export type ExtractItemType<T> = T extends (infer U)[] ? U : T;
 
-export interface IQueryStateModel<TData, TSchema extends ZodSchema<TData>> extends IBaseModel<TData, TSchema> {
+export interface IQueryStateModel<
+  TData,
+  TSchema extends ZodSchema<TData>,
+  S extends State = State, // Allow specifying a more specific store state type
+> extends IBaseModel<TData, TSchema> {
   // Define specific methods for QueryStateModel if they differ from BaseModel
   // or if new public methods are introduced.
   // For now, it will rely on QueryCore for most operations.
   // We might need a manual refetch trigger.
   refetch(): Promise<void>;
   invalidate(): Promise<void>;
+  store?: IStore<S>; // Expose the optional store instance
 }
 
-export type TQueryStateModelConstructor<TData, TSchema extends ZodSchema<TData>> = {
+export type TQueryStateModelConstructor<
+  TData,
+  TSchema extends ZodSchema<TData>,
+  S extends State = State, // Allow specifying a more specific store state type
+> = {
   queryCore: QueryCore;
   endpointKey: string;
   schema: TSchema; // Zod schema for validating TData. If TData is an array, this schema should validate the array (e.g., z.array(itemSchema)).
@@ -23,23 +33,27 @@ export type TQueryStateModelConstructor<TData, TSchema extends ZodSchema<TData>>
   fetcherFn?: () => Promise<TData>;
   // Default refetchAfter for this specific endpoint, if not globally configured in QueryCore
   refetchAfter?: number;
+  store?: IStore<S>; // Optional generic store instance
 };
 
 /**
  * @class QueryStateModel
  * Extends BaseModel to provide capabilities for interacting with data sources
  * managed by QueryCore. It handles data, loading states, and errors based on
- * QueryCore's state management and caching.
+ * QueryCore's state management and caching. It can also expose an optional generic store.
  * @template TData The type of data managed by the model (e.g., User, User[]).
  * @template TSchema The Zod schema type for validating the data.
+ * @template S The specific type of the state managed by the optional store.
  */
-export class QueryStateModel<TData, TSchema extends ZodSchema<TData>>
-  extends BaseModel<TData, TSchema>
-  implements IQueryStateModel<TData, TSchema>
-{
+export class QueryStateModel<
+  TData,
+  TSchema extends ZodSchema<TData>,
+  S extends State = State, // Default S to State
+> extends BaseModel<TData, TSchema> implements IQueryStateModel<TData, TSchema, S> {
   private queryCore: QueryCore;
   private endpointKey: string;
   private querySubscription: (() => void) | null = null; // Unsubscribe function from QueryCore
+  public store?: IStore<S>; // Publicly expose the store
 
   /**
    * @param queryCore An instance of QueryCore.
@@ -48,12 +62,14 @@ export class QueryStateModel<TData, TSchema extends ZodSchema<TData>>
    * @param initialData Optional initial data.
    * @param fetcherFn Optional fetcher function if the endpoint needs to be defined.
    * @param refetchAfter Optional refetch interval for this endpoint.
+   * @param store Optional generic store instance.
    */
-  constructor(input: TQueryStateModelConstructor<TData, TSchema>) {
+  constructor(input: TQueryStateModelConstructor<TData, TSchema, S>) {
     super({ initialData: input.initialData ?? null, schema: input.schema });
 
     this.queryCore = input.queryCore;
     this.endpointKey = input.endpointKey;
+    this.store = input.store; // Assign the store if provided
 
     // Define the endpoint if a fetcher function is provided.
     // This allows the model to be self-contained in defining its data source
