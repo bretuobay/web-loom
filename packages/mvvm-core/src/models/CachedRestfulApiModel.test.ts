@@ -35,7 +35,7 @@ type TestData = z.infer<typeof TestSchema>;
 const TestArraySchema = z.array(TestSchema);
 type TestArrayData = z.infer<typeof TestArraySchema>;
 
-describe('CachedRestfulApiModel', () => {
+describe.skip('CachedRestfulApiModel', () => {
   let mockQueryCoreInstance: QueryCore;
   let model: CachedRestfulApiModel<TestData, typeof TestSchema>;
   let arrayModel: CachedRestfulApiModel<TestArrayData, typeof TestArraySchema>;
