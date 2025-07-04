@@ -53,6 +53,12 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
     }
     this._executeFn = executeFn;
 
+    // console.log('[Command Constructor] this before _executeError$ init:', this);
+    // console.log('[Command Constructor] _executeError$ before init:', this._executeError$);
+    // this._executeError$ = new BehaviorSubject<any>(null); // Already a class property
+    // console.log('[Command Constructor] _executeError$ after init:', this._executeError$);
+
+
     if (canExecuteFn === undefined) {
       this._canExecute$ = of(true); // Always executable by default
     } else if (isObservable(canExecuteFn)) {
