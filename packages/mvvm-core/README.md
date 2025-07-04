@@ -10,9 +10,10 @@ A framework-agnostic web library for building robust client-side applications us
 - **Reactive Data Flow:** Built entirely on **RxJS**, ensuring all data, loading states, and errors are reactive observables.
 - **Strong Data Validation:** Integrates **Zod** schemas for compile-time and runtime data validation.
 - **RESTful API Management:** `RestfulApiModel` simplifies CRUD operations with **optimistic updates**, acting as a local data store, managing loading states, and handling errors automatically.
+- **Cached RESTful API Management:** `CachedRestfulApiModel` and `CachedRestfulApiViewModel` integrate with `@packages/query-core` for robust data fetching, caching, and state synchronization, offering an alternative to `RestfulApiModel` for scenarios requiring advanced caching strategies.
 - **Command Pattern:** Offers a `Command` utility for encapsulating UI actions, including `canExecute` and `isExecuting` states, for clean UI-ViewModel separation. Implements `IDisposable`.
 - **Observable Collections:** `ObservableCollection` provides reactive list management, notifying views of granular changes (add, remove, update) for efficient rendering.
-- **Resource Management:** Core components like `BaseModel` and `Command` implement `IDisposable` for proper resource cleanup (e.g., completing RxJS Subjects), helping prevent memory leaks.
+- **Resource Management:** Core components like `BaseModel`, `Command`, `CachedRestfulApiModel` implement `IDisposable` for proper resource cleanup (e.g., completing RxJS Subjects), helping prevent memory leaks.
 - **Framework Agnostic:** Designed with no direct UI framework dependencies, allowing seamless integration with React, Angular, Vue, and others.
 - **Client-Heavy App Focused:** Ideal for building complex dashboards, forms, and data-intensive single-page applications.
 
@@ -364,7 +365,248 @@ export default TodoListComponent;
 
 This example provides a complete, albeit simplified, flow from defining data structures and models to consuming them in a React UI. Remember to adjust import paths (`your-library-name`) as per your actual library's name and structure.
 
-6. Using ObservableCollection
+### 6. Using `CachedRestfulApiModel` and `CachedRestfulApiViewModel` with `QueryCore`
+
+This section outlines how to use `CachedRestfulApiModel` and `CachedRestfulApiViewModel` which integrate with the `@packages/query-core` library for managing data fetching and caching. This provides an alternative to `RestfulApiModel` when more advanced caching, automatic refetching, and shared data states are needed.
+
+**a. Install `@packages/query-core`**
+
+Ensure `@packages/query-core` is installed in your project (if it's a local package, ensure your build system resolves it, or install it from npm if published).
+
+```bash
+npm install @packages/query-core # or appropriate local path setup
+```
+
+**b. Initialize `QueryCore`**
+
+Typically, you'd have a singleton instance of `QueryCore` in your application.
+
+```typescript
+// src/services/queryClient.ts
+import QueryCore from '@packages/query-core';
+
+export const queryClient = new QueryCore({
+  // Global options for QueryCore, e.g.:
+  // defaultRefetchAfter: 5 * 60 * 1000, // 5 minutes
+  // cacheProvider: 'localStorage',
+});
+```
+
+**c. Define your Data Schema and Types (similar to `RestfulApiModel`)**
+
+Let's reuse the `Todo` example.
+
+```typescript
+// src/models/todo.types.ts (as before)
+import { z } from 'zod';
+
+export const TodoSchema = z.object({
+  id: z.string(),
+  userId: z.number(),
+  title: z.string(),
+  completed: z.boolean(),
+});
+export type Todo = z.infer<typeof TodoSchema>;
+
+export const TodoArraySchema = z.array(TodoSchema);
+export type TodoArray = z.infer<typeof TodoArraySchema>;
+```
+
+**d. Define the Fetcher Function for `QueryCore`**
+
+`QueryCore` endpoints require a fetcher function.
+
+```typescript
+// src/api/todoApi.ts
+import { TodoArray } from '../models/todo.types';
+
+// This fetcher will be used by QueryCore
+export async function fetchTodosApi(): Promise<TodoArray> {
+  const response = await fetch('https://jsonplaceholder.typicode.com/todos');
+  if (!response.ok) {
+    throw new Error('Failed to fetch todos');
+  }
+  return response.json();
+}
+
+// Fetcher for CUD operations (if needed by CachedRestfulApiModel directly)
+// This is the same generic fetcher used by RestfulApiModel
+import { Fetcher } from 'your-library-name'; // or 'mvvm-core'
+
+export const genericCudFetcher: Fetcher = async (url, options) => {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    // Attempt to parse error message from server if JSON
+    let errorPayload: any = { message: `HTTP error! status: ${response.status}` };
+    try {
+      const errorData = await response.json();
+      errorPayload = errorData;
+    } catch (e) {
+      // Not a JSON error response, stick to default
+    }
+    throw errorPayload; // Throwing an object can be more structured
+  }
+  // For POST/PUT, API might return the created/updated entity or just status 200/201/204
+  // RestfulApiModel/CachedRestfulApiModel's CUD methods expect the data back or handle no content
+  if (response.status === 204) { // No Content
+    return undefined;
+  }
+  // Check content type before parsing if possible, or rely on try-catch in model
+  return response.json();
+};
+```
+
+**e. Define the `QueryCore` Endpoint**
+
+Before creating `CachedRestfulApiModel`, define the endpoint in `QueryCore`.
+
+```typescript
+// src/services/queryClient.ts (continued)
+import { queryClient } from './queryClient';
+import { fetchTodosApi } from '../api/todoApi';
+import { TodoArraySchema } } from '../models/todo.types'; // For potential server-side schema validation if QueryCore supported it
+
+const TODOS_ENDPOINT_KEY = 'todos';
+
+queryClient.defineEndpoint(
+  TODOS_ENDPOINT_KEY,
+  fetchTodosApi,
+  {
+    // Endpoint-specific options for QueryCore if needed
+    // refetchAfter: 10 * 60 * 1000, // 10 minutes
+  }
+);
+```
+
+**f. Create `CachedRestfulApiModel`**
+
+```typescript
+// src/models/cachedTodo.model.ts
+import { CachedRestfulApiModel, TCachedConstructorInput } from 'your-library-name'; // Adjust path
+import { TodoArray, TodoArraySchema } from './todo.types';
+import { queryClient } from '../services/queryClient'; // Your QueryCore instance
+import { genericCudFetcher } from '../api/todoApi'; // Fetcher for CUD
+
+const TODOS_ENDPOINT_KEY = 'todos'; // Must match the key used in defineEndpoint
+
+export class CachedTodoListModel extends CachedRestfulApiModel<TodoArray, typeof TodoArraySchema> {
+  constructor(input?: Partial<TCachedConstructorInput<TodoArray, typeof TodoArraySchema>>) {
+    super({
+      queryCore: queryClient,
+      endpointKey: TODOS_ENDPOINT_KEY,
+      schema: TodoArraySchema,
+      // For CUD operations, provide baseUrl, endpoint, and a fetcher
+      // These are NOT used for the primary 'query' operation, which QueryCore handles.
+      baseUrl: 'https://jsonplaceholder.typicode.com', // Base for CUD URLs
+      endpoint: 'todos', // Endpoint for CUD URLs
+      fetcher: genericCudFetcher, // Fetcher for POST, PUT, DELETE
+      initialData: null,
+      validateSchema: true,
+      ...input,
+    });
+  }
+}
+```
+
+**g. Create `CachedRestfulApiViewModel`**
+
+```typescript
+// src/viewmodels/cachedTodo.viewmodel.ts
+import { CachedRestfulApiViewModel } from 'your-library-name'; // Adjust path
+import { CachedTodoListModel } from '../models/cachedTodo.model';
+import { TodoArray, TodoArraySchema } from '../models/todo.types';
+
+export class CachedTodoViewModel extends CachedRestfulApiViewModel<TodoArray, typeof TodoArraySchema> {
+  constructor() {
+    const cachedModel = new CachedTodoListModel();
+    super(cachedModel);
+  }
+
+  // Add any Todo-specific view logic or commands here
+}
+```
+
+**h. Use in a React Component (Example)**
+
+This would be similar to the `RestfulApiViewModel` example, but using `CachedTodoViewModel`.
+
+```tsx
+// src/components/CachedTodoList.tsx
+import React, { useMemo, useEffect } from 'react';
+import { CachedTodoViewModel } from '../viewmodels/cachedTodo.viewmodel'; // Adjust path
+import { useObservable } from '../hooks/useObservable'; // Adjust path (shared hook)
+import { Todo } from '../models/todo.types'; // Adjust path
+
+const CachedTodoListComponent: React.FC = () => {
+  const cachedTodoViewModel = useMemo(() => new CachedTodoViewModel(), []);
+
+  const todos = useObservable(cachedTodoViewModel.data$, null);
+  const isLoading = useObservable(cachedTodoViewModel.isLoading$, false);
+  const error = useObservable(cachedTodoViewModel.error$, null);
+
+  useEffect(() => {
+    // Initial fetch (QueryCore might fetch automatically on subscribe based on its config)
+    // Explicitly calling query() can be done if needed, e.g., to force a refresh.
+    // cachedTodoViewModel.queryCommand.execute(); // Or execute(true) to force
+    return () => {
+      cachedTodoViewModel.dispose();
+    };
+  }, [cachedTodoViewModel]);
+
+  const handleQueryTodos = (forceRefetch: boolean = false) => {
+    cachedTodoViewModel.queryCommand.execute(forceRefetch);
+  };
+
+  const handleCreateTodo = async () => {
+    try {
+      // Type assertion for simplicity; in a real app, this would come from a form
+      await cachedTodoViewModel.createCommand.execute({ title: 'New Cached Todo', completed: false, userId: 1 } as Partial<Todo>);
+      // QueryCore will be invalidated and refetched by the model, updating the view.
+    } catch (e) {
+      console.error("Failed to create cached todo", e);
+      // Error is also available on cachedTodoViewModel.error$
+    }
+  };
+
+  // ... similar handlers for update and delete ...
+
+  return (
+    <div>
+      <h2>Cached Todo List (React Example with QueryCore)</h2>
+      <button onClick={() => handleQueryTodos()} disabled={isLoading}>
+        {isLoading ? 'Loading...' : 'Query Todos'}
+      </button>
+      <button onClick={() => handleQueryTodos(true)} disabled={isLoading}>
+        Force Refetch Todos
+      </button>
+      <button onClick={handleCreateTodo} disabled={isLoading}>
+        Add Test Todo
+      </button>
+
+      {error && <p style={{ color: 'red' }}>Error: {error.message || JSON.stringify(error)}</p>}
+      {isLoading && !todos && <p>Loading todos...</p>}
+
+      {todos && todos.length > 0 && (
+        <ul>
+          {todos.map((todo: Todo) => (
+            <li key={todo.id} style={{ textDecoration: todo.completed ? 'line-through' : 'none' }}>
+              {todo.title} (ID: {todo.id})
+              {/* Add update/delete buttons here, calling respective commands */}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!isLoading && todos && todos.length === 0 && <p>No todos found.</p>}
+    </div>
+  );
+};
+
+export default CachedTodoListComponent;
+```
+
+This setup leverages `QueryCore` for fetching and caching the primary list of todos. CUD operations in `CachedRestfulApiModel` are shown making direct calls (potentially using a different fetcher if the main `QueryCore` fetcher is only for GET) and then invalidating the `QueryCore` cache to trigger data refresh.
+
+7. Using ObservableCollection
 
 ```typescript
 // src/viewmodels/todos.viewmodel.ts

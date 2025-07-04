@@ -1,4 +1,4 @@
-import { CacheProvider, CachedItem } from './CacheProvider';
+import type { CacheProvider, CachedItem } from './CacheProvider';
 
 export class InMemoryCacheProvider implements CacheProvider {
   private cache: Map<string, CachedItem<any>> = new Map();
