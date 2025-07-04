@@ -1,6 +1,6 @@
 import { ZodSchema, z } from 'zod';
 import { BaseModel } from './BaseModel';
-import QueryCore, { EndpointState } from '@packages/query-core'; // Assuming QueryCore is available as a package
+import { EndpointState, QueryCore } from '@web-loom/query-core'; // Assuming QueryCore is available as a package
 
 // Helper for temporary ID generation (can be shared if used elsewhere)
 const tempIdPrefix = 'temp_';
@@ -91,40 +91,37 @@ export class CachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>> exte
       this.unsubscribeFromQueryCore();
     }
 
-    this.unsubscribeFromQueryCore = this.queryCore.subscribe<TData>(
-      this.endpointKey,
-      (state: EndpointState<TData>) => {
-        this.setLoading(state.isLoading);
-        if (state.isError) {
-          this.setError(state.error);
-        } else {
-          this.clearError(); // Clear error if current state is not error
-        }
+    this.unsubscribeFromQueryCore = this.queryCore.subscribe<TData>(this.endpointKey, (state: EndpointState<TData>) => {
+      this.setLoading(state.isLoading);
+      if (state.isError) {
+        this.setError(state.error);
+      } else {
+        this.clearError(); // Clear error if current state is not error
+      }
 
-        if (state.data !== undefined) {
-          if (this._shouldValidateSchema && this.schema) {
-            try {
-              const validatedData = this.schema.parse(state.data);
-              this.setData(validatedData);
-            } catch (validationError) {
-              this.setError(validationError);
-              // Potentially set data to null or keep stale data, depending on desired behavior
-              // For now, we set an error and the data might remain stale or become undefined.
-            }
-          } else {
-            this.setData(state.data);
+      if (state.data !== undefined) {
+        if (this._shouldValidateSchema && this.schema) {
+          try {
+            const validatedData = this.schema.parse(state.data);
+            this.setData(validatedData);
+          } catch (validationError) {
+            this.setError(validationError);
+            // Potentially set data to null or keep stale data, depending on desired behavior
+            // For now, we set an error and the data might remain stale or become undefined.
           }
-        } else if (!state.isLoading && !state.isError) {
-          // If data is undefined, not loading, and no error, it implies empty or no data.
-          // This could be initial state or after an invalidation.
-          // BaseModel's setData(null) handles this.
-          this.setData(null);
+        } else {
+          this.setData(state.data);
         }
-        // If state.data is undefined but it's loading or error, data$ shouldn't be nulled out
-        // as it might hold stale data that's preferred over null during loading/error.
-        // BaseModel's setData handles the BehaviorSubject update.
-      },
-    );
+      } else if (!state.isLoading && !state.isError) {
+        // If data is undefined, not loading, and no error, it implies empty or no data.
+        // This could be initial state or after an invalidation.
+        // BaseModel's setData(null) handles this.
+        this.setData(null);
+      }
+      // If state.data is undefined but it's loading or error, data$ shouldn't be nulled out
+      // as it might hold stale data that's preferred over null during loading/error.
+      // BaseModel's setData handles the BehaviorSubject update.
+    });
 
     // Optionally, trigger an initial fetch if the data is stale or not present,
     // QueryCore's subscribe method itself might handle this based on its internal logic.
