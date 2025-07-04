@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { z } from 'zod';
-// Import QueryCore using the relative path that will be mocked.
-// EndpointState is not directly used by the test file now, MockEndpointState is.
-import { EndpointState, QueryCore } from '@web-loom/query-core'; // Assuming QueryCore is available via this path
-
-import { CachedRestfulApiModel, TCachedRestfulApiModelConstructor } from './CachedRestfulApiModel';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { CachedRestfulApiModel, TCachedRestfulApiModelConstructor } from './CachedRestfulApiModel';
 
 // Define a simple Zod schema for testing
 const ItemSchema = z.object({
@@ -16,8 +12,8 @@ type Item = z.infer<typeof ItemSchema>;
 const ItemArraySchema = z.array(ItemSchema);
 type ItemArray = z.infer<typeof ItemArraySchema>;
 
-// Define a simple structure for EndpointState for the mock if importing causes issues.
-interface MockEndpointState<TData> {
+// Define EndpointState interface locally to avoid import issues
+interface EndpointState<TData> {
   data: TData | undefined;
   isLoading: boolean;
   isError: boolean;
@@ -25,70 +21,83 @@ interface MockEndpointState<TData> {
   lastUpdated: number | undefined;
 }
 
-// Mock QueryCore
-// Using relative path to potentially avoid issues with alias mocking in Vitest
-vi.mock('@web-loom/query-core', () => {
-  // No BehaviorSubject here directly in the factory's outer scope.
+// Use the same interface for mocking
+type MockEndpointState<TData> = EndpointState<TData>;
 
-  // This function will be what `new QueryCore()` returns and will create its own state.
-  const createMockQueryCoreInstance = () => {
-    // Create the BehaviorSubject when the mocked QueryCore is instantiated.
-    const instanceBehaviorSubject = new BehaviorSubject<MockEndpointState<any>>({
-      data: undefined,
-      isLoading: false,
-      isError: false,
-      error: undefined,
-      lastUpdated: undefined,
-    });
+// Mock QueryCore class interface
+interface QueryCore {
+  defineEndpoint(endpointKey: string, fetcher: () => Promise<any>, options?: any): Promise<void>;
+  subscribe(endpointKey: string, callback: (state: MockEndpointState<any>) => void): () => void;
+  refetch(endpointKey: string, force?: boolean): Promise<void>;
+  invalidate(endpointKey: string): Promise<void>;
+  getState(endpointKey: string): MockEndpointState<any>;
+  _simulateStateChange?: (newState: Partial<MockEndpointState<any>>) => void;
+  _resetMockState?: () => void;
+}
 
-    return {
-      defineEndpoint: vi.fn(async (endpointKey: string, fetcher: () => Promise<any>, options: any) => {}),
-      subscribe: vi.fn((endpointKey: string, callback: (state: MockEndpointState<any>) => void) => {
-        const subscription = instanceBehaviorSubject.subscribe(callback);
-        callback(instanceBehaviorSubject.getValue());
-        return () => subscription.unsubscribe();
-      }),
-      refetch: vi.fn(async (endpointKey: string, force?: boolean) => {
-        const currentState = instanceBehaviorSubject.getValue();
-        instanceBehaviorSubject.next({ ...currentState, isLoading: true, isError: false, error: undefined });
-      }),
-      invalidate: vi.fn(async (endpointKey: string) => {
-        instanceBehaviorSubject.next({
-          data: undefined,
-          isLoading: false,
-          isError: false,
-          error: undefined,
-          lastUpdated: undefined,
-        });
-      }),
-      getState: vi.fn((endpointKey: string): MockEndpointState<any> => {
-        return instanceBehaviorSubject.getValue();
-      }),
-      // These helpers need to be part of the returned instance if tests use them on the instance
-      _simulateStateChange: (newState: Partial<MockEndpointState<any>>) => {
-        instanceBehaviorSubject.next({ ...instanceBehaviorSubject.getValue(), ...newState });
-      },
-      _resetMockState: () => {
-        instanceBehaviorSubject.next({
-          data: undefined,
-          isLoading: false,
-          isError: false,
-          error: undefined,
-          lastUpdated: undefined,
-        });
-      },
-    };
-  };
+// Mock QueryCore completely to avoid import issues in CI
+const createMockQueryCoreInstance = () => {
+  // Create the BehaviorSubject when the mocked QueryCore is instantiated.
+  const instanceBehaviorSubject = new BehaviorSubject<MockEndpointState<any>>({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+    error: undefined,
+    lastUpdated: undefined,
+  });
 
   return {
-    QueryCore: vi.fn(createMockQueryCoreInstance), // Named export for QueryCore
-    EndpointState: {}, // Mock type export (not used at runtime)
-    default: vi.fn(createMockQueryCoreInstance), // Keep default export as well
+    defineEndpoint: vi.fn(async (endpointKey: string, fetcher: () => Promise<any>, options: any) => {}),
+    subscribe: vi.fn((endpointKey: string, callback: (state: MockEndpointState<any>) => void) => {
+      const subscription = instanceBehaviorSubject.subscribe(callback);
+      callback(instanceBehaviorSubject.getValue());
+      return () => subscription.unsubscribe();
+    }),
+    refetch: vi.fn(async (endpointKey: string, force?: boolean) => {
+      const currentState = instanceBehaviorSubject.getValue();
+      instanceBehaviorSubject.next({ ...currentState, isLoading: true, isError: false, error: undefined });
+    }),
+    invalidate: vi.fn(async (endpointKey: string) => {
+      instanceBehaviorSubject.next({
+        data: undefined,
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        lastUpdated: undefined,
+      });
+    }),
+    getState: vi.fn((endpointKey: string): MockEndpointState<any> => {
+      return instanceBehaviorSubject.getValue();
+    }),
+    // These helpers need to be part of the returned instance if tests use them on the instance
+    _simulateStateChange: (newState: Partial<MockEndpointState<any>>) => {
+      instanceBehaviorSubject.next({ ...instanceBehaviorSubject.getValue(), ...newState });
+    },
+    _resetMockState: () => {
+      instanceBehaviorSubject.next({
+        data: undefined,
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        lastUpdated: undefined,
+      });
+    },
+    // Add missing properties to satisfy the QueryCore interface
+    globalOptions: {},
+    endpoints: new Map(),
+    _setupGlobalEventListeners: vi.fn(),
+    _handleVisibilityChange: vi.fn(),
+    _handleOnlineOffline: vi.fn(),
+    _handleFocus: vi.fn(),
+    _handleBeforeUnload: vi.fn(),
   };
-});
+};
+
+// Create a mock QueryCore constructor
+const MockQueryCore = vi.fn(createMockQueryCoreInstance);
 
 describe('CachedRestfulApiModel', () => {
-  let mockQueryCoreInstance: QueryCore; // This will hold the mocked instance
+  let mockQueryCoreInstance: any; // Use any type to avoid interface conflicts
   // Helper to access the mock simulation methods, which are now on the instance returned by the mock constructor
   let mockQueryCoreSimulator: {
     _simulateStateChange: (newState: Partial<EndpointState<any>>) => void;
@@ -101,7 +110,7 @@ describe('CachedRestfulApiModel', () => {
 
   beforeEach(() => {
     // Create a new mock instance for each test to ensure isolation
-    mockQueryCoreInstance = new QueryCore();
+    mockQueryCoreInstance = createMockQueryCoreInstance();
     // This is a bit of a hack to get the simulator methods from the mocked module
     mockQueryCoreSimulator = mockQueryCoreInstance as any;
     mockQueryCoreSimulator._resetMockState(); // Reset state before each test
