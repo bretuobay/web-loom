@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { z } from 'zod';
 import { CachedRestfulApiModel, TCachedConstructorInput } from './CachedRestfulApiModel';
 import { QueryCore } from '@web-loom/query-core'; // Actual import
-import { BehaviorSubject } from 'rxjs';
 
 // Mock QueryCore
 vi.mock('@web-loom/query-core', () => {
