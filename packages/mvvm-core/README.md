@@ -195,6 +195,101 @@ export class AuthViewModel {
 }
 ```
 
+### 3.5. Using CachedRestfulApiModel and CachedRestfulApiViewModel (with QueryCore)
+
+For applications requiring more sophisticated data caching, automatic refetching, and shared data states across different parts of the application, `CachedRestfulApiModel` and `CachedRestfulApiViewModel` provide an integration with the `@web-loom/query-core` library. This approach is suitable when you want QueryCore to manage the lifecycle of your data (fetching, caching, background updates) while still leveraging the MVVM pattern for your UI logic.
+
+**a. `CachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>>`**
+
+This model acts as a bridge between your ViewModel and a `QueryCore` instance. Instead of directly fetching data, it subscribes to a specific endpoint managed by `QueryCore`.
+
+-   **Constructor**:
+    -   `queryCore: QueryCore`: An instance of `QueryCore`.
+    -   `endpointKey: string`: The unique key for the data endpoint in `QueryCore`.
+    -   `schema: TSchema`: The Zod schema for validating `TData`. If `TData` is an array, this schema should validate the array (e.g., `z.array(itemSchema)`).
+    -   `initialData?: TData | null`: Optional initial data for the model.
+    -   `fetcherFn?: () => Promise<TData>`: Optional. If provided, and the `endpointKey` is not already defined in `QueryCore`, this model will attempt to define it.
+    -   `refetchAfter?: number`: Optional. If `fetcherFn` is used to define the endpoint, this sets the `refetchAfter` duration for `QueryCore`.
+-   **Key Methods**:
+    -   `refetch(force: boolean = false): Promise<void>`: Triggers a refetch of the data via `QueryCore`.
+    -   `invalidate(): Promise<void>`: Invalidates the cached data for this endpoint in `QueryCore`.
+-   **Reactive Properties (from BaseModel)**: `data$`, `isLoading$`, `error$`, `isError$`. These are updated based on the state from `QueryCore`.
+
+**b. `CachedRestfulApiViewModel<TData, TModelSchema extends ZodSchema<TData>>`**
+
+This ViewModel wraps a `CachedRestfulApiModel` and exposes its data and cache-related operations as commands.
+
+-   **Constructor**:
+    -   `model: ICachedRestfulApiModel<TData, TModelSchema>`: An instance of `CachedRestfulApiModel`.
+-   **Key Properties**:
+    -   `data$`, `isLoading$`, `error$`: Observables directly from the underlying model.
+    -   `refetchCommand: Command<boolean | void, void>`: Command to trigger `model.refetch()`. Can take an optional `force` parameter.
+    -   `invalidateCommand: Command<void, void>`: Command to trigger `model.invalidate()`.
+    -   `selectedItem$`, `selectItem(id: string | null)`: Optional selection logic if `TData` is an array of items with an `id` property.
+
+**c. Example Scenario**
+
+Imagine you have a `QueryCore` instance managing user data:
+
+```typescript
+// queryCoreInstance.ts
+import QueryCore from '@web-loom/query-core';
+
+export const queryCore = new QueryCore({
+  defaultRefetchAfter: 5 * 60 * 1000, // 5 minutes
+});
+
+// Define an endpoint (perhaps in a service layer)
+async function fetchAllUsers(): Promise<User[]> {
+  const response = await fetch('https://api.example.com/users');
+  if (!response.ok) throw new Error('Failed to fetch users');
+  return response.json();
+}
+queryCore.defineEndpoint<User[]>('allUsers', fetchAllUsers);
+
+
+// user.model.ts (assuming User and UserSchema are defined as before)
+import { CachedRestfulApiModel } from 'mvvm-core/CachedRestfulApiModel'; // Adjust path
+import { queryCore } from './queryCoreInstance';
+import { User, UserSchema } from './user.model.types'; // Assuming types are separate
+import { z } from 'zod';
+
+export class AllUsersCachedModel extends CachedRestfulApiModel<User[], z.ZodArray<typeof UserSchema>> {
+  constructor() {
+    super({
+      queryCore: queryCore,
+      endpointKey: 'allUsers',
+      schema: z.array(UserSchema),
+      // fetcherFn is not needed here if endpoint is already defined in QueryCore
+    });
+  }
+}
+
+// user.viewmodel.ts
+import { CachedRestfulApiViewModel } from 'mvvm-core/CachedRestfulApiViewModel'; // Adjust path
+import { AllUsersCachedModel } from './user.model';
+import { User, UserSchema } from './user.model.types';
+import { z } from 'zod';
+
+export class AllUsersViewModel extends CachedRestfulApiViewModel<User[], z.ZodArray<typeof UserSchema>> {
+  constructor() {
+    super(new AllUsersCachedModel());
+  }
+
+  // Example: Get a specific user from the cached list
+  findUserById(id: string): User | undefined {
+    const users = this.model.data$.getValue(); // Access current data (careful with BehaviorSubject direct value)
+    return users?.find(user => user.id === id);
+  }
+}
+```
+
+**Usage in a Component (Conceptual):**
+
+A UI component would use `AllUsersViewModel`. It could bind to `data$` to display the list of users, `isLoading$` for loading indicators, and use `refetchCommand` or `invalidateCommand` to trigger cache operations. Since `QueryCore` handles the actual data fetching and caching, multiple ViewModels (or other parts of the app) connected to the same `QueryCore` endpoint (`'allUsers'`) will share the same data and state.
+
+This approach separates the concern of data fetching and caching (handled by `QueryCore`) from the presentation logic and UI interaction patterns (handled by the MVVM classes).
+
 ### 5. Integrating `RestfulApiViewModel` with React
 
 This example demonstrates how to use `RestfulApiModel` and `RestfulApiViewModel` to fetch a list of items from a fake API endpoint and display them in a simple React functional component.

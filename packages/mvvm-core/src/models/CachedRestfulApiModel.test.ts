@@ -13,7 +13,8 @@ const ItemSchema = z.object({
   name: z.string(),
 });
 type Item = z.infer<typeof ItemSchema>;
-type ItemArray = Item[];
+const ItemArraySchema = z.array(ItemSchema);
+type ItemArray = z.infer<typeof ItemArraySchema>;
 
 // Define a simple structure for EndpointState for the mock if importing causes issues.
 interface MockEndpointState<TData> {
@@ -94,7 +95,9 @@ describe('CachedRestfulApiModel', () => {
   };
 
   const endpointKey = 'testEndpoint';
-  const testSchema = ItemSchema; // Using single ItemSchema, model should handle array if TData is Item[]
+  // const testSchema = ItemSchema; // This was incorrect for ItemArray
+  const itemArrayTestSchema = ItemArraySchema;
+
 
   beforeEach(() => {
     // Create a new mock instance for each test to ensure isolation
@@ -108,11 +111,11 @@ describe('CachedRestfulApiModel', () => {
     vi.clearAllMocks();
   });
 
-  const createModel = (constructorInput?: Partial<TCachedRestfulApiModelConstructor<ItemArray, typeof testSchema>>) => {
-    return new CachedRestfulApiModel<ItemArray, typeof testSchema>({
+  const createModel = (constructorInput?: Partial<TCachedRestfulApiModelConstructor<ItemArray, typeof itemArrayTestSchema>>) => {
+    return new CachedRestfulApiModel<ItemArray, typeof itemArrayTestSchema>({
       queryCore: mockQueryCoreInstance,
       endpointKey,
-      schema: testSchema, // Schema for single item
+      schema: itemArrayTestSchema, // Correct schema for ItemArray
       initialData: null,
       ...constructorInput,
     });
@@ -142,12 +145,12 @@ describe('CachedRestfulApiModel', () => {
 
   it('should define endpoint if fetcherFn is provided and endpoint is not "defined"', async () => {
     const fetcherFn = vi.fn(async () => [{ id: '1', name: 'Test' }]);
-    // Simulate endpoint not defined initially by QueryCore.getState
+    // Simulate endpoint not defined initially by QueryCore.getState (pristine state)
     (mockQueryCoreInstance.getState as vi.Mock).mockReturnValueOnce({
       data: undefined,
       isLoading: false,
-      isError: true,
-      error: new Error('Endpoint not defined.'),
+      isError: false, // Corrected for pristine state check
+      error: undefined, // Corrected for pristine state check
       lastUpdated: undefined,
     });
 
@@ -174,13 +177,18 @@ describe('CachedRestfulApiModel', () => {
     model.dispose();
   });
 
-  // TODO: Investigate why 'isError$' in model is not found in this specific test context.
+  // TODO: Investigate why 'isError$' in model is not found in this specific test context. (Resolved by adding explicit checks)
   // Other inherited properties (isLoading$, error$) work fine.
-  // Console log shows: { modelExists: true, modelType: 'object', isCachedApiModel: true, 'hasIsError$': false, 'isError$Value': undefined }
-  it.skip('should update data$, isLoading$, and error$ based on QueryCore state changes', async () => {
+  it('should update data$, isLoading$, and error$ based on QueryCore state changes', async () => {
     const model = createModel();
     const testItems: ItemArray = [{ id: '1', name: 'Item 1' }];
     const testError = new Error('Query failed');
+
+    // Basic check: ensure observables are present immediately after creation
+    expect(model.data$).toBeDefined();
+    expect(model.isLoading$).toBeDefined();
+    expect(model.error$).toBeDefined();
+    expect(model.isError$).toBeDefined(); // Key check
 
     let dataHistory: (ItemArray | null)[] = [];
     model.data$.subscribe((val) => dataHistory.push(val === undefined ? null : val)); // Normalize undefined to null for easier comparison
@@ -198,34 +206,23 @@ describe('CachedRestfulApiModel', () => {
     });
     expect(await firstValueFrom(model.isLoading$)).toBe(false);
     expect(await firstValueFrom(model.data$)).toEqual(testItems);
-    expect(await firstValueFrom(model.error$)).toBeNull();
+    expect(await firstValueFrom(model.error$)).toBeNull(); // error should be null
+    expect(await firstValueFrom(model.isError$)).toBe(false); // isError should be false
     expect(dataHistory.pop()).toEqual(testItems);
 
     // Simulate error
     mockQueryCoreSimulator._simulateStateChange({ isLoading: false, data: undefined, isError: true, error: testError });
     expect(await firstValueFrom(model.isLoading$)).toBe(false);
 
-    console.log("Inspecting model in 'should update data$ test':", {
-      modelExists: !!model,
-      modelType: typeof model,
-      isCachedApiModel: model instanceof CachedRestfulApiModel,
-      // isBaseModel: model instanceof BaseModel, // BaseModel is not directly exported for instanceof from test file
-      hasIsError$: 'isError$' in model,
-      isError$Value: model ? (model as any).isError$ : 'model is null/undefined',
-    });
-
+    expect(model.isError$).toBeDefined(); // Re-check before use
     const isErrorObs = model.isError$;
-    if (!isErrorObs) {
-      console.error('model.isError$ is undefined/null in the test!');
-      throw new Error('model.isError$ is undefined/null');
-    }
-    expect(await firstValueFrom(isErrorObs)).toBe(true); // isError$ from BaseModel
+    expect(isErrorObs).toBeDefined(); // Ensure the observable itself is defined
 
+    expect(await firstValueFrom(isErrorObs)).toBe(true);
     expect(await firstValueFrom(model.error$)).toEqual(testError);
-    // Data might remain stale or be cleared depending on implementation,
-    // current implementation keeps last known good data if error occurs after data was present.
-    // If error occurs and data is undefined, data$ will be null.
-    expect(dataHistory.pop()).toEqual(null); // data is undefined in this error simulation
+
+    // Data becomes undefined in this error sim, which model converts to null
+    expect(dataHistory.pop()).toEqual(null);
 
     model.dispose();
   });

@@ -18,10 +18,10 @@ type ItemWithId = { id: string; [key: string]: any };
  * A generic ViewModel to facilitate interactions with a CachedRestfulApiModel.
  * It exposes data, loading states, errors, and commands to refresh or invalidate the cache.
  * @template TData The type of data managed by the underlying CachedRestfulApiModel (e.g., User, User[]).
- * @template TSchema The Zod schema type for validating the data (used by the model).
+ * @template TModelSchema The Zod schema type for validating TData, matching the schema used by the model.
  */
-export class CachedRestfulApiViewModel<TData, TSchema extends ZodSchema<ExtractItemType<TData>>> {
-  protected model: ICachedRestfulApiModel<TData, TSchema>;
+export class CachedRestfulApiViewModel<TData, TModelSchema extends ZodSchema<TData>> {
+  protected model: ICachedRestfulApiModel<TData, TModelSchema>;
 
   /**
    * Exposes the current data from the CachedRestfulApiModel.
@@ -59,7 +59,7 @@ export class CachedRestfulApiViewModel<TData, TSchema extends ZodSchema<ExtractI
   /**
    * @param model An instance of CachedRestfulApiModel that this ViewModel will manage.
    */
-  constructor(model: ICachedRestfulApiModel<TData, TSchema>) {
+  constructor(model: ICachedRestfulApiModel<TData, TModelSchema>) {
     // It's good practice to check if the provided model is of the expected type,
     // but ICachedRestfulApiModel is an interface. instanceof won't work directly with interfaces.
     // We rely on TypeScript's structural typing or add a runtime check if necessary (e.g., check for specific methods).
