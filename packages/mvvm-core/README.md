@@ -195,11 +195,11 @@ export class AuthViewModel {
 }
 ```
 
-### 3.5. Using CachedRestfulApiModel and CachedRestfulApiViewModel (with QueryCore)
+### 3.5. Using QueryStateModel and QueryStateModelView (with QueryCore)
 
-For applications requiring more sophisticated data caching, automatic refetching, and shared data states across different parts of the application, `CachedRestfulApiModel` and `CachedRestfulApiViewModel` provide an integration with the `@web-loom/query-core` library. This approach is suitable when you want QueryCore to manage the lifecycle of your data (fetching, caching, background updates) while still leveraging the MVVM pattern for your UI logic.
+For applications requiring more sophisticated data caching, automatic refetching, and shared data states across different parts of the application, `QueryStateModel` and `QueryStateModelView` provide an integration with the `@web-loom/query-core` library. This approach is suitable when you want QueryCore to manage the lifecycle of your data (fetching, caching, background updates) while still leveraging the MVVM pattern for your UI logic.
 
-**a. `CachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>>`**
+**a. `QueryStateModel<TData, TSchema extends ZodSchema<TData>>`**
 
 This model acts as a bridge between your ViewModel and a `QueryCore` instance. Instead of directly fetching data, it subscribes to a specific endpoint managed by `QueryCore`.
 
@@ -215,12 +215,12 @@ This model acts as a bridge between your ViewModel and a `QueryCore` instance. I
     -   `invalidate(): Promise<void>`: Invalidates the cached data for this endpoint in `QueryCore`.
 -   **Reactive Properties (from BaseModel)**: `data$`, `isLoading$`, `error$`, `isError$`. These are updated based on the state from `QueryCore`.
 
-**b. `CachedRestfulApiViewModel<TData, TModelSchema extends ZodSchema<TData>>`**
+**b. `QueryStateModelView<TData, TModelSchema extends ZodSchema<TData>>`**
 
-This ViewModel wraps a `CachedRestfulApiModel` and exposes its data and cache-related operations as commands.
+This ViewModel wraps a `QueryStateModel` and exposes its data and cache-related operations as commands.
 
 -   **Constructor**:
-    -   `model: ICachedRestfulApiModel<TData, TModelSchema>`: An instance of `CachedRestfulApiModel`.
+    -   `model: IQueryStateModel<TData, TModelSchema>`: An instance of `QueryStateModel`.
 -   **Key Properties**:
     -   `data$`, `isLoading$`, `error$`: Observables directly from the underlying model.
     -   `refetchCommand: Command<boolean | void, void>`: Command to trigger `model.refetch()`. Can take an optional `force` parameter.
@@ -249,12 +249,12 @@ queryCore.defineEndpoint<User[]>('allUsers', fetchAllUsers);
 
 
 // user.model.ts (assuming User and UserSchema are defined as before)
-import { CachedRestfulApiModel } from 'mvvm-core/CachedRestfulApiModel'; // Adjust path
+import { QueryStateModel } from 'mvvm-core/QueryStateModel'; // Adjust path
 import { queryCore } from './queryCoreInstance';
 import { User, UserSchema } from './user.model.types'; // Assuming types are separate
 import { z } from 'zod';
 
-export class AllUsersCachedModel extends CachedRestfulApiModel<User[], z.ZodArray<typeof UserSchema>> {
+export class AllUsersQueryStateModel extends QueryStateModel<User[], z.ZodArray<typeof UserSchema>> {
   constructor() {
     super({
       queryCore: queryCore,
@@ -266,14 +266,14 @@ export class AllUsersCachedModel extends CachedRestfulApiModel<User[], z.ZodArra
 }
 
 // user.viewmodel.ts
-import { CachedRestfulApiViewModel } from 'mvvm-core/CachedRestfulApiViewModel'; // Adjust path
-import { AllUsersCachedModel } from './user.model';
+import { QueryStateModelView } from 'mvvm-core/QueryStateModelView'; // Adjust path
+import { AllUsersQueryStateModel } from './user.model';
 import { User, UserSchema } from './user.model.types';
 import { z } from 'zod';
 
-export class AllUsersViewModel extends CachedRestfulApiViewModel<User[], z.ZodArray<typeof UserSchema>> {
+export class AllUsersViewModel extends QueryStateModelView<User[], z.ZodArray<typeof UserSchema>> {
   constructor() {
-    super(new AllUsersCachedModel());
+    super(new AllUsersQueryStateModel());
   }
 
   // Example: Get a specific user from the cached list

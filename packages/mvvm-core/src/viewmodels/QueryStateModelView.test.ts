@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { z } from 'zod';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { skip, filter, take } from 'rxjs/operators';
-import { CachedRestfulApiModel, ICachedRestfulApiModel, ExtractItemType } from '../models/CachedRestfulApiModel';
-import { CachedRestfulApiViewModel } from './CachedRestfulApiViewModel';
+import { QueryStateModel, IQueryStateModel, ExtractItemType } from '../models/QueryStateModel';
+import { QueryStateModelView } from './QueryStateModelView';
 import { Command } from '../commands/Command'; // For spy checks if needed
 
 // Define a simple Zod schema for testing
@@ -15,8 +15,8 @@ type Item = z.infer<typeof ItemSchema>;
 const ItemArraySchema = z.array(ItemSchema);
 type ItemArray = z.infer<typeof ItemArraySchema>;
 
-// Mock CachedRestfulApiModel
-class MockCachedRestfulApiModel<TData, TModelSchema extends ZodSchema<TData>> implements ICachedRestfulApiModel<TData, TModelSchema> {
+// Mock QueryStateModel
+class MockQueryStateModel<TData, TModelSchema extends ZodSchema<TData>> implements IQueryStateModel<TData, TModelSchema> {
   public _data$ = new BehaviorSubject<TData | null>(null);
   public _isLoading$ = new BehaviorSubject<boolean>(false);
   public _error$ = new BehaviorSubject<any>(null);
@@ -72,18 +72,18 @@ class MockCachedRestfulApiModel<TData, TModelSchema extends ZodSchema<TData>> im
   });
 }
 
-describe('CachedRestfulApiViewModel', () => {
+describe('QueryStateModelView', () => {
   // Typedef for the schema instances
   type ItemArraySchemaType = typeof ItemArraySchema;
   type ItemSchemaType = typeof ItemSchema;
 
-  let mockModel: MockCachedRestfulApiModel<ItemArray | null, ItemArraySchemaType>;
-  let viewModel: CachedRestfulApiViewModel<ItemArray | null, ItemArraySchemaType>;
+  let mockModel: MockQueryStateModel<ItemArray | null, ItemArraySchemaType>;
+  let viewModel: QueryStateModelView<ItemArray | null, ItemArraySchemaType>;
 
   beforeEach(() => {
     // Default to ItemArray model for most tests
-    mockModel = new MockCachedRestfulApiModel<ItemArray | null, ItemArraySchemaType>([], ItemArraySchema);
-    viewModel = new CachedRestfulApiViewModel<ItemArray | null, ItemArraySchemaType>(mockModel);
+    mockModel = new MockQueryStateModel<ItemArray | null, ItemArraySchemaType>([], ItemArraySchema);
+    viewModel = new QueryStateModelView<ItemArray | null, ItemArraySchemaType>(mockModel);
   });
 
   afterEach(() => {
@@ -92,8 +92,8 @@ describe('CachedRestfulApiViewModel', () => {
   });
 
   it('should throw an error if model is invalid', () => {
-    expect(() => new CachedRestfulApiViewModel(null as any)).toThrow('CachedRestfulApiViewModel requires a valid model instance that implements ICachedRestfulApiModel.');
-    expect(() => new CachedRestfulApiViewModel({} as any)).toThrow('CachedRestfulApiViewModel requires a valid model instance that implements ICachedRestfulApiModel.');
+    expect(() => new QueryStateModelView(null as any)).toThrow('QueryStateModelView requires a valid model instance that implements IQueryStateModel.');
+    expect(() => new QueryStateModelView({} as any)).toThrow('QueryStateModelView requires a valid model instance that implements IQueryStateModel.');
   });
 
   it('should expose data$, isLoading$, and error$ from the model', async () => {
@@ -183,8 +183,8 @@ describe('CachedRestfulApiViewModel', () => {
 
     beforeEach(() => {
       // Ensure the model is set up for ItemArray for these tests
-      mockModel = new MockCachedRestfulApiModel<ItemArray | null>(items);
-      viewModel = new CachedRestfulApiViewModel(mockModel);
+      mockModel = new MockQueryStateModel<ItemArray | null>(items, ItemArraySchema);
+      viewModel = new QueryStateModelView(mockModel);
     });
 
     it('should emit null initially for selectedItem$', async () => {
@@ -215,13 +215,13 @@ describe('CachedRestfulApiViewModel', () => {
   });
 
   describe('ViewModel with TData = Item (single item model)', () => {
-    let singleItemModel: MockCachedRestfulApiModel<Item | null, ItemSchemaType>;
-    let singleItemViewModel: CachedRestfulApiViewModel<Item | null, ItemSchemaType>;
+    let singleItemModel: MockQueryStateModel<Item | null, ItemSchemaType>;
+    let singleItemViewModel: QueryStateModelView<Item | null, ItemSchemaType>;
     const singleItem: Item = { id: 'single', name: 'Single Item Only' };
 
     beforeEach(() => {
-      singleItemModel = new MockCachedRestfulApiModel<Item | null, ItemSchemaType>(singleItem, ItemSchema);
-      singleItemViewModel = new CachedRestfulApiViewModel<Item | null, ItemSchemaType>(singleItemModel);
+      singleItemModel = new MockQueryStateModel<Item | null, ItemSchemaType>(singleItem, ItemSchema);
+      singleItemViewModel = new QueryStateModelView<Item | null, ItemSchemaType>(singleItemModel);
     });
 
     afterEach(() => {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { z } from 'zod';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
-import { CachedRestfulApiModel, TCachedRestfulApiModelConstructor } from './CachedRestfulApiModel';
+import { QueryStateModel, TQueryStateModelConstructor } from './QueryStateModel';
 
 // Define a simple Zod schema for testing
 const ItemSchema = z.object({
@@ -96,7 +96,7 @@ const createMockQueryCoreInstance = () => {
 // Create a mock QueryCore constructor
 const MockQueryCore = vi.fn(createMockQueryCoreInstance);
 
-describe('CachedRestfulApiModel', () => {
+describe('QueryStateModel', () => {
   let mockQueryCoreInstance: any; // Use any type to avoid interface conflicts
   // Helper to access the mock simulation methods, which are now on the instance returned by the mock constructor
   let mockQueryCoreSimulator: {
@@ -121,9 +121,9 @@ describe('CachedRestfulApiModel', () => {
   });
 
   const createModel = (
-    constructorInput?: Partial<TCachedRestfulApiModelConstructor<ItemArray, typeof itemArrayTestSchema>>,
+    constructorInput?: Partial<TQueryStateModelConstructor<ItemArray, typeof itemArrayTestSchema>>,
   ) => {
-    return new CachedRestfulApiModel<ItemArray, typeof itemArrayTestSchema>({
+    return new QueryStateModel<ItemArray, typeof itemArrayTestSchema>({
       queryCore: mockQueryCoreInstance,
       endpointKey,
       schema: itemArrayTestSchema, // Correct schema for ItemArray
@@ -145,7 +145,7 @@ describe('CachedRestfulApiModel', () => {
     // Mock QueryCore subscribe callback is called synchronously with { data: undefined, ... }.
     // BaseModel initializes _data$ with (undefined ?? null) = null.
     // Mock QueryCore subscribe callback is called synchronously with { data: undefined, ... }.
-    // CachedRestfulApiModel.setData(undefined) is called.
+    // QueryStateModel.setData(undefined) is called.
     // So _data$ in BaseModel is now BehaviorSubject(undefined).
     // firstValueFrom will get the current value, which should be undefined.
     expect(await firstValueFrom(model.data$)).toBeNull();
@@ -276,7 +276,7 @@ describe('CachedRestfulApiModel', () => {
 
     // BaseModel constructor sets _data$ to initialItems.
     // QueryCore mock's subscribe callback is called synchronously with { data: undefined, ... }.
-    // CachedRestfulApiModel.setData(undefined) is called.
+    // QueryStateModel.setData(undefined) is called.
     // So _data$ in BaseModel is now BehaviorSubject(undefined).
     // firstValueFrom will get the current value, which should be undefined.
     expect(await firstValueFrom(model.data$)).toBeNull();
