@@ -5,8 +5,8 @@ import { EndpointState, QueryCore } from '@web-loom/query-core'; // Assuming Que
 // Helper type to extract the underlying type if T is an array, otherwise returns T
 export type ExtractItemType<T> = T extends (infer U)[] ? U : T;
 
-export interface ICachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>> extends IBaseModel<TData, TSchema> {
-  // Define specific methods for CachedRestfulApiModel if they differ from BaseModel
+export interface IQueryStateModel<TData, TSchema extends ZodSchema<TData>> extends IBaseModel<TData, TSchema> {
+  // Define specific methods for QueryStateModel if they differ from BaseModel
   // or if new public methods are introduced.
   // For now, it will rely on QueryCore for most operations.
   // We might need a manual refetch trigger.
@@ -14,7 +14,7 @@ export interface ICachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>>
   invalidate(): Promise<void>;
 }
 
-export type TCachedRestfulApiModelConstructor<TData, TSchema extends ZodSchema<TData>> = {
+export type TQueryStateModelConstructor<TData, TSchema extends ZodSchema<TData>> = {
   queryCore: QueryCore;
   endpointKey: string;
   schema: TSchema; // Zod schema for validating TData. If TData is an array, this schema should validate the array (e.g., z.array(itemSchema)).
@@ -26,16 +26,16 @@ export type TCachedRestfulApiModelConstructor<TData, TSchema extends ZodSchema<T
 };
 
 /**
- * @class CachedRestfulApiModel
+ * @class QueryStateModel
  * Extends BaseModel to provide capabilities for interacting with data sources
  * managed by QueryCore. It handles data, loading states, and errors based on
  * QueryCore's state management and caching.
  * @template TData The type of data managed by the model (e.g., User, User[]).
  * @template TSchema The Zod schema type for validating the data.
  */
-export class CachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>>
+export class QueryStateModel<TData, TSchema extends ZodSchema<TData>>
   extends BaseModel<TData, TSchema>
-  implements ICachedRestfulApiModel<TData, TSchema>
+  implements IQueryStateModel<TData, TSchema>
 {
   private queryCore: QueryCore;
   private endpointKey: string;
@@ -49,7 +49,7 @@ export class CachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>>
    * @param fetcherFn Optional fetcher function if the endpoint needs to be defined.
    * @param refetchAfter Optional refetch interval for this endpoint.
    */
-  constructor(input: TCachedRestfulApiModelConstructor<TData, TSchema>) {
+  constructor(input: TQueryStateModelConstructor<TData, TSchema>) {
     super({ initialData: input.initialData ?? null, schema: input.schema });
 
     this.queryCore = input.queryCore;
@@ -153,7 +153,7 @@ export class CachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>>
    * QueryCore itself is read-focused. Mutations are typically handled outside QueryCore's direct responsibility,
    * with QueryCore then being told to update its cache (e.g., via refetch or invalidate).
    *
-   * For this generic CachedRestfulApiModel, we cannot assume how mutations are performed.
+   * For this generic QueryStateModel, we cannot assume how mutations are performed.
    * The consumer of this model would typically:
    * - Call their own API service for CUD operations.
    * - Then call `this.model.refetch()` or `this.model.invalidate()` on this model instance.

@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { CachedRestfulApiModel, ICachedRestfulApiModel, ExtractItemType } from '../models/CachedRestfulApiModel';
+import { QueryStateModel, IQueryStateModel, ExtractItemType } from '../models/QueryStateModel';
 import { Command } from '../commands/Command';
 import { ZodSchema } from 'zod';
 
@@ -14,27 +14,27 @@ type ItemWithId = { id: string; [key: string]: any };
 
 
 /**
- * @class CachedRestfulApiViewModel
- * A generic ViewModel to facilitate interactions with a CachedRestfulApiModel.
+ * @class QueryStateModelView
+ * A generic ViewModel to facilitate interactions with a QueryStateModel.
  * It exposes data, loading states, errors, and commands to refresh or invalidate the cache.
- * @template TData The type of data managed by the underlying CachedRestfulApiModel (e.g., User, User[]).
+ * @template TData The type of data managed by the underlying QueryStateModel (e.g., User, User[]).
  * @template TModelSchema The Zod schema type for validating TData, matching the schema used by the model.
  */
-export class CachedRestfulApiViewModel<TData, TModelSchema extends ZodSchema<TData>> {
-  protected model: ICachedRestfulApiModel<TData, TModelSchema>;
+export class QueryStateModelView<TData, TModelSchema extends ZodSchema<TData>> {
+  protected model: IQueryStateModel<TData, TModelSchema>;
 
   /**
-   * Exposes the current data from the CachedRestfulApiModel.
+   * Exposes the current data from the QueryStateModel.
    */
   public readonly data$: Observable<TData | null>;
 
   /**
-   * Exposes the loading state of the CachedRestfulApiModel.
+   * Exposes the loading state of the QueryStateModel.
    */
   public readonly isLoading$: Observable<boolean>;
 
   /**
-   * Exposes any error encountered by the CachedRestfulApiModel.
+   * Exposes any error encountered by the QueryStateModel.
    */
   public readonly error$: Observable<any>;
 
@@ -57,14 +57,14 @@ export class CachedRestfulApiViewModel<TData, TModelSchema extends ZodSchema<TDa
 
 
   /**
-   * @param model An instance of CachedRestfulApiModel that this ViewModel will manage.
+   * @param model An instance of QueryStateModel that this ViewModel will manage.
    */
-  constructor(model: ICachedRestfulApiModel<TData, TModelSchema>) {
+  constructor(model: IQueryStateModel<TData, TModelSchema>) {
     // It's good practice to check if the provided model is of the expected type,
-    // but ICachedRestfulApiModel is an interface. instanceof won't work directly with interfaces.
+    // but IQueryStateModel is an interface. instanceof won't work directly with interfaces.
     // We rely on TypeScript's structural typing or add a runtime check if necessary (e.g., check for specific methods).
     if (!model || typeof model.refetch !== 'function' || typeof model.invalidate !== 'function') {
-        throw new Error('CachedRestfulApiViewModel requires a valid model instance that implements ICachedRestfulApiModel.');
+        throw new Error('QueryStateModelView requires a valid model instance that implements IQueryStateModel.');
     }
     this.model = model;
 
