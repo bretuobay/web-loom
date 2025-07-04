@@ -4,8 +4,8 @@ import { CachedRestfulApiModel, TCachedConstructorInput } from './CachedRestfulA
 import { QueryCore } from '@web-loom/query-core'; // Actual import
 
 // Mock QueryCore
-vi.mock('@web-loom/query-core', () => {
-  const actualQueryCore = vi.importActual('@web-loom/query-core');
+vi.mock('@web-loom/query-core', async () => {
+  const actualQueryCore = await vi.importActual('@web-loom/query-core');
   return {
     ...actualQueryCore, // Import and retain actual exports like EndpointState if needed directly in tests
     QueryCore: vi.fn().mockImplementation(() => ({
