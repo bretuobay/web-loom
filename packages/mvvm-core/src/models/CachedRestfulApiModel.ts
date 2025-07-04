@@ -1,7 +1,6 @@
 import { ZodSchema } from 'zod';
 import { BaseModel, IBaseModel } from './BaseModel';
-import QueryCore, { EndpointState } from '@packages/query-core'; // Assuming QueryCore is available via this path
-import { Subscription } from 'rxjs';
+import { EndpointState, QueryCore } from '@web-loom/query-core'; // Assuming QueryCore is available via this path
 
 // Helper type to extract the underlying type if T is an array, otherwise returns T
 export type ExtractItemType<T> = T extends (infer U)[] ? U : T;
@@ -64,14 +63,12 @@ export class CachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>>
       // This is a simplistic check; QueryCore itself warns on re-definition.
       const existingState = this.queryCore.getState<TData>(this.endpointKey);
       if (!existingState || existingState.error?.message.includes('not defined')) {
-         this.queryCore.defineEndpoint<TData>(
-            this.endpointKey,
-            input.fetcherFn,
-            { refetchAfter: input.refetchAfter }
-         ).catch(err => {
+        this.queryCore
+          .defineEndpoint<TData>(this.endpointKey, input.fetcherFn, { refetchAfter: input.refetchAfter })
+          .catch((err) => {
             console.error(`Failed to define endpoint ${this.endpointKey}:`, err);
             this.setError(err);
-         });
+          });
       }
     }
     this.subscribeToQueryChanges();
@@ -82,38 +79,35 @@ export class CachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>>
       this.querySubscription(); // Unsubscribe from previous if any
     }
 
-    this.querySubscription = this.queryCore.subscribe<TData>(
-      this.endpointKey,
-      (state: EndpointState<TData>) => {
-        this.setLoading(state.isLoading);
-        if (state.isError && state.error) {
-          this.setError(state.error);
-          // Optionally, clear data on error or keep stale data:
-          // this.setData(null);
-        } else if (state.data !== undefined) {
-          // queryCore should provide data that is already validated if schema is part of its fetcher.
-          // However, if we want to re-validate or if QueryCore doesn't validate, do it here.
-          // For now, assume QueryCore's data is what we set.
-          // If schema validation is needed here:
-          // try {
-          //   const validatedData = this.schema.parse(state.data); // Or z.array(this.schema).parse(state.data)
-          //   this.setData(validatedData);
-          //   this.clearError();
-          // } catch (validationError) {
-          //   this.setError(validationError);
-          //   this.setData(null); // Or keep stale data
-          // }
-          this.setData(state.data);
-          if (!state.isError) this.clearError(); // Clear error if data is successfully set
-        } else if (!state.isLoading && !state.isError && state.data === undefined) {
-          // Explicitly handle when data is undefined (e.g. after invalidation or if initial state is undefined)
-          this.setData(undefined); // Pass undefined, not null
-          if (!state.isError) this.clearError();
-        }
-        // If state.data is undefined but it's loading or an error state, those are handled by setLoading/setError.
-        // No explicit setData(null) is needed for those cases unless desired.
+    this.querySubscription = this.queryCore.subscribe<TData>(this.endpointKey, (state: EndpointState<TData>) => {
+      this.setLoading(state.isLoading);
+      if (state.isError && state.error) {
+        this.setError(state.error);
+        // Optionally, clear data on error or keep stale data:
+        // this.setData(null);
+      } else if (state.data !== undefined) {
+        // queryCore should provide data that is already validated if schema is part of its fetcher.
+        // However, if we want to re-validate or if QueryCore doesn't validate, do it here.
+        // For now, assume QueryCore's data is what we set.
+        // If schema validation is needed here:
+        // try {
+        //   const validatedData = this.schema.parse(state.data); // Or z.array(this.schema).parse(state.data)
+        //   this.setData(validatedData);
+        //   this.clearError();
+        // } catch (validationError) {
+        //   this.setError(validationError);
+        //   this.setData(null); // Or keep stale data
+        // }
+        this.setData(state.data);
+        if (!state.isError) this.clearError(); // Clear error if data is successfully set
+      } else if (!state.isLoading && !state.isError && state.data === undefined) {
+        // Explicitly handle when data is undefined (e.g. after invalidation or if initial state is undefined)
+        this.setData(null); // Pass undefined, not null
+        if (!state.isError) this.clearError();
       }
-    );
+      // If state.data is undefined but it's loading or an error state, those are handled by setLoading/setError.
+      // No explicit setData(null) is needed for those cases unless desired.
+    });
   }
 
   /**
