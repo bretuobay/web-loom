@@ -12,10 +12,11 @@ const ItemSchema = z.object({
   name: z.string(),
 });
 type Item = z.infer<typeof ItemSchema>;
-type ItemArray = Item[];
+const ItemArraySchema = z.array(ItemSchema);
+type ItemArray = z.infer<typeof ItemArraySchema>;
 
 // Mock CachedRestfulApiModel
-class MockCachedRestfulApiModel<TData> implements ICachedRestfulApiModel<TData, typeof ItemSchema> {
+class MockCachedRestfulApiModel<TData, TModelSchema extends ZodSchema<TData>> implements ICachedRestfulApiModel<TData, TModelSchema> {
   public _data$ = new BehaviorSubject<TData | null>(null);
   public _isLoading$ = new BehaviorSubject<boolean>(false);
   public _error$ = new BehaviorSubject<any>(null);
@@ -26,11 +27,11 @@ class MockCachedRestfulApiModel<TData> implements ICachedRestfulApiModel<TData, 
   public readonly error$ = this._error$.asObservable();
   public readonly isError$ = this._isError$.asObservable(); // from BaseModel
 
-  // Explicitly define schema property if it's accessed by the ViewModel or its tests
-  public schema: typeof ItemSchema;
+  // Explicitly define schema property
+  public schema: TModelSchema;
 
 
-  constructor(initialData: TData | null = null, schema: typeof ItemSchema = ItemSchema) {
+  constructor(initialData: TData | null, schema: TModelSchema) { // Schema is now required and typed
     this._data$.next(initialData);
     this.schema = schema;
   }
@@ -66,22 +67,23 @@ class MockCachedRestfulApiModel<TData> implements ICachedRestfulApiModel<TData, 
     this._error$.next(null);
     this._isError$.next(false);
   });
-  validate = vi.fn((data: TData) => { // Assuming TSchema is for single item
-    if (Array.isArray(data)) {
-      return z.array(this.schema).parse(data) as unknown as TData;
-    }
+  validate = vi.fn((data: TData) => { // Schema should directly handle array or single item
     return this.schema.parse(data) as unknown as TData;
   });
 }
 
 describe('CachedRestfulApiViewModel', () => {
-  let mockModel: MockCachedRestfulApiModel<ItemArray | null>;
-  let viewModel: CachedRestfulApiViewModel<ItemArray | null, typeof ItemSchema>;
+  // Typedef for the schema instances
+  type ItemArraySchemaType = typeof ItemArraySchema;
+  type ItemSchemaType = typeof ItemSchema;
+
+  let mockModel: MockCachedRestfulApiModel<ItemArray | null, ItemArraySchemaType>;
+  let viewModel: CachedRestfulApiViewModel<ItemArray | null, ItemArraySchemaType>;
 
   beforeEach(() => {
     // Default to ItemArray model for most tests
-    mockModel = new MockCachedRestfulApiModel<ItemArray | null>([]);
-    viewModel = new CachedRestfulApiViewModel(mockModel);
+    mockModel = new MockCachedRestfulApiModel<ItemArray | null, ItemArraySchemaType>([], ItemArraySchema);
+    viewModel = new CachedRestfulApiViewModel<ItemArray | null, ItemArraySchemaType>(mockModel);
   });
 
   afterEach(() => {
@@ -213,13 +215,13 @@ describe('CachedRestfulApiViewModel', () => {
   });
 
   describe('ViewModel with TData = Item (single item model)', () => {
-    let singleItemModel: MockCachedRestfulApiModel<Item | null>;
-    let singleItemViewModel: CachedRestfulApiViewModel<Item | null, typeof ItemSchema>;
+    let singleItemModel: MockCachedRestfulApiModel<Item | null, ItemSchemaType>;
+    let singleItemViewModel: CachedRestfulApiViewModel<Item | null, ItemSchemaType>;
     const singleItem: Item = { id: 'single', name: 'Single Item Only' };
 
     beforeEach(() => {
-      singleItemModel = new MockCachedRestfulApiModel<Item | null>(singleItem);
-      singleItemViewModel = new CachedRestfulApiViewModel(singleItemModel);
+      singleItemModel = new MockCachedRestfulApiModel<Item | null, ItemSchemaType>(singleItem, ItemSchema);
+      singleItemViewModel = new CachedRestfulApiViewModel<Item | null, ItemSchemaType>(singleItemModel);
     });
 
     afterEach(() => {

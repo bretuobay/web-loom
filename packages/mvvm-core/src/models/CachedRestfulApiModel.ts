@@ -17,7 +17,7 @@ export interface ICachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>>
 export type TCachedRestfulApiModelConstructor<TData, TSchema extends ZodSchema<TData>> = {
   queryCore: QueryCore;
   endpointKey: string;
-  schema: TSchema; // Schema for individual items if TData is an array
+  schema: TSchema; // Zod schema for validating TData. If TData is an array, this schema should validate the array (e.g., z.array(itemSchema)).
   initialData?: TData | null; // Initial data can still be useful for optimistic updates or seeding
   // fetcherFn is needed if QueryCore endpoint isn't predefined with a fetcher
   fetcherFn?: () => Promise<TData>;
@@ -60,9 +60,11 @@ export class CachedRestfulApiModel<TData, TSchema extends ZodSchema<TData>>
     // if not already managed externally by QueryCore.
     if (input.fetcherFn) {
       // Check if endpoint already exists to avoid overwriting with potentially different options.
-      // This is a simplistic check; QueryCore itself warns on re-definition.
+      // QueryCore itself warns on re-definition.
+      // A "pristine" state from QueryCore for an unknown key has undefined data, no error, not loading, and no lastUpdated.
       const existingState = this.queryCore.getState<TData>(this.endpointKey);
-      if (!existingState || existingState.error?.message.includes('not defined')) {
+      if (existingState.data === undefined && !existingState.isLoading && !existingState.isError && !existingState.lastUpdated) {
+        // This suggests the endpoint hasn't been successfully fetched or defined with initial data through QueryCore yet.
         this.queryCore
           .defineEndpoint<TData>(this.endpointKey, input.fetcherFn, { refetchAfter: input.refetchAfter })
           .catch((err) => {
