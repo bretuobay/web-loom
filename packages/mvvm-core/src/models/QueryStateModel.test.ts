@@ -96,24 +96,68 @@ const createMockQueryCoreInstance = () => {
 // Create a mock QueryCore constructor
 const MockQueryCore = vi.fn(createMockQueryCoreInstance);
 
+import { IStore, State, Listener } from './Store';
+
+// Mock Store interface
+interface MockStore<S extends State> extends IStore<S> {
+  // Add any store-specific mock methods if needed, e.g., for dispatching actions
+  dispatch?: (action: any) => void;
+  // Helper to simulate state changes in the mock store
+  _simulateStoreChange?: (newState: S) => void;
+}
+
+// Create a mock store instance
+const createMockStore = <S extends State>(initialState: S): MockStore<S> => {
+  let currentState = initialState;
+  const listeners = new Set<Listener<S>>();
+
+  return {
+    getState: vi.fn(() => currentState),
+    setState: vi.fn((updater) => {
+      const oldState = currentState;
+      currentState = updater(currentState);
+      listeners.forEach((listener) => listener(currentState, oldState));
+    }),
+    subscribe: vi.fn((listener) => {
+      listeners.add(listener);
+      // Immediately call listener with current state, similar to some store implementations
+      // listener(currentState, currentState); // This might be too eager for some tests
+      return () => listeners.delete(listener);
+    }),
+    // Optional dispatch mock
+    dispatch: vi.fn(),
+    // Helper to simulate external state changes for testing subscriptions
+    _simulateStoreChange: (newState: S) => {
+      const oldState = currentState;
+      currentState = newState;
+      listeners.forEach((listener) => listener(currentState, oldState));
+    },
+  };
+};
+
+// Define a simple state for the mock store
+interface TestStoreState extends State {
+  counter: number;
+  message: string;
+}
+
 describe('QueryStateModel', () => {
   let mockQueryCoreInstance: any; // Use any type to avoid interface conflicts
-  // Helper to access the mock simulation methods, which are now on the instance returned by the mock constructor
   let mockQueryCoreSimulator: {
     _simulateStateChange: (newState: Partial<EndpointState<any>>) => void;
     _resetMockState: () => void;
   };
+  let mockStoreInstance: MockStore<TestStoreState>;
+  const initialStoreState: TestStoreState = { counter: 0, message: 'hello' };
 
   const endpointKey = 'testEndpoint';
-  // const testSchema = ItemSchema; // This was incorrect for ItemArray
   const itemArrayTestSchema = ItemArraySchema;
 
   beforeEach(() => {
-    // Create a new mock instance for each test to ensure isolation
     mockQueryCoreInstance = createMockQueryCoreInstance();
-    // This is a bit of a hack to get the simulator methods from the mocked module
     mockQueryCoreSimulator = mockQueryCoreInstance as any;
-    mockQueryCoreSimulator._resetMockState(); // Reset state before each test
+    mockQueryCoreSimulator._resetMockState();
+    mockStoreInstance = createMockStore(initialStoreState);
   });
 
   afterEach(() => {
@@ -121,18 +165,19 @@ describe('QueryStateModel', () => {
   });
 
   const createModel = (
-    constructorInput?: Partial<TQueryStateModelConstructor<ItemArray, typeof itemArrayTestSchema>>,
+    constructorInput?: Partial<TQueryStateModelConstructor<ItemArray, typeof itemArrayTestSchema, TestStoreState>>,
   ) => {
-    return new QueryStateModel<ItemArray, typeof itemArrayTestSchema>({
+    return new QueryStateModel<ItemArray, typeof itemArrayTestSchema, TestStoreState>({
       queryCore: mockQueryCoreInstance,
       endpointKey,
-      schema: itemArrayTestSchema, // Correct schema for ItemArray
+      schema: itemArrayTestSchema,
       initialData: null,
+      store: mockStoreInstance, // Default to include the mock store
       ...constructorInput,
     });
   };
 
-  it('should initialize and subscribe to QueryCore', async () => {
+  it('should initialize and subscribe to QueryCore, and expose the store', async () => {
     const model = createModel();
     expect(mockQueryCoreInstance.subscribe).toHaveBeenCalledWith(endpointKey, expect.any(Function));
 
@@ -151,6 +196,21 @@ describe('QueryStateModel', () => {
     expect(await firstValueFrom(model.data$)).toBeNull();
     expect(initialLoading).toBe(false);
     expect(initialError).toBeNull();
+    expect(model.store).toBe(mockStoreInstance); // Check if store is exposed
+    model.dispose();
+  });
+
+  it('should correctly expose the provided store', () => {
+    const model = createModel();
+    expect(model.store).toBeDefined();
+    expect(model.store).toBe(mockStoreInstance);
+    expect(model.store?.getState()).toEqual(initialStoreState);
+    model.dispose();
+  });
+
+  it('should expose undefined for store if not provided', () => {
+    const model = createModel({ store: undefined });
+    expect(model.store).toBeUndefined();
     model.dispose();
   });
 
