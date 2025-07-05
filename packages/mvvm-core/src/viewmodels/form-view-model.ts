@@ -1,6 +1,6 @@
 import { BehaviorSubject, Observable, combineLatest, of } from 'rxjs';
 import { map, startWith, distinctUntilChanged, debounceTime } from 'rxjs/operators';
-import { z, ZodError, ZodSchema, ZodIssue } from 'zod';
+import { ZodError, ZodSchema, ZodIssue } from 'zod';
 
 // Minimal Command interface (can be expanded later)
 export interface Command<TParam, TResult> {

@@ -2,9 +2,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { z } from 'zod';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { skip, filter, take } from 'rxjs/operators';
-import { QueryStateModel, IQueryStateModel, ExtractItemType } from '../models/QueryStateModel';
+import { IQueryStateModel } from '../models/QueryStateModel';
 import { QueryStateModelView } from './QueryStateModelView';
-import { Command } from '../commands/Command'; // For spy checks if needed
 
 // Define a simple Zod schema for testing
 const ItemSchema = z.object({
@@ -16,7 +15,9 @@ const ItemArraySchema = z.array(ItemSchema);
 type ItemArray = z.infer<typeof ItemArraySchema>;
 
 // Mock QueryStateModel
-class MockQueryStateModel<TData, TModelSchema extends ZodSchema<TData>> implements IQueryStateModel<TData, TModelSchema> {
+class MockQueryStateModel<TData, TModelSchema extends ZodSchema<TData>>
+  implements IQueryStateModel<TData, TModelSchema>
+{
   public _data$ = new BehaviorSubject<TData | null>(null);
   public _isLoading$ = new BehaviorSubject<boolean>(false);
   public _error$ = new BehaviorSubject<any>(null);
@@ -30,8 +31,8 @@ class MockQueryStateModel<TData, TModelSchema extends ZodSchema<TData>> implemen
   // Explicitly define schema property
   public schema: TModelSchema;
 
-
-  constructor(initialData: TData | null, schema: TModelSchema) { // Schema is now required and typed
+  constructor(initialData: TData | null, schema: TModelSchema) {
+    // Schema is now required and typed
     this._data$.next(initialData);
     this.schema = schema;
   }
@@ -67,7 +68,8 @@ class MockQueryStateModel<TData, TModelSchema extends ZodSchema<TData>> implemen
     this._error$.next(null);
     this._isError$.next(false);
   });
-  validate = vi.fn((data: TData) => { // Schema should directly handle array or single item
+  validate = vi.fn((data: TData) => {
+    // Schema should directly handle array or single item
     return this.schema.parse(data) as unknown as TData;
   });
 }
@@ -92,8 +94,12 @@ describe('QueryStateModelView', () => {
   });
 
   it('should throw an error if model is invalid', () => {
-    expect(() => new QueryStateModelView(null as any)).toThrow('QueryStateModelView requires a valid model instance that implements IQueryStateModel.');
-    expect(() => new QueryStateModelView({} as any)).toThrow('QueryStateModelView requires a valid model instance that implements IQueryStateModel.');
+    expect(() => new QueryStateModelView(null as any)).toThrow(
+      'QueryStateModelView requires a valid model instance that implements IQueryStateModel.',
+    );
+    expect(() => new QueryStateModelView({} as any)).toThrow(
+      'QueryStateModelView requires a valid model instance that implements IQueryStateModel.',
+    );
   });
 
   it('should expose data$, isLoading$, and error$ from the model', async () => {
@@ -202,14 +208,24 @@ describe('QueryStateModelView', () => {
       // Select 'a'
       viewModel.selectItem('a');
       // Wait for selectedItem$ to become items[0] and then check it
-      const selectedA = await firstValueFrom(viewModel.selectedItem$.pipe(filter(item => !!item && item.id === items[0].id), take(1)));
+      const selectedA = await firstValueFrom(
+        viewModel.selectedItem$.pipe(
+          filter((item) => !!item && item.id === items[0].id),
+          take(1),
+        ),
+      );
       expect(selectedA).toEqual(items[0]);
 
       // Select null (clear selection)
       viewModel.selectItem(null);
       // Wait for selectedItem$ to become null again.
       // The previous value was items[0], so this new null is a distinct emission.
-      const selectedNull = await firstValueFrom(viewModel.selectedItem$.pipe(filter(item => item === null), take(1)));
+      const selectedNull = await firstValueFrom(
+        viewModel.selectedItem$.pipe(
+          filter((item) => item === null),
+          take(1),
+        ),
+      );
       expect(selectedNull).toBeNull();
     });
   });
@@ -225,7 +241,7 @@ describe('QueryStateModelView', () => {
     });
 
     afterEach(() => {
-        singleItemViewModel.dispose();
+      singleItemViewModel.dispose();
     });
 
     it('refetchCommand should call model.refetch (for single item model)', async () => {
@@ -239,11 +255,10 @@ describe('QueryStateModelView', () => {
     });
 
     it('selectedItem$ should be null if data is not an array', async () => {
-        singleItemViewModel.selectItem('single'); // Attempt to select
-        expect(await firstValueFrom(singleItemViewModel.selectedItem$)).toBeNull();
+      singleItemViewModel.selectItem('single'); // Attempt to select
+      expect(await firstValueFrom(singleItemViewModel.selectedItem$)).toBeNull();
     });
   });
-
 
   describe('dispose method', () => {
     it('should call dispose on the underlying model', () => {
@@ -273,69 +288,73 @@ describe('QueryStateModelView', () => {
   // as they pertain to a cached context (refetch/invalidate)
   describe('Verification of command functionality (simulating "skipped tests" context)', () => {
     it('refetchCommand should be executable and update loading state (simulates a test for fetch-like ops)', async () => {
-        mockModel._isLoading$.next(false); // Start not loading
+      mockModel._isLoading$.next(false); // Start not loading
 
-        let resolveRefetch: () => void;
-        const refetchPromise = new Promise<void>(r => { resolveRefetch = () => r(); });
-        mockModel.refetch.mockImplementationOnce(() => {
-          mockModel._isLoading$.next(true); // Simulate model starting to load
-          return refetchPromise;
-        });
+      let resolveRefetch: () => void;
+      const refetchPromise = new Promise<void>((r) => {
+        resolveRefetch = () => r();
+      });
+      mockModel.refetch.mockImplementationOnce(() => {
+        mockModel._isLoading$.next(true); // Simulate model starting to load
+        return refetchPromise;
+      });
 
-        const executionStates: boolean[] = [];
-        const sub = viewModel.refetchCommand.isExecuting$.subscribe(state => executionStates.push(state));
+      const executionStates: boolean[] = [];
+      const sub = viewModel.refetchCommand.isExecuting$.subscribe((state) => executionStates.push(state));
 
-        const execPromise = viewModel.refetchCommand.execute();
+      const execPromise = viewModel.refetchCommand.execute();
 
-        await vi.waitFor(() => {
-            expect(executionStates).toContain(true);
-        });
-        expect(executionStates[executionStates.length - 1]).toBe(true);
-        expect(mockModel._isLoading$.getValue()).toBe(true); // Access underlying BehaviorSubject
+      await vi.waitFor(() => {
+        expect(executionStates).toContain(true);
+      });
+      expect(executionStates[executionStates.length - 1]).toBe(true);
+      expect(mockModel._isLoading$.getValue()).toBe(true); // Access underlying BehaviorSubject
 
-        resolveRefetch!();
-        await execPromise;
-        mockModel._isLoading$.next(false); // Simulate model finishing loading
+      resolveRefetch!();
+      await execPromise;
+      mockModel._isLoading$.next(false); // Simulate model finishing loading
 
-        expect(executionStates[executionStates.length - 1]).toBe(false);
-        expect(mockModel._isLoading$.getValue()).toBe(false);
-        expect(mockModel.refetch).toHaveBeenCalled();
-        sub.unsubscribe();
+      expect(executionStates[executionStates.length - 1]).toBe(false);
+      expect(mockModel._isLoading$.getValue()).toBe(false);
+      expect(mockModel.refetch).toHaveBeenCalled();
+      sub.unsubscribe();
     });
 
     it('invalidateCommand should be executable and potentially clear data (simulates a test for CUD-related cache ops)', async () => {
-        const initialData: ItemArray = [{ id: '1', name: 'Cache Me' }];
-        mockModel._data$.next(initialData);
-        expect(await firstValueFrom(viewModel.data$)).toEqual(initialData);
+      const initialData: ItemArray = [{ id: '1', name: 'Cache Me' }];
+      mockModel._data$.next(initialData);
+      expect(await firstValueFrom(viewModel.data$)).toEqual(initialData);
 
-        let resolveInvalidate: () => void;
-        const invalidatePromise = new Promise<void>(r => { resolveInvalidate = () => r(); });
-        mockModel.invalidate.mockImplementationOnce(() => {
-          mockModel._isLoading$.next(true); // Simulate model starting to load
-          mockModel._data$.next(null); // Simulate data clearing as per original mock's intent
-          return invalidatePromise;
-        });
+      let resolveInvalidate: () => void;
+      const invalidatePromise = new Promise<void>((r) => {
+        resolveInvalidate = () => r();
+      });
+      mockModel.invalidate.mockImplementationOnce(() => {
+        mockModel._isLoading$.next(true); // Simulate model starting to load
+        mockModel._data$.next(null); // Simulate data clearing as per original mock's intent
+        return invalidatePromise;
+      });
 
-        const executionStates: boolean[] = [];
-        const sub = viewModel.invalidateCommand.isExecuting$.subscribe(state => executionStates.push(state));
+      const executionStates: boolean[] = [];
+      const sub = viewModel.invalidateCommand.isExecuting$.subscribe((state) => executionStates.push(state));
 
-        const execPromise = viewModel.invalidateCommand.execute();
+      const execPromise = viewModel.invalidateCommand.execute();
 
-        await vi.waitFor(() => {
-            expect(executionStates).toContain(true);
-        });
-        expect(executionStates[executionStates.length - 1]).toBe(true);
-        expect(mockModel._isLoading$.getValue()).toBe(true); // Access underlying BehaviorSubject
+      await vi.waitFor(() => {
+        expect(executionStates).toContain(true);
+      });
+      expect(executionStates[executionStates.length - 1]).toBe(true);
+      expect(mockModel._isLoading$.getValue()).toBe(true); // Access underlying BehaviorSubject
 
-        resolveInvalidate!();
-        await execPromise;
-        mockModel._isLoading$.next(false); // Simulate model finishing loading
+      resolveInvalidate!();
+      await execPromise;
+      mockModel._isLoading$.next(false); // Simulate model finishing loading
 
-        expect(executionStates[executionStates.length - 1]).toBe(false);
-        expect(mockModel._isLoading$.getValue()).toBe(false);
-        expect(mockModel.invalidate).toHaveBeenCalled();
-        expect(await firstValueFrom(viewModel.data$)).toBeNull(); // Mock invalidate sets data to null
-        sub.unsubscribe();
+      expect(executionStates[executionStates.length - 1]).toBe(false);
+      expect(mockModel._isLoading$.getValue()).toBe(false);
+      expect(mockModel.invalidate).toHaveBeenCalled();
+      expect(await firstValueFrom(viewModel.data$)).toBeNull(); // Mock invalidate sets data to null
+      sub.unsubscribe();
     });
   });
 });

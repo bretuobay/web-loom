@@ -15,7 +15,7 @@ export interface IQueryStateModel<
   // or if new public methods are introduced.
   // For now, it will rely on QueryCore for most operations.
   // We might need a manual refetch trigger.
-  refetch(): Promise<void>;
+  refetch(refetchFlag?: boolean): Promise<void>;
   invalidate(): Promise<void>;
   store?: IStore<S>; // Expose the optional store instance
 }
@@ -46,10 +46,13 @@ export type TQueryStateModelConstructor<
  * @template S The specific type of the state managed by the optional store.
  */
 export class QueryStateModel<
-  TData,
-  TSchema extends ZodSchema<TData>,
-  S extends State = State, // Default S to State
-> extends BaseModel<TData, TSchema> implements IQueryStateModel<TData, TSchema, S> {
+    TData,
+    TSchema extends ZodSchema<TData>,
+    S extends State = State, // Default S to State
+  >
+  extends BaseModel<TData, TSchema>
+  implements IQueryStateModel<TData, TSchema, S>
+{
   private queryCore: QueryCore;
   private endpointKey: string;
   private querySubscription: (() => void) | null = null; // Unsubscribe function from QueryCore
@@ -79,7 +82,12 @@ export class QueryStateModel<
       // QueryCore itself warns on re-definition.
       // A "pristine" state from QueryCore for an unknown key has undefined data, no error, not loading, and no lastUpdated.
       const existingState = this.queryCore.getState<TData>(this.endpointKey);
-      if (existingState.data === undefined && !existingState.isLoading && !existingState.isError && !existingState.lastUpdated) {
+      if (
+        existingState.data === undefined &&
+        !existingState.isLoading &&
+        !existingState.isError &&
+        !existingState.lastUpdated
+      ) {
         // This suggests the endpoint hasn't been successfully fetched or defined with initial data through QueryCore yet.
         this.queryCore
           .defineEndpoint<TData>(this.endpointKey, input.fetcherFn, { refetchAfter: input.refetchAfter })

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { FormViewModel, Command } from './form-view-model';
+import { FormViewModel } from './form-view-model';
 import { z, ZodError } from 'zod';
 import { of, throwError, Observable, firstValueFrom, toArray, filter, take } from 'rxjs';
 

@@ -1,4 +1,4 @@
-import { BehaviorSubject, Observable, combineLatest, of } from 'rxjs';
+import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
 import { map, distinctUntilChanged, startWith, debounceTime } from 'rxjs/operators';
 
 export class QueryableCollectionViewModel<T extends Record<string, any>> {

@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { QueryStateModel, IQueryStateModel, ExtractItemType } from '../models/QueryStateModel';
+import { IQueryStateModel, ExtractItemType } from '../models/QueryStateModel';
 import { Command } from '../commands/Command';
 import { ZodSchema } from 'zod';
 
@@ -11,7 +11,6 @@ import { map, startWith } from 'rxjs/operators';
 
 // Helper type to check if TData is an array and extract item type
 type ItemWithId = { id: string; [key: string]: any };
-
 
 /**
  * @class QueryStateModelView
@@ -55,7 +54,6 @@ export class QueryStateModelView<TData, TModelSchema extends ZodSchema<TData>> {
   public readonly selectedItem$: Observable<ExtractItemType<TData> | null>;
   protected readonly _selectedItemId$ = new BehaviorSubject<string | null>(null);
 
-
   /**
    * @param model An instance of QueryStateModel that this ViewModel will manage.
    */
@@ -64,7 +62,7 @@ export class QueryStateModelView<TData, TModelSchema extends ZodSchema<TData>> {
     // but IQueryStateModel is an interface. instanceof won't work directly with interfaces.
     // We rely on TypeScript's structural typing or add a runtime check if necessary (e.g., check for specific methods).
     if (!model || typeof model.refetch !== 'function' || typeof model.invalidate !== 'function') {
-        throw new Error('QueryStateModelView requires a valid model instance that implements IQueryStateModel.');
+      throw new Error('QueryStateModelView requires a valid model instance that implements IQueryStateModel.');
     }
     this.model = model;
 
@@ -75,7 +73,8 @@ export class QueryStateModelView<TData, TModelSchema extends ZodSchema<TData>> {
     // Initialize Commands
     this.refetchCommand = new Command(async (force: boolean | void) => {
       // If force is boolean, pass it. If it's void (runtime undefined), pass undefined to model.refetch.
-      await this.model.refetch(typeof force === 'boolean' ? force : undefined);
+      const forceParam = typeof force === 'boolean' ? force : undefined;
+      await this.model.refetch(forceParam);
     });
 
     this.invalidateCommand = new Command(async () => {
@@ -83,10 +82,7 @@ export class QueryStateModelView<TData, TModelSchema extends ZodSchema<TData>> {
     });
 
     // Selected item logic (similar to RestfulApiViewModel)
-    this.selectedItem$ = combineLatest([
-      this.model.data$,
-      this._selectedItemId$,
-    ]).pipe(
+    this.selectedItem$ = combineLatest([this.model.data$, this._selectedItemId$]).pipe(
       map(([data, selectedId]) => {
         if (Array.isArray(data) && selectedId) {
           const itemWithId = data.find((item: unknown): item is ItemWithId => {

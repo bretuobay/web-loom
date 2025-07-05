@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import QueryCore, { QueryCoreOptions } from './QueryCore';
-import { LocalStorageCacheProvider } from './cacheProviders/LocalStorageCacheProvider';
 import { IndexedDBCacheProvider } from './cacheProviders/IndexedDBCacheProvider';
 import { InMemoryCacheProvider } from './cacheProviders/InMemoryCacheProvider'; // Added import
 import { MockSimpleCacheProvider } from './mocks/MockSimpleCacheProvider';

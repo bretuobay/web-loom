@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { QueryableCollectionViewModel } from './queryable-collection-view-model';
-import { firstValueFrom, skip, Observable, BehaviorSubject, take, toArray } from 'rxjs';
+import { firstValueFrom, skip } from 'rxjs';
 
 // Helper for advancing timers and flushing microtasks
 const advanceCollectionTimers = async (time = 200) => {
