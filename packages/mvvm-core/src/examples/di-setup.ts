@@ -1,4 +1,4 @@
-import { SimpleDIContainer, ServiceRegistry, Constructor, Factory } from '../core/di-container';
+import { SimpleDIContainer, Factory } from '../core/di-container'; // ServiceRegistry, Constructor removed
 import { NotificationService } from '../services/notification-service';
 import { GlobalErrorService } from '../services/global-error-service';
 import { FormViewModel } from '../viewmodels/form-view-model';
@@ -178,10 +178,10 @@ export function demonstrateDISetup() {
   // Resolve a transient ViewModel instance
   const form1 = SimpleDIContainer.resolve('userProfileForm');
   form1.updateField('name', 'Alice');
-  console.log('Form 1 Name:', form1.formData$.getValue().name);
+  console.log('Form 1 Name:', form1.formData$.value.name);
 
   const form2 = SimpleDIContainer.resolve('userProfileForm'); // Should be a new instance
-  console.log('Form 2 Name (should be initial):', form2.formData$.getValue().name);
+  console.log('Form 2 Name (should be initial):', form2.formData$.value.name);
   form2.updateField('name', 'Bob');
 
   if (form1 === form2) {
@@ -193,16 +193,20 @@ export function demonstrateDISetup() {
   // Resolve a singleton ViewModel instance
   const productList1 = SimpleDIContainer.resolve('productListVM');
   productList1.setFilter('Laptop');
-  console.log(
-    'ProductList1 Page 1 (Filtered):',
-    productList1.paginatedItems$.getValue().map((p) => p.name),
-  );
+  // console.log(
+  //   'ProductList1 Page 1 (Filtered):',
+  //   productList1.paginatedItems$.getValue().map((p) => p.name), // paginatedItems$ is an Observable
+  // );
+  console.log('ProductList1 Page 1 (Filtered): (see subscription logs if any, or subscribe to paginatedItems$)');
+
 
   const productList2 = SimpleDIContainer.resolve('productListVM'); // Should be the same instance
-  console.log(
-    'ProductList2 Page 1 (Should also be Filtered):',
-    productList2.paginatedItems$.getValue().map((p) => p.name),
-  );
+  // console.log(
+  //   'ProductList2 Page 1 (Should also be Filtered):',
+  //   productList2.paginatedItems$.getValue().map((p) => p.name), // paginatedItems$ is an Observable
+  // );
+  console.log('ProductList2 Page 1 (Should also be Filtered): (see subscription logs if any, or subscribe to paginatedItems$)');
+
 
   if (productList1 !== productList2) {
     console.error('DI ERROR: productListVM should be singleton but got different instances!');

@@ -4,7 +4,8 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@repo/models": ["@repo/models"]
+      "@repo/models": ["@repo/models"],
+      "@web-loom/mvvm-core": ["../mvvm-core/dist"]
     }
   },
   "include": ["src"],

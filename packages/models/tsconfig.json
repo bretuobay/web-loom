@@ -11,7 +11,7 @@
     "rootDir": "src",
     "baseUrl": ".",
     "paths": {
-      "@web-loom/mvvm-core": ["../../node_modules/@web-loom/mvvm-core"]
+      "@web-loom/mvvm-core": ["../mvvm-core/dist"]
     }
   },
   "include": ["src"],

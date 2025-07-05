@@ -11,7 +11,9 @@
       "@repo/models/*": ["../../packages/models/src/*"],
       "@repo/view-models": ["../../packages/view-models/src"],
       "@repo/view-models/*": ["../../packages/view-models/src/*"],
-      "@web-loom/mvvm-core": ["../../node_modules/@web-loom/mvvm-core"]
+      "@web-loom/mvvm-core": ["../../packages/mvvm-core/dist"],
+      "@repo/shared": ["../../packages/shared/src"],
+      "@repo/shared/*": ["../../packages/shared/src/*"]
     }
   },
   "references": [
@@ -20,6 +22,12 @@
     },
     {
       "path": "../../packages/view-models/tsconfig.json"
+    },
+    {
+      "path": "../../packages/mvvm-core/tsconfig.json"
+    },
+    {
+      "path": "../../packages/shared/tsconfig.json"
     }
   ],
   "files": ["src/main.ts"],

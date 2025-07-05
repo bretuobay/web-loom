@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { FormViewModel } from '../viewmodels/form-view-model';
-import { SimpleDIContainer, ServiceRegistry } from '../core/di-container';
+import { SimpleDIContainer } from '../core/di-container'; // ServiceRegistry removed if not used directly
 import { NotificationService } from '../services/notification-service';
 import { GlobalErrorService } from '../services/global-error-service';
-import { of, throwError, timer } from 'rxjs';
-import { delay, map, catchError } from 'rxjs/operators';
+import { Observable, throwError, timer } from 'rxjs'; // 'of' removed if not used, Observable added
+import { map, catchError } from 'rxjs/operators'; // 'delay' removed if not used
 
 // Augment ServiceRegistry for this example
 declare module '../core/di-container' {
@@ -53,7 +53,7 @@ class UserFormViewModel extends FormViewModel<UserData, typeof UserSchema, UserD
         }
         if (data.username === 'networkError') {
           this.notificationService.showError('Simulated network error.', 5000);
-          return throwError(() => new Error('Simulated Network Error'));
+          throw new Error('Simulated Network Error');
         }
 
         const resultData: UserData = { ...data, id: data.id || `user-${Date.now()}` };
@@ -105,14 +105,14 @@ export async function runUserFormExample() {
 
   setupDI();
 
-  const notificationService = SimpleDIContainer.resolve('notificationService');
-  const globalErrorService = SimpleDIContainer.resolve('globalErrorService'); // To see its output
+  // const notificationService = SimpleDIContainer.resolve('notificationService'); // Unused in this direct scope
+  // const globalErrorService = SimpleDIContainer.resolve('globalErrorService'); // Unused in this direct scope
 
   // Resolve the form view model
   const userForm = SimpleDIContainer.resolve('userFormViewModel');
 
   // --- 5. Subscribe to Form Observables (Simulating UI Binding) ---
-  console.log('Initial Form Data:', userForm.formData$.getValue());
+  console.log('Initial Form Data:', userForm.formData$.value);
 
   userForm.formData$.subscribe((data) => {
     // In a real UI, you'd update input field values here
@@ -164,20 +164,22 @@ export async function runUserFormExample() {
 
   // --- 7. Simulate Form Submission ---
   console.log('\nAttempting form submission...');
-  if (userForm.submitCommand.canExecute$.getValue()) {
-    userForm.submitCommand.execute().subscribe({
-      next: (result) => {
-        console.log('Submission Succeeded (View/Component Level):', result);
+  // Check the canExecute$ subscription log to see if submission is expected to be allowed.
+  // For this example, we'll proceed and let the command handle its internal state.
+  // if (userForm.submitCommand.canExecute$.getValue()) { // canExecute$ is an Observable
+  userForm.submitCommand.execute().subscribe({
+    next: (result: UserData) => { // Added type for result
+      console.log('Submission Succeeded (View/Component Level):', result);
         // userForm.resetForm(); // Optionally reset after successful submission
       },
-      error: (err) => {
+      error: (err: Error) => { // Added type for err
         console.error('Submission Failed (View/Component Level):', err.message);
         // Error is already handled by form's submit logic and global error handler
       },
     });
-  } else {
-    console.error('Cannot submit form, it is not valid or cannot execute.');
-  }
+  // } else { // This was part of the commented out if block
+  //   console.error('Cannot submit form, it is not valid or cannot execute.');
+  // }
 
   await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for submission to complete
 
@@ -189,23 +191,27 @@ export async function runUserFormExample() {
   userForm.updateField('agreeToTerms', true);
   await new Promise((resolve) => setTimeout(resolve, 100));
 
-  if (userForm.submitCommand.canExecute$.getValue()) {
-    userForm.submitCommand.execute().subscribe({
-      next: (result) => console.log('Submission Succeeded (should not happen for errorUser):', result),
-      error: (err) => console.error('Submission Failed for errorUser (View/Component Level):', err.message),
-    });
-  }
+  // if (userForm.submitCommand.canExecute$.getValue()) { // canExecute$ is an Observable - Condition removed
+  userForm.submitCommand.execute().subscribe({
+    next: (result: UserData) => console.log('Submission Succeeded (should not happen for errorUser):', result), // Added type
+    error: (err: Error) => console.error('Submission Failed for errorUser (View/Component Level):', err.message), // Added type
+  });
+  // } // Closing brace for the removed if condition
   await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait
 
   // --- 9. Demonstrate Reset ---
   console.log('\nDemonstrating form reset...');
   userForm.updateField('username', 'DirtyUser');
-  console.log('Form data before reset:', userForm.formData$.getValue());
-  console.log('Is dirty before reset:', userForm.isDirty$.getValue());
+  console.log('Form data before reset:', userForm.formData$.value);
+  // console.log('Is dirty before reset:', userForm.isDirty$.getValue()); // isDirty$ is an Observable
+  console.log('Is dirty before reset: (see subscription log)');
   userForm.resetForm();
-  console.log('Form data after reset:', userForm.formData$.getValue());
-  console.log('Is dirty after reset:', userForm.isDirty$.getValue());
-  console.log('Field errors after reset:', userForm.fieldErrors$.getValue());
+  console.log('Form data after reset:', userForm.formData$.value);
+  // console.log('Is dirty after reset:', userForm.isDirty$.getValue()); // isDirty$ is an Observable
+  console.log('Is dirty after reset: (see subscription log)');
+  // console.log('Field errors after reset:', userForm.fieldErrors$.getValue()); // fieldErrors$ is an Observable
+  console.log('Field errors after reset: (see subscription log)');
+
 
   // --- Cleanup (important if objects have subscriptions that need to be manually managed)
   // userForm.dispose(); // If FormViewModel has subscriptions it manages internally that need explicit cleanup

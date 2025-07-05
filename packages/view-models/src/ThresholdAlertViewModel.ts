@@ -7,7 +7,9 @@ export class ThresholdAlertViewModel extends RestfulApiViewModel<
 > {
   constructor(model: ThresholdAlertModel) {
     super(model);
-    this.model = model;
+    // The 'model' property is already initialized by the super() call
+    // and is accessible as a protected member.
+    // this.model = model; // This line is redundant and can be removed.
   }
 }
 

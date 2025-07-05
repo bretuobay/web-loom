@@ -16,8 +16,9 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "rxjs": ["../../node_modules/rxjs"],
-      "rxjs/*": ["../../node_modules/rxjs/*"]
+      // "rxjs": ["../../node_modules/rxjs"], // Removed to allow standard node resolution
+      // "rxjs/*": ["../../node_modules/rxjs/*"], // Removed
+      "@web-loom/query-core": ["../query-core/dist"]
     },
     /* Linting */
     "strict": true,
@@ -27,6 +28,9 @@
     // in test files for vi to be available
     "types": ["vitest/globals"]
   },
+  "references": [
+    { "path": "../query-core" }
+  ],
   "include": ["src"],
   "exclude": [
     "node_modules",
