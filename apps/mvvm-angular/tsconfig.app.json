@@ -10,7 +10,8 @@
       "@repo/models": ["../../packages/models/src"],
       "@repo/models/*": ["../../packages/models/src/*"],
       "@repo/view-models": ["../../packages/view-models/src"],
-      "@repo/view-models/*": ["../../packages/view-models/src/*"]
+      "@repo/view-models/*": ["../../packages/view-models/src/*"],
+      "@web-loom/mvvm-core": ["../../node_modules/@web-loom/mvvm-core"]
     }
   },
   "references": [

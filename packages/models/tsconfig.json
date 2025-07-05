@@ -8,7 +8,11 @@
     "module": "ESNext", // or "ES2022"
     "target": "ES2022",
     "moduleResolution": "bundler",
-    "rootDir": "src"
+    "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@web-loom/mvvm-core": ["../../node_modules/@web-loom/mvvm-core"]
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
