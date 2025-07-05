@@ -14,6 +14,11 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "rxjs": ["../../node_modules/rxjs"],
+      "rxjs/*": ["../../node_modules/rxjs/*"]
+    },
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

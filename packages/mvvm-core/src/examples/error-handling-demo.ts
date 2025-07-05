@@ -1,7 +1,7 @@
 import { SimpleDIContainer, ServiceRegistry } from '../core/di-container';
 import { GlobalErrorService, HandledError } from '../services/global-error-service';
 import { NotificationService } from '../services/notification-service'; // For showing errors as notifications
-import { Subscription, throwError, timer, of } from 'rxjs';
+import { Observable, Subscription, throwError, timer, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 
 // Augment ServiceRegistry for this example

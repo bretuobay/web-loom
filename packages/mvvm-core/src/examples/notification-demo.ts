@@ -1,4 +1,4 @@
-import { SimpleDIContainer, ServiceRegistry } from '../core/di-container';
+import { SimpleDIContainer } from '../core/di-container';
 import { NotificationService, Notification } from '../services/notification-service';
 import { Subscription } from 'rxjs';
 
@@ -51,7 +51,7 @@ export async function runNotificationDemo() {
   notificationService.showWarning('Please check your input values.', 4000);
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  const errorId = notificationService.showError('An error occurred while processing your request!', 7000);
+  notificationService.showError('An error occurred while processing your request!', 7000); // Removed const errorId
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const persistentInfoId = notificationService.showPersistentInfo(

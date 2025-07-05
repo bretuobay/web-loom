@@ -4,7 +4,7 @@ import { GlobalErrorService } from '../services/global-error-service';
 import { FormViewModel } from '../viewmodels/form-view-model';
 import { QueryableCollectionViewModel } from '../viewmodels/queryable-collection-view-model';
 import { z } from 'zod';
-import { Observable, of } from 'rxjs';
+import { Observable, of, from } from 'rxjs';
 
 // --- 1. Define Application Services and Interfaces (if any) ---
 
@@ -116,18 +116,22 @@ export function initializeApplicationServices() {
     return new FormViewModel<UserProfile, typeof UserProfileSchema, UserProfile>(
       { name: '', email: '' }, // Initial data
       UserProfileSchema,
-      async (data) => {
+      (data) => { // Changed from async (data)
         // Submit handler
         notificationService.showInfo('Submitting profile...', 2000);
         // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        if (data.email.includes('fail')) {
-          const err = new Error("Simulated profile submission error for email containing 'fail'");
-          globalErrorService.handleError(err, 'UserProfileForm.Submit');
-          throw err;
-        }
-        notificationService.showSuccess('Profile submitted successfully!', 3000);
-        return { ...data }; // Return submitted data
+        const promise = new Promise<UserProfile>(async (resolve, reject) => { // Explicit Promise type
+          await new Promise(r => setTimeout(r, 1000));
+          if (data.email.includes('fail')) {
+            const err = new Error("Simulated profile submission error for email containing 'fail'");
+            globalErrorService.handleError(err, 'UserProfileForm.Submit');
+            reject(err);
+          } else {
+            notificationService.showSuccess('Profile submitted successfully!', 3000);
+            resolve({ ...data }); // Return submitted data
+          }
+        });
+        return from(promise); // Convert Promise to Observable
       },
     );
   };
