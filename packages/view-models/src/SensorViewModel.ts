@@ -1,4 +1,4 @@
-import { RestfulApiViewModel } from 'mvvm-core';
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
 
 import { SensorListSchema, type SensorListData, SensorModel } from '@repo/models';
 

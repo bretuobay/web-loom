@@ -1,4 +1,4 @@
-import { createReactiveViewModel, type ViewModelFactoryConfig } from 'mvvm-core';
+import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
 import { type SensorReadingListData, SensorReadingListSchema, sensorReadingsConfig } from '@repo/models';
 
 type TConfig = ViewModelFactoryConfig<SensorReadingListData, typeof SensorReadingListSchema>;

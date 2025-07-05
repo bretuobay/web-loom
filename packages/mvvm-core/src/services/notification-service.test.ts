@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { NotificationService, Notification } from './notification-service';
+import { NotificationService } from './notification-service';
 import { firstValueFrom, skip, Observable, take, filter } from 'rxjs'; // Added filter
 
 // Helper to get the next emitted value from an observable

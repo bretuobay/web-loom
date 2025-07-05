@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TodoListViewModel, TodoItem } from 'mvvm-core';
+import { TodoListViewModel, TodoItem } from '@web-loom/mvvm-core';
 import { TodoListItem } from './TodoListItem';
 
 interface TodoListProps {

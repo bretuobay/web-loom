@@ -1,4 +1,4 @@
-import { RestfulApiModel } from 'mvvm-core';
+import { RestfulApiModel } from '@web-loom/mvvm-core';
 import { SensorReadingListSchema, type SensorReadingListData } from './schemas/sensor-reading.schema';
 import { fetchWithCache } from './utils/fetcher';
 

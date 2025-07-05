@@ -1,4 +1,4 @@
-import { BehaviorSubject, Observable, timer, filter, map, takeUntil } from 'rxjs';
+import { BehaviorSubject, Observable, timer, filter, takeUntil } from 'rxjs';
 
 export interface Notification {
   id: string;

@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { onUnmounted, shallowRef } from 'vue';
-import { TodoListViewModel } from 'mvvm-core';
+import { TodoListViewModel } from '@web-loom/mvvm-core';
 import AddTodoForm from './components/AddTodoForm.vue';
 import TodoList from './components/TodoList.vue';
 

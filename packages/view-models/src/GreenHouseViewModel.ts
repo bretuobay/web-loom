@@ -1,4 +1,4 @@
-import { createReactiveViewModel, type ViewModelFactoryConfig } from 'mvvm-core';
+import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
 
 import { greenHouseConfig } from '@repo/models';
 import { type GreenhouseListData, GreenhouseListSchema, type GreenhouseData } from '@repo/models';

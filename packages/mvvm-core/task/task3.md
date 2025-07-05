@@ -9,7 +9,7 @@ And exposed for use.
 Do not touch existing models & view models.
 
 ```typescript
-import { RestfulApiModel } from 'mvvm-core';
+import { RestfulApiModel } from '@web-loom/mvvm-core';
 import { GreenhouseListSchema, type GreenhouseListData } from './schemas';
 import { nativeFetcher } from './utils/fetcher';
 import { apiRegistry } from './services/services';
@@ -34,7 +34,7 @@ export class GreenHouseModel extends RestfulApiModel<GreenhouseListData, typeof 
 ```
 
 ```typescript
-import { RestfulApiViewModel } from 'mvvm-core';
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
 import { GreenHouseModel } from '../../models/src/GreenHouseModel';
 
 import { type GreenhouseListData, GreenhouseListSchema } from '../../models';

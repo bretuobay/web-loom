@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Includes NgFor, NgClass, DatePipe
-import { thresholdAlertViewModel, ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
+import { sensorViewModel, SensorListData } from '@repo/view-models/SensorViewModel';
 import { Observable } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { BackIconComponent } from '../back-icon/back-icon.component';
@@ -13,8 +13,8 @@ import { BackIconComponent } from '../back-icon/back-icon.component';
   styleUrl: './threshold-alert-list.component.scss',
 })
 export class ThresholdAlertListComponent {
-  public vm = thresholdAlertViewModel;
-  public data$: Observable<ThresholdAlertListData | null>;
+  public vm = sensorViewModel;
+  public data$: Observable<SensorListData | null>;
   public loading$: Observable<boolean>;
   public error$: Observable<any>;
 

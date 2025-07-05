@@ -1,4 +1,4 @@
-import { TodoListViewModel } from 'mvvm-core';
+import { TodoListViewModel } from '@web-loom/mvvm-core';
 import React, { useState, useEffect } from 'react';
 
 interface AddTodoFormProps {

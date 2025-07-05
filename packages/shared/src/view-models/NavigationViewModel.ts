@@ -1,4 +1,4 @@
-import { ObservableCollection } from 'mvvm-core';
+import { ObservableCollection } from '@web-loom/mvvm-core';
 
 export type NavigationListData = {
   id: string;
