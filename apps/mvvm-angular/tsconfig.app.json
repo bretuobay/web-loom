@@ -22,6 +22,9 @@
       "@web-loom/mvvm-core": [
         "../../packages/mvvm-core/src"
       ],
+      "@repo/shared": [
+        "../../packages/shared/src"
+      ],
       "@repo/shared/*": [
         "../../packages/shared/src/*"
       ]
@@ -45,6 +48,7 @@
     "src/main.ts"
   ],
   "include": [
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    "src/types/**/*.d.ts"
   ]
 }
