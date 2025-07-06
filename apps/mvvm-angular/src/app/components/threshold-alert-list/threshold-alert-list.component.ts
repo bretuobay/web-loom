@@ -1,9 +1,13 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, Inject, InjectionToken } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Includes NgFor, NgClass, DatePipe
-import { sensorViewModel, SensorListData } from '@repo/view-models/SensorViewModel';
+import { thresholdAlertViewModel, ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel'; // Changed import
 import { Observable } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { BackIconComponent } from '../back-icon/back-icon.component';
+
+export const THRESHOLD_ALERT_VIEW_MODEL = new InjectionToken<typeof thresholdAlertViewModel>(
+  'THRESHOLD_ALERT_VIEW_MODEL',
+);
 
 @Component({
   selector: 'app-threshold-alert-list',
@@ -11,14 +15,25 @@ import { BackIconComponent } from '../back-icon/back-icon.component';
   imports: [CommonModule, BackIconComponent, RouterLink],
   templateUrl: './threshold-alert-list.component.html',
   styleUrl: './threshold-alert-list.component.scss',
+  providers: [
+    {
+      provide: THRESHOLD_ALERT_VIEW_MODEL,
+      useValue: thresholdAlertViewModel,
+    },
+  ],
 })
-export class ThresholdAlertListComponent {
-  public vm = sensorViewModel;
-  public data$: Observable<SensorListData | null>;
-  public loading$: Observable<boolean>;
-  public error$: Observable<any>;
+export class ThresholdAlertListComponent implements OnInit {
+  public vm: typeof thresholdAlertViewModel; // Changed VM instance
+  public data$!: Observable<ThresholdAlertListData | null>; // Changed data type
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
 
-  constructor() {
+  constructor(@Inject(THRESHOLD_ALERT_VIEW_MODEL) vm: typeof thresholdAlertViewModel) {
+    this.vm = vm;
+  }
+
+  ngOnInit(): void {
+    // Initialize observables and execute commands in ngOnInit
     this.data$ = this.vm.data$;
     this.loading$ = this.vm.isLoading$;
     this.error$ = this.vm.error$;

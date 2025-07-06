@@ -1,8 +1,8 @@
-import { SimpleDIContainer, ServiceRegistry } from '../core/di-container';
+import { SimpleDIContainer } from '../core/di-container'; // ServiceRegistry removed
 import { GlobalErrorService, HandledError } from '../services/global-error-service';
 import { NotificationService } from '../services/notification-service'; // For showing errors as notifications
 import { Observable, Subscription, throwError, timer, of } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators'; // switchMap removed
 
 // Augment ServiceRegistry for this example
 declare module '../core/di-container' {

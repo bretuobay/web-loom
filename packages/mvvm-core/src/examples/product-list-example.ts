@@ -1,6 +1,6 @@
 import { QueryableCollectionViewModel } from '../viewmodels/queryable-collection-view-model';
-import { SimpleDIContainer, ServiceRegistry } from '../core/di-container';
-import { Observable, Subscription } from 'rxjs';
+import { SimpleDIContainer } from '../core/di-container'; // ServiceRegistry removed
+import { Subscription } from 'rxjs'; // Observable removed
 
 // Augment ServiceRegistry for this example
 declare module '../core/di-container' {
@@ -51,15 +51,18 @@ function setupDI() {
 // --- 3. Helper to display collection state ---
 function displayProductState(vm: QueryableCollectionViewModel<Product>, title: string) {
   console.log(`\n--- ${title} ---`);
-  console.log(`Page: ${vm.currentPage$.getValue()} / ${vm.totalPages$.getValue()}`);
-  console.log(`Page Size: ${vm.pageSize$.getValue()}`);
-  console.log(`Total Items (after filter): ${vm.totalItems$.getValue()}`);
-  console.log(`Sort: ${vm.sortBy$.getValue() || 'N/A'} (${vm.sortDirection$.getValue()})`);
-  console.log(`Filter: "${vm.filterBy$.getValue() || 'N/A'}"`);
-  console.log('Items on current page:');
-  vm.paginatedItems$.getValue().forEach((p) => {
-    console.log(`  - ID: ${p.id}, Name: ${p.name}, Price: $${p.price}, Rating: ${p.rating}, Category: ${p.category}`);
-  });
+  console.log(`Page: ${vm.currentPage$.value} / (see subscription for totalPages)`);
+  console.log(`Page Size: ${vm.pageSize$.value}`);
+  console.log(`Total Items (after filter): (see subscription for totalItems)`);
+  console.log(`Sort: ${vm.sortBy$.value || 'N/A'} (${vm.sortDirection$.value})`);
+  console.log(`Filter: "${vm.filterBy$.value || 'N/A'}"`);
+  // console.log('Items on current page:');
+  // // The paginatedItems$ is an Observable. To see its content, subscribe to it.
+  // // This synchronous log would require QueryableCollectionViewModel to store the last emitted value.
+  // // For this example, the subscription below already logs changes.
+  // // vm.paginatedItems$.getValue().forEach((p) => {
+  // //   console.log(`  - ID: ${p.id}, Name: ${p.name}, Price: $${p.price}, Rating: ${p.rating}, Category: ${p.category}`);
+  // // });
 }
 
 // --- 4. Main Example Logic ---

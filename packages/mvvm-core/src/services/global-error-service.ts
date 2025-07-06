@@ -1,4 +1,4 @@
-import { Subject, Observable, filter } from 'rxjs';
+import { Subject, Observable } from 'rxjs'; // filter removed
 
 export interface HandledError {
   error: any;
