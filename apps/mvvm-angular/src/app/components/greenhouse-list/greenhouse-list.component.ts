@@ -1,4 +1,3 @@
-// @ts-ignore
 import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
