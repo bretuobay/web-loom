@@ -1,4 +1,4 @@
-import { Component, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, AfterViewInit, ElementRef, ViewChild, OnInit, Inject, InjectionToken } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Includes NgFor, DatePipe, NgIf, AsyncPipe
 import { sensorReadingViewModel, SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
 import { Observable } from 'rxjs';
@@ -6,24 +6,36 @@ import { Chart } from 'chart.js/auto';
 import { RouterLink } from '@angular/router';
 import { BackIconComponent } from '../back-icon/back-icon.component';
 
+export const SENSOR_READING_VIEW_MODEL = new InjectionToken<typeof sensorReadingViewModel>('SENSOR_READING_VIEW_MODEL');
+
 @Component({
   selector: 'app-sensor-reading-list',
   standalone: true,
   imports: [CommonModule, BackIconComponent, RouterLink],
   templateUrl: './sensor-reading-list.component.html',
   styleUrl: './sensor-reading-list.component.scss',
+  providers: [
+    {
+      provide: SENSOR_READING_VIEW_MODEL,
+      useValue: sensorReadingViewModel,
+    },
+  ],
 })
-export class SensorReadingListComponent implements AfterViewInit {
-  public vm = sensorReadingViewModel;
-  public data$: Observable<SensorReadingListData | null>;
-  public loading$: Observable<boolean>;
-  public error$: Observable<any>;
+export class SensorReadingListComponent implements OnInit, AfterViewInit {
+  public vm: typeof sensorReadingViewModel;
+  public data$!: Observable<SensorReadingListData | null>;
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
 
   @ViewChild('readingsListChart')
   readingsListChartRef?: ElementRef<HTMLCanvasElement>;
   private chartInstance?: Chart;
 
-  constructor() {
+  constructor(@Inject(SENSOR_READING_VIEW_MODEL) vm: typeof sensorReadingViewModel) {
+    this.vm = vm;
+  }
+
+  ngOnInit(): void {
     this.data$ = this.vm.data$;
     this.loading$ = this.vm.isLoading$;
     this.error$ = this.vm.error$;

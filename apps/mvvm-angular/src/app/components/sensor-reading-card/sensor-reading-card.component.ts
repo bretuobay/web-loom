@@ -1,9 +1,11 @@
-import { Component, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, AfterViewInit, ElementRef, ViewChild, OnInit, Inject, InjectionToken } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { sensorReadingViewModel, SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
 import { Observable } from 'rxjs';
 import { Chart } from 'chart.js/auto';
+
+export const SENSOR_READING_VIEW_MODEL = new InjectionToken<typeof sensorReadingViewModel>('SENSOR_READING_VIEW_MODEL');
 
 @Component({
   selector: 'app-sensor-reading-card',
@@ -11,17 +13,27 @@ import { Chart } from 'chart.js/auto';
   imports: [RouterModule, CommonModule],
   templateUrl: './sensor-reading-card.component.html',
   styleUrl: './sensor-reading-card.component.scss',
+  providers: [
+    {
+      provide: SENSOR_READING_VIEW_MODEL,
+      useValue: sensorReadingViewModel,
+    },
+  ],
 })
-export class SensorReadingCardComponent implements AfterViewInit {
-  public vm = sensorReadingViewModel;
-  public data$: Observable<SensorReadingListData | null>;
-  public loading$: Observable<boolean>;
-  public error$: Observable<any>;
+export class SensorReadingCardComponent implements OnInit, AfterViewInit {
+  public vm: typeof sensorReadingViewModel;
+  public data$!: Observable<SensorReadingListData | null>;
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
 
   @ViewChild('readingsChart') readingsChartRef?: ElementRef<HTMLCanvasElement>;
   private chartInstance?: Chart;
 
-  constructor() {
+  constructor(@Inject(SENSOR_READING_VIEW_MODEL) vm: typeof sensorReadingViewModel) {
+    this.vm = vm;
+  }
+
+  ngOnInit(): void {
     this.data$ = this.vm.data$;
     this.loading$ = this.vm.isLoading$;
     this.error$ = this.vm.error$;

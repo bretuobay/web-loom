@@ -1,5 +1,5 @@
 // @ts-ignore
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { GreenhouseData, greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
@@ -7,18 +7,26 @@ import { BackIconComponent } from '../back-icon/back-icon.component';
 import { Observable, Subscription, tap } from 'rxjs';
 import { RouterLink } from '@angular/router';
 
+export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>('GREENHOUSE_VIEW_MODEL');
+
 @Component({
   selector: 'app-greenhouse-list',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, BackIconComponent, RouterLink],
   templateUrl: './greenhouse-list.component.html',
   styleUrls: ['./greenhouse-list.component.scss'],
+  providers: [
+    {
+      provide: GREENHOUSE_VIEW_MODEL,
+      useValue: greenHouseViewModel,
+    },
+  ],
 })
 export class GreenhouseListComponent implements OnInit, OnDestroy {
-  public vm = greenHouseViewModel;
-  public greenhouses$: Observable<GreenhouseData[] | null>;
-  public loading$: Observable<boolean>;
-  public error$: Observable<any>;
+  public vm: typeof greenHouseViewModel;
+  public greenhouses$!: Observable<GreenhouseData[] | null>;
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
 
   greenhouseForm: FormGroup;
   editingGreenhouseId: string | null | undefined = null;
@@ -27,7 +35,11 @@ export class GreenhouseListComponent implements OnInit, OnDestroy {
 
   greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
 
-  constructor(private fb: FormBuilder) {
+  constructor(
+    private fb: FormBuilder,
+    @Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel,
+  ) {
+    this.vm = vm;
     this.greenhouseForm = this.fb.group({
       name: ['', Validators.required],
       location: ['', Validators.required],
@@ -35,13 +47,14 @@ export class GreenhouseListComponent implements OnInit, OnDestroy {
       cropType: [''],
       id: [''], // Optional field for editing
     });
+  }
+
+  ngOnInit(): void {
     // @ts-ignore
     this.greenhouses$ = this.vm.data$.pipe(tap((ghs) => (this.greenhouses = ghs || [])));
     this.loading$ = this.vm.isLoading$;
     this.error$ = this.vm.error$;
-  }
 
-  ngOnInit(): void {
     this.vm.fetchCommand.execute();
     this.greenhousesSubscription = this.greenhouses$.subscribe();
   }
