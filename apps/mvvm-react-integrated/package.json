@@ -8,15 +8,16 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "concurrently \"npm:dev --prefix ../api\" \"vitest\" --kill-others --success first -n \"API,Vitest\" -c \"bgBlue.bold,bgGreen.bold\""
   },
   "dependencies": {
-    "@repo/view-models": "*",
     "@repo/shared": "*",
+    "@repo/view-models": "*",
     "@web-loom/design-core": "*",
-    "@web-loom/store-core": "*",
-    "@web-loom/query-core": "*",
     "@web-loom/event-bus-core": "*",
+    "@web-loom/query-core": "*",
+    "@web-loom/store-core": "*",
     "chart.js": "^4.4.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -24,17 +25,22 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@playwright/test": "^1.53.2",
     "@types/chart.js": "^2.9.41",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react-swc": "^3.9.0",
+    "@vitest/browser": "^3.2.4",
+    "concurrently": "^9.0.1",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
+    "npm-run-all": "^4.1.5",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "@types/node": "^24.0.10"
   }
 }

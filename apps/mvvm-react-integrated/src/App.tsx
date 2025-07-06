@@ -1,6 +1,8 @@
 import '@repo/shared/styles';
 import './App.css';
-import '@web-loom/design-core/design-system/index.css';
+// import '@web-loom/design-core/design-system/index.css';
+import '@repo/shared/styles';
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import { GreenhouseList } from './components/GreenhouseList';
