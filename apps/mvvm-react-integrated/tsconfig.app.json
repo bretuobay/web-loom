@@ -24,8 +24,7 @@
         "../../packages/design-core/src"
       ],
       "@web-loom/design-core/*": [
-        "../../packages/design-core/src/*",
-        "../../packages/design-core/*"
+        "../../packages/design-core/src/*"
       ],
       "@web-loom/store-core": [
         "../../packages/store-core/src"
@@ -71,7 +70,9 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "types": ["@vitest/browser/providers/playwright"]
+    "types": [
+      "@vitest/browser/providers/playwright"
+    ]
   },
   "include": [
     "src"
