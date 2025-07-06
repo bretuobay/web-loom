@@ -7,13 +7,24 @@
     "types": [],
     "baseUrl": ".",
     "paths": {
-      "@repo/models": ["../../packages/models/src"],
-      "@repo/models/*": ["../../packages/models/src/*"],
-      "@repo/view-models": ["../../packages/view-models/src"],
-      "@repo/view-models/*": ["../../packages/view-models/src/*"],
-      "@web-loom/mvvm-core": ["../../packages/mvvm-core/dist"],
-      "@repo/shared": ["../../packages/shared/src"],
-      "@repo/shared/*": ["../../packages/shared/src/*"]
+      "@repo/models": [
+        "../../packages/models/src"
+      ],
+      "@repo/models/*": [
+        "../../packages/models/src/*"
+      ],
+      "@repo/view-models": [
+        "../../packages/view-models/src"
+      ],
+      "@repo/view-models/*": [
+        "../../packages/view-models/src/*"
+      ],
+      "@web-loom/mvvm-core": [
+        "../../packages/mvvm-core/src"
+      ],
+      "@repo/shared/*": [
+        "../../packages/shared/src/*"
+      ]
     }
   },
   "references": [
@@ -30,6 +41,10 @@
       "path": "../../packages/shared/tsconfig.json"
     }
   ],
-  "files": ["src/main.ts"],
-  "include": ["src/**/*.d.ts"]
+  "files": [
+    "src/main.ts"
+  ],
+  "include": [
+    "src/**/*.d.ts"
+  ]
 }

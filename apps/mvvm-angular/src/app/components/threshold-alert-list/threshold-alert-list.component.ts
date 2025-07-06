@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Includes NgFor, NgClass, DatePipe
 import { thresholdAlertViewModel, ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel'; // Changed import
 import { Observable } from 'rxjs';
@@ -12,13 +12,18 @@ import { BackIconComponent } from '../back-icon/back-icon.component';
   templateUrl: './threshold-alert-list.component.html',
   styleUrl: './threshold-alert-list.component.scss',
 })
-export class ThresholdAlertListComponent {
+export class ThresholdAlertListComponent implements OnInit {
   public vm = thresholdAlertViewModel; // Changed VM instance
-  public data$: Observable<ThresholdAlertListData | null>; // Changed data type
-  public loading$: Observable<boolean>;
-  public error$: Observable<any>;
+  public data$!: Observable<ThresholdAlertListData | null>; // Changed data type
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
 
   constructor() {
+    // Constructor should only be used for dependency injection
+  }
+
+  ngOnInit(): void {
+    // Initialize observables and execute commands in ngOnInit
     this.data$ = this.vm.data$;
     this.loading$ = this.vm.isLoading$;
     this.error$ = this.vm.error$;

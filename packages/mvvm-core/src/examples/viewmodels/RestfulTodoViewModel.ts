@@ -90,7 +90,7 @@ export class RestfulTodoViewModel extends RestfulApiViewModel<RestfulTodoListDat
     }
   }
 
-  public dispose(): void {
+  public override dispose(): void {
     super.dispose(); // Disposes base commands (fetch, create, update, delete)
     this.addTodoCommand.dispose();
     this.updateTodoCommand.dispose();

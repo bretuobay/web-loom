@@ -3,7 +3,11 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "skipLibCheck": true,
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -18,7 +22,9 @@
     "paths": {
       // "rxjs": ["../../node_modules/rxjs"], // Removed to allow standard node resolution
       // "rxjs/*": ["../../node_modules/rxjs/*"], // Removed
-      "@web-loom/query-core": ["../query-core/dist"]
+      "@web-loom/query-core": [
+        "../query-core/dist"
+      ]
     },
     /* Linting */
     "strict": true,
@@ -26,12 +32,18 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     // in test files for vi to be available
-    "types": ["vitest/globals"]
+    "types": [
+      "vitest/globals"
+    ]
   },
   "references": [
-    { "path": "../query-core" }
+    {
+      "path": "../query-core"
+    }
   ],
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "exclude": [
     "node_modules",
     "dist",

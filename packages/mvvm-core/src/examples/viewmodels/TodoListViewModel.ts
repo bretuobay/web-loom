@@ -64,7 +64,7 @@ export class TodoListViewModel extends BaseViewModel<DummyModel> {
     }
   }
 
-  public dispose(): void {
+  public override dispose(): void {
     super.dispose();
     this._newTodoText$.complete();
     this.todos.toArray().forEach((todo) => todo.dispose());

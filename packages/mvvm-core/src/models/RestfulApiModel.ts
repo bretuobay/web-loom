@@ -477,7 +477,7 @@ export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> extends Ba
    * Any RestfulApiModel-specific resources, such as pending API request cancellation logic
    * (if the `fetcher` supported it), would be handled here in the future.
    */
-  public dispose(): void {
+  public override dispose(): void {
     super.dispose(); // Call if BaseModel has a dispose method
     // Add any RestfulApiModel specific cleanup here if needed in the future
     // e.g., cancelling ongoing fetch requests if the fetcher supported it.
