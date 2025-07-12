@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Greenhouse } from '@repo/models';
 
-export const GreenhouseCard = ({ greenhouse }: { greenhouse: Greenhouse }) => {
+export const GreenhouseCard = ({ greenhouse }: { greenhouse: any }) => {
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{greenhouse.name}</Text>
