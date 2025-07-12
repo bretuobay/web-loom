@@ -1,0 +1,32 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": [
+    "//",
+    "//!"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*"
+      ],
+      "outputs": [
+        "dist/**",
+        "build/**"
+      ]
+    },
+    "lint": {},
+    "start": {
+      "cache": false
+    },
+    "ios": {
+      "cache": false
+    },
+    "android": {
+      "cache": false
+    }
+  }
+}
