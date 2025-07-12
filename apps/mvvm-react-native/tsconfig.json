@@ -1,0 +1,20 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@repo/view-models": [
+        "../../packages/view-models/src"
+      ],
+      "@repo/view-models/*": [
+        "../../packages/view-models/src/*"
+      ],
+      "@repo/models": [
+        "../../packages/models/src"
+      ],
+      "@repo/models/*": [
+        "../../packages/models/src/*"
+      ],
+    }
+  }
+}
