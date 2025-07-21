@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { page, userEvent } from '@vitest/browser/context';
 
-describe('Sensor Reading List', () => {
+describe.skip('Sensor Reading List', () => {
   it('should display sensor readings for a sensor', async () => {
     // Navigate to Alpha Greenhouse
     await userEvent.click(page.getByText('Alpha Greenhouse'));

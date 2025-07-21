@@ -1,6 +1,6 @@
 import { RestfulApiViewModel } from '../../viewmodels/RestfulApiViewModel'; // Adjusted path
 import { RestfulTodoListModel } from '../models/RestfulTodoModel'; // Adjusted path
-import { RestfulTodoData, RestfulTodoListData, RestfulTodoListSchema } from '../models/RestfulTodoSchema'; // Adjusted path
+import type { RestfulTodoData, RestfulTodoListData, RestfulTodoListSchema } from '../models/RestfulTodoSchema'; // Adjusted path
 import { Command } from '../../commands/Command'; // Adjusted path
 import { Observable } from 'rxjs';
 

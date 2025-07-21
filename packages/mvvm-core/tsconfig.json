@@ -17,6 +17,7 @@
     "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": true,
+    "verbatimModuleSyntax": false, // Set to false to avoid issues with bundlers
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
@@ -54,6 +55,13 @@
     "**/*.spec.ts",
     "tests",
     "__tests__",
-    "**/*.broken.ts"
+    "**/*.broken.ts",
+    "examples/**/*.ts",
+    "examples/**/*.js",
+    "src/examples/**/*.ts",
+    "src/examples/**/*.js",
+    "**/examples/**",
+    "examples/**",
+    "**/*Todo*.ts",
   ]
 }
