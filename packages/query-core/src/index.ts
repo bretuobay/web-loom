@@ -8,5 +8,4 @@ export { QueryCore };
 export { InMemoryCacheProvider } from './cacheProviders/InMemoryCacheProvider';
 export { LocalStorageCacheProvider } from './cacheProviders/LocalStorageCacheProvider';
 export { IndexedDBCacheProvider } from './cacheProviders/IndexedDBCacheProvider';
-export { SqliteCacheProvider } from './cacheProviders/SqliteCacheProvider';
 export type { CacheProvider, CachedItem } from './cacheProviders/CacheProvider';

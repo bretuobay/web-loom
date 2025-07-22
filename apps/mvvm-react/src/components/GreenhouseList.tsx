@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
 import { useObservable } from '../hooks/useObservable';
 import BackArrow from '../assets/back-arrow.svg';
 import { Link } from 'react-router-dom';
@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 const greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
 
 export function GreenhouseList() {
-  const greenHouses = useObservable(greenHouseViewModel.data$, []);
+  const greenHouses = useObservable(greenHouseViewModel.data$, [] as GreenhouseData[]);
 
   useEffect(() => {
     const fetchData = async () => {

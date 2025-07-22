@@ -1,4 +1,4 @@
-import { CacheProvider, CachedItem } from './CacheProvider';
+import type { CacheProvider, CachedItem } from './CacheProvider';
 
 const PREFIX = 'QueryCore_';
 

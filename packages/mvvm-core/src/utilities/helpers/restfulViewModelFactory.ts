@@ -1,5 +1,5 @@
 import { ZodSchema } from 'zod';
-import { RestfulApiModel, TConstructorInput } from '../../models/RestfulApiModel';
+import { RestfulApiModel, type TConstructorInput } from '../../models/RestfulApiModel';
 import { RestfulApiViewModel } from '../../viewmodels/RestfulApiViewModel';
 
 /**
