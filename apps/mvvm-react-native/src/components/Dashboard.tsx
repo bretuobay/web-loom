@@ -1,34 +1,27 @@
-import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
-import { sensorViewModel } from '@repo/view-models/SensorViewModel';
-import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
 import React, { useEffect } from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { useObservable } from '../hooks/useObservable';
+import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
+import { GreenhouseCard } from './GreenhouseCard';
 
 const Dashboard = ({ navigation }: { navigation: any }) => {
+  const greenHouses = useObservable(greenHouseViewModel.data$, [] as GreenhouseData[]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         await greenHouseViewModel.fetchCommand.execute();
-        await sensorViewModel.fetchCommand.execute();
-        await sensorReadingViewModel.fetchCommand.execute();
-        await thresholdAlertViewModel.fetchCommand.execute();
       } catch (error) {
-        console.error('Error fetching data:', error);
-        // Optionally, set an error state here to display to the user
+        console.error('Error fetching greenhouses:', error);
       }
     };
-
     fetchData();
-  }, []); // Empty dependency array ensures this runs once on mount
+  }, []);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Dashboard</Text>
-      <Button title="Greenhouses" onPress={() => navigation.navigate('Greenhouses')} />
-      <Button title="Sensors" onPress={() => navigation.navigate('Sensors')} />
-      <Button title="Sensor Readings" onPress={() => navigation.navigate('SensorReadings')} />
-      <Button title="Threshold Alerts" onPress={() => navigation.navigate('ThresholdAlerts')} />
+      <GreenhouseCard greenHouses={greenHouses} navigation={navigation} />
     </View>
   );
 };
@@ -36,12 +29,11 @@ const Dashboard = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 10,
   },
   title: {
     fontSize: 24,
-    marginBottom: 20,
+    marginBottom: 10,
   },
 });
 
