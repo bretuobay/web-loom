@@ -1,12 +1,11 @@
 import React from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { GreenhouseViewModel } from '@repo/view-models';
 import { useObservable } from '../hooks/useObservable';
 import { GreenhouseCard } from './GreenhouseCard';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 
 export const GreenhouseList = () => {
-  const greenhouseViewModel = new GreenhouseViewModel();
-  const greenhouses = useObservable(greenhouseViewModel.greenhouses$);
+  const greenhouses = useObservable(greenHouseViewModel.data$);
 
   return (
     <View style={styles.container}>
@@ -14,7 +13,7 @@ export const GreenhouseList = () => {
       <FlatList
         data={greenhouses}
         renderItem={({ item }) => <GreenhouseCard greenhouse={item} />}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item?.id?.toString() ?? 'unknown'}
       />
     </View>
   );

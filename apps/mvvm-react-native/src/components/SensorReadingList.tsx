@@ -1,12 +1,11 @@
 import React from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { SensorReadingViewModel } from '@repo/view-models';
 import { useObservable } from '../hooks/useObservable';
 import { SensorReadingCard } from './SensorReadingCard';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
 
 export const SensorReadingList = () => {
-  const sensorReadingViewModel = new SensorReadingViewModel();
-  const sensorReadings = useObservable(sensorReadingViewModel.sensorReadings$);
+  const sensorReadings = useObservable(sensorReadingViewModel.data$);
 
   return (
     <View style={styles.container}>
@@ -14,7 +13,7 @@ export const SensorReadingList = () => {
       <FlatList
         data={sensorReadings}
         renderItem={({ item }) => <SensorReadingCard sensorReading={item} />}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item?.id?.toString() ?? 'unknown'}
       />
     </View>
   );
