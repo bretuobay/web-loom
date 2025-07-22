@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LocalStorageCacheProvider } from '../LocalStorageCacheProvider';
-import { CachedItem } from '../CacheProvider';
+import type { CachedItem } from '../CacheProvider';
 
 // Mock console functions
 let consoleWarnSpy: vi.SpyInstance;
 let consoleErrorSpy: vi.SpyInstance;
 let consoleLogSpy: vi.SpyInstance;
-
 
 const PREFIX = 'QueryCore_'; // As defined in LocalStorageCacheProvider
 
@@ -74,13 +73,15 @@ describe('LocalStorageCacheProvider', () => {
     // Instead, we'll mock `localStorage` to be an object with spied methods that *delegate* to `mockLocalStorageObject`.
 
     global.localStorage = {
-        ...mockLocalStorageObject, // Spread existing items if any (should be empty from reset)
-        getItem: localStorageSpies.getItem,
-        setItem: localStorageSpies.setItem,
-        removeItem: localStorageSpies.removeItem,
-        clear: localStorageSpies.clear,
-        key: localStorageSpies.key,
-        get length() { return localStorageSpies.lengthGetter(); }
+      ...mockLocalStorageObject, // Spread existing items if any (should be empty from reset)
+      getItem: localStorageSpies.getItem,
+      setItem: localStorageSpies.setItem,
+      removeItem: localStorageSpies.removeItem,
+      clear: localStorageSpies.clear,
+      key: localStorageSpies.key,
+      get length() {
+        return localStorageSpies.lengthGetter();
+      },
     } as any;
 
     cacheProvider = new LocalStorageCacheProvider(); // Create instance first
@@ -130,7 +131,6 @@ describe('LocalStorageCacheProvider', () => {
     // Ensure console spies are also active if they were cleared by vi.clearAllMocks()
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-
     const retrieved = await cacheProvider.get<{ value: string }>(key);
     // isSupported is called once in get
     expect(isSupportedSpy).toHaveBeenCalledTimes(1);
@@ -164,7 +164,6 @@ describe('LocalStorageCacheProvider', () => {
     // Ensure console spies are also active
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-
     const retrieved = await cacheProvider.get<string>(key);
     expect(retrieved).toEqual(newItem);
   });
@@ -178,7 +177,6 @@ describe('LocalStorageCacheProvider', () => {
     isSupportedSpy.mockReturnValue(true);
     // Ensure console spies are also active
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
 
     await cacheProvider.remove(key); // isSupported: 1, removeItem: 1
     expect(isSupportedSpy).toHaveBeenCalledTimes(1);
@@ -207,7 +205,7 @@ describe('LocalStorageCacheProvider', () => {
     // and ensure its keys are enumerable.
 
     mockLocalStorageObject['otherKey'] = 'otherData';
-    mockLocalStorageObject[PREFIX + 'preExistingKey'] = JSON.stringify({ data: 'preExisting', lastUpdated: 0});
+    mockLocalStorageObject[PREFIX + 'preExistingKey'] = JSON.stringify({ data: 'preExisting', lastUpdated: 0 });
 
     const item1: CachedItem<string> = { data: 'data1', lastUpdated: Date.now() };
     // Use the provider to set items, which will use the mocked isSupported(true)
@@ -237,25 +235,28 @@ describe('LocalStorageCacheProvider', () => {
     // We also need to ensure that when the provider calls localStorage.X (like removeItem),
     // it hits our spies.
     Object.assign(global.localStorage, {
-        getItem: localStorageSpies.getItem,
-        setItem: localStorageSpies.setItem,
-        removeItem: localStorageSpies.removeItem,
-        clear: localStorageSpies.clear,
-        key: localStorageSpies.key,
-        get length() { return localStorageSpies.lengthGetter(); }
+      getItem: localStorageSpies.getItem,
+      setItem: localStorageSpies.setItem,
+      removeItem: localStorageSpies.removeItem,
+      clear: localStorageSpies.clear,
+      key: localStorageSpies.key,
+      get length() {
+        return localStorageSpies.lengthGetter();
+      },
     });
-
 
     // IMPORTANT: Re-assign global.localStorage right before clearAll to ensure the
     // for...in loop in the provider sees the most up-to-date keys from mockLocalStorageObject.
     global.localStorage = {
-        ...mockLocalStorageObject,
-        getItem: localStorageSpies.getItem,
-        setItem: localStorageSpies.setItem,
-        removeItem: localStorageSpies.removeItem,
-        clear: localStorageSpies.clear,
-        key: localStorageSpies.key,
-        get length() { return localStorageSpies.lengthGetter(); }
+      ...mockLocalStorageObject,
+      getItem: localStorageSpies.getItem,
+      setItem: localStorageSpies.setItem,
+      removeItem: localStorageSpies.removeItem,
+      clear: localStorageSpies.clear,
+      key: localStorageSpies.key,
+      get length() {
+        return localStorageSpies.lengthGetter();
+      },
     } as any;
 
     await cacheProvider.clearAll();
@@ -271,9 +272,11 @@ describe('LocalStorageCacheProvider', () => {
     expect(localStorageSpies.removeItem).toHaveBeenCalledTimes(2);
 
     // Verify cache state using the provider
-    vi.clearAllMocks(); isSupportedSpy.mockReturnValue(true);
+    vi.clearAllMocks();
+    isSupportedSpy.mockReturnValue(true);
     expect(await cacheProvider.get('key1')).toBeUndefined();
-    vi.clearAllMocks(); isSupportedSpy.mockReturnValue(true);
+    vi.clearAllMocks();
+    isSupportedSpy.mockReturnValue(true);
     expect(await cacheProvider.get('preExistingKey')).toBeUndefined();
 
     // Verify non-QueryCore item remains in the underlying store
@@ -294,7 +297,7 @@ describe('LocalStorageCacheProvider', () => {
     const key = 'lsCorruptedKey';
 
     // Setup getItem spy to return corrupted JSON for this specific key
-    localStorageSpies.getItem.mockImplementation(k => {
+    localStorageSpies.getItem.mockImplementation((k) => {
       if (k === PREFIX + key) return 'this is not valid json';
       return null;
     });
@@ -305,7 +308,7 @@ describe('LocalStorageCacheProvider', () => {
     expect(retrieved).toBeUndefined();
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       `QueryCore: Error parsing LocalStorage item for key "${key}":`,
-      expect.any(Error)
+      expect.any(Error),
     );
     // Check if the corrupted item was removed
     expect(localStorageSpies.removeItem).toHaveBeenCalledTimes(1);
@@ -314,35 +317,39 @@ describe('LocalStorageCacheProvider', () => {
 
   describe('LocalStorage Not Supported', () => {
     beforeEach(() => {
-        // Restore original isSupported for this block, so it can execute its logic
-        isSupportedSpy.mockRestore();
+      // Restore original isSupported for this block, so it can execute its logic
+      isSupportedSpy.mockRestore();
 
-        // Simulate localStorage not being available or throwing on access
-        // This setup makes localStorage.setItem in isSupported throw
-        Object.defineProperty(global, 'localStorage', {
-          value: {
-            setItem: () => { throw new Error('Simulated Storage Error'); },
-            // getItem, removeItem etc. could also be made to throw or be null
-            // depending on how isSupported() is expected to fail.
-            // The original isSupported() tries setItem then removeItem.
+      // Simulate localStorage not being available or throwing on access
+      // This setup makes localStorage.setItem in isSupported throw
+      Object.defineProperty(global, 'localStorage', {
+        value: {
+          setItem: () => {
+            throw new Error('Simulated Storage Error');
           },
-          writable: true,
-          configurable: true,
-        });
+          // getItem, removeItem etc. could also be made to throw or be null
+          // depending on how isSupported() is expected to fail.
+          // The original isSupported() tries setItem then removeItem.
+        },
+        writable: true,
+        configurable: true,
+      });
 
-        // Re-initialize cacheProvider to make it run its internal isSupported check
-        // with the faulty localStorage.
-        cacheProvider = new LocalStorageCacheProvider();
-        // At this point, isSupported() within the constructor or first method call
-        // would have failed and logged a warning.
-        // We need to clear console.warn mock if we want to assert specific call for this test block.
-        vi.clearAllMocks(); // Clears console.warn calls from potential previous instantiations
+      // Re-initialize cacheProvider to make it run its internal isSupported check
+      // with the faulty localStorage.
+      cacheProvider = new LocalStorageCacheProvider();
+      // At this point, isSupported() within the constructor or first method call
+      // would have failed and logged a warning.
+      // We need to clear console.warn mock if we want to assert specific call for this test block.
+      vi.clearAllMocks(); // Clears console.warn calls from potential previous instantiations
     });
 
     it('isSupported() should return false and log warning', async () => {
-        // Trigger an operation to ensure the check runs and logs
-        await cacheProvider.get('anykey');
-        expect(console.warn).toHaveBeenCalledWith('QueryCore: LocalStorage is not available. Caching will be disabled for LocalStorageCacheProvider.');
+      // Trigger an operation to ensure the check runs and logs
+      await cacheProvider.get('anykey');
+      expect(console.warn).toHaveBeenCalledWith(
+        'QueryCore: LocalStorage is not available. Caching will be disabled for LocalStorageCacheProvider.',
+      );
     });
 
     it('get should return undefined if localStorage is not supported', async () => {
@@ -376,7 +383,7 @@ describe('LocalStorageCacheProvider', () => {
 
     // Make the actual localStorage.setItem (the mock one) throw an error
     (localStorageSpies.setItem as vi.Mock).mockImplementationOnce(() => {
-        throw setItemError;
+      throw setItemError;
     });
 
     await cacheProvider.set(key, item); // isSupported: 1 (true), setItem: 1 (throws)
@@ -384,8 +391,8 @@ describe('LocalStorageCacheProvider', () => {
     expect(isSupportedSpy).toHaveBeenCalledTimes(1);
     expect(localStorageSpies.setItem).toHaveBeenCalledTimes(1); // Attempted to set
     expect(console.error).toHaveBeenCalledWith(
-        `QueryCore: Error setting LocalStorage item for key "${key}":`,
-        setItemError
+      `QueryCore: Error setting LocalStorage item for key "${key}":`,
+      setItemError,
     );
 
     // The item should not be in cache if setItem failed
@@ -396,5 +403,4 @@ describe('LocalStorageCacheProvider', () => {
 
     expect(await cacheProvider.get(key)).toBeUndefined();
   });
-
 });

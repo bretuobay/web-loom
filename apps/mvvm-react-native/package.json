@@ -14,7 +14,7 @@
     "@repo/shared": "*",
     "expo": "~53.0.17",
     "expo-status-bar": "~2.2.3",
-    "react": "19.0.0",
+    "react": "19.1.0",
     "react-native": "0.79.5",
     "@react-navigation/native": "^6.1.7",
     "@react-navigation/stack": "^6.3.17",

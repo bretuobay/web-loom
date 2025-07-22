@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
-import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { sensorReadingViewModel, type SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
 import { useObservable } from '../hooks/useObservable';
 import { Link } from 'react-router-dom';
 import BackArrow from '../assets/back-arrow.svg';
 
 export function SensorReadingList() {
-  const readingList = useObservable(sensorReadingViewModel.data$, []);
+  const readingList = useObservable(sensorReadingViewModel.data$, [] as SensorReadingListData);
 
   useEffect(() => {
     const fetchData = async () => {

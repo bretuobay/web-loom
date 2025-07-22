@@ -15,7 +15,8 @@
     "@types/node": "^22.15.3",
     "eslint": "^9.26.0",
     "jest": "^29.7.0",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "@web-loom/mvvm-core": "*"
   },
   "dependencies": {
     "@repo/models": "*"
