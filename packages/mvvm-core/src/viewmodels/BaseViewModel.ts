@@ -24,7 +24,7 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
   // New: Observable for detailed Zod validation errors
   public readonly validationErrors$: Observable<ZodError | null>;
 
-  constructor(protected readonly model: TModel) {
+  constructor(public model: TModel) {
     if (!model) {
       throw new Error('BaseViewModel requires an instance of BaseModel in its constructor.');
     }

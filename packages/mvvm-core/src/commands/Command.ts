@@ -1,6 +1,6 @@
 import { BehaviorSubject, Observable, isObservable, of, Subscription } from 'rxjs';
 import { first, map, switchMap } from 'rxjs/operators';
-import { IDisposable } from '../models/BaseModel'; // Adjust path as necessary
+import type { IDisposable } from '../models/BaseModel'; // Adjust path as necessary
 
 /**
  * @interface ICommand
@@ -57,7 +57,6 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
     // console.log('[Command Constructor] _executeError$ before init:', this._executeError$);
     // this._executeError$ = new BehaviorSubject<any>(null); // Already a class property
     // console.log('[Command Constructor] _executeError$ after init:', this._executeError$);
-
 
     if (canExecuteFn === undefined) {
       this._canExecute$ = of(true); // Always executable by default

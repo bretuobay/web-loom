@@ -1,5 +1,5 @@
-import { InMemoryCacheProvider } from './InMemoryCacheProvider';
-import { CachedItem } from './CacheProvider';
+import type { InMemoryCacheProvider } from './InMemoryCacheProvider';
+import type { CachedItem } from './CacheProvider';
 
 describe('InMemoryCacheProvider', () => {
   let provider: InMemoryCacheProvider;

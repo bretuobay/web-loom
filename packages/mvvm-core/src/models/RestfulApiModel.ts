@@ -261,7 +261,7 @@ export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> extends Ba
         ? (payload as Partial<ExtractItemType<TData>>[])
         : [payload as Partial<ExtractItemType<TData>>];
 
-      const createdItemsPromises = payloadsToProcess.map(async (itemPayload, index) => {
+      const createdItemsPromises = payloadsToProcess.map(async (itemPayload, _) => {
         // Use the original itemPayload for the request body, not the one with tempId
         const requestBody = { ...itemPayload };
         delete (requestBody as any).tempId;
