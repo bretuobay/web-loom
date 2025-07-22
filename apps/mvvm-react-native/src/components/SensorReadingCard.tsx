@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { SensorReading } from '@repo/models';
 
-export const SensorReadingCard = ({ sensorReading }: { sensorReading: SensorReading }) => {
+export const SensorReadingCard = ({ sensorReading }: { sensorReading: any }) => {
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Reading: {sensorReading.value}</Text>
