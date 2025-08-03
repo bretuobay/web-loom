@@ -35,8 +35,8 @@ const Dashboard = ({ navigation }: { navigation: any }) => {
       <Text style={styles.title}>Dashboard</Text>
       <GreenhouseCard greenHouses={greenHouses ?? []} navigation={navigation} />
       <SensorCard sensors={sensors ?? []} navigation={navigation} />
-      <SensorReadingCard sensorReadings={sensorReadings ?? []} navigation={navigation} />
       <ThresholdAlertCard thresholdAlerts={thresholdAlerts ?? []} navigation={navigation} />
+      <SensorReadingCard sensorReadings={sensorReadings ?? []} navigation={navigation} />
     </View>
   );
 };
