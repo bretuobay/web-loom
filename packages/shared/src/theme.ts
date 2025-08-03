@@ -95,7 +95,7 @@ const globalStyles = {
     justifyContent: 'center',
     minHeight: 'calc(100vh - 128px)', // This is not directly translatable
     width: 1280, // This is not directly translatable
-  } as Style,
+  } as unknown as Style,
   backArrow: {
     width: 36,
     height: 36,
