@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useObservable } from '../hooks/useObservable';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { GreenhouseCard } from './GreenhouseCard';
@@ -9,6 +9,7 @@ import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
 import { SensorReadingCard } from './SensorReadingCard';
 import { ThresholdAlertCard } from './ThresholdAlertCard';
+import { styles } from '@repo/shared/theme';
 
 const Dashboard = ({ navigation }: { navigation: any }) => {
   const greenHouses = useObservable(greenHouseViewModel.data$);
@@ -31,24 +32,47 @@ const Dashboard = ({ navigation }: { navigation: any }) => {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Dashboard</Text>
-      <GreenhouseCard greenHouses={greenHouses ?? []} navigation={navigation} />
-      <SensorCard sensors={sensors ?? []} navigation={navigation} />
-      <ThresholdAlertCard thresholdAlerts={thresholdAlerts ?? []} navigation={navigation} />
-      <SensorReadingCard sensorReadings={sensorReadings ?? []} navigation={navigation} />
-    </View>
+    <ScrollView>
+      <View
+        style={[
+          styles.flexApp,
+          { minHeight: 'auto', width: 'auto', maxWidth: 1280, marginHorizontal: '20%', padding: 20 },
+        ]}
+      >
+        <Text style={styles.headerItem}>Dashboard</Text>
+        <View style={stylesLocal.row}>
+          <GreenhouseCard greenHouses={greenHouses ?? []} navigation={navigation} />
+          <SensorCard sensors={sensors ?? []} navigation={navigation} />
+          <ThresholdAlertCard thresholdAlerts={thresholdAlerts ?? []} navigation={navigation} />
+        </View>
+        <View
+          style={{
+            maxWidth: 1280,
+            marginHorizontal: 'auto',
+            padding: 20,
+            marginTop: 20,
+            backgroundColor: '#f8f9fa',
+            borderRadius: 10,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+            overflow: 'scroll',
+          }}
+        >
+          <SensorReadingCard sensorReadings={sensorReadings ?? []} navigation={navigation} />
+        </View>
+      </View>
+    </ScrollView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 10,
+const stylesLocal = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
 });
 

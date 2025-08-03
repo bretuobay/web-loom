@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TextInput, Button, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { useObservable } from '../hooks/useObservable';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { styles } from '@repo/shared/theme';
 
 export const GreenhouseList = () => {
   const greenHouses = useObservable(greenHouseViewModel.data$);
@@ -70,8 +71,8 @@ export const GreenhouseList = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.formContainer}>
+    <ScrollView style={{ flex: 1 }}>
+      <View style={styles.formGroup}>
         <TextInput style={styles.inputField} placeholder="Enter greenhouse name" value={name} onChangeText={setName} />
         <TextInput
           style={styles.inputField}
@@ -87,7 +88,9 @@ export const GreenhouseList = () => {
           value={cropType}
           onChangeText={setCropType}
         />
-        <Button title={editingGreenhouseId ? 'Update' : 'Submit'} onPress={handleSubmit} />
+        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+          <Text style={styles.buttonText}>{editingGreenhouseId ? 'Update' : 'Submit'}</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -96,84 +99,23 @@ export const GreenhouseList = () => {
         renderItem={({ item }) => (
           <View style={styles.listItem}>
             <Text style={{ fontSize: 18 }}>{item.name}</Text>
-            <View style={styles.buttonGroup}>
-              <TouchableOpacity onPress={() => handleDelete(item.id)} style={[styles.button, styles.deleteButton]}>
-                <Text style={styles.buttonText}>Delete</Text>
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity
+                onPress={() => handleDelete(item.id)}
+                style={[styles.buttonTiny, styles.buttonTinyDelete]}
+              >
+                <Text style={styles.buttonTinyText}>Delete</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleUpdate(item.id)} style={[styles.button, styles.editButton]}>
-                <Text style={styles.buttonText}>Edit</Text>
+              <TouchableOpacity
+                onPress={() => handleUpdate(item.id)}
+                style={[styles.buttonTiny, styles.buttonTinyEdit]}
+              >
+                <Text style={styles.buttonTinyText}>Edit</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
       />
-    </View>
+    </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f0f2f5',
-  },
-  formContainer: {
-    marginBottom: 20,
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  inputField: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 5,
-  },
-  listItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    marginVertical: 8,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    elevation: 3,
-  },
-  buttonGroup: {
-    flexDirection: 'row',
-  },
-  button: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 5,
-    marginLeft: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  deleteButton: {
-    backgroundColor: '#dc3545',
-  },
-  editButton: {
-    backgroundColor: '#007bff',
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-});

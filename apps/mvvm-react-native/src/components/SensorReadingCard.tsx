@@ -1,6 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import { styles as sharedStyles } from '@repo/shared/theme';
+
+const MAX_CARD_WIDTH = 800;
+const CHART_HORIZONTAL_PADDING = 20;
+const chartWidth = Math.min(
+  Dimensions.get('window').width - CHART_HORIZONTAL_PADDING * 2,
+  MAX_CARD_WIDTH - CHART_HORIZONTAL_PADDING * 2,
+);
 
 export const SensorReadingCard = ({ sensorReadings, navigation }: { sensorReadings: any[]; navigation: any }) => {
   if (!sensorReadings || sensorReadings.length === 0) return null;
@@ -18,66 +26,51 @@ export const SensorReadingCard = ({ sensorReadings, navigation }: { sensorReadin
     datasets: [
       {
         data,
-        color: (opacity = 1) => `rgba(75, 192, 192, ${opacity})`, // teal line
+        color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`, // black line
         strokeWidth: 2,
       },
     ],
   };
 
   return (
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('SensorReadings')}>
-      <View style={styles.cardContent}>
-        <Text style={styles.title}>Sensor Readings</Text>
+    <View style={[localStyles.cardContainer, sharedStyles.card]}>
+      <TouchableOpacity onPress={() => navigation.navigate('SensorReadings')} activeOpacity={0.8}>
+        <Text style={sharedStyles.cardTitle}>Sensor Readings</Text>
         <LineChart
           data={chartData}
-          width={Dimensions.get('window').width - 40}
+          width={chartWidth}
           height={180}
           yAxisLabel=""
           yAxisSuffix=""
           chartConfig={{
-            backgroundColor: '#fff',
-            backgroundGradientFrom: '#fff',
-            backgroundGradientTo: '#fff',
+            backgroundColor: '#ffffff',
+            backgroundGradientFrom: '#ffffff',
+            backgroundGradientTo: '#ffffff',
             decimalPlaces: 2,
-            color: (opacity = 1) => `rgba(75, 192, 192, ${opacity})`, // teal line
-            labelColor: (opacity = 1) => `rgba(51, 51, 51, ${opacity})`, // dark labels
-            style: { borderRadius: 16 },
+            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`, // black line
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`, // black labels
+            style: { borderRadius: 5 },
             propsForDots: {
-              r: '5',
+              r: '3',
               strokeWidth: '2',
               stroke: 'rgb(75, 192, 192)',
               fill: 'rgb(75, 192, 192)',
             },
           }}
           bezier
-          style={{ marginVertical: 8, borderRadius: 16 }}
+          style={{ marginVertical: 8, borderRadius: 5 }}
         />
-        <Text style={styles.total}>Total Readings: {sensorReadings.length}</Text>
-      </View>
-    </TouchableOpacity>
+        <Text style={sharedStyles.cardContent}>Total Readings: {sensorReadings.length}</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    padding: 10,
-    marginVertical: 5,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  cardContent: {
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  total: {
-    marginTop: 8,
-    fontSize: 16,
-    color: '#333',
+const localStyles = StyleSheet.create({
+  cardContainer: {
+    maxWidth: MAX_CARD_WIDTH,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: CHART_HORIZONTAL_PADDING,
   },
 });
