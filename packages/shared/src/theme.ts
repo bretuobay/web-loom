@@ -45,9 +45,17 @@ const globalStyles = {
     borderBottomWidth: 1,
     borderBottomColor: '#000000',
     paddingBottom: 10,
+    color: '#60a5fa',
+    // center text
+    textAlign: 'center',
   } as Style,
+
   cardContent: {
     lineHeight: 25, // 1.4 * 18px
+    fontSize: '24px', // 1em of 18px
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 15,
   } as Style,
   list: {
     backgroundColor: '#ffffff',

@@ -12,7 +12,7 @@ export const SensorReadingCard = ({ sensorReadings, navigation }: { sensorReadin
     const date = new Date(reading.timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   });
-  const data = lastReadings.map((reading) => reading.value);
+  const data = lastReadings.map((reading) => reading.value).slice(50);
 
   const chartData = {
     labels,
@@ -30,7 +30,7 @@ export const SensorReadingCard = ({ sensorReadings, navigation }: { sensorReadin
       <Text style={styles.cardTitle}>Sensor Readings</Text>
       <LineChart
         data={chartData}
-        width={Dimensions.get('window').width - 90} // Adjusted for card padding
+        width={Dimensions.get('window').width - 600} // Adjusted for card padding
         height={180}
         yAxisLabel=""
         yAxisSuffix=""
@@ -43,10 +43,10 @@ export const SensorReadingCard = ({ sensorReadings, navigation }: { sensorReadin
           labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`, // black labels
           style: { borderRadius: 5 },
           propsForDots: {
-            r: '5',
+            r: '3',
             strokeWidth: '2',
-            stroke: '#000000',
-            fill: '#000000',
+            stroke: 'rgb(75, 192, 192)',
+            fill: 'rgb(75, 192, 192)',
           },
         }}
         bezier
