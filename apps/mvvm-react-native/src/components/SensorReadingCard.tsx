@@ -1,12 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-export const SensorReadingCard = ({ sensorReading }: { sensorReading: any }) => {
+export const SensorReadingCard = ({ sensorReadings, navigation }: { sensorReadings: any[]; navigation: any }) => {
+  if (!sensorReadings || sensorReadings.length === 0) return null;
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>Reading: {sensorReading.value}</Text>
-      <Text>{new Date(sensorReading.timestamp).toLocaleString()}</Text>
-    </View>
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('SensorReadings')}>
+      <View style={styles.card}>
+        {/* just total stats */}
+        <Text style={styles.title}>Total Sensor Readings: {sensorReadings.length}</Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 

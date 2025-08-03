@@ -1,13 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { ThresholdAlert } from '@repo/models';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-export const ThresholdAlertCard = ({ thresholdAlert }: { thresholdAlert: ThresholdAlert }) => {
+export const ThresholdAlertCard = ({ thresholdAlerts, navigation }: { thresholdAlerts: any[]; navigation: any }) => {
+  if (!thresholdAlerts || thresholdAlerts.length === 0) return null;
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>Alert: {thresholdAlert.type}</Text>
-      <Text>{thresholdAlert.message}</Text>
-    </View>
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ThresholdAlerts')}>
+      <View style={styles.card}>
+        <Text style={styles.title}>Total Threshold Alerts: {thresholdAlerts.length}</Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 

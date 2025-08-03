@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TextInput, Button, TouchableOpacity } from 'react-native';
 import { useObservable } from '../hooks/useObservable';
-import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 
 export const GreenhouseList = () => {
-  const greenHouses = useObservable(greenHouseViewModel.data$, [] as GreenhouseData[]);
+  const greenHouses = useObservable(greenHouseViewModel.data$);
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [size, setSize] = useState('');
@@ -72,12 +72,7 @@ export const GreenhouseList = () => {
   return (
     <View style={styles.container}>
       <View style={styles.formContainer}>
-        <TextInput
-          style={styles.inputField}
-          placeholder="Enter greenhouse name"
-          value={name}
-          onChangeText={setName}
-        />
+        <TextInput style={styles.inputField} placeholder="Enter greenhouse name" value={name} onChangeText={setName} />
         <TextInput
           style={styles.inputField}
           placeholder="Location"
@@ -85,19 +80,14 @@ export const GreenhouseList = () => {
           onChangeText={setLocation}
           multiline
         />
-        <TextInput
-          style={styles.inputField}
-          placeholder="Size (e.g., 25sqm)"
-          value={size}
-          onChangeText={setSize}
-        />
+        <TextInput style={styles.inputField} placeholder="Size (e.g., 25sqm)" value={size} onChangeText={setSize} />
         <TextInput
           style={styles.inputField}
           placeholder="Enter crop type"
           value={cropType}
           onChangeText={setCropType}
         />
-        <Button title={editingGreenhouseId ? "Update" : "Submit"} onPress={handleSubmit} />
+        <Button title={editingGreenhouseId ? 'Update' : 'Submit'} onPress={handleSubmit} />
       </View>
 
       <FlatList

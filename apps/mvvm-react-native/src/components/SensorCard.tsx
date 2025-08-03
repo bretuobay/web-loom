@@ -1,13 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Sensor } from '@repo/models';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-export const SensorCard = ({ sensor }: { sensor: Sensor }) => {
+type SensorsCardProps = {
+  sensors: any[];
+  navigation: any;
+};
+export const SensorCard = ({ sensors, navigation }: SensorsCardProps) => {
+  if (!sensors || sensors.length === 0) return null;
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>{sensor.name}</Text>
-      <Text>{sensor.type}</Text>
-    </View>
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Sensors')}>
+      <View style={styles.card}>
+        <Text style={styles.title}>Total Sensors</Text>
+        <Text>{sensors.length}</Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 

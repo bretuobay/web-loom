@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { useObservable } from '../hooks/useObservable';
-import { ThresholdAlertCard } from './ThresholdAlertCard';
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
 
 export const ThresholdAlertList = () => {
@@ -19,6 +18,17 @@ export const ThresholdAlertList = () => {
   );
 };
 
+// component to render individual threshold alert
+const ThresholdAlertCard = ({ thresholdAlert }: { thresholdAlert: any }) => {
+  return (
+    <View style={styles.alertCard}>
+      <Text style={styles.alertTitle}>Alert: {thresholdAlert.name}</Text>
+      <Text>Value: {thresholdAlert.value}</Text>
+      <Text>Timestamp: {new Date(thresholdAlert.timestamp).toLocaleString()}</Text>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -27,5 +37,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     marginBottom: 10,
+  },
+  alertCard: {
+    padding: 15,
+    marginVertical: 5,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  alertTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

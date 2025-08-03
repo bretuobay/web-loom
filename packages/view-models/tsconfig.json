@@ -8,7 +8,7 @@
         "@repo/models"
       ],
       "@web-loom/mvvm-core": [
-        "../../node_modules/@web-loom/mvvm-core"
+        "@web-loom/mvvm-core"
       ]
     }
   },
