@@ -83,6 +83,7 @@ const globalStyles = {
     display: 'flex',
     gap: 20,
     flexWrap: 'wrap',
+    backgroundColor: '#ffffff',
   } as Style,
   flexCenter: {
     justifyContent: 'center',
@@ -94,7 +95,7 @@ const globalStyles = {
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 'calc(100vh - 128px)', // This is not directly translatable
-    width: 1280, // This is not directly translatable
+    backgroundColor: '#ffffff',
   } as unknown as Style,
   backArrow: {
     width: 36,

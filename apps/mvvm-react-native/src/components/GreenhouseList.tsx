@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useObservable } from '../hooks/useObservable';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { styles } from '@repo/shared/theme';
@@ -72,50 +72,69 @@ export const GreenhouseList = () => {
 
   return (
     <ScrollView style={{ flex: 1 }}>
-      <View style={styles.formGroup}>
-        <TextInput style={styles.inputField} placeholder="Enter greenhouse name" value={name} onChangeText={setName} />
-        <TextInput
-          style={styles.inputField}
-          placeholder="Location"
-          value={location}
-          onChangeText={setLocation}
-          multiline
-        />
-        <TextInput style={styles.inputField} placeholder="Size (e.g., 25sqm)" value={size} onChangeText={setSize} />
-        <TextInput
-          style={styles.inputField}
-          placeholder="Enter crop type"
-          value={cropType}
-          onChangeText={setCropType}
-        />
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>{editingGreenhouseId ? 'Update' : 'Submit'}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={greenHouses}
-        keyExtractor={(item) => item.id || ''}
-        renderItem={({ item }) => (
-          <View style={styles.listItem}>
-            <Text style={{ fontSize: 18 }}>{item.name}</Text>
-            <View style={{ flexDirection: 'row' }}>
-              <TouchableOpacity
-                onPress={() => handleDelete(item.id)}
-                style={[styles.buttonTiny, styles.buttonTinyDelete]}
-              >
-                <Text style={styles.buttonTinyText}>Delete</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleUpdate(item.id)}
-                style={[styles.buttonTiny, styles.buttonTinyEdit]}
-              >
-                <Text style={styles.buttonTinyText}>Edit</Text>
-              </TouchableOpacity>
-            </View>
+      <View style={[styles.flexApp]}>
+        <View style={stylesLocal.flexRow}>
+          <View style={styles.formGroup}>
+            <TextInput
+              style={styles.inputField}
+              placeholder="Enter greenhouse name"
+              value={name}
+              onChangeText={setName}
+            />
+            <TextInput
+              style={styles.inputField}
+              placeholder="Location"
+              value={location}
+              onChangeText={setLocation}
+              multiline
+            />
+            <TextInput style={styles.inputField} placeholder="Size (e.g., 25sqm)" value={size} onChangeText={setSize} />
+            <TextInput
+              style={styles.inputField}
+              placeholder="Enter crop type"
+              value={cropType}
+              onChangeText={setCropType}
+            />
+            <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+              <Text style={styles.buttonText}>{editingGreenhouseId ? 'Update' : 'Submit'}</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      />
+
+          <FlatList
+            data={greenHouses}
+            keyExtractor={(item) => item.id || ''}
+            renderItem={({ item }) => (
+              <View style={styles.listItem}>
+                <Text style={{ fontSize: 18 }}>{item.name}</Text>
+                <View style={{ flexDirection: 'row' }}>
+                  <TouchableOpacity
+                    onPress={() => handleDelete(item.id)}
+                    style={[styles.buttonTiny, styles.buttonTinyDelete]}
+                  >
+                    <Text style={styles.buttonTinyText}>Delete</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleUpdate(item.id)}
+                    style={[styles.buttonTiny, styles.buttonTinyEdit]}
+                  >
+                    <Text style={styles.buttonTinyText}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          />
+        </View>
+      </View>
     </ScrollView>
   );
 };
+
+// styles to flex row and wrap items
+const stylesLocal = StyleSheet.create({
+  flexRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 24,
+    justifyContent: 'space-between',
+  },
+});

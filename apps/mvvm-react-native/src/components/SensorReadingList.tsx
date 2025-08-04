@@ -9,12 +9,14 @@ export const SensorReadingList = () => {
 
   return (
     <ScrollView style={{ flex: 1 }}>
-      <Text style={styles.headerItem}>Sensor Readings</Text>
-      <FlatList
-        data={sensorReadings}
-        renderItem={({ item }) => <SensorReadingCard sensorReading={item} />}
-        keyExtractor={(item) => item?.id?.toString() ?? 'unknown'}
-      />
+      <View style={[styles.flexApp]}>
+        <Text style={styles.headerItem}>Sensor Readings</Text>
+        <FlatList
+          data={sensorReadings}
+          renderItem={({ item }) => <SensorReadingCard sensorReading={item} />}
+          keyExtractor={(item) => item?.id?.toString() ?? 'unknown'}
+        />
+      </View>
     </ScrollView>
   );
 };

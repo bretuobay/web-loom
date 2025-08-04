@@ -9,12 +9,14 @@ export const SensorList = () => {
 
   return (
     <ScrollView style={{ flex: 1 }}>
-      <Text style={styles.headerItem}>Sensors</Text>
-      <FlatList
-        data={sensors}
-        renderItem={({ item }) => <SensorCard sensor={item} />}
-        keyExtractor={(item) => item?.id?.toString() ?? 'unknown'}
-      />
+      <View style={[styles.flexApp]}>
+        <Text style={styles.headerItem}>Sensors</Text>
+        <FlatList
+          data={sensors}
+          renderItem={({ item }) => <SensorCard sensor={item} />}
+          keyExtractor={(item) => item?.id?.toString() ?? 'unknown'}
+        />
+      </View>
     </ScrollView>
   );
 };
@@ -23,9 +25,9 @@ export const SensorList = () => {
 const SensorCard = ({ sensor }: { sensor: any }) => {
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>{sensor.name}</Text>
+      <Text style={styles.cardTitle}>Location: {sensor.greenhouse.name}</Text>
       <Text style={styles.cardContent}>Type: {sensor.type}</Text>
-      <Text style={styles.cardContent}>Location: {sensor.location}</Text>
+      <Text style={styles.cardContent}>Status: {sensor.status}</Text>
     </View>
   );
 };
