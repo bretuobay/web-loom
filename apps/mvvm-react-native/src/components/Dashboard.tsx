@@ -33,34 +33,14 @@ const Dashboard = ({ navigation }: { navigation: any }) => {
 
   return (
     <ScrollView>
-      <View
-        style={[
-          styles.flexApp,
-          { minHeight: 'auto', width: 'auto', maxWidth: 1280, marginHorizontal: '20%', padding: 20 },
-        ]}
-      >
+      <View style={[styles.flexApp]}>
         <Text style={styles.headerItem}>Dashboard</Text>
         <View style={stylesLocal.row}>
           <GreenhouseCard greenHouses={greenHouses ?? []} navigation={navigation} />
           <SensorCard sensors={sensors ?? []} navigation={navigation} />
           <ThresholdAlertCard thresholdAlerts={thresholdAlerts ?? []} navigation={navigation} />
         </View>
-        <View
-          style={{
-            maxWidth: 1280,
-            marginHorizontal: 'auto',
-            padding: 20,
-            marginTop: 20,
-            backgroundColor: '#f8f9fa',
-            borderRadius: 10,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
-            overflow: 'scroll',
-          }}
-        >
+        <View>
           <SensorReadingCard sensorReadings={sensorReadings ?? []} navigation={navigation} />
         </View>
       </View>
