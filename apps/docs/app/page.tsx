@@ -1,3 +1,5 @@
+'use client';
+
 import Test from '../content/test.mdx';
 
 export default function Home() {

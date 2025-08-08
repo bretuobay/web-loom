@@ -1,25 +1,27 @@
-export function Sidebar() {
+'use client';
+
+import { PageData } from '../lib/pages';
+import { FileText } from 'lucide-react';
+import Link from 'next/link';
+
+export function Sidebar({ isOpen, pages }: { isOpen: boolean; pages: PageData[] }) {
   return (
-    <aside className="hidden w-64 flex-col border-r p-4 md:flex">
+    <aside
+      className={`absolute z-10 h-full w-64 flex-col border-r bg-white p-4 transition-transform dark:bg-gray-950 md:static md:flex ${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      } md:translate-x-0`}
+    >
       <nav className="flex flex-col space-y-2">
-        <h2 className="text-sm font-semibold uppercase text-gray-500">
-          Getting Started
-        </h2>
-        <a href="#" className="rounded-md px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-800">
-          Installation
-        </a>
-        <a href="#" className="rounded-md px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-800">
-          Hello World
-        </a>
-        <h2 className="pt-4 text-sm font-semibold uppercase text-gray-500">
-          Core Concepts
-        </h2>
-        <a href="#" className="rounded-md px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-800">
-          MVVM Architecture
-        </a>
-        <a href="#" className="rounded-md px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-800">
-          Data Binding
-        </a>
+        {pages.map((page) => (
+          <Link
+            key={page.slug}
+            href={`/${page.slug}`}
+            className="flex items-center space-x-2 rounded-md px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-800"
+          >
+            <FileText size={16} />
+            <span>{page.title}</span>
+          </Link>
+        ))}
       </nav>
     </aside>
   );
