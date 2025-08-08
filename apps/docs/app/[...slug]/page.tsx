@@ -40,7 +40,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string[
   }
 
   return (
-    <article className="prose dark:prose-invert">
+    <article className="prose prose-gray dark:prose-invert max-w-none">
       <h1>{page.title}</h1>
       <MDXRemote source={page.content} />
     </article>
