@@ -11,8 +11,10 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@mdx-js/loader": "^3.1.0",
     "@next/mdx": "^15.4.5",
     "@repo/ui": "*",
+    "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/typography": "^0.5.16",
     "gray-matter": "^4.0.3",
     "lucide-react": "^0.536.0",
