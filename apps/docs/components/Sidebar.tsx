@@ -1,14 +1,14 @@
-import { getPages } from "../lib/pages";
-import { FileText } from "lucide-react";
-import Link from "next/link";
+'use client';
 
-export function Sidebar({ isOpen }: { isOpen: boolean }) {
-  const pages = getPages();
+import { PageData } from '../lib/pages';
+import { FileText } from 'lucide-react';
+import Link from 'next/link';
 
+export function Sidebar({ isOpen, pages }: { isOpen: boolean; pages: PageData[] }) {
   return (
     <aside
       className={`absolute z-10 h-full w-64 flex-col border-r bg-white p-4 transition-transform dark:bg-gray-950 md:static md:flex ${
-        isOpen ? "translate-x-0" : "-translate-x-full"
+        isOpen ? 'translate-x-0' : '-translate-x-full'
       } md:translate-x-0`}
     >
       <nav className="flex flex-col space-y-2">

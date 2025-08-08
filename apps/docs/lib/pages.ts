@@ -1,34 +1,12 @@
-import fs from "fs";
-import path from "path";
-import matter from "gray-matter";
+// Client-safe types and interfaces for pages
+import type { PageData } from './pages-server';
 
-const contentDirectory = path.join(process.cwd(), "apps/docs/content");
+export type { PageData };
 
-function getPagesRecursive(dir: string): any[] {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  const pages = entries.flatMap((entry) => {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      return getPagesRecursive(fullPath);
-    }
-    if (entry.isFile() && entry.name.endsWith(".mdx")) {
-      const fileContents = fs.readFileSync(fullPath, "utf8");
-      const { data } = matter(fileContents);
-      const slug = path
-        .relative(contentDirectory, fullPath)
-        .replace(/\.mdx$/, "");
-
-      return {
-        slug,
-        title: data.title || slug,
-        ...data,
-      };
-    }
-    return [];
-  });
-  return pages;
-}
-
-export function getPages() {
-  return getPagesRecursive(contentDirectory);
+// This file no longer uses fs - data is passed from server components
+export function formatPageData(pages: PageData[]): PageData[] {
+  return pages.map((page) => ({
+    ...page,
+    title: page.title || page.slug,
+  }));
 }
