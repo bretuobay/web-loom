@@ -7,7 +7,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { setTheme, theme } = useTheme();
 
   return (
-    <header className="flex h-16 w-full items-center justify-between border-b px-4">
+    <header className="z-20 flex h-16 w-full flex-shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-950">
       <div className="flex items-center space-x-4">
         <button onClick={onMenuClick} className="md:hidden">
           <Menu />
@@ -16,7 +16,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
       </div>
       <button
         onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-        className="rounded-md p-2 hover:bg-gray-200 dark:hover:bg-gray-800"
+        className="rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
       >
         <Sun className="hidden dark:block" />
         <Moon className="dark:hidden" />

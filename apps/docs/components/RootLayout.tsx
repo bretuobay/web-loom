@@ -10,11 +10,11 @@ export function RootLayout({ children, pages }: { children: React.ReactNode; pag
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col bg-white dark:bg-gray-950">
       <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar isOpen={isSidebarOpen} pages={pages} />
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto bg-white p-6 dark:bg-gray-950">
           <Breadcrumbs />
           {children}
         </main>
