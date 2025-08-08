@@ -19,9 +19,7 @@ export function RootLayout({ children, pages }: { children: React.ReactNode; pag
           <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[1fr_240px] lg:gap-8">
             <main className="min-w-0 py-10 px-6">
               <Breadcrumbs />
-              <div className="mt-4">
-                {children}
-              </div>
+              <div className="mt-4">{children}</div>
             </main>
             <aside className="hidden lg:block sticky top-16 h-[calc(100vh-4rem)] py-10 px-6">
               <TableOfContents />

@@ -14,8 +14,8 @@ export function Sidebar({ isOpen, pages }: { isOpen: boolean; pages: PageData[] 
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
-      <div className="h-full overflow-y-auto pb-10">
-        <nav className="flex flex-col space-y-1 p-4">
+      <div className="h-full overflow-y-auto">
+        <nav className="flex flex-col space-y-1 m-[32px]">
           {pages.map((page) => {
             const isActive = pathname === `/${page.slug}`;
             return (
