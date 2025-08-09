@@ -1,11 +1,5 @@
-'use client';
-
-import Test from '../content/test.mdx';
+import { redirect } from 'next/navigation'
 
 export default function Home() {
-  return (
-    <article className="prose dark:prose-invert">
-      <Test />
-    </article>
-  );
+  redirect('/documentation/fundamentals')
 }
