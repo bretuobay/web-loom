@@ -1,0 +1,82 @@
+---
+title: 'Getting Started with MVVM Core'
+summary: 'Learn how to build robust, reactive web applications using the MVVM Core library. This guide covers installation, basic concepts, and first steps.'
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+nextTitle: 'Models and ViewModels'
+nextSlug: '/mvvm-core/models-and-viewmodels'
+---
+
+# Getting Started with MVVM Core
+
+MVVM Core is a framework-agnostic library for building robust client-side applications using the Model-View-ViewModel (MVVM) pattern. It leverages **RxJS** for reactive data flow and **Zod** for strong data validation, making it easy to manage state and API interactions in React, Angular, Vue, and more.
+
+## Features
+
+- **Reactive Data Flow:** All data, loading states, and errors are RxJS observables.
+- **Strong Validation:** Zod schemas for compile-time and runtime validation.
+- **RESTful API Management:** Built-in models for CRUD operations and optimistic updates.
+- **Command Pattern:** Encapsulate UI actions with canExecute/isExecuting states.
+- **Observable Collections:** Efficient, reactive list management.
+- **Resource Management:** Implements IDisposable for cleanup and memory safety.
+- **Framework Agnostic:** No direct UI dependencies.
+
+## Installation
+
+Install the core library and its dependencies:
+
+```bash
+npm install @web-loom/mvvm-core rxjs zod
+# or
+yarn add @web-loom/mvvm-core rxjs zod
+```
+
+## Basic Usage
+
+### 1. Define a Model with Zod
+
+```typescript
+import { BaseModel } from '@web-loom/mvvm-core';
+import { z } from 'zod';
+
+export const UserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(3),
+  email: z.string().email(),
+  age: z.number().int().positive().optional(),
+});
+
+export type User = z.infer<typeof UserSchema>;
+
+export class UserModel extends BaseModel<User, typeof UserSchema> {
+  constructor(initialData?: User) {
+    super({ initialData: initialData || null, schema: UserSchema });
+  }
+}
+```
+
+### 2. Create a ViewModel
+
+```typescript
+import { BaseViewModel } from '@web-loom/mvvm-core';
+
+export class UserViewModel extends BaseViewModel<UserModel> {
+  constructor(model: UserModel) {
+    super(model);
+  }
+}
+```
+
+### 3. Use in Your App
+
+You can now use your model and viewmodel in your UI framework of choice. All properties are reactive observables, so you can subscribe or bind them directly in your components.
+
+## Next Steps
+
+- Learn about [Models and ViewModels](/mvvm-core/models-and-viewmodels)
+- Explore [API Management and Commands](/mvvm-core/api-management)
+- See [Observable Collections](/mvvm-core/observable-collections)
+
+---
+
+For more details, see the [MVVM Core README](https://github.com/web-loom/mvvm-core) and the [API Development Plan](https://github.com/web-loom/mvvm-core/MVVM%20Web%20Library%20Development%20Plan%20for%20API%20Coding%20Agent.md).

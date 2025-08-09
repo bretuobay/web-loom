@@ -1,0 +1,116 @@
+---
+title: 'Core Concepts of MVVM Core'
+summary: 'Understand the foundational ideas behind the MVVM Core library, including models, viewmodels, observables, validation, commands, and resource management.'
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+nextTitle: 'API Management and Commands'
+nextSlug: '/mvvm-core/api-management'
+---
+
+# Core Concepts of MVVM Core
+
+MVVM Core is designed to help you build scalable, maintainable, and reactive web applications using the Model-View-ViewModel (MVVM) pattern. Here are the key concepts:
+
+## 1. Model
+
+A **Model** represents your application's data and business logic. In MVVM Core, models are:
+
+- Typed and validated using Zod schemas
+- Reactive: all data, loading, and error states are RxJS observables
+- Disposable: implement IDisposable for resource cleanup
+
+Example:
+
+```typescript
+import { BaseModel } from '@web-loom/mvvm-core';
+import { z } from 'zod';
+
+const UserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+});
+
+class UserModel extends BaseModel<typeof UserSchema> {
+  constructor(initialData) {
+    super({ initialData, schema: UserSchema });
+  }
+}
+```
+
+## 2. ViewModel
+
+A **ViewModel** acts as a bridge between your UI and the model. It exposes reactive properties and validation errors, and manages UI logic.
+
+- Composes one or more models
+- Exposes observables for data, loading, and errors
+- Handles validation and resource disposal
+
+Example:
+
+```typescript
+import { BaseViewModel } from '@web-loom/mvvm-core';
+
+class UserViewModel extends BaseViewModel<UserModel> {
+  constructor(model) {
+    super(model);
+  }
+}
+```
+
+## 3. Observables
+
+All state in MVVM Core is managed with RxJS observables:
+
+- `data$`: current model data
+- `isLoading$`: loading state
+- `error$`: error state
+- `validationErrors$`: validation errors
+
+You can subscribe to these in your UI framework for automatic updates.
+
+## 4. Validation
+
+MVVM Core uses Zod for both compile-time and runtime validation:
+
+- Models validate data on set/update
+- ViewModels expose validation errors as observables
+- Ensures data integrity throughout your app
+
+## 5. Commands
+
+The **Command** pattern encapsulates UI actions:
+
+- Each command exposes `canExecute$` and `isExecuting$` observables
+- Useful for buttons, forms, and async actions
+- Implements IDisposable for cleanup
+
+Example:
+
+```typescript
+import { Command } from '@web-loom/mvvm-core';
+
+const saveCommand = new Command({
+  execute: async () => {
+    /* ... */
+  },
+  canExecute: () => true,
+});
+```
+
+## 6. Observable Collections
+
+`ObservableCollection` provides reactive list management:
+
+- Notifies views of granular changes (add, remove, update)
+- Efficient for rendering lists and tables
+
+## 7. Resource Management
+
+All core components implement IDisposable:
+
+- Ensures RxJS subjects and subscriptions are cleaned up
+- Prevents memory leaks in long-running apps
+
+---
+
+MVVM Core is framework-agnostic, so you can use these concepts in React, Angular, Vue, or any other frontend technology. For more details, see the [MVVM Core README](https://github.com/web-loom/mvvm-core) and the [API Development Plan](https://github.com/web-loom/mvvm-core/MVVM%20Web%20Library%20Development%20Plan%20for%20API%20Coding%20Agent.md).

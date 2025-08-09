@@ -1,0 +1,111 @@
+---
+title: 'Available Models in MVVM Core'
+summary: 'Overview of the core model classes provided by the MVVM Core library, including their purpose and usage.'
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+nextTitle: 'ViewModels'
+nextSlug: '/mvvm-core/viewmodels'
+---
+
+# Available Models in MVVM Core
+
+MVVM Core provides several foundational model classes to help you manage data, state, and API interactions in a reactive, type-safe way. Here are the main models available:
+
+## 1. BaseModel
+
+**File:** `BaseModel.ts`
+
+The `BaseModel` is the foundation for all models in MVVM Core. It provides:
+
+- Reactive observables for data, loading, and error states
+- Zod schema validation
+- Resource cleanup via `IDisposable`
+- Methods for updating data, loading, and error states
+
+**Usage:**
+
+```typescript
+import { BaseModel } from '@web-loom/mvvm-core';
+import { z } from 'zod';
+
+const UserSchema = z.object({ id: z.string(), name: z.string() });
+class UserModel extends BaseModel<typeof UserSchema> {
+  constructor(initialData) {
+    super({ initialData, schema: UserSchema });
+  }
+}
+```
+
+## 2. RestfulApiModel
+
+**File:** `RestfulApiModel.ts`
+
+Extends `BaseModel` to provide RESTful API interaction:
+
+- Manages CRUD operations for single resources or arrays
+- Handles optimistic updates, loading, and error states
+- Accepts a fetcher function for API calls
+
+**Usage:**
+
+```typescript
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { z } from 'zod';
+
+const UserSchema = z.object({ id: z.string(), name: z.string() });
+const fetcher = (url, options) => fetch(url, options).then((res) => res.json());
+
+const userApiModel = new RestfulApiModel({
+  baseUrl: 'https://api.example.com',
+  endpoint: '/users',
+  fetcher,
+  schema: UserSchema,
+  initialData: null,
+});
+```
+
+## 3. QueryStateModel
+
+**File:** `QueryStateModel.ts`
+
+Integrates with QueryCore for advanced query and state management:
+
+- Reactive state for queries and endpoints
+- Methods for refetching and invalidating data
+- Optional integration with a generic store
+
+**Usage:**
+
+```typescript
+import { QueryStateModel } from '@web-loom/mvvm-core';
+// ...setup QueryCore and schema
+const queryStateModel = new QueryStateModel({
+  queryCore,
+  endpointKey: 'users',
+  schema: UserSchema,
+});
+```
+
+## 4. Store
+
+**File:** `Store.ts`
+
+A minimal, generic state store:
+
+- Holds state as a plain object
+- Allows subscribing to state changes
+- Used internally by QueryStateModel and other advanced features
+
+**Usage:**
+
+```typescript
+import { Store } from '@web-loom/mvvm-core';
+const store = new Store({ user: null });
+store.subscribe((newState, oldState) => {
+  // React to state changes
+});
+```
+
+---
+
+For more details, see the source files in `packages/mvvm-core/src/models` and the [MVVM Core README](https://github.com/web-loom/mvvm-core).

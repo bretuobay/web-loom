@@ -1,0 +1,92 @@
+---
+title: 'Available ViewModels in MVVM Core'
+summary: 'Overview of the core ViewModel classes provided by the MVVM Core library, including their purpose and usage.'
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+nextTitle: 'Commands and Collections'
+nextSlug: '/mvvm-core/commands-and-collections'
+---
+
+# Available ViewModels in MVVM Core
+
+MVVM Core provides several key ViewModel classes to help you manage UI logic, validation, and state in a reactive, type-safe way. Here are the main ViewModels available:
+
+## 1. BaseViewModel
+
+**File:** `BaseViewModel.ts`
+
+Connects a model to your UI, exposing its observables and validation errors. Handles resource cleanup and subscription management.
+
+**Usage:**
+
+```typescript
+import { BaseViewModel } from '@web-loom/mvvm-core';
+import { UserModel } from './models/UserModel';
+
+const userModel = new UserModel();
+const userViewModel = new BaseViewModel(userModel);
+```
+
+## 2. RestfulApiViewModel
+
+**File:** `RestfulApiViewModel.ts`
+
+Works with `RestfulApiModel` to manage CRUD operations, loading states, and errors for API resources. Exposes commands for UI actions.
+
+**Usage:**
+
+```typescript
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { userApiModel } from './models/userApiModel';
+
+const userApiViewModel = new RestfulApiViewModel(userApiModel);
+```
+
+## 3. QueryStateModelView
+
+**File:** `QueryStateModelView.ts`
+
+Facilitates interactions with `QueryStateModel`, exposing data, loading, error states, and commands for cache operations.
+
+**Usage:**
+
+```typescript
+import { QueryStateModelView } from '@web-loom/mvvm-core';
+import { queryStateModel } from './models/queryStateModel';
+
+const queryStateViewModel = new QueryStateModelView(queryStateModel);
+```
+
+## 4. FormViewModel
+
+**File:** `form-view-model.ts`
+
+Manages form state, validation, and submission logic. Exposes observables for form data, errors, and dirty/valid states.
+
+**Usage:**
+
+```typescript
+import { FormViewModel } from '@web-loom/mvvm-core';
+import { z } from 'zod';
+
+const schema = z.object({ name: z.string(), email: z.string().email() });
+const formViewModel = new FormViewModel({}, schema);
+```
+
+## 5. QueryableCollectionViewModel
+
+**File:** `queryable-collection-view-model.ts`
+
+Provides reactive list management with filtering, sorting, and pagination. Useful for tables and dashboards.
+
+**Usage:**
+
+```typescript
+import { QueryableCollectionViewModel } from '@web-loom/mvvm-core';
+
+const collectionViewModel = new QueryableCollectionViewModel([{ id: '1', name: 'Alice' }]);
+```
+
+---
+
+For more details, see the source files in `packages/mvvm-core/src/viewmodels` and the [MVVM Core README](https://github.com/web-loom/mvvm-core).
