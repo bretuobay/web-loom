@@ -1,0 +1,255 @@
+---
+title: 'Dashboard and Analytics Plugin Ecosystems'
+summary: 'Building extensible dashboards and analytics platforms with plugins.'
+topicTitle: 'Dashboard and Analytics Plugins'
+topicSlug: '13-dashboard-analytics-plugins'
+nextTitle: 'Performance Optimisation'
+nextSlug: '/docs/14-performance-optimisation'
+---
+
+# Chapter 13: Dashboard and Analytics Plugin Ecosystems
+
+A dashboard is often the **nerve center** of an application—especially for data-driven products like analytics platforms, IoT control centers, or enterprise CRMs.
+Unlike e-commerce or CMS ecosystems, dashboard plugin systems focus on **data visualization, real-time updates, and interactive components**.
+
+In this chapter, we’ll explore:
+
+1. **Dashboard plugin architecture** — widget-based systems and extension points.
+2. **Case study: Analytics dashboard** — chart and data pipeline plugins.
+3. **Data visualization plugins** — custom charts, maps, and reports.
+4. **Data source plugins** — connecting to APIs and databases.
+5. **User experience considerations** — making dashboards discoverable, performant, and accessible.
+
+---
+
+## 13.1 Dashboard Plugin Architecture
+
+The most common dashboard extension pattern is the **widget-based plugin system**:
+
+- **Widgets** are self-contained UI components that present data or interactive controls.
+- Plugins can register one or more widgets using the `sdk.widgets` API.
+- The dashboard layout engine decides where and how they appear.
+
+---
+
+### Widget Registration Example
+
+```ts
+sdk.widgets.add({
+  id: 'sales-overview',
+  title: 'Sales Overview',
+  render: SalesOverviewWidget,
+  size: 'medium',
+});
+```
+
+Widgets can:
+
+- Fetch data via `sdk.services.apiClient`.
+- Listen for global events (e.g., `dashboard:refresh`).
+- Push updates to other widgets via the event bus.
+
+---
+
+### Widget Lifecycle
+
+- **Init** — Register widget metadata.
+- **Mount** — Render component into a dashboard container.
+- **Unmount** — Clean up DOM and unsubscribe from events.
+
+---
+
+## 13.2 Case Study: Analytics Dashboard
+
+Our fictional platform **DataVista** serves real-time analytics to businesses. The dashboard supports:
+
+- Core widgets for traffic, conversions, and revenue.
+- Marketplace widgets for industry-specific analytics (e.g., IoT metrics, ad spend reports).
+
+---
+
+### Chart Plugin Implementation
+
+**Manifest**:
+
+```json
+{
+  "id": "charts.revenue",
+  "name": "Revenue Over Time",
+  "entry": "/plugins/charts/revenue/index.js",
+  "permissions": ["api:read", "ui:dashboard"]
+}
+```
+
+**Module**:
+
+```ts
+export const module: PluginModule = {
+  mount(sdk) {
+    sdk.widgets.add({
+      id: 'revenue-chart',
+      title: 'Revenue Over Time',
+      render: RevenueChartComponent,
+    });
+  },
+  unmount(sdk) {
+    sdk.widgets.remove('revenue-chart');
+  },
+};
+```
+
+---
+
+### Data Pipeline Plugins
+
+Some analytics workflows require **data transformation** before visualization.
+For example, a plugin could subscribe to `data:raw` events, process the data, and emit `data:processed` for visualization plugins to consume.
+
+---
+
+## 13.3 Data Visualization Plugins
+
+Visualization plugins extend the platform with new ways to present data:
+
+---
+
+### Chart Library Integration
+
+```ts
+sdk.widgets.add({
+  id: 'geo-map',
+  title: 'Geo Distribution',
+  render: GeoMapComponent,
+});
+```
+
+The plugin could use:
+
+- D3.js for custom visualizations.
+- Chart.js, Recharts, or Highcharts for standard chart types.
+
+---
+
+### Custom Visualization Types
+
+- Sankey diagrams for flow tracking.
+- Heatmaps for click or usage density.
+- Real-time counters for operational dashboards.
+
+---
+
+### Interactive Dashboard Components
+
+- Filter controls that update multiple widgets simultaneously.
+- Drill-down interactions that open detailed views via `sdk.routes.add()`.
+
+---
+
+### Mobile-Responsive Designs
+
+Ensure widgets adapt to small screens—especially important for sales teams on the go.
+
+---
+
+## 13.4 Data Source Plugins
+
+Data source plugins extend the dashboard’s connectivity:
+
+---
+
+### API Integration Patterns
+
+**Manifest**:
+
+```json
+{
+  "id": "datasource.salesforce",
+  "name": "Salesforce Data Source",
+  "entry": "/plugins/datasource/salesforce/index.js",
+  "permissions": ["api:external", "storage:secure"]
+}
+```
+
+**Module**:
+
+```ts
+export const module: PluginModule = {
+  init(sdk) {
+    sdk.events.on('data:request:salesforce', async (query) => {
+      const data = await fetchFromSalesforce(query);
+      sdk.events.emit('data:response:salesforce', data);
+    });
+  },
+};
+```
+
+---
+
+### Database Connection Plugins
+
+- MySQL or PostgreSQL connectors that pull data directly into widgets.
+- Require careful sandboxing to avoid unauthorized queries.
+
+---
+
+### Real-Time Data Streaming
+
+- WebSocket or MQTT connections for live updates.
+- Event-driven pipelines that push updates to widgets without page reloads.
+
+---
+
+### Data Transformation Pipelines
+
+- ETL-style plugins that clean and format data for visualization.
+- Chainable via the event bus to allow multiple transformations.
+
+---
+
+## 13.5 User Experience Considerations
+
+Even the most powerful dashboard plugins fail if they’re hard to use.
+
+---
+
+### Plugin Discovery and Installation
+
+- A **plugin marketplace** inside the dashboard.
+- Search, filter, and preview widgets before installation.
+
+---
+
+### Configuration Interfaces
+
+- Use `sdk.routes.add()` to create a configuration panel for each widget.
+- Persist settings in `sdk.services.storage` scoped to the plugin.
+
+---
+
+### Performance Optimization
+
+- Lazy-load widgets that aren’t visible.
+- Batch API requests across multiple widgets.
+
+---
+
+### Accessibility Requirements
+
+- Ensure charts have text alternatives.
+- Support keyboard navigation for interactive widgets.
+
+---
+
+## Key Takeaways
+
+A dashboard plugin ecosystem:
+
+1. Uses **widgets** as the primary extension point.
+2. Supports both **visualization** and **data source** plugins.
+3. Encourages **inter-widget communication** via the event bus.
+4. Prioritizes **performance, discoverability, and accessibility**.
+
+---
+
+**Next up:**
+In **Chapter 14**, we’ll focus on **Performance Optimization and Bundle Management**—how to keep a growing plugin ecosystem fast, from code splitting to runtime load balancing, without sacrificing flexibility.

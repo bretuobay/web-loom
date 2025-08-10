@@ -1,0 +1,242 @@
+---
+title: 'Deployment, Versioning, and Plugin Distribution'
+summary: 'Best practices for deploying, versioning, and distributing plugins.'
+topicTitle: 'Deployment, Versioning, and Plugin Distribution'
+topicSlug: '15-deployment-versioning-distribution'
+nextTitle: 'Appendices and Reference Material'
+nextSlug: '/docs/16-appendices-and-reference-material'
+---
+
+# Chapter 15: Deployment, Versioning, and Plugin Distribution
+
+A plugin architecture is only as successful as its **distribution model**.
+No matter how well the SDK is designed or how secure the sandbox is, plugin developers and users need a **smooth path** to:
+
+- **Publish** new plugins.
+- **Update** them safely.
+- **Distribute** them to the right audience (public marketplace, private registry, or enterprise deployments).
+
+This chapter focuses on:
+
+1. **Plugin distribution models** — public, private, and hybrid.
+2. **Version management strategies** — keeping compatibility and stability.
+3. **Deployment automation** — CI/CD for plugin publishing.
+4. **Plugin store implementation** — architecture for marketplaces.
+5. **Enterprise considerations** — secure, compliant, internal plugin ecosystems.
+
+---
+
+## 15.1 Plugin Distribution Models
+
+How plugins reach the host application shapes the ecosystem’s reach and governance.
+
+---
+
+### Centralized Marketplace
+
+- **Examples**: VS Code Marketplace, WordPress Plugin Directory.
+- Single, curated source for all plugins.
+- Users can search, install, and update from inside the app.
+
+**Pros:** Easy discovery, trust-building via central review.
+**Cons:** Slower approval cycles, limited control for developers.
+
+---
+
+### Private Plugin Registries
+
+- Hosted inside an organization.
+- Used for proprietary plugins that shouldn’t be public.
+- Integrates with enterprise authentication and permissions.
+
+**Pros:** Controlled access, internal compliance.
+**Cons:** Limited ecosystem growth.
+
+---
+
+### Self-Hosted Distribution
+
+- Plugin manifests and bundles served from developer-owned servers.
+- Host app fetches them directly via URL.
+
+**Pros:** Full developer control.
+**Cons:** Requires developer to manage hosting, security, and uptime.
+
+---
+
+### Hybrid Models
+
+- Core plugins from a central marketplace.
+- Enterprise and custom plugins from private registries.
+
+---
+
+## 15.2 Version Management Strategies
+
+A healthy plugin ecosystem avoids **version chaos**.
+
+---
+
+### Semantic Versioning (SemVer)
+
+Follow **MAJOR.MINOR.PATCH**:
+
+- **MAJOR** — Breaking changes to SDK integration or behavior.
+- **MINOR** — New features that are backward compatible.
+- **PATCH** — Bug fixes, security updates.
+
+---
+
+### Backward Compatibility Planning
+
+- Keep deprecated APIs functional until the next major release.
+- Provide migration guides and codemods for breaking changes.
+
+---
+
+### Migration Strategy Design
+
+When a plugin updates:
+
+1. Compare the new manifest against the old one.
+2. Run **data migrations** if schema changes occur.
+3. Rollback if initialization fails.
+
+---
+
+### Breaking Change Communication
+
+For public marketplaces:
+
+- Notify users before updates that include breaking changes.
+- Include “Update Impact” summaries in release notes.
+
+---
+
+## 15.3 Deployment Automation
+
+Plugins benefit from the same automation discipline as any production code.
+
+---
+
+### CI/CD Pipeline Setup
+
+Typical flow:
+
+1. Developer pushes changes to repository.
+2. CI runs unit, integration, and security tests.
+3. On success, plugin is **built** and **bundled**.
+4. Bundles are **signed** and **published** to registry or CDN.
+5. Host app updates its plugin manifest index.
+
+---
+
+### Automated Testing Integration
+
+- Prevent deployment if any tests fail.
+- Include performance and security checks as part of CI.
+
+---
+
+### Release Management
+
+- Tag plugin releases in Git for traceability.
+- Store build artifacts in an immutable storage bucket.
+
+---
+
+### Rollback Procedures
+
+- Keep last known good version cached in the registry.
+- Host can revert automatically if a plugin fails to load.
+
+---
+
+## 15.4 Plugin Store Implementation
+
+A plugin marketplace isn’t just a list of plugins—it’s a **discovery, validation, and update platform**.
+
+---
+
+### Marketplace Architecture
+
+- **Manifest Index** — JSON list of all available plugins with metadata.
+- **Search and Filter Engine** — by category, rating, compatibility.
+- **Version Resolver** — selects the right plugin version for the host’s SDK.
+
+---
+
+### Review and Approval Process
+
+- Automated validation (manifest schema, size limits, security scan).
+- Human review for UI quality and compliance.
+
+---
+
+### Payment Processing
+
+If the marketplace sells plugins:
+
+- Integrate payment APIs (Stripe, Paddle).
+- Handle licensing and entitlement checks inside the host.
+
+---
+
+### Analytics and Metrics
+
+For marketplace operators:
+
+- Download counts.
+- Active installation numbers.
+- Error and performance telemetry per plugin.
+
+---
+
+## 15.5 Enterprise Considerations
+
+Enterprise environments demand **more governance and compliance**.
+
+---
+
+### Internal Plugin Development
+
+- Internal teams can build plugins using the same SDK as public developers.
+- Plugins are distributed via a **private registry** with SSO authentication.
+
+---
+
+### Security and Compliance
+
+- Enforce **digital signature checks** before loading plugins.
+- Require plugins to pass **security audits** before deployment.
+
+---
+
+### License Management
+
+- Ensure third-party plugins comply with open-source license requirements.
+- Track license terms in the manifest metadata.
+
+---
+
+### Support and Maintenance
+
+- Enterprise plugin owners must commit to SLAs for bug fixes.
+- Automatic alerts for outdated or insecure dependencies.
+
+---
+
+## Key Takeaways
+
+A sustainable plugin ecosystem:
+
+1. Chooses a **distribution model** that matches its audience.
+2. Manages versions with **SemVer and clear migration paths**.
+3. Uses **CI/CD pipelines** for safe, repeatable deployments.
+4. Operates a plugin store with **validation, analytics, and rollback support**.
+5. Meets **enterprise governance** needs without slowing innovation.
+
+---
+
+**Next up:**
+We’ll close out with the **Appendices**, where you’ll find complete TypeScript definitions, example implementations for different frameworks, build configuration samples, and checklists for security and performance audits—turning this book into a ready-to-use reference for your own plugin architecture.

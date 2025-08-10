@@ -1,0 +1,262 @@
+---
+title: 'Event-Driven Communication and Inter-Plugin Messaging'
+summary: 'Enable plugins to communicate via events and messaging systems.'
+topicTitle: 'Event-Driven Communication'
+topicSlug: '08-event-driven-communication'
+nextTitle: 'Security Considerations'
+nextSlug: '/docs/09-security-considerations'
+---
+
+# Chapter 8: Event-Driven Communication and Inter-Plugin Messaging
+
+So far, we’ve designed the **Plugin SDK** as the official bridge between plugins and the host application.
+But what about **plugin-to-plugin communication**?
+In a large ecosystem, plugins will inevitably need to:
+
+- React to changes triggered by other plugins.
+- Share data without creating direct dependencies.
+- Coordinate workflows while remaining loosely coupled.
+
+The solution is an **event-driven communication model**—a system where plugins exchange information through a **central event bus** instead of calling each other’s code directly.
+
+In this chapter, we’ll explore:
+
+1. **Event system architecture** — how the event bus fits into the host.
+2. **Inter-plugin communication patterns** — direct, shared state, and service-based.
+3. **Asynchronous communication** — handling long-running or delayed events.
+4. **Performance considerations** — keeping event handling efficient.
+5. **Security and isolation** — ensuring events can’t be abused.
+
+---
+
+## 8.1 Event System Architecture
+
+An event system is essentially a **Pub/Sub (publish/subscribe)** mechanism:
+
+- **Publisher** — emits an event with optional data.
+- **Subscriber** — listens for an event and reacts when it’s emitted.
+- **Event Bus** — central hub that delivers events to all subscribers.
+
+---
+
+### Event Bus in the SDK
+
+Our `PluginSDK` already includes an event system:
+
+```ts
+events: {
+  on: (event: string, handler: (payload?: unknown) => void) => void;
+  off: (event: string, handler: (payload?: unknown) => void) => void;
+  emit: (event: string, payload?: unknown) => void;
+};
+```
+
+---
+
+### How It Works
+
+1. **Plugin A** calls `sdk.events.emit('cart:updated', { items: 5 })`.
+2. The event bus finds all registered listeners for `'cart:updated'`.
+3. Each listener is invoked with `{ items: 5 }` as the payload.
+
+---
+
+### Benefits
+
+- **Loose coupling** — Plugins don’t know or care who is listening.
+- **Scalability** — New plugins can join the event flow without breaking existing ones.
+- **Testability** — Easy to mock and assert in isolation.
+
+---
+
+## 8.2 Inter-Plugin Communication Patterns
+
+While events are the backbone, there are multiple ways plugins can talk to each other.
+
+---
+
+### Direct Message Passing
+
+The simplest approach—plugins send events to each other directly via the event bus.
+Example:
+
+```ts
+sdk.events.emit('theme:change', { theme: 'dark' });
+```
+
+A theme plugin might listen:
+
+```ts
+sdk.events.on('theme:change', ({ theme }) => {
+  applyTheme(theme);
+});
+```
+
+---
+
+### Shared State Management
+
+Sometimes, events alone aren’t enough—you need **persistent state** that multiple plugins can read and write.
+We handle this with `sdk.services.storage`:
+
+```ts
+sdk.services.storage.set('global:theme', 'dark');
+```
+
+Plugins can subscribe to a `"theme:change"` event and also query the latest value from storage.
+
+---
+
+### Service-Based Communication
+
+For complex integrations, one plugin can expose an **SDK service** that others can call.
+Example:
+
+- Analytics plugin registers `sdk.services.analytics.trackEvent()`.
+- Other plugins call it to record events without knowing analytics internals.
+
+---
+
+### Event-Driven Workflows
+
+Combine events with services to chain actions:
+
+1. Form plugin emits `form:submitted`.
+2. Validation plugin listens and checks data.
+3. API plugin sends data to the server.
+4. Notification plugin shows a success toast.
+
+---
+
+## 8.3 Asynchronous Communication
+
+Real-world events aren’t always instant—some require async handling.
+
+---
+
+### Promise-Based APIs
+
+You can wrap event responses in promises for request-reply flows:
+
+```ts
+function requestTheme(): Promise<string> {
+  return new Promise((resolve) => {
+    sdk.events.emit('theme:request');
+    sdk.events.on('theme:response', resolve);
+  });
+}
+```
+
+---
+
+### Async/Await Patterns
+
+Inside listeners, use `async` functions to handle long-running tasks:
+
+```ts
+sdk.events.on('report:generate', async (params) => {
+  const data = await fetchReport(params);
+  sdk.events.emit('report:ready', data);
+});
+```
+
+---
+
+### Message Acknowledgment
+
+For critical workflows, plugins can send back acknowledgments to confirm event handling.
+
+---
+
+### Timeout and Error Handling
+
+If no plugin responds within a set time, the host can trigger a fallback:
+
+```ts
+setTimeout(() => {
+  console.warn('No plugin responded to theme:request');
+}, 3000);
+```
+
+---
+
+## 8.4 Performance Considerations
+
+Events can become a bottleneck if poorly managed.
+
+---
+
+### Message Throttling and Debouncing
+
+Prevent flooding the event bus with rapid events:
+
+- **Throttle** high-frequency events (e.g., window resize).
+- **Debounce** to wait until the last event in a burst (e.g., search input changes).
+
+---
+
+### Memory Management for Event Handlers
+
+Always remove listeners when a plugin is unmounted:
+
+```ts
+sdk.events.off('theme:change', handler);
+```
+
+---
+
+### Garbage Collection Optimization
+
+Avoid closures that capture large objects—pass only the data you need in payloads.
+
+---
+
+### Performance Monitoring
+
+Track event emission counts and handler execution times to identify slow or spammy plugins.
+
+---
+
+## 8.5 Security and Isolation
+
+Events are an **attack surface** if not properly secured.
+
+---
+
+### Message Validation
+
+The host should validate payloads against a schema before passing them to subscribers.
+
+---
+
+### Cross-Plugin Security
+
+Only allow plugins to emit/listen to events they have **declared in their manifest**. This prevents accidental or malicious interference.
+
+---
+
+### Permission-Based Communication
+
+For sensitive events (e.g., `auth:userData`), require the plugin to have explicit permissions in its manifest before it can subscribe or emit.
+
+---
+
+### Audit Logging
+
+Log all event emissions from plugins for debugging and security analysis.
+
+---
+
+## Key Takeaways
+
+An event-driven architecture for plugins:
+
+1. Keeps communication **loose and scalable**.
+2. Supports multiple patterns—direct messages, shared state, services.
+3. Handles async workflows gracefully.
+4. Maintains performance and security through validation and isolation.
+
+---
+
+**Next up:**
+In **Chapter 9**, we’ll dive into **Security Considerations in Plugin Architecture**—how to sandbox execution, design permission systems, and protect the host from malicious or poorly written plugins. This is where safety meets extensibility.

@@ -1,0 +1,276 @@
+---
+title: 'The Plugin SDK: Designing Developer-Friendly APIs'
+summary: 'Create SDKs and APIs that make plugin development easy and robust.'
+topicTitle: 'The Plugin SDK'
+topicSlug: '07-plugin-sdk-design'
+nextTitle: 'Event-Driven Communication'
+nextSlug: '/docs/08-event-driven-communication'
+---
+
+# Chapter 7: The Plugin SDK — Designing Developer-Friendly APIs
+
+The **Plugin SDK** is the heart of your plugin ecosystem’s developer experience.
+It is the single, well-typed, framework-agnostic interface that plugins use to:
+
+- Contribute UI (routes, menus, widgets).
+- Communicate with the host (events, services).
+- Access shared functionality without breaking encapsulation.
+
+If the **registry** is the control tower, the **SDK** is the cockpit—it gives plugin developers everything they need to fly without letting them tamper with the plane’s engines.
+
+In this chapter, we’ll cover:
+
+1. **SDK architecture overview** — principles for designing the API surface.
+2. **Core SDK components** — the functional building blocks.
+3. **Developer experience features** — making the SDK easy and intuitive.
+4. **Plugin development workflow** — tools and processes for authors.
+5. **API versioning and evolution** — keeping the ecosystem stable over time.
+
+---
+
+## 7.1 SDK Architecture Overview
+
+The Plugin SDK is both a **security boundary** and a **developer toolkit**. Its architecture must balance:
+
+- **Safety** — no uncontrolled access to host internals.
+- **Extensibility** — easy to add new capabilities without breaking old plugins.
+- **Consistency** — predictable patterns across different APIs.
+- **Discoverability** — developers should be able to explore and understand it quickly.
+
+---
+
+### Design Principles
+
+1. **Minimal Core, Extensible Modules**
+   Keep the core SDK small—only essential features. New features should be opt-in via extensions.
+
+2. **Progressive Disclosure**
+   Group APIs by domain (`routes`, `menus`, `widgets`, etc.) so developers aren’t overwhelmed.
+
+3. **Backward Compatibility**
+   Never remove or change existing methods without a migration path.
+
+4. **Framework Neutrality**
+   Use `unknown` for UI component types at the core, and let adapters specialize them.
+
+---
+
+## 7.2 Core SDK Components
+
+Here’s the full `PluginSDK` interface from our foundation layer:
+
+```ts
+export interface PluginSDK {
+  /** Access to app-wide routing */
+  routes: {
+    add: (route: PluginRouteDefinition) => void;
+    remove: (path: string) => void;
+  };
+
+  /** Access to navigation menus */
+  menus: {
+    addItem: (item: PluginMenuItem) => void;
+    removeItem: (label: string) => void;
+  };
+
+  /** Access to dashboard widgets */
+  widgets: {
+    add: (widget: PluginWidgetDefinition) => void;
+    remove: (id: string) => void;
+  };
+
+  /** Publish/subscribe event bus */
+  events: {
+    on: (event: string, handler: (payload?: unknown) => void) => void;
+    off: (event: string, handler: (payload?: unknown) => void) => void;
+    emit: (event: string, payload?: unknown) => void;
+  };
+
+  /** Shared UI services */
+  ui: {
+    showModal: (content: unknown, options?: { title?: string }) => void;
+    showToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
+  };
+
+  /** Shared app services */
+  services: {
+    apiClient: {
+      get: <T>(url: string, params?: Record<string, unknown>) => Promise<T>;
+      post: <T>(url: string, body: unknown) => Promise<T>;
+    };
+    auth: {
+      getUser: () => Promise<{ id: string; name: string; roles: string[] }>;
+      hasRole: (role: string) => boolean;
+    };
+    storage: {
+      get: <T>(key: string) => T | undefined;
+      set: <T>(key: string, value: T) => void;
+      remove: (key: string) => void;
+    };
+  };
+
+  /** Plugin metadata */
+  plugin: {
+    id: string;
+    manifest: PluginManifest;
+  };
+}
+```
+
+---
+
+### Breaking Down the Core
+
+1. **UI Contribution APIs**
+   - `routes` — Add or remove full-page routes.
+   - `menus` — Extend navigation menus.
+   - `widgets` — Insert dashboard or panel widgets.
+
+2. **Event System**
+   A framework-neutral Pub/Sub mechanism for decoupled communication between plugins and the host.
+
+3. **UI Utilities**
+   Helpers like `showModal` and `showToast` give plugins access to host-styled UI components without importing internal code.
+
+4. **Shared Services**
+   - **API client** — A typed, centralized HTTP interface.
+   - **Auth** — Access to user identity and role checks.
+   - **Storage** — Simple key-value persistence per plugin or global scope.
+
+5. **Metadata Access**
+   The plugin can read its own `id` and `manifest` for self-awareness.
+
+---
+
+## 7.3 Developer Experience Features
+
+A great SDK isn’t just functional—it’s enjoyable to use.
+
+---
+
+### TypeScript Integration
+
+Every SDK method and object is fully typed. This gives:
+
+- IntelliSense suggestions.
+- Compile-time errors for misuse.
+- Clear documentation embedded in types.
+
+---
+
+### IntelliSense and Auto-completion
+
+Group related APIs under nested objects (`sdk.routes.add`) so auto-completion helps developers discover functionality.
+
+---
+
+### Error Messages and Debugging
+
+SDK methods should validate inputs and throw **descriptive errors** in development mode:
+
+```ts
+sdk.routes.add({
+  path: '/invalid', // Missing component will trigger a dev-mode error
+});
+```
+
+---
+
+### Documentation and Examples
+
+Inline JSDoc comments in the SDK source double as API docs in IDE tooltips.
+
+---
+
+## 7.4 Plugin Development Workflow
+
+An SDK is most effective when paired with tools that streamline plugin authoring.
+
+---
+
+### CLI Tools and Scaffolding
+
+Provide a CLI to generate boilerplate:
+
+```sh
+plugin-cli create my-plugin
+```
+
+This sets up:
+
+- `manifest.json`
+- `index.ts` with lifecycle hooks
+- Example route/widget
+
+---
+
+### Local Development Server
+
+A dev server can load a plugin into a **sandboxed preview** of the host for instant feedback.
+
+---
+
+### Testing Framework Integration
+
+- Unit tests with Jest.
+- Integration tests with a mock host.
+- End-to-end tests using Playwright against a real host instance.
+
+---
+
+### Build and Package Management
+
+Provide an official build config (Webpack, Vite, etc.) so developers don’t struggle with module formats.
+
+---
+
+## 7.5 API Versioning and Evolution
+
+Even the best SDK will change over time. The challenge is **adding features without breaking existing plugins**.
+
+---
+
+### Semantic Versioning Strategy
+
+Follow **SemVer** for the SDK package:
+
+- **MAJOR** — Breaking changes (rare, with migration guides).
+- **MINOR** — Backward-compatible feature additions.
+- **PATCH** — Bug fixes only.
+
+---
+
+### Deprecation Policies
+
+Mark old APIs with `@deprecated` in TypeScript and maintain them until the next major release.
+
+---
+
+### Migration Tools
+
+Provide codemods or automated scripts to help developers update their plugins.
+
+---
+
+### Breaking Change Management
+
+If a major change is unavoidable:
+
+1. Announce early.
+2. Maintain dual APIs temporarily.
+3. Provide migration examples.
+
+---
+
+## Key Takeaways
+
+The **Plugin SDK** is:
+
+- The _only_ bridge between plugins and the host.
+- Designed for **safety**, **extensibility**, and **developer happiness**.
+- A living API that must evolve without leaving old plugins behind.
+
+---
+
+**Next up:**
+In **Chapter 8**, we’ll look at **Event-Driven Communication and Inter-Plugin Messaging**—how plugins talk to each other and the host without tight coupling, and how an event bus architecture keeps the system modular and maintainable.

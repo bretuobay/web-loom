@@ -1,0 +1,280 @@
+---
+title: 'The Plugin Registry: Managing Plugin Lifecycle'
+summary: 'Implement and manage the registry that controls plugin discovery, activation, and deactivation.'
+topicTitle: 'The Plugin Registry'
+topicSlug: '05-plugin-registry-and-lifecycle'
+nextTitle: 'Dynamic Loading and Module Resolution'
+nextSlug: '/docs/06-dynamic-loading-and-module-resolution'
+---
+
+# Chapter 5: The Plugin Registry — Managing Plugin Lifecycle
+
+With our **core contracts** in place, we now need a mechanism to track and coordinate every plugin’s journey—from discovery, through loading, to eventual removal.
+This mechanism is the **Plugin Registry**.
+
+If the **manifest** is the _identity card_ of a plugin, and the **SDK** is the _toolbox_, then the **registry** is the _control tower_.
+It knows:
+
+- Which plugins exist.
+- Which are active.
+- Which depend on which.
+- Which are safe to unload.
+
+In this chapter, we’ll design a registry that:
+
+1. **Discovers** plugins from various sources.
+2. **Stores** plugin definitions.
+3. **Manages** lifecycle transitions (load, init, mount, unmount).
+4. **Resolves** dependencies and compatibility.
+5. **Optimizes** performance via lazy loading and caching.
+
+---
+
+## 5.1 Registry Architecture
+
+The **PluginRegistry** is the in-memory store and control API for all loaded plugins. It works alongside a **PluginLoader** that handles the actual code fetching and instantiation.
+
+### TypeScript Definition
+
+From our SDK foundation:
+
+```ts
+export interface PluginRegistry {
+  register: (pluginDef: PluginDefinition) => void;
+  unregister: (pluginId: string) => void;
+  get: (pluginId: string) => PluginDefinition | undefined;
+  getAll: () => PluginDefinition[];
+}
+```
+
+### Plugin Definition
+
+```ts
+export interface PluginDefinition {
+  manifest: PluginManifest;
+  module: PluginModule;
+}
+```
+
+The registry is intentionally simple—its complexity comes from **how** we populate it.
+
+---
+
+### Plugin Discovery Mechanisms
+
+A registry doesn’t just appear—it’s populated from:
+
+- **Local plugin bundles** packaged with the host app.
+- **Remote manifest URLs** from a plugin marketplace.
+- **Dynamic imports** via user-provided plugin paths.
+- **Enterprise-managed registries** with permission gating.
+
+Example discovery flow:
+
+1. Fetch `plugin-manifest.json` files from known URLs.
+2. Validate against the `PluginManifest` schema.
+3. Pass to `PluginLoader.loadFromManifest()`.
+4. Call `registry.register()` once loaded.
+
+---
+
+### Metadata Management
+
+Each registered plugin may carry:
+
+- Load state (`pending`, `loaded`, `mounted`, `error`).
+- Compatibility info (framework version, SDK version).
+- Security flags (permissions granted, sandbox type).
+
+A `PluginMetadata` structure helps track this:
+
+```ts
+interface PluginMetadata {
+  state: 'pending' | 'loaded' | 'mounted' | 'error';
+  errors?: string[];
+  permissionsGranted?: string[];
+}
+```
+
+---
+
+## 5.2 Lifecycle State Management
+
+A good registry is a **state machine** for plugins:
+
+- **pending** — Plugin discovered but not loaded.
+- **loaded** — Code fetched and `init()` called.
+- **mounted** — Plugin UI active.
+- **error** — Failed during any stage.
+
+---
+
+### Transition Validation
+
+We should enforce valid transitions:
+
+| Current State | Allowed Next States |
+| ------------- | ------------------- |
+| pending       | loaded, error       |
+| loaded        | mounted, error      |
+| mounted       | loaded, error       |
+| error         | pending (retry)     |
+
+This ensures we never, for example, mount a plugin that hasn’t been loaded.
+
+---
+
+### Error State Handling
+
+If `init()` or `mount()` fails:
+
+- Log the error with context.
+- Set state to `error`.
+- Optionally show a fallback UI.
+
+---
+
+### Rollback and Recovery
+
+For safe recovery:
+
+- **On mount failure** → unmount and revert to `loaded` state.
+- **On load failure** → remove from registry and mark manifest as invalid.
+- **On unmount failure** → log but continue cleanup.
+
+---
+
+## 5.3 Dependency Management
+
+Some plugins depend on others—maybe a chart widget depends on a core analytics plugin.
+
+---
+
+### Topological Sorting for Load Order
+
+We can ensure correct load order using **topological sorting**:
+
+```ts
+function sortByDependencies(plugins: PluginManifest[]): PluginManifest[] {
+  // Implement Kahn's algorithm here
+}
+```
+
+---
+
+### Circular Dependency Detection
+
+If two plugins depend on each other, the registry should:
+
+- Detect the cycle.
+- Fail one of them, or
+- Use lazy resolution to defer dependency checks until runtime.
+
+---
+
+### Optional Dependency Handling
+
+Some plugins may say “If X exists, use it; otherwise, skip this feature.”
+This prevents hard failures when optional integrations aren’t installed.
+
+---
+
+### Peer Dependency Resolution
+
+Plugins that expect the **same version** of a shared API must be validated before loading. If mismatched:
+
+- Warn the user.
+- Offer to upgrade/downgrade.
+
+---
+
+## 5.4 Plugin Installation and Updates
+
+In a real-world ecosystem, plugins aren’t static. We need install, update, and rollback flows.
+
+---
+
+### Installation Workflow
+
+1. Fetch manifest.
+2. Validate against schema.
+3. Download and verify plugin code.
+4. Call `registry.register()`.
+
+---
+
+### Update Strategy
+
+- Use **semantic versioning** in manifests.
+- Allow safe updates without breaking active sessions.
+- Optionally **hot reload** UI contributions if framework supports it.
+
+---
+
+### Migration and Compatibility
+
+When updating, plugins may need **migration scripts** to update stored data or configuration.
+
+---
+
+### Rollback Mechanisms
+
+Keep previous versions cached:
+
+- If new version fails, revert instantly.
+- Maintain a **version history** for auditing.
+
+---
+
+## 5.5 Performance Optimization
+
+The registry plays a key role in performance by deciding **when** to load and unload.
+
+---
+
+### Lazy Loading
+
+Only load plugins when:
+
+- The route they provide is visited.
+- A menu item is clicked.
+- A widget’s dashboard is opened.
+
+---
+
+### Memory Management
+
+Unload unused plugins to free memory:
+
+- Unmount UI.
+- Remove from registry if no longer needed.
+- Clear cached module references.
+
+---
+
+### Plugin Preloading
+
+If analytics suggest a plugin is frequently used soon after login, preload it after critical resources.
+
+---
+
+### Resource Pooling
+
+Share expensive resources (e.g., API clients, WebSocket connections) between plugins via the `services` API.
+
+---
+
+## Key Takeaways
+
+A **Plugin Registry** is:
+
+1. The **single source of truth** for plugin state.
+2. The **gatekeeper** for lifecycle transitions.
+3. The **optimizer** for load order, performance, and stability.
+
+It ensures that our TypeScript contracts don’t just exist—they **work in a living system**.
+
+---
+
+**Next up:**
+In **Chapter 6**, we’ll explore **Dynamic Loading and Module Resolution Strategies**—how to actually fetch and execute plugin code at runtime, handle different module formats, and ensure compatibility across build tools and browsers. This is where the registry meets the loader.

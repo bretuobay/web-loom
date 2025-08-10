@@ -1,0 +1,111 @@
+---
+title: 'Using MVVM in Vue: Greenhouse Example'
+summary: 'A practical guide to implementing the MVVM pattern in a Vue app using MVVM Core, with a Greenhouse management use case.'
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+---
+
+# Using MVVM in Vue: Greenhouse Example
+
+This guide demonstrates how to use the MVVM (Model-View-ViewModel) pattern in a Vue 3 application with MVVM Core, focusing on a Greenhouse management use case.
+
+## Overview
+
+- **Model:** Encapsulates data and API logic (GreenHouseModel)
+- **ViewModel:** Manages state, commands, and validation (GreenHouseViewModel)
+- **View:** Vue component (`GreenhouseList.vue`)
+
+## 1. Define the Model
+
+The model handles API requests and data validation:
+
+```typescript
+// packages/models/src/GreenHouseModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { GreenhouseListSchema, type GreenhouseListData } from './schemas';
+import { nativeFetcher } from './utils/fetcher';
+import { apiRegistry } from './services/services';
+import { API_BASE_URL } from './config';
+
+const { path } = apiRegistry.greenhouse.list;
+
+export const greenHouseConfig = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: nativeFetcher,
+  schema: GreenhouseListSchema,
+  initialData: [],
+  validateSchema: false,
+};
+
+export class GreenHouseModel extends RestfulApiModel<GreenhouseListData, typeof GreenhouseListSchema> {
+  constructor() {
+    super(greenHouseConfig);
+  }
+}
+```
+
+## 2. Create the ViewModel
+
+The ViewModel exposes observables and commands for the UI:
+
+```typescript
+// packages/view-models/src/GreenHouseViewModel.ts
+import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
+import { greenHouseConfig } from '@repo/models';
+import { type GreenhouseListData, GreenhouseListSchema, type GreenhouseData } from '@repo/models';
+
+type TConfig = ViewModelFactoryConfig<GreenhouseListData, typeof GreenhouseListSchema>;
+
+const config: TConfig = {
+  modelConfig: greenHouseConfig,
+  schema: GreenhouseListSchema,
+};
+
+export const greenHouseViewModel = createReactiveViewModel(config);
+export type { GreenhouseListData, GreenhouseData };
+```
+
+## 3. Use the ViewModel in a Vue Component
+
+The component subscribes to observables and triggers commands:
+
+```vue
+<!-- apps/mvvm-vue/src/components/GreenhouseList.vue -->
+<template>
+  <!-- ...form and greenhouse list UI... -->
+</template>
+<script setup lang="ts">
+import { onMounted, ref, reactive } from 'vue';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+const isLoading = useObservable(greenHouseViewModel.isLoading$, true);
+const greenhouses = useObservable(greenHouseViewModel.data$, []);
+
+onMounted(() => {
+  greenHouseViewModel.fetchCommand.execute();
+});
+
+const handleSubmit = (event: Event) => {
+  // ...collect form data...
+  greenHouseViewModel.createCommand.execute(data);
+};
+</script>
+```
+
+## 4. Key Concepts
+
+- **Observables:** Subscribe to data, loading, and error states from the ViewModel using composables.
+- **Commands:** Trigger CRUD operations via the ViewModel (e.g., `fetchCommand`, `createCommand`).
+- **Validation:** Schemas ensure data integrity.
+
+## 5. Benefits of MVVM in Vue
+
+- Separation of concerns: UI logic is decoupled from data and API logic.
+- Reactive updates: UI automatically updates when data changes.
+- Testability: Models and ViewModels can be tested independently.
+
+---
+
+For more details, see the source files in `packages/models` and `packages/view-models`, and explore the MVVM Core documentation.

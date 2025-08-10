@@ -1,0 +1,229 @@
+---
+title: 'Core Contracts and Interfaces: Building the Plugin Foundation'
+summary: 'Define the essential contracts and interfaces for a plugin system.'
+topicTitle: 'Core Contracts and Interfaces'
+topicSlug: '04-core-contracts-and-interfaces'
+nextTitle: 'The Plugin Registry'
+nextSlug: '/docs/05-plugin-registry-and-lifecycle'
+---
+
+# Chapter 4: Core Contracts and Interfaces — Building the Plugin Foundation
+
+In the previous chapters, we explored **why** plugin architecture matters, how TypeScript gives us safety in dynamic systems, and how to keep our design framework-agnostic through abstraction layers and adapters.
+
+Now, it’s time to **lock in the foundation**—the core contracts and interfaces that define what a plugin _is_, how it integrates into the host, and how it communicates with the application.
+
+These contracts are **the constitution of your plugin ecosystem**:
+
+- They **govern all interactions** between the host and plugins.
+- They **stay stable over time**, allowing plugins to survive SDK version upgrades.
+- They **prevent unsafe behavior** by ensuring all operations go through a controlled API.
+
+This chapter covers the **three pillars** of our plugin foundation:
+
+1. **Plugin Manifest Design** — Static metadata and capabilities.
+2. **Plugin Lifecycle Contracts** — Runtime execution and teardown.
+3. **Host Application API Design** — The public surface exposed to plugins.
+
+---
+
+## 4.1 Plugin Manifest Design
+
+The **manifest** is a declarative description of the plugin. It tells the host:
+
+- Who the plugin is.
+- What it contributes (routes, widgets, menu items, etc.).
+- How to load it.
+
+### Why a Manifest Matters
+
+- **Safe Preloading** — The host can inspect a manifest without running any code, useful for security scanning and marketplace previews.
+- **Lazy Loading** — The manifest lets the host know when and how to load a plugin only when needed.
+- **Discovery** — Manifests can be indexed in a plugin registry.
+
+### TypeScript Definition
+
+Here’s a simplified version of our manifest interface:
+
+```ts
+export interface PluginManifest {
+  /** Unique plugin identifier */
+  id: string;
+  /** Human-readable name */
+  name: string;
+  /** Semantic version */
+  version: string;
+  /** Optional description */
+  description?: string;
+  /** Author/vendor info */
+  author?: string;
+  /** Entry file path or URL */
+  entry: string;
+  /** Optional plugin icon */
+  icon?: string;
+  /** Routes contributed by the plugin */
+  routes?: PluginRouteDefinition[];
+  /** Menu items contributed by the plugin */
+  menuItems?: PluginMenuItem[];
+  /** Dashboard widgets contributed by the plugin */
+  widgets?: PluginWidgetDefinition[];
+  /** Arbitrary custom metadata */
+  metadata?: Record<string, unknown>;
+}
+```
+
+**Best Practice:** Treat `PluginManifest` as **immutable** after load—this ensures consistency in dependency resolution, caching, and registry indexing.
+
+---
+
+## 4.2 Plugin Lifecycle Contracts
+
+The **lifecycle** defines _when_ and _how_ plugin code runs inside the host application.
+
+We need predictable entry points so that:
+
+- The host knows when to initialize resources.
+- Plugins know when to attach to the UI.
+- Cleanup happens correctly to avoid memory leaks.
+
+### Lifecycle Hooks
+
+Our `PluginModule` interface defines the standard hooks:
+
+```ts
+export interface PluginModule {
+  /** Called once when the plugin is loaded */
+  init?: (sdk: PluginSDK) => void | Promise<void>;
+  /** Called when the plugin is mounted into the UI */
+  mount?: (sdk: PluginSDK) => void | Promise<void>;
+  /** Called when the plugin is removed from the UI */
+  unmount?: () => void | Promise<void>;
+}
+```
+
+**Guidelines:**
+
+- **`init`** — Set up event listeners, register background services, preload data.
+- **`mount`** — Render UI components, attach routes, create menu entries.
+- **`unmount`** — Remove DOM nodes, unregister events, release resources.
+
+**Pro Tip:** Make lifecycle hooks **idempotent**—calling them twice shouldn’t break the plugin.
+
+---
+
+## 4.3 Host Application API Design
+
+The host must expose a **controlled interaction surface** for plugins.
+We do this through the `PluginSDK` interface—this is the **public API**.
+
+### Why the SDK is Crucial
+
+- **Encapsulation** — Prevents plugins from reaching into the host’s internal state.
+- **Security** — Allows permission-based access to sensitive APIs.
+- **Consistency** — Keeps interactions uniform across all plugins.
+
+### TypeScript Definition
+
+The SDK combines multiple capabilities:
+
+```ts
+export interface PluginSDK {
+  /** Manage routes */
+  routes: {
+    add: (route: PluginRouteDefinition) => void;
+    remove: (path: string) => void;
+  };
+
+  /** Manage navigation menus */
+  menus: {
+    addItem: (item: PluginMenuItem) => void;
+    removeItem: (label: string) => void;
+  };
+
+  /** Manage dashboard widgets */
+  widgets: {
+    add: (widget: PluginWidgetDefinition) => void;
+    remove: (id: string) => void;
+  };
+
+  /** Publish/subscribe events */
+  events: {
+    on: (event: string, handler: (payload?: unknown) => void) => void;
+    off: (event: string, handler: (payload?: unknown) => void) => void;
+    emit: (event: string, payload?: unknown) => void;
+  };
+
+  /** Shared UI services */
+  ui: {
+    showModal: (content: unknown, options?: { title?: string }) => void;
+    showToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
+  };
+
+  /** Shared app services */
+  services: {
+    apiClient: {
+      get: <T>(url: string, params?: Record<string, unknown>) => Promise<T>;
+      post: <T>(url: string, body: unknown) => Promise<T>;
+    };
+    auth: {
+      getUser: () => Promise<{ id: string; name: string; roles: string[] }>;
+      hasRole: (role: string) => boolean;
+    };
+    storage: {
+      get: <T>(key: string) => T | undefined;
+      set: <T>(key: string, value: T) => void;
+      remove: (key: string) => void;
+    };
+  };
+
+  /** Plugin metadata */
+  plugin: {
+    id: string;
+    manifest: PluginManifest;
+  };
+}
+```
+
+---
+
+## 4.4 Plugin Context and Sandbox
+
+For **security and stability**, each plugin should execute in a **sandboxed context**:
+
+- Isolated global variables.
+- Restricted DOM access.
+- Controlled network requests.
+
+**Implementation Patterns:**
+
+- **IFrame Sandboxing** — Highest isolation but higher performance cost.
+- **Web Worker Sandboxing** — Great for background tasks, no DOM access.
+- **Virtual Module Scope** — Scoped imports and global variables.
+
+The `PluginSDK` acts as the **only bridge** between plugin code and the host environment.
+
+---
+
+## 4.5 Type System Architecture
+
+TypeScript helps us ensure the SDK evolves without breaking existing plugins:
+
+- Use **optional properties** for new features.
+- Leverage **declaration merging** for incremental feature addition.
+- Keep **core contracts small** and stable.
+
+---
+
+### Key Takeaways
+
+A robust plugin foundation rests on:
+
+1. **A manifest** that clearly describes the plugin without executing it.
+2. **Lifecycle hooks** that standardize initialization, rendering, and teardown.
+3. **A typed SDK** that exposes safe, framework-agnostic APIs.
+4. **Sandboxing** to keep plugins secure and isolated.
+
+---
+
+**Next up:**
+In **Chapter 5**, we’ll look at the **Plugin Registry**—the system that discovers, registers, and manages plugins throughout their lifecycle, including dependency resolution, version control, and performance optimization. This is where our contracts start working at scale.
