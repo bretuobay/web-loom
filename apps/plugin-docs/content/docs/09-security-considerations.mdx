@@ -3,17 +3,223 @@ title: 'Security Considerations in Plugin Architecture'
 summary: 'Address security risks and best practices in plugin-based systems.'
 ---
 
-# Security Considerations in Plugin Architecture
+# Chapter 9: Security Considerations in Plugin Architecture
 
-Learn about the security challenges and solutions when building extensible systems and supporting third-party plugins.
+Security is the **non-negotiable foundation** of any plugin ecosystem.
+The moment you allow third-party code to run inside your application, you’re opening the door to:
 
-## Topics Covered
+- Accidental breakage from poorly written code.
+- Malicious behavior from compromised or hostile plugins.
+- Data leaks and unauthorized access to sensitive APIs.
 
-- Sandboxing and isolation
-- Permissions and access control
-- Secure APIs
-- Vulnerability management
+This chapter focuses on designing a **secure plugin architecture** without sacrificing flexibility.
+We’ll cover:
+
+1. **Security threat model** — understanding the risks.
+2. **Sandboxing and isolation** — containing plugin code.
+3. **Permission system design** — controlling what plugins can do.
+4. **Content Security Policy (CSP)** integration.
+5. **Code validation and signing** — ensuring plugin integrity.
 
 ---
 
-_Continue to next chapter for testing strategies._
+## 9.1 Security Threat Model
+
+Before defending a system, we must identify what we’re defending against.
+
+---
+
+### Common Plugin Vulnerabilities
+
+- **DOM injection** — Plugins injecting malicious scripts or altering sensitive UI elements.
+- **Data exfiltration** — Sending sensitive data (tokens, user info) to an external server.
+- **Resource abuse** — Overusing CPU, memory, or network bandwidth.
+- **Privilege escalation** — Accessing SDK features without authorization.
+- **Dependency hijacking** — Malicious updates to third-party libraries used inside plugins.
+
+---
+
+### Attack Vectors and Mitigation Strategies
+
+| Attack Vector              | Mitigation                                         |
+| -------------------------- | -------------------------------------------------- |
+| Arbitrary DOM manipulation | Use Shadow DOM, block `document` access in sandbox |
+| Untrusted network requests | Proxy through host API client with validation      |
+| Excessive API calls        | Rate limit in SDK services                         |
+| Cross-plugin data leaks    | Namespace all storage keys, enforce isolation      |
+| Malicious updates          | Require digital signatures, verify checksums       |
+
+---
+
+### Trust Boundaries
+
+Clearly define **what belongs to the host** and **what belongs to the plugin**. The `PluginSDK` is the _only_ official bridge between them.
+
+---
+
+## 9.2 Sandboxing and Isolation
+
+The safest plugin is one that **cannot** affect anything outside its boundaries unless explicitly allowed.
+
+---
+
+### JavaScript Execution Isolation
+
+- **IFrame sandboxing** — Highest isolation; restrict script capabilities using `sandbox` attributes.
+- **Web Worker isolation** — Great for background tasks; no DOM access.
+- **Virtual Machine contexts** — Node.js `vm` or browser-based interpreters for fully controlled execution.
+
+---
+
+### DOM Access Restrictions
+
+Prevent plugins from querying or modifying host DOM directly:
+
+- Render plugin components into a shadow root.
+- Use adapter APIs to handle DOM interactions safely.
+
+---
+
+### Network Request Filtering
+
+Route all network calls through the `sdk.services.apiClient`. This allows:
+
+- Centralized request logging.
+- Permission-based URL access.
+- Throttling and caching.
+
+---
+
+### File System Access Control
+
+For Electron or Node-enabled environments:
+
+- Disable direct `fs` access.
+- Provide a controlled file API inside the SDK.
+
+---
+
+## 9.3 Permission System Design
+
+A **granular permission model** ensures plugins only access what they need.
+
+---
+
+### Granular Permission Model
+
+In the manifest, plugins declare what features they need:
+
+```json
+{
+  "id": "com.example.analytics",
+  "name": "Analytics Plugin",
+  "permissions": ["events", "api:read", "storage:global"]
+}
+```
+
+The host checks these before allowing SDK calls.
+
+---
+
+### Runtime Permission Requests
+
+Some permissions can be requested at runtime (e.g., access to private user data). The host can prompt the user for approval.
+
+---
+
+### User Consent Workflows
+
+Always inform users _why_ a permission is needed and what data will be accessed.
+
+---
+
+### Permission Escalation Prevention
+
+Once loaded, a plugin cannot request higher permissions without reinstallation or admin approval.
+
+---
+
+## 9.4 Content Security Policy Integration
+
+A **Content Security Policy (CSP)** can prevent injection attacks and limit external resource loading.
+
+---
+
+### CSP Configuration for Plugins
+
+- Disallow inline scripts (`script-src 'self'`).
+- Whitelist only approved CDN domains.
+- Use `object-src 'none'` to block Flash and other binary plugins.
+
+---
+
+### Dynamic Policy Updates
+
+If a plugin needs an external resource, update CSP dynamically after validating the request.
+
+---
+
+### Nonce-Based Script Loading
+
+Attach a random nonce to approved `<script>` tags so injected scripts without the nonce are blocked.
+
+---
+
+### Trusted Types Implementation
+
+Use **Trusted Types** to prevent unsafe DOM injection by enforcing controlled HTML creation.
+
+---
+
+## 9.5 Code Validation and Signing
+
+Verifying the integrity of plugin code before execution is essential for preventing tampering.
+
+---
+
+### Static Code Analysis
+
+Run automated checks for:
+
+- Known vulnerability patterns (e.g., `eval`, direct `innerHTML`).
+- Dangerous API usage.
+- Excessive resource usage potential.
+
+---
+
+### Digital Signature Verification
+
+Require plugins to be signed by a trusted certificate. The host verifies the signature before loading.
+
+---
+
+### Integrity Checking
+
+Use **Subresource Integrity (SRI)** hashes for remote plugin scripts:
+
+```html
+<script src="plugin.js" integrity="sha384-..." crossorigin="anonymous"></script>
+```
+
+---
+
+### Malware Detection Strategies
+
+Scan plugin bundles with antivirus/malware detection tools before adding them to the registry.
+
+---
+
+## Key Takeaways
+
+A secure plugin architecture:
+
+1. Treats all plugins as **untrusted by default**.
+2. Uses **sandboxing** to contain execution.
+3. Enforces a **permission model** for controlled access.
+4. Integrates **CSP and Trusted Types** to prevent injection.
+5. Verifies plugin code integrity before execution.
+
+---
+
+**Next up:**
+In **Chapter 10**, we’ll look at **Testing Strategies for Plugin-Based Systems**—how to verify plugin functionality, integration, and performance, while ensuring security measures remain intact during continuous development.

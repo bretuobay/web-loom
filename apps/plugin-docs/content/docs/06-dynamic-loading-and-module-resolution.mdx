@@ -3,17 +3,239 @@ title: 'Dynamic Loading and Module Resolution Strategies'
 summary: 'Explore techniques for loading plugins at runtime and resolving dependencies.'
 ---
 
-# Dynamic Loading and Module Resolution Strategies
+# Chapter 6: Dynamic Loading and Module Resolution Strategies
 
-This chapter covers strategies for loading plugins dynamically, handling dependencies, and resolving modules in extensible systems.
+In the last chapter, we built the **Plugin Registry**—the system that knows _what_ plugins exist, their states, and their dependencies.
+Now we need to solve the equally critical question: **how do we actually load plugin code into the application?**
 
-## Topics Covered
+Dynamic loading is the heart of a runtime-extensible system. It lets us:
 
-- Dynamic imports
-- Dependency resolution
-- Lazy loading
-- Error handling
+- Add new features without redeploying the whole app.
+- Reduce initial bundle size by loading plugins only when needed.
+- Support remote marketplaces and self-updating plugins.
+
+In this chapter, we’ll cover:
+
+1. **Module loading approaches** for different environments.
+2. **Bundle splitting and code splitting** to optimize delivery.
+3. **Asset management** for plugin CSS, images, and other resources.
+4. **Development vs. production loading** strategies.
+5. **Error handling and fallbacks** for reliability.
 
 ---
 
-_Continue to next chapter for plugin SDK design._
+## 6.1 Module Loading Approaches
+
+The host must load plugin code that may come in different module formats, from various sources, and possibly built with different toolchains.
+
+---
+
+### ES Modules vs. CommonJS
+
+Modern browsers support ES modules (`import ... from ...`). Older Node-style plugins use CommonJS (`require()`).
+
+A robust loader should:
+
+- Prefer native **dynamic `import()`** for ES modules.
+- Fallback to **bundled polyfills** for CommonJS when needed.
+
+Example ES module loader:
+
+```ts
+async function loadESModule<T = unknown>(url: string): Promise<T> {
+  return import(/* webpackIgnore: true */ url) as Promise<T>;
+}
+```
+
+---
+
+### SystemJS and Module Federation
+
+If you need to load plugins built with _any_ module format, **SystemJS** acts as a universal runtime loader.
+For micro-frontend use cases, **Webpack Module Federation** allows host and plugin to share dependencies without duplication.
+
+---
+
+### Web Workers for Plugin Isolation
+
+For heavy computation plugins, load them in **Web Workers** so they run off the main UI thread:
+
+```ts
+const worker = new Worker(new URL('./myPluginWorker.js', import.meta.url));
+```
+
+---
+
+### Service Workers for Caching
+
+Service workers can pre-cache plugin bundles, reducing load times for frequently used extensions.
+
+---
+
+## 6.2 Bundle Splitting and Code Splitting
+
+Dynamic plugin loading works best when the core app’s bundle is **small** and each plugin is its own chunk.
+
+---
+
+### Webpack Module Federation Setup
+
+- Expose plugin entry points via `exposes` in plugin’s webpack config.
+- Host app dynamically loads them using `import()` and `__webpack_init_sharing__`.
+
+---
+
+### Dynamic Import Patterns
+
+To load from a URL:
+
+```ts
+const pluginModule = await import(/* webpackIgnore: true */ pluginManifest.entry);
+```
+
+The `webpackIgnore: true` comment tells Webpack not to try bundling the plugin into the host build.
+
+---
+
+### Chunk Optimization Strategies
+
+- Group low-priority plugins into a shared “lazy” chunk.
+- Use **prefetch** for likely-to-be-used plugins.
+- Use **preload** for immediately needed plugins.
+
+---
+
+### Tree Shaking for Plugin Code
+
+If plugins are authored in a tree-shakeable way, unused exports can be removed automatically, reducing size.
+
+---
+
+## 6.3 Asset Management
+
+Plugins often ship with CSS, images, fonts, or JSON files. Without proper isolation, these can leak into the host’s UI or conflict with other plugins.
+
+---
+
+### CSS and Style Isolation
+
+- **Shadow DOM** ensures styles are scoped to the plugin’s root element.
+- **CSS Modules** prevent class name collisions.
+- For global styles, require explicit opt-in via the manifest.
+
+---
+
+### Resource Loading and Caching
+
+Load images and fonts via relative paths in the manifest:
+
+```json
+{
+  "icon": "./assets/icon.png",
+  "styles": ["./styles/plugin.css"]
+}
+```
+
+The loader can fetch and inject these dynamically.
+
+---
+
+### CDN Integration Strategies
+
+For public plugin marketplaces, serve plugin assets from a CDN with versioned URLs for caching and rollback.
+
+---
+
+### Progressive Loading Techniques
+
+- Load CSS before JavaScript to avoid FOUC (flash of unstyled content).
+- Lazy-load heavy assets (e.g., charts, maps) only when needed.
+
+---
+
+## 6.4 Development vs. Production Loading
+
+The way we load plugins in development should **optimize for speed and debugging**, not final performance.
+
+---
+
+### Hot Module Replacement (HMR)
+
+In development, plugins should reload without restarting the whole app. This is essential for rapid iteration.
+
+---
+
+### Source Map Integration
+
+Provide proper source maps so plugin authors can debug easily, even if code is loaded remotely:
+
+```ts
+//# sourceMappingURL=plugin.js.map
+```
+
+---
+
+### Debugging Configuration
+
+Use **verbose logging** in dev mode to show:
+
+- Plugin discovery order.
+- Load/mount/unmount timings.
+- Errors during dependency resolution.
+
+---
+
+### Production Optimization
+
+- Minify and compress plugin bundles.
+- Use immutable caching (`cache-control: immutable`) for versioned assets.
+
+---
+
+## 6.5 Error Handling and Fallbacks
+
+Dynamic loading introduces many new failure modes: network issues, syntax errors, incompatible module formats. The loader must degrade gracefully.
+
+---
+
+### Module Loading Error Recovery
+
+If a plugin fails to load:
+
+1. Log the error with context.
+2. Show a **placeholder UI** explaining the problem.
+3. Retry if applicable.
+
+---
+
+### Graceful Degradation
+
+If a widget plugin fails, keep the rest of the dashboard functional.
+
+---
+
+### Fallback Plugin Implementation
+
+Have a “safe mode” version of critical plugins that runs locally if the remote one fails.
+
+---
+
+### User Experience During Failures
+
+Always prefer a visible, friendly error over silent failures.
+Example: “The Reports Plugin could not be loaded. Please refresh or contact support.”
+
+---
+
+## Key Takeaways
+
+A **dynamic loader** must be:
+
+1. **Flexible** — handle multiple module formats and frameworks.
+2. **Efficient** — load only what’s needed, when it’s needed.
+3. **Safe** — isolate styles, sandbox execution, and provide fallbacks.
+
+---
+
+**Next up:**
+In **Chapter 7**, we’ll design the **Plugin SDK** itself—the developer-facing API that makes building plugins a pleasure, with strong typing, discoverable methods, and a smooth developer experience. This is where we transform our technical foundation into a friendly interface for third-party developers.

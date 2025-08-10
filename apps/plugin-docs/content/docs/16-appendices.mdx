@@ -1,0 +1,318 @@
+---
+title: 'Deployment, Versioning, and Plugin Distribution'
+summary: 'Best practices for deploying, versioning, and distributing plugins.'
+---
+
+# Appendices
+
+## Appendix A: Complete TypeScript Type Definitions
+
+These are the **core contracts** we’ve referenced throughout the book.
+
+```ts
+/**
+ * ===============================
+ * 1. Core Concepts & Contracts
+ * ===============================
+ */
+
+export interface PluginManifest {
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  author?: string;
+  entry: string;
+  icon?: string;
+  routes?: PluginRouteDefinition[];
+  menuItems?: PluginMenuItem[];
+  widgets?: PluginWidgetDefinition[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface PluginModule {
+  init?: (sdk: PluginSDK) => void | Promise<void>;
+  mount?: (sdk: PluginSDK) => void | Promise<void>;
+  unmount?: () => void | Promise<void>;
+}
+
+export interface PluginRouteDefinition<TComponent = unknown> {
+  path: string;
+  component: TComponent;
+  title?: string;
+}
+
+export interface PluginMenuItem {
+  label: string;
+  icon?: string;
+  action: string | (() => void);
+  tooltip?: string;
+  order?: number;
+}
+
+export interface PluginWidgetDefinition<TComponent = unknown> {
+  id: string;
+  title: string;
+  render: TComponent;
+  size?: 'small' | 'medium' | 'large';
+}
+
+/**
+ * ===============================
+ * 2. Core App Responsibilities
+ * ===============================
+ */
+
+export interface PluginRegistry {
+  register: (pluginDef: PluginDefinition) => void;
+  unregister: (pluginId: string) => void;
+  get: (pluginId: string) => PluginDefinition | undefined;
+  getAll: () => PluginDefinition[];
+}
+
+export interface PluginDefinition {
+  manifest: PluginManifest;
+  module: PluginModule;
+}
+
+export interface PluginLoader {
+  loadFromManifest: (manifest: PluginManifest) => Promise<PluginDefinition>;
+  loadFromUrl: (manifestUrl: string) => Promise<PluginDefinition>;
+}
+
+/**
+ * ===============================
+ * 3. Plugin SDK (Public API)
+ * ===============================
+ */
+
+export interface PluginSDK {
+  routes: {
+    add: (route: PluginRouteDefinition) => void;
+    remove: (path: string) => void;
+  };
+  menus: {
+    addItem: (item: PluginMenuItem) => void;
+    removeItem: (label: string) => void;
+  };
+  widgets: {
+    add: (widget: PluginWidgetDefinition) => void;
+    remove: (id: string) => void;
+  };
+  events: {
+    on: (event: string, handler: (payload?: unknown) => void) => void;
+    off: (event: string, handler: (payload?: unknown) => void) => void;
+    emit: (event: string, payload?: unknown) => void;
+  };
+  ui: {
+    showModal: (content: unknown, options?: { title?: string }) => void;
+    showToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
+  };
+  services: {
+    apiClient: {
+      get: <T>(url: string, params?: Record<string, unknown>) => Promise<T>;
+      post: <T>(url: string, body: unknown) => Promise<T>;
+    };
+    auth: {
+      getUser: () => Promise<{ id: string; name: string; roles: string[] }>;
+      hasRole: (role: string) => boolean;
+    };
+    storage: {
+      get: <T>(key: string) => T | undefined;
+      set: <T>(key: string, value: T) => void;
+      remove: (key: string) => void;
+    };
+  };
+  plugin: {
+    id: string;
+    manifest: PluginManifest;
+  };
+}
+```
+
+---
+
+## Appendix B: Example Plugin Implementations
+
+### React Plugin Example
+
+```tsx
+// manifest.json
+{
+  "id": "widget.sales-chart",
+  "name": "Sales Chart Widget",
+  "version": "1.0.0",
+  "entry": "/plugins/sales-chart/index.js",
+  "permissions": ["api:read", "ui:dashboard"]
+}
+
+// index.tsx
+import React from 'react';
+
+const SalesChart: React.FC = () => <div>Chart here</div>;
+
+export const module: PluginModule = {
+  mount(sdk) {
+    sdk.widgets.add({
+      id: 'sales-chart',
+      title: 'Sales Chart',
+      render: SalesChart
+    });
+  },
+  unmount(sdk) {
+    sdk.widgets.remove('sales-chart');
+  }
+};
+```
+
+---
+
+### Vue Plugin Example
+
+```ts
+// index.ts
+import { defineComponent, h } from 'vue';
+
+const HelloWidget = defineComponent({
+  render() {
+    return h('div', 'Hello from Vue widget!');
+  },
+});
+
+export const module: PluginModule = {
+  mount(sdk) {
+    sdk.widgets.add({
+      id: 'hello-widget',
+      title: 'Hello Widget',
+      render: HelloWidget,
+    });
+  },
+  unmount(sdk) {
+    sdk.widgets.remove('hello-widget');
+  },
+};
+```
+
+---
+
+### Angular Plugin Example
+
+```ts
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'my-plugin',
+  template: `<h3>Hello from Angular plugin!</h3>`,
+})
+export class MyPluginComponent {}
+
+export const module: PluginModule = {
+  mount(sdk) {
+    sdk.widgets.add({
+      id: 'angular-widget',
+      title: 'Angular Widget',
+      render: MyPluginComponent,
+    });
+  },
+  unmount(sdk) {
+    sdk.widgets.remove('angular-widget');
+  },
+};
+```
+
+---
+
+### Vanilla JavaScript Plugin Example
+
+```js
+export const module = {
+  mount(sdk) {
+    const el = document.createElement('div');
+    el.textContent = 'Hello from Vanilla JS!';
+    sdk.ui.showModal(el, { title: 'Vanilla Plugin' });
+  },
+};
+```
+
+---
+
+## Appendix C: Build Configuration Examples
+
+### Webpack Configuration
+
+```js
+module.exports = {
+  entry: './src/index.ts',
+  output: {
+    filename: 'plugin.js',
+    libraryTarget: 'umd',
+  },
+  resolve: { extensions: ['.ts', '.js'] },
+  module: {
+    rules: [{ test: /\.ts$/, use: 'ts-loader', exclude: /node_modules/ }],
+  },
+};
+```
+
+---
+
+### Vite Configuration
+
+```ts
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  build: {
+    lib: {
+      entry: 'src/index.ts',
+      formats: ['es', 'umd'],
+    },
+  },
+});
+```
+
+---
+
+### Rollup Configuration
+
+```ts
+import typescript from '@rollup/plugin-typescript';
+
+export default {
+  input: 'src/index.ts',
+  output: [
+    { file: 'dist/plugin.esm.js', format: 'es' },
+    { file: 'dist/plugin.umd.js', format: 'umd', name: 'Plugin' },
+  ],
+  plugins: [typescript()],
+};
+```
+
+---
+
+## Appendix D: Security Checklist
+
+- [ ] Manifest schema validation before loading.
+- [ ] Sandboxed execution (IFrame, Worker, or VM).
+- [ ] Permissions declared in manifest and enforced in SDK.
+- [ ] All network requests via `sdk.services.apiClient`.
+- [ ] CSP headers block inline and untrusted scripts.
+- [ ] Digital signature verification for plugin bundles.
+- [ ] Event bus restricted to declared events.
+- [ ] Storage keys namespaced by plugin ID.
+
+---
+
+## Appendix E: Performance Benchmarking
+
+- **Load Time**: Measure manifest fetch, code fetch, and init time separately.
+- **Memory Usage**: Track heap size before/after mounting a plugin.
+- **CPU Time**: Profile render and event handling.
+- **Network**: Count API requests per plugin; deduplicate where possible.
+- **Bundle Size**: Enforce limits (e.g., 100KB gzipped).
+
+**Tools**: Chrome DevTools Performance tab, Lighthouse CI, WebPageTest, custom `performance.mark()` instrumentation.
+
+---
+
+If you want, I can now **bundle all 15 chapters + appendices into a single continuous manuscript** so it’s ready for publication as a complete book. This would keep formatting, headings, and flow consistent from start to finish. Would you like me to prepare that next?

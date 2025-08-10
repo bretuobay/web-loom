@@ -3,17 +3,246 @@ title: 'TypeScript Fundamentals for Plugin Development'
 summary: 'Master the TypeScript language features essential for robust plugin development.'
 ---
 
-# TypeScript Fundamentals for Plugin Development
+# Chapter 2: TypeScript Fundamentals for Plugin Development
 
-This chapter covers the TypeScript features and patterns most relevant to building plugins, including types, interfaces, generics, and advanced type manipulation.
+Building a framework-agnostic plugin architecture isn’t just about designing clean APIs—it’s about making those APIs **safe**, **predictable**, and **pleasant to use** for plugin developers.
+TypeScript gives us the tools to make that happen.
 
-## Topics Covered
-
-- Type safety and contracts
-- Interfaces and generics
-- Type guards and utility types
-- Module structure and imports
+In this chapter, we’ll dive deep into the **TypeScript features** that enable a robust, extensible plugin ecosystem: generics, advanced type guards, module augmentation, and design patterns for defining contracts.
 
 ---
 
-_Continue to next chapter for framework-agnostic design principles and patterns._
+## 2.1 Advanced TypeScript for Plugin Systems
+
+Before we look at the actual SDK interfaces, it’s worth understanding why **strong typing** matters in a plugin system:
+
+- **Dynamic loading means runtime uncertainty** — A plugin could be written by anyone, so our type system must protect the host app.
+- **Framework-agnostic components** — We can’t assume React, Vue, or Angular types. We must use abstract types (`unknown`) at the boundaries, but offer framework-specific adapters later.
+- **Evolution without breaking changes** — A typed contract means plugins can be compatible across SDK versions if we manage type changes carefully.
+
+Here are key TypeScript features that matter for plugin systems:
+
+### Generic Types and Constraints
+
+Generics let us make plugin APIs reusable for different kinds of contributions.
+For example, if we want our widget system to support different rendering engines:
+
+```ts
+interface Widget<TComponent = unknown> {
+  id: string;
+  title: string;
+  render: TComponent;
+}
+```
+
+By default, `TComponent` is `unknown`, but a React adapter could specialize it to `React.FC`.
+
+---
+
+### Conditional Types and Template Literals
+
+Conditional types help express “if this, then that” logic for plugin contributions:
+
+```ts
+type PluginComponent<TFramework> = TFramework extends 'react'
+  ? React.FC
+  : TFramework extends 'vue'
+    ? Vue.Component
+    : unknown;
+```
+
+Template literal types can define event names or route patterns:
+
+```ts
+type PluginEvent = `plugin:${string}:loaded`;
+```
+
+---
+
+### Utility Types for Plugin APIs
+
+Utility types (`Partial`, `Pick`, `Record`, etc.) help when defining contribution points:
+
+```ts
+type OptionalManifest = Partial<PluginManifest>;
+type RouteMap = Record<string, PluginRouteDefinition>;
+```
+
+These let us model flexible, evolving APIs without compromising type safety.
+
+---
+
+### Module Augmentation and Declaration Merging
+
+TypeScript lets us **extend** interfaces at runtime, which is perfect for a plugin ecosystem where the SDK grows over time:
+
+```ts
+declare module './plugin-sdk' {
+  interface PluginSDK {
+    analytics?: {
+      trackEvent: (name: string, data?: Record<string, unknown>) => void;
+    };
+  }
+}
+```
+
+This allows new SDK features without breaking older plugins.
+
+---
+
+## 2.2 Type Safety in Dynamic Systems
+
+Dynamic systems—like a plugin host loading external JavaScript—cannot rely on compile-time safety alone. We must pair **TypeScript’s static guarantees** with **runtime validation**.
+
+### Runtime Type Validation
+
+A plugin’s manifest might be malformed, so we validate it before use:
+
+```ts
+import { z } from 'zod';
+
+const manifestSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  version: z.string(),
+  entry: z.string(),
+});
+
+function validateManifest(manifest: unknown): manifest is PluginManifest {
+  return manifestSchema.safeParse(manifest).success;
+}
+```
+
+---
+
+### Schema-based Type Generation
+
+Tools like `zod` or `typebox` can **generate TypeScript types from schemas** (or vice versa), ensuring your runtime checks and compile-time types never drift apart.
+
+---
+
+### Type Guards and Assertion Functions
+
+When working with `unknown`, type guards bring safety:
+
+```ts
+function isPluginModule(obj: unknown): obj is PluginModule {
+  return typeof (obj as PluginModule).init === 'function';
+}
+```
+
+---
+
+### Branded Types for Plugin IDs
+
+To prevent mixing up strings like plugin IDs and route paths:
+
+```ts
+type PluginId = string & { readonly brand: 'PluginId' };
+```
+
+This creates “nominal” types, reducing accidental misuse.
+
+---
+
+## 2.3 Interface Design Patterns
+
+Well-designed interfaces are the backbone of a plugin SDK. Here are patterns that work well:
+
+### Contract-based Programming
+
+Every plugin must follow the same **core contracts**—manifest, module, and SDK:
+
+```ts
+interface PluginManifest {
+  id: string;
+  name: string;
+  version: string;
+  entry: string;
+}
+```
+
+Contracts give plugin developers a clear target and the host app a predictable integration surface.
+
+---
+
+### Dependency Inversion Principle (DIP)
+
+The plugin should depend on **abstractions**, not concrete implementations.
+For example, the `PluginSDK` should provide methods like `apiClient.get()` instead of giving plugins direct `fetch` access.
+
+---
+
+### Abstract Factory Pattern
+
+An abstract factory lets us create framework-specific adapters without changing the core plugin definition:
+
+```ts
+interface ComponentFactory<T> {
+  create: (definition: unknown) => T;
+}
+```
+
+---
+
+### Builder Pattern for Plugin Configuration
+
+The builder pattern makes it easy to construct complex plugin definitions:
+
+```ts
+const manifest = createManifest()
+  .setId('com.example.myplugin')
+  .setName('My Plugin')
+  .addRoute('/hello', HelloComponent)
+  .build();
+```
+
+---
+
+## 2.4 Generics and Plugin Flexibility
+
+Generics give us **extensible, type-safe APIs** without hardcoding framework details.
+
+### Framework-agnostic Type Definitions
+
+We keep component types abstract until a specific adapter specializes them:
+
+```ts
+interface PluginRouteDefinition<TComponent = unknown> {
+  path: string;
+  component: TComponent;
+}
+```
+
+---
+
+### Constraint-based Generic APIs
+
+We can ensure that plugins provide compatible components:
+
+```ts
+function addWidget<T extends { render: unknown }>(widget: T) {
+  // ...
+}
+```
+
+---
+
+### Higher-order Types for Plugin Composition
+
+We can create helper types that compose multiple plugin contributions:
+
+```ts
+type CompletePlugin<TComponent = unknown> = PluginManifest & { module: PluginModule<TComponent> };
+```
+
+---
+
+### Variance and Plugin Compatibility
+
+Careful use of covariance and contravariance ensures our type system doesn’t block valid plugins but still catches unsafe combinations.
+
+---
+
+**Coming Up Next:**
+In **Chapter 3**, we’ll explore **framework-agnostic design principles**, showing how to abstract routing, events, and UI components so React, Vue, Angular, and Svelte plugins all work in the same ecosystem without breaking the core contracts. This is where TypeScript meets architectural design to make true cross-framework extensibility possible.
