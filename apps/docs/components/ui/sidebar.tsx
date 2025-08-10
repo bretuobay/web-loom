@@ -72,6 +72,15 @@ export default function SupportSidebar() {
                 <li>
                   <SidebarLink href="/docs/viewmodels">ViewModels</SidebarLink>
                 </li>
+                <li className="pt-4">
+                  <SidebarLink href="/docs/mvvm-react-use-case">MVVM in React</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/mvvm-vue-use-case">MVVM in Vue</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/mvvm-angular-use-case">MVVM in Angular</SidebarLink>
+                </li>
               </ul>
             </nav>
           </div>

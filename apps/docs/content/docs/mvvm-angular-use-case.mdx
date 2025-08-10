@@ -1,0 +1,156 @@
+---
+title: 'Using MVVM in Angular: Greenhouse Example'
+summary: 'A practical guide to implementing the MVVM pattern in an Angular app using MVVM Core, with a Greenhouse management use case.'
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+---
+
+# Using MVVM in Angular: Greenhouse Example
+
+This guide demonstrates how to use the MVVM (Model-View-ViewModel) pattern in an Angular application with MVVM Core, focusing on a Greenhouse management use case.
+
+## Overview
+
+- **Model:** Encapsulates data and API logic (GreenHouseModel)
+- **ViewModel:** Manages state, commands, and validation (GreenHouseViewModel)
+- **View:** Angular component (`GreenhouseListComponent`)
+
+## 1. Define the Model
+
+The model handles API requests and data validation:
+
+```typescript
+// packages/models/src/GreenHouseModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { GreenhouseListSchema, type GreenhouseListData } from './schemas';
+import { nativeFetcher } from './utils/fetcher';
+import { apiRegistry } from './services/services';
+import { API_BASE_URL } from './config';
+
+const { path } = apiRegistry.greenhouse.list;
+
+export const greenHouseConfig = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: nativeFetcher,
+  schema: GreenhouseListSchema,
+  initialData: [],
+  validateSchema: false,
+};
+
+export class GreenHouseModel extends RestfulApiModel<GreenhouseListData, typeof GreenhouseListSchema> {
+  constructor() {
+    super(greenHouseConfig);
+  }
+}
+```
+
+## 2. Create the ViewModel
+
+The ViewModel exposes observables and commands for the UI:
+
+```typescript
+// packages/view-models/src/GreenHouseViewModel.ts
+import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
+import { greenHouseConfig } from '@repo/models';
+import { type GreenhouseListData, GreenhouseListSchema, type GreenhouseData } from '@repo/models';
+
+type TConfig = ViewModelFactoryConfig<GreenhouseListData, typeof GreenhouseListSchema>;
+
+const config: TConfig = {
+  modelConfig: greenHouseConfig,
+  schema: GreenhouseListSchema,
+};
+
+export const greenHouseViewModel = createReactiveViewModel(config);
+export type { GreenhouseListData, GreenhouseData };
+```
+
+## 3. Use the ViewModel in an Angular Component
+
+The component subscribes to observables and triggers commands:
+
+```typescript
+// apps/mvvm-angular/src/app/components/greenhouse-list/greenhouse-list.component.ts
+import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { GreenhouseData, greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { Observable, Subscription, tap } from 'rxjs';
+
+export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>('GREENHOUSE_VIEW_MODEL');
+
+@Component({
+  selector: 'app-greenhouse-list',
+  // ...template and styles omitted for brevity...
+  providers: [
+    {
+      provide: GREENHOUSE_VIEW_MODEL,
+      useValue: greenHouseViewModel,
+    },
+  ],
+})
+export class GreenhouseListComponent implements OnInit, OnDestroy {
+  public vm: typeof greenHouseViewModel;
+  public greenhouses$!: Observable<GreenhouseData[] | null>;
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
+  greenhouseForm: FormGroup;
+  editingGreenhouseId: string | null | undefined = null;
+  greenhouses: GreenhouseData[] = [];
+  private greenhousesSubscription: Subscription | undefined;
+  greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
+
+  constructor(
+    private fb: FormBuilder,
+    @Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel,
+  ) {
+    this.vm = vm;
+    this.greenhouseForm = this.fb.group({
+      name: ['', Validators.required],
+      location: ['', Validators.required],
+      size: ['', Validators.required],
+      cropType: [''],
+      id: [''],
+    });
+  }
+
+  ngOnInit(): void {
+    this.greenhouses$ = this.vm.data$.pipe(tap((ghs) => (this.greenhouses = ghs || [])));
+    this.loading$ = this.vm.isLoading$;
+    this.error$ = this.vm.error$;
+    this.vm.fetchCommand.execute();
+    this.greenhousesSubscription = this.greenhouses$.subscribe();
+  }
+
+  ngOnDestroy(): void {
+    if (this.greenhousesSubscription) {
+      this.greenhousesSubscription.unsubscribe();
+    }
+  }
+
+  handleSubmit(): void {
+    if (this.greenhouseForm.invalid) return;
+    const formDataValue = this.greenhouseForm.value;
+    // ...create or update logic...
+    this.vm.createCommand.execute(formDataValue);
+    this.greenhouseForm.reset();
+    this.editingGreenhouseId = null;
+  }
+}
+```
+
+## 4. Key Concepts
+
+- **Observables:** Subscribe to data, loading, and error states from the ViewModel using RxJS.
+- **Commands:** Trigger CRUD operations via the ViewModel (e.g., `fetchCommand`, `createCommand`).
+- **Validation:** Schemas ensure data integrity.
+
+## 5. Benefits of MVVM in Angular
+
+- Separation of concerns: UI logic is decoupled from data and API logic.
+- Reactive updates: UI automatically updates when data changes.
+- Testability: Models and ViewModels can be tested independently.
+
+---
+
+For more details, see the source files in `packages/models` and `packages/view-models`, and explore the MVVM Core documentation.
