@@ -11,11 +11,15 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
     "dev": "tsc --watch",
-    "build": "tsc --listFiles --diagnostics"
+    "build": "tsc --listFiles --diagnostics",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
