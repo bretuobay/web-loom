@@ -7,11 +7,11 @@ export default defineConfig({
     lib: {
       entry: './src/index.ts',
       formats: ['es', 'umd'],
-      name: 'QueryCore', // For UMD global variable
-      fileName: (format) => `query-core.${format}.js`,
+      name: 'pluginCore', // For UMD global variable
+      fileName: (format) => `plugin-core.${format}.js`,
     },
     rollupOptions: {
-      // No external dependencies for QueryCore
+      // No external dependencies for pluginCore
       output: {
         // No globals needed as no externals
       },

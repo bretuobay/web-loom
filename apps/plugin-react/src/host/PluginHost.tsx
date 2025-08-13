@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { createRoot, Root } from 'react-dom/client';
-import { FrameworkAdapter, PluginRegistry } from '@repo/plugin-core';
+import { createRoot, type Root } from 'react-dom/client';
+import { type FrameworkAdapter, PluginRegistry } from '@repo/plugin-core';
 import { pluginManifests } from '../config/plugin.config';
-import { ReactPluginComponent } from '../types';
+import { type ReactPluginComponent } from '../types';
 
 // A map to store the root instances for each container
 const rootInstances = new Map<HTMLElement, Root>();

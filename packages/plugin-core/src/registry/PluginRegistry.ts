@@ -1,8 +1,4 @@
-import {
-  PluginManifest,
-  PluginManifestSchema,
-  TComponent,
-} from '../contracts';
+import { PluginManifest, PluginManifestSchema, TComponent } from '../contracts';
 import { FrameworkAdapter } from '../adapter';
 
 /**
@@ -10,11 +6,11 @@ import { FrameworkAdapter } from '../adapter';
  */
 export type PluginState =
   | 'registered' // Manifest has been loaded and validated
-  | 'loading'    // Plugin code is being fetched
-  | 'loaded'     // Plugin code has been loaded, `init` called
-  | 'mounted'    // `mount` has been called
-  | 'unmounted'  // `unmount` has been called
-  | 'error';     // An error occurred
+  | 'loading' // Plugin code is being fetched
+  | 'loaded' // Plugin code has been loaded, `init` called
+  | 'mounted' // `mount` has been called
+  | 'unmounted' // `unmount` has been called
+  | 'error'; // An error occurred
 
 /**
  * Internal representation of a plugin within the registry.
@@ -26,9 +22,9 @@ export interface PluginDefinition<T extends TComponent = TComponent> {
 }
 
 export class PluginRegistry<T extends TComponent = TComponent> {
-  private readonly plugins = new Map<string, PluginDefinition<T>>();
+  public readonly plugins = new Map<string, PluginDefinition<T>>();
 
-  constructor(private readonly adapter?: FrameworkAdapter<T>) {}
+  constructor(public readonly adapter?: FrameworkAdapter<T>) {}
 
   /**
    * Registers a plugin with the registry.
@@ -107,9 +103,7 @@ export class PluginRegistry<T extends TComponent = TComponent> {
       const dependencies = plugin.manifest.dependencies || {};
       for (const depId of Object.keys(dependencies)) {
         if (!this.plugins.has(depId)) {
-          throw new Error(
-            `Plugin "${id}" has an unresolved dependency: "${depId}" is not registered.`
-          );
+          throw new Error(`Plugin "${id}" has an unresolved dependency: "${depId}" is not registered.`);
         }
         // Edge from dependency to the plugin that depends on it
         adj.get(depId)!.push(id);
@@ -135,9 +129,9 @@ export class PluginRegistry<T extends TComponent = TComponent> {
 
     if (sorted.length !== pluginIds.length) {
       // Find the nodes that are part of the cycle
-      const cycleNodes = pluginIds.filter(id => !sorted.includes(id));
+      const cycleNodes = pluginIds.filter((id) => !sorted.includes(id));
       throw new Error(
-        `Circular dependency detected. Please check the dependencies of the following plugins: ${cycleNodes.join(', ')}`
+        `Circular dependency detected. Please check the dependencies of the following plugins: ${cycleNodes.join(', ')}`,
       );
     }
 

@@ -1,4 +1,4 @@
-import { ComponentType } from 'react';
+import type { ComponentType } from 'react';
 
 /**
  * Defines the shape of a React component that can be used as a plugin.

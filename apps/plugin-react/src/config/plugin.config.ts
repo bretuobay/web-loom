@@ -1,5 +1,5 @@
-import { PluginManifest } from '@repo/plugin-core';
-import { ReactPluginComponent } from '../types';
+import type { PluginManifest } from '@repo/plugin-core';
+import type { ReactPluginComponent } from '../types';
 
 /**
  * A collection of all plugin manifests.
@@ -14,6 +14,7 @@ export const pluginManifests: PluginManifest<ReactPluginComponent>[] = [
     id: 'hello-world-plugin',
     name: 'Hello World Plugin',
     version: '1.0.0',
+    entry: '../plugins/hello-world/index.ts',
     widgets: [
       {
         id: 'hello-world-widget',
@@ -26,6 +27,7 @@ export const pluginManifests: PluginManifest<ReactPluginComponent>[] = [
     id: 'chart-plugin',
     name: 'Chart Plugin',
     version: '1.0.0',
+    entry: '../plugins/chart/index.ts',
     widgets: [
       {
         id: 'chart-widget',

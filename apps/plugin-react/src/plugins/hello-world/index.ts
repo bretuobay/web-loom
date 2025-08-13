@@ -1,4 +1,4 @@
-import { PluginModule } from '@repo/plugin-core';
+import type { PluginModule } from '@repo/plugin-core';
 import HelloWorld from './HelloWorld';
 
 /**
