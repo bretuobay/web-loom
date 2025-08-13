@@ -1,4 +1,5 @@
 import type { PluginModule } from '@repo/plugin-core';
+
 import Chart from './Chart';
 
 /**
