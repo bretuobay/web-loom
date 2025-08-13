@@ -36,10 +36,10 @@ const PluginWidgetRenderer: React.FC<{ component: ReactPluginComponent }> = ({ c
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
-      pluginRegistry.adapter.mountComponent(component, container);
+      pluginRegistry?.adapter?.mountComponent(component, container);
 
       return () => {
-        pluginRegistry.adapter.unmountComponent(container);
+        pluginRegistry?.adapter?.unmountComponent(container);
       };
     }
   }, [component]);
@@ -74,7 +74,7 @@ export const PluginHost: React.FC = () => {
       <h1>Plugin Host Application</h1>
       <p>The following plugins are loaded:</p>
       {allPlugins.map((plugin) => (
-        <div key={plugin.id}>
+        <div key={plugin.manifest.id}>
           {plugin.manifest.widgets?.map((widget) => (
             <PluginWidgetRenderer key={widget.id} component={widget.component} />
           ))}
