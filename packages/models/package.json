@@ -16,6 +16,9 @@
     "dev": "tsc --watch",
     "build": "tsc --listFiles --diagnostics"
   },
+  "dependencies": {
+    "@web-loom/mvvm-core": "*"
+  },
   "devDependencies": {
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",

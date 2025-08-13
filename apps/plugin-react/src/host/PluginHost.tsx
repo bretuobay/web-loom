@@ -1,72 +1,35 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
-import { type FrameworkAdapter, PluginRegistry } from '@repo/plugin-core';
+import React from 'react';
+import { PluginRegistry } from '@repo/plugin-core';
 import { pluginManifests } from '../config/plugin.config';
 import { type ReactPluginComponent } from '../types';
 
-// A map to store the root instances for each container
-const rootInstances = new Map<HTMLElement, Root>();
+// 1. Instantiate the PluginRegistry. No adapter is needed as we will render components directly.
+const pluginRegistry = new PluginRegistry<ReactPluginComponent>();
 
-// 1. Create a React-specific FrameworkAdapter using the createRoot API
-const ReactAdapter: FrameworkAdapter<ReactPluginComponent> = {
-  mountComponent: (component, container) => {
-    let root = rootInstances.get(container);
-    if (!root) {
-      root = createRoot(container);
-      rootInstances.set(container, root);
+// 2. Register all plugins from the manifest config at the module level.
+// This ensures plugins are registered only once.
+pluginManifests.forEach((manifest) => {
+  // The registry checks for duplicates, but we can also add our own check
+  // to prevent errors in hot-reloading development environments.
+  if (!pluginRegistry.get(manifest.id)) {
+    try {
+      pluginRegistry.register(manifest);
+    } catch (e) {
+      console.error(`Failed to register plugin: ${manifest.id}`, e);
     }
-    root.render(React.createElement(component));
-  },
-  unmountComponent: (container) => {
-    const root = rootInstances.get(container);
-    if (root) {
-      root.unmount();
-      rootInstances.delete(container);
-    }
-  },
-};
+  }
+});
 
-// 2. Instantiate the PluginRegistry
-const pluginRegistry = new PluginRegistry(ReactAdapter);
-
-// 3. A simple component to render a plugin's widget
-const PluginWidgetRenderer: React.FC<{ component: ReactPluginComponent }> = ({ component }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      pluginRegistry?.adapter?.mountComponent(component, container);
-
-      return () => {
-        pluginRegistry?.adapter?.unmountComponent(container);
-      };
-    }
-  }, [component]);
-
-  return <div ref={containerRef} />;
+// 3. A simple component to render a plugin's widget.
+// It now renders the component directly within the same React tree.
+const PluginWidgetRenderer: React.FC<{ component: ReactPluginComponent }> = ({
+  component: Component,
+}) => {
+  return <Component />;
 };
 
 // 4. The main PluginHost component
 export const PluginHost: React.FC = () => {
-  const [isRegistered, setIsRegistered] = useState(false);
-
-  useEffect(() => {
-    // Register all plugins from the manifest config
-    pluginManifests.forEach((manifest) => {
-      try {
-        pluginRegistry.register(manifest);
-      } catch (e) {
-        console.error(`Failed to register plugin: ${manifest.id}`, e);
-      }
-    });
-    setIsRegistered(true);
-  }, []);
-
-  if (!isRegistered) {
-    return <div>Loading plugins...</div>;
-  }
-
   const allPlugins = pluginRegistry.getAll();
 
   return (
