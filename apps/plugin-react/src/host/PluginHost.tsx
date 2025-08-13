@@ -35,6 +35,9 @@ const PluginWidgetRenderer: React.FC<{ component: ReactPluginComponent }> = ({ c
 
   useEffect(() => {
     const container = containerRef.current;
+
+    if (!container || !pluginRegistry) return;
+
     if (container) {
       pluginRegistry?.adapter?.mountComponent(component, container);
 
@@ -55,13 +58,17 @@ export const PluginHost: React.FC = () => {
     // Register all plugins from the manifest config
     pluginManifests.forEach((manifest) => {
       try {
-        pluginRegistry.register(manifest);
+        // Check if plugin is already registered to prevent duplicate registration
+        const existingPlugin = pluginRegistry.getAll().find((p) => p.manifest.id === manifest.id);
+        if (!existingPlugin) {
+          pluginRegistry.register(manifest);
+        }
       } catch (e) {
         console.error(`Failed to register plugin: ${manifest.id}`, e);
       }
     });
     setIsRegistered(true);
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once
 
   if (!isRegistered) {
     return <div>Loading plugins...</div>;
