@@ -1,69 +1,69 @@
-# React + TypeScript + Vite
+# Plugin Architecture Demo (React)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This application demonstrates a simple plugin architecture using `@repo/plugin-core` in a React + Vite environment.
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The application consists of a **Plugin Host** that loads and renders multiple plugins. The plugins are defined as React components and are registered with the host through a manifest file.
 
-## Expanding the ESLint configuration
+### Core Concepts
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **`@repo/plugin-core`**: The core library that provides the plugin management logic (registration, lifecycle, etc.).
+- **`PluginHost.tsx`**: The main component that initializes the plugin system, registers plugins, and renders them.
+- **`plugin.config.ts`**: A configuration file that contains the manifests for all the plugins in the application.
+- **Plugins**: Self-contained units of functionality, each consisting of a React component and a manifest.
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Implemented Plugins
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+This demo includes two sample plugins:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
+1.  **`HelloWorldPlugin`**: A simple plugin that displays a static "Hello World" message.
+2.  **`ChartPlugin`**: A plugin that renders a simple bar chart using the `recharts` library.
+
+## How to Add a New Plugin
+
+To add a new plugin, follow these steps:
+
+1.  **Create the Plugin Directory**:
+    Create a new directory for your plugin in `src/plugins/`. For example, `src/plugins/my-new-plugin`.
+
+2.  **Create the Plugin Component**:
+    Create a new React component in your plugin's directory. For example, `src/plugins/my-new-plugin/MyNewPlugin.tsx`.
+
+3.  **Create the Plugin Module**:
+    Create an `index.ts` file in your plugin's directory that exports the component.
+
+    ```typescript
+    // src/plugins/my-new-plugin/index.ts
+    import MyNewPlugin from './MyNewPlugin';
+
+    export const components = {
+      MyNewPlugin,
+    };
+    ```
+
+4.  **Add the Plugin Manifest**:
+    Add a new manifest object to the `pluginManifests` array in `src/config/plugin.config.ts`.
+
+    ```typescript
+    // src/config/plugin.config.ts
+    import { components as myNewPluginComponents } from '../plugins/my-new-plugin';
+
+    // ... existing manifests
+    {
+      id: 'my-new-plugin',
+      name: 'My New Plugin',
+      version: '1.0.0',
+      entry: '../plugins/my-new-plugin',
+      widgets: [
+        {
+          id: 'my-new-widget',
+          title: 'My New Widget',
+          component: myNewPluginComponents.MyNewPlugin,
+        },
+      ],
     },
-  },
-])
-```
+    ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+5.  **Run the Application**:
+    Start the development server (`npm run dev`) and you should see your new plugin rendered by the host.

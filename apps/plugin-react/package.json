@@ -10,9 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@repo/plugin-core": "^0.0.0",
+    "@types/recharts": "^1.8.29",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "@repo/plugin-core": "*"
+    "recharts": "^3.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
