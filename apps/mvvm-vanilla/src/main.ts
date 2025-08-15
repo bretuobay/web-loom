@@ -179,7 +179,10 @@ function attachGreenhouseFormListeners() {
 
 function subscribeToUpdates() {
   navigationViewModel.navigationList.items$.subscribe((navigation) => {
+    console.log('Navigation data received:', navigation);
     currentNavigation = navigation || [];
+    // Re-render header when navigation changes
+    renderLayout();
   });
 
   greenHouseViewModel.data$.subscribe((greenHouses) => {
@@ -231,6 +234,10 @@ async function renderLayout() {
 }
 
 async function init() {
+  // Subscribe to updates first so we can react to data changes
+  subscribeToUpdates();
+
+  // Initial layout render (will be updated when navigation data arrives)
   await renderLayout();
 
   await greenHouseViewModel.fetchCommand.execute();
@@ -243,8 +250,6 @@ async function init() {
 
   // Initial routing
   router();
-
-  subscribeToUpdates();
 
   // Handle navigation via links
   document.body.addEventListener('click', (e) => {
