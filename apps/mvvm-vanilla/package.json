@@ -15,6 +15,7 @@
     "ejs": "^3.1.10"
   },
   "devDependencies": {
+    "@types/ejs": "^3.1.5",
     "typescript": "~5.8.3",
     "vite": "^7.1.2"
   }

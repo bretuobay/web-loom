@@ -8,7 +8,9 @@
       <ul class="card-content list">
         <% thresholdAlerts.forEach(function(alert) { %>
           <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
-            <span><%= alert.details %></span>
+            <span><%= alert.sensorType %></span>
+            <span><%= alert.minValue %></span>
+            <span><%= alert.maxValue %></span>
           </li>
         <% }); %>
       </ul>

@@ -2,13 +2,15 @@
   <img src="/assets/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
 </a>
 <section class="flex-container flex-row">
-  <div class="card" style="max-width: 600px;">
+  <div class="card" style="max-width: 800px;">
     <h1 class="card-title">Sensors</h1>
     <% if (sensors && sensors.length > 0) { %>
       <ul class="card-content list">
         <% sensors.forEach(function(sensor) { %>
           <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
-            <span><%= sensor.name %></span>
+            <span><%= sensor.greenhouse.name %></span>
+            <span><%= sensor.type %></span>
+            <span><%= sensor.status %></span>
           </li>
         <% }); %>
       </ul>
