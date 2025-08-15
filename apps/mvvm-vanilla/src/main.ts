@@ -6,6 +6,7 @@ import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+import { navigationViewModel } from '@repo/shared/view-models/NavigationViewModel';
 import {
   Chart,
   LineController,
@@ -25,7 +26,9 @@ import type { ThresholdAlertListData } from '@repo/view-models/ThresholdAlertVie
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Title, Tooltip, Legend);
 
+const header = document.getElementById('header')!;
 const app = document.getElementById('app')!;
+const footer = document.getElementById('footer')!;
 let chartInstance: Chart | null = null;
 
 // Store current values locally (like React state)
@@ -33,6 +36,7 @@ let currentGreenHouses: GreenhouseListData = [];
 let currentSensors: SensorListData = [];
 let currentSensorReadings: SensorReadingListData = [];
 let currentThresholdAlerts: ThresholdAlertListData = [];
+let currentNavigation: any[] = [];
 
 async function renderTemplate(templatePath: string, data: object) {
   const template = await fetch(templatePath).then((res) => res.text());
@@ -174,6 +178,10 @@ function attachGreenhouseFormListeners() {
 }
 
 function subscribeToUpdates() {
+  navigationViewModel.navigationList.items$.subscribe((navigation) => {
+    currentNavigation = navigation || [];
+  });
+
   greenHouseViewModel.data$.subscribe((greenHouses) => {
     currentGreenHouses = greenHouses || []; // Update local state
     if (window.location.pathname === '/' || window.location.pathname === '/dashboard') {
@@ -188,7 +196,6 @@ function subscribeToUpdates() {
 
   sensorViewModel.data$.subscribe((sensors) => {
     currentSensors = sensors || []; // Update local state
-    console.log('Sensors updated:', sensors);
     if (window.location.pathname === '/' || window.location.pathname === '/dashboard') {
       renderCard('sensor-card-container', '/src/views/SensorCard.ejs', { sensors });
     } else if (window.location.pathname === '/sensors') {
@@ -217,7 +224,15 @@ function subscribeToUpdates() {
   });
 }
 
+async function renderLayout() {
+  console.log('Rendering layout with navigation:', currentNavigation);
+  header.innerHTML = await renderTemplate('/src/views/layout/Header.ejs', { navigation: currentNavigation });
+  footer.innerHTML = await renderTemplate('/src/views/layout/Footer.ejs', {});
+}
+
 async function init() {
+  await renderLayout();
+
   await greenHouseViewModel.fetchCommand.execute();
   await sensorViewModel.fetchCommand.execute();
   await sensorReadingViewModel.fetchCommand.execute();

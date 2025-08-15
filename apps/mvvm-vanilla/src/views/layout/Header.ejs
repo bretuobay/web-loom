@@ -1,0 +1,10 @@
+<header class="header">
+  <a href="/" class="header-item">Dashboard</a>
+  <nav class="flex-container">
+    <% navigation.forEach(item => { %>
+      <a href="/<%- item.id %>" class="header-item">
+        <i class="icon-<%- item.icon %>"></i> <%- item.label %>
+      </a>
+    <% }); %>
+  </nav>
+</header>
