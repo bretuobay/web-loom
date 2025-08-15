@@ -2,6 +2,84 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.12.
 
+# MVVM in Angular
+
+This project applies the MVVM (Model-View-ViewModel) pattern in Angular. Components interact with ViewModels that expose observable streams for data, loading, and error states. The GreenhouseCardComponent is a practical example of MVVM in action.
+
+## How MVVM is Applied: Real Example from GreenhouseCardComponent
+
+### ViewModel Usage
+
+ViewModels encapsulate data-fetching logic and expose observable streams for the component to consume. For example:
+
+```typescript
+// Provided via DI in the component
+export const greenHouseViewModel = {
+  data$: greenHouseDataObservable, // Observable stream of greenhouse data
+  isLoading$: isLoadingObservable, // Observable stream for loading state
+  error$: errorObservable, // Observable stream for error state
+  fetchCommand: {
+    execute: () => {
+      /* fetches greenhouse data */
+    },
+  },
+};
+```
+
+### View: GreenhouseCardComponent
+
+The component subscribes to these observables and triggers data fetching via the ViewModel command:
+
+```typescript
+@Component({
+  selector: 'app-greenhouse-card',
+  // ...existing code...
+})
+export class GreenhouseCardComponent implements OnInit {
+  public vm: typeof greenHouseViewModel;
+  public data$!: Observable<GreenhouseListData | null>;
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
+
+  constructor(@Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel) {
+    this.vm = vm;
+  }
+
+  ngOnInit(): void {
+    this.data$ = this.vm.data$;
+    this.loading$ = this.vm.isLoading$;
+    this.error$ = this.vm.error$;
+    this.vm.fetchCommand.execute();
+  }
+}
+```
+
+### Template Example
+
+The template uses Angular's async pipe to bind to observable data:
+
+```html
+<ng-container *ngIf="loading$ | async; else loaded">
+  <p>Loading greenhouse data...</p>
+</ng-container>
+<ng-template #loaded>
+  <div *ngIf="data$ | async as data">
+    <!-- Render greenhouse data here -->
+  </div>
+  <div *ngIf="error$ | async as error">
+    <p>Error: {{ error }}</p>
+  </div>
+</ng-template>
+```
+
+#### MVVM Mapping
+
+- **Model:** Data sources and business logic (e.g., greenhouse models)
+- **ViewModel:** Observable streams and commands (e.g., `data$`, `isLoading$`, `error$`, `fetchCommand`)
+- **View:** Angular components and templates subscribe to ViewModel observables and render UI
+
+This approach keeps data logic out of the UI components and enables reactive updates when data changes.
+
 ## Development server
 
 To start a local development server, run:
