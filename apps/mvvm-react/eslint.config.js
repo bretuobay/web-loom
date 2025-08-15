@@ -17,6 +17,10 @@ export default tseslint.config(
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
     },
+    parserOptions: {
+      tsconfigRootDir: __dirname,
+      project: ['./tsconfig.json'],
+    },
     rules: {
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
