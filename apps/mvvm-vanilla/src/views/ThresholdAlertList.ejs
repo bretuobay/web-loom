@@ -1,0 +1,19 @@
+<a href="/" class="back-button">
+  <img src="/assets/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
+</a>
+<section class="flex-container flex-row">
+  <div class="card" style="max-width: 600px;">
+    <h1 class="card-title">Threshold Alerts</h1>
+    <% if (thresholdAlerts && thresholdAlerts.length > 0) { %>
+      <ul class="card-content list">
+        <% thresholdAlerts.forEach(function(alert) { %>
+          <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
+            <span><%= alert.details %></span>
+          </li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p>No threshold alerts found or still loading...</p>
+    <% } %>
+  </div>
+</section>
