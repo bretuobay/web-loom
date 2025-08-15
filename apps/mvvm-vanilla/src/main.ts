@@ -1,5 +1,7 @@
 // apps/mvvm-vanilla/src/main.ts
 import ejs from 'ejs';
+import '@repo/shared/styles';
+
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
