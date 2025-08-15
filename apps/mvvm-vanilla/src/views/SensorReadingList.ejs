@@ -1,0 +1,19 @@
+<a href="/" class="back-button">
+  <img src="/assets/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
+</a>
+<section class="flex-container flex-row">
+  <div class="card" style="max-width: 600px;">
+    <h1 class="card-title">Sensor Readings</h1>
+    <% if (sensorReadings && sensorReadings.length > 0) { %>
+      <ul class="card-content list">
+        <% sensorReadings.forEach(function(reading) { %>
+          <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
+            <span>Value: <%= reading.value %> at <%= new Date(reading.timestamp).toLocaleTimeString() %></span>
+          </li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p>No sensor readings found or still loading...</p>
+    <% } %>
+  </div>
+</section>

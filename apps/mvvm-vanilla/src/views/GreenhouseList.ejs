@@ -1,0 +1,78 @@
+<a href="/" class="back-button">
+  <img src="/assets/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
+</a>
+<section class="flex-container flex-row">
+  <form class="form-container" id="greenhouse-form">
+    <div class="form-group">
+      <label for="name">Greenhouse Name:</label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        required
+        class="input-field"
+        placeholder="Enter greenhouse name"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="location">Location:</label>
+      <textarea
+        id="location"
+        name="location"
+        required
+        rows="3"
+        class="textarea-field"
+        placeholder="Location"
+      ></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="size">Size:</label>
+      <select id="size" class="select-field" name="size" required>
+        <option value="">Select size</option>
+        <option value="25sqm">25sqm / Small </option>
+        <option value="50sqm">50sqm / Medium </option>
+        <option value="100sqm">100sqm / Large </option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="cropType">Crop Type:</label>
+      <input type="text" name="cropType" id="cropType" class="input-field" placeholder="Enter crop type" />
+    </div>
+
+    <button type="submit" class="button">
+      Submit
+    </button>
+  </form>
+
+  <div class="card" style="max-width: 600px;">
+    <h1 class="card-title">Greenhouses</h1>
+    <% if (greenHouses && greenHouses.length > 0) { %>
+      <ul class="card-content list">
+        <% greenHouses.forEach(function(gh) { %>
+          <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
+            <span><%= gh.name %></span>
+            <div class="button-group">
+              <button
+                class="button-tiny button-tiny-delete"
+                data-id="<%= gh.id %>"
+              >
+                Delete
+              </button>
+              <button
+                class="button-tiny button-tiny-edit"
+                data-id="<%= gh.id %>"
+              >
+                Edit
+              </button>
+            </div>
+          </li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p>No greenhouses found or still loading...</p>
+    <% } %>
+  </div>
+</section>
