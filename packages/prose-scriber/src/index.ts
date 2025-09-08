@@ -2,6 +2,9 @@ import type { ThemeConfig } from './types';
 import { lighten, darken } from './color';
 import { animateText } from './animations';
 
+// export all from utils
+export * from './utils/color-similarity';
+
 /**
  * Initializes the library and returns a theme object with utility functions.
  * @param config The theme configuration object.
@@ -15,7 +18,7 @@ export function createTheme(initialConfig: ThemeConfig) {
       return currentConfig.color[key];
     },
     getBrandColor(key: keyof ThemeConfig['brandColors']): string {
-      return currentConfig.brandColors[key];
+      return currentConfig.brandColors[key] || '#000000';
     },
     getFontSize(key: keyof ThemeConfig['fontSize']): string {
       return currentConfig.fontSize[key];
