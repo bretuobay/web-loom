@@ -18,29 +18,12 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
-    "baseUrl": ".",
-    "paths": {
-      // "rxjs": ["../../node_modules/rxjs"], // Removed to allow standard node resolution
-      // "rxjs/*": ["../../node_modules/rxjs/*"], // Removed
-      "@web-loom/query-core": [
-        "../query-core/dist"
-      ]
-    },
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    // in test files for vi to be available
-    "types": [
-      "vitest/globals"
-    ]
+    "noFallthroughCasesInSwitch": true
   },
-  "references": [
-    // {
-    //   "path": "@web-loom/query-core"
-    // }
-  ],
   "include": [
     "src"
   ],
@@ -55,7 +38,6 @@
     "tests",
     "__tests__",
     "**/*.broken.ts",
-    "**/examples/**/*.ts",
-    "**/examples/**/*.tsx"
+    "src/mocks/**"
   ]
 }
