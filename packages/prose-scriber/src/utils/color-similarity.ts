@@ -124,7 +124,9 @@ export function rgbToHSL(rgb: RGBColor): HSLColor {
       h = 0;
   }
 
-  return [h * 360, s * 100, l * 100];
+  // return [h * 360, s * 100, l * 100];
+  // round to no decimals to avoid floating point issues
+  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
 }
 
 /**
