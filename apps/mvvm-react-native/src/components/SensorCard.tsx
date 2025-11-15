@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity } from 'react-native';
-import { styles } from '@repo/shared/theme';
+import { styles } from '@repo/shared';
 
 type SensorsCardProps = {
   sensors: any[];

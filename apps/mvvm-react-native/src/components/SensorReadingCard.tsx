@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { styles as sharedStyles } from '@repo/shared/theme';
+import { styles as sharedStyles } from '@repo/shared';
 
 const MAX_CARD_WIDTH = 800;
 const CHART_HORIZONTAL_PADDING = 20;

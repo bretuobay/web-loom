@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, FlatList, ScrollView } from 'react-native';
 import { useObservable } from '../hooks/useObservable';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
-import { styles } from '@repo/shared/theme';
+import { styles } from '@repo/shared';
 
 export const SensorReadingList = () => {
   const sensorReadings = useObservable(sensorReadingViewModel.data$);
