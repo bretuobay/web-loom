@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, FlatList, ScrollView } from 'react-native';
 import { useObservable } from '../hooks/useObservable';
 import { ThresholdAlertListData, thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
-import { styles } from '@repo/shared/theme';
+import { styles } from '@repo/shared';
 
 export const ThresholdAlertList = () => {
   const thresholdAlerts = useObservable(thresholdAlertViewModel.data$);

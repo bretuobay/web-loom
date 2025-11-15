@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "echo \"No tests for docs\""
   },
   "dependencies": {
     "@headlessui/react": "^2.1.1",
@@ -18,7 +19,7 @@
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.0",
     "date-fns": "^4.1.0",
-    "next": "15.1.6",
+    "next": "^15.5.6",
     "next-mdx-remote": "^5.0.0",
     "next-themes": "^0.4.4",
     "react": "^19.1.0",

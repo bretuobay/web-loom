@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import type { GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
-import { styles } from '@repo/shared/theme';
+import { styles } from '@repo/shared';
 
 interface GreenhouseCardProps {
   greenHouses: GreenhouseData[] | null;

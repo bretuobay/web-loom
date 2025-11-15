@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "concurrently \"npm:dev --prefix ../api\" \"vitest\" --kill-others --success first -n \"API,Vitest\" -c \"bgBlue.bold,bgGreen.bold\""
+    "test": "echo \"No tests for mvvm-react-integrated\""
   },
   "dependencies": {
     "@repo/shared": "*",

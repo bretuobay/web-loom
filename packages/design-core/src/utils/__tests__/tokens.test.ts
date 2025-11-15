@@ -227,6 +227,8 @@ describe('Design Token Utilities', () => {
         success: '#10B981',
         warning: '#F59E0B',
         danger: '#EF4444',
+        accent1: '#0CD4F3',
+        accent2: '#F32B0C',
       });
     });
   });

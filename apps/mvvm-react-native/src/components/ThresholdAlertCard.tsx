@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity } from 'react-native';
-import { styles } from '@repo/shared/theme';
+import { styles } from '@repo/shared';
 
 export const ThresholdAlertCard = ({ thresholdAlerts, navigation }: { thresholdAlerts: any[]; navigation: any }) => {
   if (!thresholdAlerts || thresholdAlerts.length === 0) return null;

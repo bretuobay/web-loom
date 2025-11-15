@@ -133,8 +133,8 @@ Example:
 
 ```ts
 const mockSDK: PluginSDK = {
-  routes: { add: jest.fn(), remove: jest.fn() },
-  events: { on: jest.fn(), off: jest.fn(), emit: jest.fn() },
+  routes: { add: vitest.fn(), remove: vitest.fn() },
+  events: { on: vitest.fn(), off: vitest.fn(), emit: vitest.fn() },
   // ... other mocks
 };
 ```
@@ -168,10 +168,10 @@ Integrate tests into CI/CD so that every plugin change runs all applicable tests
 
 ---
 
-### Jest Configuration for Plugins
+### vitest Configuration for Plugins
 
 - Supports unit and integration tests.
-- Works with `ts-jest` for TypeScript-based plugins.
+- Works with `ts-vitest` for TypeScript-based plugins.
 - Can mock SDK services and host APIs.
 
 ---

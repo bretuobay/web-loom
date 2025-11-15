@@ -1,7 +1,34 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, Dimensions, StyleSheet, Platform } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { styles as sharedStyles } from '@repo/shared/theme';
+import { styles as sharedStyles } from '@repo/shared';
+
+// Suppress React Native Web warnings for chart components
+const useWebWarningSuppress = () => {
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const originalConsoleWarn = console.warn;
+      
+      console.warn = (...args) => {
+        const message = args[0];
+        if (
+          typeof message === 'string' &&
+          (message.includes('onResponder') || 
+           message.includes('Unknown event handler'))
+        ) {
+          // Suppress these specific warnings
+          return;
+        }
+        originalConsoleWarn.apply(console, args);
+      };
+
+      // Cleanup function to restore original console.warn
+      return () => {
+        console.warn = originalConsoleWarn;
+      };
+    }
+  }, []);
+};
 
 const MAX_CARD_WIDTH = 800;
 const CHART_HORIZONTAL_PADDING = 20;
@@ -11,6 +38,9 @@ const chartWidth = Math.min(
 );
 
 export const SensorReadingCard = ({ sensorReadings, navigation }: { sensorReadings: any[]; navigation: any }) => {
+  // Suppress React Native Web warnings for chart components
+  useWebWarningSuppress();
+  
   if (!sensorReadings || sensorReadings.length === 0) return null;
 
   // Show only the last 6 readings

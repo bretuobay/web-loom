@@ -9,7 +9,7 @@ import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
 import { SensorReadingCard } from './SensorReadingCard';
 import { ThresholdAlertCard } from './ThresholdAlertCard';
-import { styles } from '@repo/shared/theme';
+import { styles } from '@repo/shared';
 
 const Dashboard = ({ navigation }: { navigation: any }) => {
   const greenHouses = useObservable(greenHouseViewModel.data$);

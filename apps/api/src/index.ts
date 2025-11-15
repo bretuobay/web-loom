@@ -9,10 +9,14 @@ import thresholdAlertRoutes from './routes/thresholdAlert'; // Import threshold 
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
-  'http://localhost:4200',
   'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+  'http://localhost:4200',
+  'http://localhost:4201',
   'http://localhost:53710',
   'http://localhost:8081',
+  'http://localhost:8082',
 ];
 
 const corsOptions: CorsOptions = {

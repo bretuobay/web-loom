@@ -7,7 +7,8 @@
     "dev": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "echo \"No tests for mvvm-react-native\""
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
@@ -17,13 +18,13 @@
     "@repo/view-models": "*",
     "expo": "~53.0.17",
     "expo-status-bar": "~2.2.3",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-native": "0.79.5",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-native": "0.79.6",
     "react-native-chart-kit": "^6.12.0",
-    "react-native-gesture-handler": "~2.16.1",
-    "react-native-safe-area-context": "4.10.1",
-    "react-native-screens": "3.31.1",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.11.1",
     "react-native-web": "^0.20.0"
   },
   "devDependencies": {

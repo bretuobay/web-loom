@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useObservable } from '../hooks/useObservable';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { styles } from '@repo/shared/theme';
+import { styles } from '@repo/shared';
 
 export const GreenhouseList = () => {
   const greenHouses = useObservable(greenHouseViewModel.data$);
