@@ -10,7 +10,8 @@
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "echo \"No tests for @repo/shared\""
   },
   "devDependencies": {
     "@repo/eslint-config": "*",

@@ -14,14 +14,14 @@
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
     "dev": "tsc --watch",
-    "build": "tsc --listFiles --diagnostics"
+    "build": "tsc --listFiles --diagnostics",
+    "test": "echo \"No tests for @repo/models\""
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/node": "^22.15.3",
     "eslint": "^9.26.0",
-    "jest": "^25.0.0",
     "typescript": "5.8.2"
   },
   "dependencies": {
