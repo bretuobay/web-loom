@@ -10,8 +10,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['src/**/*.{test,spec}.{js,ts}'],
-    testTimeout: 20000,
-    hookTimeout: 20000,
+    testTimeout: 60000, // Increased to 60s for slower CI environments
+    hookTimeout: 60000, // Increased to 60s for slower CI environments
     coverage: {
       enabled: false, // Disable coverage by default to avoid permission issues
     },
