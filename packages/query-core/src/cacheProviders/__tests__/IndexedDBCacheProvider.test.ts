@@ -100,7 +100,7 @@ describe.skip('IndexedDBCacheProvider', () => {
 
   it('should return undefined and log warning if IndexedDB is not supported', async () => {
     const originalIndexedDB = globalThis.indexedDB;
-    // @ts-ignore
+    // @ts-
     delete globalThis.indexedDB; // Simulate no IndexedDB support
 
     const newProvider = new IndexedDBCacheProvider();
