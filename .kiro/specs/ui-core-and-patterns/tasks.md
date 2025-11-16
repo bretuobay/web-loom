@@ -137,8 +137,8 @@ This implementation plan breaks down the UI Core and UI Patterns packages into d
     - Test hooks for other behaviors
     - _Requirements: 7.1, 7.2, 7.3, 18.7_
 
-- [ ] 8. Create Vue Framework Adapters
-  - [ ] 8.1 Implement Vue composables for all behaviors
+- [x] 8. Create Vue Framework Adapters
+  - [x] 8.1 Implement Vue composables for all behaviors
     - Create `src/adapters/vue/index.ts` entry point
     - Write `useDialogBehavior` composable using Vue `ref` and `computed`
     - Write composables for roving focus, list selection, disclosure, and form behaviors
@@ -147,15 +147,15 @@ This implementation plan breaks down the UI Core and UI Patterns packages into d
     - Export all composables from adapter entry point
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [ ] 8.2 Write Vue adapter tests
+  - [x] 8.2 Write Vue adapter tests
     - Create `src/adapters/vue/__tests__/` directory
     - Test useDialogBehavior with Vue Test Utils
     - Test reactivity with Vue's reactive system
     - Test cleanup on unmount
     - _Requirements: 8.1, 8.2, 8.3, 18.7_
 
-- [ ] 9. Create Angular Framework Adapters
-  - [ ] 9.1 Implement Angular services for all behaviors
+- [-] 9. Create Angular Framework Adapters
+  - [x] 9.1 Implement Angular services for all behaviors
     - Create `src/adapters/angular/index.ts` entry point
     - Write `DialogBehaviorService` that wraps dialog behavior
     - Expose state as RxJS Observable using `BehaviorSubject`
@@ -164,7 +164,7 @@ This implementation plan breaks down the UI Core and UI Patterns packages into d
     - Export all services from adapter entry point
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
-  - [ ] 9.2 Write Angular adapter tests
+  - [x] 9.2 Write Angular adapter tests
     - Create `src/adapters/angular/__tests__/` directory
     - Test DialogBehaviorService with Angular testing utilities
     - Test Observable emissions
