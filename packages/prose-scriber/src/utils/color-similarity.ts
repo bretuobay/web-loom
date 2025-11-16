@@ -219,7 +219,7 @@ export function hslDistance(hsl1: HSLColor, hsl2: HSLColor): number {
  * @returns True if colors are similar within threshold
  */
 export function areColorsSimilar(color1: RGBColor, color2: RGBColor, options: ColorSimilarityOptions = {}): boolean {
-  const { threshold = 10, colorSpace = 'rgb', includeAlpha = false } = options;
+  const { threshold = 10, colorSpace = 'rgb' } = options;
 
   if (threshold < 0 || threshold > 100) {
     throw new Error('Threshold must be between 0 and 100');
