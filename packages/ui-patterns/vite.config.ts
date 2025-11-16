@@ -6,10 +6,19 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
-      formats: ['es', 'umd'],
+      entry: {
+        index: resolve(__dirname, 'src/index.ts'),
+        // Individual pattern entries for tree-shaking
+        'patterns/command-palette': resolve(__dirname, 'src/patterns/command-palette.ts'),
+        'patterns/master-detail': resolve(__dirname, 'src/patterns/master-detail.ts'),
+        'patterns/modal': resolve(__dirname, 'src/patterns/modal.ts'),
+        'patterns/sidebar-shell': resolve(__dirname, 'src/patterns/sidebar-shell.ts'),
+        'patterns/tabbed-interface': resolve(__dirname, 'src/patterns/tabbed-interface.ts'),
+        'patterns/toast-queue': resolve(__dirname, 'src/patterns/toast-queue.ts'),
+        'patterns/wizard': resolve(__dirname, 'src/patterns/wizard.ts'),
+      },
+      formats: ['es'],
       name: 'UIPatterns',
-      fileName: (format) => `ui-patterns.${format}.js`,
     },
     rollupOptions: {
       external: [
@@ -20,6 +29,12 @@ export default defineConfig({
         '@web-loom/query-core',
       ],
       output: {
+        // Preserve module structure for tree-shaking
+        preserveModules: true,
+        preserveModulesRoot: 'src',
+        entryFileNames: '[name].js',
+        // Ensure proper chunking
+        manualChunks: undefined,
         globals: {
           '@web-loom/ui-core': 'UICore',
           '@web-loom/store-core': 'StoreCore',
@@ -29,6 +44,16 @@ export default defineConfig({
         },
       },
     },
+    // Enable minification for production
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false,
+        pure_funcs: ['console.log'],
+      },
+    },
+    // Source maps for debugging
+    sourcemap: true,
   },
   plugins: [
     dts({
@@ -42,10 +67,5 @@ export default defineConfig({
     fs: {
       allow: ['.', 'tests'],
     },
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    testTimeout: 10000,
   },
 });

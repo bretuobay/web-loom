@@ -6,22 +6,50 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
-      formats: ['es', 'umd'],
+      entry: {
+        index: resolve(__dirname, 'src/index.ts'),
+        // Individual behavior entries for tree-shaking
+        'behaviors/dialog': resolve(__dirname, 'src/behaviors/dialog.ts'),
+        'behaviors/disclosure': resolve(__dirname, 'src/behaviors/disclosure.ts'),
+        'behaviors/form': resolve(__dirname, 'src/behaviors/form.ts'),
+        'behaviors/list-selection': resolve(__dirname, 'src/behaviors/list-selection.ts'),
+        'behaviors/roving-focus': resolve(__dirname, 'src/behaviors/roving-focus.ts'),
+        // Framework adapters
+        'adapters/react': resolve(__dirname, 'src/adapters/react/index.ts'),
+        'adapters/vue': resolve(__dirname, 'src/adapters/vue/index.ts'),
+        'adapters/angular': resolve(__dirname, 'src/adapters/angular/index.ts'),
+      },
+      formats: ['es'],
       name: 'UICore',
-      fileName: (format) => `ui-core.${format}.js`,
     },
     rollupOptions: {
-      external: ['@web-loom/store-core', '@web-loom/event-bus-core', 'react', 'vue'],
+      external: ['@web-loom/store-core', '@web-loom/event-bus-core', 'react', 'vue', 'rxjs'],
       output: {
+        // Preserve module structure for tree-shaking
+        preserveModules: true,
+        preserveModulesRoot: 'src',
+        entryFileNames: '[name].js',
+        // Ensure proper chunking
+        manualChunks: undefined,
         globals: {
           '@web-loom/store-core': 'StoreCore',
           '@web-loom/event-bus-core': 'EventBusCore',
           'react': 'React',
           'vue': 'Vue',
+          'rxjs': 'rxjs',
         },
       },
     },
+    // Enable minification for production
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false,
+        pure_funcs: ['console.log'],
+      },
+    },
+    // Source maps for debugging
+    sourcemap: true,
   },
   plugins: [
     dts({
@@ -35,10 +63,5 @@ export default defineConfig({
     fs: {
       allow: ['.', 'tests'],
     },
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    testTimeout: 10000,
   },
 });
