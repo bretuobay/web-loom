@@ -17,6 +17,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/ui-patterns.es.js",
       "require": "./dist/ui-patterns.umd.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/ui-patterns.es.js",
+      "require": "./dist/ui-patterns.umd.js"
     }
   },
   "keywords": [

@@ -27,6 +27,16 @@
       "types": "./dist/adapters/vue/index.d.ts",
       "import": "./dist/ui-core.es.js",
       "require": "./dist/ui-core.umd.js"
+    },
+    "./angular": {
+      "types": "./dist/adapters/angular/index.d.ts",
+      "import": "./dist/ui-core.es.js",
+      "require": "./dist/ui-core.umd.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/ui-core.es.js",
+      "require": "./dist/ui-core.umd.js"
     }
   },
   "keywords": [

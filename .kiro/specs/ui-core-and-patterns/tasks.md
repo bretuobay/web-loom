@@ -330,7 +330,7 @@ This implementation plan breaks down the UI Core and UI Patterns packages into d
     - Test keyboard navigation integration
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 18.4, 18.5_
 
-- [ ] 18. Add TypeScript type exports and documentation
+- [x] 18. Add TypeScript type exports and documentation
   - Export all state interfaces from `packages/ui-core/src/types/index.ts`
   - Export all action interfaces from `packages/ui-core/src/types/index.ts`
   - Export all pattern interfaces from `packages/ui-patterns/src/types/index.ts`
