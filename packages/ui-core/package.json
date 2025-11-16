@@ -51,18 +51,18 @@
     },
     "./react": {
       "types": "./dist/adapters/react/index.d.ts",
-      "import": "./dist/adapters/react/index.js",
-      "default": "./dist/adapters/react/index.js"
+      "import": "./dist/adapters/react.js",
+      "default": "./dist/adapters/react.js"
     },
     "./vue": {
       "types": "./dist/adapters/vue/index.d.ts",
-      "import": "./dist/adapters/vue/index.js",
-      "default": "./dist/adapters/vue/index.js"
+      "import": "./dist/adapters/vue.js",
+      "default": "./dist/adapters/vue.js"
     },
     "./angular": {
       "types": "./dist/adapters/angular/index.d.ts",
-      "import": "./dist/adapters/angular/index.js",
-      "default": "./dist/adapters/angular/index.js"
+      "import": "./dist/adapters/angular.js",
+      "default": "./dist/adapters/angular.js"
     },
     "./types": {
       "types": "./dist/types/index.d.ts",

@@ -53,10 +53,15 @@ export default defineConfig({
   },
   plugins: [
     dts({
-      insertTypesEntry: true,
       outDir: 'dist',
       tsconfigPath: './tsconfig.json',
-      rollupTypes: true,
+      entryRoot: 'src',
+      staticImport: true,
+      insertTypesEntry: false,
+      rollupTypes: false,
+      compilerOptions: {
+        declarationMap: false,
+      },
     }),
   ],
   server: {

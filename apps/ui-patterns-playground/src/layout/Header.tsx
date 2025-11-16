@@ -15,6 +15,9 @@ export const Header = () => {
             <i className={`icon-${item.icon}`}></i> {item.label}
           </Link>
         ))}
+        <Link to="/ui-patterns" className="header-item">
+          <i className="icon-grid"></i> UI Patterns
+        </Link>
       </nav>
     </header>
   );

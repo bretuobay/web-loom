@@ -6,6 +6,7 @@ import { GreenhouseList } from './components/GreenhouseList';
 import { SensorList } from './components/SensorList';
 import { SensorReadingList } from './components/SensorReadingList';
 import { ThresholdAlertList } from './components/ThresholdAlertList';
+import { UIPatterns } from './components/UIPatterns';
 import { Header } from './layout/Header';
 import Container from './layout/Container';
 import Footer from './layout/Footer';
@@ -22,6 +23,7 @@ function App() {
           <Route path="/sensors" element={<SensorList />} />
           <Route path="/sensor-readings" element={<SensorReadingList />} />
           <Route path="/threshold-alerts" element={<ThresholdAlertList />} />
+          <Route path="/ui-patterns" element={<UIPatterns />} />
         </Routes>
       </Container>
       <Footer />
