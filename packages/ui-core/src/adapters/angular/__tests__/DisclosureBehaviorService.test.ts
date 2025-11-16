@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DisclosureBehaviorService } from '../index';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, skip, take } from 'rxjs';
 
 describe('DisclosureBehaviorService', () => {
   let service: DisclosureBehaviorService;
@@ -38,34 +38,24 @@ describe('DisclosureBehaviorService', () => {
       expect(state.isExpanded).toBe(false);
     });
 
-    it('should emit state updates when expanding', (done) => {
+    it('should emit state updates when expanding', async () => {
       service.initialize();
 
-      let emissionCount = 0;
-      service.getState$().subscribe((state) => {
-        emissionCount++;
-        if (emissionCount === 2) {
-          expect(state.isExpanded).toBe(true);
-          done();
-        }
-      });
-
+      const statePromise = firstValueFrom(service.getState$().pipe(skip(1)));
       service.actions.expand();
+
+      const state = await statePromise;
+      expect(state.isExpanded).toBe(true);
     });
 
-    it('should emit state updates when collapsing', (done) => {
+    it('should emit state updates when collapsing', async () => {
       service.initialize({ initialExpanded: true });
 
-      let emissionCount = 0;
-      service.getState$().subscribe((state) => {
-        emissionCount++;
-        if (emissionCount === 2) {
-          expect(state.isExpanded).toBe(false);
-          done();
-        }
-      });
-
+      const statePromise = firstValueFrom(service.getState$().pipe(skip(1)));
       service.actions.collapse();
+
+      const state = await statePromise;
+      expect(state.isExpanded).toBe(false);
     });
   });
 
@@ -94,7 +84,7 @@ describe('DisclosureBehaviorService', () => {
       expect(service.getState().isExpanded).toBe(false);
     });
 
-    it('should not emit when expanding already expanded disclosure', (done) => {
+    it('should not emit when expanding already expanded disclosure', async () => {
       service.initialize({ initialExpanded: true });
 
       let emissionCount = 0;
@@ -104,13 +94,11 @@ describe('DisclosureBehaviorService', () => {
 
       service.actions.expand();
 
-      setTimeout(() => {
-        expect(emissionCount).toBe(1); // Only initial emission
-        done();
-      }, 50);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(emissionCount).toBe(1); // Only initial emission
     });
 
-    it('should not emit when collapsing already collapsed disclosure', (done) => {
+    it('should not emit when collapsing already collapsed disclosure', async () => {
       service.initialize();
 
       let emissionCount = 0;
@@ -120,10 +108,8 @@ describe('DisclosureBehaviorService', () => {
 
       service.actions.collapse();
 
-      setTimeout(() => {
-        expect(emissionCount).toBe(1); // Only initial emission
-        done();
-      }, 50);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(emissionCount).toBe(1); // Only initial emission
     });
   });
 
@@ -168,17 +154,20 @@ describe('DisclosureBehaviorService', () => {
       expect(() => service.ngOnDestroy()).not.toThrow();
     });
 
-    it('should complete Observable on destroy', (done) => {
+    it('should complete Observable on destroy', async () => {
       service.initialize();
 
-      service.getState$().subscribe({
-        next: () => {},
-        complete: () => {
-          done();
-        },
+      const completePromise = new Promise<void>((resolve) => {
+        service.getState$().subscribe({
+          next: () => {},
+          complete: () => {
+            resolve();
+          },
+        });
       });
 
       service.ngOnDestroy();
+      await completePromise;
     });
   });
 });

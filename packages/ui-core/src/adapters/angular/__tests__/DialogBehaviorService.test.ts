@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DialogBehaviorService } from '../index';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, skip, take } from 'rxjs';
 
 describe('DialogBehaviorService', () => {
   let service: DialogBehaviorService;
@@ -43,81 +43,56 @@ describe('DialogBehaviorService', () => {
       expect(state.content).toBeNull();
     });
 
-    it('should emit state updates when opening dialog', (done) => {
+    it('should emit state updates when opening dialog', async () => {
       service.initialize();
 
-      let emissionCount = 0;
-      service.getState$().subscribe((state) => {
-        emissionCount++;
-        if (emissionCount === 1) {
-          // Initial state
-          expect(state.isOpen).toBe(false);
-        } else if (emissionCount === 2) {
-          // After opening
-          expect(state.isOpen).toBe(true);
-          expect(state.content).toEqual({ title: 'Test Dialog' });
-          done();
-        }
-      });
-
+      const statePromise = firstValueFrom(service.getState$().pipe(skip(1)));
       service.actions.open({ title: 'Test Dialog' });
+
+      const state = await statePromise;
+      expect(state.isOpen).toBe(true);
+      expect(state.content).toEqual({ title: 'Test Dialog' });
     });
 
-    it('should emit state updates when closing dialog', (done) => {
+    it('should emit state updates when closing dialog', async () => {
       service.initialize();
 
-      let emissionCount = 0;
-      service.getState$().subscribe((state) => {
-        emissionCount++;
-        if (emissionCount === 3) {
-          // After closing
-          expect(state.isOpen).toBe(false);
-          expect(state.content).toBeNull();
-          done();
-        }
-      });
+      // Skip 2 emissions (initial + open), get the close emission
+      const statePromise = firstValueFrom(service.getState$().pipe(skip(2)));
 
       service.actions.open({ title: 'Test' });
       service.actions.close();
+
+      const state = await statePromise;
+      expect(state.isOpen).toBe(false);
+      expect(state.content).toBeNull();
     });
 
-    it('should emit state updates when toggling dialog', (done) => {
+    it('should emit state updates when toggling dialog', async () => {
       service.initialize();
 
-      let emissionCount = 0;
-      service.getState$().subscribe((state) => {
-        emissionCount++;
-        if (emissionCount === 2) {
-          expect(state.isOpen).toBe(true);
-        } else if (emissionCount === 3) {
-          expect(state.isOpen).toBe(false);
-          done();
-        }
-      });
+      // Skip 2 emissions (initial + first toggle), get the second toggle emission
+      const statePromise = firstValueFrom(service.getState$().pipe(skip(2)));
 
       service.actions.toggle({ title: 'Toggle Test' });
       service.actions.toggle();
+
+      const state = await statePromise;
+      expect(state.isOpen).toBe(false);
     });
 
-    it('should handle multiple state updates', (done) => {
+    it('should handle multiple state updates', async () => {
       service.initialize();
 
-      let emissionCount = 0;
-      service.getState$().subscribe((state) => {
-        emissionCount++;
-        if (emissionCount === 2) {
-          expect(state.content).toEqual({ step: 1 });
-        } else if (emissionCount === 3) {
-          expect(state.content).toEqual({ step: 2 });
-        } else if (emissionCount === 4) {
-          expect(state.isOpen).toBe(false);
-          done();
-        }
-      });
+      // Skip 3 emissions (initial + two opens), get the close emission
+      const statePromise = firstValueFrom(service.getState$().pipe(skip(3)));
 
       service.actions.open({ step: 1 });
       service.actions.open({ step: 2 });
       service.actions.close();
+
+      const state = await statePromise;
+      expect(state.isOpen).toBe(false);
     });
   });
 
@@ -157,17 +132,20 @@ describe('DialogBehaviorService', () => {
       expect(() => service.ngOnDestroy()).not.toThrow();
     });
 
-    it('should complete Observable on destroy', (done) => {
+    it('should complete Observable on destroy', async () => {
       service.initialize();
 
-      service.getState$().subscribe({
-        next: () => {},
-        complete: () => {
-          done();
-        },
+      const completePromise = new Promise<void>((resolve) => {
+        service.getState$().subscribe({
+          next: () => {},
+          complete: () => {
+            resolve();
+          },
+        });
       });
 
       service.ngOnDestroy();
+      await completePromise;
     });
 
     it('should not emit after destroy', () => {

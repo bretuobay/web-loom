@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { RovingFocusBehaviorService } from '../index';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, skip } from 'rxjs';
 
 describe('RovingFocusBehaviorService', () => {
   let service: RovingFocusBehaviorService;
@@ -41,19 +41,14 @@ describe('RovingFocusBehaviorService', () => {
       expect(state.items).toEqual(['item-1', 'item-2']);
     });
 
-    it('should emit state updates when moving focus', (done) => {
+    it('should emit state updates when moving focus', async () => {
       service.initialize({ items: ['item-1', 'item-2', 'item-3'] });
 
-      let emissionCount = 0;
-      service.getState$().subscribe((state) => {
-        emissionCount++;
-        if (emissionCount === 2) {
-          expect(state.currentIndex).toBe(1);
-          done();
-        }
-      });
-
+      const statePromise = firstValueFrom(service.getState$().pipe(skip(1)));
       service.actions.moveNext();
+
+      const state = await statePromise;
+      expect(state.currentIndex).toBe(1);
     });
   });
 
@@ -136,17 +131,20 @@ describe('RovingFocusBehaviorService', () => {
       expect(() => service.ngOnDestroy()).not.toThrow();
     });
 
-    it('should complete Observable on destroy', (done) => {
+    it('should complete Observable on destroy', async () => {
       service.initialize();
 
-      service.getState$().subscribe({
-        next: () => {},
-        complete: () => {
-          done();
-        },
+      const completePromise = new Promise<void>((resolve) => {
+        service.getState$().subscribe({
+          next: () => {},
+          complete: () => {
+            resolve();
+          },
+        });
       });
 
       service.ngOnDestroy();
+      await completePromise;
     });
   });
 });

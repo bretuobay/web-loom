@@ -70,7 +70,7 @@ export function animateText(
 
   // Store original content and styles
   const originalContent = element.textContent || '';
-  const originalStyles = getComputedStyle(element);
+  // const originalStyles = getComputedStyle(element); // Reserved for future use
 
   // Animation registry for cleanup
   const activeAnimations: Animation[] = [];
@@ -197,7 +197,7 @@ export function animateText(
 
     // Wrap each character in a span
     element.innerHTML = '';
-    const chars = text.split('').map((char, index) => {
+    const chars = text.split('').map((char) => {
       const span = document.createElement('span');
       span.textContent = char === ' ' ? '\u00A0' : char; // Non-breaking space
       span.style.display = 'inline-block';

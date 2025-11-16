@@ -101,7 +101,7 @@ export class GlobalErrorService {
         // process.exit(1);
       });
 
-      process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+      process.on('unhandledRejection', (reason: any, _promise: Promise<any>) => {
         this.handleError(reason, 'process.unhandledRejection');
         // Similar to uncaughtException, decide on application fate.
       });

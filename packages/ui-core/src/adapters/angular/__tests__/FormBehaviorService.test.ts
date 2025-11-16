@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { FormBehaviorService } from '../index';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, skip } from 'rxjs';
 
 describe('FormBehaviorService', () => {
   let service: FormBehaviorService<{ email: string; password: string }>;
@@ -50,22 +50,17 @@ describe('FormBehaviorService', () => {
       expect(state.values).toEqual({ email: '', password: '' });
     });
 
-    it('should emit state updates when setting field value', (done) => {
+    it('should emit state updates when setting field value', async () => {
       service.initialize({
         initialValues: { email: '', password: '' },
       });
 
-      let emissionCount = 0;
-      service.getState$().subscribe((state) => {
-        emissionCount++;
-        if (emissionCount === 2) {
-          expect(state.values.email).toBe('test@example.com');
-          expect(state.dirty.email).toBe(true);
-          done();
-        }
-      });
-
+      const statePromise = firstValueFrom(service.getState$().pipe(skip(1)));
       service.actions.setFieldValue('email', 'test@example.com');
+
+      const state = await statePromise;
+      expect(state.values.email).toBe('test@example.com');
+      expect(state.dirty.email).toBe(true);
     });
   });
 
@@ -167,7 +162,7 @@ describe('FormBehaviorService', () => {
       expect(state.isValid).toBe(false);
     });
 
-    it('should set isValidating during async validation', (done) => {
+    it('should set isValidating during async validation', async () => {
       service.initialize({
         initialValues: { email: '', password: '' },
         fields: {
@@ -181,17 +176,20 @@ describe('FormBehaviorService', () => {
       });
 
       let wasValidating = false;
-      service.getState$().subscribe((state) => {
-        if (state.isValidating) {
-          wasValidating = true;
-        }
-        if (!state.isValidating && wasValidating) {
-          expect(wasValidating).toBe(true);
-          done();
-        }
+      const validationPromise = new Promise<void>((resolve) => {
+        service.getState$().subscribe((state) => {
+          if (state.isValidating) {
+            wasValidating = true;
+          }
+          if (!state.isValidating && wasValidating) {
+            expect(wasValidating).toBe(true);
+            resolve();
+          }
+        });
       });
 
       service.actions.validateField('email');
+      await validationPromise;
     });
   });
 
@@ -348,19 +346,22 @@ describe('FormBehaviorService', () => {
       expect(() => service.ngOnDestroy()).not.toThrow();
     });
 
-    it('should complete Observable on destroy', (done) => {
+    it('should complete Observable on destroy', async () => {
       service.initialize({
         initialValues: { email: '', password: '' },
       });
 
-      service.getState$().subscribe({
-        next: () => {},
-        complete: () => {
-          done();
-        },
+      const completePromise = new Promise<void>((resolve) => {
+        service.getState$().subscribe({
+          next: () => {},
+          complete: () => {
+            resolve();
+          },
+        });
       });
 
       service.ngOnDestroy();
+      await completePromise;
     });
   });
 });

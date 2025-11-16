@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ListSelectionBehaviorService } from '../index';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, skip } from 'rxjs';
 
 describe('ListSelectionBehaviorService', () => {
   let service: ListSelectionBehaviorService;
@@ -41,19 +41,14 @@ describe('ListSelectionBehaviorService', () => {
       expect(state.items).toEqual(['item-1', 'item-2']);
     });
 
-    it('should emit state updates when selecting items', (done) => {
+    it('should emit state updates when selecting items', async () => {
       service.initialize({ items: ['item-1', 'item-2'] });
 
-      let emissionCount = 0;
-      service.getState$().subscribe((state) => {
-        emissionCount++;
-        if (emissionCount === 2) {
-          expect(state.selectedIds).toEqual(['item-1']);
-          done();
-        }
-      });
-
+      const statePromise = firstValueFrom(service.getState$().pipe(skip(1)));
       service.actions.select('item-1');
+
+      const state = await statePromise;
+      expect(state.selectedIds).toEqual(['item-1']);
     });
   });
 
@@ -200,17 +195,20 @@ describe('ListSelectionBehaviorService', () => {
       expect(() => service.ngOnDestroy()).not.toThrow();
     });
 
-    it('should complete Observable on destroy', (done) => {
+    it('should complete Observable on destroy', async () => {
       service.initialize();
 
-      service.getState$().subscribe({
-        next: () => {},
-        complete: () => {
-          done();
-        },
+      const completePromise = new Promise<void>((resolve) => {
+        service.getState$().subscribe({
+          next: () => {},
+          complete: () => {
+            resolve();
+          },
+        });
       });
 
       service.ngOnDestroy();
+      await completePromise;
     });
   });
 });
