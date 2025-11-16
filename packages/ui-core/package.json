@@ -1,0 +1,78 @@
+{
+  "name": "@web-loom/ui-core",
+  "description": "Framework-agnostic headless UI behaviors for modern web applications.",
+  "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
+  "license": "MIT",
+  "private": false,
+  "version": "1.0.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/ui-core.umd.js",
+  "module": "./dist/ui-core.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/ui-core.es.js",
+      "require": "./dist/ui-core.umd.js"
+    },
+    "./react": {
+      "types": "./dist/adapters/react/index.d.ts",
+      "import": "./dist/ui-core.es.js",
+      "require": "./dist/ui-core.umd.js"
+    }
+  },
+  "keywords": [
+    "ui",
+    "headless",
+    "behaviors",
+    "framework-agnostic",
+    "react",
+    "vue",
+    "angular",
+    "typescript",
+    "web-loom"
+  ],
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "test": "vitest --watch=false",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint . --ext .ts,.js",
+    "lint:fix": "eslint . --ext .ts,.js --fix",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@web-loom/store-core": "0.0.4",
+    "@web-loom/event-bus-core": "0.0.2"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@types/node": "^20.x.x",
+    "@types/react": "^18.3.18",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.3.2",
+    "react": "^18.3.1",
+    "typescript": "~5.7.3",
+    "vite": "^6.1.1",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4"
+  }
+}
