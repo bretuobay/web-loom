@@ -1,151 +1,394 @@
-# Web Loom - MVVM Architecture Toolkit
+# Web Loom - Framework-Agnostic UI Architecture Toolkit
 
-Web Loom is a comprehensive collection of tools and libraries for implementing MVVM Architecture across different web application frameworks and environments. This project demonstrates how the MVVM pattern can be applied consistently across React, Angular, Vue.js, vanilla JavaScript, and even plugin-based architectures.
+A comprehensive monorepo demonstrating MVVM architecture, headless UI patterns, and plugin systems across multiple frontend frameworks.
+
+## Overview
+
+Web Loom showcases how framework-agnostic architecture patterns enable code reuse and consistency across React, Angular, Vue.js, and vanilla JavaScript. The project includes production-ready libraries for state management, UI behaviors, and plugin systems.
 
 ## Key Features
 
-- **Framework Agnostic**: Core MVVM libraries work with any frontend framework
-- **Plugin Architecture**: Dynamic plugin system with framework adapters
-- **Reactive State Management**: RxJS-powered reactive data flow
-- **Type Safety**: Full TypeScript support across all packages
-- **Shared Business Logic**: Reusable ViewModels across different UI implementations
+- **Framework Agnostic**: Core libraries work with any frontend framework or vanilla JS
+- **MVVM Architecture**: Complete MVVM implementation with shared ViewModels across frameworks
+- **Headless UI**: Atomic UI behaviors and composed patterns for building accessible interfaces
+- **Plugin System**: Dynamic plugin architecture with framework adapters
+- **Type-Safe**: Full TypeScript support across all packages
+- **Reactive**: RxJS-powered reactive data flow with automatic UI updates
 
-This project is to illustrate mvvm architecture in various frontend frameworks and demonstrate the versatility of the MVVM pattern.
+## Quick Start
 
-## Using this example
+```bash
+# Install dependencies
+npm install
 
-Run the following command:
+# Run all development servers
+npm run dev
 
-```sh
-npx create-turbo@latest
+# Build all packages
+npm run build
+
+# Run tests
+npm run test
 ```
 
-## What's inside?
+## Core Libraries
 
-This Turborepo includes the following packages/apps:
+### UI & Interaction
 
-### Apps and Packages
+#### [@web-loom/ui-core](packages/ui-core) ![Version](https://img.shields.io/badge/version-1.0.0-blue)
+Framework-agnostic headless UI behaviors (Dialog, Form, List Selection, Roving Focus, Disclosure). Pure logic with no styling assumptions, usable across all frameworks.
 
-- `docs`: a [Next.js](https://nextjs.org/) app for documentation
-- `web`: a [Next.js](https://nextjs.org/) app
-- `api`: a backend API service with SQLite database
-- `mvvm-angular`: an [Angular](https://angular.io/) app demonstrating MVVM
-- `mvvm-react`: a [React](https://react.dev/) app demonstrating MVVM
-- `mvvm-vue`: a [Vue.js](https://vuejs.org/) app demonstrating MVVM
-- `mvvm-vanilla`: a vanilla JavaScript + EJS app demonstrating MVVM without frameworks
-- `plugin-react`: a React-based plugin host application demonstrating dynamic plugin architecture
-- `@repo/ui`: a React component library shared across applications
-- `@repo/shared`: shared utilities and styles used across applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-- `packages/models`: contains the data models for the applications
-- `packages/view-models`: contains the view models for the applications
-- `packages/store-core`: a minimal, framework-agnostic client-side state management library designed for building reactive web applications. It provides a simple and efficient way to manage UI state with a focus on type safety and predictability.
-- `packages/event-bus-core`: a lightweight, framework-agnostic Event Bus library for cross-component communication.
-- `packages/mvvm-core`: A framework-agnostic web library for building robust client-side applications using the Model-View-ViewModel (MVVM) pattern. This library leverages the power of RxJS for reactive data flow and Zod for strong data validation, aiming to simplify state management and API interactions across various frontend frameworks like React, Angular, and Vue.
-- `packages/query-core`: QueryCore is a lightweight, zero-dependency library for managing asynchronous data fetching, caching, and state management in JavaScript applications.
-- `packages/plugin-core`: Core plugin architecture library providing framework-agnostic plugin registry and management capabilities for dynamic plugin systems.
+**Key features**: Atomic behaviors, framework adapters, accessibility-first, <2KB per behavior
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+```typescript
+import { createDialogBehavior } from '@web-loom/ui-core';
+const dialog = createDialogBehavior({ onOpen: (content) => console.log(content) });
+dialog.actions.open({ title: 'Hello' });
+```
 
-## MVVM Architecture
+#### [@web-loom/ui-patterns](packages/ui-patterns) ![Version](https://img.shields.io/badge/version-1.0.0-blue)
+Composed UI patterns (Master-Detail, Wizard, Modal, Command Palette, Tabbed Interface, Sidebar Shell, Toast Queue). Built by composing ui-core behaviors.
 
-This project utilizes the Model-View-ViewModel (MVVM) architecture to structure its frontend applications. This architectural pattern helps in separating the user interface (View) from the business logic and data (Model) through an intermediary layer called the ViewModel.
+**Key features**: 7+ production patterns, event bus integration, validation support
 
-- **Model**: Represents the data and business logic of the application. In this project, the data models are located in the `packages/models` directory.
-- **View**: Represents the UI elements that the user interacts with. The `mvvm-angular`, `mvvm-react`, and `mvvm-vue` apps contain the Views for their respective frameworks.
-- **ViewModel**: Acts as a bridge between the View and the Model. It prepares data from the Model in a way that is easily consumable by the View and handles user interactions from the View. The ViewModels are located in the `packages/view-models` directory.
+```typescript
+import { createWizard } from '@web-loom/ui-patterns';
+const wizard = createWizard({ steps: [...], onComplete: (data) => {...} });
+```
 
-This separation of concerns offers several benefits:
+### State & Data Management
 
-- **Improved Code Organization**: Code is more structured and easier to understand.
-- **Enhanced Testability**: Business logic in the ViewModel can be tested independently of the UI.
-- **Better Reusability**: Models and ViewModels can potentially be shared across different Views or even different UI frameworks.
+#### [@web-loom/mvvm-core](packages/mvvm-core) ![Version](https://img.shields.io/badge/version-0.5.1-blue)
+Complete MVVM implementation with BaseModel, BaseViewModel, RestfulApiModel, QueryStateModel, and Command pattern. RxJS-powered with Zod validation.
 
-This architecture is leveraged by the following applications in this monorepo:
+**Key features**: Reactive models, RESTful API integration, optimistic updates, disposable resources
 
-- `apps/mvvm-angular`: Angular implementation demonstrating MVVM with dependency injection
-- `apps/mvvm-react`: React implementation using hooks and functional components
-- `apps/mvvm-vue`: Vue.js implementation with Composition API
-- `apps/mvvm-vanilla`: Pure JavaScript implementation with EJS templates, demonstrating that MVVM can work without any framework
-- `apps/plugin-react`: Plugin host application showcasing dynamic plugin architecture with MVVM
+```typescript
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+class UserViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
+  constructor() { super(new UserApiModel()); }
+}
+```
 
-These applications demonstrate how common Models and ViewModels can be used to provide data and state management to different frontend technologies, including framework-free implementations.
+#### [@web-loom/store-core](packages/store-core) ![Version](https://img.shields.io/badge/version-0.0.4-blue)
+Minimal reactive state management library. Alternative to Redux/Zustand for simple state needs.
 
-## Plugin Architecture
+**Key features**: <1KB, observable-based, type-safe actions
 
-The project also includes a plugin architecture demonstration with the following components:
+```typescript
+import { createStore } from '@web-loom/store-core';
+const store = createStore(initialState, (set) => ({
+  increment: () => set(state => ({ count: state.count + 1 }))
+}));
+```
 
-- **Plugin Host (`apps/plugin-react`)**: A React-based host application that dynamically loads and renders plugins
-- **Plugin Core (`packages/plugin-core`)**: Framework-agnostic plugin registry and management system
-- **Framework Adapters**: Adapters for mounting plugins in different frameworks (React, Angular, Vue, etc.)
-- **Dynamic Loading**: Support for both static and dynamic plugin loading strategies
+#### [@web-loom/query-core](packages/query-core) ![Version](https://img.shields.io/badge/version-0.0.3-blue)
+Zero-dependency data fetching and caching library. Handles async data with automatic refetching and cache management.
 
-### Plugin System Features
+**Key features**: Automatic caching, background refetching, request deduplication
 
-- **Framework Agnostic Core**: Plugin registry works independently of UI framework
-- **Type Safety**: Full TypeScript support for plugin manifests and components
-- **Dynamic Mounting**: Plugins can be loaded and mounted at runtime
-- **Lifecycle Management**: Proper plugin initialization, mounting, and cleanup
-- **Manifest-Based Configuration**: Declarative plugin configuration with metadata
+```typescript
+import QueryCore from '@web-loom/query-core';
+const queryCore = new QueryCore();
+queryCore.defineEndpoint('users', () => fetch('/api/users'));
+```
 
-The plugin system demonstrates how MVVM principles can be extended to support modular, extensible applications where functionality can be added dynamically without modifying the core application.
+### Communication & Events
+
+#### [@web-loom/event-bus-core](packages/event-bus-core) ![Version](https://img.shields.io/badge/version-0.0.2-blue)
+Lightweight pub-sub event bus for cross-component communication. Type-safe with zero dependencies.
+
+**Key features**: <1KB gzipped, type-safe events, multiple listeners
+
+```typescript
+import { createEventBus } from '@web-loom/event-bus-core';
+const eventBus = createEventBus<AppEvents>();
+eventBus.on('user:login', (user) => console.log(user));
+```
+
+### Plugin Architecture
+
+#### [@web-loom/plugin-core](packages/plugin-core)
+Framework-agnostic plugin registry and management system with lifecycle states and manifest-based configuration.
+
+**Key features**: Dynamic loading, framework adapters, type-safe manifests
 
 ### Utilities
 
-This Turborepo has some additional tools already setup for you:
+#### [@web-loom/prose-scriber](packages/prose-scriber) ![Version](https://img.shields.io/badge/version-0.0.4-blue)
+Typography, color manipulation, and text animation utilities. Theme management with LAB color space support.
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+**Key features**: Color similarity (RGB/HSL/LAB), text animations (typewriter, fade), theme system
 
-### Build
+#### [@web-loom/design-core](packages/design-core)
+Theme and CSS variable utilities for design systems.
 
-To build all apps and packages, run the following command:
+## Applications
 
-```
-cd my-turborepo
-pnpm build
-```
+### MVVM Demonstrations
 
-### Develop
+All apps share ViewModels from `packages/view-models`, demonstrating true cross-framework business logic reuse:
 
-To develop all apps and packages, run the following command:
+- **[mvvm-react](apps/mvvm-react)** - React implementation with hooks
+- **[mvvm-angular](apps/mvvm-angular)** - Angular with dependency injection
+- **[mvvm-vue](apps/mvvm-vue)** - Vue.js with Composition API
+- **[mvvm-vanilla](apps/mvvm-vanilla)** - Vanilla JS + EJS templates
+- **[mvvm-react-native](apps/mvvm-react-native)** - React Native mobile app
 
-```
-cd my-turborepo
-pnpm dev
-```
+### Plugin System
 
-### Remote Caching
+- **[plugin-react](apps/plugin-react)** - Plugin host with dynamic plugin loading
+- **[plugin-docs](apps/plugin-docs)** - Plugin system documentation
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+### Backend
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+- **[api](apps/api)** - Express.js + SQLite API with Sequelize ORM
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+## Architecture Patterns
 
-```
-cd my-turborepo
-npx turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+### MVVM (Model-View-ViewModel)
 
 ```
-npx turbo link
+┌─────────────────────────────────────────────────────────┐
+│                         View Layer                       │
+│  (React / Angular / Vue / Vanilla JS - Framework UI)    │
+└────────────────────┬────────────────────────────────────┘
+                     │ Binds to observables
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                      ViewModel Layer                     │
+│    (packages/view-models - Shared Business Logic)       │
+│    • Exposes data$ / isLoading$ / error$ observables    │
+│    • Handles user interactions                          │
+│    • Framework-agnostic                                 │
+└────────────────────┬────────────────────────────────────┘
+                     │ Uses
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                       Model Layer                        │
+│         (packages/mvvm-core - Data & Logic)             │
+│    • BaseModel / RestfulApiModel                        │
+│    • Zod validation                                     │
+│    • RxJS reactive state                                │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## Useful Links
+**Benefits**:
+- Business logic tested independently of UI
+- ViewModels reused across React, Angular, Vue, vanilla JS
+- Type-safe data flow with Zod validation
+- Reactive updates with RxJS
 
-Learn more about the power of Turborepo:
+### Headless UI Patterns
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+```
+Atomic Behaviors (@web-loom/ui-core)
+       ↓
+Composed Patterns (@web-loom/ui-patterns)
+       ↓
+Framework-Specific Components (Your App)
+```
+
+**Example**: A wizard pattern composes form behavior + validation + navigation logic, then frameworks provide the UI rendering.
+
+### Plugin Architecture
+
+```
+┌────────────────────────────────────────┐
+│         Plugin Host Application         │
+│  (Loads and manages plugins at runtime) │
+└──────────────┬─────────────────────────┘
+               │
+        ┌──────┴──────┐
+        │ Plugin Core │ (Framework-agnostic registry)
+        └──────┬──────┘
+               │
+    ┌──────────┼──────────┐
+    ▼          ▼          ▼
+┌─────────┐ ┌─────────┐ ┌─────────┐
+│React    │ │Angular  │ │Vue      │
+│Adapter  │ │Adapter  │ │Adapter  │
+└─────────┘ └─────────┘ └─────────┘
+```
+
+## Package Overview
+
+| Package | Description | Size |
+|---------|-------------|------|
+| `@web-loom/ui-core` | Headless UI behaviors | <2KB each |
+| `@web-loom/ui-patterns` | Composed UI patterns | ~5KB |
+| `@web-loom/mvvm-core` | MVVM architecture library | ~15KB |
+| `@web-loom/store-core` | Reactive state management | <1KB |
+| `@web-loom/event-bus-core` | Event bus | <1KB |
+| `@web-loom/query-core` | Data fetching & caching | ~5KB |
+| `@web-loom/prose-scriber` | Typography & animations | ~3KB |
+
+All packages are tree-shakeable with ESM support.
+
+## Development
+
+### Common Commands
+
+```bash
+# Development
+npm run dev              # Start all apps in dev mode
+npm run build            # Build all packages and apps
+npm run lint             # Lint all packages
+npm run format           # Format code with Prettier
+npm run check-types      # Type-check all packages
+
+# Testing
+npm run test                              # Run all tests
+cd packages/mvvm-core && npm test         # Test specific package
+cd packages/mvvm-core && npm run test:watch    # Watch mode
+cd packages/mvvm-core && npm run test:coverage # With coverage
+
+# API Development
+cd apps/api
+npm run dev    # Start API with auto-reload
+npm run seed   # Seed database with test data
+```
+
+### Working with Specific Apps
+
+```bash
+cd apps/mvvm-react && npm run dev
+cd apps/mvvm-angular && npm run dev
+cd apps/mvvm-vue && npm run dev
+cd apps/plugin-react && npm run dev
+```
+
+## Key Concepts
+
+### Shared ViewModels
+
+Application-specific ViewModels in `packages/view-models/`:
+- `GreenHouseViewModel.ts`
+- `SensorReadingViewModel.ts`
+- `SensorViewModel.ts`
+- `ThresholdAlertViewModel.ts`
+
+These ViewModels are consumed by ALL framework implementations, demonstrating true cross-framework business logic sharing.
+
+### Reactive Data Flow
+
+All state uses RxJS observables:
+```typescript
+viewModel.data$.subscribe(data => updateUI(data));
+viewModel.isLoading$.subscribe(loading => showSpinner(loading));
+viewModel.error$.subscribe(error => showError(error));
+```
+
+### Resource Management
+
+Components implement `IDisposable` for cleanup:
+```typescript
+const viewModel = new UserViewModel();
+// ... use viewModel
+viewModel.dispose(); // Cleanup subscriptions
+```
+
+## Tech Stack
+
+- **Language**: TypeScript 5.8.2
+- **Package Manager**: npm 10.9.2
+- **Build Tool**: Vite 6.x, Turborepo
+- **Frameworks**: React 19, Angular (latest), Vue 3
+- **Reactive**: RxJS 7.x
+- **Validation**: Zod 3.x
+- **Testing**: Vitest 3.x
+- **Backend**: Express.js + SQLite (Sequelize)
+
+## Project Structure
+
+```
+web-loom/
+├── apps/
+│   ├── mvvm-react/           # React MVVM demo
+│   ├── mvvm-angular/         # Angular MVVM demo
+│   ├── mvvm-vue/             # Vue MVVM demo
+│   ├── mvvm-vanilla/         # Vanilla JS MVVM
+│   ├── mvvm-react-native/    # React Native MVVM
+│   ├── plugin-react/         # Plugin host app
+│   ├── api/                  # Express + SQLite backend
+│   └── docs/                 # Next.js docs site
+├── packages/
+│   ├── mvvm-core/            # Core MVVM library
+│   ├── view-models/          # Shared ViewModels
+│   ├── ui-core/              # Headless UI behaviors
+│   ├── ui-patterns/          # Composed UI patterns
+│   ├── store-core/           # State management
+│   ├── event-bus-core/       # Event bus
+│   ├── query-core/           # Data fetching
+│   ├── plugin-core/          # Plugin architecture
+│   ├── prose-scriber/        # Typography & color utils
+│   └── design-core/          # Theme utilities
+└── [configs and tooling]
+```
+
+## Documentation
+
+Detailed documentation available in each package's README:
+- [UI Core Documentation](packages/ui-core/README.md)
+- [UI Patterns Documentation](packages/ui-patterns/README.md)
+- [MVVM Core Documentation](packages/mvvm-core/README.md)
+- [Event Bus Documentation](packages/event-bus-core/README.md)
+- [Prose Scriber Documentation](packages/prose-scriber/README.md)
+
+## Examples
+
+### Cross-Framework Data Sharing
+
+```typescript
+// packages/view-models/sensor.viewmodel.ts (Shared)
+export class SensorViewModel extends RestfulApiViewModel<Sensor[], typeof SensorSchema> {
+  constructor() {
+    super(new SensorModel());
+  }
+
+  get activeSensors$() {
+    return this.data$.pipe(
+      map(sensors => sensors?.filter(s => s.active))
+    );
+  }
+}
+
+// Used in React
+function SensorList() {
+  const vm = useMemo(() => new SensorViewModel(), []);
+  const sensors = useObservable(vm.activeSensors$, []);
+  return <ul>{sensors.map(s => <li>{s.name}</li>)}</ul>;
+}
+
+// Used in Angular
+@Component({...})
+class SensorListComponent {
+  constructor(public vm: SensorViewModel) {}
+  sensors$ = this.vm.activeSensors$;
+}
+
+// Used in Vue
+setup() {
+  const vm = new SensorViewModel();
+  const sensors = ref([]);
+  watch(() => vm.activeSensors$, (obs) => {
+    obs.subscribe(s => sensors.value = s);
+  });
+  return { sensors };
+}
+```
+
+## Contributing
+
+This is a demonstration project. See individual package READMEs for architecture details and usage patterns.
+
+## License
+
+MIT
+
+## Learn More
+
+- [MVVM Architecture Guide](packages/mvvm-core/README.md)
+- [Headless UI Patterns](packages/ui-patterns/README.md)
+- [Plugin System Guide](packages/plugin-core/README.md)
+- [Turborepo Documentation](https://turborepo.com/docs)
