@@ -341,7 +341,7 @@ This implementation plan breaks down the UI Core and UI Patterns packages into d
   - Verify type exports in package.json exports field
   - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7_
 
-- [ ] 19. Configure package exports and build optimization
+- [x] 19. Configure package exports and build optimization
   - Configure package.json exports for ui-core (main, react, vue, angular)
   - Configure package.json exports for ui-patterns
   - Set up Vite build for tree-shaking support
@@ -353,7 +353,7 @@ This implementation plan breaks down the UI Core and UI Patterns packages into d
   - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5_
 
 - [ ] 20. Create integration examples in existing apps
-  - [ ] 20.1 Add React examples to apps/mvvm-react
+  - [x] 20.1 Add React examples to apps/ui-patterns-playground
     - Create example component using `useDialogBehavior`
     - Create example component using `useListSelection`
     - Create example component using `createMasterDetail` pattern

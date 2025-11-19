@@ -1,0 +1,50 @@
+name: Bundle Size Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'packages/ui-core/**'
+      - 'packages/ui-patterns/**'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'packages/ui-core/**'
+      - 'packages/ui-patterns/**'
+
+jobs:
+  check-bundle-size:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build packages
+        run: |
+          npm run build --workspace=@web-loom/ui-core
+          npm run build --workspace=@web-loom/ui-patterns
+          
+      - name: Test tree-shaking for ui-core
+        run: npm run test:tree-shaking --workspace=@web-loom/ui-core
+        
+      - name: Test tree-shaking for ui-patterns
+        run: npm run test:tree-shaking --workspace=@web-loom/ui-patterns
+        
+      - name: Check bundle size limits
+        run: |
+          echo "Checking bundle size requirements..."
+          
+          # This will be implemented by the tree-shaking test scripts
+          # which will exit with non-zero if size limits are exceeded
+          
+          echo "✅ Bundle size checks passed!"

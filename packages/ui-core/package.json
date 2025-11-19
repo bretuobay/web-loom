@@ -6,38 +6,70 @@
   "private": false,
   "version": "1.0.0",
   "type": "module",
+  "sideEffects": false,
   "files": [
     "dist"
   ],
-  "main": "./dist/ui-core.umd.js",
-  "module": "./dist/ui-core.es.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/ui-core.es.js",
-      "require": "./dist/ui-core.umd.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./behaviors": {
+      "types": "./dist/behaviors/index.d.ts",
+      "import": "./dist/behaviors/index.js",
+      "default": "./dist/behaviors/index.js"
+    },
+    "./behaviors/dialog": {
+      "types": "./dist/behaviors/dialog.d.ts",
+      "import": "./dist/behaviors/dialog.js",
+      "default": "./dist/behaviors/dialog.js"
+    },
+    "./behaviors/disclosure": {
+      "types": "./dist/behaviors/disclosure.d.ts",
+      "import": "./dist/behaviors/disclosure.js",
+      "default": "./dist/behaviors/disclosure.js"
+    },
+    "./behaviors/form": {
+      "types": "./dist/behaviors/form.d.ts",
+      "import": "./dist/behaviors/form.js",
+      "default": "./dist/behaviors/form.js"
+    },
+    "./behaviors/list-selection": {
+      "types": "./dist/behaviors/list-selection.d.ts",
+      "import": "./dist/behaviors/list-selection.js",
+      "default": "./dist/behaviors/list-selection.js"
+    },
+    "./behaviors/roving-focus": {
+      "types": "./dist/behaviors/roving-focus.d.ts",
+      "import": "./dist/behaviors/roving-focus.js",
+      "default": "./dist/behaviors/roving-focus.js"
     },
     "./react": {
       "types": "./dist/adapters/react/index.d.ts",
-      "import": "./dist/ui-core.es.js",
-      "require": "./dist/ui-core.umd.js"
+      "import": "./dist/adapters/react.js",
+      "default": "./dist/adapters/react.js"
     },
     "./vue": {
       "types": "./dist/adapters/vue/index.d.ts",
-      "import": "./dist/ui-core.es.js",
-      "require": "./dist/ui-core.umd.js"
+      "import": "./dist/adapters/vue.js",
+      "default": "./dist/adapters/vue.js"
     },
     "./angular": {
       "types": "./dist/adapters/angular/index.d.ts",
-      "import": "./dist/ui-core.es.js",
-      "require": "./dist/ui-core.umd.js"
+      "import": "./dist/adapters/angular.js",
+      "default": "./dist/adapters/angular.js"
     },
     "./types": {
       "types": "./dist/types/index.d.ts",
-      "import": "./dist/ui-core.es.js",
-      "require": "./dist/ui-core.umd.js"
-    }
+      "import": "./dist/types/index.js",
+      "default": "./dist/types/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "keywords": [
     "ui",
@@ -53,12 +85,14 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
-    "test": "vitest --watch=false",
+    "test": "vitest --run",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
+    "test:tree-shaking": "node scripts/test-tree-shaking.js",
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "size": "npm run build && npm run test:tree-shaking"
   },
   "dependencies": {
     "@web-loom/store-core": "0.0.4",

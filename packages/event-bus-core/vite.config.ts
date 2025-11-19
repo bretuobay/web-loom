@@ -7,8 +7,8 @@ export default defineConfig({
     lib: {
       entry: './src/index.ts',
       formats: ['es', 'umd'],
-      name: 'QueryCore', // For UMD global variable
-      fileName: (format) => `query-core.${format}.js`,
+      name: 'EventBusCore', // For UMD global variable
+      fileName: (format) => `event-bus-core.${format}.js`,
     },
     rollupOptions: {
       // No external dependencies for QueryCore

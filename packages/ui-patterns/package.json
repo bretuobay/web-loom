@@ -6,23 +6,65 @@
   "private": false,
   "version": "1.0.0",
   "type": "module",
+  "sideEffects": false,
   "files": [
     "dist"
   ],
-  "main": "./dist/ui-patterns.umd.js",
-  "module": "./dist/ui-patterns.es.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/ui-patterns.es.js",
-      "require": "./dist/ui-patterns.umd.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./patterns": {
+      "types": "./dist/patterns/index.d.ts",
+      "import": "./dist/patterns/index.js",
+      "default": "./dist/patterns/index.js"
+    },
+    "./patterns/command-palette": {
+      "types": "./dist/patterns/command-palette.d.ts",
+      "import": "./dist/patterns/command-palette.js",
+      "default": "./dist/patterns/command-palette.js"
+    },
+    "./patterns/master-detail": {
+      "types": "./dist/patterns/master-detail.d.ts",
+      "import": "./dist/patterns/master-detail.js",
+      "default": "./dist/patterns/master-detail.js"
+    },
+    "./patterns/modal": {
+      "types": "./dist/patterns/modal.d.ts",
+      "import": "./dist/patterns/modal.js",
+      "default": "./dist/patterns/modal.js"
+    },
+    "./patterns/sidebar-shell": {
+      "types": "./dist/patterns/sidebar-shell.d.ts",
+      "import": "./dist/patterns/sidebar-shell.js",
+      "default": "./dist/patterns/sidebar-shell.js"
+    },
+    "./patterns/tabbed-interface": {
+      "types": "./dist/patterns/tabbed-interface.d.ts",
+      "import": "./dist/patterns/tabbed-interface.js",
+      "default": "./dist/patterns/tabbed-interface.js"
+    },
+    "./patterns/toast-queue": {
+      "types": "./dist/patterns/toast-queue.d.ts",
+      "import": "./dist/patterns/toast-queue.js",
+      "default": "./dist/patterns/toast-queue.js"
+    },
+    "./patterns/wizard": {
+      "types": "./dist/patterns/wizard.d.ts",
+      "import": "./dist/patterns/wizard.js",
+      "default": "./dist/patterns/wizard.js"
     },
     "./types": {
       "types": "./dist/types/index.d.ts",
-      "import": "./dist/ui-patterns.es.js",
-      "require": "./dist/ui-patterns.umd.js"
-    }
+      "import": "./dist/types/index.js",
+      "default": "./dist/types/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "keywords": [
     "ui",
@@ -39,12 +81,14 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
-    "test": "vitest --watch=false",
+    "test": "vitest --run",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
+    "test:tree-shaking": "node scripts/test-tree-shaking.js",
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "size": "npm run build && npm run test:tree-shaking"
   },
   "dependencies": {
     "@web-loom/ui-core": "1.0.0",
