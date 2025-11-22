@@ -34,129 +34,884 @@ In this chapter, we’ll design a registry that:
 
 The **PluginRegistry** is the in-memory store and control API for all loaded plugins. It works alongside a **PluginLoader** that handles the actual code fetching and instantiation.
 
-### TypeScript Definition
+### Production Registry Patterns
 
-From our SDK foundation:
+Real-world plugin systems demonstrate various registry architectures:
+
+**VS Code: Multi-Tier Registry**
+Separates extension discovery, activation, and runtime management:
+
+```ts
+// Discovery tier - scans filesystem
+ExtensionsScannerService.scanExtensions()
+
+// Registry tier - stores metadata
+ExtensionDescriptionRegistry.add(extension)
+
+// Activator tier - manages lifecycle
+ExtensionsActivator.activateByEvent('onLanguage:typescript')
+```
+
+Key insight: Separate concerns—discovery finds plugins, registry stores metadata, activator manages lifecycle.
+
+**Kibana: Stream-Based Discovery**
+Uses RxJS observables to handle discovery asynchronously:
+
+```ts
+discover() {
+  return {
+    plugin$: Observable<PluginManifest>,  // Successfully discovered
+    error$: Observable<PluginError>        // Failed discoveries
+  };
+}
+```
+
+Key insight: Async discovery with separate success/error channels prevents one bad plugin from blocking others.
+
+**Babel: Configuration-Driven Registry**
+Plugins explicitly declared in configuration, no auto-discovery:
+
+```ts
+{
+  "plugins": [
+    "transform-arrow-functions",
+    ["transform-runtime", { "helpers": false }]
+  ]
+}
+```
+
+Key insight: Explicit is better than implicit for build tools. Auto-discovery adds complexity without clear benefit.
+
+**Backstage: Package Metadata Discovery**
+Uses `package.json` metadata for automatic discovery:
+
+```json
+{
+  "backstage": {
+    "role": "backend-plugin",
+    "pluginId": "catalog"
+  }
+}
+```
+
+Key insight: Leverage existing package management infrastructure rather than inventing new manifest formats.
+
+---
+
+### Comprehensive Registry Interface
+
+Building on production patterns, here's an enhanced registry:
 
 ```ts
 export interface PluginRegistry {
-  register: (pluginDef: PluginDefinition) => void;
-  unregister: (pluginId: string) => void;
+  /** Core operations */
+  register: (definition: PluginDefinition) => Promise<void>;
+  unregister: (pluginId: string) => Promise<void>;
   get: (pluginId: string) => PluginDefinition | undefined;
   getAll: () => PluginDefinition[];
+
+  /** State queries */
+  getState: (pluginId: string) => PluginState;
+  getByState: (state: PluginState) => PluginDefinition[];
+
+  /** Dependency queries */
+  getDependents: (pluginId: string) => string[];
+  getDependencies: (pluginId: string) => string[];
+  getLoadOrder: () => string[];
+
+  /** Lifecycle control */
+  load: (pluginId: string) => Promise<void>;
+  activate: (pluginId: string) => Promise<void>;
+  deactivate: (pluginId: string) => Promise<void>;
+  reload: (pluginId: string) => Promise<void>;
+
+  /** Event subscriptions */
+  onStateChange: (
+    pluginId: string,
+    callback: (state: PluginState) => void
+  ) => () => void;
+
+  /** Performance */
+  preload: (pluginIds: string[]) => Promise<void>;
+  pruneUnused: () => Promise<void>;
 }
+
+export interface PluginDefinition {
+  /** Plugin identity and metadata */
+  manifest: PluginManifest;
+
+  /** Loaded module (undefined until loaded) */
+  module?: PluginModule;
+
+  /** Runtime state tracking */
+  state: PluginState;
+  metadata: PluginMetadata;
+
+  /** Dependency information */
+  dependencies: {
+    required: string[];
+    optional: string[];
+    peers: Map<string, string>; // Package to version range
+  };
+
+  /** Performance tracking */
+  metrics: {
+    loadTime?: number;
+    activationTime?: number;
+    memoryUsage?: number;
+  };
+
+  /** Error tracking */
+  errors: PluginError[];
+}
+
+export type PluginState =
+  | 'discovered'      // Manifest found, not yet validated
+  | 'registered'      // Manifest validated, ready to load
+  | 'loading'         // Code being fetched
+  | 'loaded'          // Code loaded, init() not called
+  | 'activating'      // Calling setup() or start()
+  | 'active'          // Running and available
+  | 'deactivating'    // Calling stop()
+  | 'inactive'        // Deactivated but code still loaded
+  | 'error'           // Failed at some stage
+  | 'unregistered';   // Removed from registry
 ```
 
-### Plugin Definition
+---
+
+### Plugin Wrapper Pattern (Kibana)
+
+Encapsulate each plugin in a wrapper that manages its lifecycle:
 
 ```ts
-export interface PluginDefinition {
-  manifest: PluginManifest;
-  module: PluginModule;
+class PluginWrapper {
+  public readonly id: string;
+  public readonly manifest: PluginManifest;
+  public readonly opaqueId: symbol; // Unique ID for this instance
+
+  private instance?: PluginModule;
+  private state: PluginState = 'registered';
+  private setupContract?: unknown;
+  private startContract?: unknown;
+
+  constructor(manifest: PluginManifest) {
+    this.id = manifest.id;
+    this.manifest = manifest;
+    this.opaqueId = Symbol(manifest.id);
+  }
+
+  async load(): Promise<void> {
+    if (this.state !== 'registered') {
+      throw new Error(`Cannot load plugin ${this.id} in state ${this.state}`);
+    }
+
+    this.state = 'loading';
+    try {
+      // Dynamic import
+      const moduleDef = await import(this.manifest.entry);
+      this.instance = moduleDef.plugin(/* initializer context */);
+      this.state = 'loaded';
+    } catch (error) {
+      this.state = 'error';
+      throw error;
+    }
+  }
+
+  async setup(context: PluginSetupContext): Promise<unknown> {
+    if (!this.instance?.setup) {
+      return undefined;
+    }
+
+    this.state = 'activating';
+    try {
+      this.setupContract = await this.instance.setup(context);
+      return this.setupContract;
+    } catch (error) {
+      this.state = 'error';
+      throw error;
+    }
+  }
+
+  async start(context: PluginStartContext): Promise<unknown> {
+    if (!this.instance?.start) {
+      this.state = 'active';
+      return undefined;
+    }
+
+    try {
+      this.startContract = await this.instance.start(context);
+      this.state = 'active';
+      return this.startContract;
+    } catch (error) {
+      this.state = 'error';
+      throw error;
+    }
+  }
+
+  async stop(): Promise<void> {
+    if (this.state !== 'active') {
+      return;
+    }
+
+    this.state = 'deactivating';
+    try {
+      await this.instance?.stop?.();
+      this.state = 'inactive';
+    } catch (error) {
+      // Log but don't throw - continue cleanup
+      console.error(`Plugin ${this.id} failed to stop:`, error);
+    }
+  }
 }
 ```
 
-The registry is intentionally simple—its complexity comes from **how** we populate it.
+The registry is intentionally simple at its core—its complexity comes from **how** we populate it and manage state transitions.
 
 ---
 
 ### Plugin Discovery Mechanisms
 
-A registry doesn’t just appear—it’s populated from:
+Production systems demonstrate diverse discovery approaches:
 
-- **Local plugin bundles** packaged with the host app.
-- **Remote manifest URLs** from a plugin marketplace.
-- **Dynamic imports** via user-provided plugin paths.
-- **Enterprise-managed registries** with permission gating.
+**VS Code: Filesystem Scanning**
+Recursively scans known directories for `package.json` files:
 
-Example discovery flow:
+```ts
+class ExtensionsScannerService {
+  async scanExtensions(): Promise<IExtensionDescription[]> {
+    const locations = [
+      userExtensionsDir,
+      builtinExtensionsDir,
+      devExtensionsDir,
+    ];
 
-1. Fetch `plugin-manifest.json` files from known URLs.
-2. Validate against the `PluginManifest` schema.
-3. Pass to `PluginLoader.loadFromManifest()`.
-4. Call `registry.register()` once loaded.
+    const extensions = await Promise.all(
+      locations.map(loc => this.scanLocation(loc))
+    );
+
+    return extensions.flat();
+  }
+
+  private async scanLocation(dir: string): Promise<IExtensionDescription[]> {
+    const pkgJsons = await glob('**/package.json', { cwd: dir });
+    return pkgJsons.map(path => this.parseExtension(path));
+  }
+}
+```
+
+**Kibana: Observable Stream Discovery**
+Async, non-blocking discovery with error isolation:
+
+```ts
+discover(paths: string[]) {
+  return {
+    plugin$: new Subject<PluginManifest>(),
+    error$: new Subject<PluginError>()
+  };
+}
+
+// Usage
+const { plugin$, error$ } = discover([pluginDir]);
+
+plugin$.subscribe(manifest => registry.register(manifest));
+error$.subscribe(err => logger.error('Discovery failed:', err));
+```
+
+**Backstage: Package Metadata**
+Leverages npm/yarn workspace structure:
+
+```ts
+// Scans package.json files
+async discoverPackages() {
+  const packages = await getWorkspacePackages();
+
+  return packages.filter(pkg =>
+    pkg.manifest.backstage?.role === 'backend-plugin'
+  );
+}
+```
+
+**Babel: Explicit Configuration**
+No discovery—plugins explicitly declared:
+
+```json
+{
+  "plugins": [
+    "transform-arrow-functions",
+    "@babel/plugin-proposal-optional-chaining"
+  ]
+}
+```
+
+**Vite: Config-Based Registration**
+Plugins added via configuration API:
+
+```ts
+export default {
+  plugins: [
+    vue(),
+    react(),
+    customPlugin({ options })
+  ]
+};
+```
 
 ---
 
-### Metadata Management
+### Comprehensive Discovery Implementation
 
-Each registered plugin may carry:
-
-- Load state (`pending`, `loaded`, `mounted`, `error`).
-- Compatibility info (framework version, SDK version).
-- Security flags (permissions granted, sandbox type).
-
-A `PluginMetadata` structure helps track this:
+Combining multiple strategies:
 
 ```ts
-interface PluginMetadata {
-  state: 'pending' | 'loaded' | 'mounted' | 'error';
-  errors?: string[];
-  permissionsGranted?: string[];
+interface PluginDiscoveryService {
+  /** Scan filesystem for plugins */
+  scanDirectory(dir: string): AsyncIterable<PluginManifest>;
+
+  /** Fetch from remote registry */
+  fetchFromRegistry(url: string): Promise<PluginManifest[]>;
+
+  /** Load from explicit configuration */
+  loadFromConfig(config: PluginConfig[]): PluginManifest[];
+
+  /** Watch for new plugins (development) */
+  watch(dir: string): Observable<PluginEvent>;
+}
+
+class ProductionDiscoveryService implements PluginDiscoveryService {
+  async *scanDirectory(dir: string): AsyncIterable<PluginManifest> {
+    const manifestPaths = await glob('**/plugin-manifest.json', {
+      cwd: dir,
+      absolute: true,
+    });
+
+    for (const path of manifestPaths) {
+      try {
+        const content = await fs.readFile(path, 'utf-8');
+        const manifest = JSON.parse(content);
+
+        // Validate using Zod schema
+        const validated = PluginManifestSchema.parse(manifest);
+        yield validated;
+      } catch (error) {
+        // Emit error but continue scanning
+        this.emit('discovery:error', { path, error });
+      }
+    }
+  }
+
+  async fetchFromRegistry(url: string): Promise<PluginManifest[]> {
+    const response = await fetch(url);
+    const registry = await response.json();
+
+    return registry.plugins.map((p: unknown) =>
+      PluginManifestSchema.parse(p)
+    );
+  }
+
+  loadFromConfig(config: PluginConfig[]): PluginManifest[] {
+    return config.map(c => this.resolveConfig(c));
+  }
+
+  watch(dir: string): Observable<PluginEvent> {
+    return new Observable(subscriber => {
+      const watcher = chokidar.watch('**/plugin-manifest.json', {
+        cwd: dir,
+        ignoreInitial: true,
+      });
+
+      watcher.on('add', path => {
+        subscriber.next({ type: 'added', path });
+      });
+
+      watcher.on('change', path => {
+        subscriber.next({ type: 'changed', path });
+      });
+
+      watcher.on('unlink', path => {
+        subscriber.next({ type: 'removed', path });
+      });
+
+      return () => watcher.close();
+    });
+  }
 }
 ```
 
 ---
 
+### Metadata Management
+
+Each registered plugin carries comprehensive metadata:
+
+```ts
+interface PluginMetadata {
+  /** Discovery information */
+  source: 'filesystem' | 'registry' | 'config' | 'npm';
+  discoveredAt: Date;
+  discoveryPath?: string;
+
+  /** Version compatibility */
+  hostVersion: string;
+  sdkVersion: string;
+  compatible: boolean;
+  compatibilityErrors?: string[];
+
+  /** Security context */
+  permissions: {
+    requested: string[];
+    granted: string[];
+    denied: string[];
+  };
+  sandbox: 'none' | 'logical' | 'worker' | 'process' | 'iframe';
+  trustLevel: 'trusted' | 'verified' | 'untrusted';
+
+  /** Performance tracking */
+  metrics: {
+    loadTime?: number;        // Time to load code
+    setupTime?: number;       // Time in setup()
+    startTime?: number;       // Time in start()
+    memoryUsage?: number;     // Current memory usage
+    lastActivation?: Date;    // Last time activated
+    activationCount: number;  // Total activations
+  };
+
+  /** Error tracking */
+  errors: Array<{
+    phase: 'discovery' | 'load' | 'setup' | 'start' | 'runtime';
+    timestamp: Date;
+    message: string;
+    stack?: string;
+  }>;
+
+  /** Environment */
+  environment: {
+    server: boolean;
+    browser: boolean;
+    worker: boolean;
+  };
+}
+```
+
+This rich metadata enables:
+- **Smart preloading** based on usage patterns
+- **Security auditing** of permission usage
+- **Performance optimization** via metrics
+- **Debugging** through comprehensive error tracking
+
+---
+
 ## 5.2 Lifecycle State Management
 
-A good registry is a **state machine** for plugins:
+A good registry is a **state machine** for plugins. Production systems demonstrate sophisticated state management:
 
-- **pending** — Plugin discovered but not loaded.
-- **loaded** — Code fetched and `init()` called.
-- **mounted** — Plugin UI active.
-- **error** — Failed during any stage.
+### Production State Machines
+
+**VS Code: Activation State Tracking**
+Extensions track states from discovery through activation:
+
+```ts
+enum ExtensionState {
+  Uninstalled,
+  Installed,        // Discovered, not yet activated
+  Activating,       // activate() called, pending
+  Activated,        // activate() completed successfully
+  ActivationFailed, // activate() threw error
+  Deactivating,     // deactivate() called
+  Deactivated       // deactivate() completed
+}
+```
+
+**Kibana: Multi-Phase Lifecycle**
+Separate states for each lifecycle phase:
+
+```ts
+type PluginState =
+  | { type: 'uninitialized' }
+  | { type: 'initializing' }
+  | { type: 'initialized'; setupContract: unknown }
+  | { type: 'starting' }
+  | { type: 'started'; startContract: unknown }
+  | { type: 'stopping' }
+  | { type: 'stopped' }
+  | { type: 'error'; error: Error };
+```
+
+---
+
+### Comprehensive State Machine
+
+Building on production patterns:
+
+```ts
+type PluginState =
+  | { status: 'discovered'; manifest: PluginManifest }
+  | { status: 'registered'; manifest: PluginManifest; validated: true }
+  | { status: 'loading'; manifest: PluginManifest; startTime: number }
+  | { status: 'loaded'; module: PluginModule; loadTime: number }
+  | { status: 'setup'; module: PluginModule; setupPromise: Promise<unknown> }
+  | { status: 'setupComplete'; setupContract: unknown; setupTime: number }
+  | { status: 'starting'; setupContract: unknown; startPromise: Promise<unknown> }
+  | { status: 'active'; contracts: { setup: unknown; start: unknown } }
+  | { status: 'stopping'; stopPromise: Promise<void> }
+  | { status: 'inactive' }
+  | { status: 'error'; phase: string; error: Error; previousState?: PluginState };
+
+class PluginStateMachine {
+  private state: PluginState;
+  private listeners = new Set<(state: PluginState) => void>();
+
+  constructor(initialState: PluginState) {
+    this.state = initialState;
+  }
+
+  transition(newState: PluginState): void {
+    // Validate transition
+    if (!this.isValidTransition(this.state, newState)) {
+      throw new Error(
+        `Invalid transition from ${this.state.status} to ${newState.status}`
+      );
+    }
+
+    const oldState = this.state;
+    this.state = newState;
+
+    // Notify listeners
+    this.listeners.forEach(listener => listener(newState));
+
+    // Emit telemetry
+    this.recordTransition(oldState, newState);
+  }
+
+  private isValidTransition(from: PluginState, to: PluginState): boolean {
+    const transitions: Record<string, string[]> = {
+      discovered: ['registered', 'error'],
+      registered: ['loading', 'error'],
+      loading: ['loaded', 'error'],
+      loaded: ['setup', 'error'],
+      setup: ['setupComplete', 'error'],
+      setupComplete: ['starting', 'error'],
+      starting: ['active', 'error'],
+      active: ['stopping', 'error'],
+      stopping: ['inactive', 'error'],
+      inactive: ['loading', 'unregistered'], // Can reload
+      error: ['registered', 'unregistered'],  // Can retry
+    };
+
+    return transitions[from.status]?.includes(to.status) ?? false;
+  }
+
+  onStateChange(callback: (state: PluginState) => void): () => void {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
+  }
+
+  getState(): PluginState {
+    return this.state;
+  }
+}
+```
 
 ---
 
 ### Transition Validation
 
-We should enforce valid transitions:
+Enforce valid state transitions with detailed error messages:
 
-| Current State | Allowed Next States |
-| ------------- | ------------------- |
-| pending       | loaded, error       |
-| loaded        | mounted, error      |
-| mounted       | loaded, error       |
-| error         | pending (retry)     |
+```ts
+class PluginLifecycleManager {
+  async load(pluginId: string): Promise<void> {
+    const plugin = this.registry.get(pluginId);
+    if (!plugin) {
+      throw new Error(`Plugin ${pluginId} not found`);
+    }
 
-This ensures we never, for example, mount a plugin that hasn’t been loaded.
+    // Validate current state
+    if (plugin.state.status !== 'registered') {
+      throw new Error(
+        `Cannot load plugin ${pluginId} in state ${plugin.state.status}. ` +
+        `Expected state: registered`
+      );
+    }
+
+    try {
+      // Transition to loading
+      plugin.stateMachine.transition({
+        status: 'loading',
+        manifest: plugin.manifest,
+        startTime: Date.now(),
+      });
+
+      // Perform load
+      const module = await this.loader.load(plugin.manifest.entry);
+
+      // Transition to loaded
+      plugin.stateMachine.transition({
+        status: 'loaded',
+        module,
+        loadTime: Date.now() - startTime,
+      });
+    } catch (error) {
+      // Transition to error
+      plugin.stateMachine.transition({
+        status: 'error',
+        phase: 'load',
+        error,
+        previousState: plugin.state,
+      });
+      throw error;
+    }
+  }
+}
+```
 
 ---
 
 ### Error State Handling
 
-If `init()` or `mount()` fails:
+Production systems handle errors at multiple levels:
 
-- Log the error with context.
-- Set state to `error`.
-- Optionally show a fallback UI.
+**VS Code: Activation Error Tracking**
+```ts
+interface IExtensionActivationResult {
+  activationTimes: IExtensionActivationTimes;
+  reason: {
+    kind: 'startup' | 'event' | 'command';
+    value: string;
+  };
+}
+
+// Failed activations tracked separately
+const failedActivations = new Map<string, ActivationError>();
+```
+
+**Kibana: Error Context Preservation**
+```ts
+try {
+  await plugin.setup(context);
+} catch (error) {
+  throw new Error(
+    `Setup lifecycle of "${pluginName}" plugin wasn't completed. ` +
+    `Error: ${error.message}`,
+    { cause: error }
+  );
+}
+```
+
+**Implementation with Rich Context**:
+```ts
+class PluginErrorHandler {
+  handleError(
+    pluginId: string,
+    phase: string,
+    error: Error
+  ): void {
+    const enriched = {
+      pluginId,
+      phase,
+      error: {
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause,
+      },
+      timestamp: new Date().toISOString(),
+      environment: {
+        nodeVersion: process.version,
+        platform: process.platform,
+      },
+      pluginState: this.registry.getState(pluginId),
+    };
+
+    // Log with context
+    this.logger.error('Plugin lifecycle error', enriched);
+
+    // Update plugin metadata
+    const plugin = this.registry.get(pluginId);
+    plugin.metadata.errors.push({
+      phase,
+      timestamp: new Date(),
+      message: error.message,
+      stack: error.stack,
+    });
+
+    // Notify error monitoring service
+    this.errorService.capture(enriched);
+
+    // Show user notification (if UI plugin)
+    if (plugin.manifest.environments?.browser) {
+      this.notifyUser(pluginId, phase, error);
+    }
+  }
+}
+```
 
 ---
 
 ### Rollback and Recovery
 
-For safe recovery:
+Production systems implement sophisticated recovery:
 
-- **On mount failure** → unmount and revert to `loaded` state.
-- **On load failure** → remove from registry and mark manifest as invalid.
-- **On unmount failure** → log but continue cleanup.
+**VS Code: Extension Host Restart**
+If extension host crashes, VS Code:
+1. Detects crash via IPC connection loss
+2. Automatically restarts extension host process
+3. Re-activates previously active extensions
+4. Limits restart attempts (max 5 in 60 seconds)
+
+**Kibana: Graceful Degradation**
+```ts
+async setupPlugins() {
+  for (const plugin of sortedPlugins) {
+    try {
+      const contract = await plugin.setup(context);
+      contracts.set(plugin.name, contract);
+    } catch (error) {
+      if (plugin.manifest.required) {
+        // Critical plugin - fail fast
+        throw error;
+      } else {
+        // Optional plugin - log and continue
+        logger.warn(`Plugin ${plugin.name} failed to setup:`, error);
+        plugin.state = 'error';
+      }
+    }
+  }
+}
+```
+
+**Implementation**:
+```ts
+class PluginRecoveryManager {
+  private readonly MAX_RETRIES = 3;
+  private retryCount = new Map<string, number>();
+
+  async attemptRecovery(pluginId: string): Promise<boolean> {
+    const retries = this.retryCount.get(pluginId) || 0;
+
+    if (retries >= this.MAX_RETRIES) {
+      logger.error(`Plugin ${pluginId} exceeded max retries`);
+      return false;
+    }
+
+    try {
+      // Cleanup current state
+      await this.cleanup(pluginId);
+
+      // Reset to registered state
+      const plugin = this.registry.get(pluginId);
+      plugin.stateMachine.transition({
+        status: 'registered',
+        manifest: plugin.manifest,
+        validated: true,
+      });
+
+      // Attempt reload
+      await this.lifecycleManager.load(pluginId);
+      await this.lifecycleManager.activate(pluginId);
+
+      // Success - reset retry count
+      this.retryCount.delete(pluginId);
+      return true;
+    } catch (error) {
+      // Increment retry count
+      this.retryCount.set(pluginId, retries + 1);
+      logger.warn(`Recovery attempt ${retries + 1} failed for ${pluginId}`);
+      return false;
+    }
+  }
+
+  private async cleanup(pluginId: string): Promise<void> {
+    try {
+      const plugin = this.registry.get(pluginId);
+
+      // Call stop if active
+      if (plugin.state.status === 'active') {
+        await plugin.module?.stop?.();
+      }
+
+      // Clear module reference
+      delete plugin.module;
+
+      // Clear error state
+      plugin.metadata.errors = [];
+    } catch (error) {
+      // Log but don't throw - cleanup is best-effort
+      logger.warn(`Cleanup failed for ${pluginId}:`, error);
+    }
+  }
+}
+```
 
 ---
 
 ## 5.3 Dependency Management
 
-Some plugins depend on others—maybe a chart widget depends on a core analytics plugin.
+Some plugins depend on others—production systems show how to handle this correctly.
 
----
+### Topological Sorting (Kibana/Backstage)
 
-### Topological Sorting for Load Order
-
-We can ensure correct load order using **topological sorting**:
+Ensure correct load order using **Kahn's Algorithm**:
 
 ```ts
-function sortByDependencies(plugins: PluginManifest[]): PluginManifest[] {
-  // Implement Kahn's algorithm here
+class DependencyResolver {
+  sortPlugins(plugins: Map<string, PluginManifest>): string[] {
+    const sorted: string[] = [];
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+
+    const visit = (id: string) => {
+      if (visited.has(id)) return;
+      if (visiting.has(id)) {
+        throw new Error(`Circular dependency detected: ${id}`);
+      }
+
+      visiting.add(id);
+
+      const manifest = plugins.get(id);
+      if (!manifest) {
+        throw new Error(`Plugin ${id} not found`);
+      }
+
+      // Visit dependencies first
+      for (const depId of manifest.requiredPlugins || []) {
+        visit(depId);
+      }
+
+      visiting.delete(id);
+      visited.add(id);
+      sorted.push(id);
+    };
+
+    // Visit all plugins
+    for (const id of plugins.keys()) {
+      visit(id);
+    }
+
+    return sorted;
+  }
+}
+```
+
+**Kibana's Production Implementation**:
+```ts
+private getTopologicallySortedPluginNames() {
+  const pluginDependencies = new Map<PluginName, PluginName[]>();
+
+  // Build dependency graph
+  for (const [pluginName, plugin] of this.plugins) {
+    pluginDependencies.set(
+      pluginName,
+      [
+        ...plugin.requiredPlugins,
+        ...plugin.optionalPlugins.filter(dep => this.plugins.has(dep)),
+      ]
+    );
+  }
+
+  // Topological sort using depth-first search
+  return Array.from(
+    topologicallyBatchPluginNames(pluginDependencies)
+  ).flat();
 }
 ```
 
@@ -164,27 +919,138 @@ function sortByDependencies(plugins: PluginManifest[]): PluginManifest[] {
 
 ### Circular Dependency Detection
 
-If two plugins depend on each other, the registry should:
+**Kibana Approach**: Fail fast with clear error messages
+```ts
+if (visiting.has(pluginName)) {
+  const path = [...visiting, pluginName].join(' -> ');
+  throw new Error(`Circular plugin dependencies detected: ${path}`);
+}
+```
 
-- Detect the cycle.
-- Fail one of them, or
-- Use lazy resolution to defer dependency checks until runtime.
+**Alternative: Lazy Resolution**
+For optional dependencies, defer resolution:
+```ts
+class LazyDependencyResolver {
+  resolve<T>(pluginId: string, depId: string): T | undefined {
+    // Only resolve when actually accessed
+    const dep = this.registry.get(depId);
+    if (!dep || dep.state.status !== 'active') {
+      return undefined;
+    }
+    return dep.contracts.start as T;
+  }
+}
+```
 
 ---
 
-### Optional Dependency Handling
+### Optional vs Required Dependencies (Kibana Pattern)
 
-Some plugins may say “If X exists, use it; otherwise, skip this feature.”
-This prevents hard failures when optional integrations aren’t installed.
+```ts
+interface PluginDependencies {
+  /** Must exist and be loaded first */
+  requiredPlugins: string[];
+
+  /** Used if available, skipped if not */
+  optionalPlugins: string[];
+
+  /** Resolved at runtime, not part of load order */
+  runtimePluginDependencies?: string[];
+}
+
+// TypeScript types reflect optionality
+export class MyPlugin implements Plugin<MySetup, MyStart> {
+  setup(
+    core: CoreSetup,
+    plugins: {
+      data: DataSetup;           // Required - always present
+      share?: ShareSetup;        // Optional - may be undefined
+    }
+  ) {
+    // Always available
+    plugins.data.search.registerStrategy(/*...*/);
+
+    // Conditional feature
+    if (plugins.share) {
+      plugins.share.register(/*...*/);
+    }
+  }
+}
+```
 
 ---
 
 ### Peer Dependency Resolution
 
-Plugins that expect the **same version** of a shared API must be validated before loading. If mismatched:
+**Backstage Service Versions**:
+```ts
+export const coreServices = {
+  database: createServiceRef<DatabaseService>({
+    id: 'core.database',
+    scope: 'plugin',
+    version: '1.0.0',  // Service version
+  }),
+};
 
-- Warn the user.
-- Offer to upgrade/downgrade.
+// Validate compatibility
+function validateServiceVersion(
+  required: string,
+  provided: string
+): boolean {
+  return semver.satisfies(provided, required);
+}
+```
+
+**Vendure Compatibility Check**:
+```ts
+@VendurePlugin({
+  compatibility: '^3.0.0',  // Requires Vendure 3.x
+})
+export class MyPlugin {
+  // Fails to load if Vendure version incompatible
+}
+```
+
+**Implementation**:
+```ts
+class PeerDependencyValidator {
+  validate(plugin: PluginManifest): ValidationResult {
+    const errors: string[] = [];
+
+    // Check host version
+    if (plugin.compatibility) {
+      const hostVersion = this.getHostVersion();
+      if (!semver.satisfies(hostVersion, plugin.compatibility)) {
+        errors.push(
+          `Plugin ${plugin.id} requires host version ${plugin.compatibility}, ` +
+          `but current version is ${hostVersion}`
+        );
+      }
+    }
+
+    // Check peer dependencies
+    for (const [peerId, versionRange] of plugin.peerDependencies || []) {
+      const peer = this.registry.get(peerId);
+      if (!peer) {
+        errors.push(`Peer dependency ${peerId} not found`);
+        continue;
+      }
+
+      if (!semver.satisfies(peer.manifest.version, versionRange)) {
+        errors.push(
+          `Plugin ${plugin.id} requires ${peerId}@${versionRange}, ` +
+          `but ${peer.manifest.version} is installed`
+        );
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+}
+```
 
 ---
 
@@ -264,17 +1130,169 @@ Share expensive resources (e.g., API clients, WebSocket connections) between plu
 
 ---
 
+## 5.5 Performance Optimization
+
+The registry plays a critical role in performance optimization:
+
+### Lazy Loading (VS Code Pattern)
+
+**Activation Events**: Load plugins only when needed
+```ts
+interface PluginManifest {
+  activationEvents?: Array<
+    | `onLanguage:${string}`        // Language file opened
+    | `onCommand:${string}`          // Command executed
+    | `onView:${string}`             // View becomes visible
+    | `onFileSystem:${string}`       // Filesystem scheme accessed
+    | 'onStartupFinished'            // After initial load
+    | '*'                            // Immediately (discouraged)
+  >;
+}
+
+class ActivationEventService {
+  async activateByEvent(event: string): Promise<void> {
+    const matching = this.registry
+      .getAll()
+      .filter(p => p.manifest.activationEvents?.includes(event));
+
+    // Activate in parallel
+    await Promise.all(
+      matching.map(p => this.activator.activate(p.id))
+    );
+  }
+}
+```
+
+**VS Code Statistics**:
+- 40,000+ extensions available
+- Typical install: 20-50 extensions
+- Activated at startup: ~5 extensions
+- Result: Fast startup despite massive ecosystem
+
+---
+
+### Memory Management
+
+**Kibana Plugin Lifecycle**:
+```ts
+class PluginMemoryManager {
+  async unloadUnused(): Promise<void> {
+    const candidates = this.registry
+      .getByState('active')
+      .filter(p => {
+        const idle = Date.now() - p.metadata.metrics.lastActivation! > IDLE_THRESHOLD;
+        const optional = !p.manifest.required;
+        return idle && optional;
+      });
+
+    for (const plugin of candidates) {
+      await this.deactivate(plugin.id);
+      // Keep manifest, remove code
+      delete plugin.module;
+    }
+  }
+}
+```
+
+---
+
+### Preloading Strategy
+
+**Predictive Preloading**:
+```ts
+class PluginPreloader {
+  async preloadLikely(): Promise<void> {
+    // Analyze usage patterns
+    const analytics = await this.getUsageAnalytics();
+
+    // Predict next activations
+    const likely = analytics
+      .filter(a => a.probability > 0.7)
+      .map(a => a.pluginId);
+
+    // Preload in background during idle
+    requestIdleCallback(() => {
+      this.registry.preload(likely);
+    });
+  }
+}
+```
+
+---
+
+### Resource Pooling
+
+**Shared Service Pattern**:
+```ts
+// Single HTTP client shared across plugins
+class SharedHTTPClient {
+  private static instance: HTTPClient;
+
+  static getInstance(): HTTPClient {
+    if (!this.instance) {
+      this.instance = new HTTPClient({
+        timeout: 30000,
+        retries: 3,
+      });
+    }
+    return this.instance;
+  }
+}
+
+// Plugins access via SDK
+sdk.data.http.get(url); // Uses shared client
+```
+
+---
+
 ## Key Takeaways
 
 A **Plugin Registry** is:
 
-1. The **single source of truth** for plugin state.
-2. The **gatekeeper** for lifecycle transitions.
-3. The **optimizer** for load order, performance, and stability.
+1. **The single source of truth** for plugin state—from discovery through deactivation.
 
-It ensures that our TypeScript contracts don’t just exist—they **work in a living system**.
+2. **The gatekeeper** for lifecycle transitions—enforcing valid state changes with detailed error handling.
+
+3. **The optimizer** for load order, performance, and stability—using topological sorting, lazy loading, and memory management.
+
+4. **The coordinator** of dependencies—resolving required, optional, and peer dependencies with version validation.
+
+5. **The monitor** of plugin health—tracking metrics, errors, and activation patterns for debugging and optimization.
+
+It ensures that our TypeScript contracts don't just exist—they **work in a living system** at scale.
+
+---
+
+### Lessons from Production Systems
+
+**VS Code** demonstrates that lazy activation based on events enables ecosystems with 40,000+ extensions while maintaining fast startup times.
+
+**Kibana** shows how topological sorting combined with multi-phase lifecycle (setup/start/stop) creates type-safe plugin graphs with proper dependency injection.
+
+**Backstage** proves that leveraging existing infrastructure (npm packages, package.json metadata) reduces complexity while improving developer experience.
+
+**Babel** teaches that explicit configuration beats auto-discovery for build tools—implicit behavior adds complexity without clear benefit.
+
+**Vendure** illustrates how version compatibility checks prevent runtime failures from API mismatches.
+
+### Architecture Principles
+
+**1. Separation of Concerns**
+Discovery, registration, and activation should be separate subsystems with clear boundaries.
+
+**2. Fail Fast, Recover Gracefully**
+Validation errors should fail immediately with clear messages. Runtime errors should be isolated and recoverable.
+
+**3. Async by Default**
+All lifecycle operations should be async to handle I/O, network, and computation without blocking.
+
+**4. Observable State**
+Registry state changes should emit events for monitoring, debugging, and UI updates.
+
+**5. Type-Safe Dependencies**
+TypeScript should enforce dependency contracts at compile time, not just runtime.
 
 ---
 
 **Next up:**
-In **Chapter 6**, we’ll explore **Dynamic Loading and Module Resolution Strategies**—how to actually fetch and execute plugin code at runtime, handle different module formats, and ensure compatibility across build tools and browsers. This is where the registry meets the loader.
+In **Chapter 6**, we'll explore **Dynamic Loading and Module Resolution Strategies**—how to actually fetch and execute plugin code at runtime, handle different module formats (ESM, CommonJS, UMD), and ensure compatibility across build tools and browsers. This is where the registry meets the loader.

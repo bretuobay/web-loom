@@ -233,5 +233,118 @@ This e-commerce case study shows that:
 
 ---
 
-**Next up:**
 In **Chapter 12**, we’ll apply the same architectural thinking to a **Content Management System (CMS)** plugin ecosystem—covering editor integrations, content type extensions, and multi-tenant considerations. This is where extensibility meets editorial workflows.
+
+## Real-World Plugin Architecture: Vendure Case Study
+
+Vendure is a modern, enterprise-grade e-commerce platform built on NestJS and TypeScript. Its plugin system demonstrates how deep extensibility, type safety, and developer experience can be achieved for business-critical applications.
+
+### Explicit Plugin Registration & Type Safety
+
+Plugins in Vendure are registered in a central configuration object, trading runtime flexibility for compile-time safety and deterministic initialization:
+
+```ts
+export const config: VendureConfig = {
+  plugins: [
+    DefaultSearchPlugin,
+    AssetServerPlugin.init({ route: 'assets' }),
+    StripePaymentPlugin.init({ apiKey: process.env.STRIPE_KEY }),
+  ],
+};
+```
+
+This approach eliminates runtime plugin discovery errors and security risks, ensuring only vetted plugins are loaded.
+
+### The @VendurePlugin Decorator
+
+Vendure plugins use a TypeScript decorator to declare capabilities, configuration hooks, and compatibility:
+
+```ts
+@VendurePlugin({
+  imports: [PluginCommonModule],
+  providers: [PaymentService],
+  configuration: (config) => {
+    config.paymentOptions.paymentMethodHandlers.push(new StripeHandler());
+    return config;
+  },
+  adminApiExtensions: {
+    schema: gql`
+      extend type Query {
+        paymentAnalytics: Analytics
+      }
+    `,
+    resolvers: [PaymentResolver],
+  },
+  entities: [PaymentRecord],
+  compatibility: '^3.0.0',
+})
+export class StripePaymentPlugin {}
+```
+
+This enables IDE autocomplete, compile-time validation, and self-documenting code.
+
+### Strategy Pattern for Business Logic
+
+Vendure exposes 50+ pluggable interfaces for customizing business logic, such as payment, shipping, tax, search, and asset storage. Each strategy receives an `Injector` for dependency access:
+
+```ts
+export class S3AssetStorageStrategy implements AssetStorageStrategy {
+  async init(injector: Injector) {
+    this.connection = injector.get(TransactionalConnection);
+    await this.initializeS3Client();
+  }
+  // ...
+}
+```
+
+This achieves Open-Closed Principle compliance: the core is closed for modification but open for extension.
+
+### Schema and Data Model Extension
+
+Vendure plugins can extend the GraphQL API and data model:
+
+```ts
+adminApiExtensions: {
+  schema: gql`
+    extend type Query { productAnalytics(id: ID!): ProductAnalytics }
+    type ProductAnalytics { views: Int! conversionRate: Float! revenue: Money! }
+  `,
+  resolvers: [ProductAnalyticsResolver],
+}
+
+@Entity()
+class ProductReview extends VendureEntity {
+  @ManyToOne(type => Product) product: Product;
+  @Column() rating: number;
+  @Column('text') comment: string;
+}
+```
+
+Plugins can also add custom fields to core entities without migrations:
+
+```ts
+config.customFields.Product.push({
+  name: 'warrantyPeriod',
+  type: 'int',
+  label: [{ languageCode: LanguageCode.en, value: 'Warranty (months)' }],
+  ui: { component: 'number-input' },
+});
+```
+
+### Architectural Trade-offs and Lessons
+
+- **Type Safety & Deep Integration:** Plugins have full access to DI, database, and events, but share process space (no isolation).
+- **No Hot Reload:** Adding/modifying plugins requires restart, but ensures deterministic behavior.
+- **Security Model:** Plugins are trusted first-party code; compatibility validation prevents API mismatches.
+- **Performance:** Plugins add minimal runtime overhead; DI container enables singleton scope and tree-shaking.
+
+#### Key Lessons for Plugin Designers
+
+1. Choose your trust model early: isolation vs. integration.
+2. Leverage TypeScript for plugin APIs and configuration.
+3. Separate configuration-time hooks from runtime logic.
+4. Use strategy interfaces for business logic extension.
+5. Document lifecycle phases and initialization order.
+6. Prioritize developer experience: autocomplete, clear errors, familiar patterns.
+
+Vendure shows that for enterprise e-commerce, deep integration and type safety often matter more than runtime flexibility. For open marketplaces, additional sandboxing would be needed.
