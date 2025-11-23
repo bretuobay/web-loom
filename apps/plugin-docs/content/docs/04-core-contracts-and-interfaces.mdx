@@ -41,17 +41,27 @@ The **manifest** is a declarative description of the plugin. It tells the host:
 - **Lazy Loading** — The manifest lets the host know when and how to load a plugin only when needed.
 - **Discovery** — Manifests can be indexed in a plugin registry.
 
+### Real-World Manifest Patterns
+
+Different plugin architectures approach manifests differently based on their needs:
+
+**VS Code** uses `package.json` with extension-specific fields, enabling integration with npm's ecosystem while adding editor-specific metadata like activation events and contribution points.
+
+**Kibana** employs dedicated `kibana.json` files with strict schema validation, separating plugin metadata from package management concerns.
+
+**Backstage** leverages package.json roles (`backend-plugin`, `frontend-plugin`) for automatic discovery while maintaining compatibility with standard Node.js tooling.
+
 ### TypeScript Definition
 
-Here’s a simplified version of our manifest interface:
+Here's a comprehensive manifest interface informed by production systems:
 
 ```ts
 export interface PluginManifest {
-  /** Unique plugin identifier */
+  /** Unique plugin identifier (scoped naming recommended: @vendor/plugin-name) */
   id: string;
   /** Human-readable name */
   name: string;
-  /** Semantic version */
+  /** Semantic version (must follow semver) */
   version: string;
   /** Optional description */
   description?: string;
@@ -61,16 +71,74 @@ export interface PluginManifest {
   entry: string;
   /** Optional plugin icon */
   icon?: string;
+
+  /** Execution environment targets */
+  environments?: {
+    server?: boolean;
+    browser?: boolean;
+    worker?: boolean;
+  };
+
+  /** Required host version range (semver) */
+  compatibility?: string;
+
+  /** Plugin dependencies */
+  requiredPlugins?: string[];
+  optionalPlugins?: string[];
+
+  /** Activation strategy */
+  activation?: {
+    /** When to load the plugin */
+    events?: ActivationEvent[];
+    /** Always load at startup */
+    eager?: boolean;
+  };
+
   /** Routes contributed by the plugin */
   routes?: PluginRouteDefinition[];
   /** Menu items contributed by the plugin */
   menuItems?: PluginMenuItem[];
   /** Dashboard widgets contributed by the plugin */
   widgets?: PluginWidgetDefinition[];
+
+  /** Permissions required by the plugin */
+  permissions?: {
+    network?: boolean;
+    fileSystem?: { read?: boolean; write?: boolean };
+    storage?: boolean;
+  };
+
   /** Arbitrary custom metadata */
   metadata?: Record<string, unknown>;
 }
+
+/** Activation events inspired by VS Code */
+export type ActivationEvent =
+  | { type: 'onStartup' }
+  | { type: 'onCommand'; command: string }
+  | { type: 'onView'; viewId: string }
+  | { type: 'onLanguage'; language: string }
+  | { type: 'onEvent'; event: string };
 ```
+
+### Manifest Design Principles
+
+Based on production plugin systems, follow these principles:
+
+**1. Static Analysis First**
+Include everything needed for dependency resolution, security scanning, and lazy loading decisions. The manifest should answer "Can this plugin run?" without executing code.
+
+**2. Version Compatibility**
+Always include compatibility ranges. Kibana's `compatibility: '^3.0.0'` pattern prevents runtime failures from API mismatches.
+
+**3. Environment Awareness**
+Modern applications target multiple runtimes (browser, server, worker). Explicitly declare supported environments like Vite's environment-aware plugin system.
+
+**4. Permission Declarations**
+Inspired by browser extensions and mobile apps, declare required capabilities upfront. This enables security scanning and user consent workflows.
+
+**5. Activation Strategies**
+Support both eager loading (startup-critical plugins) and lazy activation (VS Code's event-driven pattern). This dramatically improves startup performance.
 
 **Best Practice:** Treat `PluginManifest` as **immutable** after load—this ensures consistency in dependency resolution, caching, and registry indexing.
 
@@ -86,28 +154,181 @@ We need predictable entry points so that:
 - Plugins know when to attach to the UI.
 - Cleanup happens correctly to avoid memory leaks.
 
-### Lifecycle Hooks
+### Production Lifecycle Patterns
 
-Our `PluginModule` interface defines the standard hooks:
+Real-world plugin systems demonstrate various lifecycle approaches:
+
+**Kibana's Three-Phase Model** (`setup` → `start` → `stop`) separates configuration from execution. The setup phase registers resources but doesn't activate them, while start phase begins processing. This separation enables dependency injection of both setup and start contracts.
+
+**VS Code's Event-Driven Activation** delays plugin loading until specific triggers occur. A TypeScript plugin doesn't load until you open a `.ts` file. This dramatically reduces startup time—critical for systems with thousands of potential plugins.
+
+**Backstage's Dual Environment** maintains symmetric lifecycles across server and browser, reducing cognitive load for developers working in both contexts.
+
+### Comprehensive Lifecycle Interface
+
+Here's an enhanced lifecycle contract incorporating patterns from production systems:
 
 ```ts
 export interface PluginModule {
-  /** Called once when the plugin is loaded */
+  /** Optional plugin configuration */
+  config?: PluginConfig;
+
+  /**
+   * Pre-initialization hook for modifying host configuration
+   * Runs before dependency resolution
+   * Used by: Vendure, Babel
+   */
+  configure?: (hostConfig: HostConfig) => HostConfig | Promise<HostConfig>;
+
+  /**
+   * Setup phase - register capabilities, don't start execution
+   * Core services and plugin dependencies injected
+   * Used by: Kibana, Backstage
+   */
+  setup?: (context: PluginSetupContext) => PluginSetupContract | Promise<PluginSetupContract>;
+
+  /**
+   * Start phase - activate services, begin processing
+   * Start contracts from dependencies available
+   * Used by: Kibana, Backstage
+   */
+  start?: (context: PluginStartContext) => PluginStartContract | Promise<PluginStartContract>;
+
+  /**
+   * Legacy init hook for simple plugins
+   * Called once when the plugin is loaded
+   */
   init?: (sdk: PluginSDK) => void | Promise<void>;
-  /** Called when the plugin is mounted into the UI */
+
+  /**
+   * Mount hook for UI plugins
+   * Called when the plugin's UI should appear
+   */
   mount?: (sdk: PluginSDK) => void | Promise<void>;
-  /** Called when the plugin is removed from the UI */
+
+  /**
+   * Unmount hook for UI cleanup
+   * Called when the plugin's UI is removed
+   */
   unmount?: () => void | Promise<void>;
+
+  /**
+   * Stop/shutdown hook
+   * Called in reverse dependency order
+   * Used by: Kibana, Backstage, VS Code
+   */
+  stop?: () => void | Promise<void>;
+}
+
+export interface PluginSetupContext {
+  /** Core services available during setup */
+  core: CoreSetup;
+  /** Setup contracts from required plugins */
+  plugins: Record<string, unknown>;
+  /** Plugin's own configuration */
+  config: unknown;
+  /** Logger instance scoped to this plugin */
+  logger: Logger;
+}
+
+export interface PluginStartContext {
+  /** Core services available at runtime */
+  core: CoreStart;
+  /** Start contracts from required plugins */
+  plugins: Record<string, unknown>;
+  /** Access to setup-phase contract (if needed) */
+  setup?: unknown;
 }
 ```
 
-**Guidelines:**
+### Lifecycle Execution Order
 
-- **`init`** — Set up event listeners, register background services, preload data.
-- **`mount`** — Render UI components, attach routes, create menu entries.
-- **`unmount`** — Remove DOM nodes, unregister events, release resources.
+Production systems follow this general pattern:
 
-**Pro Tip:** Make lifecycle hooks **idempotent**—calling them twice shouldn’t break the plugin.
+```
+1. DISCOVERY
+   └─ Scan for plugins
+   └─ Parse manifests
+   └─ Build dependency graph
+
+2. COMPATIBILITY VALIDATION
+   └─ Check version ranges (Vendure pattern)
+   └─ Validate required plugins exist
+   └─ Detect circular dependencies (Kibana pattern)
+
+3. TOPOLOGICAL SORT
+   └─ Order plugins by dependencies
+   └─ Ensure dependencies activate first
+
+4. CONFIGURATION PHASE
+   └─ Execute configure() hooks sequentially
+   └─ Plugins modify host configuration (Vendure pattern)
+
+5. SETUP PHASE
+   └─ Execute setup() in dependency order
+   └─ Collect setup contracts
+   └─ No side effects or execution yet
+
+6. START PHASE
+   └─ Execute start() in dependency order
+   └─ Activate services
+   └─ Begin processing
+
+7. RUNTIME
+   └─ Handle events, requests, user interactions
+   └─ Lazy load additional plugins (VS Code pattern)
+
+8. SHUTDOWN
+   └─ Execute stop() in REVERSE order
+   └─ Dependents stop before dependencies
+   └─ Graceful error handling (continue on failure)
+```
+
+### Lifecycle Best Practices
+
+**1. Separate Configuration from Execution**
+Vendure's `configure` hook modifies the system before initialization. This enables plugins to add custom fields, register strategies, or modify other plugins' settings.
+
+**2. Timeout Management**
+Kibana enforces 10-second timeouts for setup/start, 15 seconds for stop. Prevents hung plugins from blocking the entire system.
+
+```ts
+const result = await withTimeout({
+  promise: plugin.setup(context),
+  timeoutMs: 10_000,
+  errorMessage: `Plugin "${id}" setup timeout`,
+});
+```
+
+**3. Reverse-Order Shutdown**
+Stop dependent plugins before their dependencies to prevent use-after-free errors.
+
+```ts
+// If Plugin A depends on B, shutdown order must be: A → B
+for (let i = plugins.length - 1; i >= 0; i--) {
+  await plugins[i].stop();
+}
+```
+
+**4. Idempotent Hooks**
+VS Code's extension host can crash and restart. Setup/start hooks must handle being called multiple times.
+
+**5. Error Isolation**
+Setup failures should be fatal (fail-fast), but shutdown failures should be logged and continue:
+
+```ts
+try {
+  await plugin.stop();
+} catch (error) {
+  logger.warn(`Plugin ${id} failed to stop cleanly:`, error);
+  // Continue stopping other plugins
+}
+```
+
+**6. Async by Default**
+All lifecycle hooks should return `Promise<T>` or `T`. The host should always await hooks to handle async operations correctly.
+
+**Pro Tip:** Make lifecycle hooks **idempotent**—calling them twice shouldn't break the plugin.
 
 ---
 
@@ -118,99 +339,780 @@ We do this through the `PluginSDK` interface—this is the **public API**.
 
 ### Why the SDK is Crucial
 
-- **Encapsulation** — Prevents plugins from reaching into the host’s internal state.
+- **Encapsulation** — Prevents plugins from reaching into the host's internal state.
 - **Security** — Allows permission-based access to sensitive APIs.
 - **Consistency** — Keeps interactions uniform across all plugins.
 
-### TypeScript Definition
+### Dependency Injection vs. Service Locator
 
-The SDK combines multiple capabilities:
+Production plugin systems use two primary patterns for service access:
+
+**Dependency Injection (Backstage, Kibana, Vendure)**
+Services are explicitly declared as dependencies and injected by the host:
+
+```ts
+export class MyPlugin {
+  setup(core: CoreSetup, plugins: { data: DataSetup }) {
+    // Dependencies injected - type-safe and explicit
+    plugins.data.search.registerStrategy(/*...*/);
+  }
+}
+```
+
+Benefits:
+- Type-safe at compile time
+- Dependencies visible in signatures
+- Easy to mock for testing
+- No hidden coupling
+
+**Service Locator (VS Code pattern)**
+Plugins receive a context object with service access methods:
+
+```ts
+export function activate(context: vscode.ExtensionContext) {
+  // Services accessed via context
+  const config = vscode.workspace.getConfiguration();
+  const commands = vscode.commands;
+}
+```
+
+Benefits:
+- Simpler API surface
+- No need to declare all possible dependencies
+- Easier API evolution
+
+**Recommendation:** Use dependency injection for backend/server plugins (where type safety is critical) and service locator for UI/browser plugins (where flexibility matters more).
+
+### Comprehensive SDK Interface
+
+Here's an enhanced SDK incorporating patterns from production systems:
 
 ```ts
 export interface PluginSDK {
-  /** Manage routes */
-  routes: {
-    add: (route: PluginRouteDefinition) => void;
-    remove: (path: string) => void;
-  };
-
-  /** Manage navigation menus */
-  menus: {
-    addItem: (item: PluginMenuItem) => void;
-    removeItem: (label: string) => void;
-  };
-
-  /** Manage dashboard widgets */
-  widgets: {
-    add: (widget: PluginWidgetDefinition) => void;
-    remove: (id: string) => void;
-  };
-
-  /** Publish/subscribe events */
-  events: {
-    on: (event: string, handler: (payload?: unknown) => void) => void;
-    off: (event: string, handler: (payload?: unknown) => void) => void;
-    emit: (event: string, payload?: unknown) => void;
-  };
-
-  /** Shared UI services */
-  ui: {
-    showModal: (content: unknown, options?: { title?: string }) => void;
-    showToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
-  };
-
-  /** Shared app services */
-  services: {
-    apiClient: {
-      get: <T>(url: string, params?: Record<string, unknown>) => Promise<T>;
-      post: <T>(url: string, body: unknown) => Promise<T>;
-    };
-    auth: {
-      getUser: () => Promise<{ id: string; name: string; roles: string[] }>;
-      hasRole: (role: string) => boolean;
-    };
-    storage: {
-      get: <T>(key: string) => T | undefined;
-      set: <T>(key: string, value: T) => void;
-      remove: (key: string) => void;
+  /** Core system information */
+  readonly system: {
+    /** Host application version */
+    version: string;
+    /** Current environment (development, production, test) */
+    environment: 'development' | 'production' | 'test';
+    /** Platform information */
+    platform: {
+      isServer: boolean;
+      isBrowser: boolean;
+      isWorker: boolean;
     };
   };
 
   /** Plugin metadata */
-  plugin: {
+  readonly plugin: {
     id: string;
     manifest: PluginManifest;
+    /** Plugin-scoped configuration */
+    config: Record<string, unknown>;
+  };
+
+  /** Logging service (scoped to plugin) */
+  readonly logger: {
+    debug: (message: string, meta?: Record<string, unknown>) => void;
+    info: (message: string, meta?: Record<string, unknown>) => void;
+    warn: (message: string, meta?: Record<string, unknown>) => void;
+    error: (message: string, error?: Error, meta?: Record<string, unknown>) => void;
+  };
+
+  /** Manage routes */
+  readonly routes: {
+    add: (route: PluginRouteDefinition) => void;
+    remove: (path: string) => void;
+    navigate: (path: string, options?: NavigateOptions) => void;
+  };
+
+  /** Manage navigation menus */
+  readonly menus: {
+    addItem: (item: PluginMenuItem) => void;
+    removeItem: (id: string) => void;
+    updateItem: (id: string, updates: Partial<PluginMenuItem>) => void;
+  };
+
+  /** Manage dashboard widgets */
+  readonly widgets: {
+    add: (widget: PluginWidgetDefinition) => void;
+    remove: (id: string) => void;
+    update: (id: string, updates: Partial<PluginWidgetDefinition>) => void;
+  };
+
+  /** Event bus for pub/sub communication */
+  readonly events: {
+    on: <T = unknown>(event: string, handler: (payload: T) => void) => () => void;
+    once: <T = unknown>(event: string, handler: (payload: T) => void) => () => void;
+    off: (event: string, handler: (payload?: unknown) => void) => void;
+    emit: <T = unknown>(event: string, payload?: T) => void;
+  };
+
+  /** Shared UI services */
+  readonly ui: {
+    showModal: (content: unknown, options?: { title?: string; size?: 'sm' | 'md' | 'lg' }) => Promise<void>;
+    showToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
+    showConfirm: (message: string, options?: { title?: string; okText?: string; cancelText?: string }) => Promise<boolean>;
+  };
+
+  /** Data services */
+  readonly data: {
+    /** HTTP client with auth handling */
+    http: {
+      get: <T>(url: string, options?: RequestOptions) => Promise<T>;
+      post: <T>(url: string, body: unknown, options?: RequestOptions) => Promise<T>;
+      put: <T>(url: string, body: unknown, options?: RequestOptions) => Promise<T>;
+      delete: <T>(url: string, options?: RequestOptions) => Promise<T>;
+      patch: <T>(url: string, body: unknown, options?: RequestOptions) => Promise<T>;
+    };
+
+    /** Plugin-scoped storage (Backstage pattern) */
+    storage: {
+      /** Workspace-scoped storage (cleared on workspace change) */
+      workspace: {
+        get: <T>(key: string) => Promise<T | undefined>;
+        set: <T>(key: string, value: T) => Promise<void>;
+        remove: (key: string) => Promise<void>;
+      };
+      /** Global storage (persists across workspaces) */
+      global: {
+        get: <T>(key: string) => Promise<T | undefined>;
+        set: <T>(key: string, value: T) => Promise<void>;
+        remove: (key: string) => Promise<void>;
+      };
+      /** Secure storage for credentials (VS Code pattern) */
+      secrets: {
+        get: (key: string) => Promise<string | undefined>;
+        set: (key: string, value: string) => Promise<void>;
+        remove: (key: string) => Promise<void>;
+      };
+    };
+  };
+
+  /** Authentication and authorization */
+  readonly auth: {
+    /** Get current user */
+    getUser: () => Promise<{ id: string; name: string; email?: string; roles: string[] }>;
+    /** Check if user has specific role */
+    hasRole: (role: string) => boolean;
+    /** Check if user has specific permission */
+    hasPermission: (permission: string) => boolean;
+  };
+
+  /** Extension points for plugin-to-plugin communication */
+  readonly extensions: {
+    /** Register an extension point this plugin exposes */
+    register: <T>(id: string, implementation: T) => void;
+    /** Get extension from another plugin */
+    get: <T>(pluginId: string, extensionId: string) => T | undefined;
+  };
+
+  /** Lifecycle utilities */
+  readonly lifecycle: {
+    /** Register startup hook */
+    onStartup: (callback: () => void | Promise<void>) => void;
+    /** Register shutdown hook */
+    onShutdown: (callback: () => void | Promise<void>) => void;
   };
 }
+
+export interface RequestOptions {
+  headers?: Record<string, string>;
+  params?: Record<string, string | number | boolean>;
+  timeout?: number;
+  signal?: AbortSignal;
+}
 ```
+
+### Service Reference Pattern (Backstage)
+
+For advanced type safety, use service references as first-class values:
+
+```ts
+export interface ServiceRef<TService> {
+  id: string;
+  scope: 'root' | 'plugin';
+}
+
+export const coreServices = {
+  database: createServiceRef<DatabaseService>({
+    id: 'core.database',
+    scope: 'plugin', // One instance per plugin
+  }),
+  logger: createServiceRef<LoggerService>({
+    id: 'core.logger',
+    scope: 'plugin',
+  }),
+  cache: createServiceRef<CacheService>({
+    id: 'core.cache',
+    scope: 'root', // Shared across all plugins
+  }),
+};
+
+// Usage in plugin
+export class MyPlugin {
+  setup(context: {
+    database: DatabaseService;
+    logger: LoggerService;
+    cache: CacheService;
+  }) {
+    // TypeScript infers correct types from ServiceRef
+  }
+}
+```
+
+### Multi-Environment SDK Design
+
+Modern applications target multiple environments (browser, server, worker). Design your SDK with environment awareness:
+
+```ts
+/** Base SDK available in all environments */
+export interface BasePluginSDK {
+  system: SystemInfo;
+  plugin: PluginInfo;
+  logger: Logger;
+  events: EventBus;
+}
+
+/** Browser-specific SDK extensions */
+export interface BrowserPluginSDK extends BasePluginSDK {
+  ui: UIServices;
+  routes: RouteServices;
+  dom: DOMServices;
+}
+
+/** Server-specific SDK extensions */
+export interface ServerPluginSDK extends BasePluginSDK {
+  http: HTTPServer;
+  database: DatabaseService;
+  jobs: JobQueueService;
+}
+
+/** Worker-specific SDK extensions */
+export interface WorkerPluginSDK extends BasePluginSDK {
+  messaging: MessagePort;
+}
+```
+
+This pattern (used by Vite and Backstage) ensures plugins receive appropriate APIs for their environment while maintaining a consistent core interface.
 
 ---
 
 ## 4.4 Plugin Context and Sandbox
 
-For **security and stability**, each plugin should execute in a **sandboxed context**:
+For **security and stability**, each plugin should execute in a **sandboxed context**. However, production systems demonstrate various approaches to isolation based on their trust models:
 
-- Isolated global variables.
-- Restricted DOM access.
-- Controlled network requests.
+### Trust Models in Production
 
-**Implementation Patterns:**
+**VS Code: Process Isolation**
+Extensions run in separate Node.js processes (extension hosts), communicating via RPC. This provides maximum isolation—extension crashes don't affect the UI.
 
-- **IFrame Sandboxing** — Highest isolation but higher performance cost.
-- **Web Worker Sandboxing** — Great for background tasks, no DOM access.
-- **Virtual Module Scope** — Scoped imports and global variables.
+**Vendure/Kibana: Trusted Code Model**
+Plugins run in the same process as the host. This assumes plugins are vetted first-party code, prioritizing performance over isolation.
 
-The `PluginSDK` acts as the **only bridge** between plugin code and the host environment.
+**Babel/Vite: Build-Time Only**
+Plugins execute during builds with full Node.js access. The trust model is "developers control their build tools."
+
+### Sandboxing Strategies
+
+Choose your isolation level based on your security requirements:
+
+#### 1. No Sandboxing (Trusted Plugins)
+
+**When to use:** Enterprise applications with vetted, first-party plugins.
+
+**Characteristics:**
+- Plugins share process space
+- Full access to host APIs
+- Maximum performance
+- Simple implementation
+
+**Used by:** Vendure, Kibana, Backstage, Babel
+
+```ts
+// Plugin has full access
+export class TrustedPlugin {
+  setup(sdk: PluginSDK) {
+    // Can require any module, access filesystem, etc.
+  }
+}
+```
+
+#### 2. Logical Isolation (Namespace Separation)
+
+**When to use:** Internal plugin ecosystems with some boundary enforcement.
+
+**Characteristics:**
+- HTTP route scoping (`/api/{pluginId}/*`)
+- Database table prefixing
+- Configuration namespacing
+- No runtime enforcement
+
+**Used by:** Backstage
+
+```ts
+// Each plugin gets scoped router
+router.get(`/api/${pluginId}/data`, handler);
+
+// Database tables namespaced
+const table = `${pluginId}_records`;
+```
+
+#### 3. Web Worker Isolation (Browser)
+
+**When to use:** Browser environments requiring isolation without losing parallelism.
+
+**Characteristics:**
+- Separate JavaScript contexts
+- No shared memory
+- Message-passing communication
+- No DOM access
+
+**Used by:** VS Code (web extensions)
+
+```ts
+// Host creates worker
+const worker = new Worker('plugin.js');
+worker.postMessage({ action: 'init', config });
+
+// Plugin receives messages
+self.onmessage = (e) => {
+  if (e.data.action === 'init') {
+    // Initialize plugin
+  }
+};
+```
+
+#### 4. Process Isolation (Node.js)
+
+**When to use:** Desktop/server applications with untrusted third-party plugins.
+
+**Characteristics:**
+- Separate OS processes
+- Crash resilience
+- RPC communication
+- Resource limits possible
+
+**Used by:** VS Code (local extensions)
+
+```ts
+// Host spawns child process
+const pluginProcess = fork('plugin-host.js');
+pluginProcess.send({ type: 'activate', pluginId: 'my-plugin' });
+
+// Communication via IPC
+pluginProcess.on('message', (msg) => {
+  if (msg.type === 'api-call') {
+    // Handle API request from plugin
+  }
+});
+```
+
+#### 5. IFrame Sandboxing (Web)
+
+**When to use:** Browser environments with strict security requirements.
+
+**Characteristics:**
+- Highest isolation
+- Performance overhead
+- Limited API access
+- CSP enforcement
+
+```ts
+// Create sandboxed iframe
+const frame = document.createElement('iframe');
+frame.sandbox = 'allow-scripts';
+frame.src = pluginUrl;
+
+// Communication via postMessage
+window.addEventListener('message', (event) => {
+  if (event.source === frame.contentWindow) {
+    // Handle plugin message
+  }
+});
+```
+
+### Permission Systems
+
+For sandboxed environments, implement granular permissions:
+
+```ts
+export interface PluginPermissions {
+  /** Network access */
+  network?: {
+    /** Allowed domains for fetch requests */
+    allowedDomains?: string[];
+    /** Can make requests to any domain */
+    unrestricted?: boolean;
+  };
+
+  /** File system access (Node.js environments) */
+  fileSystem?: {
+    /** Readable directories */
+    read?: string[];
+    /** Writable directories */
+    write?: string[];
+  };
+
+  /** Storage quotas */
+  storage?: {
+    /** Maximum bytes in localStorage */
+    maxBytes?: number;
+  };
+
+  /** Compute limits */
+  compute?: {
+    /** Maximum CPU time per operation (ms) */
+    maxExecutionTime?: number;
+    /** Maximum memory (bytes) */
+    maxMemory?: number;
+  };
+}
+
+// Runtime enforcement
+class SandboxedPluginRunner {
+  async execute(plugin: Plugin, operation: () => Promise<void>) {
+    const permissions = plugin.manifest.permissions;
+
+    // Enforce timeout
+    const timeout = permissions?.compute?.maxExecutionTime ?? 5000;
+    await withTimeout(operation, timeout);
+
+    // Monitor memory
+    if (permissions?.compute?.maxMemory) {
+      const usage = process.memoryUsage().heapUsed;
+      if (usage > permissions.compute.maxMemory) {
+        throw new Error('Plugin exceeded memory limit');
+      }
+    }
+  }
+}
+```
+
+### Content Security Policy (Browser Plugins)
+
+For web-based plugins that render UI, enforce CSP:
+
+```ts
+export interface PluginWebviewConfig {
+  /** Content Security Policy */
+  csp?: {
+    /** Script sources */
+    scriptSrc?: string[];
+    /** Style sources */
+    styleSrc?: string[];
+    /** Image sources */
+    imgSrc?: string[];
+    /** Connection sources */
+    connectSrc?: string[];
+  };
+}
+
+// Example: VS Code webview pattern
+const webview = createWebview({
+  csp: {
+    scriptSrc: ['self', 'https://cdn.example.com'],
+    connectSrc: ['self', 'https://api.example.com'],
+  },
+});
+```
+
+**Best Practice:** The `PluginSDK` acts as the **only bridge** between plugin code and the host environment, regardless of isolation level.
 
 ---
 
 ## 4.5 Type System Architecture
 
-TypeScript helps us ensure the SDK evolves without breaking existing plugins:
+TypeScript is essential for building maintainable plugin systems. Production systems demonstrate sophisticated type system patterns:
 
-- Use **optional properties** for new features.
-- Leverage **declaration merging** for incremental feature addition.
-- Keep **core contracts small** and stable.
+### Contract-Based Type Safety (Kibana, Backstage)
+
+Plugins expose typed contracts through setup/start phases:
+
+```ts
+// Plugin defines its contract
+export interface DataSetup {
+  search: {
+    registerStrategy: (name: string, strategy: SearchStrategy) => void;
+  };
+}
+
+export interface DataStart {
+  search: {
+    search: <T>(request: SearchRequest) => Promise<SearchResponse<T>>;
+  };
+}
+
+// Host enforces contract at compile time
+export class MyPlugin {
+  setup(
+    core: CoreSetup,
+    plugins: { data: DataSetup } // TypeScript ensures this exists
+  ): MySetup {
+    plugins.data.search.registerStrategy('custom', new CustomStrategy());
+    return { /* my setup contract */ };
+  }
+
+  start(
+    core: CoreStart,
+    plugins: { data: DataStart }
+  ): MyStart {
+    const results = await plugins.data.search.search(request);
+    return { /* my start contract */ };
+  }
+}
+```
+
+### Type Inference for Service References (Backstage)
+
+Eliminate manual type annotations through clever TypeScript:
+
+```ts
+// Service reference carries its type
+export interface ServiceRef<TService> {
+  id: string;
+  $$type: '@backstage/ServiceRef';
+}
+
+// Type helper extracts service types from dependencies
+type DepsToInstances<T> = {
+  [K in keyof T]: T[K] extends ServiceRef<infer TService>
+    ? TService
+    : T[K] extends ExtensionPoint<infer TExtension>
+    ? TExtension
+    : never;
+};
+
+// Usage - TypeScript infers all types automatically
+env.registerInit({
+  deps: {
+    database: coreServices.database,
+    logger: coreServices.logger,
+  },
+  async init(deps) {
+    // deps.database: DatabaseService (inferred!)
+    // deps.logger: LoggerService (inferred!)
+  },
+});
+```
+
+### Visitor Pattern Type Safety (Babel)
+
+AST transformations with full type checking:
+
+```ts
+export interface Visitor<S = unknown> {
+  // Methods match AST node types
+  Identifier?(path: NodePath<Identifier>, state: S): void;
+  FunctionDeclaration?(path: NodePath<FunctionDeclaration>, state: S): void;
+  // ... one method per node type
+}
+
+// Plugin implementation is fully typed
+const plugin: PluginObj = {
+  visitor: {
+    Identifier(path) {
+      // path.node is Identifier (type-safe!)
+      const name = path.node.name;
+    },
+    FunctionDeclaration(path) {
+      // path.node is FunctionDeclaration
+      const params = path.node.params;
+    },
+  },
+};
+```
+
+### Evolution Strategies
+
+**1. Optional Properties for New Features**
+Add capabilities without breaking existing plugins:
+
+```ts
+export interface PluginSDK {
+  // Existing APIs
+  routes: RouteService;
+  events: EventBus;
+
+  // New API - optional for backward compatibility
+  notifications?: NotificationService;
+
+  // Deprecated API - mark for removal
+  /** @deprecated Use routes instead */
+  router?: LegacyRouter;
+}
+```
+
+**2. Declaration Merging for Extensions**
+Allow plugins to extend core types:
+
+```ts
+// Core type
+export interface PluginMetadata {
+  id: string;
+  version: string;
+}
+
+// Plugin can extend via declaration merging
+declare module '@my-host/sdk' {
+  interface PluginMetadata {
+    customField?: string;
+  }
+}
+
+// Now all plugins see the extended type
+```
+
+**3. Generic Plugin Contracts**
+Support varying contract shapes:
+
+```ts
+export interface Plugin<TSetup = unknown, TStart = unknown> {
+  setup(context: PluginSetupContext): TSetup | Promise<TSetup>;
+  start(context: PluginStartContext): TStart | Promise<TStart>;
+}
+
+// Usage with specific contract types
+class DataPlugin implements Plugin<DataSetup, DataStart> {
+  setup(): DataSetup { /* ... */ }
+  start(): DataStart { /* ... */ }
+}
+```
+
+**4. Branded Types for IDs**
+Prevent mixing different identifier types:
+
+```ts
+// Brand types to prevent mixing
+type PluginId = string & { readonly __brand: 'PluginId' };
+type ExtensionId = string & { readonly __brand: 'ExtensionId' };
+
+// Factory functions ensure branding
+function createPluginId(id: string): PluginId {
+  return id as PluginId;
+}
+
+// TypeScript prevents mistakes
+const pluginId: PluginId = createPluginId('my-plugin');
+const extensionId: ExtensionId = pluginId; // ❌ Type error!
+```
+
+**5. Conditional Types for Environment APIs**
+Different APIs for different environments:
+
+```ts
+type PluginSDK<Env extends 'browser' | 'server'> = {
+  core: CoreAPI;
+  events: EventBus;
+} & (Env extends 'browser'
+  ? { ui: UIServices; dom: DOMServices }
+  : { http: HTTPServer; database: DatabaseService });
+
+// Usage
+function createPlugin<Env extends 'browser' | 'server'>(
+  env: Env,
+  init: (sdk: PluginSDK<Env>) => void
+) {
+  // SDK type adapts to environment
+}
+```
+
+### Versioning and Compatibility
+
+**Semantic Versioning for Contracts**
+Track breaking changes in plugin contracts:
+
+```ts
+export interface DataPluginV1 {
+  search(query: string): Promise<Result[]>;
+}
+
+export interface DataPluginV2 {
+  search(request: SearchRequest): Promise<SearchResponse>;
+}
+
+// Version negotiation
+function getDataPlugin(version: '1' | '2'): DataPluginV1 | DataPluginV2 {
+  // Return appropriate version
+}
+```
+
+**API Proposals (VS Code Pattern)**
+Experimental APIs require opt-in:
+
+```ts
+export interface PluginManifest {
+  // Declare experimental APIs this plugin uses
+  enabledApiProposals?: string[];
+}
+
+// Host validates at activation
+if (plugin.manifest.enabledApiProposals?.includes('newFeature')) {
+  sdk.experimental.newFeature; // Allowed
+} else {
+  sdk.experimental.newFeature; // Type error
+}
+```
+
+### Best Practices from Production
+
+**1. Keep Core Contracts Small**
+Kibana's core services interface has ~15 methods. Additional capabilities live in separate namespaces.
+
+**2. Use Read-Only Properties**
+Prevent plugins from modifying SDK internals:
+
+```ts
+export interface PluginSDK {
+  readonly system: SystemInfo;
+  readonly plugin: PluginInfo;
+  // All properties readonly
+}
+```
+
+**3. Prefer Composition Over Inheritance**
+Backstage uses service references and extension points rather than class hierarchies.
+
+**4. Document with TSDoc**
+Comprehensive JSDoc/TSDoc comments appear in IDE autocomplete:
+
+```ts
+/**
+ * Register a new route in the application.
+ *
+ * @param route - Route definition including path, component, and metadata
+ * @throws {Error} If route path conflicts with existing route
+ * @example
+ * ```ts
+ * sdk.routes.add({
+ *   path: '/my-plugin/dashboard',
+ *   component: Dashboard,
+ *   exact: true
+ * });
+ * ```
+ */
+add(route: PluginRouteDefinition): void;
+```
+
+**5. Provide Type Guards**
+Help plugins narrow types safely:
+
+```ts
+export interface PluginError {
+  type: 'validation' | 'network' | 'permission';
+  message: string;
+}
+
+// Type guard
+export function isValidationError(error: PluginError): error is PluginError & { type: 'validation' } {
+  return error.type === 'validation';
+}
+
+// Usage
+if (isValidationError(error)) {
+  // error.type is 'validation' here
+}
+```
 
 ---
 
@@ -218,12 +1120,31 @@ TypeScript helps us ensure the SDK evolves without breaking existing plugins:
 
 A robust plugin foundation rests on:
 
-1. **A manifest** that clearly describes the plugin without executing it.
-2. **Lifecycle hooks** that standardize initialization, rendering, and teardown.
-3. **A typed SDK** that exposes safe, framework-agnostic APIs.
-4. **Sandboxing** to keep plugins secure and isolated.
+1. **A manifest** that clearly describes the plugin without executing it, with support for activation events, dependencies, and compatibility ranges.
+
+2. **Lifecycle hooks** that separate configuration (setup) from execution (start), with proper dependency ordering and timeout enforcement.
+
+3. **A typed SDK** that exposes safe, framework-agnostic APIs with dependency injection or service locator patterns, adapted to the execution environment.
+
+4. **Appropriate isolation** matching your trust model—from no sandboxing (trusted code) to process isolation (untrusted third-party plugins).
+
+5. **Type system leverage** through contracts, service references, visitor patterns, and evolution strategies that maintain backward compatibility.
+
+### Lessons from Production Systems
+
+**VS Code** demonstrates event-driven lazy activation and process isolation can scale to 40,000+ extensions.
+
+**Kibana** shows how topological sorting and multi-phase lifecycles (setup/start/stop) enable complex dependency graphs.
+
+**Backstage** proves extension points and service references achieve type-safe plugin composition without runtime overhead.
+
+**Vendure** illustrates deep integration through dependency injection and configuration hooks for enterprise customization.
+
+**Vite** teaches that build-time plugin systems benefit from hook-based architectures with advanced filtering.
+
+**Babel** exemplifies visitor patterns for AST transformation with multi-plugin optimization.
 
 ---
 
 **Next up:**
-In **Chapter 5**, we’ll look at the **Plugin Registry**—the system that discovers, registers, and manages plugins throughout their lifecycle, including dependency resolution, version control, and performance optimization. This is where our contracts start working at scale.
+In **Chapter 5**, we'll look at the **Plugin Registry**—the system that discovers, registers, and manages plugins throughout their lifecycle, including dependency resolution, version control, and performance optimization. This is where our contracts start working at scale.

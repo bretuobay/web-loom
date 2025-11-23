@@ -21,7 +21,7 @@ This chapter explores how to create those abstractions, normalize differences, a
 A framework-agnostic plugin system sits between two very different worlds:
 
 1. **The Host Application** — Usually built in one primary framework.
-2. **The Plugin Developer’s Code** — Potentially built in a different framework or compiled to vanilla JS.
+2. **The Plugin Developer's Code** — Potentially built in a different framework or compiled to vanilla JS.
 
 The **abstraction layer** is the bridge. It must:
 
@@ -29,12 +29,38 @@ The **abstraction layer** is the bridge. It must:
 - Normalize UI and lifecycle concepts.
 - Allow the host to evolve without breaking plugins.
 
+### Real-World Abstraction Approaches
+
+Production plugin systems demonstrate different strategies for framework abstraction:
+
+**Babel & Vite: Build-Time Only**
+These systems avoid runtime framework concerns entirely. Plugins operate on abstract syntax trees (Babel) or module graphs (Vite) at build time. The "framework" is the transformation pipeline itself.
+
+Key insight: If your plugin system doesn't involve UI rendering, focus on data structure abstraction rather than framework abstraction.
+
+**VS Code: Multi-Runtime Environments**
+Extensions run in three distinct environments (local process, web worker, remote server), each with different capabilities. The abstraction layer provides a unified API surface that adapts to available features.
+
+Key insight: Environment capabilities matter more than framework choice when dealing with non-UI plugin systems.
+
+**Backstage: Symmetric Dual Environment**
+Maintains parallel plugin models for server (Node.js) and client (React). Rather than forcing a single abstraction, Backstage embraces the differences while keeping lifecycle patterns consistent.
+
+Key insight: Sometimes separate but symmetric abstractions beat a single unified abstraction.
+
+**Kibana: React-First with Generic Escape Hatches**
+Built on React but provides framework-agnostic extension points (saved object types, search strategies) that don't involve UI rendering. UI extensions assume React.
+
+Key insight: You can be framework-specific for UI while remaining framework-agnostic for business logic.
+
 ---
 
 ### Virtual DOM Abstraction Strategies
 
-Different frameworks have different VDOMs (or none at all). We can’t standardize on React’s `FC` or Vue’s `Component` type without excluding others.
-Instead, we define **renderable component contracts**:
+Different frameworks have different VDOMs (or none at all). We can't standardize on React's `FC` or Vue's `Component` type without excluding others.
+
+**Strategy 1: Type Erasure (Generic Components)**
+Accept any component type and let adapters handle specifics:
 
 ```ts
 type RenderableComponent = unknown; // Framework-specific at runtime
@@ -43,52 +69,245 @@ interface PluginWidgetDefinition<TComponent = RenderableComponent> {
   id: string;
   title: string;
   render: TComponent;
+  /** Optional props passed to the component */
+  props?: Record<string, unknown>;
 }
 ```
 
-The host’s adapter decides how to mount `render` into the DOM.
+**Strategy 2: Virtual Module Pattern (Vite/Rollup)**
+Plugins export virtual modules that the host imports:
+
+```ts
+// Plugin exports a virtual module
+export const plugin = {
+  resolveId(id: string) {
+    if (id === 'virtual:my-plugin-ui') return id;
+  },
+  load(id: string) {
+    if (id === 'virtual:my-plugin-ui') {
+      return 'export const MyComponent = ...';
+    }
+  },
+};
+
+// Host imports the virtual module
+import { MyComponent } from 'virtual:my-plugin-ui';
+```
+
+**Strategy 3: Declarative UI Definition**
+Use JSON-serializable UI descriptions that adapters render:
+
+```ts
+interface DeclarativeWidget {
+  type: 'container' | 'text' | 'button' | 'input';
+  props?: Record<string, unknown>;
+  children?: DeclarativeWidget[];
+  events?: {
+    [eventName: string]: string; // Event handler ID
+  };
+}
+
+// Adapter renders declaratively
+function renderDeclarative(def: DeclarativeWidget, framework: FrameworkAdapter) {
+  return framework.createElement(def.type, def.props, def.children);
+}
+```
+
+**Strategy 4: Web Components (Framework-Neutral)**
+Use custom elements as the common abstraction:
+
+```ts
+// Plugin defines a web component
+class PluginWidget extends HTMLElement {
+  connectedCallback() {
+    this.innerHTML = '<div>Plugin UI</div>';
+  }
+}
+customElements.define('plugin-widget', PluginWidget);
+
+// Host uses it universally
+<plugin-widget></plugin-widget>
+```
+
+The host's adapter decides how to mount components into the DOM.
 
 ---
 
 ### Event System Normalization
 
-Every framework handles events differently. We use a **centralized event bus** in the `PluginSDK`:
+Every framework handles events differently. Production systems show two main approaches:
+
+**Approach 1: Centralized Event Bus (Framework-Agnostic)**
+Used by most systems for cross-plugin communication:
 
 ```ts
-sdk.events.on('user:login', (user) => {
-  console.log('User logged in', user);
+// Plugin publishes events
+sdk.events.emit('user:login', { userId: '123', timestamp: Date.now() });
+
+// Other plugins subscribe
+const unsubscribe = sdk.events.on('user:login', (payload) => {
+  console.log('User logged in', payload.userId);
 });
+
+// Cleanup
+unsubscribe();
 ```
 
-Internally, the host adapts this to React’s synthetic events, Vue’s emitters, or native DOM events.
+**Approach 2: Hook-Based Events (Babel/Vite Pattern)**
+Plugins declare interest in specific events through hooks:
+
+```ts
+export const plugin = {
+  // Called when specific event occurs
+  watchChange(id: string, event: { event: 'create' | 'update' | 'delete' }) {
+    console.log(`File ${id} was ${event.event}d`);
+  },
+
+  // Hot module replacement event
+  hotUpdate({ file, timestamp }) {
+    // Custom HMR logic
+  },
+};
+```
+
+**Backstage's EventBus Pattern**
+Provides typed, RxJS-based event streams:
+
+```ts
+// Plugin subscribes to typed events
+eventBus
+  .ofType(OrderPlacedEvent)
+  .subscribe(event => {
+    // event.order is fully typed
+    sendConfirmationEmail(event.order);
+  });
+
+// Publish events
+eventBus.publish(new OrderPlacedEvent({ order }));
+```
+
+**Best Practice:** Return an unsubscribe function from `on()` to enable proper cleanup during plugin unmount.
 
 ---
 
 ### State Management Abstraction
 
-Avoid exposing the host’s store directly (e.g., Redux or Vuex). Instead, define a generic state service:
+Avoid exposing the host's store directly (e.g., Redux or Vuex). Production systems demonstrate several patterns:
+
+**Pattern 1: Plugin-Scoped Storage (VS Code)**
+Each plugin gets isolated storage with multiple tiers:
 
 ```ts
-sdk.services.storage.set('myPlugin:data', { value: 42 });
+// Workspace storage (cleared on workspace change)
+await sdk.storage.workspace.set('recentFiles', files);
+
+// Global storage (persists across workspaces)
+await sdk.storage.global.set('userPreferences', prefs);
+
+// Secrets storage (credentials only)
+await sdk.storage.secrets.set('apiToken', token);
 ```
 
-This lets plugins store data without caring whether the host uses Redux, Zustand, Pinia, or RxJS.
+**Pattern 2: Reactive State (RxJS-based)**
+State changes emit events that plugins observe:
+
+```ts
+// Subscribe to state changes
+const subscription = sdk.state.observe<User>('currentUser').subscribe(user => {
+  console.log('User changed:', user);
+});
+
+// Update state
+sdk.state.set('currentUser', newUser);
+
+// Cleanup
+subscription.unsubscribe();
+```
+
+**Pattern 3: Context-Based State (Babel/Vite)**
+Plugin state scoped to execution context:
+
+```ts
+export const plugin = {
+  // State lives on plugin pass
+  pre() {
+    this.set('identifiers', new Set());
+  },
+
+  visitor: {
+    Identifier(path) {
+      this.get('identifiers').add(path.node.name);
+    },
+  },
+
+  post() {
+    console.log('Found identifiers:', this.get('identifiers'));
+  },
+};
+```
+
+**Pattern 4: Service-Based State (Vendure/Backstage)**
+State managed through injected services:
+
+```ts
+export class MyPlugin {
+  setup(deps: { cache: CacheService; database: DatabaseService }) {
+    // Use injected services for state
+    await deps.cache.set('key', value);
+    await deps.database.save(entity);
+  }
+}
+```
 
 ---
 
 ### Component Lifecycle Harmonization
 
-Frameworks differ in how they mount and unmount components. We abstract this with the **`mount`** and **`unmount`** lifecycle hooks in `PluginModule`:
+Frameworks differ in how they mount and unmount components. We abstract this with standardized lifecycle hooks:
+
+**Simple Lifecycle (UI Plugins)**
 
 ```ts
 export interface PluginModule {
+  /** One-time initialization */
   init?: (sdk: PluginSDK) => void | Promise<void>;
+
+  /** When UI should appear */
   mount?: (sdk: PluginSDK) => void | Promise<void>;
+
+  /** When UI is removed */
   unmount?: () => void | Promise<void>;
 }
 ```
 
-The host adapts these calls to the underlying framework’s lifecycle.
+**Multi-Phase Lifecycle (Complex Plugins)**
+Inspired by Kibana/Backstage:
+
+```ts
+export interface PluginModule {
+  /** Configuration phase - modify host config */
+  configure?: (config: HostConfig) => HostConfig;
+
+  /** Setup phase - register capabilities */
+  setup?: (context: SetupContext) => SetupContract;
+
+  /** Start phase - activate services */
+  start?: (context: StartContext) => StartContract;
+
+  /** Shutdown phase - cleanup */
+  stop?: () => Promise<void>;
+}
+```
+
+**Lifecycle Mapping Across Frameworks**
+
+| Plugin Hook | React | Vue | Angular | Svelte |
+|-------------|-------|-----|---------|--------|
+| `init` | Before first render | `beforeCreate` | `constructor` | `onMount` (before) |
+| `mount` | `useEffect(() => {}, [])` | `mounted` | `ngOnInit` | `onMount` |
+| `unmount` | `useEffect` cleanup | `beforeUnmount` | `ngOnDestroy` | `onDestroy` |
+
+The host's adapter translates plugin lifecycle calls to framework-specific hooks.
 
 ---
 
@@ -96,143 +315,971 @@ The host adapts these calls to the underlying framework’s lifecycle.
 
 The **Adapter Pattern** lets us keep a single `PluginSDK` interface but change the underlying behavior depending on the host framework.
 
----
+### Production Adapter Architectures
 
-### Framework Adapter Interface
+Real-world systems demonstrate sophisticated adapter patterns:
 
-We define a contract for all adapters:
+**VS Code: Multi-Process RPC Adapter**
+The extension host runs in a separate process, communicating via RPC. The adapter serializes API calls across process boundaries:
 
 ```ts
-interface FrameworkAdapter<TComponent = unknown> {
-  mountComponent: (component: TComponent, container: HTMLElement) => void;
-  unmountComponent: (container: HTMLElement) => void;
+// Main process side
+class MainThreadAdapter {
+  async showMessage(message: string) {
+    return this.rpc.call('showMessage', [message]);
+  }
+}
+
+// Extension host side (different process)
+class ExtensionHostAdapter {
+  onShowMessage(handler: (msg: string) => void) {
+    this.rpc.on('showMessage', handler);
+  }
+}
+```
+
+**Vite: Hook-Based Pipeline Adapter**
+Adapts Rollup's plugin interface with Vite-specific hooks:
+
+```ts
+interface VitePlugin extends RollupPlugin {
+  // Vite-specific hooks
+  config?: (config: UserConfig) => UserConfig;
+  configureServer?: (server: ViteDevServer) => void;
+  transformIndexHtml?: (html: string) => string;
+
+  // Inherited Rollup hooks
+  resolveId?: (id: string) => string | null;
+  load?: (id: string) => string | null;
+  transform?: (code: string, id: string) => string | null;
+}
+```
+
+**Backstage: Environment-Specific Adapters**
+Separate adapters for server and browser environments:
+
+```ts
+// Server adapter
+class ServerPluginAdapter {
+  createRouter(plugin: Plugin) {
+    const router = express.Router();
+    // Mount plugin HTTP handlers
+    return router;
+  }
+}
+
+// Browser adapter
+class BrowserPluginAdapter {
+  mountComponent(plugin: Plugin, container: HTMLElement) {
+    // Render React component
+    ReactDOM.render(<PluginComponent />, container);
+  }
 }
 ```
 
 ---
 
-### React Adapter Example
+### Comprehensive Framework Adapter Interface
+
+Building on production patterns, here's a full-featured adapter:
 
 ```ts
-const ReactAdapter: FrameworkAdapter<React.FC> = {
-  mountComponent(component, container) {
-    ReactDOM.render(React.createElement(component), container);
+interface FrameworkAdapter<TComponent = unknown> {
+  /** Component lifecycle */
+  mountComponent: (
+    component: TComponent,
+    container: HTMLElement,
+    props?: Record<string, unknown>
+  ) => ComponentInstance;
+
+  unmountComponent: (instance: ComponentInstance) => void;
+
+  updateComponent: (
+    instance: ComponentInstance,
+    props: Record<string, unknown>
+  ) => void;
+
+  /** Event handling */
+  addEventListener: (
+    instance: ComponentInstance,
+    event: string,
+    handler: (payload: unknown) => void
+  ) => () => void;
+
+  /** State synchronization */
+  notifyStateChange: (key: string, value: unknown) => void;
+
+  /** Reactive bindings (optional) */
+  createReactiveBinding?: <T>(
+    getter: () => T
+  ) => ReactiveValue<T>;
+}
+
+interface ComponentInstance {
+  /** Framework-specific instance reference */
+  instance: unknown;
+  /** Container element */
+  container: HTMLElement;
+  /** Cleanup callback */
+  destroy: () => void;
+}
+```
+
+---
+
+### React Adapter (Production-Ready)
+
+```ts
+const ReactAdapter: FrameworkAdapter<React.ComponentType> = {
+  mountComponent(component, container, props = {}) {
+    const root = ReactDOM.createRoot(container);
+    const element = React.createElement(component, props);
+    root.render(element);
+
+    return {
+      instance: root,
+      container,
+      destroy() {
+        root.unmount();
+      },
+    };
   },
-  unmountComponent(container) {
-    ReactDOM.unmountComponentAtNode(container);
+
+  unmountComponent(instance) {
+    instance.destroy();
+  },
+
+  updateComponent(instance, props) {
+    const root = instance.instance as ReactDOM.Root;
+    const component = /* stored component reference */;
+    root.render(React.createElement(component, props));
+  },
+
+  addEventListener(instance, event, handler) {
+    // React handles events through props
+    // This would require re-rendering with new props
+    const eventProp = `on${event.charAt(0).toUpperCase()}${event.slice(1)}`;
+    // Update component with new event handler
+    return () => {
+      // Cleanup
+    };
+  },
+
+  notifyStateChange(key, value) {
+    // Trigger React context update or re-render
   },
 };
 ```
 
 ---
 
-### Vue Adapter Example
+### Vue 3 Adapter (Production-Ready)
 
 ```ts
-const VueAdapter: FrameworkAdapter<Vue.Component> = {
-  mountComponent(component, container) {
-    const app = Vue.createApp(component);
-    app.mount(container);
+const Vue3Adapter: FrameworkAdapter<Vue.Component> = {
+  mountComponent(component, container, props = {}) {
+    const app = Vue.createApp(component, props);
+    const instance = app.mount(container);
+
+    return {
+      instance: app,
+      container,
+      destroy() {
+        app.unmount();
+      },
+    };
   },
-  unmountComponent(container) {
-    container.innerHTML = '';
+
+  unmountComponent(instance) {
+    instance.destroy();
+  },
+
+  updateComponent(instance, props) {
+    const app = instance.instance as Vue.App;
+    // Update reactive props
+    Object.assign(app._instance?.props || {}, props);
+  },
+
+  addEventListener(instance, event, handler) {
+    const app = instance.instance as Vue.App;
+    app._instance?.emit(event, handler);
+    return () => {
+      // Vue 3 cleanup
+    };
+  },
+
+  createReactiveBinding<T>(getter: () => T) {
+    return Vue.computed(getter);
   },
 };
 ```
 
 ---
 
-### Svelte/Angular Considerations
+### Angular Adapter (Production-Ready)
 
-For **Svelte**, the adapter instantiates a new component with a target DOM node.
-For **Angular**, we bootstrap the component into a dynamically created module and view container.
+```ts
+const AngularAdapter: FrameworkAdapter<Type<any>> = {
+  mountComponent(component, container, props = {}) {
+    // Create dynamic module
+    @NgModule({
+      declarations: [component],
+      imports: [CommonModule],
+    })
+    class DynamicModule {}
+
+    // Bootstrap
+    const moduleRef = createNgModuleRef(DynamicModule, injector);
+    const componentRef = moduleRef.instance.createComponent(component);
+
+    // Attach to DOM
+    container.appendChild(componentRef.location.nativeElement);
+
+    return {
+      instance: componentRef,
+      container,
+      destroy() {
+        componentRef.destroy();
+        moduleRef.destroy();
+      },
+    };
+  },
+
+  unmountComponent(instance) {
+    instance.destroy();
+  },
+
+  updateComponent(instance, props) {
+    const componentRef = instance.instance as ComponentRef<any>;
+    Object.assign(componentRef.instance, props);
+    componentRef.changeDetectorRef.detectChanges();
+  },
+
+  addEventListener(instance, event, handler) {
+    const componentRef = instance.instance as ComponentRef<any>;
+    const subscription = componentRef.instance[event]?.subscribe(handler);
+    return () => subscription?.unsubscribe();
+  },
+};
+```
+
+---
+
+### Svelte Adapter (Production-Ready)
+
+```ts
+const SvelteAdapter: FrameworkAdapter<typeof SvelteComponent> = {
+  mountComponent(component, container, props = {}) {
+    const instance = new component({
+      target: container,
+      props,
+    });
+
+    return {
+      instance,
+      container,
+      destroy() {
+        instance.$destroy();
+      },
+    };
+  },
+
+  unmountComponent(instance) {
+    instance.destroy();
+  },
+
+  updateComponent(instance, props) {
+    const svelteInstance = instance.instance as SvelteComponent;
+    svelteInstance.$set(props);
+  },
+
+  addEventListener(instance, event, handler) {
+    const svelteInstance = instance.instance as SvelteComponent;
+    svelteInstance.$on(event, (e: CustomEvent) => handler(e.detail));
+    return () => {
+      // Svelte doesn't provide $off, need to track listeners
+    };
+  },
+};
+```
+
+---
+
+### Web Components Adapter (Universal)
+
+For maximum compatibility, use Web Components:
+
+```ts
+const WebComponentAdapter: FrameworkAdapter<string> = {
+  mountComponent(tagName, container, props = {}) {
+    const element = document.createElement(tagName);
+
+    // Set properties
+    Object.entries(props).forEach(([key, value]) => {
+      (element as any)[key] = value;
+    });
+
+    container.appendChild(element);
+
+    return {
+      instance: element,
+      container,
+      destroy() {
+        element.remove();
+      },
+    };
+  },
+
+  unmountComponent(instance) {
+    instance.destroy();
+  },
+
+  updateComponent(instance, props) {
+    const element = instance.instance as HTMLElement;
+    Object.entries(props).forEach(([key, value]) => {
+      (element as any)[key] = value;
+    });
+  },
+
+  addEventListener(instance, event, handler) {
+    const element = instance.instance as HTMLElement;
+    element.addEventListener(event, handler as EventListener);
+    return () => element.removeEventListener(event, handler as EventListener);
+  },
+};
+```
+
+---
+
+### Adapter Selection Strategy
+
+Choose adapters based on your requirements:
+
+**Single Framework (Kibana, Backstage)**
+- Simplest approach
+- Direct framework integration
+- Best performance
+- Least flexibility
+
+**Multi-Framework with Build-Time Selection**
+- Choose adapter at build time
+- Good performance
+- Moderate complexity
+
+**Runtime Adapter Detection**
+- Auto-detect framework
+- Maximum flexibility
+- Higher runtime cost
+
+```ts
+function detectFramework(): FrameworkAdapter {
+  if (typeof React !== 'undefined') return ReactAdapter;
+  if (typeof Vue !== 'undefined') return Vue3Adapter;
+  // Fallback to Web Components
+  return WebComponentAdapter;
+}
+```
 
 ---
 
 ## 3.3 Plugin Component Architecture
 
-A plugin’s components must be represented **independently of the host’s framework** so they can be interpreted correctly at runtime.
+A plugin's components must be represented **independently of the host's framework** so they can be interpreted correctly at runtime.
+
+### Real-World Component Patterns
+
+Production systems demonstrate various approaches to plugin components:
+
+**VS Code: Command-Based UI Contributions**
+Extensions don't render arbitrary UI. Instead, they declare contribution points and the host renders them:
+
+```json
+{
+  "contributes": {
+    "views": {
+      "explorer": [{
+        "id": "myView",
+        "name": "My Custom View"
+      }]
+    },
+    "commands": [{
+      "command": "myExt.doSomething",
+      "title": "Do Something"
+    }]
+  }
+}
+```
+
+The extension provides `TreeDataProvider` implementations, but VS Code handles rendering.
+
+**Babel/Vite: No UI Components**
+These systems avoid UI entirely. Plugins manipulate data structures (ASTs, module graphs), not interfaces.
+
+Key insight: Consider whether your plugins actually need UI components. Many powerful plugin systems operate purely on data.
+
+**Backstage: React Components as First-Class**
+Fully embraces React for frontend plugins:
+
+```ts
+export const MyPlugin = createPlugin({
+  routes: {
+    root: rootRouteRef,
+  },
+});
+
+export const MyPage = MyPlugin.provide(
+  createRoutableExtension({
+    name: 'MyPage',
+    component: () => import('./components/MyPage').then(m => m.MyPage),
+    mountPoint: rootRouteRef,
+  })
+);
+```
+
+Key insight: For UI-heavy systems built on a specific framework, embrace it rather than fighting it.
 
 ---
 
-### Framework-neutral Component Representation
+### Framework-Neutral Component Representation
 
-At the SDK level, components are just `unknown`. This prevents accidental coupling:
+At the SDK level, components are type-erased to prevent coupling:
 
 ```ts
 interface PluginRouteDefinition<TComponent = unknown> {
   path: string;
   component: TComponent;
+  /** Optional props passed to the component */
+  props?: Record<string, unknown>;
+  /** Component display metadata */
+  meta?: {
+    title?: string;
+    icon?: string;
+    requiresAuth?: boolean;
+  };
 }
+```
+
+**Alternative: Factory Pattern**
+Defer component creation to plugin activation:
+
+```ts
+interface PluginRouteDefinition {
+  path: string;
+  /** Factory function that creates the component */
+  componentFactory: (sdk: PluginSDK) => unknown;
+}
+
+// Plugin provides factory
+sdk.routes.add({
+  path: '/dashboard',
+  componentFactory: (sdk) => {
+    // Plugin can use SDK to decide which component to return
+    return sdk.system.platform.isBrowser
+      ? BrowserDashboard
+      : ServerDashboard;
+  },
+});
 ```
 
 ---
 
 ### Props and Data Flow Abstraction
 
-Instead of passing props directly, we can define a **props injection service**:
+**Pattern 1: SDK Injection (Recommended)**
+Inject the SDK as props so components can access plugin capabilities:
 
 ```ts
-sdk.routes.add({
-  path: '/dashboard',
-  component: MyWidget,
-});
+// Adapter automatically injects SDK
+function adaptPluginComponent(component: unknown, sdk: PluginSDK) {
+  return ReactAdapter.mountComponent(component, container, {
+    sdk, // SDK available as props
+    ...additionalProps,
+  });
+}
+
+// Plugin component receives SDK
+function MyPluginComponent({ sdk }: { sdk: PluginSDK }) {
+  const handleClick = () => sdk.events.emit('buttonClicked');
+  return <button onClick={handleClick}>Click me</button>;
+}
 ```
 
-The adapter decides how props are bound in React, Vue, etc.
+**Pattern 2: Context Providers (React-Specific)**
+For React-based hosts, wrap plugin components in context:
+
+```ts
+function PluginComponentWrapper({ component: Component, sdk }: Props) {
+  return (
+    <PluginSDKContext.Provider value={sdk}>
+      <Component />
+    </PluginSDKContext.Provider>
+  );
+}
+
+// Plugin uses context
+function MyPluginComponent() {
+  const sdk = usePluginSDK();
+  // ... use SDK
+}
+```
+
+**Pattern 3: Global Registry (Framework-Agnostic)**
+Plugins register themselves globally and components access via ID:
+
+```ts
+// Plugin registers during init
+sdk.register('my-plugin-id', pluginInstance);
+
+// Component accesses later
+const plugin = window.__PLUGIN_REGISTRY__.get('my-plugin-id');
+```
 
 ---
 
 ### Children and Composition Patterns
 
-If the host supports nested UI, define a **slot-like system** for composition instead of relying on framework-specific children props.
+**Slot-Based Composition (Universal)**
+Define named slots that plugins can fill:
+
+```ts
+interface PluginSlot {
+  slot: 'sidebar' | 'header' | 'footer' | 'main';
+  component: unknown;
+  order?: number; // Control rendering order
+}
+
+// Plugin fills slots
+sdk.ui.addSlot({
+  slot: 'sidebar',
+  component: MySidebarWidget,
+  order: 10,
+});
+
+// Host renders all components in each slot
+function HostLayout() {
+  const sidebarComponents = sdk.ui.getSlotsFor('sidebar');
+  return (
+    <div>
+      <Sidebar>
+        {sidebarComponents.map(c => renderComponent(c))}
+      </Sidebar>
+    </div>
+  );
+}
+```
+
+**Extension Point Pattern (Backstage)**
+Plugins define extension points that other plugins can extend:
+
+```ts
+// Plugin defines extension point
+export const myCatalogExtensionPoint = createExtensionPoint<CatalogExtension>({
+  id: 'catalog.extensions',
+});
+
+// Another plugin extends it
+env.registerInit({
+  deps: { catalog: myCatalogExtensionPoint },
+  async init({ catalog }) {
+    catalog.addProcessor(new MyCustomProcessor());
+  },
+});
+```
 
 ---
 
 ### Ref and Imperative Handle Management
 
-Some plugins need direct control over their UI.
-We can expose a **ref handler API** in the adapter for frameworks that support refs (React, Vue 3) while falling back to DOM element handles in others.
+**Pattern 1: Callback Refs**
+Pass callbacks that receive DOM references:
+
+```ts
+interface PluginWidgetDefinition {
+  component: unknown;
+  /** Called when component mounts */
+  onMount?: (element: HTMLElement) => void;
+  /** Called when component unmounts */
+  onUnmount?: (element: HTMLElement) => void;
+}
+
+// Plugin uses callbacks
+sdk.widgets.add({
+  component: MyWidget,
+  onMount(element) {
+    // Direct DOM access
+    element.style.backgroundColor = 'blue';
+  },
+});
+```
+
+**Pattern 2: Imperative API**
+Expose imperative methods via the SDK:
+
+```ts
+interface PluginWidgetRef {
+  id: string;
+  focus: () => void;
+  scrollIntoView: () => void;
+  getElement: () => HTMLElement | null;
+}
+
+// Plugin gets ref handle
+const widgetRef = await sdk.widgets.add({
+  component: MyWidget,
+});
+
+// Later, plugin can control the widget
+widgetRef.focus();
+widgetRef.scrollIntoView();
+```
+
+**Pattern 3: Event-Based Communication**
+Avoid direct refs, use events instead:
+
+```ts
+// Plugin requests action via event
+sdk.events.emit('widget:focus', { widgetId: 'my-widget' });
+
+// Host listens and performs action
+sdk.events.on('widget:focus', ({ widgetId }) => {
+  const element = document.getElementById(widgetId);
+  element?.focus();
+});
+```
 
 ---
 
-## 3.4 Cross-framework State Management
+## 3.4 Cross-Framework State Management
 
-A plugin system may host plugins from different frameworks that need to share state.
-
----
+A plugin system may host plugins from different frameworks that need to share state. Production systems demonstrate various solutions:
 
 ### Plugin State Isolation
 
-Each plugin should have **its own isolated state** by default to prevent accidental data leakage:
+**VS Code Pattern: Scoped Storage**
+Each plugin gets isolated storage with automatic namespacing:
 
 ```ts
-sdk.services.storage.set('local', { count: 1 });
+// Each plugin's storage is automatically namespaced
+const state = context.workspaceState;
+await state.update('myData', { count: 1 });
+
+// No collision with other plugins using 'myData'
 ```
+
+**Babel/Vite Pattern: Execution Context State**
+State scoped to the current transformation:
+
+```ts
+export const plugin = {
+  pre(state) {
+    // Initialize per-file state
+    this.identifiers = new Set();
+  },
+  visitor: {
+    Identifier(path) {
+      // Access state via 'this'
+      this.identifiers.add(path.node.name);
+    },
+  },
+  post() {
+    // Use collected state
+    console.log(Array.from(this.identifiers));
+  },
+};
+```
+
+**Best Practice:** Default to isolated state, opt-in to shared state.
 
 ---
 
 ### Global State Sharing Patterns
 
-When needed, expose a controlled global state API with strict namespacing:
+**Pattern 1: Namespaced Global Store**
+Controlled global state with explicit namespacing:
 
 ```ts
-sdk.services.storage.set('global:theme', 'dark');
+interface GlobalState {
+  get<T>(key: string): T | undefined;
+  set<T>(key: string, value: T): void;
+  subscribe<T>(key: string, callback: (value: T) => void): () => void;
+}
+
+// Usage with namespacing
+sdk.state.global.set('theme', 'dark');
+sdk.state.global.set('locale', 'en-US');
+
+// Subscribe to changes
+const unsubscribe = sdk.state.global.subscribe('theme', (theme) => {
+  console.log('Theme changed:', theme);
+});
+```
+
+**Pattern 2: Event-Based State Sync**
+Use events for state changes across plugins:
+
+```ts
+// Plugin A updates state
+sdk.events.emit('state:theme:changed', { theme: 'dark' });
+
+// Plugin B reacts
+sdk.events.on('state:theme:changed', ({ theme }) => {
+  updateUITheme(theme);
+});
+```
+
+**Pattern 3: Shared Services (Vendure/Backstage)**
+Services act as shared state containers:
+
+```ts
+// Service with state
+class ThemeService {
+  private currentTheme = 'light';
+
+  setTheme(theme: string) {
+    this.currentTheme = theme;
+    this.eventBus.emit(new ThemeChangedEvent(theme));
+  }
+
+  getTheme(): string {
+    return this.currentTheme;
+  }
+}
+
+// Plugins access shared service
+setup(deps: { theme: ThemeService }) {
+  deps.theme.setTheme('dark');
+}
 ```
 
 ---
 
 ### Reactive State Synchronization
 
-For reactive frameworks, the adapter can expose reactive wrappers so state updates propagate naturally in React’s hooks, Vue’s reactive refs, etc.
+**React Integration**
+Wrap state in React hooks:
+
+```ts
+// SDK provides React-specific bindings
+function usePluginState<T>(key: string): [T, (value: T) => void] {
+  const [state, setState] = useState<T>(() => sdk.state.get(key));
+
+  useEffect(() => {
+    return sdk.state.subscribe(key, setState);
+  }, [key]);
+
+  const updateState = useCallback((value: T) => {
+    sdk.state.set(key, value);
+  }, [key]);
+
+  return [state, updateState];
+}
+
+// Plugin component uses it
+function MyComponent() {
+  const [theme, setTheme] = usePluginState<string>('theme');
+  return <button onClick={() => setTheme('dark')}>Dark Mode</button>;
+}
+```
+
+**Vue Integration**
+Use Vue's reactive system:
+
+```ts
+// SDK provides Vue-specific bindings
+function usePluginState<T>(key: string) {
+  const state = ref<T>(sdk.state.get(key));
+
+  sdk.state.subscribe(key, (value) => {
+    state.value = value;
+  });
+
+  const updateState = (value: T) => {
+    sdk.state.set(key, value);
+  };
+
+  return { state, updateState };
+}
+
+// Plugin component
+export default {
+  setup() {
+    const { state: theme, updateState: setTheme } = usePluginState('theme');
+    return { theme, setTheme };
+  },
+};
+```
+
+**Framework-Agnostic Observable**
+Use RxJS or similar for universal reactivity:
+
+```ts
+import { BehaviorSubject } from 'rxjs';
+
+class ReactiveStateService {
+  private subjects = new Map<string, BehaviorSubject<any>>();
+
+  get<T>(key: string): T | undefined {
+    return this.subjects.get(key)?.value;
+  }
+
+  observe<T>(key: string): Observable<T> {
+    if (!this.subjects.has(key)) {
+      this.subjects.set(key, new BehaviorSubject(undefined));
+    }
+    return this.subjects.get(key)!.asObservable();
+  }
+
+  set<T>(key: string, value: T): void {
+    if (!this.subjects.has(key)) {
+      this.subjects.set(key, new BehaviorSubject(value));
+    } else {
+      this.subjects.get(key)!.next(value);
+    }
+  }
+}
+
+// Any framework can subscribe
+sdk.state.observe<string>('theme').subscribe(theme => {
+  console.log('Theme changed:', theme);
+});
+```
 
 ---
 
 ### Performance Optimization Strategies
 
-- **Lazy initialization** of plugin state until first access.
-- **Shallow equality checks** to avoid unnecessary re-renders.
-- **Event batching** to reduce performance overhead.
+Production systems demonstrate several optimization patterns:
+
+**1. Lazy Initialization (VS Code Pattern)**
+Don't load plugin code until needed:
+
+```ts
+// Activation events prevent unnecessary loading
+{
+  "activationEvents": [
+    "onLanguage:typescript",  // Only when .ts file opens
+    "onCommand:myExt.doWork"  // Only when command runs
+  ]
+}
+```
+
+**2. Batched Updates (React Pattern)**
+Batch multiple state changes:
+
+```ts
+class StateService {
+  private pendingUpdates = new Map<string, any>();
+  private batchTimer: any;
+
+  set<T>(key: string, value: T) {
+    this.pendingUpdates.set(key, value);
+
+    if (!this.batchTimer) {
+      this.batchTimer = setTimeout(() => {
+        this.flush();
+      }, 0);
+    }
+  }
+
+  private flush() {
+    // Apply all pending updates at once
+    for (const [key, value] of this.pendingUpdates) {
+      this.applyUpdate(key, value);
+    }
+    this.pendingUpdates.clear();
+    this.batchTimer = null;
+  }
+}
+```
+
+**3. Shallow Equality Checks**
+Prevent unnecessary re-renders:
+
+```ts
+function shallowEqual(a: any, b: any): boolean {
+  if (a === b) return true;
+  if (typeof a !== 'object' || typeof b !== 'object') return false;
+
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+
+  if (keysA.length !== keysB.length) return false;
+
+  for (const key of keysA) {
+    if (a[key] !== b[key]) return false;
+  }
+
+  return true;
+}
+
+// Use in state updates
+if (!shallowEqual(prevState, nextState)) {
+  notifySubscribers(nextState);
+}
+```
+
+**4. Memoization (Babel Pattern)**
+Cache expensive computations:
+
+```ts
+// Babel caches visitor normalization
+const visitorCache = new WeakMap<PluginObj, NormalizedVisitor>();
+
+function getNormalizedVisitor(plugin: PluginObj): NormalizedVisitor {
+  if (visitorCache.has(plugin)) {
+    return visitorCache.get(plugin)!;
+  }
+
+  const normalized = normalizeVisitor(plugin.visitor);
+  visitorCache.set(plugin, normalized);
+  return normalized;
+}
+```
+
+**5. Virtual Scrolling (VS Code Pattern)**
+For large lists, only render visible items:
+
+```ts
+class VirtualList {
+  private visibleRange = { start: 0, end: 100 };
+
+  render() {
+    // Only render items in visible range
+    const items = this.allItems.slice(
+      this.visibleRange.start,
+      this.visibleRange.end
+    );
+    return items.map(item => renderItem(item));
+  }
+}
+```
+
+**6. Code Splitting (Vite/Webpack)**
+Load plugin code on demand:
+
+```ts
+// Dynamic import for lazy loading
+const plugin = {
+  async load(id: string) {
+    if (id === 'virtual:my-heavy-plugin') {
+      const { HeavyFeature } = await import('./heavy-feature');
+      return HeavyFeature.code;
+    }
+  },
+};
+```
+
+**7. Debouncing & Throttling**
+Limit expensive operations:
+
+```ts
+import { debounce } from 'lodash';
+
+const handleFileChange = debounce((file: string) => {
+  // Expensive re-analysis
+  analyzeFile(file);
+}, 300); // Wait 300ms after last change
+```
 
 ---
 
@@ -240,11 +1287,29 @@ For reactive frameworks, the adapter can expose reactive wrappers so state updat
 
 A framework-agnostic plugin architecture succeeds when:
 
-1. **Framework details are pushed to adapters**, not the core contracts.
-2. **The SDK surface remains stable**, even if the host changes frameworks.
-3. **State, events, and lifecycle** are unified under a single abstraction layer.
+1. **Framework details are pushed to adapters**, not the core contracts. Adapters handle mounting, events, and lifecycle translation.
+
+2. **The SDK surface remains stable**, even if the host changes frameworks. Use type erasure and factory patterns for components.
+
+3. **State, events, and lifecycle** are unified under a single abstraction layer. Provide framework-specific bindings for better DX.
+
+4. **Performance is designed in**, not bolted on. Use lazy loading, batching, memoization, and code splitting from the start.
+
+5. **Real-world patterns matter**. Study production systems (VS Code, Vite, Babel, Backstage, Kibana) to understand proven approaches.
+
+### Lessons from Production Systems
+
+**VS Code** teaches that process isolation and lazy activation enable massive ecosystems (40,000+ extensions) without performance degradation.
+
+**Vite** demonstrates that extending existing interfaces (Rollup) beats creating new ones, and filtering prevents unnecessary plugin invocations.
+
+**Babel** shows how single-traversal multi-plugin execution optimizes build-time plugin systems.
+
+**Backstage** proves that symmetric dual environments (server/browser) can share lifecycle patterns while differing in capabilities.
+
+**Kibana** illustrates how topological sorting and contract-based dependency injection create type-safe plugin graphs.
 
 ---
 
 **Next up:**
-In **Chapter 4**, we’ll define the **core contracts and interfaces**—the `PluginManifest`, `PluginModule`, and `PluginSDK`—in a way that balances stability, flexibility, and forward compatibility, drawing directly from our TypeScript-first architecture. This is where we lock in the rules that every plugin must follow.
+In **Chapter 4**, we'll define the **core contracts and interfaces**—the `PluginManifest`, `PluginModule`, and `PluginSDK`—in a way that balances stability, flexibility, and forward compatibility, drawing directly from our TypeScript-first architecture and the production patterns we've examined. This is where we lock in the rules that every plugin must follow.
