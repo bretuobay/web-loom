@@ -61,9 +61,103 @@ Clearly define **what belongs to the host** and **what belongs to the plugin**. 
 
 ---
 
+## 9.1.1 Trust Models in Real-World Plugin Systems
+
+Different plugin architectures employ fundamentally different trust models, each with specific security implications:
+
+---
+
+### Implicit Trust Model (Vendure)
+
+**Vendure's approach**: Plugins are treated as **vetted, first-party code** with unrestricted access to:
+
+- File system and environment variables
+- Database connections (full read/write access)
+- Network resources
+- System configuration
+
+This model assumes plugins come from trusted sources and undergo review before deployment. The primary security mechanism is **compatibility validation** through semantic versioning.
+
+**Security implications**:
+
+- ✅ High performance (no sandboxing overhead)
+- ✅ Full framework integration capabilities
+- ❌ Single point of failure (plugin crash = system crash)
+- ❌ Unsuitable for open marketplaces
+
+---
+
+### Logical Isolation Model (Backstage)
+
+**Backstage's approach**: Provides **logical isolation** without process separation:
+
+- HTTP isolation (scoped routes per plugin)
+- Database isolation (prefixed table names)
+- Dependency isolation (explicit service declarations)
+- Service-to-service authentication with tokens
+
+```typescript
+// Service-to-service authentication
+const { token } = await auth.getPluginRequestToken({
+  onBehalfOf: credentials,
+  targetPluginId: 'catalog',
+});
+
+const response = await fetch('http://catalog/api/entities', {
+  headers: { Authorization: `Bearer ${token}` },
+});
+```
+
+**Security implications**:
+
+- ✅ Better fault isolation than implicit trust
+- ✅ Granular permission checking
+- ✅ Audit trails through service tokens
+- ⚠️ Still trusts plugins within logical boundaries
+
+---
+
+### Database-Driven Access Control (NocoBase)
+
+**NocoBase's approach**: Combines **ACL-gated plugin management** with runtime permission checks:
+
+- Package name whitelisting (`@nocobase/plugin-*` prefixes)
+- Administrative privileges required for plugin operations
+- Access Control Lists with permission snippets
+- Event-driven permission updates
+
+```typescript
+// Permission snippet registration
+this.app.acl.registerSnippet({
+  name: 'pm.acl.roles',
+  actions: ['roles:*', 'roles.users:*', 'availableActions:list']
+});
+
+// Middleware-based permission checking
+{ tag: 'acl', after: 'auth', before: 'core' }
+```
+
+**Security implications**:
+
+- ✅ Fine-grained permission control
+- ✅ Runtime permission updates
+- ✅ Namespace isolation for plugin resources
+- ⚠️ Requires comprehensive ACL configuration
+
+---
+
 ## 9.2 Sandboxing and Isolation
 
 The safest plugin is one that **cannot** affect anything outside its boundaries unless explicitly allowed.
+
+**Isolation Strategy Comparison**:
+
+| System    | Isolation Level | Trade-offs                                  |
+| --------- | --------------- | ------------------------------------------- |
+| Vendure   | None            | Max performance, full integration, max risk |
+| Backstage | Logical         | Balance of safety and capability            |
+| VS Code   | Process         | High isolation, communication overhead      |
+| Browser   | IFrame/Worker   | Maximum security, limited capabilities      |
 
 ---
 
@@ -122,6 +216,48 @@ In the manifest, plugins declare what features they need:
 ```
 
 The host checks these before allowing SDK calls.
+
+**Backstage's Permission-Based Approach**:
+
+```typescript
+router.delete('/entities/:id', async (req, res) => {
+  const credentials = await httpAuth.credentials(req);
+
+  const decision = await permissions.authorize([{ permission: catalogEntityDeletePermission }], { credentials });
+
+  if (decision[0].result === 'DENY') {
+    return res.status(403).json({ error: 'Permission denied' });
+  }
+
+  await catalog.deleteEntity(req.params.id);
+});
+```
+
+**NocoBase's ACL Snippet System**:
+
+```typescript
+// Bundle related permissions
+this.app.acl.registerSnippet({
+  name: 'pm.acl.roles',
+  actions: ['roles:*', 'roles.users:*', 'availableActions:list'],
+});
+
+// Middleware-based enforcement
+app.resourcer.use(async (ctx, next) => {
+  const { actionName, resourceName } = ctx.action.params;
+  const allowed = await ctx.app.acl.can({
+    role: ctx.state.currentRole,
+    resource: resourceName,
+    action: actionName,
+  });
+
+  if (!allowed) {
+    ctx.throw(403, 'Forbidden');
+  }
+
+  await next();
+});
+```
 
 ---
 
@@ -213,15 +349,102 @@ Scan plugin bundles with antivirus/malware detection tools before adding them to
 
 ---
 
+### Real-World Security Validation Patterns
+
+**Compatibility Validation (Vendure)**:
+
+```typescript
+@VendurePlugin({
+  compatibility: '^3.0.0', // Semantic versioning
+})
+export class PaymentPlugin {
+  // Plugin fails fast if version mismatch
+}
+```
+
+**Package Whitelisting (NocoBase)**:
+
+- Default: Only `@nocobase/plugin-*` and `@nocobase/preset-*` allowed
+- Configurable via `PLUGIN_PACKAGE_PREFIX` environment variable
+- Prevents installation of arbitrary packages
+
+**Service Authentication (Backstage)**:
+
+```typescript
+// Plugins must authenticate for inter-service calls
+const { token } = await auth.getPluginRequestToken({
+  onBehalfOf: credentials,
+  targetPluginId: 'catalog',
+});
+
+// Token includes principal information
+type BackstagePrincipal =
+  | BackstageUserPrincipal // Authenticated user
+  | BackstageServicePrincipal // Backend service
+  | BackstageNonePrincipal; // Unauthenticated
+```
+
+---
+
+## 9.5.1 Security Best Practices from Production Systems
+
+### Fail-Safe Defaults
+
+**Vendure**: Incompatible plugins abort bootstrap with clear error messages
+**NocoBase**: Failed plugin loads don't crash the entire system
+**Backstage**: Graceful degradation when modules fail to initialize
+
+### Namespace Isolation
+
+```typescript
+// NocoBase: Plugin-scoped database collections
+db.collection({
+  name: 'myData',
+  from: '@nocobase/plugin-myPlugin', // Ownership tracking
+});
+
+// Backstage: Plugin-scoped HTTP routes
+router.get('/api/catalog/entities'); // Scoped to catalog plugin
+router.get('/api/scaffolder/actions'); // Scoped to scaffolder plugin
+```
+
+### Event-Driven Security Updates
+
+```typescript
+// NocoBase: React to permission changes
+this.app.on('acl:writeRoleToACL', (role) => {
+  // Update plugin-specific permissions
+  this.updatePermissions(role);
+});
+
+// Update ACL when users are created
+db.on('users.afterCreateWithAssociations', (user) => {
+  this.assignDefaultRole(user);
+});
+```
+
+---
+
 ## Key Takeaways
 
 A secure plugin architecture:
 
-1. Treats all plugins as **untrusted by default**.
-2. Uses **sandboxing** to contain execution.
-3. Enforces a **permission model** for controlled access.
-4. Integrates **CSP and Trusted Types** to prevent injection.
-5. Verifies plugin code integrity before execution.
+1. **Chooses an appropriate trust model** for your use case:
+   - Implicit trust for vetted, first-party plugins (Vendure)
+   - Logical isolation for enterprise platforms (Backstage)
+   - Database-driven ACL for multi-tenant systems (NocoBase)
+
+2. Uses **sandboxing** appropriate to the security requirements and performance constraints.
+
+3. Enforces a **permission model** with granular access control and runtime validation.
+
+4. Integrates **CSP and Trusted Types** to prevent injection attacks.
+
+5. Verifies plugin code integrity through **compatibility checks and package validation**.
+
+6. Implements **fail-safe defaults** and graceful degradation for security failures.
+
+7. Uses **namespace isolation** to prevent plugin conflicts and data leaks.
 
 ---
 

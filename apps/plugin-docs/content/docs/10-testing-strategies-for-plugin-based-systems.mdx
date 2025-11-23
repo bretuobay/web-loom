@@ -28,6 +28,44 @@ In this chapter, we’ll cover:
 
 ---
 
+### Real-World Testing Architectures
+
+Let's examine how production plugin systems approach testing:
+
+**VS Code Extensions**: Uses a dedicated **Extension Development Host** that provides:
+
+- Full debugging capabilities with breakpoints
+- Isolated testing environment separate from main editor
+- First-class testing framework with utilities for extension host management
+- Rich TypeScript definitions for comprehensive type checking
+
+**Backstage Plugins**: Leverages **dependency injection** for testability:
+
+- Service mocking through DI container
+- Separation of concerns enables isolated testing
+- Type-safe service interfaces for better test reliability
+
+**NocoBase Plugins**: Provides **test utilities** for database-driven plugins:
+
+```typescript
+import { createTestApp, createTestPlugin } from '@nocobase/test';
+
+beforeEach(async () => {
+  app = await createTestApp();
+  plugin = await createTestPlugin(MyPlugin, { enabled: true });
+  await app.pm.add(plugin);
+  await app.load();
+});
+```
+
+**Babel Plugins**: Uses **AST snapshot testing**:
+
+- Transform code samples and compare AST outputs
+- Isolated visitor function testing
+- Performance benchmarking for transformation speed
+
+---
+
 ## 10.1 Testing Architecture Overview
 
 A comprehensive testing strategy for plugins operates at **four levels**:
@@ -86,6 +124,19 @@ Plugins are often framework-agnostic at the SDK level.
 - The same plugin may run in different adapters (React, Vue, etc.).
 - Tests must validate rendering and lifecycle behavior across frameworks.
 
+**Real-world example (TinaCMS)**:
+
+```typescript
+// Plugin works across React versions
+function usePlugin(plugin: Plugin) {
+  // Lifecycle tied to component mounting
+  React.useEffect(() => {
+    cms.plugins.add(plugin);
+    return () => cms.plugins.remove(plugin);
+  }, [plugin]);
+}
+```
+
 ---
 
 ### Sandbox Environment Testing
@@ -95,7 +146,11 @@ A plugin might run in:
 - An **IFrame sandbox**.
 - A **Web Worker**.
 - A **restricted virtual machine**.
-  Tests must simulate these environments accurately.
+- **Separate processes** (VS Code extension host).
+
+Tests must simulate these environments accurately.
+
+**VS Code approach**: Extension Development Host provides isolated testing environment that mimics production conditions without affecting the main editor.
 
 ---
 
@@ -106,6 +161,22 @@ Plugins often communicate via the event bus.
 - Tests should verify event emissions, subscriptions, and ordering.
 - Must ensure plugins handle missing listeners or duplicate events gracefully.
 
+**NocoBase pattern**:
+
+```typescript
+// Test event-driven plugin interactions
+it('should react to user creation', async () => {
+  const aclPlugin = app.getPlugin('acl');
+  const userPlugin = app.getPlugin('users');
+
+  const spy = jest.spyOn(aclPlugin, 'assignDefaultRole');
+
+  await userPlugin.createUser({ name: 'test' });
+
+  expect(spy).toHaveBeenCalledWith(expect.objectContaining({ name: 'test' }));
+});
+```
+
 ---
 
 ### Permission System Testing
@@ -115,6 +186,48 @@ Tests must verify that:
 
 - Unauthorized calls are rejected.
 - Permission prompts behave as expected.
+- **ACL integration works correctly** (NocoBase).
+- **Service-to-service authentication** functions (Backstage).
+
+**Backstage permission testing**:
+
+```typescript
+it('should deny access without permission', async () => {
+  const mockAuth = {
+    credentials: jest.fn().mockResolvedValue({ user: 'testuser' }),
+  };
+
+  const mockPermissions = {
+    authorize: jest.fn().mockResolvedValue([{ result: 'DENY' }]),
+  };
+
+  const response = await request(app).delete('/api/entities/123').expect(403);
+
+  expect(response.body.error).toBe('Permission denied');
+});
+```
+
+---
+
+### Lifecycle Testing Challenges
+
+**Activation Sequence Testing** (VS Code):
+
+- Test that extensions activate in the correct order
+- Verify dependency resolution works correctly
+- Ensure activation events trigger properly
+
+**Database State Testing** (NocoBase):
+
+- Test plugin installation/uninstallation
+- Verify database migrations run correctly
+- Test hot-reloading scenarios
+
+**Build-time vs Runtime Testing** (Vite/Babel):
+
+- Test plugin behavior in development vs production
+- Verify transforms work across different environments
+- Test plugin ordering and precedence
 
 ---
 
@@ -139,6 +252,20 @@ const mockSDK: PluginSDK = {
 };
 ```
 
+**NocoBase's approach**:
+
+```typescript
+// Built-in test utilities
+import { createTestApp, createTestPlugin } from '@nocobase/test';
+
+// Creates isolated app instance with mock services
+const app = await createTestApp({
+  database: ':memory:', // SQLite in-memory for speed
+  silent: true, // Disable logging
+  cleanAfterEach: true, // Auto-cleanup
+});
+```
+
 ---
 
 ### Plugin Test Harness
@@ -148,11 +275,73 @@ A harness loads a plugin in isolation but provides:
 - A minimal DOM environment (via JSDOM).
 - The same SDK contracts as the real host.
 
+**VS Code Extension Test Runner**:
+
+```typescript
+// Built-in extension testing framework
+import * as vscode from 'vscode';
+import { runTests } from '@vscode/test-electron';
+
+// Launches Extension Development Host
+const extensionDevelopmentPath = path.resolve(__dirname, '../../');
+const extensionTestsPath = path.resolve(__dirname, './suite/index');
+
+await runTests({
+  extensionDevelopmentPath,
+  extensionTestsPath,
+  launchArgs: ['--disable-extensions'], // Isolate from other extensions
+});
+```
+
+**Backstage Service Mocking**:
+
+```typescript
+// Dependency injection enables easy mocking
+const mockServices = {
+  logger: { info: jest.fn(), error: jest.fn() },
+  database: createMockDatabase(),
+  config: createMockConfig({
+    'catalog.rules': [{ allow: ['Component'] }],
+  }),
+};
+
+const plugin = createPlugin({
+  id: 'test-plugin',
+  register: (env) => {
+    // Inject mocked services
+    env.registerInit({
+      deps: mockServices,
+      async init(deps) {
+        // Plugin code runs with mocks
+      },
+    });
+  },
+});
+```
+
 ---
 
 ### Automated Testing Pipeline
 
 Integrate tests into CI/CD so that every plugin change runs all applicable tests before release.
+
+**Multi-Environment Testing Matrix**:
+
+```yaml
+# GitHub Actions example
+strategy:
+  matrix:
+    node-version: [16, 18, 20]
+    plugin-host: [development, production]
+    database: [sqlite, postgresql]
+
+steps:
+  - name: Test Plugin
+    run: |
+      npm run test:unit
+      npm run test:integration
+      npm run test:e2e
+```
 
 ---
 
@@ -161,6 +350,24 @@ Integrate tests into CI/CD so that every plugin change runs all applicable tests
 - Each plugin has its own test suite.
 - The host also has integration tests for all **approved** plugins.
 - Failures in either block deployment.
+
+**Plugin Compatibility Testing**:
+
+```typescript
+// Test plugin against multiple host versions
+describe('Plugin Compatibility', () => {
+  const hostVersions = ['1.0.0', '1.1.0', '2.0.0'];
+
+  hostVersions.forEach((version) => {
+    it(`works with host v${version}`, async () => {
+      const host = await createHost({ version });
+      const plugin = await loadPlugin('./my-plugin');
+
+      await expect(host.loadPlugin(plugin)).resolves.not.toThrow();
+    });
+  });
+});
+```
 
 ---
 
@@ -174,11 +381,55 @@ Integrate tests into CI/CD so that every plugin change runs all applicable tests
 - Works with `ts-vitest` for TypeScript-based plugins.
 - Can mock SDK services and host APIs.
 
+**Vite Plugin Testing Pattern**:
+
+```typescript
+// Test build-time transformations
+import { build } from 'vite';
+import myPlugin from './my-plugin';
+
+it('should transform code correctly', async () => {
+  const result = await build({
+    plugins: [myPlugin()],
+    build: { write: false },
+    rollupOptions: {
+      input: 'test-input.js',
+    },
+  });
+
+  expect(result.output[0].code).toContain('expected-output');
+});
+```
+
 ---
 
 ### Testing Library Integration
 
 For UI plugins, `@testing-library/react` or `@testing-library/vue` works with framework-specific adapters to validate rendering and user interaction.
+
+**TinaCMS Plugin UI Testing**:
+
+```typescript
+// Test React-based CMS plugins
+import { render, screen } from '@testing-library/react';
+import { TinaCMS, usePlugin } from 'tinacms';
+
+function TestComponent() {
+  const cms = new TinaCMS();
+  usePlugin({
+    __type: 'screen',
+    name: 'Test Screen',
+    Component: () => <div>Plugin UI</div>
+  });
+
+  return <div>Test</div>;
+}
+
+it('should register screen plugin', () => {
+  render(<TestComponent />);
+  expect(screen.getByText('Plugin UI')).toBeInTheDocument();
+});
+```
 
 ---
 
@@ -187,6 +438,26 @@ For UI plugins, `@testing-library/react` or `@testing-library/vue` works with fr
 - Launches the full host app with plugins enabled.
 - Simulates user interactions across browsers.
 - Can run headless in CI pipelines.
+
+**VS Code Extension E2E Testing**:
+
+```typescript
+// Test extension in real VS Code instance
+import { test, expect } from '@playwright/test';
+
+test('extension activates on command', async ({ page }) => {
+  // Launch VS Code with extension
+  await page.goto('vscode://file/test-workspace');
+
+  // Trigger extension command
+  await page.keyboard.press('Control+Shift+P');
+  await page.fill('[placeholder="Type a command"]', 'My Extension: Test Command');
+  await page.press('[placeholder="Type a command"]', 'Enter');
+
+  // Verify extension response
+  await expect(page.locator('.notification')).toContainText('Extension activated');
+});
+```
 
 ---
 
@@ -197,6 +468,68 @@ Provide shared utilities for plugin developers:
 - **Mock SDK** generator.
 - **Event bus spy** to track emissions.
 - **Permission mocker** for security tests.
+
+**Backstage Testing Utilities**:
+
+```typescript
+// Official testing utilities
+import { createServiceRef, mockServices } from '@backstage/backend-test-utils';
+
+const { startTestBackend } = createServiceRef({
+  id: 'test.backend',
+  deps: {
+    config: mockServices.rootConfig.factory({
+      data: {
+        backend: { database: { client: 'better-sqlite3' } },
+      },
+    }),
+  },
+});
+```
+
+**NocoBase Plugin Test Framework**:
+
+```typescript
+// Built-in plugin testing utilities
+import { MockServer, createMockApp } from '@nocobase/test';
+
+class PluginTestSuite {
+  async createApp(options = {}) {
+    return createMockApp({
+      database: ':memory:',
+      plugins: ['users', 'acl'], // Core plugins
+      ...options,
+    });
+  }
+
+  async mockUser(role = 'user') {
+    return this.app.db.getCollection('users').create({
+      roles: [role],
+    });
+  }
+}
+```
+
+**AST Testing for Build Tools** (Babel-style):
+
+```typescript
+// Test AST transformations
+import { transformSync } from '@babel/core';
+import myPlugin from './babel-plugin-my-transform';
+
+function testTransform(input: string, expected: string) {
+  const result = transformSync(input, {
+    plugins: [myPlugin],
+    filename: 'test.js',
+  });
+
+  expect(result.code).toBe(expected);
+}
+
+it('transforms arrow functions', () => {
+  testTransform('const fn = () => {};', 'const fn = function() {};');
+});
+```
 
 ---
 
@@ -212,16 +545,47 @@ All plugin submissions should undergo:
 - Performance profiling.
 - API usage review (ensuring correct SDK calls).
 
+**VS Code Extension Review Checklist**:
+
+- ✅ Activation events are properly scoped
+- ✅ No synchronous file system operations
+- ✅ Proper disposal of resources
+- ✅ TypeScript definitions are accurate
+- ✅ Extension doesn't override core editor behavior
+
+**Backstage Plugin Review**:
+
+- ✅ Dependencies are properly declared
+- ✅ Service interfaces are implemented correctly
+- ✅ Configuration schema is valid
+- ✅ Error handling follows patterns
+- ✅ Tests cover main functionality
+
 ---
 
 ### Plugin Certification Process
 
 Before distribution:
 
-1. Automated test pass.
-2. Manual QA checks.
-3. Security scan.
-4. Approval from maintainers.
+1. **Automated test pass** - All unit, integration, and E2E tests
+2. **Manual QA checks** - User experience validation
+3. **Security scan** - Static analysis and vulnerability checks
+4. **Performance benchmarking** - Load time and resource usage
+5. **Approval from maintainers** - Final review and sign-off
+
+**NocoBase Plugin Validation**:
+
+```bash
+# Built-in validation command
+nocobase validate plugin ./my-plugin
+
+# Checks:
+# - Package.json structure
+# - Required lifecycle methods
+# - Database collection schemas
+# - Permission declarations
+# - API endpoint validation
+```
 
 ---
 
@@ -231,11 +595,121 @@ Before distribution:
 - Validate manifest against schema.
 - Ensure declared permissions match usage.
 
+**Automated Security Scanning**:
+
+```typescript
+// Static analysis patterns to detect
+const DANGEROUS_PATTERNS = [
+  /eval\(/, // Direct eval usage
+  /Function\(/, // Function constructor
+  /\.innerHTML\s*=/, // Unsafe HTML injection
+  /document\.write\(/, // Document write
+  /window\[.*\]/, // Dynamic window access
+];
+
+// VS Code Content Security Policy validation
+function validateWebviewCSP(csp: string) {
+  const requiredPolicies = ["default-src 'none'", "script-src 'nonce-{nonce}'", "style-src 'unsafe-inline'"];
+
+  return requiredPolicies.every((policy) => csp.includes(policy));
+}
+```
+
 ---
 
 ### Performance Benchmarking
 
 Benchmark every plugin against baseline load time, memory usage, and CPU consumption. Flag outliers for optimization.
+
+**Plugin Performance Testing**:
+
+```typescript
+// Automated performance testing
+import { performance } from 'perf_hooks';
+
+describe('Plugin Performance', () => {
+  it('loads within acceptable time', async () => {
+    const start = performance.now();
+
+    await loadPlugin('./my-plugin');
+
+    const loadTime = performance.now() - start;
+    expect(loadTime).toBeLessThan(100); // 100ms max load time
+  });
+
+  it('uses acceptable memory', async () => {
+    const beforeMemory = process.memoryUsage().heapUsed;
+
+    const plugin = await loadPlugin('./my-plugin');
+    await plugin.initialize();
+
+    const afterMemory = process.memoryUsage().heapUsed;
+    const memoryIncrease = afterMemory - beforeMemory;
+
+    expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024); // 10MB max
+  });
+});
+```
+
+**Build Performance Testing** (Vite plugins):
+
+```typescript
+// Test impact on build speed
+it('does not significantly slow build', async () => {
+  const withoutPlugin = await measureBuildTime([]);
+  const withPlugin = await measureBuildTime([myPlugin()]);
+
+  const overhead = withPlugin - withoutPlugin;
+  expect(overhead).toBeLessThan(500); // 500ms max overhead
+});
+```
+
+---
+
+### Compatibility Matrix Testing
+
+**Cross-Version Testing**:
+
+```typescript
+// Test plugin across host versions
+const HOST_VERSIONS = ['1.0.0', '1.1.0', '2.0.0'];
+const NODE_VERSIONS = ['16', '18', '20'];
+
+HOST_VERSIONS.forEach((hostVersion) => {
+  NODE_VERSIONS.forEach((nodeVersion) => {
+    it(`works with host v${hostVersion} on Node ${nodeVersion}`, async () => {
+      const env = await createTestEnvironment({ hostVersion, nodeVersion });
+      await expect(env.loadPlugin('./my-plugin')).resolves.not.toThrow();
+    });
+  });
+});
+```
+
+**Plugin Interaction Testing**:
+
+```typescript
+// Test how plugins interact with each other
+describe('Plugin Interactions', () => {
+  it('does not conflict with popular plugins', async () => {
+    const popularPlugins = ['auth-plugin', 'ui-theme', 'analytics'];
+
+    const app = await createTestApp();
+
+    // Load popular plugins first
+    for (const plugin of popularPlugins) {
+      await app.loadPlugin(plugin);
+    }
+
+    // Then load our plugin
+    await expect(app.loadPlugin('./my-plugin')).resolves.not.toThrow();
+
+    // Verify all plugins still work
+    for (const plugin of popularPlugins) {
+      expect(app.getPlugin(plugin).isActive()).toBe(true);
+    }
+  });
+});
+```
 
 ---
 
@@ -243,10 +717,25 @@ Benchmark every plugin against baseline load time, memory usage, and CPU consump
 
 A reliable plugin ecosystem:
 
-1. Tests **plugins in isolation** and **with the host**.
-2. Simulates **real-world runtime conditions**.
-3. Uses a **repeatable CI/CD pipeline** to enforce quality.
-4. Integrates **security and performance checks** into QA.
+1. **Provides dedicated testing infrastructure** - Extension Development Hosts (VS Code), test utilities (NocoBase), service mocking (Backstage).
+
+2. Tests **plugins in isolation** and **with the host** - Mock environments for unit tests, real hosts for integration tests.
+
+3. Simulates **real-world runtime conditions** - Process isolation, permission systems, database states, build environments.
+
+4. Uses **dependency injection** for testability - Makes mocking services straightforward and tests more reliable.
+
+5. Implements **automated quality gates** - Performance benchmarks, security scans, compatibility matrices.
+
+6. Uses a **repeatable CI/CD pipeline** to enforce quality standards across all plugins.
+
+7. **Tests plugin interactions** - Ensures plugins work together without conflicts.
+
+8. Integrates **security and performance checks** into QA processes - Static analysis, resource monitoring, CSP validation.
+
+9. **Provides testing utilities** - Shared mocks, test harnesses, and framework-specific helpers.
+
+10. **Tests across environments** - Development vs production, different host versions, multiple runtime configurations.
 
 ---
 
