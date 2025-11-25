@@ -41,17 +41,37 @@ The Plugin SDK is both a **security boundary** and a **developer toolkit**. Its 
 
 ### Design Principles
 
+Drawing from battle-tested architectures like Babel, VS Code, Backstage, and Kibana, we've identified core principles for SDK design:
+
 1. **Minimal Core, Extensible Modules**
    Keep the core SDK small—only essential features. New features should be opt-in via extensions.
 
+   **Inspiration from Babel**: Babel's visitor pattern demonstrates how a minimal core API (just `visitor`, `pre`, `post`) can support hundreds of transformation use cases. Only the `visitor` property is commonly used—the others exist for edge cases, avoiding the "kitchen sink" antipattern.
+
 2. **Progressive Disclosure**
-   Group APIs by domain (`routes`, `menus`, `widgets`, etc.) so developers aren’t overwhelmed.
+   Group APIs by domain (`routes`, `menus`, `widgets`, etc.) so developers aren't overwhelmed.
+
+   **Inspiration from VS Code**: VS Code organizes its API into logical namespaces (`vscode.window`, `vscode.workspace`, `vscode.languages`) with over 30 contribution points. Developers discover functionality through IDE autocomplete rather than reading documentation.
 
 3. **Backward Compatibility**
    Never remove or change existing methods without a migration path.
 
+   **Inspiration from Backstage**: Backstage's service references and extension points use TypeScript interfaces that can evolve independently. Plugins compiled against older interfaces continue working as the platform adds new methods (interface extension, not modification).
+
 4. **Framework Neutrality**
    Use `unknown` for UI component types at the core, and let adapters specialize them.
+
+   **Inspiration from Kibana**: Kibana's dual-environment architecture demonstrates how the same plugin patterns work across server (Node.js) and client (browser) environments with symmetric lifecycle phases.
+
+5. **Declarative Over Imperative** (New principle)
+   Let plugin authors *declare* what to extend, not *implement* how to integrate.
+
+   **Inspiration from Babel**: Visitors let developers specify *which* AST nodes to transform, while Babel handles traversal complexity. Similarly, your SDK should handle the mechanics of integration—routing, rendering, state management—while plugins focus on their unique logic.
+
+6. **Rich Context Objects** (New principle)
+   Provide high-level abstractions that encapsulate complexity.
+
+   **Inspiration from Babel & Vendure**: Babel's `Path` object wraps AST nodes with parent relationships, scope information, and transformation methods. Vendure's `Injector` gives strategies access to the full DI container. Your SDK should provide context objects that make common tasks trivial.
 
 ---
 
@@ -144,7 +164,7 @@ export interface PluginSDK {
 
 ## 7.3 Developer Experience Features
 
-A great SDK isn’t just functional—it’s enjoyable to use.
+A great SDK isn't just functional—it's enjoyable to use.
 
 ---
 
@@ -156,11 +176,37 @@ Every SDK method and object is fully typed. This gives:
 - Compile-time errors for misuse.
 - Clear documentation embedded in types.
 
+**Real-world pattern from Backstage**: Use TypeScript's type inference to eliminate boilerplate. When developers declare dependencies, the system automatically infers their types:
+
+```ts
+// Backstage's DepsToInstances pattern
+env.registerInit({
+  deps: {
+    database: coreServices.database,
+    logger: coreServices.logger,
+  },
+  async init(deps) {
+    // deps.database: DatabaseService (automatically typed!)
+    // deps.logger: LoggerService (automatically typed!)
+  }
+});
+```
+
+This pattern eliminates manual type annotations while maintaining full type safety—developers get autocomplete and error checking without ceremony.
+
 ---
 
 ### IntelliSense and Auto-completion
 
 Group related APIs under nested objects (`sdk.routes.add`) so auto-completion helps developers discover functionality.
+
+**VS Code approach**: The `vscode` module provides comprehensive TypeScript definitions with inline documentation. Every API method includes:
+- Description of what it does
+- Parameter explanations with examples
+- Return value documentation
+- Links to relevant guides
+
+Your SDK should follow this pattern—treat TypeScript definitions as first-class documentation.
 
 ---
 
@@ -174,11 +220,36 @@ sdk.routes.add({
 });
 ```
 
+**Babel's approach to error handling**: Combine strict validation with helpful suggestions:
+
+```
+Error: Cannot find plugin 'arrow-functions'
+- Did you mean "@vendor/plugin-transform-arrow-functions"?
+- Did you accidentally pass a preset as a plugin?
+- Check your plugin configuration for typos
+```
+
+The system tries likely alternatives and suggests fixes—a pattern combining correctness with helpful UX.
+
+**VS Code's multi-level error handling**:
+- **Activation Errors**: Log with full stack traces, notify users with actionable messages
+- **Runtime Errors**: Catch and log without crashing other plugins
+- **Host Crashes**: Automatic restart with crash loop prevention
+
+Your SDK should implement similar resilience—no single plugin should compromise the entire system.
+
 ---
 
 ### Documentation and Examples
 
 Inline JSDoc comments in the SDK source double as API docs in IDE tooltips.
+
+**Documentation layers** (inspired by VS Code):
+1. **Inline JSDoc**: Immediate help in the IDE
+2. **API Reference**: Generated from TypeScript definitions
+3. **Conceptual Guides**: How different APIs work together
+4. **Example Plugins**: Practical demonstrations of every pattern
+5. **Migration Guides**: When breaking changes are unavoidable
 
 ---
 
@@ -224,7 +295,186 @@ Provide an official build config (Webpack, Vite, etc.) so developers don’t str
 
 ---
 
-## 7.5 API Versioning and Evolution
+## 7.5 Advanced SDK Patterns
+
+Before diving into versioning, let's explore advanced patterns from production plugin systems.
+
+---
+
+### The Factory Pattern for SDK Construction
+
+**Inspiration from Babel**: Rather than exposing the SDK directly, use a factory function that receives a plugin API object:
+
+```ts
+export function createPlugin(factory: (api: PluginAPI) => PluginObject) {
+  return factory;
+}
+
+// Plugin author uses it:
+export default createPlugin((api) => {
+  // api.cache enables intelligent rebuild optimization
+  // api.types provides AST builders without imports
+  // api.assertVersion ensures compatibility
+
+  return {
+    name: 'my-plugin',
+    visitor: {
+      // transformation logic
+    }
+  };
+});
+```
+
+**Benefits**:
+1. **Version isolation**: API methods can polyfill newer features for older host versions
+2. **Dependency injection**: Plugins receive utilities without explicit imports
+3. **Future-proofing**: New API methods can be added without breaking existing plugins
+
+---
+
+### Service References as First-Class Values
+
+**Inspiration from Backstage**: Instead of string-based service lookups, use typed service references:
+
+```ts
+export interface ServiceRef<TService> {
+  id: string;
+  scope: 'root' | 'plugin';
+  $$type: '@app/ServiceRef';
+}
+
+export const coreServices = {
+  database: createServiceRef<DatabaseService>({
+    id: 'core.database',
+    scope: 'plugin',  // One instance per plugin
+  }),
+  logger: createServiceRef<LoggerService>({
+    id: 'core.logger',
+    scope: 'plugin',
+  }),
+};
+
+// Usage with automatic type inference:
+sdk.inject({
+  deps: {
+    db: coreServices.database,
+    log: coreServices.logger,
+  },
+  handler: ({ db, log }) => {
+    // db: DatabaseService (fully typed!)
+    // log: LoggerService (fully typed!)
+  }
+});
+```
+
+This eliminates string-based lookups while maintaining type safety.
+
+---
+
+### Extension Points for Controlled Extensibility
+
+**Inspiration from Backstage**: Enable plugins to expose functionality to other plugins without creating tight coupling:
+
+```ts
+// Core plugin defines extension point
+export interface SearchExtensionPoint {
+  addIndexer(indexer: SearchIndexer): void;
+  addRanker(ranker: SearchRanker): void;
+}
+
+export const searchExtensionPoint =
+  createExtensionPoint<SearchExtensionPoint>({
+    id: 'search.extension',
+  });
+
+// Module extends the plugin
+export const githubSearchModule = createModule({
+  pluginId: 'search',
+  moduleId: 'github',
+  register(env) {
+    env.registerInit({
+      deps: {
+        search: searchExtensionPoint,  // Dependency on extension point!
+      },
+      async init({ search }) {
+        search.addIndexer(new GithubRepoIndexer());
+        search.addRanker(new GithubStarRanker());
+      }
+    });
+  }
+});
+```
+
+**Key insights**:
+- Modules extend plugins **without code modification**
+- Extension points are **dependency-injected** like services
+- Plugin controls **what** is extensible, module controls **how**
+
+---
+
+### Strategy Pattern for Business Logic
+
+**Inspiration from Vendure**: For complex customization points, use strategy interfaces rather than events:
+
+```ts
+// Define strategy interface
+export interface PaymentStrategy {
+  readonly id: string;
+  init?(injector: Injector): Promise<void>;
+  createPayment(context: PaymentContext): Promise<Payment>;
+  capturePayment(paymentId: string): Promise<void>;
+  refundPayment(paymentId: string, amount: number): Promise<void>;
+  destroy?(): Promise<void>;
+}
+
+// Register via configuration
+sdk.config.payment.strategies.push(new StripePaymentStrategy());
+
+// The system calls the appropriate strategy based on context
+const payment = await paymentService.create(order);
+// This internally resolves and calls the registered strategy
+```
+
+**Benefits over event hooks**:
+- Clear contract (all methods must be implemented)
+- Easier testing (mock the strategy interface)
+- Better documentation (TypeScript interface is self-documenting)
+- Lifecycle support (`init`, `destroy`)
+
+---
+
+### Database-Driven Configuration
+
+**Inspiration from NocoBase**: For applications requiring runtime reconfiguration, persist plugin state in the database:
+
+```ts
+// Plugin state in database
+interface PluginState {
+  name: string;
+  enabled: boolean;
+  installed: boolean;
+  version: string;
+  options: Record<string, unknown>;
+}
+
+// Enable/disable plugins at runtime
+await pluginManager.enable('analytics', {
+  trackingId: 'UA-12345',
+  sampleRate: 0.1
+});
+
+// Changes persist and sync across all app instances
+```
+
+This enables:
+- Multi-tenant plugin configurations
+- Hot-swapping plugins without restart (if architecture supports)
+- Audit trails for plugin changes
+- UI-driven plugin management
+
+---
+
+## 7.6 API Versioning and Evolution
 
 Even the best SDK will change over time. The challenge is **adding features without breaking existing plugins**.
 
@@ -238,11 +488,38 @@ Follow **SemVer** for the SDK package:
 - **MINOR** — Backward-compatible feature additions.
 - **PATCH** — Bug fixes only.
 
+**Vendure's approach**: Plugins declare compatibility ranges:
+
+```ts
+@VendurePlugin({
+  compatibility: '^3.0.0',  // Works with any 3.x version
+})
+export class MyPlugin {}
+```
+
+The system validates compatibility at load time and rejects incompatible plugins with clear error messages.
+
 ---
 
 ### Deprecation Policies
 
 Mark old APIs with `@deprecated` in TypeScript and maintain them until the next major release.
+
+**Multi-phase deprecation** (inspired by VS Code):
+
+```ts
+/**
+ * @deprecated Use `sdk.storage.set()` instead. Will be removed in v4.0.0
+ */
+sdk.localStorage.save = (key: string, value: unknown) => {
+  console.warn('sdk.localStorage.save is deprecated. Use sdk.storage.set instead.');
+  return sdk.storage.set(key, value);
+};
+```
+
+**Phase 1**: Mark as deprecated, provide migration path
+**Phase 2**: Log warnings in console when used
+**Phase 3**: Remove in next major version
 
 ---
 
@@ -250,15 +527,113 @@ Mark old APIs with `@deprecated` in TypeScript and maintain them until the next 
 
 Provide codemods or automated scripts to help developers update their plugins.
 
+**Babel's approach**: Use AST transformation to automatically update plugin code:
+
+```bash
+npx @vendor/plugin-migrate upgrade --from=3.0 --to=4.0
+```
+
+This script can:
+- Rename method calls
+- Update import statements
+- Refactor parameter orders
+- Add required new properties
+
+---
+
+### API Proposals for Experimental Features
+
+**VS Code's approach**: Experimental APIs require explicit opt-in:
+
+```ts
+// package.json
+{
+  "enabledApiProposals": [
+    "fileSearchProvider",
+    "textSearchProvider"
+  ]
+}
+```
+
+Plugins cannot access proposed APIs without declaring them. This allows the SDK to:
+- Test new APIs with early adopters
+- Gather feedback before stabilization
+- Make breaking changes to proposals without major version bumps
+- Graduate proposals to stable API when ready
+
 ---
 
 ### Breaking Change Management
 
 If a major change is unavoidable:
 
-1. Announce early.
-2. Maintain dual APIs temporarily.
-3. Provide migration examples.
+1. **Announce early** (3-6 months before release)
+2. **Maintain dual APIs temporarily** (old + new)
+3. **Provide migration examples** and detailed upgrade guides
+4. **Version your types**: Support both old and new TypeScript interfaces
+
+**Example of dual API support**:
+
+```ts
+// Support both old and new signatures during transition period
+function addRoute(
+  pathOrOptions: string | RouteOptions,
+  component?: ComponentType
+): void {
+  if (typeof pathOrOptions === 'string') {
+    // Old API (deprecated)
+    console.warn('String path is deprecated. Use RouteOptions object.');
+    this.registerRoute({ path: pathOrOptions, component: component! });
+  } else {
+    // New API
+    this.registerRoute(pathOrOptions);
+  }
+}
+```
+
+---
+
+## 7.7 SDK Design Comparison: Learning from Production Systems
+
+Here's how different plugin architectures approach SDK design:
+
+| Aspect | Babel | VS Code | Backstage | Kibana | Vendure | NocoBase |
+|--------|-------|---------|-----------|--------|---------|----------|
+| **API Style** | Declarative (visitors) | Imperative (event handlers) | Dependency Injection | Dual DI (client/server) | Decorator-based | Application-scoped |
+| **Type Safety** | Full TypeScript | Full TypeScript | Full TypeScript | Full TypeScript | Full TypeScript | TypeScript |
+| **Extension Model** | Visitor pattern | Contribution points | Extension points | Contracts | Strategies | Resources + Events |
+| **Dependency Resolution** | None (single-file) | Explicit dependencies | Service references | Topological sort | NestJS DI | Topological sort |
+| **API Evolution** | Factory pattern | Proposal system | Interface extension | Contract versioning | Compatibility ranges | Event-driven |
+| **Error Handling** | Fail-fast with suggestions | Multi-level isolation | Graceful degradation | Phase-specific | Trust-based validation | Transactional state |
+| **Configuration** | Code-based | Declarative manifest | YAML + TypeScript | YAML schemas | Code (TypeScript) | Database-driven |
+| **Best For** | AST transformations | IDE extensions | Developer portals | Data visualization | E-commerce | Low-code platforms |
+
+**Key patterns to adopt**:
+
+### When to use Declarative APIs (like Babel)
+- **Perfect for**: Domain-specific transformations, data processing, code generation
+- **Example**: AST traversal, schema validation, template processing
+- **Benefit**: Plugin authors focus on *what* to transform, system handles *how*
+
+### When to use Contribution Points (like VS Code)
+- **Perfect for**: UI extensions, multi-language tools, modular applications
+- **Example**: Commands, menus, views, language features
+- **Benefit**: Clear extension boundaries with type-safe metadata
+
+### When to use Extension Points (like Backstage)
+- **Perfect for**: Plugin-to-plugin extensibility, enterprise platforms
+- **Example**: Search indexers, authentication providers, catalog processors
+- **Benefit**: Controlled extensibility without tight coupling
+
+### When to use Strategy Pattern (like Vendure)
+- **Perfect for**: Business logic customization, algorithms, complex workflows
+- **Example**: Payment processing, shipping calculations, tax strategies
+- **Benefit**: Clear contracts with lifecycle support
+
+### When to use Events (like NocoBase)
+- **Perfect for**: Cross-cutting concerns, reactive workflows, audit trails
+- **Example**: User creation triggers, state changes, notifications
+- **Benefit**: Loose coupling with runtime flexibility
 
 ---
 
@@ -270,7 +645,28 @@ The **Plugin SDK** is:
 - Designed for **safety**, **extensibility**, and **developer happiness**.
 - A living API that must evolve without leaving old plugins behind.
 
+**Lessons from battle-tested architectures**:
+
+1. **Declarative Over Imperative** (Babel): Let developers specify *what* to do, not *how* to do it
+2. **Rich Context Objects** (Babel, Vendure): Encapsulate complexity in high-level abstractions
+3. **Type-Safe Dependency Injection** (Backstage): Use service references as first-class values
+4. **Extension Points** (Backstage): Enable controlled plugin-to-plugin extensibility
+5. **Strategy Pattern** (Vendure): Use interfaces for complex business logic, not just events
+6. **Multi-Phase Deprecation** (VS Code): Mark, warn, then remove deprecated APIs
+7. **API Proposals** (VS Code): Test experimental features before stabilization
+8. **Factory Pattern** (Babel): Indirect SDK construction enables version isolation
+9. **Progressive Disclosure** (VS Code): Organize APIs by domain with clear namespaces
+10. **Fail Fast with Helpful Messages** (Babel): Validate early, fail loudly, suggest fixes
+
+**When designing your SDK**:
+
+- **Start simple**: Minimal core with extension points for growth
+- **Think in layers**: Core APIs → Domain APIs → Convenience APIs
+- **Prioritize DX**: IntelliSense, type safety, and clear errors matter more than features
+- **Plan for evolution**: Use deprecation cycles, maintain compatibility, version carefully
+- **Learn from others**: Study Babel, VS Code, Backstage, Kibana, Vendure—each solves different problems well
+
 ---
 
 **Next up:**
-In **Chapter 8**, we’ll look at **Event-Driven Communication and Inter-Plugin Messaging**—how plugins talk to each other and the host without tight coupling, and how an event bus architecture keeps the system modular and maintainable.
+In **Chapter 8**, we'll look at **Event-Driven Communication and Inter-Plugin Messaging**—how plugins talk to each other and the host without tight coupling, and how an event bus architecture keeps the system modular and maintainable.

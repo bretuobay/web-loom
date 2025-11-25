@@ -78,27 +78,6 @@
           "options": {
             "buildTarget": "mvvm-angular:build"
           }
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "polyfills": ["zone.js", "zone.js/testing"],
-            "tsConfig": "tsconfig.spec.json",
-            "inlineStyleLanguage": "scss",
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
-            "styles": [
-              "src/styles.scss",
-              "../../packages/shared/src/css/minimal-reset.css",
-              "../../packages/shared/src/css/global.css",
-              "../../packages/shared/src/css/form.css"
-            ],
-            "scripts": []
-          }
         }
       }
     }

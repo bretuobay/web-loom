@@ -9,23 +9,24 @@ nextSlug: '/docs/09-security-considerations'
 
 # Chapter 8: Event-Driven Communication and Inter-Plugin Messaging
 
-So far, we’ve designed the **Plugin SDK** as the official bridge between plugins and the host application.
-But what about **plugin-to-plugin communication**?
-In a large ecosystem, plugins will inevitably need to:
+So far, we've designed the **Plugin SDK** as the official bridge between plugins and the host application. But what about **plugin-to-plugin communication**?
 
-- React to changes triggered by other plugins.
-- Share data without creating direct dependencies.
-- Coordinate workflows while remaining loosely coupled.
+In a large ecosystem, plugins inevitably need to:
 
-The solution is an **event-driven communication model**—a system where plugins exchange information through a **central event bus** instead of calling each other’s code directly.
+- React to changes triggered by other plugins
+- Share data without creating direct dependencies
+- Coordinate workflows while remaining loosely coupled
+- Handle complex multi-step processes across plugin boundaries
 
-In this chapter, we’ll explore:
+Production plugin systems demonstrate that **event-driven communication** is not just helpful—it's essential for scalable plugin architectures. Systems like **TinaCMS** (React-focused CMS), **Backstage** (developer platforms), **Beekeeper Studio** (database tools), and **NocoBase** (enterprise platforms) each showcase different approaches to event-driven plugin coordination.
 
-1. **Event system architecture** — how the event bus fits into the host.
-2. **Inter-plugin communication patterns** — direct, shared state, and service-based.
-3. **Asynchronous communication** — handling long-running or delayed events.
-4. **Performance considerations** — keeping event handling efficient.
-5. **Security and isolation** — ensuring events can’t be abused.
+This chapter examines real-world event communication patterns, analyzing their trade-offs and implementation strategies:
+
+1. **Event system architecture** — from simple pub/sub to sophisticated event streams
+2. **Production communication patterns** — how successful systems handle plugin coordination
+3. **Message passing protocols** — structured communication in isolated environments
+4. **Performance and security** — keeping events fast and safe
+5. **Framework-specific adaptations** — integrating events with React, Vue, and other frameworks
 
 ---
 
@@ -180,83 +181,275 @@ setTimeout(() => {
 
 ---
 
-## 8.4 Performance Considerations
+## 8.4 Performance and Security — Production Lessons
 
-Events can become a bottleneck if poorly managed.
+### Performance Optimization Strategies
 
----
-
-### Message Throttling and Debouncing
-
-Prevent flooding the event bus with rapid events:
-
-- **Throttle** high-frequency events (e.g., window resize).
-- **Debounce** to wait until the last event in a burst (e.g., search input changes).
-
----
-
-### Memory Management for Event Handlers
-
-Always remove listeners when a plugin is unmounted:
+**Event Batching and Debouncing (TinaCMS Pattern)**
 
 ```ts
-sdk.events.off('theme:change', handler);
+class OptimizedEventBus {
+  private batchedEvents = new Map<string, unknown[]>();
+  private batchTimer?: number;
+  private readonly batchDelay = 16; // ~60fps
+
+  emit(event: string, payload: unknown): void {
+    // Batch high-frequency events
+    if (this.shouldBatch(event)) {
+      this.addToBatch(event, payload);
+      return;
+    }
+
+    // Immediate delivery for critical events
+    this.deliverImmediate(event, payload);
+  }
+
+  private addToBatch(event: string, payload: unknown): void {
+    if (!this.batchedEvents.has(event)) {
+      this.batchedEvents.set(event, []);
+    }
+    this.batchedEvents.get(event)!.push(payload);
+
+    // Schedule batch delivery
+    if (!this.batchTimer) {
+      this.batchTimer = window.setTimeout(() => {
+        this.flushBatches();
+      }, this.batchDelay);
+    }
+  }
+
+  private flushBatches(): void {
+    for (const [event, payloads] of this.batchedEvents) {
+      this.deliverBatch(event, payloads);
+    }
+    this.batchedEvents.clear();
+    this.batchTimer = undefined;
+  }
+}
+```
+
+**Memory Management (VS Code Pattern)**
+
+```ts
+class MemoryEfficientEventBus {
+  private listeners = new WeakMap<object, Set<EventListener>>();
+  private maxListenersPerEvent = 100;
+
+  subscribe(owner: object, pattern: string, handler: EventHandler): () => void {
+    // Track listeners by owner for automatic cleanup
+    if (!this.listeners.has(owner)) {
+      this.listeners.set(owner, new Set());
+    }
+
+    const listener = new EventListener(pattern, handler, owner);
+    this.listeners.get(owner)!.add(listener);
+
+    // Prevent memory leaks from excessive listeners
+    if (this.listeners.get(owner)!.size > this.maxListenersPerEvent) {
+      console.warn(`High listener count for ${pattern}: possible memory leak`);
+    }
+
+    return () => {
+      const ownerListeners = this.listeners.get(owner);
+      if (ownerListeners) {
+        ownerListeners.delete(listener);
+        if (ownerListeners.size === 0) {
+          this.listeners.delete(owner);
+        }
+      }
+    };
+  }
+
+  // Automatic cleanup when plugins unload
+  cleanupPlugin(pluginInstance: object): void {
+    const listeners = this.listeners.get(pluginInstance);
+    if (listeners) {
+      listeners.clear();
+      this.listeners.delete(pluginInstance);
+    }
+  }
+}
+```
+
+### Security and Validation
+
+**Message Validation (Beekeeper Studio Pattern)**
+
+```ts
+interface SecurityContext {
+  pluginId: string;
+  permissions: Set<string>;
+  origin: string;
+}
+
+class SecureEventBus {
+  private allowedActions = new Map<string, Set<string>>();
+
+  async handlePluginMessage(message: PluginMessage, context: SecurityContext): Promise<unknown> {
+    // Validate message structure
+    if (!this.isValidMessage(message)) {
+      throw new SecurityError('Invalid message format');
+    }
+
+    // Check plugin permissions
+    if (!this.hasPermission(context.pluginId, message.name)) {
+      throw new SecurityError(`Plugin ${context.pluginId} not authorized for action: ${message.name}`);
+    }
+
+    // Validate origin for iframe plugins
+    if (!this.isValidOrigin(context.origin, context.pluginId)) {
+      throw new SecurityError('Invalid message origin');
+    }
+
+    // Rate limiting
+    if (await this.isRateLimited(context.pluginId, message.name)) {
+      throw new SecurityError('Rate limit exceeded');
+    }
+
+    // Sanitize arguments
+    const sanitizedArgs = this.sanitizeArguments(message.args);
+
+    try {
+      const result = await this.executeAction(message.name, sanitizedArgs, context);
+
+      // Audit logging
+      this.logAccess({
+        pluginId: context.pluginId,
+        action: message.name,
+        timestamp: new Date(),
+        success: true,
+      });
+
+      return result;
+    } catch (error) {
+      this.logAccess({
+        pluginId: context.pluginId,
+        action: message.name,
+        timestamp: new Date(),
+        success: false,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  private hasPermission(pluginId: string, action: string): boolean {
+    const allowedActionsForPlugin = this.allowedActions.get(pluginId);
+    return allowedActionsForPlugin?.has(action) || false;
+  }
+
+  // Configure permissions based on plugin manifest
+  configurePermissions(pluginId: string, manifest: PluginManifest): void {
+    const allowedActions = new Set<string>();
+
+    // Grant permissions based on manifest capabilities
+    if (manifest.capabilities?.database) {
+      allowedActions.add('getTables');
+      allowedActions.add('getColumns');
+    }
+
+    if (manifest.capabilities?.queries) {
+      allowedActions.add('runQuery');
+      allowedActions.add('explainQuery');
+    }
+
+    this.allowedActions.set(pluginId, allowedActions);
+  }
+}
+```
+
+**Cross-Plugin Security (NocoBase Pattern)**
+
+```ts
+class MultiTenantEventSecurity {
+  async validateCrossTenantEvent(event: TenantEvent, sourcePlugin: string, targetTenantId: string): Promise<boolean> {
+    // Check if plugin is authorized for cross-tenant communication
+    const plugin = await this.getPluginInfo(sourcePlugin);
+    if (!plugin.permissions.includes('cross-tenant-events')) {
+      return false;
+    }
+
+    // Validate event doesn't contain sensitive data
+    if (this.containsSensitiveData(event.payload)) {
+      console.warn(`Plugin ${sourcePlugin} attempted to send sensitive data`);
+      return false;
+    }
+
+    // Check tenant access permissions
+    const hasAccess = await this.checkTenantAccess(sourcePlugin, targetTenantId);
+
+    if (!hasAccess) {
+      this.auditLog({
+        type: 'unauthorized-cross-tenant-access',
+        sourcePlugin,
+        targetTenant: targetTenantId,
+        timestamp: new Date(),
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  private containsSensitiveData(payload: unknown): boolean {
+    const sensitiveFields = ['password', 'token', 'secret', 'key'];
+    const payloadStr = JSON.stringify(payload).toLowerCase();
+
+    return sensitiveFields.some((field) => payloadStr.includes(field));
+  }
+}
 ```
 
 ---
 
-### Garbage Collection Optimization
-
-Avoid closures that capture large objects—pass only the data you need in payloads.
-
 ---
 
-### Performance Monitoring
+## Key Takeaways — Event-Driven Architecture Lessons
 
-Track event emission counts and handler execution times to identify slow or spammy plugins.
+Production plugin systems demonstrate that event-driven communication is essential for scalable architectures, but implementation patterns vary significantly based on architectural constraints:
 
----
+### Pattern Selection Guidelines:
 
-## 8.5 Security and Isolation
+**Use TinaCMS-style React Integration when:**
 
-Events are an **attack surface** if not properly secured.
+- Building React-first applications
+- Component lifecycle management is critical
+- Type safety and developer experience are priorities
 
----
+**Use Backstage-style Extension Points when:**
 
-### Message Validation
+- Building enterprise platforms with complex dependencies
+- Type-safe service composition is required
+- Plugin capabilities need dynamic discovery
 
-The host should validate payloads against a schema before passing them to subscribers.
+**Use Beekeeper Studio-style Message Passing when:**
 
----
+- Security isolation is paramount
+- Plugins run in different execution contexts (iframes, workers)
+- Structured communication with validation is needed
 
-### Cross-Plugin Security
+**Use NocoBase-style Event Sourcing when:**
 
-Only allow plugins to emit/listen to events they have **declared in their manifest**. This prevents accidental or malicious interference.
+- Multi-tenant systems require audit trails
+- Event replay and debugging are important
+- Persistent event history provides business value
 
----
+### Universal Principles:
 
-### Permission-Based Communication
+1. **Memory Management**: Always provide cleanup mechanisms tied to plugin lifecycle
+2. **Type Safety**: Use TypeScript discriminated unions for event schemas
+3. **Performance**: Batch high-frequency events and debounce rapid changes
+4. **Security**: Validate messages, check permissions, and log access
+5. **Developer Experience**: Provide framework-specific integrations (React hooks, RxJS operators)
 
-For sensitive events (e.g., `auth:userData`), require the plugin to have explicit permissions in its manifest before it can subscribe or emit.
+### Architecture Trade-offs:
 
----
-
-### Audit Logging
-
-Log all event emissions from plugins for debugging and security analysis.
-
----
-
-## Key Takeaways
-
-An event-driven architecture for plugins:
-
-1. Keeps communication **loose and scalable**.
-2. Supports multiple patterns—direct messages, shared state, services.
-3. Handles async workflows gracefully.
-4. Maintains performance and security through validation and isolation.
+- **Simplicity vs. Features**: Simple pub/sub is easy but lacks advanced patterns
+- **Security vs. Performance**: Message validation adds overhead but prevents attacks
+- **Type Safety vs. Flexibility**: Strong typing prevents errors but limits dynamic behavior
+- **Isolation vs. Integration**: Process isolation is secure but complicates communication
 
 ---
 
 **Next up:**
-In **Chapter 9**, we’ll dive into **Security Considerations in Plugin Architecture**—how to sandbox execution, design permission systems, and protect the host from malicious or poorly written plugins. This is where safety meets extensibility.
+In **Chapter 9**, we'll dive into **Security Considerations in Plugin Architecture**—examining how production systems handle sandboxing, permission models, and threat mitigation. We'll see how the event communication patterns we've explored integrate with comprehensive security architectures to create trustworthy plugin ecosystems.

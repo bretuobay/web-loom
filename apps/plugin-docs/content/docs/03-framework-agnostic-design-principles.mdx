@@ -175,12 +175,10 @@ Provides typed, RxJS-based event streams:
 
 ```ts
 // Plugin subscribes to typed events
-eventBus
-  .ofType(OrderPlacedEvent)
-  .subscribe(event => {
-    // event.order is fully typed
-    sendConfirmationEmail(event.order);
-  });
+eventBus.ofType(OrderPlacedEvent).subscribe((event) => {
+  // event.order is fully typed
+  sendConfirmationEmail(event.order);
+});
 
 // Publish events
 eventBus.publish(new OrderPlacedEvent({ order }));
@@ -213,7 +211,7 @@ State changes emit events that plugins observe:
 
 ```ts
 // Subscribe to state changes
-const subscription = sdk.state.observe<User>('currentUser').subscribe(user => {
+const subscription = sdk.state.observe<User>('currentUser').subscribe((user) => {
   console.log('User changed:', user);
 });
 
@@ -301,11 +299,11 @@ export interface PluginModule {
 
 **Lifecycle Mapping Across Frameworks**
 
-| Plugin Hook | React | Vue | Angular | Svelte |
-|-------------|-------|-----|---------|--------|
-| `init` | Before first render | `beforeCreate` | `constructor` | `onMount` (before) |
-| `mount` | `useEffect(() => {}, [])` | `mounted` | `ngOnInit` | `onMount` |
-| `unmount` | `useEffect` cleanup | `beforeUnmount` | `ngOnDestroy` | `onDestroy` |
+| Plugin Hook | React                     | Vue             | Angular       | Svelte             |
+| ----------- | ------------------------- | --------------- | ------------- | ------------------ |
+| `init`      | Before first render       | `beforeCreate`  | `constructor` | `onMount` (before) |
+| `mount`     | `useEffect(() => {}, [])` | `mounted`       | `ngOnInit`    | `onMount`          |
+| `unmount`   | `useEffect` cleanup       | `beforeUnmount` | `ngOnDestroy` | `onDestroy`        |
 
 The host's adapter translates plugin lifecycle calls to framework-specific hooks.
 
@@ -386,33 +384,20 @@ Building on production patterns, here's a full-featured adapter:
 ```ts
 interface FrameworkAdapter<TComponent = unknown> {
   /** Component lifecycle */
-  mountComponent: (
-    component: TComponent,
-    container: HTMLElement,
-    props?: Record<string, unknown>
-  ) => ComponentInstance;
+  mountComponent: (component: TComponent, container: HTMLElement, props?: Record<string, unknown>) => ComponentInstance;
 
   unmountComponent: (instance: ComponentInstance) => void;
 
-  updateComponent: (
-    instance: ComponentInstance,
-    props: Record<string, unknown>
-  ) => void;
+  updateComponent: (instance: ComponentInstance, props: Record<string, unknown>) => void;
 
   /** Event handling */
-  addEventListener: (
-    instance: ComponentInstance,
-    event: string,
-    handler: (payload: unknown) => void
-  ) => () => void;
+  addEventListener: (instance: ComponentInstance, event: string, handler: (payload: unknown) => void) => () => void;
 
   /** State synchronization */
   notifyStateChange: (key: string, value: unknown) => void;
 
   /** Reactive bindings (optional) */
-  createReactiveBinding?: <T>(
-    getter: () => T
-  ) => ReactiveValue<T>;
+  createReactiveBinding?: <T>(getter: () => T) => ReactiveValue<T>;
 }
 
 interface ComponentInstance {
@@ -656,17 +641,20 @@ const WebComponentAdapter: FrameworkAdapter<string> = {
 Choose adapters based on your requirements:
 
 **Single Framework (Kibana, Backstage)**
+
 - Simplest approach
 - Direct framework integration
 - Best performance
 - Least flexibility
 
 **Multi-Framework with Build-Time Selection**
+
 - Choose adapter at build time
 - Good performance
 - Moderate complexity
 
 **Runtime Adapter Detection**
+
 - Auto-detect framework
 - Maximum flexibility
 - Higher runtime cost
@@ -697,15 +685,19 @@ Extensions don't render arbitrary UI. Instead, they declare contribution points 
 {
   "contributes": {
     "views": {
-      "explorer": [{
-        "id": "myView",
-        "name": "My Custom View"
-      }]
+      "explorer": [
+        {
+          "id": "myView",
+          "name": "My Custom View"
+        }
+      ]
     },
-    "commands": [{
-      "command": "myExt.doSomething",
-      "title": "Do Something"
-    }]
+    "commands": [
+      {
+        "command": "myExt.doSomething",
+        "title": "Do Something"
+      }
+    ]
   }
 }
 ```
@@ -730,9 +722,9 @@ export const MyPlugin = createPlugin({
 export const MyPage = MyPlugin.provide(
   createRoutableExtension({
     name: 'MyPage',
-    component: () => import('./components/MyPage').then(m => m.MyPage),
+    component: () => import('./components/MyPage').then((m) => m.MyPage),
     mountPoint: rootRouteRef,
-  })
+  }),
 );
 ```
 
@@ -774,9 +766,7 @@ sdk.routes.add({
   path: '/dashboard',
   componentFactory: (sdk) => {
     // Plugin can use SDK to decide which component to return
-    return sdk.system.platform.isBrowser
-      ? BrowserDashboard
-      : ServerDashboard;
+    return sdk.system.platform.isBrowser ? BrowserDashboard : ServerDashboard;
   },
 });
 ```
@@ -1139,7 +1129,7 @@ class ReactiveStateService {
 }
 
 // Any framework can subscribe
-sdk.state.observe<string>('theme').subscribe(theme => {
+sdk.state.observe<string>('theme').subscribe((theme) => {
   console.log('Theme changed:', theme);
 });
 ```
@@ -1245,11 +1235,8 @@ class VirtualList {
 
   render() {
     // Only render items in visible range
-    const items = this.allItems.slice(
-      this.visibleRange.start,
-      this.visibleRange.end
-    );
-    return items.map(item => renderItem(item));
+    const items = this.allItems.slice(this.visibleRange.start, this.visibleRange.end);
+    return items.map((item) => renderItem(item));
   }
 }
 ```
@@ -1299,15 +1286,420 @@ A framework-agnostic plugin architecture succeeds when:
 
 ### Lessons from Production Systems
 
+Production plugin architectures reveal sophisticated strategies for achieving framework independence while maintaining developer experience and performance:
+
+#### VS Code: Process Isolation Enables Universal Extensions
+
+VS Code achieves framework agnosticism by **avoiding UI framework concerns entirely**. Extensions run in separate Node.js processes and communicate with the main UI through a message-passing API:
+
+```ts
+// Extensions provide declarative UI contributions
+{
+  "contributes": {
+    "commands": [{
+      "command": "extension.hello",
+      "title": "Hello World",
+      "icon": "$(heart)"
+    }],
+    "menus": {
+      "editor/context": [{
+        "command": "extension.hello",
+        "when": "editorTextFocus"
+      }]
+    }
+  }
+}
+
+// Extensions don't directly manipulate UI
+export function activate(context: vscode.ExtensionContext) {
+  const disposable = vscode.commands.registerCommand('extension.hello', () => {
+    vscode.window.showInformationMessage('Hello World!');
+  });
+  context.subscriptions.push(disposable);
+}
+```
+
+**Key Insights:**
+
+- **Declarative contributions** eliminate framework coupling
+- **Process isolation** prevents extension UI code from affecting host
+- **Platform abstraction** (editor/context menus) transcends specific frameworks
+
+#### Beekeeper Studio: Iframe Isolation with Framework Freedom
+
+Beekeeper Studio achieves framework agnosticism through **iframe sandboxing**, allowing plugins to use any frontend framework:
+
+```ts
+// Plugin can be built with any framework
+class PluginIframe {
+  private iframe: HTMLIFrameElement;
+
+  constructor(private manifest: PluginManifest) {
+    this.iframe = document.createElement('iframe');
+    this.iframe.src = `plugin://${manifest.id}/index.html`;
+    this.iframe.sandbox = 'allow-scripts allow-same-origin';
+    this.setupCommunication();
+  }
+
+  private setupCommunication(): void {
+    window.addEventListener('message', (event) => {
+      if (event.source === this.iframe.contentWindow) {
+        this.handlePluginMessage(event.data);
+      }
+    });
+  }
+
+  // Host provides framework-agnostic APIs
+  private handlePluginMessage(message: PluginMessage): void {
+    switch (message.type) {
+      case 'getTables':
+        return this.sendToPlugin('tablesResponse', this.databaseService.getTables());
+      case 'runQuery':
+        return this.executeQuery(message.payload);
+      case 'showNotification':
+        return this.notificationService.show(message.payload);
+    }
+  }
+}
+
+// Inside plugin iframe - can use React, Vue, Angular, etc.
+// React example:
+function MyPlugin() {
+  const [tables, setTables] = useState([]);
+
+  useEffect(() => {
+    // Request data from host
+    window.parent.postMessage({ type: 'getTables' }, '*');
+
+    // Listen for response
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'tablesResponse') {
+        setTables(event.data.payload);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  return (
+    <div>
+      {tables.map(table => <TableRow key={table.name} table={table} />)}
+    </div>
+  );
+}
+```
+
+**Key Insights:**
+
+- **Complete isolation** allows any framework without host dependencies
+- **Message-based APIs** provide stable interfaces regardless of plugin framework
+- **Security boundaries** prevent plugin frameworks from affecting host performance
+
+#### TinaCMS: React-First with Universal Field Abstractions
+
+TinaCMS demonstrates framework-specific optimization while maintaining universal patterns:
+
+```ts
+// Framework-agnostic field interface
+interface Field {
+  name: string;
+  type: string;
+  validate?(value: unknown): string | undefined;
+  parse?(value: unknown): unknown;
+  format?(value: unknown): unknown;
+}
+
+// React-specific implementation
+interface FieldPlugin extends Field {
+  __type: 'field';
+  Component: React.FC<FieldProps>;
+}
+
+// Framework adapter pattern
+class FrameworkAdapter<TComponent = unknown> {
+  abstract renderField(field: Field & { Component: TComponent }): unknown;
+  abstract mountComponent(component: TComponent, container: Element): void;
+  abstract unmountComponent(container: Element): void;
+}
+
+// React adapter
+class ReactAdapter extends FrameworkAdapter<React.FC> {
+  renderField(field: FieldPlugin): React.ReactElement {
+    return React.createElement(field.Component, {
+      field,
+      input: this.getFieldInput(field.name),
+      meta: this.getFieldMeta(field.name),
+    });
+  }
+
+  mountComponent(component: React.FC, container: Element): void {
+    const root = ReactDOM.createRoot(container);
+    root.render(React.createElement(component));
+  }
+
+  unmountComponent(container: Element): void {
+    const root = ReactDOM.createRoot(container);
+    root.unmount();
+  }
+}
+
+// Vue adapter (hypothetical)
+class VueAdapter extends FrameworkAdapter<Vue.Component> {
+  renderField(field: Field & { Component: Vue.Component }): Vue.VNode {
+    return h(field.Component, {
+      field,
+      modelValue: this.getFieldValue(field.name),
+      'onUpdate:modelValue': (value: unknown) => this.setFieldValue(field.name, value),
+    });
+  }
+
+  mountComponent(component: Vue.Component, container: Element): void {
+    const app = createApp(component);
+    app.mount(container);
+  }
+}
+```
+
+**Key Insights:**
+
+- **Common interfaces** with framework-specific implementations
+- **Adapter pattern** enables multiple framework backends
+- **Type-safe generics** maintain compile-time safety across frameworks
+
+#### Backstage: Symmetric Dual Environments
+
+Backstage maintains separate but parallel plugin architectures for frontend and backend:
+
+```ts
+// Frontend Plugin (React)
+export const catalogPlugin = createPlugin({
+  id: 'catalog',
+  routes: {
+    catalogIndex: catalogIndexRoute,
+    catalogEntity: catalogEntityRoute,
+  },
+  externalRoutes: {
+    createComponent: scaffolderPlugin.routes.root,
+  },
+});
+
+// Backend Plugin (Node.js)
+export default createBackendPlugin({
+  pluginId: 'catalog',
+  register(env) {
+    env.registerInit({
+      deps: {
+        database: coreServices.database,
+        logger: coreServices.logger,
+      },
+      async init({ database, logger }) {
+        // Backend-specific initialization
+        const catalogClient = new CatalogClient({ database, logger });
+        return createRouter({ catalogClient });
+      },
+    });
+  },
+});
+```
+
+**Key Insights:**
+
+- **Environment-specific patterns** rather than forced unification
+- **Shared lifecycle concepts** (registration, dependencies, initialization)
+- **Type-safe service injection** across both environments
+
+#### NocoBase: Database-Driven Universal Plugins
+
+NocoBase enables framework-agnostic plugins through database-driven configuration:
+
+```ts
+// Plugin defines abstract capabilities
+class WorkflowPlugin extends Plugin {
+  async load() {
+    // Define database schema
+    this.db.collection({
+      name: 'workflows',
+      fields: [
+        { type: 'string', name: 'title' },
+        { type: 'json', name: 'config' },
+        { type: 'boolean', name: 'enabled' },
+      ],
+    });
+
+    // Register API endpoints
+    this.app.resourcer.define({
+      name: 'workflows',
+      actions: {
+        list: this.listWorkflows.bind(this),
+        create: this.createWorkflow.bind(this),
+        execute: this.executeWorkflow.bind(this),
+      },
+    });
+
+    // Register UI schema (framework-agnostic)
+    this.app.schemaManager.add({
+      type: 'page',
+      name: 'workflows',
+      schema: {
+        type: 'void',
+        'x-component': 'Page',
+        properties: {
+          table: {
+            type: 'array',
+            'x-component': 'TableV2',
+            'x-component-props': {
+              resource: 'workflows',
+              columns: [
+                { dataIndex: 'title', title: 'Title' },
+                { dataIndex: 'enabled', title: 'Status' },
+              ],
+            },
+          },
+        },
+      },
+    });
+  }
+}
+
+// Schema interpreter renders in any framework
+class SchemaRenderer {
+  constructor(private framework: 'react' | 'vue' | 'angular') {}
+
+  render(schema: UISchema): unknown {
+    switch (this.framework) {
+      case 'react':
+        return this.renderReact(schema);
+      case 'vue':
+        return this.renderVue(schema);
+      case 'angular':
+        return this.renderAngular(schema);
+    }
+  }
+
+  private renderReact(schema: UISchema): React.ReactElement {
+    const Component = this.getReactComponent(schema['x-component']);
+    return React.createElement(Component, schema['x-component-props'], this.renderChildren(schema.properties));
+  }
+
+  private renderVue(schema: UISchema): Vue.VNode {
+    const component = this.getVueComponent(schema['x-component']);
+    return h(component, schema['x-component-props'], this.renderChildren(schema.properties));
+  }
+}
+```
+
+**Key Insights:**
+
+- **Schema-driven UI** abstracts away framework specifics
+- **Component mapping** allows same schema to render in different frameworks
+- **Database-driven config** enables runtime framework switching
+
+### Universal Framework-Agnostic Patterns
+
+From these production systems, several universal patterns emerge:
+
+#### 1. The Three-Layer Architecture
+
+```ts
+// Layer 1: Framework-Agnostic Core
+interface PluginCore {
+  id: string;
+  capabilities: string[];
+  lifecycle: PluginLifecycle;
+}
+
+// Layer 2: Framework Adapters
+interface FrameworkAdapter<TComponent> {
+  renderComponent(component: TComponent): unknown;
+  handleLifecycle(event: LifecycleEvent): Promise<void>;
+  provideServices(): ServiceRegistry;
+}
+
+// Layer 3: Framework-Specific Implementation
+interface ReactPlugin extends PluginCore {
+  components: Record<string, React.FC>;
+  hooks?: Record<string, () => unknown>;
+}
+
+interface VuePlugin extends PluginCore {
+  components: Record<string, Vue.Component>;
+  composables?: Record<string, () => unknown>;
+}
+```
+
+#### 2. Message-Based Isolation
+
+```ts
+// Universal message protocol
+interface PluginMessage<T = unknown> {
+  id: string;
+  type: string;
+  payload: T;
+  source: string;
+  timestamp: number;
+}
+
+// Framework-agnostic communication
+class PluginCommunicator {
+  async request<T>(type: string, payload: unknown): Promise<T> {
+    const message: PluginMessage = {
+      id: generateId(),
+      type,
+      payload,
+      source: this.pluginId,
+      timestamp: Date.now(),
+    };
+
+    return this.sendMessage(message);
+  }
+
+  subscribe<T>(type: string, handler: (payload: T) => void): () => void {
+    return this.messagebus.subscribe(type, handler);
+  }
+}
+```
+
+#### 3. Declarative Component Registration
+
+```ts
+// Framework-agnostic component schema
+interface ComponentSchema {
+  name: string;
+  type: 'view' | 'widget' | 'field' | 'action';
+  props?: Record<string, unknown>;
+  slots?: Record<string, ComponentSchema>;
+  events?: Record<string, string>;
+}
+
+// Universal component registry
+class ComponentRegistry {
+  private adapters = new Map<string, FrameworkAdapter>();
+
+  register(framework: string, adapter: FrameworkAdapter): void {
+    this.adapters.set(framework, adapter);
+  }
+
+  render(schema: ComponentSchema, framework: string): unknown {
+    const adapter = this.adapters.get(framework);
+    if (!adapter) {
+      throw new Error(`No adapter registered for framework: ${framework}`);
+    }
+
+    return adapter.renderComponent(schema);
+  }
+}
+```
+
 **VS Code** teaches that process isolation and lazy activation enable massive ecosystems (40,000+ extensions) without performance degradation.
 
-**Vite** demonstrates that extending existing interfaces (Rollup) beats creating new ones, and filtering prevents unnecessary plugin invocations.
+**Beekeeper Studio** demonstrates that iframe isolation with message passing enables complete framework freedom.
 
-**Babel** shows how single-traversal multi-plugin execution optimizes build-time plugin systems.
+**TinaCMS** shows how React-first design can still support framework adapters through careful abstraction.
 
 **Backstage** proves that symmetric dual environments (server/browser) can share lifecycle patterns while differing in capabilities.
 
-**Kibana** illustrates how topological sorting and contract-based dependency injection create type-safe plugin graphs.
+**NocoBase** illustrates how schema-driven UI enables runtime framework switching.
 
 ---
 

@@ -24,130 +24,687 @@ In this chapter, we’ll explore:
 
 ## 13.1 Dashboard Plugin Architecture
 
-The most common dashboard extension pattern is the **widget-based plugin system**:
-
-- **Widgets** are self-contained UI components that present data or interactive controls.
-- Plugins can register one or more widgets using the `sdk.widgets` API.
-- The dashboard layout engine decides where and how they appear.
+Modern dashboard plugin architectures combine **manifest-based dependency injection** (inspired by Kibana) with **configuration-time composition** (inspired by Vendure) to create sophisticated, type-safe extensibility systems.
 
 ---
 
-### Widget Registration Example
+### Manifest-Based Plugin Discovery
 
-```ts
-sdk.widgets.add({
-  id: 'sales-overview',
-  title: 'Sales Overview',
-  render: SalesOverviewWidget,
-  size: 'medium',
-});
-```
-
-Widgets can:
-
-- Fetch data via `sdk.services.apiClient`.
-- Listen for global events (e.g., `dashboard:refresh`).
-- Push updates to other widgets via the event bus.
-
----
-
-### Widget Lifecycle
-
-- **Init** — Register widget metadata.
-- **Mount** — Render component into a dashboard container.
-- **Unmount** — Clean up DOM and unsubscribe from events.
-
----
-
-## 13.2 Case Study: Analytics Dashboard
-
-Our fictional platform **DataVista** serves real-time analytics to businesses. The dashboard supports:
-
-- Core widgets for traffic, conversions, and revenue.
-- Marketplace widgets for industry-specific analytics (e.g., IoT metrics, ad spend reports).
-
----
-
-### Chart Plugin Implementation
-
-**Manifest**:
+Instead of runtime discovery, dashboard plugins declare their capabilities and dependencies in a `dashboard.json` manifest:
 
 ```json
 {
-  "id": "charts.revenue",
-  "name": "Revenue Over Time",
-  "entry": "/plugins/charts/revenue/index.js",
-  "permissions": ["api:read", "ui:dashboard"]
+  "id": "analytics.sales",
+  "version": "2.1.0",
+  "name": "Sales Analytics Dashboard",
+  "description": "Real-time sales visualization and reporting",
+  "entry": "./index.js",
+  "dependencies": {
+    "required": ["core.data", "core.charts"],
+    "optional": ["export.pdf", "notifications"],
+    "runtime": ["auth.permissions"]
+  },
+  "permissions": ["data:read:sales", "api:external:salesforce"],
+  "compatibility": "^3.0.0",
+  "lifecycle": {
+    "setup": "SalesAnalyticsPlugin",
+    "configuration": "configureDataSources"
+  }
 }
 ```
 
-**Module**:
+---
+
+### Plugin Class with Dependency Injection
 
 ```ts
-export const module: PluginModule = {
-  mount(sdk) {
-    sdk.widgets.add({
-      id: 'revenue-chart',
-      title: 'Revenue Over Time',
-      render: RevenueChartComponent,
-    });
-  },
-  unmount(sdk) {
-    sdk.widgets.remove('revenue-chart');
-  },
+@DashboardPlugin({
+  manifest: require('./dashboard.json'),
+  providers: [SalesDataService, ChartRenderer],
+  widgets: [SalesOverviewWidget, RevenueChartWidget],
+  strategies: [
+    { type: 'dataSource', implementation: SalesforceDataSource },
+    { type: 'visualization', implementation: SalesChartStrategy },
+  ],
+})
+export class SalesAnalyticsPlugin implements PluginLifecycle {
+  private dataService: SalesDataService;
+  private eventBus: EventBus;
+
+  constructor(
+    @Inject('core.data') private coreData: DataService,
+    @Inject('core.charts') private charts: ChartService,
+    @Optional() @Inject('export.pdf') private pdfExport?: PdfService,
+  ) {}
+
+  async setup(core: CoreSetup, plugins: PluginContracts): Promise<SalesSetupContract> {
+    // Register data sources
+    core.dataSources.register('salesforce', new SalesforceDataSource());
+
+    // Register widgets with dependency validation
+    const widgets = await this.registerWidgets(core, plugins);
+
+    return {
+      widgets,
+      api: {
+        getSalesMetrics: this.getSalesMetrics.bind(this),
+      },
+    };
+  }
+
+  async start(core: CoreStart, plugins: PluginContracts): Promise<SalesStartContract> {
+    // Activate real-time subscriptions
+    this.eventBus.subscribe('sales:data:updated', this.handleDataUpdate.bind(this));
+
+    return {
+      service: this.dataService,
+      realTimeUpdates: true,
+    };
+  }
+
+  async stop(): Promise<void> {
+    // Cleanup in reverse dependency order
+    this.eventBus.unsubscribeAll();
+    await this.dataService.disconnect();
+  }
+}
+```
+
+---
+
+### Configuration-Time Plugin Composition
+
+Following Vendure's pattern, plugins can modify the global dashboard configuration:
+
+```ts
+export const pluginConfiguration = async (config: DashboardConfig): Promise<DashboardConfig> => {
+  // Add custom data source strategies
+  config.dataSourceStrategies.push({
+    name: 'salesforce-advanced',
+    handler: SalesforceAdvancedStrategy,
+    priority: 10,
+  });
+
+  // Extend existing entity schemas
+  config.customFields.Dashboard.push({
+    name: 'salesTerritory',
+    type: 'select',
+    options: ['north', 'south', 'east', 'west'],
+    ui: { component: 'territory-selector' },
+  });
+
+  // Register global event handlers
+  config.eventHandlers.push({
+    event: 'user:login',
+    handler: 'syncSalesUserData',
+  });
+
+  return config;
 };
 ```
 
 ---
 
-### Data Pipeline Plugins
+### Topological Dependency Resolution
 
-Some analytics workflows require **data transformation** before visualization.
-For example, a plugin could subscribe to `data:raw` events, process the data, and emit `data:processed` for visualization plugins to consume.
-
----
-
-## 13.3 Data Visualization Plugins
-
-Visualization plugins extend the platform with new ways to present data:
-
----
-
-### Chart Library Integration
+Inspired by Kibana's dependency ordering, the plugin system uses topological sorting:
 
 ```ts
-sdk.widgets.add({
-  id: 'geo-map',
-  title: 'Geo Distribution',
-  render: GeoMapComponent,
-});
+class PluginDependencyResolver {
+  private buildDependencyGraph(plugins: PluginManifest[]): DependencyGraph {
+    const graph = new Map<string, string[]>();
+
+    for (const plugin of plugins) {
+      graph.set(plugin.id, plugin.dependencies.required || []);
+    }
+
+    return graph;
+  }
+
+  resolve(plugins: PluginManifest[]): PluginManifest[] {
+    const graph = this.buildDependencyGraph(plugins);
+    const sorted = this.topologicalSort(graph);
+
+    if (sorted.hasCycles) {
+      throw new Error(`Circular dependencies detected: ${sorted.cycles}`);
+    }
+
+    return sorted.order.map((id) => plugins.find((p) => p.id === id)!);
+  }
+}
 ```
-
-The plugin could use:
-
-- D3.js for custom visualizations.
-- Chart.js, Recharts, or Highcharts for standard chart types.
 
 ---
 
-### Custom Visualization Types
+### Widget Lifecycle with Error Isolation
 
-- Sankey diagrams for flow tracking.
-- Heatmaps for click or usage density.
-- Real-time counters for operational dashboards.
+````ts
+interface WidgetLifecycle {
+  setup?(context: WidgetContext): Promise<WidgetSetupResult>;
+  mount?(container: HTMLElement, props: WidgetProps): Promise<void>;
+  update?(newProps: WidgetProps): Promise<void>;
+  unmount?(): Promise<void>;
+}
+
+class WidgetManager {
+  async mountWidget(widget: Widget, container: HTMLElement): Promise<void> {
+    try {
+      const context = this.createWidgetContext(widget);
+      const setupResult = await widget.setup?.(context);
+
+      await this.withTimeout(
+        widget.mount(container, setupResult?.props || {}),
+        5000, // 5 second timeout
+        `Widget ${widget.id} mount timeout`
+      );
+    } catch (error) {
+      // Isolate widget failures - don't crash dashboard
+      this.renderErrorWidget(container, error);
+      this.notifyError(widget.id, error);
+    }
+  }
+
+  private renderErrorWidget(container: HTMLElement, error: Error): void {
+    container.innerHTML = `
+      <div class="widget-error">
+        <h4>Widget Error</h4>
+        <p>${error.message}</p>
+        <button onclick="this.retryWidget()">Retry</button>
+      </div>
+    `;
+  }
+}
+
+---
+
+## 13.2 Case Study: Enterprise Analytics Platform
+
+Our enhanced **DataVista** platform implements a sophisticated plugin ecosystem inspired by Kibana and Vendure architectures. The system supports:
+
+- **Strategy-based data sources** (following Vendure's 50+ strategy pattern)
+- **Manifest-driven plugin discovery** (following Kibana's approach)
+- **Type-safe plugin contracts** with dependency injection
+- **Real-time event streaming** with failure isolation
+
+---
+
+### Strategy Pattern for Data Sources
+
+Following Vendure's extensive strategy pattern, DataVista exposes pluggable interfaces:
+
+```ts
+// Base strategy interface
+interface DataSourceStrategy {
+  readonly name: string;
+  readonly supportedFormats: string[];
+
+  init(injector: Injector): Promise<void>;
+  connect(config: ConnectionConfig): Promise<Connection>;
+  query(query: Query): Promise<QueryResult>;
+  stream?(query: Query): Observable<StreamResult>;
+  destroy(): Promise<void>;
+}
+
+// Salesforce implementation
+@Injectable()
+export class SalesforceDataStrategy implements DataSourceStrategy {
+  name = 'salesforce';
+  supportedFormats = ['soql', 'rest', 'bulk'];
+
+  private connection: TransactionalConnection;
+  private eventBus: EventBus;
+
+  async init(injector: Injector): Promise<void> {
+    this.connection = injector.get(TransactionalConnection);
+    this.eventBus = injector.get(EventBus);
+    await this.initializeSalesforceClient();
+  }
+
+  async query(query: Query): Promise<QueryResult> {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.salesforceClient.query(query.soql);
+
+      // Emit success event for monitoring
+      this.eventBus.emit(new DataSourceQueryEvent({
+        strategy: this.name,
+        query: query.id,
+        duration: Date.now() - startTime,
+        recordCount: result.totalSize
+      }));
+
+      return this.transformResult(result);
+    } catch (error) {
+      // Emit error event for monitoring/alerting
+      this.eventBus.emit(new DataSourceErrorEvent({
+        strategy: this.name,
+        query: query.id,
+        error: error.message
+      }));
+      throw error;
+    }
+  }
+}
+````
+
+---
+
+### Advanced Chart Plugin with Contracts
+
+**Enhanced Manifest** (`dashboard.json`):
+
+```json
+{
+  "id": "analytics.revenue-insights",
+  "version": "3.2.0",
+  "name": "Revenue Insights Plugin",
+  "description": "Advanced revenue analytics with predictive modeling",
+  "entry": "./index.js",
+  "dependencies": {
+    "required": ["core.data", "core.charts", "core.events"],
+    "optional": ["ml.forecasting", "export.reports"],
+    "runtime": ["auth.rbac"]
+  },
+  "permissions": ["data:read:revenue", "data:read:forecasts", "api:external:stripe", "compute:ml-models"],
+  "compatibility": "^3.0.0",
+  "features": {
+    "realTime": true,
+    "exportable": true,
+    "configurable": true
+  },
+  "ui": {
+    "configurationSchema": "./config-schema.json",
+    "themes": ["light", "dark", "accessible"]
+  }
+}
+```
+
+**Plugin Implementation**:
+
+```ts
+@DashboardPlugin({
+  manifest: require('./dashboard.json'),
+  providers: [RevenueAnalyticsService, ForecastingService, ChartRenderingStrategy],
+  strategies: [
+    { type: 'visualization', implementation: RevenueChartStrategy },
+    { type: 'dataProcessor', implementation: RevenueAggregationStrategy },
+  ],
+  configuration: configureRevenuePlugin,
+})
+export class RevenueInsightsPlugin implements PluginLifecycle {
+  private setupContracts: Map<string, any> = new Map();
+
+  constructor(
+    @Inject('core.data') private dataService: DataService,
+    @Inject('core.charts') private chartService: ChartService,
+    @Inject('core.events') private eventBus: EventBus,
+    @Optional() @Inject('ml.forecasting') private mlService?: MLService,
+  ) {}
+
+  async setup(core: CoreSetup, plugins: PluginSetupContracts): Promise<RevenueInsightsSetup> {
+    // Register data transformation strategies
+    core.dataStrategies.register('revenue-aggregation', new RevenueAggregationStrategy());
+
+    // Register chart visualizations
+    const chartTypes = await this.registerChartTypes(core, plugins);
+
+    // Register event handlers for real-time updates
+    this.eventBus.on(RevenueDataUpdatedEvent, this.handleRevenueUpdate.bind(this));
+
+    // Setup ML forecasting if available
+    if (this.mlService) {
+      await this.setupForecastingPipeline(core, this.mlService);
+    }
+
+    return {
+      chartTypes,
+      widgets: this.getWidgetDefinitions(),
+      api: {
+        getRevenueInsights: this.getRevenueInsights.bind(this),
+        subscribeToUpdates: this.subscribeToUpdates.bind(this),
+      },
+    };
+  }
+
+  async start(core: CoreStart, plugins: PluginStartContracts): Promise<RevenueInsightsStart> {
+    // Activate real-time data streaming
+    const streamingService = await this.initializeStreaming(core, plugins);
+
+    // Start background forecasting if ML service available
+    if (plugins.ml) {
+      this.startBackgroundForecasting(plugins.ml);
+    }
+
+    return {
+      streaming: streamingService,
+      realTimeCapable: true,
+    };
+  }
+
+  private async registerChartTypes(core: CoreSetup, plugins: PluginSetupContracts) {
+    return {
+      'revenue-trend': {
+        component: RevenueTrendChart,
+        dataRequirements: ['revenue', 'time'],
+        configSchema: RevenueTrendConfigSchema,
+      },
+      'revenue-forecast': {
+        component: RevenueForecastChart,
+        dataRequirements: ['revenue', 'time', 'forecasts'],
+        configSchema: ForecastConfigSchema,
+        dependencies: ['ml.forecasting'], // Only available if ML plugin present
+      },
+    };
+  }
+}
+```
+
+---
+
+### Event-Driven Data Pipeline
+
+Inspired by both Kibana's event system and Vendure's reactive patterns:
+
+```ts
+// Domain events for type-safe event handling
+export class RevenueDataUpdatedEvent extends DomainEvent {
+  constructor(
+    public readonly data: RevenueData[],
+    public readonly timeRange: TimeRange,
+    public readonly source: string,
+  ) {
+    super('revenue.data.updated');
+  }
+}
+
+// Event-driven data pipeline
+@Injectable()
+export class RevenueDataPipeline {
+  constructor(
+    private eventBus: EventBus,
+    private dataProcessor: DataProcessor,
+  ) {
+    this.setupEventHandlers();
+  }
+
+  private setupEventHandlers(): void {
+    // Raw data ingestion
+    this.eventBus
+      .ofType(RawDataIngestedEvent)
+      .pipe(
+        filter((event) => event.dataType === 'revenue'),
+        debounceTime(1000), // Batch updates
+        mergeMap((event) => this.processRawData(event.data)),
+      )
+      .subscribe((processedData) => {
+        this.eventBus.emit(new RevenueDataUpdatedEvent(processedData, event.timeRange, event.source));
+      });
+
+    // Widget refresh coordination
+    this.eventBus.ofType(RevenueDataUpdatedEvent).subscribe((event) => {
+      this.eventBus.emit(
+        new WidgetRefreshEvent({
+          widgetTypes: ['revenue-chart', 'revenue-forecast'],
+          data: event.data,
+          timestamp: Date.now(),
+        }),
+      );
+    });
+  }
+
+  private async processRawData(rawData: any[]): Promise<RevenueData[]> {
+    // Transform, aggregate, and validate data
+    return this.dataProcessor.transform(rawData, {
+      aggregation: 'daily',
+      currency: 'USD',
+      validation: true,
+    });
+  }
+}
+```
+
+---
+
+## 13.3 Advanced Data Visualization Patterns
+
+Modern dashboard visualization plugins leverage sophisticated patterns from both Kibana's extensible chart system and Vendure's strategy-based customization:
+
+---
+
+### Multi-Format Visualization Strategy
+
+Following Vendure's strategy pattern, implement pluggable visualization engines:
+
+```ts
+interface VisualizationStrategy {
+  readonly name: string;
+  readonly supportedDataTypes: DataType[];
+  readonly capabilities: VisualizationCapability[];
+
+  init(injector: Injector): Promise<void>;
+  canRender(data: DataSet, config: VisualizationConfig): boolean;
+  render(container: HTMLElement, data: DataSet, config: VisualizationConfig): Promise<RenderResult>;
+  update(data: DataSet): Promise<void>;
+  destroy(): Promise<void>;
+}
+
+// D3.js implementation
+@Injectable()
+export class D3VisualizationStrategy implements VisualizationStrategy {
+  name = 'd3-advanced';
+  supportedDataTypes = ['timeseries', 'hierarchical', 'network', 'geospatial'];
+  capabilities = ['interactive', 'zoomable', 'exportable', 'real-time'];
+
+  private d3Instance: any;
+  private subscriptions: Subscription[] = [];
+
+  async init(injector: Injector): Promise<void> {
+    const eventBus = injector.get(EventBus);
+
+    // Subscribe to theme changes
+    this.subscriptions.push(
+      eventBus.ofType(ThemeChangedEvent).subscribe((event) => {
+        this.updateTheme(event.theme);
+      }),
+    );
+  }
+
+  async render(container: HTMLElement, data: DataSet, config: VisualizationConfig): Promise<RenderResult> {
+    const startTime = performance.now();
+
+    try {
+      // Create responsive SVG container
+      const svg = d3
+        .select(container)
+        .append('svg')
+        .attr('viewBox', `0 0 ${config.width} ${config.height}`)
+        .attr('preserveAspectRatio', 'xMidYMid meet');
+
+      // Apply visualization based on config type
+      switch (config.type) {
+        case 'network':
+          await this.renderNetworkDiagram(svg, data, config);
+          break;
+        case 'geospatial':
+          await this.renderGeoVisualization(svg, data, config);
+          break;
+        case 'timeseries':
+          await this.renderTimeSeriesChart(svg, data, config);
+          break;
+        default:
+          throw new Error(`Unsupported visualization type: ${config.type}`);
+      }
+
+      // Add accessibility features
+      this.addAccessibilityFeatures(svg, data, config);
+
+      return {
+        success: true,
+        renderTime: performance.now() - startTime,
+        interactiveElements: this.getInteractiveElements(svg),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        fallbackSuggestion: 'basic-chart',
+      };
+    }
+  }
+
+  private addAccessibilityFeatures(svg: any, data: DataSet, config: VisualizationConfig): void {
+    // Add ARIA labels and descriptions
+    svg
+      .attr('role', 'img')
+      .attr('aria-label', config.title || 'Data visualization')
+      .attr('aria-describedby', 'chart-description');
+
+    // Create data table for screen readers
+    const table = d3
+      .select(svg.node().parentNode)
+      .append('table')
+      .attr('class', 'sr-only') // Screen reader only
+      .attr('id', 'chart-description');
+
+    // Populate table with data
+    this.createDataTable(table, data);
+  }
+}
+```
+
+---
+
+### Real-Time Visualization Pipeline
+
+Inspired by Kibana's real-time data handling:
+
+```ts
+@Injectable()
+export class RealTimeVisualizationManager {
+  private activeVisualizations = new Map<string, VisualizationInstance>();
+  private dataStreams = new Map<string, Observable<DataUpdate>>();
+
+  constructor(
+    private eventBus: EventBus,
+    private performanceMonitor: PerformanceMonitor,
+  ) {
+    this.setupGlobalEventHandlers();
+  }
+
+  async createVisualization(config: VisualizationConfig): Promise<string> {
+    const vizId = this.generateVisualizationId();
+
+    // Create data stream for this visualization
+    const dataStream = this.createDataStream(config.dataSource);
+
+    // Setup visualization instance with throttling
+    const instance = {
+      id: vizId,
+      config,
+      lastUpdate: 0,
+      updateThrottle: config.realTime?.throttleMs || 1000,
+      subscription: dataStream
+        .pipe(
+          throttleTime(config.realTime?.throttleMs || 1000),
+          distinctUntilChanged((prev, curr) => this.isDataEquivalent(prev.data, curr.data)),
+        )
+        .subscribe((update) => this.handleDataUpdate(vizId, update)),
+    };
+
+    this.activeVisualizations.set(vizId, instance);
+    return vizId;
+  }
+
+  private async handleDataUpdate(vizId: string, update: DataUpdate): Promise<void> {
+    const instance = this.activeVisualizations.get(vizId);
+    if (!instance) return;
+
+    const startTime = performance.now();
+
+    try {
+      // Check if update should be processed (rate limiting)
+      if (Date.now() - instance.lastUpdate < instance.updateThrottle) {
+        return;
+      }
+
+      // Update visualization
+      await instance.visualization.update(update.data);
+      instance.lastUpdate = Date.now();
+
+      // Record performance metrics
+      this.performanceMonitor.recordUpdate(vizId, {
+        updateTime: performance.now() - startTime,
+        dataPoints: update.data.length,
+        memoryUsage: this.estimateMemoryUsage(instance),
+      });
+    } catch (error) {
+      this.eventBus.emit(
+        new VisualizationErrorEvent({
+          visualizationId: vizId,
+          error: error.message,
+          recoveryAction: 'fallback',
+        }),
+      );
+    }
+  }
+}
+```
 
 ---
 
 ### Interactive Dashboard Components
 
-- Filter controls that update multiple widgets simultaneously.
-- Drill-down interactions that open detailed views via `sdk.routes.add()`.
+Advanced interaction patterns inspired by Kibana's dashboard architecture:
 
----
+```ts
+interface InteractionHandler {
+  type: 'filter' | 'drill-down' | 'cross-filter' | 'time-range';
+  source: string;
+  target?: string[];
+  transform: (data: any) => any;
+}
 
-### Mobile-Responsive Designs
+@Injectable()
+export class DashboardInteractionManager {
+  private interactions = new Map<string, InteractionHandler[]>();
+  private crossFilterState = new Map<string, FilterState>();
 
-Ensure widgets adapt to small screens—especially important for sales teams on the go.
+  registerInteraction(widgetId: string, handler: InteractionHandler): void {
+    if (!this.interactions.has(widgetId)) {
+      this.interactions.set(widgetId, []);
+    }
+    this.interactions.get(widgetId)!.push(handler);
+  }
+
+  async handleWidgetInteraction(source: string, interaction: WidgetInteraction): Promise<void> {
+    const handlers = this.interactions.get(source) || [];
+
+    for (const handler of handlers) {
+      if (handler.type === interaction.type) {
+        const transformedData = handler.transform(interaction.data);
+
+        if (handler.target) {
+          // Apply to specific targets
+          for (const targetId of handler.target) {
+            await this.applyInteractionToWidget(targetId, transformedData);
+          }
+        } else {
+          // Apply to all widgets
+          await this.applyGlobalInteraction(transformedData);
+        }
+      }
+    }
+  }
+
+  private async applyInteractionToWidget(targetId: string, data: any): Promise<void> {
+    const widget = this.getWidget(targetId);
+    if (widget) {
+      await widget.handleExternalInteraction(data);
+    }
+  }
+}
+```
 
 ---
 
@@ -240,16 +797,96 @@ Even the most powerful dashboard plugins fail if they’re hard to use.
 
 ---
 
-## Key Takeaways
+## Key Architectural Insights
 
-A dashboard plugin ecosystem:
+A production-grade dashboard plugin ecosystem, inspired by Kibana and Vendure:
 
-1. Uses **widgets** as the primary extension point.
-2. Supports both **visualization** and **data source** plugins.
-3. Encourages **inter-widget communication** via the event bus.
-4. Prioritizes **performance, discoverability, and accessibility**.
+### 1. Manifest-Based Architecture (Kibana Pattern)
+
+- **Declarative dependencies** enable static analysis and validation
+- **Topological sorting** ensures proper initialization order
+- **Type-safe contracts** prevent runtime integration errors
+- **Failure isolation** keeps plugin errors from crashing the system
+
+### 2. Strategy Pattern at Scale (Vendure Pattern)
+
+- **50+ pluggable interfaces** for data sources, visualizations, and transformations
+- **Configuration-time composition** allows deep system customization
+- **Dependency injection** provides services without tight coupling
+- **Event-driven communication** enables reactive plugin interactions
+
+### 3. Enterprise Production Patterns
+
+- **Lifecycle orchestration** with setup → start → stop phases
+- **Performance monitoring** with bundle optimization and lazy loading
+- **Security through validation** rather than runtime sandboxing
+- **Accessibility compliance** built into the plugin framework
+
+### 4. Developer Experience Excellence
+
+- **TypeScript-first** with compile-time safety and IDE support
+- **Configuration schemas** for runtime validation and UI generation
+- **Clear error messages** and debugging support
+- **Documentation generation** from type definitions
+
+### 5. Trade-offs and Design Decisions
+
+**Kibana's Approach:**
+
+- ✅ **Type safety** and **static analysis**
+- ✅ **Predictable initialization** order
+- ❌ **No plugin isolation** (shared process)
+- ❌ **Requires restart** for plugin changes
+
+**Vendure's Approach:**
+
+- ✅ **Deep framework integration**
+- ✅ **Business logic customization**
+- ❌ **Implicit trust model** (no sandboxing)
+- ❌ **Configuration complexity** for simple use cases
+
+**Dashboard-Specific Considerations:**
+
+- **Real-time data streaming** requires event-driven architecture
+- **Widget performance isolation** prevents UI blocking
+- **Visual consistency** across plugin-contributed components
+- **Data source abstraction** enables unified querying
+
+---
+
+## Implementation Checklist
+
+When building a dashboard plugin ecosystem:
+
+### Phase 1: Foundation
+
+- [ ] Define plugin manifest schema with dependency declarations
+- [ ] Implement topological dependency resolution
+- [ ] Create base plugin lifecycle interfaces
+- [ ] Establish event bus for inter-plugin communication
+
+### Phase 2: Core Services
+
+- [ ] Build dependency injection container
+- [ ] Implement strategy registration system
+- [ ] Create configuration validation framework
+- [ ] Add performance monitoring and metrics
+
+### Phase 3: Developer Experience
+
+- [ ] Generate TypeScript types from plugin contracts
+- [ ] Create configuration UI generators from JSON schemas
+- [ ] Implement hot-reload for development
+- [ ] Build plugin marketplace and discovery
+
+### Phase 4: Production Readiness
+
+- [ ] Add bundle optimization and code splitting
+- [ ] Implement accessibility validation
+- [ ] Create security scanning for plugin code
+- [ ] Build monitoring and alerting for plugin health
 
 ---
 
 **Next up:**
-In **Chapter 14**, we’ll focus on **Performance Optimization and Bundle Management**—how to keep a growing plugin ecosystem fast, from code splitting to runtime load balancing, without sacrificing flexibility.
+In **Chapter 14**, we'll explore **Performance Optimization and Bundle Management**—implementing Kibana's production-scale bundle splitting, Vendure's configuration optimization strategies, and advanced techniques for keeping plugin ecosystems performant at enterprise scale.

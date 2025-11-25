@@ -9,55 +9,395 @@ nextSlug: '/docs/15-deployment-versioning-distribution'
 
 # Chapter 14: Performance Optimization and Bundle Management
 
-A plugin architecture’s biggest selling point—**flexibility**—can also be its biggest performance liability.
+A plugin architecture's biggest selling point—**flexibility**—can also be its biggest performance liability.
 As your ecosystem grows, each plugin adds potential:
 
-- Network requests.
-- JavaScript execution time.
-- Memory usage.
-- CSS and asset bloat.
+- Network requests (VS Code: 40,000+ extensions).
+- JavaScript execution time (Kibana: 100-200 plugins typical).
+- Memory usage (each Kibana plugin: ~5-50 MB).
+- CSS and asset bloat (Vite plugins: webpack chunk optimization).
+- Process overhead (VS Code: multi-process extension hosts).
 
-Without careful **performance optimization and bundle management**, your host app risks becoming sluggish and bloated.
+Without careful **performance optimization and bundle management**, your host app risks becoming sluggish and bloated. Real-world systems like VS Code achieve sub-second startup despite thousands of extensions through sophisticated lazy loading, while Kibana handles hundreds of enterprise plugins through parallel initialization and process isolation.
 
-In this chapter, we’ll cover:
+In this chapter, we'll cover:
 
 1. **Performance monitoring** — tracking impact per plugin.
-2. **Bundle optimization strategies** — making code delivery efficient.
-3. **Runtime performance tuning** — improving execution speed and responsiveness.
-4. **Development vs. production optimizations** — balancing speed and debugging.
-5. **Scalability considerations** — keeping the ecosystem fast at any size.
+2. **Process isolation strategies** — protecting core performance from plugin overhead.
+3. **Activation and lazy loading patterns** — loading plugins only when needed.
+4. **Bundle optimization strategies** — making code delivery efficient.
+5. **Runtime performance tuning** — improving execution speed and responsiveness.
+6. **Development vs. production optimizations** — balancing speed and debugging.
+7. **Scalability considerations** — keeping the ecosystem fast at any size.
 
 ---
 
-## 14.1 Performance Monitoring
+## 14.0 Process Isolation Strategies
+
+Modern plugin systems isolate plugin execution to prevent performance degradation of the core application.
+
+---
+
+### The VS Code Multi-Process Model
+
+VS Code runs extensions in separate **extension host processes** that communicate with the main UI process via RPC:
+
+```ts
+// Extension host process isolation
+const extensionHost = new ExtensionHostProcess({
+  processType: 'extensionHost',
+  rpcProtocol: 'ipc',
+  memoryLimit: '512MB',
+  cpuThrottling: true,
+});
+
+// Main process remains responsive
+const mainProcess = {
+  ui: 'always-responsive',
+  extensions: 'isolated-execution',
+};
+```
+
+**Benefits**:
+
+- Extension crashes don't affect editor UI
+- Memory leaks contained per process
+- CPU-intensive extensions can't freeze the interface
+- Easier debugging and profiling per extension
+
+---
+
+### Web Worker Isolation Pattern
+
+For web-based plugin systems, use Web Workers for compute-intensive plugins:
+
+```ts
+// Heavy computation plugin
+class DataAnalysisPlugin {
+  private worker: Worker;
+
+  async initialize() {
+    this.worker = new Worker('/plugins/data-analysis/worker.js');
+
+    // Offload heavy processing
+    this.worker.postMessage({
+      type: 'analyze-dataset',
+      data: largeDataset,
+    });
+  }
+
+  // Non-blocking UI updates
+  onWorkerMessage(event) {
+    const { progress, result } = event.data;
+    this.updateProgress(progress);
+  }
+}
+```
+
+---
+
+### Memory Sandboxing
+
+Implement per-plugin memory limits and monitoring:
+
+```ts
+class PluginSandbox {
+  private memoryLimit = 100 * 1024 * 1024; // 100MB
+  private memoryUsage = new Map<string, number>();
+
+  async loadPlugin(pluginId: string) {
+    const memoryMonitor = setInterval(() => {
+      const usage = this.getPluginMemoryUsage(pluginId);
+
+      if (usage > this.memoryLimit) {
+        console.warn(`Plugin ${pluginId} exceeds memory limit`);
+        this.throttlePlugin(pluginId);
+      }
+    }, 5000);
+  }
+
+  private throttlePlugin(pluginId: string) {
+    // Reduce plugin execution frequency
+    // or suggest plugin restart
+  }
+}
+```
+
+---
+
+## 14.1 Activation and Lazy Loading Patterns
+
+Drawing from VS Code's success with 40,000+ extensions, lazy activation prevents unnecessary plugin loading.
+
+---
+
+### Event-Driven Activation (VS Code Pattern)
+
+Plugins declare activation events rather than loading at startup:
+
+```json
+// package.json
+{
+  "activationEvents": ["onLanguage:typescript", "onCommand:myext.deploy", "onView:explorer", "onStartupFinished"]
+}
+```
+
+**Implementation**:
+
+```ts
+class PluginActivationManager {
+  private activationEvents = new Map<string, Plugin[]>();
+  private activatedPlugins = new Set<string>();
+
+  registerPlugin(plugin: Plugin) {
+    for (const event of plugin.activationEvents) {
+      if (!this.activationEvents.has(event)) {
+        this.activationEvents.set(event, []);
+      }
+      this.activationEvents.get(event)!.push(plugin);
+    }
+  }
+
+  async triggerActivation(eventType: string, context?: any) {
+    const plugins = this.activationEvents.get(eventType) || [];
+
+    const activationPromises = plugins
+      .filter((p) => !this.activatedPlugins.has(p.id))
+      .map(async (plugin) => {
+        try {
+          await plugin.activate(context);
+          this.activatedPlugins.add(plugin.id);
+          console.log(`Plugin ${plugin.id} activated by ${eventType}`);
+        } catch (error) {
+          console.error(`Failed to activate ${plugin.id}:`, error);
+        }
+      });
+
+    await Promise.allSettled(activationPromises);
+  }
+}
+```
+
+---
+
+### Progressive Loading Strategy (Backstage Pattern)
+
+Load plugins in tiers based on criticality:
+
+```ts
+class ProgressivePluginLoader {
+  async loadPlugins() {
+    // Tier 1: Critical plugins (authentication, core navigation)
+    await this.loadCriticalPlugins();
+
+    // Tier 2: Common plugins (after UI is interactive)
+    requestIdleCallback(() => this.loadCommonPlugins());
+
+    // Tier 3: Optional plugins (after user interaction)
+    document.addEventListener(
+      'user-interaction',
+      () => {
+        this.loadOptionalPlugins();
+      },
+      { once: true },
+    );
+  }
+
+  private async loadCriticalPlugins() {
+    const critical = ['auth', 'navigation', 'error-handler'];
+    await Promise.all(critical.map((id) => this.loadPlugin(id)));
+  }
+
+  private async loadCommonPlugins() {
+    const common = ['user-profile', 'notifications', 'search'];
+    // Load in background without blocking UI
+    for (const id of common) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      await this.loadPlugin(id);
+    }
+  }
+}
+```
+
+---
+
+### Predictive Preloading
+
+Use analytics to predict which plugins users will need:
+
+```ts
+class PredictivePluginLoader {
+  private analytics = new PluginAnalytics();
+
+  async preloadLikelyPlugins(userId: string) {
+    const predictions = await this.analytics.getPredictions(userId);
+
+    // Preload high-probability plugins during idle time
+    for (const { pluginId, probability } of predictions) {
+      if (probability > 0.8) {
+        requestIdleCallback(() => {
+          this.preloadPlugin(pluginId);
+        });
+      }
+    }
+  }
+
+  private async preloadPlugin(pluginId: string) {
+    // Download and parse, but don't activate yet
+    const plugin = await import(`/plugins/${pluginId}`);
+    this.pluginCache.set(pluginId, plugin);
+  }
+}
+```
+
+---
+
+## 14.2 Advanced Performance Monitoring
 
 Before optimizing, we must measure. Performance monitoring lets us:
 
 - Identify **heavy** plugins.
 - Spot **memory leaks** or long-running tasks.
 - Enforce **performance budgets**.
+- Track **activation patterns** and optimize loading order.
 
 ---
 
-### Plugin Performance Metrics
+### Comprehensive Plugin Performance Metrics
 
-Track:
+Track multiple dimensions of plugin performance:
 
-- Load time (network + initialization).
-- Memory footprint after mount.
-- CPU time for key operations (e.g., rendering, event handling).
+**Load Metrics**:
 
----
+- Network download time
+- Parse and compile time
+- Dependency resolution time
+- Activation/initialization time
+- Time to first interaction
 
-### Resource Usage Tracking
+**Runtime Metrics**:
 
-Use browser APIs and performance hooks to measure per-plugin usage:
+- Memory footprint (heap size, DOM nodes)
+- CPU time for key operations (rendering, event handling)
+- Event loop blocking duration
+- Bundle size (raw and gzipped)
+- Cache hit/miss ratios
+
+**User Experience Metrics** (inspired by Kibana's approach):
+
+- Time to plugin functionality
+- Perceived loading speed
+- UI responsiveness during plugin operations
+- Error rates and crash frequency
 
 ```ts
-performance.mark(`${pluginId}-start`);
-// plugin load logic
-performance.mark(`${pluginId}-end`);
-performance.measure(`${pluginId}-load`, `${pluginId}-start`, `${pluginId}-end`);
+class PluginPerformanceMonitor {
+  private metrics = new Map<string, PluginMetrics>();
+
+  measurePluginLoad(pluginId: string) {
+    const startTime = performance.now();
+
+    return {
+      networkStart: () => performance.mark(`${pluginId}-network-start`),
+      networkEnd: () => performance.mark(`${pluginId}-network-end`),
+      parseStart: () => performance.mark(`${pluginId}-parse-start`),
+      parseEnd: () => performance.mark(`${pluginId}-parse-end`),
+      activationStart: () => performance.mark(`${pluginId}-activation-start`),
+      activationEnd: () => {
+        performance.mark(`${pluginId}-activation-end`);
+
+        // Calculate comprehensive timing
+        performance.measure(`${pluginId}-total`, `${pluginId}-network-start`, `${pluginId}-activation-end`);
+
+        this.recordMetrics(pluginId);
+      },
+    };
+  }
+
+  private recordMetrics(pluginId: string) {
+    const measures = performance.getEntriesByName(`${pluginId}-total`);
+    const totalTime = measures[0]?.duration || 0;
+
+    // Memory usage
+    const memUsage = (performance as any).memory;
+
+    this.metrics.set(pluginId, {
+      loadTime: totalTime,
+      memoryUsed: memUsage?.usedJSHeapSize,
+      bundleSize: this.getBundleSize(pluginId),
+      timestamp: Date.now(),
+    });
+  }
+}
+```
+
+---
+
+### Resource Usage Tracking at Scale
+
+Implement comprehensive resource monitoring inspired by enterprise plugin systems:
+
+```ts
+class PluginResourceMonitor {
+  private observers = new Map<string, PerformanceObserver>();
+  private memorySnapshots = new Map<string, MemorySnapshot>();
+
+  monitorPlugin(pluginId: string) {
+    // Memory monitoring
+    this.startMemoryMonitoring(pluginId);
+
+    // CPU/Event Loop monitoring
+    this.monitorEventLoop(pluginId);
+
+    // Network requests monitoring
+    this.monitorNetworkRequests(pluginId);
+
+    // DOM impact monitoring
+    this.monitorDOMImpact(pluginId);
+  }
+
+  private startMemoryMonitoring(pluginId: string) {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.name.includes(pluginId)) {
+          this.recordMemoryUsage(pluginId, entry);
+        }
+      }
+    });
+
+    observer.observe({ entryTypes: ['measure', 'navigation'] });
+    this.observers.set(pluginId, observer);
+  }
+
+  private monitorEventLoop(pluginId: string) {
+    // Detect long-running plugin tasks
+    const longTaskObserver = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.duration > 50) {
+          // Tasks > 50ms
+          console.warn(`Plugin ${pluginId} blocked event loop for ${entry.duration}ms`);
+          this.recordEventLoopBlock(pluginId, entry.duration);
+        }
+      }
+    });
+
+    longTaskObserver.observe({ entryTypes: ['longtask'] });
+  }
+
+  // Kibana-style parallel initialization monitoring
+  monitorParallelInitialization(plugins: Plugin[]) {
+    const tiers = this.groupByDependencyTier(plugins);
+
+    for (const tier of tiers) {
+      const tierStart = performance.now();
+
+      Promise.allSettled(tier.map((plugin) => this.initializePlugin(plugin))).then(() => {
+        const tierDuration = performance.now() - tierStart;
+        console.log(`Tier initialization took ${tierDuration}ms for ${tier.length} plugins`);
+      });
+    }
+  }
+}
 ```
 
 ---
@@ -79,42 +419,230 @@ Flag violations for optimization or rejection.
 
 ---
 
-## 14.2 Bundle Optimization Strategies
+## 14.3 Advanced Bundle Optimization Strategies
 
-Plugins should load **only the code they need, only when they need it**.
+Plugins should load **only the code they need, only when they need it**. Modern plugin systems achieve this through sophisticated bundling strategies.
 
 ---
 
-### Code Splitting Techniques
+### Hierarchical Code Splitting (Kibana Pattern)
 
-Split plugin bundles into smaller chunks:
-
-- Entry point (always loaded).
-- Feature chunks (lazy-loaded on demand).
-
-Example:
+Split plugin bundles into multiple granular chunks:
 
 ```ts
-const ChartConfigPanel = lazy(() => import('./ChartConfigPanel'));
+// Plugin bundle structure
+const pluginBundle = {
+  // Core plugin entry (always loaded)
+  entry: () => import('./plugin-entry'),
+
+  // Feature-based chunks (lazy-loaded)
+  features: {
+    visualization: () => import('./features/visualization'),
+    configuration: () => import('./features/configuration'),
+    reporting: () => import('./features/reporting'),
+  },
+
+  // Component-level chunks
+  components: {
+    heavyChart: () => import('./components/heavy-chart'),
+    dataTable: () => import('./components/data-table'),
+  },
+};
+
+// Load on demand
+class FeatureRouter {
+  async navigateToFeature(feature: string) {
+    if (!this.loadedFeatures.has(feature)) {
+      const featureModule = await pluginBundle.features[feature]();
+      this.loadedFeatures.set(feature, featureModule);
+    }
+
+    return this.loadedFeatures.get(feature);
+  }
+}
 ```
 
 ---
 
-### Tree Shaking Implementation
+### Advanced Tree Shaking Implementation
 
-Ensure unused exports are removed by the bundler. For plugin authors:
+Based on the Web Loom project's tree-shaking patterns, ensure optimal bundle sizes:
 
-- Avoid side effects at the module level.
-- Use ES modules instead of CommonJS for better tree shaking.
+**Package Structure for Tree Shaking**:
+
+```json
+// package.json
+{
+  "sideEffects": false,
+  "exports": {
+    "./behaviors/dialog": "./dist/behaviors/dialog.js",
+    "./behaviors/disclosure": "./dist/behaviors/disclosure.js",
+    "./patterns/command-palette": "./dist/patterns/command-palette.js"
+  }
+}
+```
+
+**Granular Exports** (each behavior under 2KB gzipped):
+
+```ts
+// Instead of barrel exports
+// ❌ export * from './behaviors';
+
+// ✅ Individual behavior exports
+export { createDialogBehavior } from './behaviors/dialog';
+export { createDisclosureBehavior } from './behaviors/disclosure';
+
+// Build config preserves modules
+const buildConfig = {
+  lib: {
+    entry: {
+      'behaviors/dialog': './src/behaviors/dialog.ts',
+      'behaviors/disclosure': './src/behaviors/disclosure.ts',
+    },
+    formats: ['es'],
+  },
+  rollupOptions: {
+    output: {
+      preserveModules: true,
+      preserveModulesRoot: 'src',
+    },
+  },
+};
+```
+
+**Tree Shaking Testing**:
+
+```ts
+// Automated bundle size testing
+class TreeShakingValidator {
+  async validatePluginBundleSize(pluginId: string) {
+    const testCases = [
+      {
+        name: 'dialog-only',
+        code: `import { createDialogBehavior } from '${pluginId}/behaviors/dialog';`,
+      },
+      {
+        name: 'all-features',
+        code: `import * from '${pluginId}';`,
+      },
+    ];
+
+    for (const test of testCases) {
+      const bundle = await this.buildTestBundle(test.code);
+      const gzippedSize = this.gzipSize(bundle);
+
+      if (gzippedSize > this.getSizeLimit(test.name)) {
+        throw new Error(`${test.name} bundle too large: ${gzippedSize} bytes`);
+      }
+    }
+  }
+}
+```
 
 ---
 
-### Module Deduplication
+### Module Deduplication and Shared Dependencies
 
-When multiple plugins use the same library, avoid bundling duplicates:
+Preventing duplicate dependencies is crucial for large plugin ecosystems:
 
-- Use **Webpack Module Federation** or **shared dependencies**.
-- Host provides common libraries via the SDK or as externals.
+**Webpack Module Federation Setup** (Vite/Backstage pattern):
+
+```ts
+// Host app webpack config
+const ModuleFederationPlugin = require('@module-federation/webpack');
+
+module.exports = {
+  plugins: [
+    new ModuleFederationPlugin({
+      name: 'host',
+      shared: {
+        react: { singleton: true, eager: true },
+        'react-dom': { singleton: true, eager: true },
+        '@company/ui-lib': { singleton: true },
+        lodash: { singleton: false }, // Allow multiple versions
+      },
+    }),
+  ],
+};
+
+// Plugin webpack config
+module.exports = {
+  plugins: [
+    new ModuleFederationPlugin({
+      name: 'my-plugin',
+      exposes: {
+        './Plugin': './src/plugin-entry',
+      },
+      shared: {
+        react: { singleton: true },
+        'react-dom': { singleton: true },
+      },
+    }),
+  ],
+};
+```
+
+**SDK-Provided Dependencies** (NocoBase pattern):
+
+```ts
+// Host provides common utilities via SDK
+class PluginSDK {
+  // Shared utilities to prevent duplication
+  ui = {
+    React: require('react'),
+    ReactDOM: require('react-dom'),
+    lodash: require('lodash'),
+    dayjs: require('dayjs'),
+  };
+
+  // Shared services
+  services = {
+    http: new HttpClient(),
+    storage: new StorageService(),
+    events: new EventBus(),
+  };
+}
+
+// Plugin uses provided dependencies
+class MyPlugin {
+  constructor(private sdk: PluginSDK) {}
+
+  render() {
+    const { React } = this.sdk.ui;
+    return React.createElement('div', null, 'Hello from plugin');
+  }
+}
+```
+
+**Dependency Analysis and Optimization**:
+
+```ts
+class DependencyAnalyzer {
+  analyzeDuplication(plugins: Plugin[]) {
+    const dependencyMap = new Map<string, Plugin[]>();
+
+    for (const plugin of plugins) {
+      for (const dep of plugin.dependencies) {
+        if (!dependencyMap.has(dep)) {
+          dependencyMap.set(dep, []);
+        }
+        dependencyMap.get(dep)!.push(plugin);
+      }
+    }
+
+    // Report duplications
+    const duplicated = Array.from(dependencyMap.entries())
+      .filter(([dep, plugins]) => plugins.length > 1)
+      .map(([dep, plugins]) => ({
+        dependency: dep,
+        pluginCount: plugins.length,
+        estimatedWaste: this.calculateWastedBytes(dep, plugins.length),
+      }));
+
+    return duplicated;
+  }
+}
+```
 
 ---
 
@@ -128,30 +656,250 @@ const plugin = await import(/* webpackIgnore: true */ pluginUrl);
 
 ---
 
-## 14.3 Runtime Performance
+## 14.4 Runtime Performance Optimization
 
 Optimizing bundles is only half the battle—plugins also need to run efficiently once loaded.
 
 ---
 
-### Plugin Load Time Optimization
+### Intelligent Plugin Load Time Optimization
 
-- **Lazy load** plugins at the moment they’re needed (route visit, menu click).
-- **Prefetch** plugins that analytics suggest will be used soon.
+**Priority-Based Loading** (VS Code pattern):
+
+```ts
+class PriorityPluginLoader {
+  private loadQueues = {
+    critical: [], // Authentication, core navigation
+    high: [], // Frequently used features
+    normal: [], // Standard plugins
+    low: [], // Optional/rarely used
+  };
+
+  async loadByPriority() {
+    // Critical plugins - block until loaded
+    await this.loadQueue('critical');
+
+    // High priority - load in next tick
+    setTimeout(() => this.loadQueue('high'), 0);
+
+    // Normal priority - load during idle time
+    requestIdleCallback(() => this.loadQueue('normal'));
+
+    // Low priority - load only when needed
+    this.deferQueue('low');
+  }
+
+  private async loadQueue(priority: string) {
+    const queue = this.loadQueues[priority];
+
+    if (priority === 'critical') {
+      // Parallel loading for critical plugins
+      await Promise.all(queue.map((plugin) => this.loadPlugin(plugin)));
+    } else {
+      // Sequential loading for non-critical
+      for (const plugin of queue) {
+        await this.loadPlugin(plugin);
+        // Yield control between loads
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    }
+  }
+}
+```
+
+**Adaptive Prefetching** based on user patterns:
+
+```ts
+class AdaptivePrefetcher {
+  private userPatterns = new Map<string, PluginUsagePattern>();
+
+  async prefetchForUser(userId: string) {
+    const pattern = this.userPatterns.get(userId);
+    if (!pattern) return;
+
+    // Prefetch plugins likely to be used in next 5 minutes
+    const likelyPlugins = pattern.predictNext(5 * 60 * 1000);
+
+    for (const [pluginId, probability] of likelyPlugins) {
+      if (probability > 0.7) {
+        this.prefetchPlugin(pluginId);
+      }
+    }
+  }
+
+  private async prefetchPlugin(pluginId: string) {
+    // Download but don't initialize yet
+    const pluginCode = await fetch(`/plugins/${pluginId}/bundle.js`);
+    this.pluginCache.set(pluginId, await pluginCode.text());
+  }
+}
+```
 
 ---
 
-### Memory Usage Management
+### Advanced Memory Management
 
-- Unmount inactive plugins.
-- Clear cached data for unused plugins.
+Plugin memory management becomes critical at scale:
+
+```ts
+class PluginMemoryManager {
+  private memoryLimits = new Map<string, number>();
+  private memoryUsage = new Map<string, number>();
+  private cleanupStrategies = new Map<string, CleanupStrategy>();
+
+  setPluginMemoryLimit(pluginId: string, limitMB: number) {
+    this.memoryLimits.set(pluginId, limitMB * 1024 * 1024);
+  }
+
+  monitorMemoryUsage() {
+    setInterval(() => {
+      for (const [pluginId, limit] of this.memoryLimits) {
+        const usage = this.getPluginMemoryUsage(pluginId);
+
+        if (usage > limit) {
+          this.handleMemoryPressure(pluginId, usage, limit);
+        }
+      }
+    }, 10000); // Check every 10 seconds
+  }
+
+  private async handleMemoryPressure(pluginId: string, usage: number, limit: number) {
+    const strategy = this.cleanupStrategies.get(pluginId);
+
+    if (usage > limit * 1.5) {
+      // Critical: force garbage collection
+      await this.forceGarbageCollection(pluginId);
+    } else if (usage > limit * 1.2) {
+      // Warning: clean caches
+      await strategy?.cleanCaches?.();
+    } else {
+      // Mild: reduce cache sizes
+      await strategy?.reduceCacheSize?.();
+    }
+  }
+
+  // Automatic plugin lifecycle management
+  async managePluginLifecycle() {
+    const activePlugins = this.getActivePlugins();
+    const lastUsed = new Map<string, number>();
+
+    for (const plugin of activePlugins) {
+      const timeSinceLastUse = Date.now() - (lastUsed.get(plugin.id) || 0);
+
+      // Unmount plugins unused for 10 minutes
+      if (timeSinceLastUse > 10 * 60 * 1000) {
+        await this.suspendPlugin(plugin.id);
+      }
+    }
+  }
+}
+```
 
 ---
 
-### CPU Performance Tuning
+### CPU Performance Optimization
 
-- Batch DOM updates to reduce layout thrashing.
-- Use Web Workers for heavy computation.
+**Cooperative Scheduling** (inspired by React's scheduler):
+
+```ts
+class PluginScheduler {
+  private taskQueue: PluginTask[] = [];
+  private isRunning = false;
+
+  schedulePluginWork(pluginId: string, task: PluginTask) {
+    this.taskQueue.push({ ...task, pluginId, priority: task.priority || 0 });
+
+    if (!this.isRunning) {
+      this.startWorkLoop();
+    }
+  }
+
+  private startWorkLoop() {
+    this.isRunning = true;
+
+    const workLoop = (deadline: IdleDeadline) => {
+      // Process tasks while we have time
+      while (deadline.timeRemaining() > 0 && this.taskQueue.length > 0) {
+        const task = this.taskQueue.shift()!;
+
+        try {
+          task.execute();
+        } catch (error) {
+          console.error(`Plugin ${task.pluginId} task failed:`, error);
+        }
+      }
+
+      // Continue processing if more tasks remain
+      if (this.taskQueue.length > 0) {
+        requestIdleCallback(workLoop, { timeout: 100 });
+      } else {
+        this.isRunning = false;
+      }
+    };
+
+    requestIdleCallback(workLoop);
+  }
+
+  // Batch DOM updates across plugins
+  batchDOMUpdates(updates: DOMUpdate[]) {
+    requestAnimationFrame(() => {
+      // Group updates by type for efficiency
+      const grouped = this.groupUpdatesByType(updates);
+
+      // Apply all style changes first
+      for (const styleUpdate of grouped.styles) {
+        styleUpdate.apply();
+      }
+
+      // Then DOM structure changes
+      for (const domUpdate of grouped.dom) {
+        domUpdate.apply();
+      }
+    });
+  }
+}
+```
+
+**Web Worker Integration** for heavy computation:
+
+```ts
+class PluginWorkerPool {
+  private workers: Worker[] = [];
+  private taskQueue: WorkerTask[] = [];
+
+  constructor(poolSize: number = navigator.hardwareConcurrency || 4) {
+    // Create worker pool
+    for (let i = 0; i < poolSize; i++) {
+      this.workers.push(new Worker('/plugin-worker.js'));
+    }
+  }
+
+  async executeInWorker(pluginId: string, computation: ComputeTask) {
+    return new Promise((resolve, reject) => {
+      const worker = this.getAvailableWorker();
+
+      worker.postMessage({
+        type: 'compute',
+        pluginId,
+        data: computation.data,
+        algorithm: computation.algorithm,
+      });
+
+      worker.onmessage = (event) => {
+        const { success, result, error } = event.data;
+
+        if (success) {
+          resolve(result);
+        } else {
+          reject(new Error(error));
+        }
+
+        this.releaseWorker(worker);
+      };
+    });
+  }
+}
+```
 
 ---
 
@@ -198,38 +946,188 @@ Integrate performance monitoring tools (e.g., New Relic, Datadog) to track plugi
 
 ---
 
-## 14.5 Scalability Considerations
+## 14.6 Enterprise Scalability Patterns
 
-As the ecosystem grows, the challenge shifts from optimizing single plugins to **orchestrating them at scale**.
-
----
-
-### Plugin Load Balancing
-
-- Spread heavy plugin loads across idle CPU cycles.
-- Prioritize critical plugins over non-essential ones during startup.
+As the ecosystem grows, the challenge shifts from optimizing single plugins to **orchestrating hundreds at enterprise scale**.
 
 ---
 
-### CDN Integration
+### Multi-Tier Plugin Loading (Kibana Pattern)
 
-- Serve plugin bundles and assets from edge locations for low latency.
-- Version plugin assets for cache busting without breaking references.
+**Parallel Initialization by Dependency Tier**:
+
+```ts
+class EnterpisePluginLoader {
+  async loadPluginEcosystem(plugins: Plugin[]) {
+    // Group plugins by dependency depth
+    const tiers = this.buildDependencyTiers(plugins);
+
+    for (const [tierLevel, tierPlugins] of tiers.entries()) {
+      console.log(`Loading tier ${tierLevel} with ${tierPlugins.length} plugins`);
+
+      // Parallel loading within each tier
+      const tierStart = performance.now();
+
+      await Promise.allSettled(tierPlugins.map((plugin) => this.initializePlugin(plugin)));
+
+      const tierDuration = performance.now() - tierStart;
+      console.log(`Tier ${tierLevel} loaded in ${tierDuration}ms`);
+    }
+  }
+
+  private buildDependencyTiers(plugins: Plugin[]): Map<number, Plugin[]> {
+    const tiers = new Map<number, Plugin[]>();
+    const visited = new Set<string>();
+
+    const calculateTier = (plugin: Plugin): number => {
+      if (visited.has(plugin.id)) return 0;
+      visited.add(plugin.id);
+
+      if (!plugin.dependencies.length) return 0;
+
+      const dependencyTiers = plugin.dependencies.map((depId) => {
+        const dep = plugins.find((p) => p.id === depId);
+        return dep ? calculateTier(dep) : 0;
+      });
+
+      return Math.max(...dependencyTiers) + 1;
+    };
+
+    for (const plugin of plugins) {
+      const tier = calculateTier(plugin);
+      if (!tiers.has(tier)) tiers.set(tier, []);
+      tiers.get(tier)!.push(plugin);
+    }
+
+    return tiers;
+  }
+}
+```
 
 ---
 
-### Edge Computing Strategies
+### Database-Driven Plugin State (NocoBase Pattern)
 
-For real-time dashboards or AI-heavy plugins, run certain computations closer to the user (CDN workers, edge functions).
+**Persistent Plugin Configuration**:
+
+```ts
+class DatabasePluginManager {
+  private db: PluginDatabase;
+
+  async syncPluginState() {
+    // Load plugin state from database
+    const dbPlugins = await this.db.getEnabledPlugins();
+    const fileSystemPlugins = await this.scanFileSystem();
+
+    // Reconcile differences
+    const toEnable = dbPlugins.filter((p) => fileSystemPlugins.has(p.id) && !this.isLoaded(p.id));
+
+    const toDisable = this.loadedPlugins.filter((p) => !dbPlugins.find((db) => db.id === p.id));
+
+    // Apply state changes
+    await this.enablePlugins(toEnable);
+    await this.disablePlugins(toDisable);
+  }
+
+  // Hot-swappable plugin state
+  async updatePluginState(pluginId: string, enabled: boolean) {
+    await this.db.updatePluginState(pluginId, enabled);
+
+    if (enabled) {
+      await this.hotLoadPlugin(pluginId);
+    } else {
+      await this.hotUnloadPlugin(pluginId);
+    }
+  }
+}
+```
 
 ---
 
-### Horizontal Scaling Approaches
+### Global CDN and Edge Optimization
 
-In multi-instance deployments:
+**Intelligent Plugin Distribution**:
 
-- Cache plugin manifests and bundles centrally.
-- Share plugin loading analytics across nodes to optimize preload strategies.
+```ts
+class GlobalPluginCDN {
+  private edgeNodes = new Map<string, EdgeNode>();
+
+  async optimizePluginDistribution() {
+    const pluginUsageStats = await this.getGlobalUsageStats();
+
+    for (const [region, stats] of pluginUsageStats) {
+      const popularPlugins = stats.filter((p) => p.usage > 0.8).map((p) => p.pluginId);
+
+      // Preload popular plugins to edge nodes
+      await this.preloadToEdge(region, popularPlugins);
+    }
+  }
+
+  private async preloadToEdge(region: string, pluginIds: string[]) {
+    const edgeNode = this.edgeNodes.get(region);
+
+    await Promise.all(
+      pluginIds.map(async (pluginId) => {
+        const pluginBundle = await this.getPluginBundle(pluginId);
+        await edgeNode.cache(pluginId, pluginBundle);
+      }),
+    );
+  }
+}
+```
+
+---
+
+### Horizontal Scaling Architecture
+
+**Multi-Instance Plugin Coordination**:
+
+```ts
+class DistributedPluginManager {
+  private coordinator: PluginCoordinator;
+  private localCache: Map<string, Plugin> = new Map();
+
+  async initializeCluster() {
+    // Register this instance with coordinator
+    await this.coordinator.registerInstance(this.instanceId);
+
+    // Subscribe to cluster-wide plugin state changes
+    this.coordinator.onPluginStateChange((pluginId, state) => {
+      this.handleClusterStateChange(pluginId, state);
+    });
+
+    // Share local plugin analytics
+    setInterval(() => {
+      this.shareAnalytics();
+    }, 60000); // Every minute
+  }
+
+  private async shareAnalytics() {
+    const localStats = this.gatherLocalStats();
+    await this.coordinator.reportStats(this.instanceId, localStats);
+
+    // Get cluster-wide recommendations
+    const recommendations = await this.coordinator.getOptimizationRecommendations();
+    await this.applyRecommendations(recommendations);
+  }
+
+  private async applyRecommendations(recs: OptimizationRecommendation[]) {
+    for (const rec of recs) {
+      switch (rec.type) {
+        case 'preload':
+          await this.preloadPlugin(rec.pluginId);
+          break;
+        case 'unload':
+          await this.unloadUnusedPlugin(rec.pluginId);
+          break;
+        case 'cache':
+          await this.adjustCacheSize(rec.pluginId, rec.size);
+          break;
+      }
+    }
+  }
+}
+```
 
 ---
 
@@ -237,11 +1135,21 @@ In multi-instance deployments:
 
 A performant plugin ecosystem:
 
-1. **Measures** plugin impact continuously.
-2. **Optimizes bundles** with code splitting, tree shaking, and deduplication.
-3. **Improves runtime execution** with lazy loading, batching, and caching.
-4. Balances **development convenience** with **production efficiency**.
-5. Plans for **scale** from the beginning.
+1. **Isolates plugin execution** to protect core performance (VS Code's multi-process model).
+2. **Implements smart activation patterns** with event-driven lazy loading and priority queues.
+3. **Measures plugin impact comprehensively** with memory, CPU, bundle size, and UX metrics.
+4. **Optimizes bundles intelligently** with hierarchical code splitting, tree shaking, and shared dependencies.
+5. **Manages runtime resources actively** through cooperative scheduling, memory limits, and worker pools.
+6. **Scales to enterprise levels** with parallel initialization, database-driven state, and distributed coordination.
+7. **Balances convenience with efficiency** across development and production environments.
+8. **Learns from production systems** like VS Code (40k+ extensions), Kibana (100+ plugins), and NocoBase (hot-swappable plugins).
+
+**Performance Budget Examples from Real Systems**:
+
+- VS Code: under 50ms activation time per extension
+- Kibana: under 100MB memory per plugin
+- Web Loom: under 2KB gzipped per UI behavior
+- TinaCMS: under 200KB per field plugin bundle
 
 ---
 

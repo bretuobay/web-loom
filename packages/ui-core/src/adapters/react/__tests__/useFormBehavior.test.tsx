@@ -6,9 +6,7 @@ describe('useFormBehavior', () => {
   describe('initial state', () => {
     it('should initialize with provided values', () => {
       const initialValues = { email: '', password: '' };
-      const { result } = renderHook(() => 
-        useFormBehavior({ initialValues })
-      );
+      const { result } = renderHook(() => useFormBehavior({ initialValues }));
 
       expect(result.current.values).toEqual(initialValues);
       expect(result.current.errors).toEqual({});
@@ -22,9 +20,7 @@ describe('useFormBehavior', () => {
 
   describe('state updates trigger re-renders', () => {
     it('should update component when setting field value', () => {
-      const { result } = renderHook(() => 
-        useFormBehavior({ initialValues: { email: '' } })
-      );
+      const { result } = renderHook(() => useFormBehavior({ initialValues: { email: '' } }));
 
       act(() => {
         result.current.actions.setFieldValue('email', 'test@example.com');
@@ -35,9 +31,7 @@ describe('useFormBehavior', () => {
     });
 
     it('should update component when setting field touched', () => {
-      const { result } = renderHook(() => 
-        useFormBehavior({ initialValues: { email: '' } })
-      );
+      const { result } = renderHook(() => useFormBehavior({ initialValues: { email: '' } }));
 
       act(() => {
         result.current.actions.setFieldTouched('email', true);
@@ -47,7 +41,7 @@ describe('useFormBehavior', () => {
     });
 
     it('should update component when validating field', async () => {
-      const { result } = renderHook(() => 
+      const { result } = renderHook(() =>
         useFormBehavior({
           initialValues: { email: '' },
           fields: {
@@ -58,7 +52,7 @@ describe('useFormBehavior', () => {
               },
             },
           },
-        })
+        }),
       );
 
       await act(async () => {
@@ -71,9 +65,7 @@ describe('useFormBehavior', () => {
 
     it('should update component when resetting form', () => {
       const initialValues = { email: '', password: '' };
-      const { result } = renderHook(() => 
-        useFormBehavior({ initialValues })
-      );
+      const { result } = renderHook(() => useFormBehavior({ initialValues }));
 
       act(() => {
         result.current.actions.setFieldValue('email', 'test@example.com');
@@ -95,7 +87,7 @@ describe('useFormBehavior', () => {
 
   describe('validation', () => {
     it('should validate field with synchronous validator', async () => {
-      const { result } = renderHook(() => 
+      const { result } = renderHook(() =>
         useFormBehavior({
           initialValues: { email: '' },
           fields: {
@@ -107,7 +99,7 @@ describe('useFormBehavior', () => {
               },
             },
           },
-        })
+        }),
       );
 
       await act(async () => {
@@ -138,19 +130,19 @@ describe('useFormBehavior', () => {
     });
 
     it('should validate field with asynchronous validator', async () => {
-      const { result } = renderHook(() => 
+      const { result } = renderHook(() =>
         useFormBehavior({
           initialValues: { username: '' },
           fields: {
             username: {
               validate: async (value) => {
-                await new Promise(resolve => setTimeout(resolve, 10));
+                await new Promise((resolve) => setTimeout(resolve, 10));
                 if (!value) return 'Username is required';
                 return null;
               },
             },
           },
-        })
+        }),
       );
 
       await act(async () => {
@@ -161,18 +153,18 @@ describe('useFormBehavior', () => {
     });
 
     it('should validate entire form', async () => {
-      const { result } = renderHook(() => 
+      const { result } = renderHook(() =>
         useFormBehavior({
           initialValues: { email: '', password: '' },
           fields: {
             email: {
-              validate: (value) => !value ? 'Email is required' : null,
+              validate: (value) => (!value ? 'Email is required' : null),
             },
             password: {
-              validate: (value) => !value ? 'Password is required' : null,
+              validate: (value) => (!value ? 'Password is required' : null),
             },
           },
-        })
+        }),
       );
 
       await act(async () => {
@@ -189,11 +181,11 @@ describe('useFormBehavior', () => {
   describe('form submission', () => {
     it('should handle form submission', async () => {
       const onSubmit = vi.fn();
-      const { result } = renderHook(() => 
+      const { result } = renderHook(() =>
         useFormBehavior({
           initialValues: { email: 'test@example.com' },
           onSubmit,
-        })
+        }),
       );
 
       await act(async () => {
@@ -206,24 +198,34 @@ describe('useFormBehavior', () => {
 
     it('should set isSubmitting during submission', async () => {
       const onSubmit = vi.fn(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 50));
       });
 
-      const { result } = renderHook(() => 
+      const { result } = renderHook(() =>
         useFormBehavior({
           initialValues: { email: 'test@example.com' },
           onSubmit,
-        })
+        }),
       );
 
-      const submitPromise = act(async () => {
-        await result.current.actions.submitForm();
+      // Start submission without awaiting
+      let submitPromise: Promise<void>;
+      act(() => {
+        submitPromise = result.current.actions.submitForm();
+      });
+
+      // Give React a chance to update state
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
       });
 
       // During submission
       expect(result.current.isSubmitting).toBe(true);
 
-      await submitPromise;
+      // Wait for submission to complete
+      await act(async () => {
+        await submitPromise!;
+      });
 
       // After submission
       expect(result.current.isSubmitting).toBe(false);
@@ -231,61 +233,64 @@ describe('useFormBehavior', () => {
 
     it('should validate before submitting', async () => {
       const onSubmit = vi.fn();
-      const { result } = renderHook(() => 
+      const { result } = renderHook(() =>
         useFormBehavior({
           initialValues: { email: '' },
           fields: {
             email: {
-              validate: (value) => !value ? 'Email is required' : null,
+              validate: (value) => (!value ? 'Email is required' : null),
             },
           },
           onSubmit,
-        })
+        }),
       );
 
       await act(async () => {
-        await result.current.actions.submitForm();
+        if (result.current) {
+          await result.current.actions.submitForm();
+        }
       });
 
       // Should not submit if validation fails
       expect(onSubmit).not.toHaveBeenCalled();
-      expect(result.current.errors.email).toBe('Email is required');
+      expect(result.current?.errors.email).toBe('Email is required');
     });
   });
 
   describe('cleanup on unmount', () => {
     it('should clean up behavior when component unmounts', () => {
-      const { result, unmount } = renderHook(() => 
-        useFormBehavior({ initialValues: { email: '' } })
-      );
+      const { result, unmount } = renderHook(() => useFormBehavior({ initialValues: { email: '' } }));
 
       act(() => {
-        result.current.actions.setFieldValue('email', 'test@example.com');
+        if (result.current) {
+          result.current.actions.setFieldValue('email', 'test@example.com');
+        }
       });
 
-      expect(result.current.values.email).toBe('test@example.com');
+      expect(result.current?.values.email).toBe('test@example.com');
 
       unmount();
 
+      // Calling unmount twice should not throw
       expect(() => unmount()).not.toThrow();
     });
   });
 
   describe('behavior instance stability', () => {
     it('should maintain same behavior instance across re-renders', () => {
-      const { result, rerender } = renderHook(() => 
-        useFormBehavior({ initialValues: { email: '' } })
-      );
+      const { result, rerender } = renderHook(() => useFormBehavior({ initialValues: { email: '' } }));
 
-      const firstActions = result.current.actions;
+      const firstActions = result.current?.actions;
 
       act(() => {
-        result.current.actions.setFieldValue('email', 'test@example.com');
+        if (result.current) {
+          result.current.actions.setFieldValue('email', 'test@example.com');
+        }
       });
 
       rerender();
 
-      expect(result.current.actions).toBe(firstActions);
+      expect(result.current?.actions).toBe(firstActions);
     });
   });
 });
