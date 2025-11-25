@@ -1,0 +1,353 @@
+---
+id: "the-frontend-architecture-crisis"
+title: The Frontend Architecture Crisis
+section: The Crisis
+---
+
+# Chapter 1: The Frontend Architecture Crisis
+
+## 1.1 The Problem We've Created
+
+Let's be honest: we've made a mess of frontend development.
+
+I've spent the last decade watching teams struggle with the same architectural problems, over and over. Codebases that start clean devolve into tangled webs of components where business logic lives everywhere and nowhere. Tests that mock so many layers they're testing mocks, not behavior. Developers who can't switch frameworks without rewriting everything from scratch.
+
+This isn't a tooling problem. We've got incredible frameworks—React, Vue, Angular—each with their own strengths. The problem is **how we're using them**.
+
+We've let the framework become the architecture. We've conflated "component-based" with "well-structured." We've prioritized shipping features over building maintainable systems. And now we're paying the price.
+
+## 1.2 How We Got Here
+
+The shift to component-based frameworks was necessary. After years of jQuery spaghetti and template soup, the ability to encapsulate UI into reusable pieces felt revolutionary. React gave us a declarative mental model. Vue made reactivity intuitive. Angular brought enterprise patterns to the frontend.
+
+But somewhere along the way, we forgot the lessons that desktop and mobile developers had already learned. We abandoned proven architectural patterns—patterns like MVVM that had solved these exact problems in WPF, iOS, and Android development. We convinced ourselves that the web was "different" and needed new approaches.
+
+It wasn't different. We just didn't bother learning from those who'd come before us.
+
+Consider this typical React component I reviewed last month:
+
+```typescript
+function UserDashboard() {
+  const [user, setUser] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const userResponse = await fetch(`/api/users/${userId}`);
+        const userData = await userResponse.json();
+        setUser(userData);
+
+        const postsResponse = await fetch(`/api/users/${userId}/posts`);
+        const postsData = await postsResponse.json();
+        setPosts(postsData.filter(p => p.published));
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [userId]);
+
+  const handlePublish = async (postId) => {
+    try {
+      await fetch(`/api/posts/${postId}/publish`, { method: 'POST' });
+      setPosts(posts.map(p =>
+        p.id === postId ? { ...p, published: true } : p
+      ));
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  if (loading) return <Spinner />;
+  if (error) return <ErrorMessage message={error} />;
+
+  return (
+    <div>
+      <UserProfile user={user} />
+      <PostsList posts={posts} onPublish={handlePublish} />
+    </div>
+  );
+}
+```
+
+This looks familiar, right? It's the kind of code we write every day. But look closer:
+
+- **Business logic is embedded in the UI layer.** The filtering logic (`p.published`), the data transformation, the publishing workflow—it's all trapped inside a component.
+- **State management is scattered.** We're managing `user`, `posts`, `loading`, and `error` as independent pieces of state, manually keeping them synchronized.
+- **Testing requires mounting components.** Want to test the publishing logic? You'll need to render the entire component, mock fetch, and simulate user interactions.
+- **Reusability is impossible.** If you need this same logic in a mobile app or different framework, you're rewriting it from scratch.
+
+This isn't a React problem. I've seen identical issues in Vue and Angular codebases. The framework isn't the issue—our **lack of architecture** is.
+
+## 1.3 The Cost of Framework-First Architecture
+
+When we let the framework dictate our architecture, we pay specific, measurable costs:
+
+**1. Testability collapses.** Without clear separation between business logic and UI, we're forced to test them together. This means:
+
+- Slower test execution (rendering components is expensive)
+- Brittle tests that break when UI changes
+- Lower test coverage because integration tests are harder to write
+- Difficulty achieving true unit test isolation
+
+I've worked with teams where the test suite took 15 minutes to run because every test mounted components. When tests are slow, developers stop running them. When tests are brittle, developers stop trusting them. The whole testing pyramid inverts.
+
+**2. Cognitive load explodes.** Developers need to hold the entire system in their heads. There's no clear boundary between "how we present data" and "what the data means." This makes:
+
+- Onboarding new developers painfully slow
+- Code reviews exhausting and error-prone
+- Feature development increasingly time-consuming as the codebase grows
+- Debugging a nightmare when issues span multiple concerns
+
+**3. Framework lock-in becomes total.** Your business logic—the actual value your application provides—is imprisoned in framework-specific code. Want to:
+
+- Share logic between web and mobile? Rewrite it.
+- Migrate to a new framework? Rewrite it.
+- Test your domain logic independently? Can't. It's married to the view.
+
+This isn't theoretical. I've seen companies spend months rewriting applications during framework migrations, not because the frameworks are incompatible, but because they never separated their business logic in the first place.
+
+**4. Collaboration deteriorates.** When everything is a component, there's no clear ownership. Backend developers can't contribute to business logic because it's tangled with UI code. Frontend developers can't focus on user experience because they're also managing state, API calls, and business rules. Everyone steps on everyone else's toes.
+
+## 1.4 Why MVVM Is the Solution We Need
+
+MVVM isn't a silver bullet. It's not even new—it's been solving these exact problems in other platforms for nearly two decades. Microsoft introduced it for WPF in 2005. iOS developers adopted it. Android teams embraced it. It works.
+
+The pattern is straightforward:
+
+- **Model:** Your domain logic and data structures. Pure TypeScript classes and interfaces that represent your business entities and rules. No framework code. No UI concerns.
+- **View:** Your framework-specific presentation layer. React components, Vue templates, Angular components—whatever you're using. Its job is to **observe** the ViewModel and **render** the state. That's it.
+- **ViewModel:** The bridge between Model and View. It exposes observable state, handles user interactions, coordinates with services, and contains presentation logic. Crucially, it's **framework-agnostic**.
+
+Here's the same dashboard, restructured with MVVM:
+
+```typescript
+// Model: Pure domain logic
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  published: boolean;
+}
+
+// ViewModel: Framework-agnostic presentation logic
+class UserDashboardViewModel {
+  private userService: UserService;
+  private postService: PostService;
+
+  private _user$ = new BehaviorSubject<User | null>(null);
+  private _posts$ = new BehaviorSubject<Post[]>([]);
+  private _loading$ = new BehaviorSubject<boolean>(true);
+  private _error$ = new BehaviorSubject<string | null>(null);
+
+  // Public observables for the View
+  readonly user$ = this._user$.asObservable();
+  readonly publishedPosts$ = this._posts$.pipe(
+    map(posts => posts.filter(p => p.published))
+  );
+  readonly loading$ = this._loading$.asObservable();
+  readonly error$ = this._error$.asObservable();
+
+  constructor(
+    private userId: string,
+    userService: UserService,
+    postService: PostService
+  ) {
+    this.userService = userService;
+    this.postService = postService;
+    this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    try {
+      const [user, posts] = await Promise.all([
+        this.userService.getUser(this.userId),
+        this.postService.getUserPosts(this.userId)
+      ]);
+
+      this._user$.next(user);
+      this._posts$.next(posts);
+    } catch (error) {
+      this._error$.next(error.message);
+    } finally {
+      this._loading$.next(false);
+    }
+  }
+
+  async publishPost(postId: string): Promise<void> {
+    try {
+      await this.postService.publishPost(postId);
+
+      const currentPosts = this._posts$.value;
+      this._posts$.next(
+        currentPosts.map(p =>
+          p.id === postId ? { ...p, published: true } : p
+        )
+      );
+    } catch (error) {
+      this._error$.next(`Failed to publish post: ${error.message}`);
+    }
+  }
+
+  dispose(): void {
+    this._user$.complete();
+    this._posts$.complete();
+    this._loading$.complete();
+    this._error$.complete();
+  }
+}
+
+// View: React component (could just as easily be Vue or Angular)
+function UserDashboard({ userId }: { userId: string }) {
+  const viewModel = useMemo(
+    () => new UserDashboardViewModel(
+      userId,
+      new UserService(),
+      new PostService()
+    ),
+    [userId]
+  );
+
+  useEffect(() => () => viewModel.dispose(), [viewModel]);
+
+  const user = useObservable(viewModel.user$);
+  const posts = useObservable(viewModel.publishedPosts$);
+  const loading = useObservable(viewModel.loading$);
+  const error = useObservable(viewModel.error$);
+
+  if (loading) return <Spinner />;
+  if (error) return <ErrorMessage message={error} />;
+
+  return (
+    <div>
+      <UserProfile user={user} />
+      <PostsList
+        posts={posts}
+        onPublish={(postId) => viewModel.publishPost(postId)}
+      />
+    </div>
+  );
+}
+```
+
+Look at what we've gained:
+
+**1. Business logic is testable in isolation.** We can instantiate `UserDashboardViewModel` directly in tests, inject mock services, and verify behavior without rendering anything:
+
+```typescript
+describe("UserDashboardViewModel", () => {
+  it("filters published posts", async () => {
+    const mockPostService = {
+      getUserPosts: async () => [
+        { id: "1", published: true, title: "Post 1", content: "..." },
+        { id: "2", published: false, title: "Post 2", content: "..." },
+      ],
+    };
+
+    const vm = new UserDashboardViewModel(
+      "user-123",
+      mockUserService,
+      mockPostService
+    );
+
+    const publishedPosts = await firstValueFrom(vm.publishedPosts$);
+    expect(publishedPosts).toHaveLength(1);
+    expect(publishedPosts[0].id).toBe("1");
+  });
+});
+```
+
+These tests run in milliseconds. No DOM. No component lifecycle. Just pure logic verification.
+
+**2. The View becomes simple.** It observes state and renders. That's all. If you need to change the UI, you're changing the View. If you need to change behavior, you're changing the ViewModel. Clear separation means clear responsibility.
+
+**3. Framework portability is real.** That same `UserDashboardViewModel`? It works in Vue:
+
+```typescript
+<script setup lang="ts">
+import { useObservable } from '@/composables/useObservable';
+
+const viewModel = new UserDashboardViewModel(
+  props.userId,
+  new UserService(),
+  new PostService()
+);
+
+const user = useObservable(viewModel.user$);
+const posts = useObservable(viewModel.publishedPosts$);
+const loading = useObservable(viewModel.loading$);
+const error = useObservable(viewModel.error$);
+</script>
+
+<template>
+  <Spinner v-if="loading" />
+  <ErrorMessage v-else-if="error" :message="error" />
+  <div v-else>
+    <UserProfile :user="user" />
+    <PostsList :posts="posts" @publish="viewModel.publishPost" />
+  </div>
+</template>
+```
+
+Same ViewModel. Different View. Zero rewrite of business logic.
+
+**4. Collaboration becomes natural.** Backend developers can work on services and models. UI developers can focus on components and styling. Everyone works with a clear contract defined by the ViewModel's public interface.
+
+## 1.5 What This Book Will Teach You
+
+This isn't a book about React, Vue, or Angular. It's a book about **architecture that transcends frameworks**.
+
+We're going to build a real-world application—a greenhouse monitoring system called GreenWatch—using MVVM principles that work across all three major frameworks. You'll learn:
+
+- **How to structure TypeScript code for true framework independence.** We'll establish patterns using RxJS for reactive state management, dependency injection for testability, and clear boundaries between layers.
+- **How to implement ViewModels that drive real UI.** Not toy examples—actual, production-quality code that handles asynchronous data, complex state transitions, and user interactions.
+- **How to bind framework-specific Views to framework-agnostic ViewModels.** We'll see identical ViewModels powering React components, Vue components, and Angular components, understanding the patterns that make this possible.
+- **How to test business logic without touching the DOM.** We'll write fast, focused unit tests for ViewModels and integration tests for services, building a test suite that actually gives us confidence.
+- **How to scale this architecture to enterprise systems.** We'll explore microfrontends, domain-driven design, shared component libraries, and even AI-assisted code generation—all built on the same MVVM foundation.
+
+By the end of this book, you'll have a reusable architectural template that you can apply to any project, regardless of your framework choice. You'll write more maintainable code, ship features faster, and sleep better knowing your architecture won't collapse under its own weight.
+
+## 1.6 Who This Book Is For
+
+This book assumes you're comfortable with:
+
+- TypeScript fundamentals (types, interfaces, generics, async/await)
+- At least one modern framework (React, Vue, or Angular)
+- Basic reactive programming concepts (though we'll cover RxJS thoroughly)
+- Testing principles (unit tests, mocks, test doubles)
+
+You don't need to be an expert in all three frameworks. In fact, if you've only used one, you're the ideal reader—you'll see how architectural patterns let you transfer your knowledge across framework boundaries.
+
+You should read this book if you:
+
+- Find yourself rewriting the same logic in different parts of your application
+- Struggle to test components because logic is tangled with UI
+- Want to build applications that aren't locked into a single framework
+- Feel like your codebase is growing harder to maintain as it scales
+- Need to share code between web and mobile applications
+- Want to understand how to apply proven architectural patterns to modern frontend development
+
+## 1.7 A Note on Pragmatism
+
+MVVM isn't a religion. It's a tool. There are scenarios where a simple component with local state is perfectly fine. Not every piece of UI needs a dedicated ViewModel.
+
+The key is **intentionality**. When you choose to put logic in a component, it should be a conscious decision, not a default. When complexity grows, you should have a clear path to extract that logic into a testable, reusable ViewModel.
+
+This book will give you that path. We'll discuss when to apply MVVM and when simpler patterns suffice. We'll explore the trade-offs honestly, because architecture is about making informed decisions, not following dogma.
+
+---
+
+Let's fix frontend architecture. Together, we'll revive the patterns that work, adapt them to modern JavaScript/TypeScript development, and build applications that we're proud to maintain for years to come.
+
+The crisis is real, but the solution is within reach. Let's begin.

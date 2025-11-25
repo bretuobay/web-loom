@@ -1,0 +1,1173 @@
+---
+id: "testing-viewmodels-and-domain-logic"
+title: Testing ViewModels and Domain Logic
+section: Framework-Agnostic Core
+---
+
+# Chapter 8: Testing ViewModels and Domain Logic
+
+_"The architecture doesn't matter if you can't verify it works."_
+
+---
+
+We've built a solid foundation—our ViewModels are decoupled, our domain logic lives in services, and our Views remain blissfully ignorant of business rules. But here's the uncomfortable truth: none of that matters if we can't **prove** our code works correctly, and more importantly, **continues** to work as we evolve the system.
+
+Testing isn't an afterthought in MVVM architecture—it's one of the primary **reasons** we use it. The separation of concerns we've carefully crafted exists specifically to make our code testable without spinning up browsers, rendering components, or mocking half the framework. This chapter shows you exactly how to leverage that architecture.
+
+## Why MVVM Makes Testing Natural
+
+Let's be direct: if you're fighting your architecture to write tests, your architecture is wrong. MVVM done correctly makes testing **easier** than testing tightly-coupled code, not harder.
+
+Consider what we've accomplished through separation:
+
+**ViewModels** contain all presentation logic but depend only on services and domain objects. No DOM. No framework components. No navigation APIs. Just TypeScript classes with observable state. This means we can instantiate them, call their methods, and verify their behavior in milliseconds—no browser required.
+
+**Domain Services** contain business rules but don't know about ViewModels or Views. They accept inputs, apply logic, and return results. Pure, focused, and trivially testable.
+
+**Views** contain only binding declarations and framework-specific rendering code. We don't unit test these—we verify them through integration or E2E tests where we actually care about the rendered output.
+
+This isn't theoretical. Let's see what this looks like in practice.
+
+## Testing ViewModels: The Core Strategy
+
+Here's our testing philosophy: **ViewModels should be tested like any other TypeScript class**, because that's exactly what they are. No special test harnesses. No framework mounting. Just direct instantiation and method calls.
+
+### Setting Up a ViewModel Test
+
+Let's test the `SensorListViewModel` from our GreenWatch application. This ViewModel displays a list of sensors, handles filtering, and manages selection state:
+
+```typescript
+// SensorListViewModel.test.ts
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { SensorListViewModel } from "./SensorListViewModel";
+import { SensorService } from "../services/SensorService";
+import { Sensor, SensorType, SensorStatus } from "../domain/models/Sensor";
+
+describe("SensorListViewModel", () => {
+  let viewModel: SensorListViewModel;
+  let mockSensorService: SensorService;
+  let mockSensors: Sensor[];
+
+  beforeEach(() => {
+    // Create test data
+    mockSensors = [
+      {
+        id: "sensor-1",
+        name: "Temperature Probe A",
+        type: SensorType.Temperature,
+        status: SensorStatus.Active,
+        greenhouseId: "gh-1",
+        lastReading: { value: 22.5, timestamp: new Date() },
+      },
+      {
+        id: "sensor-2",
+        name: "Humidity Monitor B",
+        type: SensorType.Humidity,
+        status: SensorStatus.Active,
+        greenhouseId: "gh-1",
+        lastReading: { value: 65, timestamp: new Date() },
+      },
+      {
+        id: "sensor-3",
+        name: "Soil Moisture C",
+        type: SensorType.SoilMoisture,
+        status: SensorStatus.Inactive,
+        greenhouseId: "gh-1",
+        lastReading: null,
+      },
+    ];
+
+    // Create a test double for the service
+    mockSensorService = {
+      getSensorsForGreenhouse: vi.fn().mockResolvedValue(mockSensors),
+      getSensorById: vi.fn(),
+      updateSensor: vi.fn(),
+    } as any;
+
+    // Instantiate the ViewModel with our test double
+    viewModel = new SensorListViewModel(mockSensorService, "gh-1");
+  });
+
+  // Tests go here
+});
+```
+
+Notice what we're **not** doing: we're not importing React, Vue, or Angular. We're not rendering anything. We're not setting up a test renderer or shallow wrapper. We're just creating a TypeScript object and giving it a test double.
+
+### Testing State Initialization
+
+First, verify the ViewModel initializes correctly:
+
+```typescript
+it("should initialize with loading state", () => {
+  expect(viewModel.isLoading).toBe(true);
+  expect(viewModel.sensors).toEqual([]);
+  expect(viewModel.error).toBeNull();
+});
+
+it("should load sensors on initialization", async () => {
+  await viewModel.initialize();
+
+  expect(mockSensorService.getSensorsForGreenhouse).toHaveBeenCalledWith(
+    "gh-1"
+  );
+  expect(viewModel.sensors).toEqual(mockSensors);
+  expect(viewModel.isLoading).toBe(false);
+});
+```
+
+This is straightforward property checking. We instantiate, we call a method, we verify the observable properties changed as expected. The `initialize()` method is async because it calls a service, so we `await` it and then check the results.
+
+### Testing Business Logic in the ViewModel
+
+Now let's test the filtering logic. Our ViewModel allows filtering sensors by type and status:
+
+```typescript
+it("should filter sensors by type", () => {
+  viewModel.sensors = mockSensors;
+
+  viewModel.filterByType(SensorType.Temperature);
+
+  expect(viewModel.filteredSensors).toHaveLength(1);
+  expect(viewModel.filteredSensors[0].type).toBe(SensorType.Temperature);
+});
+
+it("should filter sensors by status", () => {
+  viewModel.sensors = mockSensors;
+
+  viewModel.filterByStatus(SensorStatus.Inactive);
+
+  expect(viewModel.filteredSensors).toHaveLength(1);
+  expect(viewModel.filteredSensors[0].status).toBe(SensorStatus.Inactive);
+});
+
+it("should apply multiple filters simultaneously", () => {
+  viewModel.sensors = mockSensors;
+
+  viewModel.filterByType(SensorType.Humidity);
+  viewModel.filterByStatus(SensorStatus.Active);
+
+  expect(viewModel.filteredSensors).toHaveLength(1);
+  expect(viewModel.filteredSensors[0].name).toBe("Humidity Monitor B");
+});
+
+it("should clear all filters", () => {
+  viewModel.sensors = mockSensors;
+  viewModel.filterByType(SensorType.Temperature);
+
+  viewModel.clearFilters();
+
+  expect(viewModel.filteredSensors).toEqual(mockSensors);
+});
+```
+
+We're testing the **presentation logic**—the rules that determine what gets displayed based on user interaction. This logic doesn't depend on any UI framework, so it's fast and reliable to test.
+
+### Testing User Interactions
+
+User interactions in MVVM are just method calls that update observable state:
+
+```typescript
+it("should select a sensor", () => {
+  viewModel.sensors = mockSensors;
+
+  viewModel.selectSensor("sensor-2");
+
+  expect(viewModel.selectedSensorId).toBe("sensor-2");
+  expect(viewModel.selectedSensor).toEqual(mockSensors[1]);
+});
+
+it("should deselect when selecting null", () => {
+  viewModel.sensors = mockSensors;
+  viewModel.selectSensor("sensor-1");
+
+  viewModel.selectSensor(null);
+
+  expect(viewModel.selectedSensorId).toBeNull();
+  expect(viewModel.selectedSensor).toBeNull();
+});
+
+it("should toggle sensor selection", () => {
+  viewModel.sensors = mockSensors;
+
+  viewModel.toggleSensorSelection("sensor-1");
+  expect(viewModel.selectedSensorId).toBe("sensor-1");
+
+  viewModel.toggleSensorSelection("sensor-1");
+  expect(viewModel.selectedSensorId).toBeNull();
+});
+```
+
+This is what makes MVVM powerful for testing: user interactions are just synchronous method calls. Click a button? That calls `selectSensor()`. We don't need to simulate clicks, find DOM elements, or wait for re-renders. We call the method directly and verify the state change.
+
+### Testing Error Handling
+
+Don't neglect the unhappy paths:
+
+```typescript
+it("should handle service errors gracefully", async () => {
+  const errorMessage = "Failed to fetch sensors";
+  mockSensorService.getSensorsForGreenhouse.mockRejectedValue(
+    new Error(errorMessage)
+  );
+
+  await viewModel.initialize();
+
+  expect(viewModel.error).toBe(errorMessage);
+  expect(viewModel.isLoading).toBe(false);
+  expect(viewModel.sensors).toEqual([]);
+});
+
+it("should allow retry after error", async () => {
+  mockSensorService.getSensorsForGreenhouse.mockRejectedValueOnce(
+    new Error("Network error")
+  );
+
+  await viewModel.initialize();
+  expect(viewModel.error).not.toBeNull();
+
+  mockSensorService.getSensorsForGreenhouse.mockResolvedValue(mockSensors);
+  await viewModel.retry();
+
+  expect(viewModel.error).toBeNull();
+  expect(viewModel.sensors).toEqual(mockSensors);
+});
+```
+
+Error handling is a first-class concern in ViewModels. We verify that errors are captured, stored in observable state, and the ViewModel remains in a consistent state (e.g., `isLoading` returns to `false`).
+
+## Testing with RxJS Observables
+
+Many of our ViewModels use RxJS observables for reactive state management. Testing observables requires a slightly different approach, but it's still straightforward.
+
+### Testing Observable Streams
+
+Let's test a ViewModel that exposes observable streams:
+
+```typescript
+// EnvironmentalMonitorViewModel.ts (excerpt)
+export class EnvironmentalMonitorViewModel {
+  private temperatureSubject = new BehaviorSubject<number | null>(null);
+  private humiditySubject = new BehaviorSubject<number | null>(null);
+
+  // Public observables
+  readonly temperature$ = this.temperatureSubject.asObservable();
+  readonly humidity$ = this.humiditySubject.asObservable();
+
+  // Derived observable: is environment optimal?
+  readonly isOptimal$ = combineLatest([this.temperature$, this.humidity$]).pipe(
+    map(([temp, humidity]) => {
+      if (temp === null || humidity === null) return false;
+      return temp >= 18 && temp <= 24 && humidity >= 60 && humidity <= 80;
+    })
+  );
+
+  constructor(private sensorDataService: SensorDataService) {}
+
+  async updateReadings(sensorId: string): Promise<void> {
+    const data = await this.sensorDataService.getLatestReading(sensorId);
+    this.temperatureSubject.next(data.temperature);
+    this.humiditySubject.next(data.humidity);
+  }
+}
+```
+
+Here's how we test the observable behavior:
+
+```typescript
+// EnvironmentalMonitorViewModel.test.ts
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { firstValueFrom } from "rxjs";
+import { EnvironmentalMonitorViewModel } from "./EnvironmentalMonitorViewModel";
+import { SensorDataService } from "../services/SensorDataService";
+
+describe("EnvironmentalMonitorViewModel - Observables", () => {
+  let viewModel: EnvironmentalMonitorViewModel;
+  let mockSensorDataService: SensorDataService;
+
+  beforeEach(() => {
+    mockSensorDataService = {
+      getLatestReading: vi.fn(),
+    } as any;
+
+    viewModel = new EnvironmentalMonitorViewModel(mockSensorDataService);
+  });
+
+  it("should emit initial null values", async () => {
+    const temperature = await firstValueFrom(viewModel.temperature$);
+    const humidity = await firstValueFrom(viewModel.humidity$);
+
+    expect(temperature).toBeNull();
+    expect(humidity).toBeNull();
+  });
+
+  it("should emit updated values when readings update", async () => {
+    mockSensorDataService.getLatestReading.mockResolvedValue({
+      temperature: 22,
+      humidity: 70,
+    });
+
+    await viewModel.updateReadings("sensor-1");
+
+    const temperature = await firstValueFrom(viewModel.temperature$);
+    const humidity = await firstValueFrom(viewModel.humidity$);
+
+    expect(temperature).toBe(22);
+    expect(humidity).toBe(70);
+  });
+
+  it("should calculate optimal conditions correctly", async () => {
+    // Test optimal conditions
+    mockSensorDataService.getLatestReading.mockResolvedValue({
+      temperature: 22,
+      humidity: 70,
+    });
+
+    await viewModel.updateReadings("sensor-1");
+    const isOptimal = await firstValueFrom(viewModel.isOptimal$);
+
+    expect(isOptimal).toBe(true);
+  });
+
+  it("should detect non-optimal temperature", async () => {
+    mockSensorDataService.getLatestReading.mockResolvedValue({
+      temperature: 30, // Too hot
+      humidity: 70,
+    });
+
+    await viewModel.updateReadings("sensor-1");
+    const isOptimal = await firstValueFrom(viewModel.isOptimal$);
+
+    expect(isOptimal).toBe(false);
+  });
+});
+```
+
+We use RxJS's `firstValueFrom()` utility to convert observables to promises for testing. This lets us `await` the next emitted value and assert against it. For derived observables like `isOptimal$`, we verify the transformation logic is correct by testing various input combinations.
+
+### Testing Observable Subscriptions and Cleanup
+
+ViewModels should manage their subscriptions to prevent memory leaks:
+
+```typescript
+// ViewModel with subscription management
+export class RealTimeSensorViewModel {
+  private subscriptions = new Subscription();
+
+  constructor(private sensorStream: SensorStreamService) {}
+
+  initialize(sensorId: string): void {
+    const sub = this.sensorStream
+      .connect(sensorId)
+      .subscribe((reading) => this.updateReading(reading));
+
+    this.subscriptions.add(sub);
+  }
+
+  dispose(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  private updateReading(reading: SensorReading): void {
+    // Update observable state
+  }
+}
+```
+
+Test the subscription lifecycle:
+
+```typescript
+it("should clean up subscriptions on dispose", () => {
+  const mockStream = new Subject<SensorReading>();
+  const mockService = {
+    connect: vi.fn().mockReturnValue(mockStream),
+  };
+
+  const viewModel = new RealTimeSensorViewModel(mockService as any);
+  viewModel.initialize("sensor-1");
+
+  expect(mockService.connect).toHaveBeenCalledWith("sensor-1");
+
+  // Dispose should unsubscribe
+  viewModel.dispose();
+
+  // Verify stream is no longer active
+  expect(mockStream.observed).toBe(false);
+});
+```
+
+This ensures ViewModels don't leak memory when they're no longer needed—a critical consideration in single-page applications where ViewModels are created and destroyed frequently.
+
+## Testing Domain Services
+
+Domain services contain our business rules. They're even simpler to test than ViewModels because they typically don't have observable state—just input/output functions.
+
+### Pure Business Logic Testing
+
+Let's test the `AlertService` that determines when to send alerts based on sensor readings:
+
+```typescript
+// AlertService.ts
+export class AlertService {
+  constructor(
+    private thresholdRepo: ThresholdRepository,
+    private notificationService: NotificationService
+  ) {}
+
+  async evaluateReading(
+    sensorId: string,
+    reading: SensorReading
+  ): Promise<Alert | null> {
+    const thresholds =
+      await this.thresholdRepo.getThresholdsForSensor(sensorId);
+
+    if (!thresholds) return null;
+
+    // Critical: immediate alert
+    if (
+      reading.value > thresholds.critical.max ||
+      reading.value < thresholds.critical.min
+    ) {
+      return this.createAlert(
+        sensorId,
+        reading,
+        AlertSeverity.Critical,
+        "Critical threshold exceeded"
+      );
+    }
+
+    // Warning: should be monitored
+    if (
+      reading.value > thresholds.warning.max ||
+      reading.value < thresholds.warning.min
+    ) {
+      return this.createAlert(
+        sensorId,
+        reading,
+        AlertSeverity.Warning,
+        "Warning threshold exceeded"
+      );
+    }
+
+    return null; // Reading is within acceptable range
+  }
+
+  private createAlert(
+    sensorId: string,
+    reading: SensorReading,
+    severity: AlertSeverity,
+    message: string
+  ): Alert {
+    return {
+      id: crypto.randomUUID(),
+      sensorId,
+      reading,
+      severity,
+      message,
+      timestamp: new Date(),
+    };
+  }
+}
+```
+
+Now the tests:
+
+```typescript
+// AlertService.test.ts
+describe("AlertService", () => {
+  let service: AlertService;
+  let mockThresholdRepo: ThresholdRepository;
+  let mockNotificationService: NotificationService;
+
+  const defaultThresholds = {
+    warning: { min: 15, max: 28 },
+    critical: { min: 10, max: 35 },
+  };
+
+  beforeEach(() => {
+    mockThresholdRepo = {
+      getThresholdsForSensor: vi.fn().mockResolvedValue(defaultThresholds),
+    } as any;
+
+    mockNotificationService = {
+      send: vi.fn(),
+    } as any;
+
+    service = new AlertService(mockThresholdRepo, mockNotificationService);
+  });
+
+  it("should return null for readings within normal range", async () => {
+    const reading: SensorReading = {
+      value: 22,
+      timestamp: new Date(),
+    };
+
+    const alert = await service.evaluateReading("sensor-1", reading);
+
+    expect(alert).toBeNull();
+  });
+
+  it("should create warning alert for readings exceeding warning threshold", async () => {
+    const reading: SensorReading = {
+      value: 30, // Above warning max of 28
+      timestamp: new Date(),
+    };
+
+    const alert = await service.evaluateReading("sensor-1", reading);
+
+    expect(alert).not.toBeNull();
+    expect(alert!.severity).toBe(AlertSeverity.Warning);
+    expect(alert!.message).toContain("Warning threshold");
+  });
+
+  it("should create critical alert for readings exceeding critical threshold", async () => {
+    const reading: SensorReading = {
+      value: 40, // Above critical max of 35
+      timestamp: new Date(),
+    };
+
+    const alert = await service.evaluateReading("sensor-1", reading);
+
+    expect(alert).not.toBeNull();
+    expect(alert!.severity).toBe(AlertSeverity.Critical);
+    expect(alert!.message).toContain("Critical threshold");
+  });
+
+  it("should prioritize critical over warning when both are exceeded", async () => {
+    const reading: SensorReading = {
+      value: 40, // Exceeds both warning and critical
+      timestamp: new Date(),
+    };
+
+    const alert = await service.evaluateReading("sensor-1", reading);
+
+    expect(alert!.severity).toBe(AlertSeverity.Critical);
+  });
+
+  it("should handle minimum threshold violations", async () => {
+    const reading: SensorReading = {
+      value: 8, // Below critical min of 10
+      timestamp: new Date(),
+    };
+
+    const alert = await service.evaluateReading("sensor-1", reading);
+
+    expect(alert).not.toBeNull();
+    expect(alert!.severity).toBe(AlertSeverity.Critical);
+  });
+});
+```
+
+This is classic unit testing: focused inputs, clear outputs, business logic verification. We're testing every branch of the decision tree—normal range, warning range, critical range, minimum violations. Each test is independent and fast.
+
+### Testing Service Orchestration
+
+Some domain services orchestrate multiple operations. Here's a service that handles the complete flow of calibrating a sensor:
+
+```typescript
+// SensorCalibrationService.ts
+export class SensorCalibrationService {
+  constructor(
+    private sensorRepo: SensorRepository,
+    private calibrationRepo: CalibrationRepository,
+    private eventBus: DomainEventBus
+  ) {}
+
+  async calibrate(
+    sensorId: string,
+    calibrationData: CalibrationData
+  ): Promise<CalibrationResult> {
+    // 1. Validate sensor exists and is in correct state
+    const sensor = await this.sensorRepo.findById(sensorId);
+    if (!sensor) {
+      throw new Error(`Sensor ${sensorId} not found`);
+    }
+
+    if (sensor.status !== SensorStatus.Active) {
+      throw new Error("Cannot calibrate inactive sensor");
+    }
+
+    // 2. Perform calibration calculation
+    const result = this.calculateCalibration(sensor, calibrationData);
+
+    // 3. Store calibration record
+    await this.calibrationRepo.save({
+      sensorId,
+      timestamp: new Date(),
+      previousOffset: sensor.calibrationOffset,
+      newOffset: result.offset,
+      performedBy: calibrationData.userId,
+    });
+
+    // 4. Update sensor with new calibration
+    sensor.calibrationOffset = result.offset;
+    sensor.lastCalibrated = new Date();
+    await this.sensorRepo.update(sensor);
+
+    // 5. Publish domain event
+    this.eventBus.publish(
+      new SensorCalibratedEvent({
+        sensorId,
+        newOffset: result.offset,
+        timestamp: new Date(),
+      })
+    );
+
+    return result;
+  }
+
+  private calculateCalibration(
+    sensor: Sensor,
+    data: CalibrationData
+  ): CalibrationResult {
+    // Calibration algorithm implementation
+    const offset = data.referenceValue - data.measuredValue;
+    return {
+      offset,
+      confidence: this.calculateConfidence(offset, sensor.type),
+    };
+  }
+
+  private calculateConfidence(offset: number, type: SensorType): number {
+    // Confidence calculation based on offset magnitude
+    const maxOffset = this.getMaxAcceptableOffset(type);
+    return Math.max(0, 1 - Math.abs(offset) / maxOffset);
+  }
+
+  private getMaxAcceptableOffset(type: SensorType): number {
+    const offsets = {
+      [SensorType.Temperature]: 5,
+      [SensorType.Humidity]: 10,
+      [SensorType.SoilMoisture]: 15,
+    };
+    return offsets[type];
+  }
+}
+```
+
+Testing orchestration services requires verifying the **sequence** of operations and **interactions** between dependencies:
+
+```typescript
+// SensorCalibrationService.test.ts
+describe("SensorCalibrationService", () => {
+  let service: SensorCalibrationService;
+  let mockSensorRepo: SensorRepository;
+  let mockCalibrationRepo: CalibrationRepository;
+  let mockEventBus: DomainEventBus;
+  let testSensor: Sensor;
+
+  beforeEach(() => {
+    testSensor = {
+      id: "sensor-1",
+      name: "Temp Sensor",
+      type: SensorType.Temperature,
+      status: SensorStatus.Active,
+      calibrationOffset: 0,
+      lastCalibrated: null,
+      greenhouseId: "gh-1",
+    };
+
+    mockSensorRepo = {
+      findById: vi.fn().mockResolvedValue(testSensor),
+      update: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    mockCalibrationRepo = {
+      save: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    mockEventBus = {
+      publish: vi.fn(),
+    } as any;
+
+    service = new SensorCalibrationService(
+      mockSensorRepo,
+      mockCalibrationRepo,
+      mockEventBus
+    );
+  });
+
+  it("should successfully calibrate an active sensor", async () => {
+    const calibrationData = {
+      referenceValue: 25,
+      measuredValue: 23,
+      userId: "user-1",
+    };
+
+    const result = await service.calibrate("sensor-1", calibrationData);
+
+    // Verify the result
+    expect(result.offset).toBe(2); // 25 - 23
+    expect(result.confidence).toBeGreaterThan(0);
+
+    // Verify repository interactions occurred in correct order
+    expect(mockSensorRepo.findById).toHaveBeenCalledWith("sensor-1");
+    expect(mockCalibrationRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sensorId: "sensor-1",
+        newOffset: 2,
+        performedBy: "user-1",
+      })
+    );
+    expect(mockSensorRepo.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "sensor-1",
+        calibrationOffset: 2,
+      })
+    );
+
+    // Verify domain event was published
+    expect(mockEventBus.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sensorId: "sensor-1",
+        newOffset: 2,
+      })
+    );
+  });
+
+  it("should reject calibration for non-existent sensor", async () => {
+    mockSensorRepo.findById.mockResolvedValue(null);
+
+    await expect(
+      service.calibrate("invalid-id", {} as CalibrationData)
+    ).rejects.toThrow("Sensor invalid-id not found");
+
+    // Verify no other operations were attempted
+    expect(mockCalibrationRepo.save).not.toHaveBeenCalled();
+    expect(mockSensorRepo.update).not.toHaveBeenCalled();
+    expect(mockEventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it("should reject calibration for inactive sensor", async () => {
+    testSensor.status = SensorStatus.Inactive;
+
+    await expect(
+      service.calibrate("sensor-1", {} as CalibrationData)
+    ).rejects.toThrow("Cannot calibrate inactive sensor");
+
+    expect(mockCalibrationRepo.save).not.toHaveBeenCalled();
+  });
+
+  it("should calculate confidence based on offset magnitude", async () => {
+    // Small offset = high confidence
+    const smallOffsetData = {
+      referenceValue: 21,
+      measuredValue: 20,
+      userId: "user-1",
+    };
+
+    const result1 = await service.calibrate("sensor-1", smallOffsetData);
+    expect(result1.confidence).toBeGreaterThan(0.8);
+
+    // Large offset = lower confidence
+    mockSensorRepo.findById.mockResolvedValue({ ...testSensor });
+    const largeOffsetData = {
+      referenceValue: 25,
+      measuredValue: 20,
+      userId: "user-1",
+    };
+
+    const result2 = await service.calibrate("sensor-1", largeOffsetData);
+    expect(result2.confidence).toBeLessThan(result1.confidence);
+  });
+});
+```
+
+Notice how we verify **both** the return value **and** the side effects (repository calls, event publishing). This ensures the orchestration happens in the correct sequence and handles errors properly.
+
+## Test Doubles: When and How
+
+We've been using test doubles throughout this chapter—mocked services injected into our ViewModels. Let's be explicit about the different types of test doubles and when to use each.
+
+### Types of Test Doubles
+
+**Mocks** are test doubles that verify **behavior**—they check that certain methods were called with specific arguments:
+
+```typescript
+const mockService = {
+  saveSensor: vi.fn(),
+};
+
+await viewModel.saveSensor(sensorData);
+
+expect(mockService.saveSensor).toHaveBeenCalledWith(sensorData);
+expect(mockService.saveSensor).toHaveBeenCalledTimes(1);
+```
+
+Use mocks when you care **how** the dependency is used, not just the result. For command operations (saves, deletes, publishes), mocks are appropriate.
+
+**Stubs** are test doubles that return **predetermined responses**:
+
+```typescript
+const stubService = {
+  getSensor: vi.fn().mockResolvedValue(testSensor),
+};
+
+const sensor = await viewModel.loadSensor("sensor-1");
+
+expect(sensor).toEqual(testSensor);
+```
+
+Use stubs when you care about **what** the dependency returns. For query operations (gets, lists, searches), stubs are appropriate.
+
+**Fakes** are working implementations with simplified behavior:
+
+```typescript
+class FakeSensorRepository implements SensorRepository {
+  private sensors = new Map<string, Sensor>();
+
+  async findById(id: string): Promise<Sensor | null> {
+    return this.sensors.get(id) ?? null;
+  }
+
+  async save(sensor: Sensor): Promise<void> {
+    this.sensors.set(sensor.id, sensor);
+  }
+
+  async findAll(): Promise<Sensor[]> {
+    return Array.from(this.sensors.values());
+  }
+}
+```
+
+Use fakes when you need **stateful** behavior across multiple test operations. For complex integration tests, fakes provide more realistic behavior than stubs without requiring a real database.
+
+### Guidelines for Test Doubles
+
+1. **Mock at the service boundary**: ViewModels should receive mocked services, not mocked repositories. This keeps tests focused on the ViewModel's responsibility.
+
+2. **Don't mock what you don't own**: Never mock framework APIs or third-party libraries directly. Wrap them in your own interfaces and mock those.
+
+3. **Minimize mock setup**: If you're writing 50 lines of mock configuration for a 10-line test, your dependencies are too complex. Simplify them.
+
+4. **Verify behavior, not implementation**: Mock interactions should verify **what** happened, not **how** it was implemented internally.
+
+## Testing Patterns and Anti-Patterns
+
+Let's address common testing mistakes and their corrections.
+
+### Anti-Pattern: Testing Implementation Details
+
+**Bad:**
+
+```typescript
+it("should call the private helper method", () => {
+  const spy = vi.spyOn(viewModel as any, "validateInput");
+
+  viewModel.submitForm(formData);
+
+  expect(spy).toHaveBeenCalled();
+});
+```
+
+This test is fragile—it breaks when you refactor internal implementation. Tests should verify **behavior** (what the public API does), not **implementation** (how it does it).
+
+**Good:**
+
+```typescript
+it("should reject invalid form data", async () => {
+  const invalidData = { temperature: "not-a-number" };
+
+  await expect(viewModel.submitForm(invalidData)).rejects.toThrow(
+    "Invalid temperature"
+  );
+});
+```
+
+### Anti-Pattern: Over-Mocking
+
+**Bad:**
+
+```typescript
+it("should display sensor name", () => {
+  const mockView = {
+    setText: vi.fn(),
+  };
+
+  viewModel.attachView(mockView);
+  viewModel.displaySensor(sensor);
+
+  expect(mockView.setText).toHaveBeenCalledWith(sensor.name);
+});
+```
+
+You're testing the binding mechanism, not the ViewModel. The View is an implementation detail from the ViewModel's perspective.
+
+**Good:**
+
+```typescript
+it("should expose sensor name for display", () => {
+  viewModel.displaySensor(sensor);
+
+  expect(viewModel.displayName).toBe(sensor.name);
+});
+```
+
+Test that the ViewModel **exposes** the correct data. Let integration tests verify the View binds to it correctly.
+
+### Anti-Pattern: Testing the Framework
+
+**Bad:**
+
+```typescript
+it("should update when observable emits", (done) => {
+  let emittedValue;
+
+  viewModel.temperature$.subscribe((value) => {
+    emittedValue = value;
+    done();
+  });
+
+  viewModel.updateTemperature(22);
+
+  expect(emittedValue).toBe(22);
+});
+```
+
+You're testing that RxJS observables work. Trust the framework.
+
+**Good:**
+
+```typescript
+it("should update temperature value", () => {
+  viewModel.updateTemperature(22);
+
+  expect(viewModel.currentTemperature).toBe(22);
+});
+```
+
+Test **your** logic, not the framework's plumbing.
+
+### Pattern: Testing Derived State
+
+**Good:**
+
+```typescript
+it("should calculate total active sensors", () => {
+  viewModel.sensors = [
+    { id: "1", status: SensorStatus.Active },
+    { id: "2", status: SensorStatus.Inactive },
+    { id: "3", status: SensorStatus.Active },
+  ];
+
+  expect(viewModel.activeSensorCount).toBe(2);
+});
+
+it("should determine if any sensors need calibration", () => {
+  viewModel.sensors = [
+    { id: "1", lastCalibrated: new Date("2024-01-01") },
+    { id: "2", lastCalibrated: new Date("2025-11-01") },
+  ];
+
+  const needsCalibration = viewModel.sensorsNeedingCalibration;
+
+  expect(needsCalibration).toHaveLength(1);
+  expect(needsCalibration[0].id).toBe("1");
+});
+```
+
+Derived state is **your** logic computing displayable values from raw data. This is prime testing territory.
+
+### Pattern: Testing State Transitions
+
+**Good:**
+
+```typescript
+it("should transition through loading states correctly", async () => {
+  expect(viewModel.isLoading).toBe(false);
+  expect(viewModel.error).toBeNull();
+
+  const loadPromise = viewModel.loadSensors();
+  expect(viewModel.isLoading).toBe(true);
+
+  await loadPromise;
+  expect(viewModel.isLoading).toBe(false);
+  expect(viewModel.sensors.length).toBeGreaterThan(0);
+});
+```
+
+Async operations have intermediate states. Verify the ViewModel transitions through them correctly—this catches race conditions and ensures the UI can display appropriate loading indicators.
+
+## Integration Testing ViewModels with Services
+
+Unit tests verify isolated behavior. Integration tests verify components work together correctly. For ViewModels, this means testing them with **real service implementations** (or realistic fakes) but still **without** rendering the UI.
+
+### Testing ViewModel-Service Integration
+
+Here's an integration test using a fake repository:
+
+```typescript
+// SensorListViewModel.integration.test.ts
+describe("SensorListViewModel Integration", () => {
+  let viewModel: SensorListViewModel;
+  let sensorRepository: FakeSensorRepository;
+  let sensorService: SensorService;
+
+  beforeEach(() => {
+    sensorRepository = new FakeSensorRepository();
+    sensorService = new SensorService(sensorRepository);
+    viewModel = new SensorListViewModel(sensorService, "gh-1");
+
+    // Seed test data
+    sensorRepository.save({
+      id: "sensor-1",
+      name: "Temperature A",
+      type: SensorType.Temperature,
+      status: SensorStatus.Active,
+      greenhouseId: "gh-1",
+    });
+  });
+
+  it("should load and filter sensors through real service layer", async () => {
+    await viewModel.initialize();
+
+    // Data loaded through service
+    expect(viewModel.sensors).toHaveLength(1);
+
+    // Filtering works with loaded data
+    viewModel.filterByType(SensorType.Temperature);
+    expect(viewModel.filteredSensors).toHaveLength(1);
+
+    viewModel.filterByType(SensorType.Humidity);
+    expect(viewModel.filteredSensors).toHaveLength(0);
+  });
+
+  it("should persist changes through service layer", async () => {
+    await viewModel.initialize();
+
+    const sensor = viewModel.sensors[0];
+    sensor.name = "Updated Name";
+
+    await viewModel.updateSensor(sensor);
+
+    // Verify persistence
+    const reloaded = await sensorRepository.findById("sensor-1");
+    expect(reloaded?.name).toBe("Updated Name");
+  });
+});
+```
+
+This tests the **actual interaction** between ViewModel and service, catching issues like incorrect parameter passing, missing error handling, or state synchronization problems.
+
+### When to Write Integration Tests
+
+Integration tests are slower and more complex than unit tests. Use them strategically:
+
+- **Cross-boundary operations**: Test sequences that involve multiple services or repositories
+- **Complex state management**: Verify state stays synchronized across ViewModel, service, and storage layers
+- **Error propagation**: Ensure errors from deep in the service layer surface correctly in the ViewModel
+- **Real data transformations**: Verify data mapping and transformation logic works with realistic data
+
+## Performance Testing ViewModels
+
+ViewModels should be fast—we're talking milliseconds for most operations. If a ViewModel method takes more than 50ms, investigate why.
+
+### Measuring Performance
+
+```typescript
+it("should filter large datasets efficiently", () => {
+  // Generate 10,000 sensors
+  const largeSensorList = Array.from({ length: 10000 }, (_, i) => ({
+    id: `sensor-${i}`,
+    name: `Sensor ${i}`,
+    type: i % 3 === 0 ? SensorType.Temperature : SensorType.Humidity,
+    status: SensorStatus.Active,
+    greenhouseId: "gh-1",
+  }));
+
+  viewModel.sensors = largeSensorList;
+
+  const start = performance.now();
+  viewModel.filterByType(SensorType.Temperature);
+  const duration = performance.now() - start;
+
+  expect(duration).toBeLessThan(50); // Should complete in under 50ms
+  expect(viewModel.filteredSensors.length).toBeGreaterThan(0);
+});
+```
+
+If filtering 10,000 items takes more than 50ms, you need to optimize—add memoization, implement virtual scrolling, or lazy-load data.
+
+### Testing Memory Leaks
+
+```typescript
+it("should not leak memory when repeatedly loading data", async () => {
+  const initialMemory = (performance as any).memory?.usedJSHeapSize;
+
+  // Load and clear data 100 times
+  for (let i = 0; i < 100; i++) {
+    await viewModel.loadSensors();
+    viewModel.clearSensors();
+  }
+
+  // Force garbage collection (Node with --expose-gc flag)
+  if (global.gc) {
+    global.gc();
+  }
+
+  const finalMemory = (performance as any).memory?.usedJSHeapSize;
+  const growth = finalMemory - initialMemory;
+
+  // Memory growth should be minimal (< 10MB for 100 iterations)
+  expect(growth).toBeLessThan(10 * 1024 * 1024);
+});
+```
+
+This test won't catch every leak, but it identifies **obvious** problems like forgetting to unsubscribe from observables or holding references to disposed objects.
+
+## Organizing Your Tests
+
+Structure your test files to match your source structure:
+
+```
+src/
+  presentation/
+    viewmodels/
+      SensorListViewModel.ts
+      SensorListViewModel.test.ts
+      EnvironmentalMonitorViewModel.ts
+      EnvironmentalMonitorViewModel.test.ts
+  domain/
+    services/
+      SensorService.ts
+      SensorService.test.ts
+      AlertService.ts
+      AlertService.test.ts
+  infrastructure/
+    repositories/
+      SensorRepository.ts
+      SensorRepository.integration.test.ts
+```
+
+Co-locating tests with source files makes them easy to find and encourages developers to update tests when they modify code.
+
+### Test File Naming Conventions
+
+- `*.test.ts` - Unit tests
+- `*.integration.test.ts` - Integration tests
+- `*.e2e.test.ts` - End-to-end tests
+
+This convention lets you run different test suites independently:
+
+```bash
+# Run only unit tests
+npm test -- --testPathPattern='\.test\.ts$'
+
+# Run integration tests
+npm test -- --testPathPattern='\.integration\.test\.ts$'
+```
+
+## What We've Accomplished
+
+We've demonstrated that MVVM architecture makes testing **natural**, not burdensome. ViewModels are plain TypeScript classes that can be instantiated, exercised, and verified in milliseconds. Domain services contain pure business logic that's trivial to test with different inputs. The View layer—the only part that actually depends on the UI framework—is relegated to integration tests where it belongs.
+
+This is what testability looks like:
+
+- **Fast tests**: No DOM, no framework, no waiting. Thousands of tests running in seconds.
+- **Focused tests**: Each test verifies **one thing** about **one component**.
+- **Maintainable tests**: Tests break when behavior changes, not when implementation refactors.
+- **Comprehensive coverage**: Business logic, presentation logic, error handling, state transitions—all covered.
+
+If you're fighting your architecture to write tests, your architecture is wrong. MVVM done correctly makes testing the easiest part of development, not the hardest. The separation we've carefully maintained throughout this book pays its biggest dividend here: you can **prove** your code works, and you can **keep** proving it as the system evolves.
+
+In the next chapter, we'll extend these ViewModels across framework boundaries—implementing the same ViewModel in React, Vue, and Angular to demonstrate true framework agnosticism.
