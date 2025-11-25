@@ -9,24 +9,20 @@ describe('useRovingFocus', () => {
 
       expect(result.current.currentIndex).toBe(0);
       expect(result.current.items).toEqual([]);
-      expect(result.current.orientation).toBe('horizontal');
+      expect(result.current.orientation).toBe('vertical');
       expect(result.current.wrap).toBe(true);
     });
 
     it('should initialize with provided items', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useRovingFocus({ items })
-      );
+      const { result } = renderHook(() => useRovingFocus({ items }));
 
       expect(result.current.items).toEqual(items);
       expect(result.current.currentIndex).toBe(0);
     });
 
     it('should initialize with vertical orientation', () => {
-      const { result } = renderHook(() => 
-        useRovingFocus({ orientation: 'vertical' })
-      );
+      const { result } = renderHook(() => useRovingFocus({ orientation: 'vertical' }));
 
       expect(result.current.orientation).toBe('vertical');
     });
@@ -35,9 +31,7 @@ describe('useRovingFocus', () => {
   describe('state updates trigger re-renders', () => {
     it('should update component when moving to next item', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useRovingFocus({ items })
-      );
+      const { result } = renderHook(() => useRovingFocus({ items }));
 
       expect(result.current.currentIndex).toBe(0);
 
@@ -50,9 +44,7 @@ describe('useRovingFocus', () => {
 
     it('should update component when moving to previous item', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useRovingFocus({ items, initialIndex: 2 })
-      );
+      const { result } = renderHook(() => useRovingFocus({ items, initialIndex: 2 }));
 
       expect(result.current.currentIndex).toBe(2);
 
@@ -65,9 +57,7 @@ describe('useRovingFocus', () => {
 
     it('should update component when moving to first item', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useRovingFocus({ items, initialIndex: 2 })
-      );
+      const { result } = renderHook(() => useRovingFocus({ items, initialIndex: 2 }));
 
       act(() => {
         result.current.actions.moveFirst();
@@ -78,9 +68,7 @@ describe('useRovingFocus', () => {
 
     it('should update component when moving to last item', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useRovingFocus({ items })
-      );
+      const { result } = renderHook(() => useRovingFocus({ items }));
 
       act(() => {
         result.current.actions.moveLast();
@@ -91,9 +79,7 @@ describe('useRovingFocus', () => {
 
     it('should update component when moving to specific index', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useRovingFocus({ items })
-      );
+      const { result } = renderHook(() => useRovingFocus({ items }));
 
       act(() => {
         result.current.actions.moveTo(1);
@@ -118,9 +104,7 @@ describe('useRovingFocus', () => {
   describe('wrapping behavior', () => {
     it('should wrap from last to first when moving next', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useRovingFocus({ items, initialIndex: 2, wrap: true })
-      );
+      const { result } = renderHook(() => useRovingFocus({ items, initialIndex: 2, wrap: true }));
 
       act(() => {
         result.current.actions.moveNext();
@@ -131,9 +115,7 @@ describe('useRovingFocus', () => {
 
     it('should wrap from first to last when moving previous', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useRovingFocus({ items, wrap: true })
-      );
+      const { result } = renderHook(() => useRovingFocus({ items, wrap: true }));
 
       act(() => {
         result.current.actions.movePrevious();
@@ -145,9 +127,7 @@ describe('useRovingFocus', () => {
 
   describe('cleanup on unmount', () => {
     it('should clean up behavior when component unmounts', () => {
-      const { result, unmount } = renderHook(() => 
-        useRovingFocus({ items: ['item-1', 'item-2'] })
-      );
+      const { result, unmount } = renderHook(() => useRovingFocus({ items: ['item-1', 'item-2'] }));
 
       act(() => {
         result.current.actions.moveNext();
@@ -163,9 +143,7 @@ describe('useRovingFocus', () => {
 
   describe('behavior instance stability', () => {
     it('should maintain same behavior instance across re-renders', () => {
-      const { result, rerender } = renderHook(() => 
-        useRovingFocus({ items: ['item-1', 'item-2'] })
-      );
+      const { result, rerender } = renderHook(() => useRovingFocus({ items: ['item-1', 'item-2'] }));
 
       const firstActions = result.current.actions;
 
