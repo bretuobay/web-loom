@@ -200,9 +200,204 @@ Product Requirements Document: Framework-Agnostic Client-State Library
   6.4 Store Lifecycle
   TC.4.1: Store Destruction:
   Description: Verify that calling destroy() clears all listeners and prevents further notifications.
-  Expected Outcome: No listeners are called after destroy() is invoked, even if actions are dispatched. 7. Future Considerations (Out of Scope for Initial Version)
+  Expected Outcome: No listeners are called after destroy() is invoked, even if actions are dispatched.
+
+7. State Persistence Extension
+   7.1 Overview
+   This extension adds opt-in persistence capabilities to the store, allowing state to be saved to and restored from various storage backends (memory, localStorage, IndexedDB). The persistence layer is designed to be fully backward compatible - existing stores continue to work without any changes.
+
+   7.2 Goals
+   - Provide pluggable persistence adapters for different storage backends
+   - Support automatic state hydration on store creation
+   - Enable state synchronization on every state change
+   - Support manual save/load operations
+   - Provide cleanup mechanisms for expired or unwanted persisted state
+   - Maintain full backward compatibility with non-persisted stores
+
+   7.3 Functional Requirements
+
+   FR.P.1: Persistence Adapters
+   The library shall provide a PersistenceAdapter interface that defines how state is saved, loaded, and cleaned up from a storage backend.
+
+   FR.P.2: Built-in Adapters
+   The library shall provide three built-in persistence adapters:
+   - MemoryAdapter: In-memory storage (useful for testing or temporary persistence)
+   - LocalStorageAdapter: Browser localStorage persistence
+   - IndexedDBAdapter: Browser IndexedDB persistence for larger datasets
+
+   FR.P.3: Store Configuration
+   The createStore function shall accept an optional persistence configuration that specifies:
+   - The persistence adapter to use
+   - The storage key/name for the persisted state
+   - Whether to enable automatic synchronization
+   - Optional serialization/deserialization functions
+
+   FR.P.4: State Hydration
+   When a store is created with persistence enabled, it shall automatically attempt to load previously persisted state. If no persisted state exists, it shall use the provided initial state.
+
+   FR.P.5: Auto-Synchronization
+   When auto-sync is enabled, the store shall automatically persist state changes after every successful state update.
+
+   FR.P.6: Manual Persistence Operations
+   The store shall provide methods to manually:
+   - persist(): Save the current state
+   - hydrate(): Load state from storage
+   - clear(): Remove persisted state from storage
+
+   FR.P.7: Serialization
+   The persistence layer shall handle JSON serialization/deserialization by default, with support for custom serializers for complex data types.
+
+   FR.P.8: Error Handling
+   Storage operations shall gracefully handle errors (e.g., quota exceeded, serialization failures) without breaking the store's core functionality.
+
+   FR.P.9: Backward Compatibility
+   Stores created without persistence configuration shall work exactly as before, with zero performance or functionality impact.
+
+   7.4 Persistence API Design
+
+   // Persistence adapter interface
+   export interface PersistenceAdapter<S extends State> {
+     /**
+      * Saves the state to the storage backend.
+      * @param key The storage key
+      * @param state The state to save
+      * @returns Promise that resolves when save is complete
+      */
+     save(key: string, state: S): Promise<void>;
+
+     /**
+      * Loads the state from the storage backend.
+      * @param key The storage key
+      * @returns Promise that resolves with the loaded state, or null if not found
+      */
+     load(key: string): Promise<S | null>;
+
+     /**
+      * Removes the state from the storage backend.
+      * @param key The storage key
+      * @returns Promise that resolves when removal is complete
+      */
+     remove(key: string): Promise<void>;
+
+     /**
+      * Checks if a key exists in storage.
+      * @param key The storage key
+      * @returns Promise that resolves with true if key exists
+      */
+     has(key: string): Promise<boolean>;
+   }
+
+   // Persistence configuration
+   export interface PersistenceConfig<S extends State> {
+     /**
+      * The persistence adapter to use
+      */
+     adapter: PersistenceAdapter<S>;
+
+     /**
+      * The key/name used to store the state
+      */
+     key: string;
+
+     /**
+      * Whether to automatically sync state changes (default: true)
+      */
+     autoSync?: boolean;
+
+     /**
+      * Custom serializer (default: JSON.stringify)
+      */
+     serialize?: (state: S) => string;
+
+     /**
+      * Custom deserializer (default: JSON.parse)
+      */
+     deserialize?: (data: string) => S;
+
+     /**
+      * Whether to merge loaded state with initial state (default: false)
+      * If true, loaded state is merged with initialState
+      * If false, loaded state replaces initialState completely
+      */
+     merge?: boolean;
+   }
+
+   // Extended Store interface with persistence methods
+   export interface PersistedStore<S extends State, A extends Actions<S, A>> extends Store<S, A> {
+     /**
+      * Manually persist the current state
+      */
+     persist(): Promise<void>;
+
+     /**
+      * Manually load state from storage
+      */
+     hydrate(): Promise<void>;
+
+     /**
+      * Clear persisted state from storage
+      */
+     clearPersisted(): Promise<void>;
+   }
+
+   7.5 Test Cases
+
+   TC.P.1: Memory Adapter Basic Operations
+   Description: Verify that MemoryAdapter can save and load state.
+   Expected Outcome: State saved via save() can be retrieved via load().
+
+   TC.P.2: LocalStorage Adapter Operations
+   Description: Verify that LocalStorageAdapter persists state to browser localStorage.
+   Expected Outcome: State is stored in localStorage and survives page refreshes.
+
+   TC.P.3: IndexedDB Adapter Operations
+   Description: Verify that IndexedDBAdapter persists state to IndexedDB.
+   Expected Outcome: State is stored in IndexedDB and can handle large datasets.
+
+   TC.P.4: Auto-Hydration on Store Creation
+   Description: When creating a store with persistence, verify that previously saved state is loaded.
+   Expected Outcome: Store initializes with persisted state instead of initial state.
+
+   TC.P.5: Auto-Sync on State Changes
+   Description: With autoSync enabled, verify that state changes are automatically persisted.
+   Expected Outcome: After state update, the new state is automatically saved to storage.
+
+   TC.P.6: Manual Persist Operation
+   Description: Verify that calling persist() manually saves the current state.
+   Expected Outcome: State is saved and can be loaded later.
+
+   TC.P.7: Clear Persisted State
+   Description: Verify that clearPersisted() removes state from storage.
+   Expected Outcome: After clearing, load() returns null.
+
+   TC.P.8: Serialization Error Handling
+   Description: Verify that serialization errors don't crash the store.
+   Expected Outcome: Store continues to function; error is logged/handled gracefully.
+
+   TC.P.9: Storage Quota Exceeded
+   Description: Verify behavior when storage quota is exceeded (localStorage/IndexedDB).
+   Expected Outcome: Error is handled gracefully; store continues to function.
+
+   TC.P.10: Backward Compatibility
+   Description: Verify that stores without persistence config work exactly as before.
+   Expected Outcome: No persistence code executes; performance is unaffected.
+
+   TC.P.11: State Merging
+   Description: With merge: true, verify that loaded state is merged with initial state.
+   Expected Outcome: Final state contains both persisted values and new initial values.
+
+   TC.P.12: Custom Serialization
+   Description: Verify that custom serialize/deserialize functions work correctly.
+   Expected Outcome: State with complex types (Date, Map, etc.) is correctly persisted and restored.
+
+8. Future Considerations (Out of Scope for Initial Version)
   Middleware: Support for applying middleware to actions (e.g., for logging, async operations, side effects).
   DevTools Integration: Compatibility with browser developer tools extensions for state inspection and time-travel debugging.
   Async Actions: Built-in support or patterns for handling asynchronous operations.
   Shallow vs. Deep Comparisons: Options for different levels of state comparison for subscriber notifications.
   Batching Updates: Optimizations to batch multiple state updates into a single notification cycle.
+  Encryption: Support for encrypting persisted state for sensitive data.
+  Compression: Support for compressing large states before persistence.
+  Migration/Versioning: Support for state schema migrations when structure changes.
+  Selective Persistence: Only persist specific parts of the state.
+  TTL (Time-To-Live): Automatic expiration of persisted state after a specified time.
