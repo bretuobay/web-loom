@@ -26,6 +26,11 @@ import {
   createFormBehavior,
 } from '../../behaviors';
 
+// Export new behavior composables
+export { useKeyboardShortcuts } from './useKeyboardShortcuts';
+export { useUndoRedoStack } from './useUndoRedoStack';
+export { useDragDropBehavior } from './useDragDropBehavior';
+
 /**
  * Vue composable for dialog behavior.
  * 

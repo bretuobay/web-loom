@@ -81,6 +81,28 @@ describe('createSidebarShell', () => {
 
       sidebar.destroy();
     });
+
+    it('should initialize with mobile mode disabled by default', () => {
+      const sidebar = createSidebarShell();
+
+      const state = sidebar.getState();
+
+      expect(state.isMobile).toBe(false);
+
+      sidebar.destroy();
+    });
+
+    it('should initialize with custom mobile mode', () => {
+      const sidebar = createSidebarShell({
+        initialMobile: true,
+      });
+
+      const state = sidebar.getState();
+
+      expect(state.isMobile).toBe(true);
+
+      sidebar.destroy();
+    });
   });
 
   describe('expand action', () => {
@@ -603,6 +625,259 @@ describe('createSidebarShell', () => {
     });
   });
 
+  describe('toggleMobile action', () => {
+    it('should toggle mobile mode from disabled to enabled', () => {
+      const sidebar = createSidebarShell();
+
+      sidebar.actions.toggleMobile();
+
+      const state = sidebar.getState();
+      expect(state.isMobile).toBe(true);
+
+      sidebar.destroy();
+    });
+
+    it('should toggle mobile mode from enabled to disabled', () => {
+      const sidebar = createSidebarShell({
+        initialMobile: true,
+      });
+
+      sidebar.actions.toggleMobile();
+
+      const state = sidebar.getState();
+      expect(state.isMobile).toBe(false);
+
+      sidebar.destroy();
+    });
+
+    it('should toggle mobile mode multiple times', () => {
+      const sidebar = createSidebarShell();
+
+      sidebar.actions.toggleMobile();
+      expect(sidebar.getState().isMobile).toBe(true);
+
+      sidebar.actions.toggleMobile();
+      expect(sidebar.getState().isMobile).toBe(false);
+
+      sidebar.actions.toggleMobile();
+      expect(sidebar.getState().isMobile).toBe(true);
+
+      sidebar.destroy();
+    });
+
+    it('should invoke onMobileChange callback when toggling', () => {
+      const onMobileChange = vi.fn();
+      const sidebar = createSidebarShell({
+        onMobileChange,
+      });
+
+      sidebar.actions.toggleMobile();
+
+      expect(onMobileChange).toHaveBeenCalledTimes(1);
+      expect(onMobileChange).toHaveBeenCalledWith(true);
+
+      sidebar.destroy();
+    });
+
+    it('should emit sidebar:mobile-toggled event when toggling', () => {
+      const sidebar = createSidebarShell();
+
+      const listener = vi.fn();
+      sidebar.eventBus.on('sidebar:mobile-toggled', listener);
+
+      sidebar.actions.toggleMobile();
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith(true);
+
+      sidebar.destroy();
+    });
+  });
+
+  describe('setMobileMode action', () => {
+    it('should set mobile mode to enabled', () => {
+      const sidebar = createSidebarShell();
+
+      sidebar.actions.setMobileMode(true);
+
+      const state = sidebar.getState();
+      expect(state.isMobile).toBe(true);
+
+      sidebar.destroy();
+    });
+
+    it('should set mobile mode to disabled', () => {
+      const sidebar = createSidebarShell({
+        initialMobile: true,
+      });
+
+      sidebar.actions.setMobileMode(false);
+
+      const state = sidebar.getState();
+      expect(state.isMobile).toBe(false);
+
+      sidebar.destroy();
+    });
+
+    it('should change mobile mode multiple times', () => {
+      const sidebar = createSidebarShell();
+
+      sidebar.actions.setMobileMode(true);
+      expect(sidebar.getState().isMobile).toBe(true);
+
+      sidebar.actions.setMobileMode(false);
+      expect(sidebar.getState().isMobile).toBe(false);
+
+      sidebar.actions.setMobileMode(true);
+      expect(sidebar.getState().isMobile).toBe(true);
+
+      sidebar.destroy();
+    });
+
+    it('should invoke onMobileChange callback', () => {
+      const onMobileChange = vi.fn();
+      const sidebar = createSidebarShell({
+        onMobileChange,
+      });
+
+      sidebar.actions.setMobileMode(true);
+
+      expect(onMobileChange).toHaveBeenCalledTimes(1);
+      expect(onMobileChange).toHaveBeenCalledWith(true);
+
+      sidebar.destroy();
+    });
+
+    it('should emit sidebar:mobile-toggled event', () => {
+      const sidebar = createSidebarShell();
+
+      const listener = vi.fn();
+      sidebar.eventBus.on('sidebar:mobile-toggled', listener);
+
+      sidebar.actions.setMobileMode(true);
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith(true);
+
+      sidebar.destroy();
+    });
+
+    it('should handle setting same mobile mode multiple times', () => {
+      const onMobileChange = vi.fn();
+      const sidebar = createSidebarShell({
+        onMobileChange,
+      });
+
+      sidebar.actions.setMobileMode(true);
+      sidebar.actions.setMobileMode(true);
+
+      expect(onMobileChange).toHaveBeenCalledTimes(2);
+
+      sidebar.destroy();
+    });
+  });
+
+  describe('mobile auto-collapse behavior', () => {
+    it('should auto-collapse sidebar when section is selected in mobile mode', () => {
+      const sidebar = createSidebarShell({
+        initialMobile: true,
+        initialExpanded: true,
+      });
+
+      sidebar.actions.setActiveSection('navigation');
+
+      const state = sidebar.getState();
+      expect(state.isExpanded).toBe(false);
+      expect(state.activeSection).toBe('navigation');
+
+      sidebar.destroy();
+    });
+
+    it('should not auto-collapse when section is selected in desktop mode', () => {
+      const sidebar = createSidebarShell({
+        initialMobile: false,
+        initialExpanded: true,
+      });
+
+      sidebar.actions.setActiveSection('navigation');
+
+      const state = sidebar.getState();
+      expect(state.isExpanded).toBe(true);
+      expect(state.activeSection).toBe('navigation');
+
+      sidebar.destroy();
+    });
+
+    it('should not auto-collapse when sidebar is already collapsed in mobile mode', () => {
+      const sidebar = createSidebarShell({
+        initialMobile: true,
+        initialExpanded: false,
+      });
+
+      sidebar.actions.setActiveSection('navigation');
+
+      const state = sidebar.getState();
+      expect(state.isExpanded).toBe(false);
+      expect(state.activeSection).toBe('navigation');
+
+      sidebar.destroy();
+    });
+
+    it('should invoke onCollapse callback when auto-collapsing in mobile mode', () => {
+      const onCollapse = vi.fn();
+      const sidebar = createSidebarShell({
+        initialMobile: true,
+        initialExpanded: true,
+        onCollapse,
+      });
+
+      sidebar.actions.setActiveSection('navigation');
+
+      expect(onCollapse).toHaveBeenCalledTimes(1);
+
+      sidebar.destroy();
+    });
+
+    it('should emit sidebar:collapsed event when auto-collapsing in mobile mode', () => {
+      const sidebar = createSidebarShell({
+        initialMobile: true,
+        initialExpanded: true,
+      });
+
+      const listener = vi.fn();
+      sidebar.eventBus.on('sidebar:collapsed', listener);
+
+      sidebar.actions.setActiveSection('navigation');
+
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      sidebar.destroy();
+    });
+
+    it('should auto-collapse for multiple section changes in mobile mode', () => {
+      const sidebar = createSidebarShell({
+        initialMobile: true,
+      });
+
+      // Expand and select first section
+      sidebar.actions.expand();
+      sidebar.actions.setActiveSection('navigation');
+      expect(sidebar.getState().isExpanded).toBe(false);
+
+      // Expand and select second section
+      sidebar.actions.expand();
+      sidebar.actions.setActiveSection('settings');
+      expect(sidebar.getState().isExpanded).toBe(false);
+
+      // Expand and select third section
+      sidebar.actions.expand();
+      sidebar.actions.setActiveSection('profile');
+      expect(sidebar.getState().isExpanded).toBe(false);
+
+      sidebar.destroy();
+    });
+  });
+
   describe('destroy', () => {
     it('should clean up subscriptions when destroyed', () => {
       const sidebar = createSidebarShell();
@@ -808,6 +1083,82 @@ describe('createSidebarShell', () => {
       expect(pinnedListener).toHaveBeenCalledTimes(1);
       expect(unpinnedListener).toHaveBeenCalledTimes(1);
       expect(widthListener).toHaveBeenCalledTimes(1);
+
+      sidebar.destroy();
+    });
+
+    it('should handle mobile mode transitions', () => {
+      const onMobileChange = vi.fn();
+      const sidebar = createSidebarShell({
+        initialExpanded: true,
+        onMobileChange,
+      });
+
+      const mobileListener = vi.fn();
+      sidebar.eventBus.on('sidebar:mobile-toggled', mobileListener);
+
+      // Enable mobile mode
+      sidebar.actions.setMobileMode(true);
+      expect(sidebar.getState().isMobile).toBe(true);
+      expect(onMobileChange).toHaveBeenCalledWith(true);
+      expect(mobileListener).toHaveBeenCalledWith(true);
+
+      // Select section - should auto-collapse
+      sidebar.actions.setActiveSection('navigation');
+      expect(sidebar.getState().isExpanded).toBe(false);
+
+      // Disable mobile mode
+      sidebar.actions.setMobileMode(false);
+      expect(sidebar.getState().isMobile).toBe(false);
+
+      // Expand and select section - should NOT auto-collapse
+      sidebar.actions.expand();
+      sidebar.actions.setActiveSection('settings');
+      expect(sidebar.getState().isExpanded).toBe(true);
+
+      sidebar.destroy();
+    });
+
+    it('should work with all mobile-related callbacks and events', () => {
+      const onExpand = vi.fn();
+      const onCollapse = vi.fn();
+      const onSectionChange = vi.fn();
+      const onMobileChange = vi.fn();
+
+      const sidebar = createSidebarShell({
+        initialMobile: true,
+        onExpand,
+        onCollapse,
+        onSectionChange,
+        onMobileChange,
+      });
+
+      const expandListener = vi.fn();
+      const collapseListener = vi.fn();
+      const sectionListener = vi.fn();
+      const mobileListener = vi.fn();
+
+      sidebar.eventBus.on('sidebar:expanded', expandListener);
+      sidebar.eventBus.on('sidebar:collapsed', collapseListener);
+      sidebar.eventBus.on('section:changed', sectionListener);
+      sidebar.eventBus.on('sidebar:mobile-toggled', mobileListener);
+
+      // Expand sidebar
+      sidebar.actions.expand();
+      expect(onExpand).toHaveBeenCalledTimes(1);
+      expect(expandListener).toHaveBeenCalledTimes(1);
+
+      // Select section (auto-collapse in mobile mode)
+      sidebar.actions.setActiveSection('navigation');
+      expect(onSectionChange).toHaveBeenCalledWith('navigation');
+      expect(sectionListener).toHaveBeenCalledWith('navigation');
+      expect(onCollapse).toHaveBeenCalledTimes(1);
+      expect(collapseListener).toHaveBeenCalledTimes(1);
+
+      // Toggle mobile mode
+      sidebar.actions.toggleMobile();
+      expect(onMobileChange).toHaveBeenCalledWith(false);
+      expect(mobileListener).toHaveBeenCalledWith(false);
 
       sidebar.destroy();
     });

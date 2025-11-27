@@ -4,7 +4,7 @@
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": false,
-  "version": "1.0.0",
+  "version": "0.5.2",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -91,9 +91,9 @@
     "size": "npm run build && npm run test:tree-shaking"
   },
   "dependencies": {
-    "@web-loom/ui-core": "1.0.0",
-    "@web-loom/store-core": "0.0.4",
-    "@web-loom/event-bus-core": "0.0.2"
+    "@web-loom/ui-core": "*",
+    "@web-loom/store-core": "*",
+    "@web-loom/event-bus-core": "*"
   },
   "peerDependencies": {
     "@web-loom/mvvm-core": ">=0.0.1",

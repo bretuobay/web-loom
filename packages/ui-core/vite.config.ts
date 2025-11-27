@@ -3,6 +3,12 @@ import { resolve } from 'path';
 import dts from 'vite-plugin-dts';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@web-loom/store-core': resolve(__dirname, '../store-core/src/index.ts'),
+      '@web-loom/event-bus-core': resolve(__dirname, '../event-bus-core/src/index.ts'),
+    },
+  },
   build: {
     outDir: 'dist',
     lib: {
@@ -34,9 +40,9 @@ export default defineConfig({
         globals: {
           '@web-loom/store-core': 'StoreCore',
           '@web-loom/event-bus-core': 'EventBusCore',
-          'react': 'React',
-          'vue': 'Vue',
-          'rxjs': 'rxjs',
+          react: 'React',
+          vue: 'Vue',
+          rxjs: 'rxjs',
         },
       },
     },

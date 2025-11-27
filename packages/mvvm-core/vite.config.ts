@@ -1,7 +1,13 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 import dts from 'vite-plugin-dts';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@web-loom/query-core': resolve(__dirname, '../query-core/src/index.ts'),
+    },
+  },
   build: {
     clearScreen: false,
     outDir: 'dist', // Explicitly set outDir

@@ -4,7 +4,7 @@
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": false,
-  "version": "1.0.0",
+  "version": "0.5.2",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -48,6 +48,16 @@
       "types": "./dist/behaviors/roving-focus.d.ts",
       "import": "./dist/behaviors/roving-focus.js",
       "default": "./dist/behaviors/roving-focus.js"
+    },
+    "./behaviors/keyboard-shortcuts": {
+      "types": "./dist/behaviors/keyboard-shortcuts.d.ts",
+      "import": "./dist/behaviors/keyboard-shortcuts.js",
+      "default": "./dist/behaviors/keyboard-shortcuts.js"
+    },
+    "./behaviors/undo-redo-stack": {
+      "types": "./dist/behaviors/undo-redo-stack.d.ts",
+      "import": "./dist/behaviors/undo-redo-stack.js",
+      "default": "./dist/behaviors/undo-redo-stack.js"
     },
     "./react": {
       "types": "./dist/adapters/react/index.d.ts",
@@ -95,8 +105,8 @@
     "size": "npm run build && npm run test:tree-shaking"
   },
   "dependencies": {
-    "@web-loom/store-core": "0.0.4",
-    "@web-loom/event-bus-core": "0.0.2"
+    "@web-loom/event-bus-core": "*",
+    "@web-loom/store-core": "*"
   },
   "peerDependencies": {
     "react": ">=16.8.0",
@@ -123,6 +133,7 @@
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
+    "fast-check": "^4.3.0",
     "jsdom": "^26.1.0",
     "prettier": "^3.3.2",
     "react": "^18.3.1",

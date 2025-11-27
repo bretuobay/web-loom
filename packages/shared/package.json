@@ -1,6 +1,6 @@
 {
   "name": "@repo/shared",
-  "version": "0.0.0",
+  "version": "0.5.2",
   "private": true,
   "main": "./src/index.ts",
   "exports": {
@@ -12,6 +12,9 @@
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
     "test": "echo \"No tests for @repo/shared\""
+  },
+  "dependencies": {
+    "@web-loom/mvvm-core": "*"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",

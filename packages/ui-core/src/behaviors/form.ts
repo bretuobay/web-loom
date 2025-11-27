@@ -33,8 +33,15 @@ export interface FormState<T extends Record<string, any> = Record<string, any>> 
   /**
    * Error messages for each field.
    * A field with no error will not be present in this object.
+   * This includes both validation errors and manual errors.
    */
   errors: Partial<Record<keyof T, string>>;
+
+  /**
+   * Manual error messages set via setFieldError.
+   * These are merged with validation errors.
+   */
+  manualErrors: Partial<Record<keyof T, string>>;
 
   /**
    * Tracks which fields have been touched (focused and blurred).
@@ -85,6 +92,15 @@ export interface FormActions<T extends Record<string, any> = Record<string, any>
    * @param touched Whether the field has been touched.
    */
   setFieldTouched: (field: keyof T, touched: boolean) => void;
+
+  /**
+   * Sets a manual error message for a specific field.
+   * This allows setting server-side validation errors without triggering validation.
+   * Manual errors are merged with validation errors.
+   * @param field The field name.
+   * @param error The error message, or null to clear the manual error.
+   */
+  setFieldError: (field: keyof T, error: string | null) => void;
 
   /**
    * Validates a specific field.
@@ -222,6 +238,12 @@ export interface FormBehavior<T extends Record<string, any> = Record<string, any
  * // Validate a field
  * await form.actions.validateField('email');
  * 
+ * // Set a manual error (e.g., from server-side validation)
+ * form.actions.setFieldError('email', 'Email already exists');
+ * 
+ * // Clear a manual error
+ * form.actions.setFieldError('email', null);
+ * 
  * // Submit the form
  * await form.actions.submitForm();
  * 
@@ -238,6 +260,7 @@ export function createFormBehavior<T extends Record<string, any> = Record<string
   const initialState: FormState<T> = {
     values: { ...options.initialValues },
     errors: {},
+    manualErrors: {},
     touched: {},
     dirty: {},
     isValidating: false,
@@ -248,6 +271,28 @@ export function createFormBehavior<T extends Record<string, any> = Record<string
 
   // Store initial values for reset functionality
   const initialValues = { ...options.initialValues };
+
+  // Store validation errors separately from manual errors
+  const validationErrors: Partial<Record<keyof T, string>> = {};
+
+  // Helper function to merge manual and validation errors
+  const mergeErrors = (manualErrors: Partial<Record<keyof T, string>>): Partial<Record<keyof T, string>> => {
+    const merged: Partial<Record<keyof T, string>> = {};
+    
+    // Add validation errors
+    for (const field in validationErrors) {
+      merged[field] = validationErrors[field];
+    }
+    
+    // Manual errors take precedence over validation errors
+    for (const field in manualErrors) {
+      if (manualErrors[field]) {
+        merged[field] = manualErrors[field];
+      }
+    }
+    
+    return merged;
+  };
 
   const store: Store<FormState<T>, FormActions<T>> = createStore<FormState<T>, FormActions<T>>(
     initialState,
@@ -297,19 +342,42 @@ export function createFormBehavior<T extends Record<string, any> = Record<string
         }
       },
 
+      setFieldError: (field: keyof T, error: string | null) => {
+        set((state) => {
+          const newManualErrors = { ...state.manualErrors };
+          
+          if (error === null) {
+            delete newManualErrors[field];
+          } else {
+            newManualErrors[field] = error;
+          }
+          
+          const mergedErrors = mergeErrors(newManualErrors);
+          const isValid = Object.keys(mergedErrors).length === 0;
+          
+          return {
+            ...state,
+            manualErrors: newManualErrors,
+            errors: mergedErrors,
+            isValid,
+          };
+        });
+      },
+
       validateField: async (field: keyof T) => {
         const fieldConfig = options.fields?.[field];
         const validator = fieldConfig?.validate;
 
         if (!validator) {
-          // No validator for this field, clear any existing error
+          // No validator for this field, clear any existing validation error
+          delete validationErrors[field];
+          
           set((state) => {
-            const newErrors = { ...state.errors };
-            delete newErrors[field];
-            const isValid = Object.keys(newErrors).length === 0;
+            const mergedErrors = mergeErrors(state.manualErrors);
+            const isValid = Object.keys(mergedErrors).length === 0;
             return {
               ...state,
-              errors: newErrors,
+              errors: mergedErrors,
               isValid,
             };
           });
@@ -322,32 +390,36 @@ export function createFormBehavior<T extends Record<string, any> = Record<string
           const currentValue = get().values[field];
           const error = await Promise.resolve(validator(currentValue));
 
+          // Update validation errors
+          if (error) {
+            validationErrors[field] = error;
+          } else {
+            delete validationErrors[field];
+          }
+
           set((state) => {
-            const newErrors = { ...state.errors };
-            if (error) {
-              newErrors[field] = error;
-            } else {
-              delete newErrors[field];
-            }
-            const isValid = Object.keys(newErrors).length === 0;
+            const mergedErrors = mergeErrors(state.manualErrors);
+            const isValid = Object.keys(mergedErrors).length === 0;
             return {
               ...state,
-              errors: newErrors,
+              errors: mergedErrors,
               isValid,
               isValidating: false,
             };
           });
         } catch (err) {
           console.error(`Validation error for field ${String(field)}:`, err);
-          set((state) => ({
-            ...state,
-            errors: {
-              ...state.errors,
-              [field]: 'Validation failed',
-            },
-            isValid: false,
-            isValidating: false,
-          }));
+          validationErrors[field] = 'Validation failed';
+          
+          set((state) => {
+            const mergedErrors = mergeErrors(state.manualErrors);
+            return {
+              ...state,
+              errors: mergedErrors,
+              isValid: false,
+              isValidating: false,
+            };
+          });
         }
       },
 
@@ -388,10 +460,16 @@ export function createFormBehavior<T extends Record<string, any> = Record<string
       },
 
       resetForm: () => {
+        // Clear validation errors
+        for (const field in validationErrors) {
+          delete validationErrors[field];
+        }
+        
         set((state) => ({
           ...state,
           values: { ...initialValues },
           errors: {},
+          manualErrors: {},
           touched: {},
           dirty: {},
           isValidating: false,

@@ -27,6 +27,8 @@ describe('createModal', () => {
         id: 'modal-1',
         content: { title: 'Modal 1' },
         priority: 0,
+        closeOnEscape: false,
+        closeOnBackdropClick: false,
       });
       expect(state.topModalId).toBe('modal-1');
 
@@ -302,6 +304,8 @@ describe('createModal', () => {
         id: 'modal-1',
         content: { title: 'Modal 1' },
         priority: 5,
+        closeOnEscape: false,
+        closeOnBackdropClick: false,
       });
 
       modal.destroy();
@@ -381,6 +385,8 @@ describe('createModal', () => {
         id: 'modal-1',
         content: { title: 'Modal 1' },
         priority: 5,
+        closeOnEscape: false,
+        closeOnBackdropClick: false,
       });
 
       modal.destroy();
@@ -511,6 +517,512 @@ describe('createModal', () => {
     });
   });
 
+  describe('modal enhancements - closeOnEscape and closeOnBackdropClick', () => {
+    describe('openModalWithConfig action', () => {
+      it('should open modal with closeOnEscape option', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          priority: 0,
+          closeOnEscape: true,
+        });
+
+        const state = modal.getState();
+        expect(state.stack).toHaveLength(1);
+        expect(state.stack[0].closeOnEscape).toBe(true);
+        expect(state.stack[0].closeOnBackdropClick).toBe(false);
+
+        modal.destroy();
+      });
+
+      it('should open modal with closeOnBackdropClick option', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          priority: 0,
+          closeOnBackdropClick: true,
+        });
+
+        const state = modal.getState();
+        expect(state.stack).toHaveLength(1);
+        expect(state.stack[0].closeOnBackdropClick).toBe(true);
+        expect(state.stack[0].closeOnEscape).toBe(false);
+
+        modal.destroy();
+      });
+
+      it('should open modal with both closeOnEscape and closeOnBackdropClick options', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          priority: 5,
+          closeOnEscape: true,
+          closeOnBackdropClick: true,
+        });
+
+        const state = modal.getState();
+        expect(state.stack).toHaveLength(1);
+        expect(state.stack[0].closeOnEscape).toBe(true);
+        expect(state.stack[0].closeOnBackdropClick).toBe(true);
+        expect(state.stack[0].priority).toBe(5);
+
+        modal.destroy();
+      });
+
+      it('should default closeOnEscape and closeOnBackdropClick to false', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+        });
+
+        const state = modal.getState();
+        expect(state.stack[0].closeOnEscape).toBe(false);
+        expect(state.stack[0].closeOnBackdropClick).toBe(false);
+
+        modal.destroy();
+      });
+
+      it('should persist configuration when updating existing modal', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Original' },
+          closeOnEscape: true,
+        });
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Updated' },
+          closeOnBackdropClick: true,
+        });
+
+        const state = modal.getState();
+        expect(state.stack).toHaveLength(1);
+        expect(state.stack[0].content).toEqual({ title: 'Updated' });
+        expect(state.stack[0].closeOnEscape).toBe(false); // Updated config
+        expect(state.stack[0].closeOnBackdropClick).toBe(true);
+
+        modal.destroy();
+      });
+    });
+
+    describe('handleEscapeKey action', () => {
+      it('should close top modal when closeOnEscape is true', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          closeOnEscape: true,
+        });
+
+        expect(modal.getState().stack).toHaveLength(1);
+
+        modal.actions.handleEscapeKey();
+
+        expect(modal.getState().stack).toHaveLength(0);
+        expect(modal.getState().topModalId).toBeNull();
+
+        modal.destroy();
+      });
+
+      it('should not close top modal when closeOnEscape is false', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          closeOnEscape: false,
+        });
+
+        expect(modal.getState().stack).toHaveLength(1);
+
+        modal.actions.handleEscapeKey();
+
+        expect(modal.getState().stack).toHaveLength(1);
+        expect(modal.getState().topModalId).toBe('modal-1');
+
+        modal.destroy();
+      });
+
+      it('should only close top modal when multiple modals are open', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          priority: 0,
+          closeOnEscape: true,
+        });
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-2',
+          content: { title: 'Modal 2' },
+          priority: 10,
+          closeOnEscape: true,
+        });
+
+        expect(modal.getState().stack).toHaveLength(2);
+        expect(modal.getState().topModalId).toBe('modal-2');
+
+        modal.actions.handleEscapeKey();
+
+        expect(modal.getState().stack).toHaveLength(1);
+        expect(modal.getState().topModalId).toBe('modal-1');
+
+        modal.destroy();
+      });
+
+      it('should handle escape key when no modals are open', () => {
+        const modal = createModal();
+
+        expect(() => {
+          modal.actions.handleEscapeKey();
+        }).not.toThrow();
+
+        expect(modal.getState().stack).toHaveLength(0);
+
+        modal.destroy();
+      });
+
+      it('should emit modal:escape-pressed event', () => {
+        const modal = createModal();
+        const listener = vi.fn();
+
+        modal.eventBus.on('modal:escape-pressed', listener);
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          closeOnEscape: true,
+        });
+
+        modal.actions.handleEscapeKey();
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(listener).toHaveBeenCalledWith('modal-1');
+
+        modal.destroy();
+      });
+
+      it('should emit escape-pressed event even when closeOnEscape is false', () => {
+        const modal = createModal();
+        const listener = vi.fn();
+
+        modal.eventBus.on('modal:escape-pressed', listener);
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          closeOnEscape: false,
+        });
+
+        modal.actions.handleEscapeKey();
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(listener).toHaveBeenCalledWith('modal-1');
+        expect(modal.getState().stack).toHaveLength(1); // Modal not closed
+
+        modal.destroy();
+      });
+    });
+
+    describe('handleBackdropClick action', () => {
+      it('should close modal when closeOnBackdropClick is true', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          closeOnBackdropClick: true,
+        });
+
+        expect(modal.getState().stack).toHaveLength(1);
+
+        modal.actions.handleBackdropClick('modal-1');
+
+        expect(modal.getState().stack).toHaveLength(0);
+        expect(modal.getState().topModalId).toBeNull();
+
+        modal.destroy();
+      });
+
+      it('should not close modal when closeOnBackdropClick is false', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          closeOnBackdropClick: false,
+        });
+
+        expect(modal.getState().stack).toHaveLength(1);
+
+        modal.actions.handleBackdropClick('modal-1');
+
+        expect(modal.getState().stack).toHaveLength(1);
+        expect(modal.getState().topModalId).toBe('modal-1');
+
+        modal.destroy();
+      });
+
+      it('should close specific modal when multiple modals are open', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          priority: 0,
+          closeOnBackdropClick: true,
+        });
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-2',
+          content: { title: 'Modal 2' },
+          priority: 10,
+          closeOnBackdropClick: true,
+        });
+
+        expect(modal.getState().stack).toHaveLength(2);
+
+        modal.actions.handleBackdropClick('modal-1');
+
+        expect(modal.getState().stack).toHaveLength(1);
+        expect(modal.getState().topModalId).toBe('modal-2');
+
+        modal.destroy();
+      });
+
+      it('should handle backdrop click on non-existent modal gracefully', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          closeOnBackdropClick: true,
+        });
+
+        expect(() => {
+          modal.actions.handleBackdropClick('non-existent');
+        }).not.toThrow();
+
+        expect(modal.getState().stack).toHaveLength(1);
+
+        modal.destroy();
+      });
+
+      it('should emit modal:backdrop-clicked event', () => {
+        const modal = createModal();
+        const listener = vi.fn();
+
+        modal.eventBus.on('modal:backdrop-clicked', listener);
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          closeOnBackdropClick: true,
+        });
+
+        modal.actions.handleBackdropClick('modal-1');
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(listener).toHaveBeenCalledWith('modal-1');
+
+        modal.destroy();
+      });
+
+      it('should emit backdrop-clicked event even when closeOnBackdropClick is false', () => {
+        const modal = createModal();
+        const listener = vi.fn();
+
+        modal.eventBus.on('modal:backdrop-clicked', listener);
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          closeOnBackdropClick: false,
+        });
+
+        modal.actions.handleBackdropClick('modal-1');
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(listener).toHaveBeenCalledWith('modal-1');
+        expect(modal.getState().stack).toHaveLength(1); // Modal not closed
+
+        modal.destroy();
+      });
+    });
+
+    describe('backward compatibility', () => {
+      it('should maintain backward compatibility with openModal action', () => {
+        const modal = createModal();
+
+        modal.actions.openModal('modal-1', { title: 'Modal 1' }, 5);
+
+        const state = modal.getState();
+        expect(state.stack).toHaveLength(1);
+        expect(state.stack[0].id).toBe('modal-1');
+        expect(state.stack[0].priority).toBe(5);
+        expect(state.stack[0].closeOnEscape).toBe(false);
+        expect(state.stack[0].closeOnBackdropClick).toBe(false);
+
+        modal.destroy();
+      });
+
+      it('should work with existing modal stack operations', () => {
+        const modal = createModal();
+
+        // Mix old and new API
+        modal.actions.openModal('modal-1', { title: 'Modal 1' }, 0);
+        modal.actions.openModalWithConfig({
+          id: 'modal-2',
+          content: { title: 'Modal 2' },
+          priority: 10,
+          closeOnEscape: true,
+        });
+
+        expect(modal.getState().stack).toHaveLength(2);
+        expect(modal.getState().topModalId).toBe('modal-2');
+
+        modal.actions.closeTopModal();
+        expect(modal.getState().topModalId).toBe('modal-1');
+
+        modal.destroy();
+      });
+    });
+
+    describe('interaction with existing modal stack', () => {
+      it('should handle escape key with mixed modal configurations', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          priority: 0,
+          closeOnEscape: false,
+        });
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-2',
+          content: { title: 'Modal 2' },
+          priority: 5,
+          closeOnEscape: true,
+        });
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-3',
+          content: { title: 'Modal 3' },
+          priority: 10,
+          closeOnEscape: false,
+        });
+
+        expect(modal.getState().topModalId).toBe('modal-3');
+
+        // Escape on modal-3 (closeOnEscape: false) - should not close
+        modal.actions.handleEscapeKey();
+        expect(modal.getState().stack).toHaveLength(3);
+
+        // Close modal-3 manually
+        modal.actions.closeModal('modal-3');
+        expect(modal.getState().topModalId).toBe('modal-2');
+
+        // Escape on modal-2 (closeOnEscape: true) - should close
+        modal.actions.handleEscapeKey();
+        expect(modal.getState().stack).toHaveLength(1);
+        expect(modal.getState().topModalId).toBe('modal-1');
+
+        modal.destroy();
+      });
+
+      it('should handle backdrop clicks on different modals', () => {
+        const modal = createModal();
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          closeOnBackdropClick: true,
+        });
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-2',
+          content: { title: 'Modal 2' },
+          closeOnBackdropClick: false,
+        });
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-3',
+          content: { title: 'Modal 3' },
+          closeOnBackdropClick: true,
+        });
+
+        expect(modal.getState().stack).toHaveLength(3);
+
+        // Click backdrop on modal-2 (closeOnBackdropClick: false) - should not close
+        modal.actions.handleBackdropClick('modal-2');
+        expect(modal.getState().stack).toHaveLength(3);
+
+        // Click backdrop on modal-3 (closeOnBackdropClick: true) - should close
+        modal.actions.handleBackdropClick('modal-3');
+        expect(modal.getState().stack).toHaveLength(2);
+
+        // Click backdrop on modal-1 (closeOnBackdropClick: true) - should close
+        modal.actions.handleBackdropClick('modal-1');
+        expect(modal.getState().stack).toHaveLength(1);
+        expect(modal.getState().topModalId).toBe('modal-2');
+
+        modal.destroy();
+      });
+
+      it('should emit events in correct order with new actions', () => {
+        const modal = createModal();
+
+        const openedListener = vi.fn();
+        const closedListener = vi.fn();
+        const escapeListener = vi.fn();
+        const backdropListener = vi.fn();
+
+        modal.eventBus.on('modal:opened', openedListener);
+        modal.eventBus.on('modal:closed', closedListener);
+        modal.eventBus.on('modal:escape-pressed', escapeListener);
+        modal.eventBus.on('modal:backdrop-clicked', backdropListener);
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-1',
+          content: { title: 'Modal 1' },
+          closeOnEscape: true,
+          closeOnBackdropClick: true,
+        });
+
+        expect(openedListener).toHaveBeenCalledTimes(1);
+
+        modal.actions.handleEscapeKey();
+        expect(escapeListener).toHaveBeenCalledTimes(1);
+        expect(closedListener).toHaveBeenCalledTimes(1);
+
+        modal.actions.openModalWithConfig({
+          id: 'modal-2',
+          content: { title: 'Modal 2' },
+          closeOnBackdropClick: true,
+        });
+
+        modal.actions.handleBackdropClick('modal-2');
+        expect(backdropListener).toHaveBeenCalledTimes(1);
+        expect(closedListener).toHaveBeenCalledTimes(2);
+
+        modal.destroy();
+      });
+    });
+  });
+
   describe('integration scenarios', () => {
     it('should handle complete modal lifecycle', () => {
       const onModalOpened = vi.fn();
@@ -538,6 +1050,8 @@ describe('createModal', () => {
         id: 'modal-1',
         content: { title: 'Modal 1' },
         priority: 0,
+        closeOnEscape: false,
+        closeOnBackdropClick: false,
       });
       expect(openedEventListener).toHaveBeenCalled();
 

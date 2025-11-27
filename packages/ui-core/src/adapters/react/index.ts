@@ -36,6 +36,11 @@ import {
   createFormBehavior,
 } from '../../behaviors';
 
+// Export new behavior hooks
+export { useKeyboardShortcuts } from './useKeyboardShortcuts';
+export { useUndoRedoStack } from './useUndoRedoStack';
+export { useDragDropBehavior } from './useDragDropBehavior';
+
 /**
  * React hook for dialog behavior.
  * 

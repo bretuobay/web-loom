@@ -4,6 +4,13 @@ import {
   ListSelectionExample,
   MasterDetailExample,
   WizardExample,
+  TextEditorExample,
+  CommandPaletteExample,
+  KanbanBoardExample,
+  PhotoGalleryExample,
+  SettingsInterfaceExample,
+  ScrollAwareFABExample,
+  HubAndSpokeExample
 } from './examples';
 import './UIPatterns.css';
 
@@ -26,6 +33,13 @@ export function UIPatterns() {
       component: MasterDetailExample,
     },
     { id: 'wizard', label: 'Wizard Pattern', component: WizardExample },
+    { id: 'text-editor', label: 'Text Editor (Undo/Redo)', component: TextEditorExample },
+    { id: 'command-palette', label: 'Command Palette (Shortcuts)', component: CommandPaletteExample },
+    { id: 'kanban-board', label: 'Kanban Board (Drag-Drop)', component: KanbanBoardExample },
+    { id: 'photo-gallery', label: 'Photo Gallery (Grid)', component: PhotoGalleryExample },
+    { id: 'settings', label: 'Settings (Hub & Spoke)', component: SettingsInterfaceExample },
+    { id: 'hub-and-spoke', label: "Hub and Spoke", component: HubAndSpokeExample},
+    { id: 'scroll-fab', label: 'Scroll-Aware FAB', component: ScrollAwareFABExample },
   ];
 
   const ActiveComponent =

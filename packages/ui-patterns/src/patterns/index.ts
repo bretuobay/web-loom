@@ -13,3 +13,6 @@ export * from './wizard';
 export * from './modal';
 export * from './toast-queue';
 export * from './command-palette';
+export * from './hub-and-spoke';
+export * from './grid-layout';
+export * from './floating-action-button';

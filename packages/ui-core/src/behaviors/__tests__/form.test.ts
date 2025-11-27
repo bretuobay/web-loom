@@ -794,6 +794,169 @@ describe('createFormBehavior', () => {
     });
   });
 
+  describe('setFieldError action', () => {
+    it('should set a manual error for a field', () => {
+      const form = createFormBehavior({
+        initialValues: { email: '' },
+      });
+
+      form.actions.setFieldError('email', 'Email already exists');
+      const state = form.getState();
+
+      expect(state.errors.email).toBe('Email already exists');
+      expect(state.manualErrors.email).toBe('Email already exists');
+      expect(state.isValid).toBe(false);
+    });
+
+    it('should clear a manual error when set to null', () => {
+      const form = createFormBehavior({
+        initialValues: { email: '' },
+      });
+
+      form.actions.setFieldError('email', 'Email already exists');
+      expect(form.getState().errors.email).toBe('Email already exists');
+
+      form.actions.setFieldError('email', null);
+      const state = form.getState();
+
+      expect(state.errors.email).toBeUndefined();
+      expect(state.manualErrors.email).toBeUndefined();
+      expect(state.isValid).toBe(true);
+    });
+
+    it('should not trigger validation when setting manual error', async () => {
+      const validate = vi.fn(() => 'Validation error');
+      const form = createFormBehavior({
+        initialValues: { email: '' },
+        fields: {
+          email: { validate },
+        },
+      });
+
+      form.actions.setFieldError('email', 'Manual error');
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(validate).not.toHaveBeenCalled();
+      expect(form.getState().errors.email).toBe('Manual error');
+    });
+
+    it('should merge manual errors with validation errors', async () => {
+      const form = createFormBehavior({
+        initialValues: { email: '', password: '' },
+        fields: {
+          email: {
+            validate: (value) => (value ? null : 'Email is required'),
+          },
+        },
+      });
+
+      // Set manual error on password
+      form.actions.setFieldError('password', 'Password already used');
+
+      // Trigger validation on email
+      await form.actions.validateField('email');
+
+      const state = form.getState();
+
+      expect(state.errors.email).toBe('Email is required');
+      expect(state.errors.password).toBe('Password already used');
+      expect(state.isValid).toBe(false);
+    });
+
+    it('should prioritize manual errors over validation errors for the same field', async () => {
+      const form = createFormBehavior({
+        initialValues: { email: '' },
+        fields: {
+          email: {
+            validate: (value) => (value ? null : 'Email is required'),
+          },
+        },
+      });
+
+      // Trigger validation
+      await form.actions.validateField('email');
+      expect(form.getState().errors.email).toBe('Email is required');
+
+      // Set manual error
+      form.actions.setFieldError('email', 'Email already exists');
+      expect(form.getState().errors.email).toBe('Email already exists');
+    });
+
+    it('should show validation error after clearing manual error', async () => {
+      const form = createFormBehavior({
+        initialValues: { email: '' },
+        fields: {
+          email: {
+            validate: (value) => (value ? null : 'Email is required'),
+          },
+        },
+      });
+
+      // Trigger validation
+      await form.actions.validateField('email');
+      expect(form.getState().errors.email).toBe('Email is required');
+
+      // Set manual error (overrides validation error)
+      form.actions.setFieldError('email', 'Email already exists');
+      expect(form.getState().errors.email).toBe('Email already exists');
+
+      // Clear manual error (validation error should show again)
+      form.actions.setFieldError('email', null);
+      expect(form.getState().errors.email).toBe('Email is required');
+    });
+
+    it('should update isValid flag when setting manual errors', () => {
+      const form = createFormBehavior({
+        initialValues: { email: '' },
+      });
+
+      expect(form.getState().isValid).toBe(true);
+
+      form.actions.setFieldError('email', 'Error');
+      expect(form.getState().isValid).toBe(false);
+
+      form.actions.setFieldError('email', null);
+      expect(form.getState().isValid).toBe(true);
+    });
+
+    it('should clear manual errors on form reset', () => {
+      const form = createFormBehavior({
+        initialValues: { email: '', password: '' },
+      });
+
+      form.actions.setFieldError('email', 'Email error');
+      form.actions.setFieldError('password', 'Password error');
+
+      expect(form.getState().errors.email).toBe('Email error');
+      expect(form.getState().errors.password).toBe('Password error');
+
+      form.actions.resetForm();
+
+      const state = form.getState();
+      expect(state.errors).toEqual({});
+      expect(state.manualErrors).toEqual({});
+      expect(state.isValid).toBe(true);
+    });
+
+    it('should handle multiple manual errors on different fields', () => {
+      const form = createFormBehavior({
+        initialValues: { email: '', password: '', username: '' },
+      });
+
+      form.actions.setFieldError('email', 'Email error');
+      form.actions.setFieldError('password', 'Password error');
+      form.actions.setFieldError('username', 'Username error');
+
+      const state = form.getState();
+
+      expect(state.errors.email).toBe('Email error');
+      expect(state.errors.password).toBe('Password error');
+      expect(state.errors.username).toBe('Username error');
+      expect(state.isValid).toBe(false);
+    });
+  });
+
   describe('integration scenarios', () => {
     it('should handle complete form lifecycle', async () => {
       const onSubmit = vi.fn();

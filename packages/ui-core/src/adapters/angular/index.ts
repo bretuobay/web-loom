@@ -33,6 +33,11 @@ import {
   createFormBehavior,
 } from '../../behaviors';
 
+// Export new behavior services
+export { KeyboardShortcutsService } from './keyboard-shortcuts.service';
+export { UndoRedoStackService } from './undo-redo-stack.service';
+export { DragDropBehaviorService } from './drag-drop-behavior.service';
+
 /**
  * Angular service for dialog behavior.
  * 

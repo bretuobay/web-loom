@@ -189,7 +189,7 @@ const tabs = createTabbedInterface({
 });
 
 // Change tab
-tabs.actions.setActiveTab('tab2');
+tabs.actions.activateTab('tab2');
 
 // Navigate with keyboard
 tabs.actions.focusNextTab();
@@ -242,7 +242,7 @@ Notification queue with auto-dismiss and priority support.
 import { createToastQueue } from '@web-loom/ui-patterns';
 
 const toasts = createToastQueue({
-  maxToasts: 3,
+  maxVisible: 3,
   defaultDuration: 5000,
   position: 'top-right',
 });
@@ -300,7 +300,7 @@ const palette = createCommandPalette({
 palette.actions.open();
 
 // Search commands
-palette.actions.setSearch('new');
+palette.actions.setQuery('new');
 
 // Navigate results
 palette.actions.selectNext();
@@ -386,6 +386,18 @@ interface Pattern<State, Actions, Events = {}> {
 - `actions`: Object containing all available actions
 - `eventBus`: Optional event bus for pattern-specific events
 - `destroy()`: Cleanup method to remove all subscriptions
+
+## Pattern Enhancements
+
+Several existing patterns have been enhanced with new features:
+
+- **[Modal Pattern](./docs/PATTERN_ENHANCEMENTS.md#modal-pattern-enhancements)** - `closeOnEscape` and `closeOnBackdropClick` options
+- **[Sidebar Shell Pattern](./docs/PATTERN_ENHANCEMENTS.md#sidebar-shell-pattern-enhancements)** - Mobile mode with auto-collapse behavior
+- **[Toast Queue Pattern](./docs/PATTERN_ENHANCEMENTS.md#toast-queue-pattern-enhancements)** - Configurable positioning
+- **[Tabbed Interface Pattern](./docs/PATTERN_ENHANCEMENTS.md#tabbed-interface-pattern-enhancements)** - Convenience methods for keyboard navigation
+- **[Command Palette Pattern](./docs/PATTERN_ENHANCEMENTS.md#command-palette-pattern-enhancements)** - Simplified command navigation and execution
+
+See the **[Pattern Enhancements Documentation](./docs/PATTERN_ENHANCEMENTS.md)** for complete details on all enhancements.
 
 ## TypeScript
 

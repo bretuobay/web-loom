@@ -3,6 +3,15 @@ import { resolve } from 'path';
 import dts from 'vite-plugin-dts';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@web-loom/store-core': resolve(__dirname, '../store-core/src/index.ts'),
+      '@web-loom/event-bus-core': resolve(__dirname, '../event-bus-core/src/index.ts'),
+      '@web-loom/ui-core': resolve(__dirname, '../ui-core/src/index.ts'),
+      '@web-loom/mvvm-core': resolve(__dirname, '../mvvm-core/src/index.ts'),
+      '@web-loom/query-core': resolve(__dirname, '../query-core/src/index.ts'),
+    },
+  },
   build: {
     outDir: 'dist',
     lib: {

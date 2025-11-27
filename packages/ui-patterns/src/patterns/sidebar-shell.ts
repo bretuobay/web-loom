@@ -25,6 +25,11 @@ export interface SidebarShellState {
    * The width of the sidebar in pixels.
    */
   width: number;
+
+  /**
+   * Whether the sidebar is in mobile mode.
+   */
+  isMobile: boolean;
 }
 
 /**
@@ -62,6 +67,17 @@ export interface SidebarShellActions {
    * @param width The width in pixels.
    */
   setWidth: (width: number) => void;
+
+  /**
+   * Toggles the mobile mode of the sidebar.
+   */
+  toggleMobile: () => void;
+
+  /**
+   * Sets the mobile mode of the sidebar.
+   * @param isMobile Whether the sidebar should be in mobile mode.
+   */
+  setMobileMode: (isMobile: boolean) => void;
 }
 
 /**
@@ -74,6 +90,7 @@ export interface SidebarShellEvents extends Record<string, any[]> {
   'sidebar:unpinned': [];
   'section:changed': [section: string];
   'width:changed': [width: number];
+  'sidebar:mobile-toggled': [isMobile: boolean];
 }
 
 /**
@@ -105,6 +122,12 @@ export interface SidebarShellOptions {
   initialWidth?: number;
 
   /**
+   * Initial mobile mode state.
+   * @default false
+   */
+  initialMobile?: boolean;
+
+  /**
    * Optional callback invoked when the sidebar expands.
    */
   onExpand?: () => void;
@@ -119,6 +142,12 @@ export interface SidebarShellOptions {
    * @param section The newly active section identifier.
    */
   onSectionChange?: (section: string) => void;
+
+  /**
+   * Optional callback invoked when mobile mode changes.
+   * @param isMobile The new mobile mode state.
+   */
+  onMobileChange?: (isMobile: boolean) => void;
 }
 
 /**
@@ -155,61 +184,75 @@ export interface SidebarShellBehavior {
 
 /**
  * Creates a sidebar shell pattern with collapse/expand behavior.
- * 
+ *
  * This pattern composes the disclosure behavior from UI Core with additional
  * sidebar-specific functionality like pinning, section management, and width control.
  * It's ideal for building application layouts with collapsible navigation sidebars.
- * 
+ *
  * @example
  * ```typescript
  * const sidebar = createSidebarShell({
  *   initialExpanded: true,
  *   initialWidth: 300,
  *   initialPinned: false,
+ *   initialMobile: false,
  *   onExpand: () => console.log('Sidebar expanded'),
  *   onCollapse: () => console.log('Sidebar collapsed'),
  *   onSectionChange: (section) => console.log('Active section:', section),
+ *   onMobileChange: (isMobile) => console.log('Mobile mode:', isMobile),
  * });
- * 
+ *
  * // Listen to events
  * sidebar.eventBus.on('sidebar:expanded', () => {
  *   console.log('Sidebar expanded event');
  * });
- * 
+ *
  * sidebar.eventBus.on('section:changed', (section) => {
  *   console.log('Section changed to:', section);
  * });
- * 
+ *
+ * sidebar.eventBus.on('sidebar:mobile-toggled', (isMobile) => {
+ *   console.log('Mobile mode toggled:', isMobile);
+ * });
+ *
  * // Expand the sidebar
  * sidebar.actions.expand();
  * console.log(sidebar.getState().isExpanded); // true
- * 
+ *
  * // Set active section
  * sidebar.actions.setActiveSection('navigation');
  * console.log(sidebar.getState().activeSection); // 'navigation'
- * 
+ *
  * // Pin the sidebar
  * sidebar.actions.togglePin();
  * console.log(sidebar.getState().isPinned); // true
- * 
+ *
  * // Set width
  * sidebar.actions.setWidth(350);
  * console.log(sidebar.getState().width); // 350
- * 
+ *
+ * // Enable mobile mode
+ * sidebar.actions.setMobileMode(true);
+ * console.log(sidebar.getState().isMobile); // true
+ *
+ * // In mobile mode, selecting a section auto-collapses the sidebar
+ * sidebar.actions.expand();
+ * sidebar.actions.setActiveSection('settings'); // Auto-collapses in mobile mode
+ * console.log(sidebar.getState().isExpanded); // false
+ *
  * // Clean up
  * sidebar.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the sidebar shell pattern.
  * @returns A sidebar shell pattern instance.
  */
-export function createSidebarShell(
-  options?: SidebarShellOptions
-): SidebarShellBehavior {
+export function createSidebarShell(options?: SidebarShellOptions): SidebarShellBehavior {
   const initialExpanded = options?.initialExpanded ?? false;
   const initialActiveSection = options?.initialActiveSection ?? null;
   const initialPinned = options?.initialPinned ?? false;
   const initialWidth = options?.initialWidth ?? 250;
+  const initialMobile = options?.initialMobile ?? false;
 
   // Create event bus for sidebar shell events
   const eventBus = createEventBus<SidebarShellEvents>();
@@ -249,6 +292,7 @@ export function createSidebarShell(
     activeSection: initialActiveSection,
     isPinned: initialPinned,
     width: initialWidth,
+    isMobile: initialMobile,
   };
 
   interface InternalActions {
@@ -272,6 +316,13 @@ export function createSidebarShell(
     },
 
     setActiveSection: (section: string) => {
+      const currentState = store.getState();
+
+      // Auto-collapse in mobile mode when section is selected
+      if (currentState.isMobile && currentState.isExpanded) {
+        disclosure.actions.collapse();
+      }
+
       set((state) => ({
         ...state,
         activeSection: section,
@@ -314,6 +365,42 @@ export function createSidebarShell(
       eventBus.emit('width:changed', width);
     },
 
+    toggleMobile: () => {
+      set((state) => {
+        const newMobile = !state.isMobile;
+
+        // Invoke onMobileChange callback if provided
+        if (options?.onMobileChange) {
+          options.onMobileChange(newMobile);
+        }
+
+        // Emit event
+        eventBus.emit('sidebar:mobile-toggled', newMobile);
+
+        return {
+          ...state,
+          isMobile: newMobile,
+        };
+      });
+    },
+
+    setMobileMode: (isMobile: boolean) => {
+      set((state) => {
+        // Invoke onMobileChange callback if provided
+        if (options?.onMobileChange) {
+          options.onMobileChange(isMobile);
+        }
+
+        // Emit event
+        eventBus.emit('sidebar:mobile-toggled', isMobile);
+
+        return {
+          ...state,
+          isMobile,
+        };
+      });
+    },
+
     syncExpanded: (isExpanded: boolean) => {
       set((state) => ({
         ...state,
@@ -332,6 +419,8 @@ export function createSidebarShell(
       setActiveSection: store.actions.setActiveSection,
       togglePin: store.actions.togglePin,
       setWidth: store.actions.setWidth,
+      toggleMobile: store.actions.toggleMobile,
+      setMobileMode: store.actions.setMobileMode,
     },
     eventBus,
     destroy: () => {

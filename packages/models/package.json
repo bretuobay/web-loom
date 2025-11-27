@@ -1,6 +1,6 @@
 {
   "name": "@repo/models",
-  "version": "0.0.0",
+  "version": "0.5.2",
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,7 +14,7 @@
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
     "dev": "tsc --watch",
-    "build": "tsc --listFiles --diagnostics",
+    "build": "tsc",
     "test": "echo \"No tests for @repo/models\""
   },
   "devDependencies": {

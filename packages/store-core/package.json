@@ -4,7 +4,7 @@
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": false,
-  "version": "0.0.4",
+  "version": "0.5.2",
   "type": "module",
   "files": [
     "dist"
@@ -16,7 +16,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/store-core.es.js",
-      "require": "./dist/store-core.umd.js"
+      "require": "./dist/store-core.umd.js",
+      "default": "./dist/store-core.es.js"
     }
   },
   "keywords": [
