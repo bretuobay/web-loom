@@ -131,25 +131,12 @@ vi.mock('../tokens/z-index.json', () => ({
 }));
 
 describe('Design Token Utilities', () => {
-  // Reset modules before each test to clear cache and re-initialize masterTokens
   beforeEach(() => {
-    // This is a way to reset the internal state of tokens.ts if it caches.
-    // Vitest's vi.resetModules() can help here.
-    // We need to ensure `initializeMasterTokens` can be called again or its state reset.
-    // For this test, we'll rely on the fact that `initializeMasterTokens` only runs once
-    // due to `masterTokensInitialized` flag. We need a way to reset this flag or the module itself.
-    // The most robust way is to use vi.resetModules() and re-import.
-    // However, let's try to test as is first, assuming dynamic imports are fresh on each 'await import'.
-    // If `masterTokensInitialized` is a problem, we'd need to export a reset function from tokens.ts (not ideal)
-    // or use vi.resetModules more carefully.
-    // For simplicity in this context, we assume the mocks apply cleanly for each test run.
-    // A more advanced setup might involve `vi.resetModules` before each test and then
-    // re-importing `getAllTokens` and `getTokenValue` within the test or a setup block.
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    vi.clearAllMocks(); // Clear mocks after each test
-    // vi.resetModules(); // Could be used if module state needs full reset.
+    vi.clearAllMocks();
   });
 
   describe('getAllTokens', () => {
@@ -230,6 +217,18 @@ describe('Design Token Utilities', () => {
         accent1: '#0CD4F3',
         accent2: '#F32B0C',
       });
+    });
+
+    it('should handle paths with null or undefined intermediate values', async () => {
+      const result = await getTokenValue('nonexistent.path.to.token');
+      expect(result).toBeUndefined();
+    });
+
+    it('should handle multiple calls to getAllTokens efficiently (caching)', async () => {
+      const tokens1 = await getAllTokens();
+      const tokens2 = await getAllTokens();
+      // Should return the same cached object
+      expect(tokens1).toBe(tokens2);
     });
   });
 });

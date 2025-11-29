@@ -1,5 +1,5 @@
 import { navigationViewModel } from '@repo/shared/view-models/NavigationViewModel';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useObservable } from '../hooks/useObservable';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -13,13 +13,21 @@ export const Header = () => {
       </Link>
 
       <nav>
-        <Link to="/" className="page-header-nav">
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) => `page-header-nav ${isActive ? 'active' : ''}`}
+        >
           Dashboard
-        </Link>
+        </NavLink>
         {navigation.map((item) => (
-          <Link key={item.id} to={`/${item.id}`} className="page-header-nav">
+          <NavLink
+            key={item.id}
+            to={`/${item.id}`}
+            className={({ isActive }) => `page-header-nav ${isActive ? 'active' : ''}`}
+          >
             {item.label}
-          </Link>
+          </NavLink>
         ))}
       </nav>
 

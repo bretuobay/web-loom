@@ -100,6 +100,50 @@ describe('CSS Variable Utilities', () => {
       const result = await generateCssVariablesMap();
       expect(result).toEqual({});
     });
+
+    it('should handle null and undefined values gracefully', async () => {
+      const mockTokens = {
+        colors: {
+          primary: '#007bff',
+          secondary: null,
+          tertiary: undefined,
+        },
+      };
+      mockedGetAllTokens.mockResolvedValue(mockTokens);
+      const result = await generateCssVariablesMap();
+      expect(result).toEqual({
+        '--colors-primary': '#007bff',
+      });
+    });
+
+    it('should handle numeric token values', async () => {
+      const mockTokens = {
+        zIndex: {
+          modal: 1000,
+          tooltip: 2000,
+        },
+      };
+      mockedGetAllTokens.mockResolvedValue(mockTokens);
+      const result = await generateCssVariablesMap();
+      expect(result).toEqual({
+        '--zIndex-modal': 1000,
+        '--zIndex-tooltip': 2000,
+      });
+    });
+
+    it('should include array values as-is', async () => {
+      const mockTokens = {
+        colors: {
+          primary: '#007bff',
+          palette: ['#fff', '#000'],
+        },
+      };
+      mockedGetAllTokens.mockResolvedValue(mockTokens);
+      const result = await generateCssVariablesMap();
+      // Arrays are not filtered out by the current implementation
+      expect(result['--colors-primary']).toBe('#007bff');
+      expect(result['--colors-palette']).toEqual(['#fff', '#000']);
+    });
   });
 
   describe('generateCssVariablesString', () => {
@@ -127,6 +171,30 @@ describe('CSS Variable Utilities', () => {
       mockedGetAllTokens.mockResolvedValue({});
       const result = await generateCssVariablesString('.my-scope');
       expect(result.replace(/\s+/g, '')).toBe('.my-scope{}'); // Trim whitespace
+    });
+
+    it('should handle custom selectors correctly', async () => {
+      mockedGetAllTokens.mockResolvedValue({ colors: { primary: 'green' } });
+      const result = await generateCssVariablesString('.custom-theme');
+      expect(result.startsWith('.custom-theme {')).toBe(true);
+      expect(result).toContain('--colors-primary: green;');
+    });
+
+    it('should handle deeply nested token structures', async () => {
+      const deepTokens = {
+        colors: {
+          brand: {
+            primary: {
+              light: '#abc',
+              dark: '#123',
+            },
+          },
+        },
+      };
+      mockedGetAllTokens.mockResolvedValue(deepTokens);
+      const result = await generateCssVariablesString();
+      expect(result).toContain('--colors-brand-primary-light: #abc;');
+      expect(result).toContain('--colors-brand-primary-dark: #123;');
     });
   });
 });

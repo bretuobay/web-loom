@@ -50,6 +50,19 @@ describe('Theme Utilities', () => {
       // We'll test its effect via getCurrentTheme in non-DOM mock or by its priority.
       expect(getCurrentTheme()).toBe('light'); // Assuming DOM attribute takes precedence
     });
+
+    it('should warn when document is not available', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const originalDocument = global.document;
+      // @ts-expect-error Simulating non-browser environment
+      delete global.document;
+
+      setTheme('dark-mode');
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining("[setTheme] 'document' is not available"));
+
+      global.document = originalDocument;
+      consoleWarnSpy.mockRestore();
+    });
   });
 
   describe('getCurrentTheme', () => {
@@ -175,6 +188,40 @@ describe('Theme Utilities', () => {
 
       global.document = originalDocument; // Restore document
       consoleWarnSpy.mockRestore();
+    });
+
+    it('should handle deeply nested token overrides', async () => {
+      const deepTheme: Theme = {
+        name: 'deep-theme',
+        tokens: {
+          colors: {
+            brand: {
+              primary: {
+                light: '#abc',
+                dark: '#123',
+              },
+            },
+          },
+        },
+      };
+      await applyTheme(deepTheme);
+      const styleElement = document.getElementById('dynamic-theme-styles-deep-theme') as HTMLStyleElement;
+      expect(styleElement).not.toBeNull();
+      expect(styleElement.textContent).toContain('--colors-brand-primary-light: #abc;');
+      expect(styleElement.textContent).toContain('--colors-brand-primary-dark: #123;');
+    });
+
+    it('should handle numeric token values', async () => {
+      const numericTheme: Theme = {
+        name: 'numeric-theme',
+        tokens: {
+          zIndex: { modal: 1000 },
+        },
+      };
+      await applyTheme(numericTheme);
+      const styleElement = document.getElementById('dynamic-theme-styles-numeric-theme') as HTMLStyleElement;
+      expect(styleElement).not.toBeNull();
+      expect(styleElement.textContent).toContain('--zIndex-modal: 1000;');
     });
   });
 });
