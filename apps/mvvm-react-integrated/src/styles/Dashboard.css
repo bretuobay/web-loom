@@ -116,13 +116,23 @@
 /* Card header */
 .card-header,
 .card h3 {
-  font-size: var(--typography-fontSize-md);
-  font-weight: var(--typography-fontWeight-semibold);
-  color: var(--colors-text-primary);
-  margin: 0 0 var(--spacing-m) 0;
+  margin: 0 0 var(--spacing-l) 0;
   line-height: var(--typography-lineHeight-tight);
-  text-transform: none;
-  letter-spacing: normal;
+}
+
+/* Dashboard card header links - light bluish color */
+.card-header-link {
+  color: var(--colors-brand-primary);
+  text-decoration: none;
+  font-size: var(--typography-fontSize-2xl);
+  font-weight: var(--typography-fontWeight-bold);
+  transition: all var(--transitions-fast) var(--transitions-easeOut);
+  display: inline-block;
+}
+
+.card-header-link:hover {
+  color: var(--colors-brand-secondary);
+  transform: translateY(-1px);
 }
 
 /* Card body */
@@ -162,21 +172,22 @@
   border-color: var(--colors-brand-primary);
 }
 
-/* Card Value and Label */
+/* Card Value and Label - Dashboard emphasis */
 .card-value {
-  font-size: var(--typography-fontSize-5xl);
+  font-size: 4rem;
   font-weight: var(--typography-fontWeight-bold);
   color: var(--colors-text-primary);
   line-height: 1;
   display: block;
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: var(--spacing-s);
 }
 
 .card-label {
-  font-size: var(--typography-fontSize-sm);
+  font-size: var(--typography-fontSize-md);
   color: var(--colors-text-secondary);
   font-weight: var(--typography-fontWeight-medium);
   display: block;
+  line-height: var(--typography-lineHeight-normal);
 }
 
 /* Alert Card Variant */
@@ -184,8 +195,17 @@
   background: var(--colors-danger-default);
 }
 
+.card-alert .card-header-link {
+  color: var(--colors-danger-default);
+}
+
+.card-alert .card-header-link:hover {
+  color: var(--colors-danger-light);
+}
+
 .card-value-alert {
   color: var(--colors-danger-default);
+  font-size: 4rem;
 }
 
 .card-alert:hover {
@@ -234,9 +254,24 @@
   white-space: nowrap;
 }
 
+
+/* Light mode hover */
 .chart-view-all:hover {
   background-color: var(--colors-brand-secondary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
+  /* subtle blue shadow */
   transform: translateX(4px);
+}
+
+/* Dark mode hover */
+[data-theme="dark"] .chart-view-all:hover {
+  background-color: var(--colors-brand-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.18);
+  /* subtle purple shadow */
+  transform: translateX(4px);
+  border: 1px solid var(--colors-brand-secondary);
 }
 
 .chart-container {

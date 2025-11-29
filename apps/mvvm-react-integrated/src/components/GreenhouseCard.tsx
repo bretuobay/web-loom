@@ -9,15 +9,17 @@ interface GreenhouseCardProps {
 const GreenhouseCard: React.FC<GreenhouseCardProps> = ({ greenHouses }) => {
   if (!greenHouses) return null;
   return (
-    <Link to="/greenhouses" className="card-link">
-      <div className="card">
-        <h3 className="card-header">Greenhouses</h3>
-        <div className="card-body">
-          <span className="card-value">{greenHouses.length}</span>
-          <span className="card-label">Active Locations</span>
-        </div>
+    <div className="card">
+      <h3 className="card-header">
+        <Link to="/greenhouses" className="card-link card-header-link">
+          Greenhouses
+        </Link>
+      </h3>
+      <div className="card-body">
+        <span className="card-value">{greenHouses.length}</span>
+        <span className="card-label">Active Locations</span>
       </div>
-    </Link>
+    </div>
   );
 };
 

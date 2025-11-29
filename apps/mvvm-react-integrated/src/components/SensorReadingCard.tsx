@@ -153,6 +153,7 @@ const SensorReadingCard: React.FC<SensorReadingCardProps> = ({ sensorReadings })
     chartInstanceRef.current = new Chart(ctx, {
       type: 'line',
       data: chartData,
+      // @ts-expect-error Chart.js options type issue
       options: chartOptions,
     });
 
@@ -169,12 +170,13 @@ const SensorReadingCard: React.FC<SensorReadingCardProps> = ({ sensorReadings })
     <div className="card card-chart">
       <div className="chart-header">
         <div>
-          <h3 className="card-header">Sensor Readings Over Time</h3>
+          <h3 className="card-header">
+            <Link to="/sensor-readings" className="card-link card-header-link">
+              Sensor Readings Over Time
+            </Link>
+          </h3>
           <p className="chart-subtitle">{sensorReadings.length} data points recorded</p>
         </div>
-        <Link to="/sensor-readings" className="chart-view-all">
-          View All →
-        </Link>
       </div>
       <div className="chart-container">
         {sensorReadings.length > 0 ? (
