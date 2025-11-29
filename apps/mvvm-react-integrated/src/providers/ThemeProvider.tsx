@@ -33,6 +33,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
+
     return 'light';
   });
 
@@ -172,7 +173,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     };
 
     initializeThemes();
-  }, []);
+  }, [theme]);
 
   useEffect(() => {
     // Update theme when state changes

@@ -1,5 +1,5 @@
 // packages/design-core/src/utils/__tests__/integration.test.ts
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { resolveTokenReferences } from '../tokens';
 
 describe('Token Resolution Integration', () => {
@@ -22,7 +22,7 @@ describe('Token Resolution Integration', () => {
 
     it('should handle unresolvable references gracefully', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       const tokens = {
         colors: {
           brand: {
@@ -34,9 +34,9 @@ describe('Token Resolution Integration', () => {
       resolveTokenReferences(tokens);
       expect(tokens.colors.brand.main).toBe('{colors.nonexistent.value}');
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Token reference "{colors.nonexistent.value}"')
+        expect.stringContaining('Token reference "{colors.nonexistent.value}"'),
       );
-      
+
       consoleWarnSpy.mockRestore();
     });
 
