@@ -28,9 +28,10 @@ export function SensorReadingList() {
   });
 
   // Use ui-core's list selection for managing selected readings
+  // Note: Not passing items array to allow selection of any ID
+  // This is a workaround for dynamic/async loaded items
   const selection = useListSelection({
     mode: 'multi',
-    items: readingList.data?.map((r) => String(r.id)) || [],
   });
 
   useEffect(() => {
@@ -112,7 +113,7 @@ export function SensorReadingList() {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            opacity: '0.1',
+            opacity: '0.9',
           }}
         >
           <span style={{ fontWeight: 500, color: 'var(--colors-text-primary)' }}>

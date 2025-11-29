@@ -198,8 +198,8 @@ export function createListSelection(options?: ListSelectionOptions): ListSelecti
     select: (id: string) => {
       const state = get();
 
-      // Check if item exists in the list
-      if (!state.items.includes(id)) {
+      // Check if item exists in the list (only if items array is provided)
+      if (state.items.length > 0 && !state.items.includes(id)) {
         return;
       }
 
@@ -257,8 +257,8 @@ export function createListSelection(options?: ListSelectionOptions): ListSelecti
     toggleSelection: (id: string) => {
       const state = get();
 
-      // Check if item exists in the list
-      if (!state.items.includes(id)) {
+      // Check if item exists in the list (only if items array is provided)
+      if (state.items.length > 0 && !state.items.includes(id)) {
         return;
       }
 
