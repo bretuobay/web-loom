@@ -43,23 +43,35 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard-container">
-      {isLoading && <p>Loading dashboard data...</p>}
+      {isLoading && (
+        <div className="dashboard-loading">
+          <div className="loading-spinner"></div>
+          <p>Loading dashboard data...</p>
+        </div>
+      )}
       {!isLoading && (
         <>
-          <h2>Dashboard</h2>
-          <div className="flex-container">
-            <div className="flex-item">
+          <div className="dashboard-header">
+            <h2>Dashboard Overview</h2>
+            <p className="dashboard-subtitle">Monitor your greenhouse environment in real-time</p>
+          </div>
+
+          {/* Stats Cards Row */}
+          <div className="dashboard-stats-grid">
+            <div className="stat-card-wrapper">
               <GreenhouseCard greenHouses={greenHouses} />
             </div>
-            <div className="flex-item">
+            <div className="stat-card-wrapper">
               <SensorCard sensors={sensors} />
             </div>
-            <div className="flex-item">
+            <div className="stat-card-wrapper">
               <ThresholdAlertCard thresholdAlerts={thresholdAlerts ?? []} />
             </div>
-            <div className="flex-item">
-              <SensorReadingCard sensorReadings={sensorReadings ?? []} />
-            </div>
+          </div>
+
+          {/* Full-width Chart Section */}
+          <div className="dashboard-chart-section">
+            <SensorReadingCard sensorReadings={sensorReadings ?? []} />
           </div>
         </>
       )}

@@ -1,0 +1,98 @@
+/**
+ * Design Tokens - Flat Design System
+ * Using @web-loom/design-core tokens with flat design principles
+ */
+
+/* Import design-core base tokens */
+@import '@web-loom/design-core/css/colors.css';
+@import '@web-loom/design-core/css/spacing.css';
+@import '@web-loom/design-core/css/typography.css';
+@import '@web-loom/design-core/css/shadows.css';
+@import '@web-loom/design-core/css/radii.css';
+@import '@web-loom/design-core/css/borders.css';
+@import '@web-loom/design-core/css/transitions.css';
+@import '@web-loom/design-core/css/opacity.css';
+@import '@web-loom/design-core/css/z-index.css';
+
+/* Application-specific semantic tokens */
+:root {
+  /* Card tokens - flat design */
+  --card-bg: var(--colors-background-surface);
+  --card-border: var(--colors-border-default);
+  --card-shadow: var(--shadows-sm);
+  --card-shadow-hover: var(--shadows-md);
+  --card-padding: var(--spacing-l);
+  --card-radius: var(--radii-lg);
+  --card-border-width: 2px;
+
+  /* Header tokens */
+  --header-bg: var(--colors-background-elevated);
+  --header-text: var(--colors-text-primary);
+  --header-border: var(--colors-border-default);
+  --header-height: 4rem;
+  --header-padding: var(--spacing-m) var(--spacing-xl);
+
+  /* Navigation tokens */
+  --nav-link-color: var(--colors-text-secondary);
+  --nav-link-hover-color: var(--colors-brand-primary);
+  --nav-link-active-color: var(--colors-brand-primary);
+  --nav-link-active-bg: var(--colors-background-hover);
+
+  /* Dashboard tokens */
+  --dashboard-gap: var(--spacing-xl);
+  --dashboard-padding: var(--spacing-xl);
+
+  /* Status colors - flat */
+  --status-active-bg: var(--colors-success-default);
+  --status-inactive-bg: var(--colors-text-muted);
+  --status-warning-bg: var(--colors-warning-default);
+  --status-error-bg: var(--colors-danger-default);
+
+  /* Button tokens - flat design */
+  --btn-padding: var(--spacing-s) var(--spacing-l);
+  --btn-radius: var(--radii-md);
+  --btn-font-size: var(--typography-fontSize-sm);
+  --btn-font-weight: var(--typography-fontWeight-medium);
+  --btn-shadow: var(--shadows-xs);
+  --btn-shadow-hover: var(--shadows-sm);
+
+  /* Input tokens */
+  --input-bg: var(--colors-background-surface);
+  --input-border: var(--colors-border-default);
+  --input-border-focus: var(--colors-brand-primary);
+  --input-text: var(--colors-text-primary);
+  --input-placeholder: var(--colors-text-muted);
+  --input-padding: var(--spacing-s) var(--spacing-m);
+  --input-radius: var(--radii-md);
+
+  /* Badge tokens - flat design */
+  --badge-padding: var(--spacing-xs) var(--spacing-s);
+  --badge-radius: var(--radii-full);
+  --badge-font-size: var(--typography-fontSize-xs);
+  --badge-font-weight: var(--typography-fontWeight-semibold);
+
+  /* Container tokens */
+  --container-max-width: 1440px;
+  --container-padding: var(--spacing-xl);
+
+  /* Grid tokens */
+  --grid-gap: var(--spacing-l);
+  --grid-columns-sm: 1;
+  --grid-columns-md: 2;
+  --grid-columns-lg: 3;
+  --grid-columns-xl: 4;
+}
+
+/* Dark theme overrides (applied via data-theme="dark") */
+[data-theme="dark"] {
+  /* Enhanced contrast for dark mode */
+  --card-border-width: 1px;
+  --card-shadow: var(--shadows-xs);
+}
+
+/* Light theme overrides (applied via data-theme="light") */
+[data-theme="light"] {
+  /* Subtle shadows for light mode */
+  --card-shadow: var(--shadows-xs);
+  --card-shadow-hover: var(--shadows-sm);
+}

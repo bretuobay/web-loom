@@ -84,12 +84,13 @@ export function GreenhouseList() {
   };
 
   return (
-    <>
+    <div className="page-container">
       <Link to="/" className="back-button">
-        <img src={BackArrow} alt="Back to dashboard" className="back-arrow" />
+        <img src={BackArrow} alt="Back to dashboard" />
+        Back to Dashboard
       </Link>
       <section className="flex-container flex-row">
-        <form className="form-container" onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="name">Greenhouse Name:</label>
             <input
@@ -134,40 +135,58 @@ export function GreenhouseList() {
           </button>
         </form>
 
-        <div className="card" style={{ maxWidth: '600px' }}>
-          <h1 className="card-header">Greenhouses</h1>
+        <div className="list-section">
+          <h2>Greenhouses</h2>
           {greenHouses && greenHouses.length > 0 ? (
-            <ul className="card-body list">
+            <ul className="list-container">
               {greenHouses.map((gh) => (
-                <li key={gh.id} className="list-item" style={{ fontSize: '1.8rem', justifyContent: 'space-between' }}>
-                  <span>{gh.name}</span>
-                  {/* delete and edit buttons */}
-                  <div className="button-group">
+                <li key={gh.id} className="list-item-card">
+                  <div className="list-item-header">
+                    <h3 className="list-item-title">{gh.name}</h3>
+                  </div>
+                  <div className="list-item-body">
+                    <div className="list-item-field">
+                      <span className="list-item-field-label">Location</span>
+                      <span className="list-item-field-value">{gh.location}</span>
+                    </div>
+                    <div className="list-item-field">
+                      <span className="list-item-field-label">Size</span>
+                      <span className="list-item-field-value">{gh.size}</span>
+                    </div>
+                    <div className="list-item-field">
+                      <span className="list-item-field-label">Crop Type</span>
+                      <span className="list-item-field-value">{gh.cropType || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="form-actions">
                     <button
-                      className="button-tiny button-tiny-delete"
-                      onClick={() => {
-                        handleDelete(gh.id);
-                      }}
-                    >
-                      Delete
-                    </button>
-                    <button
-                      className="button-tiny button-tiny-edit"
+                      className="btn-secondary"
                       onClick={() => {
                         handleUpdate(gh.id);
                       }}
                     >
                       Edit
                     </button>
+                    <button
+                      className="btn-danger"
+                      onClick={() => {
+                        handleDelete(gh.id);
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <p>No greenhouses found or still loading...</p>
+            <div className="empty-state">
+              <p className="empty-state-title">No greenhouses found</p>
+              <p className="empty-state-description">Add a greenhouse using the form to get started</p>
+            </div>
           )}
         </div>
       </section>
-    </>
+    </div>
   );
 }
