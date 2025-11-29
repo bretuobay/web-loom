@@ -1,0 +1,53 @@
+# .github/workflows/design-core-ci.yml
+
+name: CI - @web-loom/design-core
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/design-core/**'
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Rollup native binaries work reliably on Node 20 & 22, NOT 23
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      # Prevent npm optional-dep failure by fully cleaning install
+      - name: Clean install
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm i
+
+      # Ensure Vite and build dependencies are properly resolved
+      - name: Rebuild build dependencies
+        run: npm rebuild --workspace=@web-loom/design-core
+
+      # Generate CSS tokens before building
+      - name: Generate CSS tokens
+        run: npm run generate:css --workspace=@web-loom/design-core
+
+      - name: Run tests for @web-loom/design-core
+        run: npm test --workspace=@web-loom/design-core
+
+      - name: Build @web-loom/design-core
+        run: npx turbo run build --filter=@web-loom/design-core # Runs 'vite build' in packages/design-core
+
+      - name: Upload build artifacts (Optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-core-dist-build-artifacts
+          path: packages/design-core/dist/
+          # This will upload the 'packages/design-core/dist' folder as an artifact.
+          # Useful for inspection or if other workflows need the build output.

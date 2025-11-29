@@ -7,8 +7,6 @@ interface ThresholdAlertCardProps {
 }
 
 const ThresholdAlertCard: React.FC<ThresholdAlertCardProps> = ({ thresholdAlerts }) => {
-  const activeAlerts = thresholdAlerts.filter((alert) => alert.resolved === false).length;
-
   return (
     <div className="card card-alert">
       <h3 className="card-header">
@@ -17,7 +15,7 @@ const ThresholdAlertCard: React.FC<ThresholdAlertCardProps> = ({ thresholdAlerts
         </Link>
       </h3>
       <div className="card-body">
-        <span className="card-value card-value-alert">{activeAlerts}</span>
+        <span className="card-value card-value-alert">{thresholdAlerts.length}</span>
         <span className="card-label">Active Warnings</span>
       </div>
     </div>

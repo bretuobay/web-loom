@@ -1,6 +1,6 @@
 // packages/design-core/src/utils/cssVariables.ts
 
-import { DesignTokens, TokenValue, TokenCategory, TokenGroup } from './tokens.d';
+import type { DesignTokens, TokenValue, TokenCategory, TokenGroup } from './tokens.d';
 import { getAllTokens, getTokenValue } from './tokens';
 
 /**
