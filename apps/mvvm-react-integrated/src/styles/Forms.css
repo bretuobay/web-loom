@@ -303,9 +303,10 @@ input[type="radio"] {
 }
 
 .back-button svg,
-.back-button .icon {
-  width: 20px;
-  height: 20px;
+.back-button .icon,
+.back-button img {
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
 }
 

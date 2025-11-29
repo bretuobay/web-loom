@@ -32,8 +32,12 @@ export function ThresholdAlertList() {
             <li key={alert.id} className="list-item-card">
               <div className="list-item-header">
                 <h3 className="list-item-title">{alert.sensorType} Alert</h3>
-                <span className={`status-badge ${alert.resolved ? 'inactive' : 'error'}`}>
-                  {alert.resolved ? 'Resolved' : 'Active'}
+                <span className={`status-badge ${alert.sensorType == 'temperature' ? 'inactive' : 'error'}`}>
+                  {alert.sensorType == 'temperature'
+                    ? 'Temperature sensor'
+                    : alert.sensorType == 'humidity'
+                      ? 'Humidity sensor'
+                      : 'Other sensor'}
                 </span>
               </div>
               <div className="list-item-body">
