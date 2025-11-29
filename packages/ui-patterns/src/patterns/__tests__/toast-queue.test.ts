@@ -20,6 +20,7 @@ describe('createToastQueue', () => {
       expect(state.toasts).toEqual([]);
       expect(state.maxVisible).toBe(3);
       expect(state.defaultDuration).toBe(5000);
+      expect(state.position).toBe('top-right');
 
       toastQueue.destroy();
     });
@@ -40,6 +41,26 @@ describe('createToastQueue', () => {
       const state = toastQueue.getState();
 
       expect(state.defaultDuration).toBe(3000);
+
+      toastQueue.destroy();
+    });
+
+    it('should initialize with default position', () => {
+      const toastQueue = createToastQueue();
+
+      const state = toastQueue.getState();
+
+      expect(state.position).toBe('top-right');
+
+      toastQueue.destroy();
+    });
+
+    it('should initialize with custom position', () => {
+      const toastQueue = createToastQueue({ position: 'bottom-left' });
+
+      const state = toastQueue.getState();
+
+      expect(state.position).toBe('bottom-left');
 
       toastQueue.destroy();
     });
@@ -303,6 +324,67 @@ describe('createToastQueue', () => {
       }).not.toThrow();
 
       expect(toastQueue.getState().toasts).toHaveLength(0);
+
+      toastQueue.destroy();
+    });
+  });
+
+  describe('setPosition action', () => {
+    it('should update position in state', () => {
+      const toastQueue = createToastQueue();
+
+      expect(toastQueue.getState().position).toBe('top-right');
+
+      toastQueue.actions.setPosition('bottom-left');
+
+      expect(toastQueue.getState().position).toBe('bottom-left');
+
+      toastQueue.destroy();
+    });
+
+    it('should support all valid position values', () => {
+      const toastQueue = createToastQueue();
+
+      const positions: Array<'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'> = [
+        'top-left',
+        'top-center',
+        'top-right',
+        'bottom-left',
+        'bottom-center',
+        'bottom-right',
+      ];
+
+      positions.forEach((position) => {
+        toastQueue.actions.setPosition(position);
+        expect(toastQueue.getState().position).toBe(position);
+      });
+
+      toastQueue.destroy();
+    });
+
+    it('should invoke onPositionChanged callback', () => {
+      const onPositionChanged = vi.fn();
+      const toastQueue = createToastQueue({ onPositionChanged });
+
+      toastQueue.actions.setPosition('bottom-center');
+
+      expect(onPositionChanged).toHaveBeenCalledTimes(1);
+      expect(onPositionChanged).toHaveBeenCalledWith('bottom-center');
+
+      toastQueue.destroy();
+    });
+
+    it('should notify subscribers when position changes', () => {
+      const toastQueue = createToastQueue();
+
+      const listener = vi.fn();
+      toastQueue.subscribe(listener);
+
+      toastQueue.actions.setPosition('top-left');
+
+      expect(listener).toHaveBeenCalled();
+      const lastCall = listener.mock.calls[listener.mock.calls.length - 1];
+      expect(lastCall[0].position).toBe('top-left');
 
       toastQueue.destroy();
     });

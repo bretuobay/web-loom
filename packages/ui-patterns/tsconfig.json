@@ -17,6 +17,14 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
+    /* Path mappings for monorepo packages */
+    "paths": {
+      "@web-loom/store-core": ["../store-core/src/index.ts"],
+      "@web-loom/event-bus-core": ["../event-bus-core/src/index.ts"],
+      "@web-loom/ui-core": ["../ui-core/src/index.ts"],
+      "@web-loom/mvvm-core": ["../mvvm-core/src/index.ts"],
+      "@web-loom/query-core": ["../query-core/src/index.ts"]
+    },
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

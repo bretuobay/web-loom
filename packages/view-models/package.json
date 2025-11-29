@@ -1,6 +1,6 @@
 {
   "name": "@repo/view-models",
-  "version": "0.0.0",
+  "version": "0.5.2",
   "private": true,
   "exports": {
     "./*": "./src/*.ts"

@@ -2,7 +2,7 @@
   "name": "mvvm-react-integrated",
   "description": "A React application integrated with MVVM architecture from all other packages.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.5.2",
   "type": "module",
   "scripts": {
     "dev": "vite",

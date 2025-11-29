@@ -584,6 +584,155 @@ describe('createTabbedInterface', () => {
     });
   });
 
+  describe('convenience methods', () => {
+    it('should move focus to next tab with focusNextTab', () => {
+      const tabbedInterface = createTabbedInterface({ tabs });
+
+      // Start at first tab
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-1');
+
+      // Move to next tab
+      tabbedInterface.actions.focusNextTab();
+
+      // Should now be on second tab
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-2');
+
+      tabbedInterface.destroy();
+    });
+
+    it('should move focus to previous tab with focusPreviousTab', () => {
+      const tabbedInterface = createTabbedInterface({ tabs });
+
+      // Start at second tab
+      tabbedInterface.actions.activateTab('tab-2');
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-2');
+
+      // Move to previous tab
+      tabbedInterface.actions.focusPreviousTab();
+
+      // Should now be on first tab
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-1');
+
+      tabbedInterface.destroy();
+    });
+
+    it('should wrap to first tab when calling focusNextTab on last tab', () => {
+      const tabbedInterface = createTabbedInterface({ tabs, wrap: true });
+
+      // Start at last tab
+      tabbedInterface.actions.activateTab('tab-3');
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-3');
+
+      // Move to next tab (should wrap to first)
+      tabbedInterface.actions.focusNextTab();
+
+      // Should now be on first tab
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-1');
+
+      tabbedInterface.destroy();
+    });
+
+    it('should wrap to last tab when calling focusPreviousTab on first tab', () => {
+      const tabbedInterface = createTabbedInterface({ tabs, wrap: true });
+
+      // Start at first tab
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-1');
+
+      // Move to previous tab (should wrap to last)
+      tabbedInterface.actions.focusPreviousTab();
+
+      // Should now be on last tab
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-3');
+
+      tabbedInterface.destroy();
+    });
+
+    it('should not wrap when wrap is false', () => {
+      const tabbedInterface = createTabbedInterface({ tabs, wrap: false });
+
+      // Start at last tab
+      tabbedInterface.actions.activateTab('tab-3');
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-3');
+
+      // Try to move to next tab (should stay on last)
+      tabbedInterface.actions.focusNextTab();
+
+      // Should still be on last tab
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-3');
+
+      tabbedInterface.destroy();
+    });
+
+    it('should invoke onTabChange callback when using convenience methods', () => {
+      const onTabChange = vi.fn();
+      const tabbedInterface = createTabbedInterface({
+        tabs,
+        onTabChange,
+      });
+
+      // Clear initial calls
+      onTabChange.mockClear();
+
+      // Use focusNextTab
+      tabbedInterface.actions.focusNextTab();
+
+      expect(onTabChange).toHaveBeenCalledWith('tab-2');
+
+      tabbedInterface.destroy();
+    });
+
+    it('should not activate disabled tabs when using focusNextTab', () => {
+      const tabsWithDisabled: Tab[] = [
+        { id: 'tab-1', label: 'Profile' },
+        { id: 'tab-2', label: 'Settings', disabled: true },
+        { id: 'tab-3', label: 'Notifications' },
+      ];
+
+      const tabbedInterface = createTabbedInterface({ tabs: tabsWithDisabled });
+
+      // Start at first tab
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-1');
+
+      // Move to next tab (roving focus will move to tab-2, but it won't activate because it's disabled)
+      tabbedInterface.actions.focusNextTab();
+
+      // Should remain on tab-1 because tab-2 is disabled
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-1');
+
+      tabbedInterface.destroy();
+    });
+
+    it('should navigate through multiple tabs with focusNextTab', () => {
+      const tabbedInterface = createTabbedInterface({ tabs });
+
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-1');
+
+      tabbedInterface.actions.focusNextTab();
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-2');
+
+      tabbedInterface.actions.focusNextTab();
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-3');
+
+      tabbedInterface.destroy();
+    });
+
+    it('should navigate through multiple tabs with focusPreviousTab', () => {
+      const tabbedInterface = createTabbedInterface({ tabs });
+
+      // Start at last tab
+      tabbedInterface.actions.activateTab('tab-3');
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-3');
+
+      tabbedInterface.actions.focusPreviousTab();
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-2');
+
+      tabbedInterface.actions.focusPreviousTab();
+      expect(tabbedInterface.getState().activeTabId).toBe('tab-1');
+
+      tabbedInterface.destroy();
+    });
+  });
+
   describe('integration scenarios', () => {
     it('should handle complete tabbed interface lifecycle', () => {
       const onTabChange = vi.fn();

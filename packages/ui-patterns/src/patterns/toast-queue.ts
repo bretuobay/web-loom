@@ -1,9 +1,15 @@
 import { createStore, type Store } from '@web-loom/store-core';
+import { createEventBus, type EventBus } from '@web-loom/event-bus-core';
 
 /**
  * Represents the type of a toast notification.
  */
 export type ToastType = 'info' | 'success' | 'warning' | 'error';
+
+/**
+ * Represents the position where toasts appear on the screen.
+ */
+export type ToastPosition = 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
 
 /**
  * Represents a toast notification.
@@ -53,6 +59,11 @@ export interface ToastQueueState {
    * Default duration in milliseconds for toasts.
    */
   defaultDuration: number;
+
+  /**
+   * Position where toasts appear on the screen.
+   */
+  position: ToastPosition;
 }
 
 /**
@@ -76,6 +87,12 @@ export interface ToastQueueActions {
    * Clears all toasts from the queue.
    */
   clearAllToasts: () => void;
+
+  /**
+   * Sets the position where toasts appear on the screen.
+   * @param position The new position for toasts.
+   */
+  setPosition: (position: ToastPosition) => void;
 }
 
 /**
@@ -95,6 +112,12 @@ export interface ToastQueueOptions {
   defaultDuration?: number;
 
   /**
+   * Position where toasts appear on the screen.
+   * @default 'top-right'
+   */
+  position?: ToastPosition;
+
+  /**
    * Optional callback invoked when a toast is added.
    * @param toast The toast that was added.
    */
@@ -105,6 +128,19 @@ export interface ToastQueueOptions {
    * @param toastId The ID of the toast that was removed.
    */
   onToastRemoved?: (toastId: string) => void;
+
+  /**
+   * Optional callback invoked when the position changes.
+   * @param position The new position.
+   */
+  onPositionChanged?: (position: ToastPosition) => void;
+}
+
+/**
+ * Events emitted by the toast queue pattern.
+ */
+export interface ToastQueueEvents extends Record<string, any> {
+  'toast:position-changed': { position: ToastPosition };
 }
 
 /**
@@ -129,6 +165,11 @@ export interface ToastQueueBehavior {
   actions: ToastQueueActions;
 
   /**
+   * Event bus for toast queue events.
+   */
+  eventBus: EventBus<ToastQueueEvents>;
+
+  /**
    * Destroys the behavior and cleans up subscriptions and timers.
    */
   destroy: () => void;
@@ -136,60 +177,71 @@ export interface ToastQueueBehavior {
 
 /**
  * Creates a toast queue pattern for managing temporary notifications.
- * 
+ *
  * This pattern manages a queue of toast notifications with automatic removal
  * after a specified duration. It supports limiting the number of visible toasts
  * and queuing additional toasts until space becomes available.
- * 
+ *
  * @example
  * ```typescript
  * const toastQueue = createToastQueue({
  *   maxVisible: 3,
  *   defaultDuration: 5000,
+ *   position: 'top-right',
  *   onToastAdded: (toast) => {
  *     console.log('Toast added:', toast.message);
  *   },
  *   onToastRemoved: (toastId) => {
  *     console.log('Toast removed:', toastId);
  *   },
+ *   onPositionChanged: (position) => {
+ *     console.log('Position changed:', position);
+ *   },
  * });
- * 
+ *
  * // Add toasts
  * const id1 = toastQueue.actions.addToast({
  *   message: 'Operation successful!',
  *   type: 'success',
  *   duration: 3000,
  * });
- * 
+ *
  * const id2 = toastQueue.actions.addToast({
  *   message: 'Warning: Low disk space',
  *   type: 'warning',
  *   duration: 5000,
  * });
- * 
+ *
  * // Add toast with default duration
  * const id3 = toastQueue.actions.addToast({
  *   message: 'Information message',
  *   type: 'info',
  *   duration: 5000, // Uses defaultDuration if not specified
  * });
- * 
+ *
+ * // Change position
+ * toastQueue.actions.setPosition('bottom-left');
+ *
  * // Remove a specific toast
  * toastQueue.actions.removeToast(id1);
- * 
+ *
  * // Clear all toasts
  * toastQueue.actions.clearAllToasts();
- * 
+ *
  * // Clean up
  * toastQueue.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the toast queue pattern.
  * @returns A toast queue pattern instance.
  */
 export function createToastQueue(options?: ToastQueueOptions): ToastQueueBehavior {
   const maxVisible = options?.maxVisible ?? 3;
   const defaultDuration = options?.defaultDuration ?? 5000;
+  const initialPosition = options?.position ?? 'top-right';
+
+  // Create event bus for toast events
+  const eventBus = createEventBus();
 
   // Map to store timeout IDs for auto-removal
   const timeoutIds = new Map<string, ReturnType<typeof setTimeout>>();
@@ -225,101 +277,119 @@ export function createToastQueue(options?: ToastQueueOptions): ToastQueueBehavio
     toasts: [],
     maxVisible,
     defaultDuration,
+    position: initialPosition,
   };
 
-  const store: Store<ToastQueueState, ToastQueueActions> = createStore<
-    ToastQueueState,
-    ToastQueueActions
-  >(initialState, (set, get, actions) => ({
-    addToast: (toastData: Omit<Toast, 'id' | 'createdAt'>) => {
-      const id = generateId();
-      const toast: Toast = {
-        id,
-        message: toastData.message,
-        type: toastData.type,
-        duration: toastData.duration,
-        createdAt: Date.now(),
-      };
+  const store: Store<ToastQueueState, ToastQueueActions> = createStore<ToastQueueState, ToastQueueActions>(
+    initialState,
+    (set, get, actions) => ({
+      addToast: (toastData: Omit<Toast, 'id' | 'createdAt'>) => {
+        const id = generateId();
+        const toast: Toast = {
+          id,
+          message: toastData.message,
+          type: toastData.type,
+          duration: toastData.duration,
+          createdAt: Date.now(),
+        };
 
-      // Add toast to queue
-      set((state) => ({
-        ...state,
-        toasts: [...state.toasts, toast],
-      }));
+        // Add toast to queue
+        set((state) => ({
+          ...state,
+          toasts: [...state.toasts, toast],
+        }));
 
-      // Schedule auto-removal
-      scheduleRemoval(id, toast.duration, () => {
-        actions.removeToast(id);
-      });
+        // Schedule auto-removal
+        scheduleRemoval(id, toast.duration, () => {
+          actions.removeToast(id);
+        });
 
-      // Invoke callback
-      if (options?.onToastAdded) {
-        options.onToastAdded(toast);
-      }
+        // Invoke callback
+        if (options?.onToastAdded) {
+          options.onToastAdded(toast);
+        }
 
-      return id;
-    },
+        return id;
+      },
 
-    removeToast: (id: string) => {
-      const state = get();
+      removeToast: (id: string) => {
+        const state = get();
 
-      // Check if toast exists
-      const toastExists = state.toasts.some((t) => t.id === id);
-      if (!toastExists) {
-        return;
-      }
+        // Check if toast exists
+        const toastExists = state.toasts.some((t) => t.id === id);
+        if (!toastExists) {
+          return;
+        }
 
-      // Clear timeout for this toast
-      const timeoutId = timeoutIds.get(id);
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutIds.delete(id);
-      }
-
-      // Remove toast from queue
-      set((state) => ({
-        ...state,
-        toasts: state.toasts.filter((t) => t.id !== id),
-      }));
-
-      // Invoke callback
-      if (options?.onToastRemoved) {
-        options.onToastRemoved(id);
-      }
-    },
-
-    clearAllToasts: () => {
-      const state = get();
-
-      // Clear all timeouts
-      state.toasts.forEach((toast) => {
-        const timeoutId = timeoutIds.get(toast.id);
+        // Clear timeout for this toast
+        const timeoutId = timeoutIds.get(id);
         if (timeoutId) {
           clearTimeout(timeoutId);
-          timeoutIds.delete(toast.id);
+          timeoutIds.delete(id);
         }
-      });
 
-      // Clear all toasts
-      set((state) => ({
-        ...state,
-        toasts: [],
-      }));
+        // Remove toast from queue
+        set((state) => ({
+          ...state,
+          toasts: state.toasts.filter((t) => t.id !== id),
+        }));
 
-      // Invoke callbacks for each removed toast
-      if (options?.onToastRemoved) {
-        const callback = options.onToastRemoved;
+        // Invoke callback
+        if (options?.onToastRemoved) {
+          options.onToastRemoved(id);
+        }
+      },
+
+      clearAllToasts: () => {
+        const state = get();
+
+        // Clear all timeouts
         state.toasts.forEach((toast) => {
-          callback(toast.id);
+          const timeoutId = timeoutIds.get(toast.id);
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutIds.delete(toast.id);
+          }
         });
-      }
-    },
-  }));
+
+        // Clear all toasts
+        set((state) => ({
+          ...state,
+          toasts: [],
+        }));
+
+        // Invoke callbacks for each removed toast
+        if (options?.onToastRemoved) {
+          const callback = options.onToastRemoved;
+          state.toasts.forEach((toast) => {
+            callback(toast.id);
+          });
+        }
+      },
+
+      setPosition: (position: ToastPosition) => {
+        // Update position in state
+        set((state) => ({
+          ...state,
+          position,
+        }));
+
+        // Emit event
+        eventBus.emit('toast:position-changed', { position });
+
+        // Invoke callback
+        if (options?.onPositionChanged) {
+          options.onPositionChanged(position);
+        }
+      },
+    }),
+  );
 
   return {
     getState: store.getState,
     subscribe: store.subscribe,
     actions: store.actions,
+    eventBus,
     destroy: () => {
       // Clear all timeouts
       timeoutIds.forEach((timeoutId) => clearTimeout(timeoutId));

@@ -685,6 +685,193 @@ describe('createCommandPalette', () => {
     });
   });
 
+  describe('convenience methods', () => {
+    describe('selectNext', () => {
+      it('should delegate to roving focus moveNext', () => {
+        const commands = createTestCommands();
+        const palette = createCommandPalette({ commands });
+
+        expect(palette.getState().selectedIndex).toBe(0);
+
+        palette.actions.selectNext();
+        expect(palette.getState().selectedIndex).toBe(1);
+
+        palette.actions.selectNext();
+        expect(palette.getState().selectedIndex).toBe(2);
+
+        palette.destroy();
+      });
+
+      it('should wrap to first item when at end', () => {
+        const commands = createTestCommands();
+        const palette = createCommandPalette({ commands });
+
+        // Move to last item
+        palette.rovingFocus.actions.moveLast();
+        expect(palette.getState().selectedIndex).toBe(3);
+
+        // selectNext should wrap to first
+        palette.actions.selectNext();
+        expect(palette.getState().selectedIndex).toBe(0);
+
+        palette.destroy();
+      });
+    });
+
+    describe('selectPrevious', () => {
+      it('should delegate to roving focus movePrevious', () => {
+        const commands = createTestCommands();
+        const palette = createCommandPalette({ commands });
+
+        // Move to index 2
+        palette.rovingFocus.actions.moveTo(2);
+        expect(palette.getState().selectedIndex).toBe(2);
+
+        palette.actions.selectPrevious();
+        expect(palette.getState().selectedIndex).toBe(1);
+
+        palette.actions.selectPrevious();
+        expect(palette.getState().selectedIndex).toBe(0);
+
+        palette.destroy();
+      });
+
+      it('should wrap to last item when at beginning', () => {
+        const commands = createTestCommands();
+        const palette = createCommandPalette({ commands });
+
+        expect(palette.getState().selectedIndex).toBe(0);
+
+        // selectPrevious should wrap to last
+        palette.actions.selectPrevious();
+        expect(palette.getState().selectedIndex).toBe(3);
+
+        palette.destroy();
+      });
+    });
+
+    describe('executeSelected', () => {
+      it('should execute the currently selected command', async () => {
+        const commands = createTestCommands();
+        const palette = createCommandPalette({ commands });
+
+        palette.actions.open();
+        
+        // Select the second command
+        palette.actions.selectNext();
+        expect(palette.getState().selectedIndex).toBe(1);
+
+        // Execute selected (should execute 'open' command)
+        await palette.actions.executeSelected();
+
+        expect(commands[1].action).toHaveBeenCalledTimes(1);
+        expect(palette.getState().isOpen).toBe(false);
+
+        palette.destroy();
+      });
+
+      it('should work with filtered commands', async () => {
+        const commands = createTestCommands();
+        const palette = createCommandPalette({ commands });
+
+        palette.actions.open();
+        palette.actions.setQuery('file');
+
+        // Should have filtered commands
+        const state = palette.getState();
+        expect(state.filteredCommands.length).toBeGreaterThan(0);
+        expect(state.selectedIndex).toBe(0);
+
+        // Execute the first filtered command
+        await palette.actions.executeSelected();
+
+        // Should execute the first filtered command's action
+        const firstFilteredCommand = state.filteredCommands[0];
+        const originalCommand = commands.find(cmd => cmd.id === firstFilteredCommand.id);
+        expect(originalCommand?.action).toHaveBeenCalledTimes(1);
+
+        palette.destroy();
+      });
+
+      it('should handle empty filtered commands gracefully', async () => {
+        const commands = createTestCommands();
+        const palette = createCommandPalette({ commands });
+
+        palette.actions.setQuery('nonexistent');
+        expect(palette.getState().filteredCommands).toHaveLength(0);
+
+        await expect(
+          palette.actions.executeSelected()
+        ).resolves.not.toThrow();
+
+        palette.destroy();
+      });
+
+      it('should handle invalid selected index gracefully', async () => {
+        const commands = createTestCommands();
+        const palette = createCommandPalette({ commands });
+
+        // Manually set an invalid index (this shouldn't happen in normal use)
+        palette.rovingFocus.actions.moveTo(999);
+
+        await expect(
+          palette.actions.executeSelected()
+        ).resolves.not.toThrow();
+
+        palette.destroy();
+      });
+
+      it('should close palette after executing selected command', async () => {
+        const commands = createTestCommands();
+        const palette = createCommandPalette({ commands });
+
+        palette.actions.open();
+        expect(palette.getState().isOpen).toBe(true);
+
+        await palette.actions.executeSelected();
+
+        expect(palette.getState().isOpen).toBe(false);
+
+        palette.destroy();
+      });
+
+      it('should invoke onCommandExecute callback', async () => {
+        const onCommandExecute = vi.fn();
+        const commands = createTestCommands();
+        const palette = createCommandPalette({ commands, onCommandExecute });
+
+        await palette.actions.executeSelected();
+
+        expect(onCommandExecute).toHaveBeenCalledTimes(1);
+        expect(onCommandExecute).toHaveBeenCalledWith(commands[0]);
+
+        palette.destroy();
+      });
+    });
+
+    describe('convenience methods integration', () => {
+      it('should work together for keyboard-driven workflow', async () => {
+        const commands = createTestCommands();
+        const palette = createCommandPalette({ commands });
+
+        palette.actions.open();
+        palette.actions.setQuery('file');
+
+        // Navigate with convenience methods
+        palette.actions.selectNext();
+        palette.actions.selectNext();
+        palette.actions.selectPrevious();
+
+        // Execute with convenience method
+        await palette.actions.executeSelected();
+
+        expect(palette.getState().isOpen).toBe(false);
+
+        palette.destroy();
+      });
+    });
+  });
+
   describe('integration scenarios', () => {
     it('should handle complete command palette workflow', async () => {
       const onOpen = vi.fn();

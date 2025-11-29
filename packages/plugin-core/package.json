@@ -1,7 +1,7 @@
 {
   "name": "@repo/plugin-core",
   "description": "Core plugin functionality for Web Loom",
-  "version": "0.0.0",
+  "version": "0.5.2",
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

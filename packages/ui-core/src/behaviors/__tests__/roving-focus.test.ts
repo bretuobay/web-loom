@@ -8,6 +8,7 @@ describe('createRovingFocus', () => {
       const state = rovingFocus.getState();
 
       expect(state.currentIndex).toBe(0);
+      expect(state.previousIndex).toBe(-1);
       expect(state.items).toEqual([]);
       expect(state.orientation).toBe('vertical');
       expect(state.wrap).toBe(true);
@@ -465,6 +466,148 @@ describe('createRovingFocus', () => {
       expect(listener1).not.toHaveBeenCalled();
       expect(listener2).not.toHaveBeenCalled();
       expect(listener3).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onFocusChange callback', () => {
+    it('should invoke callback when focus changes', () => {
+      const items = ['item-1', 'item-2', 'item-3'];
+      const onFocusChange = vi.fn();
+      const rovingFocus = createRovingFocus({ items, onFocusChange });
+
+      rovingFocus.actions.moveNext();
+
+      expect(onFocusChange).toHaveBeenCalledWith(1, 'item-2', 0);
+    });
+
+    it('should invoke callback with correct parameters on movePrevious', () => {
+      const items = ['item-1', 'item-2', 'item-3'];
+      const onFocusChange = vi.fn();
+      const rovingFocus = createRovingFocus({ items, initialIndex: 2, onFocusChange });
+
+      rovingFocus.actions.movePrevious();
+
+      expect(onFocusChange).toHaveBeenCalledWith(1, 'item-2', 2);
+    });
+
+    it('should invoke callback on moveFirst', () => {
+      const items = ['item-1', 'item-2', 'item-3'];
+      const onFocusChange = vi.fn();
+      const rovingFocus = createRovingFocus({ items, initialIndex: 2, onFocusChange });
+
+      rovingFocus.actions.moveFirst();
+
+      expect(onFocusChange).toHaveBeenCalledWith(0, 'item-1', 2);
+    });
+
+    it('should invoke callback on moveLast', () => {
+      const items = ['item-1', 'item-2', 'item-3'];
+      const onFocusChange = vi.fn();
+      const rovingFocus = createRovingFocus({ items, onFocusChange });
+
+      rovingFocus.actions.moveLast();
+
+      expect(onFocusChange).toHaveBeenCalledWith(2, 'item-3', 0);
+    });
+
+    it('should invoke callback on moveTo', () => {
+      const items = ['item-1', 'item-2', 'item-3', 'item-4'];
+      const onFocusChange = vi.fn();
+      const rovingFocus = createRovingFocus({ items, onFocusChange });
+
+      rovingFocus.actions.moveTo(2);
+
+      expect(onFocusChange).toHaveBeenCalledWith(2, 'item-3', 0);
+    });
+
+    it('should invoke callback when wrapping forward', () => {
+      const items = ['item-1', 'item-2', 'item-3'];
+      const onFocusChange = vi.fn();
+      const rovingFocus = createRovingFocus({ items, initialIndex: 2, wrap: true, onFocusChange });
+
+      rovingFocus.actions.moveNext();
+
+      expect(onFocusChange).toHaveBeenCalledWith(0, 'item-1', 2);
+    });
+
+    it('should invoke callback when wrapping backward', () => {
+      const items = ['item-1', 'item-2', 'item-3'];
+      const onFocusChange = vi.fn();
+      const rovingFocus = createRovingFocus({ items, wrap: true, onFocusChange });
+
+      rovingFocus.actions.movePrevious();
+
+      expect(onFocusChange).toHaveBeenCalledWith(2, 'item-3', 0);
+    });
+
+    it('should not invoke callback when focus does not change', () => {
+      const items = ['item-1', 'item-2', 'item-3'];
+      const onFocusChange = vi.fn();
+      const rovingFocus = createRovingFocus({ items, initialIndex: 2, wrap: false, onFocusChange });
+
+      // Try to move next at the end with wrap disabled
+      rovingFocus.actions.moveNext();
+
+      expect(onFocusChange).not.toHaveBeenCalled();
+    });
+
+    it('should not invoke callback when moving to same index', () => {
+      const items = ['item-1', 'item-2', 'item-3'];
+      const onFocusChange = vi.fn();
+      const rovingFocus = createRovingFocus({ items, initialIndex: 1, onFocusChange });
+
+      rovingFocus.actions.moveTo(1);
+
+      expect(onFocusChange).not.toHaveBeenCalled();
+    });
+
+    it('should invoke callback when setItems causes index adjustment', () => {
+      const items = ['item-1', 'item-2', 'item-3', 'item-4'];
+      const onFocusChange = vi.fn();
+      const rovingFocus = createRovingFocus({ items, initialIndex: 3, onFocusChange });
+
+      // Set shorter array, forcing index adjustment
+      rovingFocus.actions.setItems(['new-1', 'new-2']);
+
+      expect(onFocusChange).toHaveBeenCalledWith(1, 'new-2', 3);
+    });
+
+    it('should not invoke callback when setItems does not change index', () => {
+      const items = ['item-1', 'item-2', 'item-3'];
+      const onFocusChange = vi.fn();
+      const rovingFocus = createRovingFocus({ items, initialIndex: 1, onFocusChange });
+
+      // Set longer array, index stays the same
+      rovingFocus.actions.setItems(['new-1', 'new-2', 'new-3', 'new-4']);
+
+      expect(onFocusChange).not.toHaveBeenCalled();
+    });
+
+    it('should track previousIndex in state', () => {
+      const items = ['item-1', 'item-2', 'item-3'];
+      const rovingFocus = createRovingFocus({ items });
+
+      expect(rovingFocus.getState().previousIndex).toBe(-1);
+
+      rovingFocus.actions.moveNext();
+      expect(rovingFocus.getState().previousIndex).toBe(0);
+      expect(rovingFocus.getState().currentIndex).toBe(1);
+
+      rovingFocus.actions.moveNext();
+      expect(rovingFocus.getState().previousIndex).toBe(1);
+      expect(rovingFocus.getState().currentIndex).toBe(2);
+    });
+
+    it('should work without callback provided', () => {
+      const items = ['item-1', 'item-2', 'item-3'];
+      const rovingFocus = createRovingFocus({ items });
+
+      expect(() => {
+        rovingFocus.actions.moveNext();
+        rovingFocus.actions.movePrevious();
+        rovingFocus.actions.moveFirst();
+        rovingFocus.actions.moveLast();
+      }).not.toThrow();
     });
   });
 

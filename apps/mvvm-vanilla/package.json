@@ -1,7 +1,7 @@
 {
   "name": "mvvm-vanilla",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.5.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,8 +10,8 @@
     "test": "echo \"No tests for mvvm-vanilla\""
   },
   "dependencies": {
-    "@repo/shared": "^0.0.0",
-    "@repo/view-models": "^0.0.0",
+    "@repo/shared": "*",
+    "@repo/view-models": "*",
     "chart.js": "^4.5.0",
     "ejs": "^3.1.10"
   },

@@ -1,0 +1,72 @@
+# .github/workflows/ui-patterns-publish.yml
+
+name: Publish - @web-loom/ui-patterns
+
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch
+    paths:
+      - 'packages/ui-patterns/**' # Only run if ui-patterns files changed
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Rollup native binaries work reliably on Node 20 & 22, NOT 23
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      # Prevent npm optional-dep failure by fully cleaning install
+      - name: Clean install
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm i
+
+      # Ensure optional Rollup deps (native binaries) are resolved
+      - name: Rebuild Rollup native deps
+        run: npm rebuild rollup --workspace=@web-loom/ui-patterns
+
+      - name: Build @web-loom/ui-patterns
+        run: npx turbo run build --filter=@web-loom/ui-patterns
+
+      - name: Publish @web-loom/ui-patterns to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Navigate to the package directory
+          cd packages/ui-patterns
+
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+
+          echo "--- Package Information ---"
+          echo "Package Name: $PACKAGE_NAME"
+          echo "Package Version: $PACKAGE_VERSION"
+          echo "--------------------------"
+
+          set +e
+          npm view "$PACKAGE_NAME@$PACKAGE_VERSION" > /dev/null 2>&1
+          NPM_VIEW_EXIT_CODE=$?
+          set -e
+
+          if [ "$NPM_VIEW_EXIT_CODE" -eq 0 ]; then
+            echo "✅ Package version $PACKAGE_VERSION already exists on npm. Skipping publish for $PACKAGE_NAME."
+            exit 0
+          else
+            echo "🚀 Package version $PACKAGE_VERSION is new. Attempting to publish $PACKAGE_NAME."
+            npm publish --access public --verbose
+          fi
+
+          echo "--- Publish process completed for $PACKAGE_NAME ---"

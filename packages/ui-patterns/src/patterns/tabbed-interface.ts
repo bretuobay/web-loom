@@ -70,6 +70,18 @@ export interface TabbedInterfaceActions {
    * @param toIndex The target index for the tab.
    */
   moveTab: (fromIndex: number, toIndex: number) => void;
+
+  /**
+   * Moves focus to the next tab.
+   * Delegates to the underlying roving focus behavior's moveNext action.
+   */
+  focusNextTab: () => void;
+
+  /**
+   * Moves focus to the previous tab.
+   * Delegates to the underlying roving focus behavior's movePrevious action.
+   */
+  focusPreviousTab: () => void;
 }
 
 /**
@@ -350,6 +362,16 @@ export function createTabbedInterface(
           tabs: newTabs,
         };
       });
+    },
+
+    focusNextTab: () => {
+      // Delegate to roving focus moveNext action
+      rovingFocus.actions.moveNext();
+    },
+
+    focusPreviousTab: () => {
+      // Delegate to roving focus movePrevious action
+      rovingFocus.actions.movePrevious();
     },
   }));
 

@@ -22,10 +22,7 @@ export function ListSelectionExample() {
     items: items.map((item) => item.id),
   });
 
-  const handleItemClick = (
-    id: string,
-    event: React.MouseEvent<HTMLDivElement>
-  ) => {
+  const handleItemClick = (id: string, event: React.MouseEvent<HTMLDivElement>) => {
     if (mode === 'range' && event.shiftKey && selection.lastSelectedId) {
       selection.actions.selectRange(selection.lastSelectedId, id);
     } else if (mode === 'multi' && (event.ctrlKey || event.metaKey)) {
@@ -41,8 +38,7 @@ export function ListSelectionExample() {
     <div className="example-container">
       <h2>List Selection Example</h2>
       <p>
-        This example demonstrates the <code>useListSelection</code> hook with
-        different selection modes.
+        This example demonstrates the <code>useListSelection</code> hook with different selection modes.
       </p>
 
       <div className="example-controls">
@@ -51,8 +47,9 @@ export function ListSelectionExample() {
           <select
             value={mode}
             onChange={(e) => {
+              console.log('Changing mode to', e.target.value);
               setMode(e.target.value as 'single' | 'multi' | 'range');
-              selection.actions.clearSelection();
+              // selection.actions.clearSelection();
             }}
             className="select"
           >
@@ -62,16 +59,10 @@ export function ListSelectionExample() {
           </select>
         </div>
 
-        <button
-          onClick={() => selection.actions.selectAll()}
-          className="btn btn-secondary"
-        >
+        <button onClick={() => selection.actions.selectAll()} className="btn btn-secondary">
           Select All
         </button>
-        <button
-          onClick={() => selection.actions.clearSelection()}
-          className="btn btn-secondary"
-        >
+        <button onClick={() => selection.actions.clearSelection()} className="btn btn-secondary">
           Clear Selection
         </button>
       </div>

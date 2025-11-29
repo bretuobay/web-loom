@@ -24,6 +24,8 @@ npm install @web-loom/ui-core
 
 ## Available Behaviors
 
+> **📚 Detailed Documentation**: See the [docs](./docs) folder for comprehensive guides on each behavior, including advanced usage, accessibility guidelines, and framework-specific examples.
+
 ### Dialog Behavior
 Manages modal dialog state with open/close/toggle actions.
 
@@ -98,13 +100,13 @@ import { createListSelection } from '@web-loom/ui-core';
 
 const selection = createListSelection({
   items: ['item-1', 'item-2', 'item-3'],
-  mode: 'multiple',
+  mode: 'multi',
   onSelectionChange: (selected) => console.log('Selected:', selected),
 });
 
 // Select items
 selection.actions.select('item-1');
-selection.actions.toggleSelect('item-2');
+selection.actions.toggleSelection('item-2');
 
 // Check selection
 console.log(selection.getState().selectedItems); // ['item-1', 'item-2']
@@ -124,10 +126,99 @@ const rovingFocus = createRovingFocus({
 });
 
 // Move focus
-rovingFocus.actions.focusNext();
-rovingFocus.actions.focusPrevious();
-rovingFocus.actions.focusFirst();
-rovingFocus.actions.focusLast();
+rovingFocus.actions.moveNext();
+rovingFocus.actions.movePrevious();
+rovingFocus.actions.moveFirst();
+rovingFocus.actions.moveLast();
+```
+
+### Keyboard Shortcuts Behavior
+Manages keyboard shortcut registration and execution with platform normalization.
+
+```typescript
+import { createKeyboardShortcuts } from '@web-loom/ui-core';
+
+const shortcuts = createKeyboardShortcuts({
+  scope: 'global',
+  onShortcutExecuted: (key) => console.log(`Executed: ${key}`),
+});
+
+// Register shortcuts
+shortcuts.actions.registerShortcut({
+  key: 'Ctrl+K',
+  handler: () => console.log('Command palette opened'),
+  description: 'Open command palette',
+  preventDefault: true,
+});
+
+// Platform-specific keys are normalized (Cmd on macOS, Ctrl on Windows/Linux)
+shortcuts.actions.registerShortcut({
+  key: 'Cmd+Shift+P',
+  handler: () => console.log('Command palette opened'),
+  description: 'Open command palette',
+  preventDefault: true,
+});
+
+// Clean up
+shortcuts.destroy();
+```
+
+### Undo/Redo Stack Behavior
+Maintains an immutable history of states with undo/redo operations.
+
+```typescript
+import { createUndoRedoStack } from '@web-loom/ui-core';
+
+interface EditorState {
+  content: string;
+  cursor: number;
+}
+
+const undoRedo = createUndoRedoStack<EditorState>({
+  initialState: { content: '', cursor: 0 },
+  maxLength: 100,
+  onStateChange: (state) => console.log('State changed:', state),
+});
+
+// Push new states
+undoRedo.actions.pushState({ content: 'Hello', cursor: 5 });
+undoRedo.actions.pushState({ content: 'Hello World', cursor: 11 });
+
+// Undo
+undoRedo.actions.undo();
+console.log(undoRedo.getState().present); // { content: 'Hello', cursor: 5 }
+
+// Redo
+undoRedo.actions.redo();
+console.log(undoRedo.getState().present); // { content: 'Hello World', cursor: 11 }
+```
+
+### Drag-and-Drop Behavior
+Manages drag-and-drop interaction state with validation and callbacks.
+
+```typescript
+import { createDragDropBehavior } from '@web-loom/ui-core';
+
+const dragDrop = createDragDropBehavior({
+  onDragStart: (itemId, data) => console.log('Drag started:', itemId),
+  onDragEnd: (itemId) => console.log('Drag ended:', itemId),
+  onDrop: (draggedItem, dropTarget, data) => {
+    console.log('Dropped', draggedItem, 'on', dropTarget);
+  },
+  validateDrop: (draggedItem, dropTarget) => {
+    return dropTarget !== 'restricted-zone';
+  },
+});
+
+// Register drop zones
+dragDrop.actions.registerDropZone('zone-1');
+dragDrop.actions.registerDropZone('zone-2');
+
+// Start dragging
+dragDrop.actions.startDrag('item-1', { type: 'card', priority: 'high' });
+
+// Perform drop
+dragDrop.actions.drop('zone-1');
 ```
 
 ## Framework Adapters
@@ -265,6 +356,27 @@ import type {
   DialogBehavior
 } from '@web-loom/ui-core';
 ```
+
+## Detailed Documentation
+
+For comprehensive guides including advanced usage, accessibility guidelines, and real-world examples, see the documentation for each behavior:
+
+### New Behaviors
+- **[Keyboard Shortcuts](./docs/KEYBOARD_SHORTCUTS.md)** - Centralized keyboard shortcut management with platform normalization
+- **[Undo/Redo Stack](./docs/UNDO_REDO_STACK.md)** - Immutable state history with undo/redo operations
+- **[Drag-and-Drop](./docs/DRAG_DROP.md)** - Framework-agnostic drag-and-drop state management
+
+### Behavior Enhancements
+- **[Roving Focus Enhancement](../ui-patterns/docs/PATTERN_ENHANCEMENTS.md#roving-focus-behavior-enhancements)** - Focus change callback for responding to focus changes
+- **[Form Behavior Enhancement](../ui-patterns/docs/PATTERN_ENHANCEMENTS.md#form-behavior-enhancements)** - Manual error setting for server-side validation
+
+Each documentation file includes:
+- Complete API reference with TypeScript interfaces
+- Advanced usage examples and patterns
+- Framework integration guides (React, Vue, Angular)
+- Accessibility guidelines and ARIA recommendations
+- Performance considerations and best practices
+- Common use cases and real-world examples
 
 ## Dependencies
 

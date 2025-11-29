@@ -16,13 +16,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Rollup native binaries work reliably on Node 20 & 22, NOT 23
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 22
+          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm install
+      # Prevent npm optional-dep failure by fully cleaning install
+      - name: Clean install
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm i
+
+      # Ensure Vite and build dependencies are properly resolved
+      - name: Rebuild build dependencies
+        run: npm rebuild --workspace=@web-loom/event-bus-core
 
       - name: Run tests for @web-loom/event-bus-core
         run: npm test --workspace=@web-loom/event-bus-core

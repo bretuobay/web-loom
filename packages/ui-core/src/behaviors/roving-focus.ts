@@ -10,6 +10,11 @@ export interface RovingFocusState {
   currentIndex: number;
 
   /**
+   * The index of the previously focused item.
+   */
+  previousIndex: number;
+
+  /**
    * Array of item identifiers in the focus order.
    */
   items: string[];
@@ -93,6 +98,14 @@ export interface RovingFocusOptions {
    * @default true
    */
   wrap?: boolean;
+
+  /**
+   * Optional callback invoked when focus changes.
+   * @param index The new focused index.
+   * @param itemId The identifier of the newly focused item.
+   * @param previousIndex The previously focused index.
+   */
+  onFocusChange?: (index: number, itemId: string, previousIndex: number) => void;
 }
 
 /**
@@ -158,9 +171,11 @@ export interface RovingFocusBehavior {
 export function createRovingFocus(options?: RovingFocusOptions): RovingFocusBehavior {
   const items = options?.items || [];
   const initialIndex = options?.initialIndex ?? 0;
+  const onFocusChange = options?.onFocusChange;
 
   const initialState: RovingFocusState = {
     currentIndex: items.length > 0 ? Math.max(0, Math.min(initialIndex, items.length - 1)) : 0,
+    previousIndex: -1,
     items,
     orientation: options?.orientation || 'vertical',
     wrap: options?.wrap ?? true,
@@ -169,7 +184,27 @@ export function createRovingFocus(options?: RovingFocusOptions): RovingFocusBeha
   const store: Store<RovingFocusState, RovingFocusActions> = createStore<
     RovingFocusState,
     RovingFocusActions
-  >(initialState, (set, get) => ({
+  >(initialState, (set, get) => {
+    // Helper function to update focus and invoke callback
+    const updateFocus = (newIndex: number) => {
+      const state = get();
+      const previousIndex = state.currentIndex;
+      
+      if (newIndex !== previousIndex) {
+        set((state) => ({ 
+          ...state, 
+          currentIndex: newIndex,
+          previousIndex: previousIndex
+        }));
+        
+        // Invoke callback if provided
+        if (onFocusChange && state.items[newIndex]) {
+          onFocusChange(newIndex, state.items[newIndex], previousIndex);
+        }
+      }
+    };
+
+    return {
     moveNext: () => {
       const state = get();
       if (state.items.length === 0) return;
@@ -180,12 +215,12 @@ export function createRovingFocus(options?: RovingFocusOptions): RovingFocusBeha
         // At the end of the list
         if (state.wrap) {
           // Wrap to the first item
-          set((state) => ({ ...state, currentIndex: 0 }));
+          updateFocus(0);
         }
         // Otherwise, stay at the last item (do nothing)
       } else {
         // Move to the next item
-        set((state) => ({ ...state, currentIndex: nextIndex }));
+        updateFocus(nextIndex);
       }
     },
 
@@ -193,18 +228,18 @@ export function createRovingFocus(options?: RovingFocusOptions): RovingFocusBeha
       const state = get();
       if (state.items.length === 0) return;
 
-      const previousIndex = state.currentIndex - 1;
+      const prevIndex = state.currentIndex - 1;
 
-      if (previousIndex < 0) {
+      if (prevIndex < 0) {
         // At the beginning of the list
         if (state.wrap) {
           // Wrap to the last item
-          set((state) => ({ ...state, currentIndex: state.items.length - 1 }));
+          updateFocus(state.items.length - 1);
         }
         // Otherwise, stay at the first item (do nothing)
       } else {
         // Move to the previous item
-        set((state) => ({ ...state, currentIndex: previousIndex }));
+        updateFocus(prevIndex);
       }
     },
 
@@ -212,14 +247,14 @@ export function createRovingFocus(options?: RovingFocusOptions): RovingFocusBeha
       const state = get();
       if (state.items.length === 0) return;
 
-      set((state) => ({ ...state, currentIndex: 0 }));
+      updateFocus(0);
     },
 
     moveLast: () => {
       const state = get();
       if (state.items.length === 0) return;
 
-      set((state) => ({ ...state, currentIndex: state.items.length - 1 }));
+      updateFocus(state.items.length - 1);
     },
 
     moveTo: (index: number) => {
@@ -228,21 +263,29 @@ export function createRovingFocus(options?: RovingFocusOptions): RovingFocusBeha
 
       // Clamp index to valid range
       const clampedIndex = Math.max(0, Math.min(index, state.items.length - 1));
-      set((state) => ({ ...state, currentIndex: clampedIndex }));
+      updateFocus(clampedIndex);
     },
 
     setItems: (items: string[]) => {
-      set((state) => {
-        // Adjust currentIndex if it's out of bounds after updating items
-        const newIndex = items.length > 0 ? Math.min(state.currentIndex, items.length - 1) : 0;
-        return {
-          ...state,
-          items,
-          currentIndex: newIndex,
-        };
-      });
+      const state = get();
+      const previousIndex = state.currentIndex;
+      // Adjust currentIndex if it's out of bounds after updating items
+      const newIndex = items.length > 0 ? Math.min(state.currentIndex, items.length - 1) : 0;
+      
+      set((state) => ({
+        ...state,
+        items,
+        currentIndex: newIndex,
+        previousIndex: previousIndex,
+      }));
+      
+      // Invoke callback if index changed due to items update
+      if (newIndex !== previousIndex && onFocusChange && items[newIndex]) {
+        onFocusChange(newIndex, items[newIndex], previousIndex);
+      }
     },
-  }));
+  };
+  });
 
   return {
     getState: store.getState,

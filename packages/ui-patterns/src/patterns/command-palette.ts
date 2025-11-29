@@ -105,6 +105,24 @@ export interface CommandPaletteActions {
    * @param commandId The ID of the command to unregister.
    */
   unregisterCommand: (commandId: string) => void;
+
+  /**
+   * Moves selection to the next filtered command.
+   * Delegates to the underlying roving focus behavior's moveNext action.
+   */
+  selectNext: () => void;
+
+  /**
+   * Moves selection to the previous filtered command.
+   * Delegates to the underlying roving focus behavior's movePrevious action.
+   */
+  selectPrevious: () => void;
+
+  /**
+   * Executes the currently selected command.
+   * @returns Promise that resolves when the command completes.
+   */
+  executeSelected: () => Promise<void>;
 }
 
 /**
@@ -307,10 +325,17 @@ function filterCommands(commands: Command[], query: string): Command[] {
  * commandPalette.actions.setQuery('save');
  * console.log(commandPalette.getState().filteredCommands.length); // 1
  * 
- * // Navigate with keyboard
+ * // Navigate with keyboard (using convenience methods)
+ * commandPalette.actions.selectNext();
+ * commandPalette.actions.selectPrevious();
+ * 
+ * // Execute the selected command (using convenience method)
+ * await commandPalette.actions.executeSelected();
+ * 
+ * // Or navigate with roving focus directly
  * commandPalette.rovingFocus.actions.moveNext();
  * 
- * // Execute the selected command
+ * // Or execute a specific command by ID
  * const state = commandPalette.getState();
  * const selectedCommand = state.filteredCommands[state.selectedIndex];
  * await commandPalette.actions.executeCommand(selectedCommand.id);
@@ -496,6 +521,36 @@ export function createCommandPalette(
             selectedIndex: Math.max(0, newState.filteredCommands.length - 1),
           }));
         }
+      },
+
+      selectNext: () => {
+        // Delegate to roving focus moveNext
+        rovingFocusBehavior.actions.moveNext();
+      },
+
+      selectPrevious: () => {
+        // Delegate to roving focus movePrevious
+        rovingFocusBehavior.actions.movePrevious();
+      },
+
+      executeSelected: async () => {
+        const state = get();
+
+        // Get the currently selected command from filtered commands
+        if (state.filteredCommands.length === 0) {
+          console.warn('Cannot execute: no commands available');
+          return;
+        }
+
+        if (state.selectedIndex < 0 || state.selectedIndex >= state.filteredCommands.length) {
+          console.error(`Invalid selected index: ${state.selectedIndex}`);
+          return;
+        }
+
+        const selectedCommand = state.filteredCommands[state.selectedIndex];
+
+        // Execute the selected command
+        await actions.executeCommand(selectedCommand.id);
       },
     };
   });

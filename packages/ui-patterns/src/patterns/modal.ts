@@ -21,6 +21,18 @@ export interface Modal {
    * @default 0
    */
   priority: number;
+
+  /**
+   * Whether the modal should close when the Escape key is pressed.
+   * @default false
+   */
+  closeOnEscape?: boolean;
+
+  /**
+   * Whether the modal should close when the backdrop is clicked.
+   * @default false
+   */
+  closeOnBackdropClick?: boolean;
 }
 
 /**
@@ -39,6 +51,38 @@ export interface ModalState {
 }
 
 /**
+ * Configuration options for opening a modal.
+ */
+export interface OpenModalConfig {
+  /**
+   * Unique identifier for the modal.
+   */
+  id: string;
+
+  /**
+   * The content to display in the modal.
+   */
+  content: any;
+
+  /**
+   * Optional priority for stacking order (default: 0).
+   */
+  priority?: number;
+
+  /**
+   * Whether the modal should close when the Escape key is pressed.
+   * @default false
+   */
+  closeOnEscape?: boolean;
+
+  /**
+   * Whether the modal should close when the backdrop is clicked.
+   * @default false
+   */
+  closeOnBackdropClick?: boolean;
+}
+
+/**
  * Actions available for controlling the modal pattern.
  */
 export interface ModalActions {
@@ -49,6 +93,23 @@ export interface ModalActions {
    * @param priority Optional priority for stacking order (default: 0).
    */
   openModal: (id: string, content: any, priority?: number) => void;
+
+  /**
+   * Opens a modal with configuration options.
+   * @param config Configuration object for the modal.
+   */
+  openModalWithConfig: (config: OpenModalConfig) => void;
+
+  /**
+   * Handles escape key press for the top modal.
+   */
+  handleEscapeKey: () => void;
+
+  /**
+   * Handles backdrop click for a specific modal.
+   * @param id The ID of the modal whose backdrop was clicked.
+   */
+  handleBackdropClick: (id: string) => void;
 
   /**
    * Closes a specific modal and removes it from the stack.
@@ -74,6 +135,8 @@ export interface ModalEvents extends Record<string, any[]> {
   'modal:opened': [modal: Modal];
   'modal:closed': [modalId: string];
   'modal:stacked': [stack: Modal[]];
+  'modal:escape-pressed': [modalId: string];
+  'modal:backdrop-clicked': [modalId: string];
 }
 
 /**
@@ -155,12 +218,35 @@ export interface ModalBehavior {
  *   console.log('Modal opened event:', modal);
  * });
  * 
+ * modal.eventBus.on('modal:escape-pressed', (modalId) => {
+ *   console.log('Escape pressed on modal:', modalId);
+ * });
+ * 
+ * modal.eventBus.on('modal:backdrop-clicked', (modalId) => {
+ *   console.log('Backdrop clicked on modal:', modalId);
+ * });
+ * 
  * // Open modals with different priorities
  * modal.actions.openModal('settings', { title: 'Settings' }, 0);
  * modal.actions.openModal('confirm', { message: 'Are you sure?' }, 10);
  * 
+ * // Open modal with escape and backdrop close options
+ * modal.actions.openModalWithConfig({
+ *   id: 'dialog',
+ *   content: { message: 'Press Escape or click backdrop to close' },
+ *   priority: 5,
+ *   closeOnEscape: true,
+ *   closeOnBackdropClick: true,
+ * });
+ * 
  * // The confirm modal appears on top due to higher priority
  * console.log(modal.getState().topModalId); // 'confirm'
+ * 
+ * // Handle escape key press (will close top modal if closeOnEscape is true)
+ * modal.actions.handleEscapeKey();
+ * 
+ * // Handle backdrop click (will close modal if closeOnBackdropClick is true)
+ * modal.actions.handleBackdropClick('dialog');
  * 
  * // Close the top modal
  * modal.actions.closeTopModal();
@@ -214,6 +300,25 @@ export function createModal(options?: ModalOptions): ModalBehavior {
     initialState,
     (set, get) => ({
       openModal: (id: string, content: any, priority: number = 0) => {
+        // Delegate to openModalWithConfig for backward compatibility
+        store.actions.openModalWithConfig({
+          id,
+          content,
+          priority,
+          closeOnEscape: false,
+          closeOnBackdropClick: false,
+        });
+      },
+
+      openModalWithConfig: (config: OpenModalConfig) => {
+        const {
+          id,
+          content,
+          priority = 0,
+          closeOnEscape = false,
+          closeOnBackdropClick = false,
+        } = config;
+
         const state = get();
 
         // Check if modal with this ID already exists
@@ -221,7 +326,13 @@ export function createModal(options?: ModalOptions): ModalBehavior {
         if (existingIndex !== -1) {
           // Modal already open, update its content and priority
           const updatedStack = [...state.stack];
-          updatedStack[existingIndex] = { id, content, priority };
+          updatedStack[existingIndex] = {
+            id,
+            content,
+            priority,
+            closeOnEscape,
+            closeOnBackdropClick,
+          };
 
           const sortedStack = sortStack(updatedStack);
           const topModalId = getTopModalId(sortedStack);
@@ -242,7 +353,13 @@ export function createModal(options?: ModalOptions): ModalBehavior {
         }
 
         // Create new modal
-        const modal: Modal = { id, content, priority };
+        const modal: Modal = {
+          id,
+          content,
+          priority,
+          closeOnEscape,
+          closeOnBackdropClick,
+        };
 
         // Create dialog behavior for this modal
         const dialogBehavior = createDialogBehavior({
@@ -275,6 +392,45 @@ export function createModal(options?: ModalOptions): ModalBehavior {
 
         if (options?.onStackChange) {
           options.onStackChange(sortedStack);
+        }
+      },
+
+      handleEscapeKey: () => {
+        const state = get();
+        if (!state.topModalId) {
+          return;
+        }
+
+        // Find the top modal
+        const topModal = state.stack.find((m) => m.id === state.topModalId);
+        if (!topModal) {
+          return;
+        }
+
+        // Emit escape-pressed event
+        eventBus.emit('modal:escape-pressed', topModal.id);
+
+        // Close the modal if closeOnEscape is enabled
+        if (topModal.closeOnEscape) {
+          store.actions.closeModal(topModal.id);
+        }
+      },
+
+      handleBackdropClick: (id: string) => {
+        const state = get();
+
+        // Find the modal
+        const modal = state.stack.find((m) => m.id === id);
+        if (!modal) {
+          return;
+        }
+
+        // Emit backdrop-clicked event
+        eventBus.emit('modal:backdrop-clicked', id);
+
+        // Close the modal if closeOnBackdropClick is enabled
+        if (modal.closeOnBackdropClick) {
+          store.actions.closeModal(id);
         }
       },
 

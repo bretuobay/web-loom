@@ -10,6 +10,7 @@ export default defineConfig({
     alias: {
       '@repo/models': path.resolve(__dirname, '../../packages/models/src'),
       '@repo/view-models': path.resolve(__dirname, '../../packages/view-models/src'),
+      '@repo/shared': path.resolve(__dirname, '../../packages/shared/src'),
       // If you have specific file imports like '@repo/view-models/someFile',
       // you might not need a separate wildcard alias for Vite if the main alias works.
       // Vite's resolver can often handle subpaths if the main package path is aliased.
@@ -17,5 +18,8 @@ export default defineConfig({
       // and not just '@repo/view-models', ensure those are also considered or handled
       // by your TypeScript paths and component imports.
     },
+  },
+  optimizeDeps: {
+    include: ['@web-loom/mvvm-core', '@web-loom/ui-core', '@web-loom/ui-patterns'],
   },
 });

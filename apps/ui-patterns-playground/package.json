@@ -1,7 +1,7 @@
 {
   "name": "ui-patterns-playground",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.5.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,8 @@
   "dependencies": {
     "@repo/shared": "*",
     "@repo/view-models": "*",
+    "@web-loom/ui-core": "*",
+    "@web-loom/ui-patterns": "*",
     "chart.js": "^4.4.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

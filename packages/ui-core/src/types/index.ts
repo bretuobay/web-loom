@@ -129,3 +129,15 @@ export {
   type FormBehaviorOptions,
   type FormBehavior,
 } from '../behaviors/form';
+
+// ============================================================================
+// Keyboard Shortcuts Behavior Types
+// ============================================================================
+
+export {
+  type KeyboardShortcut,
+  type KeyboardShortcutsState,
+  type KeyboardShortcutsActions,
+  type KeyboardShortcutsOptions,
+  type KeyboardShortcutsBehavior,
+} from '../behaviors/keyboard-shortcuts';
