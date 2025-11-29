@@ -1104,3 +1104,29 @@ These enhancements improve the developer experience and functionality of existin
 
 All enhancements maintain backward compatibility and follow the established patterns of the Web Loom UI library.
 
+
+
+---
+
+## Framework-Specific Examples
+
+For comprehensive framework-specific implementation examples of all pattern enhancements, see:
+
+- **[React Examples](./examples/REACT_EXAMPLES.md)** - Complete React implementations including:
+  - Modal with escape and backdrop close options
+  - Responsive sidebar with mobile mode
+  - Toast queue with position configuration
+  - Tabbed interface with keyboard navigation
+  - Command palette with enhanced navigation
+  
+- **[Vue Examples](./examples/VUE_EXAMPLES.md)** - Vue 3 Composition API examples with:
+  - Reactive pattern enhancements
+  - Computed properties for state management
+  - Event handling patterns
+
+- **[Angular Examples](./examples/ANGULAR_EXAMPLES.md)** - Angular service-based examples featuring:
+  - Observable-based pattern state
+  - RxJS integration patterns
+  - Dependency injection examples
+
+These examples demonstrate real-world usage of all pattern enhancements with proper accessibility, responsive design, and framework-specific best practices.

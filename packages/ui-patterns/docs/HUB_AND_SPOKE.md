@@ -638,3 +638,27 @@ const appNav = createHubAndSpoke({
 ## License
 
 MIT
+
+
+---
+
+## Framework-Specific Examples
+
+For comprehensive framework-specific implementation examples, see:
+
+- **[React Examples](./examples/REACT_EXAMPLES.md#hub--spoke-navigation)** - Complete React implementations with hooks, including:
+  - Basic settings interface with hub and spoke navigation
+  - Nested spokes example with sub-navigation
+  - Integration with React Router
+  
+- **[Vue Examples](./examples/VUE_EXAMPLES.md#hub--spoke-navigation)** - Vue 3 Composition API examples with:
+  - Reactive hub and spoke navigation
+  - Nested spoke structures
+  - Vue Router integration
+
+- **[Angular Examples](./examples/ANGULAR_EXAMPLES.md#hub--spoke-navigation)** - Angular service-based examples featuring:
+  - Dependency injection patterns
+  - RxJS observable integration
+  - Angular Router integration
+
+These examples demonstrate real-world usage patterns, accessibility best practices, and integration with routing libraries.

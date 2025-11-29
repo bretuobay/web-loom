@@ -389,7 +389,7 @@ This implementation plan breaks down the gap closure work into discrete, managea
     - Show threshold configuration
   - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.8_
 
-- [ ] 26. Write Framework-Specific Usage Examples
+- [x] 26. Write Framework-Specific Usage Examples
   - Write React examples for all new behaviors and patterns
   - Write Vue examples for all new behaviors and patterns
   - Write Angular examples for all new behaviors and patterns
