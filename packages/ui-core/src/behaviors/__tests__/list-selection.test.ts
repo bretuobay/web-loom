@@ -662,11 +662,15 @@ describe('createListSelection', () => {
       expect(selection.getState().selectedIds).toEqual([]);
     });
 
-    it('should handle empty items array', () => {
+    it('should handle empty items array by allowing any selection', () => {
       const selection = createListSelection({ items: [], mode: 'multi' });
 
+      // With empty items array, selection is allowed (for dynamic/async items)
       selection.actions.select('item-1');
-      expect(selection.getState().selectedIds).toEqual([]);
+      expect(selection.getState().selectedIds).toEqual(['item-1']);
+      
+      selection.actions.select('item-2');
+      expect(selection.getState().selectedIds).toEqual(['item-1', 'item-2']);
     });
 
     it('should maintain selection order in multi mode', () => {
