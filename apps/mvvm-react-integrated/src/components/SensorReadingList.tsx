@@ -69,7 +69,14 @@ export function SensorReadingList() {
   };
 
   const handleSelectAll = () => {
-    selection.actions.selectAll();
+    // Manually select all items by selecting each one
+    if (readingList.data) {
+      // Clear first, then select all
+      selection.actions.clearSelection();
+      readingList.data.forEach((reading) => {
+        selection.actions.select(String(reading.id));
+      });
+    }
   };
 
   const handleDeleteSelected = () => {
