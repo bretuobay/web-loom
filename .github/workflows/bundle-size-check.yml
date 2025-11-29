@@ -15,7 +15,7 @@ on:
 jobs:
   check-bundle-size:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,28 +34,28 @@ jobs:
           rm -f package-lock.json
           npm i
 
-      # Ensure optional Rollup deps (native binaries) are resolved
-      - name: Rebuild Rollup native deps
+      # Ensure Vite and build dependencies are properly resolved
+      - name: Rebuild build dependencies
         run: |
-          npm rebuild rollup --workspace=@web-loom/ui-core
-          npm rebuild rollup --workspace=@web-loom/ui-patterns
-        
+          npm rebuild --workspace=@web-loom/ui-core
+          npm rebuild --workspace=@web-loom/ui-patterns
+
       - name: Build packages
         run: |
           npm run build --workspace=@web-loom/ui-core
           npm run build --workspace=@web-loom/ui-patterns
-          
+
       - name: Test tree-shaking for ui-core
         run: npm run test:tree-shaking --workspace=@web-loom/ui-core
-        
+
       - name: Test tree-shaking for ui-patterns
         run: npm run test:tree-shaking --workspace=@web-loom/ui-patterns
-        
+
       - name: Check bundle size limits
         run: |
           echo "Checking bundle size requirements..."
-          
+
           # This will be implemented by the tree-shaking test scripts
           # which will exit with non-zero if size limits are exceeded
-          
+
           echo "✅ Bundle size checks passed!"

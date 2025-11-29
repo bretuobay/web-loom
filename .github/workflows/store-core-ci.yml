@@ -29,9 +29,9 @@ jobs:
           rm -f package-lock.json
           npm i
 
-      # Ensure optional Rollup deps (native binaries) are resolved
-      - name: Rebuild Rollup native deps
-        run: npm rebuild rollup --workspace=@web-loom/store-core
+      # Ensure Vite and build dependencies are properly resolved
+      - name: Rebuild build dependencies
+        run: npm rebuild --workspace=@web-loom/store-core
 
       - name: Run tests for @web-loom/store-core
         run: npm test --workspace=@web-loom/store-core
