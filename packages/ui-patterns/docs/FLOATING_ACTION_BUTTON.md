@@ -754,3 +754,27 @@ function toggleSpeedDial() {
 ## License
 
 MIT
+
+
+---
+
+## Framework-Specific Examples
+
+For comprehensive framework-specific implementation examples, see:
+
+- **[React Examples](./examples/REACT_EXAMPLES.md#floating-action-button)** - Complete React implementations including:
+  - Scroll-aware FAB with hide-on-scroll-down behavior
+  - Create new item FAB with dialog integration
+  - Throttled scroll event handling
+  
+- **[Vue Examples](./examples/VUE_EXAMPLES.md#floating-action-button)** - Vue 3 Composition API examples with:
+  - Reactive visibility state
+  - Scroll position tracking
+  - Smooth animations
+
+- **[Angular Examples](./examples/ANGULAR_EXAMPLES.md#floating-action-button)** - Angular service-based examples featuring:
+  - Observable-based visibility state
+  - RxJS scroll event handling
+  - Animation integration
+
+These examples demonstrate performance optimization, smooth animations, and accessibility best practices for floating action buttons.

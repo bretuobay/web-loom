@@ -15,25 +15,54 @@ export function ThresholdAlertList() {
   }, []);
 
   return (
-    <>
+    <div className="page-container">
       <Link to="/" className="back-button">
-        <img src={BackArrow} alt="Back to dashboard" style={{ width: '36px', height: '36px' }} />
+        <img src={BackArrow} alt="Back to dashboard" />
+        Back to Dashboard
       </Link>
-      <div className="card">
-        <h1 className="card-header">Threshold Alerts</h1>
-        {thresholds && thresholds.length > 0 ? (
-          <ul className="card-body list">
-            {thresholds.map((alert) => (
-              <li key={alert.id} className="list-item">
-                Alert ID: {alert.id}, Sensor ID: {alert.sensorType}, Message: Max: {alert.maxValue}, Min:{' '}
-                {alert.minValue}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No threshold alerts found or still loading...</p>
-        )}
+
+      <div className="page-header-section">
+        <h1 className="page-title">Threshold Alerts</h1>
+        <p className="page-description">Monitor and manage sensor threshold alerts</p>
       </div>
-    </>
+
+      {thresholds && thresholds.length > 0 ? (
+        <ul className="list-container">
+          {thresholds.map((alert) => (
+            <li key={alert.id} className="list-item-card">
+              <div className="list-item-header">
+                <h3 className="list-item-title">{alert.sensorType} Alert</h3>
+                <span className={`status-badge ${alert.sensorType == 'temperature' ? 'inactive' : 'error'}`}>
+                  {alert.sensorType == 'temperature'
+                    ? 'Temperature sensor'
+                    : alert.sensorType == 'humidity'
+                      ? 'Humidity sensor'
+                      : 'Other sensor'}
+                </span>
+              </div>
+              <div className="list-item-body">
+                <div className="list-item-field">
+                  <span className="list-item-field-label">Alert ID</span>
+                  <span className="list-item-field-value list-item-id">{alert.id}</span>
+                </div>
+                <div className="list-item-field">
+                  <span className="list-item-field-label">Min Value</span>
+                  <span className="list-item-field-value">{alert.minValue}</span>
+                </div>
+                <div className="list-item-field">
+                  <span className="list-item-field-label">Max Value</span>
+                  <span className="list-item-field-value">{alert.maxValue}</span>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="empty-state">
+          <p className="empty-state-title">No threshold alerts found</p>
+          <p className="empty-state-description">Alerts will appear here when sensor thresholds are breached</p>
+        </div>
+      )}
+    </div>
   );
 }

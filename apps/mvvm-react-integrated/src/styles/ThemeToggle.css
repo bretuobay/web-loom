@@ -1,0 +1,69 @@
+/* Theme Toggle Button - Flat Design */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 0.5rem);
+  padding: var(--spacing-s, 0.75rem) var(--spacing-m, 1rem);
+
+  /* Flat design - solid background, no gradients */
+  background: var(--colors-brand-primary, #3b82f6);
+  color: var(--colors-text-inverse, #ffffff);
+
+  /* Clean borders */
+  border: 2px solid transparent;
+  border-radius: var(--radii-md, 0.5rem);
+
+  /* Minimal shadow for flat design */
+  box-shadow: var(--shadows-sm, 0 1px 3px 0 rgba(0, 0, 0, 0.1));
+
+  /* Typography */
+  font-size: var(--typography-fontSize-sm, 0.875rem);
+  font-weight: var(--typography-fontWeight-medium, 500);
+  font-family: var(--typography-fontFamily-sans, system-ui, -apple-system, sans-serif);
+
+  /* Interaction */
+  cursor: pointer;
+  transition: all var(--transitions-fast, 150ms) var(--transitions-easeOut, ease-out);
+
+  /* Remove default button styles */
+  outline: none;
+  user-select: none;
+}
+
+.theme-toggle:hover {
+  /* Flat hover - just change background slightly */
+  background: var(--colors-brand-secondary, #8b5cf6);
+  transform: translateY(-1px);
+  box-shadow: var(--shadows-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}
+
+.theme-toggle:active {
+  transform: translateY(0);
+  box-shadow: var(--shadows-xs, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--colors-brand-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+.theme-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.theme-label {
+  font-weight: var(--typography-fontWeight-medium, 500);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .theme-label {
+    display: none;
+  }
+
+  .theme-toggle {
+    padding: var(--spacing-s, 0.75rem);
+  }
+}

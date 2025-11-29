@@ -1,6 +1,22 @@
-# @design-core
+# @web-loom/design-core
 
-The `@design-core` package provides a foundational layer for building design systems. It includes a comprehensive set of design tokens and utilities to manage and apply these tokens effectively in various JavaScript environments and CSS styling approaches.
+[![Version](https://img.shields.io/npm/v/@web-loom/design-core.svg)](https://www.npmjs.com/package/@web-loom/design-core)
+[![License](https://img.shields.io/npm/l/@web-loom/design-core.svg)](https://github.com/web-loom/design-core/blob/main/LICENSE)
+
+A comprehensive, framework-agnostic design token system with built-in theming, CSS variable utilities, and a lightweight design system. Perfect for building scalable, maintainable design systems across React, Vue, Angular, and vanilla JavaScript applications.
+
+## Features
+
+- **Design Tokens**: Single source of truth for colors, typography, spacing, shadows, and more
+- **CSS Custom Properties**: Automatic CSS variable generation from design tokens
+- **Dynamic Theming**: Runtime theme switching with light/dark mode support
+- **Framework Agnostic**: Works with React, Vue, Angular, or vanilla JavaScript
+- **TypeScript Support**: Fully typed APIs with excellent IDE autocomplete
+- **Lightweight Design System**: Optional pre-styled components built on design tokens
+- **Zero Runtime Dependencies**: Minimal bundle size impact
+- **Tree-Shakeable**: Import only what you need
+
+The `@web-loom/design-core` package provides a foundational layer for building design systems. It includes a comprehensive set of design tokens and utilities to manage and apply these tokens effectively in various JavaScript environments and CSS styling approaches.
 
 ## Core Concepts
 
@@ -18,21 +34,74 @@ Design tokens are the single source of truth for your design system's visual pro
 
 The primary way design tokens are exposed for use in styling is through CSS Custom Properties (also known as CSS Variables). Utilities are provided to generate these variables from the token definitions.
 
-## Getting Started
+## Quick Start
 
-First, ensure the package is installed in your project:
+### Installation
 
 ```bash
-npm install @design-core
+npm install @web-loom/design-core
 # or
-yarn add @design-core
+yarn add @web-loom/design-core
+# or
+pnpm add @web-loom/design-core
 ```
 
-The utilities provided by this package are often asynchronous because they may need to dynamically load token definition files. Therefore, you'll typically use `async/await` when working with them.
+### Basic Usage
+
+```typescript
+import { getTokenValue, generateCssVariablesString } from '@web-loom/design-core/utils';
+
+// Get a specific token value
+const primaryColor = await getTokenValue('colors.brand.primary');
+console.log(primaryColor); // "#007bff"
+
+// Generate and inject CSS variables
+const cssVars = await generateCssVariablesString(':root');
+const style = document.createElement('style');
+style.textContent = cssVars;
+document.head.appendChild(style);
+```
+
+### Import Pre-built CSS
+
+For the quickest setup, import the pre-generated CSS files:
+
+```javascript
+// Import all token CSS variables
+import '@web-loom/design-core/design-system';
+
+// Or import specific token categories
+import '@web-loom/design-core/src/css/colors.css';
+import '@web-loom/design-core/src/css/spacing.css';
+import '@web-loom/design-core/src/css/typography.css';
+```
+
+**Note:** The utilities provided by this package are often asynchronous because they may need to dynamically load token definition files. Therefore, you'll typically use `async/await` when working with them.
+
+## Available Design Tokens
+
+The package includes the following token categories:
+
+| Category | Description | Example Tokens |
+|----------|-------------|----------------|
+| **Colors** | Brand colors, semantic colors, neutrals | `colors.brand.primary`, `colors.background.page` |
+| **Typography** | Font families, sizes, weights, line heights | `typography.fontSize.md`, `typography.fontFamily.sans` |
+| **Spacing** | Margins, padding, gaps | `spacing.xs`, `spacing.m`, `spacing.xl` |
+| **Sizing** | Widths, heights, icon sizes | `sizing.sm`, `sizing.iconSize.md` |
+| **Shadows** | Elevation and depth effects | `shadows.sm`, `shadows.md`, `shadows.lg` |
+| **Borders** | Border widths and styles | `borders.width.thin`, `borders.style.solid` |
+| **Radii** | Border radius values | `radii.sm`, `radii.md`, `radii.full` |
+| **Opacity** | Transparency levels | `opacity.disabled`, `opacity.hover` |
+| **Z-Index** | Layering values | `zIndex.modal`, `zIndex.dropdown` |
+| **Transitions** | Animation timing and easing | `transitions.fast`, `transitions.easeInOut` |
+| **Breakpoints** | Responsive design breakpoints | `breakpoints.tablet`, `breakpoints.desktop` |
+| **Gradients** | Color gradients | `gradients.primary`, `gradients.sunset` |
+| **Focus Rings** | Focus indicator styles | `focusRings.default`, `focusRings.offset` |
+| **Cursor Styles** | Cursor types | `cursorStyles.pointer`, `cursorStyles.notAllowed` |
 
 ## Utilities API
 
-All utilities can be imported from `@design-core/utils`.
+All utilities can be imported from `@web-loom/design-core/utils`.
 
 ```typescript
 import {
@@ -49,7 +118,7 @@ import {
   getCurrentTheme,
   Theme, // Type for Theme objects
   DesignTokens // Type for the complete token structure
-} from '@design-core/utils';
+} from '@web-loom/design-core/utils';
 ```
 
 ### 1. Accessing Token Values in JavaScript
@@ -467,3 +536,403 @@ The design system components are built using the CSS Custom Properties derived f
 </html>
 ```
 Ensure your theme definitions in `createTheme` cover the tokens used by the design system components for complete theming.
+
+---
+
+## Framework Integration Examples
+
+### React
+
+```typescript
+import { useEffect, useState } from 'react';
+import { getTokenValue, createTheme, applyTheme, setTheme } from '@web-loom/design-core/utils';
+import '@web-loom/design-core/design-system';
+
+function App() {
+  const [theme, setActiveTheme] = useState('light');
+
+  useEffect(() => {
+    // Set up dark theme
+    const darkTheme = createTheme('dark', {
+      colors: {
+        background: { page: '#121212' },
+        text: { primary: '#E0E0E0' }
+      }
+    });
+    applyTheme(darkTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    setActiveTheme(newTheme);
+  };
+
+  return (
+    <div>
+      <button className="btn btn-primary" onClick={toggleTheme}>
+        Toggle Theme
+      </button>
+    </div>
+  );
+}
+```
+
+### Vue 3
+
+```vue
+<script setup>
+import { ref, onMounted } from 'vue';
+import { createTheme, applyTheme, setTheme } from '@web-loom/design-core/utils';
+import '@web-loom/design-core/design-system';
+
+const currentTheme = ref('light');
+
+onMounted(async () => {
+  const darkTheme = createTheme('dark', {
+    colors: {
+      background: { page: '#121212' },
+      text: { primary: '#E0E0E0' }
+    }
+  });
+  await applyTheme(darkTheme);
+});
+
+const toggleTheme = () => {
+  currentTheme.value = currentTheme.value === 'light' ? 'dark' : 'light';
+  setTheme(currentTheme.value);
+};
+</script>
+
+<template>
+  <div>
+    <button class="btn btn-primary" @click="toggleTheme">
+      Toggle Theme
+    </button>
+  </div>
+</template>
+```
+
+### Next.js (App Router)
+
+```typescript
+// app/layout.tsx
+import '@web-loom/design-core/design-system';
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  )
+}
+
+// app/theme-provider.tsx (client component)
+'use client';
+
+import { useEffect } from 'react';
+import { createTheme, applyTheme } from '@web-loom/design-core/utils';
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    const setupThemes = async () => {
+      const darkTheme = createTheme('dark', {
+        colors: {
+          background: { page: '#121212' },
+          text: { primary: '#E0E0E0' }
+        }
+      });
+      await applyTheme(darkTheme);
+    };
+    setupThemes();
+  }, []);
+
+  return <>{children}</>;
+}
+```
+
+---
+
+## Component Library
+
+The design system includes 20+ pre-styled components:
+
+### Forms
+- Buttons (primary, secondary, outline, ghost)
+- Input fields
+- Textarea
+- Select dropdowns
+- Checkboxes
+- Radio groups
+- Switches
+
+### Display
+- Cards
+- Badges
+- Avatars
+- Lists
+- Tables
+
+### Navigation
+- Navigation bar
+- Sidebar
+- Tabs
+
+### Layout
+- Container
+- Page header
+- Page content
+- Footer
+
+### Overlays
+- Modals
+- Tooltips
+- Toasts
+
+### Utility
+- Loaders/Spinners
+
+All components use CSS custom properties from design tokens, making them fully themeable.
+
+---
+
+## Package Exports
+
+The package provides multiple entry points for different use cases:
+
+```typescript
+// Main entry - TypeScript types
+import { ColorTokens, SpacingTokens } from '@web-loom/design-core';
+
+// Utils - Token utilities and theming
+import { getTokenValue, createTheme } from '@web-loom/design-core/utils';
+
+// Individual token CSS files
+import '@web-loom/design-core/css/colors.css';
+import '@web-loom/design-core/css/spacing.css';
+
+// Complete design system
+import '@web-loom/design-core/design-system';
+
+// Individual component CSS
+import '@web-loom/design-core/design-system/forms/button.css';
+import '@web-loom/design-core/design-system/display/card.css';
+```
+
+---
+
+## Best Practices
+
+### 1. Load Tokens Early
+
+Load and inject CSS variables as early as possible in your application lifecycle:
+
+```typescript
+// main.ts or index.ts
+import { generateCssVariablesString } from '@web-loom/design-core/utils';
+
+async function setupTokens() {
+  const cssVars = await generateCssVariablesString(':root');
+  const style = document.createElement('style');
+  style.id = 'design-tokens';
+  style.textContent = cssVars;
+  document.head.appendChild(style);
+}
+
+setupTokens();
+```
+
+### 2. Use Semantic Token Names
+
+Prefer semantic names over primitive values:
+
+```css
+/* Good - Semantic */
+.card {
+  background: var(--colors-background-surface);
+  padding: var(--spacing-m);
+}
+
+/* Avoid - Too specific */
+.card {
+  background: var(--colors-gray-100);
+  padding: var(--spacing-16);
+}
+```
+
+### 3. Theme Testing
+
+Test your application in all supported themes:
+
+```typescript
+// Automated theme testing
+const themes = ['light', 'dark', 'high-contrast'];
+
+themes.forEach(themeName => {
+  test(`renders correctly in ${themeName} theme`, () => {
+    setTheme(themeName);
+    // Your assertions
+  });
+});
+```
+
+### 4. Performance Optimization
+
+For production, import only what you need:
+
+```typescript
+// Import specific categories instead of all tokens
+import '@web-loom/design-core/src/css/colors.css';
+import '@web-loom/design-core/src/css/spacing.css';
+// Don't import everything if you only need a few tokens
+```
+
+---
+
+## Browser Support
+
+- Chrome/Edge: Latest 2 versions
+- Firefox: Latest 2 versions
+- Safari: Latest 2 versions
+- CSS Custom Properties required (IE11 not supported)
+
+---
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting PRs.
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/web-loom/web-loom.git
+cd web-loom/packages/design-core
+
+# Install dependencies
+npm install
+
+# Generate CSS files from tokens
+npm run generate:css
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Build the package
+npm run build
+
+# Lint code
+npm run lint
+```
+
+### Adding New Tokens
+
+1. Edit the appropriate JSON file in `src/tokens/`
+2. Run `npm run generate:css` to update CSS files
+3. Update TypeScript types if needed
+4. Add tests for new tokens
+5. Update documentation
+
+---
+
+## Troubleshooting
+
+### CSS Variables Not Loading
+
+**Issue:** CSS variables are undefined in the browser.
+
+**Solution:** Ensure CSS files are imported before use:
+```typescript
+import '@web-loom/design-core/design-system';
+```
+
+### Async Token Loading Errors
+
+**Issue:** `getTokenValue()` returns `undefined`.
+
+**Solution:** Ensure you're using `await` and that token files are accessible:
+```typescript
+const value = await getTokenValue('colors.brand.primary');
+```
+
+### Theme Not Applying
+
+**Issue:** Theme switch doesn't change appearance.
+
+**Solution:**
+1. Verify theme CSS is loaded with `applyTheme()`
+2. Check that `data-theme` attribute is set on `<html>`
+3. Ensure component CSS uses CSS variables
+
+### Build/Import Errors
+
+**Issue:** "Cannot find module" errors.
+
+**Solution:** Check your bundler configuration supports:
+- JSON imports (`resolveJsonModule: true` in tsconfig)
+- CSS imports (bundler plugin for CSS)
+- Dynamic imports (ES2020+ target)
+
+---
+
+## Roadmap
+
+### v1.0 (Production Ready)
+- [ ] 80%+ test coverage
+- [ ] Performance benchmarks
+- [ ] Accessibility compliance (WCAG AA)
+- [ ] API documentation site
+- [ ] Migration guides
+
+### v1.1
+- [ ] Design tool plugins (Figma, Sketch)
+- [ ] VS Code extension
+- [ ] Token visualization tool
+- [ ] Advanced theming features
+
+### v2.0
+- [ ] Multi-platform support (React Native, Flutter)
+- [ ] Token composition utilities
+- [ ] Performance monitoring
+- [ ] WCAG AAA compliance
+
+See [PRODUCTION-READINESS-GAP-ANALYSIS.md](./PRODUCTION-READINESS-GAP-ANALYSIS.md) for detailed gap analysis.
+
+---
+
+## Related Packages
+
+- `@web-loom/mvvm-core` - MVVM architecture for web applications
+- `@web-loom/ui-core` - Headless UI behaviors and patterns
+- `@web-loom/store-core` - Reactive state management
+- `@web-loom/event-bus-core` - Event bus for cross-component communication
+
+---
+
+## License
+
+MIT © Festus Yeboah
+
+---
+
+## Support
+
+- Documentation: [Web Loom Docs](https://web-loom.dev)
+- Issues: [GitHub Issues](https://github.com/web-loom/web-loom/issues)
+- Discussions: [GitHub Discussions](https://github.com/web-loom/web-loom/discussions)
+
+---
+
+## Acknowledgments
+
+Design token specifications inspired by:
+- [Design Tokens Community Group](https://design-tokens.github.io/community-group/)
+- [Style Dictionary](https://amzn.github.io/style-dictionary/)
+- [Theo](https://github.com/salesforce-ux/theo)

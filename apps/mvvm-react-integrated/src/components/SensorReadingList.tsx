@@ -60,25 +60,53 @@ export function SensorReadingList() {
   console.log('[SensorReadingList] Reading List:', readingList.data);
 
   return (
-    <div className="container-fluid">
+    <div className="page-container">
       <Link to="/" className="back-button">
-        <img src={BackArrow} alt="Back to dashboard" style={{ width: '36px', height: '36px' }} />
+        <img src={BackArrow} alt="Back to dashboard" />
+        Back to Dashboard
       </Link>
-      <div className="card">
-        <h1 className="card-header">Sensor Readings</h1>
-        {readingList.data && readingList.data.length > 0 ? (
-          <ul className="card-body list">
-            {readingList.data.map((reading) => (
-              <li key={reading.id + reading.timestamp} className="list-item">
-                Reading ID: {reading.sensorId}, Sensor ID: {reading.sensorId}, Timestamp:{' '}
-                {new Date(reading.timestamp).toLocaleString()}, Value: {reading.value}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No sensor readings found or still loading...</p>
-        )}
+
+      <div className="page-header-section">
+        <h1 className="page-title">Sensor Readings</h1>
+        <p className="page-description">View all sensor readings and their timestamps</p>
       </div>
+
+      {readingList.isLoading ? (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p className="loading-text">Loading sensor readings...</p>
+        </div>
+      ) : readingList.data && readingList.data.length > 0 ? (
+        <ul className="list-container">
+          {readingList.data.map((reading) => (
+            <li key={reading.id + reading.timestamp} className="list-item-card">
+              <div className="list-item-header">
+                <h3 className="list-item-title">Reading #{reading.id}</h3>
+                <span className="list-item-id">{new Date(reading.timestamp).toLocaleString()}</span>
+              </div>
+              <div className="list-item-body">
+                <div className="list-item-field">
+                  <span className="list-item-field-label">Sensor ID</span>
+                  <span className="list-item-field-value">{reading.sensorId}</span>
+                </div>
+                <div className="list-item-field">
+                  <span className="list-item-field-label">Value</span>
+                  <span className="list-item-field-value">{reading.value}</span>
+                </div>
+                <div className="list-item-field">
+                  <span className="list-item-field-label">Timestamp</span>
+                  <span className="list-item-field-value">{new Date(reading.timestamp).toLocaleString()}</span>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="empty-state">
+          <p className="empty-state-title">No sensor readings found</p>
+          <p className="empty-state-description">Readings will appear here once sensors start collecting data</p>
+        </div>
+      )}
     </div>
   );
 }

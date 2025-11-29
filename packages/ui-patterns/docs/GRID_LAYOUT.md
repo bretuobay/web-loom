@@ -835,3 +835,27 @@ const dashboard = createGridLayout({
 ## License
 
 MIT
+
+
+---
+
+## Framework-Specific Examples
+
+For comprehensive framework-specific implementation examples, see:
+
+- **[React Examples](./examples/REACT_EXAMPLES.md#gridcard-layout)** - Complete React implementations including:
+  - Photo gallery with responsive grid and keyboard navigation
+  - Product grid with selection management
+  - Integration with viewport resize handling
+  
+- **[Vue Examples](./examples/VUE_EXAMPLES.md#gridcard-layout)** - Vue 3 Composition API examples with:
+  - Reactive grid layout with breakpoints
+  - Keyboard navigation implementation
+  - Selection state management
+
+- **[Angular Examples](./examples/ANGULAR_EXAMPLES.md#gridcard-layout)** - Angular service-based examples featuring:
+  - Observable-based grid state
+  - Responsive breakpoint handling
+  - Accessibility-compliant keyboard navigation
+
+These examples demonstrate responsive design patterns, keyboard accessibility, and performance optimization techniques.

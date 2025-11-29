@@ -48,15 +48,31 @@ const SensorReadingCard: React.FC<SensorReadingCardProps> = ({ sensorReadings })
       chartInstanceRef.current.destroy();
     }
 
+    // Get CSS variables for theming
+    const rootStyles = getComputedStyle(document.documentElement);
+    const brandPrimary = rootStyles.getPropertyValue('--colors-brand-primary').trim() || '#3b82f6';
+    const brandSecondary = rootStyles.getPropertyValue('--colors-brand-secondary').trim() || '#8b5cf6';
+    const textPrimary = rootStyles.getPropertyValue('--colors-text-primary').trim() || '#111827';
+    const textMuted = rootStyles.getPropertyValue('--colors-text-muted').trim() || '#9ca3af';
+    const borderDefault = rootStyles.getPropertyValue('--colors-border-default').trim() || '#e5e7eb';
+
     const chartData = {
       labels: sensorReadings.map((reading) => new Date(reading.timestamp).toLocaleTimeString()),
       datasets: [
         {
           label: 'Sensor Value',
           data: sensorReadings.map((reading) => reading.value),
-          fill: false,
-          borderColor: 'rgb(75, 192, 192)',
-          tension: 0.1,
+          fill: true,
+          backgroundColor: `${brandPrimary}20`,
+          borderColor: brandPrimary,
+          pointBackgroundColor: brandPrimary,
+          pointBorderColor: '#fff',
+          pointHoverBackgroundColor: brandSecondary,
+          pointHoverBorderColor: '#fff',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+          tension: 0.4,
         },
       ],
     };
@@ -64,17 +80,70 @@ const SensorReadingCard: React.FC<SensorReadingCardProps> = ({ sensorReadings })
     const chartOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top' as const,
+          labels: {
+            color: textPrimary,
+            font: {
+              size: 12,
+              weight: '500' as const,
+            },
+            padding: 12,
+          },
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          borderColor: brandPrimary,
+          borderWidth: 1,
+          padding: 12,
+          displayColors: true,
+        },
+      },
       scales: {
         x: {
+          grid: {
+            display: true,
+            color: borderDefault,
+          },
+          ticks: {
+            color: textMuted,
+            font: {
+              size: 11,
+            },
+          },
           title: {
             display: true,
             text: 'Time',
+            color: textPrimary,
+            font: {
+              size: 12,
+              weight: '600' as const,
+            },
           },
         },
         y: {
+          grid: {
+            display: true,
+            color: borderDefault,
+          },
+          ticks: {
+            color: textMuted,
+            font: {
+              size: 11,
+            },
+          },
           title: {
             display: true,
             text: 'Value',
+            color: textPrimary,
+            font: {
+              size: 12,
+              weight: '600' as const,
+            },
           },
         },
       },
@@ -84,6 +153,7 @@ const SensorReadingCard: React.FC<SensorReadingCardProps> = ({ sensorReadings })
     chartInstanceRef.current = new Chart(ctx, {
       type: 'line',
       data: chartData,
+      // @ts-expect-error Chart.js options type issue
       options: chartOptions,
     });
 
@@ -97,14 +167,27 @@ const SensorReadingCard: React.FC<SensorReadingCardProps> = ({ sensorReadings })
   }, [sensorReadings]); // Re-run effect if sensorReadings change
 
   return (
-    <div className="card">
-      <Link to="/sensor-readings" className="card-header-link">
-        <h3 className="card-header">Sensor Readings</h3>
-      </Link>
-      <div className="card-body">
-        <canvas id="sensorReadingsChart"></canvas>
+    <div className="card card-chart">
+      <div className="chart-header">
+        <div>
+          <h3 className="card-header">
+            <Link to="/sensor-readings" className="card-link card-header-link">
+              Sensor Readings Over Time
+            </Link>
+          </h3>
+          <p className="chart-subtitle">{sensorReadings.length} data points recorded</p>
+        </div>
       </div>
-      <p className="card-body">Total Readings: {sensorReadings.length}</p>
+      <div className="chart-container">
+        {sensorReadings.length > 0 ? (
+          <canvas id="sensorReadingsChart"></canvas>
+        ) : (
+          <div className="empty-state">
+            <p className="empty-state-title">No sensor data available</p>
+            <p className="empty-state-description">Start monitoring to see real-time sensor readings</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
