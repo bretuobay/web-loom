@@ -28,7 +28,7 @@ export function WizardExample() {
         {
           id: 'personal',
           label: 'Personal Information',
-          validate: async (data) => {
+          validate: async (data: WizardData) => {
             const info = data.personalInfo;
             if (!info?.firstName || !info?.lastName || !info?.email) {
               return 'Please fill in all required fields';
@@ -42,7 +42,7 @@ export function WizardExample() {
         {
           id: 'preferences',
           label: 'Preferences',
-          validate: async (data) => {
+          validate: async (data: WizardData) => {
             const prefs = data.preferences;
             if (!prefs?.theme) {
               return 'Please select a theme';
@@ -53,7 +53,7 @@ export function WizardExample() {
         {
           id: 'confirmation',
           label: 'Confirmation',
-          validate: async (data) => {
+          validate: async (data: WizardData) => {
             if (!data.confirmation?.agreed) {
               return 'You must agree to the terms to continue';
             }
@@ -66,7 +66,7 @@ export function WizardExample() {
         console.log('Wizard completed with data:', data);
         alert('Wizard completed successfully!');
       },
-    })
+    }),
   );
 
   const [state, setState] = useState(wizard.getState());
@@ -130,8 +130,7 @@ export function WizardExample() {
     <div className="example-container">
       <h2>Wizard Pattern Example</h2>
       <p>
-        This example demonstrates the <code>createWizard</code> pattern from
-        @web-loom/ui-patterns.
+        This example demonstrates the <code>createWizard</code> pattern from @web-loom/ui-patterns.
       </p>
 
       <div className="wizard-container">
@@ -140,16 +139,10 @@ export function WizardExample() {
             <div
               key={step.id}
               className={`wizard-step ${
-                index === state.currentStepIndex
-                  ? 'active'
-                  : state.completedSteps.includes(index)
-                    ? 'completed'
-                    : ''
+                index === state.currentStepIndex ? 'active' : state.completedSteps.includes(index) ? 'completed' : ''
               }`}
             >
-              <div className="step-number">
-                {state.completedSteps.includes(index) ? '✓' : index + 1}
-              </div>
+              <div className="step-number">{state.completedSteps.includes(index) ? '✓' : index + 1}</div>
               <div className="step-label">{step.label}</div>
             </div>
           ))}
@@ -165,9 +158,7 @@ export function WizardExample() {
                 <input
                   type="text"
                   value={formData.personalInfo?.firstName || ''}
-                  onChange={(e) =>
-                    updatePersonalInfo('firstName', e.target.value)
-                  }
+                  onChange={(e) => updatePersonalInfo('firstName', e.target.value)}
                   className="input"
                 />
               </label>
@@ -176,9 +167,7 @@ export function WizardExample() {
                 <input
                   type="text"
                   value={formData.personalInfo?.lastName || ''}
-                  onChange={(e) =>
-                    updatePersonalInfo('lastName', e.target.value)
-                  }
+                  onChange={(e) => updatePersonalInfo('lastName', e.target.value)}
                   className="input"
                 />
               </label>
@@ -213,9 +202,7 @@ export function WizardExample() {
                 <input
                   type="checkbox"
                   checked={formData.preferences?.notifications || false}
-                  onChange={(e) =>
-                    updatePreferences('notifications', e.target.checked)
-                  }
+                  onChange={(e) => updatePreferences('notifications', e.target.checked)}
                 />
                 Enable notifications
               </label>
@@ -229,18 +216,14 @@ export function WizardExample() {
                 <div className="summary-section">
                   <h5>Personal Information</h5>
                   <p>
-                    Name: {formData.personalInfo?.firstName}{' '}
-                    {formData.personalInfo?.lastName}
+                    Name: {formData.personalInfo?.firstName} {formData.personalInfo?.lastName}
                   </p>
                   <p>Email: {formData.personalInfo?.email}</p>
                 </div>
                 <div className="summary-section">
                   <h5>Preferences</h5>
                   <p>Theme: {formData.preferences?.theme}</p>
-                  <p>
-                    Notifications:{' '}
-                    {formData.preferences?.notifications ? 'Enabled' : 'Disabled'}
-                  </p>
+                  <p>Notifications: {formData.preferences?.notifications ? 'Enabled' : 'Disabled'}</p>
                 </div>
               </div>
               <label className="checkbox-label">
@@ -265,19 +248,11 @@ export function WizardExample() {
           </button>
 
           {state.currentStepIndex < state.steps.length - 1 ? (
-            <button
-              onClick={handleNext}
-              disabled={!state.canProceed}
-              className="btn btn-primary"
-            >
+            <button onClick={handleNext} disabled={!state.canProceed} className="btn btn-primary">
               Next
             </button>
           ) : (
-            <button
-              onClick={handleComplete}
-              disabled={!state.canProceed}
-              className="btn btn-primary"
-            >
+            <button onClick={handleComplete} disabled={!state.canProceed} className="btn btn-primary">
               Complete
             </button>
           )}

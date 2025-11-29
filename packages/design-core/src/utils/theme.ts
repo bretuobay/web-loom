@@ -1,6 +1,6 @@
 // packages/design-core/src/utils/theme.ts
 
-import { DesignTokens, TokenValue } from './tokens.d';
+import type { DesignTokens, TokenValue } from './tokens.d';
 // No need to import getAllTokens if setTheme is simplified
 // import { getAllTokens } from './tokens';
 import { pathToCssVar } from './cssVariables'; // For converting paths to CSS var names
@@ -59,21 +59,26 @@ export function createTheme(name: string, overrides: Partial<DesignTokens>): The
 function flattenThemeOverridesToCssVars(
   tokenOverrides: Partial<DesignTokens> | any, // Can be any part of the DesignTokens structure
   currentPath: string = '',
-  cssVarsMap: Record<string, TokenValue> = {}
+  cssVarsMap: Record<string, TokenValue> = {},
 ): Record<string, TokenValue> {
   for (const key in tokenOverrides) {
     if (Object.prototype.hasOwnProperty.call(tokenOverrides, key)) {
       const value = tokenOverrides[key];
       const newPath = currentPath ? `${currentPath}.${key}` : key;
 
-      if (typeof value === 'object' && value !== null && !Array.isArray(value) && !('value' in value && Object.keys(value).length === 1) ) {
-         // It's a nested group, recurse, unless it's a token object like { value: "..." } which should be treated as a leaf.
-         // A simple heuristic: if it has a 'value' key and only that key, it's likely a token object not fully processed.
-         // However, design tokens should be simple values after processing by `tokens.ts`.
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        !Array.isArray(value) &&
+        !('value' in value && Object.keys(value).length === 1)
+      ) {
+        // It's a nested group, recurse, unless it's a token object like { value: "..." } which should be treated as a leaf.
+        // A simple heuristic: if it has a 'value' key and only that key, it's likely a token object not fully processed.
+        // However, design tokens should be simple values after processing by `tokens.ts`.
         flattenThemeOverridesToCssVars(value, newPath, cssVarsMap);
       } else if (value !== undefined && value !== null) {
         // It's a leaf node (a token value)
-        const finalValue = (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
+        const finalValue = typeof value === 'object' && value !== null && 'value' in value ? value.value : value;
         cssVarsMap[pathToCssVar(newPath)] = finalValue as TokenValue;
       }
     }
@@ -102,7 +107,9 @@ function flattenThemeOverridesToCssVars(
  */
 export async function applyTheme(theme: Theme, applyToRoot: boolean = false): Promise<void> {
   if (typeof document === 'undefined') {
-    console.warn("[applyTheme] Cannot apply theme: 'document' is not available in this environment. Theme styles not injected.");
+    console.warn(
+      "[applyTheme] Cannot apply theme: 'document' is not available in this environment. Theme styles not injected.",
+    );
     return;
   }
 
@@ -112,7 +119,9 @@ export async function applyTheme(theme: Theme, applyToRoot: boolean = false): Pr
   const cssVarsMap = flattenThemeOverridesToCssVars(theme.tokens);
 
   if (Object.keys(cssVarsMap).length === 0) {
-    console.warn(`[applyTheme] Theme "${theme.name}" has no token overrides to apply. No styles injected for selector "${selector}".`);
+    console.warn(
+      `[applyTheme] Theme "${theme.name}" has no token overrides to apply. No styles injected for selector "${selector}".`,
+    );
     return;
   }
 
@@ -136,8 +145,8 @@ export async function applyTheme(theme: Theme, applyToRoot: boolean = false): Pr
   // Note: `setTheme` is the more direct way to activate a theme via data-attribute.
   // This ensures that if applyTheme is used for a specific theme, that theme becomes active.
   if (!applyToRoot) {
-     // document.documentElement.setAttribute('data-theme', theme.name); // This is handled by setTheme
-     S_currentThemeName = theme.name; // Update internal tracker
+    // document.documentElement.setAttribute('data-theme', theme.name); // This is handled by setTheme
+    S_currentThemeName = theme.name; // Update internal tracker
   } else {
     // If applying to root, it might imply resetting or choosing a new base theme.
     // We don't set data-theme here as :root applies globally.
@@ -167,7 +176,9 @@ export function setTheme(themeName: string): void {
     console.log(`[setTheme] Document theme switched to "${themeName}" by setting data-theme attribute.`);
   } else {
     S_currentThemeName = themeName; // Store for non-DOM environments if needed
-    console.warn(`[setTheme] 'document' is not available. Theme set to "${themeName}" internally, but data-theme attribute not applied.`);
+    console.warn(
+      `[setTheme] 'document' is not available. Theme set to "${themeName}" internally, but data-theme attribute not applied.`,
+    );
   }
 }
 

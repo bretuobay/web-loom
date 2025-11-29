@@ -1,5 +1,5 @@
 // packages/design-core/src/utils/tokens.ts
-import { DesignTokens, TokenValue, TokenCategory, TokenGroup } from './tokens.d';
+import type { DesignTokens, TokenValue, TokenCategory, TokenGroup } from './tokens.d';
 
 /**
  * List of token JSON files to be loaded.
