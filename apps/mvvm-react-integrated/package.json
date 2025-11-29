@@ -18,6 +18,7 @@
     "@web-loom/event-bus-core": "*",
     "@web-loom/query-core": "*",
     "@web-loom/store-core": "*",
+    "@web-loom/ui-core": "*",
     "chart.js": "^4.4.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

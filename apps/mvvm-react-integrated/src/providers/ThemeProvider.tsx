@@ -92,7 +92,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
           },
         },
         // Flat shadows - minimal depth
-        shadows: {
+        shadow: {
           none: 'none',
           xs: '0 1px 2px 0 rgba(0, 0, 0, 0.2)',
           sm: '0 1px 3px 0 rgba(0, 0, 0, 0.3)',
@@ -154,7 +154,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
           },
         },
         // Flat shadows - very subtle
-        shadows: {
+        shadow: {
           none: 'none',
           xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
           sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
