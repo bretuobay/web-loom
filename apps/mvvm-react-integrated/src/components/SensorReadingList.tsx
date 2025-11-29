@@ -91,9 +91,6 @@ export function SensorReadingList() {
   const hasSelection = selection.selectedIds.length > 0;
   const selectedCount = selection.selectedIds.length;
 
-  console.log('[SensorReadingList] Reading List:', readingList.data);
-  console.log('[SensorReadingList] Selected:', selection.selectedIds);
-
   return (
     <div className="page-container">
       <Link to="/" className="back-button">
