@@ -26,12 +26,9 @@ interface CounterState {
   count: number;
 }
 
-const store = createStore(
-  { count: 0 },
-  (set, get, actions) => ({
-    increment: () => set(state => ({ ...state, count: state.count + 1 })),
-  })
-);
+const store = createStore({ count: 0 }, (set, get, actions) => ({
+  increment: () => set((state) => ({ ...state, count: state.count + 1 })),
+}));
 ```
 
 ### With Memory Adapter (Testing)
@@ -42,12 +39,12 @@ import { createStore, MemoryAdapter } from '@web-loom/store-core';
 const store = createStore(
   { count: 0 },
   (set, get, actions) => ({
-    increment: () => set(state => ({ ...state, count: state.count + 1 })),
+    increment: () => set((state) => ({ ...state, count: state.count + 1 })),
   }),
   {
     adapter: new MemoryAdapter(),
     key: 'counter-store',
-  }
+  },
 );
 ```
 
@@ -59,13 +56,13 @@ import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
 const store = createStore(
   { count: 0 },
   (set, get, actions) => ({
-    increment: () => set(state => ({ ...state, count: state.count + 1 })),
+    increment: () => set((state) => ({ ...state, count: state.count + 1 })),
   }),
   {
     adapter: new LocalStorageAdapter(),
     key: 'my-app-counter',
     autoSync: true, // Auto-save on every state change (default: true)
-  }
+  },
 );
 
 // State is automatically loaded from localStorage on creation
@@ -80,12 +77,12 @@ import { createStore, IndexedDBAdapter } from '@web-loom/store-core';
 const store = createStore(
   { items: [] },
   (set, get, actions) => ({
-    addItem: (item) => set(state => ({ ...state, items: [...state.items, item] })),
+    addItem: (item) => set((state) => ({ ...state, items: [...state.items, item] })),
   }),
   {
     adapter: new IndexedDBAdapter('my-app-db'),
     key: 'items-store',
-  }
+  },
 );
 ```
 
@@ -99,13 +96,13 @@ import { createStore, LocalStorageAdapter, PersistedStore } from '@web-loom/stor
 const store = createStore(
   { count: 0 },
   (set, get, actions) => ({
-    increment: () => set(state => ({ ...state, count: state.count + 1 })),
+    increment: () => set((state) => ({ ...state, count: state.count + 1 })),
   }),
   {
     adapter: new LocalStorageAdapter(),
     key: 'counter',
     autoSync: false, // Disable auto-sync
-  }
+  },
 ) as PersistedStore<{ count: number }, any>;
 
 // Manually save state
@@ -123,15 +120,11 @@ await store.clearPersisted();
 By default, loaded state completely replaces the initial state. Use the `merge` option to merge instead:
 
 ```typescript
-const store = createStore(
-  { count: 0, name: 'default', settings: { theme: 'light' } },
-  createActions,
-  {
-    adapter: new LocalStorageAdapter(),
-    key: 'app-state',
-    merge: true, // Merge loaded state with initial state
-  }
-);
+const store = createStore({ count: 0, name: 'default', settings: { theme: 'light' } }, createActions, {
+  adapter: new LocalStorageAdapter(),
+  key: 'app-state',
+  merge: true, // Merge loaded state with initial state
+});
 
 // If localStorage only has { count: 42 }, the final state will be:
 // { count: 42, name: 'default', settings: { theme: 'light' } }
@@ -177,14 +170,10 @@ class CustomAdapter<S extends State> implements PersistenceAdapter<S> {
 }
 
 // Use custom adapter
-const store = createStore(
-  { createdAt: new Date() },
-  createActions,
-  {
-    adapter: new CustomAdapter(),
-    key: 'app-state',
-  }
-);
+const store = createStore({ createdAt: new Date() }, createActions, {
+  adapter: new CustomAdapter(),
+  key: 'app-state',
+});
 ```
 
 ## Configuration Options
@@ -214,6 +203,7 @@ interface PersistenceConfig<S> {
 ## Built-in Adapters
 
 ### MemoryAdapter
+
 In-memory storage, useful for testing or temporary persistence.
 
 ```typescript
@@ -222,6 +212,7 @@ adapter.clear(); // Clear all data
 ```
 
 ### LocalStorageAdapter
+
 Browser localStorage persistence, suitable for small to medium datasets.
 
 ```typescript
@@ -230,6 +221,7 @@ const adapter = new LocalStorageAdapter<State>();
 ```
 
 ### IndexedDBAdapter
+
 Browser IndexedDB persistence, suitable for large datasets.
 
 ```typescript
@@ -242,14 +234,10 @@ await adapter.close(); // Close database connection when done
 Persistence errors are logged but don't crash your store:
 
 ```typescript
-const store = createStore(
-  { data: 'test' },
-  createActions,
-  {
-    adapter: new LocalStorageAdapter(),
-    key: 'my-store',
-  }
-);
+const store = createStore({ data: 'test' }, createActions, {
+  adapter: new LocalStorageAdapter(),
+  key: 'my-store',
+});
 
 // If localStorage quota is exceeded, the error is logged
 // but your store continues to work normally
@@ -288,24 +276,23 @@ persistedStore.clearPersisted();
    - `IndexedDBAdapter`: Large datasets, complex queries
 
 2. **Use unique keys**: Avoid key collisions by prefixing with your app name
+
    ```typescript
-   key: 'myapp-user-preferences'
+   key: 'myapp-user-preferences';
    ```
 
 3. **Handle migrations**: When state structure changes, handle old data gracefully
+
    ```typescript
-   const store = createStore(
-     { version: 2, count: 0, newField: 'default' },
-     createActions,
-     {
-       adapter: new LocalStorageAdapter(),
-       key: 'counter',
-       merge: true, // Helps with adding new fields
-     }
-   );
+   const store = createStore({ version: 2, count: 0, newField: 'default' }, createActions, {
+     adapter: new LocalStorageAdapter(),
+     key: 'counter',
+     merge: true, // Helps with adding new fields
+   });
    ```
 
 4. **Disable auto-sync for performance**: For high-frequency updates
+
    ```typescript
    {
      autoSync: false, // Manually call persist() when needed

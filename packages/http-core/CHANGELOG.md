@@ -5,6 +5,7 @@ All notable changes to @web-loom/http-core will be documented in this file.
 ## [0.5.2] - 2025-11-30
 
 ### Added
+
 - Complete HTTP client implementation with Axios-like API
 - Request/response/error interceptor system
 - Automatic retry logic with exponential backoff and jitter
@@ -23,6 +24,7 @@ All notable changes to @web-loom/http-core will be documented in this file.
 - Usage examples
 
 ### Features
+
 - **Lightweight**: < 4KB gzipped
 - **Zero dependencies**: Only RxJS as peer dependency
 - **TypeScript-first**: Full type safety
@@ -31,6 +33,7 @@ All notable changes to @web-loom/http-core will be documented in this file.
 - **Testable**: Built-in mock adapter
 
 ### Documentation
+
 - README.md with comprehensive usage guide
 - API.md with complete API reference
 - examples/basic-usage.ts with 10+ practical examples

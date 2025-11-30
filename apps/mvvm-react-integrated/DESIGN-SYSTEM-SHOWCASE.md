@@ -11,12 +11,14 @@ This document showcases the comprehensive improvements made to the mvvm-react-in
 ### 1. **Dashboard Layout Issues** ✓
 
 **Problem:**
+
 - Cards were vertically stacked in a single column
 - No visual hierarchy
 - Sensor reading chart wasn't prominent
 - Poor use of space
 
 **Solution:**
+
 - **3-column grid** for stat cards (Greenhouses, Sensors, Alerts)
 - **Full-width chart section** below for sensor readings
 - **Responsive breakpoints**:
@@ -35,12 +37,14 @@ This document showcases the comprehensive improvements made to the mvvm-react-in
 ### 2. **Header Navigation Issues** ✓
 
 **Problem:**
+
 - Navigation links poorly aligned
 - No visual hierarchy
 - Theme toggle misplaced
 - Cramped spacing
 
 **Solution:**
+
 - **CSS Grid layout** with 3 columns: Brand | Nav | Actions
 - **Active indicator bars** on navigation links
 - **Gradient brand title** for visual appeal
@@ -57,11 +61,13 @@ This document showcases the comprehensive improvements made to the mvvm-react-in
 ### 3. **Lack of Padding on Pages** ✓
 
 **Problem:**
+
 - Content touching edges
 - Inconsistent spacing
 - No breathing room
 
 **Solution:**
+
 - Consistent `var(--spacing-xl)` padding on all containers
 - Page-specific wrapper classes
 - Responsive padding adjustments
@@ -83,6 +89,7 @@ This document showcases the comprehensive improvements made to the mvvm-react-in
 ### 1. **Stat Cards with Accent Bars**
 
 **Feature:** Vertical colored accent bar on left edge
+
 - Primary blue for regular cards
 - Danger red for alert cards
 - Teal for chart card
@@ -102,6 +109,7 @@ This document showcases the comprehensive improvements made to the mvvm-react-in
 ```
 
 **Visual Impact:**
+
 - Clear visual hierarchy
 - Instant card type recognition
 - Subtle hover feedback
@@ -118,6 +126,7 @@ This document showcases the comprehensive improvements made to the mvvm-react-in
 ```
 
 **Styling:**
+
 ```css
 .card-value {
   font-size: var(--typography-fontSize-5xl); /* 3rem / 48px */
@@ -132,6 +141,7 @@ This document showcases the comprehensive improvements made to the mvvm-react-in
 ```
 
 **Visual Impact:**
+
 - Numbers are instantly readable
 - Clear information hierarchy
 - Professional dashboard aesthetic
@@ -142,17 +152,14 @@ This document showcases the comprehensive improvements made to the mvvm-react-in
 
 ```css
 .header-brand span {
-  background: linear-gradient(
-    135deg,
-    var(--colors-brand-primary) 0%,
-    var(--colors-brand-secondary) 100%
-  );
+  background: linear-gradient(135deg, var(--colors-brand-primary) 0%, var(--colors-brand-secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 ```
 
 **Visual Impact:**
+
 - Eye-catching header
 - Modern, polished look
 - Brand recognition
@@ -178,6 +185,7 @@ This document showcases the comprehensive improvements made to the mvvm-react-in
 ```
 
 **Visual Impact:**
+
 - Clear active state
 - Smooth animations
 - Modern web app feel
@@ -185,6 +193,7 @@ This document showcases the comprehensive improvements made to the mvvm-react-in
 ### 5. **Enhanced Chart Component**
 
 **Features:**
+
 - Header with title and subtitle
 - "View All →" action button
 - Themed colors from design tokens
@@ -205,19 +214,22 @@ This document showcases the comprehensive improvements made to the mvvm-react-in
 ```
 
 **Chart Theming:**
-```typescript
-const brandPrimary = getComputedStyle(document.documentElement)
-  .getPropertyValue('--colors-brand-primary');
 
-datasets: [{
-  borderColor: brandPrimary,
-  backgroundColor: `${brandPrimary}20`, // 20% opacity
-  pointBackgroundColor: brandPrimary,
-  pointHoverBackgroundColor: brandSecondary,
-}]
+```typescript
+const brandPrimary = getComputedStyle(document.documentElement).getPropertyValue('--colors-brand-primary');
+
+datasets: [
+  {
+    borderColor: brandPrimary,
+    backgroundColor: `${brandPrimary}20`, // 20% opacity
+    pointBackgroundColor: brandPrimary,
+    pointHoverBackgroundColor: brandSecondary,
+  },
+];
 ```
 
 **Visual Impact:**
+
 - Chart adapts to light/dark theme
 - Professional data visualization
 - Clear call-to-action
@@ -226,6 +238,7 @@ datasets: [{
 ### 6. **Card Hover Effects**
 
 **Features:**
+
 - Lift on hover (translateY)
 - Border color change
 - Shadow enhancement
@@ -240,6 +253,7 @@ datasets: [{
 ```
 
 **Visual Impact:**
+
 - Interactive feedback
 - Depth perception
 - Modern UI feel
@@ -247,6 +261,7 @@ datasets: [{
 ### 7. **Loading States**
 
 **Features:**
+
 - Animated spinner
 - Centered layout
 - Proper spacing
@@ -269,6 +284,7 @@ datasets: [{
 ```
 
 **Visual Impact:**
+
 - Clear loading indicator
 - Prevents layout shift
 - Professional UX
@@ -276,6 +292,7 @@ datasets: [{
 ### 8. **Empty States**
 
 **Features:**
+
 - Descriptive messaging
 - Centered layout
 - Helpful instructions
@@ -283,13 +300,12 @@ datasets: [{
 ```tsx
 <div className="empty-state">
   <p className="empty-state-title">No sensor data available</p>
-  <p className="empty-state-description">
-    Start monitoring to see real-time sensor readings
-  </p>
+  <p className="empty-state-description">Start monitoring to see real-time sensor readings</p>
 </div>
 ```
 
 **Visual Impact:**
+
 - User guidance
 - Prevents confusion
 - Encourages action
@@ -333,13 +349,13 @@ border-color: var(--colors-border-strong);
 ### Spacing - Consistent Scale
 
 ```css
-padding: var(--spacing-xs);   /* 4px */
-padding: var(--spacing-s);    /* 8px */
-padding: var(--spacing-m);    /* 16px */
-padding: var(--spacing-l);    /* 24px */
-padding: var(--spacing-xl);   /* 32px */
-padding: var(--spacing-2xl);  /* 48px */
-padding: var(--spacing-3xl);  /* 64px */
+padding: var(--spacing-xs); /* 4px */
+padding: var(--spacing-s); /* 8px */
+padding: var(--spacing-m); /* 16px */
+padding: var(--spacing-l); /* 24px */
+padding: var(--spacing-xl); /* 32px */
+padding: var(--spacing-2xl); /* 48px */
+padding: var(--spacing-3xl); /* 64px */
 
 gap: var(--spacing-xs);
 margin-bottom: var(--spacing-l);
@@ -349,42 +365,42 @@ margin-bottom: var(--spacing-l);
 
 ```css
 /* Sizes */
-font-size: var(--typography-fontSize-xs);    /* 0.75rem */
-font-size: var(--typography-fontSize-sm);    /* 0.875rem */
-font-size: var(--typography-fontSize-md);    /* 1rem */
-font-size: var(--typography-fontSize-lg);    /* 1.125rem */
-font-size: var(--typography-fontSize-xl);    /* 1.25rem */
-font-size: var(--typography-fontSize-2xl);   /* 1.5rem */
-font-size: var(--typography-fontSize-3xl);   /* 1.875rem */
-font-size: var(--typography-fontSize-5xl);   /* 3rem */
+font-size: var(--typography-fontSize-xs); /* 0.75rem */
+font-size: var(--typography-fontSize-sm); /* 0.875rem */
+font-size: var(--typography-fontSize-md); /* 1rem */
+font-size: var(--typography-fontSize-lg); /* 1.125rem */
+font-size: var(--typography-fontSize-xl); /* 1.25rem */
+font-size: var(--typography-fontSize-2xl); /* 1.5rem */
+font-size: var(--typography-fontSize-3xl); /* 1.875rem */
+font-size: var(--typography-fontSize-5xl); /* 3rem */
 
 /* Weights */
-font-weight: var(--typography-fontWeight-regular);   /* 400 */
-font-weight: var(--typography-fontWeight-medium);    /* 500 */
-font-weight: var(--typography-fontWeight-semibold);  /* 600 */
-font-weight: var(--typography-fontWeight-bold);      /* 700 */
+font-weight: var(--typography-fontWeight-regular); /* 400 */
+font-weight: var(--typography-fontWeight-medium); /* 500 */
+font-weight: var(--typography-fontWeight-semibold); /* 600 */
+font-weight: var(--typography-fontWeight-bold); /* 700 */
 
 /* Line Heights */
-line-height: var(--typography-lineHeight-tight);    /* 1.2 */
-line-height: var(--typography-lineHeight-normal);   /* 1.5 */
-line-height: var(--typography-lineHeight-relaxed);  /* 1.625 */
+line-height: var(--typography-lineHeight-tight); /* 1.2 */
+line-height: var(--typography-lineHeight-normal); /* 1.5 */
+line-height: var(--typography-lineHeight-relaxed); /* 1.625 */
 ```
 
 ### Shadows - Flat Design Minimal
 
 ```css
-box-shadow: var(--shadows-xs);   /* Very subtle */
-box-shadow: var(--shadows-sm);   /* Subtle */
-box-shadow: var(--shadows-md);   /* Moderate */
-box-shadow: var(--shadows-lg);   /* Pronounced */
+box-shadow: var(--shadows-xs); /* Very subtle */
+box-shadow: var(--shadows-sm); /* Subtle */
+box-shadow: var(--shadows-md); /* Moderate */
+box-shadow: var(--shadows-lg); /* Pronounced */
 ```
 
 ### Radii - Rounded Corners
 
 ```css
-border-radius: var(--radii-sm);   /* 4px */
-border-radius: var(--radii-md);   /* 8px */
-border-radius: var(--radii-lg);   /* 12px */
+border-radius: var(--radii-sm); /* 4px */
+border-radius: var(--radii-md); /* 8px */
+border-radius: var(--radii-lg); /* 12px */
 border-radius: var(--radii-full); /* 9999px - pills */
 ```
 
@@ -403,21 +419,25 @@ transition: all var(--transitions-medium) var(--transitions-easeInOut);
 ## 🎯 Flat Design Principles Applied
 
 ### 1. ✅ No Gradients (Except Brand)
+
 - Solid backgrounds everywhere
 - **Exception:** Brand title gradient for emphasis
 - All buttons, cards, surfaces use flat colors
 
 ### 2. ✅ Minimal Shadows
+
 - Subtle shadows (xs, sm) for depth
 - No dramatic drop shadows
 - Shadows enhance, not dominate
 
 ### 3. ✅ Bold Borders
+
 - 2px borders standard
 - 3px for emphasis (header)
 - Borders > Shadows for separation
 
 ### 4. ✅ Vibrant Colors
+
 - Bright, saturated brand colors
   - Primary: #3b82f6 (Blue)
   - Secondary: #8b5cf6 (Purple)
@@ -428,11 +448,13 @@ transition: all var(--transitions-medium) var(--transitions-easeInOut);
   - Warning: #f59e0b (Amber)
 
 ### 5. ✅ Simple Shapes
+
 - Moderate border-radius (8px, 12px)
 - No complex shapes
 - Clean rectangles and rounded rectangles
 
 ### 6. ✅ Clear Typography
+
 - Strong hierarchy
 - Bold weights for emphasis
 - Generous sizing for readability
@@ -459,6 +481,7 @@ grid-template-columns: 1fr;
 ```
 
 ### Responsive Features
+
 - ✅ Grid adapts to screen size
 - ✅ Header stacks on mobile
 - ✅ Theme toggle label hides on small screens
@@ -470,18 +493,21 @@ grid-template-columns: 1fr;
 ## 🌗 Theme Support
 
 ### Light Theme
+
 - White backgrounds (#ffffff)
 - Dark text (#111827)
 - Subtle borders (#e5e7eb)
 - Minimal shadows
 
 ### Dark Theme
+
 - Dark backgrounds (#1a1a1a)
 - Light text (#e8e8e8)
 - Visible borders (#404040)
 - Same vibrant brand colors
 
 ### Theme Features
+
 - ✅ Smooth transitions (200ms)
 - ✅ localStorage persistence
 - ✅ System preference detection
@@ -493,10 +519,12 @@ grid-template-columns: 1fr;
 ## 🎭 Component Inventory
 
 ### Created Components
+
 1. **ThemeProvider** - Theme management
 2. **ThemeToggle** - Theme switcher button
 
 ### Enhanced Components
+
 3. **Dashboard** - Improved layout and structure
 4. **GreenhouseCard** - Large number display
 5. **SensorCard** - Large number display
@@ -506,6 +534,7 @@ grid-template-columns: 1fr;
 9. **Footer** - Links and branding
 
 ### Created Styles
+
 10. **tokens.css** - Application semantic tokens
 11. **Layout.css** - Header, footer, container styles
 12. **Dashboard.css** - Dashboard and card styles
@@ -517,6 +546,7 @@ grid-template-columns: 1fr;
 ## 📊 Metrics & Improvements
 
 ### Before
+
 - ❌ Single column layout
 - ❌ Poor visual hierarchy
 - ❌ Inconsistent spacing
@@ -525,6 +555,7 @@ grid-template-columns: 1fr;
 - ❌ Basic chart styling
 
 ### After
+
 - ✅ Responsive 3-column grid
 - ✅ Clear visual hierarchy
 - ✅ Consistent design tokens
@@ -533,6 +564,7 @@ grid-template-columns: 1fr;
 - ✅ Professional chart with theming
 
 ### Design Token Coverage
+
 - **14 token categories** used
 - **50+ CSS custom properties** applied
 - **100% consistent** spacing, colors, typography
@@ -577,6 +609,7 @@ grid-template-columns: 1fr;
 ## 🎓 Learning Outcomes
 
 This integration demonstrates:
+
 - ✅ How to structure a design token system
 - ✅ Creative use of CSS custom properties
 - ✅ Flat design best practices
@@ -591,6 +624,7 @@ This integration demonstrates:
 ## 📁 File Summary
 
 ### New Files (5)
+
 - `providers/ThemeProvider.tsx`
 - `components/ThemeToggle.tsx`
 - `styles/tokens.css`
@@ -598,6 +632,7 @@ This integration demonstrates:
 - `styles/Pages.css`
 
 ### Modified Files (11)
+
 - `App.tsx` - Added ThemeProvider
 - `App.css` - Layout improvements
 - `index.css` - Global token usage
@@ -612,6 +647,7 @@ This integration demonstrates:
 - `components/SensorReadingCard.tsx` - Chart enhancement
 
 ### Documentation (2)
+
 - `DESIGN-SYSTEM-INTEGRATION.md` - Integration guide
 - `DESIGN-SYSTEM-SHOWCASE.md` - This file
 

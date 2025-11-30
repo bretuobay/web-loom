@@ -28,9 +28,7 @@ describe('DialogBehaviorService', () => {
     });
 
     it('should throw error when accessing actions before initialization', () => {
-      expect(() => service.actions).toThrow(
-        'DialogBehaviorService not initialized. Call initialize() first.'
-      );
+      expect(() => service.actions).toThrow('DialogBehaviorService not initialized. Call initialize() first.');
     });
   });
 
@@ -163,9 +161,7 @@ describe('DialogBehaviorService', () => {
 
       // After destroy, behavior is null so accessing actions will throw
       // This is expected behavior - service should not be used after destroy
-      expect(() => service.actions).toThrow(
-        'DialogBehaviorService not initialized. Call initialize() first.'
-      );
+      expect(() => service.actions).toThrow('DialogBehaviorService not initialized. Call initialize() first.');
 
       expect(emissions.length).toBe(emissionsBeforeDestroy);
     });

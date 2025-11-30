@@ -25,6 +25,7 @@ Level 3 (Depends on Level 2):
 To ensure all dependencies are available when publishing, follow this order:
 
 ### Phase 1: Foundation Libraries
+
 Publish these first (no dependencies on other @web-loom packages):
 
 1. `@web-loom/store-core`
@@ -34,12 +35,14 @@ Publish these first (no dependencies on other @web-loom packages):
 5. `@web-loom/prose-scriber`
 
 ### Phase 2: Core Libraries
+
 Publish after Phase 1 is complete:
 
 6. `@web-loom/mvvm-core` (requires: query-core)
 7. `@web-loom/ui-core` (requires: store-core, event-bus-core)
 
 ### Phase 3: Advanced Patterns
+
 Publish after Phase 2 is complete:
 
 8. `@web-loom/ui-patterns` (requires: ui-core, store-core, event-bus-core)
@@ -108,6 +111,7 @@ find packages apps -name "package.json" -not -path "*/node_modules/*" -not -path
 ```
 
 Then update dependency versions manually in:
+
 - `packages/ui-core/package.json`
 - `packages/ui-patterns/package.json`
 - `packages/mvvm-core/package.json`
@@ -130,14 +134,18 @@ These are marked with `"private": true` in their package.json.
 ## Development vs Production
 
 ### Development Mode (Monorepo)
+
 In development, packages reference each other using:
+
 - Workspace protocol: `"@repo/shared": "*"`
 - Version ranges: `"@web-loom/ui-core": "^0.5.2"`
 
 Turbo and npm workspaces resolve these to local packages automatically.
 
 ### Production Mode (Published)
+
 When published to npm:
+
 - `@web-loom/*` packages are fetched from npm registry
 - `@repo/*` packages are never fetched (they're not published)
 - Apps should only depend on published `@web-loom/*` packages or self-contain their code
@@ -145,12 +153,15 @@ When published to npm:
 ## Troubleshooting
 
 ### Error: Package version already exists
+
 This is normal - the workflow skips publishing if the version already exists. Bump the version number to publish a new version.
 
 ### Error: Cannot find module '@web-loom/...'
+
 Ensure dependencies are published in the correct order (see Publishing Order above).
 
 ### Error: E404 '@repo/...' not found
+
 `@repo/*` packages are internal and not published. If you see this error when installing a `@web-loom/*` package, it means that package incorrectly depends on an internal package. Remove the dependency.
 
 ## Checking Published Versions
@@ -165,6 +176,7 @@ npm view @web-loom/store-core versions
 ## Current Status (v0.5.2)
 
 ### Published Packages
+
 - ✅ @web-loom/store-core: 0.0.3, 0.0.4
 - ✅ @web-loom/event-bus-core: 0.0.1, 0.0.2
 - ⚠️ @web-loom/query-core: (needs 0.5.2 to be published)
@@ -175,6 +187,7 @@ npm view @web-loom/store-core versions
 - ❌ @web-loom/ui-patterns: Not yet published
 
 ### Next Steps
+
 1. Publish Phase 1 packages (store-core, event-bus-core, query-core, design-core, prose-scriber) with v0.5.2
 2. Publish Phase 2 packages (mvvm-core, ui-core) with v0.5.2
 3. Publish Phase 3 packages (ui-patterns) with v0.5.2

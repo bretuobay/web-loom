@@ -10,6 +10,6 @@ For a detailed explanation and example usage, please refer to [Section 3.5 in th
 
 ## Benefits
 
--   **Shared Cache:** Data fetched by `QueryCore` can be shared across multiple ViewModels or application parts.
--   **Automatic Refetching:** Leverage `QueryCore`'s built-in mechanisms for refetching on window focus, reconnect, or stale data intervals.
--   **Decoupling:** Separates data fetching/caching concerns from UI/ViewModel logic.
+- **Shared Cache:** Data fetched by `QueryCore` can be shared across multiple ViewModels or application parts.
+- **Automatic Refetching:** Leverage `QueryCore`'s built-in mechanisms for refetching on window focus, reconnect, or stale data intervals.
+- **Decoupling:** Separates data fetching/caching concerns from UI/ViewModel logic.

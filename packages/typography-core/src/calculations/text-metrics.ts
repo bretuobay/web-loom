@@ -50,11 +50,12 @@ export function measureText(
   const lineHeightRatio = options.lineHeight ?? calculateOptimalLineHeight(fontSize, 'body');
   const lineHeightPx = lineHeightRatio * fontSize;
 
-  const canvas = typeof document !== 'undefined'
-    ? document.createElement('canvas')
-    : typeof OffscreenCanvas !== 'undefined'
-      ? new OffscreenCanvas(1, 1)
-      : null;
+  const canvas =
+    typeof document !== 'undefined'
+      ? document.createElement('canvas')
+      : typeof OffscreenCanvas !== 'undefined'
+        ? new OffscreenCanvas(1, 1)
+        : null;
 
   if (canvas) {
     const ctx = canvas.getContext('2d');

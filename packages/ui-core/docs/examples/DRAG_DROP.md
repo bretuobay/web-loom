@@ -5,6 +5,7 @@
 The Drag-and-Drop behavior provides a framework-agnostic solution for managing drag-and-drop interactions. It handles drag state, drop validation, and provides callbacks for drag lifecycle events. The behavior is completely headless, providing logic without DOM manipulation.
 
 **Key Features:**
+
 - Framework-agnostic drag-and-drop state management
 - Drop zone registration and validation
 - Drag data transfer support
@@ -71,6 +72,7 @@ dragDrop.destroy();
 Creates a drag-and-drop behavior instance.
 
 **Parameters:**
+
 - `options` (optional): Configuration options
   - `onDragStart?: (itemId: string, data: any) => void` - Callback when drag starts
   - `onDragEnd?: (itemId: string) => void` - Callback when drag ends
@@ -83,12 +85,12 @@ Creates a drag-and-drop behavior instance.
 
 ```typescript
 interface DragDropState {
-  draggedItem: string | null;    // Currently dragged item ID
-  dropTarget: string | null;     // Current drop target ID
-  isDragging: boolean;           // Whether drag is in progress
-  dragData: any;                 // Data associated with drag
-  dropZones: string[];           // Registered drop zones
-  dragOverZone: string | null;   // Zone being hovered over
+  draggedItem: string | null; // Currently dragged item ID
+  dropTarget: string | null; // Current drop target ID
+  isDragging: boolean; // Whether drag is in progress
+  dragData: any; // Data associated with drag
+  dropZones: string[]; // Registered drop zones
+  dragOverZone: string | null; // Zone being hovered over
 }
 ```
 
@@ -142,7 +144,7 @@ const dragDrop = createDragDropBehavior({
 });
 
 // Register columns as drop zones
-['todo', 'in-progress', 'done'].forEach(columnId => {
+['todo', 'in-progress', 'done'].forEach((columnId) => {
   dragDrop.actions.registerDropZone(columnId);
 });
 
@@ -178,9 +180,9 @@ interface ListItem {
 const dragDrop = createDragDropBehavior({
   onDrop: (draggedId, targetId, data) => {
     // Reorder items
-    const draggedItem = items.find(i => i.id === draggedId);
-    const targetItem = items.find(i => i.id === targetId);
-    
+    const draggedItem = items.find((i) => i.id === draggedId);
+    const targetItem = items.find((i) => i.id === targetId);
+
     if (draggedItem && targetItem) {
       reorderItems(draggedItem, targetItem);
     }
@@ -188,7 +190,7 @@ const dragDrop = createDragDropBehavior({
 });
 
 // Register each item as a drop zone
-items.forEach(item => {
+items.forEach((item) => {
   dragDrop.actions.registerDropZone(item.id);
 });
 
@@ -199,7 +201,7 @@ dragDrop.subscribe((state) => {
   } else {
     clearHighlights();
   }
-  
+
   if (state.dragOverZone) {
     showDropIndicator(state.dragOverZone);
   }
@@ -252,23 +254,23 @@ interface List {
 const dragDrop = createDragDropBehavior({
   onDrop: (itemId, listId, data) => {
     // Remove from source list
-    const sourceList = lists.find(l => l.id === data.sourceListId);
+    const sourceList = lists.find((l) => l.id === data.sourceListId);
     if (sourceList) {
-      sourceList.items = sourceList.items.filter(id => id !== itemId);
+      sourceList.items = sourceList.items.filter((id) => id !== itemId);
     }
-    
+
     // Add to target list
-    const targetList = lists.find(l => l.id === listId);
+    const targetList = lists.find((l) => l.id === listId);
     if (targetList) {
       targetList.items.push(itemId);
     }
-    
+
     updateUI();
   },
 });
 
 // Register all lists as drop zones
-lists.forEach(list => {
+lists.forEach((list) => {
   dragDrop.actions.registerDropZone(list.id);
 });
 
@@ -290,7 +292,7 @@ import { useDragDropBehavior } from '@web-loom/ui-core/react';
 
 function KanbanBoard() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  
+
   const dragDrop = useDragDropBehavior({
     onDrop: (taskId, columnId) => {
       setTasks(prev => prev.map(task =>
@@ -342,10 +344,10 @@ import { useDragDropBehavior } from '@web-loom/ui-core/vue';
 export default {
   setup() {
     const tasks = ref<Task[]>([]);
-    
+
     const dragDrop = useDragDropBehavior({
       onDrop: (taskId, columnId) => {
-        const task = tasks.value.find(t => t.id === taskId);
+        const task = tasks.value.find((t) => t.id === taskId);
         if (task) {
           task.column = columnId;
         }
@@ -353,7 +355,7 @@ export default {
     });
 
     onMounted(() => {
-      ['todo', 'in-progress', 'done'].forEach(col => {
+      ['todo', 'in-progress', 'done'].forEach((col) => {
         dragDrop.registerDropZone(col);
       });
     });
@@ -404,14 +406,14 @@ export class KanbanBoardComponent implements OnInit {
   ngOnInit() {
     this.dragDrop.initialize({
       onDrop: (taskId, columnId) => {
-        const task = this.tasks.find(t => t.id === taskId);
+        const task = this.tasks.find((t) => t.id === taskId);
         if (task) {
           task.column = columnId;
         }
       },
     });
 
-    this.columns.forEach(col => {
+    this.columns.forEach((col) => {
       this.dragDrop.registerDropZone(col);
     });
   }
@@ -430,7 +432,7 @@ export class KanbanBoardComponent implements OnInit {
   }
 
   getTasksForColumn(column: string): Task[] {
-    return this.tasks.filter(t => t.column === column);
+    return this.tasks.filter((t) => t.column === column);
   }
 }
 ```
@@ -556,13 +558,13 @@ dragDrop.subscribe((state) => {
     const element = document.querySelector(`[data-item-id="${state.draggedItem}"]`);
     element?.classList.add('dragging');
   }
-  
+
   // Highlight valid drop zones
-  state.dropZones.forEach(zoneId => {
+  state.dropZones.forEach((zoneId) => {
     const zone = document.querySelector(`[data-drop-zone="${zoneId}"]`);
     zone?.classList.add('drop-zone-active');
   });
-  
+
   // Highlight current drop target
   if (state.dragOverZone) {
     const zone = document.querySelector(`[data-drop-zone="${state.dragOverZone}"]`);
@@ -576,12 +578,7 @@ dragDrop.subscribe((state) => {
 Full TypeScript support with exported types:
 
 ```typescript
-import type {
-  DragDropState,
-  DragDropActions,
-  DragDropBehavior,
-  DragDropOptions,
-} from '@web-loom/ui-core';
+import type { DragDropState, DragDropActions, DragDropBehavior, DragDropOptions } from '@web-loom/ui-core';
 
 // Type-safe drag data
 interface TaskDragData {
@@ -608,7 +605,7 @@ function startDragging(task: Task) {
     sourceColumn: task.column,
     priority: task.priority,
   };
-  
+
   dragDrop.actions.startDrag(task.id, dragData);
 }
 ```
@@ -640,13 +637,13 @@ Unregister drop zones when components unmount:
 ```typescript
 useEffect(() => {
   // Register drop zones
-  dropZones.forEach(zone => {
+  dropZones.forEach((zone) => {
     dragDrop.actions.registerDropZone(zone.id);
   });
 
   // Cleanup
   return () => {
-    dropZones.forEach(zone => {
+    dropZones.forEach((zone) => {
       dragDrop.actions.unregisterDropZone(zone.id);
     });
   };
@@ -663,12 +660,12 @@ const visibleItems = getVisibleItems(scrollPosition, itemHeight);
 
 useEffect(() => {
   // Clear previous drop zones
-  dragDrop.getState().dropZones.forEach(zone => {
+  dragDrop.getState().dropZones.forEach((zone) => {
     dragDrop.actions.unregisterDropZone(zone);
   });
 
   // Register only visible items
-  visibleItems.forEach(item => {
+  visibleItems.forEach((item) => {
     dragDrop.actions.registerDropZone(item.id);
   });
 }, [visibleItems]);

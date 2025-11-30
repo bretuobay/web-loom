@@ -36,6 +36,7 @@ npm run test
 ### UI & Interaction
 
 #### [@web-loom/ui-core](packages/ui-core) ![Version](https://img.shields.io/badge/version-1.0.0-blue)
+
 Framework-agnostic headless UI behaviors (Dialog, Form, List Selection, Roving Focus, Disclosure). Pure logic with no styling assumptions, usable across all frameworks.
 
 **Key features**: Atomic behaviors, framework adapters, accessibility-first, <2KB per behavior
@@ -47,6 +48,7 @@ dialog.actions.open({ title: 'Hello' });
 ```
 
 #### [@web-loom/ui-patterns](packages/ui-patterns) ![Version](https://img.shields.io/badge/version-1.0.0-blue)
+
 Composed UI patterns (Master-Detail, Wizard, Modal, Command Palette, Tabbed Interface, Sidebar Shell, Toast Queue). Built by composing ui-core behaviors.
 
 **Key features**: 7+ production patterns, event bus integration, validation support
@@ -59,6 +61,7 @@ const wizard = createWizard({ steps: [...], onComplete: (data) => {...} });
 ### State & Data Management
 
 #### [@web-loom/mvvm-core](packages/mvvm-core) ![Version](https://img.shields.io/badge/version-0.5.1-blue)
+
 Complete MVVM implementation with BaseModel, BaseViewModel, RestfulApiModel, QueryStateModel, and Command pattern. RxJS-powered with Zod validation.
 
 **Key features**: Reactive models, RESTful API integration, optimistic updates, disposable resources
@@ -66,11 +69,14 @@ Complete MVVM implementation with BaseModel, BaseViewModel, RestfulApiModel, Que
 ```typescript
 import { RestfulApiViewModel } from '@web-loom/mvvm-core';
 class UserViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
-  constructor() { super(new UserApiModel()); }
+  constructor() {
+    super(new UserApiModel());
+  }
 }
 ```
 
 #### [@web-loom/store-core](packages/store-core) ![Version](https://img.shields.io/badge/version-0.0.4-blue)
+
 Minimal reactive state management library. Alternative to Redux/Zustand for simple state needs.
 
 **Key features**: <1KB, observable-based, type-safe actions
@@ -78,11 +84,12 @@ Minimal reactive state management library. Alternative to Redux/Zustand for simp
 ```typescript
 import { createStore } from '@web-loom/store-core';
 const store = createStore(initialState, (set) => ({
-  increment: () => set(state => ({ count: state.count + 1 }))
+  increment: () => set((state) => ({ count: state.count + 1 })),
 }));
 ```
 
 #### [@web-loom/query-core](packages/query-core) ![Version](https://img.shields.io/badge/version-0.0.3-blue)
+
 Zero-dependency data fetching and caching library. Handles async data with automatic refetching and cache management.
 
 **Key features**: Automatic caching, background refetching, request deduplication
@@ -96,6 +103,7 @@ queryCore.defineEndpoint('users', () => fetch('/api/users'));
 ### Communication & Events
 
 #### [@web-loom/event-bus-core](packages/event-bus-core) ![Version](https://img.shields.io/badge/version-0.0.2-blue)
+
 Lightweight pub-sub event bus for cross-component communication. Type-safe with zero dependencies.
 
 **Key features**: <1KB gzipped, type-safe events, multiple listeners
@@ -109,6 +117,7 @@ eventBus.on('user:login', (user) => console.log(user));
 ### Plugin Architecture
 
 #### [@web-loom/plugin-core](packages/plugin-core)
+
 Framework-agnostic plugin registry and management system with lifecycle states and manifest-based configuration.
 
 **Key features**: Dynamic loading, framework adapters, type-safe manifests
@@ -116,11 +125,13 @@ Framework-agnostic plugin registry and management system with lifecycle states a
 ### Utilities
 
 #### [@web-loom/prose-scriber](packages/prose-scriber) ![Version](https://img.shields.io/badge/version-0.0.4-blue)
+
 Typography, color manipulation, and text animation utilities. Theme management with LAB color space support.
 
 **Key features**: Color similarity (RGB/HSL/LAB), text animations (typewriter, fade), theme system
 
 #### [@web-loom/design-core](packages/design-core)
+
 Theme and CSS variable utilities for design systems.
 
 ## Applications
@@ -174,6 +185,7 @@ All apps share ViewModels from `packages/view-models`, demonstrating true cross-
 ```
 
 **Benefits**:
+
 - Business logic tested independently of UI
 - ViewModels reused across React, Angular, Vue, vanilla JS
 - Type-safe data flow with Zod validation
@@ -213,15 +225,15 @@ Framework-Specific Components (Your App)
 
 ## Package Overview
 
-| Package | Description | Size |
-|---------|-------------|------|
-| `@web-loom/ui-core` | Headless UI behaviors | <2KB each |
-| `@web-loom/ui-patterns` | Composed UI patterns | ~5KB |
-| `@web-loom/mvvm-core` | MVVM architecture library | ~15KB |
-| `@web-loom/store-core` | Reactive state management | <1KB |
-| `@web-loom/event-bus-core` | Event bus | <1KB |
-| `@web-loom/query-core` | Data fetching & caching | ~5KB |
-| `@web-loom/prose-scriber` | Typography & animations | ~3KB |
+| Package                    | Description               | Size      |
+| -------------------------- | ------------------------- | --------- |
+| `@web-loom/ui-core`        | Headless UI behaviors     | <2KB each |
+| `@web-loom/ui-patterns`    | Composed UI patterns      | ~5KB      |
+| `@web-loom/mvvm-core`      | MVVM architecture library | ~15KB     |
+| `@web-loom/store-core`     | Reactive state management | <1KB      |
+| `@web-loom/event-bus-core` | Event bus                 | <1KB      |
+| `@web-loom/query-core`     | Data fetching & caching   | ~5KB      |
+| `@web-loom/prose-scriber`  | Typography & animations   | ~3KB      |
 
 All packages are tree-shakeable with ESM support.
 
@@ -263,6 +275,7 @@ cd apps/plugin-react && npm run dev
 ### Shared ViewModels
 
 Application-specific ViewModels in `packages/view-models/`:
+
 - `GreenHouseViewModel.ts`
 - `SensorReadingViewModel.ts`
 - `SensorViewModel.ts`
@@ -273,15 +286,17 @@ These ViewModels are consumed by ALL framework implementations, demonstrating tr
 ### Reactive Data Flow
 
 All state uses RxJS observables:
+
 ```typescript
-viewModel.data$.subscribe(data => updateUI(data));
-viewModel.isLoading$.subscribe(loading => showSpinner(loading));
-viewModel.error$.subscribe(error => showError(error));
+viewModel.data$.subscribe((data) => updateUI(data));
+viewModel.isLoading$.subscribe((loading) => showSpinner(loading));
+viewModel.error$.subscribe((error) => showError(error));
 ```
 
 ### Resource Management
 
 Components implement `IDisposable` for cleanup:
+
 ```typescript
 const viewModel = new UserViewModel();
 // ... use viewModel
@@ -329,6 +344,7 @@ web-loom/
 ## Documentation
 
 Detailed documentation available in each package's README:
+
 - [UI Core Documentation](packages/ui-core/README.md)
 - [UI Patterns Documentation](packages/ui-patterns/README.md)
 - [MVVM Core Documentation](packages/mvvm-core/README.md)

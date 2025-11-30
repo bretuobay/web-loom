@@ -146,7 +146,7 @@ describe('createListSelection', () => {
 
       selection.actions.select('item-1');
       selection.actions.selectRange('item-3', 'item-5');
-      
+
       const selectedIds = selection.getState().selectedIds;
       expect(selectedIds).toContain('item-1');
       expect(selectedIds).toContain('item-3');
@@ -189,7 +189,7 @@ describe('createListSelection', () => {
 
       selection.actions.select('item-1');
       selection.actions.selectRange('item-3', 'item-5');
-      
+
       const selectedIds = selection.getState().selectedIds;
       expect(selectedIds).toContain('item-1');
       expect(selectedIds).toContain('item-3');
@@ -248,7 +248,7 @@ describe('createListSelection', () => {
       selection.actions.select('item-1');
       selection.actions.select('item-5');
       selection.actions.selectRange('item-2', 'item-3');
-      
+
       const selectedIds = selection.getState().selectedIds;
       expect(selectedIds).toContain('item-1');
       expect(selectedIds).toContain('item-2');
@@ -406,7 +406,11 @@ describe('createListSelection', () => {
   describe('deselect action', () => {
     it('should remove item from selection', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const selection = createListSelection({ items, mode: 'multi', initialSelectedIds: ['item-1', 'item-2', 'item-3'] });
+      const selection = createListSelection({
+        items,
+        mode: 'multi',
+        initialSelectedIds: ['item-1', 'item-2', 'item-3'],
+      });
 
       selection.actions.deselect('item-2');
       expect(selection.getState().selectedIds).toEqual(['item-1', 'item-3']);
@@ -499,7 +503,12 @@ describe('createListSelection', () => {
     it('should invoke callback when deselecting', () => {
       const items = ['item-1', 'item-2', 'item-3'];
       const onSelectionChange = vi.fn();
-      const selection = createListSelection({ items, mode: 'multi', initialSelectedIds: ['item-1', 'item-2'], onSelectionChange });
+      const selection = createListSelection({
+        items,
+        mode: 'multi',
+        initialSelectedIds: ['item-1', 'item-2'],
+        onSelectionChange,
+      });
 
       selection.actions.deselect('item-1');
       expect(onSelectionChange).toHaveBeenCalledWith(['item-2']);
@@ -520,7 +529,12 @@ describe('createListSelection', () => {
     it('should invoke callback when clearing selection', () => {
       const items = ['item-1', 'item-2', 'item-3'];
       const onSelectionChange = vi.fn();
-      const selection = createListSelection({ items, mode: 'multi', initialSelectedIds: ['item-1'], onSelectionChange });
+      const selection = createListSelection({
+        items,
+        mode: 'multi',
+        initialSelectedIds: ['item-1'],
+        onSelectionChange,
+      });
 
       selection.actions.clearSelection();
       expect(onSelectionChange).toHaveBeenCalledWith([]);
@@ -668,7 +682,7 @@ describe('createListSelection', () => {
       // With empty items array, selection is allowed (for dynamic/async items)
       selection.actions.select('item-1');
       expect(selection.getState().selectedIds).toEqual(['item-1']);
-      
+
       selection.actions.select('item-2');
       expect(selection.getState().selectedIds).toEqual(['item-1', 'item-2']);
     });

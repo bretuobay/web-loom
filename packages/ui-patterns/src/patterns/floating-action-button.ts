@@ -142,11 +142,11 @@ export interface FABBehavior {
 /**
  * Creates a floating action button pattern for managing FAB visibility based
  * on scroll position and direction.
- * 
+ *
  * This pattern is ideal for implementing scroll-aware primary action buttons
  * that appear/disappear based on user scroll behavior, improving UX by
  * reducing visual clutter when not needed.
- * 
+ *
  * @example
  * ```typescript
  * const fab = createFloatingActionButton({
@@ -156,43 +156,39 @@ export interface FABBehavior {
  *     console.log('FAB visibility:', visible);
  *   },
  * });
- * 
+ *
  * // Listen to visibility events
  * fab.eventBus.on('fab:shown', () => {
  *   console.log('FAB is now visible');
  * });
- * 
+ *
  * fab.eventBus.on('fab:hidden', () => {
  *   console.log('FAB is now hidden');
  * });
- * 
+ *
  * // Update scroll position (typically from a throttled scroll event)
  * window.addEventListener('scroll', throttle(() => {
  *   fab.actions.setScrollPosition(window.scrollY);
  * }, 100));
- * 
+ *
  * // Manual control
  * fab.actions.show();
  * fab.actions.hide();
  * fab.actions.toggle();
- * 
+ *
  * // Update configuration
  * fab.actions.setScrollThreshold(300);
  * fab.actions.setHideOnScrollDown(false);
- * 
+ *
  * // Clean up
  * fab.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the FAB.
  * @returns A floating action button pattern instance.
  */
 export function createFloatingActionButton(options?: FABOptions): FABBehavior {
-  const {
-    scrollThreshold = 100,
-    hideOnScrollDown = false,
-    onVisibilityChange,
-  } = options || {};
+  const { scrollThreshold = 100, hideOnScrollDown = false, onVisibilityChange } = options || {};
 
   // Create event bus for FAB events
   const eventBus = createEventBus<FABEvents>();
@@ -206,134 +202,131 @@ export function createFloatingActionButton(options?: FABOptions): FABBehavior {
     hideOnScrollDown,
   };
 
-  const store: Store<FABState, FABActions> = createStore<FABState, FABActions>(
-    initialState,
-    (set, get) => ({
-      show: () => {
-        const state = get();
-        if (state.isVisible) return;
+  const store: Store<FABState, FABActions> = createStore<FABState, FABActions>(initialState, (set, get) => ({
+    show: () => {
+      const state = get();
+      if (state.isVisible) return;
 
-        set((prevState) => ({
-          ...prevState,
-          isVisible: true,
-        }));
+      set((prevState) => ({
+        ...prevState,
+        isVisible: true,
+      }));
 
-        // Emit events
-        eventBus.emit('fab:shown');
-        eventBus.emit('fab:visibility-changed', true);
+      // Emit events
+      eventBus.emit('fab:shown');
+      eventBus.emit('fab:visibility-changed', true);
 
-        // Invoke callback
-        if (onVisibilityChange) {
-          onVisibilityChange(true);
-        }
-      },
+      // Invoke callback
+      if (onVisibilityChange) {
+        onVisibilityChange(true);
+      }
+    },
 
-      hide: () => {
-        const state = get();
-        if (!state.isVisible) return;
+    hide: () => {
+      const state = get();
+      if (!state.isVisible) return;
 
-        set((prevState) => ({
-          ...prevState,
-          isVisible: false,
-        }));
+      set((prevState) => ({
+        ...prevState,
+        isVisible: false,
+      }));
 
-        // Emit events
-        eventBus.emit('fab:hidden');
-        eventBus.emit('fab:visibility-changed', false);
+      // Emit events
+      eventBus.emit('fab:hidden');
+      eventBus.emit('fab:visibility-changed', false);
 
-        // Invoke callback
-        if (onVisibilityChange) {
-          onVisibilityChange(false);
-        }
-      },
+      // Invoke callback
+      if (onVisibilityChange) {
+        onVisibilityChange(false);
+      }
+    },
 
-      setScrollPosition: (position: number) => {
-        const state = get();
-        const previousPosition = state.scrollPosition;
+    setScrollPosition: (position: number) => {
+      const state = get();
+      const previousPosition = state.scrollPosition;
 
-        // Calculate scroll direction
-        let newDirection: ScrollDirection = null;
-        if (position > previousPosition) {
-          newDirection = 'down';
-        } else if (position < previousPosition) {
-          newDirection = 'up';
-        }
+      // Calculate scroll direction
+      let newDirection: ScrollDirection = null;
+      if (position > previousPosition) {
+        newDirection = 'down';
+      } else if (position < previousPosition) {
+        newDirection = 'up';
+      }
 
-        // Update state
-        set((prevState) => ({
-          ...prevState,
-          scrollPosition: position,
-          scrollDirection: newDirection,
-        }));
+      // Update state
+      set((prevState) => ({
+        ...prevState,
+        scrollPosition: position,
+        scrollDirection: newDirection,
+      }));
 
-        // Emit scroll direction event if changed
-        if (newDirection !== state.scrollDirection && newDirection !== null) {
-          eventBus.emit('fab:scroll-direction-changed', newDirection);
-        }
+      // Emit scroll direction event if changed
+      if (newDirection !== state.scrollDirection && newDirection !== null) {
+        eventBus.emit('fab:scroll-direction-changed', newDirection);
+      }
 
-        // Determine visibility based on scroll position and direction
-        const newState = get();
-        let shouldBeVisible = false;
+      // Determine visibility based on scroll position and direction
+      const newState = get();
+      let shouldBeVisible = false;
 
-        // Check threshold
-        if (position >= newState.scrollThreshold) {
-          shouldBeVisible = true;
+      // Check threshold
+      if (position >= newState.scrollThreshold) {
+        shouldBeVisible = true;
 
-          // Apply hideOnScrollDown logic
-          if (newState.hideOnScrollDown && newDirection === 'down') {
-            shouldBeVisible = false;
-          }
-        } else {
+        // Apply hideOnScrollDown logic
+        if (newState.hideOnScrollDown && newDirection === 'down') {
           shouldBeVisible = false;
         }
+      } else {
+        shouldBeVisible = false;
+      }
 
-        // Update visibility if changed
-        if (shouldBeVisible !== newState.isVisible) {
-          if (shouldBeVisible) {
-            store.actions.show();
-          } else {
-            store.actions.hide();
-          }
-        }
-      },
-
-      setScrollThreshold: (threshold: number) => {
-        if (threshold < 0) {
-          console.warn('Scroll threshold must be non-negative');
-          return;
-        }
-
-        set((prevState) => ({
-          ...prevState,
-          scrollThreshold: threshold,
-        }));
-
-        // Re-evaluate visibility with new threshold
-        const state = get();
-        store.actions.setScrollPosition(state.scrollPosition);
-      },
-
-      toggle: () => {
-        const state = get();
-        if (state.isVisible) {
-          store.actions.hide();
-        } else {
+      // Update visibility if changed
+      if (shouldBeVisible !== newState.isVisible) {
+        if (shouldBeVisible) {
           store.actions.show();
+        } else {
+          store.actions.hide();
         }
-      },
+      }
+    },
 
-      setHideOnScrollDown: (hide: boolean) => {
-        set((prevState) => ({
-          ...prevState,
-          hideOnScrollDown: hide,
-        }));
+    setScrollThreshold: (threshold: number) => {
+      if (threshold < 0) {
+        console.warn('Scroll threshold must be non-negative');
+        return;
+      }
 
-        // Re-evaluate visibility with new setting
-        const state = get();
-        store.actions.setScrollPosition(state.scrollPosition);
-      },
-    })
-  );
+      set((prevState) => ({
+        ...prevState,
+        scrollThreshold: threshold,
+      }));
+
+      // Re-evaluate visibility with new threshold
+      const state = get();
+      store.actions.setScrollPosition(state.scrollPosition);
+    },
+
+    toggle: () => {
+      const state = get();
+      if (state.isVisible) {
+        store.actions.hide();
+      } else {
+        store.actions.show();
+      }
+    },
+
+    setHideOnScrollDown: (hide: boolean) => {
+      set((prevState) => ({
+        ...prevState,
+        hideOnScrollDown: hide,
+      }));
+
+      // Re-evaluate visibility with new setting
+      const state = get();
+      store.actions.setScrollPosition(state.scrollPosition);
+    },
+  }));
 
   return {
     getState: store.getState,

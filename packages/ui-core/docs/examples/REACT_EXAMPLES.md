@@ -55,11 +55,7 @@ function CommandPalette() {
 
   return (
     <div className="command-palette">
-      <input
-        type="text"
-        placeholder="Type a command..."
-        autoFocus
-      />
+      <input type="text" placeholder="Type a command..." autoFocus />
       <div className="shortcuts-help">
         <p>Press Escape to close</p>
       </div>
@@ -133,11 +129,7 @@ function TextEditor() {
 
   return (
     <div className="text-editor">
-      <textarea
-        ref={editorRef}
-        placeholder="Start typing..."
-        className="editor-content"
-      />
+      <textarea ref={editorRef} placeholder="Start typing..." className="editor-content" />
       <div className="shortcuts-bar">
         <span>Ctrl+S: Save</span>
         <span>Ctrl+B: Bold</span>
@@ -158,10 +150,12 @@ import React, { useState, useEffect } from 'react';
 import { useKeyboardShortcuts } from '@web-loom/ui-core/react';
 
 function ShortcutHelpPanel() {
-  const [shortcuts, setShortcuts] = useState<Array<{
-    key: string;
-    description: string;
-  }>>([]);
+  const [shortcuts, setShortcuts] = useState<
+    Array<{
+      key: string;
+      description: string;
+    }>
+  >([]);
   const shortcutBehavior = useKeyboardShortcuts();
 
   useEffect(() => {
@@ -186,7 +180,7 @@ function ShortcutHelpPanel() {
 
     // Get all registered shortcuts
     const state = shortcutBehavior.getState();
-    const shortcutList = Array.from(state.shortcuts.values()).map(s => ({
+    const shortcutList = Array.from(state.shortcuts.values()).map((s) => ({
       key: s.key,
       description: s.description || 'No description',
     }));
@@ -208,7 +202,9 @@ function ShortcutHelpPanel() {
         <tbody>
           {shortcuts.map((shortcut, index) => (
             <tr key={index}>
-              <td><kbd>{shortcut.key}</kbd></td>
+              <td>
+                <kbd>{shortcut.key}</kbd>
+              </td>
               <td>{shortcut.description}</td>
             </tr>
           ))}
@@ -258,30 +254,17 @@ function UndoableTextEditor() {
   return (
     <div className="undoable-editor">
       <div className="toolbar">
-        <button
-          onClick={handleUndo}
-          disabled={!state.canUndo}
-          aria-label="Undo"
-        >
+        <button onClick={handleUndo} disabled={!state.canUndo} aria-label="Undo">
           ↶ Undo
         </button>
-        <button
-          onClick={handleRedo}
-          disabled={!state.canRedo}
-          aria-label="Redo"
-        >
+        <button onClick={handleRedo} disabled={!state.canRedo} aria-label="Redo">
           ↷ Redo
         </button>
         <span className="history-info">
           History: {state.past.length} / {state.maxLength}
         </span>
       </div>
-      <textarea
-        value={text}
-        onChange={handleTextChange}
-        placeholder="Type something..."
-        className="editor-content"
-      />
+      <textarea value={text} onChange={handleTextChange} placeholder="Type something..." className="editor-content" />
     </div>
   );
 }
@@ -321,12 +304,12 @@ function DrawingCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Redraw all strokes
-    state.strokes.forEach(stroke => {
+    state.strokes.forEach((stroke) => {
       if (stroke.length < 2) return;
 
       ctx.beginPath();
       ctx.moveTo(stroke[0].x, stroke[0].y);
-      stroke.slice(1).forEach(point => {
+      stroke.slice(1).forEach((point) => {
         ctx.lineTo(point.x, point.y);
       });
       ctx.stroke();
@@ -338,10 +321,12 @@ function DrawingCanvas() {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    setCurrentStroke([{
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    }]);
+    setCurrentStroke([
+      {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      },
+    ]);
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -355,7 +340,7 @@ function DrawingCanvas() {
       y: e.clientY - rect.top,
     };
 
-    setCurrentStroke(prev => [...prev, point]);
+    setCurrentStroke((prev) => [...prev, point]);
 
     // Draw current stroke
     const ctx = canvasRef.current?.getContext('2d');
@@ -398,9 +383,7 @@ function DrawingCanvas() {
         <button onClick={handleRedo} disabled={!state.canRedo}>
           ↷ Redo
         </button>
-        <button onClick={handleClear}>
-          Clear
-        </button>
+        <button onClick={handleClear}>Clear</button>
         <span>Strokes: {state.present.strokes.length}</span>
       </div>
       <canvas
@@ -529,8 +512,8 @@ function ReorderableList() {
     onDragEnd: (itemId) => console.log('Drag ended:', itemId),
     onDrop: (draggedId, targetId) => {
       // Reorder items
-      const draggedIndex = items.findIndex(item => item.id === draggedId);
-      const targetIndex = items.findIndex(item => item.id === targetId);
+      const draggedIndex = items.findIndex((item) => item.id === draggedId);
+      const targetIndex = items.findIndex((item) => item.id === targetId);
 
       if (draggedIndex === -1 || targetIndex === -1) return;
 
@@ -543,12 +526,12 @@ function ReorderableList() {
 
   // Register all items as drop zones
   React.useEffect(() => {
-    items.forEach(item => {
+    items.forEach((item) => {
       dragDrop.registerDropZone(item.id);
     });
 
     return () => {
-      items.forEach(item => {
+      items.forEach((item) => {
         dragDrop.unregisterDropZone(item.id);
       });
     };
@@ -573,7 +556,7 @@ function ReorderableList() {
     <div className="reorderable-list">
       <h2>Drag to Reorder</h2>
       <ul>
-        {items.map(item => (
+        {items.map((item) => (
           <li
             key={item.id}
             draggable
@@ -623,27 +606,22 @@ function KanbanBoard() {
 
   const dragDrop = useDragDropBehavior({
     onDrop: (taskId, columnId) => {
-      setTasks(prev =>
-        prev.map(task =>
-          task.id === taskId ? { ...task, column: columnId } : task
-        )
-      );
+      setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, column: columnId } : task)));
     },
   });
 
   React.useEffect(() => {
-    columns.forEach(col => dragDrop.registerDropZone(col));
+    columns.forEach((col) => dragDrop.registerDropZone(col));
     return () => {
-      columns.forEach(col => dragDrop.unregisterDropZone(col));
+      columns.forEach((col) => dragDrop.unregisterDropZone(col));
     };
   }, []);
 
-  const getTasksForColumn = (column: string) =>
-    tasks.filter(task => task.column === column);
+  const getTasksForColumn = (column: string) => tasks.filter((task) => task.column === column);
 
   return (
     <div className="kanban-board">
-      {columns.map(column => (
+      {columns.map((column) => (
         <div
           key={column}
           className="kanban-column"
@@ -660,13 +638,8 @@ function KanbanBoard() {
           }}
         >
           <h3>{column.replace('-', ' ').toUpperCase()}</h3>
-          {getTasksForColumn(column).map(task => (
-            <div
-              key={task.id}
-              draggable
-              onDragStart={() => dragDrop.startDrag(task.id)}
-              className="kanban-task"
-            >
+          {getTasksForColumn(column).map((task) => (
+            <div key={task.id} draggable onDragStart={() => dragDrop.startDrag(task.id)} className="kanban-task">
               {task.title}
             </div>
           ))}
@@ -692,7 +665,7 @@ function FileUploadZone() {
     onDragStart: () => console.log('Drag started'),
     onDrop: (_, __, data) => {
       if (data?.files) {
-        setFiles(prev => [...prev, ...Array.from(data.files)]);
+        setFiles((prev) => [...prev, ...Array.from(data.files)]);
       }
     },
   });
@@ -772,7 +745,7 @@ function MenuWithFocusTracking() {
   ];
 
   const rovingFocus = useRovingFocus({
-    items: items.map(item => item.id),
+    items: items.map((item) => item.id),
     onFocusChange: (index, itemId, previousIndex) => {
       setFocusedItem(itemId);
       if (previousIndex !== -1) {
@@ -956,11 +929,7 @@ export default LoginFormWithServerValidation;
 
 ```tsx
 import React, { useState, useEffect } from 'react';
-import {
-  useKeyboardShortcuts,
-  useUndoRedoStack,
-  useFormBehavior,
-} from '@web-loom/ui-core/react';
+import { useKeyboardShortcuts, useUndoRedoStack, useFormBehavior } from '@web-loom/ui-core/react';
 
 interface EditorState {
   content: string;
@@ -1040,17 +1009,11 @@ function FullFeaturedTextEditor() {
           placeholder="Document title"
         />
 
-        <button
-          onClick={() => undoRedo.undo()}
-          disabled={!undoRedoState.canUndo}
-        >
+        <button onClick={() => undoRedo.undo()} disabled={!undoRedoState.canUndo}>
           ↶ Undo (Ctrl+Z)
         </button>
 
-        <button
-          onClick={() => undoRedo.redo()}
-          disabled={!undoRedoState.canRedo}
-        >
+        <button onClick={() => undoRedo.redo()} disabled={!undoRedoState.canRedo}>
           ↷ Redo (Ctrl+Y)
         </button>
 
@@ -1058,9 +1021,7 @@ function FullFeaturedTextEditor() {
           💾 Save (Ctrl+S)
         </button>
 
-        <span className={isSaved ? 'saved' : 'unsaved'}>
-          {isSaved ? '✓ Saved' : '• Unsaved changes'}
-        </span>
+        <span className={isSaved ? 'saved' : 'unsaved'}>{isSaved ? '✓ Saved' : '• Unsaved changes'}</span>
       </div>
 
       <textarea
@@ -1071,7 +1032,9 @@ function FullFeaturedTextEditor() {
       />
 
       <div className="status-bar">
-        <span>History: {undoRedoState.past.length} / {undoRedoState.maxLength}</span>
+        <span>
+          History: {undoRedoState.past.length} / {undoRedoState.maxLength}
+        </span>
         <span>Characters: {undoRedoState.present.content.length}</span>
       </div>
     </div>
@@ -1110,10 +1073,7 @@ useEffect(() => {
 ### 3. Debounce Expensive Operations
 
 ```tsx
-const debouncedPushState = useMemo(
-  () => debounce((state) => undoRedo.pushState(state), 300),
-  []
-);
+const debouncedPushState = useMemo(() => debounce((state) => undoRedo.pushState(state), 300), []);
 
 const handleChange = (value: string) => {
   setValue(value);

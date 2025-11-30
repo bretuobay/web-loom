@@ -51,12 +51,8 @@ function SettingsInterface() {
         <div className="hub">
           <h1>Settings</h1>
           <div className="spoke-grid">
-            {spokes.map(spoke => (
-              <button
-                key={spoke.id}
-                onClick={() => hubSpoke.activateSpoke(spoke.id)}
-                className="spoke-card"
-              >
+            {spokes.map((spoke) => (
+              <button key={spoke.id} onClick={() => hubSpoke.activateSpoke(spoke.id)} className="spoke-card">
                 <span className="icon">{spoke.icon}</span>
                 <span className="label">{spoke.label}</span>
               </button>
@@ -66,9 +62,7 @@ function SettingsInterface() {
       ) : (
         <div className="spoke">
           <nav className="breadcrumbs">
-            <button onClick={() => hubSpoke.returnToHub()}>
-              ← Settings
-            </button>
+            <button onClick={() => hubSpoke.returnToHub()}>← Settings</button>
             {state.breadcrumbs.map((crumb, index) => (
               <span key={index}> / {crumb}</span>
             ))}
@@ -145,12 +139,8 @@ function NestedSettingsInterface() {
     <div className="hub">
       <h1>Settings Hub</h1>
       <div className="spoke-grid">
-        {spokes.map(spoke => (
-          <button
-            key={spoke.id}
-            onClick={() => hubSpoke.activateSpoke(spoke.id)}
-            className="spoke-card"
-          >
+        {spokes.map((spoke) => (
+          <button key={spoke.id} onClick={() => hubSpoke.activateSpoke(spoke.id)} className="spoke-card">
             <span className="icon">{spoke.icon}</span>
             <span className="label">{spoke.label}</span>
           </button>
@@ -160,25 +150,19 @@ function NestedSettingsInterface() {
   );
 
   const renderSpoke = () => {
-    const currentSpoke = spokes.find(s => s.id === state.activeSpoke);
-    
+    const currentSpoke = spokes.find((s) => s.id === state.activeSpoke);
+
     return (
       <div className="spoke">
         <nav className="breadcrumbs">
-          <button onClick={() => hubSpoke.returnToHub()}>
-            ← Hub
-          </button>
+          <button onClick={() => hubSpoke.returnToHub()}>← Hub</button>
           <span> / {currentSpoke?.label}</span>
         </nav>
 
         {currentSpoke?.subSpokes && (
           <div className="sub-spokes">
-            {currentSpoke.subSpokes.map(subSpoke => (
-              <button
-                key={subSpoke.id}
-                onClick={() => hubSpoke.activateSpoke(subSpoke.id)}
-                className="sub-spoke-card"
-              >
+            {currentSpoke.subSpokes.map((subSpoke) => (
+              <button key={subSpoke.id} onClick={() => hubSpoke.activateSpoke(subSpoke.id)} className="sub-spoke-card">
                 <span className="icon">{subSpoke.icon}</span>
                 <span className="label">{subSpoke.label}</span>
               </button>
@@ -189,11 +173,7 @@ function NestedSettingsInterface() {
     );
   };
 
-  return (
-    <div className="nested-settings">
-      {state.isOnHub ? renderHub() : renderSpoke()}
-    </div>
-  );
+  return <div className="nested-settings">{state.isOnHub ? renderHub() : renderSpoke()}</div>;
 }
 
 export default NestedSettingsInterface;
@@ -298,9 +278,7 @@ function PhotoGallery() {
         {photos.map((photo, index) => (
           <div
             key={photo.id}
-            className={`photo-card ${
-              state.focusedIndex === index ? 'focused' : ''
-            } ${
+            className={`photo-card ${state.focusedIndex === index ? 'focused' : ''} ${
               state.selectedItems.includes(photo.id) ? 'selected' : ''
             }`}
             onClick={() => grid.selectItem(photo.id)}
@@ -384,9 +362,7 @@ function ProductGrid() {
         {products.map((product, index) => (
           <div
             key={product.id}
-            className={`product-card ${
-              state.selectedItems.includes(product.id) ? 'selected' : ''
-            }`}
+            className={`product-card ${state.selectedItems.includes(product.id) ? 'selected' : ''}`}
             onClick={() => grid.selectItem(product.id)}
           >
             <img src={product.image} alt={product.name} />
@@ -568,10 +544,7 @@ function EnhancedModalExample() {
             }
           }}
         >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>{topModal.content.title}</h2>
             <button onClick={() => modal.closeTopModal()}>Close</button>
           </div>
@@ -620,7 +593,7 @@ function ResponsiveSidebar() {
 
   const handleSectionSelect = (sectionId: string) => {
     sidebar.selectSection(sectionId);
-    
+
     // Auto-collapse on mobile
     if (state.isMobile) {
       sidebar.collapse();
@@ -630,20 +603,13 @@ function ResponsiveSidebar() {
   return (
     <div className="app-layout">
       {state.isMobile && (
-        <button
-          className="mobile-toggle"
-          onClick={() => sidebar.toggleMobile()}
-        >
+        <button className="mobile-toggle" onClick={() => sidebar.toggleMobile()}>
           ☰
         </button>
       )}
 
-      <aside
-        className={`sidebar ${state.isCollapsed ? 'collapsed' : ''} ${
-          state.isMobile ? 'mobile' : ''
-        }`}
-      >
-        {state.sections.map(section => (
+      <aside className={`sidebar ${state.isCollapsed ? 'collapsed' : ''} ${state.isMobile ? 'mobile' : ''}`}>
+        {state.sections.map((section) => (
           <button
             key={section.id}
             onClick={() => handleSectionSelect(section.id)}
@@ -675,13 +641,7 @@ export default ResponsiveSidebar;
 import React from 'react';
 import { useToastQueue } from '@web-loom/ui-patterns/react';
 
-type ToastPosition =
-  | 'top-left'
-  | 'top-center'
-  | 'top-right'
-  | 'bottom-left'
-  | 'bottom-center'
-  | 'bottom-right';
+type ToastPosition = 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
 
 function ToastExample() {
   const toast = useToastQueue({
@@ -707,20 +667,11 @@ function ToastExample() {
   return (
     <div>
       <div className="controls">
-        <button onClick={() => showToast('Success!', 'success')}>
-          Show Success
-        </button>
-        <button onClick={() => showToast('Error occurred', 'error')}>
-          Show Error
-        </button>
-        <button onClick={() => showToast('Info message', 'info')}>
-          Show Info
-        </button>
+        <button onClick={() => showToast('Success!', 'success')}>Show Success</button>
+        <button onClick={() => showToast('Error occurred', 'error')}>Show Error</button>
+        <button onClick={() => showToast('Info message', 'info')}>Show Info</button>
 
-        <select
-          value={state.position}
-          onChange={(e) => changePosition(e.target.value as ToastPosition)}
-        >
+        <select value={state.position} onChange={(e) => changePosition(e.target.value as ToastPosition)}>
           <option value="top-left">Top Left</option>
           <option value="top-center">Top Center</option>
           <option value="top-right">Top Right</option>
@@ -731,7 +682,7 @@ function ToastExample() {
       </div>
 
       <div className={`toast-container ${state.position}`}>
-        {state.queue.slice(0, state.maxVisible).map(t => (
+        {state.queue.slice(0, state.maxVisible).map((t) => (
           <div key={t.id} className={`toast ${t.type}`}>
             <p>{t.message}</p>
             <button onClick={() => toast.removeToast(t.id)}>×</button>
@@ -850,11 +801,7 @@ function CommandPaletteExample() {
   const state = palette.getState();
 
   if (!isOpen) {
-    return (
-      <button onClick={() => setIsOpen(true)}>
-        Open Command Palette (Ctrl+K)
-      </button>
-    );
+    return <button onClick={() => setIsOpen(true)}>Open Command Palette (Ctrl+K)</button>;
   }
 
   return (
@@ -930,7 +877,7 @@ const handleKeyDown = (e: React.KeyboardEvent) => {
 ```tsx
 useEffect(() => {
   let ticking = false;
-  
+
   const handleScroll = () => {
     if (!ticking) {
       window.requestAnimationFrame(() => {

@@ -8,13 +8,12 @@ const useWebWarningSuppress = () => {
   useEffect(() => {
     if (Platform.OS === 'web') {
       const originalConsoleWarn = console.warn;
-      
+
       console.warn = (...args) => {
         const message = args[0];
         if (
           typeof message === 'string' &&
-          (message.includes('onResponder') || 
-           message.includes('Unknown event handler'))
+          (message.includes('onResponder') || message.includes('Unknown event handler'))
         ) {
           // Suppress these specific warnings
           return;
@@ -40,7 +39,7 @@ const chartWidth = Math.min(
 export const SensorReadingCard = ({ sensorReadings, navigation }: { sensorReadings: any[]; navigation: any }) => {
   // Suppress React Native Web warnings for chart components
   useWebWarningSuppress();
-  
+
   if (!sensorReadings || sensorReadings.length === 0) return null;
 
   // Show only the last 6 readings

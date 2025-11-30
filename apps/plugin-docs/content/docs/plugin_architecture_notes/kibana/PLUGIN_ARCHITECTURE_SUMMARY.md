@@ -40,10 +40,7 @@ Kibana deliberately chose dependency injection over the service locator pattern.
 
 ```typescript
 export class MyPlugin implements Plugin {
-  setup(
-    core: CoreSetup,
-    plugins: { data: DataSetup; navigation: NavigationSetup }
-  ) {
+  setup(core: CoreSetup, plugins: { data: DataSetup; navigation: NavigationSetup }) {
     // Dependencies injected - no global registry lookup needed
     plugins.data.search.registerSearchStrategy(/*...*/);
   }
@@ -51,6 +48,7 @@ export class MyPlugin implements Plugin {
 ```
 
 This pattern provides:
+
 - **Explicit Dependencies**: Clear from type signatures
 - **Type Safety**: TypeScript enforces contract compatibility
 - **Testability**: Easy to mock injected dependencies
@@ -83,6 +81,7 @@ discover() {
 ```
 
 **Discovery Process**:
+
 1. Scan configured plugin directories recursively
 2. Locate `kibana.json` manifest files
 3. Parse and validate manifest structure
@@ -92,6 +91,7 @@ discover() {
 This design ensures **isolation of failures** - a malformed plugin doesn't prevent discovery of others.
 
 **Key Innovation**: Using RxJS observables for discovery allows the system to:
+
 - Process plugins as they're found (no blocking)
 - Handle errors independently
 - Compose discovery streams from multiple sources
@@ -122,6 +122,7 @@ class PluginWrapper {
 ```
 
 The wrapper pattern provides:
+
 - **Lazy Loading**: Code loaded only when needed
 - **Lifecycle Dispatch**: Coordinates setup/start/stop calls
 - **Dependency Resolution**: Collects and injects plugin contracts
@@ -143,6 +144,7 @@ Topological Order: C → B → A
 ```
 
 **Algorithm Implementation**:
+
 1. Build directed acyclic graph (DAG) of dependencies
 2. Find all plugins with zero dependencies (start nodes)
 3. Process each start node:
@@ -153,6 +155,7 @@ Topological Order: C → B → A
 5. If graph not empty → **circular dependency detected**
 
 This approach guarantees:
+
 - **Deterministic Order**: Same order every startup
 - **Cycle Detection**: Fails fast on circular dependencies
 - **Optimal Scheduling**: Minimal initialization time given constraints
@@ -162,6 +165,7 @@ This approach guarantees:
 Kibana's lifecycle is divided into three phases:
 
 #### Setup Phase
+
 **Purpose**: Register resources, configure services
 **Timeout**: 10 seconds per plugin
 **Execution**: Sequential in topological order
@@ -177,6 +181,7 @@ async setupPlugins() {
 ```
 
 **Core Services Available**:
+
 - HTTP router creation
 - Saved object type registration
 - UI settings registration
@@ -184,6 +189,7 @@ async setupPlugins() {
 - Access to start services (via promise)
 
 #### Start Phase
+
 **Purpose**: Activate services, begin processing
 **Timeout**: 10 seconds per plugin
 **Execution**: Sequential in topological order
@@ -199,11 +205,13 @@ async startPlugins() {
 ```
 
 **Core Services Available**:
+
 - Elasticsearch client
 - Saved objects CRUD
 - Full service access
 
 #### Stop Phase
+
 **Purpose**: Cleanup, close connections
 **Timeout**: 15 seconds per plugin
 **Execution**: **Reverse** topological order
@@ -233,20 +241,19 @@ export const config: PluginConfigDescriptor<ConfigType> = {
   }),
 
   exposeToBrowser: {
-    apiUrl: true  // Available to client-side plugin
+    apiUrl: true, // Available to client-side plugin
   },
 
-  deprecations: ({ rename }) => [
-    rename('oldApiUrl', 'apiUrl')
-  ],
+  deprecations: ({ rename }) => [rename('oldApiUrl', 'apiUrl')],
 
   dynamicConfig: {
-    apiUrl: false  // Requires restart to change
-  }
+    apiUrl: false, // Requires restart to change
+  },
 };
 ```
 
 **Features**:
+
 - **Schema-based Validation**: Runtime type checking
 - **Browser Exposure Control**: Granular client config access
 - **Deprecation Handling**: Automated migration warnings
@@ -254,6 +261,7 @@ export const config: PluginConfigDescriptor<ConfigType> = {
 - **Namespace Isolation**: Each plugin has dedicated config path
 
 **Config Access**:
+
 ```typescript
 // Synchronous (constructor)
 constructor(initCtx: PluginInitializerContext) {
@@ -280,16 +288,20 @@ class DataPlugin implements Plugin<DataSetup, DataStart> {
   setup(): DataSetup {
     return {
       search: {
-        registerSearchStrategy: (name, strategy) => {/*...*/}
-      }
+        registerSearchStrategy: (name, strategy) => {
+          /*...*/
+        },
+      },
     };
   }
 
   start(): DataStart {
     return {
       search: {
-        search: (request) => {/*...*/}
-      }
+        search: (request) => {
+          /*...*/
+        },
+      },
     };
   }
 }
@@ -297,12 +309,13 @@ class DataPlugin implements Plugin<DataSetup, DataStart> {
 // Consumer plugin receives typed contract
 class VisualizationPlugin implements Plugin {
   setup(core, { data }: { data: DataSetup }) {
-    data.search.registerSearchStrategy('myStrategy', /*...*/);
+    data.search.registerSearchStrategy('myStrategy' /*...*/);
   }
 }
 ```
 
 **Benefits**:
+
 - **Type Safety**: Compile-time contract validation
 - **Clear API Boundaries**: What's exposed is explicit
 - **Versioning**: Contracts evolve independently
@@ -313,30 +326,37 @@ class VisualizationPlugin implements Plugin {
 Kibana distinguishes three dependency types:
 
 **Required Dependencies**:
+
 ```json
 "requiredPlugins": ["data", "navigation"]
 ```
+
 - Plugin won't load if dependency missing
 - Contract guaranteed to exist
 - TypeScript type: `{ data: DataSetup }`
 
 **Optional Dependencies**:
+
 ```json
 "optionalPlugins": ["share"]
 ```
+
 - Plugin loads even if dependency missing
 - Contract may be undefined
 - TypeScript type: `{ share?: ShareSetup }`
 
 **Runtime Dependencies**:
+
 ```json
 "runtimePluginDependencies": ["security"]
 ```
+
 - Resolved dynamically at runtime
 - Not part of topological sort
 - Accessed via contract resolver
 
 **Usage Pattern**:
+
 ```typescript
 setup(core, plugins: { data: DataSetup; share?: ShareSetup }) {
   // Always available
@@ -361,6 +381,7 @@ export interface PrebootPlugin<TSetup> {
 ```
 
 **Characteristics**:
+
 - No `start` phase (setup only)
 - Execute before standard plugins
 - Stopped before standard plugins start
@@ -421,16 +442,18 @@ Client-side plugins declare bundle dependencies separately from runtime dependen
 
 ```json
 {
-  "requiredPlugins": ["data"],      // Runtime dependency
+  "requiredPlugins": ["data"], // Runtime dependency
   "requiredBundles": ["kibanaReact"] // Build-time dependency
 }
 ```
 
 **Distinction**:
+
 - `requiredPlugins`: Must be enabled at runtime
 - `requiredBundles`: Code imported during build (webpack optimization)
 
 This separation allows:
+
 - Webpack to optimize chunk splitting
 - Code sharing across plugin boundaries
 - Lazy loading of plugin bundles
@@ -441,6 +464,7 @@ This separation allows:
 Plugins can be conditionally enabled based on:
 
 **License** (commercial features):
+
 ```typescript
 if (!license.hasFeature('security')) {
   return; // Don't initialize security features
@@ -448,6 +472,7 @@ if (!license.hasFeature('security')) {
 ```
 
 **Node Role** (distributed deployments):
+
 ```typescript
 if (initCtx.node.roles.backgroundTasks) {
   // Only run on background task nodes
@@ -456,6 +481,7 @@ if (initCtx.node.roles.backgroundTasks) {
 ```
 
 **Feature Flags**:
+
 ```typescript
 if (config.experimentalFeatures.newViz) {
   registerNewVisualization();
@@ -469,6 +495,7 @@ if (config.experimentalFeatures.newViz) {
 Kibana's plugin system implements **fail-fast during startup, graceful during shutdown**:
 
 **Discovery Errors**: Isolated
+
 ```typescript
 discover() {
   return {
@@ -479,6 +506,7 @@ discover() {
 ```
 
 **Initialization Errors**: Fail-fast
+
 ```typescript
 if (!instance.setup) {
   throw new Error('Plugin missing setup method');
@@ -486,10 +514,11 @@ if (!instance.setup) {
 ```
 
 **Setup/Start Errors**: Fail-fast
+
 ```typescript
 const result = await withTimeout({
   promise: plugin.setup(),
-  timeoutMs: 10000
+  timeoutMs: 10000,
 });
 
 if (result.timedout) {
@@ -498,6 +527,7 @@ if (result.timedout) {
 ```
 
 **Stop Errors**: Graceful
+
 ```typescript
 try {
   await plugin.stop();
@@ -510,6 +540,7 @@ try {
 ### Timeout Management
 
 Each lifecycle phase has graduated timeouts:
+
 - **Setup**: 10 seconds
 - **Start**: 10 seconds
 - **Stop**: 15 seconds (longer to allow graceful cleanup)
@@ -519,13 +550,13 @@ Timeouts prevent hung plugins from blocking startup/shutdown:
 ```typescript
 const result = await withTimeout({
   promise: plugin.setup(context, deps),
-  timeoutMs: 10 * 1000
+  timeoutMs: 10 * 1000,
 });
 
 if (result.timedout) {
   throw new Error(
     `Setup lifecycle of "${pluginName}" plugin wasn't completed in 10sec. ` +
-    `Consider disabling the plugin and re-start.`
+      `Consider disabling the plugin and re-start.`,
   );
 }
 ```
@@ -535,24 +566,28 @@ if (result.timedout) {
 Kibana employs **defense in depth** for plugin validation:
 
 **Layer 1: Manifest Validation**
+
 - Required fields present
 - Types correct
 - Naming conventions followed
 - Version compatibility
 
 **Layer 2: Dependency Validation**
+
 - Required plugins exist
 - No circular dependencies
 - Source compatibility (OSS/X-Pack)
 - Type compatibility (preboot/standard)
 
 **Layer 3: Code Validation**
+
 - Exports `plugin` function
 - Function returns plugin instance
 - Instance has `setup` method
 - Setup returns object (contract)
 
 **Layer 4: Runtime Validation**
+
 - Schema validation of configs
 - Type checking of contracts (via TypeScript)
 - Capability checks before feature use
@@ -562,6 +597,7 @@ Kibana employs **defense in depth** for plugin validation:
 ### Trust-Based Model
 
 Kibana's plugin system operates on a **trust-based model**:
+
 - No sandboxing or isolation
 - Plugins run in same Node.js process
 - Full access to `require()` and Node APIs
@@ -570,6 +606,7 @@ Kibana's plugin system operates on a **trust-based model**:
 **Rationale**: All plugins in a Kibana instance are considered **first-party** or **trusted third-party** code. The system prioritizes performance and simplicity over isolation.
 
 **Implications**:
+
 - Plugin code reviews critical
 - Malicious plugin could compromise entire system
 - Plugin bugs can crash Kibana
@@ -616,12 +653,14 @@ Plugins cannot access other plugins' configuration directly, enforcing boundarie
 ### Startup Performance
 
 **Current Behavior**:
+
 - Plugins loaded serially (within dependency tiers)
 - All plugins loaded at startup (no lazy loading)
 - ~100-200 plugins in typical Kibana instance
 - Startup time: 30-60 seconds (depending on plugin count)
 
 **Optimization Opportunities**:
+
 1. **Parallel initialization** within tiers (30-40% improvement potential)
 2. **Lazy loading** of non-critical plugins (faster startup)
 3. **Cached compilation** of plugin code
@@ -629,11 +668,13 @@ Plugins cannot access other plugins' configuration directly, enforcing boundarie
 ### Runtime Performance
 
 **Memory Overhead**:
+
 - Each plugin: ~5-50 MB (varies widely)
 - Wrapper overhead: negligible (~1 KB per plugin)
 - Contract storage: minimal (references only)
 
 **Contract Resolution**:
+
 - O(1) lookup in contract Map
 - No serialization overhead (in-process)
 - Type checking at compile time (zero runtime cost)
@@ -641,12 +682,14 @@ Plugins cannot access other plugins' configuration directly, enforcing boundarie
 ### Client-Side Loading
 
 **Bundle Strategy**:
+
 - Each plugin compiled to separate bundle
 - Common dependencies in shared chunks
 - Lazy loading via dynamic imports
 - Code splitting by route
 
 **Loading Sequence**:
+
 1. Receive plugin metadata from server (~10 KB)
 2. Load plugin bundles on-demand (~50-500 KB per plugin)
 3. Initialize in dependency order
@@ -703,11 +746,13 @@ No sandboxing or permission model.
 ### vs. VS Code Extensions
 
 **Similarities**:
+
 - Manifest-based discovery
 - Dependency injection
 - Activation events (lifecycle)
 
 **Differences**:
+
 - VS Code: Process isolation per extension
 - Kibana: Shared process, no isolation
 - VS Code: Extension host protocol (IPC)
@@ -718,10 +763,12 @@ No sandboxing or permission model.
 ### vs. Webpack Plugins
 
 **Similarities**:
+
 - Hook-based extension points
 - Plugin registration system
 
 **Differences**:
+
 - Webpack: Synchronous, build-time
 - Kibana: Asynchronous, runtime
 - Webpack: No dependency injection
@@ -732,10 +779,12 @@ No sandboxing or permission model.
 ### vs. Express Middleware
 
 **Similarities**:
+
 - Linear execution order
 - Request/response modification
 
 **Differences**:
+
 - Express: Request-scoped, no state
 - Kibana: Application-scoped, stateful
 - Express: Simple function composition
@@ -750,16 +799,19 @@ No sandboxing or permission model.
 Kibana's plugin architecture evolved through several iterations:
 
 **Generation 1** (2015-2016): Informal plugin system
+
 - Plugins manually required
 - No dependency management
 - Global state sharing
 
 **Generation 2** (2017-2018): Manifest-based system
+
 - `kibana.json` introduced
 - Dependency declaration
 - Basic lifecycle (setup/start)
 
 **Generation 3** (2019-2020): New Platform
+
 - Type-safe contracts
 - Dual environment support
 - Configuration isolation
@@ -769,18 +821,21 @@ Kibana's plugin architecture evolved through several iterations:
 
 **1. Micro-Frontends**
 Plugins increasingly act as micro-frontends:
+
 - Independent bundles
 - Isolated React trees
 - Cross-plugin communication via contracts
 
 **2. Service-Oriented Architecture**
 Backend plugins expose service contracts:
+
 - Well-defined APIs
 - Version stability
 - Contract testing
 
 **3. Feature Flags**
 Dynamic feature enablement:
+
 - Conditional plugin loading
 - Gradual rollouts
 - A/B testing support
@@ -788,21 +843,25 @@ Dynamic feature enablement:
 ### Potential Improvements
 
 **Performance**:
+
 - Parallel plugin initialization
 - Lazy loading of non-critical plugins
 - Shared chunk optimization
 
 **Resilience**:
+
 - Optional plugin isolation (worker processes)
 - Graceful degradation on failures
 - Health monitoring
 
 **Developer Experience**:
+
 - Hot reload for server plugins
 - Better debugging tools
 - Plugin dependency visualizer
 
 **Type Safety**:
+
 - Runtime contract validation
 - Version compatibility checking
 - Breaking change detection

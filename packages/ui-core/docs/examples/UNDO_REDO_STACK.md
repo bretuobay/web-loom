@@ -5,6 +5,7 @@
 The Undo/Redo Stack behavior provides a robust solution for managing state history with undo and redo operations. It maintains an immutable history of states, supports time-travel debugging, and includes configurable history limits to prevent unbounded memory growth.
 
 **Key Features:**
+
 - Immutable state history with structural sharing
 - Undo and redo operations
 - Configurable maximum history length
@@ -67,9 +68,11 @@ undoRedo.destroy();
 Creates an undo/redo stack behavior instance.
 
 **Type Parameters:**
+
 - `T` - The type of state being tracked in the history
 
 **Parameters:**
+
 - `options`: Configuration options (required)
   - `initialState: T` - The initial state to start with (required)
   - `maxLength?: number` - Maximum number of states to keep (default: 50)
@@ -81,12 +84,12 @@ Creates an undo/redo stack behavior instance.
 
 ```typescript
 interface UndoRedoStackState<T> {
-  past: T[];           // Array of past states (oldest to most recent)
-  present: T;          // The current state
-  future: T[];         // Array of future states (next to furthest)
-  canUndo: boolean;    // Whether undo is available
-  canRedo: boolean;    // Whether redo is available
-  maxLength: number;   // Maximum history length
+  past: T[]; // Array of past states (oldest to most recent)
+  present: T; // The current state
+  future: T[]; // Array of future states (next to furthest)
+  canUndo: boolean; // Whether undo is available
+  canRedo: boolean; // Whether redo is available
+  maxLength: number; // Maximum history length
 }
 ```
 
@@ -94,10 +97,10 @@ interface UndoRedoStackState<T> {
 
 ```typescript
 interface UndoRedoStackActions<T> {
-  undo: () => void;                    // Move to previous state
-  redo: () => void;                    // Move to next state
-  pushState: (state: T) => void;       // Push new state
-  clearHistory: () => void;            // Clear all history
+  undo: () => void; // Move to previous state
+  redo: () => void; // Move to next state
+  pushState: (state: T) => void; // Push new state
+  clearHistory: () => void; // Clear all history
   jumpToState: (index: number) => void; // Jump to specific state
   setMaxLength: (length: number) => void; // Update max length
 }
@@ -107,9 +110,9 @@ interface UndoRedoStackActions<T> {
 
 ```typescript
 interface UndoRedoStackOptions<T> {
-  initialState: T;                     // Required initial state
-  maxLength?: number;                  // Optional max length (default: 50)
-  onStateChange?: (state: T) => void;  // Optional change callback
+  initialState: T; // Required initial state
+  maxLength?: number; // Optional max length (default: 50)
+  onStateChange?: (state: T) => void; // Optional change callback
 }
 ```
 
@@ -227,7 +230,7 @@ function deleteShape(shapeId: string) {
   const current = canvasHistory.getState().present;
   canvasHistory.actions.pushState({
     ...current,
-    shapes: current.shapes.filter(s => s.id !== shapeId),
+    shapes: current.shapes.filter((s) => s.id !== shapeId),
     selectedShapeId: null,
   });
 }
@@ -265,11 +268,14 @@ function renderHistoryTimeline() {
 // Save history to localStorage
 function saveHistory() {
   const state = undoRedo.getState();
-  localStorage.setItem('editor-history', JSON.stringify({
-    past: state.past,
-    present: state.present,
-    future: state.future,
-  }));
+  localStorage.setItem(
+    'editor-history',
+    JSON.stringify({
+      past: state.past,
+      present: state.present,
+      future: state.future,
+    }),
+  );
 }
 
 // Load history from localStorage
@@ -282,9 +288,9 @@ function loadHistory() {
       initialState: present,
       maxLength: 100,
     });
-    
+
     // Manually restore past and future
-    past.forEach(state => undoRedo.actions.pushState(state));
+    past.forEach((state) => undoRedo.actions.pushState(state));
     // Note: Restoring future states requires custom logic
   }
 }
@@ -299,7 +305,7 @@ import { useUndoRedoStack } from '@web-loom/ui-core/react';
 
 function TextEditor() {
   const [content, setContent] = useState('');
-  
+
   const undoRedo = useUndoRedoStack<string>({
     initialState: '',
     maxLength: 100,
@@ -343,7 +349,7 @@ import { useUndoRedoStack } from '@web-loom/ui-core/vue';
 export default {
   setup() {
     const content = ref('');
-    
+
     const undoRedo = useUndoRedoStack<string>({
       initialState: '',
       maxLength: 100,
@@ -375,22 +381,9 @@ import { UndoRedoStackService } from '@web-loom/ui-core/angular';
   selector: 'app-text-editor',
   template: `
     <div>
-      <button
-        (click)="undoRedo.undo()"
-        [disabled]="!(undoRedo.state$ | async)?.canUndo"
-      >
-        Undo
-      </button>
-      <button
-        (click)="undoRedo.redo()"
-        [disabled]="!(undoRedo.state$ | async)?.canRedo"
-      >
-        Redo
-      </button>
-      <textarea
-        [value]="content"
-        (input)="handleChange($event.target.value)"
-      ></textarea>
+      <button (click)="undoRedo.undo()" [disabled]="!(undoRedo.state$ | async)?.canUndo">Undo</button>
+      <button (click)="undoRedo.redo()" [disabled]="!(undoRedo.state$ | async)?.canRedo">Redo</button>
+      <textarea [value]="content" (input)="handleChange($event.target.value)"></textarea>
     </div>
   `,
   providers: [UndoRedoStackService],
@@ -600,7 +593,7 @@ function handleInput(newContent: string) {
 function applyFormatting(text: string, format: Format) {
   const formatted = applyFormat(text, format);
   const withMetadata = addMetadata(formatted, format);
-  
+
   // Push only the final state
   undoRedo.actions.pushState(withMetadata);
 }
@@ -612,7 +605,7 @@ function applyFormatting(text: string, format: Format) {
 // Only push to history if state actually changed
 function updateState(newState: State) {
   const current = undoRedo.getState().present;
-  
+
   if (JSON.stringify(current) !== JSON.stringify(newState)) {
     undoRedo.actions.pushState(newState);
   }

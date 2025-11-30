@@ -55,7 +55,7 @@ All dynamic states are exposed as RxJS observables:
 ```typescript
 import { platform } from '@web-loom/platform-core';
 
-platform.networkStatus.status$.subscribe(status => {
+platform.networkStatus.status$.subscribe((status) => {
   console.log('Online:', status.online);
   console.log('Connection type:', status.effectiveType); // '4g' | '3g' | '2g' | 'slow-2g'
   console.log('Downlink speed:', status.downlink); // Mbps
@@ -63,7 +63,7 @@ platform.networkStatus.status$.subscribe(status => {
 });
 
 // Or just online/offline
-platform.networkStatus.online$.subscribe(online => {
+platform.networkStatus.online$.subscribe((online) => {
   console.log('Network is', online ? 'online' : 'offline');
 });
 ```
@@ -71,7 +71,7 @@ platform.networkStatus.online$.subscribe(online => {
 ### Battery Status
 
 ```typescript
-platform.batteryStatus.status$.subscribe(battery => {
+platform.batteryStatus.status$.subscribe((battery) => {
   if (battery) {
     console.log('Battery level:', battery.level * 100 + '%');
     console.log('Charging:', battery.charging);
@@ -85,19 +85,19 @@ platform.batteryStatus.status$.subscribe(battery => {
 
 ```typescript
 // Viewport size
-platform.viewport.size$.subscribe(size => {
+platform.viewport.size$.subscribe((size) => {
   console.log('Width:', size.width);
   console.log('Height:', size.height);
   console.log('Device pixel ratio:', size.devicePixelRatio);
 });
 
 // Orientation
-platform.viewport.orientation$.subscribe(orientation => {
+platform.viewport.orientation$.subscribe((orientation) => {
   console.log('Orientation:', orientation); // 'portrait' | 'landscape'
 });
 
 // Individual dimensions
-platform.viewport.width$.subscribe(width => {
+platform.viewport.width$.subscribe((width) => {
   console.log('Viewport width:', width);
 });
 ```
@@ -108,7 +108,7 @@ platform.viewport.width$.subscribe(width => {
 // Create reactive media query
 const isLargeScreen$ = platform.mediaQuery('(min-width: 1024px)');
 
-isLargeScreen$.subscribe(matches => {
+isLargeScreen$.subscribe((matches) => {
   console.log('Large screen:', matches);
 });
 
@@ -146,7 +146,7 @@ import { platform } from '@web-loom/platform-core';
 
 @Component({
   selector: 'app-network-indicator',
-  template: `<div>{{ online$ | async ? '🟢 Online' : '🔴 Offline' }}</div>`
+  template: `<div>{{ online$ | async ? '🟢 Online' : '🔴 Offline' }}</div>`,
 })
 export class NetworkIndicatorComponent {
   online$ = platform.networkStatus.online$;
@@ -164,7 +164,7 @@ const online = ref(true);
 let subscription;
 
 onMounted(() => {
-  subscription = platform.networkStatus.online$.subscribe(value => {
+  subscription = platform.networkStatus.online$.subscribe((value) => {
     online.value = value;
   });
 });
@@ -245,7 +245,7 @@ if (platform.isMobile) {
 }
 
 // React to viewport changes
-platform.viewport.width$.subscribe(width => {
+platform.viewport.width$.subscribe((width) => {
   if (width < 768) {
     // Apply mobile styles
   }
@@ -276,7 +276,7 @@ if (features.notifications) {
 
 ```typescript
 // Adjust quality based on network
-platform.networkStatus.status$.subscribe(network => {
+platform.networkStatus.status$.subscribe((network) => {
   if (network.effectiveType === '2g' || network.effectiveType === 'slow-2g') {
     // Load low-quality images
   } else if (network.effectiveType === '4g') {
@@ -285,7 +285,7 @@ platform.networkStatus.status$.subscribe(network => {
 });
 
 // Reduce animations on low battery
-platform.batteryStatus.status$.subscribe(battery => {
+platform.batteryStatus.status$.subscribe((battery) => {
   if (battery && battery.level < 0.2 && !battery.charging) {
     // Disable heavy animations
   }

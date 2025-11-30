@@ -1,28 +1,29 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import SearchModal from './search-modal'
+import { useState, useEffect } from 'react';
+import SearchModal from './search-modal';
 
 export default function Search() {
-
-  const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false)
+  const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {      
-      !searchModalOpen && event.preventDefault()
-      if(event.key === '/') {
-        setSearchModalOpen(true)
+    const handleKeyDown = (event: KeyboardEvent) => {
+      !searchModalOpen && event.preventDefault();
+      if (event.key === '/') {
+        setSearchModalOpen(true);
       }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () =>  window.removeEventListener('keydown', handleKeyDown)
-  }, [searchModalOpen])
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [searchModalOpen]);
 
   return (
     <div className="grow ml-4 md:ml-8">
       <button
         className="w-full sm:w-[380px] text-[15px] bg-white text-slate-400 inline-flex items-center justify-between leading-5 pl-3 pr-2 py-[7px] rounded-sm border border-slate-200 hover:border-slate-300 shadow-xs whitespace-nowrap dark:text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600"
-        onClick={() => { setSearchModalOpen(true) }}
+        onClick={() => {
+          setSearchModalOpen(true);
+        }}
       >
         <div className="flex items-center justify-center">
           <svg
@@ -46,5 +47,5 @@ export default function Search() {
         <SearchModal isOpen={searchModalOpen} setIsOpen={setSearchModalOpen} />
       </div>
     </div>
-  )
+  );
 }

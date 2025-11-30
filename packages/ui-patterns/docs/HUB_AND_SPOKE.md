@@ -5,6 +5,7 @@
 The Hub & Spoke Navigation pattern provides a centralized navigation structure where users start at a central "hub" page and navigate to independent "spoke" pages. This pattern is ideal for applications with distinct sections that don't need to maintain state between each other, such as settings interfaces, dashboards with independent modules, or multi-section applications.
 
 **Key Features:**
+
 - Central hub as the main entry point
 - Independent spoke pages with isolated state
 - Automatic breadcrumb tracking
@@ -71,6 +72,7 @@ navigation.destroy();
 Creates a hub-and-spoke navigation pattern instance.
 
 **Parameters:**
+
 - `options`: Configuration options
   - `spokes: Spoke[]` - Array of spoke definitions
   - `onSpokeActivate?: (spokeId: string) => void` - Callback when a spoke is activated
@@ -83,11 +85,11 @@ Creates a hub-and-spoke navigation pattern instance.
 
 ```typescript
 interface HubAndSpokeState {
-  isOnHub: boolean;              // Whether currently on hub page
-  activeSpoke: string | null;    // ID of active spoke, or null if on hub
-  spokes: Spoke[];               // Array of all spokes
-  breadcrumbs: string[];         // Navigation breadcrumb trail
-  navigationHistory: string[];   // Full navigation history
+  isOnHub: boolean; // Whether currently on hub page
+  activeSpoke: string | null; // ID of active spoke, or null if on hub
+  spokes: Spoke[]; // Array of all spokes
+  breadcrumbs: string[]; // Navigation breadcrumb trail
+  navigationHistory: string[]; // Full navigation history
 }
 ```
 
@@ -108,10 +110,10 @@ interface HubAndSpokeActions {
 
 ```typescript
 interface Spoke {
-  id: string;                    // Unique identifier
-  label: string;                 // Display label
-  icon?: string;                 // Optional icon identifier
-  subSpokes?: Spoke[];          // Optional nested spokes
+  id: string; // Unique identifier
+  label: string; // Display label
+  icon?: string; // Optional icon identifier
+  subSpokes?: Spoke[]; // Optional nested spokes
 }
 ```
 
@@ -337,10 +339,7 @@ import { HubAndSpokeService } from '@web-loom/ui-patterns/angular';
     <div *ngIf="state.isOnHub" class="hub">
       <h1>Settings</h1>
       <nav>
-        <button
-          *ngFor="let spoke of state.spokes"
-          (click)="activateSpoke(spoke.id)"
-        >
+        <button *ngFor="let spoke of state.spokes" (click)="activateSpoke(spoke.id)">
           {{ spoke.label }}
         </button>
       </nav>
@@ -639,7 +638,6 @@ const appNav = createHubAndSpoke({
 
 MIT
 
-
 ---
 
 ## Framework-Specific Examples
@@ -650,7 +648,6 @@ For comprehensive framework-specific implementation examples, see:
   - Basic settings interface with hub and spoke navigation
   - Nested spokes example with sub-navigation
   - Integration with React Router
-  
 - **[Vue Examples](./examples/VUE_EXAMPLES.md#hub--spoke-navigation)** - Vue 3 Composition API examples with:
   - Reactive hub and spoke navigation
   - Nested spoke structures

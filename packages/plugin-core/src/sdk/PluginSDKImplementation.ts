@@ -71,11 +71,7 @@ export class PluginSDKImplementation<T extends TComponent = TComponent> implemen
   public readonly ui: HostUIService;
   public readonly services: HostServices['services'];
 
-  constructor(
-    pluginId: string,
-    pluginManifest: PluginManifest<T>,
-    hostServices: HostServices
-  ) {
+  constructor(pluginId: string, pluginManifest: PluginManifest<T>, hostServices: HostServices) {
     this.plugin = {
       id: pluginId,
       manifest: pluginManifest,

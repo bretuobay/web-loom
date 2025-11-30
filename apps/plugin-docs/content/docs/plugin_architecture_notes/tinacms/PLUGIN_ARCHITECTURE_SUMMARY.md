@@ -24,8 +24,8 @@ These components work in concert through an **EventBus** that provides reactive,
 
 ```typescript
 interface Plugin {
-  __type: string;  // Category identifier
-  name: string;    // Unique name within category
+  __type: string; // Category identifier
+  name: string; // Unique name within category
 }
 ```
 
@@ -71,26 +71,30 @@ A defining characteristic of the TinaCMS plugin architecture is its rejection of
 TinaCMS offers four distinct registration pathways, each suited to different use cases:
 
 **1. Constructor Configuration** - For initial, static plugin sets:
+
 ```typescript
 const cms = new CMS({
-  plugins: [TextFieldPlugin, ImageFieldPlugin, ColorFieldPlugin]
+  plugins: [TextFieldPlugin, ImageFieldPlugin, ColorFieldPlugin],
 });
 ```
 
 **2. Imperative API** - For dynamic, programmatic registration:
+
 ```typescript
 cms.plugins.add(customPlugin);
 cms.plugins.remove(oldPlugin);
 ```
 
 **3. Specialized Accessors** - For type-safe convenience (TinaCMS subclass):
+
 ```typescript
-cms.fields.add(fieldPlugin);   // Type: PluginType<FieldPlugin>
+cms.fields.add(fieldPlugin); // Type: PluginType<FieldPlugin>
 cms.screens.add(screenPlugin); // Type: PluginType<ScreenPlugin>
-cms.forms.add(formPlugin);     // Type: PluginType<Form>
+cms.forms.add(formPlugin); // Type: PluginType<Form>
 ```
 
 **4. React Hooks** - For component-scoped plugins with automatic cleanup:
+
 ```typescript
 function MyEditor() {
   usePlugin({
@@ -149,7 +153,7 @@ class PluginTypeManager {
   private plugins: Map<string, PluginType> = {};
 
   getType<P extends Plugin>(type: string): PluginType<P> {
-    return this.plugins[type] ||= new PluginType<P>(type, this.events);
+    return (this.plugins[type] ||= new PluginType<P>(type, this.events));
   }
 
   add<P extends Plugin>(plugin: P): void {
@@ -177,9 +181,7 @@ class EventBus {
   }
 
   dispatch(event: CMSEvent): void {
-    Array.from(this.listeners).forEach(listener =>
-      listener.handleEvent(event)
-    );
+    Array.from(this.listeners).forEach((listener) => listener.handleEvent(event));
   }
 }
 ```
@@ -277,15 +279,17 @@ TinaCMS exposes six primary extension points, each represented by a distinct plu
 TinaCMS supports multiple plugin configuration patterns, each suited to different complexity levels:
 
 **Object Literals** offer the simplest approach for stateless plugins:
+
 ```typescript
 export const TextFieldPlugin = {
   name: 'text',
   Component: TextField,
-  validate: (value) => value ? undefined : 'Required'
+  validate: (value) => (value ? undefined : 'Required'),
 };
 ```
 
 **Factory Functions** enable prop injection and composition:
+
 ```typescript
 export function createScreen({ Component, props, ...options }) {
   return {
@@ -296,6 +300,7 @@ export function createScreen({ Component, props, ...options }) {
 ```
 
 **Class-Based Plugins** encapsulate complex state and methods:
+
 ```typescript
 class BranchSwitcherPlugin implements ScreenPlugin {
   __type = 'screen';
@@ -305,7 +310,7 @@ class BranchSwitcherPlugin implements ScreenPlugin {
   Component = () => {
     const branches = await this.api.listBranches();
     // ... render logic
-  }
+  };
 }
 ```
 

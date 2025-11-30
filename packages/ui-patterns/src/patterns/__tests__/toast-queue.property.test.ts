@@ -4,7 +4,7 @@ import { createToastQueue, type ToastPosition } from '../toast-queue';
 
 /**
  * Property-Based Tests for Toast Queue Pattern Enhancements
- * 
+ *
  * These tests validate the correctness properties defined in the design document
  * using property-based testing with fast-check.
  */
@@ -19,51 +19,47 @@ describe('Toast Queue - Property-Based Tests', () => {
     'top-right',
     'bottom-left',
     'bottom-center',
-    'bottom-right'
+    'bottom-right',
   );
 
   /**
    * Feature: ui-core-gaps, Property 35: Position configuration
    * Validates: Requirements 11.2, 11.5
-   * 
+   *
    * For any valid position value, setting the position should update the state
    * and emit a position change event.
    */
   it('Property 35: Position configuration', () => {
     fc.assert(
-      fc.property(
-        toastPositionArbitrary,
-        toastPositionArbitrary,
-        (initialPosition, newPosition) => {
-          const onPositionChanged = vi.fn();
-          const toastQueue = createToastQueue({
-            position: initialPosition,
-            onPositionChanged,
-          });
+      fc.property(toastPositionArbitrary, toastPositionArbitrary, (initialPosition, newPosition) => {
+        const onPositionChanged = vi.fn();
+        const toastQueue = createToastQueue({
+          position: initialPosition,
+          onPositionChanged,
+        });
 
-          // Verify initial position
-          expect(toastQueue.getState().position).toBe(initialPosition);
+        // Verify initial position
+        expect(toastQueue.getState().position).toBe(initialPosition);
 
-          // Set up event listener
-          const eventListener = vi.fn();
-          toastQueue.eventBus.on('toast:position-changed', eventListener);
+        // Set up event listener
+        const eventListener = vi.fn();
+        toastQueue.eventBus.on('toast:position-changed', eventListener);
 
-          // Change position
-          toastQueue.actions.setPosition(newPosition);
+        // Change position
+        toastQueue.actions.setPosition(newPosition);
 
-          // Verify position was updated in state
-          expect(toastQueue.getState().position).toBe(newPosition);
+        // Verify position was updated in state
+        expect(toastQueue.getState().position).toBe(newPosition);
 
-          // Verify callback was invoked
-          expect(onPositionChanged).toHaveBeenCalledWith(newPosition);
+        // Verify callback was invoked
+        expect(onPositionChanged).toHaveBeenCalledWith(newPosition);
 
-          // Verify event was emitted
-          expect(eventListener).toHaveBeenCalledWith({ position: newPosition });
+        // Verify event was emitted
+        expect(eventListener).toHaveBeenCalledWith({ position: newPosition });
 
-          toastQueue.destroy();
-        }
-      ),
-      { numRuns: 100 }
+        toastQueue.destroy();
+      }),
+      { numRuns: 100 },
     );
   });
 
@@ -100,9 +96,9 @@ describe('Toast Queue - Property-Based Tests', () => {
           expect(toastQueue.getState().position).toBe(position);
 
           toastQueue.destroy();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -111,49 +107,46 @@ describe('Toast Queue - Property-Based Tests', () => {
    */
   it('Property: Multiple position changes are tracked correctly', () => {
     fc.assert(
-      fc.property(
-        fc.array(toastPositionArbitrary, { minLength: 2, maxLength: 10 }),
-        (positions) => {
-          const toastQueue = createToastQueue();
-          const stateChanges: ToastPosition[] = [];
+      fc.property(fc.array(toastPositionArbitrary, { minLength: 2, maxLength: 10 }), (positions) => {
+        const toastQueue = createToastQueue();
+        const stateChanges: ToastPosition[] = [];
 
-          // Subscribe to position changes
-          toastQueue.subscribe((state) => {
-            stateChanges.push(state.position);
-          });
+        // Subscribe to position changes
+        toastQueue.subscribe((state) => {
+          stateChanges.push(state.position);
+        });
 
-          // Apply all position changes
-          positions.forEach((position) => {
-            toastQueue.actions.setPosition(position);
-          });
+        // Apply all position changes
+        positions.forEach((position) => {
+          toastQueue.actions.setPosition(position);
+        });
 
-          // Final position should match last position in array
-          expect(toastQueue.getState().position).toBe(positions[positions.length - 1]);
+        // Final position should match last position in array
+        expect(toastQueue.getState().position).toBe(positions[positions.length - 1]);
 
-          // Count unique position changes (filtering out duplicates)
-          const uniquePositions = positions.filter((pos, idx) => {
-            if (idx === 0) {
-              // First position is unique if different from default
-              return pos !== 'top-right';
-            }
-            // Subsequent positions are unique if different from previous
-            return pos !== positions[idx - 1];
-          });
-
-          // State changes should only happen for actual changes in position
-          // If all positions are the same as default or duplicates, no state changes occur
-          if (uniquePositions.length > 0) {
-            expect(stateChanges.length).toBeGreaterThanOrEqual(1);
-            expect(stateChanges[stateChanges.length - 1]).toBe(positions[positions.length - 1]);
-          } else {
-            // If no unique positions, no state changes should occur
-            expect(stateChanges.length).toBe(0);
+        // Count unique position changes (filtering out duplicates)
+        const uniquePositions = positions.filter((pos, idx) => {
+          if (idx === 0) {
+            // First position is unique if different from default
+            return pos !== 'top-right';
           }
+          // Subsequent positions are unique if different from previous
+          return pos !== positions[idx - 1];
+        });
 
-          toastQueue.destroy();
+        // State changes should only happen for actual changes in position
+        // If all positions are the same as default or duplicates, no state changes occur
+        if (uniquePositions.length > 0) {
+          expect(stateChanges.length).toBeGreaterThanOrEqual(1);
+          expect(stateChanges[stateChanges.length - 1]).toBe(positions[positions.length - 1]);
+        } else {
+          // If no unique positions, no state changes should occur
+          expect(stateChanges.length).toBe(0);
         }
-      ),
-      { numRuns: 100 }
+
+        toastQueue.destroy();
+      }),
+      { numRuns: 100 },
     );
   });
 
@@ -175,7 +168,7 @@ describe('Toast Queue - Property-Based Tests', () => {
               message,
               type: 'info',
               duration: 5000,
-            })
+            }),
           );
 
           const toastCountBefore = toastQueue.getState().toasts.length;
@@ -195,9 +188,9 @@ describe('Toast Queue - Property-Based Tests', () => {
           });
 
           toastQueue.destroy();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -206,31 +199,28 @@ describe('Toast Queue - Property-Based Tests', () => {
    */
   it('Property: Event emission is consistent with state changes', () => {
     fc.assert(
-      fc.property(
-        fc.array(toastPositionArbitrary, { minLength: 1, maxLength: 10 }),
-        (positions) => {
-          const toastQueue = createToastQueue();
-          const eventListener = vi.fn();
+      fc.property(fc.array(toastPositionArbitrary, { minLength: 1, maxLength: 10 }), (positions) => {
+        const toastQueue = createToastQueue();
+        const eventListener = vi.fn();
 
-          toastQueue.eventBus.on('toast:position-changed', eventListener);
+        toastQueue.eventBus.on('toast:position-changed', eventListener);
 
-          // Apply all position changes
-          positions.forEach((position) => {
-            toastQueue.actions.setPosition(position);
-          });
+        // Apply all position changes
+        positions.forEach((position) => {
+          toastQueue.actions.setPosition(position);
+        });
 
-          // Event should have been emitted for each position change
-          expect(eventListener).toHaveBeenCalledTimes(positions.length);
+        // Event should have been emitted for each position change
+        expect(eventListener).toHaveBeenCalledTimes(positions.length);
 
-          // Verify each event had the correct position
-          positions.forEach((position, index) => {
-            expect(eventListener).toHaveBeenNthCalledWith(index + 1, { position });
-          });
+        // Verify each event had the correct position
+        positions.forEach((position, index) => {
+          expect(eventListener).toHaveBeenNthCalledWith(index + 1, { position });
+        });
 
-          toastQueue.destroy();
-        }
-      ),
-      { numRuns: 100 }
+        toastQueue.destroy();
+      }),
+      { numRuns: 100 },
     );
   });
 
@@ -267,9 +257,9 @@ describe('Toast Queue - Property-Based Tests', () => {
           expect(newState.defaultDuration).toBe(defaultDuration);
 
           toastQueue.destroy();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

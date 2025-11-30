@@ -13,7 +13,7 @@ interface Command {
 
 /**
  * Command Palette Example with Keyboard Shortcuts
- * 
+ *
  * Demonstrates:
  * - useKeyboardShortcuts hook for Ctrl+K shortcut
  * - Command palette pattern with search
@@ -70,14 +70,14 @@ export function CommandPaletteExample() {
   ];
 
   const palette = createCommandPalette({
-    commands: commands.map(cmd => ({
+    commands: commands.map((cmd) => ({
       id: cmd.id,
       label: cmd.label,
       keywords: [cmd.label.toLowerCase()],
       action: cmd.action,
     })),
     onCommandExecute: (command) => {
-      const localCommand = commands.find(c => c.id === command.id);
+      const localCommand = commands.find((c) => c.id === command.id);
       if (localCommand) {
         localCommand.action();
         setIsOpen(false);
@@ -92,7 +92,7 @@ export function CommandPaletteExample() {
     shortcuts.actions.registerShortcut({
       key: 'Ctrl+K',
       handler: () => {
-        setIsOpen(prev => !prev);
+        setIsOpen((prev) => !prev);
       },
       description: 'Toggle command palette',
       preventDefault: true,
@@ -114,7 +114,7 @@ export function CommandPaletteExample() {
     shortcuts.actions.registerShortcut({
       key: 'Shift+/',
       handler: () => {
-        setShowHelp(prev => !prev);
+        setShowHelp((prev) => !prev);
       },
       description: 'Toggle keyboard shortcuts help',
       preventDefault: true,
@@ -126,7 +126,7 @@ export function CommandPaletteExample() {
   }, [isOpen]);
 
   const addExecutedCommand = (message: string) => {
-    setExecutedCommands(prev => [message, ...prev].slice(0, 10));
+    setExecutedCommands((prev) => [message, ...prev].slice(0, 10));
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,17 +139,15 @@ export function CommandPaletteExample() {
   };
 
   const filteredCommands = palette.getState().filteredCommands;
-  const displayCommands = filteredCommands.map(fc => 
-    commands.find(c => c.id === fc.id)!
-  );
+  const displayCommands = filteredCommands.map((fc) => commands.find((c) => c.id === fc.id)!);
 
   return (
     <div className="example-container">
       <div className="example-header">
         <h2>Command Palette with Keyboard Shortcuts</h2>
         <p>
-          This example demonstrates the <code>useKeyboardShortcuts</code> hook
-          integrated with a command palette pattern.
+          This example demonstrates the <code>useKeyboardShortcuts</code> hook integrated with a command palette
+          pattern.
         </p>
       </div>
 
@@ -158,24 +156,24 @@ export function CommandPaletteExample() {
           <div className="demo-instructions">
             <h3>Try it out!</h3>
             <ul>
-              <li>Press <kbd>Ctrl+K</kbd> to open the command palette</li>
-              <li>Press <kbd>Escape</kbd> to close it</li>
-              <li>Press <kbd>Shift+/</kbd> (?) to toggle keyboard shortcuts help</li>
+              <li>
+                Press <kbd>Ctrl+K</kbd> to open the command palette
+              </li>
+              <li>
+                Press <kbd>Escape</kbd> to close it
+              </li>
+              <li>
+                Press <kbd>Shift+/</kbd> (?) to toggle keyboard shortcuts help
+              </li>
               <li>Type to search for commands</li>
             </ul>
           </div>
 
-          <button
-            onClick={() => setIsOpen(true)}
-            className="control-button primary"
-          >
+          <button onClick={() => setIsOpen(true)} className="control-button primary">
             Open Command Palette (Ctrl+K)
           </button>
 
-          <button
-            onClick={() => setShowHelp(prev => !prev)}
-            className="control-button secondary"
-          >
+          <button onClick={() => setShowHelp((prev) => !prev)} className="control-button secondary">
             {showHelp ? 'Hide' : 'Show'} Shortcuts (?)
           </button>
 
@@ -215,11 +213,7 @@ export function CommandPaletteExample() {
                     <div className="no-results">No commands found</div>
                   ) : (
                     displayCommands.map((command) => (
-                      <button
-                        key={command.id}
-                        onClick={() => handleCommandClick(command)}
-                        className="command-item"
-                      >
+                      <button key={command.id} onClick={() => handleCommandClick(command)} className="command-item">
                         <span className="command-icon">{command.icon}</span>
                         <div className="command-info">
                           <div className="command-label">{command.label}</div>

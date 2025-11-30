@@ -1,4 +1,5 @@
 # Chapter: Plugin Architectures for the Web
+
 ## Case Study: Backstage - Enterprise-Grade Plugin System for Developer Portals
 
 ### Introduction
@@ -6,6 +7,7 @@
 In the landscape of web application architectures, few systems demonstrate the sophistication and pragmatism of Backstage's plugin architecture. Originally developed at Spotify and open-sourced in 2020, Backstage has evolved into the reference implementation for platform engineering portals. Its plugin system represents a masterclass in balancing competing concerns: extensibility without chaos, type safety without rigidity, and modularity without performance penalties.
 
 This case study examines how Backstage solves the fundamental challenge of building a platform that is simultaneously:
+
 - **Open for extension** by third-party developers
 - **Closed for modification** to preserve system integrity
 - **Type-safe** across plugin boundaries
@@ -31,6 +33,7 @@ The system bifurcates into **frontend** and **backend** plugin architectures, ea
 Frontend plugins operate in the browser environment with these characteristics:
 
 **Static Composition**
+
 ```typescript
 // App.tsx - Build-time plugin assembly
 import { createApp } from '@backstage/app-defaults';
@@ -48,12 +51,14 @@ const app = createApp({
 ```
 
 Frontend plugins are **statically imported** and bundled at build time. This approach sacrifices runtime flexibility for:
+
 - **Tree-shaking**: Unused code eliminated by webpack
 - **Type checking**: Full compile-time validation
 - **Performance**: No dynamic loading overhead
 - **Predictability**: Zero runtime plugin discovery
 
 **API Dependency Resolution**
+
 ```typescript
 const catalogPlugin = createPlugin({
   id: 'catalog',
@@ -64,14 +69,14 @@ const catalogPlugin = createPlugin({
         discoveryApi: discoveryApiRef,
         fetchApi: fetchApiRef,
       },
-      factory: ({ discoveryApi, fetchApi }) =>
-        new CatalogClient({ discoveryApi, fetchApi }),
+      factory: ({ discoveryApi, fetchApi }) => new CatalogClient({ discoveryApi, fetchApi }),
     }),
   ],
 });
 ```
 
 The `createApiFactory` pattern enables:
+
 - **Declarative dependencies**: No manual wiring
 - **Lazy instantiation**: APIs created on first use
 - **Cycle detection**: Compile-time dependency graph validation
@@ -82,6 +87,7 @@ The `createApiFactory` pattern enables:
 Backend plugins operate in Node.js with dynamic loading and explicit lifecycle:
 
 **Dynamic Import with Metadata**
+
 ```typescript
 // backend/src/index.ts
 const backend = createBackend();
@@ -94,6 +100,7 @@ backend.start();
 ```
 
 Each plugin exports a `BackendFeature`:
+
 ```typescript
 export default createBackendPlugin({
   pluginId: 'catalog',
@@ -106,9 +113,9 @@ export default createBackendPlugin({
       },
       async init({ database, logger }) {
         // Plugin initialization logic
-      }
+      },
     });
-  }
+  },
 });
 ```
 
@@ -127,15 +134,17 @@ Backstage innovates with metadata-driven discovery via `package.json`:
 ```
 
 The `role` field drives automatic loading:
+
 - `backend-plugin` - Standalone backend service
 - `backend-plugin-module` - Extends existing plugin
 - `frontend-plugin` - UI components
 - `node-library` - Shared code
 
 Configuration controls discovery:
+
 ```yaml
 app:
-  packages: all  # Auto-discover all plugins
+  packages: all # Auto-discover all plugins
 
 # Or selective:
 backend:
@@ -163,10 +172,9 @@ export interface CatalogProcessingExtensionPoint {
   addPlaceholderResolver(key: string, resolver: PlaceholderResolver): void;
 }
 
-export const catalogProcessingExtensionPoint =
-  createExtensionPoint<CatalogProcessingExtensionPoint>({
-    id: 'catalog.processing',
-  });
+export const catalogProcessingExtensionPoint = createExtensionPoint<CatalogProcessingExtensionPoint>({
+  id: 'catalog.processing',
+});
 ```
 
 #### Extension Point Implementation (Plugin)
@@ -190,9 +198,9 @@ export const catalogPlugin = createBackendPlugin({
         builder.addEntityProvider(...processingExt.entityProviders);
 
         await builder.build();
-      }
+      },
     });
-  }
+  },
 });
 ```
 
@@ -200,24 +208,25 @@ export const catalogPlugin = createBackendPlugin({
 
 ```typescript
 export const githubCatalogModule = createBackendModule({
-  pluginId: 'catalog',  // Parent plugin
+  pluginId: 'catalog', // Parent plugin
   moduleId: 'github',
   register(env) {
     env.registerInit({
       deps: {
-        catalogProcessing: catalogProcessingExtensionPoint,  // Dependency!
+        catalogProcessing: catalogProcessingExtensionPoint, // Dependency!
       },
       async init({ catalogProcessing }) {
         // Extend plugin without modifying it
         catalogProcessing.addEntityProvider(new GithubEntityProvider());
         catalogProcessing.addProcessor(new GithubOrgReaderProcessor());
-      }
+      },
     });
-  }
+  },
 });
 ```
 
 **Key Insights**:
+
 1. Modules extend plugins **without code modification**
 2. Extension points are **dependency-injected** like services
 3. Plugin controls **what** is extensible, module controls **how**
@@ -237,17 +246,18 @@ export interface ServiceRef<TService> {
 export const coreServices = {
   database: createServiceRef<DatabaseService>({
     id: 'core.database',
-    scope: 'plugin',  // One instance per plugin
+    scope: 'plugin', // One instance per plugin
   }),
 
   rootConfig: createServiceRef<RootConfigService>({
     id: 'core.rootConfig',
-    scope: 'root',  // Shared across all plugins
+    scope: 'root', // Shared across all plugins
   }),
 };
 ```
 
 **Dependency Declaration**:
+
 ```typescript
 env.registerInit({
   deps: {
@@ -259,18 +269,19 @@ env.registerInit({
     // deps.database: DatabaseService (fully typed!)
     // deps.logger: LoggerService
     // deps.config: RootConfigService
-  }
+  },
 });
 ```
 
 **Type Inference Magic**:
+
 ```typescript
 type DepsToInstances<T> = {
   [K in keyof T]: T[K] extends ServiceRef<infer TService>
     ? TService
     : T[K] extends ExtensionPoint<infer TExtension>
-    ? TExtension
-    : never;
+      ? TExtension
+      : never;
 };
 ```
 
@@ -325,6 +336,7 @@ Backend plugins follow a deterministic seven-phase lifecycle:
 ```
 
 **Implementation**:
+
 ```typescript
 env.registerInit({
   deps: { lifecycle: coreServices.rootLifecycle },
@@ -338,7 +350,7 @@ env.registerInit({
     lifecycle.addShutdownHook(async () => {
       await engine.stop();
     });
-  }
+  },
 });
 ```
 
@@ -371,6 +383,7 @@ integrations:
 ```
 
 **Type-Safe Access**:
+
 ```typescript
 env.registerInit({
   deps: { config: coreServices.rootConfig },
@@ -378,11 +391,12 @@ env.registerInit({
     const dbConfig = config.getConfig('backend.database');
     const client = dbConfig.getString('client');
     const rules = config.getOptionalConfigArray('catalog.rules') ?? [];
-  }
+  },
 });
 ```
 
 **Schema Definition** (config.d.ts):
+
 ```typescript
 export interface Config {
   catalog?: {
@@ -409,10 +423,11 @@ Visibility annotations control configuration exposure to frontend vs. backend.
 #### Authentication & Authorization
 
 **Service-to-Service Authentication**:
+
 ```typescript
 // Plugin A calling Plugin B
 const { token } = await auth.getPluginRequestToken({
-  onBehalfOf: credentials,  // User or service principal
+  onBehalfOf: credentials, // User or service principal
   targetPluginId: 'catalog',
 });
 
@@ -422,14 +437,12 @@ const response = await fetch('http://catalog/api/entities', {
 ```
 
 **Permission Checking**:
+
 ```typescript
 router.delete('/entities/:id', async (req, res) => {
   const credentials = await httpAuth.credentials(req);
 
-  const decision = await permissions.authorize(
-    [{ permission: catalogEntityDeletePermission }],
-    { credentials }
-  );
+  const decision = await permissions.authorize([{ permission: catalogEntityDeletePermission }], { credentials });
 
   if (decision[0].result === 'DENY') {
     return res.status(403).json({ error: 'Permission denied' });
@@ -440,6 +453,7 @@ router.delete('/entities/:id', async (req, res) => {
 ```
 
 **Principal Types**:
+
 - `BackstageUserPrincipal` - Authenticated user
 - `BackstageServicePrincipal` - Backend service
 - `BackstageNonePrincipal` - Unauthenticated
@@ -454,6 +468,7 @@ Backstage provides **logical isolation** rather than process isolation:
 4. **No Sandboxing**: Plugins are trusted code
 
 **Error Handling**:
+
 ```typescript
 try {
   await module.init(deps);
@@ -489,15 +504,15 @@ Plugins can fail gracefully if configured with `pluginFailurePolicy: 'continue'`
 
 #### Comparison to Other Systems
 
-| Feature | Backstage | WordPress | Kubernetes | VS Code |
-|---------|-----------|-----------|------------|---------|
-| Plugin Language | TypeScript | PHP | Go/Any | TypeScript |
-| Loading | Dynamic (BE) / Static (FE) | Dynamic | Static Compilation | Dynamic |
-| Isolation | Logical | Process | Namespace | Process |
-| Extension Points | First-class | Hooks/Filters | Custom Resources | Contribution Points |
-| Type Safety | Strong | Weak | Strong | Strong |
-| Hot Reload | No | Yes | No | Yes |
-| Security Model | RBAC + Auth | Capabilities | RBAC | Capabilities |
+| Feature          | Backstage                  | WordPress     | Kubernetes         | VS Code             |
+| ---------------- | -------------------------- | ------------- | ------------------ | ------------------- |
+| Plugin Language  | TypeScript                 | PHP           | Go/Any             | TypeScript          |
+| Loading          | Dynamic (BE) / Static (FE) | Dynamic       | Static Compilation | Dynamic             |
+| Isolation        | Logical                    | Process       | Namespace          | Process             |
+| Extension Points | First-class                | Hooks/Filters | Custom Resources   | Contribution Points |
+| Type Safety      | Strong                     | Weak          | Strong             | Strong              |
+| Hot Reload       | No                         | Yes           | No                 | Yes                 |
+| Security Model   | RBAC + Auth                | Capabilities  | RBAC               | Capabilities        |
 
 **Backstage vs. WordPress**: Backstage favors compile-time safety over runtime flexibility, while WordPress prioritizes dynamic composition.
 
@@ -516,6 +531,7 @@ Plugins can fail gracefully if configured with `pluginFailurePolicy: 'continue'`
 ### Lessons for Plugin Architecture Design
 
 #### Do:
+
 - **Use explicit dependency injection** - Avoid global state
 - **Enforce contracts via TypeScript** - Catch errors early
 - **Provide escape hatches** - Extension points for unanticipated needs
@@ -523,6 +539,7 @@ Plugins can fail gracefully if configured with `pluginFailurePolicy: 'continue'`
 - **Design for testability** - DI enables easy mocking
 
 #### Don't:
+
 - **Rely on string-based lookups** - Type-unsafe and fragile
 - **Allow implicit dependencies** - Hidden coupling breaks refactoring
 - **Skip lifecycle management** - Undefined init order causes bugs
@@ -547,6 +564,7 @@ Backstage's plugin architecture represents a pragmatic evolution in web platform
 The dual frontend/backend architecture acknowledges the fundamental differences between browser and server environments, optimizing each independently. The extension point pattern solves the open-closed principle elegantly, enabling modules to augment plugins without modification.
 
 For architects designing plugin systems, Backstage offers validated patterns:
+
 - Service references for type-safe DI
 - Extension points for controlled extensibility
 - Package metadata for zero-config discovery

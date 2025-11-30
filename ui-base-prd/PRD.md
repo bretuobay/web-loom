@@ -209,17 +209,15 @@ All behaviors use `@web-loom/store-core` as the foundational state management la
 import { createStore } from '@web-loom/store-core';
 
 // Example: Dialog behavior state
-const dialogStore = createStore(
-  { isOpen: false, content: null },
-  (set, get, actions) => ({
-    open: (content) => set((state) => ({ ...state, isOpen: true, content })),
-    close: () => set((state) => ({ ...state, isOpen: false, content: null })),
-    toggle: () => set((state) => ({ ...state, isOpen: !state.isOpen })),
-  })
-);
+const dialogStore = createStore({ isOpen: false, content: null }, (set, get, actions) => ({
+  open: (content) => set((state) => ({ ...state, isOpen: true, content })),
+  close: () => set((state) => ({ ...state, isOpen: false, content: null })),
+  toggle: () => set((state) => ({ ...state, isOpen: !state.isOpen })),
+}));
 ```
 
 **Benefits:**
+
 - Consistent state management across all UI behaviors
 - Minimal footprint (store-core is lightweight)
 - Type-safe state and actions
@@ -252,10 +250,7 @@ type DialogState = {
   content: any;
 };
 
-type DialogEvents =
-  | { type: 'OPEN'; payload: any }
-  | { type: 'CLOSE' }
-  | { type: 'TOGGLE' };
+type DialogEvents = { type: 'OPEN'; payload: any } | { type: 'CLOSE' } | { type: 'TOGGLE' };
 ```
 
 **We avoid heavy state machine libraries** and implement simple, focused state machines using `@web-loom/store-core`.
@@ -272,6 +267,7 @@ Behaviors expose simple, framework-agnostic APIs:
 ### 5. **Serializable State**
 
 All states are JSON-serializable for:
+
 - Server-side rendering (SSR)
 - State persistence
 - Time-travel debugging
@@ -280,6 +276,7 @@ All states are JSON-serializable for:
 ### 6. **Pure Functions & Side-Effect Isolation**
 
 Core behaviors are pure functions with no side effects:
+
 - No direct DOM manipulation
 - No focus handling (delegated to adapters)
 - No element lookups
@@ -488,6 +485,7 @@ The UI Core and UI Patterns packages leverage Web Loom's existing infrastructure
 ## **A. Primary Dependencies (Web Loom Packages)**
 
 ### **State Management**
+
 - **`@web-loom/store-core@0.0.4`** - Primary state management
   - Lightweight subscription-based store
   - Type-safe state and actions
@@ -495,12 +493,14 @@ The UI Core and UI Patterns packages leverage Web Loom's existing infrastructure
   - **No need for nanostores or Zustand**
 
 ### **Event Communication**
+
 - **`@web-loom/event-bus-core@0.0.2`** - Cross-behavior events
   - Pub/sub pattern for loose coupling
   - Framework-agnostic
   - Already integrated in Web Loom
 
 ### **Optional Integrations**
+
 - **`@web-loom/mvvm-core@^0.5.0`** (peer dependency) - MVVM patterns
 - **`@web-loom/query-core@^0.0.2`** (peer dependency) - Data fetching
 - **`@web-loom/design-core@^0.0.2`** (peer dependency) - Theming
@@ -508,12 +508,14 @@ The UI Core and UI Patterns packages leverage Web Loom's existing infrastructure
 ## **B. Minimal Third-Party Dependencies**
 
 ### **Accessibility Helpers (Adapter Layer Only)**
+
 These are **optional** and only used in framework adapters, NOT in core:
 
 - **`focus-trap`** (2.3kb) - Focus trapping for dialogs (optional)
 - **`tabbable`** (1.5kb) - Finding focusable elements (optional)
 
 ### **Why We Avoid State Machine Libraries**
+
 - ❌ **XState** - Too heavy (10kb+), unnecessary complexity
 - ❌ **@xstate/fsm** - Still adds dependency overhead
 - ✅ **Custom implementation** using `@web-loom/store-core` - Lightweight, sufficient
@@ -530,12 +532,14 @@ These are **optional** and only used in framework adapters, NOT in core:
 ## **D. Zero New Build Dependencies**
 
 The new packages will use the **exact same build setup** as existing Web Loom packages:
+
 - Same `vite.config.ts` pattern
 - Same `tsconfig.json` structure
 - Same `vitest.config.js` setup
 - Same `package.json` scripts
 
 **This ensures:**
+
 - Consistency across monorepo
 - No learning curve for contributors
 - Reduced maintenance burden
@@ -569,6 +573,7 @@ This roadmap integrates seamlessly with the existing Web Loom development workfl
 ## **Phase 1: Package Setup & Core Foundations (3 Weeks)**
 
 ### Week 1: Package Infrastructure
+
 - ✅ Create `packages/ui-core` with standard Web Loom structure
 - ✅ Create `packages/ui-patterns` with standard Web Loom structure
 - ✅ Set up `vite.config.ts`, `tsconfig.json`, `vitest.config.js`
@@ -577,6 +582,7 @@ This roadmap integrates seamlessly with the existing Web Loom development workfl
 - ✅ Set up test infrastructure (Vitest + jsdom)
 
 ### Week 2-3: Core Behaviors (ui-core)
+
 - Implement `createDialogBehavior` with store-core
 - Implement `createRovingFocus` (keyboard navigation)
 - Implement `createListSelection` (single/multi/range selection)
@@ -590,12 +596,14 @@ This roadmap integrates seamlessly with the existing Web Loom development workfl
 ## **Phase 2: Essential Patterns (4 Weeks)**
 
 ### Week 4-5: Navigation & Layout Patterns
+
 - Implement Tabbed Interface (uses roving focus + disclosure)
 - Implement Sidebar Shell (uses disclosure + event bus)
 - Implement Modal/Dialog (uses dialog behavior + focus trap)
 - Implement Accordion (uses disclosure behavior)
 
 ### Week 6-7: Data & Flow Patterns
+
 - Implement Master-Detail (uses list selection)
 - Implement Wizard/Stepper (uses form behavior + validation)
 - Implement Toast Queue (uses event bus)
@@ -606,18 +614,21 @@ This roadmap integrates seamlessly with the existing Web Loom development workfl
 ## **Phase 3: Framework Adapters & Integration (4 Weeks)**
 
 ### Week 8-9: React Adapter
+
 - Create React hooks for ui-core behaviors
 - Integrate with existing `apps/mvvm-react`
 - Add examples to existing React apps
 - Test with React 19
 
 ### Week 10: Vue & Angular Adapters
+
 - Create Vue composables for ui-core behaviors
 - Create Angular services for ui-core behaviors
 - Integrate with existing `apps/mvvm-vue` and `apps/mvvm-angular`
 - Add examples to existing Vue and Angular apps
 
 ### Week 11: Vanilla JS & Documentation
+
 - Add vanilla JS examples to `apps/mvvm-vanilla`
 - Ensure patterns work without any framework
 - Create adapter documentation
@@ -627,6 +638,7 @@ This roadmap integrates seamlessly with the existing Web Loom development workfl
 ## **Phase 4: Playground & Documentation (3 Weeks)**
 
 ### Week 12-13: Playground App
+
 - Create `apps/ui-patterns-playground` (React-based)
 - Interactive demos for all behaviors and patterns
 - Live code editor with syntax highlighting
@@ -634,6 +646,7 @@ This roadmap integrates seamlessly with the existing Web Loom development workfl
 - Responsive preview modes
 
 ### Week 14: Documentation Site
+
 - Create `apps/ui-docs` (Next.js, like existing docs)
 - API documentation auto-generated from TSDoc
 - Tutorial series: "Building a Dashboard with UI Patterns"
@@ -645,6 +658,7 @@ This roadmap integrates seamlessly with the existing Web Loom development workfl
 ## **Phase 5: Production Hardening & Launch (2 Weeks)**
 
 ### Week 15: Testing & Quality
+
 - Increase test coverage to >90%
 - Cross-browser testing (Chrome, Firefox, Safari, Edge)
 - Accessibility audits with axe-core and manual testing
@@ -652,6 +666,7 @@ This roadmap integrates seamlessly with the existing Web Loom development workfl
 - Bundle size analysis (ensure <2KB per behavior)
 
 ### Week 16: Launch Preparation
+
 - Final API review and stabilization
 - Migration guide from manual implementations
 - Changelog and release notes
@@ -663,6 +678,7 @@ This roadmap integrates seamlessly with the existing Web Loom development workfl
 ## **Post-Launch Roadmap (Future)**
 
 ### Advanced Behaviors
+
 - Drag-and-drop system
 - Infinite scroll with virtualization
 - Advanced data table (sorting, filtering, pagination)
@@ -670,6 +686,7 @@ This roadmap integrates seamlessly with the existing Web Loom development workfl
 - Rich text editor behaviors
 
 ### Additional Patterns
+
 - Multi-level navigation (breadcrumbs + sidebar)
 - Split pane with resizable panels
 - Tree view with lazy loading
@@ -677,6 +694,7 @@ This roadmap integrates seamlessly with the existing Web Loom development workfl
 - Calendar/date picker pattern
 
 ### Ecosystem Integration
+
 - Storybook integration
 - Figma plugin for design-to-code
 - DevTools for debugging behaviors
@@ -728,7 +746,7 @@ export function createDialogBehavior(options: DialogBehaviorOptions = {}) {
           actions.open(content);
         }
       },
-    })
+    }),
   );
 
   return {
@@ -788,9 +806,7 @@ function SettingsDialog() {
 
   return (
     <>
-      <button onClick={() => dialog.open({ tab: 'general' })}>
-        Open Settings
-      </button>
+      <button onClick={() => dialog.open({ tab: 'general' })}>Open Settings</button>
 
       {dialog.isOpen && (
         <div role="dialog" aria-modal="true">
@@ -973,7 +989,7 @@ export function createMasterDetail<T>(options: MasterDetailOptions<T>) {
       setDetailView: (view: string) => {
         set((state) => ({ ...state, detailView: view }));
       },
-    })
+    }),
   );
 
   return {
@@ -1018,7 +1034,7 @@ export function createMasterDetail<T>(options: MasterDetailOptions<T>) {
   - Comprehensive JSDoc for all exports
 
 - **Testing:**
-  - >90% code coverage (Vitest)
+  - > 90% code coverage (Vitest)
   - All behaviors tested in isolation
   - Integration tests for patterns
   - Accessibility tests with axe-core
@@ -1027,8 +1043,8 @@ export function createMasterDetail<T>(options: MasterDetailOptions<T>) {
 
 - **Adoption:**
   - Used in all existing Web Loom demo apps (React, Vue, Angular, Vanilla)
-  - >5 real-world projects using the packages
-  - >100 npm downloads per week (after 3 months)
+  - > 5 real-world projects using the packages
+  - > 100 npm downloads per week (after 3 months)
 
 - **Developer Productivity:**
   - 50% reduction in time to implement common UI patterns
@@ -1038,8 +1054,8 @@ export function createMasterDetail<T>(options: MasterDetailOptions<T>) {
 
 - **Documentation Quality:**
   - Complete API documentation (auto-generated from TSDoc)
-  - >10 interactive examples in playground
-  - >5 comprehensive tutorials
+  - > 10 interactive examples in playground
+  - > 5 comprehensive tutorials
   - <5 minutes to first implementation (from docs)
 
 - **Ecosystem Integration:**
@@ -1314,16 +1330,7 @@ Visibility on scroll + priority action binding
       "require": "./dist/ui-patterns.umd.js"
     }
   },
-  "keywords": [
-    "ui-patterns",
-    "master-detail",
-    "wizard",
-    "accordion",
-    "tabs",
-    "modal",
-    "web-loom",
-    "typescript"
-  ],
+  "keywords": ["ui-patterns", "master-detail", "wizard", "accordion", "tabs", "modal", "web-loom", "typescript"],
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",

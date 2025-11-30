@@ -66,7 +66,7 @@ export function MasterDetailExample() {
       onSelectionChange: (item) => {
         console.log('Selection changed:', item);
       },
-    })
+    }),
   );
 
   const [state, setState] = useState(masterDetail.getState());
@@ -83,8 +83,7 @@ export function MasterDetailExample() {
     <div className="example-container">
       <h2>Master-Detail Pattern Example</h2>
       <p>
-        This example demonstrates the <code>createMasterDetail</code> pattern
-        from @web-loom/ui-patterns.
+        This example demonstrates the <code>createMasterDetail</code> pattern from @web-loom/ui-patterns.
       </p>
 
       <div className="master-detail-layout">
@@ -94,9 +93,7 @@ export function MasterDetailExample() {
             {state.items.map((product) => (
               <div
                 key={product.id}
-                className={`master-item ${
-                  state.selectedItem?.id === product.id ? 'selected' : ''
-                }`}
+                className={`master-item ${state.selectedItem?.id === product.id ? 'selected' : ''}`}
                 onClick={() => masterDetail.actions.selectItem(product)}
               >
                 <div className="master-item-content">
@@ -126,15 +123,11 @@ export function MasterDetailExample() {
                   <span className="badge">{state.selectedItem.category}</span>
                 </div>
                 <div className="detail-body">
-                  <p className="description">
-                    {state.selectedItem.description}
-                  </p>
+                  <p className="description">{state.selectedItem.description}</p>
                   <div className="detail-info">
                     <div className="info-item">
                       <label>Price:</label>
-                      <span className="price-large">
-                        ${state.selectedItem.price.toFixed(2)}
-                      </span>
+                      <span className="price-large">${state.selectedItem.price.toFixed(2)}</span>
                     </div>
                     <div className="info-item">
                       <label>Stock:</label>

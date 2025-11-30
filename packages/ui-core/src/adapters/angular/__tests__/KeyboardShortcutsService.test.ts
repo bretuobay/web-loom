@@ -49,7 +49,7 @@ describe('KeyboardShortcutsService', () => {
       service.initialize();
 
       const statePromise = firstValueFrom(service.getState$().pipe(skip(1)));
-      
+
       const handler = vi.fn();
       service.actions.registerShortcut({
         key: 'Ctrl+K',
@@ -166,9 +166,7 @@ describe('KeyboardShortcutsService', () => {
 
   describe('error handling', () => {
     it('should throw error when accessing actions before initialization', () => {
-      expect(() => service.actions).toThrow(
-        'KeyboardShortcutsService not initialized. Call initialize() first.'
-      );
+      expect(() => service.actions).toThrow('KeyboardShortcutsService not initialized. Call initialize() first.');
     });
   });
 });

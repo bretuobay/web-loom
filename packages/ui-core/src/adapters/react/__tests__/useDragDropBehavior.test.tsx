@@ -165,9 +165,7 @@ describe('useDragDropBehavior', () => {
   describe('callbacks', () => {
     it('should invoke onDragStart callback', () => {
       const onDragStart = vi.fn();
-      const { result } = renderHook(() => 
-        useDragDropBehavior({ onDragStart })
-      );
+      const { result } = renderHook(() => useDragDropBehavior({ onDragStart }));
 
       const dragData = { type: 'card', priority: 'high' };
 
@@ -181,9 +179,7 @@ describe('useDragDropBehavior', () => {
 
     it('should invoke onDragEnd callback', () => {
       const onDragEnd = vi.fn();
-      const { result } = renderHook(() => 
-        useDragDropBehavior({ onDragEnd })
-      );
+      const { result } = renderHook(() => useDragDropBehavior({ onDragEnd }));
 
       act(() => {
         result.current.actions.startDrag('item-1');
@@ -196,9 +192,7 @@ describe('useDragDropBehavior', () => {
 
     it('should invoke onDrop callback', () => {
       const onDrop = vi.fn();
-      const { result } = renderHook(() => 
-        useDragDropBehavior({ onDrop })
-      );
+      const { result } = renderHook(() => useDragDropBehavior({ onDrop }));
 
       const dragData = { type: 'card' };
 
@@ -215,10 +209,8 @@ describe('useDragDropBehavior', () => {
     it('should invoke validateDrop callback', () => {
       const validateDrop = vi.fn().mockReturnValue(true);
       const onDrop = vi.fn();
-      
-      const { result } = renderHook(() => 
-        useDragDropBehavior({ validateDrop, onDrop })
-      );
+
+      const { result } = renderHook(() => useDragDropBehavior({ validateDrop, onDrop }));
 
       act(() => {
         result.current.actions.registerDropZone('zone-1');
@@ -234,10 +226,8 @@ describe('useDragDropBehavior', () => {
     it('should not drop if validateDrop returns false', () => {
       const validateDrop = vi.fn().mockReturnValue(false);
       const onDrop = vi.fn();
-      
-      const { result } = renderHook(() => 
-        useDragDropBehavior({ validateDrop, onDrop })
-      );
+
+      const { result } = renderHook(() => useDragDropBehavior({ validateDrop, onDrop }));
 
       act(() => {
         result.current.actions.registerDropZone('zone-1');

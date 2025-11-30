@@ -4,19 +4,15 @@
 
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import type {
-  DragDropState,
-  DragDropActions,
-  DragDropOptions,
-} from '../../behaviors/drag-drop';
+import type { DragDropState, DragDropActions, DragDropOptions } from '../../behaviors/drag-drop';
 import { createDragDropBehavior } from '../../behaviors/drag-drop';
 
 /**
  * Angular service for drag-and-drop behavior.
- * 
+ *
  * Wraps the drag-and-drop behavior and exposes state as an RxJS Observable.
  * Automatically handles cleanup when the service is destroyed.
- * 
+ *
  * @example
  * ```typescript
  * interface CardData {
@@ -24,7 +20,7 @@ import { createDragDropBehavior } from '../../behaviors/drag-drop';
  *   title: string;
  *   column: string;
  * }
- * 
+ *
  * @Component({
  *   selector: 'app-kanban-board',
  *   template: `
@@ -55,7 +51,7 @@ import { createDragDropBehavior } from '../../behaviors/drag-drop';
  *   state$ = this.dragDropService.getState$();
  *   columns = ['todo', 'in-progress', 'done'];
  *   cards: CardData[] = [...];
- * 
+ *
  *   constructor(private dragDropService: DragDropBehaviorService) {
  *     this.dragDropService.initialize({
  *       onDragStart: (itemId, data) => {
@@ -75,35 +71,35 @@ import { createDragDropBehavior } from '../../behaviors/drag-drop';
  *       },
  *     });
  *   }
- * 
+ *
  *   ngOnInit() {
  *     // Register drop zones
  *     this.columns.forEach(column => {
  *       this.dragDropService.actions.registerDropZone(column);
  *     });
  *   }
- * 
+ *
  *   getCardsForColumn(column: string): CardData[] {
  *     return this.cards.filter(card => card.column === column);
  *   }
- * 
+ *
  *   onDragStart(card: CardData) {
  *     this.dragDropService.actions.startDrag(card.id, card);
  *   }
- * 
+ *
  *   onDragEnd() {
  *     this.dragDropService.actions.endDrag();
  *   }
- * 
+ *
  *   onDragOver(event: DragEvent, column: string) {
  *     event.preventDefault();
  *     this.dragDropService.actions.setDragOver(column);
  *   }
- * 
+ *
  *   onDragLeave() {
  *     this.dragDropService.actions.setDragOver(null);
  *   }
- * 
+ *
  *   onDrop(column: string) {
  *     this.dragDropService.actions.drop(column);
  *   }
@@ -126,7 +122,7 @@ export class DragDropBehaviorService implements OnDestroy {
   /**
    * Initializes the drag-and-drop behavior with the given options.
    * Must be called before using the service.
-   * 
+   *
    * @param options Configuration options for the drag-and-drop behavior.
    */
   initialize(options?: DragDropOptions): void {
@@ -145,7 +141,7 @@ export class DragDropBehaviorService implements OnDestroy {
 
   /**
    * Gets the state as an RxJS Observable.
-   * 
+   *
    * @returns Observable of drag-and-drop state.
    */
   getState$(): Observable<DragDropState> {
@@ -154,7 +150,7 @@ export class DragDropBehaviorService implements OnDestroy {
 
   /**
    * Gets the current state synchronously.
-   * 
+   *
    * @returns Current drag-and-drop state.
    */
   getState(): DragDropState {
@@ -163,7 +159,7 @@ export class DragDropBehaviorService implements OnDestroy {
 
   /**
    * Gets the drag-and-drop actions.
-   * 
+   *
    * @returns Drag-and-drop actions object.
    */
   get actions(): DragDropActions {

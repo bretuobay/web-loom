@@ -5,6 +5,7 @@
 The Grid/Card Layout pattern provides responsive grid layouts with keyboard navigation and selection support. It's perfect for photo galleries, product grids, dashboards, and any interface that displays items in a grid format. The pattern handles responsive breakpoints, 2D keyboard navigation (arrow keys), and both single and multi-selection modes.
 
 **Key Features:**
+
 - Responsive breakpoint-based column calculation
 - 2D keyboard navigation (up, down, left, right)
 - Single and multi-selection modes
@@ -43,10 +44,10 @@ const grid = createGridLayout({
   items: photos,
   getId: (photo) => photo.id,
   breakpoints: [
-    { minWidth: 0, columns: 1 },      // Mobile: 1 column
-    { minWidth: 640, columns: 2 },    // Tablet: 2 columns
-    { minWidth: 1024, columns: 3 },   // Desktop: 3 columns
-    { minWidth: 1280, columns: 4 },   // Large: 4 columns
+    { minWidth: 0, columns: 1 }, // Mobile: 1 column
+    { minWidth: 640, columns: 2 }, // Tablet: 2 columns
+    { minWidth: 1024, columns: 3 }, // Desktop: 3 columns
+    { minWidth: 1280, columns: 4 }, // Large: 4 columns
   ],
   selectionMode: 'single',
   wrap: true,
@@ -57,9 +58,9 @@ const grid = createGridLayout({
 
 // Navigate with arrow keys
 grid.actions.navigateRight(); // Move focus right
-grid.actions.navigateDown();  // Move focus down
-grid.actions.navigateLeft();  // Move focus left
-grid.actions.navigateUp();    // Move focus up
+grid.actions.navigateDown(); // Move focus down
+grid.actions.navigateLeft(); // Move focus left
+grid.actions.navigateUp(); // Move focus up
 
 // Select an item
 grid.actions.selectItem('1');
@@ -86,6 +87,7 @@ grid.destroy();
 Creates a grid layout pattern instance.
 
 **Parameters:**
+
 - `options`: Configuration options
   - `items: T[]` - Array of items to display in the grid
   - `getId: (item: T) => string` - Function to extract unique ID from item
@@ -100,12 +102,12 @@ Creates a grid layout pattern instance.
 
 ```typescript
 interface GridLayoutState<T> {
-  items: T[];                    // All grid items
-  columns: number;               // Current number of columns
-  selectedItems: string[];       // IDs of selected items
-  focusedIndex: number;          // Index of focused item
-  breakpoint: Breakpoint;        // Current active breakpoint
-  viewportWidth: number;         // Current viewport width
+  items: T[]; // All grid items
+  columns: number; // Current number of columns
+  selectedItems: string[]; // IDs of selected items
+  focusedIndex: number; // Index of focused item
+  breakpoint: Breakpoint; // Current active breakpoint
+  viewportWidth: number; // Current viewport width
   selectionMode: 'single' | 'multi';
 }
 ```
@@ -129,8 +131,8 @@ interface GridLayoutActions<T> {
 
 ```typescript
 interface Breakpoint {
-  minWidth: number;              // Minimum viewport width for this breakpoint
-  columns: number;               // Number of columns at this breakpoint
+  minWidth: number; // Minimum viewport width for this breakpoint
+  columns: number; // Number of columns at this breakpoint
 }
 ```
 
@@ -145,12 +147,12 @@ const grid = createGridLayout({
   items: products,
   getId: (p) => p.id,
   breakpoints: [
-    { minWidth: 0, columns: 1 },      // Extra small: 1 column
-    { minWidth: 480, columns: 2 },    // Small: 2 columns
-    { minWidth: 768, columns: 3 },    // Medium: 3 columns
-    { minWidth: 1024, columns: 4 },   // Large: 4 columns
-    { minWidth: 1440, columns: 5 },   // Extra large: 5 columns
-    { minWidth: 1920, columns: 6 },   // 2K: 6 columns
+    { minWidth: 0, columns: 1 }, // Extra small: 1 column
+    { minWidth: 480, columns: 2 }, // Small: 2 columns
+    { minWidth: 768, columns: 3 }, // Medium: 3 columns
+    { minWidth: 1024, columns: 4 }, // Large: 4 columns
+    { minWidth: 1440, columns: 5 }, // Extra large: 5 columns
+    { minWidth: 1920, columns: 6 }, // 2K: 6 columns
   ],
 });
 
@@ -201,9 +203,7 @@ const filteredItems = grid.getState().items.filter((item) => item.id !== '5');
 grid.actions.setItems(filteredItems);
 
 // Sort items
-const sortedItems = [...grid.getState().items].sort((a, b) =>
-  a.title.localeCompare(b.title)
-);
+const sortedItems = [...grid.getState().items].sort((a, b) => a.title.localeCompare(b.title));
 grid.actions.setItems(sortedItems);
 ```
 
@@ -237,7 +237,9 @@ window.removeEventListener('resize', handleResize);
 Listen to grid events:
 
 ```typescript
-const grid = createGridLayout({ /* ... */ });
+const grid = createGridLayout({
+  /* ... */
+});
 
 // Listen for focus changes
 grid.eventBus.on('item:focused', ({ index, itemId }) => {
@@ -634,9 +636,7 @@ grid.eventBus.on('item:selected', ({ itemId, selected }) => {
   const announcement = document.createElement('div');
   announcement.setAttribute('role', 'status');
   announcement.setAttribute('aria-live', 'polite');
-  announcement.textContent = selected
-    ? `${item.title} selected`
-    : `${item.title} deselected`;
+  announcement.textContent = selected ? `${item.title} selected` : `${item.title} deselected`;
   document.body.appendChild(announcement);
   setTimeout(() => announcement.remove(), 1000);
 });
@@ -751,7 +751,7 @@ const gridStyle = useMemo(
     gridTemplateColumns: `repeat(${state.columns}, 1fr)`,
     gap: '1rem',
   }),
-  [state.columns]
+  [state.columns],
 );
 ```
 
@@ -836,7 +836,6 @@ const dashboard = createGridLayout({
 
 MIT
 
-
 ---
 
 ## Framework-Specific Examples
@@ -847,7 +846,6 @@ For comprehensive framework-specific implementation examples, see:
   - Photo gallery with responsive grid and keyboard navigation
   - Product grid with selection management
   - Integration with viewport resize handling
-  
 - **[Vue Examples](./examples/VUE_EXAMPLES.md#gridcard-layout)** - Vue 3 Composition API examples with:
   - Reactive grid layout with breakpoints
   - Keyboard navigation implementation

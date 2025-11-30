@@ -13,12 +13,12 @@ import { createKeyboardShortcuts } from '../../behaviors/keyboard-shortcuts';
 
 /**
  * React hook for keyboard shortcuts behavior.
- * 
+ *
  * Creates and manages a keyboard shortcuts behavior instance, automatically handling
  * subscriptions and cleanup. This hook provides a centralized way to manage keyboard
  * shortcuts with support for key combination parsing, platform normalization, and
  * conflict resolution.
- * 
+ *
  * @example
  * ```tsx
  * function CommandPalette() {
@@ -26,7 +26,7 @@ import { createKeyboardShortcuts } from '../../behaviors/keyboard-shortcuts';
  *     scope: 'global',
  *     onShortcutExecuted: (key) => console.log(`Executed: ${key}`),
  *   });
- * 
+ *
  *   useEffect(() => {
  *     // Register shortcuts
  *     shortcuts.actions.registerShortcut({
@@ -35,14 +35,14 @@ import { createKeyboardShortcuts } from '../../behaviors/keyboard-shortcuts';
  *       description: 'Open command palette',
  *       preventDefault: true,
  *     });
- * 
+ *
  *     shortcuts.actions.registerShortcut({
  *       key: 'Escape',
  *       handler: () => setIsOpen(false),
  *       description: 'Close command palette',
  *     });
  *   }, []);
- * 
+ *
  *   return (
  *     <div>
  *       <p>Press Ctrl+K to open command palette</p>
@@ -51,27 +51,25 @@ import { createKeyboardShortcuts } from '../../behaviors/keyboard-shortcuts';
  *   );
  * }
  * ```
- * 
+ *
  * @param options Configuration options for the keyboard shortcuts behavior.
  * @returns Keyboard shortcuts state and actions.
  */
 export function useKeyboardShortcuts(
-  options?: KeyboardShortcutsOptions
+  options?: KeyboardShortcutsOptions,
 ): KeyboardShortcutsState & { actions: KeyboardShortcutsActions } {
   const behaviorRef = useRef<KeyboardShortcutsBehavior | null>(null);
-  
+
   // Initialize behavior only once
   if (behaviorRef.current === null) {
     behaviorRef.current = createKeyboardShortcuts(options);
   }
 
-  const [state, setState] = useState<KeyboardShortcutsState>(() => 
-    behaviorRef.current!.getState()
-  );
+  const [state, setState] = useState<KeyboardShortcutsState>(() => behaviorRef.current!.getState());
 
   useEffect(() => {
     const behavior = behaviorRef.current!;
-    
+
     // Subscribe to state changes
     const unsubscribe = behavior.subscribe((newState) => {
       setState(newState);

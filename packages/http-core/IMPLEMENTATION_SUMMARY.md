@@ -1,6 +1,7 @@
 # HTTP Core Implementation Summary
 
 ## Overview
+
 Successfully implemented `@web-loom/http-core` - a lightweight, TypeScript-first HTTP client based on the Product Requirements Document.
 
 ## Implementation Status: ✅ Complete
@@ -8,6 +9,7 @@ Successfully implemented `@web-loom/http-core` - a lightweight, TypeScript-first
 ### Core Features Implemented
 
 #### ✅ P0 Requirements (All Complete)
+
 - **FR1**: Centralized HTTP client with instance creation via `createHttpClient()`
 - **FR2**: Request interceptors with `client.interceptors.request.use()`
 - **FR3**: Response interceptors with `client.interceptors.response.use()`
@@ -19,6 +21,7 @@ Successfully implemented `@web-loom/http-core` - a lightweight, TypeScript-first
 - **FR11**: Clean Axios-like API surface
 
 #### ✅ P1 Requirements (All Complete)
+
 - **FR8**: Request deduplication to prevent duplicate in-flight requests
 - **FR9**: Mock adapter for testing with `SimpleMockAdapter`
 
@@ -60,6 +63,7 @@ packages/http-core/
 ### API Surface
 
 #### Client Creation
+
 ```typescript
 const client = createHttpClient({
   baseURL: 'https://api.example.com',
@@ -71,6 +75,7 @@ const client = createHttpClient({
 ```
 
 #### HTTP Methods
+
 - `client.get<T>(url, config?)`
 - `client.post<T>(url, data?, config?)`
 - `client.put<T>(url, data?, config?)`
@@ -81,11 +86,13 @@ const client = createHttpClient({
 - `client.request<T>(config)`
 
 #### Interceptors
+
 - `client.interceptors.request.use(interceptor)`
 - `client.interceptors.response.use(interceptor)`
 - `client.interceptors.error.use(interceptor)`
 
 #### Mock Adapter
+
 ```typescript
 const mock = createMockAdapter();
 mock.onGet('/users', () => ({ data: [...] }));
@@ -124,6 +131,7 @@ mock.onGet('/users', () => ({ data: [...] }));
 ### Testing
 
 All tests passing:
+
 - **utils.test.ts**: 15 tests for URL building, query strings, headers
 - **retry.test.ts**: 11 tests for retry logic and backoff
 - **client.test.ts**: 13 tests for HTTP client functionality
@@ -139,26 +147,27 @@ All tests passing:
 
 ### Alignment with PRD
 
-| Requirement | Status | Notes |
-|------------|--------|-------|
-| Unified HTTP client | ✅ | `HttpClient` class with factory function |
-| Request interceptors | ✅ | Full support with manager |
-| Response interceptors | ✅ | Full support with manager |
-| Error interceptors | ✅ | Full support with manager |
-| Automatic retries | ✅ | Exponential backoff with jitter |
-| Request cancellation | ✅ | AbortController support |
-| Error transformation | ✅ | Standardized `ApiError` type |
-| Base URL & headers | ✅ | Configurable defaults |
-| Request deduplication | ✅ | Signature-based caching |
-| Mock adapter | ✅ | `SimpleMockAdapter` implementation |
-| TypeScript typing | ✅ | Full generic support |
-| Clean API | ✅ | Axios-like interface |
-| < 10 KB bundle | ✅ | 3.71 KB gzipped |
-| Modern browsers | ✅ | Uses fetch API |
+| Requirement           | Status | Notes                                    |
+| --------------------- | ------ | ---------------------------------------- |
+| Unified HTTP client   | ✅     | `HttpClient` class with factory function |
+| Request interceptors  | ✅     | Full support with manager                |
+| Response interceptors | ✅     | Full support with manager                |
+| Error interceptors    | ✅     | Full support with manager                |
+| Automatic retries     | ✅     | Exponential backoff with jitter          |
+| Request cancellation  | ✅     | AbortController support                  |
+| Error transformation  | ✅     | Standardized `ApiError` type             |
+| Base URL & headers    | ✅     | Configurable defaults                    |
+| Request deduplication | ✅     | Signature-based caching                  |
+| Mock adapter          | ✅     | `SimpleMockAdapter` implementation       |
+| TypeScript typing     | ✅     | Full generic support                     |
+| Clean API             | ✅     | Axios-like interface                     |
+| < 10 KB bundle        | ✅     | 3.71 KB gzipped                          |
+| Modern browsers       | ✅     | Uses fetch API                           |
 
 ### Next Steps (Optional Enhancements)
 
 The following were listed as "Open Questions" in the PRD and could be future additions:
+
 - GraphQL request helpers
 - Built-in token refresh logic (currently done via interceptors)
 - Request batching for analytics
@@ -167,6 +176,7 @@ The following were listed as "Open Questions" in the PRD and could be future add
 ### Usage in Web Loom
 
 The package is ready to be used across the monorepo:
+
 - Can replace ad-hoc fetch calls in apps
 - Integrates with existing `RestfulApiModel` in mvvm-core
 - Works with query-core for data fetching

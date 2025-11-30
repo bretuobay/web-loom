@@ -1,18 +1,18 @@
-"use client"
+'use client';
 
-import { ScrollArea } from "./ui/scroll-area"
-import ReactMarkdown from "react-markdown"
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism"
+import { ScrollArea } from './ui/scroll-area';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface Chapter {
-  id: string
-  title: string
-  content: string
+  id: string;
+  title: string;
+  content: string;
 }
 
 interface BookContentProps {
-  chapter?: Chapter
+  chapter?: Chapter;
 }
 
 export function BookContent({ chapter }: BookContentProps) {
@@ -21,7 +21,7 @@ export function BookContent({ chapter }: BookContentProps) {
       <div className="flex-1 flex items-center justify-center">
         <p className="text-muted-foreground">Select a chapter to begin reading</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -33,8 +33,8 @@ export function BookContent({ chapter }: BookContentProps) {
             <ReactMarkdown
               components={{
                 code({ node, inline, className, children, ...props }: any) {
-                  const match = /language-(\w+)/.exec(className || "")
-                  const language = match ? match[1] : ""
+                  const match = /language-(\w+)/.exec(className || '');
+                  const language = match ? match[1] : '';
 
                   return !inline && language ? (
                     <SyntaxHighlighter
@@ -42,19 +42,19 @@ export function BookContent({ chapter }: BookContentProps) {
                       language={language}
                       PreTag="div"
                       customStyle={{
-                        borderRadius: "0.5rem",
-                        padding: "1.5rem",
-                        fontSize: "0.875rem",
+                        borderRadius: '0.5rem',
+                        padding: '1.5rem',
+                        fontSize: '0.875rem',
                       }}
                       {...props}
                     >
-                      {String(children).replace(/\n$/, "")}
+                      {String(children).replace(/\n$/, '')}
                     </SyntaxHighlighter>
                   ) : (
                     <code className={className} {...props}>
                       {children}
                     </code>
-                  )
+                  );
                 },
               }}
             >
@@ -64,5 +64,5 @@ export function BookContent({ chapter }: BookContentProps) {
         </article>
       </ScrollArea>
     </main>
-  )
+  );
 }

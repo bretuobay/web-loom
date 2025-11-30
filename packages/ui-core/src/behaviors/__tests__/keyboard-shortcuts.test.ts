@@ -274,7 +274,7 @@ describe('createKeyboardShortcuts', () => {
         bubbles: true,
         cancelable: true,
       });
-      
+
       const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
       document.dispatchEvent(event);
 

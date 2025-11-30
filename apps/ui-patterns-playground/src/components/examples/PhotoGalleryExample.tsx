@@ -11,7 +11,7 @@ interface Photo {
 
 /**
  * Photo Gallery Example with Grid Layout
- * 
+ *
  * Demonstrates:
  * - Grid layout pattern with responsive breakpoints
  * - Keyboard navigation (arrow keys)
@@ -96,17 +96,15 @@ export function PhotoGalleryExample() {
 
   const state = gridLayout.getState();
   const focusedPhoto = photos[state.focusedIndex];
-  const selectedPhoto = state.selectedItems.length > 0
-    ? photos.find(p => p.id === state.selectedItems[0])
-    : null;
+  const selectedPhoto = state.selectedItems.length > 0 ? photos.find((p) => p.id === state.selectedItems[0]) : null;
 
   return (
     <div className="example-container">
       <div className="example-header">
         <h2>Photo Gallery with Grid Layout</h2>
         <p>
-          This example demonstrates the <code>createGridLayout</code> pattern
-          with responsive breakpoints and keyboard navigation.
+          This example demonstrates the <code>createGridLayout</code> pattern with responsive breakpoints and keyboard
+          navigation.
         </p>
       </div>
 
@@ -129,9 +127,7 @@ export function PhotoGalleryExample() {
             </div>
             <div className="info-item">
               <span className="info-label">Focused:</span>
-              <span className="info-value">
-                {focusedPhoto ? focusedPhoto.title : 'None'}
-              </span>
+              <span className="info-value">{focusedPhoto ? focusedPhoto.title : 'None'}</span>
             </div>
           </div>
         </div>
@@ -140,7 +136,7 @@ export function PhotoGalleryExample() {
           <p>💡 Use arrow keys to navigate, Enter/Space to select</p>
         </div>
 
-        <div 
+        <div
           className="photo-gallery"
           style={{
             gridTemplateColumns: `repeat(${state.columns}, 1fr)`,
@@ -149,9 +145,7 @@ export function PhotoGalleryExample() {
           {photos.map((photo, index) => (
             <div
               key={photo.id}
-              className={`photo-card ${
-                state.focusedIndex === index ? 'focused' : ''
-              } ${
+              className={`photo-card ${state.focusedIndex === index ? 'focused' : ''} ${
                 state.selectedItems.includes(photo.id) ? 'selected' : ''
               }`}
               style={{ backgroundColor: photo.color }}
@@ -162,9 +156,7 @@ export function PhotoGalleryExample() {
             >
               <div className="photo-emoji">{photo.url}</div>
               <div className="photo-title">{photo.title}</div>
-              {state.focusedIndex === index && (
-                <div className="focus-indicator">Focused</div>
-              )}
+              {state.focusedIndex === index && <div className="focus-indicator">Focused</div>}
             </div>
           ))}
         </div>
@@ -193,9 +185,7 @@ export function PhotoGalleryExample() {
             ].map((bp) => (
               <div
                 key={bp.minWidth}
-                className={`breakpoint-item ${
-                  state.breakpoint.minWidth === bp.minWidth ? 'active' : ''
-                }`}
+                className={`breakpoint-item ${state.breakpoint.minWidth === bp.minWidth ? 'active' : ''}`}
               >
                 <div className="breakpoint-label">{bp.label}</div>
                 <div className="breakpoint-spec">

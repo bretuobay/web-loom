@@ -15,7 +15,13 @@ const parseColor = (value?: string): RGB | null => {
 
   if (trimmed.startsWith('#')) {
     const hex = trimmed.slice(1);
-    const normalized = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
+    const normalized =
+      hex.length === 3
+        ? hex
+            .split('')
+            .map((c) => c + c)
+            .join('')
+        : hex;
     const int = parseInt(normalized, 16);
     if (Number.isNaN(int)) {
       return null;
@@ -48,8 +54,10 @@ const getContrastRatio = (foreground: RGB | null, background: RGB | null): numbe
     return undefined;
   }
 
-  const L1 = 0.2126 * luminance(foreground.r) + 0.7152 * luminance(foreground.g) + 0.0722 * luminance(foreground.b) + 0.05;
-  const L2 = 0.2126 * luminance(background.r) + 0.7152 * luminance(background.g) + 0.0722 * luminance(background.b) + 0.05;
+  const L1 =
+    0.2126 * luminance(foreground.r) + 0.7152 * luminance(foreground.g) + 0.0722 * luminance(foreground.b) + 0.05;
+  const L2 =
+    0.2126 * luminance(background.r) + 0.7152 * luminance(background.g) + 0.0722 * luminance(background.b) + 0.05;
   const ratio = L1 > L2 ? L1 / L2 : L2 / L1;
   return parseFloat(ratio.toFixed(2));
 };
@@ -68,7 +76,8 @@ export function validateTextAccessibility(element?: HTMLElement | null): Accessi
   const color = parseColor(styles.color || '#000000');
   const background = parseColor(styles.backgroundColor || '#ffffff');
   const contrastRatio = getContrastRatio(color, background);
-  const isLargeText = fontSize >= 18 || (styles.fontWeight ? parseInt(styles.fontWeight, 10) >= 700 && fontSize >= 14 : false);
+  const isLargeText =
+    fontSize >= 18 || (styles.fontWeight ? parseInt(styles.fontWeight, 10) >= 700 && fontSize >= 14 : false);
   const minimumContrast = isLargeText ? 3 : 4.5;
 
   const warnings: string[] = [];

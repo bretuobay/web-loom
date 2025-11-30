@@ -23,18 +23,21 @@ Beekeeper Studio employs a **hybrid plugin architecture** that combines multiple
 The system operates across three distinct layers, each with specific responsibilities:
 
 **Layer 1: Distribution & Installation (Electron Main Process)**
+
 - Remote registry management via GitHub API
 - Plugin package downloading and extraction
 - Version compatibility validation
 - File system management and persistence
 
 **Layer 2: Runtime Management (Electron Renderer Process)**
+
 - Plugin lifecycle orchestration
 - View and menu registration
 - IPC bridge to backend services
 - State management integration (Vuex)
 
 **Layer 3: Execution Environment (Sandboxed IFrames)**
+
 - Isolated plugin code execution
 - Bidirectional message passing
 - Limited API surface via structured requests
@@ -54,6 +57,7 @@ https://raw.githubusercontent.com/beekeeper-studio/
 ```
 
 Each entry contains minimal metadata:
+
 - Plugin identifier and name
 - Author information
 - GitHub repository reference
@@ -187,15 +191,18 @@ For one-way communication, notifications omit the `id` field:
 The architecture exposes 27 distinct API actions, organized into categories:
 
 **Data Retrieval** (13 actions):
+
 - Schema introspection (`getTables`, `getColumns`, `getPrimaryKeys`)
 - Connection metadata (`getConnectionInfo`, `getAppInfo`)
 - Plugin state management (`getData`, `getEncryptedData`)
 
 **Data Modification** (5 actions):
+
 - Query execution (`runQuery`)
 - State persistence (`setData`, `setEncryptedData`)
 
 **UI Manipulation** (9 actions):
+
 - Tab management (`openTab`, `setTabTitle`)
 - View state (`expandTableResult`, `getViewState`, `setViewState`)
 - External integration (`openExternal`, `clipboard.readText`, `clipboard.writeText`)
@@ -228,6 +235,7 @@ The manifest defines a permission system, though not yet implemented:
 ```
 
 Implementation would involve:
+
 - Permission checks before executing sensitive actions
 - User prompts for permission grants
 - Revocable permissions through settings UI
@@ -246,34 +254,41 @@ The architecture provides 16 distinct menu placements, enabling deep integration
 ### Placement Categories
 
 **Global UI**:
+
 - `menubar.tools`: Application menubar
 - `newTabDropdown`: Tab creation dropdown
 
 **Editor Contexts**:
+
 - `editor.query.context`: Right-click in query editor
 
 **Result Grids** (query results):
+
 - `results.cell.context`: Individual cell
 - `results.columnHeader.context`: Column header
 - `results.rowHeader.context`: Row number
 - `results.corner.context`: Grid corner (select all)
 
 **Table Viewers** (table data):
+
 - `tableTable.cell.context`: Individual cell
 - `tableTable.columnHeader.context`: Column header
 - `tableTable.rowHeader.context`: Row number
 - `tableTable.corner.context`: Grid corner
 
 **Tab Headers**:
+
 - `tab.query.header.context`: Query tab header
 - `tab.table.header.context`: Table tab header
 
 **Entity Contexts** (database sidebar):
+
 - `entity.table.context`: Table nodes
 - `entity.schema.context`: Schema nodes
 - `entity.routine.context`: Stored procedure/function nodes
 
 **Specialized UI**:
+
 - `structure.statusbar.menu`: Table structure view status bar
 
 ### Factory Pattern Implementation
@@ -289,14 +304,14 @@ const factory = {
         context.store.addMenuBarItem({
           id,
           label: menuItem.name,
-          handler: () => openPluginView(menuItem)
+          handler: () => openPluginView(menuItem),
         });
       },
       remove() {
         context.store.removeMenuBarItem(id);
-      }
+      },
     };
-  }
+  },
 };
 ```
 
@@ -309,6 +324,7 @@ The plugin lifecycle spans seven distinct phases, each managed by different comp
 ### 1. Installation (Backend)
 
 Triggered by user action in the plugin manager:
+
 - Repository metadata fetched from GitHub
 - Compatibility validated via `minAppVersion`
 - ZIP archive downloaded from release assets
@@ -319,6 +335,7 @@ Triggered by user action in the plugin manager:
 ### 2. Backend Initialization (Startup)
 
 On application launch:
+
 - Plugin directory scanned for installed plugins
 - Manifests loaded and validated
 - Compatibility rechecked (app version may have changed)
@@ -328,6 +345,7 @@ On application launch:
 ### 3. Frontend Loading (Startup)
 
 In the renderer process:
+
 - Backend plugin list fetched via IPC
 - Non-disabled, loadable plugins selected
 - `WebPluginLoader` instances created
@@ -338,6 +356,7 @@ In the renderer process:
 ### 4. View Instantiation (User Action)
 
 When user opens a plugin tab:
+
 - Host creates new tab with plugin context
 - Vue component mounts iframe with `plugin://{id}/{entry}` URL
 - Iframe registered with loader before content loads
@@ -347,6 +366,7 @@ When user opens a plugin tab:
 ### 5. Request Execution (Runtime)
 
 On every plugin request:
+
 - Message intercepted by event listener
 - Request validated and routed to handler
 - Permissions checked (when implemented)
@@ -358,6 +378,7 @@ On every plugin request:
 ### 6. Unload (Reload/Update)
 
 When plugin is reloaded:
+
 - Window message listener removed
 - Menu items unregistered from all placements
 - Tab type configurations removed from Vuex
@@ -368,6 +389,7 @@ When plugin is reloaded:
 ### 7. Disposal (Uninstall)
 
 When plugin is permanently removed:
+
 - All event listeners unregistered
 - `onDispose` callbacks executed (cleanup)
 - Loader instance removed from manager map
@@ -411,6 +433,7 @@ onThemeChanged((theme) => {
 ### Custom Protocol for Development
 
 The `plugin://` protocol serves files during development, enabling:
+
 - Live reloading via file watching (when implemented)
 - Source map support for debugging
 - Direct file serving without build steps
@@ -418,6 +441,7 @@ The `plugin://` protocol serves files during development, enabling:
 ### Documentation and Examples
 
 Official documentation covers:
+
 - Plugin architecture overview
 - Manifest schema reference
 - API reference with all 27 actions
@@ -438,7 +462,8 @@ The structured message protocol creates a versioned API surface that can evolve 
 
 ### 3. Declarative Configuration
 
-Manifests describe *what* plugins provide, not *how* they work. This enables the host to:
+Manifests describe _what_ plugins provide, not _how_ they work. This enables the host to:
+
 - Validate capabilities before loading code
 - Display plugin features in UI before installation
 - Enforce compatibility constraints
@@ -447,6 +472,7 @@ Manifests describe *what* plugins provide, not *how* they work. This enables the
 ### 4. Separation of Concerns
 
 Clean boundaries between subsystems:
+
 - `PluginFileManager`: File operations only
 - `PluginRegistry`: Remote metadata caching
 - `PluginManager`: Backend lifecycle orchestration
@@ -458,6 +484,7 @@ This separation enables independent testing, evolution, and optimization of each
 ### 5. Progressive Enhancement
 
 The architecture supports:
+
 - Plugins that work offline (local installation)
 - Auto-updates for users who want them
 - Manual updates for users who prefer control
@@ -468,11 +495,13 @@ The architecture supports:
 ### Extension API Pattern (VSCode Model)
 
 VSCode plugins run in separate Node.js processes and communicate via a typed extension API. Benefits include:
+
 - Stronger type safety
 - Better debugging (separate processes)
 - Richer API surface (file system access, etc.)
 
 Trade-offs:
+
 - Higher memory overhead (process per plugin)
 - More complex IPC infrastructure
 - Harder to sandbox (Node.js access)
@@ -482,11 +511,13 @@ Beekeeper Studio's iframe approach is lighter-weight but more restrictive, appro
 ### Dynamic Import Pattern (Webpack Federation)
 
 Module federation allows loading JavaScript modules at runtime from remote sources. Benefits include:
+
 - Code sharing between host and plugins
 - Better performance (no iframe overhead)
 - Direct API access
 
 Trade-offs:
+
 - Security risks (shared JavaScript context)
 - Dependency conflicts
 - Harder to isolate failures
@@ -496,11 +527,13 @@ Beekeeper Studio prioritizes security over performance, accepting iframe overhea
 ### WebAssembly Plugin Pattern (Figma Model)
 
 Figma plugins run compiled WebAssembly with a restricted API. Benefits include:
+
 - Near-native performance
 - Strong sandboxing via WASM runtime
 - Language-agnostic (any WASM-compiling language)
 
 Trade-offs:
+
 - Limited DOM access
 - Harder to develop (compilation step)
 - Restricted ecosystem (fewer libraries)
@@ -514,6 +547,7 @@ Several architectural improvements could enhance the system:
 ### 1. Enhanced Permission Model
 
 Implementing the defined permission system with:
+
 - Granular permissions per API action
 - User consent dialogs on first access
 - Revocable permissions in settings
@@ -522,6 +556,7 @@ Implementing the defined permission system with:
 ### 2. Plugin Composition
 
 Enabling plugins to depend on other plugins:
+
 - Dependency declaration in manifest
 - Dependency resolution algorithm
 - Version compatibility checking
@@ -530,6 +565,7 @@ Enabling plugins to depend on other plugins:
 ### 3. API Versioning
 
 Supporting multiple API versions simultaneously:
+
 - `apiVersion` field in manifest
 - Version-specific request handlers
 - Deprecation warnings
@@ -538,6 +574,7 @@ Supporting multiple API versions simultaneously:
 ### 4. Performance Optimizations
 
 Reducing overhead through:
+
 - Lazy plugin loading (on-demand)
 - Code splitting for large plugins
 - Shared dependency bundling
@@ -546,6 +583,7 @@ Reducing overhead through:
 ### 5. Developer Tooling
 
 Improving the development experience:
+
 - CLI for scaffolding, building, publishing
 - Test harness for API mocking
 - Hot reload during development

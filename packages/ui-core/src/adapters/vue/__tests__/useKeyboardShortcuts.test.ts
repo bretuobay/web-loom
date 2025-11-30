@@ -142,7 +142,7 @@ describe('useKeyboardShortcuts', () => {
     it('should invoke onShortcutExecuted callback', async () => {
       const onShortcutExecuted = vi.fn();
       const handler = vi.fn();
-      
+
       const TestComponent = defineComponent({
         setup() {
           const shortcuts = useKeyboardShortcuts({ onShortcutExecuted });

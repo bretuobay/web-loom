@@ -23,7 +23,10 @@ const countSentences = (text: string): number => {
 };
 
 const countParagraphs = (text: string): number => {
-  const blocks = text.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
+  const blocks = text
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
   return blocks.length || 1;
 };
 

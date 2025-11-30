@@ -26,11 +26,11 @@ Unlike filesystem-scanning approaches (WordPress) or runtime marketplaces (VS Co
 
 ```typescript
 export const config: VendureConfig = {
-    plugins: [
-        DefaultSearchPlugin,
-        AssetServerPlugin.init({ route: 'assets' }),
-        StripePaymentPlugin.init({ apiKey: process.env.STRIPE_KEY }),
-    ],
+  plugins: [
+    DefaultSearchPlugin,
+    AssetServerPlugin.init({ route: 'assets' }),
+    StripePaymentPlugin.init({ apiKey: process.env.STRIPE_KEY }),
+  ],
 };
 ```
 
@@ -46,18 +46,22 @@ At the heart of the architecture lies the `@VendurePlugin` decorator, a TypeScri
 
 ```typescript
 @VendurePlugin({
-    imports: [PluginCommonModule],
-    providers: [PaymentService],
-    configuration: config => {
-        config.paymentOptions.paymentMethodHandlers.push(new StripeHandler());
-        return config;
-    },
-    adminApiExtensions: {
-        schema: gql`extend type Query { paymentAnalytics: Analytics }`,
-        resolvers: [PaymentResolver],
-    },
-    entities: [PaymentRecord],
-    compatibility: '^3.0.0',
+  imports: [PluginCommonModule],
+  providers: [PaymentService],
+  configuration: (config) => {
+    config.paymentOptions.paymentMethodHandlers.push(new StripeHandler());
+    return config;
+  },
+  adminApiExtensions: {
+    schema: gql`
+      extend type Query {
+        paymentAnalytics: Analytics
+      }
+    `,
+    resolvers: [PaymentResolver],
+  },
+  entities: [PaymentRecord],
+  compatibility: '^3.0.0',
 })
 export class StripePaymentPlugin {}
 ```
@@ -69,6 +73,7 @@ This declarative approach provides IDE autocomplete, compile-time validation, an
 The Vendure plugin lifecycle consists of seven distinct phases, each serving a specific architectural purpose:
 
 #### Phase 1: Compatibility Validation
+
 Before any plugin code executes, the system validates semver compatibility ranges. This **fail-fast** approach prevents subtle bugs from version mismatches:
 
 ```typescript
@@ -80,6 +85,7 @@ Before any plugin code executes, the system validates semver compatibility range
 Incompatible plugins abort the bootstrap process with clear error messages, unless explicitly overridden by operators who accept the risk.
 
 #### Phase 2: Configuration Hook Execution
+
 Plugins receive the entire system configuration object and may modify it freely. This powerful mechanism enables plugins to:
 
 - Register custom business strategies (payment handlers, shipping calculators)
@@ -88,51 +94,49 @@ Plugins receive the entire system configuration object and may modify it freely.
 - Modify settings of other plugins
 
 ```typescript
-configuration: async config => {
-    // Add custom field to Product entity
-    config.customFields.Product.push({
-        name: 'seoScore',
-        type: 'int',
-        validate: value => value >= 0 && value <= 100,
-    });
+configuration: async (config) => {
+  // Add custom field to Product entity
+  config.customFields.Product.push({
+    name: 'seoScore',
+    type: 'int',
+    validate: (value) => value >= 0 && value <= 100,
+  });
 
-    // Register payment handler
-    config.paymentOptions.paymentMethodHandlers.push(
-        new StripePaymentHandler()
-    );
+  // Register payment handler
+  config.paymentOptions.paymentMethodHandlers.push(new StripePaymentHandler());
 
-    return config;
-}
+  return config;
+};
 ```
 
 This phase executes **sequentially** in array order, allowing later plugins to observe or modify earlier plugins' configurations. While this creates implicit ordering dependencies, it enables powerful composition patterns.
 
 #### Phase 3-4: Module and Service Initialization
+
 After configuration, NestJS constructs the dependency injection container. Plugin services receive core services through constructor injection:
 
 ```typescript
 @Injectable()
 export class PaymentAnalyticsService {
-    constructor(
-        private connection: TransactionalConnection,
-        private eventBus: EventBus,
-        private orderService: OrderService,
-    ) {}
+  constructor(
+    private connection: TransactionalConnection,
+    private eventBus: EventBus,
+    private orderService: OrderService,
+  ) {}
 }
 ```
 
 The DI system resolves dependencies automatically, eliminating manual service location and enabling sophisticated testing strategies.
 
 #### Phase 5-6: Lifecycle Hooks and Runtime Operation
+
 Plugins implement standard NestJS lifecycle interfaces (`OnApplicationBootstrap`, `OnApplicationShutdown`) to manage resources and subscribe to events:
 
 ```typescript
 export class EmailPlugin implements OnApplicationBootstrap {
-    async onApplicationBootstrap() {
-        this.eventBus
-            .ofType(OrderPlacedEvent)
-            .subscribe(event => this.sendConfirmation(event.order));
-    }
+  async onApplicationBootstrap() {
+    this.eventBus.ofType(OrderPlacedEvent).subscribe((event) => this.sendConfirmation(event.order));
+  }
 }
 ```
 
@@ -154,20 +158,20 @@ Each strategy interface includes lifecycle methods (`init`, `destroy`) that rece
 
 ```typescript
 export class S3AssetStorageStrategy implements AssetStorageStrategy {
-    private connection: TransactionalConnection;
+  private connection: TransactionalConnection;
 
-    async init(injector: Injector) {
-        this.connection = injector.get(TransactionalConnection);
-        await this.initializeS3Client();
-    }
+  async init(injector: Injector) {
+    this.connection = injector.get(TransactionalConnection);
+    await this.initializeS3Client();
+  }
 
-    async writeFileFromStream(fileName: string, data: ReadStream) {
-        await this.s3.upload({ Bucket: this.bucket, Key: fileName, Body: data });
-    }
+  async writeFileFromStream(fileName: string, data: ReadStream) {
+    await this.s3.upload({ Bucket: this.bucket, Key: fileName, Body: data });
+  }
 
-    async destroy() {
-        await this.s3.disconnect();
-    }
+  async destroy() {
+    await this.s3.disconnect();
+  }
 }
 ```
 
@@ -204,28 +208,30 @@ This approach contrasts with schema-stitching or federation patterns, offering l
 E-commerce applications frequently require domain-specific data. Vendure supports two extension mechanisms:
 
 #### Custom Entities
+
 Plugins define new TypeORM entities that create additional database tables:
 
 ```typescript
 @Entity()
 class ProductReview extends VendureEntity {
-    @ManyToOne(type => Product)
-    product: Product;
+  @ManyToOne((type) => Product)
+  product: Product;
 
-    @Column() rating: number;
-    @Column('text') comment: string;
+  @Column() rating: number;
+  @Column('text') comment: string;
 }
 ```
 
 #### Custom Fields
+
 For simpler extensions, plugins add fields to existing entities without creating tables:
 
 ```typescript
 config.customFields.Product.push({
-    name: 'warrantyPeriod',
-    type: 'int',
-    label: [{ languageCode: LanguageCode.en, value: 'Warranty (months)' }],
-    ui: { component: 'number-input' }
+  name: 'warrantyPeriod',
+  type: 'int',
+  label: [{ languageCode: LanguageCode.en, value: 'Warranty (months)' }],
+  ui: { component: 'number-input' },
 });
 ```
 
@@ -298,30 +304,35 @@ The primary security mechanism is **compatibility validation**: plugins must dec
 ### Lessons and Patterns
 
 #### 1. Metadata-Driven Architecture
+
 Using TypeScript decorators and Reflect API to store plugin capabilities enables sophisticated tooling while maintaining runtime performance. This pattern is increasingly common in modern frameworks (Angular, NestJS, TypeORM).
 
 #### 2. Configuration as Code
+
 Treating configuration as executable TypeScript rather than static JSON/YAML enables:
+
 - Conditional logic based on environment
 - Type checking of configuration values
 - Code reuse through functions and constants
 
 #### 3. Strategy Pattern for Business Logic
+
 Exposing business logic through interface-based strategies rather than event hooks provides clearer contracts and easier testing. Developers replacing a strategy know exactly which methods to implement.
 
 #### 4. Lifecycle Phase Separation
+
 Separating configuration-time (pure data transformation) from runtime (service execution) enables optimizations and simplifies reasoning about plugin behavior.
 
 ### Comparison to Other Architectures
 
-| Aspect | Vendure | WordPress | VS Code | Webpack |
-|--------|---------|-----------|---------|---------|
-| Discovery | Config-based | File scan | package.json | Config-based |
-| Type Safety | Full TypeScript | None | TypeScript optional | TypeScript optional |
-| Isolation | None | Process | Process/Worker | None |
-| Hot Reload | No | Partial | Yes | Yes (dev mode) |
-| DI Container | Yes (NestJS) | No | Yes (custom) | No |
-| Target Use Case | Enterprise apps | General purpose | IDE extensions | Build tooling |
+| Aspect          | Vendure         | WordPress       | VS Code             | Webpack             |
+| --------------- | --------------- | --------------- | ------------------- | ------------------- |
+| Discovery       | Config-based    | File scan       | package.json        | Config-based        |
+| Type Safety     | Full TypeScript | None            | TypeScript optional | TypeScript optional |
+| Isolation       | None            | Process         | Process/Worker      | None                |
+| Hot Reload      | No              | Partial         | Yes                 | Yes (dev mode)      |
+| DI Container    | Yes (NestJS)    | No              | Yes (custom)        | No                  |
+| Target Use Case | Enterprise apps | General purpose | IDE extensions      | Build tooling       |
 
 Vendure's approach is most similar to **Spring Boot's plugin system** (Java) and **NestJS modules** (TypeScript), prioritizing type safety and deep integration over runtime flexibility and isolation.
 

@@ -9,10 +9,7 @@ describe('font performance utilities', () => {
   });
 
   it('plans subsets for multiple usages', () => {
-    const plan = planFontSubsets([
-      { text: 'Headings' },
-      { text: 'Paragraph content', weight: 400 },
-    ]);
+    const plan = planFontSubsets([{ text: 'Headings' }, { text: 'Paragraph content', weight: 400 }]);
     expect(plan).toHaveLength(2);
   });
 

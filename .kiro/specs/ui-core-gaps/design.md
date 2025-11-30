@@ -5,6 +5,7 @@
 This design document outlines the technical approach for implementing the missing behaviors and patterns identified in the Gap Analysis Report for the Web Loom UI Core and UI Patterns packages. The implementation will add three critical core behaviors (Keyboard Shortcuts, Undo/Redo Stack, Drag-and-Drop), three macro patterns (Hub & Spoke Navigation, Grid/Card Layout, Floating Action Button), and enhancements to existing patterns.
 
 The design follows Web Loom's established architectural principles:
+
 - Framework-agnostic core logic using `@web-loom/store-core`
 - Event communication via `@web-loom/event-bus-core`
 - Headless design with no DOM manipulation
@@ -43,6 +44,7 @@ All new behaviors and patterns follow the same architectural pattern established
 ### State Management Strategy
 
 All behaviors use `@web-loom/store-core` for state management:
+
 - Immutable state updates
 - Subscription-based reactivity
 - Type-safe state and actions
@@ -51,6 +53,7 @@ All behaviors use `@web-loom/store-core` for state management:
 ### Event Communication Strategy
 
 Cross-behavior and pattern-level events use `@web-loom/event-bus-core`:
+
 - Loose coupling between components
 - Type-safe event payloads
 - Scoped event buses for isolation
@@ -63,12 +66,11 @@ Cross-behavior and pattern-level events use `@web-loom/event-bus-core`:
 
 **Purpose:** Manages keyboard shortcut registration, key combination parsing, and handler execution with support for global and scoped listeners.
 
-
 **Interface:**
 
 ```typescript
 interface KeyboardShortcut {
-  key: string;                    // e.g., "Ctrl+K", "Cmd+Shift+P"
+  key: string; // e.g., "Ctrl+K", "Cmd+Shift+P"
   handler: () => void;
   description?: string;
   preventDefault?: boolean;
@@ -94,7 +96,7 @@ interface KeyboardShortcutsActions {
 function createKeyboardShortcuts(options?: {
   scope?: 'global' | 'scoped';
   onShortcutExecuted?: (key: string) => void;
-}): Behavior<KeyboardShortcutsState, KeyboardShortcutsActions>
+}): Behavior<KeyboardShortcutsState, KeyboardShortcutsActions>;
 ```
 
 **Key Design Decisions:**
@@ -135,7 +137,7 @@ function createUndoRedoStack<T>(options: {
   initialState: T;
   maxLength?: number;
   onStateChange?: (state: T) => void;
-}): Behavior<UndoRedoStackState<T>, UndoRedoStackActions<T>>
+}): Behavior<UndoRedoStackState<T>, UndoRedoStackActions<T>>;
 ```
 
 **Key Design Decisions:**
@@ -144,7 +146,6 @@ function createUndoRedoStack<T>(options: {
 2. **Bounded History:** Configurable max length prevents unbounded memory growth
 3. **Serialization Support:** All states must be JSON-serializable for persistence
 4. **Time-Travel:** `jumpToState` allows direct navigation to any point in history
-
 
 ### 3. Drag-and-Drop Behavior
 
@@ -179,7 +180,7 @@ function createDragDropBehavior(options?: {
   onDragEnd?: (itemId: string) => void;
   onDrop?: (draggedItem: string, dropTarget: string, data: any) => void;
   validateDrop?: (draggedItem: string, dropTarget: string) => boolean;
-}): Behavior<DragDropState, DragDropActions>
+}): Behavior<DragDropState, DragDropActions>;
 ```
 
 **Key Design Decisions:**
@@ -227,7 +228,7 @@ function createHubAndSpoke(options: {
   onSpokeActivate?: (spokeId: string) => void;
   onReturnToHub?: () => void;
   enableBrowserHistory?: boolean;
-}): Pattern<HubAndSpokeState, HubAndSpokeActions>
+}): Pattern<HubAndSpokeState, HubAndSpokeActions>;
 ```
 
 **Key Design Decisions:**
@@ -236,7 +237,6 @@ function createHubAndSpoke(options: {
 2. **History Integration:** Optional browser history API integration for URL-based navigation
 3. **Breadcrumb Management:** Automatic breadcrumb generation based on navigation path
 4. **Event Emission:** Emits `spoke:activated` and `hub:returned` events
-
 
 ### 5. Grid/Card Layout Pattern
 
@@ -280,7 +280,7 @@ function createGridLayout<T>(options: {
   selectionMode?: 'single' | 'multi';
   onSelectionChange?: (selected: T[]) => void;
   wrap?: boolean;
-}): Pattern<GridLayoutState<T>, GridLayoutActions<T>>
+}): Pattern<GridLayoutState<T>, GridLayoutActions<T>>;
 ```
 
 **Key Design Decisions:**
@@ -321,7 +321,7 @@ function createFloatingActionButton(options?: {
   scrollThreshold?: number;
   hideOnScrollDown?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
-}): Pattern<FABState, FABActions>
+}): Pattern<FABState, FABActions>;
 ```
 
 **Key Design Decisions:**
@@ -344,7 +344,7 @@ interface ParsedKeyCombo {
   alt: boolean;
   meta: boolean;
   key: string;
-  normalized: string;  // e.g., "Ctrl+Shift+K"
+  normalized: string; // e.g., "Ctrl+Shift+K"
 }
 
 function parseKeyCombo(combo: string): ParsedKeyCombo {
@@ -360,17 +360,17 @@ The Undo/Redo Stack uses a three-part history structure:
 
 ```typescript
 interface History<T> {
-  past: T[];      // [oldest, ..., most recent]
-  present: T;     // current state
-  future: T[];    // [next, ..., furthest]
+  past: T[]; // [oldest, ..., most recent]
+  present: T; // current state
+  future: T[]; // [next, ..., furthest]
 }
 ```
 
 Operations:
+
 - **Push:** `past.push(present)`, `present = new`, `future = []`
 - **Undo:** `future.unshift(present)`, `present = past.pop()`
 - **Redo:** `past.push(present)`, `present = future.shift()`
-
 
 ### Grid Navigation Algorithm
 
@@ -385,7 +385,7 @@ interface GridPosition {
 function indexToPosition(index: number, columns: number): GridPosition {
   return {
     row: Math.floor(index / columns),
-    col: index % columns
+    col: index % columns,
   };
 }
 
@@ -407,198 +407,198 @@ function navigateDown(currentIndex: number, columns: number, totalItems: number)
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+_A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 ### Keyboard Shortcuts Behavior Properties
 
 **Property 1: Key combination registration and execution**
-*For any* valid key combination and handler function, when the key combination is registered and then triggered, the handler should be executed exactly once.
+_For any_ valid key combination and handler function, when the key combination is registered and then triggered, the handler should be executed exactly once.
 **Validates: Requirements 1.3, 1.6**
 
 **Property 2: Platform normalization consistency**
-*For any* key combination using Cmd on macOS or Ctrl on Windows/Linux, the normalized internal representation should be identical, ensuring cross-platform consistency.
+_For any_ key combination using Cmd on macOS or Ctrl on Windows/Linux, the normalized internal representation should be identical, ensuring cross-platform consistency.
 **Validates: Requirements 1.4**
 
 **Property 3: preventDefault behavior**
-*For any* registered shortcut with `preventDefault: true`, when the key combination is triggered, the default browser behavior should be prevented.
+_For any_ registered shortcut with `preventDefault: true`, when the key combination is triggered, the default browser behavior should be prevented.
 **Validates: Requirements 1.7**
 
 **Property 4: Scope isolation**
-*For any* scoped shortcut, when triggered outside its scope, the handler should not be executed; when triggered inside its scope, the handler should be executed.
+_For any_ scoped shortcut, when triggered outside its scope, the handler should not be executed; when triggered inside its scope, the handler should be executed.
 **Validates: Requirements 1.8**
 
 **Property 5: Conflict resolution**
-*For any* key combination with multiple registered handlers, only the most recently registered handler should be executed when the key combination is triggered.
+_For any_ key combination with multiple registered handlers, only the most recently registered handler should be executed when the key combination is triggered.
 **Validates: Requirements 1.10**
 
 ### Undo/Redo Stack Properties
 
 **Property 6: Push state transition**
-*For any* state, when `pushState` is called, the current state should move to `past`, the new state should become `present`, and `future` should be empty.
+_For any_ state, when `pushState` is called, the current state should move to `past`, the new state should become `present`, and `future` should be empty.
 **Validates: Requirements 2.4**
 
 **Property 7: Undo state transition**
-*For any* non-empty past history, when `undo` is called, the current state should move to `future`, and the most recent past state should become `present`.
+_For any_ non-empty past history, when `undo` is called, the current state should move to `future`, and the most recent past state should become `present`.
 **Validates: Requirements 2.5**
 
 **Property 8: Redo state transition**
-*For any* non-empty future history, when `redo` is called, the current state should move to `past`, and the next future state should become `present`.
+_For any_ non-empty future history, when `redo` is called, the current state should move to `past`, and the next future state should become `present`.
 **Validates: Requirements 2.6**
 
 **Property 9: Undo-redo round trip**
-*For any* state, performing undo followed by redo should return to the original state (idempotence).
+_For any_ state, performing undo followed by redo should return to the original state (idempotence).
 **Validates: Requirements 2.5, 2.6**
 
 **Property 10: History length limit**
-*For any* maxLength value, when the number of past states exceeds maxLength, the oldest state should be removed.
+_For any_ maxLength value, when the number of past states exceeds maxLength, the oldest state should be removed.
 **Validates: Requirements 2.7, 2.8**
 
 **Property 11: State serializability**
-*For any* state in the history, serializing and deserializing the state should produce an equivalent state.
+_For any_ state in the history, serializing and deserializing the state should produce an equivalent state.
 **Validates: Requirements 2.9**
 
 ### Drag-and-Drop Behavior Properties
 
 **Property 12: Drag start state transition**
-*For any* item, when `startDrag` is called, `isDragging` should be true, `draggedItem` should be set, and `onDragStart` callback should be invoked.
+_For any_ item, when `startDrag` is called, `isDragging` should be true, `draggedItem` should be set, and `onDragStart` callback should be invoked.
 **Validates: Requirements 3.4**
 
 **Property 13: Drag end state transition**
-*For any* dragging state, when `endDrag` is called, `isDragging` should be false, `draggedItem` should be null, and `onDragEnd` callback should be invoked.
+_For any_ dragging state, when `endDrag` is called, `isDragging` should be false, `draggedItem` should be null, and `onDragEnd` callback should be invoked.
 **Validates: Requirements 3.5**
 
 **Property 14: Drop validation**
-*For any* drop operation, the drop should only succeed if the target is a registered drop zone.
+_For any_ drop operation, the drop should only succeed if the target is a registered drop zone.
 **Validates: Requirements 3.9**
 
 **Property 15: Drag data preservation**
-*For any* drag data, the data should be accessible throughout the drag operation and passed to the `onDrop` callback.
+_For any_ drag data, the data should be accessible throughout the drag operation and passed to the `onDrop` callback.
 **Validates: Requirements 3.8**
-
 
 ### Hub & Spoke Navigation Properties
 
 **Property 16: Spoke activation state transition**
-*For any* spoke, when `activateSpoke` is called, `isOnHub` should be false, `activeSpoke` should be set, and the spoke should be added to breadcrumbs.
+_For any_ spoke, when `activateSpoke` is called, `isOnHub` should be false, `activeSpoke` should be set, and the spoke should be added to breadcrumbs.
 **Validates: Requirements 4.4**
 
 **Property 17: Hub return state transition**
-*For any* active spoke, when `returnToHub` is called, `isOnHub` should be true, `activeSpoke` should be null, and breadcrumbs should be reset.
+_For any_ active spoke, when `returnToHub` is called, `isOnHub` should be true, `activeSpoke` should be null, and breadcrumbs should be reset.
 **Validates: Requirements 4.5**
 
 **Property 18: Navigation history consistency**
-*For any* sequence of spoke activations, the navigation history should accurately reflect the order of navigation.
+_For any_ sequence of spoke activations, the navigation history should accurately reflect the order of navigation.
 **Validates: Requirements 4.9**
 
 **Property 19: Event emission on navigation**
-*For any* spoke activation or hub return, the corresponding event (`spoke:activated` or `hub:returned`) should be emitted.
+_For any_ spoke activation or hub return, the corresponding event (`spoke:activated` or `hub:returned`) should be emitted.
 **Validates: Requirements 4.6**
 
 ### Grid Layout Pattern Properties
 
 **Property 20: Breakpoint column calculation**
-*For any* viewport width and set of breakpoints, the number of columns should match the breakpoint with the largest minWidth that is less than or equal to the viewport width.
+_For any_ viewport width and set of breakpoints, the number of columns should match the breakpoint with the largest minWidth that is less than or equal to the viewport width.
 **Validates: Requirements 5.4, 5.5**
 
 **Property 21: Up navigation correctness**
-*For any* focused item not in the first row, navigating up should move focus to the item in the same column in the row above (index - columns).
+_For any_ focused item not in the first row, navigating up should move focus to the item in the same column in the row above (index - columns).
 **Validates: Requirements 5.7**
 
 **Property 22: Down navigation correctness**
-*For any* focused item not in the last row, navigating down should move focus to the item in the same column in the row below (index + columns).
+_For any_ focused item not in the last row, navigating down should move focus to the item in the same column in the row below (index + columns).
 **Validates: Requirements 5.8**
 
 **Property 23: Left navigation with wrapping**
-*For any* focused item, navigating left should move to the previous item, wrapping to the last item if at the first position.
+_For any_ focused item, navigating left should move to the previous item, wrapping to the last item if at the first position.
 **Validates: Requirements 5.9**
 
 **Property 24: Right navigation with wrapping**
-*For any* focused item, navigating right should move to the next item, wrapping to the first item if at the last position.
+_For any_ focused item, navigating right should move to the next item, wrapping to the first item if at the last position.
 **Validates: Requirements 5.10**
 
 **Property 25: Selection mode consistency**
-*For any* selection mode (single or multi), the selection behavior should match the mode (single allows one selection, multi allows multiple).
+_For any_ selection mode (single or multi), the selection behavior should match the mode (single allows one selection, multi allows multiple).
 **Validates: Requirements 5.11**
 
 ### Floating Action Button Properties
 
 **Property 26: Scroll direction detection**
-*For any* two consecutive scroll positions, the scroll direction should be correctly calculated as 'up' or 'down'.
+_For any_ two consecutive scroll positions, the scroll direction should be correctly calculated as 'up' or 'down'.
 **Validates: Requirements 6.4**
 
 **Property 27: Threshold-based visibility**
-*For any* scroll position above the threshold, the FAB should be visible; for any position below, it should be hidden.
+_For any_ scroll position above the threshold, the FAB should be visible; for any position below, it should be hidden.
 **Validates: Requirements 6.5, 6.6**
 
 **Property 28: Hide on scroll down behavior**
-*For any* scroll down event when `hideOnScrollDown` is enabled, the FAB should be hidden; for scroll up, it should be shown.
+_For any_ scroll down event when `hideOnScrollDown` is enabled, the FAB should be hidden; for scroll up, it should be shown.
 **Validates: Requirements 6.7, 6.8**
 
 ### Modal Pattern Enhancement Properties
 
 **Property 29: Escape key closes modal**
-*For any* modal with `closeOnEscape: true`, pressing the Escape key should close the top modal in the stack.
+_For any_ modal with `closeOnEscape: true`, pressing the Escape key should close the top modal in the stack.
 **Validates: Requirements 7.3**
 
 **Property 30: Backdrop click closes modal**
-*For any* modal with `closeOnBackdropClick: true`, clicking the backdrop should close the modal.
+_For any_ modal with `closeOnBackdropClick: true`, clicking the backdrop should close the modal.
 **Validates: Requirements 7.4**
 
 ### Roving Focus Enhancement Properties
 
 **Property 31: Focus change callback invocation**
-*For any* focus change, the `onFocusChange` callback should be invoked with the correct index, itemId, and previousIndex.
+_For any_ focus change, the `onFocusChange` callback should be invoked with the correct index, itemId, and previousIndex.
 **Validates: Requirements 8.2, 8.3**
 
 ### Form Behavior Enhancement Properties
 
 **Property 32: Manual error setting**
-*For any* field, when `setFieldError` is called, the field error should be set without triggering validation.
+_For any_ field, when `setFieldError` is called, the field error should be set without triggering validation.
 **Validates: Requirements 9.2**
 
 **Property 33: Error merging**
-*For any* field with both manual and validation errors, both errors should be present in the field's error state.
+_For any_ field with both manual and validation errors, both errors should be present in the field's error state.
 **Validates: Requirements 9.4**
 
 ### Sidebar Shell Enhancement Properties
 
 **Property 34: Mobile auto-collapse**
-*For any* sidebar in mobile mode, when a section is selected, the sidebar should automatically collapse.
+_For any_ sidebar in mobile mode, when a section is selected, the sidebar should automatically collapse.
 **Validates: Requirements 10.3**
 
 ### Toast Queue Enhancement Properties
 
 **Property 35: Position configuration**
-*For any* valid position value, setting the position should update the state and emit a position change event.
+_For any_ valid position value, setting the position should update the state and emit a position change event.
 **Validates: Requirements 11.2, 11.5**
 
 ### Tabbed Interface Enhancement Properties
 
 **Property 36: Tab navigation delegation**
-*For any* tab interface, calling `focusNextTab` or `focusPreviousTab` should delegate to the underlying roving focus behavior.
+_For any_ tab interface, calling `focusNextTab` or `focusPreviousTab` should delegate to the underlying roving focus behavior.
 **Validates: Requirements 12.3, 12.4**
 
 ### Command Palette Enhancement Properties
 
 **Property 37: Command navigation delegation**
-*For any* command palette, calling `selectNext` or `selectPrevious` should delegate to the underlying roving focus behavior.
+_For any_ command palette, calling `selectNext` or `selectPrevious` should delegate to the underlying roving focus behavior.
 **Validates: Requirements 13.4, 13.5**
 
 **Property 38: Execute selected command**
-*For any* command palette with a selected command, calling `executeSelected` should execute the command at the current selected index.
+_For any_ command palette with a selected command, calling `executeSelected` should execute the command at the current selected index.
 **Validates: Requirements 13.6**
-
 
 ## Error Handling
 
 ### Keyboard Shortcuts Behavior
 
 **Error Scenarios:**
+
 1. **Invalid Key Combination:** Malformed key combinations (e.g., "Ctrl++K") should be rejected with a clear error message
 2. **Duplicate Registration:** Registering the same key combination twice should log a warning and use last-wins strategy
 3. **Handler Execution Errors:** Errors thrown in handler functions should be caught and logged without breaking the behavior
 
 **Error Handling Strategy:**
+
 ```typescript
 try {
   const parsed = parseKeyCombo(keyCombo);
@@ -615,12 +615,14 @@ try {
 ### Undo/Redo Stack Behavior
 
 **Error Scenarios:**
+
 1. **Undo on Empty Past:** Calling `undo` when `past` is empty should be a no-op
 2. **Redo on Empty Future:** Calling `redo` when `future` is empty should be a no-op
 3. **Invalid State:** Non-serializable states should be rejected with an error
 4. **Jump to Invalid Index:** `jumpToState` with out-of-bounds index should be rejected
 
 **Error Handling Strategy:**
+
 ```typescript
 actions.undo = () => {
   const state = get();
@@ -635,11 +637,13 @@ actions.undo = () => {
 ### Drag-and-Drop Behavior
 
 **Error Scenarios:**
+
 1. **Drop on Invalid Target:** Dropping on an unregistered drop zone should be rejected
 2. **End Drag Without Start:** Calling `endDrag` when not dragging should be a no-op
 3. **Invalid Item ID:** Dragging a non-existent item should log an error
 
 **Error Handling Strategy:**
+
 ```typescript
 actions.drop = (targetId: string) => {
   const state = get();
@@ -658,11 +662,13 @@ actions.drop = (targetId: string) => {
 ### Grid Layout Pattern
 
 **Error Scenarios:**
+
 1. **Invalid Breakpoints:** Breakpoints with negative minWidth or columns should be rejected
 2. **Navigation Out of Bounds:** Navigation beyond grid boundaries should wrap or stop based on configuration
 3. **Empty Items Array:** Operations on empty grid should be handled gracefully
 
 **Error Handling Strategy:**
+
 ```typescript
 actions.navigateUp = () => {
   const state = get();
@@ -686,27 +692,28 @@ actions.navigateUp = () => {
 All new behaviors and patterns will have comprehensive unit tests using Vitest:
 
 **Test Structure:**
+
 ```typescript
 describe('createKeyboardShortcuts', () => {
   describe('shortcut registration', () => {
     it('should register a valid shortcut', () => {
       // Test basic registration
     });
-    
+
     it('should normalize platform-specific keys', () => {
       // Test Cmd/Ctrl normalization
     });
-    
+
     it('should handle duplicate registrations', () => {
       // Test conflict resolution
     });
   });
-  
+
   describe('shortcut execution', () => {
     it('should execute handler when key combination is pressed', () => {
       // Test handler execution
     });
-    
+
     it('should respect scope settings', () => {
       // Test global vs scoped
     });
@@ -719,6 +726,7 @@ describe('createKeyboardShortcuts', () => {
 We will use **fast-check** (for TypeScript/JavaScript) as the property-based testing library. Each correctness property will be implemented as a property-based test with a minimum of 100 iterations.
 
 **Example Property Test:**
+
 ```typescript
 import fc from 'fast-check';
 
@@ -729,20 +737,20 @@ describe('Undo/Redo Stack Properties', () => {
         fc.anything(), // Generate random state
         (state) => {
           const stack = createUndoRedoStack({ initialState: state });
-          
+
           // Push a new state
           const newState = { ...state, modified: true };
           stack.actions.pushState(newState);
-          
+
           // Undo then redo
           stack.actions.undo();
           stack.actions.redo();
-          
+
           // Should return to newState
           expect(stack.getState().present).toEqual(newState);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
@@ -761,12 +769,12 @@ it('Property 9: Undo-redo round trip', () => {
 });
 ```
 
-
 ### Integration Testing
 
 Framework adapters will be tested with appropriate testing libraries:
 
 **React Testing:**
+
 ```typescript
 import { renderHook, act } from '@testing-library/react';
 import { useKeyboardShortcuts } from '@web-loom/ui-core/react';
@@ -774,26 +782,25 @@ import { useKeyboardShortcuts } from '@web-loom/ui-core/react';
 describe('useKeyboardShortcuts', () => {
   it('should register and execute shortcuts', () => {
     const handler = vi.fn();
-    const { result } = renderHook(() => 
-      useKeyboardShortcuts({ scope: 'global' })
-    );
-    
+    const { result } = renderHook(() => useKeyboardShortcuts({ scope: 'global' }));
+
     act(() => {
       result.current.registerShortcut({
         key: 'Ctrl+K',
-        handler
+        handler,
       });
     });
-    
+
     // Simulate key press
     fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
-    
+
     expect(handler).toHaveBeenCalledOnce();
   });
 });
 ```
 
 **Vue Testing:**
+
 ```typescript
 import { mount } from '@vue/test-utils';
 import { useKeyboardShortcuts } from '@web-loom/ui-core/vue';
@@ -807,29 +814,30 @@ describe('useKeyboardShortcuts composable', () => {
         shortcuts.registerShortcut({ key: 'Ctrl+K', handler });
         return { shortcuts };
       },
-      template: '<div></div>'
+      template: '<div></div>',
     });
-    
+
     // Test shortcut execution
   });
 });
 ```
 
 **Angular Testing:**
+
 ```typescript
 import { TestBed } from '@angular/core/testing';
 import { KeyboardShortcutsService } from '@web-loom/ui-core/angular';
 
 describe('KeyboardShortcutsService', () => {
   let service: KeyboardShortcutsService;
-  
+
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [KeyboardShortcutsService]
+      providers: [KeyboardShortcutsService],
     });
     service = TestBed.inject(KeyboardShortcutsService);
   });
-  
+
   it('should register shortcuts', () => {
     const handler = jasmine.createSpy('handler');
     service.registerShortcut({ key: 'Ctrl+K', handler });
@@ -866,6 +874,7 @@ describe('Grid Layout Accessibility', () => {
 ### Bundle Size Optimization
 
 **Target Sizes (gzipped):**
+
 - Keyboard Shortcuts: <2KB
 - Undo/Redo Stack: <2KB
 - Drag-and-Drop: <3KB
@@ -874,6 +883,7 @@ describe('Grid Layout Accessibility', () => {
 - Floating Action Button: <1KB
 
 **Optimization Strategies:**
+
 1. **Tree-shaking:** All exports are ES modules with proper side-effect annotations
 2. **Code splitting:** Each behavior is independently importable
 3. **Minimal dependencies:** Only `@web-loom/store-core` and `@web-loom/event-bus-core`
@@ -882,6 +892,7 @@ describe('Grid Layout Accessibility', () => {
 ### Runtime Performance
 
 **Performance Targets:**
+
 - State updates: <1ms (95th percentile)
 - Event handler execution: <1ms
 - Keyboard shortcut matching: <0.1ms
@@ -890,6 +901,7 @@ describe('Grid Layout Accessibility', () => {
 **Optimization Techniques:**
 
 1. **Event Delegation:** Single global listener for keyboard shortcuts
+
 ```typescript
 // Instead of multiple listeners
 document.addEventListener('keydown', handler1);
@@ -904,6 +916,7 @@ document.addEventListener('keydown', (e) => {
 ```
 
 2. **Memoization:** Cache expensive calculations
+
 ```typescript
 const memoizedBreakpoint = useMemo(() => {
   return calculateBreakpoint(viewportWidth, breakpoints);
@@ -911,15 +924,17 @@ const memoizedBreakpoint = useMemo(() => {
 ```
 
 3. **Structural Sharing:** Minimize memory allocations in undo/redo
+
 ```typescript
 // Reuse unchanged parts of state
 const newState = {
   ...oldState,
-  modifiedField: newValue
+  modifiedField: newValue,
 };
 ```
 
 4. **Throttling:** Limit high-frequency events
+
 ```typescript
 // Throttle scroll events in view layer before passing to FAB
 const throttledScroll = throttle((position) => {
@@ -927,17 +942,18 @@ const throttledScroll = throttle((position) => {
 }, 100);
 ```
 
-
 ## Accessibility Guidelines
 
 ### Keyboard Shortcuts Behavior
 
 **ARIA Considerations:**
+
 - Provide visual indicators for active shortcuts
 - Announce shortcut execution to screen readers
 - Support standard keyboard shortcuts (Ctrl+C, Ctrl+V, etc.)
 
 **Recommended Implementation:**
+
 ```typescript
 // Announce shortcut execution
 const announceShortcut = (description: string) => {
@@ -953,24 +969,20 @@ const announceShortcut = (description: string) => {
 ### Drag-and-Drop Behavior
 
 **Keyboard Alternative:**
+
 - Space to pick up item
 - Arrow keys to move
 - Space to drop
 - Escape to cancel
 
 **ARIA Attributes:**
+
 ```html
-<div
-  role="button"
-  aria-grabbed="true"
-  aria-dropeffect="move"
-  tabindex="0"
->
-  Draggable Item
-</div>
+<div role="button" aria-grabbed="true" aria-dropeffect="move" tabindex="0">Draggable Item</div>
 ```
 
 **Recommended Implementation:**
+
 ```typescript
 // Keyboard-based drag-and-drop
 const handleKeyDown = (e: KeyboardEvent) => {
@@ -990,6 +1002,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
 ### Grid Layout Pattern
 
 **ARIA Grid Role:**
+
 ```html
 <div role="grid" aria-label="Photo Gallery">
   <div role="row">
@@ -1000,26 +1013,27 @@ const handleKeyDown = (e: KeyboardEvent) => {
 ```
 
 **Focus Management:**
+
 - Only one gridcell should have `tabindex="0"` at a time
 - Arrow keys navigate between cells
 - Announce row and column position on focus
 
 **Recommended Implementation:**
+
 ```typescript
 // Announce grid position
 const announcePosition = (index: number, columns: number, total: number) => {
   const row = Math.floor(index / columns) + 1;
   const col = (index % columns) + 1;
   const totalRows = Math.ceil(total / columns);
-  announceToScreenReader(
-    `Row ${row} of ${totalRows}, Column ${col} of ${columns}`
-  );
+  announceToScreenReader(`Row ${row} of ${totalRows}, Column ${col} of ${columns}`);
 };
 ```
 
 ### Hub & Spoke Navigation
 
 **ARIA Landmarks:**
+
 ```html
 <nav aria-label="Main Navigation">
   <ul role="list">
@@ -1030,6 +1044,7 @@ const announcePosition = (index: number, columns: number, total: number) => {
 ```
 
 **Breadcrumb Navigation:**
+
 ```html
 <nav aria-label="Breadcrumb">
   <ol>
@@ -1042,16 +1057,15 @@ const announcePosition = (index: number, columns: number, total: number) => {
 ### Floating Action Button
 
 **ARIA Button:**
+
 ```html
-<button
-  aria-label="Create New Item"
-  aria-hidden="false"
->
+<button aria-label="Create New Item" aria-hidden="false">
   <span aria-hidden="true">+</span>
 </button>
 ```
 
 **Visibility Announcements:**
+
 ```typescript
 // Announce FAB visibility changes
 fab.subscribe((state) => {
@@ -1069,6 +1083,7 @@ fab.subscribe((state) => {
 All existing behaviors remain unchanged. New behaviors are additive.
 
 **Adopting New Behaviors:**
+
 ```typescript
 // Before: Manual keyboard shortcut handling
 useEffect(() => {
@@ -1087,7 +1102,7 @@ useEffect(() => {
   shortcuts.registerShortcut({
     key: 'Ctrl+K',
     handler: openCommandPalette,
-    description: 'Open command palette'
+    description: 'Open command palette',
   });
 }, []);
 ```
@@ -1095,6 +1110,7 @@ useEffect(() => {
 ### For Existing UI Patterns Users
 
 **Modal Pattern Enhancement:**
+
 ```typescript
 // Before: Manual escape key handling
 const modal = createModal();
@@ -1114,11 +1130,12 @@ modal.actions.openModal({
   id: 'settings',
   content: settingsData,
   closeOnEscape: true,
-  closeOnBackdropClick: true
+  closeOnBackdropClick: true,
 });
 ```
 
 **Sidebar Shell Enhancement:**
+
 ```typescript
 // Before: Manual mobile detection
 const sidebar = createSidebarShell();
@@ -1150,6 +1167,7 @@ useEffect(() => {
 All new behaviors and patterns will have comprehensive API documentation:
 
 **Structure:**
+
 1. **Overview:** Purpose and use cases
 2. **Installation:** Import statements
 3. **Basic Usage:** Simple example
@@ -1160,29 +1178,37 @@ All new behaviors and patterns will have comprehensive API documentation:
 8. **Examples:** Real-world implementations
 
 **Example Documentation Template:**
-```markdown
+
+````markdown
 # Keyboard Shortcuts Behavior
 
 ## Overview
+
 The Keyboard Shortcuts behavior manages keyboard shortcut registration...
 
 ## Installation
+
 ```typescript
 import { createKeyboardShortcuts } from '@web-loom/ui-core';
 ```
+````
 
 ## Basic Usage
+
 ```typescript
 const shortcuts = createKeyboardShortcuts();
 shortcuts.actions.registerShortcut({
   key: 'Ctrl+K',
-  handler: () => console.log('Shortcut executed!')
+  handler: () => console.log('Shortcut executed!'),
 });
 ```
 
 ## API Reference
+
 ### createKeyboardShortcuts(options?)
+
 ...
+
 ```
 
 ### Integration Examples
@@ -1286,3 +1312,4 @@ Each example will include:
 This design provides a comprehensive technical approach for closing the gaps in the UI Core and Patterns packages. By following Web Loom's established architectural patterns and maintaining consistency with existing implementations, we ensure that the new features integrate seamlessly while providing significant value to developers building modern web applications.
 
 The focus on correctness properties and property-based testing ensures that the implementations are robust and reliable. The emphasis on accessibility, performance, and developer experience aligns with Web Loom's core values and will result in production-ready packages that developers can confidently use in their applications.
+```

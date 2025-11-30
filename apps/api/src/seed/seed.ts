@@ -33,7 +33,11 @@ async function seedGreenhouses(): Promise<Greenhouse[]> {
 
 async function seedSensors(greenhouses: Greenhouse[]): Promise<Sensor[]> {
   console.log('Seeding sensors...');
-  const sensorData: Array<{ greenhouseId: number; type: 'temperature' | 'humidity' | 'soilMoisture' | 'lightIntensity'; status: 'active' | 'inactive' }> = [];
+  const sensorData: Array<{
+    greenhouseId: number;
+    type: 'temperature' | 'humidity' | 'soilMoisture' | 'lightIntensity';
+    status: 'active' | 'inactive';
+  }> = [];
 
   if (!greenhouses || greenhouses.length === 0) {
     console.log('No greenhouses provided to seed sensors for. Skipping sensor seeding.');
@@ -108,7 +112,12 @@ async function seedSensorReadings(sensors: Sensor[]): Promise<void> {
 
 async function seedThresholdAlerts(greenhouses: Greenhouse[]): Promise<void> {
   console.log('Seeding threshold alerts...');
-  const alertData: Array<{ greenhouseId: number; sensorType: 'temperature' | 'humidity' | 'soilMoisture' | 'lightIntensity'; minValue: number; maxValue: number }> = [];
+  const alertData: Array<{
+    greenhouseId: number;
+    sensorType: 'temperature' | 'humidity' | 'soilMoisture' | 'lightIntensity';
+    minValue: number;
+    maxValue: number;
+  }> = [];
 
   if (!greenhouses || greenhouses.length === 0) {
     console.log('No greenhouses provided to seed alerts for. Skipping threshold alert seeding.');

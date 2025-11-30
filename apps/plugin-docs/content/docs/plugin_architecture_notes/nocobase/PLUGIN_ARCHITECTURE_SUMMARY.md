@@ -1,4 +1,5 @@
 # Chapter: Plugin Architectures for the Web
+
 ## Case Study: NocoBase - Database-Driven Dynamic Plugin System
 
 ### Overview
@@ -147,7 +148,7 @@ The plugin marketplace consumes this metadata, rendering localized descriptions,
 app.pm.add('@nocobase/plugin-workflow', {
   enabled: true,
   maxConcurrentJobs: 10,
-  defaultTimeout: 30000
+  defaultTimeout: 30000,
 });
 ```
 

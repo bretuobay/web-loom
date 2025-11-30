@@ -196,12 +196,12 @@ export interface ModalBehavior {
 
 /**
  * Creates a modal pattern with stacking support for managing multiple modals.
- * 
+ *
  * This pattern extends the dialog behavior from UI Core with modal stack management,
  * allowing multiple modals to be displayed with proper priority ordering and focus
  * management. It's ideal for complex applications that need to display multiple
  * overlays simultaneously.
- * 
+ *
  * @example
  * ```typescript
  * const modal = createModal({
@@ -212,24 +212,24 @@ export interface ModalBehavior {
  *     console.log('Modal closed:', modalId);
  *   },
  * });
- * 
+ *
  * // Listen to events
  * modal.eventBus.on('modal:opened', (modal) => {
  *   console.log('Modal opened event:', modal);
  * });
- * 
+ *
  * modal.eventBus.on('modal:escape-pressed', (modalId) => {
  *   console.log('Escape pressed on modal:', modalId);
  * });
- * 
+ *
  * modal.eventBus.on('modal:backdrop-clicked', (modalId) => {
  *   console.log('Backdrop clicked on modal:', modalId);
  * });
- * 
+ *
  * // Open modals with different priorities
  * modal.actions.openModal('settings', { title: 'Settings' }, 0);
  * modal.actions.openModal('confirm', { message: 'Are you sure?' }, 10);
- * 
+ *
  * // Open modal with escape and backdrop close options
  * modal.actions.openModalWithConfig({
  *   id: 'dialog',
@@ -238,28 +238,28 @@ export interface ModalBehavior {
  *   closeOnEscape: true,
  *   closeOnBackdropClick: true,
  * });
- * 
+ *
  * // The confirm modal appears on top due to higher priority
  * console.log(modal.getState().topModalId); // 'confirm'
- * 
+ *
  * // Handle escape key press (will close top modal if closeOnEscape is true)
  * modal.actions.handleEscapeKey();
- * 
+ *
  * // Handle backdrop click (will close modal if closeOnBackdropClick is true)
  * modal.actions.handleBackdropClick('dialog');
- * 
+ *
  * // Close the top modal
  * modal.actions.closeTopModal();
  * console.log(modal.getState().topModalId); // 'settings'
- * 
+ *
  * // Close all modals
  * modal.actions.closeAllModals();
  * console.log(modal.getState().stack.length); // 0
- * 
+ *
  * // Clean up
  * modal.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the modal pattern.
  * @returns A modal pattern instance.
  */
@@ -296,64 +296,29 @@ export function createModal(options?: ModalOptions): ModalBehavior {
     topModalId: null,
   };
 
-  const store: Store<ModalState, ModalActions> = createStore<ModalState, ModalActions>(
-    initialState,
-    (set, get) => ({
-      openModal: (id: string, content: any, priority: number = 0) => {
-        // Delegate to openModalWithConfig for backward compatibility
-        store.actions.openModalWithConfig({
-          id,
-          content,
-          priority,
-          closeOnEscape: false,
-          closeOnBackdropClick: false,
-        });
-      },
+  const store: Store<ModalState, ModalActions> = createStore<ModalState, ModalActions>(initialState, (set, get) => ({
+    openModal: (id: string, content: any, priority: number = 0) => {
+      // Delegate to openModalWithConfig for backward compatibility
+      store.actions.openModalWithConfig({
+        id,
+        content,
+        priority,
+        closeOnEscape: false,
+        closeOnBackdropClick: false,
+      });
+    },
 
-      openModalWithConfig: (config: OpenModalConfig) => {
-        const {
-          id,
-          content,
-          priority = 0,
-          closeOnEscape = false,
-          closeOnBackdropClick = false,
-        } = config;
+    openModalWithConfig: (config: OpenModalConfig) => {
+      const { id, content, priority = 0, closeOnEscape = false, closeOnBackdropClick = false } = config;
 
-        const state = get();
+      const state = get();
 
-        // Check if modal with this ID already exists
-        const existingIndex = state.stack.findIndex((m) => m.id === id);
-        if (existingIndex !== -1) {
-          // Modal already open, update its content and priority
-          const updatedStack = [...state.stack];
-          updatedStack[existingIndex] = {
-            id,
-            content,
-            priority,
-            closeOnEscape,
-            closeOnBackdropClick,
-          };
-
-          const sortedStack = sortStack(updatedStack);
-          const topModalId = getTopModalId(sortedStack);
-
-          set(() => ({
-            stack: sortedStack,
-            topModalId,
-          }));
-
-          // Emit stacked event
-          eventBus.emit('modal:stacked', sortedStack);
-
-          if (options?.onStackChange) {
-            options.onStackChange(sortedStack);
-          }
-
-          return;
-        }
-
-        // Create new modal
-        const modal: Modal = {
+      // Check if modal with this ID already exists
+      const existingIndex = state.stack.findIndex((m) => m.id === id);
+      if (existingIndex !== -1) {
+        // Modal already open, update its content and priority
+        const updatedStack = [...state.stack];
+        updatedStack[existingIndex] = {
           id,
           content,
           priority,
@@ -361,19 +326,7 @@ export function createModal(options?: ModalOptions): ModalBehavior {
           closeOnBackdropClick,
         };
 
-        // Create dialog behavior for this modal
-        const dialogBehavior = createDialogBehavior({
-          id,
-        });
-
-        dialogBehaviors.set(id, dialogBehavior);
-
-        // Open the dialog
-        dialogBehavior.actions.open(content);
-
-        // Add to stack
-        const newStack = [...state.stack, modal];
-        const sortedStack = sortStack(newStack);
+        const sortedStack = sortStack(updatedStack);
         const topModalId = getTopModalId(sortedStack);
 
         set(() => ({
@@ -381,136 +334,174 @@ export function createModal(options?: ModalOptions): ModalBehavior {
           topModalId,
         }));
 
-        // Emit events
-        eventBus.emit('modal:opened', modal);
+        // Emit stacked event
         eventBus.emit('modal:stacked', sortedStack);
-
-        // Invoke callbacks
-        if (options?.onModalOpened) {
-          options.onModalOpened(modal);
-        }
 
         if (options?.onStackChange) {
           options.onStackChange(sortedStack);
         }
-      },
 
-      handleEscapeKey: () => {
-        const state = get();
-        if (!state.topModalId) {
-          return;
-        }
+        return;
+      }
 
-        // Find the top modal
-        const topModal = state.stack.find((m) => m.id === state.topModalId);
-        if (!topModal) {
-          return;
-        }
+      // Create new modal
+      const modal: Modal = {
+        id,
+        content,
+        priority,
+        closeOnEscape,
+        closeOnBackdropClick,
+      };
 
-        // Emit escape-pressed event
-        eventBus.emit('modal:escape-pressed', topModal.id);
+      // Create dialog behavior for this modal
+      const dialogBehavior = createDialogBehavior({
+        id,
+      });
 
-        // Close the modal if closeOnEscape is enabled
-        if (topModal.closeOnEscape) {
-          store.actions.closeModal(topModal.id);
-        }
-      },
+      dialogBehaviors.set(id, dialogBehavior);
 
-      handleBackdropClick: (id: string) => {
-        const state = get();
+      // Open the dialog
+      dialogBehavior.actions.open(content);
 
-        // Find the modal
-        const modal = state.stack.find((m) => m.id === id);
-        if (!modal) {
-          return;
-        }
+      // Add to stack
+      const newStack = [...state.stack, modal];
+      const sortedStack = sortStack(newStack);
+      const topModalId = getTopModalId(sortedStack);
 
-        // Emit backdrop-clicked event
-        eventBus.emit('modal:backdrop-clicked', id);
+      set(() => ({
+        stack: sortedStack,
+        topModalId,
+      }));
 
-        // Close the modal if closeOnBackdropClick is enabled
-        if (modal.closeOnBackdropClick) {
-          store.actions.closeModal(id);
-        }
-      },
+      // Emit events
+      eventBus.emit('modal:opened', modal);
+      eventBus.emit('modal:stacked', sortedStack);
 
-      closeModal: (id: string) => {
-        const state = get();
+      // Invoke callbacks
+      if (options?.onModalOpened) {
+        options.onModalOpened(modal);
+      }
 
-        // Find modal in stack
-        const modalIndex = state.stack.findIndex((m) => m.id === id);
-        if (modalIndex === -1) {
-          // Modal not found
-          return;
-        }
+      if (options?.onStackChange) {
+        options.onStackChange(sortedStack);
+      }
+    },
 
-        // Close and destroy dialog behavior
-        const dialogBehavior = dialogBehaviors.get(id);
+    handleEscapeKey: () => {
+      const state = get();
+      if (!state.topModalId) {
+        return;
+      }
+
+      // Find the top modal
+      const topModal = state.stack.find((m) => m.id === state.topModalId);
+      if (!topModal) {
+        return;
+      }
+
+      // Emit escape-pressed event
+      eventBus.emit('modal:escape-pressed', topModal.id);
+
+      // Close the modal if closeOnEscape is enabled
+      if (topModal.closeOnEscape) {
+        store.actions.closeModal(topModal.id);
+      }
+    },
+
+    handleBackdropClick: (id: string) => {
+      const state = get();
+
+      // Find the modal
+      const modal = state.stack.find((m) => m.id === id);
+      if (!modal) {
+        return;
+      }
+
+      // Emit backdrop-clicked event
+      eventBus.emit('modal:backdrop-clicked', id);
+
+      // Close the modal if closeOnBackdropClick is enabled
+      if (modal.closeOnBackdropClick) {
+        store.actions.closeModal(id);
+      }
+    },
+
+    closeModal: (id: string) => {
+      const state = get();
+
+      // Find modal in stack
+      const modalIndex = state.stack.findIndex((m) => m.id === id);
+      if (modalIndex === -1) {
+        // Modal not found
+        return;
+      }
+
+      // Close and destroy dialog behavior
+      const dialogBehavior = dialogBehaviors.get(id);
+      if (dialogBehavior) {
+        dialogBehavior.actions.close();
+        dialogBehavior.destroy();
+        dialogBehaviors.delete(id);
+      }
+
+      // Remove from stack
+      const newStack = state.stack.filter((m) => m.id !== id);
+      const topModalId = getTopModalId(newStack);
+
+      set(() => ({
+        stack: newStack,
+        topModalId,
+      }));
+
+      // Emit events
+      eventBus.emit('modal:closed', id);
+      if (newStack.length > 0) {
+        eventBus.emit('modal:stacked', newStack);
+      }
+
+      // Invoke callbacks
+      if (options?.onModalClosed) {
+        options.onModalClosed(id);
+      }
+
+      if (options?.onStackChange) {
+        options.onStackChange(newStack);
+      }
+    },
+
+    closeTopModal: () => {
+      const state = get();
+      if (state.topModalId) {
+        store.actions.closeModal(state.topModalId);
+      }
+    },
+
+    closeAllModals: () => {
+      const state = get();
+
+      // Close all dialog behaviors
+      state.stack.forEach((modal) => {
+        const dialogBehavior = dialogBehaviors.get(modal.id);
         if (dialogBehavior) {
           dialogBehavior.actions.close();
           dialogBehavior.destroy();
-          dialogBehaviors.delete(id);
         }
+      });
 
-        // Remove from stack
-        const newStack = state.stack.filter((m) => m.id !== id);
-        const topModalId = getTopModalId(newStack);
+      dialogBehaviors.clear();
 
-        set(() => ({
-          stack: newStack,
-          topModalId,
-        }));
+      // Clear stack
+      set(() => ({
+        stack: [],
+        topModalId: null,
+      }));
 
-        // Emit events
-        eventBus.emit('modal:closed', id);
-        if (newStack.length > 0) {
-          eventBus.emit('modal:stacked', newStack);
-        }
-
-        // Invoke callbacks
-        if (options?.onModalClosed) {
-          options.onModalClosed(id);
-        }
-
-        if (options?.onStackChange) {
-          options.onStackChange(newStack);
-        }
-      },
-
-      closeTopModal: () => {
-        const state = get();
-        if (state.topModalId) {
-          store.actions.closeModal(state.topModalId);
-        }
-      },
-
-      closeAllModals: () => {
-        const state = get();
-
-        // Close all dialog behaviors
-        state.stack.forEach((modal) => {
-          const dialogBehavior = dialogBehaviors.get(modal.id);
-          if (dialogBehavior) {
-            dialogBehavior.actions.close();
-            dialogBehavior.destroy();
-          }
-        });
-
-        dialogBehaviors.clear();
-
-        // Clear stack
-        set(() => ({
-          stack: [],
-          topModalId: null,
-        }));
-
-        // Invoke callback
-        if (options?.onStackChange) {
-          options.onStackChange([]);
-        }
-      },
-    })
-  );
+      // Invoke callback
+      if (options?.onStackChange) {
+        options.onStackChange([]);
+      }
+    },
+  }));
 
   return {
     getState: store.getState,

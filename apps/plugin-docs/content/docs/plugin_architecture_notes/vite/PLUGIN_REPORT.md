@@ -8,13 +8,16 @@
 ## 1. High-Level Summary
 
 ### Architecture Type
+
 Vite implements a **hybrid plugin architecture** combining:
+
 - **Interface-driven contracts** (extending Rollup's plugin interface)
 - **Hook-based execution pipeline** (sequential and parallel hook invocation)
 - **Registry-based management** (PluginContainer orchestrates plugin lifecycle)
 - **Environment-aware multi-pipeline system** (per-environment plugin instances)
 
 ### Problem Solved
+
 The plugin system solves several critical problems:
 
 1. **Extensibility**: Allows third-party developers to extend Vite's build and dev capabilities without modifying core code
@@ -31,51 +34,54 @@ The plugin system solves several critical problems:
 ### Discovery Mechanisms
 
 **User Plugin Discovery** (`config.ts:1115-1119`):
+
 ```typescript
-const rawPlugins = (await asyncFlatten(config.plugins || [])).filter(filterPlugin)
-const [prePlugins, normalPlugins, postPlugins] = sortUserPlugins(rawPlugins)
+const rawPlugins = (await asyncFlatten(config.plugins || [])).filter(filterPlugin);
+const [prePlugins, normalPlugins, postPlugins] = sortUserPlugins(rawPlugins);
 ```
 
 **Location**: Plugins are discovered from the user's Vite configuration file (`vite.config.ts`):
+
 ```typescript
 export default {
   plugins: [
     myPlugin(),
     // ... more plugins
-  ]
-}
+  ],
+};
 ```
 
 **Discovery Process**:
+
 1. Configuration file is loaded via `loadConfigFromFile()`
 2. Plugins array is flattened (supports nested arrays)
 3. Plugins are filtered by `apply` property (serve/build conditional)
 4. Plugins are categorized by `enforce` property into pre/normal/post
 
 **Plugin Categorization** (`config.ts:1794-1809`):
+
 ```typescript
-export function sortUserPlugins(
-  plugins: (Plugin | Plugin[])[] | undefined,
-): [Plugin[], Plugin[], Plugin[]] {
-  const prePlugins: Plugin[] = []
-  const postPlugins: Plugin[] = []
-  const normalPlugins: Plugin[] = []
+export function sortUserPlugins(plugins: (Plugin | Plugin[])[] | undefined): [Plugin[], Plugin[], Plugin[]] {
+  const prePlugins: Plugin[] = [];
+  const postPlugins: Plugin[] = [];
+  const normalPlugins: Plugin[] = [];
 
   if (plugins) {
     plugins.flat().forEach((p) => {
-      if (p.enforce === 'pre') prePlugins.push(p)
-      else if (p.enforce === 'post') postPlugins.push(p)
-      else normalPlugins.push(p)
-    })
+      if (p.enforce === 'pre') prePlugins.push(p);
+      else if (p.enforce === 'post') postPlugins.push(p);
+      else normalPlugins.push(p);
+    });
   }
 
-  return [prePlugins, normalPlugins, postPlugins]
+  return [prePlugins, normalPlugins, postPlugins];
 }
 ```
 
 ### Loading Mechanism
 
 **Built-in Plugin Assembly** (`plugins/index.ts:32-102`):
+
 ```typescript
 export async function resolvePlugins(
   config: ResolvedConfig,
@@ -83,38 +89,34 @@ export async function resolvePlugins(
   normalPlugins: Plugin[],
   postPlugins: Plugin[],
 ): Promise<Plugin[]> {
-  const isBuild = config.command === 'build'
-  const isWorker = config.isWorker
-  const buildPlugins = isBuild
-    ? await (await import('../build')).resolveBuildPlugins(config)
-    : { pre: [], post: [] }
+  const isBuild = config.command === 'build';
+  const isWorker = config.isWorker;
+  const buildPlugins = isBuild ? await (await import('../build')).resolveBuildPlugins(config) : { pre: [], post: [] };
 
   return [
     !isBuild ? optimizedDepsPlugin() : null,
     isBuild ? metadataPlugin() : null,
     // ... built-in plugins
     aliasPlugin({ entries: config.resolve.alias }),
-    ...prePlugins,           // User pre plugins
+    ...prePlugins, // User pre plugins
     resolvePlugin(/* ... */),
     cssPlugin(config),
     esbuildPlugin(config),
     jsonPlugin(config.json, isBuild),
     assetPlugin(config),
-    ...normalPlugins,        // User normal plugins
+    ...normalPlugins, // User normal plugins
     definePlugin(config),
     ...buildPlugins.pre,
-    ...postPlugins,          // User post plugins
+    ...postPlugins, // User post plugins
     ...buildPlugins.post,
     // Dev-only plugins
-    ...(isBuild ? [] : [
-      clientInjectionsPlugin(config),
-      importAnalysisPlugin(config),
-    ]),
-  ].filter(Boolean) as Plugin[]
+    ...(isBuild ? [] : [clientInjectionsPlugin(config), importAnalysisPlugin(config)]),
+  ].filter(Boolean) as Plugin[];
 }
 ```
 
 **Plugin Execution Order**:
+
 1. Built-in pre-processing plugins (optimizedDeps, metadata, alias)
 2. **User `enforce: 'pre'` plugins**
 3. Core Vite plugins (resolve, CSS, esbuild, JSON, assets)
@@ -126,29 +128,27 @@ export async function resolvePlugins(
 9. Dev-only plugins (clientInjections, importAnalysis)
 
 **Per-Environment Plugin Resolution** (`plugin.ts:354-376`):
+
 ```typescript
-export async function resolveEnvironmentPlugins(
-  environment: PartialEnvironment,
-): Promise<Plugin[]> {
-  const environmentPlugins: Plugin[] = []
+export async function resolveEnvironmentPlugins(environment: PartialEnvironment): Promise<Plugin[]> {
+  const environmentPlugins: Plugin[] = [];
   for (const plugin of environment.getTopLevelConfig().plugins) {
     if (plugin.applyToEnvironment) {
-      const applied = await plugin.applyToEnvironment(environment)
-      if (!applied) continue
+      const applied = await plugin.applyToEnvironment(environment);
+      if (!applied) continue;
       if (applied !== true) {
-        environmentPlugins.push(
-          ...((await asyncFlatten(arraify(applied))).filter(Boolean) as Plugin[]),
-        )
-        continue
+        environmentPlugins.push(...((await asyncFlatten(arraify(applied))).filter(Boolean) as Plugin[]));
+        continue;
       }
     }
-    environmentPlugins.push(plugin)
+    environmentPlugins.push(plugin);
   }
-  return environmentPlugins
+  return environmentPlugins;
 }
 ```
 
 ### Responsible Files
+
 - **`packages/vite/src/node/config.ts`**: Configuration loading and plugin discovery
 - **`packages/vite/src/node/plugins/index.ts`**: Plugin resolution and assembly
 - **`packages/vite/src/node/plugin.ts`**: Plugin types and environment resolution
@@ -161,13 +161,14 @@ export async function resolveEnvironmentPlugins(
 ### Registry Object
 
 **EnvironmentPluginContainer** (`server/pluginContainer.ts:172-214`):
+
 ```typescript
 class EnvironmentPluginContainer<Env extends Environment = Environment> {
-  private _pluginContextMap = new Map<Plugin, PluginContext>()
-  private _resolvedRollupOptions?: InputOptions
+  private _pluginContextMap = new Map<Plugin, PluginContext>();
+  private _resolvedRollupOptions?: InputOptions;
 
-  getSortedPluginHooks: PluginHookUtils['getSortedPluginHooks']
-  getSortedPlugins: PluginHookUtils['getSortedPlugins']
+  getSortedPluginHooks: PluginHookUtils['getSortedPluginHooks'];
+  getSortedPlugins: PluginHookUtils['getSortedPlugins'];
 
   constructor(
     public environment: Env,
@@ -175,21 +176,17 @@ class EnvironmentPluginContainer<Env extends Environment = Environment> {
     public watcher?: FSWatcher | undefined,
     autoStart = true,
   ) {
-    this.minimalContext = new MinimalPluginContext(
-      { ...basePluginContextMeta, watchMode: true },
-      environment,
-    )
-    const utils = createPluginHookUtils(plugins)
-    this.getSortedPlugins = utils.getSortedPlugins
-    this.getSortedPluginHooks = utils.getSortedPluginHooks
-    this.moduleGraph = environment.mode === 'dev'
-      ? environment.moduleGraph
-      : undefined
+    this.minimalContext = new MinimalPluginContext({ ...basePluginContextMeta, watchMode: true }, environment);
+    const utils = createPluginHookUtils(plugins);
+    this.getSortedPlugins = utils.getSortedPlugins;
+    this.getSortedPluginHooks = utils.getSortedPluginHooks;
+    this.moduleGraph = environment.mode === 'dev' ? environment.moduleGraph : undefined;
   }
 }
 ```
 
 The container:
+
 - Manages plugin lifecycle
 - Caches plugin contexts (one per plugin)
 - Provides sorted hook access
@@ -199,63 +196,61 @@ The container:
 ### Hook Registration Pattern
 
 **Hook Sorting Utility** (`plugins/index.ts:104-129`):
+
 ```typescript
-export function createPluginHookUtils(
-  plugins: readonly Plugin[],
-): PluginHookUtils {
-  const sortedPluginsCache = new Map<keyof Plugin, Plugin[]>()
+export function createPluginHookUtils(plugins: readonly Plugin[]): PluginHookUtils {
+  const sortedPluginsCache = new Map<keyof Plugin, Plugin[]>();
 
-  function getSortedPlugins<K extends keyof Plugin>(
-    hookName: K,
-  ): PluginWithRequiredHook<K>[] {
-    if (sortedPluginsCache.has(hookName))
-      return sortedPluginsCache.get(hookName) as PluginWithRequiredHook<K>[]
-    const sorted = getSortedPluginsByHook(hookName, plugins)
-    sortedPluginsCache.set(hookName, sorted)
-    return sorted
+  function getSortedPlugins<K extends keyof Plugin>(hookName: K): PluginWithRequiredHook<K>[] {
+    if (sortedPluginsCache.has(hookName)) return sortedPluginsCache.get(hookName) as PluginWithRequiredHook<K>[];
+    const sorted = getSortedPluginsByHook(hookName, plugins);
+    sortedPluginsCache.set(hookName, sorted);
+    return sorted;
   }
 
-  function getSortedPluginHooks<K extends keyof Plugin>(
-    hookName: K,
-  ): NonNullable<HookHandler<Plugin[K]>>[] {
-    const plugins = getSortedPlugins(hookName)
-    return plugins.map((p) => getHookHandler(p[hookName])).filter(Boolean)
+  function getSortedPluginHooks<K extends keyof Plugin>(hookName: K): NonNullable<HookHandler<Plugin[K]>>[] {
+    const plugins = getSortedPlugins(hookName);
+    return plugins.map((p) => getHookHandler(p[hookName])).filter(Boolean);
   }
 
-  return { getSortedPlugins, getSortedPluginHooks }
+  return { getSortedPlugins, getSortedPluginHooks };
 }
 ```
 
 **Per-Hook Sorting** (`plugins/index.ts:131-159`):
+
 ```typescript
 export function getSortedPluginsByHook<K extends keyof Plugin>(
   hookName: K,
   plugins: readonly Plugin[],
 ): PluginWithRequiredHook<K>[] {
-  const sortedPlugins: Plugin[] = []
-  let pre = 0, normal = 0, post = 0
+  const sortedPlugins: Plugin[] = [];
+  let pre = 0,
+    normal = 0,
+    post = 0;
 
   for (const plugin of plugins) {
-    const hook = plugin[hookName]
+    const hook = plugin[hookName];
     if (hook) {
       if (typeof hook === 'object') {
         if (hook.order === 'pre') {
-          sortedPlugins.splice(pre++, 0, plugin)
-          continue
+          sortedPlugins.splice(pre++, 0, plugin);
+          continue;
         }
         if (hook.order === 'post') {
-          sortedPlugins.splice(pre + normal + post++, 0, plugin)
-          continue
+          sortedPlugins.splice(pre + normal + post++, 0, plugin);
+          continue;
         }
       }
-      sortedPlugins.splice(pre + normal++, 0, plugin)
+      sortedPlugins.splice(pre + normal++, 0, plugin);
     }
   }
-  return sortedPlugins as PluginWithRequiredHook<K>[]
+  return sortedPlugins as PluginWithRequiredHook<K>[];
 }
 ```
 
 Hooks can have individual ordering via `order` property:
+
 ```typescript
 {
   transform: {
@@ -268,6 +263,7 @@ Hooks can have individual ordering via `order` property:
 ### Base Interface
 
 **Plugin Interface** (`plugin.ts:94-340`):
+
 ```typescript
 export interface Plugin<A = any> extends RollupPlugin<A> {
   // Metadata
@@ -307,6 +303,7 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ```
 
 ### Naming Conventions
+
 - Built-in plugins prefixed with `vite:` (e.g., `vite:json`, `vite:css`, `vite:resolve`)
 - Community convention: scope prefix (e.g., `@vitejs/plugin-react`, `vite-plugin-vue`)
 
@@ -315,13 +312,15 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ## 4. Plugin Interface / Contract
 
 ### Required Properties
+
 ```typescript
 {
-  name: string  // REQUIRED: Unique plugin identifier
+  name: string; // REQUIRED: Unique plugin identifier
 }
 ```
 
 ### Optional Control Properties
+
 ```typescript
 {
   enforce?: 'pre' | 'post',         // Execution order tier
@@ -336,6 +335,7 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ### Hook Categories
 
 #### **1. Configuration Hooks** (Global, no `this.environment`)
+
 ```typescript
 {
   config(config: UserConfig, env: ConfigEnv): UserConfig | void
@@ -347,6 +347,7 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ```
 
 #### **2. Module Resolution Hooks** (with environment context)
+
 ```typescript
 {
   resolveId: {
@@ -363,6 +364,7 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ```
 
 #### **3. Loading Hooks**
+
 ```typescript
 {
   load: {
@@ -373,6 +375,7 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ```
 
 #### **4. Transformation Hooks**
+
 ```typescript
 {
   transform: {
@@ -383,6 +386,7 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ```
 
 #### **5. Build Lifecycle Hooks**
+
 ```typescript
 {
   buildStart(options: InputOptions): void
@@ -392,6 +396,7 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ```
 
 #### **6. HMR Hooks**
+
 ```typescript
 {
   hotUpdate(options: HotUpdateOptions): Array<EnvironmentModuleNode> | void
@@ -400,6 +405,7 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ```
 
 #### **7. HTML Transform Hook**
+
 ```typescript
 {
   transformIndexHtml: {
@@ -411,6 +417,7 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ```
 
 #### **8. Watch Hooks**
+
 ```typescript
 {
   watchChange(id: string, change: { event: 'create' | 'update' | 'delete' }): void
@@ -420,6 +427,7 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ### Hook Handler Formats
 
 **Simple Function**:
+
 ```typescript
 {
   name: 'my-plugin',
@@ -430,6 +438,7 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ```
 
 **ObjectHook with Options**:
+
 ```typescript
 {
   name: 'my-plugin',
@@ -449,17 +458,20 @@ export interface Plugin<A = any> extends RollupPlugin<A> {
 ### Filter Patterns (`plugins/pluginFilter.ts`)
 
 **StringFilter Type**:
+
 ```typescript
 type StringFilter<Value = string | RegExp> =
-  | Value                          // Single pattern
-  | Array<Value>                   // Array of patterns
-  | {                              // Include/exclude object
-      include?: Value | Array<Value>
-      exclude?: Value | Array<Value>
-    }
+  | Value // Single pattern
+  | Array<Value> // Array of patterns
+  | {
+      // Include/exclude object
+      include?: Value | Array<Value>;
+      exclude?: Value | Array<Value>;
+    };
 ```
 
 **Examples**:
+
 ```typescript
 // Glob pattern
 filter: { id: '**/*.json' }
@@ -487,64 +499,75 @@ filter: {
 ### Expected Return Types
 
 **resolveId**:
+
 ```typescript
 // String (resolved ID)
-return '/absolute/path/to/module.js'
+return '/absolute/path/to/module.js';
 
 // Object with metadata
 return {
   id: '/absolute/path/to/module.js',
   external: false,
-  meta: { /* custom metadata */ }
-}
+  meta: {
+    /* custom metadata */
+  },
+};
 
 // null (not handled, try next plugin)
-return null
+return null;
 ```
 
 **load**:
+
 ```typescript
 // String (source code)
-return 'export default { ... }'
+return 'export default { ... }';
 
 // Object with metadata
 return {
   code: 'export default { ... }',
   map: sourceMap,
-  meta: { /* custom metadata */ }
-}
+  meta: {
+    /* custom metadata */
+  },
+};
 
 // null (not handled)
-return null
+return null;
 ```
 
 **transform**:
+
 ```typescript
 // String (transformed code)
-return transformedCode
+return transformedCode;
 
 // Object with sourcemap
 return {
   code: transformedCode,
   map: sourceMap,
-  meta: { /* custom metadata */ }
-}
+  meta: {
+    /* custom metadata */
+  },
+};
 
 // null (no transformation)
-return null
+return null;
 ```
 
 ### Context API Available in Hooks
 
 **All Non-Global Hooks**:
+
 ```typescript
-this.environment    // Current environment (dev/build/scan)
-this.meta.viteVersion
-this.meta.rollupVersion
-this.meta.watchMode
+this.environment; // Current environment (dev/build/scan)
+this.meta.viteVersion;
+this.meta.rollupVersion;
+this.meta.watchMode;
 ```
 
 **resolve/load/transform Hooks**:
+
 ```typescript
 this.resolve(id, importer?, options?)
 this.load(options)
@@ -557,8 +580,9 @@ this.warn(message, pos?)
 ```
 
 **transform Hook Only**:
+
 ```typescript
-this.getCombinedSourcemap()  // Combined sourcemap from chain
+this.getCombinedSourcemap(); // Combined sourcemap from chain
 ```
 
 ---
@@ -597,6 +621,7 @@ this.getCombinedSourcemap()  // Combined sourcemap from chain
 ```
 
 **Code Reference** (`server/pluginContainer.ts:325-347`):
+
 ```typescript
 async buildStart(_options?: InputOptions): Promise<void> {
   if (this._started) {
@@ -658,57 +683,62 @@ async buildStart(_options?: InputOptions): Promise<void> {
 ### Hook Execution Strategies
 
 **hookFirst (sequential, first result wins)**:
+
 ```typescript
 // Used by: resolveId, load
 for (const plugin of this.getSortedPlugins(hookName)) {
-  const result = await handler.call(ctx, ...args)
+  const result = await handler.call(ctx, ...args);
   if (result != null) {
-    return result  // First non-null result wins
+    return result; // First non-null result wins
   }
 }
 ```
 
 **hookSeq (sequential chain)**:
+
 ```typescript
 // Used by: transform
 for (const plugin of this.getSortedPlugins('transform')) {
-  const result = await handler.call(ctx, code, id, options)
+  const result = await handler.call(ctx, code, id, options);
   if (result) {
-    code = result.code
+    code = result.code;
     if (result.map) {
-      ctx.sourcemapChain.push(result.map)
+      ctx.sourcemapChain.push(result.map);
     }
   }
 }
-return { code, map: combinedMap }
+return { code, map: combinedMap };
 ```
 
 **hookParallel (parallel execution)**:
+
 ```typescript
 // Used by: buildStart, buildEnd, closeBundle, watchChange
-const parallelPromises: Promise<unknown>[] = []
+const parallelPromises: Promise<unknown>[] = [];
 for (const plugin of this.getSortedPlugins(hookName)) {
-  const hook = plugin[hookName]
-  const handler = getHookHandler(hook)
+  const hook = plugin[hookName];
+  const handler = getHookHandler(hook);
   if (hook.sequential) {
-    await Promise.all(parallelPromises)
-    parallelPromises.length = 0
-    await handler.apply(context(plugin), args(plugin))
+    await Promise.all(parallelPromises);
+    parallelPromises.length = 0;
+    await handler.apply(context(plugin), args(plugin));
   } else {
-    parallelPromises.push(handler.apply(context(plugin), args(plugin)))
+    parallelPromises.push(handler.apply(context(plugin), args(plugin)));
   }
 }
-await Promise.all(parallelPromises)
+await Promise.all(parallelPromises);
 ```
 
 ### Per-Environment Lifecycle Control
 
 **Default Behavior (backward compatibility)**:
+
 - `buildStart`: Called once for client environment only (dev mode)
 - `buildEnd`: Called once for client environment only (dev mode)
 - `watchChange`: Called once for client environment only (dev mode)
 
 **Opt-in Per-Environment Behavior**:
+
 ```typescript
 {
   name: 'my-plugin',
@@ -729,6 +759,7 @@ await Promise.all(parallelPromises)
 ### Core Extension Points
 
 #### **1. Module Resolution** (`resolveId`)
+
 - **Purpose**: Resolve bare imports, aliases, virtual modules
 - **Binding**: Return non-null result
 - **Execution**: hookFirst (first non-null wins)
@@ -739,6 +770,7 @@ await Promise.all(parallelPromises)
   - Conditional resolution (dev/build, client/SSR)
 
 **Code Reference** (`server/pluginContainer.ts:349-471`):
+
 ```typescript
 async resolveId(
   rawId: string,
@@ -772,6 +804,7 @@ async resolveId(
 ```
 
 #### **2. Module Loading** (`load`)
+
 - **Purpose**: Load module source code
 - **Binding**: Return code string or LoadResult
 - **Execution**: hookFirst
@@ -781,6 +814,7 @@ async resolveId(
   - Proxy modules
 
 #### **3. Code Transformation** (`transform`)
+
 - **Purpose**: Transform module code (transpilation, preprocessing)
 - **Binding**: Return transformed code + sourcemap
 - **Execution**: Sequential chain (all plugins run)
@@ -791,6 +825,7 @@ async resolveId(
   - Import analysis
 
 **Code Reference** (`server/pluginContainer.ts:524-599`):
+
 ```typescript
 async transform(
   code: string,
@@ -832,6 +867,7 @@ async transform(
 ```
 
 #### **4. Configuration Modification** (`config`)
+
 - **Purpose**: Modify Vite config before resolution
 - **Binding**: Return partial config or mutate in place
 - **Execution**: Sequential
@@ -841,6 +877,7 @@ async transform(
   - Add environment variables
 
 #### **5. Server Middleware** (`configureServer`)
+
 - **Purpose**: Add custom dev server middleware
 - **Binding**: Optionally return post-middleware function
 - **Execution**: Sequential (pre-middleware, then post-middleware)
@@ -850,6 +887,7 @@ async transform(
   - WebSocket handlers
 
 #### **6. HTML Transformation** (`transformIndexHtml`)
+
 - **Purpose**: Transform HTML content or inject tags
 - **Binding**: Return HTML string or tag descriptors
 - **Execution**: Sequential (order: 'pre' | default | 'post')
@@ -859,6 +897,7 @@ async transform(
   - HTML preprocessing
 
 #### **7. HMR Customization** (`hotUpdate`)
+
 - **Purpose**: Custom hot module replacement logic
 - **Binding**: Return filtered module list or empty array (custom handling)
 - **Execution**: Sequential
@@ -868,6 +907,7 @@ async transform(
   - Partial updates
 
 #### **8. File Watching** (`watchChange`)
+
 - **Purpose**: React to file system changes
 - **Binding**: No return value (side effects only)
 - **Execution**: Parallel (or sequential if `sequential: true`)
@@ -878,16 +918,16 @@ async transform(
 
 ### Built-in Plugins Demonstrating Extension Points
 
-| Plugin | Extension Points Used | Purpose |
-|--------|----------------------|---------|
-| `vite:resolve` | resolveId | Node module resolution, aliases |
-| `vite:json` | transform (with filter) | JSON to ESM conversion |
-| `vite:css` | resolveId, transform | CSS preprocessing, modules |
-| `vite:esbuild` | transform | JSX/TSX/TS transpilation |
-| `vite:asset` | resolveId, load | Static asset handling |
-| `vite:html` | transformIndexHtml | HTML processing, script injection |
-| `vite:import-analysis` | transform | Import rewriting, HMR injection |
-| `vite:define` | transform | Global constant replacement |
+| Plugin                 | Extension Points Used   | Purpose                           |
+| ---------------------- | ----------------------- | --------------------------------- |
+| `vite:resolve`         | resolveId               | Node module resolution, aliases   |
+| `vite:json`            | transform (with filter) | JSON to ESM conversion            |
+| `vite:css`             | resolveId, transform    | CSS preprocessing, modules        |
+| `vite:esbuild`         | transform               | JSX/TSX/TS transpilation          |
+| `vite:asset`           | resolveId, load         | Static asset handling             |
+| `vite:html`            | transformIndexHtml      | HTML processing, script injection |
+| `vite:import-analysis` | transform               | Import rewriting, HMR injection   |
+| `vite:define`          | transform               | Global constant replacement       |
 
 ---
 
@@ -896,9 +936,10 @@ async transform(
 ### Plugin Configuration
 
 **User Configuration** (`vite.config.ts`):
+
 ```typescript
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
   plugins: [
@@ -906,15 +947,16 @@ export default defineConfig({
       // Plugin-specific options
       template: {
         compilerOptions: {
-          isCustomElement: (tag) => tag.startsWith('my-')
-        }
-      }
-    })
-  ]
-})
+          isCustomElement: (tag) => tag.startsWith('my-'),
+        },
+      },
+    }),
+  ],
+});
 ```
 
 **Factory Function Pattern**:
+
 ```typescript
 export function myPlugin(options: MyPluginOptions = {}): Plugin {
   return {
@@ -922,20 +964,21 @@ export function myPlugin(options: MyPluginOptions = {}): Plugin {
 
     configResolved(config) {
       // Store config for use in other hooks
-      this._config = config
+      this._config = config;
     },
 
     transform(code, id) {
       // Use stored config and plugin options
       if (options.enabled && this._config.isProduction) {
-        return transformCode(code, options)
+        return transformCode(code, options);
       }
-    }
-  }
+    },
+  };
 }
 ```
 
 **Conditional Application**:
+
 ```typescript
 {
   name: 'build-only-plugin',
@@ -953,6 +996,7 @@ export function myPlugin(options: MyPluginOptions = {}): Plugin {
 ```
 
 **Per-Environment Application**:
+
 ```typescript
 {
   name: 'ssr-only-plugin',
@@ -977,6 +1021,7 @@ export function myPlugin(options: MyPluginOptions = {}): Plugin {
 ### Metadata Storage
 
 **Plugin-Level Metadata** (`configResolved` hook):
+
 ```typescript
 {
   name: 'my-plugin',
@@ -999,6 +1044,7 @@ export function myPlugin(options: MyPluginOptions = {}): Plugin {
 ```
 
 **Module-Level Metadata** (via `meta` property):
+
 ```typescript
 {
   load(id) {
@@ -1021,6 +1067,7 @@ export function myPlugin(options: MyPluginOptions = {}): Plugin {
 ```
 
 **Context Metadata**:
+
 ```typescript
 {
   buildStart() {
@@ -1036,21 +1083,23 @@ export function myPlugin(options: MyPluginOptions = {}): Plugin {
 **No Built-in Plugin Hot Reload**: Vite does not support hot-reloading plugins themselves. Plugin changes require server restart.
 
 **Config File Changes**:
+
 - Detected automatically
 - Server restart triggered
 - Message: `"config file changed, restarting server..."`
 
 **Workaround for Development**:
+
 ```typescript
 // In plugin code
 if (config.command === 'serve') {
   // Watch external config file
-  const watcher = chokidar.watch('./my-plugin-config.json')
+  const watcher = chokidar.watch('./my-plugin-config.json');
   watcher.on('change', () => {
     // Invalidate caches, reload config
-    this._cache.clear()
-    this._loadConfig()
-  })
+    this._cache.clear();
+    this._loadConfig();
+  });
 }
 ```
 
@@ -1063,11 +1112,13 @@ if (config.command === 'serve') {
 **No Process-Level Sandboxing**: Plugins run in the same Node.js process as Vite. They have full system access.
 
 **Environment Isolation**:
+
 - Each environment (client, SSR, custom) has its own `PluginContainer` instance
 - Plugin instances can be shared or separate based on `sharedDuringBuild`
 - Module graphs are isolated per environment
 
 **Context Isolation**:
+
 ```typescript
 // Each plugin gets its own context instance
 private _getPluginContext(plugin: Plugin) {
@@ -1081,44 +1132,46 @@ private _getPluginContext(plugin: Plugin) {
 ### Plugin Validation
 
 **Minimal Validation**:
+
 - Plugin name required (implicitly, for debugging)
 - Hook type checking (TypeScript compile-time only)
 - No runtime schema validation
 - No permission system
 
 **Filter Validation**:
+
 ```typescript
 // Filter compilation happens lazily and is cached
 export function getCachedFilterForPlugin<H extends 'resolveId' | 'load' | 'transform'>(
   plugin: Plugin,
-  hookName: H
+  hookName: H,
 ): FilterForPluginValue[H] | undefined {
-  let filters = filterForPlugin.get(plugin)
+  let filters = filterForPlugin.get(plugin);
   if (filters && hookName in filters) {
-    return filters[hookName]
+    return filters[hookName];
   }
 
   // Extract and compile filter
-  const rawFilter = extractFilter(plugin[hookName])
-  filters[hookName] = createIdFilter(rawFilter?.id) // May throw on invalid pattern
-  return filters[hookName]
+  const rawFilter = extractFilter(plugin[hookName]);
+  filters[hookName] = createIdFilter(rawFilter?.id); // May throw on invalid pattern
+  return filters[hookName];
 }
 ```
 
 ### Error Handling
 
 **Hook Error Handling** (`server/pluginContainer.ts`):
+
 ```typescript
 try {
-  result = await this.handleHookPromise(
-    handler.call(ctx as any, code, id, options),
-  )
+  result = await this.handleHookPromise(handler.call(ctx as any, code, id, options));
 } catch (e) {
-  ctx.error(e)  // Formats and throws with context
+  ctx.error(e); // Formats and throws with context
 }
 ```
 
 **Error Formatting**:
+
 ```typescript
 // Plugin context provides error() and warn()
 this.error(err, pos) {
@@ -1134,11 +1187,13 @@ this.error(err, pos) {
 ```
 
 **Server Restart on Fatal Errors**:
+
 - Server can be configured with `dev.recoverable: true`
 - Closed server errors throw `ERR_CLOSED_SERVER`
 - Caught by middleware, returns 504 timeout
 
 **Plugin Failure Isolation**:
+
 - **Config phase**: Fatal error, server fails to start
 - **Transform phase**: Error thrown to client, request fails
 - **HMR phase**: Error logged, HMR update fails gracefully
@@ -1146,6 +1201,7 @@ this.error(err, pos) {
 ### Security Considerations
 
 **Risks**:
+
 1. **Arbitrary Code Execution**: Plugins can execute any Node.js code
 2. **File System Access**: Full read/write access
 3. **Network Access**: Can make external requests
@@ -1153,6 +1209,7 @@ this.error(err, pos) {
 5. **Dependency Injection**: Can modify module resolution
 
 **Mitigations**:
+
 1. **Trust Model**: Only use plugins from trusted sources
 2. **Code Review**: Review plugin source before using
 3. **Lockfile**: Pin plugin versions in package.json
@@ -1168,16 +1225,17 @@ this.error(err, pos) {
 ### Plugin Dependencies
 
 **Implicit Dependencies** (most common):
+
 ```typescript
 // Plugin factory function receives config
 export function myPlugin(options = {}): Plugin {
-  let config: ResolvedConfig
+  let config: ResolvedConfig;
 
   return {
     name: 'my-plugin',
 
     configResolved(resolvedConfig) {
-      config = resolvedConfig
+      config = resolvedConfig;
     },
 
     transform(code, id) {
@@ -1185,12 +1243,13 @@ export function myPlugin(options = {}): Plugin {
       if (config.isProduction) {
         // ...
       }
-    }
-  }
+    },
+  };
 }
 ```
 
 **Context-Based Dependencies**:
+
 ```typescript
 {
   transform(code, id) {
@@ -1208,6 +1267,7 @@ export function myPlugin(options = {}): Plugin {
 ```
 
 **Service Locator Pattern** (via config):
+
 ```typescript
 {
   configResolved(config) {
@@ -1219,6 +1279,7 @@ export function myPlugin(options = {}): Plugin {
 ```
 
 **External Package Dependencies**:
+
 ```typescript
 // package.json
 {
@@ -1235,6 +1296,7 @@ export function myPlugin(options = {}): Plugin {
 ### Dependency Injection
 
 **No DI Container**: Vite does not use a formal DI container. Dependencies are:
+
 1. Passed via constructor (plugin factory options)
 2. Accessed via context (`this.environment`, `this.resolve`, etc.)
 3. Stored in closure during `configResolved`
@@ -1242,6 +1304,7 @@ export function myPlugin(options = {}): Plugin {
 **Inter-Plugin Communication**:
 
 **Via Module Metadata**:
+
 ```typescript
 // Plugin A
 {
@@ -1267,6 +1330,7 @@ export function myPlugin(options = {}): Plugin {
 ```
 
 **Via Config Extension**:
+
 ```typescript
 // Plugin A extends config
 {
@@ -1288,6 +1352,7 @@ export function myPlugin(options = {}): Plugin {
 ```
 
 **Via Virtual Modules**:
+
 ```typescript
 // Plugin A provides virtual module
 {
@@ -1310,6 +1375,7 @@ import { api } from 'virtual:plugin-a-api'
 **No Built-in Version Checking**: Vite does not enforce plugin version compatibility.
 
 **Peer Dependencies** (npm/pnpm enforced):
+
 ```json
 {
   "peerDependencies": {
@@ -1319,6 +1385,7 @@ import { api } from 'virtual:plugin-a-api'
 ```
 
 **Runtime Version Check** (plugin can implement):
+
 ```typescript
 {
   configResolved(config) {
@@ -1331,6 +1398,7 @@ import { api } from 'virtual:plugin-a-api'
 ```
 
 **API Feature Detection** (preferred):
+
 ```typescript
 {
   configResolved(config) {
@@ -1670,108 +1738,129 @@ import { api } from 'virtual:plugin-a-api'
 ### Performance Improvements
 
 #### 1. **Plugin Filter Pre-compilation**
+
 **Current**: Filters are compiled lazily on first use
 **Improvement**: Pre-compile all filters during plugin resolution
+
 ```typescript
 // Instead of lazy compilation in getCachedFilterForPlugin
 // Compile all filters upfront in PluginContainer constructor
 for (const plugin of plugins) {
   if (plugin.resolveId?.filter) {
     this._precompiledFilters.set(plugin, {
-      resolveId: createIdFilter(plugin.resolveId.filter.id)
-    })
+      resolveId: createIdFilter(plugin.resolveId.filter.id),
+    });
   }
 }
 ```
+
 **Benefit**: Eliminates filter compilation overhead from hot paths
 
 #### 2. **Hook Execution Short-circuiting**
+
 **Current**: All plugins are iterated even if early result found
 **Improvement**: Add fast-path exit for hookFirst
+
 ```typescript
 // In resolveId/load
 if (result && !plugin.continueOnResult) {
-  return result  // Exit loop immediately
+  return result; // Exit loop immediately
 }
 ```
+
 **Benefit**: Reduces unnecessary plugin iterations
 
 #### 3. **Sourcemap Chain Optimization**
+
 **Current**: Sourcemaps are combined after all transforms
 **Improvement**: Stream sourcemap combinations during transforms
+
 ```typescript
 // Incrementally combine as transforms complete
 if (result.map) {
-  ctx._combinedMap = combineSourcemaps(ctx._combinedMap, result.map)
+  ctx._combinedMap = combineSourcemaps(ctx._combinedMap, result.map);
 }
 ```
+
 **Benefit**: Reduces memory usage and final combination time
 
 #### 4. **Module Info Caching**
+
 **Current**: ModuleInfo proxy created per access
 **Improvement**: Create proxy once and cache
+
 ```typescript
 // Already implemented, but could be enhanced with LRU cache
-this._moduleInfoCache = new LRU({ max: 10000 })
+this._moduleInfoCache = new LRU({ max: 10000 });
 ```
 
 ### Stability Improvements
 
 #### 1. **Plugin Error Isolation**
+
 **Current**: Plugin errors can crash server/build
 **Improvement**: Add error boundary per plugin
+
 ```typescript
 try {
-  result = await handler.call(ctx, ...args)
+  result = await handler.call(ctx, ...args);
 } catch (e) {
   if (config.experimental.continueOnPluginError) {
-    logger.error(`Plugin ${plugin.name} failed, continuing...`, e)
+    logger.error(`Plugin ${plugin.name} failed, continuing...`, e);
     // Continue to next plugin instead of crashing
-    continue
+    continue;
   }
-  throw e
+  throw e;
 }
 ```
+
 **Benefit**: More resilient development experience
 
 #### 2. **Plugin Validation Schema**
+
 **Current**: No runtime validation of plugin structure
 **Improvement**: Add Zod/JSON schema validation
+
 ```typescript
 const pluginSchema = z.object({
   name: z.string(),
   enforce: z.enum(['pre', 'post']).optional(),
   // ... full schema
-})
+});
 
 function validatePlugin(plugin: unknown): Plugin {
-  return pluginSchema.parse(plugin)
+  return pluginSchema.parse(plugin);
 }
 ```
+
 **Benefit**: Early error detection, better error messages
 
 #### 3. **Circular Dependency Detection**
+
 **Current**: Can cause infinite loops in resolve/load
 **Improvement**: Add depth tracking and circuit breaker
+
 ```typescript
 class ResolveIdContext {
-  private _depth = 0
+  private _depth = 0;
   async resolve(id, importer) {
     if (this._depth > 100) {
-      throw new Error('Circular resolve detected')
+      throw new Error('Circular resolve detected');
     }
-    this._depth++
+    this._depth++;
     try {
-      return await this._container.resolveId(id, importer)
+      return await this._container.resolveId(id, importer);
     } finally {
-      this._depth--
+      this._depth--;
     }
   }
 }
 ```
 
 #### 4. **Plugin Health Monitoring**
+
 **Improvement**: Add telemetry for plugin performance
+
 ```typescript
 {
   configResolved(config) {
@@ -1789,29 +1878,34 @@ class ResolveIdContext {
   }
 }
 ```
+
 **Benefit**: Identify slow plugins, optimize plugin ordering
 
 ### Cleaner Extension Points
 
 #### 1. **Typed Virtual Module API**
+
 **Current**: Virtual modules use string IDs
 **Improvement**: Dedicated virtual module registry
+
 ```typescript
 interface VirtualModulePlugin {
   virtualModules?: {
-    [id: string]: () => string | Promise<string>
-  }
+    [id: string]: () => string | Promise<string>;
+  };
 }
 
 // In container
 for (const [id, loader] of Object.entries(plugin.virtualModules || {})) {
-  this._virtualModules.set(id, loader)
+  this._virtualModules.set(id, loader);
 }
 ```
 
 #### 2. **Declarative Filters**
+
 **Current**: Filters in ObjectHook.filter
 **Improvement**: Top-level filter declaration
+
 ```typescript
 {
   name: 'my-plugin',
@@ -1823,23 +1917,28 @@ for (const [id, loader] of Object.entries(plugin.virtualModules || {})) {
   }
 }
 ```
+
 **Benefit**: Clearer plugin structure, better performance
 
 #### 3. **Plugin Composition API**
+
 **Current**: Plugins are flat objects
 **Improvement**: Allow plugin composition
+
 ```typescript
 export function composePlugins(...plugins: Plugin[]): Plugin {
   return {
-    name: `composed:${plugins.map(p => p.name).join('+')}`,
+    name: `composed:${plugins.map((p) => p.name).join('+')}`,
     // Merge hooks intelligently
-  }
+  };
 }
 ```
 
 #### 4. **Environment-Specific Hook Variants**
+
 **Current**: Single hook checks `this.environment.name`
 **Improvement**: Declare per-environment hooks
+
 ```typescript
 {
   name: 'my-plugin',
@@ -1857,38 +1956,45 @@ export function composePlugins(...plugins: Plugin[]): Plugin {
 ### Better Lifecycle APIs
 
 #### 1. **Explicit Initialization/Disposal**
+
 **Current**: No formal plugin lifecycle beyond hooks
 **Improvement**: Add init/dispose lifecycle
+
 ```typescript
 interface Plugin {
-  init?(): void | Promise<void>
-  dispose?(): void | Promise<void>
+  init?(): void | Promise<void>;
+  dispose?(): void | Promise<void>;
 }
 
 // In container
-await plugin.init?.()
+await plugin.init?.();
 // ... use plugin
-await plugin.dispose?.()
+await plugin.dispose?.();
 ```
 
 #### 2. **Lazy Plugin Loading**
+
 **Current**: All plugins loaded upfront
 **Improvement**: Support async plugin factories
+
 ```typescript
 {
   plugins: [
     async () => {
-      const { default: plugin } = await import('heavy-plugin')
-      return plugin()
-    }
-  ]
+      const { default: plugin } = await import('heavy-plugin');
+      return plugin();
+    },
+  ];
 }
 ```
+
 **Benefit**: Faster startup, load plugins only when needed
 
 #### 3. **Plugin Dependencies Declaration**
+
 **Current**: Implicit dependencies via execution order
 **Improvement**: Explicit dependency graph
+
 ```typescript
 {
   name: 'my-plugin',
@@ -1902,7 +2008,9 @@ await plugin.dispose?.()
 ### Safer Plugin Execution
 
 #### 1. **Permission System**
+
 **Improvement**: Opt-in permission model
+
 ```typescript
 {
   name: 'my-plugin',
@@ -1920,37 +2028,39 @@ if (!plugin.permissions.fileSystem.write) {
 ```
 
 #### 2. **Sandboxed Plugin Execution**
+
 **Improvement**: Run untrusted plugins in isolated context
+
 ```typescript
-import { Worker } from 'worker_threads'
+import { Worker } from 'worker_threads';
 
 class SandboxedPlugin {
-  private _worker: Worker
+  private _worker: Worker;
 
   async transform(code, id) {
-    return await this._worker.postMessage({ type: 'transform', code, id })
+    return await this._worker.postMessage({ type: 'transform', code, id });
   }
 }
 ```
+
 **Note**: Would break plugins that depend on shared state
 
 #### 3. **Plugin Timeout Enforcement**
+
 **Improvement**: Prevent hanging plugins
+
 ```typescript
 async function executePluginHook(plugin, hook, ...args) {
-  const timeout = config.pluginTimeout || 30000
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Plugin timeout')), timeout)
-  )
-  return Promise.race([
-    hook.apply(plugin, args),
-    timeoutPromise
-  ])
+  const timeout = config.pluginTimeout || 30000;
+  const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Plugin timeout')), timeout));
+  return Promise.race([hook.apply(plugin, args), timeoutPromise]);
 }
 ```
 
 #### 4. **Read-Only Context Mode**
+
 **Improvement**: Prevent accidental state mutation
+
 ```typescript
 {
   transform: {
@@ -1966,7 +2076,9 @@ async function executePluginHook(plugin, hook, ...args) {
 ### Documentation & Debugging
 
 #### 1. **Plugin Development Mode**
+
 **Improvement**: Enhanced debugging tools
+
 ```typescript
 // vite.config.ts
 export default {
@@ -1974,13 +2086,15 @@ export default {
     enabled: true,
     logHooks: true,
     traceResolution: true,
-    profilePerformance: true
-  }
-}
+    profilePerformance: true,
+  },
+};
 ```
 
 #### 2. **Hook Execution Visualization**
+
 **Improvement**: Dev tools panel showing plugin execution
+
 ```typescript
 // Visualize:
 // - Which plugins ran
@@ -1990,7 +2104,9 @@ export default {
 ```
 
 #### 3. **Type Safety Improvements**
+
 **Improvement**: Better TypeScript inference
+
 ```typescript
 // Instead of
 const plugin: Plugin = { ... }

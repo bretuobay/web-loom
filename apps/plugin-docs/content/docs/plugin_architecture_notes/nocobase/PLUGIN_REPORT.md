@@ -3,7 +3,9 @@
 ## 1. High-Level Summary
 
 ### Architecture Type
+
 NocoBase implements a **hybrid plugin architecture** combining multiple architectural patterns:
+
 - **Registry-based**: Central `PluginManager` maintains plugin instances in memory
 - **Database-driven**: Plugin state (enabled/disabled, installed, version) persisted in `applicationPlugins` collection
 - **Dynamic loading**: Runtime plugin installation and hot-swapping via npm/upload
@@ -12,7 +14,9 @@ NocoBase implements a **hybrid plugin architecture** combining multiple architec
 - **Isomorphic**: Separate but parallel client and server plugin systems
 
 ### Problem Solved
+
 The plugin system enables:
+
 - **Extreme modularity**: Core features (ACL, workflows, file management) are themselves plugins
 - **Runtime extensibility**: Add/remove/update plugins without code changes or rebuild
 - **Multi-tenancy support**: Different plugin configurations per application instance
@@ -28,20 +32,22 @@ The plugin system enables:
 ### Discovery Mechanisms
 
 #### File System Scanning
+
 **Location**: `packages/core/server/src/plugin-manager/findPackageNames.ts`
 
 ```typescript
 // Multi-pattern glob search
 const patterns = [
-  './packages/plugins/*/package.json',           // Built-in plugins
+  './packages/plugins/*/package.json', // Built-in plugins
   './packages/plugins/*/*/package.json',
-  './packages/pro-plugins/*/*/package.json',     // Pro plugins
-  './storage/plugins/*/package.json',            // User-installed
+  './packages/pro-plugins/*/*/package.json', // Pro plugins
+  './storage/plugins/*/package.json', // User-installed
   './storage/plugins/*/*/package.json',
 ];
 ```
 
 #### Environment-Based Discovery
+
 ```bash
 PLUGIN_PACKAGE_PREFIX="@nocobase/plugin-,@nocobase/preset-"  # Package prefixes
 PLUGIN_STORAGE_PATH="/path/to/storage/plugins"                # Upload location
@@ -50,6 +56,7 @@ APPEND_PRESET_BUILT_IN_PLUGINS="extra-plugin-1,extra-plugin-2"
 ```
 
 #### Database-Driven Discovery
+
 **Collection**: `applicationPlugins` (packages/core/server/src/plugin-manager/options/collection.ts:13-27)
 
 ```typescript
@@ -68,6 +75,7 @@ APPEND_PRESET_BUILT_IN_PLUGINS="extra-plugin-1,extra-plugin-2"
 ```
 
 #### Preset-Based Discovery
+
 **File**: `packages/presets/nocobase/package.json`
 
 ```json
@@ -75,7 +83,7 @@ APPEND_PRESET_BUILT_IN_PLUGINS="extra-plugin-1,extra-plugin-2"
   "builtIn": [
     "@nocobase/plugin-acl",
     "@nocobase/plugin-users",
-    "@nocobase/plugin-workflow",
+    "@nocobase/plugin-workflow"
     // 50+ core plugins...
   ]
 }
@@ -84,6 +92,7 @@ APPEND_PRESET_BUILT_IN_PLUGINS="extra-plugin-1,extra-plugin-2"
 ### Loading Mechanism
 
 #### Two-Phase Plugin Initialization
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:379-382
 
 ```typescript
@@ -94,6 +103,7 @@ async initPlugins() {
 ```
 
 #### Dynamic Import with Cache Clearing
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:204-211
 
 ```typescript
@@ -107,6 +117,7 @@ static async resolvePlugin(pluginName: string | typeof Plugin, isUpgrade = false
 ```
 
 #### Name Resolution Strategy
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:215-246
 
 ```typescript
@@ -124,6 +135,7 @@ static async parseName(nameOrPkg: string) {
 ## 3. Plugin Registration
 
 ### Registration Process
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:317-374
 
 ```typescript
@@ -146,13 +158,15 @@ async add(plugin?: string | typeof Plugin, options: any = {}) {
 ### Dual Registry System
 
 #### In-Memory Registry
+
 ```typescript
 // packages/core/server/src/plugin-manager/plugin-manager.ts:73-78
-pluginInstances = new Map<typeof Plugin, Plugin>();  // Class → Instance
-pluginAliases = new Map<string, Plugin>();           // Name → Instance
+pluginInstances = new Map<typeof Plugin, Plugin>(); // Class → Instance
+pluginAliases = new Map<string, Plugin>(); // Name → Instance
 ```
 
 #### Database Registry
+
 ```typescript
 // Persisted state in applicationPlugins collection
 await this.repository.updateOrCreate({
@@ -168,6 +182,7 @@ await this.repository.updateOrCreate({
 ```
 
 ### Plugin Access Methods
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:266-286
 
 ```typescript
@@ -192,28 +207,29 @@ has(name: string | typeof Plugin): boolean {
 ## 4. Plugin Interface / Contract
 
 ### Server-Side Plugin Contract
+
 **Base Class**: `packages/core/server/src/plugin.ts:43-251`
 
 ```typescript
 export abstract class Plugin<O = any> implements PluginInterface {
-  options: any;           // Plugin configuration
-  app: Application;       // Core application instance
+  options: any; // Plugin configuration
+  app: Application; // Core application instance
 
   // Convenience getters
-  get name(): string      // Plugin name
-  get pm()                // PluginManager instance
-  get db()                // Database instance
-  get log()               // Scoped logger
-  get enabled(): boolean  // Runtime state
-  get installed(): boolean
-  get isPreset(): boolean
+  get name(): string; // Plugin name
+  get pm(); // PluginManager instance
+  get db(); // Database instance
+  get log(); // Scoped logger
+  get enabled(): boolean; // Runtime state
+  get installed(): boolean;
+  get isPreset(): boolean;
 
   // Lifecycle hooks (all optional)
-  afterAdd() {}                    // After registration
-  beforeLoad() {}                  // Before load phase
-  async load() {}                  // Main initialization
-  async install(options?) {}       // First-time setup
-  async upgrade() {}               // Version migration
+  afterAdd() {} // After registration
+  beforeLoad() {} // Before load phase
+  async load() {} // Main initialization
+  async install(options?) {} // First-time setup
+  async upgrade() {} // Version migration
   async beforeEnable() {}
   async afterEnable() {}
   async beforeDisable() {}
@@ -222,49 +238,55 @@ export abstract class Plugin<O = any> implements PluginInterface {
   async afterRemove() {}
 
   // Utilities
-  t(text, options)                 // i18n translation
-  createLogger(options)            // Create scoped logger
-  sendSyncMessage(message, options) // Cluster messaging
+  t(text, options); // i18n translation
+  createLogger(options); // Create scoped logger
+  sendSyncMessage(message, options); // Cluster messaging
 
   // Internal (auto-called by framework)
-  async loadMigrations()           // Load DB migrations
-  async loadCollections()          // Load DB schemas
+  async loadMigrations(); // Load DB migrations
+  async loadCollections(); // Load DB schemas
 }
 ```
 
 ### Client-Side Plugin Contract
+
 **Base Class**: `packages/core/client/src/application/Plugin.ts:13-59`
 
 ```typescript
 export class Plugin<T = any> {
-  constructor(public options: T, protected app: Application) {}
+  constructor(
+    public options: T,
+    protected app: Application,
+  ) {}
 
   // Convenience getters
-  get pluginManager()              // Client plugin manager
-  get router()                     // React Router instance
-  get pluginSettingsManager()      // Settings panel registry
-  get schemaInitializerManager()   // UI component initializers
-  get schemaSettingsManager()      // Component settings panels
-  get dataSourceManager()          // Data source registry
+  get pluginManager(); // Client plugin manager
+  get router(); // React Router instance
+  get pluginSettingsManager(); // Settings panel registry
+  get schemaInitializerManager(); // UI component initializers
+  get schemaSettingsManager(); // Component settings panels
+  get dataSourceManager(); // Data source registry
 
   // Lifecycle hooks
   async afterAdd() {}
   async beforeLoad() {}
-  async load() {}                  // Register UI components
+  async load() {} // Register UI components
 
   // Utilities
-  t(text, options)                 // i18n translation
+  t(text, options); // i18n translation
 }
 ```
 
 ### Required vs Optional Elements
 
 **Required**:
+
 - Plugin class extending `Plugin` base class
 - `load()` method implementation (can be empty)
 - Valid `package.json` with correct naming convention
 
 **Optional**:
+
 - All lifecycle hooks (default no-op implementations)
 - Configuration options
 - Database collections
@@ -360,6 +382,7 @@ export class Plugin<T = any> {
 ```
 
 ### Lifecycle Implementation
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:426-508
 
 ```typescript
@@ -387,6 +410,7 @@ async load(options: any = {}) {
 ## 6. Extension Points
 
 ### A. Database Collections
+
 **Pattern**: Define database schemas in `server/collections/*.ts`
 
 ```typescript
@@ -406,6 +430,7 @@ export default defineCollection({
 **Auto-loading**: `plugin.loadCollections()` imports all files from `server/collections/`
 
 ### B. Resources & Actions (RESTful API)
+
 **Pattern**: Define API endpoints in `beforeLoad()`
 
 ```typescript
@@ -431,6 +456,7 @@ async beforeLoad() {
 **API Access**: `GET /api/availableActions:list`, `POST /api/roles:check`
 
 ### C. Middleware (Request Pipeline)
+
 **Pattern**: Register middleware with positioning tags
 
 ```typescript
@@ -454,6 +480,7 @@ async beforeLoad() {
 **Middleware Tags**: Control execution order (`auth` → `acl` → `core` → ...)
 
 ### D. Access Control (ACL)
+
 **Pattern**: Register permissions and snippets
 
 ```typescript
@@ -461,10 +488,10 @@ async beforeLoad() {
 this.app.acl.registerSnippet({
   name: 'pm.acl.roles',
   actions: [
-    'roles:*',                    // All role actions
-    'roles.users:*',              // Associated users
-    'availableActions:list',      // Specific action
-  ]
+    'roles:*', // All role actions
+    'roles.users:*', // Associated users
+    'availableActions:list', // Specific action
+  ],
 });
 
 // Allow public access
@@ -475,11 +502,12 @@ this.app.acl.allow('users', 'setDefaultRole', 'loggedIn');
 
 // Fixed query parameters
 this.app.acl.addFixedParams('collections', 'destroy', () => ({
-  filter: { 'name.$ne': 'system' }  // Prevent system collection deletion
+  filter: { 'name.$ne': 'system' }, // Prevent system collection deletion
 }));
 ```
 
 ### E. Database Events & Hooks
+
 **Pattern**: Subscribe to database lifecycle events
 
 ```typescript
@@ -498,11 +526,13 @@ this.db.on('users.afterCreateWithAssociations', async (model, options) => {
 ```
 
 **Event Naming**: `{collection}.{before|after}{Action}`
+
 - `users.beforeCreate`
 - `roles.afterUpdate`
 - `posts.afterSaveWithAssociations`
 
 ### F. Database Migrations
+
 **Pattern**: Version-controlled schema changes
 
 ```typescript
@@ -528,6 +558,7 @@ export default {
 ```
 
 ### G. Application Events
+
 **Pattern**: Subscribe to application-level events
 
 ```typescript
@@ -544,6 +575,7 @@ this.app.db.on('roles.afterSaveWithAssociations', async (model, options) => {
 ### H. Client-Side Extensions
 
 #### Plugin Settings Panel
+
 ```typescript
 // packages/plugins/@nocobase/plugin-acl/src/client/index.ts:22-28
 async load() {
@@ -558,16 +590,19 @@ async load() {
 ```
 
 #### Schema Initializers (UI Builder)
+
 ```typescript
 this.schemaInitializerManager.add(myInitializer);
 ```
 
 #### Schema Settings (Component Config)
+
 ```typescript
 this.schemaSettingsManager.add(mySettings);
 ```
 
 #### Routes (Client-Side Routing)
+
 ```typescript
 this.router.add('admin.settings', {
   path: '/admin/settings',
@@ -576,6 +611,7 @@ this.router.add('admin.settings', {
 ```
 
 #### Data Sources
+
 ```typescript
 this.dataSourceManager.addDataSource(MyDataSource, options);
 ```
@@ -585,6 +621,7 @@ this.dataSourceManager.addDataSource(MyDataSource, options);
 ## 7. Configuration & Metadata
 
 ### Plugin Package.json Format
+
 **Location**: `packages/plugins/@nocobase/plugin-acl/package.json`
 
 ```json
@@ -612,12 +649,13 @@ this.dataSourceManager.addDataSource(MyDataSource, options);
     "@nocobase/server": "1.x",
     "@nocobase/client": "1.x",
     "@nocobase/database": "1.x",
-    "@nocobase/plugin-users": "1.x"  // Plugin dependency
+    "@nocobase/plugin-users": "1.x" // Plugin dependency
   }
 }
 ```
 
 ### Plugin Directory Structure
+
 ```
 @nocobase/plugin-acl/
 ├── package.json                    # Metadata & dependencies
@@ -644,6 +682,7 @@ this.dataSourceManager.addDataSource(MyDataSource, options);
 ### Runtime Configuration
 
 #### Environment Variables
+
 ```bash
 PLUGIN_PACKAGE_PREFIX="@nocobase/plugin-,@nocobase/preset-"
 PLUGIN_STORAGE_PATH="./storage/plugins"
@@ -651,6 +690,7 @@ NODE_MODULES_PATH="./node_modules"
 ```
 
 #### Database Configuration
+
 ```typescript
 // applicationPlugins collection stores runtime state
 {
@@ -667,15 +707,17 @@ NODE_MODULES_PATH="./node_modules"
 ```
 
 #### Programmatic Configuration
+
 ```typescript
 // Adding preset plugins with options
 app.pm.addPreset('@nocobase/plugin-acl', {
   enabled: true,
-  customOption: 'value'
+  customOption: 'value',
 });
 ```
 
 ### Hot Reload Support
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:677-683
 
 ```typescript
@@ -686,6 +728,7 @@ async enable(pluginNames) {
 ```
 
 **Reload Strategy**:
+
 1. Try in-process reload (re-import modules)
 2. Fallback to process restart via PM2
 3. Maintain database connections across reloads
@@ -697,6 +740,7 @@ async enable(pluginNames) {
 ### Security Measures
 
 #### 1. Package Name Validation
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:963-974
 
 ```typescript
@@ -717,6 +761,7 @@ getNameByPackageName(packageName: string) {
 **Protection**: Prevents arbitrary package installation (only `@nocobase/*` by default)
 
 #### 2. Upload Validation
+
 **Middleware**: `packages/core/server/src/plugin-manager/middleware.ts`
 
 - File type validation (ZIP/TGZ only)
@@ -724,17 +769,19 @@ getNameByPackageName(packageName: string) {
 - Version compatibility checks
 
 #### 3. ACL Integration
+
 ```typescript
 // Plugin management requires permissions
 this.app.acl.registerSnippet({
   name: 'pm',
-  actions: ['pm:*']  // Install, enable, disable, remove
+  actions: ['pm:*'], // Install, enable, disable, remove
 });
 ```
 
 **Default**: Only administrators can manage plugins
 
 #### 4. Compatibility Checks
+
 **Location**: packages/core/server/src/plugin-manager/utils.ts
 
 ```typescript
@@ -759,6 +806,7 @@ export async function checkAndGetCompatible(packageName: string) {
 ### Isolation Mechanisms
 
 #### 1. No True Sandboxing
+
 - Plugins run in the same Node.js process
 - Full access to `app`, `db`, `acl` instances
 - Can require any installed npm package
@@ -766,21 +814,23 @@ export async function checkAndGetCompatible(packageName: string) {
 **Rationale**: Performance over isolation (trusted plugin ecosystem)
 
 #### 2. Namespace Isolation
+
 ```typescript
 // Collections namespaced by plugin
 this.db.collection({
   name: 'myPluginData',
-  from: this.options.packageName  // Tracks ownership
+  from: this.options.packageName, // Tracks ownership
 });
 
 // Migrations namespaced
 this.db.addMigrations({
-  namespace: this.name,           // 'acl', 'workflow', etc.
-  directory: './migrations'
+  namespace: this.name, // 'acl', 'workflow', etc.
+  directory: './migrations',
 });
 ```
 
 #### 3. Scoped Logging
+
 ```typescript
 // Each plugin gets its own logger
 get log() {
@@ -791,6 +841,7 @@ get log() {
 ### Error Handling
 
 #### 1. Graceful Plugin Load Failures
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:351-356
 
 ```typescript
@@ -805,6 +856,7 @@ async add(plugin, options) {
 ```
 
 #### 2. Transaction-Safe Installation
+
 ```typescript
 async install(options) {
   for (const plugin of this.getPlugins()) {
@@ -820,6 +872,7 @@ async install(options) {
 ```
 
 #### 3. Enable/Disable Recovery
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:608-683
 
 ```typescript
@@ -836,6 +889,7 @@ async enable(pluginNames) {
 ```
 
 #### 4. Cluster Synchronization
+
 ```typescript
 // Sync plugin state across cluster workers
 async sendSyncMessage(message: any, options?: Transactionable) {
@@ -855,19 +909,21 @@ async handleSyncMessage(message) {
 ## 9. Dependency Management
 
 ### Dependency Declaration
+
 **Method**: `peerDependencies` in `package.json`
 
 ```json
 {
   "peerDependencies": {
-    "@nocobase/server": "1.x",           // Core framework
-    "@nocobase/database": "1.x",         // Core package
-    "@nocobase/plugin-users": "1.x"      // Plugin dependency
+    "@nocobase/server": "1.x", // Core framework
+    "@nocobase/database": "1.x", // Core package
+    "@nocobase/plugin-users": "1.x" // Plugin dependency
   }
 }
 ```
 
 ### Topological Sorting
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:1151-1163
 
 ```typescript
@@ -890,6 +946,7 @@ private async sort(names: string | string[]) {
 ```
 
 **Example Dependency Chain**:
+
 ```
 @nocobase/plugin-users (no dependencies)
   ↓
@@ -903,6 +960,7 @@ private async sort(names: string | string[]) {
 ### Dependency Resolution Algorithm
 
 #### 1. Enable Plugin with Dependencies
+
 **Location**: packages/core/server/src/plugin-manager/plugin-manager.ts:553-684
 
 ```typescript
@@ -943,6 +1001,7 @@ async enable(nameOrPkg: string | string[]) {
 ### Dependency Installation Workflow
 
 #### Upload/Install Flow
+
 **Location**: packages/core/server/src/plugin-manager/utils.ts
 
 ```typescript
@@ -956,7 +1015,7 @@ await copyTempPackageToStorageAndLinkToNodeModules(tempFile, tempDir, packageNam
 await fs.symlink(
   resolve(PLUGIN_STORAGE_PATH, packageName),
   resolve(NODE_MODULES_PATH, packageName),
-  'junction'  // Windows-compatible
+  'junction', // Windows-compatible
 );
 
 // 4. Parse dependencies from package.json
@@ -967,7 +1026,7 @@ const dependencies = Object.keys(packageJson.peerDependencies || {});
 for (const dep of dependencies) {
   if (dep.startsWith('@nocobase/plugin-')) {
     const depInstalled = await this.repository.findOne({
-      filter: { packageName: dep }
+      filter: { packageName: dep },
     });
     if (!depInstalled) {
       throw new Error(`Missing dependency: ${dep}`);
@@ -980,6 +1039,7 @@ await this.enable([...dependencies, packageName]);
 ```
 
 ### No Dependency Injection Container
+
 **Pattern**: Direct property access via getters
 
 ```typescript
@@ -998,16 +1058,18 @@ class MyPlugin extends Plugin {
 ### Version Constraints
 
 #### Semver Compatibility
+
 ```json
 {
   "peerDependencies": {
-    "@nocobase/server": "1.x",    // Any 1.x.x version
-    "@nocobase/plugin-users": "^1.9.0"  // >= 1.9.0 < 2.0.0
+    "@nocobase/server": "1.x", // Any 1.x.x version
+    "@nocobase/plugin-users": "^1.9.0" // >= 1.9.0 < 2.0.0
   }
 }
 ```
 
 #### Runtime Compatibility Check
+
 ```typescript
 async toJSON(options) {
   return {
@@ -1295,31 +1357,35 @@ stateDiagram-v2
 ### Performance Optimizations
 
 #### 1. Lazy Loading for Client Plugins
+
 **Current**: All enabled plugins loaded on app start
 **Recommendation**:
+
 ```typescript
 // Dynamic import on-demand
 const plugin = await import(`@nocobase/plugin-${name}/client`);
 await this.pluginManager.add(plugin);
 ```
+
 **Benefit**: Faster initial page load, reduced bundle size
 
 #### 2. Parallel Plugin Loading
+
 **Current**: Sequential `await plugin.load()`
 **Recommendation**:
+
 ```typescript
 // Load independent plugins concurrently
-await Promise.all(
-  plugins
-    .filter(p => !hasDependencies(p))
-    .map(p => p.load())
-);
+await Promise.all(plugins.filter((p) => !hasDependencies(p)).map((p) => p.load()));
 ```
+
 **Benefit**: 2-3x faster boot time for large plugin sets
 
 #### 3. Plugin Metadata Caching
+
 **Current**: Read `package.json` repeatedly
 **Recommendation**:
+
 ```typescript
 // Cache parsed metadata in Redis
 const metadata = await redis.get(`plugin:${name}:metadata`);
@@ -1328,26 +1394,30 @@ if (!metadata) {
   await redis.set(`plugin:${name}:metadata`, metadata, 'EX', 3600);
 }
 ```
+
 **Benefit**: Reduced filesystem I/O
 
 ### Stability Improvements
 
 #### 1. Plugin Dependency Versioning
+
 **Current**: Loose `peerDependencies` without enforcement
 **Recommendation**:
+
 ```typescript
 // Strict semver validation
 if (!semver.satisfies(installedVersion, requiredVersion)) {
   throw new PluginCompatibilityError(
-    `Plugin ${name} requires ${dep}@${requiredVersion}, ` +
-    `but ${installedVersion} is installed`
+    `Plugin ${name} requires ${dep}@${requiredVersion}, ` + `but ${installedVersion} is installed`,
   );
 }
 ```
 
 #### 2. Rollback on Failed Enable
+
 **Current**: Partial rollback on errors
 **Recommendation**:
+
 ```typescript
 // Full transaction with snapshot
 const snapshot = await this.createSnapshot();
@@ -1360,7 +1430,9 @@ try {
 ```
 
 #### 3. Plugin Health Checks
+
 **Recommendation**: Add health check API
+
 ```typescript
 class Plugin {
   async healthCheck(): Promise<HealthStatus> {
@@ -1384,8 +1456,10 @@ setInterval(async () => {
 ### Cleaner Extension Points
 
 #### 1. Typed Extension API
+
 **Current**: Untyped `app.resourcer.define()` calls
 **Recommendation**:
+
 ```typescript
 // Strongly typed builder pattern
 class Plugin {
@@ -1395,16 +1469,18 @@ class Plugin {
       actions: {
         async list(ctx: Context): Promise<User[]> {
           return await this.db.getRepository('users').find();
-        }
-      }
+        },
+      },
     });
   }
 }
 ```
 
 #### 2. Declarative Plugin Manifests
+
 **Current**: Imperative registration in `load()`
 **Recommendation**:
+
 ```yaml
 # plugin.yaml
 name: @nocobase/plugin-acl
@@ -1424,7 +1500,9 @@ collections:
 ```
 
 #### 3. Plugin Composition API
+
 **Recommendation**: Enable plugin composition
+
 ```typescript
 // Compose multiple plugins into one
 class MyCompositePlugin extends Plugin {
@@ -1436,7 +1514,7 @@ class MyCompositePlugin extends Plugin {
     this.app.on('workflow:completed', async (workflow) => {
       await this.notificationPlugin.send({
         title: 'Workflow completed',
-        workflow: workflow.id
+        workflow: workflow.id,
       });
     });
   }
@@ -1446,21 +1524,25 @@ class MyCompositePlugin extends Plugin {
 ### Better Lifecycle APIs
 
 #### 1. Granular Lifecycle Hooks
+
 **Current**: `beforeLoad`, `load`, `afterAdd`
 **Recommendation**: Add more hooks
+
 ```typescript
 class Plugin {
-  async onDatabaseConnected() {}    // After DB ready
-  async onAllPluginsLoaded() {}     // After all plugins loaded
-  async onApplicationReady() {}     // Before first request
-  async onBeforeShutdown() {}       // Graceful shutdown
-  async onAfterReload() {}          // After hot reload
+  async onDatabaseConnected() {} // After DB ready
+  async onAllPluginsLoaded() {} // After all plugins loaded
+  async onApplicationReady() {} // Before first request
+  async onBeforeShutdown() {} // Graceful shutdown
+  async onAfterReload() {} // After hot reload
 }
 ```
 
 #### 2. Async Initialization Support
+
 **Current**: `load()` runs before app ready
 **Recommendation**:
+
 ```typescript
 // Wait for async initialization
 class Plugin {
@@ -1479,22 +1561,26 @@ class Plugin {
 ### Safer Plugin Execution
 
 #### 1. Plugin Sandboxing (Optional)
+
 **Recommendation**: VM2-based isolation for untrusted plugins
+
 ```typescript
 // Opt-in sandbox mode
 class SandboxedPlugin extends Plugin {
-  sandbox = true;  // Run in isolated context
+  sandbox = true; // Run in isolated context
 
   permissions = {
-    network: ['https://api.example.com'],  // Whitelist
+    network: ['https://api.example.com'], // Whitelist
     filesystem: ['./uploads'],
-    database: ['users', 'posts']
+    database: ['users', 'posts'],
   };
 }
 ```
 
 #### 2. Plugin Audit Logging
+
 **Recommendation**: Track all plugin operations
+
 ```typescript
 // Audit trail for security
 await this.app.audit.log({
@@ -1502,24 +1588,25 @@ await this.app.audit.log({
   plugin: 'workflow',
   user: ctx.state.currentUser,
   timestamp: new Date(),
-  metadata: { version: '1.2.3' }
+  metadata: { version: '1.2.3' },
 });
 ```
 
 #### 3. Plugin Timeout Protection
+
 **Recommendation**: Prevent hung plugins
+
 ```typescript
 // Timeout on lifecycle hooks
-await Promise.race([
-  plugin.load(),
-  timeout(30000, `Plugin ${plugin.name}.load() timed out`)
-]);
+await Promise.race([plugin.load(), timeout(30000, `Plugin ${plugin.name}.load() timed out`)]);
 ```
 
 ### Developer Experience
 
 #### 1. Plugin Development CLI
+
 **Recommendation**: Enhanced scaffolding
+
 ```bash
 # Generate plugin from template
 nocobase create plugin my-plugin --template=workflow-node
@@ -1532,7 +1619,9 @@ nocobase validate plugin ./my-plugin
 ```
 
 #### 2. Plugin Testing Framework
+
 **Recommendation**: Built-in test utilities
+
 ```typescript
 import { createTestApp, createTestPlugin } from '@nocobase/test';
 
@@ -1553,7 +1642,9 @@ describe('MyPlugin', () => {
 ```
 
 #### 3. Plugin Documentation Generator
+
 **Recommendation**: Auto-generate docs from code
+
 ```typescript
 // Extract from JSDoc comments
 /**
@@ -1574,6 +1665,7 @@ export class MyPlugin extends Plugin {
 ## Conclusion
 
 NocoBase's plugin architecture is a **sophisticated, production-grade system** that enables:
+
 - **Extreme modularity** (80+ built-in plugins)
 - **Runtime extensibility** (hot-swapping without rebuild)
 - **Database-driven state** (persistent enable/disable)
@@ -1581,6 +1673,7 @@ NocoBase's plugin architecture is a **sophisticated, production-grade system** t
 - **Dual client/server** plugins (isomorphic architecture)
 
 **Strengths**:
+
 - Clean separation of concerns (base class + lifecycle hooks)
 - Rich extension points (12+ ways to extend)
 - Hot reload support
@@ -1588,6 +1681,7 @@ NocoBase's plugin architecture is a **sophisticated, production-grade system** t
 - Event-driven coordination
 
 **Areas for Improvement**:
+
 - Add sandboxing for untrusted plugins
 - Implement lazy loading for performance
 - Enhance type safety with TypeScript

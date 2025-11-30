@@ -585,26 +585,20 @@ Estimated Effort: 3-5 days
 Priority Order:
 
 1. ui-core (300-400 lines target)
-
-
-    - Overview of 5 behaviors
-    - React/Vue/Angular usage examples for each
-    - Comparison to Radix UI/Headless UI
-    - Migration guide from v0.x
+   - Overview of 5 behaviors
+   - React/Vue/Angular usage examples for each
+   - Comparison to Radix UI/Headless UI
+   - Migration guide from v0.x
 
 2. ui-patterns (200-300 lines target)
-
-
-    - Overview of 7 patterns
-    - When to use each pattern
-    - Composition examples
+   - Overview of 7 patterns
+   - When to use each pattern
+   - Composition examples
 
 3. event-bus-core (100-150 lines target)
-
-
-    - API reference
-    - Usage examples
-    - TypeScript tips
+   - API reference
+   - Usage examples
+   - TypeScript tips
 
 1.4 Fix Dependency Issue
 
@@ -739,20 +733,20 @@ Infrastructure Checklist
 | Git repository public/private decision | ⚠️ TBD     | Critical |
 | npm organization (@web-loom)           | ⚠️ TBD     | Critical |
 | LICENSE files in all packages          | ❌         | Critical |
-|  |
+|                                        |
 | CHANGELOG.md in all packages           | ❌         | High     |
-|  |
+|                                        |
 | CI/CD pipeline (GitHub Actions)        | ⚠️ Partial | High     |
 | Automated testing on PR                | ⚠️ Unknown | High     |
 | Automated releases                     | ❌         | Medium   |
-|  |
+|                                        |
 | Documentation site deployment          | ⚠️ Unknown | Medium   |
 | Bundle size tracking                   | ❌         | Medium   |
-|  |
+|                                        |
 | Security audit workflow                | ❌         | Medium   |
-|  |
+|                                        |
 | Code coverage reporting                | ❌         | Low      |
-|  |
+|                                        |
 
 ---
 

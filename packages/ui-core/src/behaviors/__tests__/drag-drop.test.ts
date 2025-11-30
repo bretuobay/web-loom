@@ -128,9 +128,7 @@ describe('createDragDropBehavior', () => {
       dragDrop.actions.startDrag('item-1');
       dragDrop.actions.startDrag('item-2');
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Cannot start drag: drag operation already in progress'
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('Cannot start drag: drag operation already in progress');
       expect(dragDrop.getState().draggedItem).toBe('item-1');
 
       consoleSpy.mockRestore();
@@ -272,9 +270,7 @@ describe('createDragDropBehavior', () => {
       dragDrop.actions.startDrag('item-1');
       dragDrop.actions.drop('zone-1');
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Invalid drop target: zone-1 is not a registered drop zone'
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('Invalid drop target: zone-1 is not a registered drop zone');
 
       consoleSpy.mockRestore();
     });
@@ -291,9 +287,7 @@ describe('createDragDropBehavior', () => {
 
       expect(validateDrop).toHaveBeenCalledWith('item-1', 'zone-1');
       expect(onDrop).not.toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Drop validation failed for item-1 on zone-1'
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('Drop validation failed for item-1 on zone-1');
 
       consoleSpy.mockRestore();
     });
@@ -411,7 +405,7 @@ describe('createDragDropBehavior', () => {
         const dragDrop = createDragDropBehavior();
 
         const zones = ['alpha', 'beta', 'gamma', 'delta'];
-        zones.forEach(zone => dragDrop.actions.registerDropZone(zone));
+        zones.forEach((zone) => dragDrop.actions.registerDropZone(zone));
 
         expect(dragDrop.getState().dropZones).toEqual(zones);
 
@@ -446,9 +440,7 @@ describe('createDragDropBehavior', () => {
         // Try to drop on unregistered zone
         dragDrop.actions.drop('invalid-zone');
 
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          'Invalid drop target: invalid-zone is not a registered drop zone'
-        );
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Invalid drop target: invalid-zone is not a registered drop zone');
         expect(onDrop).not.toHaveBeenCalled();
         expect(dragDrop.getState().isDragging).toBe(true); // Still dragging
 
@@ -491,9 +483,7 @@ describe('createDragDropBehavior', () => {
 
         expect(validateDrop).toHaveBeenCalledWith('item-1', 'restricted-zone');
         expect(onDrop).not.toHaveBeenCalled();
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          'Drop validation failed for item-1 on restricted-zone'
-        );
+        expect(consoleWarnSpy).toHaveBeenCalledWith('Drop validation failed for item-1 on restricted-zone');
 
         // Drop on allowed zone should succeed
         dragDrop.actions.drop('allowed-zone');
@@ -579,8 +569,8 @@ describe('createDragDropBehavior', () => {
 
         const onDrop = vi.fn((draggedItemId: string, dropTargetId: string, data: ListItem) => {
           // Find the dragged item and drop target
-          const draggedItem = items.find(item => item.id === data.id);
-          const dropTarget = items.find(item => item.id === dropTargetId);
+          const draggedItem = items.find((item) => item.id === data.id);
+          const dropTarget = items.find((item) => item.id === dropTargetId);
 
           if (draggedItem && dropTarget) {
             // Swap positions
@@ -596,7 +586,7 @@ describe('createDragDropBehavior', () => {
         const dragDrop = createDragDropBehavior({ onDrop });
 
         // Register each item as a drop zone
-        items.forEach(item => dragDrop.actions.registerDropZone(item.id));
+        items.forEach((item) => dragDrop.actions.registerDropZone(item.id));
 
         // Drag item-1 and drop on item-3 (swap positions)
         const draggedItem = items[0];
@@ -624,11 +614,11 @@ describe('createDragDropBehavior', () => {
           if (draggedIndex !== -1 && dropIndex !== -1 && draggedIndex !== dropIndex) {
             // Remove dragged item
             const [draggedItem] = items.splice(draggedIndex, 1);
-            
+
             // Calculate new index after removal
             // If we removed an item before the drop target, the drop index shifts down by 1
             const newDropIndex = draggedIndex < dropIndex ? dropIndex - 1 : dropIndex;
-            
+
             // Insert at new position
             items.splice(newDropIndex, 0, draggedItem);
           }
@@ -637,7 +627,7 @@ describe('createDragDropBehavior', () => {
         const dragDrop = createDragDropBehavior({ onDrop });
 
         // Register each item as a drop zone
-        items.forEach(item => dragDrop.actions.registerDropZone(item));
+        items.forEach((item) => dragDrop.actions.registerDropZone(item));
 
         // Drag 'A' and drop on 'D' (insert before D)
         dragDrop.actions.startDrag('A');
@@ -661,11 +651,11 @@ describe('createDragDropBehavior', () => {
 
         const onDrop = vi.fn((draggedItemId: string, dropTargetId: string, data: DragData) => {
           const toIndex = parseInt(dropTargetId.split('-')[1]);
-          
+
           if (data && data.fromIndex !== toIndex) {
             // Remove from old position
             const [item] = items.splice(data.fromIndex, 1);
-            
+
             // Insert at new position
             items.splice(toIndex, 0, item);
           }
@@ -707,13 +697,13 @@ describe('createDragDropBehavior', () => {
         ];
 
         const onDrop = vi.fn((draggedItemId: string, dropTargetId: string, data: Card) => {
-          const card = cards.find(c => c.id === data.id);
+          const card = cards.find((c) => c.id === data.id);
           if (card) {
             // Update column
             card.columnId = dropTargetId;
-            
+
             // Update order (place at end of new column)
-            const cardsInColumn = cards.filter(c => c.columnId === dropTargetId);
+            const cardsInColumn = cards.filter((c) => c.columnId === dropTargetId);
             card.order = cardsInColumn.length - 1;
           }
         });
@@ -765,7 +755,7 @@ describe('createDragDropBehavior', () => {
         const dragDrop = createDragDropBehavior({ validateDrop, onDrop });
         const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-        items.forEach(item => dragDrop.actions.registerDropZone(item));
+        items.forEach((item) => dragDrop.actions.registerDropZone(item));
 
         // Try to drop on same item
         dragDrop.actions.startDrag('B');
@@ -924,7 +914,7 @@ describe('createDragDropBehavior', () => {
     /**
      * Feature: ui-core-gaps, Property 12: Drag start state transition
      * Validates: Requirements 3.4
-     * 
+     *
      * For any item, when startDrag is called, isDragging should be true,
      * draggedItem should be set, and onDragStart callback should be invoked.
      */
@@ -945,7 +935,7 @@ describe('createDragDropBehavior', () => {
             // Verify state transition
             expect(state.isDragging).toBe(true);
             expect(state.draggedItem).toBe(itemId);
-            
+
             // The implementation normalizes undefined to null
             const expectedData = dragData === undefined ? null : dragData;
             expect(state.dragData).toEqual(expectedData);
@@ -955,16 +945,16 @@ describe('createDragDropBehavior', () => {
             expect(onDragStart).toHaveBeenCalledWith(itemId, expectedData);
 
             dragDrop.destroy();
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
     /**
      * Feature: ui-core-gaps, Property 13: Drag end state transition
      * Validates: Requirements 3.5
-     * 
+     *
      * For any dragging state, when endDrag is called, isDragging should be false,
      * draggedItem should be null, and onDragEnd callback should be invoked.
      */
@@ -997,16 +987,16 @@ describe('createDragDropBehavior', () => {
             expect(onDragEnd).toHaveBeenCalledWith(itemId);
 
             dragDrop.destroy();
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
     /**
      * Feature: ui-core-gaps, Property 14: Drop validation
      * Validates: Requirements 3.9
-     * 
+     *
      * For any drop operation, the drop should only succeed if the target
      * is a registered drop zone.
      */
@@ -1047,16 +1037,16 @@ describe('createDragDropBehavior', () => {
             expect(dragDrop.getState().isDragging).toBe(false); // Drag ended
 
             dragDrop.destroy();
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
     /**
      * Feature: ui-core-gaps, Property 15: Drag data preservation
      * Validates: Requirements 3.8
-     * 
+     *
      * For any drag data, the data should be accessible throughout the drag
      * operation and passed to the onDrop callback.
      */
@@ -1095,9 +1085,9 @@ describe('createDragDropBehavior', () => {
             expect(state.dragData).toBeNull();
 
             dragDrop.destroy();
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
   });

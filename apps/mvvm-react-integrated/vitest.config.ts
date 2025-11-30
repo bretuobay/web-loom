@@ -14,7 +14,8 @@ export default defineConfig({
           // launch: {},
           context: {
             // Log browser console messages
-            onConsoleMessage: async (msg: any) => { // Use 'any' for now, should be playwright.ConsoleMessage
+            onConsoleMessage: async (msg: any) => {
+              // Use 'any' for now, should be playwright.ConsoleMessage
               const type = msg.type();
               const text = msg.text();
               const args = [];

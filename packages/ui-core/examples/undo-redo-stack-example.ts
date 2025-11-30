@@ -1,6 +1,6 @@
 /**
  * Example: Text Editor with Undo/Redo
- * 
+ *
  * This example demonstrates how to use the undo/redo stack behavior
  * to implement undo/redo functionality in a simple text editor.
  */

@@ -21,7 +21,10 @@ describe('font loading utilities', () => {
   });
 
   it('falls back to style injection when FontFace API is unavailable', async () => {
-    const result = await loadWebFont({ family: 'Fallback Font', sources: [{ url: '/fonts/fallback.woff2', format: 'woff2' }] });
+    const result = await loadWebFont({
+      family: 'Fallback Font',
+      sources: [{ url: '/fonts/fallback.woff2', format: 'woff2' }],
+    });
     expect(result.status).toBe('queued');
     const style = document.head.querySelector('style[data-font-family="Fallback Font"]');
     expect(style).not.toBeNull();

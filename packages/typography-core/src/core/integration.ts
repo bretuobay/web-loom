@@ -167,14 +167,21 @@ export function validateTypographyTokens(input: TypographyTokenInput): Validatio
 export function generatePresetsFromTokens(input: TypographyTokenInput): TypographyPresets {
   const config = consumeDesignTokens(input);
   const baseSize = config.fontSizes.md ?? config.fontSizes.base ?? DEFAULT_FONT_SIZE;
-  const ratioCandidate = config.fontSizes.lg && config.fontSizes.md ? config.fontSizes.lg / config.fontSizes.md : DEFAULT_RATIO;
+  const ratioCandidate =
+    config.fontSizes.lg && config.fontSizes.md ? config.fontSizes.lg / config.fontSizes.md : DEFAULT_RATIO;
   const ratio = ratioCandidate > 1 ? ratioCandidate : DEFAULT_RATIO;
 
   const modularScale = generateModularScale(baseSize, parseFloat(ratio.toFixed(3)), 4);
   const rhythm = generateVerticalRhythm((config.lineHeights.normal ?? 1.5) * baseSize, [0.5, 1, 1.5, 2]);
 
-  const [bodyMin, bodyMax] = ensureAscending(config.fontSizes.sm ?? baseSize * 0.9, config.fontSizes.lg ?? baseSize * 1.25);
-  const [headingMin, headingMax] = ensureAscending(config.fontSizes.lg ?? baseSize * 1.25, config.fontSizes['3xl'] ?? baseSize * 2);
+  const [bodyMin, bodyMax] = ensureAscending(
+    config.fontSizes.sm ?? baseSize * 0.9,
+    config.fontSizes.lg ?? baseSize * 1.25,
+  );
+  const [headingMin, headingMax] = ensureAscending(
+    config.fontSizes.lg ?? baseSize * 1.25,
+    config.fontSizes['3xl'] ?? baseSize * 2,
+  );
 
   return {
     modularScale,

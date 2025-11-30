@@ -3,34 +3,30 @@
  */
 
 import { ref, computed, onUnmounted } from 'vue';
-import type {
-  UndoRedoStackState,
-  UndoRedoStackActions,
-  UndoRedoStackOptions,
-} from '../../behaviors/undo-redo-stack';
+import type { UndoRedoStackState, UndoRedoStackActions, UndoRedoStackOptions } from '../../behaviors/undo-redo-stack';
 import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
 
 /**
  * Vue composable for undo/redo stack behavior.
- * 
+ *
  * Creates and manages an undo/redo stack behavior instance, automatically handling
  * subscriptions and cleanup with Vue's reactivity system. This composable provides
  * state history management with undo/redo operations, supporting time-travel
  * debugging and state persistence.
- * 
+ *
  * @example
  * ```vue
  * <script setup>
  * import { ref } from 'vue';
  * import { useUndoRedoStack } from '@web-loom/ui-core/vue';
- * 
+ *
  * interface EditorState {
  *   content: string;
  *   cursor: number;
  * }
- * 
+ *
  * const content = ref('');
- * 
+ *
  * const undoRedo = useUndoRedoStack<EditorState>({
  *   initialState: { content: '', cursor: 0 },
  *   maxLength: 100,
@@ -38,7 +34,7 @@ import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
  *     content.value = state.content;
  *   },
  * });
- * 
+ *
  * const handleChange = (newContent: string) => {
  *   content.value = newContent;
  *   undoRedo.actions.pushState({
@@ -47,7 +43,7 @@ import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
  *   });
  * };
  * </script>
- * 
+ *
  * <template>
  *   <div>
  *     <div>
@@ -72,7 +68,7 @@ import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
  *   </div>
  * </template>
  * ```
- * 
+ *
  * @template T The type of state being tracked in the history.
  * @param options Configuration options for the undo/redo stack behavior.
  * @returns Reactive undo/redo stack state properties and actions.

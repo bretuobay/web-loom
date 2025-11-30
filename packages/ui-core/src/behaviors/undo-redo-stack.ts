@@ -132,47 +132,45 @@ export interface UndoRedoStackBehavior<T> {
 
 /**
  * Creates an undo/redo stack behavior for managing state history.
- * 
+ *
  * This behavior maintains an immutable history of states with undo/redo operations,
  * supporting time-travel debugging and state persistence. The history is bounded
  * by a configurable maximum length to prevent unbounded memory growth.
- * 
+ *
  * @example
  * ```typescript
  * interface EditorState {
  *   content: string;
  *   cursor: number;
  * }
- * 
+ *
  * const undoRedo = createUndoRedoStack<EditorState>({
  *   initialState: { content: '', cursor: 0 },
  *   maxLength: 100,
  *   onStateChange: (state) => console.log('State changed:', state),
  * });
- * 
+ *
  * // Push new states
  * undoRedo.actions.pushState({ content: 'Hello', cursor: 5 });
  * undoRedo.actions.pushState({ content: 'Hello World', cursor: 11 });
- * 
+ *
  * // Undo
  * undoRedo.actions.undo();
  * console.log(undoRedo.getState().present); // { content: 'Hello', cursor: 5 }
- * 
+ *
  * // Redo
  * undoRedo.actions.redo();
  * console.log(undoRedo.getState().present); // { content: 'Hello World', cursor: 11 }
- * 
+ *
  * // Clean up
  * undoRedo.destroy();
  * ```
- * 
+ *
  * @template T The type of state being tracked in the history.
  * @param options Configuration options for the undo/redo stack behavior.
  * @returns An undo/redo stack behavior instance.
  */
-export function createUndoRedoStack<T>(
-  options: UndoRedoStackOptions<T>
-): UndoRedoStackBehavior<T> {
+export function createUndoRedoStack<T>(options: UndoRedoStackOptions<T>): UndoRedoStackBehavior<T> {
   const maxLength = options.maxLength ?? 50;
 
   const initialState: UndoRedoStackState<T> = {
@@ -240,10 +238,10 @@ export function createUndoRedoStack<T>(
 
     pushState: (newState: T) => {
       const state = get();
-      
+
       // Add current state to past
       let newPast = [...state.past, state.present];
-      
+
       // Enforce maxLength by removing oldest states
       if (newPast.length > state.maxLength) {
         newPast = newPast.slice(newPast.length - state.maxLength);
@@ -266,7 +264,7 @@ export function createUndoRedoStack<T>(
 
     clearHistory: () => {
       const state = get();
-      
+
       set(() => ({
         past: [],
         present: state.present,
@@ -279,10 +277,10 @@ export function createUndoRedoStack<T>(
 
     jumpToState: (index: number) => {
       const state = get();
-      
+
       // Build combined history: past + present + future
       const allStates = [...state.past, state.present, ...state.future];
-      
+
       if (index < 0 || index >= allStates.length) {
         console.error(`Cannot jump to state: index ${index} out of bounds (0-${allStates.length - 1})`);
         return;
@@ -309,14 +307,14 @@ export function createUndoRedoStack<T>(
 
     setMaxLength: (length: number) => {
       const state = get();
-      
+
       if (length < 1) {
         console.error('maxLength must be at least 1');
         return;
       }
 
       let newPast = state.past;
-      
+
       // If new length is smaller, trim the oldest states
       if (newPast.length > length) {
         newPast = newPast.slice(newPast.length - length);

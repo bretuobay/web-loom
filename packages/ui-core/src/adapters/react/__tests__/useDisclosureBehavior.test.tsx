@@ -12,17 +12,13 @@ describe('useDisclosureBehavior', () => {
     });
 
     it('should initialize with provided id', () => {
-      const { result } = renderHook(() => 
-        useDisclosureBehavior({ id: 'section-1' })
-      );
+      const { result } = renderHook(() => useDisclosureBehavior({ id: 'section-1' }));
 
       expect(result.current.id).toBe('section-1');
     });
 
     it('should initialize with expanded state when specified', () => {
-      const { result } = renderHook(() => 
-        useDisclosureBehavior({ initialExpanded: true })
-      );
+      const { result } = renderHook(() => useDisclosureBehavior({ initialExpanded: true }));
 
       expect(result.current.isExpanded).toBe(true);
     });
@@ -42,9 +38,7 @@ describe('useDisclosureBehavior', () => {
     });
 
     it('should update component when collapsing', () => {
-      const { result } = renderHook(() => 
-        useDisclosureBehavior({ initialExpanded: true })
-      );
+      const { result } = renderHook(() => useDisclosureBehavior({ initialExpanded: true }));
 
       expect(result.current.isExpanded).toBe(true);
 

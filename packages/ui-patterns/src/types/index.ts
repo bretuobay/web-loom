@@ -1,9 +1,9 @@
 /**
  * Type definitions for UI Patterns
- * 
+ *
  * This module exports all TypeScript type definitions for UI Patterns.
  * These types provide full type safety and excellent IDE autocomplete support.
- * 
+ *
  * @packageDocumentation
  */
 

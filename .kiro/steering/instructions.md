@@ -9,6 +9,7 @@ Web Loom is a Turborepo monorepo demonstrating MVVM (Model-View-ViewModel) archi
 ## Common Commands
 
 ### Development
+
 ```bash
 npm run dev              # Start all apps in dev mode (concurrency=20)
 npm run build            # Build all packages and apps
@@ -18,6 +19,7 @@ npm run check-types      # Type-check all packages
 ```
 
 ### Testing
+
 ```bash
 # Run tests in specific packages (uses Vitest)
 cd packages/mvvm-core && npm test              # Run tests once
@@ -28,6 +30,7 @@ cd packages/mvvm-core && npm run test:coverage # With coverage
 ```
 
 ### API Development
+
 ```bash
 cd apps/api
 npm run dev    # Start API with nodemon (auto-restart on changes)
@@ -37,6 +40,7 @@ npm start      # Run built API
 ```
 
 ### Working with Specific Apps
+
 ```bash
 # Each app can be run individually
 cd apps/mvvm-react && npm run dev
@@ -71,6 +75,7 @@ The repository implements a strict separation of concerns:
 ### Shared ViewModels
 
 Application-specific ViewModels live in `packages/view-models/`:
+
 - `GreenHouseViewModel.ts`
 - `SensorReadingViewModel.ts`
 - `SensorViewModel.ts`
@@ -100,25 +105,30 @@ The `apps/plugin-react` app demonstrates this with React-based plugin host and a
 ## Key Technical Details
 
 ### RxJS Usage
+
 - All reactive state uses RxJS `BehaviorSubject` and `Observable`
 - ViewModels use `takeUntil(this._destroy$)` pattern for subscription cleanup
 - Always call `dispose()` on ViewModels when unmounting components
 
 ### Validation
+
 - Zod schemas validate data at the Model layer
 - Validation errors flow through `error$` observable and are mapped to `validationErrors$` in ViewModels
 - Models reject invalid data; Views display validation errors reactively
 
 ### Dependency Injection
+
 The `packages/mvvm-core/src/core/di-container.ts` provides simple DI for managing ViewModel/Model instances in Angular and other frameworks.
 
 ### Testing
+
 - Tests use Vitest with jsdom environment
 - Test timeout set to 20000ms (see `vitest.config.js`)
 - Tests are co-located with source files (`.test.ts` suffix)
 - Test pattern: `src/**/*.{test,spec}.{js,ts}`
 
 ### API Backend
+
 - Express.js server with SQLite database (Sequelize ORM)
 - Located in `apps/api`
 - Models use `sequelize-typescript` decorators
@@ -174,6 +184,7 @@ packages/
 ## Cross-Framework Patterns
 
 When implementing features across frameworks:
+
 1. Add business logic to a ViewModel in `packages/view-models/` or extend `BaseViewModel`
 2. If data comes from API, extend `RestfulApiModel` for the Model
 3. Implement View layer in each framework app (`apps/mvvm-*`)

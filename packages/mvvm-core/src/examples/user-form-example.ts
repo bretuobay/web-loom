@@ -168,15 +168,17 @@ export async function runUserFormExample() {
   // For this example, we'll proceed and let the command handle its internal state.
   // if (userForm.submitCommand.canExecute$.getValue()) { // canExecute$ is an Observable
   userForm.submitCommand.execute().subscribe({
-    next: (result: UserData) => { // Added type for result
+    next: (result: UserData) => {
+      // Added type for result
       console.log('Submission Succeeded (View/Component Level):', result);
-        // userForm.resetForm(); // Optionally reset after successful submission
-      },
-      error: (err: Error) => { // Added type for err
-        console.error('Submission Failed (View/Component Level):', err.message);
-        // Error is already handled by form's submit logic and global error handler
-      },
-    });
+      // userForm.resetForm(); // Optionally reset after successful submission
+    },
+    error: (err: Error) => {
+      // Added type for err
+      console.error('Submission Failed (View/Component Level):', err.message);
+      // Error is already handled by form's submit logic and global error handler
+    },
+  });
   // } else { // This was part of the commented out if block
   //   console.error('Cannot submit form, it is not valid or cannot execute.');
   // }
@@ -211,7 +213,6 @@ export async function runUserFormExample() {
   console.log('Is dirty after reset: (see subscription log)');
   // console.log('Field errors after reset:', userForm.fieldErrors$.getValue()); // fieldErrors$ is an Observable
   console.log('Field errors after reset: (see subscription log)');
-
 
   // --- Cleanup (important if objects have subscriptions that need to be manually managed)
   // userForm.dispose(); // If FormViewModel has subscriptions it manages internally that need explicit cleanup

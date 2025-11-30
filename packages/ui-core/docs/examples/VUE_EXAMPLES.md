@@ -67,7 +67,7 @@ onMounted(() => {
 // Switch scope when palette opens/closes
 watch(isOpen, (newValue) => {
   shortcuts.setScope(newValue ? 'scoped' : 'global');
-  
+
   if (newValue) {
     // Focus input when opened
     setTimeout(() => inputRef.value?.focus(), 0);
@@ -815,7 +815,7 @@ const items: MenuItem[] = [
 ];
 
 const rovingFocus = useRovingFocus({
-  items: items.map(item => item.id),
+  items: items.map((item) => item.id),
   onFocusChange: (index, itemId, previousIndex) => {
     focusedItem.value = itemId;
     if (previousIndex !== -1) {
@@ -890,9 +890,7 @@ onUnmounted(() => {
       </span>
     </div>
 
-    <button type="submit" :disabled="!state.isValid">
-      Login
-    </button>
+    <button type="submit" :disabled="!state.isValid">Login</button>
   </form>
 </template>
 
@@ -982,35 +980,18 @@ onUnmounted(() => {
         placeholder="Document title"
       />
 
-      <button
-        @click="undoRedo.undo()"
-        :disabled="!undoRedoState.canUndo"
-      >
-        ↶ Undo (Ctrl+Z)
-      </button>
+      <button @click="undoRedo.undo()" :disabled="!undoRedoState.canUndo">↶ Undo (Ctrl+Z)</button>
 
-      <button
-        @click="undoRedo.redo()"
-        :disabled="!undoRedoState.canRedo"
-      >
-        ↷ Redo (Ctrl+Y)
-      </button>
+      <button @click="undoRedo.redo()" :disabled="!undoRedoState.canRedo">↷ Redo (Ctrl+Y)</button>
 
-      <button @click="handleSave" :disabled="isSaved">
-        💾 Save (Ctrl+S)
-      </button>
+      <button @click="handleSave" :disabled="isSaved">💾 Save (Ctrl+S)</button>
 
       <span :class="isSaved ? 'saved' : 'unsaved'">
         {{ isSaved ? '✓ Saved' : '• Unsaved changes' }}
       </span>
     </div>
 
-    <textarea
-      v-model="content"
-      @input="handleContentChange"
-      placeholder="Start typing..."
-      class="editor-content"
-    />
+    <textarea v-model="content" @input="handleContentChange" placeholder="Start typing..." class="editor-content" />
 
     <div class="status-bar">
       <span>History: {{ undoRedoState.past.length }} / {{ undoRedoState.maxLength }}</span>
@@ -1021,11 +1002,7 @@ onUnmounted(() => {
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import {
-  useKeyboardShortcuts,
-  useUndoRedoStack,
-  useFormBehavior,
-} from '@web-loom/ui-core/vue';
+import { useKeyboardShortcuts, useUndoRedoStack, useFormBehavior } from '@web-loom/ui-core/vue';
 
 interface EditorState {
   content: string;
@@ -1156,13 +1133,7 @@ const handleChange = (value: string) => {
 
 ```vue
 <template>
-  <button
-    @click="handleAction"
-    @keydown.enter="handleAction"
-    @keydown.space="handleAction"
-  >
-    Action
-  </button>
+  <button @click="handleAction" @keydown.enter="handleAction" @keydown.space="handleAction">Action</button>
 </template>
 ```
 

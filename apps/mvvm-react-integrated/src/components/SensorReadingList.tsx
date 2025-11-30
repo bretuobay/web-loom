@@ -101,7 +101,7 @@ export function SensorReadingList() {
     console.log('Deleting readings:', deleteDialog.content?.ids);
     // In a real app, you'd call an API to delete these readings
     // await queryCore.deleteReadings(deleteDialog.content?.ids);
-    
+
     // Close dialog and clear selection
     deleteDialog.actions.close();
     selection.actions.clearSelection();

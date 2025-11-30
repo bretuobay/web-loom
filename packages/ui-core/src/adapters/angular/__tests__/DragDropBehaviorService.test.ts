@@ -26,7 +26,7 @@ describe('DragDropBehaviorService', () => {
       const onDragStart = vi.fn();
       const onDragEnd = vi.fn();
       const onDrop = vi.fn();
-      
+
       service.initialize({
         onDragStart,
         onDragEnd,
@@ -38,7 +38,7 @@ describe('DragDropBehaviorService', () => {
 
     it('should initialize with validateDrop callback', () => {
       const validateDrop = vi.fn(() => true);
-      
+
       service.initialize({ validateDrop });
 
       expect(service.getState()).toBeDefined();
@@ -58,7 +58,7 @@ describe('DragDropBehaviorService', () => {
       service.initialize();
 
       const statePromise = firstValueFrom(service.getState$().pipe(skip(1)));
-      
+
       service.actions.startDrag('item-1', { title: 'Item 1' });
 
       const state = await statePromise;
@@ -239,9 +239,7 @@ describe('DragDropBehaviorService', () => {
 
   describe('error handling', () => {
     it('should throw error when accessing actions before initialization', () => {
-      expect(() => service.actions).toThrow(
-        'DragDropBehaviorService not initialized. Call initialize() first.'
-      );
+      expect(() => service.actions).toThrow('DragDropBehaviorService not initialized. Call initialize() first.');
     });
   });
 });

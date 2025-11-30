@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { BookSidebar } from "./book-sidebar";
-import { BookContent } from "./book-content";
-import { Button } from "./ui/button";
-import { Menu } from "lucide-react";
+import { useState } from 'react';
+import { BookSidebar } from './book-sidebar';
+import { BookContent } from './book-content';
+import { Button } from './ui/button';
+import { Menu } from 'lucide-react';
 
 interface Chapter {
   id: string;
@@ -38,7 +38,7 @@ export function BookReader({ chapters }: BookReaderProps) {
       {/* Sidebar */}
       <BookSidebar
         chapters={chapters}
-        activeChapter={activeChapter || ""}
+        activeChapter={activeChapter || ''}
         onChapterSelect={(id) => {
           setActiveChapter(id);
           setSidebarOpen(false);

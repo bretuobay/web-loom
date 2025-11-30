@@ -4,7 +4,7 @@ import './examples.css';
 
 /**
  * Comprehensive Hub & Spoke Pattern Example
- * 
+ *
  * Demonstrates:
  * - Hub-and-spoke navigation pattern
  * - Nested spokes for hierarchical navigation
@@ -64,7 +64,7 @@ export function HubAndSpokeExample() {
       onReturnToHub: () => {
         console.log('Returned to hub');
       },
-    })
+    }),
   );
 
   const [state, setState] = useState(hubAndSpoke.getState());
@@ -88,10 +88,7 @@ export function HubAndSpokeExample() {
     hubAndSpoke.eventBus.on('hub:returned', returnedListener);
 
     const changedListener = (state: typeof hubAndSpoke extends { getState: () => infer S } ? S : never) => {
-      setEventLog((prev) => [
-        ...prev,
-        `Navigation changed - Active: ${state.activeSpoke || 'hub'}`,
-      ]);
+      setEventLog((prev) => [...prev, `Navigation changed - Active: ${state.activeSpoke || 'hub'}`]);
     };
     hubAndSpoke.eventBus.on('navigation:changed', changedListener);
 
@@ -139,7 +136,7 @@ export function HubAndSpokeExample() {
   };
 
   // Helper to find spoke by ID (including nested spokes)
-  const findSpoke = (spokeId: string): typeof state.spokes[0] | null => {
+  const findSpoke = (spokeId: string): (typeof state.spokes)[0] | null => {
     for (const spoke of state.spokes) {
       if (spoke.id === spokeId) return spoke;
       if (spoke.subSpokes) {
@@ -154,17 +151,11 @@ export function HubAndSpokeExample() {
     <div className="hub-view">
       <div className="hub-header">
         <h2>🏠 Application Hub</h2>
-        <p className="hub-description">
-          Select a section to navigate. Sections with badges contain subsections.
-        </p>
+        <p className="hub-description">Select a section to navigate. Sections with badges contain subsections.</p>
       </div>
       <div className="hub-grid">
         {state.spokes.map((spoke) => (
-          <button
-            key={spoke.id}
-            onClick={() => handleSpokeClick(spoke.id)}
-            className="hub-card"
-          >
+          <button key={spoke.id} onClick={() => handleSpokeClick(spoke.id)} className="hub-card">
             <span className="hub-card-icon">{spoke.icon}</span>
             <span className="hub-card-label">{spoke.label}</span>
             {spoke.subSpokes && spoke.subSpokes.length > 0 && (
@@ -192,11 +183,7 @@ export function HubAndSpokeExample() {
           </div>
           <div className="spoke-grid">
             {activeSpoke.subSpokes.map((subSpoke) => (
-              <button
-                key={subSpoke.id}
-                onClick={() => handleSpokeClick(subSpoke.id)}
-                className="spoke-card"
-              >
+              <button key={subSpoke.id} onClick={() => handleSpokeClick(subSpoke.id)} className="spoke-card">
                 <span className="spoke-card-icon">{subSpoke.icon}</span>
                 <span className="spoke-card-label">{subSpoke.label}</span>
               </button>
@@ -218,9 +205,8 @@ export function HubAndSpokeExample() {
           <div className="content-card">
             <h3>Content for {activeSpoke.label}</h3>
             <p>
-              This is the content area for the <strong>{activeSpoke.label}</strong> section.
-              In a real application, this would contain the actual functionality and data
-              for this section.
+              This is the content area for the <strong>{activeSpoke.label}</strong> section. In a real application, this
+              would contain the actual functionality and data for this section.
             </p>
             <div className="content-features">
               <div className="feature-item">
@@ -288,45 +274,30 @@ export function HubAndSpokeExample() {
       <div className="example-header">
         <h2>Hub & Spoke Navigation Pattern</h2>
         <p>
-          A comprehensive example demonstrating hierarchical navigation with a central hub
-          and independent spoke pages. Features nested navigation, breadcrumbs, and
-          navigation history.
+          A comprehensive example demonstrating hierarchical navigation with a central hub and independent spoke pages.
+          Features nested navigation, breadcrumbs, and navigation history.
         </p>
       </div>
 
       <div className="example-content">
         <div className="navigation-controls">
-          <button
-            onClick={handleReturnToHub}
-            disabled={state.isOnHub}
-            className="control-button primary"
-          >
+          <button onClick={handleReturnToHub} disabled={state.isOnHub} className="control-button primary">
             🏠 Return to Hub
           </button>
-          <button
-            onClick={handleGoBack}
-            disabled={state.navigationHistory.length <= 1}
-            className="control-button"
-          >
+          <button onClick={handleGoBack} disabled={state.navigationHistory.length <= 1} className="control-button">
             ← Go Back
           </button>
           <button onClick={handleAddSpoke} className="control-button">
             ➕ Add Spoke
           </button>
-          <button
-            onClick={handleRemoveSpoke}
-            disabled={state.spokes.length === 0}
-            className="control-button"
-          >
+          <button onClick={handleRemoveSpoke} disabled={state.spokes.length === 0} className="control-button">
             ➖ Remove Last Spoke
           </button>
         </div>
 
         {renderBreadcrumbs()}
 
-        <div className="hub-spoke-container">
-          {state.isOnHub ? renderHub() : renderSpoke()}
-        </div>
+        <div className="hub-spoke-container">{state.isOnHub ? renderHub() : renderSpoke()}</div>
 
         <div className="navigation-state">
           <h3>Navigation State</h3>
@@ -340,9 +311,7 @@ export function HubAndSpokeExample() {
             <div className="state-item">
               <span className="state-label">Breadcrumb Path:</span>
               <span className="state-value">
-                {state.breadcrumbs.length > 0
-                  ? state.breadcrumbs.join(' → ')
-                  : 'None'}
+                {state.breadcrumbs.length > 0 ? state.breadcrumbs.join(' → ') : 'None'}
               </span>
             </div>
             <div className="state-item">
@@ -367,11 +336,14 @@ export function HubAndSpokeExample() {
             {eventLog.length === 0 ? (
               <li className="log-item empty-state">No events yet</li>
             ) : (
-              eventLog.slice(-10).reverse().map((event, index) => (
-                <li key={index} className="log-item">
-                  {event}
-                </li>
-              ))
+              eventLog
+                .slice(-10)
+                .reverse()
+                .map((event, index) => (
+                  <li key={index} className="log-item">
+                    {event}
+                  </li>
+                ))
             )}
           </ul>
         </div>
@@ -381,31 +353,25 @@ export function HubAndSpokeExample() {
         <h3>Key Features Demonstrated</h3>
         <ul>
           <li>
-            <strong>Hub-and-Spoke Navigation:</strong> Central hub with independent spoke
-            pages
+            <strong>Hub-and-Spoke Navigation:</strong> Central hub with independent spoke pages
           </li>
           <li>
-            <strong>Nested Spokes:</strong> Hierarchical navigation with parent and child
-            spokes
+            <strong>Nested Spokes:</strong> Hierarchical navigation with parent and child spokes
           </li>
           <li>
-            <strong>Breadcrumb Tracking:</strong> Visual navigation path with clickable
-            breadcrumbs
+            <strong>Breadcrumb Tracking:</strong> Visual navigation path with clickable breadcrumbs
           </li>
           <li>
-            <strong>Navigation History:</strong> Back button support with full history
-            tracking
+            <strong>Navigation History:</strong> Back button support with full history tracking
           </li>
           <li>
-            <strong>Event Bus Integration:</strong> Real-time event logging for all
-            navigation actions
+            <strong>Event Bus Integration:</strong> Real-time event logging for all navigation actions
           </li>
           <li>
             <strong>Dynamic Spoke Management:</strong> Add and remove spokes at runtime
           </li>
           <li>
-            <strong>State Management:</strong> Reactive state updates with subscription
-            pattern
+            <strong>State Management:</strong> Reactive state updates with subscription pattern
           </li>
         </ul>
       </div>

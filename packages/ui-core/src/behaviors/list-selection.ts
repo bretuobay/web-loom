@@ -133,12 +133,12 @@ export interface ListSelectionBehavior {
 
 /**
  * Creates a list selection behavior for managing item selection in lists and tables.
- * 
+ *
  * Supports three selection modes:
  * - Single: Only one item can be selected at a time
  * - Multi: Multiple items can be selected independently
  * - Range: Supports shift-click range selection and ctrl/cmd toggle selection
- * 
+ *
  * @example
  * ```typescript
  * // Single selection mode
@@ -146,36 +146,36 @@ export interface ListSelectionBehavior {
  *   items: ['item-1', 'item-2', 'item-3'],
  *   mode: 'single',
  * });
- * 
+ *
  * singleSelection.actions.select('item-1');
  * console.log(singleSelection.getState().selectedIds); // ['item-1']
- * 
+ *
  * singleSelection.actions.select('item-2');
  * console.log(singleSelection.getState().selectedIds); // ['item-2'] (item-1 deselected)
- * 
+ *
  * // Multi selection mode
  * const multiSelection = createListSelection({
  *   items: ['item-1', 'item-2', 'item-3'],
  *   mode: 'multi',
  * });
- * 
+ *
  * multiSelection.actions.select('item-1');
  * multiSelection.actions.select('item-2');
  * console.log(multiSelection.getState().selectedIds); // ['item-1', 'item-2']
- * 
+ *
  * // Range selection mode
  * const rangeSelection = createListSelection({
  *   items: ['item-1', 'item-2', 'item-3', 'item-4'],
  *   mode: 'range',
  * });
- * 
+ *
  * rangeSelection.actions.selectRange('item-1', 'item-3');
  * console.log(rangeSelection.getState().selectedIds); // ['item-1', 'item-2', 'item-3']
- * 
+ *
  * // Clean up
  * singleSelection.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the list selection behavior.
  * @returns A list selection behavior instance.
  */
@@ -191,103 +191,36 @@ export function createListSelection(options?: ListSelectionOptions): ListSelecti
     items,
   };
 
-  const store: Store<ListSelectionState, ListSelectionActions> = createStore<
-    ListSelectionState,
-    ListSelectionActions
-  >(initialState, (set, get) => ({
-    select: (id: string) => {
-      const state = get();
+  const store: Store<ListSelectionState, ListSelectionActions> = createStore<ListSelectionState, ListSelectionActions>(
+    initialState,
+    (set, get) => ({
+      select: (id: string) => {
+        const state = get();
 
-      // Check if item exists in the list (only if items array is provided)
-      if (state.items.length > 0 && !state.items.includes(id)) {
-        return;
-      }
-
-      let newSelectedIds: string[];
-
-      if (state.mode === 'single') {
-        // Single mode: replace selection with the new item
-        newSelectedIds = [id];
-      } else if (state.mode === 'multi') {
-        // Multi mode: add to selection if not already selected
-        if (state.selectedIds.includes(id)) {
-          newSelectedIds = state.selectedIds;
-        } else {
-          newSelectedIds = [...state.selectedIds, id];
+        // Check if item exists in the list (only if items array is provided)
+        if (state.items.length > 0 && !state.items.includes(id)) {
+          return;
         }
-      } else {
-        // Range mode: add to selection if not already selected
-        if (state.selectedIds.includes(id)) {
-          newSelectedIds = state.selectedIds;
-        } else {
-          newSelectedIds = [...state.selectedIds, id];
-        }
-      }
 
-      set((state) => ({
-        ...state,
-        selectedIds: newSelectedIds,
-        lastSelectedId: id,
-      }));
-
-      // Invoke onSelectionChange callback if provided
-      if (options?.onSelectionChange) {
-        options.onSelectionChange(newSelectedIds);
-      }
-    },
-
-    deselect: (id: string) => {
-      const state = get();
-
-      // Remove the item from selection
-      const newSelectedIds = state.selectedIds.filter((selectedId) => selectedId !== id);
-
-      set((state) => ({
-        ...state,
-        selectedIds: newSelectedIds,
-        lastSelectedId: newSelectedIds.length > 0 ? newSelectedIds[newSelectedIds.length - 1] : null,
-      }));
-
-      // Invoke onSelectionChange callback if provided
-      if (options?.onSelectionChange) {
-        options.onSelectionChange(newSelectedIds);
-      }
-    },
-
-    toggleSelection: (id: string) => {
-      const state = get();
-
-      // Check if item exists in the list (only if items array is provided)
-      if (state.items.length > 0 && !state.items.includes(id)) {
-        return;
-      }
-
-      const isSelected = state.selectedIds.includes(id);
-
-      if (isSelected) {
-        // Deselect the item
-        const newSelectedIds = state.selectedIds.filter((selectedId) => selectedId !== id);
-
-        set((state) => ({
-          ...state,
-          selectedIds: newSelectedIds,
-          lastSelectedId: newSelectedIds.length > 0 ? newSelectedIds[newSelectedIds.length - 1] : null,
-        }));
-
-        // Invoke onSelectionChange callback if provided
-        if (options?.onSelectionChange) {
-          options.onSelectionChange(newSelectedIds);
-        }
-      } else {
-        // Select the item
         let newSelectedIds: string[];
 
         if (state.mode === 'single') {
-          // Single mode: replace selection
+          // Single mode: replace selection with the new item
           newSelectedIds = [id];
+        } else if (state.mode === 'multi') {
+          // Multi mode: add to selection if not already selected
+          if (state.selectedIds.includes(id)) {
+            newSelectedIds = state.selectedIds;
+          } else {
+            newSelectedIds = [...state.selectedIds, id];
+          }
         } else {
-          // Multi or range mode: add to selection
-          newSelectedIds = [...state.selectedIds, id];
+          // Range mode: add to selection if not already selected
+          if (state.selectedIds.includes(id)) {
+            newSelectedIds = state.selectedIds;
+          } else {
+            newSelectedIds = [...state.selectedIds, id];
+          }
         }
 
         set((state) => ({
@@ -300,87 +233,14 @@ export function createListSelection(options?: ListSelectionOptions): ListSelecti
         if (options?.onSelectionChange) {
           options.onSelectionChange(newSelectedIds);
         }
-      }
-    },
+      },
 
-    selectRange: (startId: string, endId: string) => {
-      const state = get();
+      deselect: (id: string) => {
+        const state = get();
 
-      // Find indices of start and end items
-      const startIndex = state.items.indexOf(startId);
-      const endIndex = state.items.indexOf(endId);
+        // Remove the item from selection
+        const newSelectedIds = state.selectedIds.filter((selectedId) => selectedId !== id);
 
-      // If either item is not found, do nothing
-      if (startIndex === -1 || endIndex === -1) {
-        return;
-      }
-
-      // Determine the range (handle both directions)
-      const minIndex = Math.min(startIndex, endIndex);
-      const maxIndex = Math.max(startIndex, endIndex);
-
-      // Select all items in the range
-      const rangeIds = state.items.slice(minIndex, maxIndex + 1);
-
-      let newSelectedIds: string[];
-
-      if (state.mode === 'single') {
-        // Single mode: only select the end item
-        newSelectedIds = [endId];
-      } else if (state.mode === 'multi') {
-        // Multi mode: add range to existing selection (union)
-        const selectedSet = new Set([...state.selectedIds, ...rangeIds]);
-        newSelectedIds = Array.from(selectedSet);
-      } else {
-        // Range mode: add range to existing selection (union)
-        const selectedSet = new Set([...state.selectedIds, ...rangeIds]);
-        newSelectedIds = Array.from(selectedSet);
-      }
-
-      set((state) => ({
-        ...state,
-        selectedIds: newSelectedIds,
-        lastSelectedId: endId,
-      }));
-
-      // Invoke onSelectionChange callback if provided
-      if (options?.onSelectionChange) {
-        options.onSelectionChange(newSelectedIds);
-      }
-    },
-
-    clearSelection: () => {
-      set((state) => ({
-        ...state,
-        selectedIds: [],
-        lastSelectedId: null,
-      }));
-
-      // Invoke onSelectionChange callback if provided
-      if (options?.onSelectionChange) {
-        options.onSelectionChange([]);
-      }
-    },
-
-    selectAll: () => {
-      const state = get();
-
-      if (state.mode === 'single') {
-        // Single mode: select only the first item
-        const newSelectedIds = state.items.length > 0 ? [state.items[0]] : [];
-        set((state) => ({
-          ...state,
-          selectedIds: newSelectedIds,
-          lastSelectedId: newSelectedIds.length > 0 ? newSelectedIds[0] : null,
-        }));
-
-        // Invoke onSelectionChange callback if provided
-        if (options?.onSelectionChange) {
-          options.onSelectionChange(newSelectedIds);
-        }
-      } else {
-        // Multi or range mode: select all items
-        const newSelectedIds = [...state.items];
         set((state) => ({
           ...state,
           selectedIds: newSelectedIds,
@@ -391,9 +251,149 @@ export function createListSelection(options?: ListSelectionOptions): ListSelecti
         if (options?.onSelectionChange) {
           options.onSelectionChange(newSelectedIds);
         }
-      }
-    },
-  }));
+      },
+
+      toggleSelection: (id: string) => {
+        const state = get();
+
+        // Check if item exists in the list (only if items array is provided)
+        if (state.items.length > 0 && !state.items.includes(id)) {
+          return;
+        }
+
+        const isSelected = state.selectedIds.includes(id);
+
+        if (isSelected) {
+          // Deselect the item
+          const newSelectedIds = state.selectedIds.filter((selectedId) => selectedId !== id);
+
+          set((state) => ({
+            ...state,
+            selectedIds: newSelectedIds,
+            lastSelectedId: newSelectedIds.length > 0 ? newSelectedIds[newSelectedIds.length - 1] : null,
+          }));
+
+          // Invoke onSelectionChange callback if provided
+          if (options?.onSelectionChange) {
+            options.onSelectionChange(newSelectedIds);
+          }
+        } else {
+          // Select the item
+          let newSelectedIds: string[];
+
+          if (state.mode === 'single') {
+            // Single mode: replace selection
+            newSelectedIds = [id];
+          } else {
+            // Multi or range mode: add to selection
+            newSelectedIds = [...state.selectedIds, id];
+          }
+
+          set((state) => ({
+            ...state,
+            selectedIds: newSelectedIds,
+            lastSelectedId: id,
+          }));
+
+          // Invoke onSelectionChange callback if provided
+          if (options?.onSelectionChange) {
+            options.onSelectionChange(newSelectedIds);
+          }
+        }
+      },
+
+      selectRange: (startId: string, endId: string) => {
+        const state = get();
+
+        // Find indices of start and end items
+        const startIndex = state.items.indexOf(startId);
+        const endIndex = state.items.indexOf(endId);
+
+        // If either item is not found, do nothing
+        if (startIndex === -1 || endIndex === -1) {
+          return;
+        }
+
+        // Determine the range (handle both directions)
+        const minIndex = Math.min(startIndex, endIndex);
+        const maxIndex = Math.max(startIndex, endIndex);
+
+        // Select all items in the range
+        const rangeIds = state.items.slice(minIndex, maxIndex + 1);
+
+        let newSelectedIds: string[];
+
+        if (state.mode === 'single') {
+          // Single mode: only select the end item
+          newSelectedIds = [endId];
+        } else if (state.mode === 'multi') {
+          // Multi mode: add range to existing selection (union)
+          const selectedSet = new Set([...state.selectedIds, ...rangeIds]);
+          newSelectedIds = Array.from(selectedSet);
+        } else {
+          // Range mode: add range to existing selection (union)
+          const selectedSet = new Set([...state.selectedIds, ...rangeIds]);
+          newSelectedIds = Array.from(selectedSet);
+        }
+
+        set((state) => ({
+          ...state,
+          selectedIds: newSelectedIds,
+          lastSelectedId: endId,
+        }));
+
+        // Invoke onSelectionChange callback if provided
+        if (options?.onSelectionChange) {
+          options.onSelectionChange(newSelectedIds);
+        }
+      },
+
+      clearSelection: () => {
+        set((state) => ({
+          ...state,
+          selectedIds: [],
+          lastSelectedId: null,
+        }));
+
+        // Invoke onSelectionChange callback if provided
+        if (options?.onSelectionChange) {
+          options.onSelectionChange([]);
+        }
+      },
+
+      selectAll: () => {
+        const state = get();
+
+        if (state.mode === 'single') {
+          // Single mode: select only the first item
+          const newSelectedIds = state.items.length > 0 ? [state.items[0]] : [];
+          set((state) => ({
+            ...state,
+            selectedIds: newSelectedIds,
+            lastSelectedId: newSelectedIds.length > 0 ? newSelectedIds[0] : null,
+          }));
+
+          // Invoke onSelectionChange callback if provided
+          if (options?.onSelectionChange) {
+            options.onSelectionChange(newSelectedIds);
+          }
+        } else {
+          // Multi or range mode: select all items
+          const newSelectedIds = [...state.items];
+          set((state) => ({
+            ...state,
+            selectedIds: newSelectedIds,
+            lastSelectedId: newSelectedIds.length > 0 ? newSelectedIds[newSelectedIds.length - 1] : null,
+          }));
+
+          // Invoke onSelectionChange callback if provided
+          if (options?.onSelectionChange) {
+            options.onSelectionChange(newSelectedIds);
+          }
+        }
+      },
+    }),
+  );
 
   return {
     getState: store.getState,

@@ -219,11 +219,11 @@ export interface GridLayoutBehavior<T> {
 /**
  * Creates a grid/card layout pattern for managing responsive grid layouts
  * with keyboard navigation and selection support.
- * 
+ *
  * This pattern is ideal for photo galleries, product grids, dashboards,
  * and any interface that displays items in a responsive grid with
  * keyboard navigation support.
- * 
+ *
  * @example
  * ```typescript
  * interface Photo {
@@ -231,13 +231,13 @@ export interface GridLayoutBehavior<T> {
  *   url: string;
  *   title: string;
  * }
- * 
+ *
  * const photos: Photo[] = [
  *   { id: '1', url: '/photo1.jpg', title: 'Photo 1' },
  *   { id: '2', url: '/photo2.jpg', title: 'Photo 2' },
  *   { id: '3', url: '/photo3.jpg', title: 'Photo 3' },
  * ];
- * 
+ *
  * const gridLayout = createGridLayout({
  *   items: photos,
  *   getId: (photo) => photo.id,
@@ -253,32 +253,32 @@ export interface GridLayoutBehavior<T> {
  *     console.log('Selected photos:', selected);
  *   },
  * });
- * 
+ *
  * // Listen to events
  * gridLayout.eventBus.on('item:focused', (index, itemId) => {
  *   console.log('Focused item:', index, itemId);
  * });
- * 
+ *
  * gridLayout.eventBus.on('breakpoint:changed', (breakpoint, columns) => {
  *   console.log('Breakpoint changed:', breakpoint, 'Columns:', columns);
  * });
- * 
+ *
  * // Navigate with arrow keys
  * gridLayout.actions.navigateRight(); // Move focus to next item
  * gridLayout.actions.navigateDown();  // Move focus down one row
- * 
+ *
  * // Select items
  * gridLayout.actions.selectItem('1');
  * console.log(gridLayout.getState().selectedItems); // ['1']
- * 
+ *
  * // Update viewport width (e.g., on window resize)
  * gridLayout.actions.updateViewportWidth(800);
  * console.log(gridLayout.getState().columns); // 2 (based on breakpoints)
- * 
+ *
  * // Clean up
  * gridLayout.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the grid layout.
  * @returns A grid layout pattern instance.
  */
@@ -354,240 +354,240 @@ export function createGridLayout<T>(options: GridLayoutOptions<T>): GridLayoutBe
     wrap,
   };
 
-  const store: Store<GridLayoutState<T>, GridLayoutActions<T>> = createStore<
-    GridLayoutState<T>,
-    GridLayoutActions<T>
-  >(initialState, (set, get) => ({
-    selectItem: (itemId: string) => {
-      // Delegate to list selection behavior
-      listSelection.actions.select(itemId);
+  const store: Store<GridLayoutState<T>, GridLayoutActions<T>> = createStore<GridLayoutState<T>, GridLayoutActions<T>>(
+    initialState,
+    (set, get) => ({
+      selectItem: (itemId: string) => {
+        // Delegate to list selection behavior
+        listSelection.actions.select(itemId);
 
-      // Update local state
-      const selectionState = listSelection.getState();
-      set((prevState) => ({
-        ...prevState,
-        selectedItems: selectionState.selectedIds,
-      }));
-
-      // Emit event
-      eventBus.emit('item:selected', itemId, selectionState.selectedIds);
-    },
-
-    navigateUp: () => {
-      const state = get();
-
-      if (state.items.length === 0) {
-        console.warn('Cannot navigate: grid is empty');
-        return;
-      }
-
-      const newIndex = state.focusedIndex - state.columns;
-
-      if (newIndex >= 0) {
-        // Move up one row
+        // Update local state
+        const selectionState = listSelection.getState();
         set((prevState) => ({
           ...prevState,
-          focusedIndex: newIndex,
+          selectedItems: selectionState.selectedIds,
         }));
 
-        const itemId = getId(state.items[newIndex]);
-        eventBus.emit('item:focused', newIndex, itemId);
-      } else if (state.wrap) {
-        // Wrap to bottom: find the corresponding column in the last row
-        const currentCol = state.focusedIndex % state.columns;
-        const totalRows = Math.ceil(state.items.length / state.columns);
-        const lastRowStartIndex = (totalRows - 1) * state.columns;
-        const wrappedIndex = Math.min(lastRowStartIndex + currentCol, state.items.length - 1);
+        // Emit event
+        eventBus.emit('item:selected', itemId, selectionState.selectedIds);
+      },
 
-        set((prevState) => ({
-          ...prevState,
-          focusedIndex: wrappedIndex,
-        }));
+      navigateUp: () => {
+        const state = get();
 
-        const itemId = getId(state.items[wrappedIndex]);
-        eventBus.emit('item:focused', wrappedIndex, itemId);
-      }
-    },
-
-    navigateDown: () => {
-      const state = get();
-
-      if (state.items.length === 0) {
-        console.warn('Cannot navigate: grid is empty');
-        return;
-      }
-
-      const newIndex = state.focusedIndex + state.columns;
-
-      if (newIndex < state.items.length) {
-        // Move down one row
-        set((prevState) => ({
-          ...prevState,
-          focusedIndex: newIndex,
-        }));
-
-        const itemId = getId(state.items[newIndex]);
-        eventBus.emit('item:focused', newIndex, itemId);
-      } else if (state.wrap) {
-        // Wrap to top: find the corresponding column in the first row
-        const currentCol = state.focusedIndex % state.columns;
-        const wrappedIndex = Math.min(currentCol, state.items.length - 1);
-
-        set((prevState) => ({
-          ...prevState,
-          focusedIndex: wrappedIndex,
-        }));
-
-        const itemId = getId(state.items[wrappedIndex]);
-        eventBus.emit('item:focused', wrappedIndex, itemId);
-      }
-    },
-
-    navigateLeft: () => {
-      const state = get();
-
-      if (state.items.length === 0) {
-        console.warn('Cannot navigate: grid is empty');
-        return;
-      }
-
-      const newIndex = state.focusedIndex - 1;
-
-      if (newIndex >= 0) {
-        // Move to previous item
-        set((prevState) => ({
-          ...prevState,
-          focusedIndex: newIndex,
-        }));
-
-        const itemId = getId(state.items[newIndex]);
-        eventBus.emit('item:focused', newIndex, itemId);
-      } else if (state.wrap) {
-        // Wrap to last item
-        const wrappedIndex = state.items.length - 1;
-
-        set((prevState) => ({
-          ...prevState,
-          focusedIndex: wrappedIndex,
-        }));
-
-        const itemId = getId(state.items[wrappedIndex]);
-        eventBus.emit('item:focused', wrappedIndex, itemId);
-      }
-    },
-
-    navigateRight: () => {
-      const state = get();
-
-      if (state.items.length === 0) {
-        console.warn('Cannot navigate: grid is empty');
-        return;
-      }
-
-      const newIndex = state.focusedIndex + 1;
-
-      if (newIndex < state.items.length) {
-        // Move to next item
-        set((prevState) => ({
-          ...prevState,
-          focusedIndex: newIndex,
-        }));
-
-        const itemId = getId(state.items[newIndex]);
-        eventBus.emit('item:focused', newIndex, itemId);
-      } else if (state.wrap) {
-        // Wrap to first item
-        const wrappedIndex = 0;
-
-        set((prevState) => ({
-          ...prevState,
-          focusedIndex: wrappedIndex,
-        }));
-
-        const itemId = getId(state.items[wrappedIndex]);
-        eventBus.emit('item:focused', wrappedIndex, itemId);
-      }
-    },
-
-    setBreakpoints: (newBreakpoints: Breakpoint[]) => {
-      if (!newBreakpoints || newBreakpoints.length === 0) {
-        console.error('At least one breakpoint must be provided');
-        return;
-      }
-
-      // Sort and validate breakpoints
-      const sorted = [...newBreakpoints].sort((a, b) => a.minWidth - b.minWidth);
-
-      for (const bp of sorted) {
-        if (bp.minWidth < 0 || bp.columns <= 0) {
-          console.error('Breakpoints must have non-negative minWidth and positive columns');
+        if (state.items.length === 0) {
+          console.warn('Cannot navigate: grid is empty');
           return;
         }
-      }
 
-      const state = get();
-      const newBreakpoint = calculateBreakpoint(state.viewportWidth);
+        const newIndex = state.focusedIndex - state.columns;
 
-      set((prevState) => ({
-        ...prevState,
-        breakpoint: newBreakpoint,
-        columns: newBreakpoint.columns,
-      }));
+        if (newIndex >= 0) {
+          // Move up one row
+          set((prevState) => ({
+            ...prevState,
+            focusedIndex: newIndex,
+          }));
 
-      eventBus.emit('breakpoint:changed', newBreakpoint, newBreakpoint.columns);
-    },
+          const itemId = getId(state.items[newIndex]);
+          eventBus.emit('item:focused', newIndex, itemId);
+        } else if (state.wrap) {
+          // Wrap to bottom: find the corresponding column in the last row
+          const currentCol = state.focusedIndex % state.columns;
+          const totalRows = Math.ceil(state.items.length / state.columns);
+          const lastRowStartIndex = (totalRows - 1) * state.columns;
+          const wrappedIndex = Math.min(lastRowStartIndex + currentCol, state.items.length - 1);
 
-    updateViewportWidth: (width: number) => {
-      const state = get();
-      const newBreakpoint = calculateBreakpoint(width);
+          set((prevState) => ({
+            ...prevState,
+            focusedIndex: wrappedIndex,
+          }));
 
-      // Check if breakpoint changed
-      const breakpointChanged = newBreakpoint.minWidth !== state.breakpoint.minWidth ||
-                                newBreakpoint.columns !== state.breakpoint.columns;
+          const itemId = getId(state.items[wrappedIndex]);
+          eventBus.emit('item:focused', wrappedIndex, itemId);
+        }
+      },
 
-      set((prevState) => ({
-        ...prevState,
-        viewportWidth: width,
-        breakpoint: newBreakpoint,
-        columns: newBreakpoint.columns,
-      }));
+      navigateDown: () => {
+        const state = get();
 
-      if (breakpointChanged) {
+        if (state.items.length === 0) {
+          console.warn('Cannot navigate: grid is empty');
+          return;
+        }
+
+        const newIndex = state.focusedIndex + state.columns;
+
+        if (newIndex < state.items.length) {
+          // Move down one row
+          set((prevState) => ({
+            ...prevState,
+            focusedIndex: newIndex,
+          }));
+
+          const itemId = getId(state.items[newIndex]);
+          eventBus.emit('item:focused', newIndex, itemId);
+        } else if (state.wrap) {
+          // Wrap to top: find the corresponding column in the first row
+          const currentCol = state.focusedIndex % state.columns;
+          const wrappedIndex = Math.min(currentCol, state.items.length - 1);
+
+          set((prevState) => ({
+            ...prevState,
+            focusedIndex: wrappedIndex,
+          }));
+
+          const itemId = getId(state.items[wrappedIndex]);
+          eventBus.emit('item:focused', wrappedIndex, itemId);
+        }
+      },
+
+      navigateLeft: () => {
+        const state = get();
+
+        if (state.items.length === 0) {
+          console.warn('Cannot navigate: grid is empty');
+          return;
+        }
+
+        const newIndex = state.focusedIndex - 1;
+
+        if (newIndex >= 0) {
+          // Move to previous item
+          set((prevState) => ({
+            ...prevState,
+            focusedIndex: newIndex,
+          }));
+
+          const itemId = getId(state.items[newIndex]);
+          eventBus.emit('item:focused', newIndex, itemId);
+        } else if (state.wrap) {
+          // Wrap to last item
+          const wrappedIndex = state.items.length - 1;
+
+          set((prevState) => ({
+            ...prevState,
+            focusedIndex: wrappedIndex,
+          }));
+
+          const itemId = getId(state.items[wrappedIndex]);
+          eventBus.emit('item:focused', wrappedIndex, itemId);
+        }
+      },
+
+      navigateRight: () => {
+        const state = get();
+
+        if (state.items.length === 0) {
+          console.warn('Cannot navigate: grid is empty');
+          return;
+        }
+
+        const newIndex = state.focusedIndex + 1;
+
+        if (newIndex < state.items.length) {
+          // Move to next item
+          set((prevState) => ({
+            ...prevState,
+            focusedIndex: newIndex,
+          }));
+
+          const itemId = getId(state.items[newIndex]);
+          eventBus.emit('item:focused', newIndex, itemId);
+        } else if (state.wrap) {
+          // Wrap to first item
+          const wrappedIndex = 0;
+
+          set((prevState) => ({
+            ...prevState,
+            focusedIndex: wrappedIndex,
+          }));
+
+          const itemId = getId(state.items[wrappedIndex]);
+          eventBus.emit('item:focused', wrappedIndex, itemId);
+        }
+      },
+
+      setBreakpoints: (newBreakpoints: Breakpoint[]) => {
+        if (!newBreakpoints || newBreakpoints.length === 0) {
+          console.error('At least one breakpoint must be provided');
+          return;
+        }
+
+        // Sort and validate breakpoints
+        const sorted = [...newBreakpoints].sort((a, b) => a.minWidth - b.minWidth);
+
+        for (const bp of sorted) {
+          if (bp.minWidth < 0 || bp.columns <= 0) {
+            console.error('Breakpoints must have non-negative minWidth and positive columns');
+            return;
+          }
+        }
+
+        const state = get();
+        const newBreakpoint = calculateBreakpoint(state.viewportWidth);
+
+        set((prevState) => ({
+          ...prevState,
+          breakpoint: newBreakpoint,
+          columns: newBreakpoint.columns,
+        }));
+
         eventBus.emit('breakpoint:changed', newBreakpoint, newBreakpoint.columns);
-      }
-    },
+      },
 
-    setItems: (newItems: T[]) => {
-      // Update list selection with new items
-      // Note: We need to recreate the selection behavior with new items
-      // For now, we'll clear the selection when items change
-      listSelection.actions.clearSelection();
+      updateViewportWidth: (width: number) => {
+        const state = get();
+        const newBreakpoint = calculateBreakpoint(width);
 
-      set((prevState) => ({
-        ...prevState,
-        items: [...newItems],
-        selectedItems: [],
-        focusedIndex: Math.min(prevState.focusedIndex, newItems.length - 1),
-      }));
-    },
+        // Check if breakpoint changed
+        const breakpointChanged =
+          newBreakpoint.minWidth !== state.breakpoint.minWidth || newBreakpoint.columns !== state.breakpoint.columns;
 
-    setFocusedIndex: (index: number) => {
-      const state = get();
+        set((prevState) => ({
+          ...prevState,
+          viewportWidth: width,
+          breakpoint: newBreakpoint,
+          columns: newBreakpoint.columns,
+        }));
 
-      if (index < 0 || index >= state.items.length) {
-        console.warn(`Invalid focused index: ${index}`);
-        return;
-      }
+        if (breakpointChanged) {
+          eventBus.emit('breakpoint:changed', newBreakpoint, newBreakpoint.columns);
+        }
+      },
 
-      set((prevState) => ({
-        ...prevState,
-        focusedIndex: index,
-      }));
+      setItems: (newItems: T[]) => {
+        // Update list selection with new items
+        // Note: We need to recreate the selection behavior with new items
+        // For now, we'll clear the selection when items change
+        listSelection.actions.clearSelection();
 
-      const itemId = getId(state.items[index]);
-      eventBus.emit('item:focused', index, itemId);
-    },
-  }));
+        set((prevState) => ({
+          ...prevState,
+          items: [...newItems],
+          selectedItems: [],
+          focusedIndex: Math.min(prevState.focusedIndex, newItems.length - 1),
+        }));
+      },
+
+      setFocusedIndex: (index: number) => {
+        const state = get();
+
+        if (index < 0 || index >= state.items.length) {
+          console.warn(`Invalid focused index: ${index}`);
+          return;
+        }
+
+        set((prevState) => ({
+          ...prevState,
+          focusedIndex: index,
+        }));
+
+        const itemId = getId(state.items[index]);
+        eventBus.emit('item:focused', index, itemId);
+      },
+    }),
+  );
 
   // Subscribe to list selection changes to keep state in sync
   const unsubscribeSelection = listSelection.subscribe((selectionState) => {

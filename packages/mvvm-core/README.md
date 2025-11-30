@@ -38,7 +38,7 @@ const UserSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(3),
   email: z.string().email(),
-  age: z.number().positive().optional()
+  age: z.number().positive().optional(),
 });
 
 type User = z.infer<typeof UserSchema>;
@@ -50,11 +50,12 @@ class UserModel extends BaseModel<User, typeof UserSchema> {
 }
 
 const model = new UserModel();
-model.data$.subscribe(user => console.log('User:', user));
+model.data$.subscribe((user) => console.log('User:', user));
 model.setData({ id: '123', name: 'Alice', email: 'alice@example.com' });
 ```
 
 **Key observables**:
+
 - `data$`: Current data state
 - `isLoading$`: Loading indicator
 - `error$`: Error state
@@ -80,7 +81,7 @@ class UserApiModel extends RestfulApiModel<User[], typeof UserSchema> {
       endpoint: 'users',
       fetcher,
       schema: z.array(UserSchema),
-      initialData: null
+      initialData: null,
     });
   }
 }
@@ -101,6 +102,7 @@ await api.delete('user-id');
 ```
 
 **Features**:
+
 - Automatic loading state management
 - Optimistic updates with rollback on error
 - Error handling with retry logic
@@ -121,9 +123,7 @@ class UserViewModel extends BaseViewModel<UserModel> {
 
   // Computed observables
   get displayName$() {
-    return this.data$.pipe(
-      map(user => user ? `${user.name} (${user.email})` : 'No user')
-    );
+    return this.data$.pipe(map((user) => (user ? `${user.name} (${user.email})` : 'No user')));
   }
 }
 ```
@@ -142,9 +142,7 @@ class UserListViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
 
   // Additional computed properties
   get activeUsers$() {
-    return this.data$.pipe(
-      map(users => users?.filter(u => u.active))
-    );
+    return this.data$.pipe(map((users) => users?.filter((u) => u.active)));
   }
 }
 
@@ -179,13 +177,13 @@ class AuthViewModel {
     this.loginCommand = new Command(
       async (password: string) => {
         // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         const success = password === 'secret';
         this._isLoggedIn.next(success);
         return success;
       },
       // canExecute$ - only when not logged in
-      this.isLoggedIn$.pipe(map(loggedIn => !loggedIn))
+      this.isLoggedIn$.pipe(map((loggedIn) => !loggedIn)),
     );
   }
 }
@@ -193,18 +191,15 @@ class AuthViewModel {
 const auth = new AuthViewModel();
 
 // Subscribe to command state
-auth.loginCommand.isExecuting$.subscribe(executing =>
-  console.log('Logging in:', executing)
-);
-auth.loginCommand.canExecute$.subscribe(canExecute =>
-  console.log('Can login:', canExecute)
-);
+auth.loginCommand.isExecuting$.subscribe((executing) => console.log('Logging in:', executing));
+auth.loginCommand.canExecute$.subscribe((canExecute) => console.log('Can login:', canExecute));
 
 // Execute command
 await auth.loginCommand.execute('secret');
 ```
 
 **Command features**:
+
 - `isExecuting$`: Track execution state
 - `canExecute$`: Control when command can run
 - `result$`: Observable of command results
@@ -225,22 +220,22 @@ interface Todo {
 
 const todos = new ObservableCollection<Todo>([
   { id: '1', text: 'Learn MVVM', completed: false },
-  { id: '2', text: 'Build app', completed: true }
+  { id: '2', text: 'Build app', completed: true },
 ]);
 
 // Subscribe to changes
-todos.items$.subscribe(items => console.log('Todos:', items));
-todos.changes$.subscribe(change => console.log('Change:', change));
+todos.items$.subscribe((items) => console.log('Todos:', items));
+todos.changes$.subscribe((change) => console.log('Change:', change));
 
 // Manipulate collection
 todos.add({ id: '3', text: 'Deploy', completed: false });
-todos.update(todo => todo.id === '1', { ...todo, completed: true });
-todos.remove(todo => todo.completed);
+todos.update((todo) => todo.id === '1', { ...todo, completed: true });
+todos.remove((todo) => todo.completed);
 
 // Query collection
 const array = todos.toArray();
 const count = todos.count();
-const firstUncompleted = todos.find(todo => !todo.completed);
+const firstUncompleted = todos.find((todo) => !todo.completed);
 ```
 
 ### QueryStateModel & QueryStateModelView
@@ -265,7 +260,7 @@ class UsersQueryModel extends QueryStateModel<User[], typeof UserSchema> {
     super({
       queryCore,
       endpointKey: 'users',
-      schema: z.array(UserSchema)
+      schema: z.array(UserSchema),
     });
   }
 }
@@ -280,7 +275,7 @@ class UsersViewModel extends QueryStateModelView<User[], typeof UserSchema> {
 const vm = new UsersViewModel();
 
 // Subscribe to data
-vm.data$.subscribe(users => console.log('Users:', users));
+vm.data$.subscribe((users) => console.log('Users:', users));
 
 // Refetch data
 await vm.refetchCommand.execute(true); // Force refetch
@@ -290,6 +285,7 @@ await vm.invalidateCommand.execute();
 ```
 
 **Benefits**:
+
 - Shared cache across components
 - Automatic background refetching
 - Request deduplication
@@ -332,7 +328,7 @@ function UserList() {
 
   return (
     <ul>
-      {users?.map(user => (
+      {users?.map((user) => (
         <li key={user.id}>{user.name}</li>
       ))}
     </ul>
@@ -350,12 +346,12 @@ import { UserListViewModel } from './viewmodels/user-list.viewmodel';
   selector: 'app-user-list',
   template: `
     <div *ngIf="vm.isLoading$ | async">Loading...</div>
-    <div *ngIf="vm.error$ | async as error">Error: {{error.message}}</div>
+    <div *ngIf="vm.error$ | async as error">Error: {{ error.message }}</div>
     <ul *ngIf="vm.data$ | async as users">
-      <li *ngFor="let user of users">{{user.name}}</li>
+      <li *ngFor="let user of users">{{ user.name }}</li>
     </ul>
   `,
-  providers: [UserListViewModel]
+  providers: [UserListViewModel],
 })
 export class UserListComponent implements OnInit, OnDestroy {
   constructor(public vm: UserListViewModel) {}
@@ -382,17 +378,26 @@ const users = ref([]);
 const isLoading = ref(false);
 const error = ref(null);
 
-watch(() => vm.data$, (obs) => {
-  obs.subscribe(data => users.value = data);
-});
+watch(
+  () => vm.data$,
+  (obs) => {
+    obs.subscribe((data) => (users.value = data));
+  },
+);
 
-watch(() => vm.isLoading$, (obs) => {
-  obs.subscribe(loading => isLoading.value = loading);
-});
+watch(
+  () => vm.isLoading$,
+  (obs) => {
+    obs.subscribe((loading) => (isLoading.value = loading));
+  },
+);
 
-watch(() => vm.error$, (obs) => {
-  obs.subscribe(err => error.value = err);
-});
+watch(
+  () => vm.error$,
+  (obs) => {
+    obs.subscribe((err) => (error.value = err));
+  },
+);
 
 onMounted(() => {
   vm.fetchCommand.execute();
@@ -425,16 +430,16 @@ const formVm = new FormViewModel({
   initialValues: { email: '', password: '' },
   validationSchema: z.object({
     email: z.string().email(),
-    password: z.string().min(8)
+    password: z.string().min(8),
   }),
   validateOnChange: true,
-  validateOnBlur: true
+  validateOnBlur: true,
 });
 
 // Subscribe to form state
-formVm.isValid$.subscribe(valid => console.log('Valid:', valid));
-formVm.isDirty$.subscribe(dirty => console.log('Dirty:', dirty));
-formVm.errors$.subscribe(errors => console.log('Errors:', errors));
+formVm.isValid$.subscribe((valid) => console.log('Valid:', valid));
+formVm.isDirty$.subscribe((dirty) => console.log('Dirty:', dirty));
+formVm.errors$.subscribe((errors) => console.log('Errors:', errors));
 
 // Set field values
 formVm.setFieldValue('email', 'user@example.com');
@@ -452,11 +457,11 @@ import { QueryableCollectionViewModel } from '@web-loom/mvvm-core';
 
 const vm = new QueryableCollectionViewModel({
   items: users,
-  pageSize: 10
+  pageSize: 10,
 });
 
 // Filter
-vm.setFilter(user => user.active);
+vm.setFilter((user) => user.active);
 
 // Sort
 vm.setSortBy('name', 'asc');
@@ -467,8 +472,8 @@ vm.previousPage();
 vm.goToPage(2);
 
 // Subscribe to results
-vm.filteredItems$.subscribe(items => console.log('Filtered:', items));
-vm.currentPage$.subscribe(items => console.log('Current page:', items));
+vm.filteredItems$.subscribe((items) => console.log('Filtered:', items));
+vm.currentPage$.subscribe((items) => console.log('Current page:', items));
 ```
 
 ### Dependency Injection
@@ -521,6 +526,7 @@ describe('UserViewModel', () => {
 ## API Reference
 
 ### BaseModel
+
 - `data$`: BehaviorSubject<T | null>
 - `isLoading$`: BehaviorSubject<boolean>
 - `error$`: BehaviorSubject<Error | null>
@@ -531,12 +537,14 @@ describe('UserViewModel', () => {
 - `dispose(): void`
 
 ### RestfulApiModel (extends BaseModel)
+
 - `fetch(): Promise<T>`
 - `create(data: Partial<T>): Promise<T | null>`
 - `update(id: string, data: Partial<T>): Promise<T | null>`
 - `delete(id: string): Promise<void>`
 
 ### BaseViewModel
+
 - `data$`: Observable<T | null>
 - `isLoading$`: Observable<boolean>
 - `error$`: Observable<Error | null>
@@ -544,12 +552,14 @@ describe('UserViewModel', () => {
 - `dispose(): void`
 
 ### RestfulApiViewModel (extends BaseViewModel)
+
 - `fetchCommand`: Command<void, T>
 - `createCommand`: Command<Partial<T>, T | null>
 - `updateCommand`: Command<{ id: string; data: Partial<T> }, T | null>
 - `deleteCommand`: Command<string, void>
 
 ### Command
+
 - `isExecuting$`: Observable<boolean>
 - `canExecute$`: Observable<boolean>
 - `result$`: Observable<TResult>
@@ -561,14 +571,7 @@ describe('UserViewModel', () => {
 Full TypeScript support with comprehensive type definitions:
 
 ```typescript
-import type {
-  IModel,
-  IViewModel,
-  ICommand,
-  IDisposable,
-  ModelState,
-  Fetcher
-} from '@web-loom/mvvm-core';
+import type { IModel, IViewModel, ICommand, IDisposable, ModelState, Fetcher } from '@web-loom/mvvm-core';
 ```
 
 ## Dependencies

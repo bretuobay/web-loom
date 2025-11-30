@@ -4,7 +4,7 @@ import './examples.css';
 
 /**
  * Scroll-Aware FAB Example
- * 
+ *
  * Demonstrates:
  * - Floating Action Button pattern
  * - hideOnScrollDown behavior
@@ -38,10 +38,7 @@ export function ScrollAwareFABExample() {
   };
 
   const addMessage = (message: string) => {
-    setMessages(prev => [
-      `${new Date().toLocaleTimeString()}: ${message}`,
-      ...prev
-    ].slice(0, 10));
+    setMessages((prev) => [`${new Date().toLocaleTimeString()}: ${message}`, ...prev].slice(0, 10));
   };
 
   const handleFABClick = () => {
@@ -66,17 +63,15 @@ export function ScrollAwareFABExample() {
       <div className="example-header">
         <h2>Scroll-Aware Floating Action Button</h2>
         <p>
-          This example demonstrates the <code>createFloatingActionButton</code> pattern
-          with scroll-based visibility and threshold configuration.
+          This example demonstrates the <code>createFloatingActionButton</code> pattern with scroll-based visibility and
+          threshold configuration.
         </p>
       </div>
 
       <div className="example-content">
         <div className="fab-controls">
           <div className="control-group">
-            <label htmlFor="threshold">
-              Scroll Threshold: {scrollThreshold}px
-            </label>
+            <label htmlFor="threshold">Scroll Threshold: {scrollThreshold}px</label>
             <input
               id="threshold"
               type="range"
@@ -129,11 +124,7 @@ export function ScrollAwareFABExample() {
         </div>
 
         <div className="fab-demo-container">
-          <div
-            ref={scrollContainerRef}
-            className="scrollable-content"
-            onScroll={handleScroll}
-          >
+          <div ref={scrollContainerRef} className="scrollable-content" onScroll={handleScroll}>
             <div className="scroll-indicator">
               <p>👇 Scroll down to see the FAB behavior</p>
             </div>
@@ -151,11 +142,7 @@ export function ScrollAwareFABExample() {
           </div>
 
           {state.isVisible && (
-            <button
-              className="floating-action-button"
-              onClick={handleFABClick}
-              title="Scroll to top"
-            >
+            <button className="floating-action-button" onClick={handleFABClick} title="Scroll to top">
               ↑
             </button>
           )}

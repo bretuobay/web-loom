@@ -317,7 +317,7 @@ describe('createFormBehavior', () => {
       });
 
       const validationPromise = form.actions.validateField('username');
-      
+
       // Check that isValidating is true during validation
       await new Promise((resolve) => setTimeout(resolve, 10));
       expect(form.getState().isValidating).toBe(true);
@@ -328,7 +328,7 @@ describe('createFormBehavior', () => {
 
     it('should handle validation errors gracefully', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       const form = createFormBehavior({
         initialValues: { field: '' },
         fields: {
@@ -404,7 +404,7 @@ describe('createFormBehavior', () => {
 
     it('should validate fields in parallel', async () => {
       const validationTimes: number[] = [];
-      
+
       const form = createFormBehavior({
         initialValues: { field1: '', field2: '', field3: '' },
         fields: {
@@ -457,7 +457,7 @@ describe('createFormBehavior', () => {
       });
 
       const validationPromise = form.actions.validateForm();
-      
+
       await new Promise((resolve) => setTimeout(resolve, 10));
       expect(form.getState().isValidating).toBe(true);
 
@@ -572,14 +572,14 @@ describe('createFormBehavior', () => {
       const onSubmit = vi.fn(async () => {
         await new Promise((resolve) => setTimeout(resolve, 50));
       });
-      
+
       const form = createFormBehavior({
         initialValues: { email: 'test@example.com' },
         onSubmit,
       });
 
       const submitPromise = form.actions.submitForm();
-      
+
       await new Promise((resolve) => setTimeout(resolve, 10));
       expect(form.getState().isSubmitting).toBe(true);
 
@@ -630,7 +630,7 @@ describe('createFormBehavior', () => {
 
     it('should handle submission errors gracefully', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       const onSubmit = vi.fn(async () => {
         throw new Error('Submission failed');
       });
@@ -1016,7 +1016,7 @@ describe('createFormBehavior', () => {
 
     it('should handle validation errors during submission', async () => {
       const onSubmit = vi.fn();
-      
+
       const form = createFormBehavior({
         initialValues: { email: '', password: '' },
         fields: {
@@ -1032,7 +1032,7 @@ describe('createFormBehavior', () => {
 
       // Try to submit invalid form
       await form.actions.submitForm();
-      
+
       expect(onSubmit).not.toHaveBeenCalled();
       expect(form.getState().errors.email).toBe('Required');
       expect(form.getState().errors.password).toBe('Too short');
@@ -1041,9 +1041,9 @@ describe('createFormBehavior', () => {
       // Fix errors and resubmit
       form.actions.setFieldValue('email', 'test@example.com');
       form.actions.setFieldValue('password', 'password123');
-      
+
       await form.actions.submitForm();
-      
+
       expect(onSubmit).toHaveBeenCalledTimes(1);
       expect(form.getState().submitCount).toBe(2);
     });

@@ -3,14 +3,17 @@
 ## 1. High-Level Summary
 
 ### Architecture Type
+
 TinaCMS implements a **Registry-Based Plugin Architecture** with **Event-Driven** characteristics and strong **Type-Based Organization**.
 
 **Core Pattern**: Type-Organized Registry with Lazy Initialization
+
 ```
 Plugin (interface) → PluginType (typed collection) → PluginTypeManager (registry) → EventBus (coordination)
 ```
 
 ### Problem Statement
+
 The plugin system solves several critical problems:
 
 1. **Extensibility**: Enables third-party developers to extend TinaCMS functionality without modifying core code
@@ -21,6 +24,7 @@ The plugin system solves several critical problems:
 6. **React Integration**: Seamlessly integrates with React component lifecycle through hooks
 
 ### Key Characteristics
+
 - No file-system based discovery (explicit registration only)
 - Event-driven change propagation
 - Lazy initialization of plugin type collections
@@ -32,9 +36,11 @@ The plugin system solves several critical problems:
 ## 2. Plugin Discovery & Loading
 
 ### Discovery Mechanism
+
 **Type**: Explicit Registration (No Auto-Discovery)
 
 TinaCMS does not implement automatic plugin discovery. There is:
+
 - No file-system scanning
 - No directory conventions
 - No reflection or import introspection
@@ -43,6 +49,7 @@ TinaCMS does not implement automatic plugin discovery. There is:
 **All plugins must be explicitly registered** through one of the registration mechanisms.
 
 ### Loading Mechanism
+
 **Type**: Direct Import + Eager Loading
 
 Plugins are loaded through standard JavaScript/TypeScript imports:
@@ -59,6 +66,7 @@ cms.plugins.add(plugin);
 ```
 
 **Key Points**:
+
 - Plugins are plain JavaScript objects or class instances
 - No dynamic import() or lazy loading at plugin system level
 - Loading happens through normal module bundling (Webpack, Rollup, etc.)
@@ -69,6 +77,7 @@ cms.plugins.add(plugin);
 **Discovery**: N/A (manual only)
 
 **Loading & Registration**:
+
 - `/packages/tinacms/src/toolkit/core/plugins.ts:132-134` - `PluginTypeManager.add()`
 - `/packages/tinacms/src/toolkit/core/plugins.ts:244-253` - `PluginType.add()`
 - `/packages/tinacms/src/toolkit/react-core/use-plugin.tsx:27-41` - React hook registration
@@ -98,43 +107,50 @@ EventBus.dispatch('plugin:add:{type}')
 ### Registration Methods
 
 #### 1. CMS Constructor Configuration
+
 ```typescript
 import { CMS } from '@tinacms/toolkit';
 
 const cms = new CMS({
   plugins: [
     { __type: 'field', name: 'custom', Component: CustomField },
-    { __type: 'screen', name: 'settings', Component: Settings }
-  ]
+    { __type: 'screen', name: 'settings', Component: Settings },
+  ],
 });
 ```
+
 **Location**: `/packages/tinacms/src/toolkit/core/cms.ts:133-135`
 
 #### 2. Direct API Call
+
 ```typescript
 cms.plugins.add({
   __type: 'field',
   name: 'richtext',
   Component: RichTextEditor,
-  validate: (value) => value ? undefined : 'Required'
+  validate: (value) => (value ? undefined : 'Required'),
 });
 ```
+
 **Location**: `/packages/tinacms/src/toolkit/core/plugins.ts:132-134`
 
 #### 3. Specialized Getters (TinaCMS)
+
 ```typescript
 import { TinaCMS } from '@tinacms/toolkit';
 
 const tinaCMS = new TinaCMS();
 
 // These are convenience getters that return PluginType<T>
-tinaCMS.fields.add(fieldPlugin);    // Same as cms.plugins.add() for fields
-tinaCMS.screens.add(screenPlugin);  // Same as cms.plugins.add() for screens
-tinaCMS.forms.add(formPlugin);      // Same as cms.plugins.add() for forms
+tinaCMS.fields.add(fieldPlugin); // Same as cms.plugins.add() for fields
+tinaCMS.screens.add(screenPlugin); // Same as cms.plugins.add() for screens
+tinaCMS.forms.add(formPlugin); // Same as cms.plugins.add() for forms
 ```
+
 **Location**: `/packages/tinacms/src/toolkit/tina-cms.ts:187-197`
 
 #### 4. React Hooks (Component Lifecycle)
+
 ```typescript
 import { usePlugin } from 'tinacms';
 
@@ -148,17 +164,19 @@ function MyEditor() {
   return <div>...</div>;
 }
 ```
+
 **Location**: `/packages/tinacms/src/toolkit/react-core/use-plugin.tsx:16-42`
 
 **Key Feature**: Automatic cleanup on unmount
+
 ```typescript
 React.useEffect(() => {
   // Add plugins
-  pluginArray.forEach(plugin => cms.plugins.add(plugin));
+  pluginArray.forEach((plugin) => cms.plugins.add(plugin));
 
   // Cleanup: Remove plugins when component unmounts
   return () => {
-    pluginArray.forEach(plugin => cms.plugins.remove(plugin));
+    pluginArray.forEach((plugin) => cms.plugins.remove(plugin));
   };
 }, [cms.plugins, ...pluginArray]);
 ```
@@ -189,18 +207,20 @@ export interface Plugin {
 ### Storage Mechanism
 
 **Internal Map Storage** (`/packages/tinacms/src/toolkit/core/plugins.ts:216`):
+
 ```typescript
 export class PluginType<T extends Plugin = Plugin> {
-  __plugins: PluginMap<T> = {};  // { [name: string]: T }
+  __plugins: PluginMap<T> = {}; // { [name: string]: T }
 
   add(plugin: T) {
-    this.__plugins[plugin.name] = plugin;  // Store by name
+    this.__plugins[plugin.name] = plugin; // Store by name
     this.events.dispatch({ type: `plugin:add:${this.__type}` });
   }
 }
 ```
 
 **Key Points**:
+
 - Plugins indexed by `name` (must be unique within type)
 - Organized by `__type` into separate collections
 - Later additions with same name overwrite previous
@@ -210,19 +230,21 @@ export class PluginType<T extends Plugin = Plugin> {
 ## 4. Plugin Interface / Contract
 
 ### Base Contract
+
 Every plugin must implement the `Plugin` interface:
 
 ```typescript
 interface Plugin {
-  __type: string;  // REQUIRED - categorizes the plugin
-  name: string;    // REQUIRED - unique identifier
-  icon?: string;   // OPTIONAL - deprecated
+  __type: string; // REQUIRED - categorizes the plugin
+  name: string; // REQUIRED - unique identifier
+  icon?: string; // OPTIONAL - deprecated
 }
 ```
 
 ### Specialized Plugin Contracts
 
 #### Field Plugin
+
 **Location**: `/packages/tinacms/src/toolkit/form-builder/field-plugin.tsx:4-18`
 
 ```typescript
@@ -237,12 +259,7 @@ export interface FieldPlugin<ExtraFieldProps = {}, InputProps = {}> {
   type?: string;
 
   // OPTIONAL: Validation function
-  validate?(
-    value: any,
-    allValues: any,
-    meta: any,
-    field: Field
-  ): string | object | undefined;
+  validate?(value: any, allValues: any, meta: any, field: Field): string | object | undefined;
 
   // OPTIONAL: Parse value before storing
   parse?: (value: any, name: string, field: Field) => any;
@@ -256,6 +273,7 @@ export interface FieldPlugin<ExtraFieldProps = {}, InputProps = {}> {
 ```
 
 **Example Implementation**:
+
 ```typescript
 // From /packages/tinacms/src/toolkit/fields/plugins/text-field-plugin.tsx:30-46
 export const TextFieldPlugin = {
@@ -266,7 +284,7 @@ export const TextFieldPlugin = {
     if (field.uid) {
       // Check for unique constraint
       const items = get(allValues, parentPath);
-      if (items?.filter(item => item[fieldName] === value)?.length > 1) {
+      if (items?.filter((item) => item[fieldName] === value)?.length > 1) {
         return 'Item with this unique id already exists';
       }
     }
@@ -276,6 +294,7 @@ export const TextFieldPlugin = {
 ```
 
 #### Screen Plugin
+
 **Location**: `/packages/tinacms/src/toolkit/react-screens/screen-plugin.tsx:16-22`
 
 ```typescript
@@ -297,11 +316,12 @@ export interface ScreenPlugin<ExtraProps = {}> extends Plugin {
 
 // Props passed to all screen components
 export interface ScreenComponentProps {
-  close(): void;  // Function to close the screen
+  close(): void; // Function to close the screen
 }
 ```
 
 **Factory Function** (`/packages/tinacms/src/toolkit/react-screens/screen-plugin.tsx:48-61`):
+
 ```typescript
 export function createScreen<ExtraProps>({
   Component,
@@ -320,6 +340,7 @@ export function createScreen<ExtraProps>({
 ```
 
 #### Form Plugin
+
 **Location**: `/packages/tinacms/src/toolkit/forms/form.ts`
 
 ```typescript
@@ -341,6 +362,7 @@ export class Form<S = any, F extends Field = AnyField> implements Plugin {
 ```
 
 #### Content Creator Plugin
+
 **Location**: `/packages/tinacms/src/toolkit/forms/content-creator-plugin.ts`
 
 ```typescript
@@ -363,6 +385,7 @@ export interface ContentCreatorPlugin<FormShape> extends Plugin {
 ```
 
 #### Cloud Config Plugin
+
 **Location**: `/packages/tinacms/src/toolkit/react-cloud-config/cloud-config-plugin.tsx`
 
 ```typescript
@@ -385,14 +408,14 @@ export interface CloudConfigPlugin extends Plugin {
 
 ### Required vs Optional Methods Summary
 
-| Plugin Type | Required | Optional |
-|------------|----------|----------|
-| Base Plugin | `__type`, `name` | `icon` |
-| Field | `Component` | `validate`, `parse`, `format`, `defaultValue`, `type` |
-| Screen | `Component`, `Icon`, `layout` | `navCategory` |
-| Form | `id`, `label`, `fields`, `finalForm` | Various Final Form options |
-| Content Creator | `fields`, `onSubmit` | `actions`, `buttons`, `initialValues`, `onChange`, `reset` |
-| Cloud Config | `Icon`, `link` | `text` |
+| Plugin Type     | Required                             | Optional                                                   |
+| --------------- | ------------------------------------ | ---------------------------------------------------------- |
+| Base Plugin     | `__type`, `name`                     | `icon`                                                     |
+| Field           | `Component`                          | `validate`, `parse`, `format`, `defaultValue`, `type`      |
+| Screen          | `Component`, `Icon`, `layout`        | `navCategory`                                              |
+| Form            | `id`, `label`, `fields`, `finalForm` | Various Final Form options                                 |
+| Content Creator | `fields`, `onSubmit`                 | `actions`, `buttons`, `initialValues`, `onChange`, `reset` |
+| Cloud Config    | `Icon`, `link`                       | `text`                                                     |
 
 ---
 
@@ -403,6 +426,7 @@ TinaCMS implements a **simplified lifecycle** with four primary phases. Unlike t
 ### Lifecycle Phases
 
 #### Phase 1: Creation
+
 **When**: Plugin object instantiated by developer
 
 ```typescript
@@ -427,6 +451,7 @@ const plugin = new MyScreenPlugin();
 ---
 
 #### Phase 2: Registration
+
 **When**: Plugin added to CMS
 **Location**: `/packages/tinacms/src/toolkit/core/plugins.ts:244-253`
 
@@ -448,12 +473,14 @@ add(plugin: T | Omit<T, '__type'>) {
 ```
 
 **State Changes**:
+
 1. Plugin stored in `PluginType.__plugins[name]`
 2. Event `plugin:add:{type}` dispatched
 3. Subscribers notified of new plugin
 4. Plugin now discoverable via `find()` and `all()`
 
 **Event Flow**:
+
 ```typescript
 cms.plugins.add(plugin)
     ↓
@@ -467,15 +494,17 @@ All listeners on 'plugin:add:field' or 'plugin:*:field' triggered
 ---
 
 #### Phase 3: Active/Usage
+
 **When**: Plugin retrieved and used by CMS or components
 
 **Retrieval Methods**:
+
 ```typescript
 // Get all plugins of a type
-const allFields = cms.fields.all();  // FieldPlugin[]
+const allFields = cms.fields.all(); // FieldPlugin[]
 
 // Find specific plugin
-const textField = cms.fields.find('text');  // FieldPlugin | undefined
+const textField = cms.fields.find('text'); // FieldPlugin | undefined
 
 // Subscribe to changes
 cms.fields.subscribe(() => {
@@ -484,6 +513,7 @@ cms.fields.subscribe(() => {
 ```
 
 **Usage in Form Builder** (simplified):
+
 ```typescript
 // Form builder looks up field plugin by type
 const fieldPlugin = cms.fields.find(field.type);
@@ -506,6 +536,7 @@ if (fieldPlugin) {
 ---
 
 #### Phase 4: Removal/Cleanup
+
 **When**: Plugin removed from CMS
 **Location**: `/packages/tinacms/src/toolkit/core/plugins.ts:287-297`
 
@@ -527,20 +558,22 @@ remove(pluginOrName: string | T): T | undefined {
 ```
 
 **State Changes**:
+
 1. Plugin removed from internal map
 2. Event `plugin:remove:{type}` dispatched
 3. Subscribers notified of removal
 4. Plugin no longer discoverable
 
 **Automatic Cleanup with React Hooks** (`/packages/tinacms/src/toolkit/react-core/use-plugin.tsx:34-40`):
+
 ```typescript
 React.useEffect(() => {
   // Register on mount
-  pluginArray.forEach(plugin => cms.plugins.add(plugin));
+  pluginArray.forEach((plugin) => cms.plugins.add(plugin));
 
   // Cleanup on unmount
   return () => {
-    pluginArray.forEach(plugin => cms.plugins.remove(plugin));
+    pluginArray.forEach((plugin) => cms.plugins.remove(plugin));
   };
 }, [cms.plugins, ...pluginArray]);
 ```
@@ -589,6 +622,7 @@ React.useEffect(() => {
 ### Specialized Lifecycle Behaviors
 
 #### Field Plugin Lifecycle Methods
+
 While not part of the core lifecycle, FieldPlugins have execution points during form operations:
 
 ```typescript
@@ -603,6 +637,7 @@ format(value, name, field) → any
 ```
 
 #### Form Plugin Lifecycle
+
 Forms have a more complex lifecycle through Final Form integration:
 
 ```typescript
@@ -626,6 +661,7 @@ class Form {
 ### No Explicit Init/Enable/Disable
 
 **Important**: The base Plugin interface does NOT include:
+
 - `init()` method
 - `enable()` / `disable()` methods
 - `destroy()` / `cleanup()` methods
@@ -642,12 +678,14 @@ Lifecycle management is purely through add/remove operations and event subscript
 TinaCMS exposes six primary extension points, each represented by a different plugin `__type`:
 
 #### 1. Field Extension Point
+
 **Type**: `'field'`
 **Purpose**: Define custom form field types
 **Interface**: `FieldPlugin`
 **Registration**: `cms.fields.add(plugin)`
 
 **Binding Mechanism**:
+
 ```typescript
 // In form schema
 const schema = {
@@ -666,11 +704,13 @@ const plugin = cms.fields.find('text');  // Returns TextFieldPlugin
 ```
 
 **Code References**:
+
 - Interface: `/packages/tinacms/src/toolkit/form-builder/field-plugin.tsx:4-18`
 - Built-in plugins: `/packages/tinacms/src/toolkit/fields/plugins/`
 - Usage in form builder: Form builder components query `cms.fields.find(type)`
 
 **Built-in Field Plugins** (17 total):
+
 - `text`, `textarea`, `number`, `toggle`, `select`, `radio-group`
 - `color`, `date`, `image`, `password`, `hidden`
 - `tags`, `list`, `group`, `group-list`, `blocks`
@@ -679,12 +719,14 @@ const plugin = cms.fields.find('text');  // Returns TextFieldPlugin
 ---
 
 #### 2. Screen Extension Point
+
 **Type**: `'screen'`
 **Purpose**: Define full-page or modal screens in CMS UI
 **Interface**: `ScreenPlugin`
 **Registration**: `cms.screens.add(plugin)`
 
 **Binding Mechanism**:
+
 ```typescript
 // Screens displayed in sidebar navigation
 cms.screens.all().forEach(screen => {
@@ -701,31 +743,37 @@ cms.screens.all().forEach(screen => {
 ```
 
 **Code References**:
+
 - Interface: `/packages/tinacms/src/toolkit/react-screens/screen-plugin.tsx:16-22`
 - Factory: `/packages/tinacms/src/toolkit/react-screens/screen-plugin.tsx:48-61`
 - Built-in screens: `/packages/tinacms/src/toolkit/plugin-screens/`
 
 **Built-in Screen Plugins**:
+
 - Media Manager (`MediaManagerScreenPlugin`)
 - Change Password (`PasswordScreenPlugin`)
 
 **Layout Options**:
+
 - `fullscreen`: Takes over entire viewport
 - `popup`: Displays as modal/overlay
 
 **Navigation Categories**:
+
 - `Account`: User-related screens
 - `Site`: Site-wide settings
 
 ---
 
 #### 3. Form Extension Point
+
 **Type**: `'form'`
 **Purpose**: Register editable forms for content
 **Interface**: `Form` class
 **Registration**: `cms.forms.add(form)`
 
 **Binding Mechanism**:
+
 ```typescript
 // Forms typically registered per-content-item
 const form = new Form({
@@ -742,18 +790,21 @@ const form = cms.forms.find('post-123');
 ```
 
 **Code References**:
+
 - Class: `/packages/tinacms/src/toolkit/forms/form.ts`
 - Integration with Final Form for state management
 
 ---
 
 #### 4. Cloud Config Extension Point
+
 **Type**: `'cloud-config'`
 **Purpose**: Add links to external cloud services
 **Interface**: `CloudConfigPlugin`
 **Registration**: `cms.plugins.add(cloudConfigPlugin)`
 
 **Binding Mechanism**:
+
 ```typescript
 // TinaCMS constructor adds cloud config links
 const cloudConfigs = cms.plugins.all<CloudConfigPlugin>('cloud-config');
@@ -766,31 +817,35 @@ cloudConfigs.forEach(config => {
 ```
 
 **Code References**:
+
 - Interface: `/packages/tinacms/src/toolkit/react-cloud-config/cloud-config-plugin.tsx`
 - Factory: `createCloudConfig()` function
 - Usage: `/packages/tinacms/src/toolkit/tina-cms.ts:128-170`
 
 **Example**:
+
 ```typescript
 createCloudConfig({
   name: 'Project Config',
   link: {
     text: 'Project Config',
-    href: 'https://app.tina.io/projects/my-project'
+    href: 'https://app.tina.io/projects/my-project',
   },
-  Icon: ProjectIcon
-})
+  Icon: ProjectIcon,
+});
 ```
 
 ---
 
 #### 5. Content Creator Extension Point
+
 **Type**: `'content-creator'`
 **Purpose**: Define forms for creating new content
 **Interface**: `ContentCreatorPlugin`
 **Registration**: `cms.plugins.add(contentCreatorPlugin)`
 
 **Binding Mechanism**:
+
 ```typescript
 // Content creators shown in "Create New" menu
 const creators = cms.plugins.all<ContentCreatorPlugin>('content-creator');
@@ -805,31 +860,34 @@ creators.forEach(creator => {
 ```
 
 **Code References**:
+
 - Interface: `/packages/tinacms/src/toolkit/forms/content-creator-plugin.ts`
 
 ---
 
 #### 6. Form Meta Extension Point
+
 **Type**: `'form:meta'`
 **Purpose**: Add metadata displays to forms
 **Interface**: `FormMetaPlugin`
 **Registration**: `cms.plugins.add(formMetaPlugin)`
 
 **Code References**:
+
 - Class: `/packages/tinacms/src/toolkit/plugin-form-meta/index.tsx`
 
 ---
 
 ### Extension Point Summary Table
 
-| Extension Point | Type String | Primary Use Case | Registration Method | Discovery Method |
-|----------------|-------------|------------------|---------------------|------------------|
-| Field | `field` | Custom form fields | `cms.fields.add()` | `cms.fields.find(name)` |
-| Screen | `screen` | Full-page/modal UI | `cms.screens.add()` | `cms.screens.all()` |
-| Form | `form` | Content editing | `cms.forms.add()` | `cms.forms.find(id)` |
-| Cloud Config | `cloud-config` | External links | `cms.plugins.add()` | `cms.plugins.all('cloud-config')` |
-| Content Creator | `content-creator` | New content forms | `cms.plugins.add()` | `cms.plugins.all('content-creator')` |
-| Form Meta | `form:meta` | Form metadata UI | `cms.plugins.add()` | `cms.plugins.all('form:meta')` |
+| Extension Point | Type String       | Primary Use Case   | Registration Method | Discovery Method                     |
+| --------------- | ----------------- | ------------------ | ------------------- | ------------------------------------ |
+| Field           | `field`           | Custom form fields | `cms.fields.add()`  | `cms.fields.find(name)`              |
+| Screen          | `screen`          | Full-page/modal UI | `cms.screens.add()` | `cms.screens.all()`                  |
+| Form            | `form`            | Content editing    | `cms.forms.add()`   | `cms.forms.find(id)`                 |
+| Cloud Config    | `cloud-config`    | External links     | `cms.plugins.add()` | `cms.plugins.all('cloud-config')`    |
+| Content Creator | `content-creator` | New content forms  | `cms.plugins.add()` | `cms.plugins.all('content-creator')` |
+| Form Meta       | `form:meta`       | Form metadata UI   | `cms.plugins.add()` | `cms.plugins.all('form:meta')`       |
 
 ---
 
@@ -859,6 +917,7 @@ cms.events.subscribe('*', (event) => {
 ```
 
 **Event Patterns**:
+
 - `plugin:add:{type}` - Plugin of type added
 - `plugin:remove:{type}` - Plugin of type removed
 - `cms:enable` - CMS enabled
@@ -877,6 +936,7 @@ cms.events.subscribe('*', (event) => {
 TinaCMS supports multiple configuration approaches depending on plugin complexity:
 
 #### 1. Object Literal Configuration
+
 **Best for**: Simple, stateless plugins
 
 ```typescript
@@ -891,6 +951,7 @@ export const TextFieldPlugin = {
 ```
 
 **Characteristics**:
+
 - No constructor
 - Immutable configuration
 - Functional approach
@@ -901,6 +962,7 @@ export const TextFieldPlugin = {
 ---
 
 #### 2. Factory Function Configuration
+
 **Best for**: Plugins with props injection and composition
 
 ```typescript
@@ -931,6 +993,7 @@ const settingsScreen = createScreen({
 ```
 
 **Benefits**:
+
 - Separates configuration from runtime props
 - Enables prop injection
 - Type-safe with generics
@@ -941,6 +1004,7 @@ const settingsScreen = createScreen({
 ---
 
 #### 3. Class-Based Configuration
+
 **Best for**: Plugins with complex state or methods
 
 ```typescript
@@ -977,6 +1041,7 @@ const plugin = new BranchSwitcherPlugin({
 ```
 
 **Benefits**:
+
 - Encapsulation of state
 - Instance methods
 - Complex initialization logic
@@ -987,24 +1052,21 @@ const plugin = new BranchSwitcherPlugin({
 ---
 
 #### 4. CMS Constructor Configuration
+
 **Best for**: Initial plugin registration and CMS setup
 
 ```typescript
 const cms = new CMS({
   enabled: true,
-  plugins: [
-    TextFieldPlugin,
-    ImageFieldPlugin,
-    customPlugin
-  ],
+  plugins: [TextFieldPlugin, ImageFieldPlugin, customPlugin],
   apis: {
     github: new GitHubAPI(),
-    customApi: new CustomAPI()
+    customApi: new CustomAPI(),
   },
   media: new CustomMediaStore(),
   mediaOptions: {
-    pageSize: 50
-  }
+    pageSize: 50,
+  },
 });
 ```
 
@@ -1013,6 +1075,7 @@ const cms = new CMS({
 ---
 
 #### 5. TinaCMS Constructor Configuration
+
 **Best for**: Tina-specific setup with built-in plugins
 
 ```typescript
@@ -1038,6 +1101,7 @@ const tinaCMS = new TinaCMS({
 ```
 
 **Auto-Registration**: TinaCMS constructor automatically registers:
+
 - 17 default field plugins
 - Media Manager screen
 - Password screen
@@ -1050,11 +1114,14 @@ const tinaCMS = new TinaCMS({
 ### Metadata Storage
 
 #### No Manifest Files
+
 TinaCMS does **not** use external metadata files:
+
 - No `plugin.json`, `manifest.yaml`, or `package.json` conventions
 - All metadata embedded in plugin object itself
 
 #### Plugin Metadata Location
+
 Metadata is stored directly on plugin objects:
 
 ```typescript
@@ -1083,17 +1150,20 @@ const plugin = {
 #### Metadata Conventions
 
 **Field Plugins**:
+
 - `name`: Field type identifier (e.g., 'text', 'image')
 - `type`: Optional alternate identifier
 - `defaultValue`: Default value for new fields
 
 **Screen Plugins**:
+
 - `name`: Display name in navigation
 - `Icon`: React icon component
 - `layout`: 'fullscreen' or 'popup'
 - `navCategory`: 'Account' or 'Site'
 
 **Form Plugins**:
+
 - `id`: Unique form identifier
 - `label`: Display label
 - `fields`: Array of field definitions
@@ -1103,6 +1173,7 @@ const plugin = {
 ### Hot Reload / Dynamic Reconfiguration
 
 #### Hot Reload Support
+
 **Partial** - Enabled through React Fast Refresh, not CMS feature
 
 ```typescript
@@ -1115,11 +1186,13 @@ export const TextFieldPlugin = {
 ```
 
 **Limitations**:
+
 - Relies on bundler HMR (Webpack/Vite)
 - Not a CMS-level feature
 - Plugin registration not automatically refreshed
 
 #### Dynamic Reconfiguration
+
 **Full Support** - Plugins can be added/removed at runtime
 
 ```typescript
@@ -1137,11 +1210,14 @@ cms.fields.subscribe(() => {
 
 // React hook automatically manages lifecycle
 function ConditionalPlugin({ enabled }) {
-  const plugin = useMemo(() => ({
-    __type: 'field',
-    name: 'conditional',
-    Component: ConditionalField
-  }), []);
+  const plugin = useMemo(
+    () => ({
+      __type: 'field',
+      name: 'conditional',
+      Component: ConditionalField,
+    }),
+    [],
+  );
 
   // Only active when enabled=true
   if (enabled) {
@@ -1153,12 +1229,14 @@ function ConditionalPlugin({ enabled }) {
 ```
 
 **Use Cases**:
+
 - Feature flags
 - Conditional plugin loading
 - User permission-based plugins
 - A/B testing different plugins
 
 **Event Notification**:
+
 ```typescript
 // All plugin changes emit events
 cms.events.subscribe('plugin:add:field', () => {
@@ -1174,14 +1252,14 @@ cms.events.subscribe('plugin:remove:field', () => {
 
 ### Configuration Summary
 
-| Pattern | Use Case | Example | Mutability |
-|---------|----------|---------|------------|
-| Object Literal | Simple plugins | Field plugins | Immutable |
-| Factory Function | Prop injection | Screen plugins | Immutable |
-| Class-Based | Complex state | Branch switcher | Mutable instance |
-| CMS Constructor | Initial setup | Core config | One-time |
-| TinaCMS Constructor | Tina-specific | Sidebar config | One-time |
-| Runtime Addition | Dynamic plugins | Conditional features | Fully dynamic |
+| Pattern             | Use Case        | Example              | Mutability       |
+| ------------------- | --------------- | -------------------- | ---------------- |
+| Object Literal      | Simple plugins  | Field plugins        | Immutable        |
+| Factory Function    | Prop injection  | Screen plugins       | Immutable        |
+| Class-Based         | Complex state   | Branch switcher      | Mutable instance |
+| CMS Constructor     | Initial setup   | Core config          | One-time         |
+| TinaCMS Constructor | Tina-specific   | Sidebar config       | One-time         |
+| Runtime Addition    | Dynamic plugins | Conditional features | Fully dynamic    |
 
 **Key Insight**: Configuration is code-based, not file-based. No external manifests or config files required.
 
@@ -1192,19 +1270,23 @@ cms.events.subscribe('plugin:remove:field', () => {
 ### Security Model
 
 #### No Sandboxing
+
 TinaCMS plugins run in the **same JavaScript execution context** as the core CMS:
+
 - No iframe isolation
 - No Web Worker sandboxing
 - No VM or eval-based isolation
 - Full access to CMS instance and APIs
 
 **Implications**:
+
 - Plugins can access `window`, `document`, `localStorage`
 - Plugins can call any CMS method
 - Plugins can dispatch events
 - Plugins can interfere with other plugins
 
 **Code Evidence**: All plugins share the same `cms` instance
+
 ```typescript
 // Plugins receive full CMS reference
 onSubmit(value, cms: CMS) {
@@ -1219,9 +1301,11 @@ onSubmit(value, cms: CMS) {
 ### Validation
 
 #### Minimal Validation
+
 The plugin system performs **minimal validation** before registration:
 
 **What IS validated**:
+
 ```typescript
 // plugins.ts:244-253
 add(plugin: T | Omit<T, '__type'>) {
@@ -1241,6 +1325,7 @@ add(plugin: T | Omit<T, '__type'>) {
 ```
 
 **What is NOT validated**:
+
 - Required properties (e.g., `Component`, `Icon`)
 - Method signatures
 - TypeScript types (runtime)
@@ -1255,23 +1340,27 @@ add(plugin: T | Omit<T, '__type'>) {
 ### Isolation
 
 #### No Process Isolation
+
 - All plugins in same Node/Browser process
 - Shared memory space
 - Shared event loop
 
 #### No Module Isolation
+
 - Plugins can import same modules
 - No scoped module resolution
 - Version conflicts possible
 
 #### Data Isolation: Minimal
+
 ```typescript
 class PluginType<T> {
-  __plugins: PluginMap<T> = {};  // Shared map, no protection
+  __plugins: PluginMap<T> = {}; // Shared map, no protection
 }
 ```
 
 **Plugins can**:
+
 - Access `cms.api.*` (all APIs)
 - Read/write `cms.media`
 - Dispatch/subscribe to any event
@@ -1282,7 +1371,9 @@ class PluginType<T> {
 ### Error Handling
 
 #### Plugin Registration Errors
+
 **Not handled by plugin system**:
+
 ```typescript
 // If plugin.Component throws during registration
 cms.plugins.add({
@@ -1290,12 +1381,13 @@ cms.plugins.add({
   name: 'broken',
   get Component() {
     throw new Error('Component initialization failed');
-  }
+  },
 });
 // Error propagates to caller, registration SUCCEEDS
 ```
 
 **Plugin system does NOT**:
+
 - Try/catch during registration
 - Validate plugin structure
 - Prevent broken plugins from registering
@@ -1313,6 +1405,7 @@ cms.plugins.add({
 ```
 
 **Event Handler Errors**: Partially isolated
+
 ```typescript
 // event.ts:34-44
 dispatch<E extends CMSEvent = CMSEvent>(event: E) {
@@ -1328,7 +1421,9 @@ dispatch<E extends CMSEvent = CMSEvent>(event: E) {
 ---
 
 #### Form Validation Errors
+
 **Gracefully handled**:
+
 ```typescript
 // Field plugin validate method
 validate(value, allValues, meta, field) {
@@ -1345,6 +1440,7 @@ Form builder displays validation errors to user
 #### Best Practices (Not Enforced)
 
 **Plugin developers should**:
+
 ```typescript
 // Wrap async operations
 const plugin = {
@@ -1381,6 +1477,7 @@ onSubmit(value, cms) {
 ### Security Recommendations
 
 #### 1. Plugin Validation
+
 ```typescript
 // Add validation layer
 class ValidatedPluginTypeManager extends PluginTypeManager {
@@ -1402,6 +1499,7 @@ class ValidatedPluginTypeManager extends PluginTypeManager {
 ```
 
 #### 2. Error Boundaries
+
 ```typescript
 // Wrap plugin components
 function SafePluginComponent({ plugin, ...props }) {
@@ -1414,6 +1512,7 @@ function SafePluginComponent({ plugin, ...props }) {
 ```
 
 #### 3. Event Error Handling
+
 ```typescript
 // Modify EventBus to isolate errors
 dispatch(event: E) {
@@ -1431,10 +1530,11 @@ dispatch(event: E) {
 ```
 
 #### 4. Plugin Permissions
+
 ```typescript
 // Add permission layer
 interface SecurePlugin extends Plugin {
-  permissions?: string[];  // ['api:github', 'media:write']
+  permissions?: string[]; // ['api:github', 'media:write']
 }
 
 class SecurePluginTypeManager {
@@ -1451,14 +1551,14 @@ class SecurePluginTypeManager {
 
 ### Security Summary
 
-| Aspect | Current State | Risk Level | Recommendation |
-|--------|--------------|------------|----------------|
-| Sandboxing | None | High | Consider Web Worker isolation for untrusted plugins |
-| Validation | Minimal | Medium | Add schema validation (Zod, yup) |
-| Error Isolation | Partial | Medium | Wrap event handlers in try/catch |
-| API Access Control | None | High | Implement permission system |
-| Name Conflicts | Overwrites silently | Low | Warn on conflicts |
-| Type Validation | TypeScript only | Low | Runtime validation for dynamic plugins |
+| Aspect             | Current State       | Risk Level | Recommendation                                      |
+| ------------------ | ------------------- | ---------- | --------------------------------------------------- |
+| Sandboxing         | None                | High       | Consider Web Worker isolation for untrusted plugins |
+| Validation         | Minimal             | Medium     | Add schema validation (Zod, yup)                    |
+| Error Isolation    | Partial             | Medium     | Wrap event handlers in try/catch                    |
+| API Access Control | None                | High       | Implement permission system                         |
+| Name Conflicts     | Overwrites silently | Low        | Warn on conflicts                                   |
+| Type Validation    | TypeScript only     | Low        | Runtime validation for dynamic plugins              |
 
 **Conclusion**: TinaCMS trusts plugin developers. The system is secure for first-party plugins but vulnerable if accepting third-party/user-submitted plugins.
 
@@ -1469,7 +1569,9 @@ class SecurePluginTypeManager {
 ### Plugin Dependencies
 
 #### No Formal Dependency System
+
 TinaCMS does **not** provide a built-in dependency management system for plugins:
+
 - No `dependencies` field in plugin metadata
 - No dependency resolution
 - No load order management
@@ -1480,6 +1582,7 @@ TinaCMS does **not** provide a built-in dependency management system for plugins
 ### Dependency Patterns
 
 #### 1. Implicit Dependencies (Standard Imports)
+
 **Most common pattern**: Plugins use standard JavaScript imports
 
 ```typescript
@@ -1495,6 +1598,7 @@ export const TextFieldPlugin: FieldPlugin = {
 ```
 
 **Characteristics**:
+
 - Dependencies resolved by module bundler (Webpack, Rollup)
 - Version managed by package.json
 - No runtime dependency checking
@@ -1502,6 +1606,7 @@ export const TextFieldPlugin: FieldPlugin = {
 ---
 
 #### 2. CMS Injection Pattern
+
 **Plugins receive CMS instance** with all registered APIs:
 
 ```typescript
@@ -1525,6 +1630,7 @@ const contentCreator: ContentCreatorPlugin = {
 ```
 
 **API Registration** (`/packages/tinacms/src/toolkit/core/cms.ts:166-184`):
+
 ```typescript
 registerApi(name: string, api: any): void {
   // API becomes available to all plugins
@@ -1544,18 +1650,21 @@ cms.registerApi('github', new GitHubAPI());
 ```
 
 **Benefits**:
+
 - Centralized dependency injection
 - Runtime API availability
 - Decoupled plugin code
 
 **Drawbacks**:
-- No compile-time safety (cms.api.* is `any`)
+
+- No compile-time safety (cms.api.\* is `any`)
 - No guarantee API exists at runtime
 - Must check existence: `if (!cms.api.github) throw ...`
 
 ---
 
 #### 3. React Context Dependencies
+
 **Plugins access CMS via React Context**:
 
 ```typescript
@@ -1573,6 +1682,7 @@ function MyPluginComponent() {
 ```
 
 **Provider Setup**:
+
 ```typescript
 <CMSProvider cms={cms}>
   <App />
@@ -1584,6 +1694,7 @@ function MyPluginComponent() {
 ---
 
 #### 4. Peer Dependencies (package.json)
+
 **For published plugins**: Use peer dependencies
 
 ```json
@@ -1600,10 +1711,12 @@ function MyPluginComponent() {
 ```
 
 **Host application provides**:
+
 - `react`
 - `tinacms`
 
 **Plugin provides**:
+
 - Additional libraries (e.g., `lodash`)
 
 ---
@@ -1611,22 +1724,24 @@ function MyPluginComponent() {
 ### Service Locator Pattern
 
 #### CMS as Service Locator
+
 The CMS instance acts as a service locator:
 
 ```typescript
 // CMS holds all services
-cms.api.tina       // Tina Cloud API
-cms.api.github     // GitHub API
-cms.media          // Media management
-cms.events         // Event bus
-cms.alerts         // Alert system
-cms.sidebar        // Sidebar state (TinaCMS)
+cms.api.tina; // Tina Cloud API
+cms.api.github; // GitHub API
+cms.media; // Media management
+cms.events; // Event bus
+cms.alerts; // Alert system
+cms.sidebar; // Sidebar state (TinaCMS)
 
 // Plugins look up services
 const service = cms.api.myService;
 ```
 
 **Registration**:
+
 ```typescript
 // Services registered at runtime
 cms.registerApi('analytics', new AnalyticsAPI());
@@ -1634,6 +1749,7 @@ cms.registerApi('auth', new AuthAPI());
 ```
 
 **Discovery**:
+
 ```typescript
 // Plugins discover services dynamically
 if (cms.api.analytics) {
@@ -1646,13 +1762,17 @@ if (cms.api.analytics) {
 ### Version Constraints
 
 #### No Built-in Version Management
+
 TinaCMS does not enforce version constraints:
+
 - No `minVersion` / `maxVersion` fields
 - No semantic version checking
 - No compatibility validation
 
 #### Recommended Pattern
+
 **Document compatibility in plugin**:
+
 ```typescript
 export const MyPlugin: FieldPlugin = {
   name: 'custom',
@@ -1665,6 +1785,7 @@ export const MyPlugin: FieldPlugin = {
 ```
 
 **Runtime checking**:
+
 ```typescript
 import { version as tinacmsVersion } from 'tinacms/package.json';
 
@@ -1678,7 +1799,9 @@ if (tinacmsVersion < '1.0.0') {
 ### Plugin Inter-Dependencies
 
 #### No Plugin-to-Plugin Dependencies
+
 TinaCMS does not support:
+
 - Plugin depending on another plugin
 - Load order based on dependencies
 - Dependency graphs
@@ -1686,6 +1809,7 @@ TinaCMS does not support:
 #### Workarounds
 
 **1. Check plugin existence**:
+
 ```typescript
 // Plugin B depends on Plugin A
 const MyPlugin = {
@@ -1706,13 +1830,15 @@ const MyPlugin = {
 ```
 
 **2. Manual load order**:
+
 ```typescript
 // Register in correct order
-cms.plugins.add(basePlugin);    // First
+cms.plugins.add(basePlugin); // First
 cms.plugins.add(enhancedPlugin); // Second (depends on basePlugin)
 ```
 
 **3. Event-based initialization**:
+
 ```typescript
 // Plugin B waits for Plugin A
 cms.events.subscribe('plugin:add:field', (event) => {
@@ -1728,35 +1854,37 @@ cms.events.subscribe('plugin:add:field', (event) => {
 ### Dependency Injection Container
 
 #### No DI Container
+
 TinaCMS does not use:
+
 - InversifyJS
 - TSyringe
 - awilix
 - Other DI frameworks
 
 #### Manual Injection Pattern
+
 **Constructor injection**:
+
 ```typescript
 class MyScreenPlugin implements ScreenPlugin {
   constructor(
     private githubAPI: GitHubAPI,
-    private analytics: AnalyticsAPI
+    private analytics: AnalyticsAPI,
   ) {}
 
   Component = () => {
     // Use injected dependencies
     this.githubAPI.fetchRepos();
-  }
+  };
 }
 
 // Manual wiring
-const plugin = new MyScreenPlugin(
-  cms.api.github,
-  cms.api.analytics
-);
+const plugin = new MyScreenPlugin(cms.api.github, cms.api.analytics);
 ```
 
 **CMS injection**:
+
 ```typescript
 // Most plugins receive CMS as parameter
 onSubmit(value, cms: CMS) {
@@ -1770,43 +1898,45 @@ onSubmit(value, cms: CMS) {
 
 ### Dependency Management Summary
 
-| Aspect | Mechanism | Validation | Enforcement |
-|--------|-----------|------------|-------------|
-| Module Dependencies | JavaScript imports | Bundler | Build-time |
-| API Dependencies | CMS injection (`cms.api.*`) | Manual checks | Runtime |
-| React Dependencies | Context (`useCMS()`) | React | Runtime |
-| Plugin Dependencies | Manual load order | None | Developer |
-| Version Constraints | package.json peers | npm/yarn | Install-time |
-| Service Location | CMS instance | None | Runtime |
+| Aspect              | Mechanism                   | Validation    | Enforcement  |
+| ------------------- | --------------------------- | ------------- | ------------ |
+| Module Dependencies | JavaScript imports          | Bundler       | Build-time   |
+| API Dependencies    | CMS injection (`cms.api.*`) | Manual checks | Runtime      |
+| React Dependencies  | Context (`useCMS()`)        | React         | Runtime      |
+| Plugin Dependencies | Manual load order           | None          | Developer    |
+| Version Constraints | package.json peers          | npm/yarn      | Install-time |
+| Service Location    | CMS instance                | None          | Runtime      |
 
 ---
 
 ### Recommendations
 
 #### 1. Add Dependency Declaration
+
 ```typescript
 interface PluginWithDeps extends Plugin {
   dependencies?: {
-    apis?: string[];        // ['github', 'analytics']
-    plugins?: string[];     // ['field:base']
-    minVersion?: string;    // '1.0.0'
+    apis?: string[]; // ['github', 'analytics']
+    plugins?: string[]; // ['field:base']
+    minVersion?: string; // '1.0.0'
   };
 }
 ```
 
 #### 2. Validate Dependencies at Registration
+
 ```typescript
 class DependencyAwarePluginManager {
   add(plugin: PluginWithDeps) {
     // Check API dependencies
-    plugin.dependencies?.apis?.forEach(api => {
+    plugin.dependencies?.apis?.forEach((api) => {
       if (!this.cms.api[api]) {
         throw new Error(`Plugin requires API: ${api}`);
       }
     });
 
     // Check plugin dependencies
-    plugin.dependencies?.plugins?.forEach(dep => {
+    plugin.dependencies?.plugins?.forEach((dep) => {
       if (!this.findPlugin(dep)) {
         throw new Error(`Plugin requires: ${dep}`);
       }
@@ -1818,6 +1948,7 @@ class DependencyAwarePluginManager {
 ```
 
 #### 3. Topological Sort for Load Order
+
 ```typescript
 function sortPluginsByDependencies(plugins: PluginWithDeps[]): Plugin[] {
   // Build dependency graph
@@ -2258,9 +2389,11 @@ cms
 ### Performance Improvements
 
 #### 1. Lazy Plugin Component Loading
+
 **Problem**: All plugin components bundled upfront, increasing initial bundle size
 
 **Current**:
+
 ```typescript
 import { TextFieldPlugin } from './text-field-plugin';
 import { ImageFieldPlugin } from './image-field-plugin';
@@ -2272,6 +2405,7 @@ cms.plugins.add(ImageFieldPlugin);
 ```
 
 **Recommendation**: Dynamic imports for plugin components
+
 ```typescript
 export const TextFieldPlugin: FieldPlugin = {
   name: 'text',
@@ -2281,11 +2415,13 @@ export const TextFieldPlugin: FieldPlugin = {
 ```
 
 **Benefits**:
+
 - Smaller initial bundle
 - Faster page load
 - Code splitting per plugin
 
 **Implementation**:
+
 ```typescript
 // Plugin type supports lazy components
 interface FieldPlugin {
@@ -2305,9 +2441,11 @@ function FieldRenderer({ plugin, ...props }) {
 ---
 
 #### 2. Plugin Registry Caching
+
 **Problem**: `all()` creates new array on every call
 
 **Current** (`/packages/tinacms/src/toolkit/core/plugins.ts:255-257`):
+
 ```typescript
 all(): T[] {
   return Object.keys(this.__plugins).map((name) => this.__plugins[name]);
@@ -2315,6 +2453,7 @@ all(): T[] {
 ```
 
 **Recommendation**: Cache array, invalidate on add/remove
+
 ```typescript
 class PluginType<T extends Plugin = Plugin> {
   private __plugins: PluginMap<T> = {};
@@ -2322,7 +2461,7 @@ class PluginType<T extends Plugin = Plugin> {
 
   add(plugin: T) {
     this.__plugins[plugin.name] = plugin;
-    this.__cache = null;  // Invalidate cache
+    this.__cache = null; // Invalidate cache
     this.events.dispatch({ type: `plugin:add:${this.__type}` });
   }
 
@@ -2336,15 +2475,18 @@ class PluginType<T extends Plugin = Plugin> {
 ```
 
 **Benefits**:
+
 - O(1) for cached reads vs O(n) every time
 - Reduces GC pressure from array creation
 
 ---
 
 #### 3. Event Listener Optimization
+
 **Problem**: Wildcard pattern matching on every event dispatch
 
 **Current** (`/packages/tinacms/src/toolkit/core/event.ts:61-77`):
+
 ```typescript
 watchesEvent(currentEvent: E) {
   if (this.eventPattern === '*') return true;
@@ -2355,6 +2497,7 @@ watchesEvent(currentEvent: E) {
 ```
 
 **Recommendation**: Pre-compile pattern matchers
+
 ```typescript
 class Listener<E extends CMSEvent> {
   private matcher: (eventType: string) => boolean;
@@ -2373,15 +2516,14 @@ function compilePattern(pattern: string): (eventType: string) => boolean {
   if (pattern === '*') return () => true;
 
   const parts = pattern.split(':');
-  const regex = new RegExp(
-    '^' + parts.map(p => p === '*' ? '[^:]+' : p).join(':') + '$'
-  );
+  const regex = new RegExp('^' + parts.map((p) => (p === '*' ? '[^:]+' : p)).join(':') + '$');
 
   return (eventType) => regex.test(eventType);
 }
 ```
 
 **Benefits**:
+
 - Avoid string splitting on every event
 - Faster pattern matching with compiled regex
 
@@ -2390,9 +2532,11 @@ function compilePattern(pattern: string): (eventType: string) => boolean {
 ### Stability Improvements
 
 #### 4. Plugin Validation Schema
+
 **Problem**: No validation of plugin structure, runtime errors possible
 
 **Recommendation**: Zod-based validation
+
 ```typescript
 import { z } from 'zod';
 
@@ -2403,7 +2547,7 @@ const FieldPluginSchema = z.object({
   validate: z.function().optional(),
   parse: z.function().optional(),
   format: z.function().optional(),
-  defaultValue: z.any().optional()
+  defaultValue: z.any().optional(),
 });
 
 class ValidatedPluginTypeManager extends PluginTypeManager {
@@ -2422,6 +2566,7 @@ class ValidatedPluginTypeManager extends PluginTypeManager {
 ```
 
 **Benefits**:
+
 - Catch configuration errors early
 - Better error messages
 - Type safety at runtime
@@ -2429,9 +2574,11 @@ class ValidatedPluginTypeManager extends PluginTypeManager {
 ---
 
 #### 5. Plugin Name Conflict Warnings
+
 **Problem**: Silent overwriting of plugins with same name
 
 **Recommendation**: Warn on conflicts
+
 ```typescript
 add(plugin: T) {
   const existing = this.__plugins[plugin.name];
@@ -2450,6 +2597,7 @@ add(plugin: T) {
 ```
 
 **Benefits**:
+
 - Developer awareness of conflicts
 - Easier debugging
 - Optional strict mode: throw instead of warn
@@ -2457,9 +2605,11 @@ add(plugin: T) {
 ---
 
 #### 6. Event Dispatch Error Isolation
+
 **Problem**: One failing event handler breaks entire chain
 
 **Current** (`/packages/tinacms/src/toolkit/core/event.ts:34-44`):
+
 ```typescript
 dispatch<E extends CMSEvent = CMSEvent>(event: E) {
   const listenerSnapshot = Array.from(this.listeners.values());
@@ -2469,6 +2619,7 @@ dispatch<E extends CMSEvent = CMSEvent>(event: E) {
 ```
 
 **Recommendation**: Isolate errors
+
 ```typescript
 dispatch<E extends CMSEvent = CMSEvent>(event: E) {
   const listenerSnapshot = Array.from(this.listeners.values());
@@ -2494,6 +2645,7 @@ dispatch<E extends CMSEvent = CMSEvent>(event: E) {
 ```
 
 **Benefits**:
+
 - Resilient event system
 - All listeners get chance to run
 - Error tracking and monitoring
@@ -2503,9 +2655,11 @@ dispatch<E extends CMSEvent = CMSEvent>(event: E) {
 ### Cleaner Extension Points
 
 #### 7. Typed Plugin Creator Functions
+
 **Problem**: Verbose plugin creation, easy to make mistakes
 
 **Recommendation**: Type-safe factory functions
+
 ```typescript
 // Instead of manual object creation
 const plugin = {
@@ -2544,6 +2698,7 @@ const customField = createFieldPlugin({
 ```
 
 **Benefits**:
+
 - Type inference
 - Less boilerplate
 - Consistent structure
@@ -2552,9 +2707,11 @@ const customField = createFieldPlugin({
 ---
 
 #### 8. Plugin Composition Helpers
+
 **Problem**: No built-in way to compose plugins
 
 **Recommendation**: Composition utilities
+
 ```typescript
 // Extend existing plugin
 export function extendFieldPlugin(
@@ -2599,6 +2756,7 @@ const requiredTextPlugin = extendFieldPlugin(TextFieldPlugin, {
 ```
 
 **Benefits**:
+
 - DRY principle
 - Plugin reusability
 - Easier customization
@@ -2608,9 +2766,11 @@ const requiredTextPlugin = extendFieldPlugin(TextFieldPlugin, {
 ### Better Lifecycle APIs
 
 #### 9. Explicit Lifecycle Hooks
+
 **Problem**: No init/destroy hooks for complex plugins
 
 **Recommendation**: Optional lifecycle methods
+
 ```typescript
 interface PluginWithLifecycle extends Plugin {
   onRegister?(cms: CMS): void | Promise<void>;
@@ -2626,7 +2786,7 @@ class LifecycleAwarePluginType<T extends Plugin> extends PluginType<T> {
         await plugin.onRegister(this.cms);
       } catch (error) {
         console.error(`Plugin ${plugin.name} onRegister failed:`, error);
-        this.remove(plugin);  // Rollback
+        this.remove(plugin); // Rollback
         throw error;
       }
     }
@@ -2645,6 +2805,7 @@ class LifecycleAwarePluginType<T extends Plugin> extends PluginType<T> {
 ```
 
 **Usage**:
+
 ```typescript
 const analyticsPlugin = {
   __type: 'field',
@@ -2659,11 +2820,12 @@ const analyticsPlugin = {
   async onRemove(cms) {
     await shutdownAnalytics();
     // Cleanup subscriptions automatically
-  }
+  },
 };
 ```
 
 **Benefits**:
+
 - Explicit setup/teardown
 - Resource management
 - Async initialization support
@@ -2671,9 +2833,11 @@ const analyticsPlugin = {
 ---
 
 #### 10. Plugin State Management
+
 **Problem**: No built-in state for plugins
 
 **Recommendation**: Plugin state API
+
 ```typescript
 class StatefulPlugin extends Plugin {
   private state = new Map<string, any>();
@@ -2687,7 +2851,7 @@ class StatefulPlugin extends Plugin {
     this.events.dispatch({
       type: `plugin:${this.name}:state:change`,
       key,
-      value
+      value,
     });
   }
 
@@ -2698,6 +2862,7 @@ class StatefulPlugin extends Plugin {
 ```
 
 **Benefits**:
+
 - Encapsulated state
 - State change events
 - Easier debugging
@@ -2707,13 +2872,15 @@ class StatefulPlugin extends Plugin {
 ### Safer Plugin Execution
 
 #### 11. Plugin Sandboxing (Advanced)
+
 **Problem**: Plugins have unrestricted CMS access
 
 **Recommendation**: Permission-based access
+
 ```typescript
 interface PluginPermissions {
-  apis?: string[];          // ['github', 'tina']
-  events?: string[];        // ['form:submit', 'media:*']
+  apis?: string[]; // ['github', 'tina']
+  events?: string[]; // ['form:submit', 'media:*']
   media?: boolean;
   forms?: boolean;
 }
@@ -2725,7 +2892,7 @@ interface SecurePlugin extends Plugin {
 class SecurePluginProxy {
   constructor(
     private plugin: SecurePlugin,
-    private cms: CMS
+    private cms: CMS,
   ) {}
 
   getSecureCMS(): CMS {
@@ -2739,7 +2906,7 @@ class SecurePluginProxy {
             throw new Error(`Plugin lacks permission for API: ${String(prop)}`);
           }
           return target[prop];
-        }
+        },
       }),
 
       // Restricted event access
@@ -2750,7 +2917,7 @@ class SecurePluginProxy {
           }
           return this.cms.events.subscribe(pattern, callback);
         },
-        dispatch: this.cms.events.dispatch.bind(this.cms.events)
+        dispatch: this.cms.events.dispatch.bind(this.cms.events),
       },
 
       // Other CMS properties based on permissions...
@@ -2760,6 +2927,7 @@ class SecurePluginProxy {
 ```
 
 **Benefits**:
+
 - Principle of least privilege
 - Safer third-party plugins
 - Audit trail of permissions
@@ -2767,15 +2935,17 @@ class SecurePluginProxy {
 ---
 
 #### 12. Plugin Versioning & Compatibility
+
 **Problem**: No version management
 
 **Recommendation**: Version metadata and checking
+
 ```typescript
 interface VersionedPlugin extends Plugin {
   version: string;
-  tinacmsVersion?: string;  // Semver range: '>=1.0.0 <2.0.0'
+  tinacmsVersion?: string; // Semver range: '>=1.0.0 <2.0.0'
   dependencies?: {
-    [pluginName: string]: string;  // Version range
+    [pluginName: string]: string; // Version range
   };
 }
 
@@ -2784,8 +2954,7 @@ class VersionedPluginManager {
     // Check TinaCMS version compatibility
     if (plugin.tinacmsVersion && !satisfies(TINACMS_VERSION, plugin.tinacmsVersion)) {
       throw new Error(
-        `Plugin "${plugin.name}" requires TinaCMS ${plugin.tinacmsVersion}, ` +
-        `but ${TINACMS_VERSION} is installed`
+        `Plugin "${plugin.name}" requires TinaCMS ${plugin.tinacmsVersion}, ` + `but ${TINACMS_VERSION} is installed`,
       );
     }
 
@@ -2797,8 +2966,7 @@ class VersionedPluginManager {
       }
       if (!satisfies(existing.version, depVersion)) {
         throw new Error(
-          `Plugin "${plugin.name}" requires ${depName}@${depVersion}, ` +
-          `but ${existing.version} is installed`
+          `Plugin "${plugin.name}" requires ${depName}@${depVersion}, ` + `but ${existing.version} is installed`,
         );
       }
     }
@@ -2809,6 +2977,7 @@ class VersionedPluginManager {
 ```
 
 **Benefits**:
+
 - Prevent incompatible plugins
 - Clear dependency requirements
 - Better error messages
@@ -2817,27 +2986,29 @@ class VersionedPluginManager {
 
 ### Summary of Recommendations
 
-| Category | Recommendation | Effort | Impact | Priority |
-|----------|---------------|--------|--------|----------|
-| **Performance** | Lazy component loading | Medium | High | High |
-| **Performance** | Registry caching | Low | Medium | Medium |
-| **Performance** | Event listener optimization | Medium | Medium | Low |
-| **Stability** | Plugin validation (Zod) | Medium | High | High |
-| **Stability** | Name conflict warnings | Low | Medium | High |
-| **Stability** | Event error isolation | Low | High | High |
-| **Extension** | Typed creator functions | Low | Medium | Medium |
-| **Extension** | Plugin composition helpers | Medium | Medium | Low |
-| **Lifecycle** | Explicit lifecycle hooks | High | High | Medium |
-| **Lifecycle** | Plugin state management | Medium | Medium | Low |
-| **Safety** | Plugin sandboxing | High | Medium | Low |
-| **Safety** | Version checking | Medium | High | Medium |
+| Category        | Recommendation              | Effort | Impact | Priority |
+| --------------- | --------------------------- | ------ | ------ | -------- |
+| **Performance** | Lazy component loading      | Medium | High   | High     |
+| **Performance** | Registry caching            | Low    | Medium | Medium   |
+| **Performance** | Event listener optimization | Medium | Medium | Low      |
+| **Stability**   | Plugin validation (Zod)     | Medium | High   | High     |
+| **Stability**   | Name conflict warnings      | Low    | Medium | High     |
+| **Stability**   | Event error isolation       | Low    | High   | High     |
+| **Extension**   | Typed creator functions     | Low    | Medium | Medium   |
+| **Extension**   | Plugin composition helpers  | Medium | Medium | Low      |
+| **Lifecycle**   | Explicit lifecycle hooks    | High   | High   | Medium   |
+| **Lifecycle**   | Plugin state management     | Medium | Medium | Low      |
+| **Safety**      | Plugin sandboxing           | High   | Medium | Low      |
+| **Safety**      | Version checking            | Medium | High   | Medium   |
 
 **Quick Wins** (Low effort, high impact):
+
 1. Event error isolation
 2. Name conflict warnings
 3. Plugin validation schema
 
 **Long-term Investments**:
+
 1. Lazy component loading
 2. Lifecycle hooks
 3. Version checking
@@ -2847,11 +3018,13 @@ class VersionedPluginManager {
 ## Conclusion
 
 TinaCMS implements a well-designed, TypeScript-first plugin architecture that prioritizes:
+
 - **Developer Experience**: Simple plugin creation, strong typing, React integration
 - **Flexibility**: Multiple configuration patterns, runtime add/remove, event-driven updates
 - **Modularity**: Type-based organization, lazy initialization, decoupled components
 
 **Strengths**:
+
 - Clean, minimal API surface
 - Strong TypeScript support
 - React-first design
@@ -2859,6 +3032,7 @@ TinaCMS implements a well-designed, TypeScript-first plugin architecture that pr
 - Zero configuration for basic usage
 
 **Opportunities**:
+
 - Performance optimization through caching and lazy loading
 - Stability improvements through validation and error handling
 - Safety enhancements for third-party plugins

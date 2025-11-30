@@ -4,7 +4,7 @@ import './examples.css';
 
 /**
  * Text Editor Example with Undo/Redo
- * 
+ *
  * Demonstrates:
  * - useUndoRedoStack hook for managing text history
  * - Undo/redo buttons with keyboard shortcuts
@@ -12,7 +12,7 @@ import './examples.css';
  */
 export function TextEditorExample() {
   const [text, setText] = useState('Start typing to see undo/redo in action...');
-  
+
   const undoRedo = useUndoRedoStack({
     initialState: text,
     maxLength: 50,
@@ -46,33 +46,20 @@ export function TextEditorExample() {
       <div className="example-header">
         <h2>Text Editor with Undo/Redo</h2>
         <p>
-          This example demonstrates the <code>useUndoRedoStack</code> hook for managing
-          text editing history with undo and redo operations.
+          This example demonstrates the <code>useUndoRedoStack</code> hook for managing text editing history with undo
+          and redo operations.
         </p>
       </div>
 
       <div className="example-content">
         <div className="text-editor-controls">
-          <button
-            onClick={handleUndo}
-            disabled={!undoRedo.canUndo}
-            className="control-button"
-            title="Undo (Ctrl+Z)"
-          >
+          <button onClick={handleUndo} disabled={!undoRedo.canUndo} className="control-button" title="Undo (Ctrl+Z)">
             ↶ Undo
           </button>
-          <button
-            onClick={handleRedo}
-            disabled={!undoRedo.canRedo}
-            className="control-button"
-            title="Redo (Ctrl+Y)"
-          >
+          <button onClick={handleRedo} disabled={!undoRedo.canRedo} className="control-button" title="Redo (Ctrl+Y)">
             ↷ Redo
           </button>
-          <button
-            onClick={handleClear}
-            className="control-button secondary"
-          >
+          <button onClick={handleClear} className="control-button secondary">
             Clear
           </button>
           <div className="history-info">
@@ -98,17 +85,18 @@ export function TextEditorExample() {
                 {undoRedo.past.length === 0 ? (
                   <div className="history-item empty">No past states</div>
                 ) : (
-                  undoRedo.past.slice(-5).reverse().map((state, index) => (
-                    <div key={index} className="history-item">
-                      <div className="history-preview">
-                        {state.substring(0, 50)}
-                        {state.length > 50 ? '...' : ''}
+                  undoRedo.past
+                    .slice(-5)
+                    .reverse()
+                    .map((state, index) => (
+                      <div key={index} className="history-item">
+                        <div className="history-preview">
+                          {state.substring(0, 50)}
+                          {state.length > 50 ? '...' : ''}
+                        </div>
+                        <div className="history-meta">{state.length} chars</div>
                       </div>
-                      <div className="history-meta">
-                        {state.length} chars
-                      </div>
-                    </div>
-                  ))
+                    ))
                 )}
               </div>
             </div>
@@ -120,9 +108,7 @@ export function TextEditorExample() {
                   {undoRedo.present.substring(0, 50)}
                   {undoRedo.present.length > 50 ? '...' : ''}
                 </div>
-                <div className="history-meta">
-                  {undoRedo.present.length} chars
-                </div>
+                <div className="history-meta">{undoRedo.present.length} chars</div>
               </div>
             </div>
 
@@ -138,9 +124,7 @@ export function TextEditorExample() {
                         {state.substring(0, 50)}
                         {state.length > 50 ? '...' : ''}
                       </div>
-                      <div className="history-meta">
-                        {state.length} chars
-                      </div>
+                      <div className="history-meta">{state.length} chars</div>
                     </div>
                   ))
                 )}

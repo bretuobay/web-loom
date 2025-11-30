@@ -343,7 +343,7 @@ describe('createHubAndSpoke', () => {
           activeSpoke: 'settings',
           isOnHub: false,
         }),
-        expect.any(Object)
+        expect.any(Object),
       );
 
       navigation.destroy();
@@ -410,11 +410,7 @@ describe('createHubAndSpoke', () => {
 
       navigation.actions.activateSpoke('settings');
 
-      expect(mockHistory.pushState).toHaveBeenCalledWith(
-        { spokeId: 'settings' },
-        '',
-        '#settings'
-      );
+      expect(mockHistory.pushState).toHaveBeenCalledWith({ spokeId: 'settings' }, '', '#settings');
 
       navigation.destroy();
       // @ts-ignore - cleanup
@@ -433,11 +429,7 @@ describe('createHubAndSpoke', () => {
       navigation.actions.activateSpoke('settings');
       navigation.actions.returnToHub();
 
-      expect(mockHistory.pushState).toHaveBeenCalledWith(
-        { hub: true },
-        '',
-        '#hub'
-      );
+      expect(mockHistory.pushState).toHaveBeenCalledWith({ hub: true }, '', '#hub');
 
       navigation.destroy();
       // @ts-ignore - cleanup
@@ -473,10 +465,7 @@ describe('createHubAndSpoke', () => {
         enableBrowserHistory: true,
       });
 
-      expect(mockWindow.addEventListener).toHaveBeenCalledWith(
-        'popstate',
-        expect.any(Function)
-      );
+      expect(mockWindow.addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
 
       navigation.destroy();
       // @ts-ignore - cleanup
@@ -494,10 +483,7 @@ describe('createHubAndSpoke', () => {
 
       navigation.destroy();
 
-      expect(mockWindow.removeEventListener).toHaveBeenCalledWith(
-        'popstate',
-        expect.any(Function)
-      );
+      expect(mockWindow.removeEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
 
       // @ts-ignore - cleanup
       delete global.window;
@@ -513,9 +499,7 @@ describe('createHubAndSpoke', () => {
       });
 
       // Get the popstate handler that was registered
-      const popstateHandler = mockWindow.addEventListener.mock.calls.find(
-        (call) => call[0] === 'popstate'
-      )?.[1];
+      const popstateHandler = mockWindow.addEventListener.mock.calls.find((call) => call[0] === 'popstate')?.[1];
 
       expect(popstateHandler).toBeDefined();
 
@@ -546,9 +530,7 @@ describe('createHubAndSpoke', () => {
       navigation.actions.activateSpoke('settings');
 
       // Get the popstate handler
-      const popstateHandler = mockWindow.addEventListener.mock.calls.find(
-        (call) => call[0] === 'popstate'
-      )?.[1];
+      const popstateHandler = mockWindow.addEventListener.mock.calls.find((call) => call[0] === 'popstate')?.[1];
 
       // Simulate a popstate event for hub
       if (popstateHandler) {
