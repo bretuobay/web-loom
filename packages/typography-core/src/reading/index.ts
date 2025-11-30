@@ -33,7 +33,9 @@ export function createGuidedReading(element: HTMLElement, options: GuidedReading
     spans.forEach((span, spanIndex) => {
       if (spanIndex === targetIndex) {
         span.classList.add(highlightClass);
-        span.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (typeof span.scrollIntoView === 'function') {
+          span.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
       } else {
         span.classList.remove(highlightClass);
       }

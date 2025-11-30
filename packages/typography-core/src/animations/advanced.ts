@@ -70,6 +70,15 @@ export function morphText(
     animation.addEventListener('finish', () => {
       span.textContent = endChar;
     });
+    if (animation.finished) {
+      animation.finished
+        .then(() => {
+          span.textContent = endChar;
+        })
+        .catch(() => {
+          /* no-op: settling promise is best effort */
+        });
+    }
 
     animations.push(animation);
   });

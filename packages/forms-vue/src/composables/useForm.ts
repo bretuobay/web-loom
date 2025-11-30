@@ -1,8 +1,8 @@
-import { ref, computed, onUnmounted } from 'vue';
-import { FormFactory, type FormInstance } from '../../../forms-core/src';
+import { ref, computed, onUnmounted, getCurrentInstance } from 'vue';
+import { FormFactory } from '@web-loom/forms-core';
 import type { ZodSchema } from 'zod';
 import type { UseFormConfig, UseFormReturn, FormSubmitHandler } from '../types';
-import type { InferFormValues, InferFormOutput } from '../../../forms-core/src';
+import type { InferFormValues, InferFormOutput } from '@web-loom/forms-core';
 
 /**
  * Vue composable for form management
@@ -10,6 +10,47 @@ import type { InferFormValues, InferFormOutput } from '../../../forms-core/src';
 export function useForm<TSchema extends ZodSchema>(config: UseFormConfig<TSchema>): UseFormReturn<TSchema> {
   // Create form instance
   const form = FormFactory.create(config);
+
+  // Ensure default fields are registered so value updates stay reactive
+  const registerFieldPath = (path: string) => {
+    if (!path || form.hasField(path)) {
+      return;
+    }
+    form.registerField(path);
+  };
+
+  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+    return Object.prototype.toString.call(value) === '[object Object]';
+  };
+
+  const registerDefaultFields = (values: unknown, prefix?: string) => {
+    if (values === null || values === undefined) {
+      if (prefix) {
+        registerFieldPath(prefix);
+      }
+      return;
+    }
+
+    if (Array.isArray(values) || !isPlainObject(values)) {
+      if (prefix) {
+        registerFieldPath(prefix);
+      }
+      return;
+    }
+
+    const entries = Object.entries(values);
+    if (entries.length === 0 && prefix) {
+      registerFieldPath(prefix);
+      return;
+    }
+
+    for (const [key, value] of entries) {
+      const path = prefix ? `${prefix}.${key}` : key;
+      registerDefaultFields(value, path);
+    }
+  };
+
+  registerDefaultFields(config.defaultValues ?? {});
 
   // Reactive form state
   const formState = ref(form.getState());
@@ -19,13 +60,16 @@ export function useForm<TSchema extends ZodSchema>(config: UseFormConfig<TSchema
     formState.value = newState;
   });
 
-  // Cleanup subscription on unmount
-  onUnmounted(() => {
+  const cleanup = () => {
     unsubscribe();
-  });
+  };
+
+  if (getCurrentInstance()) {
+    onUnmounted(cleanup);
+  }
 
   // Computed values
-  const values = computed(() => form.getValues());
+  const values = computed(() => formState.value.values as InferFormValues<TSchema>);
 
   const errors = computed(() => {
     const fieldErrors: Record<string, string> = {};
@@ -49,28 +93,19 @@ export function useForm<TSchema extends ZodSchema>(config: UseFormConfig<TSchema
         event.stopPropagation();
       }
 
-      // Set submitting state
-      form.setSubmitting(true);
-
       try {
-        // Validate form
-        const isValid = await form.validate();
+        const isValidResult = await form.validate();
 
-        if (isValid) {
-          // Get transformed values
-          const values = form.getValues() as InferFormOutput<TSchema>;
-          await onSubmit(values, form);
+        if (isValidResult) {
+          const submittedValues = form.getValues() as InferFormOutput<TSchema>;
+          await onSubmit(submittedValues, form);
         }
       } catch (error) {
-        // Handle submission error
         console.error('Form submission error:', error);
 
-        // Set form-level error if needed
         if (error instanceof Error) {
-          form.setFormErrors([error.message]);
+          form.setErrors({ formErrors: [error.message] });
         }
-      } finally {
-        form.setSubmitting(false);
       }
     };
   };

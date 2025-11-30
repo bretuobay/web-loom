@@ -1,5 +1,5 @@
-import { ref, onUnmounted } from 'vue';
-import type { FormInstance, FormState } from '../../../forms-core/src';
+import { ref, onUnmounted, getCurrentInstance } from 'vue';
+import type { FormInstance, FormState } from '@web-loom/forms-core';
 
 /**
  * Composable to subscribe to specific parts of form state
@@ -26,9 +26,13 @@ export function useFormSubscription<TValues extends Record<string, unknown>, TSe
   });
 
   // Cleanup subscription on unmount
-  onUnmounted(() => {
+  const cleanup = () => {
     unsubscribe();
-  });
+  };
+
+  if (getCurrentInstance()) {
+    onUnmounted(cleanup);
+  }
 
   return selectedState;
 }

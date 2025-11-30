@@ -87,12 +87,17 @@ export class AsyncValidator {
 
     // Create new abort controller
     this.abortController = new AbortController();
+    const currentController = this.abortController;
 
     try {
       const result = await this.config.validator(value, {
-        signal: this.abortController.signal,
+        signal: currentController.signal,
         values: context?.values,
       });
+
+      if (currentController.signal.aborted) {
+        return null;
+      }
 
       // Cache result if enabled
       if (this.config.cache) {
@@ -112,7 +117,9 @@ export class AsyncValidator {
       // Re-throw other errors
       throw error;
     } finally {
-      this.abortController = null;
+      if (this.abortController === currentController) {
+        this.abortController = null;
+      }
     }
   }
 
@@ -154,7 +161,7 @@ export function debounce<T extends (...args: any[]) => any>(
   let latestReject: ((reason: any) => void) | null = null;
 
   return (...args: Parameters<T>): Promise<ReturnType<T>> => {
-    return new Promise<ReturnType<T>>((resolve, reject) => {
+    const pendingPromise = new Promise<ReturnType<T>>((resolve, reject) => {
       // Clear existing timeout
       if (timeout) {
         clearTimeout(timeout);
@@ -163,6 +170,8 @@ export function debounce<T extends (...args: any[]) => any>(
       // Cancel previous promise if it exists
       if (latestReject) {
         latestReject(new Error('Debounced call cancelled'));
+        latestReject = null;
+        latestResolve = null;
       }
 
       latestResolve = resolve;
@@ -187,6 +196,11 @@ export function debounce<T extends (...args: any[]) => any>(
         }
       }, wait);
     });
+
+    // Prevent unhandled rejections for cancelled calls
+    pendingPromise.catch(() => {});
+
+    return pendingPromise;
   };
 }
 

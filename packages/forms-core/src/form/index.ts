@@ -55,10 +55,8 @@ class FormInstanceImpl<T extends Record<string, unknown> = Record<string, unknow
       submitCount: 0,
     };
 
-    // Validate initial values
-    this.validateFormAsync().catch((error) => {
-      this.eventEmitter.emit('error', { error });
-    });
+    // Initial validity is assumed until validation runs
+    this.updateValidState();
   }
 
   // =============================================================================
@@ -327,7 +325,26 @@ class FormInstanceImpl<T extends Record<string, unknown> = Record<string, unknow
   }
 
   clear(): void {
-    this.reset({} as Partial<T>);
+    if (this.destroyed) return;
+
+    this.state.values = {} as T;
+    this.state.fieldErrors = {};
+    this.state.formErrors = [];
+    this.state.isDirty = false;
+    this.state.isValid = true;
+
+    for (const fieldMeta of Object.values(this.state.fields)) {
+      fieldMeta.touched = false;
+      fieldMeta.dirty = false;
+      fieldMeta.validating = false;
+      fieldMeta.focused = false;
+      fieldMeta.blurred = false;
+      fieldMeta.hasError = false;
+      fieldMeta.lastValidated = null;
+      fieldMeta.validationCount = 0;
+    }
+
+    this.emitStateChange();
   }
 
   async submit(): Promise<void> {

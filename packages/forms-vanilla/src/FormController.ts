@@ -1,4 +1,5 @@
-import { FormFactory, type FormInstance } from '../../forms-core/src';
+import { FormFactory, type FormInstance } from '@web-loom/forms-core';
+import type { InferFormOutput, InferFormValues, FormState } from '@web-loom/forms-core';
 import type { ZodSchema } from 'zod';
 import type {
   FormControllerConfig,
@@ -7,7 +8,6 @@ import type {
   FieldControllerConfig,
   FieldControllerInstance,
 } from './types';
-import type { InferFormValues, InferFormOutput, FormState } from '../../forms-core/src';
 import { FieldController } from './FieldController';
 import { DOMHelpers } from './utils/DOMHelpers';
 import { EventHelpers } from './utils/EventHelpers';
@@ -23,6 +23,7 @@ export class FormController<TSchema extends ZodSchema> implements FormController
   private readonly fieldControllers = new Map<string, FieldControllerInstance>();
   private readonly eventListeners: Array<() => void> = [];
   private submitHandler?: FormSubmitHandler<TSchema>;
+  private pendingSubmitHandler?: FormSubmitHandler<TSchema>;
 
   constructor(config: FormControllerConfig<TSchema>) {
     this.config = {
@@ -42,8 +43,25 @@ export class FormController<TSchema extends ZodSchema> implements FormController
       throw new Error(`Form element not found: ${config.form}`);
     }
 
-    // Create form instance
-    this.form = FormFactory.create(config);
+    if (this.config.onSubmit) {
+      this.submitHandler = async (values) => {
+        await this.config.onSubmit!(values as InferFormValues<TSchema>);
+      };
+    }
+
+    // Create form instance with submit bridge so we can surface typed handlers
+    this.form = FormFactory.create({
+      schema: this.config.schema,
+      defaultValues: this.config.defaultValues,
+      validateOnChange: this.config.validateOnChange,
+      validateOnBlur: this.config.validateOnBlur,
+      onSubmit: async (values) => {
+        const handler = this.consumeSubmitHandler();
+        if (handler) {
+          await handler(values as InferFormOutput<TSchema>, this.form);
+        }
+      },
+    });
 
     this.initialize();
   }
@@ -84,9 +102,7 @@ export class FormController<TSchema extends ZodSchema> implements FormController
     event.preventDefault();
     event.stopPropagation();
 
-    if (this.submitHandler) {
-      await this.submit(this.submitHandler);
-    }
+    await this.submit();
   }
 
   private updateFormDisplay(state: FormState<InferFormValues<TSchema>>): void {
@@ -125,24 +141,11 @@ export class FormController<TSchema extends ZodSchema> implements FormController
   }
 
   public async submit(handler?: FormSubmitHandler<TSchema>): Promise<void> {
-    this.form.setSubmitting(true);
-
-    try {
-      const isValid = await this.validate();
-
-      if (isValid && handler) {
-        const values = this.getValues() as InferFormOutput<TSchema>;
-        await handler(values, this.form);
-      }
-    } catch (error) {
-      console.error('Form submission error:', error);
-
-      if (error instanceof Error) {
-        this.form.setFormErrors([error.message]);
-      }
-    } finally {
-      this.form.setSubmitting(false);
+    if (handler) {
+      this.pendingSubmitHandler = handler;
     }
+
+    await this.form.submit();
   }
 
   public bindField(selector: string | HTMLElement, config?: FieldControllerConfig): FieldControllerInstance {
@@ -200,5 +203,11 @@ export class FormController<TSchema extends ZodSchema> implements FormController
     // Destroy field controllers
     this.fieldControllers.forEach((controller) => controller.destroy());
     this.fieldControllers.clear();
+  }
+
+  private consumeSubmitHandler(): FormSubmitHandler<TSchema> | undefined {
+    const handler = this.pendingSubmitHandler ?? this.submitHandler;
+    this.pendingSubmitHandler = undefined;
+    return handler;
   }
 }

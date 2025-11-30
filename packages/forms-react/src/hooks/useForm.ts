@@ -1,9 +1,9 @@
 import { useRef, useCallback, useMemo } from 'react';
-import { FormFactory, type FormInstance } from '../../../forms-core/src';
+import { FormFactory, type FormInstance } from '@web-loom/forms-core';
 import type { ZodSchema } from 'zod';
 import { useFormState } from './useFormState';
 import type { UseFormConfig, UseFormReturn, FormSubmitHandler } from '../types';
-import type { InferFormValues, InferFormOutput } from '../../../forms-core/src';
+import type { InferFormValues, InferFormOutput } from '@web-loom/forms-core';
 
 /**
  * React hook for form management
@@ -12,8 +12,48 @@ export function useForm<TSchema extends ZodSchema>(config: UseFormConfig<TSchema
   // Create form instance only once
   const formRef = useRef<FormInstance<InferFormValues<TSchema>> | null>(null);
 
+  const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+    return Object.prototype.toString.call(value) === '[object Object]';
+  };
+
+  const registerFieldPath = (form: FormInstance, path: string) => {
+    if (!path || form.hasField(path)) {
+      return;
+    }
+    form.registerField(path);
+  };
+
+  const registerDefaultFields = (form: FormInstance, values: unknown, prefix?: string) => {
+    if (values === null || values === undefined) {
+      if (prefix) {
+        registerFieldPath(form, prefix);
+      }
+      return;
+    }
+
+    if (Array.isArray(values) || !isPlainObject(values)) {
+      if (prefix) {
+        registerFieldPath(form, prefix);
+      }
+      return;
+    }
+
+    const entries = Object.entries(values);
+    if (entries.length === 0 && prefix) {
+      registerFieldPath(form, prefix);
+      return;
+    }
+
+    for (const [key, value] of entries) {
+      const path = prefix ? `${prefix}.${key}` : key;
+      registerDefaultFields(form, value, path);
+    }
+  };
+
   if (!formRef.current) {
-    formRef.current = FormFactory.create(config);
+    const createdForm = FormFactory.create(config);
+    registerDefaultFields(createdForm, config.defaultValues ?? {});
+    formRef.current = createdForm;
   }
 
   const form = formRef.current;
@@ -75,7 +115,7 @@ export function useForm<TSchema extends ZodSchema>(config: UseFormConfig<TSchema
   }, [form]);
 
   // Derived state
-  const values = useMemo(() => form.getValues(), [formState.values]);
+  const values = useMemo(() => form.getValues(), [formState]);
   const errors = useMemo(() => {
     const fieldErrors: Record<string, string> = {};
     Object.entries(formState.fieldErrors).forEach(([path, error]) => {
@@ -84,7 +124,7 @@ export function useForm<TSchema extends ZodSchema>(config: UseFormConfig<TSchema
       }
     });
     return fieldErrors;
-  }, [formState.fieldErrors]);
+  }, [formState]);
 
   return {
     form,

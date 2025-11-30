@@ -51,7 +51,7 @@ export async function loadWebFont(config: WebFontConfig): Promise<FontLoadResult
     };
   }
 
-  if ('FontFace' in globalThis) {
+  if (typeof FontFace === 'function') {
     try {
       const source = config.sources[0];
       const descriptors: FontFaceDescriptors = {

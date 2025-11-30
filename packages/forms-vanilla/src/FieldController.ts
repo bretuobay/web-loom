@@ -1,7 +1,13 @@
-import type { FormInstance } from '../../forms-core/src';
+import type { FieldConfig, FieldMeta, FormInstance } from '@web-loom/forms-core';
 import type { FieldControllerConfig, FieldControllerInstance } from './types';
 import { DOMHelpers } from './utils/DOMHelpers';
 import { EventHelpers } from './utils/EventHelpers';
+
+type ResolvedFieldControllerConfig = FieldControllerConfig & {
+  name: string;
+  validateOnChange: boolean;
+  validateOnBlur: boolean;
+};
 
 /**
  * Individual field controller for DOM binding
@@ -10,7 +16,7 @@ export class FieldController implements FieldControllerInstance {
   public readonly element: HTMLElement;
   public readonly name: string;
 
-  private readonly config: Required<FieldControllerConfig>;
+  private readonly config: ResolvedFieldControllerConfig;
   private readonly form: FormInstance<Record<string, unknown>>;
   private readonly eventListeners: Array<() => void> = [];
   private unregisterField?: () => void;
@@ -18,32 +24,46 @@ export class FieldController implements FieldControllerInstance {
   constructor(element: HTMLElement, config: FieldControllerConfig, form: FormInstance<Record<string, unknown>>) {
     this.element = element;
     this.form = form;
-    this.name = config.name || DOMHelpers.getFieldName(element);
+    const resolvedName = config.name ?? DOMHelpers.getFieldName(element);
 
-    if (!this.name) {
+    if (!resolvedName) {
       throw new Error('Field name is required');
     }
 
     this.config = {
-      name: this.name,
-      validateOnChange: false,
-      validateOnBlur: true,
       ...config,
+      name: resolvedName,
+      validateOnChange: config.validateOnChange ?? false,
+      validateOnBlur: config.validateOnBlur ?? true,
     };
+    this.name = this.config.name;
 
     this.initialize();
   }
 
   private initialize(): void {
     // Register field with form
-    this.unregisterField = this.form.registerField(this.name, {
-      validateOnBlur: this.config.validateOnBlur,
-      validateOnChange: this.config.validateOnChange,
-    });
+    const fieldConfig: FieldConfig = {};
+
+    if (this.config.transform) {
+      fieldConfig.transform = this.config.transform;
+    }
+
+    if (this.config.validateOnChange) {
+      fieldConfig.validateOn = 'change';
+    } else if (this.config.validateOnBlur) {
+      fieldConfig.validateOn = 'blur';
+    }
+
+    this.unregisterField = this.form.registerField(this.name, fieldConfig);
 
     // Set initial value from DOM
     const initialValue = this.getValueFromDOM();
-    if (initialValue !== undefined) {
+    const hasInitialValue =
+      initialValue !== undefined &&
+      initialValue !== null &&
+      !(typeof initialValue === 'number' && Number.isNaN(initialValue));
+    if (hasInitialValue) {
       this.form.setFieldValue(this.name, initialValue);
     }
 
@@ -52,7 +72,7 @@ export class FieldController implements FieldControllerInstance {
 
     // Subscribe to field state changes
     const unsubscribe = this.form.subscribe('stateChange', (state) => {
-      this.updateDisplay(state.fields[this.name], state.fieldErrors[this.name]);
+      this.updateDisplay(state.fields[this.name], state.fieldErrors[this.name] ?? null);
     });
     this.eventListeners.push(unsubscribe);
   }
@@ -137,7 +157,7 @@ export class FieldController implements FieldControllerInstance {
     );
   }
 
-  private updateDisplay(fieldState: any, error: string | null): void {
+  private updateDisplay(_fieldState: FieldMeta | undefined, error: string | null): void {
     const { errorDisplay } = this.config;
 
     // Update element classes
@@ -147,7 +167,7 @@ export class FieldController implements FieldControllerInstance {
 
     // Update error message display
     if (errorDisplay?.container) {
-      const container = document.querySelector(errorDisplay.container);
+      const container = DOMHelpers.querySelectorSafe<HTMLElement>(errorDisplay.container);
       if (container) {
         container.textContent = error || '';
         container.style.display = error ? 'block' : 'none';

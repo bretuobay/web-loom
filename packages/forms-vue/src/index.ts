@@ -20,4 +20,4 @@ export type {
 } from './types';
 
 export { FormProvider, useFormContext } from './components/FormProvider';
-export type { FormProviderProps } from './components/FormProvider';
+export type { FormProviderProps } from './types';

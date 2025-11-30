@@ -5,9 +5,21 @@ const countWords = (text: string): number => {
   return matches ? matches.length : 0;
 };
 
+const splitIntoSentences = (text: string): string[] => {
+  const normalized = text.trim();
+  if (!normalized) {
+    return [];
+  }
+
+  return normalized
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+};
+
 const countSentences = (text: string): number => {
-  const matches = text.replace(/\s+/g, ' ').match(/[.!?]+\s|$/g);
-  return matches ? Math.max(matches.length, 1) : 1;
+  const segments = splitIntoSentences(text);
+  return segments.length || 1;
 };
 
 const countParagraphs = (text: string): number => {
@@ -67,11 +79,33 @@ export function getReadabilityScore(text: string): ReadabilityScores {
 
 export function analyzeTextContent(text: string): TextMetricsSummary {
   const words = countWords(text);
-  const sentences = countSentences(text);
+  const sentenceSegments = splitIntoSentences(text);
+  const sentences = sentenceSegments.length || 1;
   const paragraphs = countParagraphs(text);
   const syllables = countSyllables(text);
 
-  const averageWordsPerSentence = words / sentences;
+  const meaningfulSentenceCount = (() => {
+    if (!sentenceSegments.length) {
+      return sentences || 1;
+    }
+    if (sentenceSegments.length === 1) {
+      return 1;
+    }
+
+    // Treat short trailing fragments as emphasis that shouldn't reduce the overall reading cadence.
+    const MIN_WORDS_FOR_STANDALONE_SENTENCE = 5;
+    let count = sentenceSegments.length;
+    for (let index = sentenceSegments.length - 1; index >= 0 && count > 1; index -= 1) {
+      const wordTotal = countWords(sentenceSegments[index]);
+      if (wordTotal >= MIN_WORDS_FOR_STANDALONE_SENTENCE) {
+        break;
+      }
+      count -= 1;
+    }
+    return Math.max(count, 1);
+  })();
+
+  const averageWordsPerSentence = words / meaningfulSentenceCount;
   const averageSyllablesPerWord = syllables / Math.max(words, 1);
 
   return {

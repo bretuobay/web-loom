@@ -12,9 +12,11 @@ export function useField<TValue = unknown>(name: string, config: UseFieldConfig 
 
   // Register field on mount
   onMounted(() => {
+    const validateOn = config.validateOnChange ? 'change' : config.validateOnBlur === false ? 'submit' : 'blur';
+
     unregisterField = form.registerField(name, {
-      validateOnBlur: config.validateOnBlur ?? true,
-      validateOnChange: config.validateOnChange ?? false,
+      validateOn,
+      transform: config.transform,
     });
   });
 

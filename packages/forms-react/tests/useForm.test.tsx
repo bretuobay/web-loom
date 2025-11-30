@@ -12,8 +12,8 @@ describe('useForm', () => {
   });
 
   const defaultValues = {
-    email: '',
-    name: '',
+    email: 'default@example.com',
+    name: 'Default User',
     age: 18,
   };
 

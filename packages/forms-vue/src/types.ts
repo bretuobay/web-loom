@@ -7,7 +7,7 @@ import type {
   FormPaths,
   InferFormValues,
   InferFormOutput,
-} from '../../forms-core/src';
+} from '@web-loom/forms-core';
 import type { ZodSchema } from 'zod';
 
 /**

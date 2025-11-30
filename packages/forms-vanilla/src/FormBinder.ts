@@ -1,15 +1,21 @@
-import type { FormInstance } from '../../forms-core/src';
+import type { FormInstance } from '@web-loom/forms-core';
 import type { FormBinderConfig, ElementBinder, FieldControllerConfig, FieldControllerInstance } from './types';
 import { FieldController } from './FieldController';
 import { DOMHelpers } from './utils/DOMHelpers';
+
+type ResolvedFormBinderConfig = FormBinderConfig & {
+  fieldSelector: string;
+  autoBind: boolean;
+  nameAttribute: string;
+};
 
 /**
  * Utility class for binding multiple form fields
  */
 export class FormBinder implements ElementBinder {
   private readonly form: FormInstance<Record<string, unknown>>;
-  private readonly config: Required<FormBinderConfig>;
-  private readonly boundElements = new WeakMap<HTMLElement, FieldControllerInstance>();
+  private readonly config: ResolvedFormBinderConfig;
+  private readonly boundElements = new Map<HTMLElement, FieldControllerInstance>();
 
   constructor(form: FormInstance<Record<string, unknown>>, config: FormBinderConfig = {}) {
     this.form = form;
@@ -17,6 +23,7 @@ export class FormBinder implements ElementBinder {
       fieldSelector: 'input, select, textarea, [data-field]',
       autoBind: true,
       nameAttribute: 'name',
+      validation: config.validation,
       ...config,
     };
   }
@@ -95,8 +102,9 @@ export class FormBinder implements ElementBinder {
    * Unbind all elements
    */
   public unbindAll(): void {
-    this.boundElements.forEach((controller) => {
+    for (const controller of this.boundElements.values()) {
       controller.destroy();
-    });
+    }
+    this.boundElements.clear();
   }
 }
