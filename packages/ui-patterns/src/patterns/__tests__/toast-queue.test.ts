@@ -345,14 +345,9 @@ describe('createToastQueue', () => {
     it('should support all valid position values', () => {
       const toastQueue = createToastQueue();
 
-      const positions: Array<'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'> = [
-        'top-left',
-        'top-center',
-        'top-right',
-        'bottom-left',
-        'bottom-center',
-        'bottom-right',
-      ];
+      const positions: Array<
+        'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'
+      > = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
 
       positions.forEach((position) => {
         toastQueue.actions.setPosition(position);

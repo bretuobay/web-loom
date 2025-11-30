@@ -35,11 +35,11 @@ export class ViewportObservable {
   }
 
   get width$(): Observable<number> {
-    return this._size$.pipe(map(size => size.width));
+    return this._size$.pipe(map((size) => size.width));
   }
 
   get height$(): Observable<number> {
-    return this._size$.pipe(map(size => size.height));
+    return this._size$.pipe(map((size) => size.height));
   }
 
   getCurrentSize(): ViewportSize {
@@ -74,7 +74,7 @@ export class ViewportObservable {
     const subject = new BehaviorSubject(mediaQueryList.matches);
 
     const handler = (e: MediaQueryListEvent) => subject.next(e.matches);
-    
+
     if (mediaQueryList.addEventListener) {
       mediaQueryList.addEventListener('change', handler);
     } else {

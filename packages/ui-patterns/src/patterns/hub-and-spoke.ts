@@ -166,11 +166,11 @@ export interface HubAndSpokeBehavior {
 /**
  * Creates a hub-and-spoke navigation pattern for managing navigation between
  * a central hub page and independent spoke pages.
- * 
+ *
  * This pattern is ideal for applications where users navigate from a central
  * dashboard or menu to independent sections, with support for breadcrumb
  * tracking and navigation history.
- * 
+ *
  * @example
  * ```typescript
  * const navigation = createHubAndSpoke({
@@ -186,32 +186,32 @@ export interface HubAndSpokeBehavior {
  *     console.log('Returned to hub');
  *   },
  * });
- * 
+ *
  * // Listen to navigation events
  * navigation.eventBus.on('spoke:activated', (spokeId) => {
  *   console.log('Spoke activated:', spokeId);
  * });
- * 
+ *
  * // Navigate to a spoke
  * navigation.actions.activateSpoke('settings');
  * console.log(navigation.getState().isOnHub); // false
  * console.log(navigation.getState().activeSpoke); // 'settings'
  * console.log(navigation.getState().breadcrumbs); // ['settings']
- * 
+ *
  * // Return to hub
  * navigation.actions.returnToHub();
  * console.log(navigation.getState().isOnHub); // true
  * console.log(navigation.getState().activeSpoke); // null
- * 
+ *
  * // Navigate with history
  * navigation.actions.activateSpoke('profile');
  * navigation.actions.activateSpoke('notifications');
  * navigation.actions.goBack(); // Returns to 'profile'
- * 
+ *
  * // Clean up
  * navigation.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the hub-and-spoke navigation.
  * @returns A hub-and-spoke navigation pattern instance.
  */
@@ -244,108 +244,88 @@ export function createHubAndSpoke(options: HubAndSpokeOptions): HubAndSpokeBehav
     navigationHistory: [],
   };
 
-  const store: Store<HubAndSpokeState, HubAndSpokeActions> = createStore<
-    HubAndSpokeState,
-    HubAndSpokeActions
-  >(initialState, (set, get) => ({
-    activateSpoke: (spokeId: string) => {
-      const state = get();
+  const store: Store<HubAndSpokeState, HubAndSpokeActions> = createStore<HubAndSpokeState, HubAndSpokeActions>(
+    initialState,
+    (set, get) => ({
+      activateSpoke: (spokeId: string) => {
+        const state = get();
 
-      // Verify spoke exists
-      const spoke = findSpoke(spokeId, state.spokes);
-      if (!spoke) {
-        console.warn(`Spoke with ID "${spokeId}" not found`);
-        return;
-      }
+        // Verify spoke exists
+        const spoke = findSpoke(spokeId, state.spokes);
+        if (!spoke) {
+          console.warn(`Spoke with ID "${spokeId}" not found`);
+          return;
+        }
 
-      // Update state
-      set((prevState) => ({
-        ...prevState,
-        isOnHub: false,
-        activeSpoke: spokeId,
-        breadcrumbs: [...prevState.breadcrumbs, spokeId],
-        navigationHistory: [...prevState.navigationHistory, spokeId],
-      }));
+        // Update state
+        set((prevState) => ({
+          ...prevState,
+          isOnHub: false,
+          activeSpoke: spokeId,
+          breadcrumbs: [...prevState.breadcrumbs, spokeId],
+          navigationHistory: [...prevState.navigationHistory, spokeId],
+        }));
 
-      // Emit event
-      eventBus.emit('spoke:activated', spokeId);
-      eventBus.emit('navigation:changed', get());
+        // Emit event
+        eventBus.emit('spoke:activated', spokeId);
+        eventBus.emit('navigation:changed', get());
 
-      // Invoke callback
-      if (onSpokeActivate) {
-        onSpokeActivate(spokeId);
-      }
+        // Invoke callback
+        if (onSpokeActivate) {
+          onSpokeActivate(spokeId);
+        }
 
-      // Browser history integration
-      if (enableBrowserHistory && typeof window !== 'undefined' && window.history) {
-        window.history.pushState({ spokeId }, '', `#${spokeId}`);
-      }
-    },
+        // Browser history integration
+        if (enableBrowserHistory && typeof window !== 'undefined' && window.history) {
+          window.history.pushState({ spokeId }, '', `#${spokeId}`);
+        }
+      },
 
-    returnToHub: () => {
-      // Update state
-      set((prevState) => ({
-        ...prevState,
-        isOnHub: true,
-        activeSpoke: null,
-        breadcrumbs: [],
-        navigationHistory: [...prevState.navigationHistory, 'hub'],
-      }));
-
-      // Emit event
-      eventBus.emit('hub:returned');
-      eventBus.emit('navigation:changed', get());
-
-      // Invoke callback
-      if (onReturnToHub) {
-        onReturnToHub();
-      }
-
-      // Browser history integration
-      if (enableBrowserHistory && typeof window !== 'undefined' && window.history) {
-        window.history.pushState({ hub: true }, '', '#hub');
-      }
-    },
-
-    goBack: () => {
-      const state = get();
-
-      if (state.navigationHistory.length === 0) {
-        console.warn('Cannot go back: navigation history is empty');
-        return;
-      }
-
-      // Remove current location from history
-      const newHistory = [...state.navigationHistory];
-      newHistory.pop();
-
-      if (newHistory.length === 0) {
-        // No more history, return to hub
+      returnToHub: () => {
+        // Update state
         set((prevState) => ({
           ...prevState,
           isOnHub: true,
           activeSpoke: null,
           breadcrumbs: [],
-          navigationHistory: [],
+          navigationHistory: [...prevState.navigationHistory, 'hub'],
         }));
 
+        // Emit event
         eventBus.emit('hub:returned');
         eventBus.emit('navigation:changed', get());
 
+        // Invoke callback
         if (onReturnToHub) {
           onReturnToHub();
         }
-      } else {
-        // Navigate to previous location
-        const previousLocation = newHistory[newHistory.length - 1];
 
-        if (previousLocation === 'hub') {
+        // Browser history integration
+        if (enableBrowserHistory && typeof window !== 'undefined' && window.history) {
+          window.history.pushState({ hub: true }, '', '#hub');
+        }
+      },
+
+      goBack: () => {
+        const state = get();
+
+        if (state.navigationHistory.length === 0) {
+          console.warn('Cannot go back: navigation history is empty');
+          return;
+        }
+
+        // Remove current location from history
+        const newHistory = [...state.navigationHistory];
+        newHistory.pop();
+
+        if (newHistory.length === 0) {
+          // No more history, return to hub
           set((prevState) => ({
             ...prevState,
             isOnHub: true,
             activeSpoke: null,
             breadcrumbs: [],
-            navigationHistory: newHistory,
+            navigationHistory: [],
           }));
 
           eventBus.emit('hub:returned');
@@ -355,100 +335,120 @@ export function createHubAndSpoke(options: HubAndSpokeOptions): HubAndSpokeBehav
             onReturnToHub();
           }
         } else {
-          // Navigate to previous spoke
-          // Rebuild breadcrumbs from history
-          const newBreadcrumbs = newHistory.filter((item) => item !== 'hub');
+          // Navigate to previous location
+          const previousLocation = newHistory[newHistory.length - 1];
 
-          set((prevState) => ({
-            ...prevState,
-            isOnHub: false,
-            activeSpoke: previousLocation,
-            breadcrumbs: newBreadcrumbs,
-            navigationHistory: newHistory,
-          }));
+          if (previousLocation === 'hub') {
+            set((prevState) => ({
+              ...prevState,
+              isOnHub: true,
+              activeSpoke: null,
+              breadcrumbs: [],
+              navigationHistory: newHistory,
+            }));
 
-          eventBus.emit('spoke:activated', previousLocation);
-          eventBus.emit('navigation:changed', get());
+            eventBus.emit('hub:returned');
+            eventBus.emit('navigation:changed', get());
 
-          if (onSpokeActivate) {
-            onSpokeActivate(previousLocation);
+            if (onReturnToHub) {
+              onReturnToHub();
+            }
+          } else {
+            // Navigate to previous spoke
+            // Rebuild breadcrumbs from history
+            const newBreadcrumbs = newHistory.filter((item) => item !== 'hub');
+
+            set((prevState) => ({
+              ...prevState,
+              isOnHub: false,
+              activeSpoke: previousLocation,
+              breadcrumbs: newBreadcrumbs,
+              navigationHistory: newHistory,
+            }));
+
+            eventBus.emit('spoke:activated', previousLocation);
+            eventBus.emit('navigation:changed', get());
+
+            if (onSpokeActivate) {
+              onSpokeActivate(previousLocation);
+            }
           }
         }
-      }
 
-      // Browser history integration
-      if (enableBrowserHistory && typeof window !== 'undefined' && window.history) {
-        window.history.back();
-      }
-    },
-
-    updateBreadcrumbs: (breadcrumbs: string[]) => {
-      set((prevState) => ({
-        ...prevState,
-        breadcrumbs: [...breadcrumbs],
-      }));
-
-      eventBus.emit('navigation:changed', get());
-    },
-
-    addSpoke: (spoke: Spoke) => {
-      const state = get();
-
-      // Check if spoke already exists
-      if (findSpoke(spoke.id, state.spokes)) {
-        console.warn(`Spoke with ID "${spoke.id}" already exists`);
-        return;
-      }
-
-      set((prevState) => ({
-        ...prevState,
-        spokes: [...prevState.spokes, spoke],
-      }));
-
-      eventBus.emit('navigation:changed', get());
-    },
-
-    removeSpoke: (spokeId: string) => {
-      const state = get();
-
-      // Helper to remove spoke recursively
-      const removeFromArray = (spokesArray: Spoke[]): Spoke[] => {
-        return spokesArray
-          .filter((s) => s.id !== spokeId)
-          .map((s) => ({
-            ...s,
-            subSpokes: s.subSpokes ? removeFromArray(s.subSpokes) : undefined,
-          }));
-      };
-
-      const newSpokes = removeFromArray(state.spokes);
-
-      // If the active spoke is being removed, return to hub
-      if (state.activeSpoke === spokeId) {
-        set((prevState) => ({
-          ...prevState,
-          isOnHub: true,
-          activeSpoke: null,
-          breadcrumbs: [],
-          spokes: newSpokes,
-        }));
-
-        eventBus.emit('hub:returned');
-        eventBus.emit('navigation:changed', get());
-
-        if (onReturnToHub) {
-          onReturnToHub();
+        // Browser history integration
+        if (enableBrowserHistory && typeof window !== 'undefined' && window.history) {
+          window.history.back();
         }
-      } else {
+      },
+
+      updateBreadcrumbs: (breadcrumbs: string[]) => {
         set((prevState) => ({
           ...prevState,
-          spokes: newSpokes,
+          breadcrumbs: [...breadcrumbs],
         }));
 
         eventBus.emit('navigation:changed', get());
-      }
-    },
-  }));
+      },
+
+      addSpoke: (spoke: Spoke) => {
+        const state = get();
+
+        // Check if spoke already exists
+        if (findSpoke(spoke.id, state.spokes)) {
+          console.warn(`Spoke with ID "${spoke.id}" already exists`);
+          return;
+        }
+
+        set((prevState) => ({
+          ...prevState,
+          spokes: [...prevState.spokes, spoke],
+        }));
+
+        eventBus.emit('navigation:changed', get());
+      },
+
+      removeSpoke: (spokeId: string) => {
+        const state = get();
+
+        // Helper to remove spoke recursively
+        const removeFromArray = (spokesArray: Spoke[]): Spoke[] => {
+          return spokesArray
+            .filter((s) => s.id !== spokeId)
+            .map((s) => ({
+              ...s,
+              subSpokes: s.subSpokes ? removeFromArray(s.subSpokes) : undefined,
+            }));
+        };
+
+        const newSpokes = removeFromArray(state.spokes);
+
+        // If the active spoke is being removed, return to hub
+        if (state.activeSpoke === spokeId) {
+          set((prevState) => ({
+            ...prevState,
+            isOnHub: true,
+            activeSpoke: null,
+            breadcrumbs: [],
+            spokes: newSpokes,
+          }));
+
+          eventBus.emit('hub:returned');
+          eventBus.emit('navigation:changed', get());
+
+          if (onReturnToHub) {
+            onReturnToHub();
+          }
+        } else {
+          set((prevState) => ({
+            ...prevState,
+            spokes: newSpokes,
+          }));
+
+          eventBus.emit('navigation:changed', get());
+        }
+      },
+    }),
+  );
 
   // Browser history integration - listen to popstate events
   if (enableBrowserHistory && typeof window !== 'undefined') {

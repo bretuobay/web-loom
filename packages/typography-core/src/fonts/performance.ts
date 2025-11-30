@@ -30,7 +30,11 @@ export function planFontSubsets(usages: FontUsageSnapshot[], options?: FontSubse
   return usages.map((usage) => generateFontSubset(usage.text, options));
 }
 
-export function estimateFontTransferSavings(fullFileSizeKB: number, subsetGlyphCount: number, originalGlyphCount: number): number {
+export function estimateFontTransferSavings(
+  fullFileSizeKB: number,
+  subsetGlyphCount: number,
+  originalGlyphCount: number,
+): number {
   if (fullFileSizeKB <= 0 || subsetGlyphCount <= 0 || originalGlyphCount <= 0) {
     return 0;
   }

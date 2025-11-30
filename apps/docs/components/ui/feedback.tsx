@@ -1,8 +1,8 @@
-import Image from 'next/image'
-import Feedback01 from '@/public/images/feedback-01.svg'
-import Feedback02 from '@/public/images/feedback-02.svg'
-import Feedback03 from '@/public/images/feedback-03.svg'
-import Feedback04 from '@/public/images/feedback-04.svg'
+import Image from 'next/image';
+import Feedback01 from '@/public/images/feedback-01.svg';
+import Feedback02 from '@/public/images/feedback-02.svg';
+import Feedback03 from '@/public/images/feedback-03.svg';
+import Feedback04 from '@/public/images/feedback-04.svg';
 
 export default function Feedback() {
   return (
@@ -27,5 +27,5 @@ export default function Feedback() {
         </button>
       </div>
     </div>
-  )
+  );
 }

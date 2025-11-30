@@ -183,11 +183,7 @@ Each helper returns pure data and formatted CSS friendly strings so you can plug
 ### Accessibility Helpers
 
 ```typescript
-import {
-  adjustForLowVision,
-  optimizeForDyslexia,
-  respectMotionPreferences,
-} from '@web-loom/typography-core';
+import { adjustForLowVision, optimizeForDyslexia, respectMotionPreferences } from '@web-loom/typography-core';
 
 const dyslexiaPreset = optimizeForDyslexia({ baseFontSize: 18 });
 const visionSupport = adjustForLowVision(16, { severity: 'moderate', prefersHighContrast: true });
@@ -248,11 +244,7 @@ Golden ratio helpers keep typographic scales harmonious, while optical sizing co
 ### Advanced Animations
 
 ```typescript
-import {
-  animateVariableFont,
-  createSpeedReading,
-  morphText,
-} from '@web-loom/typography-core';
+import { animateVariableFont, createSpeedReading, morphText } from '@web-loom/typography-core';
 
 const morphController = morphText(element, 'Read deeply', 'Write boldly', { duration: 1200 });
 const speedReading = createSpeedReading(longformContent, { wordsPerMinute: 450, target: readerElement });
@@ -290,12 +282,7 @@ These helpers power guided reading overlays, RSVP flows, and focus tracking inte
 ### Multilingual & Language Tools
 
 ```typescript
-import {
-  adaptTypographyForLocale,
-  applyRTLSupport,
-  detectLanguage,
-  extractKeywords,
-} from '@web-loom/typography-core';
+import { adaptTypographyForLocale, applyRTLSupport, detectLanguage, extractKeywords } from '@web-loom/typography-core';
 
 const languageInfo = detectLanguage(bodyCopy);
 const keywords = extractKeywords(bodyCopy);

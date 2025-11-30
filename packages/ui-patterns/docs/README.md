@@ -49,11 +49,7 @@ npm install @web-loom/ui-patterns
 ```
 
 ```typescript
-import {
-  createHubAndSpoke,
-  createGridLayout,
-  createFloatingActionButton,
-} from '@web-loom/ui-patterns';
+import { createHubAndSpoke, createGridLayout, createFloatingActionButton } from '@web-loom/ui-patterns';
 
 // Hub & Spoke Navigation
 const navigation = createHubAndSpoke({
@@ -83,6 +79,7 @@ const fab = createFloatingActionButton({
 ## Framework Support
 
 All patterns support:
+
 - ✅ React (via hooks)
 - ✅ Vue (via composables)
 - ✅ Angular (via services)
@@ -91,6 +88,7 @@ All patterns support:
 ## Accessibility
 
 All patterns are designed with accessibility in mind:
+
 - WCAG 2.1 Level AA compliant
 - Keyboard navigation support
 - Screen reader announcements
@@ -100,6 +98,7 @@ All patterns are designed with accessibility in mind:
 ## TypeScript
 
 Full TypeScript support with:
+
 - Complete type definitions
 - Exported interfaces
 - Generic type support
@@ -108,6 +107,7 @@ Full TypeScript support with:
 ## Performance
 
 All patterns are optimized for performance:
+
 - Minimal bundle sizes (<3KB gzipped)
 - Tree-shakeable exports
 - Efficient state management

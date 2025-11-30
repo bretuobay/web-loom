@@ -9,6 +9,7 @@ This directory contains interactive examples demonstrating the usage of `@web-lo
 Demonstrates the `useDialogBehavior` hook from `@web-loom/ui-core/react`.
 
 **Features:**
+
 - Open/close dialog with content
 - Toggle dialog state
 - Lifecycle callbacks (onOpen, onClose)
@@ -22,6 +23,7 @@ Demonstrates the `useDialogBehavior` hook from `@web-loom/ui-core/react`.
 Demonstrates the `useListSelection` hook with different selection modes.
 
 **Features:**
+
 - Single selection mode
 - Multi-selection mode (Ctrl/Cmd + Click)
 - Range selection mode (Shift + Click)
@@ -36,6 +38,7 @@ Demonstrates the `useListSelection` hook with different selection modes.
 Demonstrates the `createMasterDetail` pattern from `@web-loom/ui-patterns`.
 
 **Features:**
+
 - Product list (master view)
 - Synchronized detail view
 - Selection change callbacks
@@ -50,6 +53,7 @@ Demonstrates the `createMasterDetail` pattern from `@web-loom/ui-patterns`.
 Demonstrates the `createWizard` pattern from `@web-loom/ui-patterns`.
 
 **Features:**
+
 - Multi-step form flow
 - Step validation before progression
 - Personal information step
@@ -69,17 +73,20 @@ All examples are accessible through the UI Patterns page at `/ui-patterns` route
 ### Running the Examples
 
 1. Ensure dependencies are installed:
+
    ```bash
    npm install
    ```
 
 2. Build the required packages:
+
    ```bash
    npm run build --workspace=@web-loom/ui-core
    npm run build --workspace=@web-loom/ui-patterns
    ```
 
 3. Start the development server:
+
    ```bash
    cd apps/ui-patterns-playground
    npm run dev
@@ -103,6 +110,7 @@ examples/
 ## Styling
 
 All examples use the shared `examples.css` file which provides:
+
 - Consistent button styles
 - Dialog/modal styling
 - List and selection styling
@@ -114,6 +122,7 @@ All examples use the shared `examples.css` file which provides:
 ## Integration
 
 The examples are integrated into the main app through:
+
 - `UIPatterns.tsx` - Main page component with navigation
 - `App.tsx` - Route configuration
 - `Header.tsx` - Navigation link

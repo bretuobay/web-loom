@@ -1,6 +1,6 @@
 /**
  * Angular Framework Adapters
- * 
+ *
  * This module provides Angular services for all UI Core behaviors.
  * These services handle behavior lifecycle, expose state as RxJS Observables,
  * and implement proper cleanup with OnDestroy.
@@ -40,10 +40,10 @@ export { DragDropBehaviorService } from './drag-drop-behavior.service';
 
 /**
  * Angular service for dialog behavior.
- * 
+ *
  * Wraps the dialog behavior and exposes state as an RxJS Observable.
  * Automatically handles cleanup when the service is destroyed.
- * 
+ *
  * @example
  * ```typescript
  * @Component({
@@ -61,18 +61,18 @@ export { DragDropBehaviorService } from './drag-drop-behavior.service';
  * })
  * export class MyDialogComponent {
  *   state$ = this.dialogService.getState$();
- * 
+ *
  *   constructor(private dialogService: DialogBehaviorService) {
  *     this.dialogService.initialize({
  *       id: 'my-dialog',
  *       onOpen: (content) => console.log('Opened:', content),
  *     });
  *   }
- * 
+ *
  *   openDialog() {
  *     this.dialogService.actions.open({ title: 'Hello' });
  *   }
- * 
+ *
  *   closeDialog() {
  *     this.dialogService.actions.close();
  *   }
@@ -92,7 +92,7 @@ export class DialogBehaviorService implements OnDestroy {
   /**
    * Initializes the dialog behavior with the given options.
    * Must be called before using the service.
-   * 
+   *
    * @param options Configuration options for the dialog behavior.
    */
   initialize(options?: DialogBehaviorOptions): void {
@@ -111,7 +111,7 @@ export class DialogBehaviorService implements OnDestroy {
 
   /**
    * Gets the state as an RxJS Observable.
-   * 
+   *
    * @returns Observable of dialog state.
    */
   getState$(): Observable<DialogState> {
@@ -120,7 +120,7 @@ export class DialogBehaviorService implements OnDestroy {
 
   /**
    * Gets the current state synchronously.
-   * 
+   *
    * @returns Current dialog state.
    */
   getState(): DialogState {
@@ -129,7 +129,7 @@ export class DialogBehaviorService implements OnDestroy {
 
   /**
    * Gets the dialog actions.
-   * 
+   *
    * @returns Dialog actions object.
    */
   get actions(): DialogActions {
@@ -164,9 +164,9 @@ export class DialogBehaviorService implements OnDestroy {
 
 /**
  * Angular service for roving focus behavior.
- * 
+ *
  * Wraps the roving focus behavior and exposes state as an RxJS Observable.
- * 
+ *
  * @example
  * ```typescript
  * @Component({
@@ -185,14 +185,14 @@ export class DialogBehaviorService implements OnDestroy {
  * })
  * export class MenuComponent {
  *   state$ = this.rovingFocusService.getState$();
- * 
+ *
  *   constructor(private rovingFocusService: RovingFocusBehaviorService) {
  *     this.rovingFocusService.initialize({
  *       items: ['item-1', 'item-2', 'item-3'],
  *       orientation: 'vertical',
  *     });
  *   }
- * 
+ *
  *   handleKeyDown(event: KeyboardEvent) {
  *     if (event.key === 'ArrowDown') {
  *       this.rovingFocusService.actions.moveNext();
@@ -216,7 +216,7 @@ export class RovingFocusBehaviorService implements OnDestroy {
 
   /**
    * Initializes the roving focus behavior with the given options.
-   * 
+   *
    * @param options Configuration options for the roving focus behavior.
    */
   initialize(options?: RovingFocusOptions): void {
@@ -275,9 +275,9 @@ export class RovingFocusBehaviorService implements OnDestroy {
 
 /**
  * Angular service for list selection behavior.
- * 
+ *
  * Wraps the list selection behavior and exposes state as an RxJS Observable.
- * 
+ *
  * @example
  * ```typescript
  * @Component({
@@ -297,18 +297,18 @@ export class RovingFocusBehaviorService implements OnDestroy {
  * })
  * export class FileListComponent {
  *   state$ = this.selectionService.getState$();
- * 
+ *
  *   constructor(private selectionService: ListSelectionBehaviorService) {
  *     this.selectionService.initialize({
  *       items: ['file-1', 'file-2', 'file-3'],
  *       mode: 'multi',
  *     });
  *   }
- * 
+ *
  *   toggleSelection(item: string) {
  *     this.selectionService.actions.toggleSelection(item);
  *   }
- * 
+ *
  *   isSelected(item: string): boolean {
  *     return this.selectionService.getState().selectedIds.includes(item);
  *   }
@@ -385,9 +385,9 @@ export class ListSelectionBehaviorService implements OnDestroy {
 
 /**
  * Angular service for disclosure behavior.
- * 
+ *
  * Wraps the disclosure behavior and exposes state as an RxJS Observable.
- * 
+ *
  * @example
  * ```typescript
  * @Component({
@@ -406,13 +406,13 @@ export class ListSelectionBehaviorService implements OnDestroy {
  * })
  * export class AccordionComponent {
  *   state$ = this.disclosureService.getState$();
- * 
+ *
  *   constructor(private disclosureService: DisclosureBehaviorService) {
  *     this.disclosureService.initialize({
  *       id: 'section-1',
  *     });
  *   }
- * 
+ *
  *   toggle() {
  *     this.disclosureService.actions.toggle();
  *   }
@@ -487,9 +487,9 @@ export class DisclosureBehaviorService implements OnDestroy {
 
 /**
  * Angular service for form behavior.
- * 
+ *
  * Wraps the form behavior and exposes state as an RxJS Observable.
- * 
+ *
  * @example
  * ```typescript
  * @Component({
@@ -505,7 +505,7 @@ export class DisclosureBehaviorService implements OnDestroy {
  *       <span *ngIf="(state$ | async)?.touched.email && (state$ | async)?.errors.email" class="error">
  *         {{ (state$ | async)?.errors.email }}
  *       </span>
- *       
+ *
  *       <input
  *         type="password"
  *         [value]="(state$ | async)?.values.password"
@@ -515,7 +515,7 @@ export class DisclosureBehaviorService implements OnDestroy {
  *       <span *ngIf="(state$ | async)?.touched.password && (state$ | async)?.errors.password" class="error">
  *         {{ (state$ | async)?.errors.password }}
  *       </span>
- *       
+ *
  *       <button
  *         type="submit"
  *         [disabled]="!(state$ | async)?.isValid || (state$ | async)?.isSubmitting"
@@ -528,7 +528,7 @@ export class DisclosureBehaviorService implements OnDestroy {
  * })
  * export class LoginFormComponent {
  *   state$ = this.formService.getState$();
- * 
+ *
  *   constructor(private formService: FormBehaviorService<{ email: string; password: string }>) {
  *     this.formService.initialize({
  *       initialValues: { email: '', password: '' },
@@ -553,25 +553,25 @@ export class DisclosureBehaviorService implements OnDestroy {
  *       },
  *     });
  *   }
- * 
+ *
  *   setEmail(event: Event) {
  *     const value = (event.target as HTMLInputElement).value;
  *     this.formService.actions.setFieldValue('email', value);
  *   }
- * 
+ *
  *   setPassword(event: Event) {
  *     const value = (event.target as HTMLInputElement).value;
  *     this.formService.actions.setFieldValue('password', value);
  *   }
- * 
+ *
  *   touchEmail() {
  *     this.formService.actions.setFieldTouched('email', true);
  *   }
- * 
+ *
  *   touchPassword() {
  *     this.formService.actions.setFieldTouched('password', true);
  *   }
- * 
+ *
  *   onSubmit(event: Event) {
  *     event.preventDefault();
  *     this.formService.actions.submitForm();
@@ -580,9 +580,7 @@ export class DisclosureBehaviorService implements OnDestroy {
  * ```
  */
 @Injectable()
-export class FormBehaviorService<T extends Record<string, any> = Record<string, any>>
-  implements OnDestroy
-{
+export class FormBehaviorService<T extends Record<string, any> = Record<string, any>> implements OnDestroy {
   private behavior: ReturnType<typeof createFormBehavior<T>> | null = null;
   private state$ = new BehaviorSubject<FormState<T>>({
     values: {} as T,

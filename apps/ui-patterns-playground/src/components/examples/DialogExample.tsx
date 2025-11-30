@@ -27,18 +27,14 @@ export function DialogExample() {
     <div className="example-container">
       <h2>Dialog Behavior Example</h2>
       <p>
-        This example demonstrates the <code>useDialogBehavior</code> hook from
-        @web-loom/ui-core.
+        This example demonstrates the <code>useDialogBehavior</code> hook from @web-loom/ui-core.
       </p>
 
       <div className="example-controls">
         <button onClick={handleOpenWithContent} className="btn btn-primary">
           Open Dialog
         </button>
-        <button
-          onClick={() => dialog.actions.toggle()}
-          className="btn btn-secondary"
-        >
+        <button onClick={() => dialog.actions.toggle()} className="btn btn-secondary">
           Toggle Dialog
         </button>
       </div>
@@ -53,11 +49,7 @@ export function DialogExample() {
           <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
             <div className="dialog-header">
               <h3>{dialog.content?.title || 'Dialog'}</h3>
-              <button
-                onClick={() => dialog.actions.close()}
-                className="dialog-close"
-                aria-label="Close dialog"
-              >
+              <button onClick={() => dialog.actions.close()} className="dialog-close" aria-label="Close dialog">
                 ×
               </button>
             </div>
@@ -65,10 +57,7 @@ export function DialogExample() {
               <p>{dialog.content?.message || 'Dialog content'}</p>
             </div>
             <div className="dialog-footer">
-              <button
-                onClick={() => dialog.actions.close()}
-                className="btn btn-primary"
-              >
+              <button onClick={() => dialog.actions.close()} className="btn btn-primary">
                 Close
               </button>
             </div>

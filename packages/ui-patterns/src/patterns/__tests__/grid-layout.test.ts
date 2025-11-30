@@ -126,10 +126,7 @@ describe('createGridLayout', () => {
 
       grid.actions.updateViewportWidth(700);
 
-      expect(listener).toHaveBeenCalledWith(
-        { minWidth: 640, columns: 2 },
-        2
-      );
+      expect(listener).toHaveBeenCalledWith({ minWidth: 640, columns: 2 }, 2);
 
       grid.destroy();
     });
@@ -623,9 +620,7 @@ describe('createGridLayout', () => {
         createGridLayout({
           items,
           getId: (item) => item.id,
-          breakpoints: [
-            { minWidth: 0, columns: 0 },
-          ],
+          breakpoints: [{ minWidth: 0, columns: 0 }],
         });
       }).toThrow('Breakpoints must have non-negative minWidth and positive columns');
 
@@ -633,9 +628,7 @@ describe('createGridLayout', () => {
         createGridLayout({
           items,
           getId: (item) => item.id,
-          breakpoints: [
-            { minWidth: 0, columns: -1 },
-          ],
+          breakpoints: [{ minWidth: 0, columns: -1 }],
         });
       }).toThrow('Breakpoints must have non-negative minWidth and positive columns');
     });

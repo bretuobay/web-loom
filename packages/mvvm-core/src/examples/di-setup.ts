@@ -116,12 +116,14 @@ export function initializeApplicationServices() {
     return new FormViewModel<UserProfile, typeof UserProfileSchema, UserProfile>(
       { name: '', email: '' }, // Initial data
       UserProfileSchema,
-      (data) => { // Changed from async (data)
+      (data) => {
+        // Changed from async (data)
         // Submit handler
         notificationService.showInfo('Submitting profile...', 2000);
         // Simulate API call
-        const promise = new Promise<UserProfile>(async (resolve, reject) => { // Explicit Promise type
-          await new Promise(r => setTimeout(r, 1000));
+        const promise = new Promise<UserProfile>(async (resolve, reject) => {
+          // Explicit Promise type
+          await new Promise((r) => setTimeout(r, 1000));
           if (data.email.includes('fail')) {
             const err = new Error("Simulated profile submission error for email containing 'fail'");
             globalErrorService.handleError(err, 'UserProfileForm.Submit');
@@ -199,14 +201,14 @@ export function demonstrateDISetup() {
   // );
   console.log('ProductList1 Page 1 (Filtered): (see subscription logs if any, or subscribe to paginatedItems$)');
 
-
   const productList2 = SimpleDIContainer.resolve('productListVM'); // Should be the same instance
   // console.log(
   //   'ProductList2 Page 1 (Should also be Filtered):',
   //   productList2.paginatedItems$.getValue().map((p) => p.name), // paginatedItems$ is an Observable
   // );
-  console.log('ProductList2 Page 1 (Should also be Filtered): (see subscription logs if any, or subscribe to paginatedItems$)');
-
+  console.log(
+    'ProductList2 Page 1 (Should also be Filtered): (see subscription logs if any, or subscribe to paginatedItems$)',
+  );
 
   if (productList1 !== productList2) {
     console.error('DI ERROR: productListVM should be singleton but got different instances!');

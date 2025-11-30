@@ -15,11 +15,14 @@ interface TestState extends State {
   name: string;
 }
 
-type TestActions = Actions<TestState, {
-  increment: () => void;
-  setName: (name: string) => void;
-  reset: () => void;
-}>;
+type TestActions = Actions<
+  TestState,
+  {
+    increment: () => void;
+    setName: (name: string) => void;
+    reset: () => void;
+  }
+>;
 
 const initialState: TestState = { count: 0, name: 'test' };
 

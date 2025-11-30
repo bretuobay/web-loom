@@ -94,7 +94,7 @@ describe('DisclosureBehaviorService', () => {
 
       service.actions.expand();
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       expect(emissionCount).toBe(1); // Only initial emission
     });
 
@@ -108,7 +108,7 @@ describe('DisclosureBehaviorService', () => {
 
       service.actions.collapse();
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       expect(emissionCount).toBe(1); // Only initial emission
     });
   });

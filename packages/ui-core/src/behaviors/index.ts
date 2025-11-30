@@ -1,6 +1,6 @@
 /**
  * UI Core Behaviors
- * 
+ *
  * This module exports all atomic UI interaction behaviors.
  * Each behavior is framework-agnostic and can be used with any UI framework
  * or vanilla JavaScript.

@@ -185,18 +185,21 @@ This multi-tiered approach gives extensions appropriate storage while maintainin
 The architecture handles extension failures gracefully:
 
 **Activation Errors**: When an extension fails to activate, VS Code:
+
 - Logs the error with full stack traces
 - Notifies the user with actionable messages
 - Continues operating normally
 - Offers to open the extension's details for troubleshooting
 
 **Runtime Errors**: Unhandled exceptions in extension code:
+
 - Are caught and logged
 - Don't crash the extension host
 - Are isolated from other extensions
 - Trigger telemetry for extension authors (if opted in)
 
 **Extension Host Crashes**: If the entire extension host crashes:
+
 - The main process detects the crash
 - Automatically restarts the extension host
 - Re-activates previously active extensions
@@ -211,6 +214,7 @@ VS Code employs numerous optimization strategies to keep extensions performant:
 ### Activation Time Tracking
 
 Every extension activation is instrumented, measuring:
+
 - Code loading time (time to `require` the module)
 - Synchronous activation time (time in `activate()` call)
 - Asynchronous activation time (time until activation promise resolves)
@@ -220,6 +224,7 @@ These metrics help identify slow extensions and encourage developers to optimize
 ### Lazy Loading
 
 Beyond activation events, VS Code supports:
+
 - **Deferred initialization**: Extensions can defer non-critical setup
 - **On-demand feature loading**: Language features load only when needed
 - **Incremental parsing**: Large files parsed incrementally to avoid blocking
@@ -227,6 +232,7 @@ Beyond activation events, VS Code supports:
 ### Extension Host Affinity
 
 VS Code can run multiple extension host processes and distribute extensions across them based on:
+
 - Extension kind (UI, workspace, remote)
 - Resource usage patterns
 - Dependency relationships
@@ -256,6 +262,7 @@ VS Code's architecture demonstrates several universally applicable principles:
 ### 1. Isolate Plugin Execution
 
 Run plugin code in separate processes, threads, or sandboxes. This isolation:
+
 - Prevents plugins from crashing the host application
 - Enables resource monitoring and limiting
 - Provides security boundaries
@@ -264,6 +271,7 @@ Run plugin code in separate processes, threads, or sandboxes. This isolation:
 ### 2. Provide Declarative Extension Points
 
 Enable plugins to contribute functionality declaratively through metadata. Declarative contributions:
+
 - Can be validated before code execution
 - Enable optimizations like lazy loading
 - Simplify plugin development
@@ -272,6 +280,7 @@ Enable plugins to contribute functionality declaratively through metadata. Decla
 ### 3. Use Lazy Activation
 
 Don't load plugins until they're needed. Implement:
+
 - Event-driven activation based on user actions
 - Fine-grained activation events for precise control
 - Dependency-aware activation ordering
@@ -280,6 +289,7 @@ Don't load plugins until they're needed. Implement:
 ### 4. Implement Robust Error Handling
 
 Assume plugins will fail and design for graceful degradation:
+
 - Isolate failures to individual plugins
 - Provide clear error messages to users
 - Log errors for debugging
@@ -288,6 +298,7 @@ Assume plugins will fail and design for graceful degradation:
 ### 5. Create Rich, Type-Safe APIs
 
 Invest in developer experience:
+
 - Comprehensive API documentation
 - Strong typing for compile-time safety
 - Consistent naming and patterns
@@ -296,6 +307,7 @@ Invest in developer experience:
 ### 6. Support Multiple Execution Environments
 
 Design the plugin system to work across different contexts:
+
 - Local execution for performance
 - Sandboxed execution for security
 - Remote execution for distributed scenarios
@@ -303,6 +315,7 @@ Design the plugin system to work across different contexts:
 ### 7. Monitor and Measure
 
 Instrument the plugin system to understand:
+
 - Activation times and performance
 - Resource consumption
 - Error rates and patterns

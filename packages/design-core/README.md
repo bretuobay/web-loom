@@ -26,9 +26,9 @@ Design tokens are the single source of truth for your design system's visual pro
 
 **Key Features:**
 
-*   **Centralized Management:** All design values are stored and managed in one place.
-*   **Referenceable:** Tokens can reference other tokens, promoting consistency and easier maintenance (e.g., a `brand.primary` color token might reference a specific shade from your `blue` color palette). The utilities handle the resolution of these references automatically.
-*   **Platform Agnostic:** While this package focuses on web technologies (CSS and JavaScript), the token definitions themselves are abstract and can be transformed for other platforms.
+- **Centralized Management:** All design values are stored and managed in one place.
+- **Referenceable:** Tokens can reference other tokens, promoting consistency and easier maintenance (e.g., a `brand.primary` color token might reference a specific shade from your `blue` color palette). The utilities handle the resolution of these references automatically.
+- **Platform Agnostic:** While this package focuses on web technologies (CSS and JavaScript), the token definitions themselves are abstract and can be transformed for other platforms.
 
 ### CSS Custom Properties
 
@@ -82,22 +82,22 @@ import '@web-loom/design-core/src/css/typography.css';
 
 The package includes the following token categories:
 
-| Category | Description | Example Tokens |
-|----------|-------------|----------------|
-| **Colors** | Brand colors, semantic colors, neutrals | `colors.brand.primary`, `colors.background.page` |
-| **Typography** | Font families, sizes, weights, line heights | `typography.fontSize.md`, `typography.fontFamily.sans` |
-| **Spacing** | Margins, padding, gaps | `spacing.xs`, `spacing.m`, `spacing.xl` |
-| **Sizing** | Widths, heights, icon sizes | `sizing.sm`, `sizing.iconSize.md` |
-| **Shadows** | Elevation and depth effects | `shadows.sm`, `shadows.md`, `shadows.lg` |
-| **Borders** | Border widths and styles | `borders.width.thin`, `borders.style.solid` |
-| **Radii** | Border radius values | `radii.sm`, `radii.md`, `radii.full` |
-| **Opacity** | Transparency levels | `opacity.disabled`, `opacity.hover` |
-| **Z-Index** | Layering values | `zIndex.modal`, `zIndex.dropdown` |
-| **Transitions** | Animation timing and easing | `transitions.fast`, `transitions.easeInOut` |
-| **Breakpoints** | Responsive design breakpoints | `breakpoints.tablet`, `breakpoints.desktop` |
-| **Gradients** | Color gradients | `gradients.primary`, `gradients.sunset` |
-| **Focus Rings** | Focus indicator styles | `focusRings.default`, `focusRings.offset` |
-| **Cursor Styles** | Cursor types | `cursorStyles.pointer`, `cursorStyles.notAllowed` |
+| Category          | Description                                 | Example Tokens                                         |
+| ----------------- | ------------------------------------------- | ------------------------------------------------------ |
+| **Colors**        | Brand colors, semantic colors, neutrals     | `colors.brand.primary`, `colors.background.page`       |
+| **Typography**    | Font families, sizes, weights, line heights | `typography.fontSize.md`, `typography.fontFamily.sans` |
+| **Spacing**       | Margins, padding, gaps                      | `spacing.xs`, `spacing.m`, `spacing.xl`                |
+| **Sizing**        | Widths, heights, icon sizes                 | `sizing.sm`, `sizing.iconSize.md`                      |
+| **Shadows**       | Elevation and depth effects                 | `shadows.sm`, `shadows.md`, `shadows.lg`               |
+| **Borders**       | Border widths and styles                    | `borders.width.thin`, `borders.style.solid`            |
+| **Radii**         | Border radius values                        | `radii.sm`, `radii.md`, `radii.full`                   |
+| **Opacity**       | Transparency levels                         | `opacity.disabled`, `opacity.hover`                    |
+| **Z-Index**       | Layering values                             | `zIndex.modal`, `zIndex.dropdown`                      |
+| **Transitions**   | Animation timing and easing                 | `transitions.fast`, `transitions.easeInOut`            |
+| **Breakpoints**   | Responsive design breakpoints               | `breakpoints.tablet`, `breakpoints.desktop`            |
+| **Gradients**     | Color gradients                             | `gradients.primary`, `gradients.sunset`                |
+| **Focus Rings**   | Focus indicator styles                      | `focusRings.default`, `focusRings.offset`              |
+| **Cursor Styles** | Cursor types                                | `cursorStyles.pointer`, `cursorStyles.notAllowed`      |
 
 ## Utilities API
 
@@ -117,7 +117,7 @@ import {
   setTheme,
   getCurrentTheme,
   Theme, // Type for Theme objects
-  DesignTokens // Type for the complete token structure
+  DesignTokens, // Type for the complete token structure
 } from '@web-loom/design-core/utils';
 ```
 
@@ -129,7 +129,7 @@ You can directly access resolved token values in your JavaScript/TypeScript code
 
 Retrieves the value of a specific design token.
 
-*   `path`: A dot-separated string representing the path to the token (e.g., `"colors.brand.primary"`, `"spacing.medium"`).
+- `path`: A dot-separated string representing the path to the token (e.g., `"colors.brand.primary"`, `"spacing.medium"`).
 
 **Example:**
 
@@ -174,7 +174,7 @@ These utilities help you bridge the gap between your design tokens and CSS.
 
 Generates a string of CSS custom property definitions from all design tokens. This string can be injected into a `<style>` tag or a CSS file.
 
-*   `selector` (optional): The CSS selector under which the variables will be defined. Defaults to `":root"` for global availability.
+- `selector` (optional): The CSS selector under which the variables will be defined. Defaults to `":root"` for global availability.
 
 **Example: Injecting global CSS variables**
 
@@ -200,19 +200,19 @@ Alternatively, you can link the pre-generated CSS files directly in your HTML or
 
 ```html
 <!-- Example: Link specific token CSS files in HTML -->
-<link rel="stylesheet" href="node_modules/@web-loom/design-core/src/css/colors.css">
-<link rel="stylesheet" href="node_modules/@web-loom/design-core/src/css/spacing.css">
+<link rel="stylesheet" href="node_modules/@web-loom/design-core/src/css/colors.css" />
+<link rel="stylesheet" href="node_modules/@web-loom/design-core/src/css/spacing.css" />
 <!-- etc. -->
 ```
 
 Or import them in your JavaScript entry point (if your bundler supports CSS imports):
+
 ```javascript
 // main.js or App.js
 import '@web-loom/design-core/src/css/colors.css';
 import '@web-loom/design-core/src/css/spacing.css';
 // ... import other required token CSS files
 ```
-
 
 Once injected or linked, you can use these variables in your CSS:
 
@@ -236,7 +236,7 @@ body {
 
 Converts a token path to its corresponding CSS variable name.
 
-*   `path`: The token path (e.g., `"colors.brand.primary"`).
+- `path`: The token path (e.g., `"colors.brand.primary"`).
 
 **Example:**
 
@@ -249,7 +249,7 @@ console.log(primaryColorVarName); // Output: --colors-brand-primary
 
 Returns a `var()` CSS function string for a given token path. This is useful for applying styles dynamically via JavaScript or for CSS-in-JS libraries.
 
-*   `path`: The token path.
+- `path`: The token path.
 
 **Example:**
 
@@ -275,7 +275,7 @@ async function applySafeStyle() {
     if (accentColor) {
       element.style.backgroundColor = accentColor;
     } else {
-      console.warn("Accent color token not found, using fallback.");
+      console.warn('Accent color token not found, using fallback.');
       // element.style.backgroundColor = 'grey'; // Fallback
     }
   }
@@ -314,8 +314,8 @@ The `@design-core` utilities provide a robust way to define and switch between d
 
 Creates a theme object.
 
-*   `name`: A string name for the theme (e.g., `"dark"`, `"highContrast"`). This name will be used in the `data-theme` attribute.
-*   `overrides`: An object whose structure mirrors `DesignTokens`, containing only the tokens you want to override for this theme.
+- `name`: A string name for the theme (e.g., `"dark"`, `"highContrast"`). This name will be used in the `data-theme` attribute.
+- `overrides`: An object whose structure mirrors `DesignTokens`, containing only the tokens you want to override for this theme.
 
 **Example: Defining a dark theme**
 
@@ -327,16 +327,16 @@ const darkTheme = createTheme('dark', {
       default: '#1E1E1E',
     },
     text: {
-      primary: '#E0E0E0',   // Override primary text color
+      primary: '#E0E0E0', // Override primary text color
       secondary: '#A0A0A0',
     },
     brand: {
       primary: '#3B82F6', // Slightly different brand color for dark theme
-    }
+    },
   },
   shadows: {
     medium: '0 4px 12px rgba(255, 255, 255, 0.1)', // Softer shadows for dark theme
-  }
+  },
 });
 ```
 
@@ -344,10 +344,10 @@ const darkTheme = createTheme('dark', {
 
 Generates the CSS custom properties for a theme's overrides and injects them into a `<style>` tag.
 
-*   `theme`: The `Theme` object created by `createTheme`.
-*   `applyToRoot` (optional, default: `false`):
-    *   If `false` (default): Variables are scoped to a `[data-theme="theme-name"]` selector (e.g., `[data-theme="dark"]`). This allows the theme to be activated by setting the `data-theme` attribute on an ancestor element (typically `<html>`).
-    *   If `true`: Variables are applied to the `:root` selector, effectively changing the base token values for all elements, regardless of the `data-theme` attribute. This can be used to apply a base set of overrides.
+- `theme`: The `Theme` object created by `createTheme`.
+- `applyToRoot` (optional, default: `false`):
+  - If `false` (default): Variables are scoped to a `[data-theme="theme-name"]` selector (e.g., `[data-theme="dark"]`). This allows the theme to be activated by setting the `data-theme` attribute on an ancestor element (typically `<html>`).
+  - If `true`: Variables are applied to the `:root` selector, effectively changing the base token values for all elements, regardless of the `data-theme` attribute. This can be used to apply a base set of overrides.
 
 **Example: Applying the dark theme styles**
 
@@ -371,7 +371,7 @@ async function setupDarkThemeStyles() {
 
 Activates a theme by setting the `data-theme` attribute on the `<html>` element. This is the primary way to switch between themes after their styles have been defined and applied using `applyTheme`.
 
-*   `themeName`: The name of the theme to activate (must match the name used in `createTheme` and `applyTheme`).
+- `themeName`: The name of the theme to activate (must match the name used in `createTheme` and `applyTheme`).
 
 **Example: Switching themes**
 
@@ -396,7 +396,7 @@ function switchToLightTheme() {
 // setTimeout(switchToLightTheme, 3000);
 ```
 
-It's important that the CSS for the theme (e.g., `[data-theme="dark"] { ... }`) is loaded *before* `setTheme` is called. `applyTheme` handles this injection.
+It's important that the CSS for the theme (e.g., `[data-theme="dark"] { ... }`) is loaded _before_ `setTheme` is called. `applyTheme` handles this injection.
 
 #### `getCurrentTheme(): string | null`
 
@@ -421,12 +421,12 @@ logCurrentTheme();
 
 Design tokens are defined in JSON files within the `packages/design-core/src/tokens/` directory. Each file typically represents a category of tokens:
 
-*   `colors.json`
-*   `spacing.json`
-*   `typography.json`
-*   `shadows.json`
-*   `radii.json`
-*   And more...
+- `colors.json`
+- `spacing.json`
+- `typography.json`
+- `shadows.json`
+- `radii.json`
+- And more...
 
 These files use the [Design Tokens Community Group (DTCG) format](https://design-tokens.github.io/community-group/format/) where applicable, often with a `value` property for each token. References to other tokens can be made using a special syntax like `"{colors.base.blue.500.value}"` (the `.value` suffix is important in the raw JSON). The utilities in this package handle the processing and resolution of these references.
 
@@ -441,7 +441,7 @@ These files use the [Design Tokens Community Group (DTCG) format](https://design
   "blue": {
     "600": { "value": "#007bff" }
     // ... other shades
-  },
+  }
   // ... other color categories
 }
 ```
@@ -472,24 +472,28 @@ You can import the entire design system's CSS, or import styles for specific com
 
 This is the simplest way to get all component styles. Import it in your main JavaScript/TypeScript file (if your bundler supports CSS imports) or link it in your HTML.
 
-*In your main JS/TS file:*
+_In your main JS/TS file:_
+
 ```javascript
 import '@web-loom/design-core/design-system'; // if using package exports
 // or directly:
 // import '@web-loom/design-core/src/design-system/index.css';
 ```
 
-*In your HTML `head`:*
+_In your HTML `head`:_
+
 ```html
-<link rel="stylesheet" href="node_modules/@web-loom/design-core/src/design-system/index.css">
+<link rel="stylesheet" href="node_modules/@web-loom/design-core/src/design-system/index.css" />
 ```
+
 This will include `base.css` (which itself imports all token CSS) and all component styles.
 
 **2. Import individual component styles:**
 
 If you only need styles for specific components, you can import them directly. This can help reduce the amount of CSS included in your application if you're not using all components.
 
-*In your JS/TS file (e.g., for a specific component or view):*
+_In your JS/TS file (e.g., for a specific component or view):_
+
 ```javascript
 // Example: Only import button and card styles
 import '@web-loom/design-core/src/design-system/forms/button.css';
@@ -498,7 +502,8 @@ import '@web-loom/design-core/src/design-system/display/card.css';
 import '@web-loom/design-core/src/design-system/base.css';
 // Or ensure all token css files from src/css/* are loaded
 ```
-*Note: Individual component CSS files rely on the CSS Custom Properties defined by the token CSS files (`packages/design-core/src/css/*.css`). The `base.css` file within the design system imports all of these. If you import component styles individually without `base.css` or the main `index.css`, ensure the token CSS files are loaded separately.*
+
+_Note: Individual component CSS files rely on the CSS Custom Properties defined by the token CSS files (`packages/design-core/src/css/_.css`). The `base.css`file within the design system imports all of these. If you import component styles individually without`base.css`or the main`index.css`, ensure the token CSS files are loaded separately.\*
 
 **Using the component classes:**
 
@@ -509,14 +514,12 @@ Once the CSS is imported, you can use the defined classes in your HTML:
 
 <div class="card">
   <div class="card-header">Card Title</div>
-  <div class="card-body">
-    This is a simple card.
-  </div>
+  <div class="card-body">This is a simple card.</div>
 </div>
 
 <div class="form-group">
   <label for="myInput" class="form-label">My Input</label>
-  <input type="text" id="myInput" class="input-base" placeholder="Enter text...">
+  <input type="text" id="myInput" class="input-base" placeholder="Enter text..." />
 </div>
 ```
 
@@ -535,6 +538,7 @@ The design system components are built using the CSS Custom Properties derived f
   </body>
 </html>
 ```
+
 Ensure your theme definitions in `createTheme` cover the tokens used by the design system components for complete theming.
 
 ---
@@ -592,8 +596,8 @@ onMounted(async () => {
   const darkTheme = createTheme('dark', {
     colors: {
       background: { page: '#121212' },
-      text: { primary: '#E0E0E0' }
-    }
+      text: { primary: '#E0E0E0' },
+    },
   });
   await applyTheme(darkTheme);
 });
@@ -606,9 +610,7 @@ const toggleTheme = () => {
 
 <template>
   <div>
-    <button class="btn btn-primary" @click="toggleTheme">
-      Toggle Theme
-    </button>
+    <button class="btn btn-primary" @click="toggleTheme">Toggle Theme</button>
   </div>
 </template>
 ```
@@ -662,6 +664,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 The design system includes 20+ pre-styled components:
 
 ### Forms
+
 - Buttons (primary, secondary, outline, ghost)
 - Input fields
 - Textarea
@@ -671,6 +674,7 @@ The design system includes 20+ pre-styled components:
 - Switches
 
 ### Display
+
 - Cards
 - Badges
 - Avatars
@@ -678,22 +682,26 @@ The design system includes 20+ pre-styled components:
 - Tables
 
 ### Navigation
+
 - Navigation bar
 - Sidebar
 - Tabs
 
 ### Layout
+
 - Container
 - Page header
 - Page content
 - Footer
 
 ### Overlays
+
 - Modals
 - Tooltips
 - Toasts
 
 ### Utility
+
 - Loaders/Spinners
 
 All components use CSS custom properties from design tokens, making them fully themeable.
@@ -772,7 +780,7 @@ Test your application in all supported themes:
 // Automated theme testing
 const themes = ['light', 'dark', 'high-contrast'];
 
-themes.forEach(themeName => {
+themes.forEach((themeName) => {
   test(`renders correctly in ${themeName} theme`, () => {
     setTheme(themeName);
     // Your assertions
@@ -849,6 +857,7 @@ npm run lint
 **Issue:** CSS variables are undefined in the browser.
 
 **Solution:** Ensure CSS files are imported before use:
+
 ```typescript
 import '@web-loom/design-core/design-system';
 ```
@@ -858,6 +867,7 @@ import '@web-loom/design-core/design-system';
 **Issue:** `getTokenValue()` returns `undefined`.
 
 **Solution:** Ensure you're using `await` and that token files are accessible:
+
 ```typescript
 const value = await getTokenValue('colors.brand.primary');
 ```
@@ -867,6 +877,7 @@ const value = await getTokenValue('colors.brand.primary');
 **Issue:** Theme switch doesn't change appearance.
 
 **Solution:**
+
 1. Verify theme CSS is loaded with `applyTheme()`
 2. Check that `data-theme` attribute is set on `<html>`
 3. Ensure component CSS uses CSS variables
@@ -876,6 +887,7 @@ const value = await getTokenValue('colors.brand.primary');
 **Issue:** "Cannot find module" errors.
 
 **Solution:** Check your bundler configuration supports:
+
 - JSON imports (`resolveJsonModule: true` in tsconfig)
 - CSS imports (bundler plugin for CSS)
 - Dynamic imports (ES2020+ target)
@@ -885,6 +897,7 @@ const value = await getTokenValue('colors.brand.primary');
 ## Roadmap
 
 ### v1.0 (Production Ready)
+
 - [ ] 80%+ test coverage
 - [ ] Performance benchmarks
 - [ ] Accessibility compliance (WCAG AA)
@@ -892,12 +905,14 @@ const value = await getTokenValue('colors.brand.primary');
 - [ ] Migration guides
 
 ### v1.1
+
 - [ ] Design tool plugins (Figma, Sketch)
 - [ ] VS Code extension
 - [ ] Token visualization tool
 - [ ] Advanced theming features
 
 ### v2.0
+
 - [ ] Multi-platform support (React Native, Flutter)
 - [ ] Token composition utilities
 - [ ] Performance monitoring
@@ -933,6 +948,7 @@ MIT © Festus Yeboah
 ## Acknowledgments
 
 Design token specifications inspired by:
+
 - [Design Tokens Community Group](https://design-tokens.github.io/community-group/)
 - [Style Dictionary](https://amzn.github.io/style-dictionary/)
 - [Theo](https://github.com/salesforce-ux/theo)

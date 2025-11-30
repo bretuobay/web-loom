@@ -24,30 +24,27 @@ import { KeyboardShortcutsService } from '@web-loom/ui-core/angular';
   selector: 'app-command-palette',
   template: `
     <div *ngIf="isOpen" class="command-palette">
-      <input
-        type="text"
-        placeholder="Type a command..."
-        #inputRef
-        (keydown)="handleKeyDown($event)"
-      />
+      <input type="text" placeholder="Type a command..." #inputRef (keydown)="handleKeyDown($event)" />
       <div class="shortcuts-help">
         <p>Press Escape to close</p>
       </div>
     </div>
   `,
-  styles: [`
-    .command-palette {
-      position: fixed;
-      top: 20%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      min-width: 400px;
-    }
-  `],
+  styles: [
+    `
+      .command-palette {
+        position: fixed;
+        top: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        min-width: 400px;
+      }
+    `,
+  ],
   providers: [KeyboardShortcutsService],
 })
 export class CommandPaletteComponent implements OnInit, OnDestroy {
@@ -77,7 +74,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     });
 
     // Subscribe to state changes
-    this.shortcuts.state$.subscribe(state => {
+    this.shortcuts.state$.subscribe((state) => {
       // Switch scope when palette opens/closes
       this.shortcuts.setScope(this.isOpen ? 'scoped' : 'global');
     });
@@ -103,12 +100,7 @@ import { KeyboardShortcutsService } from '@web-loom/ui-core/angular';
   selector: 'app-text-editor',
   template: `
     <div class="text-editor">
-      <textarea
-        #editorRef
-        [(ngModel)]="content"
-        placeholder="Start typing..."
-        class="editor-content"
-      ></textarea>
+      <textarea #editorRef [(ngModel)]="content" placeholder="Start typing..." class="editor-content"></textarea>
       <div class="shortcuts-bar">
         <span>Ctrl+S: Save</span>
         <span>Ctrl+B: Bold</span>
@@ -203,7 +195,9 @@ interface ShortcutInfo {
         </thead>
         <tbody>
           <tr *ngFor="let shortcut of shortcuts$ | async">
-            <td><kbd>{{ shortcut.key }}</kbd></td>
+            <td>
+              <kbd>{{ shortcut.key }}</kbd>
+            </td>
             <td>{{ shortcut.description }}</td>
           </tr>
         </tbody>
@@ -239,12 +233,12 @@ export class ShortcutHelpComponent implements OnInit {
 
     // Get all registered shortcuts as observable
     this.shortcuts$ = this.shortcutService.state$.pipe(
-      map(state => 
-        Array.from(state.shortcuts.values()).map(s => ({
+      map((state) =>
+        Array.from(state.shortcuts.values()).map((s) => ({
           key: s.key,
           description: s.description || 'No description',
-        }))
-      )
+        })),
+      ),
     );
   }
 }
@@ -266,20 +260,8 @@ import { Observable } from 'rxjs';
   template: `
     <div class="undoable-editor">
       <div class="toolbar">
-        <button
-          (click)="handleUndo()"
-          [disabled]="!(state$ | async)?.canUndo"
-          aria-label="Undo"
-        >
-          ↶ Undo
-        </button>
-        <button
-          (click)="handleRedo()"
-          [disabled]="!(state$ | async)?.canRedo"
-          aria-label="Redo"
-        >
-          ↷ Redo
-        </button>
+        <button (click)="handleUndo()" [disabled]="!(state$ | async)?.canUndo" aria-label="Undo">↶ Undo</button>
+        <button (click)="handleRedo()" [disabled]="!(state$ | async)?.canRedo" aria-label="Redo">↷ Redo</button>
         <span class="history-info">
           History: {{ (state$ | async)?.past.length }} / {{ (state$ | async)?.maxLength }}
         </span>
@@ -342,15 +324,9 @@ interface CanvasState {
   template: `
     <div class="drawing-canvas">
       <div class="toolbar">
-        <button (click)="handleUndo()" [disabled]="!(state$ | async)?.canUndo">
-          ↶ Undo
-        </button>
-        <button (click)="handleRedo()" [disabled]="!(state$ | async)?.canRedo">
-          ↷ Redo
-        </button>
-        <button (click)="handleClear()">
-          Clear
-        </button>
+        <button (click)="handleUndo()" [disabled]="!(state$ | async)?.canUndo">↶ Undo</button>
+        <button (click)="handleRedo()" [disabled]="!(state$ | async)?.canRedo">↷ Redo</button>
+        <button (click)="handleClear()">Clear</button>
         <span>Strokes: {{ (state$ | async)?.present.strokes.length }}</span>
       </div>
       <canvas
@@ -369,7 +345,7 @@ interface CanvasState {
 })
 export class DrawingCanvasComponent implements OnInit, AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
-  
+
   isDrawing = false;
   currentStroke: Array<{ x: number; y: number }> = [];
   state$!: Observable<any>;
@@ -399,12 +375,12 @@ export class DrawingCanvasComponent implements OnInit, AfterViewInit {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Redraw all strokes
-    state.strokes.forEach(stroke => {
+    state.strokes.forEach((stroke) => {
       if (stroke.length < 2) return;
 
       ctx.beginPath();
       ctx.moveTo(stroke[0].x, stroke[0].y);
-      stroke.slice(1).forEach(point => {
+      stroke.slice(1).forEach((point) => {
         ctx.lineTo(point.x, point.y);
       });
       ctx.stroke();
@@ -415,10 +391,12 @@ export class DrawingCanvasComponent implements OnInit, AfterViewInit {
     this.isDrawing = true;
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
 
-    this.currentStroke = [{
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    }];
+    this.currentStroke = [
+      {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      },
+    ];
   }
 
   handleMouseMove(e: MouseEvent) {
@@ -488,24 +466,14 @@ interface FormState {
   template: `
     <div class="undoable-form">
       <div class="toolbar">
-        <button (click)="handleUndo()" [disabled]="!(state$ | async)?.canUndo">
-          ↶ Undo
-        </button>
-        <button (click)="handleRedo()" [disabled]="!(state$ | async)?.canRedo">
-          ↷ Redo
-        </button>
+        <button (click)="handleUndo()" [disabled]="!(state$ | async)?.canUndo">↶ Undo</button>
+        <button (click)="handleRedo()" [disabled]="!(state$ | async)?.canRedo">↷ Redo</button>
       </div>
 
       <form>
         <div class="form-field">
           <label for="name">Name:</label>
-          <input
-            id="name"
-            type="text"
-            [(ngModel)]="formData.name"
-            (ngModelChange)="handleFieldChange()"
-            name="name"
-          />
+          <input id="name" type="text" [(ngModel)]="formData.name" (ngModelChange)="handleFieldChange()" name="name" />
         </div>
 
         <div class="form-field">
@@ -626,8 +594,8 @@ export class ReorderableListComponent implements OnInit {
       onDragEnd: (itemId) => console.log('Drag ended:', itemId),
       onDrop: (draggedId, targetId) => {
         // Reorder items
-        const draggedIndex = this.items.findIndex(item => item.id === draggedId);
-        const targetIndex = this.items.findIndex(item => item.id === targetId);
+        const draggedIndex = this.items.findIndex((item) => item.id === draggedId);
+        const targetIndex = this.items.findIndex((item) => item.id === targetId);
 
         if (draggedIndex === -1 || targetIndex === -1) return;
 
@@ -641,7 +609,7 @@ export class ReorderableListComponent implements OnInit {
     this.state$ = this.dragDrop.state$;
 
     // Register all items as drop zones
-    this.items.forEach(item => {
+    this.items.forEach((item) => {
       this.dragDrop.registerDropZone(item.id);
     });
   }
@@ -661,7 +629,7 @@ export class ReorderableListComponent implements OnInit {
   }
 
   ngOnDestroy() {
-    this.items.forEach(item => {
+    this.items.forEach((item) => {
       this.dragDrop.unregisterDropZone(item.id);
     });
   }
@@ -720,17 +688,15 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.dragDrop.initialize({
       onDrop: (taskId, columnId) => {
-        this.tasks = this.tasks.map(task =>
-          task.id === taskId ? { ...task, column: columnId } : task
-        );
+        this.tasks = this.tasks.map((task) => (task.id === taskId ? { ...task, column: columnId } : task));
       },
     });
 
-    this.columns.forEach(col => this.dragDrop.registerDropZone(col));
+    this.columns.forEach((col) => this.dragDrop.registerDropZone(col));
   }
 
   getTasksForColumn(column: string): Task[] {
-    return this.tasks.filter(task => task.column === column);
+    return this.tasks.filter((task) => task.column === column);
   }
 
   handleDragOver(event: DragEvent, column: string) {
@@ -747,7 +713,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.columns.forEach(col => this.dragDrop.unregisterDropZone(col));
+    this.columns.forEach((col) => this.dragDrop.unregisterDropZone(col));
   }
 }
 ```
@@ -879,7 +845,7 @@ export class MenuWithTrackingComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.rovingFocus.initialize({
-      items: this.items.map(item => item.id),
+      items: this.items.map((item) => item.id),
       onFocusChange: (index, itemId, previousIndex) => {
         this.focusedItem = itemId;
         if (previousIndex !== -1) {
@@ -946,11 +912,7 @@ interface LoginForm {
           [attr.aria-invalid]="!!(state$ | async)?.errors.username"
           [attr.aria-describedby]="(state$ | async)?.errors.username ? 'username-error' : null"
         />
-        <span
-          *ngIf="(state$ | async)?.errors.username"
-          id="username-error"
-          class="error"
-        >
+        <span *ngIf="(state$ | async)?.errors.username" id="username-error" class="error">
           {{ (state$ | async)?.errors.username }}
         </span>
       </div>
@@ -966,18 +928,12 @@ interface LoginForm {
           [attr.aria-invalid]="!!(state$ | async)?.errors.password"
           [attr.aria-describedby]="(state$ | async)?.errors.password ? 'password-error' : null"
         />
-        <span
-          *ngIf="(state$ | async)?.errors.password"
-          id="password-error"
-          class="error"
-        >
+        <span *ngIf="(state$ | async)?.errors.password" id="password-error" class="error">
           {{ (state$ | async)?.errors.password }}
         </span>
       </div>
 
-      <button type="submit" [disabled]="!(state$ | async)?.isValid">
-        Login
-      </button>
+      <button type="submit" [disabled]="!(state$ | async)?.isValid">Login</button>
     </form>
   `,
   providers: [FormBehaviorService],
@@ -987,7 +943,7 @@ export class LoginFormComponent implements OnInit {
 
   constructor(
     public form: FormBehaviorService<LoginForm>,
-    private http: HttpClient
+    private http: HttpClient,
   ) {}
 
   ngOnInit() {
@@ -1048,11 +1004,7 @@ export class LoginFormComponent implements OnInit {
 
 ```typescript
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import {
-  KeyboardShortcutsService,
-  UndoRedoStackService,
-  FormBehaviorService,
-} from '@web-loom/ui-core/angular';
+import { KeyboardShortcutsService, UndoRedoStackService, FormBehaviorService } from '@web-loom/ui-core/angular';
 import { Observable } from 'rxjs';
 
 interface EditorState {
@@ -1072,23 +1024,11 @@ interface EditorState {
           placeholder="Document title"
         />
 
-        <button
-          (click)="undoRedo.undo()"
-          [disabled]="!(undoRedoState$ | async)?.canUndo"
-        >
-          ↶ Undo (Ctrl+Z)
-        </button>
+        <button (click)="undoRedo.undo()" [disabled]="!(undoRedoState$ | async)?.canUndo">↶ Undo (Ctrl+Z)</button>
 
-        <button
-          (click)="undoRedo.redo()"
-          [disabled]="!(undoRedoState$ | async)?.canRedo"
-        >
-          ↷ Redo (Ctrl+Y)
-        </button>
+        <button (click)="undoRedo.redo()" [disabled]="!(undoRedoState$ | async)?.canRedo">↷ Redo (Ctrl+Y)</button>
 
-        <button (click)="handleSave()" [disabled]="isSaved">
-          💾 Save (Ctrl+S)
-        </button>
+        <button (click)="handleSave()" [disabled]="isSaved">💾 Save (Ctrl+S)</button>
 
         <span [class.saved]="isSaved" [class.unsaved]="!isSaved">
           {{ isSaved ? '✓ Saved' : '• Unsaved changes' }}
@@ -1108,11 +1048,7 @@ interface EditorState {
       </div>
     </div>
   `,
-  providers: [
-    KeyboardShortcutsService,
-    UndoRedoStackService,
-    FormBehaviorService,
-  ],
+  providers: [KeyboardShortcutsService, UndoRedoStackService, FormBehaviorService],
 })
 export class FullFeaturedEditorComponent implements OnInit, OnDestroy {
   isSaved = true;
@@ -1123,7 +1059,7 @@ export class FullFeaturedEditorComponent implements OnInit, OnDestroy {
   constructor(
     private shortcuts: KeyboardShortcutsService,
     public undoRedo: UndoRedoStackService<EditorState>,
-    public form: FormBehaviorService<any>
+    public form: FormBehaviorService<any>,
   ) {}
 
   ngOnInit() {
@@ -1230,8 +1166,8 @@ ngOnDestroy() {
 import { map, filter } from 'rxjs/operators';
 
 shortcuts$ = this.shortcutService.state$.pipe(
-  map(state => state.activeShortcuts),
-  filter(shortcuts => shortcuts.length > 0)
+  map((state) => state.activeShortcuts),
+  filter((shortcuts) => shortcuts.length > 0),
 );
 ```
 

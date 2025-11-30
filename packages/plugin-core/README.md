@@ -183,12 +183,7 @@ This component manages the plugin lifecycle and renders plugin components.
 ```tsx
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
-import {
-  FrameworkAdapter,
-  PluginRegistry,
-  PluginManifest,
-  PluginModule,
-} from '@repo/plugin-core';
+import { FrameworkAdapter, PluginRegistry, PluginManifest, PluginModule } from '@repo/plugin-core';
 
 // 1. Create a React-specific FrameworkAdapter
 const ReactAdapter: FrameworkAdapter<React.ComponentType> = {
@@ -285,6 +280,7 @@ export const PluginHost = () => {
 Plugins can declare dependencies on other plugins using the `dependencies` field in their `plugin.json` manifest. The `PluginRegistry` can then resolve the correct load order using a topological sort.
 
 **`plugin-a/plugin.json`**
+
 ```json
 {
   "id": "plugin-a",
@@ -298,6 +294,7 @@ Plugins can declare dependencies on other plugins using the `dependencies` field
 ```
 
 **`plugin-b/plugin.json`**
+
 ```json
 {
   "id": "plugin-b",

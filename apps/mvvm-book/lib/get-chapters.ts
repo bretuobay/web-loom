@@ -27,7 +27,7 @@ export async function getChapters(): Promise<Chapter[]> {
     const files = fs.readdirSync(chaptersDir);
 
     // Filter for .mdx files only
-    const mdxFiles = files.filter(file => file.endsWith('.mdx'));
+    const mdxFiles = files.filter((file) => file.endsWith('.mdx'));
 
     if (mdxFiles.length === 0) {
       console.warn('No MDX files found in chapters directory');
@@ -105,8 +105,8 @@ function parseChapterFile(chaptersDir: string, filename: string): Chapter | null
 function sortChaptersByFilename(chapters: Chapter[], filenames: string[], chaptersDir: string): Chapter[] {
   // Create a map of chapter id to filename for sorting
   const filenameMap = new Map<string, string>();
-  
-  filenames.forEach(filename => {
+
+  filenames.forEach((filename) => {
     const filePath = path.join(chaptersDir, filename);
     try {
       const fileContent = fs.readFileSync(filePath, 'utf-8');

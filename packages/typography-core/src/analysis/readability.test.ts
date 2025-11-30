@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { analyzeTextContent, calculateReadingTime, generateContentInsights, getReadabilityScore } from './readability';
 
 describe('readability utilities', () => {
-  const sample = 'Typography enhances clarity. Great typography improves reading experience across devices. This matters a lot!';
+  const sample =
+    'Typography enhances clarity. Great typography improves reading experience across devices. This matters a lot!';
 
   it('calculates reading time', () => {
     const readingTime = calculateReadingTime(sample, 250);

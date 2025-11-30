@@ -159,13 +159,13 @@ interface ParsedKeyCombo {
 /**
  * Parses a key combination string into its components.
  * Normalizes platform-specific keys (Cmd → Meta, Ctrl → Ctrl).
- * 
+ *
  * @param combo The key combination string (e.g., "Ctrl+K", "Cmd+Shift+P").
  * @returns Parsed key combination object.
  */
 function parseKeyCombo(combo: string): ParsedKeyCombo {
-  const parts = combo.split('+').map(p => p.trim());
-  
+  const parts = combo.split('+').map((p) => p.trim());
+
   if (parts.length === 0) {
     return {
       ctrl: false,
@@ -189,7 +189,7 @@ function parseKeyCombo(combo: string): ParsedKeyCombo {
 
   for (const part of parts) {
     const lower = part.toLowerCase();
-    
+
     if (lower === 'ctrl' || lower === 'control') {
       modifiers.ctrl = true;
     } else if (lower === 'shift') {
@@ -231,7 +231,7 @@ function parseKeyCombo(combo: string): ParsedKeyCombo {
 
 /**
  * Matches a keyboard event against a parsed key combination.
- * 
+ *
  * @param event The keyboard event.
  * @param parsed The parsed key combination.
  * @returns True if the event matches the key combination.
@@ -252,20 +252,20 @@ function matchesKeyCombo(event: KeyboardEvent, parsed: ParsedKeyCombo): boolean 
 
 /**
  * Creates a keyboard shortcuts behavior for managing keyboard shortcut registration and execution.
- * 
+ *
  * This behavior provides a centralized way to manage keyboard shortcuts with support for:
  * - Key combination parsing with platform normalization (Cmd/Ctrl)
  * - Global and scoped shortcuts
  * - Conflict resolution (last-wins strategy)
  * - Event delegation with a single global listener
- * 
+ *
  * @example
  * ```typescript
  * const shortcuts = createKeyboardShortcuts({
  *   scope: 'global',
  *   onShortcutExecuted: (key) => console.log(`Executed: ${key}`),
  * });
- * 
+ *
  * // Register a shortcut
  * shortcuts.actions.registerShortcut({
  *   key: 'Ctrl+K',
@@ -273,7 +273,7 @@ function matchesKeyCombo(event: KeyboardEvent, parsed: ParsedKeyCombo): boolean 
  *   description: 'Open command palette',
  *   preventDefault: true,
  * });
- * 
+ *
  * // On macOS, you can use Cmd instead of Ctrl
  * shortcuts.actions.registerShortcut({
  *   key: 'Cmd+Shift+P',
@@ -281,17 +281,15 @@ function matchesKeyCombo(event: KeyboardEvent, parsed: ParsedKeyCombo): boolean 
  *   description: 'Open command palette',
  *   preventDefault: true,
  * });
- * 
+ *
  * // Clean up
  * shortcuts.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the keyboard shortcuts behavior.
  * @returns A keyboard shortcuts behavior instance.
  */
-export function createKeyboardShortcuts(
-  options?: KeyboardShortcutsOptions
-): KeyboardShortcutsBehavior {
+export function createKeyboardShortcuts(options?: KeyboardShortcutsOptions): KeyboardShortcutsBehavior {
   const initialState: KeyboardShortcutsState = {
     shortcuts: new Map(),
     scope: options?.scope || 'global',
@@ -306,7 +304,7 @@ export function createKeyboardShortcuts(
     registerShortcut: (shortcut: KeyboardShortcut) => {
       try {
         const parsed = parseKeyCombo(shortcut.key);
-        
+
         if (!parsed.isValid) {
           console.error(`Invalid key combination: ${shortcut.key}`);
           return;
@@ -318,7 +316,7 @@ export function createKeyboardShortcuts(
         // Check for duplicate registration (log warning)
         if (state.shortcuts.has(normalizedKey)) {
           console.warn(
-            `Keyboard shortcut "${normalizedKey}" is already registered. Replacing with new handler (last-wins strategy).`
+            `Keyboard shortcut "${normalizedKey}" is already registered. Replacing with new handler (last-wins strategy).`,
           );
         }
 
@@ -343,7 +341,7 @@ export function createKeyboardShortcuts(
 
     unregisterShortcut: (key: string) => {
       const parsed = parseKeyCombo(key);
-      
+
       if (!parsed.isValid) {
         console.error(`Invalid key combination: ${key}`);
         return;
@@ -409,7 +407,7 @@ export function createKeyboardShortcuts(
     // Try to match the event against registered shortcuts
     for (const [normalizedKey, shortcut] of state.shortcuts) {
       const parsed = parseKeyCombo(normalizedKey);
-      
+
       if (matchesKeyCombo(event, parsed)) {
         // Check scope
         if (shortcut.scope === 'scoped' && state.scope !== 'scoped') {
@@ -425,7 +423,7 @@ export function createKeyboardShortcuts(
         // Execute handler
         try {
           shortcut.handler();
-          
+
           // Invoke callback if provided
           if (options?.onShortcutExecuted) {
             options.onShortcutExecuted(normalizedKey);

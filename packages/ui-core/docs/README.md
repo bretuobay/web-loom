@@ -5,9 +5,11 @@ Comprehensive documentation for all behaviors in the `@web-loom/ui-core` package
 ## New Behaviors
 
 ### [Keyboard Shortcuts](./KEYBOARD_SHORTCUTS.md)
+
 Centralized keyboard shortcut management with platform normalization and scope support.
 
 **Key Features:**
+
 - Platform-agnostic key combination parsing
 - Automatic Cmd/Ctrl normalization
 - Global and scoped shortcuts
@@ -15,6 +17,7 @@ Centralized keyboard shortcut management with platform normalization and scope s
 - Single global event listener
 
 **Use Cases:**
+
 - Command palettes
 - Text editors
 - Productivity tools
@@ -23,9 +26,11 @@ Centralized keyboard shortcut management with platform normalization and scope s
 ---
 
 ### [Undo/Redo Stack](./UNDO_REDO_STACK.md)
+
 Immutable state history management with undo/redo operations.
 
 **Key Features:**
+
 - Immutable state history
 - Configurable history limits
 - Time-travel debugging
@@ -33,6 +38,7 @@ Immutable state history management with undo/redo operations.
 - Type-safe with generics
 
 **Use Cases:**
+
 - Text editors
 - Drawing applications
 - Form state management
@@ -41,9 +47,11 @@ Immutable state history management with undo/redo operations.
 ---
 
 ### [Drag-and-Drop](./DRAG_DROP.md)
+
 Framework-agnostic drag-and-drop state management with validation.
 
 **Key Features:**
+
 - Drop zone registration
 - Drag data transfer
 - Custom validation
@@ -51,6 +59,7 @@ Framework-agnostic drag-and-drop state management with validation.
 - Keyboard accessibility support
 
 **Use Cases:**
+
 - Kanban boards
 - Reorderable lists
 - File upload interfaces
@@ -109,6 +118,7 @@ dragDrop.actions.drop('zone-1');
 ## Framework Support
 
 All behaviors include adapters for:
+
 - **React**: Hooks (`useKeyboardShortcuts`, `useUndoRedoStack`, `useDragDropBehavior`)
 - **Vue**: Composables (same names as React hooks)
 - **Angular**: Services (`KeyboardShortcutsService`, `UndoRedoStackService`, `DragDropBehaviorService`)
@@ -116,6 +126,7 @@ All behaviors include adapters for:
 ## Accessibility
 
 All behaviors follow WCAG 2.1 Level AA guidelines:
+
 - Keyboard-only navigation support
 - Screen reader announcements
 - Proper ARIA attributes
@@ -128,16 +139,13 @@ See individual behavior documentation for detailed accessibility guidelines.
 Full TypeScript support with exported types for all behaviors:
 
 ```typescript
-import type {
-  KeyboardShortcutsBehavior,
-  UndoRedoStackBehavior,
-  DragDropBehavior,
-} from '@web-loom/ui-core';
+import type { KeyboardShortcutsBehavior, UndoRedoStackBehavior, DragDropBehavior } from '@web-loom/ui-core';
 ```
 
 ## Performance
 
 All behaviors are optimized for performance:
+
 - **Bundle Size**: <2KB gzipped per behavior
 - **Tree-Shaking**: Import only what you need
 - **Memory**: Efficient state management with structural sharing

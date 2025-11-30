@@ -3,7 +3,9 @@
 ## 1. High-Level Summary
 
 ### Architecture Type
+
 Backstage employs a **hybrid multi-layer plugin architecture** combining:
+
 - **Dependency Injection Container Pattern** (backend)
 - **Service Locator Pattern** (service registry)
 - **Extension Point Pattern** (plugin extensibility)
@@ -11,7 +13,9 @@ Backstage employs a **hybrid multi-layer plugin architecture** combining:
 - **Registry-Based Discovery** (package.json metadata)
 
 ### Problem Statement
+
 The plugin system solves the fundamental challenge of building a modular, extensible developer portal platform where:
+
 - **Frontend plugins** provide UI components, pages, and client-side functionality
 - **Backend plugins** expose APIs, process data, and integrate with external systems
 - **Backend modules** extend existing plugins without modifying their code
@@ -20,7 +24,9 @@ The plugin system solves the fundamental challenge of building a modular, extens
 - **Lifecycle management** ensures proper initialization and shutdown sequences
 
 ### Architectural Philosophy
+
 Backstage's architecture enforces **explicit contracts** and **loose coupling** through:
+
 1. Static typing for all plugin interfaces
 2. Declarative dependency specification
 3. Automatic dependency resolution
@@ -34,6 +40,7 @@ Backstage's architecture enforces **explicit contracts** and **loose coupling** 
 ### Discovery Mechanisms
 
 #### 2.1 Frontend Discovery (Static Import)
+
 **Location**: `packages/app/src/App.tsx`
 
 Frontend plugins are **statically imported** at build time:
@@ -67,12 +74,14 @@ const routes = (
 ```
 
 **Characteristics**:
+
 - Webpack bundles all frontend plugins at build time
 - No runtime discovery mechanism
 - Tree-shaking eliminates unused code
 - Type-safe imports
 
 #### 2.2 Backend Discovery (Dynamic Import)
+
 **Location**: `packages/backend/src/index.ts`
 
 Backend plugins use **dynamic import syntax** for modular loading:
@@ -95,12 +104,14 @@ backend.start();
 ```
 
 **Characteristics**:
+
 - Promise-based dynamic imports
 - Plugins loaded asynchronously
 - Each plugin exports default `BackendFeature`
 - Lazy loading potential (though not utilized by default)
 
 #### 2.3 Automatic Package Discovery
+
 **Location**: `packages/backend-defaults/src/discoveryFeatureLoader.ts`
 
 **Package.json Metadata** drives automatic discovery:
@@ -116,6 +127,7 @@ backend.start();
 ```
 
 **Recognized Roles**:
+
 - `frontend-plugin` - UI components
 - `backend-plugin` - Backend service
 - `backend-plugin-module` - Extends a backend plugin
@@ -145,12 +157,7 @@ backend:
 async function getBackendFeatures(): Promise<{
   features: Array<BackendFeature>;
 }> {
-  const packageRoles = new Set([
-    'node-library',
-    'backend',
-    'backend-plugin',
-    'backend-plugin-module',
-  ]);
+  const packageRoles = new Set(['node-library', 'backend', 'backend-plugin', 'backend-plugin-module']);
 
   // 1. Find nearest package.json
   const packagePath = findNearestPackageJson(__dirname);
@@ -163,14 +170,14 @@ async function getBackendFeatures(): Promise<{
   };
 
   // 3. Filter by backstage.role
-  const packages = Object.keys(dependencies).filter(name => {
+  const packages = Object.keys(dependencies).filter((name) => {
     const depPackageJson = require(`${name}/package.json`);
     return packageRoles.has(depPackageJson.backstage?.role);
   });
 
   // 4. Dynamically require and validate
   const features = await Promise.all(
-    packages.map(async pkg => {
+    packages.map(async (pkg) => {
       const module = await import(pkg);
       const feature = module.default;
 
@@ -179,7 +186,7 @@ async function getBackendFeatures(): Promise<{
       }
 
       return feature;
-    })
+    }),
   );
 
   return { features };
@@ -189,6 +196,7 @@ async function getBackendFeatures(): Promise<{
 ### Loading Mechanisms
 
 #### Backend Feature Validation
+
 **Location**: `packages/backend-plugin-api/src/wiring/createBackendFeatureLoader.ts`
 
 All backend features must conform to:
@@ -209,12 +217,7 @@ export interface BackendFeature {
 }
 
 function isBackendFeature(obj: unknown): obj is BackendFeature {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    '$$type' in obj &&
-    obj.$$type === '@backstage/BackendFeature'
-  );
+  return typeof obj === 'object' && obj !== null && '$$type' in obj && obj.$$type === '@backstage/BackendFeature';
 }
 ```
 
@@ -228,7 +231,7 @@ function isBackendFeature(obj: unknown): obj is BackendFeature {
 
 ```typescript
 export function createPlugin<Routes, ExternalRoutes>(
-  config: PluginConfig<Routes, ExternalRoutes>
+  config: PluginConfig<Routes, ExternalRoutes>,
 ): BackstagePlugin<Routes, ExternalRoutes> {
   const plugin = new PluginImpl(config);
 
@@ -238,9 +241,7 @@ export function createPlugin<Routes, ExternalRoutes>(
   return plugin;
 }
 
-class PluginImpl<Routes, ExternalRoutes>
-  implements BackstagePlugin<Routes, ExternalRoutes> {
-
+class PluginImpl<Routes, ExternalRoutes> implements BackstagePlugin<Routes, ExternalRoutes> {
   constructor(private config: PluginConfig<Routes, ExternalRoutes>) {}
 
   getId(): string {
@@ -283,8 +284,7 @@ export const catalogPlugin = createPlugin({
         discoveryApi: discoveryApiRef,
         fetchApi: fetchApiRef,
       },
-      factory: ({ discoveryApi, fetchApi }) =>
-        new CatalogClient({ discoveryApi, fetchApi }),
+      factory: ({ discoveryApi, fetchApi }) => new CatalogClient({ discoveryApi, fetchApi }),
     }),
   ],
 
@@ -301,9 +301,7 @@ export const catalogPlugin = createPlugin({
   },
 
   // Feature flags
-  featureFlags: [
-    { name: 'catalog-react-use-new-entity-picker' },
-  ],
+  featureFlags: [{ name: 'catalog-react-use-new-entity-picker' }],
 });
 ```
 
@@ -312,9 +310,7 @@ export const catalogPlugin = createPlugin({
 **API**: `packages/backend-plugin-api/src/wiring/createBackendPlugin.ts`
 
 ```typescript
-export function createBackendPlugin(
-  options: CreateBackendPluginOptions
-): BackendFeature {
+export function createBackendPlugin(options: CreateBackendPluginOptions): BackendFeature {
   validatePluginId(options.pluginId);
 
   return {
@@ -364,14 +360,8 @@ export const catalogPlugin = createBackendPlugin({
     const modelExtensions = new CatalogModelExtensionPointImpl();
 
     // 2. Register extension points for modules
-    env.registerExtensionPoint(
-      catalogProcessingExtensionPoint,
-      processingExtensions
-    );
-    env.registerExtensionPoint(
-      catalogModelExtensionPoint,
-      modelExtensions
-    );
+    env.registerExtensionPoint(catalogProcessingExtensionPoint, processingExtensions);
+    env.registerExtensionPoint(catalogModelExtensionPoint, modelExtensions);
 
     // 3. Register plugin initialization
     env.registerInit({
@@ -385,16 +375,7 @@ export const catalogPlugin = createBackendPlugin({
         discovery: coreServices.discovery,
         lifecycle: coreServices.rootLifecycle,
       },
-      async init({
-        logger,
-        config,
-        database,
-        httpRouter,
-        scheduler,
-        permissions,
-        discovery,
-        lifecycle,
-      }) {
+      async init({ logger, config, database, httpRouter, scheduler, permissions, discovery, lifecycle }) {
         // Build catalog engine
         const builder = await CatalogBuilder.create({
           logger,
@@ -432,9 +413,7 @@ export const catalogPlugin = createBackendPlugin({
 **API**: `packages/backend-plugin-api/src/wiring/createBackendModule.ts`
 
 ```typescript
-export function createBackendModule(
-  options: CreateBackendModuleOptions
-): BackendFeature {
+export function createBackendModule(options: CreateBackendModuleOptions): BackendFeature {
   validatePluginId(options.pluginId);
   validateModuleId(options.moduleId);
 
@@ -475,7 +454,7 @@ export function createBackendModule(
 
 ```typescript
 export const githubCatalogModule = createBackendModule({
-  pluginId: 'catalog',  // Must match parent plugin
+  pluginId: 'catalog', // Must match parent plugin
   moduleId: 'github',
 
   register(env) {
@@ -492,21 +471,17 @@ export const githubCatalogModule = createBackendModule({
 
       async init({ catalogProcessing, config, logger, scheduler }) {
         // Extend plugin via extension point
-        const githubConfig = readGithubIntegrationConfigs(
-          config.getOptionalConfigArray('integrations.github') ?? []
-        );
+        const githubConfig = readGithubIntegrationConfigs(config.getOptionalConfigArray('integrations.github') ?? []);
 
-        githubConfig.forEach(integration => {
+        githubConfig.forEach((integration) => {
           catalogProcessing.addEntityProvider(
             GithubEntityProvider.fromConfig(integration, {
               logger,
               scheduler,
-            })
+            }),
           );
 
-          catalogProcessing.addProcessor(
-            new GithubOrgReaderProcessor({ integration })
-          );
+          catalogProcessing.addProcessor(new GithubOrgReaderProcessor({ integration }));
         });
       },
     });
@@ -595,20 +570,15 @@ export interface BackendPluginRegistrationPoints {
   /**
    * Register an extension point for modules to extend this plugin.
    */
-  registerExtensionPoint<TExtensionPoint>(
-    ref: ExtensionPoint<TExtensionPoint>,
-    impl: TExtensionPoint,
-  ): void;
+  registerExtensionPoint<TExtensionPoint>(ref: ExtensionPoint<TExtensionPoint>, impl: TExtensionPoint): void;
 
   /**
    * Register plugin initialization logic with dependencies.
    */
-  registerInit<TDeps extends { [name in string]: ServiceRef<unknown> }>(
-    options: {
-      deps: TDeps;
-      init(deps: ServiceRefToInstance<TDeps>): Promise<void>;
-    }
-  ): void;
+  registerInit<TDeps extends { [name in string]: ServiceRef<unknown> }>(options: {
+    deps: TDeps;
+    init(deps: ServiceRefToInstance<TDeps>): Promise<void>;
+  }): void;
 }
 ```
 
@@ -639,10 +609,7 @@ export interface BackendModuleRegistrationPoints {
   /**
    * Register extension point (rare - modules usually consume, not provide).
    */
-  registerExtensionPoint<TExtensionPoint>(
-    ref: ExtensionPoint<TExtensionPoint>,
-    impl: TExtensionPoint,
-  ): void;
+  registerExtensionPoint<TExtensionPoint>(ref: ExtensionPoint<TExtensionPoint>, impl: TExtensionPoint): void;
 
   /**
    * Register module initialization with dependencies.
@@ -651,7 +618,7 @@ export interface BackendModuleRegistrationPoints {
   registerInit<
     TDeps extends {
       [name in string]: ServiceRef<unknown> | ExtensionPoint<unknown>;
-    }
+    },
   >(options: {
     deps: TDeps;
     init(deps: DepsToInstances<TDeps>): Promise<void>;
@@ -683,10 +650,12 @@ All plugins must include metadata:
 ```
 
 **Required Metadata**:
+
 - `backstage.role`: Plugin type
 - `backstage.pluginId`: Unique identifier
 
 **Optional Metadata**:
+
 - `backstage.pluginPackages`: Related packages in the plugin family
 
 ---
@@ -855,17 +824,10 @@ async function initialize(): Promise<void> {
     // Initialize modules first
     for (const module of modules) {
       try {
-        const moduleDeps = await this.#getInitDeps(
-          module.init.deps,
-          pluginId,
-          module.moduleId
-        );
+        const moduleDeps = await this.#getInitDeps(module.init.deps, pluginId, module.moduleId);
 
-        await module.init.func(moduleDeps).catch(error => {
-          throw new ForwardedError(
-            `Module '${module.moduleId}' for plugin '${pluginId}' startup failed`,
-            error
-          );
+        await module.init.func(moduleDeps).catch((error) => {
+          throw new ForwardedError(`Module '${module.moduleId}' for plugin '${pluginId}' startup failed`, error);
         });
       } catch (error) {
         if (isModuleBootFailurePermitted) {
@@ -919,7 +881,7 @@ env.registerInit({
     lifecycle.addShutdownHook(async () => {
       await processingEngine.stop();
     });
-  }
+  },
 });
 ```
 
@@ -932,6 +894,7 @@ env.registerInit({
 Extension points enable **Open-Closed Principle**: plugins are open for extension but closed for modification.
 
 **Architecture**:
+
 ```
 Plugin (provides)  →  Extension Point  ←  Module (consumes)
       |                     ↑                    |
@@ -950,13 +913,11 @@ Plugin (provides)  →  Extension Point  ←  Module (consumes)
 ```typescript
 export interface ExtensionPoint<T> {
   id: string;
-  T: T;  // Type-only field for TypeScript inference
+  T: T; // Type-only field for TypeScript inference
   $$type: '@backstage/ExtensionPoint';
 }
 
-export function createExtensionPoint<T>(options: {
-  id: string;
-}): ExtensionPoint<T> {
+export function createExtensionPoint<T>(options: { id: string }): ExtensionPoint<T> {
   return {
     id: options.id,
     get T(): T {
@@ -994,15 +955,12 @@ export interface CatalogProcessingExtensionPoint {
   /**
    * Set error handler for processing failures.
    */
-  setOnProcessingErrorHandler(
-    handler: (event: ProcessingErrorEvent) => Promise<void>
-  ): void;
+  setOnProcessingErrorHandler(handler: (event: ProcessingErrorEvent) => Promise<void>): void;
 }
 
-export const catalogProcessingExtensionPoint =
-  createExtensionPoint<CatalogProcessingExtensionPoint>({
-    id: 'catalog.processing',
-  });
+export const catalogProcessingExtensionPoint = createExtensionPoint<CatalogProcessingExtensionPoint>({
+  id: 'catalog.processing',
+});
 
 export interface CatalogModelExtensionPoint {
   /**
@@ -1011,10 +969,9 @@ export interface CatalogModelExtensionPoint {
   setFieldFormatValidators(validators: Record<string, z.ZodSchema>): void;
 }
 
-export const catalogModelExtensionPoint =
-  createExtensionPoint<CatalogModelExtensionPoint>({
-    id: 'catalog.model',
-  });
+export const catalogModelExtensionPoint = createExtensionPoint<CatalogModelExtensionPoint>({
+  id: 'catalog.model',
+});
 
 export interface CatalogPermissionExtensionPoint {
   /**
@@ -1023,18 +980,15 @@ export interface CatalogPermissionExtensionPoint {
   setPermissionRules(rules: CatalogPermissionRule[]): void;
 }
 
-export const catalogPermissionExtensionPoint =
-  createExtensionPoint<CatalogPermissionExtensionPoint>({
-    id: 'catalog.permission',
-  });
+export const catalogPermissionExtensionPoint = createExtensionPoint<CatalogPermissionExtensionPoint>({
+  id: 'catalog.permission',
+});
 ```
 
 **Implementation**:
 
 ```typescript
-class CatalogProcessingExtensionPointImpl
-  implements CatalogProcessingExtensionPoint {
-
+class CatalogProcessingExtensionPointImpl implements CatalogProcessingExtensionPoint {
   public readonly processors: CatalogProcessor[] = [];
   public readonly entityProviders: EntityProvider[] = [];
   private readonly placeholderResolvers = new Map<string, PlaceholderResolver>();
@@ -1052,9 +1006,7 @@ class CatalogProcessingExtensionPointImpl
     this.placeholderResolvers.set(key, resolver);
   }
 
-  setOnProcessingErrorHandler(
-    handler: (event: ProcessingErrorEvent) => Promise<void>
-  ): void {
+  setOnProcessingErrorHandler(handler: (event: ProcessingErrorEvent) => Promise<void>): void {
     this.errorHandler = handler;
   }
 }
@@ -1072,10 +1024,9 @@ export interface ScaffolderActionsExtensionPoint {
   addActions(...actions: TemplateAction<any, any, any>[]): void;
 }
 
-export const scaffolderActionsExtensionPoint =
-  createExtensionPoint<ScaffolderActionsExtensionPoint>({
-    id: 'scaffolder.actions',
-  });
+export const scaffolderActionsExtensionPoint = createExtensionPoint<ScaffolderActionsExtensionPoint>({
+  id: 'scaffolder.actions',
+});
 ```
 
 **Usage Pattern**:
@@ -1091,12 +1042,8 @@ env.registerInit({
     scaffolderActions: scaffolderActionsExtensionPoint,
   },
   async init({ scaffolderActions }) {
-    scaffolderActions.addActions(
-      createPublishGithubAction(),
-      createPublishGitlabAction(),
-      createFetchTemplateAction(),
-    );
-  }
+    scaffolderActions.addActions(createPublishGithubAction(), createPublishGitlabAction(), createFetchTemplateAction());
+  },
 });
 
 // 3. Plugin uses extension data
@@ -1114,10 +1061,9 @@ export interface PermissionPolicyExtensionPoint {
   setPolicy(policy: PermissionPolicy): void;
 }
 
-export const permissionPolicyExtensionPoint =
-  createExtensionPoint<PermissionPolicyExtensionPoint>({
-    id: 'permission.policy',
-  });
+export const permissionPolicyExtensionPoint = createExtensionPoint<PermissionPolicyExtensionPoint>({
+  id: 'permission.policy',
+});
 ```
 
 ### 6.6 Search Extension Points
@@ -1130,10 +1076,9 @@ export interface SearchIndexExtensionPoint {
   addDecorator(decorator: DocumentDecorator): void;
 }
 
-export const searchIndexExtensionPoint =
-  createExtensionPoint<SearchIndexExtensionPoint>({
-    id: 'search.index',
-  });
+export const searchIndexExtensionPoint = createExtensionPoint<SearchIndexExtensionPoint>({
+  id: 'search.index',
+});
 ```
 
 ### 6.7 Complete Extension Point Flow Example
@@ -1146,10 +1091,7 @@ export const catalogPlugin = createBackendPlugin({
   register(env) {
     const processingExtensions = new CatalogProcessingExtensionPointImpl();
 
-    env.registerExtensionPoint(
-      catalogProcessingExtensionPoint,
-      processingExtensions
-    );
+    env.registerExtensionPoint(catalogProcessingExtensionPoint, processingExtensions);
 
     env.registerInit({
       deps: { database: coreServices.database },
@@ -1162,9 +1104,9 @@ export const catalogPlugin = createBackendPlugin({
 
         const catalog = await builder.build();
         // ... rest of initialization
-      }
+      },
     });
-  }
+  },
 });
 ```
 
@@ -1177,26 +1119,22 @@ export const githubCatalogModule = createBackendModule({
   register(env) {
     env.registerInit({
       deps: {
-        catalogProcessing: catalogProcessingExtensionPoint,  // Dependency!
+        catalogProcessing: catalogProcessingExtensionPoint, // Dependency!
         config: coreServices.rootConfig,
         scheduler: coreServices.scheduler,
       },
       async init({ catalogProcessing, config, scheduler }) {
         const githubIntegrations = readGithubIntegrationConfigs(config);
 
-        githubIntegrations.forEach(integration => {
+        githubIntegrations.forEach((integration) => {
           // Extend plugin via extension point
-          catalogProcessing.addEntityProvider(
-            GithubEntityProvider.fromConfig(integration, { scheduler })
-          );
+          catalogProcessing.addEntityProvider(GithubEntityProvider.fromConfig(integration, { scheduler }));
 
-          catalogProcessing.addProcessor(
-            new GithubOrgReaderProcessor({ integration })
-          );
+          catalogProcessing.addProcessor(new GithubOrgReaderProcessor({ integration }));
         });
-      }
+      },
     });
-  }
+  },
 });
 ```
 
@@ -1211,6 +1149,7 @@ export const githubCatalogModule = createBackendModule({
 Backstage uses a **hierarchical YAML configuration** system with environment overrides.
 
 **Configuration Files**:
+
 - `app-config.yaml` - Default configuration
 - `app-config.local.yaml` - Local overrides (gitignored)
 - `app-config.production.yaml` - Production settings
@@ -1221,7 +1160,7 @@ Backstage uses a **hierarchical YAML configuration** system with environment ove
 app:
   title: Backstage Example
   baseUrl: http://localhost:3000
-  packages: all  # Auto-discovery
+  packages: all # Auto-discovery
 
 backend:
   baseUrl: http://localhost:7007
@@ -1311,7 +1250,7 @@ env.registerInit({
     const rules = catalogConfig.getOptionalConfigArray('rules') ?? [];
 
     logger.info(`Loaded ${integrations.length} GitHub integrations`);
-  }
+  },
 });
 ```
 
@@ -1328,7 +1267,7 @@ createApiFactory({
     const allowedKinds = configApi.getOptionalStringArray('catalog.allowedKinds');
     return new CatalogClient({ discoveryApi, allowedKinds });
   },
-})
+});
 ```
 
 ### 7.3 Configuration Schema
@@ -1375,6 +1314,7 @@ export interface Config {
 ```
 
 **Visibility Modifiers**:
+
 - `@visibility frontend` - Available to frontend
 - `@visibility backend` - Backend only
 - `@visibility secret` - Redacted in logs
@@ -1403,14 +1343,12 @@ export interface Config {
   "publishConfig": {
     "access": "public"
   },
-  "keywords": [
-    "backstage",
-    "plugin"
-  ]
+  "keywords": ["backstage", "plugin"]
 }
 ```
 
 **Role Types**:
+
 - `frontend-plugin` - UI plugin
 - `backend-plugin` - Backend service plugin
 - `backend-plugin-module` - Extends backend plugin
@@ -1424,6 +1362,7 @@ export interface Config {
 **Current State**: **Not supported** for core configuration.
 
 **Workarounds**:
+
 1. **Scheduled config refresh**: Plugins can poll config files
 2. **Environment variables**: Can be changed without code reload
 3. **Feature flags**: Runtime toggles via config
@@ -1492,7 +1431,7 @@ env.registerInit({
         headers: { Authorization: `Bearer ${token}` },
       });
     });
-  }
+  },
 });
 ```
 
@@ -1511,7 +1450,7 @@ env.registerInit({
       // Check permissions
       const decision = await permissions.authorize(
         [{ permission: catalogEntityDeletePermission, resourceRef: req.params.id }],
-        { credentials }
+        { credentials },
       );
 
       if (decision[0].result === 'DENY') {
@@ -1523,7 +1462,7 @@ env.registerInit({
       await catalog.deleteEntity(req.params.id);
       res.status(204).send();
     });
-  }
+  },
 });
 ```
 
@@ -1532,13 +1471,13 @@ env.registerInit({
 ```typescript
 export type BackstageUserPrincipal = {
   type: 'user';
-  userEntityRef: string;  // e.g., 'user:default/john.doe'
-  actor?: BackstageServicePrincipal;  // Service acting on behalf
+  userEntityRef: string; // e.g., 'user:default/john.doe'
+  actor?: BackstageServicePrincipal; // Service acting on behalf
 };
 
 export type BackstageServicePrincipal = {
   type: 'service';
-  subject: string;  // e.g., 'plugin:catalog'
+  subject: string; // e.g., 'plugin:catalog'
   accessRestrictions?: {
     permissionNames?: string[];
     permissionAttributes?: {
@@ -1548,7 +1487,7 @@ export type BackstageServicePrincipal = {
 };
 
 export type BackstageNonePrincipal = {
-  type: 'none';  // Unauthenticated
+  type: 'none'; // Unauthenticated
 };
 ```
 
@@ -1557,6 +1496,7 @@ export type BackstageNonePrincipal = {
 **Process Isolation**: **None** - All plugins run in the same Node.js process.
 
 **Module Isolation**: Enforced via:
+
 1. **Dependency injection**: Plugins only access explicitly requested services
 2. **Extension points**: Controlled API surface for extending plugins
 3. **TypeScript visibility**: Private vs. public APIs
@@ -1575,9 +1515,9 @@ env.registerInit({
     // Authentication policies
     httpRouter.addAuthPolicy({
       path: '/refresh',
-      allow: 'user-cookie',  // Only allow authenticated users
+      allow: 'user-cookie', // Only allow authenticated users
     });
-  }
+  },
 });
 ```
 
@@ -1592,11 +1532,11 @@ env.registerInit({
     const knex = await database.getClient();
 
     // Creates table 'catalog_entities' (not just 'entities')
-    await knex.schema.createTable('entities', table => {
+    await knex.schema.createTable('entities', (table) => {
       table.string('id').primary();
       table.jsonb('data');
     });
-  }
+  },
 });
 ```
 
@@ -1615,17 +1555,10 @@ async function initializePlugins(): Promise<void> {
       // Initialize modules
       for (const module of modules) {
         try {
-          const moduleDeps = await this.#getInitDeps(
-            module.init.deps,
-            pluginId,
-            module.moduleId
-          );
+          const moduleDeps = await this.#getInitDeps(module.init.deps, pluginId, module.moduleId);
 
-          await module.init.func(moduleDeps).catch(error => {
-            throw new ForwardedError(
-              `Module '${module.moduleId}' for plugin '${pluginId}' startup failed`,
-              error
-            );
+          await module.init.func(moduleDeps).catch((error) => {
+            throw new ForwardedError(`Module '${module.moduleId}' for plugin '${pluginId}' startup failed`, error);
           });
         } catch (error: unknown) {
           assertError(error);
@@ -1633,30 +1566,29 @@ async function initializePlugins(): Promise<void> {
           // Check if module failure is permitted
           if (isModuleBootFailurePermitted) {
             initLogger.onPermittedPluginModuleFailure(pluginId, module.moduleId, error);
-            continue;  // Skip this module, continue with others
+            continue; // Skip this module, continue with others
           } else {
             initLogger.onPluginModuleFailed(pluginId, module.moduleId, error);
-            throw error;  // Fatal error, stop initialization
+            throw error; // Fatal error, stop initialization
           }
         }
       }
 
       // Initialize plugin
       const pluginDeps = await this.#getInitDeps(plugin.init.deps, pluginId);
-      await plugin.init.func(pluginDeps).catch(error => {
+      await plugin.init.func(pluginDeps).catch((error) => {
         throw new ForwardedError(`Plugin '${pluginId}' startup failed`, error);
       });
-
     } catch (error: unknown) {
       assertError(error);
 
       // Check if plugin failure is permitted
       if (isBootFailurePermitted) {
         initLogger.onPermittedPluginFailure(pluginId, error);
-        continue;  // Continue loading other plugins
+        continue; // Continue loading other plugins
       } else {
         initLogger.onPluginFailed(pluginId, error);
-        throw error;  // Fatal error, exit process
+        throw error; // Fatal error, exit process
       }
     }
   }
@@ -1667,7 +1599,7 @@ async function initializePlugins(): Promise<void> {
 
 ```yaml
 backend:
-  pluginFailurePolicy: 'stop'  # or 'continue'
+  pluginFailurePolicy: 'stop' # or 'continue'
 ```
 
 #### Runtime Error Handling
@@ -1688,11 +1620,11 @@ env.registerInit({
           error: {
             name: error.name,
             message: error.message,
-          }
+          },
         });
       }
     });
-  }
+  },
 });
 ```
 
@@ -1725,9 +1657,9 @@ env.registerInit({
         error: error.message,
         stack: error.stack,
       });
-      throw error;  // Re-throw after logging
+      throw error; // Re-throw after logging
     }
-  }
+  },
 });
 ```
 
@@ -1766,27 +1698,32 @@ router.post('/entities', async (req, res) => {
 ### 8.5 Security Best Practices
 
 1. **Always verify credentials**:
+
 ```typescript
 const credentials = await httpAuth.credentials(req);
 ```
 
 2. **Check permissions before operations**:
+
 ```typescript
 const decision = await permissions.authorize([...], { credentials });
 ```
 
 3. **Use parameterized queries**:
+
 ```typescript
-await knex('entities').where({ id: entityId });  // Safe
+await knex('entities').where({ id: entityId }); // Safe
 // NOT: await knex.raw(`SELECT * FROM entities WHERE id = ${entityId}`)  // SQL injection!
 ```
 
 4. **Validate all inputs**:
+
 ```typescript
 const input = schema.parse(req.body);
 ```
 
 5. **Never trust user input in URLs**:
+
 ```typescript
 // Validate URLs before fetching
 const url = new URL(req.query.url);
@@ -1809,7 +1746,7 @@ Backstage uses **service references** for type-safe dependency injection.
 export interface ServiceRef<TService> {
   id: string;
   scope: 'root' | 'plugin';
-  T: TService;  // Type-only field
+  T: TService; // Type-only field
   $$type: '@backstage/ServiceRef';
 }
 
@@ -1916,11 +1853,11 @@ Plugins declare dependencies via `deps` object:
 ```typescript
 env.registerInit({
   deps: {
-    logger: coreServices.logger,         // ServiceRef
-    config: coreServices.rootConfig,     // ServiceRef
-    database: coreServices.database,     // ServiceRef
+    logger: coreServices.logger, // ServiceRef
+    config: coreServices.rootConfig, // ServiceRef
+    database: coreServices.database, // ServiceRef
     httpRouter: coreServices.httpRouter, // ServiceRef
-    scheduler: coreServices.scheduler,   // ServiceRef
+    scheduler: coreServices.scheduler, // ServiceRef
     permissions: coreServices.permissions, // ServiceRef
   },
   async init(deps) {
@@ -1928,7 +1865,7 @@ env.registerInit({
     deps.logger.info('Initializing plugin');
     const dbClient = await deps.database.getClient();
     // ...
-  }
+  },
 });
 ```
 
@@ -1939,8 +1876,8 @@ type DepsToInstances<T> = {
   [K in keyof T]: T[K] extends ServiceRef<infer TService>
     ? TService
     : T[K] extends ExtensionPoint<infer TExtension>
-    ? TExtension
-    : never;
+      ? TExtension
+      : never;
 };
 ```
 
@@ -1953,10 +1890,7 @@ class ServiceRegistry {
   private rootServices = new Map<string, unknown>();
   private pluginServices = new Map<string, Map<string, unknown>>();
 
-  async get<T>(
-    ref: ServiceRef<T>,
-    pluginId: string
-  ): Promise<T | undefined> {
+  async get<T>(ref: ServiceRef<T>, pluginId: string): Promise<T | undefined> {
     if (ref.scope === 'root') {
       // Root-scoped: shared instance
       if (!this.rootServices.has(ref.id)) {
@@ -1998,7 +1932,7 @@ export interface CatalogService {
 
 export const catalogServiceRef = createServiceRef<CatalogService>({
   id: 'catalog.service',
-  scope: 'root',  // Shared across all plugins
+  scope: 'root', // Shared across all plugins
 });
 ```
 
@@ -2016,9 +1950,9 @@ export const catalogPlugin = createBackendPlugin({
 
         // Register service for other plugins
         env.registerService(catalogServiceRef, catalogService);
-      }
+      },
     });
-  }
+  },
 });
 ```
 
@@ -2028,13 +1962,13 @@ export const catalogPlugin = createBackendPlugin({
 // Another plugin
 env.registerInit({
   deps: {
-    catalog: catalogServiceRef,  // Dependency on catalog service
+    catalog: catalogServiceRef, // Dependency on catalog service
     logger: coreServices.logger,
   },
   async init({ catalog, logger }) {
     const entities = await catalog.getEntities();
     logger.info(`Found ${entities.length} entities`);
-  }
+  },
 });
 ```
 
@@ -2046,14 +1980,14 @@ Modules can depend on extension points:
 env.registerInit({
   deps: {
     // Mix of services and extension points
-    catalogProcessing: catalogProcessingExtensionPoint,  // ExtensionPoint
-    config: coreServices.rootConfig,                     // ServiceRef
-    logger: coreServices.logger,                         // ServiceRef
+    catalogProcessing: catalogProcessingExtensionPoint, // ExtensionPoint
+    config: coreServices.rootConfig, // ServiceRef
+    logger: coreServices.logger, // ServiceRef
   },
   async init({ catalogProcessing, config, logger }) {
     // catalogProcessing is the extension point implementation
     catalogProcessing.addProcessor(new MyProcessor());
-  }
+  },
 });
 ```
 
@@ -2126,6 +2060,7 @@ Database Service → Catalog Plugin → Scaffolder Plugin → Scaffolder GitHub 
 ```
 
 **API Version Compatibility**: Enforced via semantic versioning:
+
 - Major version: Breaking changes
 - Minor version: New features, backward compatible
 - Patch version: Bug fixes
@@ -2378,6 +2313,7 @@ flowchart TD
 ### 11.1 Performance Optimizations
 
 #### 1. Lazy Plugin Loading (Backend)
+
 **Current**: All plugins loaded at startup
 **Improvement**: Load plugins on-demand based on request routing
 
@@ -2385,9 +2321,9 @@ flowchart TD
 const backend = createBackend({
   lazyLoading: true,
   plugins: {
-    'catalog': () => import('@backstage/plugin-catalog-backend'),
-    'scaffolder': () => import('@backstage/plugin-scaffolder-backend'),
-  }
+    catalog: () => import('@backstage/plugin-catalog-backend'),
+    scaffolder: () => import('@backstage/plugin-scaffolder-backend'),
+  },
 });
 
 // Load when first request hits /api/catalog
@@ -2400,6 +2336,7 @@ router.use('/api/catalog', async (req, res, next) => {
 **Benefits**: Faster startup, lower memory for unused plugins
 
 #### 2. Service Instance Caching
+
 **Current**: Services created per plugin synchronously
 **Improvement**: Parallel service initialization with memoization
 
@@ -2420,6 +2357,7 @@ class ServiceRegistry {
 ```
 
 #### 3. Incremental Build for Frontend
+
 **Current**: Full rebuild on any plugin change
 **Improvement**: Per-plugin bundling with module federation
 
@@ -2453,22 +2391,24 @@ module.exports = {
 ### 11.2 Stability Improvements
 
 #### 1. Plugin Isolation (Process-Level)
+
 **Current**: All plugins in same Node.js process
 **Improvement**: Worker thread isolation for critical plugins
 
 ```typescript
 const backend = createBackend({
   isolation: {
-    'catalog': 'process',  // Run in separate process
-    'auth': 'process',
-    'scaffolder': 'thread', // Run in worker thread
-  }
+    catalog: 'process', // Run in separate process
+    auth: 'process',
+    scaffolder: 'thread', // Run in worker thread
+  },
 });
 ```
 
 **Benefits**: One plugin crash doesn't kill entire backend
 
 #### 2. Circuit Breaker for Plugin Communication
+
 **Current**: No failure protection
 **Improvement**: Automatic retry with backoff
 
@@ -2483,7 +2423,7 @@ class PluginCommunicator {
     return this.circuitBreaker.execute(async () => {
       const { token } = await auth.getPluginRequestToken({ targetPluginId });
       return fetch(`http://${pluginId}${endpoint}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
     });
   }
@@ -2491,6 +2431,7 @@ class PluginCommunicator {
 ```
 
 #### 3. Health Checks per Plugin
+
 **Current**: Basic /healthcheck endpoint
 **Improvement**: Per-plugin health with auto-recovery
 
@@ -2506,7 +2447,7 @@ env.registerInit({
     health.addLivenessCheck('processing-engine', async () => {
       return { status: processingEngine.isRunning() ? 'ok' : 'error' };
     });
-  }
+  },
 });
 
 // Auto-restart unhealthy plugins
@@ -2518,6 +2459,7 @@ if (healthCheck.status === 'error') {
 ### 11.3 Cleaner Extension Points
 
 #### 1. Typed Extension Point Events
+
 **Current**: Extension points are imperative APIs
 **Improvement**: Event-driven extension points
 
@@ -2542,6 +2484,7 @@ catalogProcessing.on('beforeProcess', async (entity) => {
 ```
 
 #### 2. Middleware-Style Extension Points
+
 **Current**: Array accumulation
 **Improvement**: Composable middleware chain
 
@@ -2560,6 +2503,7 @@ catalogProcessing.use(async (entity, next) => {
 ```
 
 #### 3. Declarative Extension Points
+
 **Current**: Programmatic registration
 **Improvement**: Metadata-driven extensions
 
@@ -2579,6 +2523,7 @@ extensions:
 ### 11.4 Better Lifecycle APIs
 
 #### 1. Dependency-Aware Shutdown
+
 **Current**: Shutdown hooks called in registration order
 **Improvement**: Reverse dependency order shutdown
 
@@ -2586,12 +2531,16 @@ extensions:
 // Plugins initialized: A → B → C
 // Shutdown should be: C → B → A
 
-lifecycle.addShutdownHook(async () => {
-  await database.destroy();
-}, { priority: 10 }); // Higher priority = earlier shutdown
+lifecycle.addShutdownHook(
+  async () => {
+    await database.destroy();
+  },
+  { priority: 10 },
+); // Higher priority = earlier shutdown
 ```
 
 #### 2. Graceful Degradation
+
 **Current**: Hard failures
 **Improvement**: Fallback modes
 
@@ -2599,7 +2548,7 @@ lifecycle.addShutdownHook(async () => {
 env.registerInit({
   deps: {
     database: coreServices.database,
-    cache: coreServices.cache.optional(),  // Optional dependency
+    cache: coreServices.cache.optional(), // Optional dependency
   },
   async init({ database, cache }) {
     if (cache) {
@@ -2608,11 +2557,12 @@ env.registerInit({
       logger.warn('Cache unavailable, using direct database access');
       return new DirectCatalog(database);
     }
-  }
+  },
 });
 ```
 
 #### 3. Hot Reload (Development)
+
 **Current**: Restart required for config changes
 **Improvement**: Watch and reload
 
@@ -2629,25 +2579,27 @@ if (process.env.NODE_ENV === 'development') {
 ### 11.5 Safer Plugin Execution
 
 #### 1. Resource Limits
+
 **Current**: No limits
 **Improvement**: CPU/memory quotas
 
 ```typescript
 const backend = createBackend({
   plugins: {
-    'scaffolder': {
+    scaffolder: {
       loader: () => import('@backstage/plugin-scaffolder-backend'),
       limits: {
         cpu: '1 core',
         memory: '512MB',
         timeout: '30s',
-      }
-    }
-  }
+      },
+    },
+  },
 });
 ```
 
 #### 2. Permission Manifest
+
 **Current**: Implicit permissions
 **Improvement**: Explicit capability declaration
 
@@ -2666,6 +2618,7 @@ const backend = createBackend({
 ```
 
 #### 3. Audit Logging
+
 **Current**: Manual logging
 **Improvement**: Automatic audit trail
 
@@ -2685,13 +2638,14 @@ env.registerInit({
 
       await catalog.deleteEntity(req.params.id);
     });
-  }
+  },
 });
 ```
 
 ### 11.6 Developer Experience
 
 #### 1. Plugin Scaffolding
+
 **Current**: Manual file creation
 **Improvement**: CLI generator
 
@@ -2702,6 +2656,7 @@ backstage-cli create-plugin my-plugin \
 ```
 
 #### 2. Type-Safe Extension Points
+
 **Current**: Runtime validation
 **Improvement**: Compile-time checks
 
@@ -2717,15 +2672,16 @@ declare module '@backstage/backend-plugin-api' {
 
 // Now TypeScript knows about all extension points
 deps: {
-  processing: extensionPoint('catalog.processing')  // Autocomplete!
+  processing: extensionPoint('catalog.processing'); // Autocomplete!
 }
 ```
 
 #### 3. Plugin Documentation Generator
+
 **Current**: Manual docs
 **Improvement**: Auto-generated from code
 
-```typescript
+````typescript
 /**
  * Catalog processing extension point
  *
@@ -2746,7 +2702,7 @@ export interface CatalogProcessingExtensionPoint {
 }
 
 // Generates: docs/extension-points/catalog-processing.md
-```
+````
 
 ---
 
@@ -2762,6 +2718,7 @@ Backstage implements a **sophisticated, multi-layered plugin architecture** that
 ✅ **Lifecycle Management**: Explicit initialization and shutdown phases
 
 **Key Strengths**:
+
 1. Extension point pattern prevents plugin modification
 2. Service registry enables clean dependency management
 3. Metadata-driven discovery reduces boilerplate
@@ -2769,6 +2726,7 @@ Backstage implements a **sophisticated, multi-layered plugin architecture** that
 5. Strong typing catches errors early
 
 **Areas for Improvement**:
+
 1. Performance (lazy loading, parallel initialization)
 2. Stability (isolation, circuit breakers, health checks)
 3. Safety (resource limits, permission manifests)

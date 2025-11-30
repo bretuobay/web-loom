@@ -421,6 +421,7 @@ import type {
 - `@web-loom/event-bus-core`: Event system (included)
 
 Optional peer dependencies:
+
 - `@web-loom/mvvm-core`: For MVVM integration
 - `@web-loom/query-core`: For data fetching integration
 

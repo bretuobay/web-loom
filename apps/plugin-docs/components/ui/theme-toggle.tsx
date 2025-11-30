@@ -1,10 +1,9 @@
-'use client'
+'use client';
 
-import { useTheme } from 'next-themes'
+import { useTheme } from 'next-themes';
 
 export default function ThemeToggle() {
-
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme } = useTheme();
 
   return (
     <div className="flex flex-col justify-center ml-3">
@@ -16,9 +15,9 @@ export default function ThemeToggle() {
         checked={theme === 'light'}
         onChange={() => {
           if (theme === 'dark') {
-            return setTheme('light')
+            return setTheme('light');
           }
-          return setTheme('dark')
+          return setTheme('dark');
         }}
       />
       <label className="relative cursor-pointer p-2" htmlFor="light-switch">
@@ -41,6 +40,6 @@ export default function ThemeToggle() {
         </svg>
         <span className="sr-only">Switch to light / dark version</span>
       </label>
-    </div>    
-  )
+    </div>
+  );
 }

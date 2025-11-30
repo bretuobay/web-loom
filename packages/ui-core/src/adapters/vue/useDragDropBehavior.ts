@@ -3,34 +3,31 @@
  */
 
 import { ref, computed, onUnmounted } from 'vue';
-import type {
-  DragDropState,
-  DragDropOptions,
-} from '../../behaviors/drag-drop';
+import type { DragDropState, DragDropOptions } from '../../behaviors/drag-drop';
 import { createDragDropBehavior } from '../../behaviors/drag-drop';
 
 /**
  * Vue composable for drag-and-drop behavior.
- * 
+ *
  * Creates and manages a drag-and-drop behavior instance, automatically handling
  * subscriptions and cleanup with Vue's reactivity system. This composable provides
  * drag-and-drop interaction state management including drag source, drop target,
  * drag data, and validation logic.
- * 
+ *
  * @example
  * ```vue
  * <script setup>
  * import { ref, onMounted } from 'vue';
  * import { useDragDropBehavior } from '@web-loom/ui-core/vue';
- * 
+ *
  * interface CardData {
  *   id: string;
  *   title: string;
  *   column: string;
  * }
- * 
+ *
  * const cards = ref<CardData[]>([...]);
- * 
+ *
  * const dragDrop = useDragDropBehavior({
  *   onDragStart: (itemId, data) => {
  *     console.log('Started dragging:', itemId);
@@ -48,36 +45,36 @@ import { createDragDropBehavior } from '../../behaviors/drag-drop';
  *     return dropTarget !== 'locked-column';
  *   },
  * });
- * 
+ *
  * onMounted(() => {
  *   // Register drop zones
  *   dragDrop.actions.registerDropZone('todo');
  *   dragDrop.actions.registerDropZone('in-progress');
  *   dragDrop.actions.registerDropZone('done');
  * });
- * 
+ *
  * const handleDragStart = (card: CardData) => {
  *   dragDrop.actions.startDrag(card.id, card);
  * };
- * 
+ *
  * const handleDragEnd = () => {
  *   dragDrop.actions.endDrag();
  * };
- * 
+ *
  * const handleDragOver = (column: string, e: DragEvent) => {
  *   e.preventDefault();
  *   dragDrop.actions.setDragOver(column);
  * };
- * 
+ *
  * const handleDragLeave = () => {
  *   dragDrop.actions.setDragOver(null);
  * };
- * 
+ *
  * const handleDrop = (column: string) => {
  *   dragDrop.actions.drop(column);
  * };
  * </script>
- * 
+ *
  * <template>
  *   <div class="kanban">
  *     <div
@@ -101,7 +98,7 @@ import { createDragDropBehavior } from '../../behaviors/drag-drop';
  *   </div>
  * </template>
  * ```
- * 
+ *
  * @param options Configuration options for the drag-and-drop behavior.
  * @returns Reactive drag-and-drop state properties and actions.
  */

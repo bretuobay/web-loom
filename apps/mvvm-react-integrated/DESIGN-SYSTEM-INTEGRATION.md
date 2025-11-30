@@ -33,37 +33,49 @@ This document explains how `@web-loom/design-core` has been comprehensively inte
 ## Flat Design Principles Applied
 
 ### 1. No Gradients
+
 All backgrounds use **solid colors** from design tokens:
+
 - `background-color: var(--colors-background-surface)`
 - No `linear-gradient()` or `radial-gradient()`
 
 ### 2. Minimal Shadows
+
 Shadows are used sparingly for depth:
+
 - Cards: `box-shadow: var(--shadows-sm)` (very subtle)
 - Hover states: `box-shadow: var(--shadows-md)` (slightly more prominent)
 - No dramatic drop shadows or 3D effects
 
 ### 3. Bold Borders
+
 Flat design emphasizes **visible borders** over shadows:
+
 - Card borders: `2px solid var(--card-border)`
 - Input borders: `2px solid var(--input-border)`
 - Headers: `2px solid var(--header-border)`
 
 ### 4. Vibrant Colors
+
 Flat design uses **bright, saturated colors**:
+
 - Primary: `#3b82f6` (bright blue)
 - Secondary: `#8b5cf6` (vivid purple)
 - Success: `#10b981` (fresh green)
 - Danger: `#ef4444` (clear red)
 
 ### 5. Simple Shapes
+
 All UI elements use **simple geometric shapes**:
+
 - Border radius: `var(--radii-md)` (8px - moderate rounding)
 - No complex shapes or skeuomorphic effects
 - Clean, rectangular layouts
 
 ### 6. Clear Typography
+
 Typography is **bold and legible**:
+
 - Font weights: 400 (regular), 500 (medium), 600 (semibold), 700 (bold)
 - Clear hierarchy with size scaling
 - High contrast text colors
@@ -96,17 +108,17 @@ src/
 
 ### Core Tokens (from @web-loom/design-core)
 
-| Category | Usage Example | Description |
-|----------|---------------|-------------|
-| **Colors** | `var(--colors-brand-primary)` | All color values |
-| **Spacing** | `var(--spacing-m)` | Margins, padding, gaps |
-| **Typography** | `var(--typography-fontSize-lg)` | Font sizes, weights, families |
-| **Shadows** | `var(--shadows-sm)` | Minimal shadows for flat design |
-| **Radii** | `var(--radii-md)` | Border radius values |
-| **Borders** | `var(--borders-width-thin)` | Border widths and styles |
-| **Transitions** | `var(--transitions-fast)` | Animation timing |
-| **Opacity** | `var(--opacity-disabled)` | Transparency levels |
-| **Z-Index** | `var(--zIndex-modal)` | Layering order |
+| Category        | Usage Example                   | Description                     |
+| --------------- | ------------------------------- | ------------------------------- |
+| **Colors**      | `var(--colors-brand-primary)`   | All color values                |
+| **Spacing**     | `var(--spacing-m)`              | Margins, padding, gaps          |
+| **Typography**  | `var(--typography-fontSize-lg)` | Font sizes, weights, families   |
+| **Shadows**     | `var(--shadows-sm)`             | Minimal shadows for flat design |
+| **Radii**       | `var(--radii-md)`               | Border radius values            |
+| **Borders**     | `var(--borders-width-thin)`     | Border widths and styles        |
+| **Transitions** | `var(--transitions-fast)`       | Animation timing                |
+| **Opacity**     | `var(--opacity-disabled)`       | Transparency levels             |
+| **Z-Index**     | `var(--zIndex-modal)`           | Layering order                  |
 
 ### Semantic Tokens (Application-Specific)
 
@@ -167,6 +179,7 @@ colors: {
 ### 1. Card Component
 
 **Flat Design Features:**
+
 - Solid background color
 - 2px visible border
 - Minimal shadow
@@ -174,17 +187,17 @@ colors: {
 
 ```css
 .card {
-  background-color: var(--card-bg);          /* Flat background */
-  border: var(--card-border-width) solid var(--card-border);  /* Bold border */
-  border-radius: var(--card-radius);         /* Simple rounding */
-  box-shadow: var(--card-shadow);            /* Minimal shadow */
+  background-color: var(--card-bg); /* Flat background */
+  border: var(--card-border-width) solid var(--card-border); /* Bold border */
+  border-radius: var(--card-radius); /* Simple rounding */
+  box-shadow: var(--card-shadow); /* Minimal shadow */
   padding: var(--card-padding);
   transition: all var(--transitions-fast);
 }
 
 .card:hover {
-  box-shadow: var(--card-shadow-hover);      /* Slightly more shadow */
-  transform: translateY(-2px);               /* Subtle lift */
+  box-shadow: var(--card-shadow-hover); /* Slightly more shadow */
+  transform: translateY(-2px); /* Subtle lift */
   border-color: var(--colors-brand-primary); /* Color change */
 }
 ```
@@ -192,6 +205,7 @@ colors: {
 ### 2. Button Component
 
 **Flat Design Features:**
+
 - Solid color background
 - No gradients
 - Bold typography
@@ -199,38 +213,39 @@ colors: {
 
 ```css
 button {
-  background-color: var(--colors-brand-primary);  /* Solid color */
-  color: var(--colors-text-inverse);              /* High contrast */
-  border: 2px solid transparent;                  /* Bold border */
+  background-color: var(--colors-brand-primary); /* Solid color */
+  color: var(--colors-text-inverse); /* High contrast */
+  border: 2px solid transparent; /* Bold border */
   border-radius: var(--btn-radius);
   padding: var(--btn-padding);
   font-weight: var(--btn-font-weight);
-  box-shadow: var(--btn-shadow);                  /* Minimal shadow */
+  box-shadow: var(--btn-shadow); /* Minimal shadow */
 }
 
 button:hover {
   background-color: var(--colors-brand-secondary); /* Color shift */
-  transform: translateY(-1px);                     /* Subtle lift */
+  transform: translateY(-1px); /* Subtle lift */
 }
 ```
 
 ### 3. Header Component
 
 **Flat Design Features:**
+
 - Solid background
 - Border separator (no shadow)
 - Clean navigation links
 
 ```css
 .page-header {
-  background-color: var(--header-bg);         /* Flat background */
+  background-color: var(--header-bg); /* Flat background */
   border-bottom: 2px solid var(--header-border); /* Border, not shadow */
-  box-shadow: none;                           /* No shadow */
+  box-shadow: none; /* No shadow */
 }
 
 .page-header-nav {
   color: var(--nav-link-color);
-  border: 2px solid transparent;              /* Visible on interaction */
+  border: 2px solid transparent; /* Visible on interaction */
   border-radius: var(--radii-md);
   padding: var(--spacing-s) var(--spacing-m);
 }
@@ -276,6 +291,7 @@ function MyComponent() {
 Located in `src/components/ThemeToggle.tsx`:
 
 **Features:**
+
 - Sun/Moon icon indicators
 - Accessible button with ARIA labels
 - Smooth color transitions
@@ -320,6 +336,7 @@ Using design tokens for consistency:
 ### Color Contrast
 
 All color combinations meet **WCAG AA standards**:
+
 - Light theme: Dark text on light background (14.5:1 ratio)
 - Dark theme: Light text on dark background (12.3:1 ratio)
 - Interactive elements have distinct hover states
@@ -339,6 +356,7 @@ a:focus-visible {
 ### Keyboard Navigation
 
 All interactive elements are keyboard accessible:
+
 - Tab navigation
 - Enter/Space activation
 - Escape to close modals
@@ -363,6 +381,7 @@ All interactive elements are keyboard accessible:
 ### Optimization Strategies
 
 1. **Import Only What You Need**
+
    ```typescript
    import '@web-loom/design-core/src/css/colors.css';
    import '@web-loom/design-core/src/css/spacing.css';
@@ -378,12 +397,14 @@ All interactive elements are keyboard accessible:
 ### 1. Semantic Token Names
 
 ✅ **Good** - Semantic and meaningful
+
 ```css
 background-color: var(--colors-background-surface);
 padding: var(--spacing-m);
 ```
 
 ❌ **Avoid** - Too specific or non-semantic
+
 ```css
 background-color: var(--colors-gray-100);
 padding: var(--spacing-16);
@@ -392,6 +413,7 @@ padding: var(--spacing-16);
 ### 2. Consistent Spacing Scale
 
 Using the spacing scale consistently:
+
 - `--spacing-xs` (4px)
 - `--spacing-s` (8px)
 - `--spacing-m` (16px)
@@ -401,6 +423,7 @@ Using the spacing scale consistently:
 ### 3. Typography Hierarchy
 
 Clear hierarchy using design tokens:
+
 - Headings: `--typography-fontWeight-bold`
 - Body: `--typography-fontWeight-regular`
 - Emphasis: `--typography-fontWeight-medium`
@@ -434,6 +457,7 @@ Clear hierarchy using design tokens:
 ### Browser Compatibility
 
 Tested in:
+
 - ✅ Chrome 120+
 - ✅ Firefox 121+
 - ✅ Safari 17+
@@ -467,6 +491,7 @@ Tested in:
 ### Issue: Theme not applying
 
 **Solution:** Ensure ThemeProvider wraps your app:
+
 ```tsx
 <ThemeProvider>
   <App />
@@ -476,6 +501,7 @@ Tested in:
 ### Issue: CSS variables undefined
 
 **Solution:** Import token CSS files:
+
 ```typescript
 import './styles/tokens.css';
 ```
@@ -483,6 +509,7 @@ import './styles/tokens.css';
 ### Issue: Inconsistent colors
 
 **Solution:** Use semantic tokens, not primitive colors:
+
 ```css
 /* Good */
 color: var(--colors-text-primary);
@@ -501,6 +528,7 @@ color: #111827;
 ## Conclusion
 
 This integration demonstrates:
+
 - ✅ Comprehensive use of design tokens
 - ✅ Flat design principles throughout
 - ✅ Light and dark theme support

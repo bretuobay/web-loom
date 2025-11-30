@@ -9,7 +9,7 @@ interface SettingOption {
 
 /**
  * Settings Interface Example with Hub & Spoke
- * 
+ *
  * Demonstrates:
  * - Hub-and-spoke navigation pattern
  * - Breadcrumb tracking
@@ -117,11 +117,7 @@ export function SettingsInterfaceExample() {
       <p className="hub-description">Choose a category to configure</p>
       <div className="settings-grid">
         {state.spokes.map((spoke) => (
-          <button
-            key={spoke.id}
-            onClick={() => handleSpokeClick(spoke.id)}
-            className="settings-category"
-          >
+          <button key={spoke.id} onClick={() => handleSpokeClick(spoke.id)} className="settings-category">
             <span className="category-icon">{spoke.icon}</span>
             <span className="category-label">{spoke.label}</span>
             {spoke.subSpokes && spoke.subSpokes.length > 0 && (
@@ -135,11 +131,11 @@ export function SettingsInterfaceExample() {
 
   const renderSpoke = () => {
     // Helper to find spoke by ID (including nested spokes)
-    const findSpoke = (spokeId: string): typeof state.spokes[0] | null => {
+    const findSpoke = (spokeId: string): (typeof state.spokes)[0] | null => {
       for (const spoke of state.spokes) {
         if (spoke.id === spokeId) return spoke;
         if (spoke.subSpokes) {
-          const found = spoke.subSpokes.find(s => s.id === spokeId);
+          const found = spoke.subSpokes.find((s) => s.id === spokeId);
           if (found) return found;
         }
       }
@@ -153,15 +149,13 @@ export function SettingsInterfaceExample() {
     if (activeSpoke.subSpokes && activeSpoke.subSpokes.length > 0) {
       return (
         <div className="settings-spoke">
-          <h2>{activeSpoke.icon} {activeSpoke.label}</h2>
+          <h2>
+            {activeSpoke.icon} {activeSpoke.label}
+          </h2>
           <p className="spoke-description">Choose a subcategory</p>
           <div className="settings-grid">
             {activeSpoke.subSpokes.map((subSpoke) => (
-              <button
-                key={subSpoke.id}
-                onClick={() => handleSpokeClick(subSpoke.id)}
-                className="settings-category"
-              >
+              <button key={subSpoke.id} onClick={() => handleSpokeClick(subSpoke.id)} className="settings-category">
                 <span className="category-icon">{subSpoke.icon}</span>
                 <span className="category-label">{subSpoke.label}</span>
               </button>
@@ -175,7 +169,9 @@ export function SettingsInterfaceExample() {
     const settings = settingsData[state.activeSpoke!] || [];
     return (
       <div className="settings-spoke">
-        <h2>{activeSpoke.icon} {activeSpoke.label}</h2>
+        <h2>
+          {activeSpoke.icon} {activeSpoke.label}
+        </h2>
         <div className="settings-list">
           {settings.length > 0 ? (
             settings.map((setting) => (
@@ -210,25 +206,17 @@ export function SettingsInterfaceExample() {
       <div className="example-header">
         <h2>Settings Interface with Hub & Spoke</h2>
         <p>
-          This example demonstrates the <code>createHubAndSpoke</code> pattern
-          for hierarchical navigation with breadcrumb tracking.
+          This example demonstrates the <code>createHubAndSpoke</code> pattern for hierarchical navigation with
+          breadcrumb tracking.
         </p>
       </div>
 
       <div className="example-content">
         <div className="navigation-controls">
-          <button
-            onClick={handleReturnToHub}
-            disabled={state.isOnHub}
-            className="control-button"
-          >
+          <button onClick={handleReturnToHub} disabled={state.isOnHub} className="control-button">
             🏠 Return to Hub
           </button>
-          <button
-            onClick={handleGoBack}
-            disabled={state.navigationHistory.length <= 1}
-            className="control-button"
-          >
+          <button onClick={handleGoBack} disabled={state.navigationHistory.length <= 1} className="control-button">
             ← Go Back
           </button>
         </div>
@@ -243,7 +231,7 @@ export function SettingsInterfaceExample() {
               for (const spoke of state.spokes) {
                 if (spoke.id === spokeId) return spoke.label;
                 if (spoke.subSpokes) {
-                  const subSpoke = spoke.subSpokes.find(s => s.id === spokeId);
+                  const subSpoke = spoke.subSpokes.find((s) => s.id === spokeId);
                   if (subSpoke) return subSpoke.label;
                 }
               }
@@ -256,11 +244,11 @@ export function SettingsInterfaceExample() {
             return (
               <span key={crumb}>
                 <span className="breadcrumb-separator">/</span>
-                <span 
+                <span
                   className="breadcrumb-item"
-                  style={{ 
+                  style={{
                     fontWeight: isLast ? 600 : 400,
-                    cursor: isLast ? 'default' : 'pointer'
+                    cursor: isLast ? 'default' : 'pointer',
                   }}
                   onClick={isLast ? undefined : () => handleSpokeClick(crumb)}
                 >
@@ -271,36 +259,26 @@ export function SettingsInterfaceExample() {
           })}
         </div>
 
-        <div className="settings-container">
-          {state.isOnHub ? renderHub() : renderSpoke()}
-        </div>
+        <div className="settings-container">{state.isOnHub ? renderHub() : renderSpoke()}</div>
 
         <div className="navigation-state">
           <h3>Navigation State</h3>
           <div className="state-grid">
             <div className="state-item">
               <span className="state-label">Is On Hub:</span>
-              <span className={`state-value ${state.isOnHub ? 'active' : ''}`}>
-                {state.isOnHub ? 'Yes' : 'No'}
-              </span>
+              <span className={`state-value ${state.isOnHub ? 'active' : ''}`}>{state.isOnHub ? 'Yes' : 'No'}</span>
             </div>
             <div className="state-item">
               <span className="state-label">Active Spoke:</span>
-              <span className="state-value">
-                {state.activeSpoke || 'None'}
-              </span>
+              <span className="state-value">{state.activeSpoke || 'None'}</span>
             </div>
             <div className="state-item">
               <span className="state-label">Breadcrumbs:</span>
-              <span className="state-value">
-                {state.breadcrumbs.join(' → ') || 'None'}
-              </span>
+              <span className="state-value">{state.breadcrumbs.join(' → ') || 'None'}</span>
             </div>
             <div className="state-item">
               <span className="state-label">History Length:</span>
-              <span className="state-value">
-                {state.navigationHistory.length}
-              </span>
+              <span className="state-value">{state.navigationHistory.length}</span>
             </div>
           </div>
         </div>

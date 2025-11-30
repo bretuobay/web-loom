@@ -27,6 +27,7 @@ npm install @web-loom/ui-core
 > **📚 Detailed Documentation**: See the [docs](./docs) folder for comprehensive guides on each behavior, including advanced usage, accessibility guidelines, and framework-specific examples.
 
 ### Dialog Behavior
+
 Manages modal dialog state with open/close/toggle actions.
 
 ```typescript
@@ -52,6 +53,7 @@ dialog.destroy();
 ```
 
 ### Disclosure Behavior
+
 Controls expandable/collapsible content sections (accordions, dropdowns).
 
 ```typescript
@@ -68,6 +70,7 @@ console.log(disclosure.getState().isExpanded); // true
 ```
 
 ### Form Behavior
+
 Manages form state with validation, dirty tracking, and submission handling.
 
 ```typescript
@@ -93,6 +96,7 @@ await form.actions.submitForm();
 ```
 
 ### List Selection Behavior
+
 Manages single or multi-select list interactions with keyboard navigation support.
 
 ```typescript
@@ -113,6 +117,7 @@ console.log(selection.getState().selectedItems); // ['item-1', 'item-2']
 ```
 
 ### Roving Focus Behavior
+
 Implements keyboard navigation for composite widgets (toolbars, menus, grids).
 
 ```typescript
@@ -133,6 +138,7 @@ rovingFocus.actions.moveLast();
 ```
 
 ### Keyboard Shortcuts Behavior
+
 Manages keyboard shortcut registration and execution with platform normalization.
 
 ```typescript
@@ -164,6 +170,7 @@ shortcuts.destroy();
 ```
 
 ### Undo/Redo Stack Behavior
+
 Maintains an immutable history of states with undo/redo operations.
 
 ```typescript
@@ -194,6 +201,7 @@ console.log(undoRedo.getState().present); // { content: 'Hello World', cursor: 1
 ```
 
 ### Drag-and-Drop Behavior
+
 Manages drag-and-drop interaction state with validation and callbacks.
 
 ```typescript
@@ -266,9 +274,7 @@ export default {
 <template>
   <div>
     <button @click="dialog.open({ title: 'Hello' })">Open Dialog</button>
-    <div v-if="dialog.state.isOpen">
-      Dialog is open with content: {{ dialog.state.content.title }}
-    </div>
+    <div v-if="dialog.state.isOpen">Dialog is open with content: {{ dialog.state.content.title }}</div>
   </div>
 </template>
 ```
@@ -283,9 +289,7 @@ import { DialogBehaviorService } from '@web-loom/ui-core/angular';
   selector: 'app-my-component',
   template: `
     <button (click)="dialog.actions.open({ title: 'Hello' })">Open Dialog</button>
-    <div *ngIf="(dialog.state$ | async)?.isOpen">
-      Dialog is open
-    </div>
+    <div *ngIf="(dialog.state$ | async)?.isOpen">Dialog is open</div>
   `,
   providers: [DialogBehaviorService],
 })
@@ -350,11 +354,7 @@ import { createDialogBehavior } from '@web-loom/ui-core/behaviors/dialog';
 Full TypeScript support with exported types for all behaviors:
 
 ```typescript
-import type {
-  DialogState,
-  DialogActions,
-  DialogBehavior
-} from '@web-loom/ui-core';
+import type { DialogState, DialogActions, DialogBehavior } from '@web-loom/ui-core';
 ```
 
 ## Detailed Documentation
@@ -362,15 +362,18 @@ import type {
 For comprehensive guides including advanced usage, accessibility guidelines, and real-world examples, see the documentation for each behavior:
 
 ### New Behaviors
+
 - **[Keyboard Shortcuts](./docs/KEYBOARD_SHORTCUTS.md)** - Centralized keyboard shortcut management with platform normalization
 - **[Undo/Redo Stack](./docs/UNDO_REDO_STACK.md)** - Immutable state history with undo/redo operations
 - **[Drag-and-Drop](./docs/DRAG_DROP.md)** - Framework-agnostic drag-and-drop state management
 
 ### Behavior Enhancements
+
 - **[Roving Focus Enhancement](../ui-patterns/docs/PATTERN_ENHANCEMENTS.md#roving-focus-behavior-enhancements)** - Focus change callback for responding to focus changes
 - **[Form Behavior Enhancement](../ui-patterns/docs/PATTERN_ENHANCEMENTS.md#form-behavior-enhancements)** - Manual error setting for server-side validation
 
 Each documentation file includes:
+
 - Complete API reference with TypeScript interfaces
 - Advanced usage examples and patterns
 - Framework integration guides (React, Vue, Angular)

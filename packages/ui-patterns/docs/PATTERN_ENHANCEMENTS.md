@@ -36,7 +36,6 @@ Controls whether the modal should close when the backdrop (overlay) is clicked.
 **Type:** `boolean`  
 **Default:** `false`
 
-
 ### Usage
 
 ```typescript
@@ -79,12 +78,12 @@ modal.actions.handleBackdropClick('settings-modal');
 Opens a modal with full configuration options including `closeOnEscape` and `closeOnBackdropClick`.
 
 **Parameters:**
+
 - `config.id` (string): Unique identifier for the modal
 - `config.content` (any): The content to display in the modal
 - `config.priority` (number, optional): Priority for stacking order (default: 0)
 - `config.closeOnEscape` (boolean, optional): Whether to close on Escape key (default: false)
 - `config.closeOnBackdropClick` (boolean, optional): Whether to close on backdrop click (default: false)
-
 
 #### `handleEscapeKey()`
 
@@ -97,6 +96,7 @@ Handles the Escape key press for the top modal. If the top modal has `closeOnEsc
 Handles a backdrop click for a specific modal. If the modal has `closeOnBackdropClick: true`, it will be closed.
 
 **Parameters:**
+
 - `id` (string): The ID of the modal whose backdrop was clicked
 
 **Usage:** Call this action when the backdrop element is clicked in your view layer.
@@ -142,7 +142,6 @@ backdropElement.addEventListener('click', () => {
 });
 ```
 
-
 ---
 
 ## Roving Focus Behavior Enhancements
@@ -161,6 +160,7 @@ Optional callback invoked when the focused index changes.
 **Default:** `undefined`
 
 **Parameters:**
+
 - `index` (number): The new focused index
 - `itemId` (string): The identifier of the newly focused item
 - `previousIndex` (number): The previously focused index
@@ -177,7 +177,7 @@ const rovingFocus = createRovingFocus({
   onFocusChange: (index, itemId, previousIndex) => {
     console.log(`Focus moved from index ${previousIndex} to ${index}`);
     console.log(`Now focused on: ${itemId}`);
-    
+
     // Update UI to reflect focus change
     updateFocusIndicator(itemId);
     announceToScreenReader(`Focused on ${itemId}`);
@@ -188,7 +188,6 @@ const rovingFocus = createRovingFocus({
 rovingFocus.actions.moveNext();
 // Callback is invoked: Focus moved from index 0 to 1, Now focused on: button-2
 ```
-
 
 ### Example: Toolbar with Focus Announcements
 
@@ -204,7 +203,7 @@ const toolbar = createRovingFocus({
     });
     document.getElementById(itemId)?.setAttribute('tabindex', '0');
     document.getElementById(itemId)?.focus();
-    
+
     // Announce to screen readers
     const labels = {
       'save-btn': 'Save',
@@ -232,7 +231,7 @@ The Roving Focus behavior now tracks the `previousIndex` in its state, which is 
 
 ```typescript
 const state = rovingFocus.getState();
-console.log(state.currentIndex);  // Current focused index
+console.log(state.currentIndex); // Current focused index
 console.log(state.previousIndex); // Previously focused index
 ```
 
@@ -244,7 +243,6 @@ console.log(state.previousIndex); // Previously focused index
 
 The Form behavior now supports manually setting field errors without triggering validation. This is useful for displaying server-side validation errors or custom error messages.
 
-
 ### New Action
 
 #### `setFieldError(field: keyof T, error: string | null)`
@@ -252,10 +250,12 @@ The Form behavior now supports manually setting field errors without triggering 
 Sets a manual error message for a specific field without triggering validation.
 
 **Parameters:**
+
 - `field` (keyof T): The field name
 - `error` (string | null): The error message, or null to clear the manual error
 
 **Behavior:**
+
 - Manual errors are merged with validation errors
 - Manual errors take precedence over validation errors for the same field
 - Setting a manual error does NOT trigger the field's validation function
@@ -302,7 +302,6 @@ form.actions.setFieldError('email', null);
 console.log(form.getState().errors.email); // 'This email is already registered'
 ```
 
-
 ### Error Merging
 
 Manual errors and validation errors are merged together. Manual errors take precedence:
@@ -340,8 +339,8 @@ The form state now includes a `manualErrors` field that tracks manually set erro
 ```typescript
 interface FormState<T> {
   values: T;
-  errors: Partial<Record<keyof T, string>>;        // Merged errors (manual + validation)
-  manualErrors: Partial<Record<keyof T, string>>;  // Manual errors only
+  errors: Partial<Record<keyof T, string>>; // Merged errors (manual + validation)
+  manualErrors: Partial<Record<keyof T, string>>; // Manual errors only
   touched: Partial<Record<keyof T, boolean>>;
   dirty: Partial<Record<keyof T, boolean>>;
   isValidating: boolean;
@@ -350,7 +349,6 @@ interface FormState<T> {
   submitCount: number;
 }
 ```
-
 
 ### Example: Server-Side Validation
 
@@ -390,10 +388,10 @@ const registrationForm = createFormBehavior({
         method: 'POST',
         body: JSON.stringify(values),
       });
-      
+
       if (!response.ok) {
         const errors = await response.json();
-        
+
         // Set server-side validation errors
         if (errors.username) {
           registrationForm.actions.setFieldError('username', errors.username);
@@ -413,7 +411,6 @@ const registrationForm = createFormBehavior({
   },
 });
 ```
-
 
 ---
 
@@ -459,8 +456,8 @@ Toggles the mobile mode of the sidebar.
 Sets the mobile mode of the sidebar.
 
 **Parameters:**
-- `isMobile` (boolean): Whether the sidebar should be in mobile mode
 
+- `isMobile` (boolean): Whether the sidebar should be in mobile mode
 
 ### New Events
 
@@ -508,7 +505,6 @@ console.log(sidebar.getState().isExpanded); // false (auto-collapsed)
 console.log(sidebar.getState().activeSection); // 'navigation'
 ```
 
-
 ### Example: Responsive Sidebar
 
 ```typescript
@@ -549,15 +545,16 @@ menuButton?.addEventListener('click', () => {
 ### Desktop vs Mobile Behavior
 
 **Desktop Mode (`isMobile: false`):**
+
 - Sidebar remains open after section selection
 - User must manually collapse/expand
 - Typically pinned or persistent
 
 **Mobile Mode (`isMobile: true`):**
+
 - Sidebar auto-collapses after section selection
 - Maximizes content space
 - Typically overlays content when expanded
-
 
 ---
 
@@ -600,8 +597,8 @@ Optional callback invoked when the position changes.
 Sets the position where toasts appear on the screen.
 
 **Parameters:**
-- `position` (ToastPosition): The new position for toasts
 
+- `position` (ToastPosition): The new position for toasts
 
 ### New Event
 
@@ -651,7 +648,7 @@ const toasts = createToastQueue({
   onPositionChanged: (position) => {
     // Save user preference
     localStorage.setItem('toastPosition', position);
-    
+
     // Update container CSS
     const container = document.getElementById('toast-container');
     container?.setAttribute('data-position', position);
@@ -672,7 +669,6 @@ positionSelect?.addEventListener('change', (e) => {
 });
 ```
 
-
 ### CSS Example
 
 ```css
@@ -686,34 +682,34 @@ positionSelect?.addEventListener('change', (e) => {
   pointer-events: none;
 }
 
-.toast-container[data-position="top-left"] {
+.toast-container[data-position='top-left'] {
   top: 1rem;
   left: 1rem;
 }
 
-.toast-container[data-position="top-center"] {
+.toast-container[data-position='top-center'] {
   top: 1rem;
   left: 50%;
   transform: translateX(-50%);
 }
 
-.toast-container[data-position="top-right"] {
+.toast-container[data-position='top-right'] {
   top: 1rem;
   right: 1rem;
 }
 
-.toast-container[data-position="bottom-left"] {
+.toast-container[data-position='bottom-left'] {
   bottom: 1rem;
   left: 1rem;
 }
 
-.toast-container[data-position="bottom-center"] {
+.toast-container[data-position='bottom-center'] {
   bottom: 1rem;
   left: 50%;
   transform: translateX(-50%);
 }
 
-.toast-container[data-position="bottom-right"] {
+.toast-container[data-position='bottom-right'] {
   bottom: 1rem;
   right: 1rem;
 }
@@ -727,7 +723,6 @@ positionSelect?.addEventListener('change', (e) => {
 
 The Tabbed Interface pattern now provides convenience methods for keyboard navigation that delegate to the underlying roving focus behavior.
 
-
 ### New Actions
 
 #### `focusNextTab()`
@@ -735,6 +730,7 @@ The Tabbed Interface pattern now provides convenience methods for keyboard navig
 Moves focus to the next tab. Delegates to the underlying roving focus behavior's `moveNext` action.
 
 **Behavior:**
+
 - Moves focus to the next tab in the list
 - Wraps to the first tab if at the end (when `wrap: true`)
 - Skips disabled tabs
@@ -744,6 +740,7 @@ Moves focus to the next tab. Delegates to the underlying roving focus behavior's
 Moves focus to the previous tab. Delegates to the underlying roving focus behavior's `movePrevious` action.
 
 **Behavior:**
+
 - Moves focus to the previous tab in the list
 - Wraps to the last tab if at the beginning (when `wrap: true`)
 - Skips disabled tabs
@@ -767,13 +764,12 @@ const tabs = createTabbedInterface({
 });
 
 // Navigate with convenience methods
-tabs.actions.focusNextTab();     // Focus moves to 'settings'
-tabs.actions.focusNextTab();     // Focus moves to 'notifications'
-tabs.actions.focusNextTab();     // Focus wraps to 'profile'
+tabs.actions.focusNextTab(); // Focus moves to 'settings'
+tabs.actions.focusNextTab(); // Focus moves to 'notifications'
+tabs.actions.focusNextTab(); // Focus wraps to 'profile'
 
 tabs.actions.focusPreviousTab(); // Focus moves to 'notifications'
 ```
-
 
 ### Example: Keyboard Navigation
 
@@ -828,7 +824,6 @@ tabs.actions.focusPreviousTab();
 // The convenience methods are preferred for clarity and maintainability
 ```
 
-
 ---
 
 ## Command Palette Pattern Enhancements
@@ -844,6 +839,7 @@ The Command Palette pattern now provides convenience methods for command navigat
 Moves selection to the next filtered command. Delegates to the underlying roving focus behavior's `moveNext` action.
 
 **Behavior:**
+
 - Moves selection to the next command in the filtered list
 - Wraps to the first command if at the end
 - Updates the `selectedIndex` in state
@@ -853,6 +849,7 @@ Moves selection to the next filtered command. Delegates to the underlying roving
 Moves selection to the previous filtered command. Delegates to the underlying roving focus behavior's `movePrevious` action.
 
 **Behavior:**
+
 - Moves selection to the previous command in the filtered list
 - Wraps to the last command if at the beginning
 - Updates the `selectedIndex` in state
@@ -864,11 +861,11 @@ Executes the currently selected command.
 **Returns:** `Promise<void>`
 
 **Behavior:**
+
 - Executes the command at the current `selectedIndex`
 - Closes the command palette
 - Invokes the `onCommandExecute` callback if provided
 - Handles errors gracefully
-
 
 ### Usage
 
@@ -913,13 +910,12 @@ palette.actions.open();
 palette.actions.setQuery('save');
 
 // Navigate with convenience methods
-palette.actions.selectNext();     // Select next command
+palette.actions.selectNext(); // Select next command
 palette.actions.selectPrevious(); // Select previous command
 
 // Execute selected command
 await palette.actions.executeSelected();
 ```
-
 
 ### Example: Full Keyboard Navigation
 
@@ -995,7 +991,6 @@ searchInput?.addEventListener('input', (e) => {
 });
 ```
 
-
 ### Example: React Integration
 
 ```typescript
@@ -1069,7 +1064,6 @@ function CommandPaletteComponent() {
 }
 ```
 
-
 ### Comparison: Direct vs Convenience Methods
 
 ```typescript
@@ -1104,8 +1098,6 @@ These enhancements improve the developer experience and functionality of existin
 
 All enhancements maintain backward compatibility and follow the established patterns of the Web Loom UI library.
 
-
-
 ---
 
 ## Framework-Specific Examples
@@ -1118,7 +1110,6 @@ For comprehensive framework-specific implementation examples of all pattern enha
   - Toast queue with position configuration
   - Tabbed interface with keyboard navigation
   - Command palette with enhanced navigation
-  
 - **[Vue Examples](./examples/VUE_EXAMPLES.md)** - Vue 3 Composition API examples with:
   - Reactive pattern enhancements
   - Computed properties for state management

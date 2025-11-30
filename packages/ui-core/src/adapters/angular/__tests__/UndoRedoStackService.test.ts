@@ -58,7 +58,7 @@ describe('UndoRedoStackService', () => {
       service.initialize({ initialState });
 
       const statePromise = firstValueFrom(service.getState$().pipe(skip(1)));
-      
+
       const newState: TestState = { value: 1, text: 'updated' };
       service.actions.pushState(newState);
 
@@ -123,7 +123,7 @@ describe('UndoRedoStackService', () => {
 
       const state1: TestState = { value: 1, text: 'state1' };
       const state2: TestState = { value: 2, text: 'state2' };
-      
+
       service.actions.pushState(state1);
       service.actions.undo();
       service.actions.pushState(state2);
@@ -154,7 +154,7 @@ describe('UndoRedoStackService', () => {
 
       const state1: TestState = { value: 1, text: 'state1' };
       const state2: TestState = { value: 2, text: 'state2' };
-      
+
       service.actions.pushState(state1);
       service.actions.pushState(state2);
       service.actions.jumpToState(0);
@@ -217,21 +217,15 @@ describe('UndoRedoStackService', () => {
 
   describe('error handling', () => {
     it('should throw error when accessing actions before initialization', () => {
-      expect(() => service.actions).toThrow(
-        'UndoRedoStackService not initialized. Call initialize() first.'
-      );
+      expect(() => service.actions).toThrow('UndoRedoStackService not initialized. Call initialize() first.');
     });
 
     it('should throw error when accessing state$ before initialization', () => {
-      expect(() => service.getState$()).toThrow(
-        'UndoRedoStackService not initialized. Call initialize() first.'
-      );
+      expect(() => service.getState$()).toThrow('UndoRedoStackService not initialized. Call initialize() first.');
     });
 
     it('should throw error when accessing state before initialization', () => {
-      expect(() => service.getState()).toThrow(
-        'UndoRedoStackService not initialized. Call initialize() first.'
-      );
+      expect(() => service.getState()).toThrow('UndoRedoStackService not initialized. Call initialize() first.');
     });
   });
 });

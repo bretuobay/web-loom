@@ -1,4 +1,4 @@
-import Logo from '@/components/ui/logo'
+import Logo from '@/components/ui/logo';
 
 export default function Footer() {
   return (
@@ -51,5 +51,5 @@ export default function Footer() {
         </ul>
       </div>
     </footer>
-  )
+  );
 }

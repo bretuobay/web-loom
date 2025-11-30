@@ -113,7 +113,7 @@ Emits an event, calling all registered listeners with the provided arguments.
 ```typescript
 eventBus.emit('notification:show', {
   message: 'Operation successful',
-  type: 'success'
+  type: 'success',
 });
 ```
 
@@ -150,8 +150,8 @@ eventBus.on('data:fetched', (data) => {
 
 // Component B: Publish
 fetch('/api/data')
-  .then(res => res.json())
-  .then(data => {
+  .then((res) => res.json())
+  .then((data) => {
     eventBus.emit('data:fetched', data);
   });
 ```
@@ -322,10 +322,7 @@ function setupListeners() {
   eventBus.on('user:login', loginHandler);
   eventBus.on('user:logout', logoutHandler);
 
-  handlers.push(
-    { event: 'user:login', handler: loginHandler },
-    { event: 'user:logout', handler: logoutHandler }
-  );
+  handlers.push({ event: 'user:login', handler: loginHandler }, { event: 'user:logout', handler: logoutHandler });
 }
 
 function cleanup() {
@@ -364,7 +361,7 @@ interface Events extends EventMap {
 const eventBus = createEventBus<Events>();
 
 // Emit aggregate event whenever any order event occurs
-['order:created', 'order:updated', 'order:deleted'].forEach(event => {
+['order:created', 'order:updated', 'order:deleted'].forEach((event) => {
   eventBus.on(event as any, () => {
     eventBus.emit('orders:changed');
   });
@@ -417,7 +414,7 @@ function createDebugEventBus<M extends EventMap>() {
     on: (event: any, listener: any) => {
       console.log(`[EventBus] Registering listener for "${event}"`);
       bus.on(event, listener);
-    }
+    },
   };
 }
 

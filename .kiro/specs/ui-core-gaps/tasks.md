@@ -17,7 +17,7 @@ This implementation plan breaks down the gap closure work into discrete, managea
   - Implement conflict resolution (last-wins strategy)
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10_
 
-- [ ]* 1.1 Write property tests for Keyboard Shortcuts
+- [ ]\* 1.1 Write property tests for Keyboard Shortcuts
   - **Property 1: Key combination registration and execution**
   - **Property 2: Platform normalization consistency**
   - **Property 3: preventDefault behavior**
@@ -25,7 +25,7 @@ This implementation plan breaks down the gap closure work into discrete, managea
   - **Property 5: Conflict resolution**
   - **Validates: Requirements 1.3, 1.4, 1.6, 1.7, 1.8, 1.10**
 
-- [ ]* 1.2 Write unit tests for Keyboard Shortcuts
+- [ ]\* 1.2 Write unit tests for Keyboard Shortcuts
   - Test key combination parsing edge cases
   - Test shortcut registration and unregistration
   - Test scope switching
@@ -84,7 +84,6 @@ This implementation plan breaks down the gap closure work into discrete, managea
 
 - [ ] 4. Checkpoint - Core Behaviors Complete
   - Ensure all tests pass, ask the user if questions arise.
-
 
 ## Phase 2: Macro Patterns Implementation
 
@@ -163,7 +162,6 @@ This implementation plan breaks down the gap closure work into discrete, managea
 - [ ] 8. Checkpoint - Macro Patterns Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-
 ## Phase 3: Pattern Enhancements
 
 - [x] 9. Enhance Modal Pattern with Escape and Backdrop Options
@@ -176,7 +174,7 @@ This implementation plan breaks down the gap closure work into discrete, managea
   - Emit events for escape-pressed and backdrop-clicked
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7_
 
-- [ ]* 9.1 Write property tests for Modal enhancements
+- [ ]\* 9.1 Write property tests for Modal enhancements
   - **Property 29: Escape key closes modal**
   - **Property 30: Backdrop click closes modal**
   - **Validates: Requirements 7.3, 7.4**
@@ -260,7 +258,6 @@ This implementation plan breaks down the gap closure work into discrete, managea
 - [ ] 16. Checkpoint - Pattern Enhancements Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-
 ## Phase 4: Framework Adapters
 
 - [x] 17. Create React Adapters for New Behaviors
@@ -314,7 +311,6 @@ This implementation plan breaks down the gap closure work into discrete, managea
 
 - [ ] 20. Checkpoint - Framework Adapters Complete
   - Ensure all tests pass, ask the user if questions arise.
-
 
 ## Phase 5: Documentation and Examples
 
@@ -420,7 +416,6 @@ This implementation plan breaks down the gap closure work into discrete, managea
 - [ ] 30. Checkpoint - Documentation Complete
   - Ensure all documentation is accurate and comprehensive, ask the user if questions arise.
 
-
 ## Phase 6: Testing, Optimization, and Quality Assurance
 
 - [ ] 31. Achieve Comprehensive Test Coverage
@@ -519,11 +514,12 @@ This implementation plan breaks down the gap closure work into discrete, managea
 ## Summary
 
 **Total Tasks:** 42 main tasks
-**Optional Tasks:** 21 test-related tasks (marked with *)
+**Optional Tasks:** 21 test-related tasks (marked with \*)
 **Checkpoints:** 7 quality checkpoints
 **Estimated Effort:** 60 hours (~1.5 sprints)
 
 **Phase Breakdown:**
+
 - Phase 1: Core Behaviors (12 hours)
 - Phase 2: Macro Patterns (12 hours)
 - Phase 3: Pattern Enhancements (8 hours)
@@ -532,16 +528,18 @@ This implementation plan breaks down the gap closure work into discrete, managea
 - Phase 6: Testing & QA (8 hours)
 
 **Key Deliverables:**
+
 - 3 new core behaviors (Keyboard Shortcuts, Undo/Redo, Drag-Drop)
 - 3 new macro patterns (Hub & Spoke, Grid Layout, FAB)
 - 6 enhanced existing patterns (Modal, Roving Focus, Form, Sidebar, Toast, Tabbed Interface, Command Palette)
 - Framework adapters for React, Vue, Angular
 - Comprehensive documentation and examples
 - 38 property-based tests
-- >90% code coverage
+- > 90% code coverage
 - Production-ready implementation
 
 **Success Criteria:**
+
 - ✅ All 38 correctness properties pass
 - ✅ >90% code coverage
 - ✅ All behaviors meet bundle size targets

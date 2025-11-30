@@ -3,12 +3,7 @@ const clampPrecision = (value: number) => parseFloat(value.toFixed(4));
 /**
  * Creates a responsive clamp() expression for font sizing.
  */
-export function createFluidType(
-  minSize: number,
-  maxSize: number,
-  minViewport: number,
-  maxViewport: number,
-): string {
+export function createFluidType(minSize: number, maxSize: number, minViewport: number, maxViewport: number): string {
   if (minSize <= 0 || maxSize <= 0) {
     throw new Error('Font sizes must be positive numbers.');
   }

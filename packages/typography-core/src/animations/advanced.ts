@@ -48,9 +48,12 @@ export function morphText(
     const halfDuration = mergedOptions.duration / 2;
 
     if (startChar !== endChar) {
-      setTimeout(() => {
-        span.textContent = endChar;
-      }, mergedOptions.delay + index * mergedOptions.stagger + halfDuration);
+      setTimeout(
+        () => {
+          span.textContent = endChar;
+        },
+        mergedOptions.delay + index * mergedOptions.stagger + halfDuration,
+      );
     }
 
     const animation = span.animate(
@@ -227,9 +230,7 @@ export function animateVariableFont(
 
   const waKeyframes = keyframes.map((frame) => {
     const offset =
-      frame.duration && resolvedDuration > 0
-        ? Math.min(Math.max(frame.duration / resolvedDuration, 0), 1)
-        : undefined;
+      frame.duration && resolvedDuration > 0 ? Math.min(Math.max(frame.duration / resolvedDuration, 0), 1) : undefined;
 
     return {
       fontVariationSettings: buildFontVariationSettings(frame.settings),

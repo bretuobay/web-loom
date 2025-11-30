@@ -36,15 +36,13 @@ All behaviors use `@web-loom/store-core` as the state management foundation:
 import { createStore } from '@web-loom/store-core';
 
 // Behaviors create stores with typed state and actions
-const store = createStore<State, Actions>(
-  initialState,
-  (set, get, actions) => ({
-    // Action implementations
-  })
-);
+const store = createStore<State, Actions>(initialState, (set, get, actions) => ({
+  // Action implementations
+}));
 ```
 
 **Benefits:**
+
 - Consistent state management across all behaviors
 - Subscription-based reactivity
 - Type-safe state and actions
@@ -91,9 +89,7 @@ type BehaviorState = {
   // Additional state properties
 };
 
-type BehaviorEvent =
-  | { type: 'ACTION_1'; payload?: any }
-  | { type: 'ACTION_2'; payload?: any };
+type BehaviorEvent = { type: 'ACTION_1'; payload?: any } | { type: 'ACTION_2'; payload?: any };
 ```
 
 ### Layer 3: UI Patterns Package (Composed Patterns)
@@ -105,9 +101,9 @@ function createPattern(options) {
   const behavior1 = createBehavior1();
   const behavior2 = createBehavior2();
   const eventBus = createEventBus();
-  
+
   // Compose behaviors with coordination logic
-  
+
   return {
     getState,
     subscribe,
@@ -124,10 +120,10 @@ function createPattern(options) {
 
 #### 1. Dialog Behavior
 
-
 **Purpose**: Manage modal dialog open/close state
 
 **State Interface**:
+
 ```typescript
 interface DialogState {
   isOpen: boolean;
@@ -137,6 +133,7 @@ interface DialogState {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface DialogActions {
   open: (content: any) => void;
@@ -146,6 +143,7 @@ interface DialogActions {
 ```
 
 **Options Interface**:
+
 ```typescript
 interface DialogBehaviorOptions {
   id?: string;
@@ -159,6 +157,7 @@ interface DialogBehaviorOptions {
 **Purpose**: Manage keyboard navigation through a list of items
 
 **State Interface**:
+
 ```typescript
 interface RovingFocusState {
   currentIndex: number;
@@ -169,6 +168,7 @@ interface RovingFocusState {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface RovingFocusActions {
   moveNext: () => void;
@@ -185,6 +185,7 @@ interface RovingFocusActions {
 **Purpose**: Manage single/multi/range selection in lists
 
 **State Interface**:
+
 ```typescript
 interface ListSelectionState {
   selectedIds: string[];
@@ -195,6 +196,7 @@ interface ListSelectionState {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface ListSelectionActions {
   select: (id: string) => void;
@@ -211,6 +213,7 @@ interface ListSelectionActions {
 **Purpose**: Manage expand/collapse state for accordions and collapsible sections
 
 **State Interface**:
+
 ```typescript
 interface DisclosureState {
   isExpanded: boolean;
@@ -219,6 +222,7 @@ interface DisclosureState {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface DisclosureActions {
   expand: () => void;
@@ -232,6 +236,7 @@ interface DisclosureActions {
 **Purpose**: Manage form state, validation, and submission
 
 **State Interface**:
+
 ```typescript
 interface FormState<T extends Record<string, any>> {
   values: T;
@@ -246,6 +251,7 @@ interface FormState<T extends Record<string, any>> {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface FormActions<T> {
   setFieldValue: (field: keyof T, value: any) => void;
@@ -261,10 +267,10 @@ interface FormActions<T> {
 
 #### 1. Master-Detail Pattern
 
-
 **Composed From**: List Selection Behavior + Event Bus
 
 **State Interface**:
+
 ```typescript
 interface MasterDetailState<T> {
   items: T[];
@@ -274,6 +280,7 @@ interface MasterDetailState<T> {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface MasterDetailActions<T> {
   selectItem: (item: T) => void;
@@ -287,6 +294,7 @@ interface MasterDetailActions<T> {
 **Composed From**: Roving Focus + Disclosure Behaviors
 
 **State Interface**:
+
 ```typescript
 interface TabbedInterfaceState {
   tabs: Array<{ id: string; label: string; disabled?: boolean }>;
@@ -296,6 +304,7 @@ interface TabbedInterfaceState {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface TabbedInterfaceActions {
   activateTab: (tabId: string) => void;
@@ -310,6 +319,7 @@ interface TabbedInterfaceActions {
 **Composed From**: Disclosure Behavior + Event Bus
 
 **State Interface**:
+
 ```typescript
 interface SidebarShellState {
   isExpanded: boolean;
@@ -320,6 +330,7 @@ interface SidebarShellState {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface SidebarShellActions {
   expand: () => void;
@@ -336,6 +347,7 @@ interface SidebarShellActions {
 **Composed From**: Form Behavior + Stepper Logic
 
 **State Interface**:
+
 ```typescript
 interface WizardState<T = any> {
   steps: Array<{ id: string; label: string; isValid?: boolean }>;
@@ -347,6 +359,7 @@ interface WizardState<T = any> {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface WizardActions {
   goToNextStep: () => Promise<boolean>;
@@ -362,6 +375,7 @@ interface WizardActions {
 **Composed From**: Dialog Behavior + Stack Management
 
 **State Interface**:
+
 ```typescript
 interface ModalState {
   stack: Array<{ id: string; content: any; priority: number }>;
@@ -370,6 +384,7 @@ interface ModalState {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface ModalActions {
   openModal: (id: string, content: any, priority?: number) => void;
@@ -384,6 +399,7 @@ interface ModalActions {
 **Composed From**: Queue Management + Timer Logic
 
 **State Interface**:
+
 ```typescript
 interface ToastQueueState {
   toasts: Array<{
@@ -399,6 +415,7 @@ interface ToastQueueState {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface ToastQueueActions {
   addToast: (toast: Omit<Toast, 'id' | 'createdAt'>) => string;
@@ -412,6 +429,7 @@ interface ToastQueueActions {
 **Composed From**: Dialog + Roving Focus + Fuzzy Search
 
 **State Interface**:
+
 ```typescript
 interface CommandPaletteState {
   isOpen: boolean;
@@ -432,6 +450,7 @@ interface Command {
 ```
 
 **Actions Interface**:
+
 ```typescript
 interface CommandPaletteActions {
   open: () => void;
@@ -450,16 +469,11 @@ interface CommandPaletteActions {
 All behaviors follow a factory function pattern:
 
 ```typescript
-export function createBehavior<State, Actions>(
-  options?: BehaviorOptions
-): Behavior<State, Actions> {
+export function createBehavior<State, Actions>(options?: BehaviorOptions): Behavior<State, Actions> {
   // Create store with initial state
-  const store = createStore<State, Actions>(
-    initialState,
-    (set, get, actions) => ({
-      // Action implementations
-    })
-  );
+  const store = createStore<State, Actions>(initialState, (set, get, actions) => ({
+    // Action implementations
+  }));
 
   // Optional: Set up event listeners
   // Optional: Set up side effects
@@ -483,7 +497,7 @@ export function createBehavior<State, Actions>(
 ```typescript
 export function useBehavior<State, Actions>(
   factory: () => Behavior<State, Actions>,
-  deps: any[] = []
+  deps: any[] = [],
 ): State & { actions: Actions } {
   const [behavior] = useState(factory);
   const [state, setState] = useState(behavior.getState());
@@ -506,9 +520,7 @@ export function useBehavior<State, Actions>(
 #### Vue Adapter Pattern
 
 ```typescript
-export function useBehavior<State, Actions>(
-  factory: () => Behavior<State, Actions>
-) {
+export function useBehavior<State, Actions>(factory: () => Behavior<State, Actions>) {
   const behavior = factory();
   const state = ref(behavior.getState());
 
@@ -573,12 +585,12 @@ Behaviors handle errors gracefully:
 async validateField(field: keyof T): Promise<void> {
   try {
     set((state) => ({ ...state, isValidating: true }));
-    
+
     const validator = options.fields[field]?.validate;
     if (!validator) return;
-    
+
     const error = await validator(get().values[field]);
-    
+
     set((state) => ({
       ...state,
       errors: { ...state.errors, [field]: error || undefined },
@@ -605,7 +617,7 @@ async goToNextStep(): Promise<boolean> {
   try {
     const isValid = await this.validateCurrentStep();
     if (!isValid) return false;
-    
+
     // Proceed to next step
     return true;
   } catch (err) {
@@ -680,13 +692,13 @@ React adapters tested with React Testing Library:
 describe('useDialogBehavior', () => {
   it('should update component on state change', () => {
     const { result } = renderHook(() => useDialogBehavior());
-    
+
     expect(result.current.isOpen).toBe(false);
-    
+
     act(() => {
       result.current.open({ title: 'Test' });
     });
-    
+
     expect(result.current.isOpen).toBe(true);
   });
 });
@@ -805,7 +817,7 @@ import { useDialogBehavior } from '@web-loom/ui-core/react';
 function ThemedDialog() {
   const theme = useTheme();
   const dialog = useDialogBehavior();
-  
+
   // Use theme values for styling
 }
 ```
@@ -822,6 +834,7 @@ Both packages published to npm:
 ### Versioning Strategy
 
 Follow semantic versioning:
+
 - Major: Breaking API changes
 - Minor: New behaviors/patterns
 - Patch: Bug fixes

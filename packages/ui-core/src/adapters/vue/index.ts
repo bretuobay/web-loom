@@ -1,6 +1,6 @@
 /**
  * Vue Framework Adapters
- * 
+ *
  * This module provides Vue composables for all UI Core behaviors.
  * These composables handle behavior lifecycle, state reactivity, and cleanup.
  */
@@ -33,21 +33,21 @@ export { useDragDropBehavior } from './useDragDropBehavior';
 
 /**
  * Vue composable for dialog behavior.
- * 
+ *
  * Creates and manages a dialog behavior instance, automatically handling
  * subscriptions and cleanup with Vue's reactivity system.
- * 
+ *
  * @example
  * ```vue
  * <script setup>
  * import { useDialogBehavior } from '@web-loom/ui-core/vue';
- * 
+ *
  * const dialog = useDialogBehavior({
  *   id: 'my-dialog',
  *   onOpen: (content) => console.log('Opened:', content),
  * });
  * </script>
- * 
+ *
  * <template>
  *   <div>
  *     <button @click="dialog.actions.open({ title: 'Hello' })">
@@ -60,7 +60,7 @@ export { useDragDropBehavior } from './useDragDropBehavior';
  *   </div>
  * </template>
  * ```
- * 
+ *
  * @param options Configuration options for the dialog behavior.
  * @returns Reactive dialog state properties and actions.
  */
@@ -91,26 +91,26 @@ export function useDialogBehavior(options?: DialogBehaviorOptions) {
 
 /**
  * Vue composable for roving focus behavior.
- * 
+ *
  * Creates and manages a roving focus behavior instance for keyboard navigation
  * through lists, menus, and other collections.
- * 
+ *
  * @example
  * ```vue
  * <script setup>
  * import { useRovingFocus } from '@web-loom/ui-core/vue';
- * 
+ *
  * const focus = useRovingFocus({
  *   items: ['item-1', 'item-2', 'item-3'],
  *   orientation: 'vertical',
  * });
- * 
+ *
  * const handleKeyDown = (e) => {
  *   if (e.key === 'ArrowDown') focus.actions.moveNext();
  *   if (e.key === 'ArrowUp') focus.actions.movePrevious();
  * };
  * </script>
- * 
+ *
  * <template>
  *   <ul @keydown="handleKeyDown">
  *     <li
@@ -123,7 +123,7 @@ export function useDialogBehavior(options?: DialogBehaviorOptions) {
  *   </ul>
  * </template>
  * ```
- * 
+ *
  * @param options Configuration options for the roving focus behavior.
  * @returns Reactive roving focus state properties and actions.
  */
@@ -151,21 +151,21 @@ export function useRovingFocus(options?: RovingFocusOptions) {
 
 /**
  * Vue composable for list selection behavior.
- * 
+ *
  * Creates and manages a list selection behavior instance with support for
  * single, multi, and range selection modes.
- * 
+ *
  * @example
  * ```vue
  * <script setup>
  * import { useListSelection } from '@web-loom/ui-core/vue';
- * 
+ *
  * const selection = useListSelection({
  *   items: ['file-1', 'file-2', 'file-3'],
  *   mode: 'multi',
  * });
  * </script>
- * 
+ *
  * <template>
  *   <ul>
  *     <li
@@ -179,7 +179,7 @@ export function useRovingFocus(options?: RovingFocusOptions) {
  *   </ul>
  * </template>
  * ```
- * 
+ *
  * @param options Configuration options for the list selection behavior.
  * @returns Reactive list selection state properties and actions.
  */
@@ -207,20 +207,20 @@ export function useListSelection(options?: ListSelectionOptions) {
 
 /**
  * Vue composable for disclosure behavior.
- * 
+ *
  * Creates and manages a disclosure behavior instance for expandable/collapsible
  * content like accordions and collapsible sections.
- * 
+ *
  * @example
  * ```vue
  * <script setup>
  * import { useDisclosureBehavior } from '@web-loom/ui-core/vue';
- * 
+ *
  * const disclosure = useDisclosureBehavior({
  *   id: 'section-1',
  * });
  * </script>
- * 
+ *
  * <template>
  *   <div>
  *     <button @click="disclosure.actions.toggle">
@@ -232,7 +232,7 @@ export function useListSelection(options?: ListSelectionOptions) {
  *   </div>
  * </template>
  * ```
- * 
+ *
  * @param options Configuration options for the disclosure behavior.
  * @returns Reactive disclosure state properties and actions.
  */
@@ -258,14 +258,14 @@ export function useDisclosureBehavior(options?: DisclosureBehaviorOptions) {
 
 /**
  * Vue composable for form behavior.
- * 
+ *
  * Creates and manages a form behavior instance with validation support.
- * 
+ *
  * @example
  * ```vue
  * <script setup>
  * import { useFormBehavior } from '@web-loom/ui-core/vue';
- * 
+ *
  * const form = useFormBehavior({
  *   initialValues: { email: '', password: '' },
  *   fields: {
@@ -288,13 +288,13 @@ export function useDisclosureBehavior(options?: DisclosureBehaviorOptions) {
  *     await login(values);
  *   },
  * });
- * 
+ *
  * const handleSubmit = (e) => {
  *   e.preventDefault();
  *   form.actions.submitForm();
  * };
  * </script>
- * 
+ *
  * <template>
  *   <form @submit="handleSubmit">
  *     <input
@@ -306,7 +306,7 @@ export function useDisclosureBehavior(options?: DisclosureBehaviorOptions) {
  *     <span v-if="form.touched.value.email && form.errors.value.email" class="error">
  *       {{ form.errors.value.email }}
  *     </span>
- *     
+ *
  *     <input
  *       type="password"
  *       :value="form.values.value.password"
@@ -316,20 +316,18 @@ export function useDisclosureBehavior(options?: DisclosureBehaviorOptions) {
  *     <span v-if="form.touched.value.password && form.errors.value.password" class="error">
  *       {{ form.errors.value.password }}
  *     </span>
- *     
+ *
  *     <button type="submit" :disabled="!form.isValid.value || form.isSubmitting.value">
  *       {{ form.isSubmitting.value ? 'Submitting...' : 'Login' }}
  *     </button>
  *   </form>
  * </template>
  * ```
- * 
+ *
  * @param options Configuration options for the form behavior.
  * @returns Reactive form state properties and actions.
  */
-export function useFormBehavior<T extends Record<string, any>>(
-  options: FormBehaviorOptions<T>
-) {
+export function useFormBehavior<T extends Record<string, any>>(options: FormBehaviorOptions<T>) {
   const behavior = createFormBehavior<T>(options);
   const state = ref<FormState<T>>(behavior.getState());
 

@@ -11,6 +11,7 @@ A unified browser storage library with IndexedDB support, schema migrations, TTL
 ## ✅ Phase 1: Foundation (v0.1.0) - COMPLETE
 
 ### Features Implemented
+
 - ✅ Unified API for localStorage, sessionStorage, memory
 - ✅ Full TypeScript support with type inference
 - ✅ Namespace isolation
@@ -21,10 +22,12 @@ A unified browser storage library with IndexedDB support, schema migrations, TTL
 - ✅ Complex type serialization
 
 ### Bundle Size
+
 - ESM: 2.42 KB gzipped
 - UMD: 2.22 KB gzipped
 
 ### Tests
+
 - 22 tests passing
 
 ---
@@ -32,6 +35,7 @@ A unified browser storage library with IndexedDB support, schema migrations, TTL
 ## ✅ Phase 2: IndexedDB + Migrations (v0.2.0) - COMPLETE
 
 ### Features Implemented
+
 - ✅ IndexedDB backend with full async API
 - ✅ Schema versioning system
 - ✅ Migration engine with automatic execution
@@ -42,17 +46,20 @@ A unified browser storage library with IndexedDB support, schema migrations, TTL
 - ✅ Migration validation
 
 ### Bundle Size
+
 - ESM: 4.48 KB gzipped (19.76 KB uncompressed)
 - UMD: 3.88 KB gzipped (14.12 KB uncompressed)
 - **44% under 8KB target**
 
 ### Tests
+
 - 43 tests passing (18 skipped in non-browser environments)
 - IndexedDB backend: 12 tests
 - Migration engine: 19 tests
 - Integration: 8 tests
 
 ### API Additions
+
 ```typescript
 // IndexedDB
 const storage = await createStorage({
@@ -67,7 +74,9 @@ const storage = await createStorage({
   version: 2,
   migrations: {
     1: async () => {},
-    2: async (store) => { /* transform data */ },
+    2: async (store) => {
+      /* transform data */
+    },
   },
 });
 
@@ -82,6 +91,7 @@ await engine.migrate({ dryRun: false, onProgress: (v) => {} });
 ## 📋 Phase 3: Security + Advanced Features - PLANNED
 
 ### Planned Features
+
 - ⏳ AES-GCM encryption for sensitive data
 - ⏳ Zod schema validation integration
 - ⏳ Cross-tab synchronization (BroadcastChannel)
@@ -91,6 +101,7 @@ await engine.migrate({ dryRun: false, onProgress: (v) => {} });
 - ⏳ Eager expiration mode (background cleanup)
 
 ### Estimated Bundle Size Impact
+
 - Target: < 8KB gzipped total
 - Current: 4.48 KB (3.52 KB remaining budget)
 
@@ -130,25 +141,25 @@ tests/
 
 ## Quality Metrics
 
-| Metric                    | Target           | Actual    | Status |
-| ------------------------- | ---------------- | --------- | ------ |
-| Bundle size               | < 8KB gzipped    | 4.48 KB   | ✅ 44% under |
-| Test coverage             | > 90%            | 100%      | ✅     |
-| Type safety               | Full inference   | Full      | ✅     |
-| Runtime dependencies      | 0                | 0         | ✅     |
-| Browser support           | Modern browsers  | Full      | ✅     |
-| Migration reliability     | Zero data loss   | Rollback  | ✅     |
+| Metric                | Target          | Actual   | Status       |
+| --------------------- | --------------- | -------- | ------------ |
+| Bundle size           | < 8KB gzipped   | 4.48 KB  | ✅ 44% under |
+| Test coverage         | > 90%           | 100%     | ✅           |
+| Type safety           | Full inference  | Full     | ✅           |
+| Runtime dependencies  | 0               | 0        | ✅           |
+| Browser support       | Modern browsers | Full     | ✅           |
+| Migration reliability | Zero data loss  | Rollback | ✅           |
 
 ---
 
 ## Browser Support
 
-| Feature          | Chrome | Firefox | Safari | Edge |
-| ---------------- | ------ | ------- | ------ | ---- |
-| localStorage     | 4+     | 3.5+    | 4+     | 8+   |
-| sessionStorage   | 5+     | 2+      | 4+     | 8+   |
-| IndexedDB        | 24+    | 16+     | 10+    | 12+  |
-| Storage API      | 52+    | 51+     | 15.2+  | 79+  |
+| Feature        | Chrome | Firefox | Safari | Edge |
+| -------------- | ------ | ------- | ------ | ---- |
+| localStorage   | 4+     | 3.5+    | 4+     | 8+   |
+| sessionStorage | 5+     | 2+      | 4+     | 8+   |
+| IndexedDB      | 24+    | 16+     | 10+    | 12+  |
+| Storage API    | 52+    | 51+     | 15.2+  | 79+  |
 
 **Automatic Fallback**: Falls back to localStorage or memory if preferred backend unavailable.
 
@@ -157,6 +168,7 @@ tests/
 ## Usage Examples
 
 ### Basic Usage
+
 ```typescript
 import { createStorage } from '@web-loom/storage-core';
 
@@ -170,6 +182,7 @@ const user = await storage.get('user');
 ```
 
 ### With TTL
+
 ```typescript
 const storage = await createStorage({
   backend: 'localstorage',
@@ -181,6 +194,7 @@ await storage.set('token', 'abc123', { ttl: 300000 }); // 5 minutes
 ```
 
 ### IndexedDB with Migrations
+
 ```typescript
 const storage = await createStorage({
   backend: 'indexeddb',
@@ -200,6 +214,7 @@ const storage = await createStorage({
 ```
 
 ### Change Subscriptions
+
 ```typescript
 const unsubscribe = storage.subscribe('user:*', (event) => {
   console.log(`${event.key} changed:`, event.oldValue, '->', event.newValue);
@@ -207,6 +222,7 @@ const unsubscribe = storage.subscribe('user:*', (event) => {
 ```
 
 ### Fallback Strategy
+
 ```typescript
 const storage = await createStorage({
   backend: ['indexeddb', 'localstorage', 'memory'],
@@ -222,6 +238,7 @@ const storage = await createStorage({
 ## Integration with Web Loom Ecosystem
 
 ### With @web-loom/mvvm-core
+
 ```typescript
 class PersistentViewModel {
   private storage: Storage;
@@ -231,7 +248,7 @@ class PersistentViewModel {
       backend: 'indexeddb',
       name: 'app-state',
     });
-    
+
     // Restore state
     const savedState = await this.storage.get('viewmodel-state');
     if (savedState) this.restoreState(savedState);
@@ -244,6 +261,7 @@ class PersistentViewModel {
 ```
 
 ### With @web-loom/query-core (Future)
+
 ```typescript
 const cacheStorage = await createStorage({
   backend: 'indexeddb',
@@ -260,13 +278,13 @@ const queryClient = createQueryClient({
 
 ## Performance Characteristics
 
-| Operation          | Memory  | localStorage | IndexedDB |
-| ------------------ | ------- | ------------ | --------- |
-| get()              | < 1ms   | 1-5ms        | 5-20ms    |
-| set()              | < 1ms   | 1-5ms        | 5-20ms    |
-| keys()             | < 1ms   | 5-10ms       | 10-50ms   |
-| entries()          | < 1ms   | 10-20ms      | 20-100ms  |
-| Migration (1000)   | N/A     | N/A          | ~1s       |
+| Operation        | Memory | localStorage | IndexedDB |
+| ---------------- | ------ | ------------ | --------- |
+| get()            | < 1ms  | 1-5ms        | 5-20ms    |
+| set()            | < 1ms  | 1-5ms        | 5-20ms    |
+| keys()           | < 1ms  | 5-10ms       | 10-50ms   |
+| entries()        | < 1ms  | 10-20ms      | 20-100ms  |
+| Migration (1000) | N/A    | N/A          | ~1s       |
 
 ---
 
@@ -292,6 +310,7 @@ const queryClient = createQueryClient({
 ## Next Steps
 
 ### For Phase 3 Implementation:
+
 1. Implement AES-GCM encryption using Web Crypto API
 2. Add Zod integration for runtime validation
 3. Implement BroadcastChannel for cross-tab sync
@@ -299,6 +318,7 @@ const queryClient = createQueryClient({
 5. Add optional compression (gzip/brotli)
 
 ### For Production Use:
+
 1. Package is production-ready as-is
 2. Can be published to npm
 3. Can be integrated into web-loom apps

@@ -3,23 +3,25 @@
 ## 1. High-Level Summary
 
 ### Architecture Type
+
 Babel implements a **sophisticated visitor pattern-based plugin architecture** with the following characteristics:
 
-* **Interface-driven with Registry Pattern**: Plugins implement a well-defined interface (`PluginObject`) and are registered through a configuration-based system
-* **Visitor Pattern Core**: AST transformation is driven by the visitor pattern, allowing plugins to declaratively specify transformations for specific node types
-* **Dynamic Module Loading**: Plugins are discovered and loaded dynamically using Node.js module resolution (both CommonJS `require` and ESM `import`)
-* **Multi-Pass Pipeline**: Supports multiple transformation passes, where each pass can contain multiple plugins that share a single AST traversal
-* **Preset Composition**: Presets bundle multiple plugins together, providing curated collections of transformations
+- **Interface-driven with Registry Pattern**: Plugins implement a well-defined interface (`PluginObject`) and are registered through a configuration-based system
+- **Visitor Pattern Core**: AST transformation is driven by the visitor pattern, allowing plugins to declaratively specify transformations for specific node types
+- **Dynamic Module Loading**: Plugins are discovered and loaded dynamically using Node.js module resolution (both CommonJS `require` and ESM `import`)
+- **Multi-Pass Pipeline**: Supports multiple transformation passes, where each pass can contain multiple plugins that share a single AST traversal
+- **Preset Composition**: Presets bundle multiple plugins together, providing curated collections of transformations
 
 ### Problem Solved
+
 The Babel plugin architecture solves several critical problems:
 
-* **Extensible JavaScript Transformation**: Allows arbitrary code transformations without modifying Babel's core
-* **Modularity**: Each transformation is isolated in its own plugin, enabling independent development and testing
-* **Composition**: Plugins can be combined through presets to create reusable transformation pipelines
-* **Performance**: Multiple plugins share a single AST traversal per pass, minimizing overhead
-* **Ecosystem Growth**: Third-party developers can create plugins without needing to understand Babel's internals
-* **Backward Compatibility**: The plugin API provides a stable interface while Babel's internals evolve
+- **Extensible JavaScript Transformation**: Allows arbitrary code transformations without modifying Babel's core
+- **Modularity**: Each transformation is isolated in its own plugin, enabling independent development and testing
+- **Composition**: Plugins can be combined through presets to create reusable transformation pipelines
+- **Performance**: Multiple plugins share a single AST traversal per pass, minimizing overhead
+- **Ecosystem Growth**: Third-party developers can create plugins without needing to understand Babel's internals
+- **Backward Compatibility**: The plugin API provides a stable interface while Babel's internals evolve
 
 ---
 
@@ -30,28 +32,31 @@ The Babel plugin architecture solves several critical problems:
 Babel uses **configuration-based discovery** rather than directory scanning. Plugins are explicitly declared in configuration files:
 
 **Configuration Files:**
-* `.babelrc` / `.babelrc.json` / `.babelrc.js`
-* `babel.config.js` / `babel.config.json`
-* `package.json` (under `"babel"` key)
-* Programmatic options passed to `babel.transform()`
+
+- `.babelrc` / `.babelrc.json` / `.babelrc.js`
+- `babel.config.js` / `babel.config.json`
+- `package.json` (under `"babel"` key)
+- Programmatic options passed to `babel.transform()`
 
 **Example Configuration:**
+
 ```javascript
 // babel.config.js
 module.exports = {
   plugins: [
-    "transform-arrow-functions",                    // String shorthand
-    ["@babel/plugin-proposal-decorators", {         // Array with options
-      version: "2023-05"
-    }],
-    ["custom-plugin", {}, "unique-name"],           // With custom identifier
-    pluginFunction,                                  // Direct function reference
-    pluginObject                                     // Direct object reference
+    'transform-arrow-functions', // String shorthand
+    [
+      '@babel/plugin-proposal-decorators',
+      {
+        // Array with options
+        version: '2023-05',
+      },
+    ],
+    ['custom-plugin', {}, 'unique-name'], // With custom identifier
+    pluginFunction, // Direct function reference
+    pluginObject, // Direct object reference
   ],
-  presets: [
-    "@babel/preset-env",
-    ["@babel/preset-react", { runtime: "automatic" }]
-  ]
+  presets: ['@babel/preset-env', ['@babel/preset-react', { runtime: 'automatic' }]],
 };
 ```
 
@@ -60,73 +65,61 @@ module.exports = {
 Babel provides intelligent name resolution with multiple conventions:
 
 **File: `packages/babel-core/src/config/files/plugins.ts:59-87`**
+
 ```typescript
-function standardizeName(type: "plugin" | "preset", name: string) {
+function standardizeName(type: 'plugin' | 'preset', name: string) {
   // Let absolute and relative paths through.
   if (path.isAbsolute(name)) return name;
 
-  const isPreset = type === "preset";
+  const isPreset = type === 'preset';
 
   return (
     name
       // foo -> babel-preset-foo
-      .replace(
-        isPreset ? BABEL_PRESET_PREFIX_RE : BABEL_PLUGIN_PREFIX_RE,
-        `babel-${type}-`,
-      )
+      .replace(isPreset ? BABEL_PRESET_PREFIX_RE : BABEL_PLUGIN_PREFIX_RE, `babel-${type}-`)
       // @babel/es2015 -> @babel/preset-es2015
-      .replace(
-        isPreset ? BABEL_PRESET_ORG_RE : BABEL_PLUGIN_ORG_RE,
-        `$1${type}-`,
-      )
+      .replace(isPreset ? BABEL_PRESET_ORG_RE : BABEL_PLUGIN_ORG_RE, `$1${type}-`)
       // @foo/mypreset -> @foo/babel-preset-mypreset
-      .replace(
-        isPreset ? OTHER_PRESET_ORG_RE : OTHER_PLUGIN_ORG_RE,
-        `$1babel-${type}-`,
-      )
+      .replace(isPreset ? OTHER_PRESET_ORG_RE : OTHER_PLUGIN_ORG_RE, `$1babel-${type}-`)
       // @foo -> @foo/babel-preset
       .replace(OTHER_ORG_DEFAULT_RE, `$1/babel-${type}`)
       // module:mypreset -> mypreset
-      .replace(EXACT_RE, "")
+      .replace(EXACT_RE, '')
   );
 }
 ```
 
 **Supported Name Formats:**
-* Shorthand: `"arrow-functions"` → `"babel-plugin-transform-arrow-functions"`
-* Full name: `"babel-plugin-transform-arrow-functions"`
-* Scoped: `"@babel/plugin-transform-arrow-functions"`
-* Scoped shorthand: `"@babel/arrow-functions"` → `"@babel/plugin-transform-arrow-functions"`
-* Third-party scoped: `"@company/my-plugin"` → `"@company/babel-plugin-my-plugin"`
-* Module prefix: `"module:custom-plugin"` (exact name, no transformation)
-* Absolute/relative paths: `"./my-plugin.js"`, `"/absolute/path/to/plugin"`
+
+- Shorthand: `"arrow-functions"` → `"babel-plugin-transform-arrow-functions"`
+- Full name: `"babel-plugin-transform-arrow-functions"`
+- Scoped: `"@babel/plugin-transform-arrow-functions"`
+- Scoped shorthand: `"@babel/arrow-functions"` → `"@babel/plugin-transform-arrow-functions"`
+- Third-party scoped: `"@company/my-plugin"` → `"@company/babel-plugin-my-plugin"`
+- Module prefix: `"module:custom-plugin"` (exact name, no transformation)
+- Absolute/relative paths: `"./my-plugin.js"`, `"/absolute/path/to/plugin"`
 
 ### Loading Mechanism
 
 Babel uses **hybrid loading** supporting both CommonJS and ESM:
 
 **File: `packages/babel-core/src/config/files/plugins.ts:34-57`**
+
 ```typescript
-export function* loadPlugin(
-  name: string,
-  dirname: string,
-): Handler<{ filepath: string; value: unknown }> {
+export function* loadPlugin(name: string, dirname: string): Handler<{ filepath: string; value: unknown }> {
   const { filepath, loader } = resolvePlugin(name, dirname, yield* isAsync());
 
-  const value = yield* requireModule("plugin", loader, filepath);
-  debug("Loaded plugin %o from %o.", name, dirname);
+  const value = yield* requireModule('plugin', loader, filepath);
+  debug('Loaded plugin %o from %o.', name, dirname);
 
   return { filepath, value };
 }
 
-export function* loadPreset(
-  name: string,
-  dirname: string,
-): Handler<{ filepath: string; value: unknown }> {
+export function* loadPreset(name: string, dirname: string): Handler<{ filepath: string; value: unknown }> {
   const { filepath, loader } = resolvePreset(name, dirname, yield* isAsync());
 
-  const value = yield* requireModule("preset", loader, filepath);
-  debug("Loaded preset %o from %o.", name, dirname);
+  const value = yield* requireModule('preset', loader, filepath);
+  debug('Loaded preset %o from %o.', name, dirname);
 
   return { filepath, value };
 }
@@ -139,13 +132,9 @@ export function* loadPreset(
 3. **Sync-only mode**: Uses only `require.resolve()` when async is not available
 
 **File: `packages/babel-core/src/config/files/plugins.ts:189-217`**
+
 ```typescript
-function resolveStandardizedName(
-  type: "plugin" | "preset",
-  name: string,
-  dirname: string,
-  allowAsync: boolean,
-) {
+function resolveStandardizedName(type: 'plugin' | 'preset', name: string, dirname: string, allowAsync: boolean) {
   if (!supportsESM || !allowAsync) {
     return resolveStandardizedNameForRequire(type, name, dirname);
   }
@@ -153,18 +142,15 @@ function resolveStandardizedName(
   try {
     const resolved = resolveStandardizedNameForImport(type, name, dirname);
     if (!existsSync(resolved.filepath)) {
-      throw Object.assign(
-        new Error(`Could not resolve "${name}" in file ${dirname}.`),
-        { type: "MODULE_NOT_FOUND" },
-      );
+      throw Object.assign(new Error(`Could not resolve "${name}" in file ${dirname}.`), { type: 'MODULE_NOT_FOUND' });
     }
     return resolved;
   } catch (e) {
     try {
       return resolveStandardizedNameForRequire(type, name, dirname);
     } catch (e2) {
-      if (e.type === "MODULE_NOT_FOUND") throw e;
-      if (e2.type === "MODULE_NOT_FOUND") throw e2;
+      if (e.type === 'MODULE_NOT_FOUND') throw e;
+      if (e2.type === 'MODULE_NOT_FOUND') throw e2;
       throw e;
     }
   }
@@ -173,10 +159,10 @@ function resolveStandardizedName(
 
 ### Key Files Responsible
 
-* **Discovery**: `packages/babel-core/src/config/files/configuration.ts` - Config file discovery
-* **Resolution**: `packages/babel-core/src/config/files/plugins.ts` - Plugin/preset resolution and loading
-* **Module Loading**: `packages/babel-core/src/config/files/module-types.ts` - ESM/CJS loading logic
-* **Descriptor Creation**: `packages/babel-core/src/config/config-descriptors.ts` - Creating cached descriptors
+- **Discovery**: `packages/babel-core/src/config/files/configuration.ts` - Config file discovery
+- **Resolution**: `packages/babel-core/src/config/files/plugins.ts` - Plugin/preset resolution and loading
+- **Module Loading**: `packages/babel-core/src/config/files/module-types.ts` - ESM/CJS loading logic
+- **Descriptor Creation**: `packages/babel-core/src/config/config-descriptors.ts` - Creating cached descriptors
 
 ---
 
@@ -202,40 +188,34 @@ Descriptors are intermediate objects that cache plugin metadata:
 
 ```typescript
 type UnloadedDescriptor = {
-  name: string;                    // Plugin name
-  value: any;                      // Plugin function or object
-  options: object;                 // Plugin options
-  dirname: string;                 // Base directory
-  alias: string;                   // Unique identifier for caching
+  name: string; // Plugin name
+  value: any; // Plugin function or object
+  options: object; // Plugin options
+  dirname: string; // Base directory
+  alias: string; // Unique identifier for caching
   file: {
-    request: string;               // Original request string
-    resolved: string;              // Resolved file path
+    request: string; // Original request string
+    resolved: string; // Resolved file path
   };
 };
 ```
 
 **Caching Strategy:**
-* **Weak caches** for plugin/preset functions (keyed by function identity)
-* **Strong caches** for descriptor configurations (keyed by descriptor properties)
-* Cache invalidation based on external dependencies
+
+- **Weak caches** for plugin/preset functions (keyed by function identity)
+- **Strong caches** for descriptor configurations (keyed by descriptor properties)
+- Cache invalidation based on external dependencies
 
 ### Plugin Factory Function
 
 Plugins are typically created using the `declare()` helper:
 
 **File: `packages/babel-helper-plugin-utils/src/index.ts:40-66`**
+
 ```typescript
 export function declare<State = object, Option = object>(
-  builder: (
-    api: PluginAPI,
-    options: Option,
-    dirname: string,
-  ) => PluginObject<State & PluginPass>,
-): (
-  api: PluginAPI,
-  options: Option,
-  dirname: string,
-) => PluginObject<State & PluginPass> {
+  builder: (api: PluginAPI, options: Option, dirname: string) => PluginObject<State & PluginPass>,
+): (api: PluginAPI, options: Option, dirname: string) => PluginObject<State & PluginPass> {
   return (api, options: Option, dirname: string) => {
     let clonedApi: PluginAPI;
 
@@ -251,19 +231,20 @@ export function declare<State = object, Option = object>(
 ```
 
 **Example Plugin:**
+
 ```typescript
-import { declare } from "@babel/helper-plugin-utils";
+import { declare } from '@babel/helper-plugin-utils';
 
 export default declare((api, options) => {
   api.assertVersion(7);
 
   return {
-    name: "my-plugin",
+    name: 'my-plugin',
     visitor: {
       ArrowFunctionExpression(path) {
         path.arrowFunctionToExpression();
-      }
-    }
+      },
+    },
   };
 });
 ```
@@ -271,15 +252,16 @@ export default declare((api, options) => {
 ### Plugin Class
 
 **File: `packages/babel-core/src/config/plugin.ts:5-37`**
+
 ```typescript
 export default class Plugin {
   key: string | undefined | null;
-  manipulateOptions?: PluginObject["manipulateOptions"];
-  post?: PluginObject["post"];
-  pre?: PluginObject["pre"];
-  visitor: PluginObject["visitor"];
-  parserOverride?: PluginObject["parserOverride"];
-  generatorOverride?: PluginObject["generatorOverride"];
+  manipulateOptions?: PluginObject['manipulateOptions'];
+  post?: PluginObject['post'];
+  pre?: PluginObject['pre'];
+  visitor: PluginObject['visitor'];
+  parserOverride?: PluginObject['parserOverride'];
+  generatorOverride?: PluginObject['generatorOverride'];
   options: object;
   externalDependencies: ReadonlyDeepArray<string>;
 
@@ -317,9 +299,10 @@ Plugins can inherit from other plugins via the `inherits` property:
 ```
 
 When a plugin inherits:
-* **Visitors are merged** - Both parent and child visitors are combined
-* **Pre/post hooks are chained** - Parent hooks run first, then child hooks
-* **ManipulateOptions are chained** - Both functions are called in sequence
+
+- **Visitors are merged** - Both parent and child visitors are combined
+- **Pre/post hooks are chained** - Parent hooks run first, then child hooks
+- **ManipulateOptions are chained** - Both functions are called in sequence
 
 ---
 
@@ -328,28 +311,20 @@ When a plugin inherits:
 ### Required Plugin Object Structure
 
 **File: `packages/babel-core/src/config/validation/plugins.ts:84-107`**
+
 ```typescript
 export type PluginObject<S extends PluginPass = PluginPass> = {
   name?: string;
-  manipulateOptions?: (
-    options: ResolvedOptions,
-    parserOpts: ParserOptions,
-  ) => void;
+  manipulateOptions?: (options: ResolvedOptions, parserOpts: ParserOptions) => void;
   pre?: (this: S, file: File) => void | Promise<void>;
   post?: (this: S, file: File) => void | Promise<void>;
-  inherits?: (
-    api: PluginAPI,
-    options: unknown,
-    dirname: string,
-  ) => PluginObject;
+  inherits?: (api: PluginAPI, options: unknown, dirname: string) => PluginObject;
   visitor?: Visitor<S>;
-  parserOverride?: (
-    ...args: [...Parameters<typeof parse>, typeof parse]
-  ) => ReturnType<typeof parse>;
+  parserOverride?: (...args: [...Parameters<typeof parse>, typeof parse]) => ReturnType<typeof parse>;
   generatorOverride?: (
-    ast: File["ast"],
+    ast: File['ast'],
     generatorOpts: GeneratorOptions,
-    code: File["code"],
+    code: File['code'],
     generate: typeof babelGenerator,
   ) => GeneratorResult;
 };
@@ -358,53 +333,62 @@ export type PluginObject<S extends PluginPass = PluginPass> = {
 ### Required Methods
 
 **None are strictly required** - all properties are optional. However, a useful plugin typically has at least:
-* `visitor` - The AST transformation logic
-* `name` - For debugging and identification
+
+- `visitor` - The AST transformation logic
+- `name` - For debugging and identification
 
 ### Optional Methods
 
 All plugin properties are optional:
 
 #### 1. `name: string`
-* Plugin identifier for debugging and error messages
-* Used as cache key if no explicit alias provided
+
+- Plugin identifier for debugging and error messages
+- Used as cache key if no explicit alias provided
 
 #### 2. `manipulateOptions(options, parserOpts): void`
-* Modify Babel's options before parsing
-* Add parser plugins (e.g., `parserOpts.plugins.push("jsx")`)
-* Called before the file is parsed
+
+- Modify Babel's options before parsing
+- Add parser plugins (e.g., `parserOpts.plugins.push("jsx")`)
+- Called before the file is parsed
 
 #### 3. `pre(file): void | Promise<void>`
-* Hook called **before** AST traversal
-* Initialize plugin state
-* Access: `this` refers to `PluginPass` instance
-* Can be async in async mode
+
+- Hook called **before** AST traversal
+- Initialize plugin state
+- Access: `this` refers to `PluginPass` instance
+- Can be async in async mode
 
 #### 4. `visitor: Visitor<State>`
-* Main transformation logic
-* Declarative specification of node visitors
-* See "Extension Points" section for details
+
+- Main transformation logic
+- Declarative specification of node visitors
+- See "Extension Points" section for details
 
 #### 5. `post(file): void | Promise<void>`
-* Hook called **after** AST traversal
-* Cleanup plugin state
-* Access: `this` refers to `PluginPass` instance
-* Can be async in async mode
+
+- Hook called **after** AST traversal
+- Cleanup plugin state
+- Access: `this` refers to `PluginPass` instance
+- Can be async in async mode
 
 #### 6. `inherits(api, options, dirname): PluginObject`
-* Specify parent plugin to inherit from
-* Returns another plugin object
-* Visitors and hooks are merged
+
+- Specify parent plugin to inherit from
+- Returns another plugin object
+- Visitors and hooks are merged
 
 #### 7. `parserOverride(...args, parse): AST`
-* Completely override the parser
-* Rare - used for alternative parsers
-* Must return valid Babel AST
+
+- Completely override the parser
+- Rare - used for alternative parsers
+- Must return valid Babel AST
 
 #### 8. `generatorOverride(ast, opts, code, generate): GeneratorResult`
-* Completely override code generation
-* Rare - used for alternative generators
-* Must return `{ code, map }` object
+
+- Completely override code generation
+- Rare - used for alternative generators
+- Must return `{ code, map }` object
 
 ### Expected Data Structures
 
@@ -447,42 +431,55 @@ visitor: {
 Plugins receive a comprehensive API object:
 
 **File: `packages/babel-core/src/config/helpers/config-api.ts:54-55`**
+
 ```typescript
 export type PluginAPI = {
-  version: string;                               // Babel version (e.g., "7.23.0")
-  cache: SimpleCacheConfigurator;                // Caching API
-  env: EnvFunction;                              // Environment detection
-  async: () => boolean;                          // Check if async mode
-  caller?: CallerFactory;                        // Caller metadata
-  assertVersion: typeof assertVersion;           // Assert Babel version
-  targets: TargetsFunction;                      // Compilation targets
-  addExternalDependency: (ref: string) => void;  // Track external deps
-  assumption: AssumptionFunction;                // Check assumptions
+  version: string; // Babel version (e.g., "7.23.0")
+  cache: SimpleCacheConfigurator; // Caching API
+  env: EnvFunction; // Environment detection
+  async: () => boolean; // Check if async mode
+  caller?: CallerFactory; // Caller metadata
+  assertVersion: typeof assertVersion; // Assert Babel version
+  targets: TargetsFunction; // Compilation targets
+  addExternalDependency: (ref: string) => void; // Track external deps
+  assumption: AssumptionFunction; // Check assumptions
 };
 ```
 
 #### Plugin Pass (State Object)
 
 **File: `packages/babel-core/src/transformation/plugin-pass.ts:4-61`**
+
 ```typescript
 export default class PluginPass<Options = object> {
-  _map: Map<unknown, unknown> = new Map();       // Private storage
-  key: string | undefined | null;                 // Plugin identifier
-  file: File;                                     // File being transformed
-  opts: Partial<Options>;                         // Plugin options
-  cwd: string;                                    // Working directory
-  filename: string | void;                        // File path
-  isAsync: boolean;                               // Async mode flag
+  _map: Map<unknown, unknown> = new Map(); // Private storage
+  key: string | undefined | null; // Plugin identifier
+  file: File; // File being transformed
+  opts: Partial<Options>; // Plugin options
+  cwd: string; // Working directory
+  filename: string | void; // File path
+  isAsync: boolean; // Async mode flag
 
-  set(key: unknown, val: unknown) { /* ... */ }
-  get(key: unknown): any { /* ... */ }
-  availableHelper(name: string, versionRange?: string | null) { /* ... */ }
-  addHelper(name: string) { /* ... */ }
-  buildCodeFrameError(node, msg, _Error?) { /* ... */ }
+  set(key: unknown, val: unknown) {
+    /* ... */
+  }
+  get(key: unknown): any {
+    /* ... */
+  }
+  availableHelper(name: string, versionRange?: string | null) {
+    /* ... */
+  }
+  addHelper(name: string) {
+    /* ... */
+  }
+  buildCodeFrameError(node, msg, _Error?) {
+    /* ... */
+  }
 }
 ```
 
 **Usage in Visitor:**
+
 ```typescript
 visitor: {
   pre(file) {
@@ -525,6 +522,7 @@ export default gensync(function* loadFullConfig(
 ```
 
 **Steps:**
+
 1. Parse configuration files
 2. Extract plugin/preset items
 3. Create descriptors for each plugin
@@ -535,13 +533,14 @@ export default gensync(function* loadFullConfig(
 **Location**: `packages/babel-core/src/config/files/plugins.ts:34-44`
 
 **Steps:**
+
 1. Resolve plugin name to file path
 2. Load module (ESM or CommonJS)
 3. Extract default export
 4. Call plugin factory function with API
 
 ```typescript
-const { filepath, value } = yield* loadPlugin(name, dirname);
+const { filepath, value } = yield * loadPlugin(name, dirname);
 ```
 
 ### Phase 3: Validation (Build Time)
@@ -550,14 +549,12 @@ const { filepath, value } = yield* loadPlugin(name, dirname);
 **Location**: `packages/babel-core/src/config/validation/plugins.ts:109-137`
 
 ```typescript
-export function validatePluginObject(obj: {
-  [key: string]: unknown;
-}): PluginObject {
-  const rootPath: RootPath = { type: "root", source: "plugin" };
+export function validatePluginObject(obj: { [key: string]: unknown }): PluginObject {
+  const rootPath: RootPath = { type: 'root', source: 'plugin' };
   Object.keys(obj).forEach((key: string) => {
     const validator = VALIDATORS[key];
     if (validator) {
-      const optLoc: OptionPath = { type: "option", name: key, parent: rootPath };
+      const optLoc: OptionPath = { type: 'option', name: key, parent: rootPath };
       validator(optLoc, obj[key]);
     } else {
       throw new Error(`.${key} is not a valid Plugin property`);
@@ -568,6 +565,7 @@ export function validatePluginObject(obj: {
 ```
 
 **Steps:**
+
 1. Validate all plugin properties
 2. Check visitor structure
 3. Verify function signatures
@@ -579,6 +577,7 @@ export function validatePluginObject(obj: {
 **Location**: `packages/babel-traverse/src/visitors.ts:53-148`
 
 **Steps:**
+
 1. Expand pipe syntax (`"Identifier|NumericLiteral"`)
 2. Expand alias types (`Expression` → all expression types)
 3. Wrap virtual types with runtime checks
@@ -592,7 +591,7 @@ function explode$1<S>(visitor: Visitor<S>): ExplodedVisitor<S> {
 
   // Normalize pipes
   for (const nodeType of Object.keys(visitor)) {
-    const parts = nodeType.split("|");
+    const parts = nodeType.split('|');
     if (parts.length > 1) {
       const fns = visitor[nodeType];
       delete visitor[nodeType];
@@ -612,6 +611,7 @@ function explode$1<S>(visitor: Visitor<S>): ExplodedVisitor<S> {
 **Location**: `packages/babel-core/src/config/full.ts:180-210`
 
 **Steps:**
+
 1. Create `Plugin` instance with normalized visitor
 2. Store in plugin passes array
 3. Handle inheritance (merge visitors, chain hooks)
@@ -646,11 +646,7 @@ function* transformFile(file: File, pluginPasses: PluginPasses): Handler<void> {
     }
 
     // Step 3: Merge all visitors and traverse
-    const visitor = traverse.visitors.merge(
-      visitors,
-      passes,
-      file.opts.wrapPluginVisitorMethod,
-    );
+    const visitor = traverse.visitors.merge(visitors, passes, file.opts.wrapPluginVisitorMethod);
     traverse(file.ast, visitor, file.scope);
 
     // Step 4: Execute post hooks
@@ -697,19 +693,19 @@ Code Generation
 
 ### Phase Triggers by File
 
-| Phase | Triggered In | Line Reference |
-|-------|-------------|----------------|
-| Configuration Parsing | `packages/babel-core/src/config/config-chain.ts` | Multiple |
-| Descriptor Creation | `packages/babel-core/src/config/config-descriptors.ts` | Various |
-| Module Loading | `packages/babel-core/src/config/files/plugins.ts` | 34-57 |
-| Validation | `packages/babel-core/src/config/validation/plugins.ts` | 109-137 |
-| Visitor Explosion | `packages/babel-traverse/src/visitors.ts` | 53-148 |
-| Inheritance | `packages/babel-core/src/config/full.ts` | 180-210 |
-| Plugin Instance | `packages/babel-core/src/config/plugin.ts` | 19-36 |
-| PluginPass Creation | `packages/babel-core/src/transformation/index.ts` | 92 |
-| pre() execution | `packages/babel-core/src/transformation/index.ts` | 99-108 |
-| Traversal | `packages/babel-core/src/transformation/index.ts` | 112-121 |
-| post() execution | `packages/babel-core/src/transformation/index.ts` | 123-132 |
+| Phase                 | Triggered In                                           | Line Reference |
+| --------------------- | ------------------------------------------------------ | -------------- |
+| Configuration Parsing | `packages/babel-core/src/config/config-chain.ts`       | Multiple       |
+| Descriptor Creation   | `packages/babel-core/src/config/config-descriptors.ts` | Various        |
+| Module Loading        | `packages/babel-core/src/config/files/plugins.ts`      | 34-57          |
+| Validation            | `packages/babel-core/src/config/validation/plugins.ts` | 109-137        |
+| Visitor Explosion     | `packages/babel-traverse/src/visitors.ts`              | 53-148         |
+| Inheritance           | `packages/babel-core/src/config/full.ts`               | 180-210        |
+| Plugin Instance       | `packages/babel-core/src/config/plugin.ts`             | 19-36          |
+| PluginPass Creation   | `packages/babel-core/src/transformation/index.ts`      | 92             |
+| pre() execution       | `packages/babel-core/src/transformation/index.ts`      | 99-108         |
+| Traversal             | `packages/babel-core/src/transformation/index.ts`      | 112-121        |
+| post() execution      | `packages/babel-core/src/transformation/index.ts`      | 123-132        |
 
 ---
 
@@ -818,20 +814,21 @@ visitor: {
 ```
 
 **Available Virtual Types:**
-* `BindingIdentifier`
-* `BlockScoped`
-* `Expression`
-* `Flow`
-* `ForAwaitStatement`
-* `Generated`
-* `Pure`
-* `Referenced`
-* `ReferencedIdentifier`
-* `ReferencedMemberExpression`
-* `Scope`
-* `Statement`
-* `User`
-* `Var`
+
+- `BindingIdentifier`
+- `BlockScoped`
+- `Expression`
+- `Flow`
+- `ForAwaitStatement`
+- `Generated`
+- `Pure`
+- `Referenced`
+- `ReferencedIdentifier`
+- `ReferencedMemberExpression`
+- `Scope`
+- `Statement`
+- `User`
+- `Var`
 
 ### 6.4 Lifecycle Hooks
 
@@ -845,15 +842,17 @@ visitor: {
 ```typescript
 export default declare((api, options) => {
   return {
-    name: "jsx-plugin",
+    name: 'jsx-plugin',
     manipulateOptions(opts, parserOpts) {
       // Enable JSX parsing
-      parserOpts.plugins.push("jsx");
+      parserOpts.plugins.push('jsx');
 
       // Configure parser options
-      parserOpts.sourceType = "module";
+      parserOpts.sourceType = 'module';
     },
-    visitor: { /* ... */ }
+    visitor: {
+      /* ... */
+    },
   };
 });
 ```
@@ -913,12 +912,12 @@ visitor: {
 ```typescript
 export default declare((api, options) => {
   return {
-    name: "custom-parser",
+    name: 'custom-parser',
     parserOverride(code, parserOpts, parse) {
       // Use alternative parser
       const ast = myCustomParser(code, parserOpts);
       return ast;
-    }
+    },
   };
 });
 ```
@@ -934,11 +933,11 @@ export default declare((api, options) => {
 ```typescript
 export default declare((api, options) => {
   return {
-    name: "custom-generator",
+    name: 'custom-generator',
     generatorOverride(ast, generatorOpts, code, generate) {
       // Use alternative generator
       return myCustomGenerator(ast, generatorOpts);
-    }
+    },
   };
 });
 ```
@@ -954,14 +953,14 @@ export default declare((api, options) => {
 ```typescript
 export default declare((api, options) => {
   return {
-    name: "jsx-transform",
-    inherits: require("@babel/plugin-syntax-jsx"),
+    name: 'jsx-transform',
+    inherits: require('@babel/plugin-syntax-jsx'),
     visitor: {
       JSXElement(path) {
         // Transform JSX elements
         // Syntax plugin already enabled JSX parsing
-      }
-    }
+      },
+    },
   };
 });
 ```
@@ -970,17 +969,17 @@ export default declare((api, options) => {
 
 ### Extension Point Summary Table
 
-| Extension Point | How to Use | Common Use Cases | Code Location |
-|----------------|------------|------------------|---------------|
-| Node Visitors | `visitor: { NodeType(path) {} }` | AST transformations | traverse/src/types.ts |
-| Alias Visitors | `visitor: { Expression(path) {} }` | Transform groups of nodes | types/src/definitions |
-| Virtual Types | `visitor: { ReferencedIdentifier(path) {} }` | Conditional visiting | traverse/src/path/lib/virtual-types.ts |
-| manipulateOptions | `manipulateOptions(opts, parserOpts) {}` | Parser configuration | transformation/normalize-opts.ts |
-| pre hook | `pre(file) {}` | State initialization | transformation/index.ts:99-108 |
-| post hook | `post(file) {}` | Cleanup, metadata | transformation/index.ts:123-132 |
-| parserOverride | `parserOverride(code, opts, parse) {}` | Alternative parsers | parser/index.ts |
-| generatorOverride | `generatorOverride(ast, opts, code, gen) {}` | Alternative generators | transformation/file/generate.ts |
-| inherits | `inherits: otherPlugin` | Extend plugins | config/full.ts |
+| Extension Point   | How to Use                                   | Common Use Cases          | Code Location                          |
+| ----------------- | -------------------------------------------- | ------------------------- | -------------------------------------- |
+| Node Visitors     | `visitor: { NodeType(path) {} }`             | AST transformations       | traverse/src/types.ts                  |
+| Alias Visitors    | `visitor: { Expression(path) {} }`           | Transform groups of nodes | types/src/definitions                  |
+| Virtual Types     | `visitor: { ReferencedIdentifier(path) {} }` | Conditional visiting      | traverse/src/path/lib/virtual-types.ts |
+| manipulateOptions | `manipulateOptions(opts, parserOpts) {}`     | Parser configuration      | transformation/normalize-opts.ts       |
+| pre hook          | `pre(file) {}`                               | State initialization      | transformation/index.ts:99-108         |
+| post hook         | `post(file) {}`                              | Cleanup, metadata         | transformation/index.ts:123-132        |
+| parserOverride    | `parserOverride(code, opts, parse) {}`       | Alternative parsers       | parser/index.ts                        |
+| generatorOverride | `generatorOverride(ast, opts, code, gen) {}` | Alternative generators    | transformation/file/generate.ts        |
+| inherits          | `inherits: otherPlugin`                      | Extend plugins            | config/full.ts                         |
 
 ---
 
@@ -1003,16 +1002,12 @@ Babel discovers configuration from multiple sources in this order:
 
 ```javascript
 // babel.config.js
-module.exports = function(api) {
+module.exports = function (api) {
   api.cache(true);
 
-  const presets = [
-    ["@babel/preset-env", { targets: { node: "current" } }]
-  ];
+  const presets = [['@babel/preset-env', { targets: { node: 'current' } }]];
 
-  const plugins = [
-    ["@babel/plugin-proposal-decorators", { version: "2023-05" }]
-  ];
+  const plugins = [['@babel/plugin-proposal-decorators', { version: '2023-05' }]];
 
   return { presets, plugins };
 };
@@ -1023,13 +1018,14 @@ module.exports = function(api) {
 ```json
 {
   "presets": [
-    ["@babel/preset-env", {
-      "targets": { "node": "current" }
-    }]
+    [
+      "@babel/preset-env",
+      {
+        "targets": { "node": "current" }
+      }
+    ]
   ],
-  "plugins": [
-    "@babel/plugin-transform-arrow-functions"
-  ]
+  "plugins": ["@babel/plugin-transform-arrow-functions"]
 }
 ```
 
@@ -1038,12 +1034,8 @@ module.exports = function(api) {
 ```javascript
 // babel.config.mjs
 export default {
-  presets: [
-    "@babel/preset-env"
-  ],
-  plugins: [
-    "@babel/plugin-transform-arrow-functions"
-  ]
+  presets: ['@babel/preset-env'],
+  plugins: ['@babel/plugin-transform-arrow-functions'],
 };
 ```
 
@@ -1055,23 +1047,26 @@ Plugins receive options as the second parameter:
 // Configuration
 {
   plugins: [
-    ["my-plugin", {
-      mode: "strict",
-      exclude: ["node_modules"],
-      customOption: true
-    }]
-  ]
+    [
+      'my-plugin',
+      {
+        mode: 'strict',
+        exclude: ['node_modules'],
+        customOption: true,
+      },
+    ],
+  ];
 }
 
 // Plugin implementation
 export default declare((api, options) => {
-  const mode = options.mode || "loose";
+  const mode = options.mode || 'loose';
   const exclude = options.exclude || [];
 
   return {
     visitor: {
       // Use options...
-    }
+    },
   };
 });
 ```
@@ -1111,20 +1106,18 @@ console.log(result.metadata.myPlugin);
 
 ```javascript
 module.exports = {
-  presets: ["@babel/preset-env"],
+  presets: ['@babel/preset-env'],
   env: {
     production: {
-      plugins: ["transform-remove-console"]
+      plugins: ['transform-remove-console'],
     },
     development: {
-      plugins: ["transform-react-jsx-source"]
+      plugins: ['transform-react-jsx-source'],
     },
     test: {
-      presets: [
-        ["@babel/preset-env", { targets: { node: "current" } }]
-      ]
-    }
-  }
+      presets: [['@babel/preset-env', { targets: { node: 'current' } }]],
+    },
+  },
 };
 ```
 
@@ -1138,21 +1131,21 @@ Apply configuration conditionally based on file patterns:
 
 ```javascript
 module.exports = {
-  presets: ["@babel/preset-env"],
+  presets: ['@babel/preset-env'],
   overrides: [
     {
-      test: "./src/**/*.js",
-      plugins: ["my-custom-plugin"]
+      test: './src/**/*.js',
+      plugins: ['my-custom-plugin'],
     },
     {
       test: /\.tsx?$/,
-      presets: ["@babel/preset-typescript"]
+      presets: ['@babel/preset-typescript'],
     },
     {
-      exclude: "./src/vendor",
-      compact: true
-    }
-  ]
+      exclude: './src/vendor',
+      compact: true,
+    },
+  ],
 };
 ```
 
@@ -1189,14 +1182,14 @@ Plugins can declare external dependencies for cache invalidation:
 ```javascript
 export default declare((api, options) => {
   // Add external dependency
-  api.addExternalDependency("./my-config.json");
+  api.addExternalDependency('./my-config.json');
 
-  const config = require("./my-config.json");
+  const config = require('./my-config.json');
 
   return {
     visitor: {
       // Use config...
-    }
+    },
   };
 });
 ```
@@ -1207,12 +1200,12 @@ export default declare((api, options) => {
 
 **Capability**: Limited
 
-* **Config files**: Not hot-reloadable by default
-* **Plugin code**: Requires cache invalidation
-* **Workarounds**:
-  * Use `api.cache(false)` to disable caching
-  * Use `api.cache.using()` with file contents for auto-invalidation
-  * Implement custom watch mode with cache clearing
+- **Config files**: Not hot-reloadable by default
+- **Plugin code**: Requires cache invalidation
+- **Workarounds**:
+  - Use `api.cache(false)` to disable caching
+  - Use `api.cache.using()` with file contents for auto-invalidation
+  - Implement custom watch mode with cache clearing
 
 **No built-in hot reload** - Babel is designed for build-time transformation, not runtime.
 
@@ -1225,10 +1218,11 @@ export default declare((api, options) => {
 #### 1. **No Sandboxing**
 
 Plugins execute **without isolation** in the same Node.js process. This means:
-* Plugins have full access to the file system
-* Plugins can require any module
-* Plugins can execute arbitrary code
-* No memory or CPU limits
+
+- Plugins have full access to the file system
+- Plugins can require any module
+- Plugins can execute arbitrary code
+- No memory or CPU limits
 
 **Implication**: Only use trusted plugins
 
@@ -1241,13 +1235,13 @@ if (!process.env.BABEL_8_BREAKING) {
   var LOADING_MODULES = new Set();
 }
 
-function* requireModule(type: string, loader: "require" | "auto", name: string) {
+function* requireModule(type: string, loader: 'require' | 'auto', name: string) {
   if (!(yield* isAsync()) && LOADING_MODULES.has(name)) {
     throw new Error(
       `Reentrant ${type} detected trying to load "${name}". ` +
-      `This module is not ignored and is trying to load itself while compiling itself, ` +
-      `leading to a dependency cycle. ` +
-      'We recommend adding it to your "ignore" list in your babelrc, or to a .babelignore.'
+        `This module is not ignored and is trying to load itself while compiling itself, ` +
+        `leading to a dependency cycle. ` +
+        'We recommend adding it to your "ignore" list in your babelrc, or to a .babelignore.',
     );
   }
   // ...
@@ -1261,10 +1255,11 @@ function* requireModule(type: string, loader: "require" | "auto", name: string) 
 **File**: `packages/babel-core/src/config/validation/plugins.ts:109-137`
 
 All plugin objects are validated before execution:
-* Check for unknown properties
-* Validate visitor structure
-* Verify function signatures
-* Reject malformed plugins
+
+- Check for unknown properties
+- Validate visitor structure
+- Verify function signatures
+- Reject malformed plugins
 
 ```typescript
 export function validatePluginObject(obj: { [key: string]: unknown }): PluginObject {
@@ -1273,10 +1268,8 @@ export function validatePluginObject(obj: { [key: string]: unknown }): PluginObj
     if (validator) {
       validator(optLoc, obj[key]);
     } else {
-      const invalidPluginPropertyError = new Error(
-        `.${key} is not a valid Plugin property`
-      );
-      invalidPluginPropertyError.code = "BABEL_UNKNOWN_PLUGIN_PROPERTY";
+      const invalidPluginPropertyError = new Error(`.${key} is not a valid Plugin property`);
+      invalidPluginPropertyError.code = 'BABEL_UNKNOWN_PLUGIN_PROPERTY';
       throw invalidPluginPropertyError;
     }
   });
@@ -1290,9 +1283,9 @@ Plugins can assert Babel version compatibility:
 
 ```typescript
 export default declare((api, options) => {
-  api.assertVersion(7);  // Requires Babel 7.x
+  api.assertVersion(7); // Requires Babel 7.x
   // or
-  api.assertVersion("^7.12.0");  // Requires >= 7.12.0
+  api.assertVersion('^7.12.0'); // Requires >= 7.12.0
 
   return { visitor: {} };
 });
@@ -1309,29 +1302,29 @@ export default declare((api, options) => {
 **File**: `packages/babel-core/src/config/files/plugins.ts:91-132`
 
 ```typescript
-function* resolveAlternativesHelper(type: "plugin" | "preset", name: string) {
+function* resolveAlternativesHelper(type: 'plugin' | 'preset', name: string) {
   const standardizedName = standardizeName(type, name);
   const { error, value } = yield standardizedName;
   if (!error) return value;
 
-  if (error.code !== "MODULE_NOT_FOUND") throw error;
+  if (error.code !== 'MODULE_NOT_FOUND') throw error;
 
   // Provide helpful suggestions
   if (standardizedName !== name && !(yield name).error) {
     error.message += `\n- If you want to resolve "${name}", use "module:${name}"`;
   }
 
-  if (!(yield standardizeName(type, "@babel/" + name)).error) {
+  if (!(yield standardizeName(type, '@babel/' + name)).error) {
     error.message += `\n- Did you mean "@babel/${name}"?`;
   }
 
-  const oppositeType = type === "preset" ? "plugin" : "preset";
+  const oppositeType = type === 'preset' ? 'plugin' : 'preset';
   if (!(yield standardizeName(oppositeType, name)).error) {
     error.message += `\n- Did you accidentally pass a ${oppositeType} as a ${type}?`;
   }
 
-  if (type === "plugin") {
-    const transformName = standardizedName.replace("-proposal-", "-transform-");
+  if (type === 'plugin') {
+    const transformName = standardizedName.replace('-proposal-', '-transform-');
     if (transformName !== standardizedName && !(yield transformName).error) {
       error.message += `\n- Did you mean "${transformName}"?`;
     }
@@ -1342,6 +1335,7 @@ function* resolveAlternativesHelper(type: "plugin" | "preset", name: string) {
 ```
 
 **Example error message**:
+
 ```
 Cannot find module 'babel-plugin-arrow-functions'
 - Did you mean "@babel/plugin-transform-arrow-functions"?
@@ -1355,22 +1349,23 @@ Cannot find module 'babel-plugin-arrow-functions'
 
 ```typescript
 try {
-  yield* transformFile(file, config.passes);
+  yield * transformFile(file, config.passes);
 } catch (e) {
-  e.message = `${opts.filename ?? "unknown file"}: ${e.message}`;
+  e.message = `${opts.filename ?? 'unknown file'}: ${e.message}`;
   if (!e.code) {
-    e.code = "BABEL_TRANSFORM_ERROR";
+    e.code = 'BABEL_TRANSFORM_ERROR';
   }
   throw e;
 }
 ```
 
 **Error codes**:
-* `BABEL_TRANSFORM_ERROR` - Transformation failed
-* `BABEL_GENERATE_ERROR` - Code generation failed
-* `BABEL_UNKNOWN_OPTION` - Invalid configuration option
-* `BABEL_UNKNOWN_PLUGIN_PROPERTY` - Invalid plugin property
-* `BABEL_VERSION_UNSUPPORTED` - Version mismatch
+
+- `BABEL_TRANSFORM_ERROR` - Transformation failed
+- `BABEL_GENERATE_ERROR` - Code generation failed
+- `BABEL_UNKNOWN_OPTION` - Invalid configuration option
+- `BABEL_UNKNOWN_PLUGIN_PROPERTY` - Invalid plugin property
+- `BABEL_VERSION_UNSUPPORTED` - Version mismatch
 
 #### 3. **Plugin Error Handling**
 
@@ -1389,6 +1384,7 @@ buildCodeFrameError(
 ```
 
 **Example usage**:
+
 ```typescript
 visitor: {
   Identifier(path) {
@@ -1403,6 +1399,7 @@ visitor: {
 ```
 
 **Output**:
+
 ```
 app.js: Cannot use reserved identifier
   1 | const reserved = 5;
@@ -1412,9 +1409,10 @@ app.js: Cannot use reserved identifier
 #### 4. **Graceful Degradation**
 
 No built-in graceful degradation - errors are **fail-fast**:
-* Plugin loading failure → Build fails
-* Transformation error → Build fails
-* Validation error → Build fails
+
+- Plugin loading failure → Build fails
+- Transformation error → Build fails
+- Validation error → Build fails
 
 **Rationale**: Silent failures lead to incorrect output
 
@@ -1424,7 +1422,7 @@ No built-in graceful degradation - errors are **fail-fast**:
 
 ```typescript
 try {
-  return yield* loadCodeDefault(/* ... */);
+  return yield * loadCodeDefault(/* ... */);
 } catch (err) {
   err.message = `[BABEL]: ${err.message} (While processing: ${name})`;
   throw err;
@@ -1434,26 +1432,30 @@ try {
 ### Isolation
 
 **No isolation between plugins** in the same pass:
-* Plugins share the same AST
-* Mutations are visible to subsequent plugins
-* State can be shared via `File` object
+
+- Plugins share the same AST
+- Mutations are visible to subsequent plugins
+- State can be shared via `File` object
 
 **Isolation between passes**:
-* Each pass creates new `PluginPass` instances
-* AST is shared but state is separate
+
+- Each pass creates new `PluginPass` instances
+- AST is shared but state is separate
 
 ### Trust Model
 
 Babel's security model assumes:
-* **Trusted plugins**: All plugins are from trusted sources
-* **Trusted configuration**: Configuration files are not malicious
-* **Development-time execution**: Not designed for untrusted user input
+
+- **Trusted plugins**: All plugins are from trusted sources
+- **Trusted configuration**: Configuration files are not malicious
+- **Development-time execution**: Not designed for untrusted user input
 
 **Recommendations**:
-* Only install plugins from npm or trusted sources
-* Review plugin code before installation
-* Use lock files to prevent supply chain attacks
-* Run Babel in CI/CD with controlled dependencies
+
+- Only install plugins from npm or trusted sources
+- Review plugin code before installation
+- Use lock files to prevent supply chain attacks
+- Run Babel in CI/CD with controlled dependencies
 
 ---
 
@@ -1468,22 +1470,23 @@ Plugins can declare dependencies on other plugins:
 ```typescript
 export default declare((api, options) => {
   return {
-    name: "jsx-transform",
-    inherits: require("@babel/plugin-syntax-jsx"),
+    name: 'jsx-transform',
+    inherits: require('@babel/plugin-syntax-jsx'),
     visitor: {
       JSXElement(path) {
         // Syntax plugin ensures JSX is parsed
-      }
-    }
+      },
+    },
   };
 });
 ```
 
 **Behavior**:
-* Dependency plugin is loaded automatically
-* Visitors are merged
-* Pre/post hooks are chained
-* No version constraints
+
+- Dependency plugin is loaded automatically
+- Visitors are merged
+- Pre/post hooks are chained
+- No version constraints
 
 **Code Reference**: `packages/babel-core/src/config/full.ts`
 
@@ -1493,10 +1496,10 @@ Plugins can track external file dependencies for cache invalidation:
 
 ```typescript
 export default declare((api, options) => {
-  api.addExternalDependency("./config.json");
-  api.addExternalDependency("./lib/helper.js");
+  api.addExternalDependency('./config.json');
+  api.addExternalDependency('./lib/helper.js');
 
-  const config = require("./config.json");
+  const config = require('./config.json');
 
   return { visitor: {} };
 });
@@ -1525,9 +1528,10 @@ visitor: {
 ```
 
 **Helpers** are runtime functions injected into the output:
-* `classCallCheck`, `extends`, `asyncToGenerator`, etc.
-* Managed by `@babel/helpers` package
-* Deduplicated across transformations
+
+- `classCallCheck`, `extends`, `asyncToGenerator`, etc.
+- Managed by `@babel/helpers` package
+- Deduplicated across transformations
 
 **Code Reference**: `packages/babel-core/src/transformation/plugin-pass.ts:46-52`
 
@@ -1542,16 +1546,16 @@ The `PluginAPI` passed to factory functions provides access to Babel internals:
 ```typescript
 export default declare((api, options) => {
   // Available on api:
-  api.types         // @babel/types
-  api.template      // @babel/template
-  api.traverse      // @babel/traverse
-  api.version       // Babel version
-  api.cache         // Caching API
-  api.assertVersion // Version checking
-  api.env()         // Environment detection
-  api.caller()      // Caller metadata
-  api.targets()     // Compilation targets
-  api.assumption()  // Assumption checking
+  api.types; // @babel/types
+  api.template; // @babel/template
+  api.traverse; // @babel/traverse
+  api.version; // Babel version
+  api.cache; // Caching API
+  api.assertVersion; // Version checking
+  api.env(); // Environment detection
+  api.caller(); // Caller metadata
+  api.targets(); // Compilation targets
+  api.assumption(); // Assumption checking
 
   return { visitor: {} };
 });
@@ -1616,9 +1620,9 @@ visitor: {
 Plugins can assert Babel version:
 
 ```typescript
-api.assertVersion(7);           // Major version
-api.assertVersion("^7.12.0");   // Semver range
-api.assertVersion(">=7.0.0");   // Semver range
+api.assertVersion(7); // Major version
+api.assertVersion('^7.12.0'); // Semver range
+api.assertVersion('>=7.0.0'); // Semver range
 ```
 
 **Code Reference**: `packages/babel-core/src/config/helpers/config-api.ts:123-150`
@@ -1628,7 +1632,7 @@ api.assertVersion(">=7.0.0");   // Semver range
 Plugins can check helper availability:
 
 ```typescript
-this.availableHelper("classCallCheck", "^7.12.0")
+this.availableHelper('classCallCheck', '^7.12.0');
 ```
 
 **Code Reference**: `packages/babel-core/src/transformation/plugin-pass.ts:46-48`
@@ -1636,17 +1640,18 @@ this.availableHelper("classCallCheck", "^7.12.0")
 #### 3. **No Plugin Version Constraints**
 
 Babel does **not enforce version constraints** between plugins:
-* No way to specify "plugin A requires plugin B >= 1.2.0"
-* No automatic version checking
-* Manual coordination required
+
+- No way to specify "plugin A requires plugin B >= 1.2.0"
+- No automatic version checking
+- Manual coordination required
 
 ### Service Locator Pattern
 
 Babel uses a **Service Locator** pattern:
 
-* **File object** acts as service locator
-* Provides access to shared services (scope, hub, metadata)
-* No explicit DI container
+- **File object** acts as service locator
+- Provides access to shared services (scope, hub, metadata)
+- No explicit DI container
 
 ```typescript
 visitor: {
@@ -1661,10 +1666,11 @@ visitor: {
 ### Implicit Imports
 
 Plugins implicitly have access to:
-* `@babel/types` (via `api.types` or path methods)
-* `@babel/template` (via `api.template`)
-* `@babel/traverse` (via `api.traverse`)
-* `@babel/core` (via `api.version`, etc.)
+
+- `@babel/types` (via `api.types` or path methods)
+- `@babel/template` (via `api.template`)
+- `@babel/traverse` (via `api.traverse`)
+- `@babel/core` (via `api.version`, etc.)
 
 **No need to explicitly import** these in plugin code.
 
@@ -1932,6 +1938,7 @@ babel/
 **Rationale**: Some plugins may not match any nodes in a file
 
 **Implementation**:
+
 ```typescript
 // Instead of loading all plugins:
 const plugins = await loadAllPlugins(config);
@@ -1942,7 +1949,7 @@ traverse(ast, {
   enter(path) {
     const plugin = pluginLoader.getPluginFor(path.node.type);
     if (plugin) plugin.visitor.enter.call(this, path);
-  }
+  },
 });
 ```
 
@@ -1956,17 +1963,16 @@ traverse(ast, {
 **Improvement**: Load independent plugins in parallel
 
 **Implementation**:
+
 ```typescript
 // Current:
 for (const desc of descriptors) {
-  const plugin = yield* loadPlugin(desc);
+  const plugin = yield * loadPlugin(desc);
   plugins.push(plugin);
 }
 
 // Improved:
-const plugins = yield* Promise.all(
-  descriptors.map(desc => loadPlugin(desc))
-);
+const plugins = yield * Promise.all(descriptors.map((desc) => loadPlugin(desc)));
 ```
 
 **Impact**: Faster configuration loading, especially with many plugins
@@ -1979,6 +1985,7 @@ const plugins = yield* Promise.all(
 **Improvement**: Deduplicate identical visitor logic
 
 **Implementation**:
+
 ```typescript
 // Track visitor function identity
 const visitorCache = new WeakMap();
@@ -2001,6 +2008,7 @@ function deduplicateVisitors(visitors) {
 **Improvement**: Track changed nodes and only re-transform affected subtrees
 
 **Implementation**:
+
 ```typescript
 // Track dirty nodes
 const dirtyNodes = new WeakSet();
@@ -2015,7 +2023,7 @@ traverse(ast, {
     if (!dirtyNodes.has(path.node)) {
       path.skip();
     }
-  }
+  },
 });
 ```
 
@@ -2033,13 +2041,14 @@ traverse(ast, {
 **Rationale**: Prevent malicious or buggy plugins from crashing the build
 
 **Implementation**:
+
 ```typescript
 import { Worker } from 'worker_threads';
 
 function runPluginInWorker(plugin, ast) {
   return new Promise((resolve, reject) => {
     const worker = new Worker('./plugin-worker.js', {
-      workerData: { plugin, ast }
+      workerData: { plugin, ast },
     });
     worker.on('message', resolve);
     worker.on('error', reject);
@@ -2057,13 +2066,12 @@ function runPluginInWorker(plugin, ast) {
 **Improvement**: Kill plugins that take too long
 
 **Implementation**:
+
 ```typescript
 function runWithTimeout(fn, timeout = 30000) {
   return Promise.race([
     fn(),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Plugin timeout')), timeout)
-    )
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Plugin timeout')), timeout)),
   ]);
 }
 ```
@@ -2078,12 +2086,13 @@ function runWithTimeout(fn, timeout = 30000) {
 **Improvement**: Collect all errors and continue when safe
 
 **Implementation**:
+
 ```typescript
 const errors = [];
 
 for (const plugin of plugins) {
   try {
-    yield* runPlugin(plugin);
+    yield * runPlugin(plugin);
   } catch (err) {
     errors.push(err);
     if (err.severity === 'fatal') break;
@@ -2105,15 +2114,16 @@ if (errors.length) {
 **Improvement**: Allow plugins to declare dependencies with version ranges
 
 **Implementation**:
+
 ```typescript
 export default declare((api, options) => {
   return {
-    name: "my-plugin",
+    name: 'my-plugin',
     dependencies: {
-      "@babel/plugin-syntax-jsx": "^7.12.0",
-      "other-plugin": ">=2.0.0"
+      '@babel/plugin-syntax-jsx': '^7.12.0',
+      'other-plugin': '>=2.0.0',
     },
-    visitor: {}
+    visitor: {},
   };
 });
 ```
@@ -2130,6 +2140,7 @@ export default declare((api, options) => {
 **Improvement**: Strict TypeScript types with better IDE support
 
 **Implementation**:
+
 ```typescript
 // Current:
 visitor: {
@@ -2155,6 +2166,7 @@ visitor: {
 **Improvement**: Declarative transformation syntax
 
 **Implementation**:
+
 ```typescript
 // Current (imperative):
 visitor: {
@@ -2191,6 +2203,7 @@ transforms: {
 **Improvement**: CSS-like selectors for complex patterns
 
 **Implementation**:
+
 ```typescript
 // Current:
 visitor: {
@@ -2224,33 +2237,22 @@ visitor: {
 **Improvement**: First-class plugin composition primitives
 
 **Implementation**:
+
 ```typescript
-import { compose, pipe, merge } from "@babel/plugin-utils";
+import { compose, pipe, merge } from '@babel/plugin-utils';
 
 // Compose plugins
-export default compose(
-  pluginA,
-  pluginB,
-  pluginC
-);
+export default compose(pluginA, pluginB, pluginC);
 
 // Pipe transformations
-export default pipe(
-  stripTypes,
-  transformJSX,
-  minify
-);
+export default pipe(stripTypes, transformJSX, minify);
 
 // Merge with conflict resolution
-export default merge(
-  pluginA,
-  pluginB,
-  {
-    conflicts: {
-      Identifier: "takeFirst"  // or "takeLast", "merge", custom fn
-    }
-  }
-);
+export default merge(pluginA, pluginB, {
+  conflicts: {
+    Identifier: 'takeFirst', // or "takeLast", "merge", custom fn
+  },
+});
 ```
 
 ---
@@ -2263,10 +2265,11 @@ export default merge(
 **Improvement**: More lifecycle events
 
 **Implementation**:
+
 ```typescript
 export default declare((api, options) => {
   return {
-    name: "my-plugin",
+    name: 'my-plugin',
 
     onConfigLoaded(config) {
       // After configuration is loaded
@@ -2297,7 +2300,7 @@ export default declare((api, options) => {
 
     onAfterGenerate(result) {
       // After code generation
-    }
+    },
   };
 });
 ```
@@ -2310,6 +2313,7 @@ export default declare((api, options) => {
 **Improvement**: `dispose()` hook for resource cleanup
 
 **Implementation**:
+
 ```typescript
 visitor: {
   pre(file) {
@@ -2335,17 +2339,18 @@ visitor: {
 **Improvement**: Declare required permissions
 
 **Implementation**:
+
 ```typescript
 export default declare((api, options) => {
   return {
-    name: "my-plugin",
+    name: 'my-plugin',
     permissions: {
-      fileSystem: ["read"],           // read, write, execute
-      network: false,                  // No network access
-      childProcess: false,             // No child processes
-      environment: ["NODE_ENV"]        // Specific env vars only
+      fileSystem: ['read'], // read, write, execute
+      network: false, // No network access
+      childProcess: false, // No child processes
+      environment: ['NODE_ENV'], // Specific env vars only
     },
-    visitor: {}
+    visitor: {},
   };
 });
 ```
@@ -2360,13 +2365,14 @@ export default declare((api, options) => {
 **Improvement**: Explicit ordering constraints
 
 **Implementation**:
+
 ```typescript
 export default declare((api, options) => {
   return {
-    name: "my-plugin",
-    runBefore: ["plugin-transform-classes"],
-    runAfter: ["plugin-syntax-jsx"],
-    visitor: {}
+    name: 'my-plugin',
+    runBefore: ['plugin-transform-classes'],
+    runAfter: ['plugin-syntax-jsx'],
+    visitor: {},
   };
 });
 ```
@@ -2381,19 +2387,20 @@ export default declare((api, options) => {
 **Improvement**: Schema-based validation for plugin options
 
 **Implementation**:
+
 ```typescript
 export default declare((api, options) => {
   return {
-    name: "my-plugin",
+    name: 'my-plugin',
     optionsSchema: {
-      type: "object",
+      type: 'object',
       properties: {
-        mode: { type: "string", enum: ["strict", "loose"] },
-        exclude: { type: "array", items: { type: "string" } }
+        mode: { type: 'string', enum: ['strict', 'loose'] },
+        exclude: { type: 'array', items: { type: 'string' } },
       },
-      required: ["mode"]
+      required: ['mode'],
     },
-    visitor: {}
+    visitor: {},
   };
 });
 ```
@@ -2404,25 +2411,25 @@ export default declare((api, options) => {
 
 ### Summary of Recommendations
 
-| Category | Recommendation | Impact | Difficulty |
-|----------|---------------|--------|------------|
-| Performance | Lazy Plugin Loading | Medium | Medium |
-| Performance | Parallel Loading | High | Low |
-| Performance | Visitor Deduplication | Low | Medium |
-| Performance | Incremental Transformation | High | High |
-| Stability | Plugin Sandboxing | High | High |
-| Stability | Timeout Protection | Medium | Low |
-| Stability | Error Recovery | Medium | Medium |
-| Stability | Version Constraints | High | Medium |
-| Extension Points | Typed Plugin API | High | Low |
-| Extension Points | Declarative Transforms | Medium | High |
-| Extension Points | Query Visitors | Medium | Medium |
-| Extension Points | Composition API | Medium | Medium |
-| Lifecycle | Granular Hooks | Low | Low |
-| Lifecycle | Cleanup API | Low | Low |
-| Safety | Permissions System | High | High |
-| Safety | Deterministic Ordering | Medium | Medium |
-| Safety | Options Validation | High | Low |
+| Category         | Recommendation             | Impact | Difficulty |
+| ---------------- | -------------------------- | ------ | ---------- |
+| Performance      | Lazy Plugin Loading        | Medium | Medium     |
+| Performance      | Parallel Loading           | High   | Low        |
+| Performance      | Visitor Deduplication      | Low    | Medium     |
+| Performance      | Incremental Transformation | High   | High       |
+| Stability        | Plugin Sandboxing          | High   | High       |
+| Stability        | Timeout Protection         | Medium | Low        |
+| Stability        | Error Recovery             | Medium | Medium     |
+| Stability        | Version Constraints        | High   | Medium     |
+| Extension Points | Typed Plugin API           | High   | Low        |
+| Extension Points | Declarative Transforms     | Medium | High       |
+| Extension Points | Query Visitors             | Medium | Medium     |
+| Extension Points | Composition API            | Medium | Medium     |
+| Lifecycle        | Granular Hooks             | Low    | Low        |
+| Lifecycle        | Cleanup API                | Low    | Low        |
+| Safety           | Permissions System         | High   | High       |
+| Safety           | Deterministic Ordering     | Medium | Medium     |
+| Safety           | Options Validation         | High   | Low        |
 
 ---
 
@@ -2430,12 +2437,11 @@ export default declare((api, options) => {
 
 Babel's plugin architecture is a mature, well-designed system that has proven itself in production for years. It successfully balances:
 
-* **Flexibility**: Plugins can perform arbitrary AST transformations
-* **Performance**: Multi-pass architecture with shared traversal
-* **Composability**: Presets and inheritance enable plugin reuse
-* **Developer Experience**: Rich API with comprehensive tooling
+- **Flexibility**: Plugins can perform arbitrary AST transformations
+- **Performance**: Multi-pass architecture with shared traversal
+- **Composability**: Presets and inheritance enable plugin reuse
+- **Developer Experience**: Rich API with comprehensive tooling
 
 The visitor pattern is the core innovation, providing a declarative way to specify transformations while the infrastructure handles the complexity of AST traversal, scope tracking, and code generation.
 
 While there are opportunities for improvement—particularly in sandboxing, performance optimization, and developer ergonomics—the architecture has scaled to support hundreds of plugins and thousands of projects in the JavaScript ecosystem.
-

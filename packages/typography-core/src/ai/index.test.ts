@@ -9,7 +9,11 @@ describe('AI typography helpers', () => {
   });
 
   it('generates recommendations with platform context', () => {
-    const recommendations = generateTypographyRecommendations({ baseFont: 'Roboto', platform: 'mobile', audience: 'teen' });
+    const recommendations = generateTypographyRecommendations({
+      baseFont: 'Roboto',
+      platform: 'mobile',
+      audience: 'teen',
+    });
     expect(recommendations.targetFontSize).toBeGreaterThan(18);
     expect(recommendations.fontPairings.length).toBeGreaterThan(0);
   });

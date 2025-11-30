@@ -14,9 +14,7 @@ describe('useKeyboardShortcuts', () => {
     });
 
     it('should initialize with provided scope', () => {
-      const { result } = renderHook(() => 
-        useKeyboardShortcuts({ scope: 'scoped' })
-      );
+      const { result } = renderHook(() => useKeyboardShortcuts({ scope: 'scoped' }));
 
       expect(result.current.scope).toBe('scoped');
     });
@@ -116,10 +114,8 @@ describe('useKeyboardShortcuts', () => {
     it('should invoke onShortcutExecuted callback', () => {
       const onShortcutExecuted = vi.fn();
       const handler = vi.fn();
-      
-      const { result } = renderHook(() => 
-        useKeyboardShortcuts({ onShortcutExecuted })
-      );
+
+      const { result } = renderHook(() => useKeyboardShortcuts({ onShortcutExecuted }));
 
       act(() => {
         result.current.actions.registerShortcut({
@@ -134,7 +130,7 @@ describe('useKeyboardShortcuts', () => {
         ctrlKey: true,
         bubbles: true,
       });
-      
+
       act(() => {
         document.dispatchEvent(event);
       });
@@ -168,9 +164,9 @@ describe('useKeyboardShortcuts', () => {
         ctrlKey: true,
         bubbles: true,
       });
-      
+
       document.dispatchEvent(event);
-      
+
       // Handler should not be called after unmount
       expect(handler).not.toHaveBeenCalled();
     });

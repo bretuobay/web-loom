@@ -39,8 +39,8 @@ Extensions are discovered by scanning predefined directories:
 // 3. Additional user extensions in home directory
 
 export const enum ExtensionType {
-	System, // Built-in extensions shipped with VS Code
-	User, // User-installed extensions from marketplace or local
+  System, // Built-in extensions shipped with VS Code
+  User, // User-installed extensions from marketplace or local
 }
 ```
 
@@ -55,26 +55,22 @@ export const enum ExtensionType {
 **Multi-Stage Loading Pipeline:**
 
 1. **Scanner Phase**:
-
    - `ExtensionsScannerService` scans directories
    - Reads and parses `package.json` manifest files
    - Categorizes extensions by type (System/User)
 
 2. **Validation Phase**:
-
    - Each manifest validated via `validateExtensionManifest()`
    - Version compatibility checked against current VS Code version
    - Path security validated to prevent directory traversal attacks
    - API proposal usage validated
 
 3. **Registry Phase**:
-
    - Valid extensions added to `ExtensionDescriptionRegistry`
    - Extension metadata indexed for fast lookup
    - Activation events registered for lazy loading
 
 4. **Enablement Check**:
-
    - Extensions filtered by `IWorkbenchExtensionEnablementService`
    - Respects user preferences (disabled extensions)
    - Checks workspace trust and virtual workspace compatibility
@@ -89,22 +85,22 @@ export const enum ExtensionType {
 // src/vs/workbench/services/extensions/common/abstractExtensionService.ts
 
 class AbstractExtensionService {
-	private async _scanAndHandleExtensions(): Promise<void> {
-		// 1. Scan for extensions
-		const extensions = await this._extensionsScannerService.scanExtensions();
+  private async _scanAndHandleExtensions(): Promise<void> {
+    // 1. Scan for extensions
+    const extensions = await this._extensionsScannerService.scanExtensions();
 
-		// 2. Validate extensions
-		const validated = extensions.filter((ext) => this._validateExtension(ext));
+    // 2. Validate extensions
+    const validated = extensions.filter((ext) => this._validateExtension(ext));
 
-		// 3. Register in registry
-		this._registry = new ExtensionDescriptionRegistry(validated);
+    // 3. Register in registry
+    this._registry = new ExtensionDescriptionRegistry(validated);
 
-		// 4. Create extension hosts
-		await this._createExtensionHosts();
+    // 4. Create extension hosts
+    await this._createExtensionHosts();
 
-		// 5. Activate startup extensions
-		await this._activateByEvent("*", true);
-	}
+    // 5. Activate startup extensions
+    await this._activateByEvent('*', true);
+  }
 }
 ```
 
@@ -139,19 +135,15 @@ private async _loadExtensionModule(extension: IExtensionDescription): Promise<IE
 // src/vs/workbench/services/extensions/common/extensionDescriptionRegistry.ts
 
 export class ExtensionDescriptionRegistry {
-	private _extensionsMap: Map<string, IExtensionDescription>;
-	private _extensionsArr: IExtensionDescription[];
-	private _activationMap: Map<string, IExtensionDescription[]>;
+  private _extensionsMap: Map<string, IExtensionDescription>;
+  private _extensionsArr: IExtensionDescription[];
+  private _activationMap: Map<string, IExtensionDescription[]>;
 
-	// Fast lookup by extension ID
-	public getExtensionDescription(
-		extensionId: ExtensionIdentifier
-	): IExtensionDescription | null;
+  // Fast lookup by extension ID
+  public getExtensionDescription(extensionId: ExtensionIdentifier): IExtensionDescription | null;
 
-	// Get extensions interested in an activation event
-	public getExtensionDescriptionsForActivationEvent(
-		activationEvent: string
-	): IExtensionDescription[];
+  // Get extensions interested in an activation event
+  public getExtensionDescriptionsForActivationEvent(activationEvent: string): IExtensionDescription[];
 }
 ```
 
@@ -162,32 +154,29 @@ Extensions register themselves via `package.json`:
 
 ```json
 {
-	"name": "my-extension",
-	"publisher": "my-publisher",
-	"version": "1.0.0",
-	"engines": {
-		"vscode": "^1.75.0"
-	},
-	"main": "./out/extension.js",
-	"browser": "./dist/browser/extension.js",
-	"activationEvents": [
-		"onLanguage:javascript",
-		"onCommand:myextension.command"
-	],
-	"contributes": {
-		"commands": [
-			{
-				"command": "myextension.command",
-				"title": "My Command"
-			}
-		],
-		"languages": [
-			{
-				"id": "mylang",
-				"extensions": [".mylang"]
-			}
-		]
-	}
+  "name": "my-extension",
+  "publisher": "my-publisher",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "main": "./out/extension.js",
+  "browser": "./dist/browser/extension.js",
+  "activationEvents": ["onLanguage:javascript", "onCommand:myextension.command"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "myextension.command",
+        "title": "My Command"
+      }
+    ],
+    "languages": [
+      {
+        "id": "mylang",
+        "extensions": [".mylang"]
+      }
+    ]
+  }
 }
 ```
 
@@ -198,30 +187,30 @@ The system processes contributions through extension points:
 // src/vs/workbench/services/extensions/common/extensionsRegistry.ts
 
 export class ExtensionPoint<T> implements IExtensionPoint<T> {
-	public readonly name: string;
-	private _handler: IExtensionPointHandler<T> | null;
+  public readonly name: string;
+  private _handler: IExtensionPointHandler<T> | null;
 
-	// Core method: handler receives all extensions contributing to this point
-	setHandler(handler: IExtensionPointHandler<T>): IDisposable {
-		if (this._handler !== null) {
-			throw new Error("Handler already set!");
-		}
-		this._handler = handler;
-		this._handle(); // Process existing contributions
+  // Core method: handler receives all extensions contributing to this point
+  setHandler(handler: IExtensionPointHandler<T>): IDisposable {
+    if (this._handler !== null) {
+      throw new Error('Handler already set!');
+    }
+    this._handler = handler;
+    this._handle(); // Process existing contributions
 
-		return {
-			dispose: () => {
-				this._handler = null;
-			},
-		};
-	}
+    return {
+      dispose: () => {
+        this._handler = null;
+      },
+    };
+  }
 
-	// Accept contributions from extensions
-	acceptUsers(users: IExtensionPointUser<T>[]): void {
-		this._delta = ExtensionPointUserDelta.compute(this._users, users);
-		this._users = users;
-		this._handle(); // Notify handler of changes
-	}
+  // Accept contributions from extensions
+  acceptUsers(users: IExtensionPointUser<T>[]): void {
+    this._delta = ExtensionPointUserDelta.compute(this._users, users);
+    this._users = users;
+    this._handle(); // Notify handler of changes
+  }
 }
 ```
 
@@ -231,24 +220,21 @@ Extensions register programmatic contributions in their `activate()` function:
 ```typescript
 // Extension code
 export function activate(context: vscode.ExtensionContext) {
-	// Register command
-	const disposable = vscode.commands.registerCommand(
-		"myextension.command",
-		() => {
-			vscode.window.showInformationMessage("Hello from my extension!");
-		}
-	);
+  // Register command
+  const disposable = vscode.commands.registerCommand('myextension.command', () => {
+    vscode.window.showInformationMessage('Hello from my extension!');
+  });
 
-	context.subscriptions.push(disposable);
+  context.subscriptions.push(disposable);
 
-	// Register language features
-	context.subscriptions.push(
-		vscode.languages.registerCompletionItemProvider("javascript", {
-			provideCompletionItems(document, position) {
-				return [new vscode.CompletionItem("myCompletion")];
-			},
-		})
-	);
+  // Register language features
+  context.subscriptions.push(
+    vscode.languages.registerCompletionItemProvider('javascript', {
+      provideCompletionItems(document, position) {
+        return [new vscode.CompletionItem('myCompletion')];
+      },
+    }),
+  );
 }
 ```
 
@@ -285,38 +271,38 @@ export function activate(context: vscode.ExtensionContext) {
 
 ```typescript
 export interface IExtensionManifest {
-	// REQUIRED FIELDS
-	name: string; // Extension name (lowercase, no spaces)
-	publisher: string; // Publisher ID
-	version: string; // Semantic version (e.g., "1.2.3")
-	engines: {
-		// VS Code version compatibility
-		readonly vscode: string; // e.g., "^1.75.0"
-	};
+  // REQUIRED FIELDS
+  name: string; // Extension name (lowercase, no spaces)
+  publisher: string; // Publisher ID
+  version: string; // Semantic version (e.g., "1.2.3")
+  engines: {
+    // VS Code version compatibility
+    readonly vscode: string; // e.g., "^1.75.0"
+  };
 
-	// OPTIONAL BUT RECOMMENDED
-	displayName?: string; // Human-readable name
-	description?: string; // Short description
-	icon?: string; // Extension icon path
-	categories?: string[]; // Marketplace categories
+  // OPTIONAL BUT RECOMMENDED
+  displayName?: string; // Human-readable name
+  description?: string; // Short description
+  icon?: string; // Extension icon path
+  categories?: string[]; // Marketplace categories
 
-	// ENTRY POINTS (at least one required for code extensions)
-	main?: string; // Node.js entry point
-	browser?: string; // Web Worker entry point
+  // ENTRY POINTS (at least one required for code extensions)
+  main?: string; // Node.js entry point
+  browser?: string; // Web Worker entry point
 
-	// ACTIVATION
-	activationEvents?: readonly string[]; // When to activate
+  // ACTIVATION
+  activationEvents?: readonly string[]; // When to activate
 
-	// CONTRIBUTIONS
-	contributes?: IExtensionContributions; // Declarative contributions
+  // CONTRIBUTIONS
+  contributes?: IExtensionContributions; // Declarative contributions
 
-	// DEPENDENCIES
-	extensionDependencies?: string[]; // Required extensions
-	extensionPack?: string[]; // Bundled extensions
+  // DEPENDENCIES
+  extensionDependencies?: string[]; // Required extensions
+  extensionPack?: string[]; // Bundled extensions
 
-	// CAPABILITIES
-	capabilities?: IExtensionCapabilities; // Workspace support
-	enabledApiProposals?: readonly string[]; // Experimental APIs
+  // CAPABILITIES
+  capabilities?: IExtensionCapabilities; // Workspace support
+  enabledApiProposals?: readonly string[]; // Experimental APIs
 }
 ```
 
@@ -326,20 +312,18 @@ export interface IExtensionManifest {
 
 ```typescript
 // Extension entry point
-export function activate(
-	context: vscode.ExtensionContext
-): Thenable<IExtensionAPI> | IExtensionAPI | void {
-	// Extension initialization code
-	// Must return quickly (< 500ms recommended)
-	// Heavy work should be deferred or async
+export function activate(context: vscode.ExtensionContext): Thenable<IExtensionAPI> | IExtensionAPI | void {
+  // Extension initialization code
+  // Must return quickly (< 500ms recommended)
+  // Heavy work should be deferred or async
 
-	// Return public API (optional)
-	return {
-		// Exposed API for other extensions
-		myPublicFunction() {
-			// ...
-		},
-	};
+  // Return public API (optional)
+  return {
+    // Exposed API for other extensions
+    myPublicFunction() {
+      // ...
+    },
+  };
 }
 ```
 
@@ -348,9 +332,9 @@ export function activate(
 ```typescript
 // Cleanup function called on extension deactivation
 export function deactivate(): Thenable<void> | void {
-	// Clean up resources
-	// Close connections
-	// Dispose of subscriptions
+  // Clean up resources
+  // Close connections
+  // Dispose of subscriptions
 }
 ```
 
@@ -360,30 +344,30 @@ export function deactivate(): Thenable<void> | void {
 
 ```typescript
 interface ExtensionContext {
-	// LIFECYCLE
-	subscriptions: Disposable[]; // Auto-disposed on deactivation
+  // LIFECYCLE
+  subscriptions: Disposable[]; // Auto-disposed on deactivation
 
-	// STORAGE
-	workspaceState: Memento; // Workspace-specific storage
-	globalState: Memento & {
-		// Global storage across workspaces
-		setKeysForSync(keys: string[]): void;
-	};
-	secrets: SecretStorage; // Secure credential storage
+  // STORAGE
+  workspaceState: Memento; // Workspace-specific storage
+  globalState: Memento & {
+    // Global storage across workspaces
+    setKeysForSync(keys: string[]): void;
+  };
+  secrets: SecretStorage; // Secure credential storage
 
-	// PATHS
-	extensionUri: Uri; // Extension root URI
-	extensionPath: string; // Extension root path
-	storagePath?: string; // Workspace storage path
-	globalStoragePath: string; // Global storage path
-	logPath: string; // Log file path
+  // PATHS
+  extensionUri: Uri; // Extension root URI
+  extensionPath: string; // Extension root path
+  storagePath?: string; // Workspace storage path
+  globalStoragePath: string; // Global storage path
+  logPath: string; // Log file path
 
-	// UTILITIES
-	asAbsolutePath(relativePath: string): string;
-	extensionMode: ExtensionMode; // Production/Development/Test
+  // UTILITIES
+  asAbsolutePath(relativePath: string): string;
+  extensionMode: ExtensionMode; // Production/Development/Test
 
-	// ENVIRONMENT
-	environmentVariableCollection: EnvironmentVariableCollection;
+  // ENVIRONMENT
+  environmentVariableCollection: EnvironmentVariableCollection;
 }
 ```
 
@@ -393,11 +377,11 @@ interface ExtensionContext {
 
 ```typescript
 interface ICommand {
-	command: string; // Unique command ID
-	title: string | ILocalizedString; // Display title
-	category?: string | ILocalizedString; // Command category
-	icon?: string | { light: string; dark: string }; // Icon path
-	enablement?: string; // When clause for enablement
+  command: string; // Unique command ID
+  title: string | ILocalizedString; // Display title
+  category?: string | ILocalizedString; // Command category
+  icon?: string | { light: string; dark: string }; // Icon path
+  enablement?: string; // When clause for enablement
 }
 ```
 
@@ -405,10 +389,10 @@ interface ICommand {
 
 ```typescript
 interface IMenu {
-	command: string; // Command to execute
-	alt?: string; // Alternative command (alt+click)
-	when?: string; // Context condition
-	group?: string; // Menu group (e.g., "navigation@1")
+  command: string; // Command to execute
+  alt?: string; // Alternative command (alt+click)
+  when?: string; // Context condition
+  group?: string; // Menu group (e.g., "navigation@1")
 }
 ```
 
@@ -498,52 +482,46 @@ interface IMenu {
 // src/vs/workbench/api/common/extHostExtensionActivator.ts
 
 class ActivationOperation {
-	private async _waitForDepsThenActivate(): Promise<void> {
-		// Wait for all dependencies to activate
-		while (this._deps.length > 0) {
-			for (let i = 0; i < this._deps.length; i++) {
-				const dep = this._deps[i];
+  private async _waitForDepsThenActivate(): Promise<void> {
+    // Wait for all dependencies to activate
+    while (this._deps.length > 0) {
+      for (let i = 0; i < this._deps.length; i++) {
+        const dep = this._deps[i];
 
-				if (dep.value && !dep.value.activationFailed) {
-					// Dependency activated successfully
-					this._deps.splice(i, 1);
-					i--;
-				} else if (dep.value && dep.value.activationFailed) {
-					// Dependency failed - fail this extension too
-					const error = new Error(
-						`Cannot activate '${this.friendlyName}' because ` +
-							`dependency '${dep.friendlyName}' failed to activate`
-					);
-					this._value = new FailedExtension(error);
-					this._host.onExtensionActivationError(this._id, error, null);
-					return;
-				}
-			}
+        if (dep.value && !dep.value.activationFailed) {
+          // Dependency activated successfully
+          this._deps.splice(i, 1);
+          i--;
+        } else if (dep.value && dep.value.activationFailed) {
+          // Dependency failed - fail this extension too
+          const error = new Error(
+            `Cannot activate '${this.friendlyName}' because ` + `dependency '${dep.friendlyName}' failed to activate`,
+          );
+          this._value = new FailedExtension(error);
+          this._host.onExtensionActivationError(this._id, error, null);
+          return;
+        }
+      }
 
-			if (this._deps.length > 0) {
-				await Promise.race(this._deps.map((dep) => dep.wait()));
-			}
-		}
+      if (this._deps.length > 0) {
+        await Promise.race(this._deps.map((dep) => dep.wait()));
+      }
+    }
 
-		// All dependencies ready - activate this extension
-		await this._activate();
-	}
+    // All dependencies ready - activate this extension
+    await this._activate();
+  }
 
-	private async _activate(): Promise<void> {
-		try {
-			this._value = await this._host.actualActivateExtension(
-				this._id,
-				this._reason
-			);
-		} catch (err) {
-			// Handle activation failure
-			const error = new Error(
-				`Activating extension '${this._id.value}' failed: ${err.message}`
-			);
-			this._value = new FailedExtension(error);
-			this._host.onExtensionActivationError(this._id, error, null);
-		}
-	}
+  private async _activate(): Promise<void> {
+    try {
+      this._value = await this._host.actualActivateExtension(this._id, this._reason);
+    } catch (err) {
+      // Handle activation failure
+      const error = new Error(`Activating extension '${this._id.value}' failed: ${err.message}`);
+      this._value = new FailedExtension(error);
+      this._host.onExtensionActivationError(this._id, error, null);
+    }
+  }
 }
 ```
 
@@ -551,10 +529,10 @@ class ActivationOperation {
 
 ```typescript
 export class ExtensionActivationTimes {
-	public readonly startup: boolean; // Activated during startup
-	public readonly codeLoadingTime: number; // Time to load module
-	public readonly activateCallTime: number; // Time in activate() sync portion
-	public readonly activateResolvedTime: number; // Time for async activation
+  public readonly startup: boolean; // Activated during startup
+  public readonly codeLoadingTime: number; // Time to load module
+  public readonly activateCallTime: number; // Time in activate() sync portion
+  public readonly activateResolvedTime: number; // Time for async activation
 }
 ```
 
@@ -565,21 +543,21 @@ Extensions can react to lifecycle events:
 ```typescript
 // In extension code
 export function activate(context: vscode.ExtensionContext) {
-	// React to workspace changes
-	context.subscriptions.push(
-		vscode.workspace.onDidChangeWorkspaceFolders(() => {
-			// Workspace folders changed
-		})
-	);
+  // React to workspace changes
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      // Workspace folders changed
+    }),
+  );
 
-	// React to configuration changes
-	context.subscriptions.push(
-		vscode.workspace.onDidChangeConfiguration((e) => {
-			if (e.affectsConfiguration("myextension")) {
-				// Configuration changed
-			}
-		})
-	);
+  // React to configuration changes
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('myextension')) {
+        // Configuration changed
+      }
+    }),
+  );
 }
 ```
 
@@ -655,9 +633,9 @@ VS Code exposes **30+ extension points** through the contribution system:
 **Extension API**:
 
 ```typescript
-vscode.languages.registerCompletionItemProvider("mylanguage", provider);
-vscode.languages.registerHoverProvider("mylanguage", provider);
-vscode.languages.registerDefinitionProvider("mylanguage", provider);
+vscode.languages.registerCompletionItemProvider('mylanguage', provider);
+vscode.languages.registerHoverProvider('mylanguage', provider);
+vscode.languages.registerDefinitionProvider('mylanguage', provider);
 // 30+ language feature providers available
 ```
 
@@ -700,8 +678,8 @@ vscode.languages.registerDefinitionProvider("mylanguage", provider);
 **Extension API**:
 
 ```typescript
-vscode.window.createTreeView("myView", {
-	treeDataProvider: myDataProvider,
+vscode.window.createTreeView('myView', {
+  treeDataProvider: myDataProvider,
 });
 ```
 
@@ -727,8 +705,8 @@ vscode.window.createTreeView("myView", {
 **Access in code**:
 
 ```typescript
-const config = vscode.workspace.getConfiguration("myext");
-const value = config.get("setting1");
+const config = vscode.workspace.getConfiguration('myext');
+const value = config.get('setting1');
 ```
 
 #### 7. Keybindings
@@ -815,19 +793,19 @@ const value = config.get("setting1");
 #### 12. Source Control Providers
 
 ```typescript
-vscode.scm.createSourceControl("myScm", "My SCM");
+vscode.scm.createSourceControl('myScm', 'My SCM');
 ```
 
 #### 13. Task Providers
 
 ```typescript
-vscode.tasks.registerTaskProvider("mytasks", taskProvider);
+vscode.tasks.registerTaskProvider('mytasks', taskProvider);
 ```
 
 #### 14. Terminal Profiles
 
 ```typescript
-vscode.window.registerTerminalProfileProvider("myterm", provider);
+vscode.window.registerTerminalProfileProvider('myterm', provider);
 ```
 
 #### 15. Webview Editors
@@ -857,7 +835,7 @@ vscode.window.registerTerminalProfileProvider("myterm", provider);
 #### 17. Testing API
 
 ```typescript
-vscode.tests.createTestController("myTests", "My Tests");
+vscode.tests.createTestController('myTests', 'My Tests');
 ```
 
 #### 18. Chat Participants (AI/Copilot)
@@ -890,18 +868,17 @@ All extension points follow a common pattern:
 
 ```typescript
 // 1. Define extension point
-const extensionPoint =
-	ExtensionsRegistry.registerExtensionPoint<ContributionType>({
-		extensionPoint: "pointName",
-		jsonSchema: contributionSchema,
-	});
+const extensionPoint = ExtensionsRegistry.registerExtensionPoint<ContributionType>({
+  extensionPoint: 'pointName',
+  jsonSchema: contributionSchema,
+});
 
 // 2. Set handler
 extensionPoint.setHandler((extensions) => {
-	for (const ext of extensions) {
-		// Process contribution from ext.value
-		registerContribution(ext.value);
-	}
+  for (const ext of extensions) {
+    // Process contribution from ext.value
+    registerContribution(ext.value);
+  }
 });
 ```
 
@@ -925,20 +902,20 @@ Primary source of extension metadata and declarative configuration.
 
 ```json
 {
-	"name": "extension-name",
-	"publisher": "publisher-id",
-	"version": "1.0.0",
-	"engines": { "vscode": "^1.75.0" },
-	"categories": ["Programming Languages", "Linters"],
-	"keywords": ["typescript", "linting"],
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/user/repo"
-	},
-	"bugs": {
-		"url": "https://github.com/user/repo/issues"
-	}
+  "name": "extension-name",
+  "publisher": "publisher-id",
+  "version": "1.0.0",
+  "engines": { "vscode": "^1.75.0" },
+  "categories": ["Programming Languages", "Linters"],
+  "keywords": ["typescript", "linting"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/user/repo"
+  },
+  "bugs": {
+    "url": "https://github.com/user/repo/issues"
+  }
 }
 ```
 
@@ -982,26 +959,26 @@ Extensions define their own settings:
 **Workspace State** (per-workspace):
 
 ```typescript
-await context.workspaceState.update("key", value);
-const value = context.workspaceState.get("key", defaultValue);
+await context.workspaceState.update('key', value);
+const value = context.workspaceState.get('key', defaultValue);
 ```
 
 **Global State** (across workspaces):
 
 ```typescript
-await context.globalState.update("key", value);
-const value = context.globalState.get("key", defaultValue);
+await context.globalState.update('key', value);
+const value = context.globalState.get('key', defaultValue);
 
 // Enable settings sync
-context.globalState.setKeysForSync(["key1", "key2"]);
+context.globalState.setKeysForSync(['key1', 'key2']);
 ```
 
 **Secrets Storage** (secure):
 
 ```typescript
-await context.secrets.store("apiKey", "secret-value");
-const apiKey = await context.secrets.get("apiKey");
-await context.secrets.delete("apiKey");
+await context.secrets.store('apiKey', 'secret-value');
+const apiKey = await context.secrets.get('apiKey');
+await context.secrets.delete('apiKey');
 ```
 
 ### Metadata Storage
@@ -1017,17 +994,17 @@ await context.secrets.delete("apiKey");
 
 ```typescript
 interface ExtensionContext {
-	// Workspace-specific storage (deleted when workspace closes)
-	storageUri: Uri | undefined;
-	storagePath: string | undefined;
+  // Workspace-specific storage (deleted when workspace closes)
+  storageUri: Uri | undefined;
+  storagePath: string | undefined;
 
-	// Global storage (persists across workspaces)
-	globalStorageUri: Uri;
-	globalStoragePath: string;
+  // Global storage (persists across workspaces)
+  globalStorageUri: Uri;
+  globalStoragePath: string;
 
-	// Logs
-	logUri: Uri;
-	logPath: string;
+  // Logs
+  logUri: Uri;
+  logPath: string;
 }
 ```
 
@@ -1053,11 +1030,11 @@ Extensions can react to configuration changes:
 
 ```typescript
 vscode.workspace.onDidChangeConfiguration((event) => {
-	if (event.affectsConfiguration("myext")) {
-		// Re-read configuration
-		const config = vscode.workspace.getConfiguration("myext");
-		updateBehavior(config);
-	}
+  if (event.affectsConfiguration('myext')) {
+    // Re-read configuration
+    const config = vscode.workspace.getConfiguration('myext');
+    updateBehavior(config);
+  }
 });
 ```
 
@@ -1087,9 +1064,9 @@ vscode.workspace.onDidChangeConfiguration((event) => {
 **In Extension Code**:
 
 ```typescript
-import * as l10n from "@vscode/l10n";
+import * as l10n from '@vscode/l10n';
 
-l10n.t("hello"); // Returns localized string
+l10n.t('hello'); // Returns localized string
 ```
 
 ---
@@ -1139,21 +1116,17 @@ VS Code uses **multi-process architecture** to isolate extensions from the core 
 
 ```typescript
 class NativeLocalProcessExtensionHost {
-	private async _start(): Promise<IMessagePassingProtocol> {
-		// Create isolated Node.js process
-		const opts: IExtensionHostProcessOptions = {
-			env: this._createSanitizedEnvironment(),
-			detached: !!platform.isWindows,
-			execArgv: this._computeExecArgs(),
-			silent: true, // No stdio inheritance
-		};
+  private async _start(): Promise<IMessagePassingProtocol> {
+    // Create isolated Node.js process
+    const opts: IExtensionHostProcessOptions = {
+      env: this._createSanitizedEnvironment(),
+      detached: !!platform.isWindows,
+      execArgv: this._computeExecArgs(),
+      silent: true, // No stdio inheritance
+    };
 
-		this._extensionHostProcess = fork(
-			FileAccess.asFileUri("bootstrap-fork").fsPath,
-			["--type=extensionHost"],
-			opts
-		);
-	}
+    this._extensionHostProcess = fork(FileAccess.asFileUri('bootstrap-fork').fsPath, ['--type=extensionHost'], opts);
+  }
 }
 ```
 
@@ -1173,14 +1146,14 @@ class NativeLocalProcessExtensionHost {
 
 ```typescript
 class WebWorkerExtensionHost {
-	private async _startInsideIframe(): Promise<IMessagePassingProtocol> {
-		const iframe = document.createElement("iframe");
-		iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
-		iframe.setAttribute("allow", "usb; serial; hid; cross-origin-isolated;");
+  private async _startInsideIframe(): Promise<IMessagePassingProtocol> {
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+    iframe.setAttribute('allow', 'usb; serial; hid; cross-origin-isolated;');
 
-		// Create worker inside isolated iframe
-		const worker = new iframe.contentWindow.Worker(workerUrl);
-	}
+    // Create worker inside isolated iframe
+    const worker = new iframe.contentWindow.Worker(workerUrl);
+  }
 }
 ```
 
@@ -1194,24 +1167,21 @@ class WebWorkerExtensionHost {
 // src/vs/platform/extensions/common/extensionValidator.ts
 
 export function validateExtensionManifest(
-	extensionLocation: URI,
-	extensionManifest: IExtensionManifest
+  extensionLocation: URI,
+  extensionManifest: IExtensionManifest,
 ): readonly [Severity, string][] {
-	const validations: [Severity, string][] = [];
+  const validations: [Severity, string][] = [];
 
-	// Ensure main entry point is inside extension folder
-	if (extensionManifest.main) {
-		const mainLocation = joinPath(extensionLocation, extensionManifest.main);
-		if (!isEqualOrParent(mainLocation, extensionLocation)) {
-			validations.push([
-				Severity.Warning,
-				"Expected `main` to be included inside extension's folder",
-			]);
-		}
-	}
+  // Ensure main entry point is inside extension folder
+  if (extensionManifest.main) {
+    const mainLocation = joinPath(extensionLocation, extensionManifest.main);
+    if (!isEqualOrParent(mainLocation, extensionLocation)) {
+      validations.push([Severity.Warning, "Expected `main` to be included inside extension's folder"]);
+    }
+  }
 
-	// Similar checks for browser, icon, etc.
-	return validations;
+  // Similar checks for browser, icon, etc.
+  return validations;
 }
 ```
 
@@ -1267,13 +1237,13 @@ Extensions declare trust requirements:
 
 ```typescript
 if (!vscode.workspace.isTrusted) {
-	// Disable sensitive features
-	return;
+  // Disable sensitive features
+  return;
 }
 
 // Listen for trust changes
 vscode.workspace.onDidGrantWorkspaceTrust(() => {
-	// Re-enable features
+  // Re-enable features
 });
 ```
 
@@ -1308,29 +1278,24 @@ vscode.workspace.onDidGrantWorkspaceTrust(() => {
 // src/vs/workbench/api/common/extHostExtensionActivator.ts
 
 class ActivationOperation {
-	private async _activate(): Promise<void> {
-		try {
-			this._value = await this._host.actualActivateExtension(
-				this._id,
-				this._reason
-			);
-		} catch (err) {
-			const error = new Error(
-				`Activating extension '${this._id.value}' failed: ${err.message}`
-			);
-			error.stack = err.stack;
+  private async _activate(): Promise<void> {
+    try {
+      this._value = await this._host.actualActivateExtension(this._id, this._reason);
+    } catch (err) {
+      const error = new Error(`Activating extension '${this._id.value}' failed: ${err.message}`);
+      error.stack = err.stack;
 
-			// Mark extension as failed
-			this._value = new FailedExtension(error);
+      // Mark extension as failed
+      this._value = new FailedExtension(error);
 
-			// Report error to main process
-			this._host.onExtensionActivationError(this._id, error, null);
+      // Report error to main process
+      this._host.onExtensionActivationError(this._id, error, null);
 
-			// Log error
-			this._logService.error(`Activating extension ${this._id.value} failed:`);
-			this._logService.error(err);
-		}
-	}
+      // Log error
+      this._logService.error(`Activating extension ${this._id.value} failed:`);
+      this._logService.error(err);
+    }
+  }
 }
 ```
 
@@ -1392,9 +1357,9 @@ private _onExtensionHostCrashed(exitCode: number): void {
 // Extensions' unhandled rejections are caught and logged
 // Don't crash extension host
 
-process.on("unhandledRejection", (reason, promise) => {
-	console.error("Unhandled promise rejection in extension:", reason);
-	// Continue running
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled promise rejection in extension:', reason);
+  // Continue running
 });
 ```
 
@@ -1422,11 +1387,8 @@ process.on("unhandledRejection", (reason, promise) => {
 
 ```json
 {
-	"extensionDependencies": [
-		"ms-vscode.vscode-typescript-next",
-		"dbaeumer.vscode-eslint"
-	],
-	"extensionPack": ["ms-vscode.js-debug", "ms-vscode.vscode-json"]
+  "extensionDependencies": ["ms-vscode.vscode-typescript-next", "dbaeumer.vscode-eslint"],
+  "extensionPack": ["ms-vscode.js-debug", "ms-vscode.vscode-json"]
 }
 ```
 
@@ -1503,29 +1465,23 @@ The registry detects and breaks circular dependencies during registration phase.
 
 ```typescript
 export class MissingExtensionDependency {
-	constructor(public readonly dependency: string) {}
+  constructor(public readonly dependency: string) {}
 }
 
 // When dependency is missing:
 interface IExtensionActivationError {
-	extensionId: ExtensionIdentifier;
-	error: Error;
-	missingDependency: MissingExtensionDependency | null;
+  extensionId: ExtensionIdentifier;
+  error: Error;
+  missingDependency: MissingExtensionDependency | null;
 }
 
 // User is prompted to install missing dependency
 if (missingDependency) {
-	const action = new Action("install", "Install Dependency", async () => {
-		await this._extensionManagementService.installFromGallery(
-			missingDependency.dependency
-		);
-	});
+  const action = new Action('install', 'Install Dependency', async () => {
+    await this._extensionManagementService.installFromGallery(missingDependency.dependency);
+  });
 
-	this._notificationService.prompt(
-		Severity.Warning,
-		`Extension requires '${missingDependency.dependency}'`,
-		[action]
-	);
+  this._notificationService.prompt(Severity.Warning, `Extension requires '${missingDependency.dependency}'`, [action]);
 }
 ```
 
@@ -1535,9 +1491,9 @@ Extensions depend on VS Code API version through `engines.vscode`:
 
 ```json
 {
-	"engines": {
-		"vscode": "^1.75.0" // Requires VS Code 1.75.0 or higher
-	}
+  "engines": {
+    "vscode": "^1.75.0" // Requires VS Code 1.75.0 or higher
+  }
 }
 ```
 
@@ -1546,13 +1502,10 @@ Extensions depend on VS Code API version through `engines.vscode`:
 ```typescript
 // src/vs/platform/extensions/common/extensionValidator.ts
 
-function validateEngineVersion(
-	currentVersion: string,
-	requiredVersion: string
-): boolean {
-	// Semantic version comparison
-	// ^1.75.0 means >=1.75.0 <2.0.0
-	return semver.satisfies(currentVersion, requiredVersion);
+function validateEngineVersion(currentVersion: string, requiredVersion: string): boolean {
+  // Semantic version comparison
+  // ^1.75.0 means >=1.75.0 <2.0.0
+  return semver.satisfies(currentVersion, requiredVersion);
 }
 ```
 
@@ -1564,15 +1517,15 @@ Extension host uses DI container for service resolution:
 // src/vs/workbench/api/common/extHostExtensionService.ts
 
 class ExtHostExtensionService {
-	constructor(
-		@IInstantiationService
-		private readonly _instaService: IInstantiationService,
-		@IExtHostRpcService private readonly _extHostRpc: IExtHostRpcService,
-		@ILogService private readonly _logService: ILogService
-	) // ... more services injected
-	{
-		// Services automatically resolved by DI container
-	}
+  constructor(
+    @IInstantiationService
+    private readonly _instaService: IInstantiationService,
+    @IExtHostRpcService private readonly _extHostRpc: IExtHostRpcService,
+    @ILogService private readonly _logService: ILogService,
+  ) {
+    // ... more services injected
+    // Services automatically resolved by DI container
+  }
 }
 ```
 
@@ -1866,7 +1819,7 @@ const levels = groupByDependencyLevel(extensions);
 
 // Activate each level in parallel
 for (const level of levels) {
-	await Promise.all(level.map((ext) => activateExtension(ext)));
+  await Promise.all(level.map((ext) => activateExtension(ext)));
 }
 ```
 
@@ -1884,19 +1837,19 @@ for (const level of levels) {
 
 ```typescript
 class LazyExtensionPoint<T> {
-	private _processed = false;
+  private _processed = false;
 
-	private _ensureProcessed(): void {
-		if (!this._processed) {
-			this._processContributions();
-			this._processed = true;
-		}
-	}
+  private _ensureProcessed(): void {
+    if (!this._processed) {
+      this._processContributions();
+      this._processed = true;
+    }
+  }
 
-	public get contributions(): T[] {
-		this._ensureProcessed(); // Process on first access
-		return this._contributions;
-	}
+  public get contributions(): T[] {
+    this._ensureProcessed(); // Process on first access
+    return this._contributions;
+  }
 }
 ```
 
@@ -1906,16 +1859,16 @@ class LazyExtensionPoint<T> {
 
 ```json
 {
-	"main": "./out/extension.js",
-	"contributes": {
-		"commands": [
-			{
-				"command": "ext.heavy",
-				"title": "Heavy Operation",
-				"lazy": "./out/heavy.js" // Load only when command executed
-			}
-		]
-	}
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ext.heavy",
+        "title": "Heavy Operation",
+        "lazy": "./out/heavy.js" // Load only when command executed
+      }
+    ]
+  }
 }
 ```
 
@@ -1937,12 +1890,12 @@ class LazyExtensionPoint<T> {
 
 ```json
 {
-	"permissions": {
-		"filesystem": ["read", "write"],
-		"network": ["fetch"],
-		"shell": ["execute"],
-		"clipboard": ["read", "write"]
-	}
+  "permissions": {
+    "filesystem": ["read", "write"],
+    "network": ["fetch"],
+    "shell": ["execute"],
+    "clipboard": ["read", "write"]
+  }
 }
 ```
 
@@ -1980,20 +1933,17 @@ if (health.memoryUsage > 500MB || health.cpuUsage > 80%) {
 
 ```typescript
 class ExtensionRecovery {
-	private async activateWithRetry(
-		id: ExtensionIdentifier,
-		maxRetries: number = 3
-	): Promise<void> {
-		for (let i = 0; i < maxRetries; i++) {
-			try {
-				await this.activate(id);
-				return;
-			} catch (err) {
-				if (i === maxRetries - 1) throw err;
-				await sleep(Math.pow(2, i) * 1000); // Exponential backoff
-			}
-		}
-	}
+  private async activateWithRetry(id: ExtensionIdentifier, maxRetries: number = 3): Promise<void> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        await this.activate(id);
+        return;
+      } catch (err) {
+        if (i === maxRetries - 1) throw err;
+        await sleep(Math.pow(2, i) * 1000); // Exponential backoff
+      }
+    }
+  }
 }
 ```
 
@@ -2003,10 +1953,10 @@ class ExtensionRecovery {
 
 ```typescript
 enum IsolationLevel {
-	Trusted, // Full access (current behavior)
-	Sandboxed, // Permission-based access
-	WebWorker, // No file system or Node.js access
-	Remote, // Run on remote server
+  Trusted, // Full access (current behavior)
+  Sandboxed, // Permission-based access
+  WebWorker, // No file system or Node.js access
+  Remote, // Run on remote server
 }
 
 // User chooses isolation level per extension
@@ -2023,14 +1973,14 @@ enum IsolationLevel {
 
 ```typescript
 // Auto-generated from JSON schema
-import { CommandContribution } from "vscode-contributions";
+import { CommandContribution } from 'vscode-contributions';
 
 export const commands: CommandContribution[] = [
-	{
-		command: "ext.cmd",
-		title: "My Command",
-		// TypeScript ensures correctness
-	},
+  {
+    command: 'ext.cmd',
+    title: 'My Command',
+    // TypeScript ensures correctness
+  },
 ];
 ```
 
@@ -2040,12 +1990,12 @@ export const commands: CommandContribution[] = [
 
 ```typescript
 export function activate(context: vscode.ExtensionContext) {
-	// Register command contribution dynamically
-	context.contributions.registerCommand({
-		command: "ext.dynamic",
-		title: "Dynamic Command",
-		when: "customCondition",
-	});
+  // Register command contribution dynamically
+  context.contributions.registerCommand({
+    command: 'ext.dynamic',
+    title: 'Dynamic Command',
+    when: 'customCondition',
+  });
 }
 ```
 
@@ -2080,23 +2030,23 @@ export function activate(context: vscode.ExtensionContext) {
 
 ```typescript
 export function onBeforeActivate(context: vscode.ExtensionContext): void {
-	// Prepare for activation (async work)
+  // Prepare for activation (async work)
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-	// Synchronous activation
+  // Synchronous activation
 }
 
 export function onAfterActivate(context: vscode.ExtensionContext): void {
-	// Post-activation tasks
+  // Post-activation tasks
 }
 
 export function onBeforeDeactivate(): void {
-	// Start cleanup
+  // Start cleanup
 }
 
 export function deactivate(): void {
-	// Finish cleanup
+  // Finish cleanup
 }
 ```
 
@@ -2106,13 +2056,13 @@ export function deactivate(): void {
 
 ```typescript
 export function activate(context: vscode.ExtensionContext) {
-	// Core features activate immediately
-	registerCoreFeatures();
+  // Core features activate immediately
+  registerCoreFeatures();
 
-	// Advanced features activate later
-	context.defer(() => {
-		registerAdvancedFeatures();
-	});
+  // Advanced features activate later
+  context.defer(() => {
+    registerAdvancedFeatures();
+  });
 }
 ```
 
@@ -2123,16 +2073,16 @@ export function activate(context: vscode.ExtensionContext) {
 ```typescript
 // Extension A exports shared service
 export function activate(context: vscode.ExtensionContext) {
-	return {
-		sharedService: new MyService(),
-	};
+  return {
+    sharedService: new MyService(),
+  };
 }
 
 // Extension B uses shared service
 export async function activate(context: vscode.ExtensionContext) {
-	const extA = vscode.extensions.getExtension("publisher.extA");
-	const api = await extA.activate();
-	api.sharedService.doSomething();
+  const extA = vscode.extensions.getExtension('publisher.extA');
+  const api = await extA.activate();
+  api.sharedService.doSomething();
 }
 ```
 
@@ -2140,10 +2090,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
 ```typescript
 // Extension A
-context.exports.register("myService", myServiceImpl);
+context.exports.register('myService', myServiceImpl);
 
 // Extension B
-const myService = await vscode.imports.get("publisher.extA", "myService");
+const myService = await vscode.imports.get('publisher.extA', 'myService');
 ```
 
 ### Safer Plugin Execution
@@ -2154,16 +2104,16 @@ const myService = await vscode.imports.get("publisher.extA", "myService");
 
 ```typescript
 interface ExtensionBudget {
-	maxActivationTime: number; // Max activation duration
-	maxMemory: number; // Max memory usage
-	maxCpuPercent: number; // Max CPU usage
-	maxApiCallsPerSecond: number; // Rate limiting
+  maxActivationTime: number; // Max activation duration
+  maxMemory: number; // Max memory usage
+  maxCpuPercent: number; // Max CPU usage
+  maxApiCallsPerSecond: number; // Rate limiting
 }
 
 // Enforce budgets
 if (extension.memoryUsage > budget.maxMemory) {
-	pauseExtension(extension.id);
-	notifyUser(`Extension ${extension.id} exceeded memory budget`);
+  pauseExtension(extension.id);
+  notifyUser(`Extension ${extension.id} exceeded memory budget`);
 }
 ```
 
@@ -2173,11 +2123,11 @@ if (extension.memoryUsage > budget.maxMemory) {
 
 ```typescript
 class ApiAuditor {
-	logApiCall(extension: string, api: string, args: any[]): void {
-		// Track which APIs are used how often
-		// Detect suspicious patterns (e.g., excessive file reads)
-		// Generate reports for extension developers
-	}
+  logApiCall(extension: string, api: string, args: any[]): void {
+    // Track which APIs are used how often
+    // Detect suspicious patterns (e.g., excessive file reads)
+    // Generate reports for extension developers
+  }
 }
 ```
 
@@ -2188,21 +2138,16 @@ class ApiAuditor {
 **Recommendation**: Stricter CSP enforcement:
 
 ```typescript
-const webview = vscode.window.createWebviewPanel(
-	"myView",
-	"My View",
-	vscode.ViewColumn.One,
-	{
-		enableScripts: true,
-		contentSecurityPolicy: {
-			"default-src": ["none"],
-			"script-src": ["nonce-12345"], // Only nonce-tagged scripts
-			"style-src": ["unsafe-inline"], // Required for inline styles
-			"img-src": ["https:", "data:"],
-			"connect-src": ["https://api.example.com"], // Whitelist domains
-		},
-	}
-);
+const webview = vscode.window.createWebviewPanel('myView', 'My View', vscode.ViewColumn.One, {
+  enableScripts: true,
+  contentSecurityPolicy: {
+    'default-src': ['none'],
+    'script-src': ['nonce-12345'], // Only nonce-tagged scripts
+    'style-src': ['unsafe-inline'], // Required for inline styles
+    'img-src': ['https:', 'data:'],
+    'connect-src': ['https://api.example.com'], // Whitelist domains
+  },
+});
 ```
 
 #### 4. Extension Signing
@@ -2211,25 +2156,21 @@ const webview = vscode.window.createWebviewPanel(
 
 ```typescript
 interface ExtensionSignature {
-	publisher: string;
-	signature: string;
-	certificate: string;
-	timestamp: Date;
+  publisher: string;
+  signature: string;
+  certificate: string;
+  timestamp: Date;
 }
 
 // Verify signature before activation
 function verifyExtension(extension: IExtension): boolean {
-	const valid = crypto.verify(
-		extension.signature,
-		extension.code,
-		extension.certificate
-	);
+  const valid = crypto.verify(extension.signature, extension.code, extension.certificate);
 
-	if (!valid) {
-		throw new Error("Extension signature invalid");
-	}
+  if (!valid) {
+    throw new Error('Extension signature invalid');
+  }
 
-	return true;
+  return true;
 }
 ```
 
@@ -2258,16 +2199,16 @@ npm create vscode-extension -- --template test-provider
 **Recommendation**: First-class testing support:
 
 ```typescript
-import { test, expect } from "@vscode/test-framework";
+import { test, expect } from '@vscode/test-framework';
 
-test("command execution", async () => {
-	await vscode.commands.executeCommand("extension.command");
-	expect(result).toBe(expected);
+test('command execution', async () => {
+  await vscode.commands.executeCommand('extension.command');
+  expect(result).toBe(expected);
 });
 
-test("language features", async () => {
-	const completions = await vscode.languages.getCompletionItems(uri, position);
-	expect(completions).toContain(expectedItem);
+test('language features', async () => {
+  const completions = await vscode.languages.getCompletionItems(uri, position);
+  expect(completions).toContain(expectedItem);
 });
 ```
 

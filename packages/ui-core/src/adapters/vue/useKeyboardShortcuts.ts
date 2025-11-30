@@ -3,10 +3,7 @@
  */
 
 import { ref, computed, onUnmounted } from 'vue';
-import type {
-  KeyboardShortcutsState,
-  KeyboardShortcutsActions,
-} from '../../behaviors/keyboard-shortcuts';
+import type { KeyboardShortcutsState, KeyboardShortcutsActions } from '../../behaviors/keyboard-shortcuts';
 import { createKeyboardShortcuts } from '../../behaviors/keyboard-shortcuts';
 
 /**
@@ -28,23 +25,23 @@ export interface KeyboardShortcutsOptions {
 
 /**
  * Vue composable for keyboard shortcuts behavior.
- * 
+ *
  * Creates and manages a keyboard shortcuts behavior instance, automatically handling
  * subscriptions and cleanup with Vue's reactivity system. This composable provides
  * a centralized way to manage keyboard shortcuts with support for key combination
  * parsing, platform normalization, and conflict resolution.
- * 
+ *
  * @example
  * ```vue
  * <script setup>
  * import { useKeyboardShortcuts } from '@web-loom/ui-core/vue';
  * import { onMounted } from 'vue';
- * 
+ *
  * const shortcuts = useKeyboardShortcuts({
  *   scope: 'global',
  *   onShortcutExecuted: (key) => console.log(`Executed: ${key}`),
  * });
- * 
+ *
  * onMounted(() => {
  *   // Register shortcuts
  *   shortcuts.actions.registerShortcut({
@@ -55,7 +52,7 @@ export interface KeyboardShortcutsOptions {
  *     description: 'Open command palette',
  *     preventDefault: true,
  *   });
- * 
+ *
  *   shortcuts.actions.registerShortcut({
  *     key: 'Escape',
  *     handler: () => {
@@ -65,7 +62,7 @@ export interface KeyboardShortcutsOptions {
  *   });
  * });
  * </script>
- * 
+ *
  * <template>
  *   <div>
  *     <p>Press Ctrl+K to open command palette</p>
@@ -74,7 +71,7 @@ export interface KeyboardShortcutsOptions {
  *   </div>
  * </template>
  * ```
- * 
+ *
  * @param options Configuration options for the keyboard shortcuts behavior.
  * @returns Reactive keyboard shortcuts state properties and actions.
  */

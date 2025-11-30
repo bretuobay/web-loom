@@ -314,9 +314,7 @@ describe('createCommandPalette', () => {
   describe('executeCommand action', () => {
     it('should execute command action', async () => {
       const action = vi.fn();
-      const commands: Command[] = [
-        { id: 'test', label: 'Test Command', action },
-      ];
+      const commands: Command[] = [{ id: 'test', label: 'Test Command', action }];
       const palette = createCommandPalette({ commands });
 
       await palette.actions.executeCommand('test');
@@ -356,9 +354,7 @@ describe('createCommandPalette', () => {
 
     it('should handle async command actions', async () => {
       const action = vi.fn().mockResolvedValue(undefined);
-      const commands: Command[] = [
-        { id: 'async', label: 'Async Command', action },
-      ];
+      const commands: Command[] = [{ id: 'async', label: 'Async Command', action }];
       const palette = createCommandPalette({ commands });
 
       await palette.actions.executeCommand('async');
@@ -371,23 +367,17 @@ describe('createCommandPalette', () => {
     it('should handle non-existent command gracefully', async () => {
       const palette = createCommandPalette();
 
-      await expect(
-        palette.actions.executeCommand('non-existent')
-      ).resolves.not.toThrow();
+      await expect(palette.actions.executeCommand('non-existent')).resolves.not.toThrow();
 
       palette.destroy();
     });
 
     it('should handle command action errors', async () => {
       const action = vi.fn().mockRejectedValue(new Error('Command failed'));
-      const commands: Command[] = [
-        { id: 'error', label: 'Error Command', action },
-      ];
+      const commands: Command[] = [{ id: 'error', label: 'Error Command', action }];
       const palette = createCommandPalette({ commands });
 
-      await expect(
-        palette.actions.executeCommand('error')
-      ).resolves.not.toThrow();
+      await expect(palette.actions.executeCommand('error')).resolves.not.toThrow();
 
       expect(action).toHaveBeenCalledTimes(1);
 
@@ -564,7 +554,7 @@ describe('createCommandPalette', () => {
       const palette = createCommandPalette({ commands });
 
       palette.actions.setQuery('file');
-      
+
       palette.rovingFocus.actions.moveNext();
       expect(palette.getState().selectedIndex).toBe(1);
 
@@ -756,7 +746,7 @@ describe('createCommandPalette', () => {
         const palette = createCommandPalette({ commands });
 
         palette.actions.open();
-        
+
         // Select the second command
         palette.actions.selectNext();
         expect(palette.getState().selectedIndex).toBe(1);
@@ -787,7 +777,7 @@ describe('createCommandPalette', () => {
 
         // Should execute the first filtered command's action
         const firstFilteredCommand = state.filteredCommands[0];
-        const originalCommand = commands.find(cmd => cmd.id === firstFilteredCommand.id);
+        const originalCommand = commands.find((cmd) => cmd.id === firstFilteredCommand.id);
         expect(originalCommand?.action).toHaveBeenCalledTimes(1);
 
         palette.destroy();
@@ -800,9 +790,7 @@ describe('createCommandPalette', () => {
         palette.actions.setQuery('nonexistent');
         expect(palette.getState().filteredCommands).toHaveLength(0);
 
-        await expect(
-          palette.actions.executeSelected()
-        ).resolves.not.toThrow();
+        await expect(palette.actions.executeSelected()).resolves.not.toThrow();
 
         palette.destroy();
       });
@@ -814,9 +802,7 @@ describe('createCommandPalette', () => {
         // Manually set an invalid index (this shouldn't happen in normal use)
         palette.rovingFocus.actions.moveTo(999);
 
-        await expect(
-          palette.actions.executeSelected()
-        ).resolves.not.toThrow();
+        await expect(palette.actions.executeSelected()).resolves.not.toThrow();
 
         palette.destroy();
       });

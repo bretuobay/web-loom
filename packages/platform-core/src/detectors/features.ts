@@ -36,10 +36,7 @@ export function detectFeatures(): FeatureCapabilities {
 function detectWebGL(): boolean {
   try {
     const canvas = document.createElement('canvas');
-    return !!(
-      canvas.getContext('webgl') ||
-      canvas.getContext('experimental-webgl')
-    );
+    return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
   } catch {
     return false;
   }

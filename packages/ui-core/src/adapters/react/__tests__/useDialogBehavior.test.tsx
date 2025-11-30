@@ -13,9 +13,7 @@ describe('useDialogBehavior', () => {
     });
 
     it('should initialize with provided id', () => {
-      const { result } = renderHook(() => 
-        useDialogBehavior({ id: 'test-dialog' })
-      );
+      const { result } = renderHook(() => useDialogBehavior({ id: 'test-dialog' }));
 
       expect(result.current.id).toBe('test-dialog');
       expect(result.current.isOpen).toBe(false);
@@ -92,9 +90,7 @@ describe('useDialogBehavior', () => {
   describe('callbacks', () => {
     it('should invoke onOpen callback', () => {
       const onOpen = vi.fn();
-      const { result } = renderHook(() => 
-        useDialogBehavior({ onOpen })
-      );
+      const { result } = renderHook(() => useDialogBehavior({ onOpen }));
 
       act(() => {
         result.current.actions.open({ title: 'Test' });
@@ -106,9 +102,7 @@ describe('useDialogBehavior', () => {
 
     it('should invoke onClose callback', () => {
       const onClose = vi.fn();
-      const { result } = renderHook(() => 
-        useDialogBehavior({ onClose })
-      );
+      const { result } = renderHook(() => useDialogBehavior({ onClose }));
 
       act(() => {
         result.current.actions.open({ title: 'Test' });

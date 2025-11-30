@@ -166,11 +166,11 @@ export interface WizardBehavior<T = any> {
 
 /**
  * Creates a wizard pattern for managing multi-step flows with validation.
- * 
+ *
  * This pattern composes form behavior for step validation and provides
  * navigation controls for moving through wizard steps. It supports optional
  * branching logic where the next step can depend on previous answers.
- * 
+ *
  * @example
  * ```typescript
  * interface WizardData {
@@ -178,7 +178,7 @@ export interface WizardBehavior<T = any> {
  *   email?: string;
  *   companyName?: string;
  * }
- * 
+ *
  * const wizard = createWizard<WizardData>({
  *   steps: [
  *     {
@@ -216,31 +216,31 @@ export interface WizardBehavior<T = any> {
  *     // Submit data to server
  *   },
  * });
- * 
+ *
  * // Set step data
  * wizard.actions.setStepData({ accountType: 'business' });
- * 
+ *
  * // Try to proceed to next step
  * const success = await wizard.actions.goToNextStep();
  * if (success) {
  *   console.log('Moved to next step');
  * }
- * 
+ *
  * // Go back
  * wizard.actions.goToPreviousStep();
- * 
+ *
  * // Complete wizard
  * await wizard.actions.completeWizard();
- * 
+ *
  * // Clean up
  * wizard.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the wizard pattern.
  * @returns A wizard pattern instance.
  */
 export function createWizard<T extends Record<string, any> = Record<string, any>>(
-  options: WizardOptions<T>
+  options: WizardOptions<T>,
 ): WizardBehavior<T> {
   const steps = options.steps;
   const initialStepIndex = options.initialStepIndex ?? 0;
@@ -263,190 +263,190 @@ export function createWizard<T extends Record<string, any> = Record<string, any>
     data: initialData,
   };
 
-  const store: Store<WizardState<T>, WizardActions> = createStore<
-    WizardState<T>,
-    WizardActions
-  >(initialState, (set, get, actions) => ({
-    goToNextStep: async () => {
-      const state = get();
-      const currentStep = state.steps[state.currentStepIndex];
+  const store: Store<WizardState<T>, WizardActions> = createStore<WizardState<T>, WizardActions>(
+    initialState,
+    (set, get, actions) => ({
+      goToNextStep: async () => {
+        const state = get();
+        const currentStep = state.steps[state.currentStepIndex];
 
-      // Validate current step if it has a validation function
-      if (currentStep.validate) {
-        try {
-          const error = await Promise.resolve(currentStep.validate(state.data));
-          if (error) {
-            // Validation failed, cannot proceed
+        // Validate current step if it has a validation function
+        if (currentStep.validate) {
+          try {
+            const error = await Promise.resolve(currentStep.validate(state.data));
+            if (error) {
+              // Validation failed, cannot proceed
+              set((state) => ({
+                ...state,
+                canProceed: false,
+              }));
+              return false;
+            }
+          } catch (err) {
+            console.error('Step validation error:', err);
             set((state) => ({
               ...state,
               canProceed: false,
             }));
             return false;
           }
-        } catch (err) {
-          console.error('Step validation error:', err);
+        }
+
+        // Mark current step as completed
+        const completedSteps = [...state.completedSteps];
+        if (!completedSteps.includes(state.currentStepIndex)) {
+          completedSteps.push(state.currentStepIndex);
+        }
+
+        // Determine next step index
+        let nextStepIndex: number;
+
+        if (currentStep.getNextStep) {
+          // Use branching logic
+          const nextStepId = currentStep.getNextStep(state.data);
+          if (nextStepId) {
+            const foundIndex = state.steps.findIndex((s) => s.id === nextStepId);
+            if (foundIndex !== -1) {
+              nextStepIndex = foundIndex;
+            } else {
+              // Step ID not found, use sequential navigation
+              nextStepIndex = state.currentStepIndex + 1;
+            }
+          } else {
+            // No branching, use sequential navigation
+            nextStepIndex = state.currentStepIndex + 1;
+          }
+        } else {
+          // Sequential navigation
+          nextStepIndex = state.currentStepIndex + 1;
+        }
+
+        // Check if we're at the last step
+        if (nextStepIndex >= state.steps.length) {
+          // Cannot proceed beyond last step
           set((state) => ({
             ...state,
+            completedSteps,
             canProceed: false,
           }));
           return false;
         }
-      }
 
-      // Mark current step as completed
-      const completedSteps = [...state.completedSteps];
-      if (!completedSteps.includes(state.currentStepIndex)) {
-        completedSteps.push(state.currentStepIndex);
-      }
-
-      // Determine next step index
-      let nextStepIndex: number;
-
-      if (currentStep.getNextStep) {
-        // Use branching logic
-        const nextStepId = currentStep.getNextStep(state.data);
-        if (nextStepId) {
-          const foundIndex = state.steps.findIndex((s) => s.id === nextStepId);
-          if (foundIndex !== -1) {
-            nextStepIndex = foundIndex;
-          } else {
-            // Step ID not found, use sequential navigation
-            nextStepIndex = state.currentStepIndex + 1;
-          }
-        } else {
-          // No branching, use sequential navigation
-          nextStepIndex = state.currentStepIndex + 1;
-        }
-      } else {
-        // Sequential navigation
-        nextStepIndex = state.currentStepIndex + 1;
-      }
-
-      // Check if we're at the last step
-      if (nextStepIndex >= state.steps.length) {
-        // Cannot proceed beyond last step
+        // Move to next step
         set((state) => ({
           ...state,
+          currentStepIndex: nextStepIndex,
           completedSteps,
-          canProceed: false,
-        }));
-        return false;
-      }
-
-      // Move to next step
-      set((state) => ({
-        ...state,
-        currentStepIndex: nextStepIndex,
-        completedSteps,
-        canProceed: true,
-      }));
-
-      // Invoke onStepChange callback if provided
-      if (options.onStepChange) {
-        options.onStepChange(nextStepIndex, state.steps[nextStepIndex]);
-      }
-
-      return true;
-    },
-
-    goToPreviousStep: () => {
-      const state = get();
-
-      if (state.currentStepIndex > 0) {
-        const newStepIndex = state.currentStepIndex - 1;
-
-        set((state) => ({
-          ...state,
-          currentStepIndex: newStepIndex,
           canProceed: true,
         }));
 
         // Invoke onStepChange callback if provided
         if (options.onStepChange) {
-          options.onStepChange(newStepIndex, state.steps[newStepIndex]);
+          options.onStepChange(nextStepIndex, state.steps[nextStepIndex]);
         }
-      }
-    },
 
-    goToStep: (index: number) => {
-      const state = get();
+        return true;
+      },
 
-      // Validate index
-      if (index < 0 || index >= state.steps.length) {
-        return;
-      }
+      goToPreviousStep: () => {
+        const state = get();
 
-      set((state) => ({
-        ...state,
-        currentStepIndex: index,
-        canProceed: true,
-      }));
+        if (state.currentStepIndex > 0) {
+          const newStepIndex = state.currentStepIndex - 1;
 
-      // Invoke onStepChange callback if provided
-      if (options.onStepChange) {
-        options.onStepChange(index, state.steps[index]);
-      }
-    },
+          set((state) => ({
+            ...state,
+            currentStepIndex: newStepIndex,
+            canProceed: true,
+          }));
 
-    completeWizard: async () => {
-      const state = get();
+          // Invoke onStepChange callback if provided
+          if (options.onStepChange) {
+            options.onStepChange(newStepIndex, state.steps[newStepIndex]);
+          }
+        }
+      },
 
-      // Validate all steps
-      for (let i = 0; i < state.steps.length; i++) {
-        const step = state.steps[i];
-        if (step.validate) {
-          try {
-            const error = await Promise.resolve(step.validate(state.data));
-            if (error) {
-              console.error(`Step ${i} (${step.id}) validation failed:`, error);
+      goToStep: (index: number) => {
+        const state = get();
+
+        // Validate index
+        if (index < 0 || index >= state.steps.length) {
+          return;
+        }
+
+        set((state) => ({
+          ...state,
+          currentStepIndex: index,
+          canProceed: true,
+        }));
+
+        // Invoke onStepChange callback if provided
+        if (options.onStepChange) {
+          options.onStepChange(index, state.steps[index]);
+        }
+      },
+
+      completeWizard: async () => {
+        const state = get();
+
+        // Validate all steps
+        for (let i = 0; i < state.steps.length; i++) {
+          const step = state.steps[i];
+          if (step.validate) {
+            try {
+              const error = await Promise.resolve(step.validate(state.data));
+              if (error) {
+                console.error(`Step ${i} (${step.id}) validation failed:`, error);
+                // Navigate to the first invalid step
+                actions.goToStep(i);
+                return;
+              }
+            } catch (err) {
+              console.error(`Step ${i} (${step.id}) validation error:`, err);
               // Navigate to the first invalid step
               actions.goToStep(i);
               return;
             }
-          } catch (err) {
-            console.error(`Step ${i} (${step.id}) validation error:`, err);
-            // Navigate to the first invalid step
-            actions.goToStep(i);
-            return;
           }
         }
-      }
 
-      // All steps are valid, complete the wizard
-      if (options.onComplete) {
-        try {
-          await Promise.resolve(options.onComplete(state.data));
-        } catch (err) {
-          console.error('Wizard completion error:', err);
+        // All steps are valid, complete the wizard
+        if (options.onComplete) {
+          try {
+            await Promise.resolve(options.onComplete(state.data));
+          } catch (err) {
+            console.error('Wizard completion error:', err);
+          }
         }
-      }
-    },
+      },
 
-    setStepData: (data: any) => {
-      set((state) => {
-        const newData = {
-          ...state.data,
-          ...data,
-        };
+      setStepData: (data: any) => {
+        set((state) => {
+          const newData = {
+            ...state.data,
+            ...data,
+          };
 
-        // Invoke onDataChange callback if provided
-        if (options.onDataChange) {
-          options.onDataChange(newData);
-        }
+          // Invoke onDataChange callback if provided
+          if (options.onDataChange) {
+            options.onDataChange(newData);
+          }
 
-        return {
-          ...state,
-          data: newData,
-        };
-      });
+          return {
+            ...state,
+            data: newData,
+          };
+        });
 
-      // Update form behavior with new data
-      formBehavior.actions.resetForm();
-      Object.keys(data).forEach((key) => {
-        formBehavior.actions.setFieldValue(key as keyof T, data[key]);
-      });
-    },
-  }));
+        // Update form behavior with new data
+        formBehavior.actions.resetForm();
+        Object.keys(data).forEach((key) => {
+          formBehavior.actions.setFieldValue(key as keyof T, data[key]);
+        });
+      },
+    }),
+  );
 
   return {
     getState: store.getState,

@@ -137,10 +137,10 @@ export interface RovingFocusBehavior {
 
 /**
  * Creates a roving focus behavior for managing keyboard navigation through a list of items.
- * 
+ *
  * This behavior implements the roving tabindex pattern commonly used for keyboard navigation
  * in menus, toolbars, tab lists, and other composite widgets.
- * 
+ *
  * @example
  * ```typescript
  * const rovingFocus = createRovingFocus({
@@ -148,23 +148,23 @@ export interface RovingFocusBehavior {
  *   orientation: 'vertical',
  *   wrap: true,
  * });
- * 
+ *
  * // Move to next item
  * rovingFocus.actions.moveNext();
  * console.log(rovingFocus.getState().currentIndex); // 1
- * 
+ *
  * // Move to last item
  * rovingFocus.actions.moveLast();
  * console.log(rovingFocus.getState().currentIndex); // 2
- * 
+ *
  * // Wrap to first item
  * rovingFocus.actions.moveNext();
  * console.log(rovingFocus.getState().currentIndex); // 0 (wrapped)
- * 
+ *
  * // Clean up
  * rovingFocus.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the roving focus behavior.
  * @returns A roving focus behavior instance.
  */
@@ -181,111 +181,111 @@ export function createRovingFocus(options?: RovingFocusOptions): RovingFocusBeha
     wrap: options?.wrap ?? true,
   };
 
-  const store: Store<RovingFocusState, RovingFocusActions> = createStore<
-    RovingFocusState,
-    RovingFocusActions
-  >(initialState, (set, get) => {
-    // Helper function to update focus and invoke callback
-    const updateFocus = (newIndex: number) => {
-      const state = get();
-      const previousIndex = state.currentIndex;
-      
-      if (newIndex !== previousIndex) {
-        set((state) => ({ 
-          ...state, 
-          currentIndex: newIndex,
-          previousIndex: previousIndex
-        }));
-        
-        // Invoke callback if provided
-        if (onFocusChange && state.items[newIndex]) {
-          onFocusChange(newIndex, state.items[newIndex], previousIndex);
+  const store: Store<RovingFocusState, RovingFocusActions> = createStore<RovingFocusState, RovingFocusActions>(
+    initialState,
+    (set, get) => {
+      // Helper function to update focus and invoke callback
+      const updateFocus = (newIndex: number) => {
+        const state = get();
+        const previousIndex = state.currentIndex;
+
+        if (newIndex !== previousIndex) {
+          set((state) => ({
+            ...state,
+            currentIndex: newIndex,
+            previousIndex: previousIndex,
+          }));
+
+          // Invoke callback if provided
+          if (onFocusChange && state.items[newIndex]) {
+            onFocusChange(newIndex, state.items[newIndex], previousIndex);
+          }
         }
-      }
-    };
+      };
 
-    return {
-    moveNext: () => {
-      const state = get();
-      if (state.items.length === 0) return;
+      return {
+        moveNext: () => {
+          const state = get();
+          if (state.items.length === 0) return;
 
-      const nextIndex = state.currentIndex + 1;
+          const nextIndex = state.currentIndex + 1;
 
-      if (nextIndex >= state.items.length) {
-        // At the end of the list
-        if (state.wrap) {
-          // Wrap to the first item
+          if (nextIndex >= state.items.length) {
+            // At the end of the list
+            if (state.wrap) {
+              // Wrap to the first item
+              updateFocus(0);
+            }
+            // Otherwise, stay at the last item (do nothing)
+          } else {
+            // Move to the next item
+            updateFocus(nextIndex);
+          }
+        },
+
+        movePrevious: () => {
+          const state = get();
+          if (state.items.length === 0) return;
+
+          const prevIndex = state.currentIndex - 1;
+
+          if (prevIndex < 0) {
+            // At the beginning of the list
+            if (state.wrap) {
+              // Wrap to the last item
+              updateFocus(state.items.length - 1);
+            }
+            // Otherwise, stay at the first item (do nothing)
+          } else {
+            // Move to the previous item
+            updateFocus(prevIndex);
+          }
+        },
+
+        moveFirst: () => {
+          const state = get();
+          if (state.items.length === 0) return;
+
           updateFocus(0);
-        }
-        // Otherwise, stay at the last item (do nothing)
-      } else {
-        // Move to the next item
-        updateFocus(nextIndex);
-      }
-    },
+        },
 
-    movePrevious: () => {
-      const state = get();
-      if (state.items.length === 0) return;
+        moveLast: () => {
+          const state = get();
+          if (state.items.length === 0) return;
 
-      const prevIndex = state.currentIndex - 1;
-
-      if (prevIndex < 0) {
-        // At the beginning of the list
-        if (state.wrap) {
-          // Wrap to the last item
           updateFocus(state.items.length - 1);
-        }
-        // Otherwise, stay at the first item (do nothing)
-      } else {
-        // Move to the previous item
-        updateFocus(prevIndex);
-      }
+        },
+
+        moveTo: (index: number) => {
+          const state = get();
+          if (state.items.length === 0) return;
+
+          // Clamp index to valid range
+          const clampedIndex = Math.max(0, Math.min(index, state.items.length - 1));
+          updateFocus(clampedIndex);
+        },
+
+        setItems: (items: string[]) => {
+          const state = get();
+          const previousIndex = state.currentIndex;
+          // Adjust currentIndex if it's out of bounds after updating items
+          const newIndex = items.length > 0 ? Math.min(state.currentIndex, items.length - 1) : 0;
+
+          set((state) => ({
+            ...state,
+            items,
+            currentIndex: newIndex,
+            previousIndex: previousIndex,
+          }));
+
+          // Invoke callback if index changed due to items update
+          if (newIndex !== previousIndex && onFocusChange && items[newIndex]) {
+            onFocusChange(newIndex, items[newIndex], previousIndex);
+          }
+        },
+      };
     },
-
-    moveFirst: () => {
-      const state = get();
-      if (state.items.length === 0) return;
-
-      updateFocus(0);
-    },
-
-    moveLast: () => {
-      const state = get();
-      if (state.items.length === 0) return;
-
-      updateFocus(state.items.length - 1);
-    },
-
-    moveTo: (index: number) => {
-      const state = get();
-      if (state.items.length === 0) return;
-
-      // Clamp index to valid range
-      const clampedIndex = Math.max(0, Math.min(index, state.items.length - 1));
-      updateFocus(clampedIndex);
-    },
-
-    setItems: (items: string[]) => {
-      const state = get();
-      const previousIndex = state.currentIndex;
-      // Adjust currentIndex if it's out of bounds after updating items
-      const newIndex = items.length > 0 ? Math.min(state.currentIndex, items.length - 1) : 0;
-      
-      set((state) => ({
-        ...state,
-        items,
-        currentIndex: newIndex,
-        previousIndex: previousIndex,
-      }));
-      
-      // Invoke callback if index changed due to items update
-      if (newIndex !== previousIndex && onFocusChange && items[newIndex]) {
-        onFocusChange(newIndex, items[newIndex], previousIndex);
-      }
-    },
-  };
-  });
+  );
 
   return {
     getState: store.getState,

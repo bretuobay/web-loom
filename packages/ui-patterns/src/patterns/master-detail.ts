@@ -116,11 +116,11 @@ export interface MasterDetailBehavior<T = any> {
 
 /**
  * Creates a master-detail pattern that synchronizes list selection with detail view.
- * 
+ *
  * This pattern composes the list selection behavior from UI Core with detail view
  * synchronization, making it ideal for building split-view interfaces like email
  * clients, file explorers, and other master-detail layouts.
- * 
+ *
  * @example
  * ```typescript
  * interface Item {
@@ -128,13 +128,13 @@ export interface MasterDetailBehavior<T = any> {
  *   name: string;
  *   description: string;
  * }
- * 
+ *
  * const items: Item[] = [
  *   { id: '1', name: 'Item 1', description: 'First item' },
  *   { id: '2', name: 'Item 2', description: 'Second item' },
  *   { id: '3', name: 'Item 3', description: 'Third item' },
  * ];
- * 
+ *
  * const masterDetail = createMasterDetail({
  *   items,
  *   getId: (item) => item.id,
@@ -142,30 +142,28 @@ export interface MasterDetailBehavior<T = any> {
  *     console.log('Selected:', item);
  *   },
  * });
- * 
+ *
  * // Listen to events
  * masterDetail.eventBus.on('item:selected', (item) => {
  *   console.log('Item selected event:', item);
  * });
- * 
+ *
  * // Select an item
  * masterDetail.actions.selectItem(items[0]);
  * console.log(masterDetail.getState().selectedItem); // items[0]
- * 
+ *
  * // Clear selection
  * masterDetail.actions.clearSelection();
  * console.log(masterDetail.getState().selectedItem); // null
- * 
+ *
  * // Clean up
  * masterDetail.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the master-detail pattern.
  * @returns A master-detail pattern instance.
  */
-export function createMasterDetail<T = any>(
-  options: MasterDetailOptions<T>
-): MasterDetailBehavior<T> {
+export function createMasterDetail<T = any>(options: MasterDetailOptions<T>): MasterDetailBehavior<T> {
   const items = options.items || [];
   const initialDetailView = options.initialDetailView || 'default';
 

@@ -214,7 +214,7 @@ Product Requirements Document: Framework-Agnostic Client-State Library
    - Provide cleanup mechanisms for expired or unwanted persisted state
    - Maintain full backward compatibility with non-persisted stores
 
-   7.3 Functional Requirements
+     7.3 Functional Requirements
 
    FR.P.1: Persistence Adapters
    The library shall provide a PersistenceAdapter interface that defines how state is saved, loaded, and cleaned up from a storage backend.
@@ -257,88 +257,88 @@ Product Requirements Document: Framework-Agnostic Client-State Library
 
    // Persistence adapter interface
    export interface PersistenceAdapter<S extends State> {
-     /**
-      * Saves the state to the storage backend.
-      * @param key The storage key
-      * @param state The state to save
-      * @returns Promise that resolves when save is complete
-      */
+   /\*\*
+   - Saves the state to the storage backend.
+   - @param key The storage key
+   - @param state The state to save
+   - @returns Promise that resolves when save is complete
+     \*/
      save(key: string, state: S): Promise<void>;
 
-     /**
-      * Loads the state from the storage backend.
-      * @param key The storage key
-      * @returns Promise that resolves with the loaded state, or null if not found
-      */
+   /\*\*
+   - Loads the state from the storage backend.
+   - @param key The storage key
+   - @returns Promise that resolves with the loaded state, or null if not found
+     \*/
      load(key: string): Promise<S | null>;
 
-     /**
-      * Removes the state from the storage backend.
-      * @param key The storage key
-      * @returns Promise that resolves when removal is complete
-      */
+   /\*\*
+   - Removes the state from the storage backend.
+   - @param key The storage key
+   - @returns Promise that resolves when removal is complete
+     \*/
      remove(key: string): Promise<void>;
 
-     /**
-      * Checks if a key exists in storage.
-      * @param key The storage key
-      * @returns Promise that resolves with true if key exists
-      */
+   /\*\*
+   - Checks if a key exists in storage.
+   - @param key The storage key
+   - @returns Promise that resolves with true if key exists
+     \*/
      has(key: string): Promise<boolean>;
-   }
+     }
 
    // Persistence configuration
    export interface PersistenceConfig<S extends State> {
-     /**
-      * The persistence adapter to use
-      */
+   /\*\*
+   - The persistence adapter to use
+     \*/
      adapter: PersistenceAdapter<S>;
 
-     /**
-      * The key/name used to store the state
-      */
+   /\*\*
+   - The key/name used to store the state
+     \*/
      key: string;
 
-     /**
-      * Whether to automatically sync state changes (default: true)
-      */
+   /\*\*
+   - Whether to automatically sync state changes (default: true)
+     \*/
      autoSync?: boolean;
 
-     /**
-      * Custom serializer (default: JSON.stringify)
-      */
+   /\*\*
+   - Custom serializer (default: JSON.stringify)
+     \*/
      serialize?: (state: S) => string;
 
-     /**
-      * Custom deserializer (default: JSON.parse)
-      */
+   /\*\*
+   - Custom deserializer (default: JSON.parse)
+     \*/
      deserialize?: (data: string) => S;
 
-     /**
-      * Whether to merge loaded state with initial state (default: false)
-      * If true, loaded state is merged with initialState
-      * If false, loaded state replaces initialState completely
-      */
+   /\*\*
+   - Whether to merge loaded state with initial state (default: false)
+   - If true, loaded state is merged with initialState
+   - If false, loaded state replaces initialState completely
+     \*/
      merge?: boolean;
-   }
+     }
 
    // Extended Store interface with persistence methods
    export interface PersistedStore<S extends State, A extends Actions<S, A>> extends Store<S, A> {
-     /**
-      * Manually persist the current state
-      */
+   /\*\*
+   - Manually persist the current state
+     \*/
      persist(): Promise<void>;
 
-     /**
-      * Manually load state from storage
-      */
+   /\*\*
+   - Manually load state from storage
+     \*/
      hydrate(): Promise<void>;
 
-     /**
-      * Clear persisted state from storage
-      */
+   /\*\*
+   - Clear persisted state from storage
+     \*/
      clearPersisted(): Promise<void>;
-   }
+     }
 
    7.5 Test Cases
 
@@ -391,13 +391,13 @@ Product Requirements Document: Framework-Agnostic Client-State Library
    Expected Outcome: State with complex types (Date, Map, etc.) is correctly persisted and restored.
 
 8. Future Considerations (Out of Scope for Initial Version)
-  Middleware: Support for applying middleware to actions (e.g., for logging, async operations, side effects).
-  DevTools Integration: Compatibility with browser developer tools extensions for state inspection and time-travel debugging.
-  Async Actions: Built-in support or patterns for handling asynchronous operations.
-  Shallow vs. Deep Comparisons: Options for different levels of state comparison for subscriber notifications.
-  Batching Updates: Optimizations to batch multiple state updates into a single notification cycle.
-  Encryption: Support for encrypting persisted state for sensitive data.
-  Compression: Support for compressing large states before persistence.
-  Migration/Versioning: Support for state schema migrations when structure changes.
-  Selective Persistence: Only persist specific parts of the state.
-  TTL (Time-To-Live): Automatic expiration of persisted state after a specified time.
+   Middleware: Support for applying middleware to actions (e.g., for logging, async operations, side effects).
+   DevTools Integration: Compatibility with browser developer tools extensions for state inspection and time-travel debugging.
+   Async Actions: Built-in support or patterns for handling asynchronous operations.
+   Shallow vs. Deep Comparisons: Options for different levels of state comparison for subscriber notifications.
+   Batching Updates: Optimizations to batch multiple state updates into a single notification cycle.
+   Encryption: Support for encrypting persisted state for sensitive data.
+   Compression: Support for compressing large states before persistence.
+   Migration/Versioning: Support for state schema migrations when structure changes.
+   Selective Persistence: Only persist specific parts of the state.
+   TTL (Time-To-Live): Automatic expiration of persisted state after a specified time.

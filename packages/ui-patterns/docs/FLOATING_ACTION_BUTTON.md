@@ -5,6 +5,7 @@
 The Floating Action Button (FAB) pattern manages the visibility and behavior of a primary action button based on scroll position and direction. It's commonly used for actions like "Create New", "Scroll to Top", or "Compose" that should be easily accessible but not always visible. The pattern intelligently shows/hides the button based on scroll behavior and configurable thresholds.
 
 **Key Features:**
+
 - Scroll position tracking
 - Scroll direction detection (up/down)
 - Threshold-based visibility control
@@ -27,8 +28,8 @@ import { createFloatingActionButton } from '@web-loom/ui-patterns';
 
 // Create the FAB pattern
 const fab = createFloatingActionButton({
-  scrollThreshold: 200,        // Show after scrolling 200px
-  hideOnScrollDown: true,      // Hide when scrolling down
+  scrollThreshold: 200, // Show after scrolling 200px
+  hideOnScrollDown: true, // Hide when scrolling down
   onVisibilityChange: (visible) => {
     console.log(`FAB is now ${visible ? 'visible' : 'hidden'}`);
   },
@@ -62,6 +63,7 @@ fab.destroy();
 Creates a floating action button pattern instance.
 
 **Parameters:**
+
 - `options` (optional): Configuration options
   - `scrollThreshold?: number` - Scroll position threshold for showing FAB (default: 100)
   - `hideOnScrollDown?: boolean` - Hide FAB when scrolling down (default: false)
@@ -73,11 +75,11 @@ Creates a floating action button pattern instance.
 
 ```typescript
 interface FABState {
-  isVisible: boolean;                    // Whether FAB is visible
-  scrollPosition: number;                // Current scroll position
+  isVisible: boolean; // Whether FAB is visible
+  scrollPosition: number; // Current scroll position
   scrollDirection: 'up' | 'down' | null; // Scroll direction
-  scrollThreshold: number;               // Threshold for showing FAB
-  hideOnScrollDown: boolean;             // Whether to hide on scroll down
+  scrollThreshold: number; // Threshold for showing FAB
+  hideOnScrollDown: boolean; // Whether to hide on scroll down
 }
 ```
 
@@ -460,11 +462,7 @@ export class ScrollToTopComponent implements OnInit, OnDestroy {
 Provide clear labels for screen readers:
 
 ```html
-<button
-  class="fab"
-  aria-label="Scroll to top"
-  aria-hidden="false"
->
+<button class="fab" aria-label="Scroll to top" aria-hidden="false">
   <span aria-hidden="true">↑</span>
 </button>
 ```
@@ -517,9 +515,7 @@ function announceVisibility(visible: boolean) {
   const announcement = document.createElement('div');
   announcement.setAttribute('role', 'status');
   announcement.setAttribute('aria-live', 'polite');
-  announcement.textContent = visible
-    ? 'Quick action button available'
-    : 'Quick action button hidden';
+  announcement.textContent = visible ? 'Quick action button available' : 'Quick action button hidden';
   document.body.appendChild(announcement);
   setTimeout(() => announcement.remove(), 1000);
 }
@@ -535,9 +531,7 @@ fab.eventBus.once('fab:shown', () => {
 Respect user's motion preferences:
 
 ```typescript
-const prefersReducedMotion = window.matchMedia(
-  '(prefers-reduced-motion: reduce)'
-).matches;
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const fabStyle = {
   transition: prefersReducedMotion ? 'none' : 'all 0.3s ease',
@@ -619,7 +613,9 @@ Use CSS transitions for smooth animations:
   right: 2rem;
   opacity: 1;
   transform: scale(1);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
 .fab.hidden {
@@ -755,7 +751,6 @@ function toggleSpeedDial() {
 
 MIT
 
-
 ---
 
 ## Framework-Specific Examples
@@ -766,7 +761,6 @@ For comprehensive framework-specific implementation examples, see:
   - Scroll-aware FAB with hide-on-scroll-down behavior
   - Create new item FAB with dialog integration
   - Throttled scroll event handling
-  
 - **[Vue Examples](./examples/VUE_EXAMPLES.md#floating-action-button)** - Vue 3 Composition API examples with:
   - Reactive visibility state
   - Scroll position tracking

@@ -1,6 +1,6 @@
 /**
  * UI Patterns
- * 
+ *
  * This module will export all composed UI patterns.
  * Patterns will be implemented in subsequent tasks.
  */

@@ -13,21 +13,21 @@ import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
 
 /**
  * React hook for undo/redo stack behavior.
- * 
+ *
  * Creates and manages an undo/redo stack behavior instance, automatically handling
  * subscriptions and cleanup. This hook provides state history management with
  * undo/redo operations, supporting time-travel debugging and state persistence.
- * 
+ *
  * @example
  * ```tsx
  * interface EditorState {
  *   content: string;
  *   cursor: number;
  * }
- * 
+ *
  * function TextEditor() {
  *   const [content, setContent] = useState('');
- *   
+ *
  *   const undoRedo = useUndoRedoStack<EditorState>({
  *     initialState: { content: '', cursor: 0 },
  *     maxLength: 100,
@@ -35,7 +35,7 @@ import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
  *       setContent(state.content);
  *     },
  *   });
- * 
+ *
  *   const handleChange = (newContent: string) => {
  *     setContent(newContent);
  *     undoRedo.actions.pushState({
@@ -43,7 +43,7 @@ import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
  *       cursor: newContent.length,
  *     });
  *   };
- * 
+ *
  *   return (
  *     <div>
  *       <div>
@@ -69,28 +69,26 @@ import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
  *   );
  * }
  * ```
- * 
+ *
  * @template T The type of state being tracked in the history.
  * @param options Configuration options for the undo/redo stack behavior.
  * @returns Undo/redo stack state and actions.
  */
 export function useUndoRedoStack<T>(
-  options: UndoRedoStackOptions<T>
+  options: UndoRedoStackOptions<T>,
 ): UndoRedoStackState<T> & { actions: UndoRedoStackActions<T> } {
   const behaviorRef = useRef<UndoRedoStackBehavior<T> | null>(null);
-  
+
   // Initialize behavior only once
   if (behaviorRef.current === null) {
     behaviorRef.current = createUndoRedoStack<T>(options);
   }
 
-  const [state, setState] = useState<UndoRedoStackState<T>>(() => 
-    behaviorRef.current!.getState()
-  );
+  const [state, setState] = useState<UndoRedoStackState<T>>(() => behaviorRef.current!.getState());
 
   useEffect(() => {
     const behavior = behaviorRef.current!;
-    
+
     // Subscribe to state changes
     const unsubscribe = behavior.subscribe((newState) => {
       setState(newState);

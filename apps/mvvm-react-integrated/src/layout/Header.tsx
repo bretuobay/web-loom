@@ -13,11 +13,7 @@ export const Header = () => {
       </Link>
 
       <nav>
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) => `page-header-nav ${isActive ? 'active' : ''}`}
-        >
+        <NavLink to="/" end className={({ isActive }) => `page-header-nav ${isActive ? 'active' : ''}`}>
           Dashboard
         </NavLink>
         {navigation.map((item) => (

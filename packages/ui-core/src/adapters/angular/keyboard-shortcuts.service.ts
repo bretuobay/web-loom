@@ -13,10 +13,10 @@ import { createKeyboardShortcuts } from '../../behaviors/keyboard-shortcuts';
 
 /**
  * Angular service for keyboard shortcuts behavior.
- * 
+ *
  * Wraps the keyboard shortcuts behavior and exposes state as an RxJS Observable.
  * Automatically handles cleanup when the service is destroyed.
- * 
+ *
  * @example
  * ```typescript
  * @Component({
@@ -34,14 +34,14 @@ import { createKeyboardShortcuts } from '../../behaviors/keyboard-shortcuts';
  * })
  * export class CommandPaletteComponent implements OnInit {
  *   state$ = this.keyboardShortcutsService.getState$();
- * 
+ *
  *   constructor(private keyboardShortcutsService: KeyboardShortcutsService) {
  *     this.keyboardShortcutsService.initialize({
  *       scope: 'global',
  *       onShortcutExecuted: (key) => console.log('Executed:', key),
  *     });
  *   }
- * 
+ *
  *   ngOnInit() {
  *     this.keyboardShortcutsService.actions.registerShortcut({
  *       key: 'Ctrl+K',
@@ -49,18 +49,18 @@ import { createKeyboardShortcuts } from '../../behaviors/keyboard-shortcuts';
  *       description: 'Open command palette',
  *       preventDefault: true,
  *     });
- * 
+ *
  *     this.keyboardShortcutsService.actions.registerShortcut({
  *       key: 'Escape',
  *       handler: () => this.closePalette(),
  *       description: 'Close command palette',
  *     });
  *   }
- * 
+ *
  *   openPalette() {
  *     // Open logic
  *   }
- * 
+ *
  *   closePalette() {
  *     // Close logic
  *   }
@@ -81,7 +81,7 @@ export class KeyboardShortcutsService implements OnDestroy {
   /**
    * Initializes the keyboard shortcuts behavior with the given options.
    * Must be called before using the service.
-   * 
+   *
    * @param options Configuration options for the keyboard shortcuts behavior.
    */
   initialize(options?: KeyboardShortcutsOptions): void {
@@ -100,7 +100,7 @@ export class KeyboardShortcutsService implements OnDestroy {
 
   /**
    * Gets the state as an RxJS Observable.
-   * 
+   *
    * @returns Observable of keyboard shortcuts state.
    */
   getState$(): Observable<KeyboardShortcutsState> {
@@ -109,7 +109,7 @@ export class KeyboardShortcutsService implements OnDestroy {
 
   /**
    * Gets the current state synchronously.
-   * 
+   *
    * @returns Current keyboard shortcuts state.
    */
   getState(): KeyboardShortcutsState {
@@ -118,7 +118,7 @@ export class KeyboardShortcutsService implements OnDestroy {
 
   /**
    * Gets the keyboard shortcuts actions.
-   * 
+   *
    * @returns Keyboard shortcuts actions object.
    */
   get actions(): KeyboardShortcutsActions {

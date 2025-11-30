@@ -10,7 +10,7 @@ import {
   PhotoGalleryExample,
   SettingsInterfaceExample,
   ScrollAwareFABExample,
-  HubAndSpokeExample
+  HubAndSpokeExample,
 } from './examples';
 import './UIPatterns.css';
 
@@ -38,21 +38,17 @@ export function UIPatterns() {
     { id: 'kanban-board', label: 'Kanban Board (Drag-Drop)', component: KanbanBoardExample },
     { id: 'photo-gallery', label: 'Photo Gallery (Grid)', component: PhotoGalleryExample },
     { id: 'settings', label: 'Settings (Hub & Spoke)', component: SettingsInterfaceExample },
-    { id: 'hub-and-spoke', label: "Hub and Spoke", component: HubAndSpokeExample},
+    { id: 'hub-and-spoke', label: 'Hub and Spoke', component: HubAndSpokeExample },
     { id: 'scroll-fab', label: 'Scroll-Aware FAB', component: ScrollAwareFABExample },
   ];
 
-  const ActiveComponent =
-    examples.find((ex) => ex.id === activeExample)?.component || DialogExample;
+  const ActiveComponent = examples.find((ex) => ex.id === activeExample)?.component || DialogExample;
 
   return (
     <div className="ui-patterns-page">
       <div className="ui-patterns-header">
         <h1>UI Core & Patterns Examples</h1>
-        <p>
-          Interactive examples demonstrating @web-loom/ui-core behaviors and
-          @web-loom/ui-patterns
-        </p>
+        <p>Interactive examples demonstrating @web-loom/ui-core behaviors and @web-loom/ui-patterns</p>
       </div>
 
       <div className="ui-patterns-layout">

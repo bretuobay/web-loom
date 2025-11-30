@@ -4,7 +4,7 @@ import { createSidebarShell } from '../sidebar-shell';
 
 /**
  * Property-Based Tests for Sidebar Shell Pattern
- * 
+ *
  * These tests use fast-check to verify correctness properties across
  * a wide range of randomly generated inputs.
  */
@@ -13,7 +13,7 @@ describe('Sidebar Shell Property-Based Tests', () => {
   /**
    * Feature: ui-core-gaps, Property 34: Mobile auto-collapse
    * Validates: Requirements 10.3
-   * 
+   *
    * For any sidebar in mobile mode with expanded state, when a section is selected,
    * the sidebar should automatically collapse.
    */
@@ -53,15 +53,15 @@ describe('Sidebar Shell Property-Based Tests', () => {
           expect(finalState.width).toBe(initialWidth);
 
           sidebar.destroy();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   /**
    * Additional property: Mobile mode should not affect desktop behavior
-   * 
+   *
    * For any sidebar NOT in mobile mode, selecting a section should NOT auto-collapse
    * the sidebar, regardless of its expanded state.
    */
@@ -101,15 +101,15 @@ describe('Sidebar Shell Property-Based Tests', () => {
           expect(finalState.width).toBe(initialWidth);
 
           sidebar.destroy();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   /**
    * Additional property: Mobile mode toggle preserves other state
-   * 
+   *
    * For any sidebar state, toggling mobile mode should only change the isMobile
    * property and not affect other state properties.
    */
@@ -117,7 +117,7 @@ describe('Sidebar Shell Property-Based Tests', () => {
     fc.assert(
       fc.property(
         fc.boolean(), // initial expanded state
-        fc.string({ minLength: 0, maxLength: 50 }).map(s => s || null), // initial active section
+        fc.string({ minLength: 0, maxLength: 50 }).map((s) => s || null), // initial active section
         fc.boolean(), // initial pinned state
         fc.integer({ min: 100, max: 500 }), // initial width
         fc.boolean(), // initial mobile state
@@ -148,15 +148,15 @@ describe('Sidebar Shell Property-Based Tests', () => {
           expect(finalState.width).toBe(initialState.width);
 
           sidebar.destroy();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   /**
    * Additional property: setMobileMode is idempotent
-   * 
+   *
    * For any sidebar state, calling setMobileMode with the same value multiple times
    * should result in the same final state.
    */
@@ -185,15 +185,15 @@ describe('Sidebar Shell Property-Based Tests', () => {
           expect(stateAfterSecond).toEqual(stateAfterFirst);
 
           sidebar.destroy();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   /**
    * Additional property: Auto-collapse only happens when expanded
-   * 
+   *
    * For any sidebar in mobile mode that is already collapsed, selecting a section
    * should NOT trigger any collapse action (no-op for collapse).
    */
@@ -224,15 +224,15 @@ describe('Sidebar Shell Property-Based Tests', () => {
           expect(finalState.activeSection).toBe(sectionName);
 
           sidebar.destroy();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   /**
    * Additional property: Multiple section changes in mobile mode
-   * 
+   *
    * For any sequence of section selections in mobile mode with the sidebar expanded,
    * each selection should result in the sidebar being collapsed.
    */
@@ -262,9 +262,9 @@ describe('Sidebar Shell Property-Based Tests', () => {
           }
 
           sidebar.destroy();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

@@ -4,26 +4,22 @@
 
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import type {
-  UndoRedoStackState,
-  UndoRedoStackActions,
-  UndoRedoStackOptions,
-} from '../../behaviors/undo-redo-stack';
+import type { UndoRedoStackState, UndoRedoStackActions, UndoRedoStackOptions } from '../../behaviors/undo-redo-stack';
 import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
 
 /**
  * Angular service for undo/redo stack behavior.
- * 
+ *
  * Wraps the undo/redo stack behavior and exposes state as an RxJS Observable.
  * Automatically handles cleanup when the service is destroyed.
- * 
+ *
  * @example
  * ```typescript
  * interface EditorState {
  *   content: string;
  *   cursor: number;
  * }
- * 
+ *
  * @Component({
  *   selector: 'app-text-editor',
  *   template: `
@@ -57,7 +53,7 @@ import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
  * export class TextEditorComponent {
  *   state$ = this.undoRedoService.getState$();
  *   content = '';
- * 
+ *
  *   constructor(private undoRedoService: UndoRedoStackService<EditorState>) {
  *     this.undoRedoService.initialize({
  *       initialState: { content: '', cursor: 0 },
@@ -67,7 +63,7 @@ import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
  *       },
  *     });
  *   }
- * 
+ *
  *   handleChange(event: Event) {
  *     const target = event.target as HTMLTextAreaElement;
  *     this.content = target.value;
@@ -76,11 +72,11 @@ import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
  *       cursor: target.selectionStart,
  *     });
  *   }
- * 
+ *
  *   undo() {
  *     this.undoRedoService.actions.undo();
  *   }
- * 
+ *
  *   redo() {
  *     this.undoRedoService.actions.redo();
  *   }
@@ -96,7 +92,7 @@ export class UndoRedoStackService<T> implements OnDestroy {
   /**
    * Initializes the undo/redo stack behavior with the given options.
    * Must be called before using the service.
-   * 
+   *
    * @param options Configuration options for the undo/redo stack behavior.
    */
   initialize(options: UndoRedoStackOptions<T>): void {
@@ -106,7 +102,7 @@ export class UndoRedoStackService<T> implements OnDestroy {
     }
 
     this.behavior = createUndoRedoStack<T>(options);
-    
+
     // Initialize state$ with the initial state
     if (!this.state$) {
       this.state$ = new BehaviorSubject<UndoRedoStackState<T>>(this.behavior.getState());
@@ -121,7 +117,7 @@ export class UndoRedoStackService<T> implements OnDestroy {
 
   /**
    * Gets the state as an RxJS Observable.
-   * 
+   *
    * @returns Observable of undo/redo stack state.
    */
   getState$(): Observable<UndoRedoStackState<T>> {
@@ -133,7 +129,7 @@ export class UndoRedoStackService<T> implements OnDestroy {
 
   /**
    * Gets the current state synchronously.
-   * 
+   *
    * @returns Current undo/redo stack state.
    */
   getState(): UndoRedoStackState<T> {
@@ -145,7 +141,7 @@ export class UndoRedoStackService<T> implements OnDestroy {
 
   /**
    * Gets the undo/redo stack actions.
-   * 
+   *
    * @returns Undo/redo stack actions object.
    */
   get actions(): UndoRedoStackActions<T> {

@@ -1,9 +1,9 @@
 /**
  * Type definitions for UI Core
- * 
+ *
  * This module exports all TypeScript type definitions for UI Core behaviors.
  * These types provide full type safety and excellent IDE autocomplete support.
- * 
+ *
  * @packageDocumentation
  */
 
@@ -13,13 +13,13 @@
 
 /**
  * Base interface for all UI Core behaviors.
- * 
+ *
  * All behaviors follow this consistent interface pattern, providing:
  * - State access via `getState()`
  * - Reactive updates via `subscribe()`
  * - Actions for state manipulation
  * - Cleanup via `destroy()`
- * 
+ *
  * @template TState The state type for this behavior
  * @template TActions The actions type for this behavior
  */
@@ -34,16 +34,16 @@ export interface Behavior<TState, TActions> {
    * Subscribes to state changes.
    * The listener will be called immediately with the current state,
    * and then again whenever the state changes.
-   * 
+   *
    * @param listener Function called when state changes
    * @returns Unsubscribe function to stop listening to changes
-   * 
+   *
    * @example
    * ```typescript
    * const unsubscribe = behavior.subscribe((state) => {
    *   console.log('State changed:', state);
    * });
-   * 
+   *
    * // Later, stop listening
    * unsubscribe();
    * ```
@@ -59,7 +59,7 @@ export interface Behavior<TState, TActions> {
   /**
    * Destroys the behavior and cleans up all subscriptions.
    * Always call this method when you're done with a behavior to prevent memory leaks.
-   * 
+   *
    * @example
    * ```typescript
    * // In React useEffect cleanup

@@ -8,10 +8,7 @@ const CONTEXT_MULTIPLIERS: Record<'body' | 'heading' | 'caption', number> = {
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-export function calculateOptimalLineHeight(
-  fontSize: number,
-  context: 'body' | 'heading' | 'caption' = 'body',
-): number {
+export function calculateOptimalLineHeight(fontSize: number, context: 'body' | 'heading' | 'caption' = 'body'): number {
   if (fontSize <= 0) {
     throw new Error('fontSize must be greater than zero.');
   }

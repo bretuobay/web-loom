@@ -15,7 +15,8 @@ export class NetworkObservable {
       fromEvent(window, 'offline').subscribe(() => this.updateStatus());
 
       // Listen to connection changes if available
-      const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+      const connection =
+        (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
       if (connection) {
         fromEvent(connection, 'change').subscribe(() => this.updateStatus());
       }
@@ -27,7 +28,7 @@ export class NetworkObservable {
   }
 
   get online$(): Observable<boolean> {
-    return this._status$.pipe(map(status => status.online));
+    return this._status$.pipe(map((status) => status.online));
   }
 
   getCurrentStatus(): NetworkStatus {
@@ -35,11 +36,12 @@ export class NetworkObservable {
       return { online: true, effectiveType: 'unknown' };
     }
 
-    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    const connection =
+      (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
 
     return {
       online: navigator.onLine,
-      effectiveType: connection?.effectiveType as NetworkType || 'unknown',
+      effectiveType: (connection?.effectiveType as NetworkType) || 'unknown',
       downlink: connection?.downlink,
       rtt: connection?.rtt,
     };

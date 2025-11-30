@@ -147,11 +147,11 @@ export interface TabbedInterfaceBehavior {
 
 /**
  * Creates a tabbed interface pattern with keyboard navigation support.
- * 
+ *
  * This pattern composes roving focus behavior for keyboard navigation between tabs
  * and manages the visibility of tab panels. It's ideal for building accessible
  * tab-based UIs with proper keyboard support.
- * 
+ *
  * @example
  * ```typescript
  * const tabs: Tab[] = [
@@ -159,7 +159,7 @@ export interface TabbedInterfaceBehavior {
  *   { id: 'tab-2', label: 'Settings' },
  *   { id: 'tab-3', label: 'Notifications' },
  * ];
- * 
+ *
  * const tabbedInterface = createTabbedInterface({
  *   tabs,
  *   orientation: 'horizontal',
@@ -167,37 +167,34 @@ export interface TabbedInterfaceBehavior {
  *     console.log('Active tab:', tabId);
  *   },
  * });
- * 
+ *
  * // Activate a tab
  * tabbedInterface.actions.activateTab('tab-2');
  * console.log(tabbedInterface.getState().activeTabId); // 'tab-2'
- * 
+ *
  * // Add a new tab
  * tabbedInterface.actions.addTab({ id: 'tab-4', label: 'Help' });
- * 
+ *
  * // Remove a tab
  * tabbedInterface.actions.removeTab('tab-3');
- * 
+ *
  * // Move a tab
  * tabbedInterface.actions.moveTab(0, 2); // Move first tab to third position
- * 
+ *
  * // Clean up
  * tabbedInterface.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the tabbed interface pattern.
  * @returns A tabbed interface pattern instance.
  */
-export function createTabbedInterface(
-  options?: TabbedInterfaceOptions
-): TabbedInterfaceBehavior {
+export function createTabbedInterface(options?: TabbedInterfaceOptions): TabbedInterfaceBehavior {
   const tabs = options?.tabs || [];
   const orientation = options?.orientation || 'horizontal';
   const wrap = options?.wrap ?? true;
 
   // Determine initial active tab
-  const initialActiveTabId =
-    options?.initialActiveTabId || (tabs.length > 0 ? tabs[0].id : '');
+  const initialActiveTabId = options?.initialActiveTabId || (tabs.length > 0 ? tabs[0].id : '');
 
   // Flag to prevent circular updates between activateTab and roving focus
   let isUpdatingFromRovingFocus = false;
@@ -213,11 +210,11 @@ export function createTabbedInterface(
   // Subscribe to roving focus changes to sync with active tab
   const rovingFocusUnsubscribe = rovingFocus.subscribe((focusState) => {
     if (isUpdatingFromRovingFocus) return; // Prevent circular updates
-    
+
     if (focusState.items.length > 0 && focusState.currentIndex >= 0) {
       const focusedTabId = focusState.items[focusState.currentIndex];
       const currentState = store.getState();
-      
+
       // Only update if the focused tab is different from the active tab
       if (focusedTabId !== currentState.activeTabId) {
         // Check if the tab is not disabled
@@ -273,7 +270,7 @@ export function createTabbedInterface(
     addTab: (tab: Tab) => {
       set((state) => {
         const newTabs = [...state.tabs, tab];
-        
+
         // Update roving focus items
         rovingFocus.actions.setItems(newTabs.map((t) => t.id));
 
@@ -296,7 +293,7 @@ export function createTabbedInterface(
 
       set((currentState) => {
         const newTabs = currentState.tabs.filter((t) => t.id !== tabId);
-        
+
         // Update roving focus items
         rovingFocus.actions.setItems(newTabs.map((t) => t.id));
 

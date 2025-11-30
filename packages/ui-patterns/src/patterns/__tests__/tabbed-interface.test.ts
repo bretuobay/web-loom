@@ -324,7 +324,7 @@ describe('createTabbedInterface', () => {
 
       // Activate a non-moving tab to avoid circular updates
       tabbedInterface.actions.activateTab('tab-2');
-      
+
       tabbedInterface.actions.moveTab(0, 2);
 
       const state = tabbedInterface.getState();
@@ -341,7 +341,7 @@ describe('createTabbedInterface', () => {
 
       // Activate a non-moving tab to avoid circular updates
       tabbedInterface.actions.activateTab('tab-3');
-      
+
       tabbedInterface.actions.moveTab(0, 1);
 
       const state = tabbedInterface.getState();
@@ -358,7 +358,7 @@ describe('createTabbedInterface', () => {
 
       // Activate a non-moving tab to avoid circular updates
       tabbedInterface.actions.activateTab('tab-1');
-      
+
       tabbedInterface.actions.moveTab(2, 0);
 
       const state = tabbedInterface.getState();

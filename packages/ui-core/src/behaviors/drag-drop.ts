@@ -145,11 +145,11 @@ export interface DragDropBehavior {
 
 /**
  * Creates a drag-and-drop behavior for managing drag-and-drop interaction state.
- * 
+ *
  * This behavior manages drag state including drag source, drop target, drag data,
  * and reordering logic. It provides a framework-agnostic way to implement
  * drag-and-drop functionality with support for validation and keyboard alternatives.
- * 
+ *
  * @example
  * ```typescript
  * const dragDrop = createDragDropBehavior({
@@ -163,30 +163,28 @@ export interface DragDropBehavior {
  *     return dropTarget !== 'restricted-zone';
  *   },
  * });
- * 
+ *
  * // Register drop zones
  * dragDrop.actions.registerDropZone('zone-1');
  * dragDrop.actions.registerDropZone('zone-2');
- * 
+ *
  * // Start dragging
  * dragDrop.actions.startDrag('item-1', { type: 'card', priority: 'high' });
- * 
+ *
  * // Set drop target
  * dragDrop.actions.setDropTarget('zone-1');
- * 
+ *
  * // Perform drop
  * dragDrop.actions.drop('zone-1');
- * 
+ *
  * // Clean up
  * dragDrop.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the drag-and-drop behavior.
  * @returns A drag-and-drop behavior instance.
  */
-export function createDragDropBehavior(
-  options?: DragDropOptions
-): DragDropBehavior {
+export function createDragDropBehavior(options?: DragDropOptions): DragDropBehavior {
   const initialState: DragDropState = {
     draggedItem: null,
     dropTarget: null,
@@ -196,148 +194,148 @@ export function createDragDropBehavior(
     dragOverZone: null,
   };
 
-  const store: Store<DragDropState, DragDropActions> = createStore<
-    DragDropState,
-    DragDropActions
-  >(initialState, (set, get) => ({
-    startDrag: (itemId: string, data?: any) => {
-      const state = get();
+  const store: Store<DragDropState, DragDropActions> = createStore<DragDropState, DragDropActions>(
+    initialState,
+    (set, get) => ({
+      startDrag: (itemId: string, data?: any) => {
+        const state = get();
 
-      if (state.isDragging) {
-        console.warn('Cannot start drag: drag operation already in progress');
-        return;
-      }
-
-      set(() => ({
-        ...state,
-        draggedItem: itemId,
-        isDragging: true,
-        dragData: data ?? null,
-      }));
-
-      // Invoke onDragStart callback if provided
-      if (options?.onDragStart) {
-        options.onDragStart(itemId, data ?? null);
-      }
-    },
-
-    endDrag: () => {
-      const state = get();
-
-      if (!state.isDragging) {
-        console.warn('Cannot end drag: no active drag operation');
-        return;
-      }
-
-      const draggedItem = state.draggedItem;
-
-      set(() => ({
-        draggedItem: null,
-        dropTarget: null,
-        isDragging: false,
-        dragData: null,
-        dropZones: state.dropZones,
-        dragOverZone: null,
-      }));
-
-      // Invoke onDragEnd callback if provided
-      if (options?.onDragEnd && draggedItem) {
-        options.onDragEnd(draggedItem);
-      }
-    },
-
-    setDropTarget: (targetId: string | null) => {
-      const state = get();
-
-      set(() => ({
-        ...state,
-        dropTarget: targetId,
-      }));
-    },
-
-    drop: (targetId: string) => {
-      const state = get();
-
-      // Validate that we're currently dragging
-      if (!state.isDragging) {
-        console.warn('Cannot drop: no active drag operation');
-        return;
-      }
-
-      // Validate that the target is a registered drop zone
-      if (!state.dropZones.includes(targetId)) {
-        console.error(`Invalid drop target: ${targetId} is not a registered drop zone`);
-        return;
-      }
-
-      // Validate drop using custom validation function if provided
-      if (options?.validateDrop && state.draggedItem) {
-        const isValid = options.validateDrop(state.draggedItem, targetId);
-        if (!isValid) {
-          console.warn(`Drop validation failed for ${state.draggedItem} on ${targetId}`);
+        if (state.isDragging) {
+          console.warn('Cannot start drag: drag operation already in progress');
           return;
         }
-      }
 
-      // Invoke onDrop callback if provided
-      if (options?.onDrop && state.draggedItem) {
-        options.onDrop(state.draggedItem, targetId, state.dragData);
-      }
+        set(() => ({
+          ...state,
+          draggedItem: itemId,
+          isDragging: true,
+          dragData: data ?? null,
+        }));
 
-      // End the drag operation
-      const draggedItem = state.draggedItem;
-      set(() => ({
-        draggedItem: null,
-        dropTarget: null,
-        isDragging: false,
-        dragData: null,
-        dropZones: state.dropZones,
-        dragOverZone: null,
-      }));
+        // Invoke onDragStart callback if provided
+        if (options?.onDragStart) {
+          options.onDragStart(itemId, data ?? null);
+        }
+      },
 
-      // Invoke onDragEnd callback if provided
-      if (options?.onDragEnd && draggedItem) {
-        options.onDragEnd(draggedItem);
-      }
-    },
+      endDrag: () => {
+        const state = get();
 
-    registerDropZone: (zoneId: string) => {
-      const state = get();
+        if (!state.isDragging) {
+          console.warn('Cannot end drag: no active drag operation');
+          return;
+        }
 
-      if (state.dropZones.includes(zoneId)) {
-        console.warn(`Drop zone ${zoneId} is already registered`);
-        return;
-      }
+        const draggedItem = state.draggedItem;
 
-      set(() => ({
-        ...state,
-        dropZones: [...state.dropZones, zoneId],
-      }));
-    },
+        set(() => ({
+          draggedItem: null,
+          dropTarget: null,
+          isDragging: false,
+          dragData: null,
+          dropZones: state.dropZones,
+          dragOverZone: null,
+        }));
 
-    unregisterDropZone: (zoneId: string) => {
-      const state = get();
+        // Invoke onDragEnd callback if provided
+        if (options?.onDragEnd && draggedItem) {
+          options.onDragEnd(draggedItem);
+        }
+      },
 
-      if (!state.dropZones.includes(zoneId)) {
-        console.warn(`Drop zone ${zoneId} is not registered`);
-        return;
-      }
+      setDropTarget: (targetId: string | null) => {
+        const state = get();
 
-      set(() => ({
-        ...state,
-        dropZones: state.dropZones.filter((id) => id !== zoneId),
-      }));
-    },
+        set(() => ({
+          ...state,
+          dropTarget: targetId,
+        }));
+      },
 
-    setDragOver: (zoneId: string | null) => {
-      const state = get();
+      drop: (targetId: string) => {
+        const state = get();
 
-      set(() => ({
-        ...state,
-        dragOverZone: zoneId,
-      }));
-    },
-  }));
+        // Validate that we're currently dragging
+        if (!state.isDragging) {
+          console.warn('Cannot drop: no active drag operation');
+          return;
+        }
+
+        // Validate that the target is a registered drop zone
+        if (!state.dropZones.includes(targetId)) {
+          console.error(`Invalid drop target: ${targetId} is not a registered drop zone`);
+          return;
+        }
+
+        // Validate drop using custom validation function if provided
+        if (options?.validateDrop && state.draggedItem) {
+          const isValid = options.validateDrop(state.draggedItem, targetId);
+          if (!isValid) {
+            console.warn(`Drop validation failed for ${state.draggedItem} on ${targetId}`);
+            return;
+          }
+        }
+
+        // Invoke onDrop callback if provided
+        if (options?.onDrop && state.draggedItem) {
+          options.onDrop(state.draggedItem, targetId, state.dragData);
+        }
+
+        // End the drag operation
+        const draggedItem = state.draggedItem;
+        set(() => ({
+          draggedItem: null,
+          dropTarget: null,
+          isDragging: false,
+          dragData: null,
+          dropZones: state.dropZones,
+          dragOverZone: null,
+        }));
+
+        // Invoke onDragEnd callback if provided
+        if (options?.onDragEnd && draggedItem) {
+          options.onDragEnd(draggedItem);
+        }
+      },
+
+      registerDropZone: (zoneId: string) => {
+        const state = get();
+
+        if (state.dropZones.includes(zoneId)) {
+          console.warn(`Drop zone ${zoneId} is already registered`);
+          return;
+        }
+
+        set(() => ({
+          ...state,
+          dropZones: [...state.dropZones, zoneId],
+        }));
+      },
+
+      unregisterDropZone: (zoneId: string) => {
+        const state = get();
+
+        if (!state.dropZones.includes(zoneId)) {
+          console.warn(`Drop zone ${zoneId} is not registered`);
+          return;
+        }
+
+        set(() => ({
+          ...state,
+          dropZones: state.dropZones.filter((id) => id !== zoneId),
+        }));
+      },
+
+      setDragOver: (zoneId: string | null) => {
+        const state = get();
+
+        set(() => ({
+          ...state,
+          dragOverZone: zoneId,
+        }));
+      },
+    }),
+  );
 
   return {
     getState: store.getState,

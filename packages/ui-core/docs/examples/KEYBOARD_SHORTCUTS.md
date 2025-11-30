@@ -5,6 +5,7 @@
 The Keyboard Shortcuts behavior provides a centralized way to manage keyboard shortcuts in your application. It handles key combination parsing, platform normalization (Cmd on macOS, Ctrl on Windows/Linux), conflict resolution, and provides both global and scoped shortcut support.
 
 **Key Features:**
+
 - Platform-agnostic key combination parsing
 - Automatic Cmd/Ctrl normalization for cross-platform compatibility
 - Global and scoped shortcut support
@@ -58,6 +59,7 @@ shortcuts.destroy();
 Creates a keyboard shortcuts behavior instance.
 
 **Parameters:**
+
 - `options` (optional): Configuration options
   - `scope?: 'global' | 'scoped'` - Initial scope for shortcuts (default: 'global')
   - `onShortcutExecuted?: (key: string) => void` - Callback invoked when a shortcut is executed
@@ -68,10 +70,10 @@ Creates a keyboard shortcuts behavior instance.
 
 ```typescript
 interface KeyboardShortcutsState {
-  shortcuts: Map<string, KeyboardShortcut>;  // Registered shortcuts
-  scope: 'global' | 'scoped';                // Current scope
-  activeShortcuts: string[];                 // Array of registered keys
-  enabled: boolean;                          // Whether shortcuts are enabled
+  shortcuts: Map<string, KeyboardShortcut>; // Registered shortcuts
+  scope: 'global' | 'scoped'; // Current scope
+  activeShortcuts: string[]; // Array of registered keys
+  enabled: boolean; // Whether shortcuts are enabled
 }
 ```
 
@@ -92,11 +94,11 @@ interface KeyboardShortcutsActions {
 
 ```typescript
 interface KeyboardShortcut {
-  key: string;                    // e.g., "Ctrl+K", "Cmd+Shift+P"
-  handler: () => void;            // Function to execute
-  description?: string;           // Optional description
-  preventDefault?: boolean;       // Prevent default browser behavior
-  scope?: 'global' | 'scoped';   // Shortcut scope
+  key: string; // e.g., "Ctrl+K", "Cmd+Shift+P"
+  handler: () => void; // Function to execute
+  description?: string; // Optional description
+  preventDefault?: boolean; // Prevent default browser behavior
+  scope?: 'global' | 'scoped'; // Shortcut scope
 }
 ```
 
@@ -198,11 +200,11 @@ shortcuts.actions.registerShortcut({
 // Display help panel
 function showShortcutHelp() {
   const state = shortcuts.getState();
-  const helpItems = Array.from(state.shortcuts.values()).map(shortcut => ({
+  const helpItems = Array.from(state.shortcuts.values()).map((shortcut) => ({
     key: shortcut.key,
     description: shortcut.description || 'No description',
   }));
-  
+
   console.table(helpItems);
 }
 ```
@@ -246,7 +248,7 @@ export default {
     onMounted(() => {
       shortcuts.registerShortcut({
         key: 'Ctrl+K',
-        handler: () => isOpen.value = true,
+        handler: () => (isOpen.value = true),
         description: 'Open command palette',
         preventDefault: true,
       });

@@ -187,7 +187,7 @@ export interface CommandPaletteBehavior {
 /**
  * Performs fuzzy matching on a string against a query.
  * Returns a score (higher is better) or -1 if no match.
- * 
+ *
  * @param str The string to match against.
  * @param query The search query.
  * @returns Match score or -1 if no match.
@@ -235,7 +235,7 @@ function fuzzyMatch(str: string, query: string): number {
 
 /**
  * Filters and sorts commands based on a fuzzy search query.
- * 
+ *
  * @param commands All available commands.
  * @param query The search query.
  * @returns Filtered and sorted commands.
@@ -280,11 +280,11 @@ function filterCommands(commands: Command[], query: string): Command[] {
 
 /**
  * Creates a command palette pattern for keyboard-driven command interfaces.
- * 
+ *
  * This pattern composes dialog behavior for open/close state and roving focus
  * for keyboard navigation. It provides fuzzy search filtering to help users
  * quickly find and execute commands.
- * 
+ *
  * @example
  * ```typescript
  * const commandPalette = createCommandPalette({
@@ -317,29 +317,29 @@ function filterCommands(commands: Command[], query: string): Command[] {
  *     console.log('Executed:', command.label);
  *   },
  * });
- * 
+ *
  * // Open the palette
  * commandPalette.actions.open();
- * 
+ *
  * // Search for commands
  * commandPalette.actions.setQuery('save');
  * console.log(commandPalette.getState().filteredCommands.length); // 1
- * 
+ *
  * // Navigate with keyboard (using convenience methods)
  * commandPalette.actions.selectNext();
  * commandPalette.actions.selectPrevious();
- * 
+ *
  * // Execute the selected command (using convenience method)
  * await commandPalette.actions.executeSelected();
- * 
+ *
  * // Or navigate with roving focus directly
  * commandPalette.rovingFocus.actions.moveNext();
- * 
+ *
  * // Or execute a specific command by ID
  * const state = commandPalette.getState();
  * const selectedCommand = state.filteredCommands[state.selectedIndex];
  * await commandPalette.actions.executeCommand(selectedCommand.id);
- * 
+ *
  * // Register a new command
  * commandPalette.actions.registerCommand({
  *   id: 'close',
@@ -347,17 +347,15 @@ function filterCommands(commands: Command[], query: string): Command[] {
  *   category: 'File',
  *   action: () => console.log('Closing file...'),
  * });
- * 
+ *
  * // Clean up
  * commandPalette.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the command palette pattern.
  * @returns A command palette pattern instance.
  */
-export function createCommandPalette(
-  options?: CommandPaletteOptions
-): CommandPaletteBehavior {
+export function createCommandPalette(options?: CommandPaletteOptions): CommandPaletteBehavior {
   const initialCommands = options?.commands || [];
 
   // Create dialog behavior for open/close state

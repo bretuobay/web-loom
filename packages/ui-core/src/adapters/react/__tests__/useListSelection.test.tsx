@@ -15,17 +15,13 @@ describe('useListSelection', () => {
 
     it('should initialize with provided items', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useListSelection({ items })
-      );
+      const { result } = renderHook(() => useListSelection({ items }));
 
       expect(result.current.items).toEqual(items);
     });
 
     it('should initialize with multi selection mode', () => {
-      const { result } = renderHook(() => 
-        useListSelection({ mode: 'multi' })
-      );
+      const { result } = renderHook(() => useListSelection({ mode: 'multi' }));
 
       expect(result.current.mode).toBe('multi');
     });
@@ -34,9 +30,7 @@ describe('useListSelection', () => {
   describe('state updates trigger re-renders', () => {
     it('should update component when selecting an item', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useListSelection({ items })
-      );
+      const { result } = renderHook(() => useListSelection({ items }));
 
       act(() => {
         result.current.actions.select('item-1');
@@ -48,9 +42,7 @@ describe('useListSelection', () => {
 
     it('should update component when deselecting an item', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useListSelection({ items, mode: 'multi' })
-      );
+      const { result } = renderHook(() => useListSelection({ items, mode: 'multi' }));
 
       act(() => {
         result.current.actions.select('item-1');
@@ -62,9 +54,7 @@ describe('useListSelection', () => {
 
     it('should update component when toggling selection', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useListSelection({ items, mode: 'multi' })
-      );
+      const { result } = renderHook(() => useListSelection({ items, mode: 'multi' }));
 
       act(() => {
         result.current.actions.toggleSelection('item-1');
@@ -81,9 +71,7 @@ describe('useListSelection', () => {
 
     it('should update component when clearing selection', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useListSelection({ items, mode: 'multi' })
-      );
+      const { result } = renderHook(() => useListSelection({ items, mode: 'multi' }));
 
       act(() => {
         result.current.actions.select('item-1');
@@ -97,9 +85,7 @@ describe('useListSelection', () => {
 
     it('should update component when selecting all items', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useListSelection({ items, mode: 'multi' })
-      );
+      const { result } = renderHook(() => useListSelection({ items, mode: 'multi' }));
 
       act(() => {
         result.current.actions.selectAll();
@@ -112,9 +98,7 @@ describe('useListSelection', () => {
   describe('single selection mode', () => {
     it('should only allow one item to be selected', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useListSelection({ items, mode: 'single' })
-      );
+      const { result } = renderHook(() => useListSelection({ items, mode: 'single' }));
 
       act(() => {
         result.current.actions.select('item-1');
@@ -134,9 +118,7 @@ describe('useListSelection', () => {
   describe('multi selection mode', () => {
     it('should allow multiple items to be selected', () => {
       const items = ['item-1', 'item-2', 'item-3'];
-      const { result } = renderHook(() => 
-        useListSelection({ items, mode: 'multi' })
-      );
+      const { result } = renderHook(() => useListSelection({ items, mode: 'multi' }));
 
       act(() => {
         result.current.actions.select('item-1');
@@ -151,9 +133,7 @@ describe('useListSelection', () => {
   describe('range selection mode', () => {
     it('should select range of items', () => {
       const items = ['item-1', 'item-2', 'item-3', 'item-4'];
-      const { result } = renderHook(() => 
-        useListSelection({ items, mode: 'range' })
-      );
+      const { result } = renderHook(() => useListSelection({ items, mode: 'range' }));
 
       act(() => {
         result.current.actions.selectRange('item-1', 'item-3');
@@ -168,9 +148,7 @@ describe('useListSelection', () => {
 
   describe('cleanup on unmount', () => {
     it('should clean up behavior when component unmounts', () => {
-      const { result, unmount } = renderHook(() => 
-        useListSelection({ items: ['item-1', 'item-2'] })
-      );
+      const { result, unmount } = renderHook(() => useListSelection({ items: ['item-1', 'item-2'] }));
 
       act(() => {
         result.current.actions.select('item-1');
@@ -186,9 +164,7 @@ describe('useListSelection', () => {
 
   describe('behavior instance stability', () => {
     it('should maintain same behavior instance across re-renders', () => {
-      const { result, rerender } = renderHook(() => 
-        useListSelection({ items: ['item-1', 'item-2'] })
-      );
+      const { result, rerender } = renderHook(() => useListSelection({ items: ['item-1', 'item-2'] }));
 
       const firstActions = result.current.actions;
 

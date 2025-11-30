@@ -16,7 +16,7 @@ interface Column {
 
 /**
  * Kanban Board Example with Drag-and-Drop
- * 
+ *
  * Demonstrates:
  * - useDragDropBehavior hook for drag-and-drop
  * - Moving tasks between columns
@@ -35,16 +35,12 @@ export function KanbanBoardExample() {
     {
       id: 'in-progress',
       title: 'In Progress',
-      tasks: [
-        { id: 'task-3', title: 'Implement API', description: 'Build REST API endpoints' },
-      ],
+      tasks: [{ id: 'task-3', title: 'Implement API', description: 'Build REST API endpoints' }],
     },
     {
       id: 'done',
       title: 'Done',
-      tasks: [
-        { id: 'task-4', title: 'Setup project', description: 'Initialize repository and dependencies' },
-      ],
+      tasks: [{ id: 'task-4', title: 'Setup project', description: 'Initialize repository and dependencies' }],
     },
   ]);
 
@@ -58,29 +54,29 @@ export function KanbanBoardExample() {
   });
 
   const moveTask = (taskId: string, targetColumnId: string) => {
-    setColumns(prevColumns => {
+    setColumns((prevColumns) => {
       const newColumns = [...prevColumns];
-      
+
       // Find source column and task
       let task: Task | undefined;
-      
+
       for (const col of newColumns) {
-        const taskIndex = col.tasks.findIndex(t => t.id === taskId);
+        const taskIndex = col.tasks.findIndex((t) => t.id === taskId);
         if (taskIndex !== -1) {
           task = col.tasks[taskIndex];
           col.tasks.splice(taskIndex, 1);
           break;
         }
       }
-      
+
       // Add to target column
       if (task) {
-        const targetColumn = newColumns.find(c => c.id === targetColumnId);
+        const targetColumn = newColumns.find((c) => c.id === targetColumnId);
         if (targetColumn) {
           targetColumn.tasks.push(task);
         }
       }
-      
+
       return newColumns;
     });
   };
@@ -101,17 +97,14 @@ export function KanbanBoardExample() {
 
   const handleKeyboardMove = (direction: 'left' | 'right') => {
     if (!selectedTask) return;
-    
-    const currentColumnIndex = columns.findIndex(col => 
-      col.tasks.some(t => t.id === selectedTask)
-    );
-    
+
+    const currentColumnIndex = columns.findIndex((col) => col.tasks.some((t) => t.id === selectedTask));
+
     if (currentColumnIndex === -1) return;
-    
-    const targetIndex = direction === 'left' 
-      ? Math.max(0, currentColumnIndex - 1)
-      : Math.min(columns.length - 1, currentColumnIndex + 1);
-    
+
+    const targetIndex =
+      direction === 'left' ? Math.max(0, currentColumnIndex - 1) : Math.min(columns.length - 1, currentColumnIndex + 1);
+
     if (targetIndex !== currentColumnIndex) {
       moveTask(selectedTask, columns[targetIndex].id);
     }
@@ -122,31 +115,25 @@ export function KanbanBoardExample() {
       <div className="example-header">
         <h2>Kanban Board with Drag-and-Drop</h2>
         <p>
-          This example demonstrates the <code>useDragDropBehavior</code> hook
-          for implementing drag-and-drop between columns with keyboard alternatives.
+          This example demonstrates the <code>useDragDropBehavior</code> hook for implementing drag-and-drop between
+          columns with keyboard alternatives.
         </p>
       </div>
 
       <div className="example-content">
         <div className="kanban-controls">
           <button
-            onClick={() => setKeyboardMode(prev => !prev)}
+            onClick={() => setKeyboardMode((prev) => !prev)}
             className={`control-button ${keyboardMode ? 'primary' : 'secondary'}`}
           >
             {keyboardMode ? '⌨️ Keyboard Mode: ON' : '🖱️ Mouse Mode'}
           </button>
           {keyboardMode && selectedTask && (
             <div className="keyboard-controls">
-              <button
-                onClick={() => handleKeyboardMove('left')}
-                className="control-button"
-              >
+              <button onClick={() => handleKeyboardMove('left')} className="control-button">
                 ← Move Left
               </button>
-              <button
-                onClick={() => handleKeyboardMove('right')}
-                className="control-button"
-              >
+              <button onClick={() => handleKeyboardMove('right')} className="control-button">
                 → Move Right
               </button>
             </div>
@@ -171,12 +158,10 @@ export function KanbanBoardExample() {
                 <h3>{column.title}</h3>
                 <span className="task-count">{column.tasks.length}</span>
               </div>
-              
+
               <div className="kanban-column-content">
                 {column.tasks.length === 0 ? (
-                  <div className="empty-column">
-                    Drop tasks here
-                  </div>
+                  <div className="empty-column">Drop tasks here</div>
                 ) : (
                   column.tasks.map((task) => (
                     <div
@@ -185,17 +170,13 @@ export function KanbanBoardExample() {
                       onDragStart={() => handleDragStart(task.id)}
                       onDragEnd={handleDragEnd}
                       onClick={() => keyboardMode && setSelectedTask(task.id)}
-                      className={`kanban-task ${
-                        dragDrop.draggedItem === task.id ? 'dragging' : ''
-                      } ${
+                      className={`kanban-task ${dragDrop.draggedItem === task.id ? 'dragging' : ''} ${
                         keyboardMode && selectedTask === task.id ? 'selected' : ''
                       }`}
                     >
                       <div className="task-title">{task.title}</div>
                       <div className="task-description">{task.description}</div>
-                      {!keyboardMode && (
-                        <div className="drag-handle">⋮⋮</div>
-                      )}
+                      {!keyboardMode && <div className="drag-handle">⋮⋮</div>}
                     </div>
                   ))
                 )}
@@ -215,15 +196,11 @@ export function KanbanBoardExample() {
             </div>
             <div className="state-item">
               <span className="state-label">Dragged Item:</span>
-              <span className="state-value">
-                {dragDrop.draggedItem || 'None'}
-              </span>
+              <span className="state-value">{dragDrop.draggedItem || 'None'}</span>
             </div>
             <div className="state-item">
               <span className="state-label">Drop Target:</span>
-              <span className="state-value">
-                {dragDrop.dropTarget || 'None'}
-              </span>
+              <span className="state-value">{dragDrop.dropTarget || 'None'}</span>
             </div>
           </div>
         </div>

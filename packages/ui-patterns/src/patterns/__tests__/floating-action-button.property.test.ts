@@ -4,7 +4,7 @@ import { createFloatingActionButton } from '../floating-action-button';
 
 /**
  * Property-Based Tests for Floating Action Button Pattern
- * 
+ *
  * These tests validate the correctness properties defined in the design document
  * using property-based testing with fast-check.
  */
@@ -23,84 +23,76 @@ describe('Floating Action Button - Property-Based Tests', () => {
   /**
    * Feature: ui-core-gaps, Property 26: Scroll direction detection
    * Validates: Requirements 6.4
-   * 
+   *
    * For any two consecutive scroll positions, the scroll direction should be
    * correctly calculated as 'up' or 'down'.
    */
   it('Property 26: Scroll direction detection', () => {
     fc.assert(
-      fc.property(
-        scrollPositionArbitrary,
-        scrollPositionArbitrary,
-        (position1, position2) => {
-          const fab = createFloatingActionButton();
+      fc.property(scrollPositionArbitrary, scrollPositionArbitrary, (position1, position2) => {
+        const fab = createFloatingActionButton();
 
-          // Set first position
-          fab.actions.setScrollPosition(position1);
+        // Set first position
+        fab.actions.setScrollPosition(position1);
 
-          // Set second position
-          fab.actions.setScrollPosition(position2);
+        // Set second position
+        fab.actions.setScrollPosition(position2);
 
-          const state = fab.getState();
+        const state = fab.getState();
 
-          // Verify scroll direction
-          if (position2 > position1) {
-            expect(state.scrollDirection).toBe('down');
-          } else if (position2 < position1) {
-            expect(state.scrollDirection).toBe('up');
-          } else {
-            // Same position, direction should be null
-            expect(state.scrollDirection).toBe(null);
-          }
-
-          fab.destroy();
+        // Verify scroll direction
+        if (position2 > position1) {
+          expect(state.scrollDirection).toBe('down');
+        } else if (position2 < position1) {
+          expect(state.scrollDirection).toBe('up');
+        } else {
+          // Same position, direction should be null
+          expect(state.scrollDirection).toBe(null);
         }
-      ),
-      { numRuns: 100 }
+
+        fab.destroy();
+      }),
+      { numRuns: 100 },
     );
   });
 
   /**
    * Feature: ui-core-gaps, Property 27: Threshold-based visibility
    * Validates: Requirements 6.5, 6.6
-   * 
+   *
    * For any scroll position above the threshold, the FAB should be visible;
    * for any position below, it should be hidden.
    */
   it('Property 27: Threshold-based visibility', () => {
     fc.assert(
-      fc.property(
-        scrollThresholdArbitrary,
-        scrollPositionArbitrary,
-        (threshold, position) => {
-          const fab = createFloatingActionButton({
-            scrollThreshold: threshold,
-            hideOnScrollDown: false, // Disable to test pure threshold logic
-          });
+      fc.property(scrollThresholdArbitrary, scrollPositionArbitrary, (threshold, position) => {
+        const fab = createFloatingActionButton({
+          scrollThreshold: threshold,
+          hideOnScrollDown: false, // Disable to test pure threshold logic
+        });
 
-          // Set scroll position
-          fab.actions.setScrollPosition(position);
+        // Set scroll position
+        fab.actions.setScrollPosition(position);
 
-          const state = fab.getState();
+        const state = fab.getState();
 
-          // Verify visibility based on threshold
-          if (position >= threshold) {
-            expect(state.isVisible).toBe(true);
-          } else {
-            expect(state.isVisible).toBe(false);
-          }
-
-          fab.destroy();
+        // Verify visibility based on threshold
+        if (position >= threshold) {
+          expect(state.isVisible).toBe(true);
+        } else {
+          expect(state.isVisible).toBe(false);
         }
-      ),
-      { numRuns: 100 }
+
+        fab.destroy();
+      }),
+      { numRuns: 100 },
     );
   });
 
   /**
    * Feature: ui-core-gaps, Property 28: Hide on scroll down behavior
    * Validates: Requirements 6.7, 6.8
-   * 
+   *
    * For any scroll down event when hideOnScrollDown is enabled, the FAB should
    * be hidden; for scroll up, it should be shown.
    */
@@ -111,7 +103,7 @@ describe('Floating Action Button - Property-Based Tests', () => {
         fc.array(scrollPositionArbitrary, { minLength: 2, maxLength: 10 }),
         (threshold, positions) => {
           // Filter positions to ensure they're all above threshold
-          const validPositions = positions.filter(p => p >= threshold);
+          const validPositions = positions.filter((p) => p >= threshold);
           if (validPositions.length < 2) return; // Skip if not enough valid positions
 
           const fab = createFloatingActionButton({
@@ -141,9 +133,9 @@ describe('Floating Action Button - Property-Based Tests', () => {
           }
 
           fab.destroy();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -164,7 +156,7 @@ describe('Floating Action Button - Property-Based Tests', () => {
 
         fab.destroy();
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -199,9 +191,9 @@ describe('Floating Action Button - Property-Based Tests', () => {
           }
 
           fab.destroy();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -225,7 +217,7 @@ describe('Floating Action Button - Property-Based Tests', () => {
 
         fab.destroy();
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -256,7 +248,7 @@ describe('Floating Action Button - Property-Based Tests', () => {
 
         fab.destroy();
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -285,7 +277,7 @@ describe('Floating Action Button - Property-Based Tests', () => {
 
         fab.destroy();
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -322,7 +314,7 @@ describe('Floating Action Button - Property-Based Tests', () => {
 
         fab.destroy();
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -331,34 +323,30 @@ describe('Floating Action Button - Property-Based Tests', () => {
    */
   it('Property: Scroll direction change events', () => {
     fc.assert(
-      fc.property(
-        scrollPositionArbitrary,
-        scrollPositionArbitrary,
-        (position1, position2) => {
-          if (position1 === position2) return; // Skip same positions
+      fc.property(scrollPositionArbitrary, scrollPositionArbitrary, (position1, position2) => {
+        if (position1 === position2) return; // Skip same positions
 
-          const fab = createFloatingActionButton();
-          const directionListener = vi.fn();
+        const fab = createFloatingActionButton();
+        const directionListener = vi.fn();
 
-          fab.eventBus.on('fab:scroll-direction-changed', directionListener);
+        fab.eventBus.on('fab:scroll-direction-changed', directionListener);
 
-          // Set first position
-          fab.actions.setScrollPosition(position1);
+        // Set first position
+        fab.actions.setScrollPosition(position1);
 
-          // Set second position (should trigger direction change)
-          fab.actions.setScrollPosition(position2);
+        // Set second position (should trigger direction change)
+        fab.actions.setScrollPosition(position2);
 
-          // Verify event was emitted with correct direction
-          if (position2 > position1) {
-            expect(directionListener).toHaveBeenCalledWith('down');
-          } else if (position2 < position1) {
-            expect(directionListener).toHaveBeenCalledWith('up');
-          }
-
-          fab.destroy();
+        // Verify event was emitted with correct direction
+        if (position2 > position1) {
+          expect(directionListener).toHaveBeenCalledWith('down');
+        } else if (position2 < position1) {
+          expect(directionListener).toHaveBeenCalledWith('up');
         }
-      ),
-      { numRuns: 100 }
+
+        fab.destroy();
+      }),
+      { numRuns: 100 },
     );
   });
 
@@ -367,41 +355,37 @@ describe('Floating Action Button - Property-Based Tests', () => {
    */
   it('Property: setHideOnScrollDown re-evaluates visibility', () => {
     fc.assert(
-      fc.property(
-        scrollThresholdArbitrary,
-        scrollPositionArbitrary,
-        (threshold, position) => {
-          if (position < threshold) return; // Skip positions below threshold
+      fc.property(scrollThresholdArbitrary, scrollPositionArbitrary, (threshold, position) => {
+        if (position < threshold) return; // Skip positions below threshold
 
-          const fab = createFloatingActionButton({
-            scrollThreshold: threshold,
-            hideOnScrollDown: false,
-          });
+        const fab = createFloatingActionButton({
+          scrollThreshold: threshold,
+          hideOnScrollDown: false,
+        });
 
-          // Scroll to position (scrolling down from 0)
-          fab.actions.setScrollPosition(position);
+        // Scroll to position (scrolling down from 0)
+        fab.actions.setScrollPosition(position);
 
-          // Should be visible since hideOnScrollDown is false
-          expect(fab.getState().isVisible).toBe(true);
+        // Should be visible since hideOnScrollDown is false
+        expect(fab.getState().isVisible).toBe(true);
 
-          // Enable hideOnScrollDown
-          fab.actions.setHideOnScrollDown(true);
+        // Enable hideOnScrollDown
+        fab.actions.setHideOnScrollDown(true);
 
-          // Re-trigger scroll position to re-evaluate
-          fab.actions.setScrollPosition(position);
+        // Re-trigger scroll position to re-evaluate
+        fab.actions.setScrollPosition(position);
 
-          // State should be re-evaluated based on new setting
-          // Since we're at the same position, direction is null, so it should still be visible
-          // Let's scroll down to trigger the hide
-          fab.actions.setScrollPosition(position + 10);
+        // State should be re-evaluated based on new setting
+        // Since we're at the same position, direction is null, so it should still be visible
+        // Let's scroll down to trigger the hide
+        fab.actions.setScrollPosition(position + 10);
 
-          // Now it should be hidden because we scrolled down
-          expect(fab.getState().isVisible).toBe(false);
+        // Now it should be hidden because we scrolled down
+        expect(fab.getState().isVisible).toBe(false);
 
-          fab.destroy();
-        }
-      ),
-      { numRuns: 100 }
+        fab.destroy();
+      }),
+      { numRuns: 100 },
     );
   });
 });

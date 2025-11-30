@@ -93,7 +93,7 @@ export interface DialogBehavior {
 
 /**
  * Creates a dialog behavior for managing modal dialog state.
- * 
+ *
  * @example
  * ```typescript
  * const dialog = createDialogBehavior({
@@ -101,20 +101,20 @@ export interface DialogBehavior {
  *   onOpen: (content) => console.log('Dialog opened with:', content),
  *   onClose: () => console.log('Dialog closed'),
  * });
- * 
+ *
  * // Open the dialog
  * dialog.actions.open({ title: 'Settings', tab: 'general' });
- * 
+ *
  * // Check state
  * console.log(dialog.getState().isOpen); // true
- * 
+ *
  * // Close the dialog
  * dialog.actions.close();
- * 
+ *
  * // Clean up
  * dialog.destroy();
  * ```
- * 
+ *
  * @param options Configuration options for the dialog behavior.
  * @returns A dialog behavior instance.
  */
@@ -162,7 +162,7 @@ export function createDialogBehavior(options?: DialogBehaviorOptions): DialogBeh
           actions.open(content !== undefined ? content : null);
         }
       },
-    })
+    }),
   );
 
   return {

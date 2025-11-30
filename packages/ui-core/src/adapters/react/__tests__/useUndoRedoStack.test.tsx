@@ -11,9 +11,7 @@ describe('useUndoRedoStack', () => {
   describe('initial state', () => {
     it('should initialize with provided initial state', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState }));
 
       expect(result.current.present).toEqual(initialState);
       expect(result.current.past).toEqual([]);
@@ -24,18 +22,14 @@ describe('useUndoRedoStack', () => {
 
     it('should initialize with provided maxLength', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState, maxLength: 10 })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState, maxLength: 10 }));
 
       expect(result.current.maxLength).toBe(10);
     });
 
     it('should use default maxLength of 50', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState }));
 
       expect(result.current.maxLength).toBe(50);
     });
@@ -44,9 +38,7 @@ describe('useUndoRedoStack', () => {
   describe('state updates trigger re-renders', () => {
     it('should update component when pushing state', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState }));
 
       const newState: TestState = { value: 1, text: 'updated' };
 
@@ -64,9 +56,7 @@ describe('useUndoRedoStack', () => {
 
     it('should update component when undoing', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState }));
 
       const newState: TestState = { value: 1, text: 'updated' };
 
@@ -90,9 +80,7 @@ describe('useUndoRedoStack', () => {
 
     it('should update component when redoing', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState }));
 
       const newState: TestState = { value: 1, text: 'updated' };
 
@@ -116,9 +104,7 @@ describe('useUndoRedoStack', () => {
 
     it('should update component when clearing history', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState }));
 
       act(() => {
         result.current.actions.pushState({ value: 1, text: 'state1' });
@@ -139,9 +125,7 @@ describe('useUndoRedoStack', () => {
 
     it('should update component when jumping to state', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState }));
 
       const state1: TestState = { value: 1, text: 'state1' };
       const state2: TestState = { value: 2, text: 'state2' };
@@ -165,9 +149,7 @@ describe('useUndoRedoStack', () => {
 
     it('should update component when setting maxLength', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState, maxLength: 10 })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState, maxLength: 10 }));
 
       expect(result.current.maxLength).toBe(10);
 
@@ -180,9 +162,7 @@ describe('useUndoRedoStack', () => {
 
     it('should handle multiple state updates', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState }));
 
       act(() => {
         result.current.actions.pushState({ value: 1, text: 'state1' });
@@ -208,9 +188,7 @@ describe('useUndoRedoStack', () => {
     it('should invoke onStateChange callback on push', () => {
       const onStateChange = vi.fn();
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState, onStateChange })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState, onStateChange }));
 
       const newState: TestState = { value: 1, text: 'updated' };
 
@@ -225,9 +203,7 @@ describe('useUndoRedoStack', () => {
     it('should invoke onStateChange callback on undo', () => {
       const onStateChange = vi.fn();
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState, onStateChange })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState, onStateChange }));
 
       act(() => {
         result.current.actions.pushState({ value: 1, text: 'updated' });
@@ -246,9 +222,7 @@ describe('useUndoRedoStack', () => {
     it('should invoke onStateChange callback on redo', () => {
       const onStateChange = vi.fn();
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result } = renderHook(() => 
-        useUndoRedoStack({ initialState, onStateChange })
-      );
+      const { result } = renderHook(() => useUndoRedoStack({ initialState, onStateChange }));
 
       const newState: TestState = { value: 1, text: 'updated' };
 
@@ -271,9 +245,7 @@ describe('useUndoRedoStack', () => {
   describe('cleanup on unmount', () => {
     it('should clean up behavior when component unmounts', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result, unmount } = renderHook(() => 
-        useUndoRedoStack({ initialState })
-      );
+      const { result, unmount } = renderHook(() => useUndoRedoStack({ initialState }));
 
       act(() => {
         result.current.actions.pushState({ value: 1, text: 'updated' });
@@ -290,9 +262,7 @@ describe('useUndoRedoStack', () => {
 
     it('should not update state after unmount', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result, unmount } = renderHook(() => 
-        useUndoRedoStack({ initialState })
-      );
+      const { result, unmount } = renderHook(() => useUndoRedoStack({ initialState }));
 
       const actions = result.current.actions;
       unmount();
@@ -307,9 +277,7 @@ describe('useUndoRedoStack', () => {
   describe('behavior instance stability', () => {
     it('should maintain same behavior instance across re-renders', () => {
       const initialState: TestState = { value: 0, text: 'initial' };
-      const { result, rerender } = renderHook(() => 
-        useUndoRedoStack({ initialState })
-      );
+      const { result, rerender } = renderHook(() => useUndoRedoStack({ initialState }));
 
       const firstActions = result.current.actions;
 

@@ -135,7 +135,6 @@ Developers wanting to incorporate smooth text animations and typographic control
 
 9. Roadmap Alignment
    The GAP Analysis tracks delivery across four phases (completed in order):
-
    1. Typography scale generation, design-core integration, typography calculations, and web font management.
    2. Accessibility, analytics, font performance, and typography math enhancements.
    3. Advanced text animations, content analysis, multilingual support, and guided reading experiences.

@@ -3,21 +3,16 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import type {
-  DragDropBehavior,
-  DragDropState,
-  DragDropActions,
-  DragDropOptions,
-} from '../../behaviors/drag-drop';
+import type { DragDropBehavior, DragDropState, DragDropActions, DragDropOptions } from '../../behaviors/drag-drop';
 import { createDragDropBehavior } from '../../behaviors/drag-drop';
 
 /**
  * React hook for drag-and-drop behavior.
- * 
+ *
  * Creates and manages a drag-and-drop behavior instance, automatically handling
  * subscriptions and cleanup. This hook provides drag-and-drop interaction state
  * management including drag source, drop target, drag data, and validation logic.
- * 
+ *
  * @example
  * ```tsx
  * interface CardData {
@@ -25,10 +20,10 @@ import { createDragDropBehavior } from '../../behaviors/drag-drop';
  *   title: string;
  *   column: string;
  * }
- * 
+ *
  * function KanbanBoard() {
  *   const [cards, setCards] = useState<CardData[]>([...]);
- *   
+ *
  *   const dragDrop = useDragDropBehavior({
  *     onDragStart: (itemId, data) => {
  *       console.log('Started dragging:', itemId);
@@ -46,14 +41,14 @@ import { createDragDropBehavior } from '../../behaviors/drag-drop';
  *       return dropTarget !== 'locked-column';
  *     },
  *   });
- * 
+ *
  *   useEffect(() => {
  *     // Register drop zones
  *     dragDrop.actions.registerDropZone('todo');
  *     dragDrop.actions.registerDropZone('in-progress');
  *     dragDrop.actions.registerDropZone('done');
  *   }, []);
- * 
+ *
  *   return (
  *     <div className="kanban">
  *       {['todo', 'in-progress', 'done'].map(column => (
@@ -93,27 +88,23 @@ import { createDragDropBehavior } from '../../behaviors/drag-drop';
  *   );
  * }
  * ```
- * 
+ *
  * @param options Configuration options for the drag-and-drop behavior.
  * @returns Drag-and-drop state and actions.
  */
-export function useDragDropBehavior(
-  options?: DragDropOptions
-): DragDropState & { actions: DragDropActions } {
+export function useDragDropBehavior(options?: DragDropOptions): DragDropState & { actions: DragDropActions } {
   const behaviorRef = useRef<DragDropBehavior | null>(null);
-  
+
   // Initialize behavior only once
   if (behaviorRef.current === null) {
     behaviorRef.current = createDragDropBehavior(options);
   }
 
-  const [state, setState] = useState<DragDropState>(() => 
-    behaviorRef.current!.getState()
-  );
+  const [state, setState] = useState<DragDropState>(() => behaviorRef.current!.getState());
 
   useEffect(() => {
     const behavior = behaviorRef.current!;
-    
+
     // Subscribe to state changes
     const unsubscribe = behavior.subscribe((newState) => {
       setState(newState);

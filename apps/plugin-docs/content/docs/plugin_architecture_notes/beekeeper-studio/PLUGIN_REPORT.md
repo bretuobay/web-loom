@@ -3,9 +3,11 @@
 ## 1. High-Level Summary
 
 ### Architecture Type
+
 **Hybrid Architecture**: Registry-based + Event-driven + Message-passing (postMessage) + IFrame-based Sandboxing
 
 The Beekeeper Studio plugin system is a sophisticated hybrid architecture that combines:
+
 - **Registry-based discovery**: Remote GitHub-hosted plugin registry for discoverability
 - **Event-driven communication**: postMessage-based request/response and notification patterns
 - **IFrame-based isolation**: Sandboxed execution environment for security
@@ -13,6 +15,7 @@ The Beekeeper Studio plugin system is a sophisticated hybrid architecture that c
 - **Service-oriented**: Clean separation between file management, registry, and runtime loading
 
 ### Problem It Solves
+
 The plugin system solves several key problems:
 
 1. **Extensibility**: Allows third-party developers to extend Beekeeper Studio's functionality without modifying core code
@@ -29,6 +32,7 @@ The plugin system solves several key problems:
 ### Discovery Mechanisms
 
 **Remote Registry Discovery**
+
 - **Registry Location**: GitHub-hosted JSON file
   - URL: `https://raw.githubusercontent.com/beekeeper-studio/beekeeper-studio-plugins/main/plugins.json`
   - Source: `apps/studio/src/services/plugin/PluginRepositoryService.ts:60-66`
@@ -44,6 +48,7 @@ async fetchRegistry() {
 ```
 
 **Local Plugin Scanning**
+
 - **Directory Scanning**: File system scan for installed plugins
   - Location: `{userDirectory}/plugins/`
   - Implementation: `apps/studio/src/services/plugin/PluginFileManager.ts:228-267`
@@ -65,6 +70,7 @@ scanPlugins(): Manifest[] {
 ```
 
 **Manifest-based Configuration**
+
 - Each plugin requires a `manifest.json` file
 - Manifest defines plugin metadata, capabilities, views, and menu items
 - Two manifest versions supported: V0 (legacy) and V1 (current)
@@ -74,6 +80,7 @@ scanPlugins(): Manifest[] {
 **Two-Stage Loading Process**
 
 **Stage 1: Backend Loading (Electron Main/Utility Process)**
+
 - Class: `PluginManager` (`apps/studio/src/services/plugin/PluginManager.ts`)
 - Responsibilities:
   - Download and extract plugin archives from GitHub releases
@@ -118,6 +125,7 @@ async initialize() {
 ```
 
 **Stage 2: Frontend Loading (Renderer Process)**
+
 - Class: `WebPluginManager` (`apps/studio/src/services/plugin/web/WebPluginManager.ts`)
 - Responsibilities:
   - Fetch plugin list from backend via IPC
@@ -157,28 +165,29 @@ async initialize() {
 ```
 
 **Dynamic Import via Custom Protocol**
+
 - Plugin assets served via custom Electron protocol: `plugin://`
 - Protocol handler: `apps/studio/src/background/lib/electron/ProtocolBuilder.ts:74-113`
 
 ```typescript
 createPluginProtocol: () => {
-  protocol.registerBufferProtocol("plugin", (request, respond) => {
+  protocol.registerBufferProtocol('plugin', (request, respond) => {
     const url = new URL(request.url);
     const pluginId = url.host;
     const pathName = path.join(pluginId, url.pathname);
-    const normalized = path.normalize(pathName)
-    const fullPath = path.join(platformInfo.userDirectory, "plugins", normalized)
+    const normalized = path.normalize(pathName);
+    const fullPath = path.join(platformInfo.userDirectory, 'plugins', normalized);
 
     if (bksConfig.get(`plugins.${pluginId}.disabled`)) {
-      respond({ error: -20 }) // blocked by client
+      respond({ error: -20 }); // blocked by client
       return;
     }
 
     readFile(fullPath, (error, data) => {
       // ... serves plugin files
-    })
+    });
   });
-}
+};
 ```
 
 ---
@@ -188,6 +197,7 @@ createPluginProtocol: () => {
 ### Registry Object / Manager
 
 **PluginRegistry** (`apps/studio/src/services/plugin/PluginRegistry.ts`)
+
 - Caches plugin registry entries and repository information
 - Fetches plugin metadata from GitHub
 - Lazy loads and caches repository data
@@ -218,6 +228,7 @@ export default class PluginRegistry {
 ### Registration Process
 
 **Backend Registration**
+
 1. Plugin scanned from filesystem → `PluginFileManager.scanPlugins()`
 2. Manifest parsed → validated → stored in `PluginManager.plugins[]`
 3. Loadability check → `isPluginLoadable(manifest)` checks `minAppVersion`
@@ -231,6 +242,7 @@ this.plugins = installedPlugins.map((manifest) => ({
 ```
 
 **Frontend Registration**
+
 1. Backend plugins fetched → `utilityConnection.send("plugin/plugins")`
 2. For each loadable plugin → `WebPluginLoader` created
 3. Views registered → `pluginStore.addTabTypeConfigs(manifest, views)`
@@ -261,10 +273,12 @@ private async loadPlugin(manifest: Manifest) {
 **Plugin Identifier**: `manifest.id` (e.g., `"bks-ai-shell"`)
 
 **Release Naming Convention**:
+
 - Archive filename: `{manifest.id}-{manifest.version}.zip`
 - Example: `bks-ai-shell-1.0.0.zip`
 
 **Directory Structure**:
+
 ```
 {userDirectory}/plugins/
   └── {plugin-id}/
@@ -284,37 +298,38 @@ private async loadPlugin(manifest: Manifest) {
 ```typescript
 export type ManifestV1 = {
   manifestVersion: 1;
-  id: string;                    // Unique plugin identifier
-  name: string;                  // Display name
-  author: string | {             // Author info
-    name: string;
-    url: string;
-  };
-  description: string;           // Plugin description
-  version: string;               // Semantic version
-  minAppVersion?: string;        // Minimum Beekeeper Studio version
-  icon?: string;                 // Material UI icon name
-  pluginEntryDir?: string;       // Root directory for plugin files
+  id: string; // Unique plugin identifier
+  name: string; // Display name
+  author:
+    | string
+    | {
+        // Author info
+        name: string;
+        url: string;
+      };
+  description: string; // Plugin description
+  version: string; // Semantic version
+  minAppVersion?: string; // Minimum Beekeeper Studio version
+  icon?: string; // Material UI icon name
+  pluginEntryDir?: string; // Root directory for plugin files
 
   capabilities: {
-    views: PluginView[];         // UI views/tabs
-    menu: PluginMenuItem[];      // Menu items
+    views: PluginView[]; // UI views/tabs
+    menu: PluginMenuItem[]; // Menu items
   };
 
-  settings?: {                   // (Not yet implemented)
+  settings?: {
+    // (Not yet implemented)
     id: string;
     name: string;
-    type: "string" | "number" | "boolean";
+    type: 'string' | 'number' | 'boolean';
     description?: string;
     default: string | number | boolean;
   }[];
 
-  permissions?: (                // (Not yet implemented)
-    | "run-custom-queries"
-    | "create-entities"
-    | "edit-entities"
-  )[];
-}
+  permissions?: // (Not yet implemented)
+  ('run-custom-queries' | 'create-entities' | 'edit-entities')[];
+};
 ```
 
 ### Required View Definition
@@ -323,14 +338,15 @@ export type ManifestV1 = {
 
 ```typescript
 export type PluginView = {
-  id: string;                    // View identifier
-  name: string;                  // Display name
-  type: `${TabType}-tab`;        // "shell-tab" | "base-tab"
-  entry: string;                 // HTML entry point (e.g., "index.html")
+  id: string; // View identifier
+  name: string; // Display name
+  type: `${TabType}-tab`; // "shell-tab" | "base-tab"
+  entry: string; // HTML entry point (e.g., "index.html")
 };
 ```
 
 **Tab Types**:
+
 - `shell-tab`: Two-part UI with iframe (top) + collapsible table (bottom)
 - `base-tab`: Plain tab with only iframe content
 
@@ -340,13 +356,14 @@ export type PluginView = {
 
 ```typescript
 export interface PluginMenuItem {
-  command: string;                           // Command identifier
-  name: string;                              // Display label
-  view: string;                              // View ID to open
-  placement: PluginMenuItemPlacement |       // UI placement(s)
-              PluginMenuItemPlacement[];
-  group?: string;                            // (Planned) Group identifier
-  order?: number;                            // (Planned) Sort order
+  command: string; // Command identifier
+  name: string; // Display label
+  view: string; // View ID to open
+  placement:
+    | PluginMenuItemPlacement // UI placement(s)
+    | PluginMenuItemPlacement[];
+  group?: string; // (Planned) Group identifier
+  order?: number; // (Planned) Sort order
 }
 ```
 
@@ -374,8 +391,8 @@ export interface PluginMenuItem {
 
 ```typescript
 {
-  name: string;      // Event name (e.g., "themeChanged")
-  args: object;      // Event-specific data
+  name: string; // Event name (e.g., "themeChanged")
+  args: object; // Event-specific data
 }
 ```
 
@@ -388,6 +405,7 @@ export interface PluginMenuItem {
 **Triggered by**: `PluginManager.installPlugin(id)`
 
 **Steps**:
+
 1. Fetch plugin repository info from GitHub
 2. Validate `minAppVersion` compatibility
 3. Download `.zip` archive from GitHub release
@@ -404,6 +422,7 @@ export interface PluginMenuItem {
 **Triggered by**: `PluginManager.initialize()` on app startup
 
 **Steps**:
+
 1. Scan plugins directory for installed plugins
 2. Load plugin settings from database
 3. Create plugin contexts for all installed plugins
@@ -417,6 +436,7 @@ export interface PluginMenuItem {
 **Triggered by**: `WebPluginManager.initialize()` on renderer startup
 
 **Steps**:
+
 1. Wait for backend plugin manager initialization
 2. Fetch plugin list from backend via IPC
 3. For each loadable, non-disabled plugin:
@@ -454,6 +474,7 @@ async load(manifest?: Manifest) {
 **Triggered by**: User opens plugin tab or menu item
 
 **Steps**:
+
 1. User clicks menu item or tab opener
 2. Host app creates new tab with plugin view context
 3. Vue component mounts iframe with `plugin://{id}/{entry}` URL
@@ -478,6 +499,7 @@ registerIframe(pluginId: string, iframe: HTMLIFrameElement, context: PluginViewC
 **Triggered by**: Plugin sends postMessage requests
 
 **Steps**:
+
 1. Plugin iframe sends postMessage to host
 2. `WebPluginLoader.handleMessage()` receives message
 3. If message has `id` → handle as request
@@ -492,6 +514,7 @@ registerIframe(pluginId: string, iframe: HTMLIFrameElement, context: PluginViewC
 ### Phase 6: Deactivation/Unload
 
 **Unload (without uninstall)**:
+
 - Called when plugin is reloaded
 - Removes event listeners
 - Unregisters menu items
@@ -514,6 +537,7 @@ async unload() {
 ```
 
 **Dispose (on uninstall)**:
+
 - Called when plugin is uninstalled
 - Unregisters all events
 - Calls `onDispose` listeners
@@ -526,6 +550,7 @@ async unload() {
 **Triggered by**: `PluginManager.uninstallPlugin(id)`
 
 **Steps**:
+
 1. Acquire plugin lock (prevents concurrent operations)
 2. Delete plugin directory from filesystem
 3. Remove plugin from `plugins[]` array
@@ -544,6 +569,7 @@ async unload() {
 **Binds via**: Manifest view definition
 
 **Tab Types**:
+
 - `shell-tab`: Query-like tab with iframe + collapsible results table
 - `base-tab`: Simple iframe-only tab
 
@@ -575,6 +601,7 @@ addTabTypeConfigs(manifest: Manifest, views: PluginView[]): void {
 **Extension Point**: `capabilities.menu[]`
 
 **Placements**:
+
 1. `newTabDropdown` - New tab dropdown
 2. `menubar.tools` - Tools menu in menubar
 3. `editor.query.context` - Query editor context menu
@@ -599,7 +626,7 @@ Each placement has a factory that creates menu handlers:
 
 ```typescript
 const pluginMenuFactories: MenuFactories = {
-  "menubar.tools": {
+  'menubar.tools': {
     create(context, menuItem) {
       const id = `${context.manifest.id}-${menuItem.command}`;
       return {
@@ -607,7 +634,7 @@ const pluginMenuFactories: MenuFactories = {
           context.store.addMenuBarItem({
             id,
             label: menuItem.name,
-            parentId: "tools",
+            parentId: 'tools',
             disableWhenDisconnected: true,
             action: {
               event: AppEvent.newCustomTab,
@@ -632,6 +659,7 @@ const pluginMenuFactories: MenuFactories = {
 **Request Actions** (`apps/studio/src/services/plugin/web/WebPluginLoader.ts:145-261`):
 
 **Read Actions**:
+
 - `getTables` - Get tables in schema
 - `getColumns` - Get columns for table
 - `getTableKeys` - Get table foreign/primary keys
@@ -647,6 +675,7 @@ const pluginMenuFactories: MenuFactories = {
 - `getViewState` - Get view-specific state
 
 **Write Actions**:
+
 - `runQuery` - Execute SQL query
 - `setData` - Store plugin data (unencrypted)
 - `setEncryptedData` - Store plugin data (encrypted)
@@ -654,6 +683,7 @@ const pluginMenuFactories: MenuFactories = {
 - `setViewState` - Save view-specific state
 
 **UI Actions**:
+
 - `expandTableResult` - Expand/collapse results table (shell tabs)
 - `setTabTitle` - Change tab title
 - `openExternal` - Open URL in browser
@@ -662,11 +692,13 @@ const pluginMenuFactories: MenuFactories = {
 ### 4. Notification Events
 
 **Host → Plugin Notifications**:
+
 - `themeChanged` - Theme/palette changed
 - `tablesChanged` - Table list changed
 - `broadcast` - Message from another view of same plugin
 
 **Plugin → Host Notifications** (`apps/studio/src/services/plugin/web/WebPluginLoader.ts:277-325`):
+
 - `windowEvent` - Trigger window event (keyboard, mouse, pointer)
 - `pluginError` - Report plugin error to host
 - `broadcast` - Send message to other plugin views
@@ -676,10 +708,12 @@ const pluginMenuFactories: MenuFactories = {
 **Extension Point**: Plugin-specific key-value storage
 
 **Storage Types**:
+
 - **Unencrypted**: `getData(key)` / `setData(key, value)`
 - **Encrypted**: `getEncryptedData(key)` / `setEncryptedData(key, value)`
 
 **Implementation**: SQLite database via models:
+
 - `apps/studio/src/common/appdb/models/PluginData.ts`
 - `apps/studio/src/common/appdb/models/EncryptedPluginData.ts`
 
@@ -694,6 +728,7 @@ const pluginMenuFactories: MenuFactories = {
 **Format**: JSON
 
 **Example**:
+
 ```json
 {
   "manifestVersion": 1,
@@ -736,6 +771,7 @@ const pluginMenuFactories: MenuFactories = {
 **Settings Key**: `"pluginSettings"`
 
 **Structure**:
+
 ```typescript
 {
   [pluginId: string]: {
@@ -750,6 +786,7 @@ const pluginMenuFactories: MenuFactories = {
 ### App Configuration
 
 **Disable Plugin**:
+
 ```javascript
 // In bksConfig
 plugins: {
@@ -760,6 +797,7 @@ plugins: {
 ```
 
 **Checked at**:
+
 - Protocol handler: `apps/studio/src/background/lib/electron/ProtocolBuilder.ts:83`
 - Plugin loading: `apps/studio/src/services/plugin/web/WebPluginManager.ts:41`
 
@@ -770,6 +808,7 @@ plugins: {
 **Method**: `WebPluginManager.reloadPlugin(id, manifest?)`
 
 **Process**:
+
 1. Unload plugin (remove listeners, menu items)
 2. Reload with new manifest (if provided)
 3. Re-register views and menu items
@@ -783,11 +822,13 @@ plugins: {
 ### Sandboxing
 
 **IFrame Sandboxing**:
+
 - Plugins run in iframes with sandbox attributes
 - Communication limited to postMessage API
 - No direct access to Node.js APIs or Electron
 
 **Custom Protocol**:
+
 - Plugin assets served via `plugin://` protocol
 - Protocol handler validates plugin not disabled before serving
 - Path normalization prevents directory traversal
@@ -796,29 +837,31 @@ plugins: {
 
 ```typescript
 createPluginProtocol: () => {
-  protocol.registerBufferProtocol("plugin", (request, respond) => {
+  protocol.registerBufferProtocol('plugin', (request, respond) => {
     const url = new URL(request.url);
     const pluginId = url.host;
     const pathName = path.join(pluginId, url.pathname);
-    const normalized = path.normalize(pathName)
-    const fullPath = path.join(platformInfo.userDirectory, "plugins", normalized)
+    const normalized = path.normalize(pathName);
+    const fullPath = path.join(platformInfo.userDirectory, 'plugins', normalized);
 
     if (bksConfig.get(`plugins.${pluginId}.disabled`)) {
-      respond({ error: -20 }) // blocked by client
+      respond({ error: -20 }); // blocked by client
       return;
     }
     // ... serve file
   });
-}
+};
 ```
 
 ### Validation
 
 **Manifest Validation**:
+
 - Manifest must exist and be valid JSON
 - Parsed during scan: `PluginFileManager.scanPlugins()`
 
 **Version Compatibility**:
+
 - `minAppVersion` checked before loading
 - Uses `semver` for version comparison
 
@@ -841,6 +884,7 @@ isPluginLoadable(manifest: Manifest): boolean {
 **Status**: Defined but not implemented
 
 **Planned Permissions** (`apps/studio/src/services/plugin/types.ts:123-127`):
+
 - `run-custom-queries`
 - `create-entities`
 - `edit-entities`
@@ -857,6 +901,7 @@ checkPermission(data: PluginRequestData) {
 ### Error Handling
 
 **Plugin Loading Errors**:
+
 - Try-catch around plugin loading
 - Errors logged, plugin skipped
 - App continues loading other plugins
@@ -872,6 +917,7 @@ try {
 ```
 
 **Plugin Request Errors**:
+
 - Try-catch around request handling
 - Error returned in response object
 - Plugin can handle error
@@ -882,8 +928,10 @@ try {
 try {
   this.checkPermission(request);
 
-  switch (request.name) {
+  switch (
+    request.name
     // ... handle actions
+  ) {
   }
 
   for (const callback of modifyResultCallbacks) {
@@ -897,6 +945,7 @@ this.postMessage(source, response);
 ```
 
 **Plugin Notification Errors**:
+
 - Plugin can send `pluginError` notification
 - Logged by host but doesn't crash app
 
@@ -910,6 +959,7 @@ case "pluginError": {
 ```
 
 **Plugin Lock Mechanism**:
+
 - Prevents concurrent install/update/uninstall operations
 - Uses simple array-based locking
 
@@ -943,6 +993,7 @@ private async withPluginLock<T>(
 ### Plugin Dependencies
 
 **No Explicit Dependency Declaration**:
+
 - Plugins cannot declare dependencies on other plugins
 - Each plugin is self-contained
 - No npm-style dependency resolution
@@ -950,11 +1001,13 @@ private async withPluginLock<T>(
 ### Host API Dependency
 
 **NPM Package**: `@beekeeperstudio/plugin`
+
 - Provides TypeScript types for plugin API
 - Helper functions for postMessage communication
 - Not required but strongly recommended
 
 **Import in Plugin**:
+
 ```typescript
 import { getTables, runQuery } from '@beekeeperstudio/plugin';
 ```
@@ -966,11 +1019,11 @@ import { getTables, runQuery } from '@beekeeperstudio/plugin';
 ```typescript
 export type WebPluginContext = {
   manifest: Manifest;
-  store: PluginStoreService;      // Vuex bridge
-  utility: UtilityConnection;     // IPC to utility process
-  log: ReturnType<typeof rawLog.scope>;  // Scoped logger
+  store: PluginStoreService; // Vuex bridge
+  utility: UtilityConnection; // IPC to utility process
+  log: ReturnType<typeof rawLog.scope>; // Scoped logger
   appVersion: string;
-}
+};
 ```
 
 **Dependency Injection**: Constructor-based
@@ -988,11 +1041,13 @@ const loader = new WebPluginLoader({
 ### Version Constraints
 
 **App Version Constraint**: `manifest.minAppVersion`
+
 - Semantic versioning
 - Loader checks compatibility
 - Incompatible plugins not loaded
 
 **No Plugin-to-Plugin Versioning**:
+
 - Plugins cannot depend on specific versions of other plugins
 - No version negotiation between plugins
 
@@ -1074,6 +1129,7 @@ flowchart TB
 ### Component Flow
 
 **Installation Flow**:
+
 ```
 User → WebPluginManager.install(id)
   → UtilityConnection.send("plugin/install")
@@ -1093,6 +1149,7 @@ User → WebPluginManager.install(id)
 ```
 
 **Runtime Request Flow**:
+
 ```
 Plugin IFrame → postMessage({ id, name, args })
   → window.message event
@@ -1111,11 +1168,13 @@ Plugin IFrame → postMessage({ id, name, args })
 ### 1. Performance Optimizations
 
 **Lazy Loading**:
+
 - Currently all plugins loaded on startup
 - **Recommendation**: Load plugins on-demand when first accessed
 - **Benefit**: Faster app startup, lower memory usage
 
 **Plugin Bundle Optimization**:
+
 - No guidance on plugin bundle size
 - **Recommendation**:
   - Document bundle size best practices
@@ -1124,6 +1183,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Faster plugin loading
 
 **Caching**:
+
 - Registry fetched on every check
 - **Recommendation**:
   - Add TTL-based caching for registry
@@ -1133,6 +1193,7 @@ Plugin IFrame → postMessage({ id, name, args })
 ### 2. Stability Improvements
 
 **Plugin Crash Isolation**:
+
 - IFrame provides some isolation but no crash recovery
 - **Recommendation**:
   - Implement iframe crash detection
@@ -1141,6 +1202,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Better user experience, prevent data loss
 
 **Timeout Handling**:
+
 - Plugin requests have no timeout
 - **Recommendation**:
   - Add configurable timeout for plugin requests
@@ -1149,6 +1211,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Prevent hanging UI
 
 **Dependency Resolution**:
+
 - No dependency management between plugins
 - **Recommendation**:
   - Add `dependencies` field to manifest
@@ -1159,6 +1222,7 @@ Plugin IFrame → postMessage({ id, name, args })
 ### 3. Cleaner Extension Points
 
 **API Versioning**:
+
 - No API versioning mechanism
 - **Recommendation**:
   - Add `apiVersion` field to manifest
@@ -1167,6 +1231,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Backward compatibility
 
 **Plugin Communication**:
+
 - Limited to broadcast within same plugin
 - **Recommendation**:
   - Add cross-plugin event bus
@@ -1175,6 +1240,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Enable plugin composition
 
 **Type Safety**:
+
 - Plugin API types defined separately
 - **Recommendation**:
   - Auto-generate TypeScript types from manifest
@@ -1185,6 +1251,7 @@ Plugin IFrame → postMessage({ id, name, args })
 ### 4. Better Lifecycle APIs
 
 **Install Hooks**:
+
 - No hooks for plugin lifecycle events
 - **Recommendation**:
   - Add `onInstall`, `onUpdate`, `onUninstall` hooks
@@ -1193,6 +1260,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Better data management
 
 **View Lifecycle**:
+
 - No view-specific lifecycle hooks
 - **Recommendation**:
   - Add `onViewMount`, `onViewUnmount` events
@@ -1201,6 +1269,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Better resource management
 
 **Hot Reload**:
+
 - Manual reload only
 - **Recommendation**:
   - Add file watching for development mode
@@ -1211,6 +1280,7 @@ Plugin IFrame → postMessage({ id, name, args })
 ### 5. Safer Plugin Execution
 
 **Permission System**:
+
 - Defined but not implemented
 - **Recommendation**:
   - Implement permission checks for sensitive APIs
@@ -1220,6 +1290,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Security, user trust
 
 **Content Security Policy**:
+
 - No CSP for iframes
 - **Recommendation**:
   - Add strict CSP headers for plugin iframes
@@ -1228,6 +1299,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Prevent XSS attacks
 
 **Plugin Signing**:
+
 - No signature verification
 - **Recommendation**:
   - Sign plugin releases with GPG
@@ -1236,6 +1308,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Prevent malware
 
 **Audit Logging**:
+
 - Limited logging of plugin actions
 - **Recommendation**:
   - Log all sensitive plugin API calls
@@ -1246,6 +1319,7 @@ Plugin IFrame → postMessage({ id, name, args })
 ### 6. Developer Experience
 
 **CLI Tooling**:
+
 - No official CLI for plugin development
 - **Recommendation**:
   - Create `@beekeeperstudio/plugin-cli` package
@@ -1254,6 +1328,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Faster plugin development
 
 **Documentation**:
+
 - Documentation exists but could be expanded
 - **Recommendation**:
   - Add interactive API explorer
@@ -1263,6 +1338,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Lower barrier to entry
 
 **Testing**:
+
 - No testing utilities for plugins
 - **Recommendation**:
   - Provide mock host environment for testing
@@ -1273,6 +1349,7 @@ Plugin IFrame → postMessage({ id, name, args })
 ### 7. Distribution
 
 **Plugin Discovery**:
+
 - Single centralized registry
 - **Recommendation**:
   - Support multiple registries
@@ -1282,6 +1359,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: Better discoverability
 
 **Update Notifications**:
+
 - Auto-update or silent updates
 - **Recommendation**:
   - Add update notification UI
@@ -1291,6 +1369,7 @@ Plugin IFrame → postMessage({ id, name, args })
 - **Benefit**: User control, transparency
 
 **Analytics**:
+
 - No usage analytics
 - **Recommendation**:
   - Add opt-in telemetry for plugin usage
@@ -1305,6 +1384,7 @@ Plugin IFrame → postMessage({ id, name, args })
 Beekeeper Studio's plugin architecture is a well-designed hybrid system that successfully balances **extensibility**, **security**, and **developer experience**. The architecture demonstrates several strengths:
 
 **Strengths**:
+
 - Clean separation of concerns (file management, registry, loading)
 - Strong sandboxing via iframes and custom protocol
 - Rich extension points (16 menu placements, multiple tab types)
@@ -1313,6 +1393,7 @@ Beekeeper Studio's plugin architecture is a well-designed hybrid system that suc
 - Auto-update mechanism
 
 **Areas for Growth**:
+
 - Implement permission system (already defined)
 - Add plugin-to-plugin communication
 - Improve developer tooling (CLI, testing)

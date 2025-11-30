@@ -106,11 +106,13 @@ storage.features: StorageFeatures
 ## What's NOT Included (Future Phases)
 
 ### Phase 2 (v0.2.0) - Planned
+
 - IndexedDB backend
 - Schema versioning
 - Migration engine
 
 ### Phase 3 (v0.3.0) - Planned
+
 - AES-GCM encryption
 - Zod schema validation
 - Advanced quota management
@@ -152,6 +154,7 @@ Older browsers automatically fall back to memory storage.
 To use this package in the web-loom ecosystem:
 
 1. **Import in other packages**:
+
    ```typescript
    import { createStorage } from '@web-loom/storage-core';
    ```
@@ -169,12 +172,12 @@ To use this package in the web-loom ecosystem:
 
 ## Success Metrics (from PRD)
 
-| Metric                    | Target           | Actual    | Status |
-| ------------------------- | ---------------- | --------- | ------ |
-| Bundle size (core)        | < 8KB gzipped    | 2.42 KB   | ✅ 70% under |
-| API surface coverage      | 100% of common ops | 100%    | ✅     |
-| Type safety               | Full inference   | Full      | ✅     |
-| Zero dependencies         | 0 runtime deps   | 0         | ✅     |
+| Metric               | Target             | Actual  | Status       |
+| -------------------- | ------------------ | ------- | ------------ |
+| Bundle size (core)   | < 8KB gzipped      | 2.42 KB | ✅ 70% under |
+| API surface coverage | 100% of common ops | 100%    | ✅           |
+| Type safety          | Full inference     | Full    | ✅           |
+| Zero dependencies    | 0 runtime deps     | 0       | ✅           |
 
 ## Files Created
 
