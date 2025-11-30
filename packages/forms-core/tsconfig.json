@@ -9,6 +9,9 @@
       "DOM.Iterable"
     ],
     "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
     /* Bundler mode */
     "moduleResolution": "bundler",
     "isolatedModules": true,
@@ -17,30 +20,31 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
+    "declarationDir": "dist",
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
     // in test files for vi to be available
     "types": [
       "vitest/globals"
     ]
   },
   "include": [
-    "src"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "test",
     "tests",
     "coverage",
     "**/*.test.ts",
     "**/*.spec.ts",
-    "tests",
-    "__tests__",
-    "**/*.broken.ts",
-    "src/mocks/**"
+    "**/*.bench.ts",
+    "__tests__"
   ]
 }

@@ -4,11 +4,18 @@ import { animateText } from './animations';
 
 export * from './utils/color-similarity';
 export * from './utils/typography-math';
+export * from './animations';
+export * from './effects';
 export * from './calculations';
 export * from './core';
 export * from './fonts';
 export * from './accessibility';
 export * from './analysis';
+export * from './multilingual';
+export * from './reading';
+export * from './ai';
+export * from './testing';
+export * from './cross-platform';
 
 /**
  * Initializes the library and returns a theme object with utility functions.

@@ -22,6 +22,13 @@ npm install @web-loom/typography-core
 - **Readability Analytics**: Reading time, readability scores, and structural metrics
 - **Font Performance**: Character subset planning and transfer saving estimations
 - **Typography Math**: Golden ratio scaling and optical sizing helpers
+- **Advanced Text Animations**: Morph text, run RSVP speed reading flows, and animate variable fonts
+- **Reading Experience**: Guided reading highlights and focus assistance overlays
+- **Multilingual Support**: Locale-aware typography adjustments plus RTL utilities
+- **3D Typography Effects**: Apply perspective transforms and continuously animate depth
+- **AI Typography Assistant**: Suggest smart font pairings and optimization hints for each platform
+- **Typography Experiments**: Run lightweight A/B tests to compare type stacks
+- **Cross-Platform Scaling**: Generate React Native typography tokens and pixel-ratio aware sizing
 - **Color Utilities**: Lighten, darken, and compare colors with perceptual accuracy
 - **Color Similarity**: Advanced color comparison using RGB, HSL, and LAB color spaces
 - **Text Animations**: Typewriter, fade-in, character reveal, and scale animations using Web Animations API
@@ -237,6 +244,216 @@ const opticalRamp = createOpticalSizeRamp(16);
 ```
 
 Golden ratio helpers keep typographic scales harmonious, while optical sizing compensates for viewing distance and pixel density.
+
+### Advanced Animations
+
+```typescript
+import {
+  animateVariableFont,
+  createSpeedReading,
+  morphText,
+} from '@web-loom/typography-core';
+
+const morphController = morphText(element, 'Read deeply', 'Write boldly', { duration: 1200 });
+const speedReading = createSpeedReading(longformContent, { wordsPerMinute: 450, target: readerElement });
+const variableFont = animateVariableFont(element, [
+  { settings: { wght: 400, wdth: 100 } },
+  { settings: { wght: 700, wdth: 110 }, duration: 600 },
+]);
+```
+
+### 3D Typography Effects
+
+```typescript
+import { animate3DText, apply3DTextEffect } from '@web-loom/typography-core';
+
+const effect = apply3DTextEffect(titleElement, { depth: 30, rotateX: 18, rotateY: -10 });
+const rotation = animate3DText(titleElement, { duration: 1800 });
+```
+
+Layer perspective text shadows, rotate on both axis, and optionally animate the element for futuristic hero treatments.
+
+### Reading Experience
+
+```typescript
+import { createFocusAssist, createGuidedReading } from '@web-loom/typography-core';
+
+const guided = createGuidedReading(articleElement, { interval: 2000, loop: false });
+const focusAssist = createFocusAssist(articleElement, { highlightColor: 'rgba(255,255,0,0.15)' });
+
+guided.start();
+focusAssist.enable();
+```
+
+These helpers power guided reading overlays, RSVP flows, and focus tracking interactions.
+
+### Multilingual & Language Tools
+
+```typescript
+import {
+  adaptTypographyForLocale,
+  applyRTLSupport,
+  detectLanguage,
+  extractKeywords,
+} from '@web-loom/typography-core';
+
+const languageInfo = detectLanguage(bodyCopy);
+const keywords = extractKeywords(bodyCopy);
+const typography = adaptTypographyForLocale('ar-EG');
+applyRTLSupport(document.documentElement, 'ar-EG');
+```
+
+Automatically detect scripts, keep RTL layouts correct, and derive locale-specific typography presets for high quality international experiences.
+
+### AI Typography Assistant
+
+```typescript
+import { generateTypographyRecommendations, suggestFontPairings } from '@web-loom/typography-core';
+
+const pairings = suggestFontPairings('Inter');
+const recommendations = generateTypographyRecommendations({
+  baseFont: 'Poppins',
+  brandPersonality: 'modern',
+  platform: 'web',
+  audience: 'general',
+});
+```
+
+Use heuristics to select complementary font stacks, determine platform-specific sizes, and surface brand-specific adjustments.
+
+### Typography Experiments
+
+```typescript
+import {
+  createTypographyExperiment,
+  recordTypographyInteraction,
+  getTypographyExperimentResults,
+} from '@web-loom/typography-core';
+
+const experiment = createTypographyExperiment('Hero Headline', [
+  { id: 'a', label: 'Sans', fontFamily: 'Inter', fontSize: 36, lineHeight: 1.25 },
+  { id: 'b', label: 'Serif', fontFamily: 'Fraunces', fontSize: 38, lineHeight: 1.3 },
+]);
+
+recordTypographyInteraction(experiment, 'a', 'impression');
+recordTypographyInteraction(experiment, 'a', 'conversion');
+const results = getTypographyExperimentResults(experiment);
+```
+
+Track impressions and conversions for each variant and compute conversion rates for data-informed typography choices.
+
+### Cross-Platform Typography
+
+```typescript
+import {
+  createNativeTypographyPreset,
+  createReactNativeTypography,
+  scaleFontForDevice,
+} from '@web-loom/typography-core';
+
+const rnBody = createReactNativeTypography('Inter', { baseFontSize: 17, platform: 'android' });
+const rnHeading = createNativeTypographyPreset('heading', 'Poppins', { baseFontSize: 18 });
+const scaled = scaleFontForDevice(16, 3); // => 24
+```
+
+Generate React Native friendly tokens, create named presets, and adapt sizes per device pixel ratio for consistent mobile typography.
+
+### Use Case Playbook
+
+**Editorial QA Dashboards**
+
+```typescript
+import {
+  analyzeTextContent,
+  calculateReadingTime,
+  getReadabilityScore,
+  suggestFontPairings,
+} from '@web-loom/typography-core';
+
+const metrics = analyzeTextContent(articleCopy);
+const readingTime = calculateReadingTime(articleCopy, 275);
+const readability = getReadabilityScore(articleCopy);
+const pairingOptions = suggestFontPairings('Poppins');
+```
+
+- Surface readability regressions before launch
+- Recommend type pairings that match editorial intent
+- Export data into CMS dashboards or Slack alerts
+
+**Immersive Landing Pages**
+
+```typescript
+import {
+  animate3DText,
+  animateVariableFont,
+  apply3DTextEffect,
+  createGuidedReading,
+  morphText,
+} from '@web-loom/typography-core';
+
+const effect = apply3DTextEffect(heroTitle, { depth: 40 });
+const loop = animate3DText(heroTitle, { duration: 2200 });
+const morph = morphText(subTitle, 'Design clarity', 'Deliver delight');
+const guided = createGuidedReading(featureList, { interval: 1800 });
+```
+
+- Build futuristic hero messaging without WebGL
+- Morph supporting copy to highlight benefits
+- Guide users through dense sections with timed highlights
+
+**Data-Driven Typography Experiments**
+
+```typescript
+import {
+  createTypographyExperiment,
+  generateTypographyRecommendations,
+  getTypographyExperimentResults,
+  recordTypographyInteraction,
+} from '@web-loom/typography-core';
+
+const experiment = createTypographyExperiment('Pricing Headline', [
+  { id: 'a', label: 'Sans', fontFamily: 'Inter', fontSize: 40, lineHeight: 1.15 },
+  { id: 'b', label: 'Serif', fontFamily: 'Fraunces', fontSize: 42, lineHeight: 1.2 },
+]);
+
+const recs = generateTypographyRecommendations({ baseFont: 'Inter', platform: 'web', audience: 'professionals' });
+
+recordTypographyInteraction(experiment, 'a', 'impression');
+recordTypographyInteraction(experiment, 'a', 'conversion');
+
+const results = getTypographyExperimentResults(experiment);
+```
+
+- Spin up A/B tests without third-party tooling
+- Capture conversion rates per type stack
+- Feed outcomes back into recommendation engines
+
+**Cross-Platform Product Teams**
+
+```typescript
+import {
+  adaptTypographyForLocale,
+  createNativeTypographyPreset,
+  createReactNativeTypography,
+  isRTLLocale,
+  scaleFontForDevice,
+} from '@web-loom/typography-core';
+
+const localeTokens = adaptTypographyForLocale(currentLocale);
+const rnBody = createReactNativeTypography(localeTokens.fontFamily, { baseFontSize: 16 * localeTokens.lineHeight });
+const rnHeading = createNativeTypographyPreset('heading', localeTokens.fontFamily, { baseFontSize: 20 });
+const scaledFont = scaleFontForDevice(16, 3);
+const direction = isRTLLocale(currentLocale) ? 'rtl' : 'ltr';
+```
+
+- Keep web and native typography in sync using shared config
+- Handle RTL, locale-specific fonts, and pixel-ratio scaling with one toolkit
+- Ship consistent reading experiences across React Native, Next.js, and documentation
+
+### Strategic Alignment
+
+- **Product Requirements Document**: `packages/typography-core/Product Requirements Document.md` describes the package scope, goals, and module breakdown that match the feature sections above.
+- **GAP Analysis**: `packages/typography-core/GAP_ANALYSIS.md` tracks the four delivery phases. The status table at the top mirrors the rollout referenced throughout this README.
 
 ### Design-Core Integration
 

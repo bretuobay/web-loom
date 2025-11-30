@@ -3,25 +3,32 @@ import dts from 'vite-plugin-dts';
 
 export default defineConfig({
   build: {
-    outDir: 'dist', // Explicitly set outDir
+    outDir: 'dist',
     lib: {
       entry: './src/index.ts',
       formats: ['es', 'umd'],
-      name: 'FormsCore', // For UMD global variable
+      name: 'FormsCore',
       fileName: (format) => `forms-core.${format}.js`,
     },
     rollupOptions: {
-      // No external dependencies for QueryCore
+      external: ['zod', '@web-loom/storage-core'],
       output: {
-        // No globals needed as no externals
+        globals: {
+          zod: 'Zod',
+          '@web-loom/storage-core': 'StorageCore',
+        },
       },
     },
+    minify: 'terser',
+    sourcemap: true,
   },
-  plugins: [dts({ insertTypesEntry: true, outDir: 'dist', tsconfigPath: './tsconfig.json', rollupTypes: true })], // also specify for dts plugin
-  server: {
-    // Expose tests directory for the custom runner
-    fs: {
-      allow: ['.', 'tests'], // Allow serving files from root and tests directory
-    },
-  },
+  plugins: [
+    dts({
+      insertTypesEntry: true,
+      outDir: 'dist',
+      tsconfigPath: './tsconfig.json',
+      rollupTypes: true,
+      exclude: ['tests/**/*', '**/*.test.ts', '**/*.spec.ts'],
+    }),
+  ],
 });

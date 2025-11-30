@@ -1,20 +1,18 @@
-Product Requirements Document: UI Styling & Theming Library
+Product Requirements Document: Typography-Core
 
 1. Introduction & Overview
-   This document outlines the requirements for a new, reusable, and framework-agnostic UI styling and theming library. The library's core purpose is to provide easy-to-use APIs for managing visual aspects of web and mobile applications, with a primary focus on text, writing, colors, typography, branding, animations, and theming. While initially designed for blogging platforms, the library's modular and configurable nature ensures it can be used in any web or mobile application.
-
-The library will be built in TypeScript to ensure strong typing and code quality, and will be compiled into a JavaScript package. A small, optional CSS file will be provided for pre-defined animation keyframes.
+   Typography-Core is a framework-agnostic toolkit that provides advanced typography utilities, animation primitives, AI-assisted recommendations, and cross-platform adapters. It focuses exclusively on the reading experience layer of an application—text scaling, modular calculations, readability analytics, motion, and typography testing—while other design tokens live inside `@web-loom/design-core`. The package is written in strict TypeScript and compiled as an ESM/CJS JavaScript library with zero required CSS (optional helper classes may be included for demos).
 
 2. Goals & Objectives
-   Simplify UI Styling: Provide a single, centralized source of truth for an application's visual theme.
+   Simplify Typographic Calculations: Offer modular scale, fluid typography, line-height, and rhythm utilities that work with any design tokens.
 
-Enhance Brand Consistency: Enable developers to easily apply and enforce a consistent brand identity across an entire application using a simple configuration object.
+Enhance Reading Experiences: Provide guided reading, focus assistance, and animation recipes that elevate how text is consumed on the web and mobile.
 
-Improve Developer Experience (DX): Offer a clean, intuitive, and well-documented API for common styling tasks, reducing boilerplate code.
+Accelerate Decision Making: Ship AI-driven font pairing suggestions, readability analytics, and typography A/B testing helpers for data-informed iteration.
 
-Maintain Flexibility: Ensure the library can be integrated with any modern web or mobile framework, including React, Angular, Vue, and vanilla JavaScript projects.
+Maintain Framework Flexibility: Run seamlessly in React, Vue, Angular, SSG/SSR, or vanilla projects, plus provide adapters for React Native.
 
-Provide Reusable Components: Offer utility functions for common tasks like color manipulation and text animations.
+Stay Interoperable with Design-Core: Consume typography tokens from `@web-loom/design-core` so the broader design system stays in sync.
 
 3. Target Audience
    The primary users of this library will be front-end developers, particularly those working on projects where consistent branding and dynamic styling are important. This includes developers of:
@@ -30,36 +28,27 @@ Teams seeking consistent branding and UI theming across projects
 Developers wanting to incorporate smooth text animations and typographic controls
 
 4. Key Features
-   The library will be organized into logical modules that can be used independently or together.
+   Typography-Core ships as a set of composable modules:
 
-Text and Typography API: Control font sizes, font families, weights, styles, line height, and letter spacing with a clean, programmatic interface.
-
-Color and Branding API: Manage brand colors including primary, secondary, and accent colors with support for light/dark modes and accessibility compliance.
-
-Animations API: Include utilities for common text animations (e.g., typewriter effect, fade-in, slide) with configurable timing and easing.
-
-Theming: Accept a base configuration for colors, fonts, sizes, and branding inputs allowing for dynamic switching of themes at runtime.
-
-Framework Agnosticism: Usable with any JavaScript framework or vanilla JavaScript.
-
-TypeScript First: Written entirely in TypeScript with strict typing and type inference for a robust developer experience.
-
-Minimal CSS: Include only essential CSS if needed, relying mostly on JS for flexibility.
+- **Theme + Design-Core Integration**: `createTheme`, token consumers, and preset generators bridge external design tokens into typography calculations.
+- **Typography Calculations**: Modular scales, fluid `clamp()` helpers, line-height/vertical rhythm generators, optical sizing, and character-per-line estimators.
+- **Color Utilities**: Lighten/darken plus perceptual color similarity (RGB/HSL/LAB) for textual contrast and brand pairing.
+- **Animations**: Typewriter, fade-in, character reveal, and scale animations plus advanced morphing, variable font timelines, and RSVP speed reading.
+- **Accessibility + Analysis**: Dyslexia presets, low vision adjustments, motion-safe fallbacks, readability scoring, language detection, and keyword extraction.
+- **Font + Web Performance**: Loading strategies, subset planning, font feature detection, and validation utilities.
+- **AI + Experiments**: Font pairing recommendations, typography optimization hints, and A/B testing helpers to capture conversion rates.
+- **Cross-Platform Adapters**: React Native typography presets, device scaling helpers, and locale-aware RTL utilities.
 
 5. Project Structure
-   The project will have a clear, modular structure for maintainability and scalability.
+   The repository follows a modular breakdown aligned with the roadmap:
 
-Entry point: The main file for configuration and theme setup.
-
-Color utilities: Functions and types for managing color palettes and accessibility.
-
-Typography: Font configurations and responsive font sizes.
-
-Animation utilities: Predefined text animation effects.
-
-Theming engine: The core API to customize and switch themes dynamically.
-
-Exports: Clear API exports for each module.
+- `src/core`: Theme configuration + design-core integration bridges.
+- `src/calculations`: Modular scales, fluid typer, line-height, text measurements.
+- `src/fonts`: Loading, performance, validation utilities.
+- `src/animations` & `src/effects`: Base text animations plus advanced 3D/variable font effects.
+- `src/accessibility`, `src/analysis`, `src/multilingual`, `src/reading`: Readability, language detection, guided reading, focus assist, and locale helpers.
+- `src/ai`, `src/testing`, `src/cross-platform`: AI recommendations, typography experiments, React Native adapters.
+- `src/utils`: Color similarity, typography math, and shared helpers.
 
 6. API Design & Definitions
    The library's API will be designed to be intuitive and easy to use.
@@ -132,21 +121,24 @@ Exports: Clear API exports for each module.
   };
 
 7. Development & Tooling
-   The development process will follow modern best practices to ensure a high-quality, maintainable, and robust library.
-
-TypeScript: Use strict TypeScript with full typings and type inference for a strong developer experience.
-
-Bundling: Build with a modern Vite to output ESM and CJS modules.
-
-Testing: Implement unit tests for all utilities to ensure reliability.
-
-Documentation: Generate documentation from inline code comments and examples.
-
-Showcase: Optional Storybook or similar for UI demos of the animations and theming capabilities.
+   - TypeScript: strict mode, declaration output, and shared types across modules.
+   - Bundling: Vite + `vite-plugin-dts` to emit ESM/CJS bundles.
+   - Testing: Vitest (jsdom) for utilities and browser-specific code. Current suites cover color, theme, calculations, animations, accessibility, AI, testing, effects, and cross-platform modules.
+   - Documentation: Central README + PRD/GAP analysis with use-case playbooks and roadmap context. Additional guides can live in `/docs`.
+   - Showcase: Optional Storybook or sandboxes for animation demos and typography experiments.
 
 8. Future Considerations
-   CLI Tool: Develop a command-line interface to generate the initial ThemeConfig object with sensible defaults.
+   - CLI Tooling: Generate boilerplate theme configs, experiments, or font pairing reports from the terminal.
+   - Framework Bindings: Ship reference React/Vue hooks for guided reading, focus assist, or typography experiments.
+   - Palette Generation: Leverage color similarity utilities to create tonal palettes or accessible contrast variants automatically.
+   - Telemetry Hooks: Offer adapters that feed experiment metrics to analytics providers (Segment, GA4, etc.).
 
-Component Integrations: Create optional wrapper components for popular frameworks (e.g., <TextAnimated /> for React) that leverage the library's functionality.
+9. Roadmap Alignment
+   The GAP Analysis tracks delivery across four phases (completed in order):
 
-Palette Generation: Add a function that can generate a full color palette (tints and shades) from the primary and secondary brand colors.
+   1. Typography scale generation, design-core integration, typography calculations, and web font management.
+   2. Accessibility, analytics, font performance, and typography math enhancements.
+   3. Advanced text animations, content analysis, multilingual support, and guided reading experiences.
+   4. 3D typography effects, AI-powered recommendations, typography testing utilities, and cross-platform/native adapters.
+
+   This PRD stays synchronized with that roadmap so documentation, implementation, and future planning remain consistent.
