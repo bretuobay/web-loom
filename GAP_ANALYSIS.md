@@ -17,39 +17,29 @@ Current State: What You Have ✅
 Excellent Foundation (Core Architecture)
 
 1. @web-loom/mvvm-core (v0.5.1)
-
-
-    - BaseModel, BaseViewModel, RestfulApiModel
-    - RxJS-powered reactive state
-    - Zod validation
-    - Command pattern
-    - Resource management (IDisposable)
+   - BaseModel, BaseViewModel, RestfulApiModel
+   - RxJS-powered reactive state
+   - Zod validation
+   - Command pattern
+   - Resource management (IDisposable)
 
 2. @web-loom/store-core (v0.0.4)
-
-
-    - Minimal reactive state management
-    - Type-safe actions
-    - <1KB footprint
+   - Minimal reactive state management
+   - Type-safe actions
+   - <1KB footprint
 
 3. @web-loom/event-bus-core (v0.0.2)
-
-
-    - Pub/sub pattern
-    - Type-safe events
-    - ~1KB gzipped
+   - Pub/sub pattern
+   - Type-safe events
+   - ~1KB gzipped
 
 4. @web-loom/query-core (v0.0.3)
-
-
-    - Data fetching and caching
-    - Automatic refetching
-    - Multiple cache providers (memory, localStorage, IndexedDB)
+   - Data fetching and caching
+   - Automatic refetching
+   - Multiple cache providers (memory, localStorage, IndexedDB)
 
 5. @web-loom/ui-core (v1.0.0)
-
-
-    - Headless UI behaviors: Dialog, Disclosure, Form, List Selection, Roving
+   - Headless UI behaviors: Dialog, Disclosure, Form, List Selection, Roving
 
 Focus - Framework adapters for React, Vue, Angular - <2KB per behavior 6. @web-loom/ui-patterns (v1.0.0) - Composed patterns: Master-Detail, Wizard, Modal, Command Palette, Tabbed
 Interface, Sidebar Shell, Toast Queue - Built on ui-core behaviors 7. @web-loom/plugin-core - Plugin registry and lifecycle management - Framework-agnostic plugin architecture - Manifest-based plugin definition 8. @web-loom/design-core - Design tokens - Theme management - CSS custom properties - Lightweight CSS component library 9. @web-loom/prose-scriber (v0.0.4) - Typography and color utilities - Text animations - Color similarity (RGB/HSL/LAB)
@@ -165,6 +155,9 @@ Features:
 - RTL layout detection
 - Translation file loading strategies
 - Missing translation warnings
+- use browser standards as much as possible.
+- Keep it simple and frontend framework agnostic.
+- Keep agnosticism in mind in all implementations
 
 ---
 
@@ -644,34 +637,26 @@ Implementation Recommendations
 Architecture Principles
 
 1. Follow Existing Patterns:
-
-
-    - Use same structure as existing packages (vite config, tsconfig, vitest)
-    - Build on store-core and event-bus-core
-    - Maintain <5KB bundle size per package
-    - Provide framework adapters (React, Vue, Angular)
+   - Use same structure as existing packages (vite config, tsconfig, vitest)
+   - Build on store-core and event-bus-core
+   - Maintain <5KB bundle size per package
+   - Provide framework adapters (React, Vue, Angular)
 
 2. Integration:
-
-
-    - Ensure new packages integrate seamlessly with existing ones
-    - HTTP-core should work with query-core
-    - Forms-core should integrate with validation in mvvm-core
-    - Router-core should integrate with auth-core for route guards
+   - Ensure new packages integrate seamlessly with existing ones
+   - HTTP-core should work with query-core
+   - Forms-core should integrate with validation in mvvm-core
+   - Router-core should integrate with auth-core for route guards
 
 3. TypeScript-First:
-
-
-    - Full type safety with generics
-    - Zod schemas where applicable
-    - Export comprehensive types
+   - Full type safety with generics
+   - Zod schemas where applicable
+   - Export comprehensive types
 
 4. Testing:
-
-
-    - Unit tests with Vitest
-    - Integration tests with Playwright
-    - Accessibility tests with axe-core
+   - Unit tests with Vitest
+   - Integration tests with Playwright
+   - Accessibility tests with axe-core
 
 ---
 
