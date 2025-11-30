@@ -15,6 +15,9 @@ npm install @web-loom/typography-core
 ## Features
 
 - **Theme Management**: Create and manage configurable themes with colors, typography, and brand colors
+- **Typography Calculations**: Generate modular scales, fluid type clamp expressions, vertical rhythm maps, and text measurements
+- **Design-System Integration**: Consume `@web-loom/design-core` tokens and generate typography presets instantly
+- **Web Font Management**: Load, preload, and validate fonts with performance-aware utilities
 - **Color Utilities**: Lighten, darken, and compare colors with perceptual accuracy
 - **Color Similarity**: Advanced color comparison using RGB, HSL, and LAB color spaces
 - **Text Animations**: Typewriter, fade-in, character reveal, and scale animations using Web Animations API
@@ -141,6 +144,71 @@ const similar = areColorsSimilar([255, 0, 0], [254, 0, 0], {
 // Get similarity percentage
 const similarity = getColorSimilarityPercentage([255, 0, 0], [254, 0, 0], 'lab');
 ```
+
+### Typography Calculations
+
+Unlock the advanced typography utilities introduced in Phase 1 of the refactor:
+
+```typescript
+import {
+  calculateCharactersPerLine,
+  calculateOptimalLineHeight,
+  createFluidType,
+  generateModularScale,
+  generateVerticalRhythm,
+  measureText,
+} from '@web-loom/typography-core';
+
+const scale = generateModularScale(16, 1.2, 3);
+const fluidHeading = createFluidType(20, 40, 320, 1440); // clamp() expression
+const optimalLineHeight = calculateOptimalLineHeight(16, 'body');
+const rhythm = generateVerticalRhythm(24, [0.5, 1, 2]);
+const charactersPerLine = calculateCharactersPerLine(16, 640, 'Inter');
+const metrics = measureText('Refine reading experience', 18, 'Inter');
+```
+
+Each helper returns pure data and formatted CSS friendly strings so you can plug the output directly into CSS-in-JS, style objects, or build-time token transforms.
+
+### Design-Core Integration
+
+Bridge design tokens from `@web-loom/design-core` into actionable typography data:
+
+```typescript
+import { consumeDesignTokens, createThemeFromDesignCore, generatePresetsFromTokens } from '@web-loom/typography-core';
+
+// `tokens` is the resolved design token object produced by @web-loom/design-core
+const tokens = await loadDesignCoreTokensSomehow();
+const typographyConfig = consumeDesignTokens(tokens);
+const presets = generatePresetsFromTokens(tokens);
+const snapshot = createThemeFromDesignCore({ name: 'light', tokens });
+```
+
+You get normalized font families, numeric scales, fluid typography clamps, and validation feedback without reimplementing token parsing.
+
+### Web Font Management
+
+Manage fonts with the provided high-level helpers:
+
+```typescript
+import {
+  detectFontFeatures,
+  loadWebFont,
+  optimizeFontLoading,
+  preloadFonts,
+  validateFontSupport,
+} from '@web-loom/typography-core';
+
+preloadFonts([{ href: '/fonts/Inter-Variable.woff2', type: 'font/woff2' }]);
+const loadResult = await loadWebFont({
+  family: 'Inter',
+  sources: [{ url: '/fonts/Inter-Variable.woff2', format: 'woff2' }],
+});
+const validation = validateFontSupport({ family: 'Inter', formats: ['woff2'], weights: ['400', '700'] });
+const features = detectFontFeatures('Inter');
+const strategy = optimizeFontLoading('critical');
+```
+
+The utilities gracefully degrade when the FontFace API is unavailable, making them safe for SSR and unit tests.
 
 ### Text Animations
 
