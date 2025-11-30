@@ -1,5 +1,5 @@
 // animateText.ts - Main animation function
-import type { AnimationOptions, AnimationController } from './types';
+import type { AnimationOptions, AnimationController } from '../types';
 
 /**
  * Animates text content using modern Web Animations API with fallback support.

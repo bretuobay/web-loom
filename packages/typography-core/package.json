@@ -28,7 +28,9 @@
     "typescript"
   ],
   "scripts": {
-    "dev": "vite build --watch",
+    "dev": "node scripts/dev.mjs build --watch",
+    "postinstall": "node scripts/patch-vite.cjs",
+    "patch:vite": "node scripts/patch-vite.cjs",
     "build": "vite build",
     "test": "vitest --watch=false",
     "test:watch": "vitest --watch",

@@ -58,10 +58,11 @@ export function measureText(
 
   if (canvas) {
     const ctx = canvas.getContext('2d');
-    if (ctx) {
+    if (ctx && 'font' in ctx) {
+      const ctx2d = ctx as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
       const weight = options.fontWeight ? `${options.fontWeight} ` : '';
-      ctx.font = `${weight}${fontSize}px ${fontFamily}`.trim();
-      const metrics = ctx.measureText(safeText);
+      ctx2d.font = `${weight}${fontSize}px ${fontFamily}`.trim();
+      const metrics = ctx2d.measureText(safeText);
       const letterSpacing = options.letterSpacing ?? 0;
       const spacingAdjustment = letterSpacing * Math.max(safeText.length - 1, 0);
       const width = metrics.width + spacingAdjustment;

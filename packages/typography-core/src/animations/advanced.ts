@@ -209,11 +209,25 @@ export function animateVariableFont(
     fill: 'forwards',
   };
 
-  const waKeyframes = keyframes.map((frame) => ({
-    fontVariationSettings: buildFontVariationSettings(frame.settings),
-    offset: frame.duration ? Math.min(Math.max(frame.duration / timing.duration!, 0), 1) : undefined,
-    easing: frame.easing,
-  }));
+  const resolvedDuration =
+    typeof timing.duration === 'number'
+      ? timing.duration
+      : typeof timing.duration === 'string'
+        ? Number.parseFloat(timing.duration)
+        : 0;
+
+  const waKeyframes = keyframes.map((frame) => {
+    const offset =
+      frame.duration && resolvedDuration > 0
+        ? Math.min(Math.max(frame.duration / resolvedDuration, 0), 1)
+        : undefined;
+
+    return {
+      fontVariationSettings: buildFontVariationSettings(frame.settings),
+      offset,
+      easing: frame.easing,
+    };
+  });
 
   const animation = element.animate(waKeyframes, timing);
 

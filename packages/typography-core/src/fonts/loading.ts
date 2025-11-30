@@ -56,10 +56,14 @@ export async function loadWebFont(config: WebFontConfig): Promise<FontLoadResult
       const source = config.sources[0];
       const descriptors: FontFaceDescriptors = {
         style: source.style ?? 'normal',
-        weight: source.weight ?? '400',
+        weight: String(source.weight ?? '400'),
         display: config.display ?? 'swap',
       };
-      const fontFace = new FontFace(config.family, `url(${source.url})${source.format ? ` format('${source.format}')` : ''}`, descriptors);
+      const fontFace = new FontFace(
+        config.family,
+        `url(${source.url})${source.format ? ` format('${source.format}')` : ''}`,
+        descriptors,
+      );
       await fontFace.load();
       document.fonts?.add(fontFace);
       return {
@@ -103,7 +107,7 @@ export function preloadFonts(fonts: FontPreloadConfig[]): void {
   });
 }
 
-export function detectFontFeatures(fontFamily: string): FontFeatures {
+export function detectFontFeatures(_fontFamily: string): FontFeatures {
   const supportsCSS = typeof CSS !== 'undefined' && typeof CSS.supports === 'function';
 
   return {

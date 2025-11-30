@@ -45,7 +45,7 @@
     "zod": "^3.22.0"
   },
   "optionalDependencies": {
-    "@web-loom/storage-core": "workspace:*"
+    "@web-loom/storage-core": "*"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
