@@ -7,11 +7,11 @@ export default defineConfig({
     lib: {
       entry: './src/index.ts',
       formats: ['es', 'umd'],
-      name: 'ProseScriber', // For UMD global variable
-      fileName: (format) => `prose-scriber.${format}.js`,
+      name: 'TypographyCore', // For UMD global variable
+      fileName: (format) => `typography-core.${format}.js`,
     },
     rollupOptions: {
-      // No external dependencies for ProseScriber
+      // No external dependencies for TypographyCore
       output: {
         // No globals needed as no externals
       },

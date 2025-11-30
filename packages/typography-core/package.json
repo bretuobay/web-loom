@@ -1,5 +1,5 @@
 {
-  "name": "@web-loom/prose-scriber",
+  "name": "@web-loom/typography-core",
   "description": "A minimal client typography and coloring library for building reactive web applications.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
@@ -9,14 +9,14 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/prose-scriber.umd.js",
-  "module": "./dist/prose-scriber.es.js",
+  "main": "./dist/typography-core.umd.js",
+  "module": "./dist/typography-core.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/prose-scriber.es.js",
-      "require": "./dist/prose-scriber.umd.js"
+      "import": "./dist/typography-core.es.js",
+      "require": "./dist/typography-core.umd.js"
     }
   },
   "keywords": [

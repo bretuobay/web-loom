@@ -1,15 +1,15 @@
-# @web-loom/prose-scriber
+# @web-loom/typography-core
 
 Minimal client-side typography, color manipulation, and text animation library for modern web applications.
 
 ## Overview
 
-`@web-loom/prose-scriber` provides utilities for theming, color operations, and text animations. It's framework-agnostic, lightweight, and built with TypeScript for type safety.
+`@web-loom/typography-core` provides utilities for theming, color operations, and text animations. It's framework-agnostic, lightweight, and built with TypeScript for type safety.
 
 ## Installation
 
 ```bash
-npm install @web-loom/prose-scriber
+npm install @web-loom/typography-core
 ```
 
 ## Features
@@ -28,7 +28,7 @@ npm install @web-loom/prose-scriber
 Create a theme with typography and color configuration:
 
 ```typescript
-import { createTheme } from '@web-loom/prose-scriber';
+import { createTheme } from '@web-loom/typography-core';
 
 const theme = createTheme({
   fontSize: {
@@ -36,25 +36,25 @@ const theme = createTheme({
     md: '1rem',
     lg: '1.125rem',
     xl: '1.25rem',
-    '2xl': '1.5rem'
+    '2xl': '1.5rem',
   },
   color: {
     textDark: '#1a1a1a',
     textLight: '#ffffff',
     background: '#f5f5f5',
-    surface: '#ffffff'
+    surface: '#ffffff',
   },
   brandColors: {
     primary: '#007bff',
     secondary: '#6c757d',
-    accent: '#17a2b8'
+    accent: '#17a2b8',
   },
   typography: {
     fontFamily: 'Inter, system-ui, sans-serif',
     fontWeights: { normal: 400, medium: 500, bold: 700 },
     lineHeights: { tight: 1.25, normal: 1.5, loose: 1.75 },
-    letterSpacing: { tight: '-0.05em', normal: '0', wide: '0.05em' }
-  }
+    letterSpacing: { tight: '-0.05em', normal: '0', wide: '0.05em' },
+  },
 });
 
 // Access theme values
@@ -74,7 +74,7 @@ const currentTheme = theme.getTheme();
 #### Lighten and Darken
 
 ```typescript
-import { lighten, darken } from '@web-loom/prose-scriber';
+import { lighten, darken } from '@web-loom/typography-core';
 
 const lightBlue = lighten('#007bff', 20); // Lighten by 20%
 const darkBlue = darken('#007bff', 30); // Darken by 30%
@@ -88,19 +88,19 @@ Compare colors using different color spaces for perceptual accuracy:
 import {
   areHexColorsSimilar,
   getHexColorSimilarityPercentage,
-  findMostSimilarHexColor
-} from '@web-loom/prose-scriber';
+  findMostSimilarHexColor,
+} from '@web-loom/typography-core';
 
 // Basic similarity check
 const similar = areHexColorsSimilar('#FF0000', '#FE0000', {
   threshold: 5, // 0-100 scale
-  colorSpace: 'rgb' // 'rgb', 'hsl', or 'lab'
+  colorSpace: 'rgb', // 'rgb', 'hsl', or 'lab'
 });
 
 // LAB color space for perceptual accuracy
 const perceptual = areHexColorsSimilar('#FF0000', '#FE0000', {
   threshold: 10,
-  colorSpace: 'lab' // Best for human perception
+  colorSpace: 'lab', // Best for human perception
 });
 
 // Get exact similarity percentage
@@ -108,12 +108,7 @@ const similarity = getHexColorSimilarityPercentage('#FF0000', '#FE0000', 'lab');
 console.log(`Colors are ${similarity}% similar`);
 
 // Find closest match in a palette
-const closest = findMostSimilarHexColor('#FF5733', [
-  '#FF0000',
-  '#00FF00',
-  '#0000FF',
-  '#FF6666'
-]);
+const closest = findMostSimilarHexColor('#FF5733', ['#FF0000', '#00FF00', '#0000FF', '#FF6666']);
 console.log(closest); // { color: '#FF6666', similarity: 85.2, index: 3 }
 ```
 
@@ -125,8 +120,8 @@ import {
   hexToRGB,
   rgbToHSL,
   rgbToLAB,
-  getColorSimilarityPercentage
-} from '@web-loom/prose-scriber';
+  getColorSimilarityPercentage,
+} from '@web-loom/typography-core';
 
 // Convert hex to RGB
 const rgb = hexToRGB('#FF5733'); // [255, 87, 51]
@@ -140,7 +135,7 @@ const lab = rgbToLAB([255, 87, 51]); // [58.2, 61.4, 51.7]
 // Compare RGB colors
 const similar = areColorsSimilar([255, 0, 0], [254, 0, 0], {
   threshold: 10,
-  colorSpace: 'lab'
+  colorSpace: 'lab',
 });
 
 // Get similarity percentage
@@ -152,7 +147,7 @@ const similarity = getColorSimilarityPercentage([255, 0, 0], [254, 0, 0], 'lab')
 Animate text with the Web Animations API:
 
 ```typescript
-import { animateText } from '@web-loom/prose-scriber';
+import { animateText } from '@web-loom/typography-core';
 
 const element = document.querySelector('.animated-text');
 
@@ -162,7 +157,7 @@ const controller = animateText(element, 'typewriter', {
   cursor: true,
   cursorChar: '|',
   cursorBlink: true,
-  onComplete: () => console.log('Done!')
+  onComplete: () => console.log('Done!'),
 });
 
 // Character reveal with stagger
@@ -170,7 +165,7 @@ animateText(element, 'character', {
   duration: 800,
   stagger: 50, // ms delay between characters
   randomDelay: false,
-  easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+  easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
 });
 
 // Fade in from direction
@@ -178,14 +173,14 @@ animateText(element, 'fadein', {
   from: 'bottom', // 'top', 'bottom', 'left', 'right'
   distance: '30px',
   duration: 1200,
-  easing: 'ease-out'
+  easing: 'ease-out',
 });
 
 // Scale animation
 animateText(element, 'scale', {
   duration: 1000,
   easing: 'ease-in-out',
-  iterations: 1
+  iterations: 1,
 });
 
 // Control animation
@@ -245,12 +240,12 @@ const theme = createTheme({
     textDark: '#2c3e50',
     textLight: '#ecf0f1',
     background: '#ffffff',
-    surface: '#f8f9fa'
+    surface: '#f8f9fa',
   },
   brandColors: {
     primary: '#3498db',
-    secondary: '#95a5a6'
-  }
+    secondary: '#95a5a6',
+  },
 });
 
 // Apply theme to elements
@@ -268,8 +263,8 @@ function toggleDarkMode() {
       textDark: '#ecf0f1',
       textLight: '#2c3e50',
       background: '#2c3e50',
-      surface: '#34495e'
-    }
+      surface: '#34495e',
+    },
   });
 }
 ```
@@ -277,7 +272,7 @@ function toggleDarkMode() {
 ### Color Palette Matching
 
 ```typescript
-import { findMostSimilarHexColor, getHexColorSimilarityPercentage } from '@web-loom/prose-scriber';
+import { findMostSimilarHexColor, getHexColorSimilarityPercentage } from '@web-loom/typography-core';
 
 // Brand color palette
 const brandPalette = [
@@ -285,7 +280,7 @@ const brandPalette = [
   '#4ECDC4', // Teal
   '#45B7D1', // Blue
   '#FFA07A', // Orange
-  '#98D8C8'  // Mint
+  '#98D8C8', // Mint
 ];
 
 // Find closest brand color to user input
@@ -304,7 +299,7 @@ if (match.similarity < 80) {
 ### Animated Landing Page
 
 ```typescript
-import { animateText } from '@web-loom/prose-scriber';
+import { animateText } from '@web-loom/typography-core';
 
 // Animate heading with typewriter
 const heading = document.querySelector('.hero-heading');
@@ -317,9 +312,9 @@ const headingCtrl = animateText(heading, 'typewriter', {
     animateText(subheading, 'fadein', {
       from: 'bottom',
       distance: '20px',
-      duration: 800
+      duration: 800,
     });
-  }
+  },
 });
 
 // Animate feature cards with stagger
@@ -327,7 +322,7 @@ document.querySelectorAll('.feature-card').forEach((card, index) => {
   animateText(card, 'character', {
     delay: index * 200,
     stagger: 30,
-    duration: 600
+    duration: 600,
   });
 });
 ```
@@ -335,7 +330,7 @@ document.querySelectorAll('.feature-card').forEach((card, index) => {
 ### Accessibility-Friendly Color Contrast
 
 ```typescript
-import { lighten, darken, getHexColorSimilarityPercentage } from '@web-loom/prose-scriber';
+import { lighten, darken, getHexColorSimilarityPercentage } from '@web-loom/typography-core';
 
 function ensureContrast(bgColor: string, textColor: string): string {
   const similarity = getHexColorSimilarityPercentage(bgColor, textColor, 'lab');
@@ -394,8 +389,8 @@ import type {
   RGBColor,
   HSLColor,
   LABColor,
-  ColorSimilarityOptions
-} from '@web-loom/prose-scriber';
+  ColorSimilarityOptions,
+} from '@web-loom/typography-core';
 
 const theme: ThemeConfig = {
   fontSize: { sm: '14px', md: '16px', lg: '18px', xl: '24px', '2xl': '32px' },
@@ -403,17 +398,17 @@ const theme: ThemeConfig = {
     textDark: '#000',
     textLight: '#fff',
     background: '#f5f5f5',
-    surface: '#fff'
+    surface: '#fff',
   },
   brandColors: {
     primary: '#007bff',
-    secondary: '#6c757d'
-  }
+    secondary: '#6c757d',
+  },
 };
 
 const options: AnimationOptions = {
   duration: 1000,
-  easing: 'ease-in-out'
+  easing: 'ease-in-out',
 };
 
 const rgb: RGBColor = [255, 0, 0];
@@ -424,6 +419,7 @@ const lab: LABColor = [53.2, 80.1, 67.2];
 ## API Reference
 
 ### Theme API
+
 - `createTheme(config)`: Create theme instance
 - `getColor(key)`: Get color from theme
 - `getBrandColor(key)`: Get brand color
@@ -432,6 +428,7 @@ const lab: LABColor = [53.2, 80.1, 67.2];
 - `setTheme(config)`: Update theme config
 
 ### Color API
+
 - `lighten(color, amount)`: Lighten hex color by percentage
 - `darken(color, amount)`: Darken hex color by percentage
 - `hexToRGB(hex)`: Convert hex to RGB tuple
@@ -446,11 +443,13 @@ const lab: LABColor = [53.2, 80.1, 67.2];
 - `findMostSimilarHexColor(hex, palette, space)`: Find closest hex in palette
 
 ### Animation API
+
 - `animateText(element, type, options)`: Animate text element
 
 Animation types: `'typewriter'`, `'fadein'`, `'character'`, `'scale'`
 
 ### Animation Controller
+
 - `play()`: Resume animation
 - `pause()`: Pause animation
 - `reverse()`: Reverse animation direction
@@ -467,6 +466,7 @@ Animation types: `'typewriter'`, `'fadein'`, `'character'`, `'scale'`
 ## Browser Support
 
 Works in all modern browsers supporting:
+
 - Web Animations API
 - ES2015+
 
