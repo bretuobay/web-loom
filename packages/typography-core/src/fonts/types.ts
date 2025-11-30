@@ -47,3 +47,22 @@ export interface FontConfig {
 }
 
 export type FontValidationResult = ValidationResult;
+
+export interface FontSubsetOptions {
+  preserveCase?: boolean;
+  additionalCharacters?: string;
+}
+
+export interface FontSubsetPlan {
+  characters: string;
+  unicodeRange: string;
+  uniqueGlyphs: number;
+  estimatedSavings: number;
+  recommendedFormat: WebFontSource['format'];
+}
+
+export interface FontUsageSnapshot {
+  text: string;
+  weight?: string | number;
+  languages?: string[];
+}

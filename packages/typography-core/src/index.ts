@@ -3,9 +3,12 @@ import { lighten, darken } from './color';
 import { animateText } from './animations';
 
 export * from './utils/color-similarity';
+export * from './utils/typography-math';
 export * from './calculations';
 export * from './core';
 export * from './fonts';
+export * from './accessibility';
+export * from './analysis';
 
 /**
  * Initializes the library and returns a theme object with utility functions.

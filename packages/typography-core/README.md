@@ -18,6 +18,10 @@ npm install @web-loom/typography-core
 - **Typography Calculations**: Generate modular scales, fluid type clamp expressions, vertical rhythm maps, and text measurements
 - **Design-System Integration**: Consume `@web-loom/design-core` tokens and generate typography presets instantly
 - **Web Font Management**: Load, preload, and validate fonts with performance-aware utilities
+- **Accessibility Presets**: Dyslexia-friendly adjustments, low-vision sizing, and motion-safe fallbacks
+- **Readability Analytics**: Reading time, readability scores, and structural metrics
+- **Font Performance**: Character subset planning and transfer saving estimations
+- **Typography Math**: Golden ratio scaling and optical sizing helpers
 - **Color Utilities**: Lighten, darken, and compare colors with perceptual accuracy
 - **Color Similarity**: Advanced color comparison using RGB, HSL, and LAB color spaces
 - **Text Animations**: Typewriter, fade-in, character reveal, and scale animations using Web Animations API
@@ -168,6 +172,71 @@ const metrics = measureText('Refine reading experience', 18, 'Inter');
 ```
 
 Each helper returns pure data and formatted CSS friendly strings so you can plug the output directly into CSS-in-JS, style objects, or build-time token transforms.
+
+### Accessibility Helpers
+
+```typescript
+import {
+  adjustForLowVision,
+  optimizeForDyslexia,
+  respectMotionPreferences,
+} from '@web-loom/typography-core';
+
+const dyslexiaPreset = optimizeForDyslexia({ baseFontSize: 18 });
+const visionSupport = adjustForLowVision(16, { severity: 'moderate', prefersHighContrast: true });
+const safeAnimations = respectMotionPreferences([{ name: 'typewriter', duration: 1200 }]);
+```
+
+Use these presets to drive theme overrides or user preferences while honoring reduced-motion settings automatically.
+
+### Readability & Analytics
+
+```typescript
+import {
+  analyzeTextContent,
+  calculateReadingTime,
+  generateContentInsights,
+  getReadabilityScore,
+} from '@web-loom/typography-core';
+
+const sample = 'Great typography boosts comprehension and delight.';
+const metrics = analyzeTextContent(sample);
+const readingTime = calculateReadingTime(sample, 250);
+const readability = getReadabilityScore(sample);
+const insights = generateContentInsights(sample, 18);
+```
+
+These helpers make it easy to surface editorial dashboards, highlight difficult passages, and tailor layouts for your audience.
+
+### Font Performance
+
+```typescript
+import { estimateFontTransferSavings, generateFontSubset, planFontSubsets } from '@web-loom/typography-core';
+
+const subset = generateFontSubset('Hero Headline – 2025 Edition');
+const plans = planFontSubsets([{ text: 'Headlines' }, { text: 'Body copy with multilingual content' }]);
+const savings = estimateFontTransferSavings(120, subset.uniqueGlyphs, 1200);
+```
+
+Produce unicode ranges, subset strings, and transfer savings estimates for build pipelines or design handoffs.
+
+### Typography Math
+
+```typescript
+import {
+  applyGoldenRatio,
+  calculateOpticalSize,
+  createOpticalSizeRamp,
+  generateGoldenScale,
+} from '@web-loom/typography-core';
+
+const goldenHeading = applyGoldenRatio(24);
+const goldenScale = generateGoldenScale(16, 3);
+const opticalSize = calculateOpticalSize(16, 55, 240);
+const opticalRamp = createOpticalSizeRamp(16);
+```
+
+Golden ratio helpers keep typographic scales harmonious, while optical sizing compensates for viewing distance and pixel density.
 
 ### Design-Core Integration
 
