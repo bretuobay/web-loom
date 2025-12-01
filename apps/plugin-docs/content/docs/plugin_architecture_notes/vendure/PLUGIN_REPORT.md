@@ -304,6 +304,7 @@ However, useful plugins typically implement:
    - Located at `bootstrap.ts:296`
 
 3. **Entity Collection** (line 264)
+
    ```typescript
    const entities = await getAllEntities(config);
    ```
