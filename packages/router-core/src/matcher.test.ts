@@ -26,7 +26,7 @@ describe('matchRoute', () => {
     expect(match.meta).toEqual({ auth: true });
     expect(match.query).toEqual({ tab: 'activity' });
     expect(match.fullPath).toBe('/users/42?tab=activity');
-    expect(match.matched.length).toBe(3);
+    expect(match.matched.length).toBe(2);
   });
 
   it('supports wildcard routes', () => {

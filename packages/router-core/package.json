@@ -1,5 +1,5 @@
 {
-  "name": "@web-loom/router-core-core",
+  "name": "@web-loom/router-core",
   "description": "A lightweight, framework-agnostic Event Bus library.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
@@ -9,15 +9,15 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/router-core-core.umd.js",
-  "module": "./dist/router-core-core.es.js",
+  "main": "./dist/router-core.umd.js",
+  "module": "./dist/router-core.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/router-core-core.es.js",
-      "require": "./dist/router-core-core.umd.js",
-      "default": "./dist/router-core-core.es.js"
+      "import": "./dist/router-core.es.js",
+      "require": "./dist/router-core.umd.js",
+      "default": "./dist/router-core.es.js"
     }
   },
   "keywords": [

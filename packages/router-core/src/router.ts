@@ -232,7 +232,7 @@ export function createRouter(options: RouterOptions): Router {
 
   function finalizeNavigation(
     to: RouteMatch,
-    from: RouteMatch | null,
+    _from: RouteMatch | null,
     { replace, isPop }: { replace: boolean; isPop: boolean },
   ) {
     if (!isPop) {

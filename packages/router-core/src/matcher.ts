@@ -135,12 +135,13 @@ function compileRoutes(routes: RouteDefinition[]): CompiledRoute[] {
     currentRoutes.forEach((route) => {
       const fullPath = resolveRoutePath(parentPath, route.path);
       const stack = [...parentStack, route];
-      compiled.push({
+      const compiledRoute = {
         path: fullPath,
         stack,
         segments: toSegments(fullPath),
         strategy: route.matchStrategy ?? 'exact',
-      });
+      };
+      compiled.push(compiledRoute);
 
       if (route.children && route.children.length) {
         walk(route.children, fullPath, stack);
@@ -148,7 +149,7 @@ function compileRoutes(routes: RouteDefinition[]): CompiledRoute[] {
     });
   };
 
-  walk(routes, '/', []);
+  walk(routes, '', []);
 
   compiled.sort((a, b) => {
     if (b.segments.length !== a.segments.length) {
@@ -167,16 +168,31 @@ function resolveRoutePath(parentPath: string, currentPath: string): string {
   if (!currentPath || currentPath === '.') {
     return normalizePath(parentPath);
   }
+
+  // Special case: if current path is just '/' and parent is not '/',
+  // this represents the parent route itself (index route)
   if (currentPath === '/' && parentPath !== '/') {
     return normalizePath(parentPath);
   }
+
+  // For child routes, we should never treat paths starting with '/' as absolute
+  // unless we're at the root level. This is different from typical file system behavior.
+  // Child route paths like '/:id' should be relative to parent.
+  if (parentPath !== '' && parentPath !== '/') {
+    // We're in a nested context, all paths should be treated as relative
+    if (currentPath.startsWith('/')) {
+      currentPath = currentPath.slice(1); // Remove leading slash to make it relative
+    }
+    return normalizePath(`${parentPath}/${currentPath}`);
+  }
+
+  // For root level routes, treat paths starting with '/' as absolute
   if (currentPath.startsWith('/')) {
     return normalizePath(currentPath);
   }
-  if (parentPath === '/' || !parentPath) {
-    return normalizePath(`/${currentPath}`);
-  }
-  return normalizePath(`${parentPath}/${currentPath}`);
+
+  // For relative paths at root level
+  return normalizePath(`/${currentPath}`);
 }
 
 function toSegments(path: string): SegmentPattern[] {
