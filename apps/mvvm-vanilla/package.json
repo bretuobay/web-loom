@@ -12,6 +12,7 @@
   "dependencies": {
     "@repo/shared": "*",
     "@repo/view-models": "*",
+    "@web-loom/router-core": "*",
     "chart.js": "^4.5.0",
     "ejs": "^3.1.10"
   },

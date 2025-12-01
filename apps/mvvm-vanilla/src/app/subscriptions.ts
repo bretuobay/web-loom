@@ -8,8 +8,14 @@ import { state } from './state';
 import { renderLayout, renderCard, renderTemplate } from './ui';
 import { renderSensorReadingsChart } from './chart';
 import { attachGreenhouseFormListeners } from './listeners';
+import { router } from './router';
 
 const app = document.getElementById('app')!;
+const DASHBOARD_VIEW = 'dashboard';
+
+function getActiveView() {
+  return (router.currentRoute.meta?.view as string | undefined) ?? router.currentRoute.path;
+}
 
 export function subscribeToUpdates() {
   navigationViewModel.navigationList.items$.subscribe((navigation) => {
@@ -20,10 +26,10 @@ export function subscribeToUpdates() {
 
   greenHouseViewModel.data$.subscribe((greenHouses) => {
     state.greenHouses = greenHouses || [];
-    const path = window.location.pathname;
-    if (path === '/' || path === '/dashboard') {
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
       renderCard('greenhouse-card-container', '/src/views/GreenhouseCard.ejs', { greenHouses });
-    } else if (path === '/greenhouses') {
+    } else if (view === 'greenhouses') {
       renderTemplate('/src/views/GreenhouseList.ejs', { greenHouses }).then((html) => {
         app.innerHTML = html;
         attachGreenhouseFormListeners();
@@ -33,32 +39,32 @@ export function subscribeToUpdates() {
 
   sensorViewModel.data$.subscribe((sensors) => {
     state.sensors = sensors || [];
-    const path = window.location.pathname;
-    if (path === '/' || path === '/dashboard') {
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
       renderCard('sensor-card-container', '/src/views/SensorCard.ejs', { sensors });
-    } else if (path === '/sensors') {
+    } else if (view === 'sensors') {
       renderTemplate('/src/views/SensorList.ejs', { sensors }).then((html) => (app.innerHTML = html));
     }
   });
 
   sensorReadingViewModel.data$.subscribe((sensorReadings) => {
     state.sensorReadings = sensorReadings || [];
-    const path = window.location.pathname;
-    if (path === '/' || path === '/dashboard') {
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
       renderCard('sensor-reading-card-container', '/src/views/SensorReadingCard.ejs', { sensorReadings }).then(() => {
         renderSensorReadingsChart(sensorReadings || []);
       });
-    } else if (path === '/sensor-readings') {
+    } else if (view === 'sensor-readings') {
       renderTemplate('/src/views/SensorReadingList.ejs', { sensorReadings }).then((html) => (app.innerHTML = html));
     }
   });
 
   thresholdAlertViewModel.data$.subscribe((thresholdAlerts) => {
     state.thresholdAlerts = thresholdAlerts || [];
-    const path = window.location.pathname;
-    if (path === '/' || path === '/dashboard') {
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
       renderCard('threshold-alert-card-container', '/src/views/ThresholdAlertCard.ejs', { thresholdAlerts });
-    } else if (path === '/threshold-alerts') {
+    } else if (view === 'threshold-alerts') {
       renderTemplate('/src/views/ThresholdAlertList.ejs', { thresholdAlerts }).then((html) => (app.innerHTML = html));
     }
   });
