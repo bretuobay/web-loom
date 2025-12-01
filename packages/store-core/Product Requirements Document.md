@@ -340,7 +340,7 @@ Product Requirements Document: Framework-Agnostic Client-State Library
      clearPersisted(): Promise<void>;
      }
 
-   7.5 Test Cases
+     7.5 Test Cases
 
    TC.P.1: Memory Adapter Basic Operations
    Description: Verify that MemoryAdapter can save and load state.
