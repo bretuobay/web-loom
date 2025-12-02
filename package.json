@@ -2,6 +2,7 @@
   "name": "web-loom",
   "private": true,
   "scripts": {
+    "postinstall": "node scripts/postinstall/vite-require-fix.cjs",
     "build": "turbo run build",
     "dev": "turbo run dev --concurrency=40",
     "lint": "turbo run lint",
