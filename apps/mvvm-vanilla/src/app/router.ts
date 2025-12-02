@@ -82,7 +82,9 @@ async function renderNotFound(route: RouteMatch) {
 }
 
 function isModifiedClick(event: MouseEvent) {
-  return event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+  return (
+    event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
+  );
 }
 
 function setupLinkInterception() {

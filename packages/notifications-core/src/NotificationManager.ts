@@ -290,7 +290,9 @@ export class NotificationManager {
   private getApplicationServerKey() {
     const { vapidPublicKey } = this.config;
     if (!vapidPublicKey) {
-      throw new Error('[notifications-core] `vapidPublicKey` must be configured before subscribing to push notifications');
+      throw new Error(
+        '[notifications-core] `vapidPublicKey` must be configured before subscribing to push notifications',
+      );
     }
     return this.base64UrlToUint8Array(vapidPublicKey);
   }

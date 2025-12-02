@@ -54,18 +54,18 @@ notifications.configure({
 
 ## Core API
 
-| Method | Description |
-| --- | --- |
-| `notify(title, options?)` | Shows a system notification or falls back to `showToast`. |
-| `showToast(message, options?)` | Invokes the configured toast adapter. |
-| `requestPermission()` / `getPermission()` | Wraps the Permissions / Notifications API. |
-| `group(name)` | Returns a scoped notifier that stamps the group into the notification tag. |
-| `onPermissionChange(cb)` | React when permission changes at the OS/browser level. |
-| `onNotificationClick(cb)` / `onNotificationClose(cb)` | Hooks for user interactions. |
-| `registerServiceWorker()` | Registers the configured service worker for push. |
-| `subscribePush()` / `unsubscribePush()` / `getPushSubscription()` | Push subscription lifecycle helpers. |
-| `onPushReceived(cb)` | Receives payloads posted from the service worker. |
-| `subscribe(event, cb)` / `unsubscribe(event, cb?)` | Generic event helpers (`permissionchange`, `notificationclick`, `notificationclose`, `pushreceived`). |
+| Method                                                            | Description                                                                                           |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `notify(title, options?)`                                         | Shows a system notification or falls back to `showToast`.                                             |
+| `showToast(message, options?)`                                    | Invokes the configured toast adapter.                                                                 |
+| `requestPermission()` / `getPermission()`                         | Wraps the Permissions / Notifications API.                                                            |
+| `group(name)`                                                     | Returns a scoped notifier that stamps the group into the notification tag.                            |
+| `onPermissionChange(cb)`                                          | React when permission changes at the OS/browser level.                                                |
+| `onNotificationClick(cb)` / `onNotificationClose(cb)`             | Hooks for user interactions.                                                                          |
+| `registerServiceWorker()`                                         | Registers the configured service worker for push.                                                     |
+| `subscribePush()` / `unsubscribePush()` / `getPushSubscription()` | Push subscription lifecycle helpers.                                                                  |
+| `onPushReceived(cb)`                                              | Receives payloads posted from the service worker.                                                     |
+| `subscribe(event, cb)` / `unsubscribe(event, cb?)`                | Generic event helpers (`permissionchange`, `notificationclick`, `notificationclose`, `pushreceived`). |
 
 ## Push Integration
 
