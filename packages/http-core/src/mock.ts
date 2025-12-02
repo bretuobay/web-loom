@@ -4,7 +4,6 @@
  */
 
 import type { MockAdapter, MockResponse, RequestConfig, HttpResponse } from './types';
-import { sleep } from './retry';
 
 /**
  * Mock handler function
@@ -71,9 +70,9 @@ export class SimpleMockAdapter implements MockAdapter {
 
     const mockResponse = await rule.handler(config);
 
-    // Simulate network delay
+    // Simulate network delay with abort support
     if (mockResponse.delay) {
-      await sleep(mockResponse.delay);
+      await this.sleepWithAbort(mockResponse.delay, config.signal);
     }
 
     const status = mockResponse.status ?? 200;
@@ -94,6 +93,34 @@ export class SimpleMockAdapter implements MockAdapter {
       config,
       response,
     };
+  }
+
+  /**
+   * Sleep with abort support
+   */
+  private sleepWithAbort(ms: number, signal?: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // Check if already aborted
+      if (signal?.aborted) {
+        reject(new DOMException('The operation was aborted', 'AbortError'));
+        return;
+      }
+
+      const timeoutId = setTimeout(resolve, ms);
+
+      // Listen for abort event
+      const onAbort = () => {
+        clearTimeout(timeoutId);
+        reject(new DOMException('The operation was aborted', 'AbortError'));
+      };
+
+      signal?.addEventListener('abort', onAbort, { once: true });
+
+      // Clean up listener when done
+      setTimeout(() => {
+        signal?.removeEventListener('abort', onAbort);
+      }, ms);
+    });
   }
 
   /**

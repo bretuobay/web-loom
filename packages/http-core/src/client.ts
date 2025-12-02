@@ -5,7 +5,7 @@
 
 import type { HttpClientConfig, RequestConfig, HttpResponse, ApiError } from './types';
 import { RequestInterceptorManager, ResponseInterceptorManager, ErrorInterceptorManager } from './interceptors';
-import { transformFetchError, transformResponseError } from './error';
+import { transformFetchError, transformResponseError, createApiError } from './error';
 import { normalizeRetryConfig, shouldRetryError, calculateRetryDelay, sleep } from './retry';
 import {
   buildURL,
@@ -139,11 +139,14 @@ export class HttpClient {
         }
 
         // Check if we should retry
-        if (retryConfig && attempt < maxAttempts && shouldRetryError(transformedError, retryConfig, attempt)) {
-          const delay = calculateRetryDelay(attempt, retryConfig);
-          await sleep(delay);
-          attempt++;
-          continue;
+        if (retryConfig && attempt < maxAttempts) {
+          const retryDecision = shouldRetryError(transformedError, retryConfig, attempt);
+          if (retryDecision.shouldRetry) {
+            const delay = calculateRetryDelay(attempt, retryConfig, retryDecision.retryAfter);
+            await sleep(delay);
+            attempt++;
+            continue;
+          }
         }
 
         throw transformedError;
@@ -155,28 +158,7 @@ export class HttpClient {
    * Perform a single request attempt
    */
   private async performRequest<T>(config: RequestConfig): Promise<HttpResponse<T>> {
-    // Check mock adapter first
-    if (this.config.mockAdapter) {
-      const mockResponse = await this.config.mockAdapter.mock(config);
-      if (mockResponse) {
-        // Check if mock response is an error
-        if (mockResponse.status >= 400) {
-          throw await transformResponseError(mockResponse.response, config);
-        }
-        return this.applyResponseInterceptors(mockResponse as HttpResponse<T>);
-      }
-    }
-
-    // Build URL
-    const fullURL = this.buildFullURL(config);
-
-    // Prepare headers
-    const headers = { ...config.headers };
-
-    // Serialize body
-    const body = serializeBody(config.data, headers);
-
-    // Setup timeout
+    // Setup timeout and abort signal
     const controller = new AbortController();
     const signal = config.signal || controller.signal;
     let timeoutId: NodeJS.Timeout | undefined;
@@ -186,6 +168,37 @@ export class HttpClient {
     }
 
     try {
+      // Check mock adapter first
+      if (this.config.mockAdapter) {
+        // Check for abort signal before making mock call
+        if (signal.aborted) {
+          throw transformFetchError(new DOMException('The operation was aborted', 'AbortError'), config);
+        }
+
+        // Pass the signal to the mock adapter
+        const configWithSignal = { ...config, signal };
+        const mockResponse = await this.config.mockAdapter.mock(configWithSignal);
+        if (mockResponse) {
+          // Clear timeout on success
+          if (timeoutId) clearTimeout(timeoutId);
+
+          // Check if mock response is an error
+          if (mockResponse.status >= 400) {
+            throw await transformResponseError(mockResponse.response, config);
+          }
+          return this.applyResponseInterceptors(mockResponse as HttpResponse<T>);
+        }
+      }
+
+      // Build URL
+      const fullURL = this.buildFullURL(config);
+
+      // Prepare headers
+      const headers = { ...config.headers };
+
+      // Serialize body with size validation
+      const body = serializeBody(config.data, headers, this.config.maxBodySize, this.config.warnBodySize);
+
       // Perform fetch
       const response = await fetch(fullURL, {
         method: config.method || 'GET',
@@ -266,26 +279,63 @@ export class HttpClient {
       return undefined as T;
     }
 
+    // Strict Content-Type validation
+    if (this.config.strictContentType !== false) {
+      const allowed = this.config.allowedContentTypes || [
+        'application/json',
+        'text/plain',
+        'text/html',
+        'text/csv',
+        'application/octet-stream',
+        'application/pdf',
+        'image/',
+        'video/',
+        'audio/',
+      ];
+
+      const isAllowed = !contentType || allowed.some((type) => contentType.includes(type));
+
+      if (!isAllowed) {
+        throw await transformResponseError(response, this.config as any);
+      }
+    }
+
     // Parse JSON
     if (isJSONContentType(contentType)) {
-      return response.json();
+      try {
+        return await response.json();
+      } catch (error) {
+        throw createApiError(
+          'Invalid JSON response',
+          this.config as any,
+          response.status,
+          response.statusText,
+          await response.text().catch(() => null),
+          error as Error,
+        );
+      }
     }
 
     // Parse text
     if (contentType?.includes('text/')) {
-      return response.text() as T;
+      return (await response.text()) as T;
     }
 
     // Parse blob for binary data
-    if (contentType?.includes('application/octet-stream')) {
-      return response.blob() as T;
+    if (
+      contentType?.includes('application/octet-stream') ||
+      contentType?.includes('image/') ||
+      contentType?.includes('video/') ||
+      contentType?.includes('audio/')
+    ) {
+      return (await response.blob()) as T;
     }
 
-    // Default to JSON
+    // Default to JSON with better error handling
     try {
-      return response.json();
+      return await response.json();
     } catch {
-      return response.text() as T;
+      return (await response.text()) as T;
     }
   }
 }

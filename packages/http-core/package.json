@@ -30,8 +30,7 @@
     "rest",
     "interceptors",
     "retry",
-    "typescript",
-    "rxjs"
+    "typescript"
   ],
   "scripts": {
     "dev": "vite build --watch",
@@ -56,8 +55,5 @@
     "vite": "^6.1.1",
     "vite-plugin-dts": "^4.5.4",
     "vitest": "^3.2.4"
-  },
-  "dependencies": {
-    "rxjs": "^7.8.2"
   }
 }

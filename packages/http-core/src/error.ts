@@ -70,6 +70,17 @@ export async function transformResponseError(response: Response, config: Request
     data = null;
   }
 
+  // Capture Retry-After header for rate limiting
+  const retryAfter = response.headers.get('Retry-After');
+  if (retryAfter) {
+    // Store in data for retry logic to access
+    if (typeof data === 'object' && data !== null) {
+      data._retryAfter = retryAfter;
+    } else {
+      data = { _retryAfter: retryAfter, _originalData: data };
+    }
+  }
+
   const message = extractErrorMessage(data, response.status);
 
   return createApiError(message, config, response.status, response.statusText, data);
