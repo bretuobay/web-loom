@@ -15,9 +15,10 @@ const ItemArraySchema = z.array(ItemSchema);
 type ItemArray = z.infer<typeof ItemArraySchema>;
 
 // Mock QueryStateModel
-class MockQueryStateModel<TData, TModelSchema extends ZodSchema<TData>>
-  implements IQueryStateModel<TData, TModelSchema>
-{
+class MockQueryStateModel<TData, TModelSchema extends ZodSchema<TData>> implements IQueryStateModel<
+  TData,
+  TModelSchema
+> {
   public _data$ = new BehaviorSubject<TData | null>(null);
   public _isLoading$ = new BehaviorSubject<boolean>(false);
   public _error$ = new BehaviorSubject<any>(null);

@@ -7,8 +7,9 @@ export { HttpClient, createHttpClient } from './client';
 export { SimpleMockAdapter, createMockAdapter } from './mock';
 export { createApiError, isRetryableError } from './error';
 export { RequestInterceptorManager, ResponseInterceptorManager, ErrorInterceptorManager } from './interceptors';
-export { normalizeRetryConfig, calculateRetryDelay, DEFAULT_RETRY_CONFIG } from './retry';
-export { buildURL, buildQueryString, mergeHeaders, createRequestSignature } from './utils';
+export { normalizeRetryConfig, calculateRetryDelay, DEFAULT_RETRY_CONFIG, type RetryDecision } from './retry';
+export { buildURL, buildQueryString, mergeHeaders, createRequestSignature, validateBodySize } from './utils';
+export { createCsrfInterceptor, getCsrfToken, setCsrfToken, type CsrfConfig } from './csrf';
 
 export type {
   HttpMethod,

@@ -24,35 +24,58 @@ describe('Retry Logic', () => {
       const error = createApiError('Error', {}, 500);
       const config = { ...DEFAULT_RETRY_CONFIG, maxRetries: 3 };
 
-      expect(shouldRetryError(error, config, 3)).toBe(false);
+      const result = shouldRetryError(error, config, 3);
+      expect(result.shouldRetry).toBe(false);
     });
 
     it('should retry 5xx errors', () => {
       const error = createApiError('Error', {}, 500);
       const config = DEFAULT_RETRY_CONFIG;
 
-      expect(shouldRetryError(error, config, 0)).toBe(true);
+      const result = shouldRetryError(error, config, 0);
+      expect(result.shouldRetry).toBe(true);
     });
 
     it('should retry 429 errors', () => {
       const error = createApiError('Rate limited', {}, 429);
       const config = DEFAULT_RETRY_CONFIG;
 
-      expect(shouldRetryError(error, config, 0)).toBe(true);
+      const result = shouldRetryError(error, config, 0);
+      expect(result.shouldRetry).toBe(true);
     });
 
     it('should not retry 4xx errors (except 429)', () => {
       const error = createApiError('Not found', {}, 404);
       const config = DEFAULT_RETRY_CONFIG;
 
-      expect(shouldRetryError(error, config, 0)).toBe(false);
+      const result = shouldRetryError(error, config, 0);
+      expect(result.shouldRetry).toBe(false);
     });
 
     it('should retry network errors', () => {
       const error = createApiError('Network error', {});
       const config = DEFAULT_RETRY_CONFIG;
 
-      expect(shouldRetryError(error, config, 0)).toBe(true);
+      const result = shouldRetryError(error, config, 0);
+      expect(result.shouldRetry).toBe(true);
+    });
+
+    it('should extract Retry-After header from 429 errors', () => {
+      const error = createApiError('Rate limited', {}, 429, undefined, { _retryAfter: '60' });
+      const config = DEFAULT_RETRY_CONFIG;
+
+      const result = shouldRetryError(error, config, 0);
+      expect(result.shouldRetry).toBe(true);
+      expect(result.retryAfter).toBe(60000); // 60 seconds in milliseconds
+    });
+
+    it('should extract Retry-After header from 503 errors', () => {
+      const error = createApiError('Service Unavailable', {}, 503, undefined, { _retryAfter: '30' });
+      const config = DEFAULT_RETRY_CONFIG;
+
+      const result = shouldRetryError(error, config, 0);
+      expect(result.shouldRetry).toBe(true);
+      expect(result.retryAfter).toBe(30000); // 30 seconds in milliseconds
     });
   });
 

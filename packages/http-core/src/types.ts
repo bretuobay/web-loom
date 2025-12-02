@@ -80,6 +80,14 @@ export interface HttpClientConfig {
   deduplicate?: boolean;
   /** Mock adapter for testing */
   mockAdapter?: MockAdapter;
+  /** Maximum request body size in bytes (default: 10MB) */
+  maxBodySize?: number;
+  /** Warn threshold for request body size in bytes (default: 1MB) */
+  warnBodySize?: number;
+  /** Strict Content-Type validation (default: true) */
+  strictContentType?: boolean;
+  /** Allowed content types for strict validation */
+  allowedContentTypes?: string[];
 }
 
 /**

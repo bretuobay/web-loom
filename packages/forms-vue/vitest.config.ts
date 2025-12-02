@@ -1,15 +1,21 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vitest/config';
-import vue from '@vitejs/plugin-vue';
+import { resolve } from 'path';
 
 export default defineConfig({
-  plugins: [vue()],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+      '@web-loom/forms-core': resolve(__dirname, '../forms-core/src'),
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
     include: ['tests/**/*.{test,spec}.{js,ts}', 'src/**/*.{test,spec}.{js,ts}'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/coverage/**'],
-    testTimeout: 20000,
-    hookTimeout: 20000,
+    exclude: ['**/node_modules/**', '**/dist/**', '**/coverage/**', '**/*.d.ts'],
+    testTimeout: 10000,
+    hookTimeout: 10000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -19,17 +25,10 @@ export default defineConfig({
         '**/*.config.*',
         '**/node_modules/**',
         '**/dist/**',
-        'src/**/*.test.ts',
-        'src/**/*.spec.ts',
+        'src/**/*.test.*',
+        'src/**/*.spec.*',
+        'coverage/**',
       ],
-      threshold: {
-        global: {
-          branches: 80,
-          functions: 80,
-          lines: 80,
-          statements: 80,
-        },
-      },
     },
   },
 });

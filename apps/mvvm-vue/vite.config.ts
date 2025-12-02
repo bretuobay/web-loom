@@ -1,25 +1,38 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import path from 'path'; // Added for path resolution
-import svgLoader from 'vite-svg-loader';
+import { resolve } from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), svgLoader({})],
+  plugins: [vue()],
   resolve: {
     alias: {
-      '@repo/models': path.resolve(__dirname, '../../packages/models/src'),
-      '@repo/view-models': path.resolve(__dirname, '../../packages/view-models/src'),
-      '@repo/shared': path.resolve(__dirname, '../../packages/shared/src'),
-      // If you have specific file imports like '@repo/view-models/someFile',
-      // you might not need a separate wildcard alias for Vite if the main alias works.
-      // Vite's resolver can often handle subpaths if the main package path is aliased.
-      // However, if direct imports like '@repo/view-models/src/someFile' are used
-      // and not just '@repo/view-models', ensure those are also considered or handled
-      // by your TypeScript paths and component imports.
+      '@': resolve(__dirname, './src'),
+      '@repo/models': resolve(__dirname, '../../packages/models/src'),
+      '@repo/view-models': resolve(__dirname, '../../packages/view-models/src'),
+      '@repo/shared': resolve(__dirname, '../../packages/shared/src'),
+      '@web-loom/mvvm-core': resolve(__dirname, '../../packages/mvvm-core/src'),
+      '@web-loom/ui-core': resolve(__dirname, '../../packages/ui-core/src'),
+      '@web-loom/ui-patterns': resolve(__dirname, '../../packages/ui-patterns/src'),
     },
   },
   optimizeDeps: {
-    include: ['@web-loom/mvvm-core', '@web-loom/ui-core', '@web-loom/ui-patterns'],
+    include: [
+      'vue',
+      'vue-router',
+      'chart.js',
+      'vue-chartjs',
+      '@web-loom/mvvm-core',
+      '@web-loom/ui-core',
+      '@web-loom/ui-patterns',
+    ],
+  },
+  build: {
+    target: 'esnext',
+    sourcemap: true,
+  },
+  define: {
+    __VUE_OPTIONS_API__: true,
+    __VUE_PROD_DEVTOOLS__: false,
   },
 });

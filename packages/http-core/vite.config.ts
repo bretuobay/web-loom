@@ -11,12 +11,7 @@ export default defineConfig({
       fileName: (format) => `http-core.${format}.js`,
     },
     rollupOptions: {
-      external: ['rxjs'],
-      output: {
-        globals: {
-          rxjs: 'rxjs',
-        },
-      },
+      // No external dependencies - zero runtime dependencies!
     },
   },
   plugins: [dts({ insertTypesEntry: true, outDir: 'dist', tsconfigPath: './tsconfig.json', rollupTypes: true })], // also specify for dts plugin

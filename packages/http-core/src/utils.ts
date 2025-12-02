@@ -107,7 +107,12 @@ export function isJSONContentType(contentType: string | null): boolean {
 /**
  * Serialize request body based on content type
  */
-export function serializeBody(data: any, headers: Record<string, string>): BodyInit | undefined {
+export function serializeBody(
+  data: any,
+  headers: Record<string, string>,
+  maxBodySize?: number,
+  warnBodySize?: number,
+): BodyInit | undefined {
   if (!data) return undefined;
 
   const contentType = headers['Content-Type'] || headers['content-type'];
@@ -122,21 +127,48 @@ export function serializeBody(data: any, headers: Record<string, string>): BodyI
     return data;
   }
 
+  let body: string;
+
   // JSON serialization
   if (!contentType || isJSONContentType(contentType)) {
     headers['Content-Type'] = 'application/json';
-    return JSON.stringify(data);
-  }
-
-  // URL-encoded form data
-  if (contentType.includes('application/x-www-form-urlencoded')) {
+    body = JSON.stringify(data);
+  } else if (contentType.includes('application/x-www-form-urlencoded')) {
+    // URL-encoded form data
     const params = new URLSearchParams();
     Object.entries(data).forEach(([key, value]) => {
       params.append(key, String(value));
     });
-    return params.toString();
+    body = params.toString();
+  } else {
+    // Default to JSON
+    body = JSON.stringify(data);
   }
 
-  // Default to JSON
-  return JSON.stringify(data);
+  // Validate body size
+  const sizeBytes = new Blob([body]).size;
+  validateBodySize(sizeBytes, maxBodySize, warnBodySize);
+
+  return body;
+}
+
+/**
+ * Validate request body size
+ */
+export function validateBodySize(sizeBytes: number, maxSize?: number, warnSize?: number): void {
+  const sizeMB = sizeBytes / 1024 / 1024;
+
+  // Default: 10MB max, 1MB warn
+  const maxSizeMB = maxSize ? maxSize / 1024 / 1024 : 10;
+  const warnSizeMB = warnSize ? warnSize / 1024 / 1024 : 1;
+
+  if (maxSize && sizeBytes > maxSize) {
+    throw new Error(`Request body too large: ${sizeMB.toFixed(2)}MB exceeds maximum of ${maxSizeMB.toFixed(2)}MB`);
+  }
+
+  if (warnSize && sizeBytes > warnSize) {
+    console.warn(
+      `[http-core] Large request body: ${sizeMB.toFixed(2)}MB exceeds warning threshold of ${warnSizeMB.toFixed(2)}MB`,
+    );
+  }
 }

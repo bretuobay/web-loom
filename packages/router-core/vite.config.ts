@@ -24,9 +24,9 @@ export default defineConfig({
       allow: ['.', 'tests'], // Allow serving files from root and tests directory
     },
   },
-  test: {
-    globals: true, // Optional: to use vitest globals like describe, it without importing
-    environment: 'node', // Or 'jsdom'
-    testTimeout: 10000, // Global timeout of 10 seconds
-  },
+  // test: {
+  //   globals: true, // Optional: to use vitest globals like describe, it without importing
+  //   environment: 'node', // Or 'jsdom'
+  //   testTimeout: 10000, // Global timeout of 10 seconds
+  // },
 });

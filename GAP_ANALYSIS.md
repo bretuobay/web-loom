@@ -122,6 +122,11 @@ Features:
 - Hash and browser history modes
 - Framework adapters for React, Vue, Angular
 
+Constraints:
+Should be light weight and use what the browser already makes
+available. Modern browsers have native solutions. Modern frameworks have
+solutions. This is just light weight framework agnostic utils for when you don't need full fledged solutions provided frontend frameworks.
+
 ---
 
 3. Internationalization (i18n)
@@ -606,7 +611,7 @@ These are essential for building production-ready applications:
 
 1. Forms Management (@web-loom/forms-core)
 2. Routing & Navigation (@web-loom/router-core)
-3. Authentication & Authorization (@web-loom/auth-core)
+3. Authentication & Authorization (@web-loom/auth-core) // really shouldn't row out your own.
 4. HTTP Client (@web-loom/http-core)
 5. Error Handling & Logging (@web-loom/error-core)
 
