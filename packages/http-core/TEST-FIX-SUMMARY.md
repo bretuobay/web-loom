@@ -23,6 +23,7 @@ The timeout mechanism in `client.ts` was set up **after** the mock adapter was c
 3. Mock delays couldn't be interrupted by timeout or cancellation
 
 **Before Fix:**
+
 ```typescript
 // Mock adapter called first
 if (this.config.mockAdapter) {
@@ -119,12 +120,14 @@ if (mockResponse.delay) {
 ## Test Results
 
 ### Before Fix
+
 ```
 Test Files  1 failed | 6 passed (7)
      Tests  5 failed | 73 passed (78)
 ```
 
 **Failed Tests:**
+
 - ✗ should timeout if request takes too long
 - ✗ should allow per-request timeout override (first call)
 - ✗ should cancel request using AbortController
@@ -132,6 +135,7 @@ Test Files  1 failed | 6 passed (7)
 - ✗ should handle multiple requests with different timeouts
 
 ### After Fix
+
 ```
 Test Files  7 passed (7)
      Tests  78 passed (78)

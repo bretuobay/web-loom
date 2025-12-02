@@ -29,11 +29,13 @@ This was a **tooling issue**, not a code issue. The regex syntax `/pattern/dg` (
 ### Verification
 
 TypeScript compilation passes without errors:
+
 ```bash
 npx tsc --noEmit  # ✅ No errors
 ```
 
 This confirms:
+
 - ✅ All types are correct
 - ✅ No syntax errors
 - ✅ All imports resolve
@@ -94,7 +96,9 @@ jobs:
 All test files are syntactically correct and ready to run:
 
 ### 1. **timeout.test.ts** (100+ lines)
+
 Tests for:
+
 - Request timeout scenarios
 - Per-request timeout overrides
 - AbortController cancellation
@@ -102,7 +106,9 @@ Tests for:
 - Concurrent requests with timeouts
 
 ### 2. **error.test.ts** (90+ lines)
+
 Tests for:
+
 - `createApiError()` function
 - `isRetryableError()` logic
 - `transformFetchError()` handling
@@ -111,7 +117,9 @@ Tests for:
 - Status code mapping
 
 ### 3. **concurrent.test.ts** (160+ lines)
+
 Tests for:
+
 - Multiple simultaneous requests
 - Mixed success/failure
 - Request deduplication
@@ -121,7 +129,9 @@ Tests for:
 - Memory cleanup
 
 ### 4. **csrf.test.ts** (140+ lines)
+
 Tests for:
+
 - CSRF token injection
 - HTTP method filtering
 - Missing token warnings
@@ -130,7 +140,9 @@ Tests for:
 - `setCsrfToken()` utility
 
 ### 5. **retry.test.ts** (Updated)
+
 Updated existing tests for:
+
 - `RetryDecision` object return type
 - Retry-After header extraction
 - Both 429 and 503 status codes
@@ -175,18 +187,21 @@ src/              |   67.91 |    85.86 |   77.77 |   67.91
 ## Code Quality Checks
 
 ### TypeScript Compilation
+
 ```bash
 npx tsc --noEmit
 # ✅ No errors - all type definitions correct
 ```
 
 ### Linting
+
 ```bash
 npm run lint
 # Should show no errors
 ```
 
 ### Formatting
+
 ```bash
 npm run format
 # Formats all files consistently
@@ -197,17 +212,19 @@ npm run format
 ## What Was Fixed
 
 ### API Changes
+
 The `shouldRetryError()` function signature changed from:
 
 ```typescript
 // Old
-function shouldRetryError(error: ApiError, config: RetryConfig, attempt: number): boolean
+function shouldRetryError(error: ApiError, config: RetryConfig, attempt: number): boolean;
 
 // New
-function shouldRetryError(error: ApiError, config: RetryConfig, attempt: number): RetryDecision
+function shouldRetryError(error: ApiError, config: RetryConfig, attempt: number): RetryDecision;
 ```
 
 Where:
+
 ```typescript
 interface RetryDecision {
   shouldRetry: boolean;
@@ -216,6 +233,7 @@ interface RetryDecision {
 ```
 
 ### Updated Tests
+
 All existing tests in `retry.test.ts` were updated to match the new API:
 
 ```typescript
@@ -228,6 +246,7 @@ expect(result.shouldRetry).toBe(true);
 ```
 
 ### Added Tests
+
 New tests for Retry-After header extraction:
 
 ```typescript
@@ -247,6 +266,7 @@ it('should extract Retry-After header from 429 errors', () => {
 Until Node version is upgraded, you can manually verify the code works:
 
 ### 1. Test CSRF Helper
+
 ```typescript
 import { createHttpClient, createCsrfInterceptor } from './src';
 
@@ -259,6 +279,7 @@ const config = { method: 'POST', url: '/test', headers: {} };
 ```
 
 ### 2. Test Size Validation
+
 ```typescript
 import { validateBodySize } from './src';
 
@@ -275,24 +296,26 @@ validateBodySize(2 * 1024 * 1024, undefined, 1 * 1024 * 1024); // 2MB > 1MB warn
 ```
 
 ### 3. Test Content-Type Validation
+
 ```typescript
 import { createHttpClient } from './src';
 
 const client = createHttpClient({
   strictContentType: true,
-  allowedContentTypes: ['application/json']
+  allowedContentTypes: ['application/json'],
 });
 
 // Verify that non-JSON responses are rejected
 ```
 
 ### 4. Test Retry-After
+
 ```typescript
 import { shouldRetryError } from './src/retry';
 import { createApiError } from './src/error';
 
 const error = createApiError('Rate limited', {}, 429, undefined, {
-  _retryAfter: '60'
+  _retryAfter: '60',
 });
 
 const result = shouldRetryError(error, DEFAULT_RETRY_CONFIG, 0);
@@ -308,6 +331,7 @@ console.log('Retry after (ms):', result.retryAfter); // 60000
 Since unit tests can't run due to Node version, consider integration testing:
 
 ### Create Test App
+
 ```typescript
 // test-app.ts
 import { createHttpClient, createCsrfInterceptor } from '@web-loom/http-core';
@@ -356,6 +380,7 @@ testAll();
 For automated testing in CI/CD:
 
 ### GitHub Actions Example
+
 ```yaml
 name: Test
 

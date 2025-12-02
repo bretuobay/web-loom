@@ -22,11 +22,13 @@ All 6 critical P0 gaps identified in the gaps analysis have been addressed:
 **Issue:** RxJS (~50KB) was listed as a dependency but never used in the codebase.
 
 **Fix:**
+
 - Removed `rxjs` from `dependencies` in `package.json`
 - Removed `rxjs` from keywords
 - Package now has **zero runtime dependencies** ✅
 
 **Impact:**
+
 - Bundle size reduced by ~50KB
 - Meets NFR requirement of <10KB gzipped
 - Cleaner dependency tree
@@ -72,6 +74,7 @@ const client = createHttpClient({
 ```
 
 **Export:**
+
 ```typescript
 import { validateBodySize } from '@web-loom/http-core';
 ```
@@ -113,7 +116,7 @@ export function setCsrfToken(token: string, selector?: string, attribute?: strin
 import { createHttpClient, createCsrfInterceptor } from '@web-loom/http-core';
 
 const client = createHttpClient({
-  baseURL: 'https://api.example.com'
+  baseURL: 'https://api.example.com',
 });
 
 // Add CSRF protection
@@ -211,6 +214,7 @@ interface HttpClientConfig {
 **File:** `src/client.ts`
 
 **Default Allowed Content Types:**
+
 ```typescript
 [
   'application/json',
@@ -222,7 +226,7 @@ interface HttpClientConfig {
   'image/',
   'video/',
   'audio/',
-]
+];
 ```
 
 ### Features
@@ -242,12 +246,12 @@ const client = createHttpClient();
 
 // Custom allowed types
 const client = createHttpClient({
-  allowedContentTypes: ['application/json', 'text/plain']
+  allowedContentTypes: ['application/json', 'text/plain'],
 });
 
 // Disable validation (not recommended for production)
 const client = createHttpClient({
-  strictContentType: false
+  strictContentType: false,
 });
 ```
 
@@ -298,28 +302,30 @@ const client = createHttpClient({
 ### Test Coverage Improvements
 
 **Before:**
+
 - `client.test.ts`: Basic requests, interceptors, errors (189 lines)
 - `retry.test.ts`: Retry config and logic (90 lines)
 - `utils.test.ts`: URL building, query strings (89 lines)
 - **Total:** ~370 lines, ~70% coverage
 
 **After:**
+
 - All existing tests (368 lines)
 - New tests (490+ lines)
 - **Total:** ~860 lines, **~90% coverage** ✅
 
 ### Coverage by Area
 
-| Area | Before | After | Status |
-|------|--------|-------|--------|
-| Basic requests | ✅ Good | ✅ Good | Maintained |
-| Interceptors | ✅ Good | ✅ Good | Maintained |
-| Timeout/Cancel | ❌ Missing | ✅ Complete | **Fixed** |
-| Error handling | ⚠️ Basic | ✅ Comprehensive | **Enhanced** |
-| Concurrent requests | ❌ Missing | ✅ Complete | **Fixed** |
-| CSRF protection | ❌ N/A | ✅ Complete | **New** |
-| Retry logic | ✅ Good | ✅ Good | Maintained |
-| Utils | ✅ Good | ✅ Good | Maintained |
+| Area                | Before     | After            | Status       |
+| ------------------- | ---------- | ---------------- | ------------ |
+| Basic requests      | ✅ Good    | ✅ Good          | Maintained   |
+| Interceptors        | ✅ Good    | ✅ Good          | Maintained   |
+| Timeout/Cancel      | ❌ Missing | ✅ Complete      | **Fixed**    |
+| Error handling      | ⚠️ Basic   | ✅ Comprehensive | **Enhanced** |
+| Concurrent requests | ❌ Missing | ✅ Complete      | **Fixed**    |
+| CSRF protection     | ❌ N/A     | ✅ Complete      | **New**      |
+| Retry logic         | ✅ Good    | ✅ Good          | Maintained   |
+| Utils               | ✅ Good    | ✅ Good          | Maintained   |
 
 ---
 
@@ -346,12 +352,12 @@ client.interceptors.request.use(createCsrfInterceptor());
 
 // 2. Customize size limits
 const client = createHttpClient({
-  maxBodySize: 5 * 1024 * 1024 // 5MB
+  maxBodySize: 5 * 1024 * 1024, // 5MB
 });
 
 // 3. Relax Content-Type validation if needed
 const client = createHttpClient({
-  strictContentType: false // Not recommended
+  strictContentType: false, // Not recommended
 });
 ```
 
@@ -375,12 +381,12 @@ export type { RetryDecision } from '@web-loom/http-core';
 
 ## Security Improvements
 
-| Issue | Before | After |
-|-------|--------|-------|
-| XSS via content sniffing | ⚠️ Vulnerable | ✅ Protected |
-| Large payload DoS | ⚠️ Vulnerable | ✅ Protected |
-| CSRF attacks | ⚠️ Manual impl. required | ✅ Helper provided |
-| Rate limit violations | ⚠️ Non-compliant | ✅ RFC compliant |
+| Issue                    | Before                   | After              |
+| ------------------------ | ------------------------ | ------------------ |
+| XSS via content sniffing | ⚠️ Vulnerable            | ✅ Protected       |
+| Large payload DoS        | ⚠️ Vulnerable            | ✅ Protected       |
+| CSRF attacks             | ⚠️ Manual impl. required | ✅ Helper provided |
+| Rate limit violations    | ⚠️ Non-compliant         | ✅ RFC compliant   |
 
 **Security Score:** 80% → **95%** ✅
 
@@ -452,7 +458,7 @@ The following documentation should be updated:
 import { createHttpClient, createCsrfInterceptor } from '@web-loom/http-core';
 
 const client = createHttpClient({
-  baseURL: 'https://api.example.com'
+  baseURL: 'https://api.example.com',
 });
 
 client.interceptors.request.use(createCsrfInterceptor());
@@ -466,7 +472,7 @@ const client = createHttpClient({
 // Content-Type Validation
 const client = createHttpClient({
   strictContentType: true,
-  allowedContentTypes: ['application/json', 'text/plain']
+  allowedContentTypes: ['application/json', 'text/plain'],
 });
 ```
 
@@ -474,16 +480,16 @@ const client = createHttpClient({
 
 ## Production Readiness Checklist
 
-| Criterion | Before | After | Status |
-|-----------|--------|-------|--------|
-| Core functionality | ✅ | ✅ | Maintained |
-| Zero dependencies | ❌ | ✅ | **Fixed** |
-| Security hardening | ⚠️ 7/10 | ✅ 9.5/10 | **Improved** |
-| Test coverage | ⚠️ 70% | ✅ 90%+ | **Improved** |
-| HTTP compliance | ⚠️ Partial | ✅ Full | **Fixed** |
-| Error handling | ⚠️ Basic | ✅ Comprehensive | **Enhanced** |
-| Documentation | ✅ Good | ✅ Good | Maintained |
-| Bundle size | ⚠️ 13KB | ✅ 7-8KB | **Improved** |
+| Criterion          | Before     | After            | Status       |
+| ------------------ | ---------- | ---------------- | ------------ |
+| Core functionality | ✅         | ✅               | Maintained   |
+| Zero dependencies  | ❌         | ✅               | **Fixed**    |
+| Security hardening | ⚠️ 7/10    | ✅ 9.5/10        | **Improved** |
+| Test coverage      | ⚠️ 70%     | ✅ 90%+          | **Improved** |
+| HTTP compliance    | ⚠️ Partial | ✅ Full          | **Fixed**    |
+| Error handling     | ⚠️ Basic   | ✅ Comprehensive | **Enhanced** |
+| Documentation      | ✅ Good    | ✅ Good          | Maintained   |
+| Bundle size        | ⚠️ 13KB    | ✅ 7-8KB         | **Improved** |
 
 **Overall Production Readiness:** 85% → **95%** ✅
 
@@ -520,6 +526,7 @@ All P0 gaps have been successfully addressed. The `@web-loom/http-core` package 
 ## Files Modified
 
 ### Core Implementation
+
 - `package.json` - Removed RxJS
 - `src/types.ts` - Added config options
 - `src/utils.ts` - Added size validation
@@ -529,6 +536,7 @@ All P0 gaps have been successfully addressed. The `@web-loom/http-core` package 
 - `src/index.ts` - Export new utilities
 
 ### New Files
+
 - `src/csrf.ts` - CSRF protection module
 - `src/timeout.test.ts` - Timeout/cancellation tests
 - `src/error.test.ts` - Error handling tests
@@ -536,6 +544,7 @@ All P0 gaps have been successfully addressed. The `@web-loom/http-core` package 
 - `src/csrf.test.ts` - CSRF tests
 
 ### Documentation
+
 - `P0-FIXES.md` - This file
 - `GAPS-ANALYSIS.md` - Original gap analysis (existing)
 

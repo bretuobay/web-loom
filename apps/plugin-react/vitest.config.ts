@@ -6,13 +6,13 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
-      '@web-loom/forms-core': resolve(__dirname, '../forms-core/src'),
     },
+    dedupe: ['react', 'react-dom'],
   },
   test: {
     globals: true,
     environment: 'jsdom',
-    include: ['tests/**/*.{test,spec}.{js,ts}', 'src/**/*.{test,spec}.{js,ts}'],
+    include: ['tests/**/*.{test,spec}.{js,ts,jsx,tsx}', 'src/**/*.{test,spec}.{js,ts,jsx,tsx}'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/coverage/**', '**/*.d.ts'],
     testTimeout: 10000,
     hookTimeout: 10000,

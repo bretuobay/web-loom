@@ -60,6 +60,9 @@
       ],
       "@repo/view-models/*": [
         "../../packages/view-models/src/*"
+      ],
+      "@web-loom/ui-core/adapters/react": [
+        "../../packages/ui-core/src/adapters/react"
       ]
     },
     /* Linting */
@@ -73,5 +76,12 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/test/**/*"
   ]
 }

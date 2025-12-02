@@ -1,8 +1,7 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [vue()],
   resolve: {
@@ -16,23 +15,26 @@ export default defineConfig({
       '@web-loom/ui-patterns': resolve(__dirname, '../../packages/ui-patterns/src'),
     },
   },
-  optimizeDeps: {
-    include: [
-      'vue',
-      'vue-router',
-      'chart.js',
-      'vue-chartjs',
-      '@web-loom/mvvm-core',
-      '@web-loom/ui-core',
-      '@web-loom/ui-patterns',
-    ],
-  },
-  build: {
-    target: 'esnext',
-    sourcemap: true,
-  },
-  define: {
-    __VUE_OPTIONS_API__: true,
-    __VUE_PROD_DEVTOOLS__: false,
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    include: ['tests/**/*.{test,spec}.{js,ts,vue}', 'src/**/*.{test,spec}.{js,ts,vue}'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/coverage/**', '**/*.d.ts'],
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'tests/**',
+        '**/*.d.ts',
+        '**/*.config.*',
+        '**/node_modules/**',
+        '**/dist/**',
+        'src/**/*.test.*',
+        'src/**/*.spec.*',
+        'coverage/**',
+      ],
+    },
   },
 });

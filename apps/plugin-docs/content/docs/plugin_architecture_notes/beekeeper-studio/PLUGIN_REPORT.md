@@ -327,8 +327,7 @@ export type ManifestV1 = {
     default: string | number | boolean;
   }[];
 
-  permissions?: // (Not yet implemented)
-  ('run-custom-queries' | 'create-entities' | 'edit-entities')[];
+  permissions?: ('run-custom-queries' | 'create-entities' | 'edit-entities')[]; // (Not yet implemented)
 };
 ```
 

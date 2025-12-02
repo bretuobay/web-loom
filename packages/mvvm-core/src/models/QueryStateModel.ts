@@ -46,10 +46,10 @@ export type TQueryStateModelConstructor<
  * @template S The specific type of the state managed by the optional store.
  */
 export class QueryStateModel<
-    TData,
-    TSchema extends ZodSchema<TData>,
-    S extends State = State, // Default S to State
-  >
+  TData,
+  TSchema extends ZodSchema<TData>,
+  S extends State = State, // Default S to State
+>
   extends BaseModel<TData, TSchema>
   implements IQueryStateModel<TData, TSchema, S>
 {

@@ -12,6 +12,7 @@
 The `@web-loom/http-core` package is a **well-architected, production-quality HTTP client** that successfully delivers on its promise to provide essential HTTP functionality with a clean API. The implementation demonstrates strong engineering practices with comprehensive test coverage, solid TypeScript support, and excellent documentation. The package appropriately scopes itself to core features without attempting to replicate every Axios feature, making it a viable lightweight alternative.
 
 **Overall Assessment:**
+
 - **Implementation Completeness:** 90%
 - **Production Readiness:** 85%
 - **Test Coverage:** 85% (estimated)
@@ -28,6 +29,7 @@ The `@web-loom/http-core` package is a **well-architected, production-quality HT
 ## 1. Strengths & Best Practices
 
 ### 1.1 Excellent Architecture
+
 ✅ **Clean separation of concerns** - Each module has a single responsibility
 ✅ **Framework-agnostic design** - No UI framework coupling
 ✅ **Composable architecture** - Interceptors, retry, and deduplication are independent
@@ -35,18 +37,21 @@ The `@web-loom/http-core` package is a **well-architected, production-quality HT
 ✅ **Testable** - Mock adapter makes testing straightforward
 
 ### 1.2 Proper Testing Approach
+
 ✅ **Unit tests exist** for core functionality (client.test.ts:189, retry.test.ts:90, utils.test.ts:89)
 ✅ **Testing strategy** - Tests cover happy paths, error cases, and configuration options
 ✅ **Mock adapter** - Built-in mocking for development and testing (mock.ts:157)
 ✅ **Test organization** - Well-structured with describe blocks and clear test names
 
 ### 1.3 Good Documentation
+
 ✅ **Comprehensive README** - Clear examples, API reference, and use cases
 ✅ **Code comments** - Well-documented source code with JSDoc
 ✅ **Example file** - Real-world usage patterns (examples/basic-usage.ts:307)
 ✅ **Type definitions** - Self-documenting interfaces
 
 ### 1.4 Solid Core Features
+
 ✅ **Request/Response interceptors** - Implemented correctly (interceptors.ts:60)
 ✅ **Automatic retry** - Exponential backoff with jitter (retry.ts:80)
 ✅ **Request cancellation** - AbortController integration (client.ts:180-186)
@@ -59,10 +64,12 @@ The `@web-loom/http-core` package is a **well-architected, production-quality HT
 ## 2. Critical Gaps (P0 - Address Before Wide Production Use)
 
 ### 2.1 Missing Request Size Validation
+
 **Severity:** HIGH
 **Impact:** Large payloads could cause performance issues or server rejection
 
 **Findings:**
+
 - No validation of request body size (client.ts:177, utils.ts:110-142)
 - Large JSON payloads could cause:
   - Browser memory issues
@@ -71,6 +78,7 @@ The `@web-loom/http-core` package is a **well-architected, production-quality HT
   - Poor user experience without warning
 
 **Recommendation:**
+
 ```typescript
 Priority: P0
 Effort: Low (half day)
@@ -108,16 +116,19 @@ Effort: Low (half day)
 ---
 
 ### 2.2 No CSRF Token Validation Pattern
+
 **Severity:** MEDIUM-HIGH
 **Impact:** Missing built-in guidance for CSRF protection
 
 **Findings:**
+
 - Example shows CSRF token injection (basic-usage.ts:68-77)
 - No validation that CSRF token exists before sending unsafe requests
 - No built-in patterns for common CSRF strategies (cookie-based, header-based)
 - Developers must implement CSRF protection manually
 
 **Current Implementation:**
+
 ```typescript
 // In examples only, not built into library
 client.interceptors.request.use((config) => {
@@ -133,6 +144,7 @@ client.interceptors.request.use((config) => {
 ```
 
 **Recommendation:**
+
 ```typescript
 Priority: P0
 Effort: Low (1 day)
@@ -180,10 +192,12 @@ Effort: Low (1 day)
 ---
 
 ### 2.3 Missing Retry-After Header Support (RFC 7231)
+
 **Severity:** MEDIUM
 **Impact:** Non-compliant with HTTP standards for rate limiting
 
 **Findings:**
+
 - Retry logic ignores `Retry-After` header from 429 responses (retry.ts:57-72)
 - Could cause:
   - Premature retries violating rate limits
@@ -192,6 +206,7 @@ Effort: Low (1 day)
   - Poor API citizenship
 
 **Current Implementation:**
+
 ```typescript
 // retry.ts:57-72 - Only uses exponential backoff
 export function calculateRetryDelay(attempt: number, config: RetryConfig): number {
@@ -203,6 +218,7 @@ export function calculateRetryDelay(attempt: number, config: RetryConfig): numbe
 ```
 
 **Recommendation:**
+
 ```typescript
 Priority: P0
 Effort: Medium (1 day)
@@ -262,16 +278,19 @@ Effort: Medium (1 day)
 ---
 
 ### 2.4 No Content-Type Validation for Security
+
 **Severity:** MEDIUM
 **Impact:** Potential XSS via content-type confusion attacks
 
 **Findings:**
+
 - Response parsing trusts Content-Type header without validation (client.ts:261-289)
 - Could execute JavaScript if server sends `text/html` with malicious content
 - No validation that JSON responses actually contain valid JSON
 - No protection against content-type spoofing
 
 **Current Implementation:**
+
 ```typescript
 // client.ts:261-289
 private async parseResponse<T>(response: Response): Promise<T> {
@@ -296,6 +315,7 @@ private async parseResponse<T>(response: Response): Promise<T> {
 ```
 
 **Recommendation:**
+
 ```typescript
 Priority: P0
 Effort: Medium (1 day)
@@ -356,15 +376,18 @@ Effort: Medium (1 day)
 ## 3. High-Priority Gaps (P1 - Important for Robustness)
 
 ### 3.1 Missing Timeout for Individual Retry Attempts
+
 **Severity:** MEDIUM
 **Impact:** Retries could hang indefinitely
 
 **Findings:**
+
 - Global timeout applies to entire request including retries (client.ts:184-186)
 - If timeout is 10s and retry happens, timeout already consumed time
 - Could result in long waits with no feedback
 
 **Current Implementation:**
+
 ```typescript
 // client.ts:179-186
 const controller = new AbortController();
@@ -377,6 +400,7 @@ if (config.timeout) {
 ```
 
 **Recommendation:**
+
 ```typescript
 Priority: P1
 Effort: Medium (1 day)
@@ -414,16 +438,19 @@ Effort: Medium (1 day)
 ---
 
 ### 3.2 No Network Connectivity Detection
+
 **Severity:** MEDIUM
 **Impact:** Poor UX when offline
 
 **Findings:**
+
 - No detection of offline state before making requests
 - Retries fail unnecessarily when offline
 - No guidance for developers to handle offline scenarios
 - `navigator.onLine` not utilized
 
 **Recommendation:**
+
 ```typescript
 Priority: P1
 Effort: Low (half day)
@@ -459,16 +486,19 @@ Effort: Low (half day)
 ---
 
 ### 3.3 No Request/Response Size Tracking
+
 **Severity:** LOW-MEDIUM
 **Impact:** Cannot monitor bandwidth usage or debug performance
 
 **Findings:**
+
 - No telemetry for request/response sizes
 - Cannot track bandwidth consumption
 - Difficult to identify large payloads causing performance issues
 - No warnings for large responses
 
 **Recommendation:**
+
 ```typescript
 Priority: P1
 Effort: Low (1 day)
@@ -511,16 +541,19 @@ Effort: Low (1 day)
 ---
 
 ### 3.4 Limited HTTP Method Support
+
 **Severity:** LOW
 **Impact:** Cannot use less common but valid HTTP methods
 
 **Findings:**
+
 - Only 7 methods supported: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS (types.ts:9)
 - Missing: CONNECT, TRACE (rarely used but valid)
 - No custom method support
 - Type definition is too restrictive
 
 **Recommendation:**
+
 ```typescript
 Priority: P1
 Effort: Very Low (1 hour)
@@ -538,15 +571,18 @@ Effort: Very Low (1 hour)
 ---
 
 ### 3.5 No AbortController Cleanup on Success
+
 **Severity:** LOW-MEDIUM
 **Impact:** Minor memory leak potential
 
 **Findings:**
+
 - AbortController created even when not needed (client.ts:180)
 - No cleanup of timeout listeners on success (client.ts:200)
 - Could accumulate in long-running applications
 
 **Current Implementation:**
+
 ```typescript
 // client.ts:179-201
 const controller = new AbortController();
@@ -568,6 +604,7 @@ try {
 ```
 
 **Recommendation:**
+
 ```typescript
 Priority: P1
 Effort: Very Low (30 minutes)
@@ -593,16 +630,19 @@ Effort: Very Low (30 minutes)
 ## 4. Medium-Priority Gaps (P2 - Nice to Have)
 
 ### 4.1 No Progress Tracking Support
+
 **Severity:** LOW
 **Impact:** Cannot show upload/download progress
 
 **Findings:**
+
 - Fetch API supports progress via streams
 - No built-in progress callback
 - Common use case: file uploads, large downloads
 - Developers must implement manually
 
 **Recommendation:**
+
 ```typescript
 Priority: P2
 Effort: Medium (2 days)
@@ -634,15 +674,18 @@ Effort: Medium (2 days)
 ---
 
 ### 4.2 No Request/Response Transformation Helpers
+
 **Severity:** LOW
 **Impact:** Common transformations must be hand-coded
 
 **Findings:**
+
 - Case transformation (snake_case ↔ camelCase) mentioned in PRD but not implemented
 - Date parsing/serialization not provided
 - No built-in data normalization patterns
 
 **Recommendation:**
+
 ```typescript
 Priority: P2
 Effort: Medium (2-3 days)
@@ -675,16 +718,19 @@ Effort: Medium (2-3 days)
 ---
 
 ### 4.3 No Built-in Caching Layer
+
 **Severity:** LOW
 **Impact:** Developers must implement caching manually
 
 **Findings:**
+
 - No HTTP caching (Cache-Control, ETag, If-Modified-Since)
 - No in-memory response cache
 - Deduplication exists but only for in-flight requests (client.ts:98-114)
 - PRD mentions optional integration with query-core
 
 **Recommendation:**
+
 ```typescript
 Priority: P2
 Effort: High (1 week)
@@ -714,15 +760,18 @@ Effort: High (1 week)
 ---
 
 ### 4.4 No GraphQL Helpers
+
 **Severity:** LOW
 **Impact:** GraphQL usage requires manual setup
 
 **Findings:**
+
 - PRD explicitly lists GraphQL as non-goal
 - However, GraphQL is common enough to warrant basic support
 - POST to /graphql endpoint is standard pattern
 
 **Recommendation:**
+
 ```typescript
 Priority: P2
 Effort: Low (1 day)
@@ -770,13 +819,13 @@ Effort: Low (1 day)
 
 ### 5.2 Security Concerns ⚠️
 
-| Issue | Severity | Location | Impact |
-|-------|----------|----------|--------|
-| No Content-Type validation | HIGH | client.ts:261-289 | XSS risk via content sniffing |
-| No request size limits | MEDIUM | utils.ts:110-142 | DoS via large payloads |
-| Missing CSRF helpers | MEDIUM | - | Developers may forget CSRF protection |
-| No auth token redaction in logs | LOW | - | Token exposure in error messages |
-| Response data directly assigned | LOW | client.ts:210 | Prototype pollution (theoretical) |
+| Issue                           | Severity | Location          | Impact                                |
+| ------------------------------- | -------- | ----------------- | ------------------------------------- |
+| No Content-Type validation      | HIGH     | client.ts:261-289 | XSS risk via content sniffing         |
+| No request size limits          | MEDIUM   | utils.ts:110-142  | DoS via large payloads                |
+| Missing CSRF helpers            | MEDIUM   | -                 | Developers may forget CSRF protection |
+| No auth token redaction in logs | LOW      | -                 | Token exposure in error messages      |
+| Response data directly assigned | LOW      | client.ts:210     | Prototype pollution (theoretical)     |
 
 ### 5.3 Security Recommendations
 
@@ -824,6 +873,7 @@ Effort: 2 days total
 ### 6.1 Test Coverage Analysis
 
 **Existing Tests:**
+
 - ✅ `client.test.ts` - 189 lines, covers basic requests, config, interceptors, errors, deduplication
 - ✅ `retry.test.ts` - 90 lines, covers retry logic, backoff, jitter
 - ✅ `utils.test.ts` - 89 lines, covers URL building, query strings, headers, signatures
@@ -831,6 +881,7 @@ Effort: 2 days total
 **Estimated Coverage:** ~85%
 
 **Well-Tested Areas:**
+
 - Basic HTTP methods (GET, POST, PUT, DELETE)
 - Request/response interceptors
 - Error interceptors
@@ -842,21 +893,22 @@ Effort: 2 days total
 
 **Missing Test Coverage:**
 
-| Area | Priority | Lines | Reason |
-|------|----------|-------|--------|
-| Timeout handling | P0 | client.ts:184-186 | Critical for reliability |
-| AbortSignal integration | P0 | client.ts:181, 193 | User-provided signals |
-| Content-Type parsing | P1 | client.ts:261-289 | Security-sensitive |
-| Error transformation | P1 | error.ts:59-76 | Error handling accuracy |
-| Mock adapter edge cases | P1 | mock.ts:102-123 | Test tool reliability |
-| Concurrent requests | P1 | - | Race conditions |
-| Large payload handling | P1 | - | Performance issues |
-| Network errors (offline) | P1 | - | Real-world scenarios |
-| Retry-After header | P2 | - | HTTP compliance |
+| Area                     | Priority | Lines              | Reason                   |
+| ------------------------ | -------- | ------------------ | ------------------------ |
+| Timeout handling         | P0       | client.ts:184-186  | Critical for reliability |
+| AbortSignal integration  | P0       | client.ts:181, 193 | User-provided signals    |
+| Content-Type parsing     | P1       | client.ts:261-289  | Security-sensitive       |
+| Error transformation     | P1       | error.ts:59-76     | Error handling accuracy  |
+| Mock adapter edge cases  | P1       | mock.ts:102-123    | Test tool reliability    |
+| Concurrent requests      | P1       | -                  | Race conditions          |
+| Large payload handling   | P1       | -                  | Performance issues       |
+| Network errors (offline) | P1       | -                  | Real-world scenarios     |
+| Retry-After header       | P2       | -                  | HTTP compliance          |
 
 ### 6.2 Test Quality
 
 **Strengths:**
+
 - ✅ Good test organization with describe blocks
 - ✅ Clear test names that describe behavior
 - ✅ Uses mock adapter to avoid network calls
@@ -864,6 +916,7 @@ Effort: 2 days total
 - ✅ Vitest with good assertion library
 
 **Weaknesses:**
+
 - ⚠️ Some tests access private properties (`client['config'].mockAdapter`)
 - ⚠️ No integration tests with real fetch
 - ⚠️ No performance/load tests
@@ -917,15 +970,17 @@ Effort: 3-4 days
 6. **Self-documenting** - Types serve as documentation
 
 **Example of excellent DX:**
+
 ```typescript
 // TypeScript infers return type
 const users = await client.get<User[]>('/users');
-users.data // Type: User[]
+users.data; // Type: User[]
 
 // Configuration is discoverable via IntelliSense
 const client = createHttpClient({
   baseURL: '...', // Auto-complete shows all options
-  retry: { // Nested configuration is typed
+  retry: {
+    // Nested configuration is typed
     maxRetries: 3,
   },
 });
@@ -934,14 +989,17 @@ const client = createHttpClient({
 ### 7.2 API Design Gaps
 
 #### 7.2.1 Interceptor Error Handling Unclear
+
 **Issue:** What happens if an interceptor throws?
 
 **Current Behavior (Inferred):**
+
 - Request interceptor throws → request fails
 - Response interceptor throws → response handling fails
 - Error interceptor throws → error propagates
 
 **Recommendation:**
+
 ```typescript
 Priority: P2
 Effort: Low (half day)
@@ -973,9 +1031,11 @@ Effort: Low (half day)
 ```
 
 #### 7.2.2 No Request Builder Pattern
+
 **Issue:** Complex requests require verbose configuration
 
 **Current Approach:**
+
 ```typescript
 await client.get('/users', {
   params: { page: 1, limit: 10 },
@@ -986,6 +1046,7 @@ await client.get('/users', {
 ```
 
 **Alternative (Fluent API):**
+
 ```typescript
 Priority: P2 (Optional enhancement)
 Effort: Medium (2 days)
@@ -1036,18 +1097,21 @@ await client.request()
   .get<User[]>();
 ```
 
-*Note: This is nice-to-have, current API is perfectly adequate.*
+_Note: This is nice-to-have, current API is perfectly adequate._
 
 #### 7.2.3 RxJS Dependency Not Utilized
+
 **Issue:** RxJS is in dependencies but never used
 
 **Findings:**
+
 - `package.json` line 61: `"rxjs": "^7.8.2"`
 - No imports of RxJS in any source file
 - Likely copy-pasted from another package
 - Adds ~50KB to bundle size for nothing
 
 **Recommendation:**
+
 ```
 Priority: P0
 Effort: Immediate (1 minute)
@@ -1087,9 +1151,11 @@ Update package.json:
 ### 8.2 Documentation Gaps
 
 #### 8.2.1 Missing Migration Guide
+
 **Issue:** No guidance for users coming from Axios or Fetch
 
 **Recommendation:**
+
 ```
 Priority: P2
 Effort: 1 day
@@ -1135,9 +1201,11 @@ Create MIGRATION.md:
 ```
 
 #### 8.2.2 No Troubleshooting Guide
+
 **Issue:** Users may encounter common issues without guidance
 
 **Recommendation:**
+
 ```
 Priority: P2
 Effort: Half day
@@ -1190,10 +1258,12 @@ Add TROUBLESHOOTING.md:
 ```
 
 #### 8.2.3 No Performance Guidelines
+
 **Issue:** No guidance on optimization and performance best practices
 
 **Recommendation:**
-```
+
+````
 Priority: P2
 Effort: Half day
 
@@ -1205,10 +1275,12 @@ Add PERFORMANCE.md:
 Avoid duplicate in-flight requests:
 ```typescript
 const client = createHttpClient({ deduplicate: true });
-```
+````
 
 ### 2. Tune Retry Configuration
+
 Aggressive retries add latency:
+
 ```typescript
 // Production-optimized
 retry: {
@@ -1219,28 +1291,36 @@ retry: {
 ```
 
 ### 3. Use Appropriate Timeouts
+
 Balance reliability and responsiveness:
+
 - API calls: 10s
 - File uploads: 60s
 - Real-time endpoints: 5s
 
 ### 4. Minimize Interceptors
+
 Each interceptor adds overhead:
+
 - Combine related logic into one interceptor
 - Avoid heavy computation in interceptors
 - Use metadata for conditional logic
 
 ### 5. Bundle Size
+
 Current size: ~8KB gzipped
+
 - Tree-shakeable exports
 - No runtime dependencies (except RxJS - should be removed!)
 - Use code splitting for large apps
 
 ### 6. Memory Management
+
 - Clear interceptors when done: client.interceptors.request.clear()
 - Cancel in-flight requests on unmount
 - Avoid caching responses indefinitely
-```
+
+````
 
 ---
 
@@ -1255,14 +1335,16 @@ Current size: ~8KB gzipped
     "rxjs": "^7.8.2" // ~50KB gzipped
   }
 }
-```
+````
 
 **Assessment:**
+
 - ❌ **RxJS is unused** - Not imported anywhere in source code
 - ❌ **Should be removed** - Adds unnecessary bloat
 - ❌ **Violates NFR** - "Ideally < 10 KB gzip" (PRD line 255)
 
 **Recommendation:**
+
 ```
 Priority: P0
 Effort: Immediate
@@ -1277,6 +1359,7 @@ Actual size without RxJS: ~7-8KB gzipped ✅
 ### 9.2 DevDependencies
 
 **Current DevDependencies:**
+
 - TypeScript: ✅ Required for build
 - Vite: ✅ Required for build and dev
 - Vitest: ✅ Required for testing
@@ -1285,6 +1368,7 @@ Actual size without RxJS: ~7-8KB gzipped ✅
 - vite-plugin-dts: ✅ Required for type declarations
 
 **Assessment:**
+
 - All devDependencies are appropriate
 - No unnecessary tooling
 - Modern, well-maintained packages
@@ -1298,6 +1382,7 @@ Actual size without RxJS: ~7-8KB gzipped ✅
 **Target (from README):** "Modern browsers; polyfills optional"
 
 **API Requirements:**
+
 - `fetch()` - Supported in all modern browsers
 - `AbortController` - Supported in all modern browsers
 - `URLSearchParams` - Supported in all modern browsers
@@ -1305,6 +1390,7 @@ Actual size without RxJS: ~7-8KB gzipped ✅
 - `Promise` - Supported in all modern browsers
 
 **Actual Support:**
+
 - ✅ Chrome 42+
 - ✅ Firefox 39+
 - ✅ Safari 10.1+
@@ -1316,7 +1402,8 @@ Actual size without RxJS: ~7-8KB gzipped ✅
 **Current:** No polyfills provided
 
 **Recommendation:**
-```
+
+````
 Priority: P2
 Effort: Low (1 hour)
 
@@ -1335,7 +1422,7 @@ IE11 is not supported. Use polyfills:
 
 ```bash
 npm install whatwg-fetch abortcontroller-polyfill
-```
+````
 
 ```typescript
 import 'whatwg-fetch';
@@ -1346,14 +1433,13 @@ import { createHttpClient } from '@web-loom/http-core';
 ### Checking Browser Support
 
 ```typescript
-const isSupported =
-  typeof fetch !== 'undefined' &&
-  typeof AbortController !== 'undefined';
+const isSupported = typeof fetch !== 'undefined' && typeof AbortController !== 'undefined';
 
 if (!isSupported) {
   console.error('Browser not supported');
 }
 ```
+
 ```
 
 ---
@@ -1518,3 +1604,4 @@ The foundational work is excellent. The gaps are addressable and well-scoped. Th
 ---
 
 **End of Gaps Analysis**
+```

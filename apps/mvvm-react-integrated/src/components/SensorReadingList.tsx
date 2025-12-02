@@ -4,7 +4,7 @@ import BackArrow from '../assets/back-arrow.svg';
 import { useAppContext } from '../providers/AppProvider';
 import { type SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
 import { type EndpointState } from '@web-loom/query-core';
-import { useListSelection, useDialogBehavior } from '@web-loom/ui-core/react';
+import { useListSelection, useDialogBehavior } from '@web-loom/ui-core/adapters/react';
 
 export const READINGS_ENDPOINT_KEY = 'posts';
 

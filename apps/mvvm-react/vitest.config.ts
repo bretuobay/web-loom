@@ -1,21 +1,18 @@
-/// <reference types="vitest" />
 import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react-swc';
 import { resolve } from 'path';
 
 export default defineConfig({
+  plugins: [react()],
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
-      '@web-loom/design-core': resolve(__dirname, '../../packages/design-core/src'),
-      '@web-loom/store-core': resolve(__dirname, '../../packages/store-core/src'),
+      '@repo/models': resolve(__dirname, '../../packages/models/src'),
+      '@repo/view-models': resolve(__dirname, '../../packages/view-models/src'),
+      '@repo/shared': resolve(__dirname, '../../packages/shared/src'),
       '@web-loom/mvvm-core': resolve(__dirname, '../../packages/mvvm-core/src'),
-      '@web-loom/query-core': resolve(__dirname, '../../packages/query-core/src'),
-      '@web-loom/event-bus-core': resolve(__dirname, '../../packages/event-bus-core/src'),
       '@web-loom/ui-core': resolve(__dirname, '../../packages/ui-core/src'),
       '@web-loom/ui-patterns': resolve(__dirname, '../../packages/ui-patterns/src'),
-      '@repo/shared': resolve(__dirname, '../../packages/shared/src'),
-      '@repo/ui': resolve(__dirname, '../../packages/ui/src'),
-      '@repo/view-models': resolve(__dirname, '../../packages/view-models/src'),
     },
   },
   test: {
