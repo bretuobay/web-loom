@@ -1,5 +1,5 @@
 {
-  "name": "plugin-react",
+  "name": "@repo/plugin-react-app",
   "private": true,
   "version": "0.5.2",
   "type": "module",

@@ -25,6 +25,9 @@
   "engines": {
     "node": ">=18"
   },
+  "overrides": {
+    "tmp": "file:third_party/tmp-safe"
+  },
   "packageManager": "npm@10.9.2",
   "workspaces": [
     "apps/*",
