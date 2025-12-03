@@ -17,6 +17,7 @@ export interface DashPluginOptions {
   loadLibrary: () => Promise<{ default?: DashLibraryModule } | DashLibraryModule>;
   autoplay?: boolean;
   configurePlayer?: (player: DashPlayerInstance) => void;
+  [key: string]: unknown;
 }
 
 export function createDashPlugin(options: DashPluginOptions): MediaPlugin<DashPluginOptions> {

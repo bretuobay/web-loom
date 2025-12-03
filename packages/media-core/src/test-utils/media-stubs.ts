@@ -10,11 +10,24 @@ export class MockIntersectionObserver implements IntersectionObserver {
   static instances: MockIntersectionObserver[] = [];
   readonly callback: IntersectionObserverCallback;
   readonly options?: IntersectionObserverInit;
+  readonly root: Element | Document | null = null;
+  readonly rootMargin: string = '0px';
+  readonly thresholds: ReadonlyArray<number> = [0];
   private observed = new Set<Element>();
 
   constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
     this.callback = callback;
     this.options = options;
+    if (options?.root !== undefined) {
+      (this as { root: Element | Document | null }).root = options.root;
+    }
+    if (options?.rootMargin) {
+      (this as { rootMargin: string }).rootMargin = options.rootMargin;
+    }
+    if (options?.threshold !== undefined) {
+      const thresholds = Array.isArray(options.threshold) ? options.threshold : [options.threshold];
+      (this as { thresholds: ReadonlyArray<number> }).thresholds = thresholds;
+    }
     MockIntersectionObserver.instances.push(this);
   }
 

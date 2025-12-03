@@ -16,6 +16,7 @@ export interface HlsPluginOptions {
   loadLibrary: () => Promise<{ default?: HlsConstructor } | HlsConstructor>;
   config?: Record<string, unknown>;
   preferNative?: boolean;
+  [key: string]: unknown;
 }
 
 export function createHlsPlugin(options: HlsPluginOptions): MediaPlugin<HlsPluginOptions> {

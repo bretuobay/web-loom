@@ -23,6 +23,7 @@ export interface ViewportAutoToggleOptions {
    * IntersectionObserver root element.
    */
   root?: Element | Document | null;
+  [key: string]: unknown;
 }
 
 export const viewportAutoTogglePlugin: MediaPlugin<ViewportAutoToggleOptions> = {

@@ -4,6 +4,7 @@ import './chapter-markers.css';
 export interface ChapterMarkersOptions {
   className?: string;
   onSelectChapter?: (chapter: ChapterMetadata) => void;
+  [key: string]: unknown;
 }
 
 export const chapterMarkersPlugin: MediaPlugin<ChapterMarkersOptions> = {
