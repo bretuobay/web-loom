@@ -308,5 +308,9 @@ If you'd like, I can also produce:
 - A **service worker specification** for push notifications
 - A **TypeScript design & implementation scaffolding**
 - A **toast + system notification unification architecture**
+  If you want, I can now generate:
 
-Just tell me what you need next!
+✅ Full TypeScript implementation of /sw.js
+✅ Service Worker registration helper code
+✅ Backend API contract for sending push messages
+✅ Integration test plan for push notifications
