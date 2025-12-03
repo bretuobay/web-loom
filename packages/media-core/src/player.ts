@@ -1,4 +1,5 @@
 import type {
+  ChapterMetadata,
   MediaEventHandler,
   MediaEventMap,
   MediaKind,
@@ -11,6 +12,7 @@ import type {
   MediaSourceConfig,
   PlaybackSnapshot,
   PlaybackState,
+  TextTrackConfig,
 } from './types.js';
 import { TypedEventEmitter } from './internal/event-emitter.js';
 import { createMediaElement, isTimeBasedElement, selectBestSource } from './internal/dom.js';
@@ -45,6 +47,11 @@ export class MediaCorePlayer implements MediaPlayer {
   private state: PlaybackSnapshot;
   private nativeCleanup: Array<() => void> = [];
   private pluginCleanups = new Map<string, () => void>();
+  private activeTextTrackId: string | null = null;
+  private pendingTextTrackId: string | null | undefined;
+  private lazyObserver: IntersectionObserver | null = null;
+  private lazyListeners: Array<() => void> = [];
+  private lazyActivated = false;
 
   constructor(config: MediaSourceConfig, options: MediaPlayerOptions = {}) {
     this.id = `media-core-${++playerCounter}`;
@@ -60,6 +67,7 @@ export class MediaCorePlayer implements MediaPlayer {
       muted: options.muted ?? false,
       playbackRate: options.playbackRate ?? 1,
     };
+    this.pendingTextTrackId = undefined;
   }
 
   get kind(): MediaKind {
@@ -76,20 +84,29 @@ export class MediaCorePlayer implements MediaPlayer {
       throw new Error(`MediaCorePlayer: Unable to find mount target for "${target}".`);
     }
 
+    this.teardownLazyObservation();
     if (this.isMediaElement(resolved)) {
       this.attach(resolved);
+      return;
+    }
+
+    this.host = resolved;
+    if (this.options.lazy) {
+      this.ownsElement = true;
+      this.setupLazyMount(resolved);
       return;
     }
 
     this.teardownElement(true);
     const element = createMediaElement(this.kind);
     this.ownsElement = true;
-    this.host = resolved;
     resolved.appendChild(element);
     this.bindToElement(element);
   }
 
   attach(element: HTMLMediaElement | HTMLImageElement): void {
+    this.teardownLazyObservation();
+    this.lazyActivated = true;
     if (!this.isCompatibleElement(element)) {
       throw new Error(
         `MediaCorePlayer: Attempted to attach ${element.tagName} while player is configured for ${this.kind}.`,
@@ -103,15 +120,20 @@ export class MediaCorePlayer implements MediaPlayer {
 
   dispose(): void {
     this.teardownElement(true);
+    this.teardownLazyObservation();
+    this.lazyActivated = false;
     for (const dispose of this.pluginCleanups.values()) {
       dispose();
     }
     this.pluginCleanups.clear();
+    this.activeTextTrackId = null;
+    this.pendingTextTrackId = undefined;
     this.emitter.emit('dispose', undefined);
     this.emitter.removeAll();
   }
 
   async play(): Promise<void> {
+    this.ensureLazyElementIsMounted();
     if (this.elementRef && isTimeBasedElement(this.elementRef)) {
       await this.elementRef.play();
       return;
@@ -120,12 +142,14 @@ export class MediaCorePlayer implements MediaPlayer {
   }
 
   pause(): void {
+    this.ensureLazyElementIsMounted();
     if (this.elementRef && isTimeBasedElement(this.elementRef) && !this.elementRef.paused) {
       this.elementRef.pause();
     }
   }
 
   reload(): void {
+    this.ensureLazyElementIsMounted();
     if (!this.elementRef) {
       return;
     }
@@ -138,6 +162,7 @@ export class MediaCorePlayer implements MediaPlayer {
   }
 
   async decodeImage(): Promise<void> {
+    this.ensureLazyElementIsMounted();
     if (!this.elementRef || !(this.elementRef instanceof HTMLImageElement)) {
       return Promise.resolve();
     }
@@ -172,12 +197,14 @@ export class MediaCorePlayer implements MediaPlayer {
   }
 
   seekTo(seconds: number): void {
+    this.ensureLazyElementIsMounted();
     if (this.elementRef && isTimeBasedElement(this.elementRef)) {
       this.elementRef.currentTime = seconds;
     }
   }
 
   setVolume(volume: number): void {
+    this.ensureLazyElementIsMounted();
     if (this.elementRef && isTimeBasedElement(this.elementRef)) {
       this.elementRef.volume = clamp(volume, 0, 1);
       this.state.volume = this.elementRef.volume;
@@ -185,6 +212,7 @@ export class MediaCorePlayer implements MediaPlayer {
   }
 
   setMuted(muted: boolean): void {
+    this.ensureLazyElementIsMounted();
     if (this.elementRef && isTimeBasedElement(this.elementRef)) {
       this.elementRef.muted = muted;
       this.state.muted = muted;
@@ -192,6 +220,7 @@ export class MediaCorePlayer implements MediaPlayer {
   }
 
   setPlaybackRate(rate: number): void {
+    this.ensureLazyElementIsMounted();
     if (this.elementRef && isTimeBasedElement(this.elementRef)) {
       this.elementRef.playbackRate = rate;
       this.state.playbackRate = rate;
@@ -199,6 +228,7 @@ export class MediaCorePlayer implements MediaPlayer {
   }
 
   async togglePlayPause(): Promise<void> {
+    this.ensureLazyElementIsMounted();
     if (!this.elementRef || !isTimeBasedElement(this.elementRef)) {
       return Promise.resolve();
     }
@@ -292,6 +322,79 @@ export class MediaCorePlayer implements MediaPlayer {
       return this.elementRef.buffered;
     }
     return this.state.buffered ?? null;
+  }
+
+  setCaptionTrack(trackId: string | null): void {
+    this.pendingTextTrackId = trackId;
+    this.syncTextTracks(true);
+  }
+
+  getAvailableCaptionTracks(): TextTrackConfig[] {
+    return this.sourceConfig.tracks ? [...this.sourceConfig.tracks] : [];
+  }
+
+  getCurrentCaptionTrack(): TextTrackConfig | null {
+    if (!this.activeTextTrackId) {
+      return null;
+    }
+    return (
+      this.sourceConfig.tracks?.find((track) => track.id === this.activeTextTrackId) ?? null
+    );
+  }
+
+  getThumbnailForTime(timeInSeconds: number): string | null {
+    const thumbnails = this.sourceConfig.previewThumbnails;
+    if (!thumbnails) {
+      return null;
+    }
+    const entries = Object.entries(thumbnails)
+      .map(([key, value]) => [Number.parseFloat(key), value] as const)
+      .filter(([timestamp]) => Number.isFinite(timestamp))
+      .sort((a, b) => a[0] - b[0]);
+
+    if (!entries.length) {
+      return null;
+    }
+
+    const targetTime = Number.isFinite(timeInSeconds) ? timeInSeconds : 0;
+    let candidate = entries[0][1];
+    for (const [timestamp, value] of entries) {
+      if (targetTime >= timestamp) {
+        candidate = value;
+      } else {
+        break;
+      }
+    }
+    return candidate;
+  }
+
+  getChapters(): ChapterMetadata[] {
+    return this.sourceConfig.chapters ? [...this.sourceConfig.chapters] : [];
+  }
+
+  async enterPictureInPicture(): Promise<void> {
+    this.ensureLazyElementIsMounted();
+    const video = this.elementRef;
+    const request = video && video instanceof HTMLVideoElement ? (video as HTMLVideoElement & { requestPictureInPicture?: () => Promise<void> }).requestPictureInPicture : undefined;
+    if (video instanceof HTMLVideoElement && typeof request === 'function') {
+      await request.call(video);
+    }
+  }
+
+  async exitPictureInPicture(): Promise<void> {
+    const doc = (this.host?.ownerDocument ?? document) as Document & { exitPictureInPicture?: () => Promise<void>; pictureInPictureElement?: Element | null };
+    if (typeof doc.exitPictureInPicture === 'function' && doc.pictureInPictureElement) {
+      await doc.exitPictureInPicture();
+    }
+  }
+
+  isPictureInPictureSupported(): boolean {
+    const doc = (this.host?.ownerDocument ?? document) as Document & { pictureInPictureEnabled?: boolean; exitPictureInPicture?: () => Promise<void> };
+    const proto = HTMLVideoElement.prototype as HTMLVideoElement & { requestPictureInPicture?: () => Promise<PictureInPictureWindow> };
+    const elementSupport = typeof proto.requestPictureInPicture === 'function';
+    const documentSupport =
+      typeof doc.pictureInPictureEnabled === 'boolean' ? doc.pictureInPictureEnabled : typeof doc.exitPictureInPicture === 'function';
+    return Boolean(elementSupport && documentSupport);
   }
 
   on<E extends keyof MediaEventMap>(event: E, handler: MediaEventHandler<E>): () => void {
@@ -401,6 +504,15 @@ export class MediaCorePlayer implements MediaPlayer {
         if (!handler) continue;
         element.addEventListener(eventName as string, handler);
         this.nativeCleanup.push(() => element.removeEventListener(eventName as string, handler));
+      }
+
+      if (element instanceof HTMLVideoElement) {
+        const onEnterPiP = () => this.emitter.emit('pictureinpictureenter', undefined);
+        const onLeavePiP = () => this.emitter.emit('pictureinpictureleave', undefined);
+        element.addEventListener('enterpictureinpicture', onEnterPiP);
+        element.addEventListener('leavepictureinpicture', onLeavePiP);
+        this.nativeCleanup.push(() => element.removeEventListener('enterpictureinpicture', onEnterPiP));
+        this.nativeCleanup.push(() => element.removeEventListener('leavepictureinpicture', onLeavePiP));
       }
     } else {
       const img = element as HTMLImageElement;
@@ -530,6 +642,7 @@ export class MediaCorePlayer implements MediaPlayer {
     }
 
     element.load();
+    this.syncTextTracks(false);
   }
 
   private applyTextTracks(element: HTMLMediaElement, tracks: MediaSourceConfig['tracks']): void {
@@ -568,6 +681,7 @@ export class MediaCorePlayer implements MediaPlayer {
   private handleLoadedMetadata(): void {
     this.updateSnapshot('ready');
     this.updateAspectRatioFromMetrics();
+    this.syncTextTracks(false);
     this.emitter.emit('loadedmetadata', this.state);
     this.emitter.emit('ready', this.state);
   }
@@ -657,6 +771,171 @@ export class MediaCorePlayer implements MediaPlayer {
     };
   }
 
+  private ensureLazyElementIsMounted(): void {
+    if (!this.options.lazy || this.elementRef) {
+      return;
+    }
+    this.activateLazyMount();
+  }
+
+  private setupLazyMount(container: HTMLElement): void {
+    this.teardownElement(true);
+    this.teardownLazyObservation();
+    this.lazyActivated = false;
+
+    const triggerMount = () => this.activateLazyMount();
+    for (const eventName of ['pointerdown', 'touchstart', 'keydown', 'click']) {
+      const options: AddEventListenerOptions | undefined =
+        eventName === 'keydown' || eventName === 'click' ? undefined : { passive: true };
+      container.addEventListener(eventName, triggerMount, options);
+      this.lazyListeners.push(() => container.removeEventListener(eventName, triggerMount, options));
+    }
+
+    if (typeof IntersectionObserver !== 'undefined') {
+      this.lazyObserver = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          this.activateLazyMount();
+        }
+      });
+      this.lazyObserver.observe(container);
+    }
+  }
+
+  private activateLazyMount(): void {
+    if (this.lazyActivated) {
+      return;
+    }
+    const container = this.host;
+    if (!container) {
+      return;
+    }
+    this.lazyActivated = true;
+    this.teardownLazyObservation();
+    const element = createMediaElement(this.currentKind);
+    this.ownsElement = true;
+    container.appendChild(element);
+    this.bindToElement(element);
+  }
+
+  private teardownLazyObservation(): void {
+    if (this.lazyObserver) {
+      this.lazyObserver.disconnect();
+      this.lazyObserver = null;
+    }
+    for (const cleanup of this.lazyListeners) {
+      cleanup();
+    }
+    this.lazyListeners = [];
+  }
+
+  private syncTextTracks(emitEvent: boolean): void {
+    const targetId = this.getDesiredTextTrackId();
+    const applied = this.applyTextTrackSelection(targetId, emitEvent);
+    if (!applied && targetId && this.pendingTextTrackId === targetId) {
+      this.pendingTextTrackId = undefined;
+      const fallbackId = this.getDesiredTextTrackId();
+      if (fallbackId !== targetId) {
+        this.applyTextTrackSelection(fallbackId, emitEvent);
+      }
+    }
+  }
+
+  private getDesiredTextTrackId(): string | null {
+    if (this.pendingTextTrackId !== undefined) {
+      return this.pendingTextTrackId;
+    }
+    if (typeof this.options.defaultTextTrackId === 'string') {
+      return this.options.defaultTextTrackId;
+    }
+    const defaultTrack = this.sourceConfig.tracks?.find((track) => track.default);
+    return defaultTrack?.id ?? null;
+  }
+
+  private applyTextTrackSelection(targetId: string | null, emitEvent: boolean): boolean {
+    const media = this.elementRef;
+    const previous = this.activeTextTrackId;
+
+    if (!media || !isTimeBasedElement(media)) {
+      this.activeTextTrackId = targetId ?? null;
+      this.emitTextTrackChange(previous, emitEvent);
+      return true;
+    }
+
+    const textTracks = media.textTracks;
+    if (!textTracks || typeof textTracks.length !== 'number') {
+      this.activeTextTrackId = targetId ?? null;
+      this.emitTextTrackChange(previous, emitEvent);
+      return true;
+    }
+
+    if (textTracks.length === 0) {
+      this.activeTextTrackId = null;
+      this.emitTextTrackChange(previous, emitEvent);
+      return true;
+    }
+
+    if (targetId === null) {
+      this.disableAllTextTracks(textTracks);
+      this.activeTextTrackId = null;
+      this.emitTextTrackChange(previous, emitEvent);
+      return true;
+    }
+
+    let found = false;
+    for (let i = 0; i < textTracks.length; i++) {
+      const track = textTracks[i];
+      if (!track) continue;
+      const currentId = this.getTextTrackId(track);
+      if (currentId && currentId === targetId) {
+        track.mode = 'showing';
+        found = true;
+      } else {
+        track.mode = 'disabled';
+      }
+    }
+
+    if (!found) {
+      this.disableAllTextTracks(textTracks);
+      this.activeTextTrackId = null;
+      this.emitTextTrackChange(previous, emitEvent);
+      return false;
+    }
+
+    this.activeTextTrackId = targetId;
+    this.emitTextTrackChange(previous, emitEvent);
+    return true;
+  }
+
+  private disableAllTextTracks(list: TextTrackList): void {
+    for (let i = 0; i < list.length; i++) {
+      const track = list[i];
+      if (track) {
+        track.mode = 'disabled';
+      }
+    }
+  }
+
+  private getTextTrackId(track: TextTrack): string | null {
+    const anyTrack = track as TextTrack & { id?: string };
+    if (typeof anyTrack.id === 'string' && anyTrack.id.trim().length > 0) {
+      return anyTrack.id;
+    }
+    if (typeof track.label === 'string' && track.label.trim().length > 0) {
+      return track.label.trim();
+    }
+    return null;
+  }
+
+  private emitTextTrackChange(previous: string | null, emitEvent: boolean): void {
+    if (!emitEvent || previous === this.activeTextTrackId) {
+      return;
+    }
+    this.emitter.emit('trackchange', {
+      kind: 'text',
+      id: this.activeTextTrackId ?? undefined,
+    });
+  }
+
   private resolveTarget(target: HTMLElement | string): HTMLElement | null {
     if (typeof target === 'string') {
       return document.querySelector<HTMLElement>(target);
@@ -676,6 +955,7 @@ export class MediaCorePlayer implements MediaPlayer {
       this.elementRef.parentElement.removeChild(this.elementRef);
     }
     this.elementRef = null;
+    this.activeTextTrackId = null;
   }
 
   private isMediaElement(node: Element): node is HTMLMediaElement | HTMLImageElement {

@@ -57,4 +57,30 @@ describe('dom helpers', () => {
 
     expect(selectBestSource(video, sources)).toBeNull();
   });
+
+  it('prefers MP4 when available among baseline video formats', () => {
+    const video = document.createElement('video');
+    vi.spyOn(video, 'canPlayType').mockImplementation((type) => (type === 'video/mp4' ? 'probably' : ''));
+
+    const sources: MediaSource[] = [
+      { src: '/clip.webm', type: 'video/webm' },
+      { src: '/clip.ogg', type: 'video/ogg' },
+      { src: '/clip.mp4', type: 'video/mp4' },
+    ];
+
+    expect(selectBestSource(video, sources)?.src).toBe('/clip.mp4');
+  });
+
+  it('prefers MP3 when available among baseline audio formats', () => {
+    const audio = document.createElement('audio');
+    vi.spyOn(audio, 'canPlayType').mockImplementation((type) => (type === 'audio/mp3' ? 'probably' : ''));
+
+    const sources: MediaSource[] = [
+      { src: '/track.ogg', type: 'audio/ogg' },
+      { src: '/track.wav', type: 'audio/wav' },
+      { src: '/track.mp3', type: 'audio/mp3' },
+    ];
+
+    expect(selectBestSource(audio, sources)?.src).toBe('/track.mp3');
+  });
 });

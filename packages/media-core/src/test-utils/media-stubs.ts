@@ -4,6 +4,54 @@ const originalLoad = HTMLMediaElement.prototype.load;
 const originalPlay = HTMLMediaElement.prototype.play;
 const originalPause = HTMLMediaElement.prototype.pause;
 const originalCanPlayType = HTMLMediaElement.prototype.canPlayType;
+const originalIntersectionObserver = globalThis.IntersectionObserver;
+
+export class MockIntersectionObserver implements IntersectionObserver {
+  static instances: MockIntersectionObserver[] = [];
+  readonly callback: IntersectionObserverCallback;
+  readonly options?: IntersectionObserverInit;
+  private observed = new Set<Element>();
+
+  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+    this.callback = callback;
+    this.options = options;
+    MockIntersectionObserver.instances.push(this);
+  }
+
+  observe(target: Element): void {
+    this.observed.add(target);
+  }
+
+  unobserve(target: Element): void {
+    this.observed.delete(target);
+  }
+
+  disconnect(): void {
+    this.observed.clear();
+  }
+
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+
+  trigger(entry: Partial<IntersectionObserverEntry> = {}): void {
+    const target = entry.target ?? this.observed.values().next().value ?? document.createElement('div');
+    const payload: IntersectionObserverEntry = {
+      time: entry.time ?? 0,
+      target,
+      isIntersecting: entry.isIntersecting ?? false,
+      intersectionRatio: entry.intersectionRatio ?? (entry.isIntersecting ? 1 : 0),
+      boundingClientRect: entry.boundingClientRect ?? ({} as DOMRectReadOnly),
+      intersectionRect: entry.intersectionRect ?? ({} as DOMRectReadOnly),
+      rootBounds: entry.rootBounds ?? null,
+    };
+    this.callback([payload], this);
+  }
+
+  static reset(): void {
+    MockIntersectionObserver.instances = [];
+  }
+}
 
 beforeAll(() => {
   Object.defineProperty(HTMLMediaElement.prototype, 'load', {
@@ -21,6 +69,11 @@ beforeAll(() => {
   Object.defineProperty(HTMLMediaElement.prototype, 'canPlayType', {
     configurable: true,
     value: vi.fn().mockReturnValue('probably'),
+  });
+  Object.defineProperty(globalThis, 'IntersectionObserver', {
+    configurable: true,
+    writable: true,
+    value: MockIntersectionObserver,
   });
 });
 
@@ -40,5 +93,10 @@ afterAll(() => {
   Object.defineProperty(HTMLMediaElement.prototype, 'canPlayType', {
     configurable: true,
     value: originalCanPlayType,
+  });
+  Object.defineProperty(globalThis, 'IntersectionObserver', {
+    configurable: true,
+    writable: true,
+    value: originalIntersectionObserver,
   });
 });

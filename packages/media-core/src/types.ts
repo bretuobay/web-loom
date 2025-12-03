@@ -29,6 +29,17 @@ export interface TextTrackConfig {
   default?: boolean;
 }
 
+export interface ChapterMetadata {
+  id: string;
+  title: string;
+  startTime: number;
+  endTime?: number;
+  href?: string;
+  description?: string;
+}
+
+export type PreviewThumbnailMap = Record<number | string, string>;
+
 export interface MediaSourceConfig {
   kind: MediaKind;
   sources: MediaSource[];
@@ -41,7 +52,8 @@ export interface MediaSourceConfig {
   /**
    * Optional thumbnails or chapter metadata.
    */
-  previewThumbnails?: Record<number, string>;
+  previewThumbnails?: PreviewThumbnailMap;
+  chapters?: ChapterMetadata[];
 }
 
 export type PlaybackState =
@@ -155,7 +167,10 @@ export interface MediaPlayer {
   togglePlayPause(): Promise<void>;
   setMediaConfig(config: MediaSourceConfig): Promise<void>;
   setSources(sources: MediaSource[]): Promise<void>;
+  setCaptionTrack(trackId: string | null): void;
   getCurrentSource(): MediaSource | null;
+  getAvailableCaptionTracks(): TextTrackConfig[];
+  getCurrentCaptionTrack(): TextTrackConfig | null;
   getState(): PlaybackSnapshot;
   getCurrentTime(): number;
   getDuration(): number | null;
@@ -163,6 +178,11 @@ export interface MediaPlayer {
   isMuted(): boolean;
   getPlaybackRate(): number;
   getBufferedRanges(): TimeRanges | null;
+  getThumbnailForTime(timeInSeconds: number): string | null;
+  getChapters(): ChapterMetadata[];
+  enterPictureInPicture(): Promise<void>;
+  exitPictureInPicture(): Promise<void>;
+  isPictureInPictureSupported(): boolean;
   on<E extends MediaEventName>(event: E, handler: MediaEventHandler<E>): () => void;
   once<E extends MediaEventName>(event: E, handler: MediaEventHandler<E>): () => void;
   off<E extends MediaEventName>(event: E, handler: MediaEventHandler<E>): void;

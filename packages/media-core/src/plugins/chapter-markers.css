@@ -1,0 +1,31 @@
+.media-core-chapters {
+  margin: 0;
+  padding: 0.5rem;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.media-core-chapters button {
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: inherit;
+  cursor: pointer;
+}
+
+.media-core-chapters button[data-active='true'] {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.media-core-chapters button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}

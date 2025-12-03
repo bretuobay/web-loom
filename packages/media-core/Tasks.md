@@ -269,41 +269,41 @@ Here’s a structured **tasks document** that a team (or coding agent) can follo
 
 ### 8.1 Baseline HTML5 Support
 
-- [ ] Verify support & tests for:
-  - [ ] MP4, WebM, OGG (video).
-  - [ ] MP3, OGG, WAV (audio).
+- [x] Verify support & tests for:
+  - [x] MP4, WebM, OGG (video).
+  - [x] MP3, OGG, WAV (audio).
 
-- [ ] Validate APIs with different codecs & platforms.
+- [x] Validate APIs with different codecs & platforms.
 
 ### 8.2 HLS & DASH (Plugin-Based)
 
-- [ ] Design plugin interfaces for:
-  - [ ] HLS plugin (using hls.js or similar).
-  - [ ] DASH plugin (dash.js).
+- [x] Design plugin interfaces for:
+  - [x] HLS plugin (using hls.js or similar).
+  - [x] DASH plugin (dash.js).
 
-- [ ] Implement base plugin stubs (without bundling libs by default):
-  - [ ] Example integration.
-  - [ ] External peerDependency or optional.
+- [x] Implement base plugin stubs (without bundling libs by default):
+  - [x] Example integration.
+  - [x] External peerDependency or optional.
 
 ### 8.3 Captions & Subtitles
 
-- [ ] Add caption support:
-  - [ ] WebVTT and SRT (converted via plugin).
-  - [ ] Track elements `<track kind="subtitles">`.
+- [x] Add caption support:
+  - [x] WebVTT and SRT (converted via plugin).
+  - [x] Track elements `<track kind="subtitles">`.
 
-- [ ] Provide a captions control API:
-  - [ ] `setCaptionTrack(id)`
-  - [ ] `getAvailableCaptionTracks()`.
+- [x] Provide a captions control API:
+  - [x] `setCaptionTrack(id)`
+  - [x] `getAvailableCaptionTracks()`.
 
 ### 8.4 Thumbnails & Chapters
 
-- [ ] Define thumbnail API:
-  - [ ] Sprite sheets or per-time images.
-  - [ ] `getThumbnailForTime(timeInSeconds)` for UI overlays.
+- [x] Define thumbnail API:
+  - [x] Sprite sheets or per-time images.
+  - [x] `getThumbnailForTime(timeInSeconds)` for UI overlays.
 
-- [ ] Chapter support:
-  - [ ] chapter metadata.
-  - [ ] plugin for chapter UI.
+- [x] Chapter support:
+  - [x] chapter metadata.
+  - [x] plugin for chapter UI.
 
 ---
 
@@ -311,27 +311,27 @@ Here’s a structured **tasks document** that a team (or coding agent) can follo
 
 ### 9.1 Lazy Loading
 
-- [ ] Implement lazy initialization:
-  - [ ] Option to defer media element creation until visible or interacted.
+- [x] Implement lazy initialization:
+  - [x] Option to defer media element creation until visible or interacted.
 
-- [ ] Configurable preload strategies:
-  - [ ] `preload`: `none | metadata | auto`.
+- [x] Configurable preload strategies:
+  - [x] `preload`: `none | metadata | auto`.
 
 ### 9.2 Intersection Observer
 
-- [ ] Implement `autoPause` / `autoPlay` when in/out of viewport (optional):
-  - [ ] IntersectionObserver-based plugin or core feature.
-  - [ ] Configuration options: threshold, rootMargin.
+- [x] Implement `autoPause` / `autoPlay` when in/out of viewport (optional):
+  - [x] IntersectionObserver-based plugin or core feature.
+  - [x] Configuration options: threshold, rootMargin.
 
 ### 9.3 Resource Management
 
-- [ ] Ensure proper cleanup:
-  - [ ] Reset src, load(), remove references on `dispose()`.
-  - [ ] Detach event listeners.
+- [x] Ensure proper cleanup:
+  - [x] Reset src, load(), remove references on `dispose()`.
+  - [x] Detach event listeners.
 
-- [ ] PiP support:
-  - [ ] integrate `requestPictureInPicture()` where supported.
-  - [ ] `exitPictureInPicture()`, plus event handling.
+- [x] PiP support:
+  - [x] integrate `requestPictureInPicture()` where supported.
+  - [x] `exitPictureInPicture()`, plus event handling.
 
 ---
 
