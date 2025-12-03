@@ -225,15 +225,28 @@ Framework-Specific Components (Your App)
 
 ## Package Overview
 
-| Package                    | Description               | Size      |
-| -------------------------- | ------------------------- | --------- |
-| `@web-loom/ui-core`        | Headless UI behaviors     | <2KB each |
-| `@web-loom/ui-patterns`    | Composed UI patterns      | ~5KB      |
-| `@web-loom/mvvm-core`      | MVVM architecture library | ~15KB     |
-| `@web-loom/store-core`     | Reactive state management | <1KB      |
-| `@web-loom/event-bus-core` | Event bus                 | <1KB      |
-| `@web-loom/query-core`     | Data fetching & caching   | ~5KB      |
-| `@web-loom/prose-scriber`  | Typography & animations   | ~3KB      |
+| Package                        | Description                     | Size      |
+| ------------------------------ | ------------------------------- | --------- |
+| `@web-loom/ui-core`            | Headless UI behaviors           | <2KB each |
+| `@web-loom/ui-patterns`        | Composed UI patterns            | ~5KB      |
+| `@web-loom/mvvm-core`          | MVVM architecture library       | ~15KB     |
+| `@web-loom/store-core`         | Reactive state management       | <1KB      |
+| `@web-loom/event-bus-core`     | Event bus                       | <1KB      |
+| `@web-loom/query-core`         | Data fetching & caching         | ~5KB      |
+| `@web-loom/plugin-core`        | Plugin architecture             | ~3KB      |
+| `@web-loom/design-core`        | Theme utilities                 | ~2KB      |
+| `@web-loom/typography-core`    | Typography utilities            | ~2KB      |
+| `@web-loom/forms-core`         | Form logic (framework-agnostic) | ~3KB      |
+| `@web-loom/forms-react`        | React form adapter              | ~3KB      |
+| `@web-loom/forms-vanilla`      | Vanilla JS form adapter         | ~3KB      |
+| `@web-loom/forms-vue`          | Vue form adapter                | ~3KB      |
+| `@web-loom/http-core`          | HTTP utilities                  | ~2KB      |
+| `@web-loom/models`             | Shared models                   | ~2KB      |
+| `@web-loom/view-models`        | Shared ViewModels               | ~3KB      |
+| `@web-loom/router-core`        | Routing utilities               | ~2KB      |
+| `@web-loom/notifications-core` | Notification utilities          | ~2KB      |
+| `@web-loom/platform-core`      | Platform utilities              | ~2KB      |
+| `@web-loom/shared`             | Shared utilities                | ~2KB      |
 
 All packages are tree-shakeable with ESM support.
 
@@ -349,7 +362,20 @@ Detailed documentation available in each package's README:
 - [UI Patterns Documentation](packages/ui-patterns/README.md)
 - [MVVM Core Documentation](packages/mvvm-core/README.md)
 - [Event Bus Documentation](packages/event-bus-core/README.md)
-- [Prose Scriber Documentation](packages/prose-scriber/README.md)
+- [Plugin Core Documentation](packages/plugin-core/README.md)
+- [Design Core Documentation](packages/design-core/README.md)
+- [Typography Core Documentation](packages/typography-core/README.md)
+- [Forms Core Documentation](packages/forms-core/README.md)
+- [Forms React Documentation](packages/forms-react/README.md)
+- [Forms Vanilla Documentation](packages/forms-vanilla/README.md)
+- [Forms Vue Documentation](packages/forms-vue/README.md)
+- [HTTP Core Documentation](packages/http-core/README.md)
+- [Models Documentation](packages/models/README.md)
+- [View Models Documentation](packages/view-models/README.md)
+- [Router Core Documentation](packages/router-core/README.md)
+- [Notifications Core Documentation](packages/notifications-core/README.md)
+- [Platform Core Documentation](packages/platform-core/README.md)
+- [Shared Documentation](packages/shared/README.md)
 
 ## Examples
 
