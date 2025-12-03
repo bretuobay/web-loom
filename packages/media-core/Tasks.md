@@ -49,35 +49,35 @@ Here’s a structured **tasks document** that a team (or coding agent) can follo
 
 ### 1.1 Core Architecture Document
 
-- [ ] Write an **architecture spec**:
-  - [ ] Define separation between:
+- [x] Write an **architecture spec**:
+  - [x] Define separation between:
     - Core media engine (logic).
     - DOM bindings (HTML media elements).
     - UI plugin hooks.
     - Framework adapters.
 
-  - [ ] Declare high-level interfaces:
+  - [x] Declare high-level interfaces:
     - `MediaPlayer`
     - `MediaSourceConfig`
     - `MediaEventMap`
     - `MediaPlugin`
 
-- [ ] Decide media “mode” abstraction:
-  - [ ] `video`, `audio`, `image` modes.
-  - [ ] Shared configuration surface.
+- [x] Decide media “mode” abstraction:
+  - [x] `video`, `audio`, `image` modes.
+  - [x] Shared configuration surface.
 
 ### 1.2 Core Types & Interfaces
 
-- [ ] Define **core TS types**:
-  - [ ] `MediaKind = 'video' | 'audio' | 'image'`
-  - [ ] `MediaSource` (src, type, label, etc.)
-  - [ ] `PlaybackState` (playing, paused, ended, buffering).
-  - [ ] `MediaPlayerOptions` (autoplay, preload, loop, muted, etc.).
-  - [ ] `MediaEvents` (play, pause, timeupdate, ended, error, etc.).
+- [x] Define **core TS types**:
+  - [x] `MediaKind = 'video' | 'audio' | 'image'`
+  - [x] `MediaSource` (src, type, label, etc.)
+  - [x] `PlaybackState` (playing, paused, ended, buffering).
+  - [x] `MediaPlayerOptions` (autoplay, preload, loop, muted, etc.).
+  - [x] `MediaEvents` (play, pause, timeupdate, ended, error, etc.).
 
-- [ ] Ensure MDN-based coverage:
-  - [ ] Map HTMLMediaElement attributes → TS types.
-  - [ ] Include `<img>` specifics (loading, decoding, error).
+- [x] Ensure MDN-based coverage:
+  - [x] Map HTMLMediaElement attributes → TS types.
+  - [x] Include `<img>` specifics (loading, decoding, error).
 
 ---
 
@@ -85,27 +85,27 @@ Here’s a structured **tasks document** that a team (or coding agent) can follo
 
 ### 2.1 DOM Binding Layer
 
-- [ ] Implement **core wrapper** class (e.g. `MediaCorePlayer`) that:
-  - [ ] Accepts a container or element reference.
-  - [ ] Creates/attaches `<video>` / `<audio>` / `<img>`.
-  - [ ] Applies initial attributes and sources.
+- [x] Implement **core wrapper** class (e.g. `MediaCorePlayer`) that:
+  - [x] Accepts a container or element reference.
+  - [x] Creates/attaches `<video>` / `<audio>` / `<img>`.
+  - [x] Applies initial attributes and sources.
 
-- [ ] Expose an API to:
-  - [ ] Mount / unmount.
-  - [ ] Attach to an existing media element (for maximum flexibility).
-  - [ ] Swap media type (if needed).
+- [x] Expose an API to:
+  - [x] Mount / unmount.
+  - [x] Attach to an existing media element (for maximum flexibility).
+  - [x] Swap media type (if needed).
 
 ### 2.2 Media Attributes & Events
 
-- [ ] Map all standard HTML5 media attributes:
-  - [ ] `src`, `currentTime`, `duration`, `volume`, `muted`, `loop`, `playbackRate`, `poster`, `preload`, `controls`, etc.
+- [x] Map all standard HTML5 media attributes:
+  - [x] `src`, `currentTime`, `duration`, `volume`, `muted`, `loop`, `playbackRate`, `poster`, `preload`, `controls`, etc.
 
-- [ ] Forward all relevant **events**:
-  - [ ] `play`, `pause`, `ended`, `timeupdate`, `seeking`, `seeked`, `loadedmetadata`, `canplay`, `error`, `volumechange`, etc.
+- [x] Forward all relevant **events**:
+  - [x] `play`, `pause`, `ended`, `timeupdate`, `seeking`, `seeked`, `loadedmetadata`, `canplay`, `error`, `volumechange`, etc.
 
-- [ ] Ensure **event normalization**:
-  - [ ] Typed event emitter abstraction (Rx-like or custom).
-  - [ ] Consistent event payload shape.
+- [x] Ensure **event normalization**:
+  - [x] Typed event emitter abstraction (Rx-like or custom).
+  - [x] Consistent event payload shape.
 
 ---
 
@@ -113,42 +113,42 @@ Here’s a structured **tasks document** that a team (or coding agent) can follo
 
 ### 3.1 Playback Control API
 
-- [ ] Implement command methods:
-  - [ ] `play(): Promise<void>`
-  - [ ] `pause(): void`
-  - [ ] `seekTo(seconds: number): void`
-  - [ ] `setVolume(value: number): void`
-  - [ ] `setPlaybackRate(rate: number): void`
-  - [ ] `togglePlayPause(): void`
+- [x] Implement command methods:
+  - [x] `play(): Promise<void>`
+  - [x] `pause(): void`
+  - [x] `seekTo(seconds: number): void`
+  - [x] `setVolume(value: number): void`
+  - [x] `setPlaybackRate(rate: number): void`
+  - [x] `togglePlayPause(): void`
 
-- [ ] Provide state getters:
-  - [ ] `getCurrentTime()`
-  - [ ] `getDuration()`
-  - [ ] `getVolume()`
-  - [ ] `isMuted()`
-  - [ ] `getPlaybackRate()`
-  - [ ] `getBufferedRanges()`
-  - [ ] `getState()` (playing, paused, idle, etc.)
+- [x] Provide state getters:
+  - [x] `getCurrentTime()`
+  - [x] `getDuration()`
+  - [x] `getVolume()`
+  - [x] `isMuted()`
+  - [x] `getPlaybackRate()`
+  - [x] `getBufferedRanges()`
+  - [x] `getState()` (playing, paused, idle, etc.)
 
 ### 3.2 Media Source Handling
 
-- [ ] Implement **multi-source** support:
-  - [ ] Accept array of sources (with `type`).
-  - [ ] Attempt to pick best playable source based on `canPlayType`.
+- [x] Implement **multi-source** support:
+  - [x] Accept array of sources (with `type`).
+  - [x] Attempt to pick best playable source based on `canPlayType`.
 
-- [ ] Implement fallback logic:
-  - [ ] If no supported source → emit `error` event with reason.
+- [x] Implement fallback logic:
+  - [x] If no supported source → emit `error` event with reason.
 
-- [ ] Provide API:
-  - [ ] `setSources(sources: MediaSource[])`
-  - [ ] `getCurrentSource()`
+- [x] Provide API:
+  - [x] `setSources(sources: MediaSource[])`
+  - [x] `getCurrentSource()`
 
 ### 3.3 Unified Image Handling
 
-- [ ] Integrate `<img>` mode:
-  - [ ] API alignment where possible (`load`, `error`, `decode()` if available).
-  - [ ] Use consistent event system for `load` / `error`.
-  - [ ] Ensure aspect ratio handling for images.
+- [x] Integrate `<img>` mode:
+  - [x] API alignment where possible (`load`, `error`, `decode()` if available).
+  - [x] Use consistent event system for `load` / `error`.
+  - [x] Ensure aspect ratio handling for images.
 
 ---
 
@@ -156,27 +156,27 @@ Here’s a structured **tasks document** that a team (or coding agent) can follo
 
 ### 4.1 Event Emitter Implementation
 
-- [ ] Implement internal event emitter:
-  - [ ] `on(event, handler)`
-  - [ ] `off(event, handler)`
-  - [ ] `once(event, handler)`
-  - [ ] `emit(event, payload)`
+- [x] Implement internal event emitter:
+  - [x] `on(event, handler)`
+  - [x] `off(event, handler)`
+  - [x] `once(event, handler)`
+  - [x] `emit(event, payload)`
 
-- [ ] Type-safe event mapping using generics.
+- [x] Type-safe event mapping using generics.
 
 ### 4.2 Lifecycle Hooks
 
-- [ ] Provide lifecycle hooks on the main class:
-  - [ ] `onMount`
-  - [ ] `onReady`
-  - [ ] `onPlay`
-  - [ ] `onPause`
-  - [ ] `onEnd`
-  - [ ] `onDispose`
+- [x] Provide lifecycle hooks on the main class:
+  - [x] `onMount`
+  - [x] `onReady`
+  - [x] `onPlay`
+  - [x] `onPause`
+  - [x] `onEnd`
+  - [x] `onDispose`
 
-- [ ] Implement underlying logic for:
-  - [ ] `mount(container)`
-  - [ ] `dispose()` (cleanup listeners, DOM, sources).
+- [x] Implement underlying logic for:
+  - [x] `mount(container)`
+  - [x] `dispose()` (cleanup listeners, DOM, sources).
 
 ---
 
@@ -184,21 +184,21 @@ Here’s a structured **tasks document** that a team (or coding agent) can follo
 
 ### 5.1 Plugin Interface & Registration
 
-- [ ] Define `MediaPlugin` interface:
-  - [ ] `name: string`
-  - [ ] `setup(player: MediaPlayer): void`
-  - [ ] optional `dispose()`
+- [x] Define `MediaPlugin` interface:
+  - [x] `name: string`
+  - [x] `setup(player: MediaPlayer): void`
+  - [x] optional `dispose()`
 
-- [ ] Implement plugin registration:
-  - [ ] `use(plugin: MediaPlugin)`
-  - [ ] Run plugin `setup` during player initialization.
+- [x] Implement plugin registration:
+  - [x] `use(plugin: MediaPlugin)`
+  - [x] Run plugin `setup` during player initialization.
 
 ### 5.2 Common Plugin Hooks
 
-- [ ] Expose hooks/internals for plugins:
-  - [ ] Access to event system.
-  - [ ] Access to playback API.
-  - [ ] Access to player options & metadata.
+- [x] Expose hooks/internals for plugins:
+  - [x] Access to event system.
+  - [x] Access to playback API.
+  - [x] Access to player options & metadata.
 
 ---
 
@@ -206,22 +206,22 @@ Here’s a structured **tasks document** that a team (or coding agent) can follo
 
 ### 6.1 Base UI Shell (Minimal)
 
-- [ ] Build a **minimal control layer** (optional in core or as plugin):
-  - [ ] Play/Pause button.
-  - [ ] Progress bar.
-  - [ ] Volume control.
-  - [ ] Time display.
+- [x] Build a **minimal control layer** (optional in core or as plugin):
+  - [x] Play/Pause button.
+  - [x] Progress bar.
+  - [x] Volume control.
+  - [x] Time display.
 
-- [ ] Make UI optional/pluggable:
-  - [ ] Core should work **headless** (just logic).
+- [x] Make UI optional/pluggable:
+  - [x] Core should work **headless** (just logic).
 
 ### 6.2 Themability
 
-- [ ] Define **CSS Custom Properties**:
-  - [ ] Colors, border radius, spacing, typography, heights, etc.
+- [x] Define **CSS Custom Properties**:
+  - [x] Colors, border radius, spacing, typography, heights, etc.
 
-- [ ] Provide a base stylesheet:
-  - [ ] Minimal, neutral design.
+- [x] Provide a base stylesheet:
+  - [x] Minimal, neutral design.
   - [ ] Dark/light theme variables.
 
 - [ ] Add TypeScript theming definitions (for CSS-in-JS consumers):

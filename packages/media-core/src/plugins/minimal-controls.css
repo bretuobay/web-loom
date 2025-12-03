@@ -1,0 +1,39 @@
+.media-core-controls {
+  --media-core-control-bg: rgba(0, 0, 0, 0.5);
+  --media-core-control-color: #fff;
+  --media-core-control-radius: 4px;
+  --media-core-control-padding: 0.5rem;
+  --media-core-gap: 0.5rem;
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--media-core-gap);
+  padding: var(--media-core-control-padding);
+  background: var(--media-core-control-bg);
+  color: var(--media-core-control-color);
+  font-family: system-ui, sans-serif;
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+.media-core-button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--media-core-control-radius);
+  color: inherit;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+}
+
+.media-core-time {
+  margin-left: auto;
+}
+
+.media-core-progress {
+  flex: 1;
+  accent-color: var(--media-core-control-color);
+}
