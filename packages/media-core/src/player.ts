@@ -92,7 +92,7 @@ export class MediaCorePlayer implements MediaPlayer {
   attach(element: HTMLMediaElement | HTMLImageElement): void {
     if (!this.isCompatibleElement(element)) {
       throw new Error(
-        `MediaCorePlayer: Attempted to attach ${element.tagName} while player is configured for ${this.kind}.`
+        `MediaCorePlayer: Attempted to attach ${element.tagName} while player is configured for ${this.kind}.`,
       );
     }
     this.teardownElement(false);
@@ -156,16 +156,18 @@ export class MediaCorePlayer implements MediaPlayer {
         cleanup();
         resolve();
       };
-      const onError = (event: ErrorEvent) => {
+      const onError = (_event: Event) => {
         cleanup();
-        reject(event.error ?? new Error('Image decode failed'));
+        reject(new Error('Image decode failed'));
       };
       const cleanup = () => {
         this.elementRef?.removeEventListener('load', onLoad);
         this.elementRef?.removeEventListener('error', onError);
       };
-      this.elementRef.addEventListener('load', onLoad);
-      this.elementRef.addEventListener('error', onError);
+      if (this.elementRef) {
+        this.elementRef.addEventListener('load', onLoad);
+        this.elementRef.addEventListener('error', onError);
+      }
     });
   }
 
@@ -210,9 +212,7 @@ export class MediaCorePlayer implements MediaPlayer {
   async setMediaConfig(config: MediaSourceConfig): Promise<void> {
     const kindChanged = config.kind !== this.currentKind;
     if (kindChanged && this.elementRef && !this.ownsElement) {
-      throw new Error(
-        'MediaCorePlayer: Cannot swap media kind while attached to an external element.'
-      );
+      throw new Error('MediaCorePlayer: Cannot swap media kind while attached to an external element.');
     }
 
     this.sourceConfig = config;
@@ -332,7 +332,7 @@ export class MediaCorePlayer implements MediaPlayer {
 
   use<TOptions extends MediaPluginOptions = MediaPluginOptions>(
     plugin: MediaPlugin<TOptions>,
-    options?: TOptions
+    options?: TOptions,
   ): void {
     if (this.pluginCleanups.has(plugin.name)) {
       throw new Error(`MediaCorePlayer: Plugin "${plugin.name}" has already been registered.`);
@@ -378,7 +378,7 @@ export class MediaCorePlayer implements MediaPlayer {
   }
 
   private registerNativeEvents(element: HTMLMediaElement | HTMLImageElement): void {
-    this.nativeCleanup.forEach(cleanup => cleanup());
+    this.nativeCleanup.forEach((cleanup) => cleanup());
     this.nativeCleanup = [];
 
     if (isTimeBasedElement(element)) {
@@ -453,7 +453,9 @@ export class MediaCorePlayer implements MediaPlayer {
       media.preload = this.options.preload;
     }
     if (typeof this.options.playsInline === 'boolean') {
-      media.playsInline = this.options.playsInline;
+      if (media instanceof HTMLVideoElement) {
+        media.playsInline = this.options.playsInline;
+      }
       if (this.options.playsInline) {
         media.setAttribute('playsinline', '');
       } else {
@@ -499,15 +501,9 @@ export class MediaCorePlayer implements MediaPlayer {
     this.emitter.emit('sourcechange', { source: selected });
   }
 
-  private applyTimeBasedSources(
-    element: HTMLMediaElement,
-    sources: MediaSource[],
-    selected: MediaSource
-  ): void {
-    const existingChildren = Array.from(
-      element.querySelectorAll('source[data-managed="media-core"]')
-    );
-    existingChildren.forEach(child => child.remove());
+  private applyTimeBasedSources(element: HTMLMediaElement, sources: MediaSource[], selected: MediaSource): void {
+    const existingChildren = Array.from(element.querySelectorAll('source[data-managed="media-core"]'));
+    existingChildren.forEach((child) => child.remove());
 
     if (sources.length === 1) {
       element.src = selected.src;
@@ -535,10 +531,8 @@ export class MediaCorePlayer implements MediaPlayer {
   }
 
   private applyTextTracks(element: HTMLMediaElement, tracks: MediaSourceConfig['tracks']): void {
-    const managedTracks = Array.from(
-      element.querySelectorAll('track[data-managed="media-core-track"]')
-    );
-    managedTracks.forEach(track => track.remove());
+    const managedTracks = Array.from(element.querySelectorAll('track[data-managed="media-core-track"]'));
+    managedTracks.forEach((track) => track.remove());
 
     if (!tracks) return;
 
@@ -582,8 +576,10 @@ export class MediaCorePlayer implements MediaPlayer {
 
   private handleError(): void {
     const element = this.elementRef;
-    const error =
-      (element && isTimeBasedElement(element) && element.error) || new Error('Media error occurred.');
+    const mediaError = element && isTimeBasedElement(element) && element.error;
+    const error = mediaError
+      ? new Error(`Media error: ${mediaError.message || 'Unknown media error'}`)
+      : new Error('Media error occurred.');
     this.emitErrorState(error);
   }
 
@@ -611,10 +607,7 @@ export class MediaCorePlayer implements MediaPlayer {
 
     if (isTimeBasedElement(element)) {
       const derivedState = forcedState ?? deriveStateFromElement(element, this.state.state);
-      const error =
-        derivedState === 'error'
-          ? forcedError ?? element.error ?? this.state.error
-          : undefined;
+      const error = derivedState === 'error' ? (forcedError ?? element.error ?? this.state.error) : undefined;
       this.state = {
         state: derivedState,
         currentTime: element.currentTime ?? 0,
@@ -624,16 +617,15 @@ export class MediaCorePlayer implements MediaPlayer {
         muted: element.muted,
         playbackRate: element.playbackRate,
         source: this.currentSource ?? undefined,
-        metrics: element.videoWidth
-          ? {
-              width: element.videoWidth,
-              height: element.videoHeight,
-              aspectRatio:
-                element.videoWidth && element.videoHeight
-                  ? element.videoWidth / element.videoHeight
-                  : undefined,
-            }
-          : undefined,
+        metrics:
+          element instanceof HTMLVideoElement && element.videoWidth
+            ? {
+                width: element.videoWidth,
+                height: element.videoHeight,
+                aspectRatio:
+                  element.videoWidth && element.videoHeight ? element.videoWidth / element.videoHeight : undefined,
+              }
+            : undefined,
         error,
       };
       return;
@@ -654,13 +646,10 @@ export class MediaCorePlayer implements MediaPlayer {
           ? {
               width: img.naturalWidth,
               height: img.naturalHeight,
-              aspectRatio:
-                img.naturalWidth && img.naturalHeight
-                  ? img.naturalWidth / img.naturalHeight
-                  : undefined,
+              aspectRatio: img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : undefined,
             }
           : undefined,
-      error: forcedState === 'error' ? forcedError ?? this.state.error : undefined,
+      error: forcedState === 'error' ? (forcedError ?? this.state.error) : undefined,
     };
   }
 

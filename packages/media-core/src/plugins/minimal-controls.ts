@@ -9,6 +9,7 @@ export interface MinimalControlsOptions {
     mute?: string;
     unmute?: string;
   };
+  [key: string]: unknown;
 }
 
 const defaultLabels = {
@@ -61,7 +62,7 @@ export const minimalControlsPlugin: MediaPlugin<MinimalControlsOptions> = {
         player.setMuted(!player.element.muted);
         updateMuteState();
       });
-      progress?.addEventListener('input', event => {
+      progress?.addEventListener('input', (event) => {
         if (!player.element || !(player.element instanceof HTMLMediaElement)) return;
         const target = event.currentTarget as HTMLInputElement;
         const duration = player.getDuration();
@@ -73,8 +74,7 @@ export const minimalControlsPlugin: MediaPlugin<MinimalControlsOptions> = {
 
     const updatePlayState = () => {
       if (!playButton) return;
-      const isPaused =
-        !player.element || !(player.element instanceof HTMLMediaElement) || player.element.paused;
+      const isPaused = !player.element || !(player.element instanceof HTMLMediaElement) || player.element.paused;
       playButton.textContent = isPaused ? labels.play : labels.pause;
     };
 
@@ -87,9 +87,7 @@ export const minimalControlsPlugin: MediaPlugin<MinimalControlsOptions> = {
       if (!timeLabel || options?.showTime === false) return;
       const current = player.getCurrentTime();
       const duration = player.getDuration();
-      timeLabel.textContent = `${formatTime(current)} / ${
-        duration ? formatTime(duration) : '--:--'
-      }`;
+      timeLabel.textContent = `${formatTime(current)} / ${duration ? formatTime(duration) : '--:--'}`;
       if (progress && duration && duration > 0) {
         progress.value = ((current / duration) * 100).toString();
       }
