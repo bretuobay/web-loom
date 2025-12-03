@@ -241,27 +241,27 @@ Here’s a structured **tasks document** that a team (or coding agent) can follo
 
 ### 7.1 ARIA & A11y
 
-- [ ] Ensure accessible semantics:
-  - [ ] Proper roles for controls (e.g., `button`, `slider`).
-  - [ ] `aria-label`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax` for sliders.
+- [x] Ensure accessible semantics:
+  - [x] Proper roles for controls (e.g., `button`, `slider`).
+  - [x] `aria-label`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax` for sliders.
 
-- [ ] Keyboard navigation:
-  - [ ] Space/Enter to toggle play/pause.
-  - [ ] Arrow keys for seeking & volume.
-  - [ ] Tab focus order and visible focus state.
+- [x] Keyboard navigation:
+  - [x] Space/Enter to toggle play/pause.
+  - [x] Arrow keys for seeking & volume.
+  - [x] Tab focus order and visible focus state.
 
-- [ ] Screen reader compatibility:
-  - [ ] Announce playback state changes (`playing`, `paused`).
-  - [ ] Provide visually hidden labels where needed.
+- [x] Screen reader compatibility:
+  - [x] Announce playback state changes (`playing`, `paused`).
+  - [x] Provide visually hidden labels where needed.
 
 ### 7.2 Responsive Design
 
-- [ ] Implement fluid layout:
-  - [ ] Width = 100%, height based on aspect ratio.
+- [x] Implement fluid layout:
+  - [x] Width = 100%, height based on aspect ratio.
 
-- [ ] Aspect ratio handling:
-  - [ ] For video/image: maintain aspect ratio via CSS.
-  - [ ] Provide `aspectRatio` option (e.g. `16/9`, `4/3`, `auto`).
+- [x] Aspect ratio handling:
+  - [x] For video/image: maintain aspect ratio via CSS.
+  - [x] Provide `aspectRatio` option (e.g. `16/9`, `4/3`, `auto`).
 
 ---
 

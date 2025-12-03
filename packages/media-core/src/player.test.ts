@@ -66,4 +66,44 @@ describe('MediaCorePlayer lifecycle hooks', () => {
     expect(pauseSpy).toHaveBeenCalled();
     expect(endSpy).toHaveBeenCalled();
   });
+
+  it('applies responsive styles with an explicit aspect ratio', () => {
+    const player = new MediaCorePlayer(
+      {
+        kind: 'video',
+        sources: [{ src: '/responsive.mp4', type: 'video/mp4' }],
+      },
+      { aspectRatio: '16:9', responsive: true },
+    );
+
+    const container = document.createElement('div');
+    player.mount(container);
+
+    const video = container.querySelector('video');
+    expect(video?.style.width).toBe('100%');
+    expect(video?.style.aspectRatio).toBe('16 / 9');
+  });
+
+  it('derives aspect ratio from intrinsic video metrics when not provided', () => {
+    const player = new MediaCorePlayer({
+      kind: 'video',
+      sources: [{ src: '/derived.mp4', type: 'video/mp4' }],
+    });
+    const container = document.createElement('div');
+    player.mount(container);
+    const video = container.querySelector('video');
+    expect(video).toBeTruthy();
+    if (video) {
+      Object.defineProperty(video, 'videoWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      Object.defineProperty(video, 'videoHeight', {
+        configurable: true,
+        value: 720,
+      });
+    }
+    video?.dispatchEvent(new Event('loadedmetadata'));
+    expect(video?.style.aspectRatio).toBe(String(1280 / 720));
+  });
 });

@@ -430,6 +430,7 @@ export class MediaCorePlayer implements MediaPlayer {
       if ('decoding' in element && this.options.imageDecodeStrategy) {
         element.decoding = this.options.imageDecodeStrategy;
       }
+      this.applyResponsiveLayout(element);
       return;
     }
 
@@ -468,6 +469,7 @@ export class MediaCorePlayer implements MediaPlayer {
         media.muted = true;
       }
     }
+    this.applyResponsiveLayout(media);
   }
 
   private applySourcesToElement(element: HTMLMediaElement | HTMLImageElement): void {
@@ -565,6 +567,7 @@ export class MediaCorePlayer implements MediaPlayer {
 
   private handleLoadedMetadata(): void {
     this.updateSnapshot('ready');
+    this.updateAspectRatioFromMetrics();
     this.emitter.emit('loadedmetadata', this.state);
     this.emitter.emit('ready', this.state);
   }
@@ -585,6 +588,7 @@ export class MediaCorePlayer implements MediaPlayer {
 
   private handleImageLoad(): void {
     this.updateSnapshot('ready');
+    this.updateAspectRatioFromMetrics();
     const img = this.elementRef as HTMLImageElement;
     this.emitter.emit('imageload', {
       naturalWidth: img.naturalWidth,
@@ -692,6 +696,56 @@ export class MediaCorePlayer implements MediaPlayer {
     this.updateSnapshot('error', error);
     this.emitter.emit('error', this.state);
   }
+
+  private applyResponsiveLayout(element: HTMLMediaElement | HTMLImageElement): void {
+    if (this.options.responsive === false) {
+      element.style.removeProperty('width');
+      element.style.removeProperty('max-width');
+      element.style.removeProperty('height');
+      element.style.removeProperty('aspect-ratio');
+      element.style.removeProperty('display');
+      return;
+    }
+
+    element.style.display = 'block';
+    element.style.width = '100%';
+    element.style.maxWidth = '100%';
+
+    if (this.currentKind !== 'audio') {
+      element.style.height = 'auto';
+    }
+
+    if (this.currentKind === 'audio') {
+      element.style.removeProperty('aspect-ratio');
+      return;
+    }
+
+    const aspectRatio = normalizeAspectRatio(this.options.aspectRatio);
+    if (aspectRatio) {
+      element.style.aspectRatio = aspectRatio;
+      return;
+    }
+
+    element.style.removeProperty('aspect-ratio');
+  }
+
+  private updateAspectRatioFromMetrics(): void {
+    if (!this.elementRef || this.currentKind === 'audio') {
+      return;
+    }
+    if (this.options.responsive === false) {
+      return;
+    }
+    if (normalizeAspectRatio(this.options.aspectRatio)) {
+      return;
+    }
+    const ratio = this.state.metrics?.aspectRatio;
+    if (!ratio || !Number.isFinite(ratio)) {
+      return;
+    }
+    this.elementRef.style.aspectRatio = `${ratio}`;
+    this.elementRef.style.height = 'auto';
+  }
 }
 
 function deriveStateFromElement(element: HTMLMediaElement, fallback: PlaybackState): PlaybackState {
@@ -708,4 +762,28 @@ function deriveStateFromElement(element: HTMLMediaElement, fallback: PlaybackSta
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function normalizeAspectRatio(input?: number | string): string | null {
+  if (typeof input === 'number' && Number.isFinite(input) && input > 0) {
+    return `${input}`;
+  }
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (!trimmed || trimmed.toLowerCase() === 'auto') {
+      return null;
+    }
+    const separator = trimmed.includes(':') ? ':' : trimmed.includes('/') ? '/' : null;
+    if (separator) {
+      const [first, second] = trimmed.split(separator).map((value) => Number.parseFloat(value));
+      if (Number.isFinite(first) && Number.isFinite(second) && second > 0) {
+        return `${first} / ${second}`;
+      }
+    }
+    const numeric = Number.parseFloat(trimmed);
+    if (Number.isFinite(numeric) && numeric > 0) {
+      return `${numeric}`;
+    }
+  }
+  return null;
 }
