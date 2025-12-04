@@ -339,38 +339,35 @@ Here’s a structured **tasks document** that a team (or coding agent) can follo
 
 _(Each adapter is a separate lightweight package that depends on `@web-loom/media-core`.)_
 
+- Check set up in packages/ui-core for how to set up adapters
+
 ### 10.1 React Adapter (`@web-loom/media-react`)
 
-- [ ] Implement `<MediaPlayer />` React component:
-  - [ ] Props map to `MediaPlayerOptions`.
-  - [ ] Expose ref to underlying player instance.
+- [x] Implement `<MediaPlayer />` React component:
+  - [x] Props map to `MediaPlayerOptions`.
+  - [x] Expose ref to underlying player instance.
 
-- [ ] Provide hooks:
-  - [ ] `useMediaPlayer(options)`
-  - [ ] `useMediaState()`
+- [x] Provide hooks:
+  - [x] `useMediaPlayer(options)`
+  - [x] `useMediaState()`
 
 ### 10.2 Vue Adapter (`@web-loom/media-vue`)
 
-- [ ] Implement `<MediaPlayer />` Vue component.
-- [ ] Composition API wrappers:
-  - [ ] `useMediaPlayer()`
-  - [ ] `useMediaState()`
+- [x] Implement `<MediaPlayer />` Vue component.
+- [x] Composition API wrappers:
+  - [x] `useMediaPlayer()`
+  - [x] `useMediaState()`
 
-### 10.3 Svelte Adapter (`@web-loom/media-svelte`)
-
-- [ ] Svelte component `<MediaPlayer />`.
-- [ ] Stores for state (`mediaState` store).
-
-### 10.4 Angular Adapter (`@web-loom/media-angular`)
+### 10.3 Angular Adapter (`@web-loom/media-core/angular`)
 
 - [ ] Angular component + service:
   - [ ] `<web-loom-media-player>`.
   - [ ] DI for configuration.
 
-### 10.5 Vanilla JS Usage Examples
+### 10.4 Vanilla JS Usage Examples
 
-- [ ] Document plain JS initialization:
-  - [ ] `const player = new MediaCorePlayer(container, options);`
+- [x] Document plain JS initialization:
+  - [x] `const player = new MediaCorePlayer(container, options);`
 
 ---
 

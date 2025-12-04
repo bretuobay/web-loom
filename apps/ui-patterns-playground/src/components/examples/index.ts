@@ -9,3 +9,5 @@ export { PhotoGalleryExample } from './PhotoGalleryExample';
 export { SettingsInterfaceExample } from './SettingsInterfaceExample';
 export { ScrollAwareFABExample } from './ScrollAwareFABExample';
 export { HubAndSpokeExample } from './HubAndSpokeExample';
+export { MediaCoreExample } from './media/MediaCoreExample';
+export { MediaReactExample } from './media/MediaReactExample';

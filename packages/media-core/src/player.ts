@@ -357,7 +357,10 @@ export class MediaCorePlayer implements MediaPlayer {
     }
 
     const targetTime = Number.isFinite(timeInSeconds) ? timeInSeconds : 0;
-    let candidate = entries[0][1];
+    let candidate: string | null = entries[0]?.[1] ?? null;
+    if (candidate === null) {
+      return null;
+    }
     for (const [timestamp, value] of entries) {
       if (targetTime >= timestamp) {
         candidate = value;
@@ -1055,9 +1058,19 @@ function normalizeAspectRatio(input?: number | string): string | null {
     }
     const separator = trimmed.includes(':') ? ':' : trimmed.includes('/') ? '/' : null;
     if (separator) {
-      const [first, second] = trimmed.split(separator).map((value) => Number.parseFloat(value));
-      if (Number.isFinite(first) && Number.isFinite(second) && second > 0) {
-        return `${first} / ${second}`;
+      const parts = trimmed.split(separator).map((value) => Number.parseFloat(value));
+      if (parts.length >= 2) {
+        const first = parts[0];
+        const second = parts[1];
+        if (
+          typeof first === 'number' &&
+          typeof second === 'number' &&
+          Number.isFinite(first) &&
+          Number.isFinite(second) &&
+          second > 0
+        ) {
+          return `${first} / ${second}`;
+        }
       }
     }
     const numeric = Number.parseFloat(trimmed);
