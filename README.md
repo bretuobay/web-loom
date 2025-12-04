@@ -225,29 +225,29 @@ Framework-Specific Components (Your App)
 
 ## Package Overview
 
-| Package                        | Description                     | Version   |
-| ------------------------------ | ------------------------------- | --------- |
-| `@web-loom/ui-core`            | Headless UI behaviors           | 0.5.2     |
-| `@web-loom/ui-patterns`        | Composed UI patterns            | 0.5.2     |
-| `@web-loom/mvvm-core`          | MVVM architecture library       | 0.5.2     |
-| `@web-loom/store-core`         | Reactive state management       | 0.5.2     |
-| `@web-loom/event-bus-core`     | Event bus                       | 0.5.2     |
-| `@web-loom/query-core`         | Data fetching & caching         | 0.5.2     |
-| `@web-loom/plugin-core`        | Plugin architecture             | 0.5.2     |
-| `@web-loom/media-core`         | Media player with plugins       | 0.5.2     |
-| `@web-loom/design-core`        | Theme utilities                 | 0.5.2     |
-| `@web-loom/typography-core`    | Typography utilities            | 0.5.2     |
-| `@web-loom/forms-core`         | Form logic (framework-agnostic) | 0.1.0     |
-| `@web-loom/forms-react`        | React form adapter              | 0.1.0     |
-| `@web-loom/forms-vanilla`      | Vanilla JS form adapter         | 0.1.0     |
-| `@web-loom/forms-vue`          | Vue form adapter                | 0.1.0     |
-| `@web-loom/http-core`          | HTTP utilities                  | 0.5.2     |
-| `@web-loom/models`             | Shared models                   | 0.5.2     |
-| `@web-loom/view-models`        | Shared ViewModels               | 0.5.2     |
-| `@web-loom/router-core`        | Routing utilities               | 0.5.2     |
-| `@web-loom/notifications-core` | Notification utilities          | 0.5.2     |
-| `@web-loom/platform-core`      | Platform utilities              | 0.5.2     |
-| `@web-loom/shared`             | Shared utilities                | 0.5.2     |
+| Package                        | Description                     | Version |
+| ------------------------------ | ------------------------------- | ------- |
+| `@web-loom/ui-core`            | Headless UI behaviors           | 0.5.2   |
+| `@web-loom/ui-patterns`        | Composed UI patterns            | 0.5.2   |
+| `@web-loom/mvvm-core`          | MVVM architecture library       | 0.5.2   |
+| `@web-loom/store-core`         | Reactive state management       | 0.5.2   |
+| `@web-loom/event-bus-core`     | Event bus                       | 0.5.2   |
+| `@web-loom/query-core`         | Data fetching & caching         | 0.5.2   |
+| `@web-loom/plugin-core`        | Plugin architecture             | 0.5.2   |
+| `@web-loom/media-core`         | Media player with plugins       | 0.5.2   |
+| `@web-loom/design-core`        | Theme utilities                 | 0.5.2   |
+| `@web-loom/typography-core`    | Typography utilities            | 0.5.2   |
+| `@web-loom/forms-core`         | Form logic (framework-agnostic) | 0.1.0   |
+| `@web-loom/forms-react`        | React form adapter              | 0.1.0   |
+| `@web-loom/forms-vanilla`      | Vanilla JS form adapter         | 0.1.0   |
+| `@web-loom/forms-vue`          | Vue form adapter                | 0.1.0   |
+| `@web-loom/http-core`          | HTTP utilities                  | 0.5.2   |
+| `@web-loom/models`             | Shared models                   | 0.5.2   |
+| `@web-loom/view-models`        | Shared ViewModels               | 0.5.2   |
+| `@web-loom/router-core`        | Routing utilities               | 0.5.2   |
+| `@web-loom/notifications-core` | Notification utilities          | 0.5.2   |
+| `@web-loom/platform-core`      | Platform utilities              | 0.5.2   |
+| `@web-loom/shared`             | Shared utilities                | 0.5.2   |
 
 All packages are tree-shakeable with ESM support.
 
