@@ -13,6 +13,8 @@
   "dependencies": {
     "@repo/shared": "*",
     "@repo/view-models": "*",
+    "@web-loom/media-core": "*",
+    "@web-loom/media-react": "*",
     "@web-loom/ui-core": "*",
     "@web-loom/ui-patterns": "*",
     "chart.js": "^4.4.3",

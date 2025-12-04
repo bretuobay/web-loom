@@ -1,0 +1,77 @@
+.media-core-controls {
+  --media-core-control-bg: rgba(0, 0, 0, 0.5);
+  --media-core-control-color: #fff;
+  --media-core-control-radius: 4px;
+  --media-core-control-padding: 0.5rem;
+  --media-core-gap: 0.5rem;
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--media-core-gap);
+  padding: var(--media-core-control-padding);
+  background: var(--media-core-control-bg);
+  color: var(--media-core-control-color);
+  font-family: system-ui, sans-serif;
+  font-size: 0.875rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.media-core-button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--media-core-control-radius);
+  color: inherit;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+}
+
+.media-core-button[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.media-core-button:focus-visible,
+.media-core-progress:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.media-core-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.media-core-time {
+  margin-left: auto;
+  min-width: 4.5rem;
+}
+
+.media-core-progress {
+  flex: 1 1 140px;
+  accent-color: var(--media-core-control-color);
+}
+
+@media (max-width: 480px) {
+  .media-core-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+
+  .media-core-time {
+    margin-left: 0;
+    text-align: right;
+  }
+}

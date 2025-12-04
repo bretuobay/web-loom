@@ -234,6 +234,7 @@ Framework-Specific Components (Your App)
 | `@web-loom/event-bus-core`     | Event bus                       | <1KB      |
 | `@web-loom/query-core`         | Data fetching & caching         | ~5KB      |
 | `@web-loom/plugin-core`        | Plugin architecture             | ~3KB      |
+| `@web-loom/media-core`         | Media player with plugins       | ~5KB      |
 | `@web-loom/design-core`        | Theme utilities                 | ~2KB      |
 | `@web-loom/typography-core`    | Typography utilities            | ~2KB      |
 | `@web-loom/forms-core`         | Form logic (framework-agnostic) | ~3KB      |
@@ -363,6 +364,7 @@ Detailed documentation available in each package's README:
 - [MVVM Core Documentation](packages/mvvm-core/README.md)
 - [Event Bus Documentation](packages/event-bus-core/README.md)
 - [Plugin Core Documentation](packages/plugin-core/README.md)
+- [Media Core Documentation](packages/media-core/README.md)
 - [Design Core Documentation](packages/design-core/README.md)
 - [Typography Core Documentation](packages/typography-core/README.md)
 - [Forms Core Documentation](packages/forms-core/README.md)

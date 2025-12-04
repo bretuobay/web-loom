@@ -66,6 +66,13 @@ Demonstrates the `createWizard` pattern from `@web-loom/ui-patterns`.
 
 **Requirements Covered:** 13.1 (Wizard Pattern Implementation)
 
+### 5. Media Examples
+
+- `MediaCoreExample.tsx` shows how to initialize `MediaCorePlayer` directly, mount it into a container, and interact with plugins/state.
+- `MediaReactExample.tsx` demonstrates the `<MediaPlayer />` component and hooks from `@web-loom/media-react`, including snapshot visualization.
+
+Both examples assume media assets live under `apps/ui-patterns-playground/src/assets` (add your own files and adjust the paths accordingly).
+
 ## Usage
 
 All examples are accessible through the UI Patterns page at `/ui-patterns` route.
