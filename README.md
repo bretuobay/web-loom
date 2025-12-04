@@ -35,7 +35,7 @@ npm run test
 
 ### UI & Interaction
 
-#### [@web-loom/ui-core](packages/ui-core) ![Version](https://img.shields.io/badge/version-1.0.0-blue)
+#### [@web-loom/ui-core](packages/ui-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
 
 Framework-agnostic headless UI behaviors (Dialog, Form, List Selection, Roving Focus, Disclosure). Pure logic with no styling assumptions, usable across all frameworks.
 
@@ -47,7 +47,7 @@ const dialog = createDialogBehavior({ onOpen: (content) => console.log(content) 
 dialog.actions.open({ title: 'Hello' });
 ```
 
-#### [@web-loom/ui-patterns](packages/ui-patterns) ![Version](https://img.shields.io/badge/version-1.0.0-blue)
+#### [@web-loom/ui-patterns](packages/ui-patterns) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
 
 Composed UI patterns (Master-Detail, Wizard, Modal, Command Palette, Tabbed Interface, Sidebar Shell, Toast Queue). Built by composing ui-core behaviors.
 
@@ -60,7 +60,7 @@ const wizard = createWizard({ steps: [...], onComplete: (data) => {...} });
 
 ### State & Data Management
 
-#### [@web-loom/mvvm-core](packages/mvvm-core) ![Version](https://img.shields.io/badge/version-0.5.1-blue)
+#### [@web-loom/mvvm-core](packages/mvvm-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
 
 Complete MVVM implementation with BaseModel, BaseViewModel, RestfulApiModel, QueryStateModel, and Command pattern. RxJS-powered with Zod validation.
 
@@ -75,7 +75,7 @@ class UserViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
 }
 ```
 
-#### [@web-loom/store-core](packages/store-core) ![Version](https://img.shields.io/badge/version-0.0.4-blue)
+#### [@web-loom/store-core](packages/store-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
 
 Minimal reactive state management library. Alternative to Redux/Zustand for simple state needs.
 
@@ -88,7 +88,7 @@ const store = createStore(initialState, (set) => ({
 }));
 ```
 
-#### [@web-loom/query-core](packages/query-core) ![Version](https://img.shields.io/badge/version-0.0.3-blue)
+#### [@web-loom/query-core](packages/query-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
 
 Zero-dependency data fetching and caching library. Handles async data with automatic refetching and cache management.
 
@@ -102,7 +102,7 @@ queryCore.defineEndpoint('users', () => fetch('/api/users'));
 
 ### Communication & Events
 
-#### [@web-loom/event-bus-core](packages/event-bus-core) ![Version](https://img.shields.io/badge/version-0.0.2-blue)
+#### [@web-loom/event-bus-core](packages/event-bus-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
 
 Lightweight pub-sub event bus for cross-component communication. Type-safe with zero dependencies.
 
@@ -116,7 +116,7 @@ eventBus.on('user:login', (user) => console.log(user));
 
 ### Plugin Architecture
 
-#### [@web-loom/plugin-core](packages/plugin-core)
+#### [@web-loom/plugin-core](packages/plugin-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
 
 Framework-agnostic plugin registry and management system with lifecycle states and manifest-based configuration.
 
@@ -124,13 +124,13 @@ Framework-agnostic plugin registry and management system with lifecycle states a
 
 ### Utilities
 
-#### [@web-loom/prose-scriber](packages/prose-scriber) ![Version](https://img.shields.io/badge/version-0.0.4-blue)
+#### [@web-loom/typography-core](packages/typography-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
 
-Typography, color manipulation, and text animation utilities. Theme management with LAB color space support.
+Typography and coloring utilities for design systems.
 
-**Key features**: Color similarity (RGB/HSL/LAB), text animations (typewriter, fade), theme system
+**Key features**: Typography, color manipulation, theme system
 
-#### [@web-loom/design-core](packages/design-core)
+#### [@web-loom/design-core](packages/design-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
 
 Theme and CSS variable utilities for design systems.
 
@@ -225,29 +225,29 @@ Framework-Specific Components (Your App)
 
 ## Package Overview
 
-| Package                        | Description                     | Size      |
+| Package                        | Description                     | Version   |
 | ------------------------------ | ------------------------------- | --------- |
-| `@web-loom/ui-core`            | Headless UI behaviors           | <2KB each |
-| `@web-loom/ui-patterns`        | Composed UI patterns            | ~5KB      |
-| `@web-loom/mvvm-core`          | MVVM architecture library       | ~15KB     |
-| `@web-loom/store-core`         | Reactive state management       | <1KB      |
-| `@web-loom/event-bus-core`     | Event bus                       | <1KB      |
-| `@web-loom/query-core`         | Data fetching & caching         | ~5KB      |
-| `@web-loom/plugin-core`        | Plugin architecture             | ~3KB      |
-| `@web-loom/media-core`         | Media player with plugins       | ~5KB      |
-| `@web-loom/design-core`        | Theme utilities                 | ~2KB      |
-| `@web-loom/typography-core`    | Typography utilities            | ~2KB      |
-| `@web-loom/forms-core`         | Form logic (framework-agnostic) | ~3KB      |
-| `@web-loom/forms-react`        | React form adapter              | ~3KB      |
-| `@web-loom/forms-vanilla`      | Vanilla JS form adapter         | ~3KB      |
-| `@web-loom/forms-vue`          | Vue form adapter                | ~3KB      |
-| `@web-loom/http-core`          | HTTP utilities                  | ~2KB      |
-| `@web-loom/models`             | Shared models                   | ~2KB      |
-| `@web-loom/view-models`        | Shared ViewModels               | ~3KB      |
-| `@web-loom/router-core`        | Routing utilities               | ~2KB      |
-| `@web-loom/notifications-core` | Notification utilities          | ~2KB      |
-| `@web-loom/platform-core`      | Platform utilities              | ~2KB      |
-| `@web-loom/shared`             | Shared utilities                | ~2KB      |
+| `@web-loom/ui-core`            | Headless UI behaviors           | 0.5.2     |
+| `@web-loom/ui-patterns`        | Composed UI patterns            | 0.5.2     |
+| `@web-loom/mvvm-core`          | MVVM architecture library       | 0.5.2     |
+| `@web-loom/store-core`         | Reactive state management       | 0.5.2     |
+| `@web-loom/event-bus-core`     | Event bus                       | 0.5.2     |
+| `@web-loom/query-core`         | Data fetching & caching         | 0.5.2     |
+| `@web-loom/plugin-core`        | Plugin architecture             | 0.5.2     |
+| `@web-loom/media-core`         | Media player with plugins       | 0.5.2     |
+| `@web-loom/design-core`        | Theme utilities                 | 0.5.2     |
+| `@web-loom/typography-core`    | Typography utilities            | 0.5.2     |
+| `@web-loom/forms-core`         | Form logic (framework-agnostic) | 0.1.0     |
+| `@web-loom/forms-react`        | React form adapter              | 0.1.0     |
+| `@web-loom/forms-vanilla`      | Vanilla JS form adapter         | 0.1.0     |
+| `@web-loom/forms-vue`          | Vue form adapter                | 0.1.0     |
+| `@web-loom/http-core`          | HTTP utilities                  | 0.5.2     |
+| `@web-loom/models`             | Shared models                   | 0.5.2     |
+| `@web-loom/view-models`        | Shared ViewModels               | 0.5.2     |
+| `@web-loom/router-core`        | Routing utilities               | 0.5.2     |
+| `@web-loom/notifications-core` | Notification utilities          | 0.5.2     |
+| `@web-loom/platform-core`      | Platform utilities              | 0.5.2     |
+| `@web-loom/shared`             | Shared utilities                | 0.5.2     |
 
 All packages are tree-shakeable with ESM support.
 
