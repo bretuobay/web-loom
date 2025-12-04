@@ -135,7 +135,18 @@ export class MediaCorePlayer implements MediaPlayer {
   async play(): Promise<void> {
     this.ensureLazyElementIsMounted();
     if (this.elementRef && isTimeBasedElement(this.elementRef)) {
-      await this.elementRef.play();
+      try {
+        await this.elementRef.play();
+      } catch (error) {
+        // Handle play interruptions gracefully
+        if (error instanceof Error && error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
+          // Re-throw unexpected errors
+          throw error;
+        }
+        // AbortError: play was interrupted (expected)
+        // NotAllowedError: autoplay prevented by browser policy (expected)
+        // Both are handled silently as they are common and expected scenarios
+      }
       return;
     }
     return Promise.resolve();
@@ -233,7 +244,17 @@ export class MediaCorePlayer implements MediaPlayer {
       return Promise.resolve();
     }
     if (this.elementRef.paused) {
-      return this.elementRef.play();
+      try {
+        await this.elementRef.play();
+      } catch (error) {
+        // Silently handle play interruptions (e.g., when play is interrupted by pause/load)
+        // This is expected behavior and not an error condition
+        if (error instanceof Error && error.name !== 'AbortError') {
+          // Re-throw non-AbortError exceptions
+          throw error;
+        }
+      }
+      return;
     }
     this.elementRef.pause();
     return Promise.resolve();
@@ -644,6 +665,7 @@ export class MediaCorePlayer implements MediaPlayer {
       this.applyTextTracks(element, this.sourceConfig.tracks);
     }
 
+    // Load the media to start fetching the source
     element.load();
     this.syncTextTracks(false);
   }

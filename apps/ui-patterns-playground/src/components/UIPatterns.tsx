@@ -11,6 +11,8 @@ import {
   SettingsInterfaceExample,
   ScrollAwareFABExample,
   HubAndSpokeExample,
+  MediaCoreExample,
+  MediaReactExample,
 } from './examples';
 import './UIPatterns.css';
 
@@ -40,6 +42,8 @@ export function UIPatterns() {
     { id: 'settings', label: 'Settings (Hub & Spoke)', component: SettingsInterfaceExample },
     { id: 'hub-and-spoke', label: 'Hub and Spoke', component: HubAndSpokeExample },
     { id: 'scroll-fab', label: 'Scroll-Aware FAB', component: ScrollAwareFABExample },
+    { id: 'media-core', label: 'MediaCore Player', component: MediaCoreExample },
+    { id: 'media-react', label: 'MediaReact Player', component: MediaReactExample },
   ];
 
   const ActiveComponent = examples.find((ex) => ex.id === activeExample)?.component || DialogExample;

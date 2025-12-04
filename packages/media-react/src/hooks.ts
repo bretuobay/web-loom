@@ -42,7 +42,8 @@ export function useMediaPlayer(
   const playerRef = useRef<MediaCorePlayer | null>(null);
   const registeredPlugins = useRef<Set<string>>(new Set());
   const autoMount = hookOptions.autoMount !== false;
-  const optionsKey = useSerializedOptions(options);
+  const optionsKey = useSerializedValue(options);
+  const configKey = useSerializedValue(config);
 
   const getPlayer = () => {
     if (!playerRef.current) {
@@ -53,7 +54,7 @@ export function useMediaPlayer(
 
   useEffect(() => {
     getPlayer().setMediaConfig(config);
-  }, [config]);
+  }, [configKey]);
 
   useEffect(() => {
     if (!autoMount) {
@@ -149,7 +150,7 @@ function registerPlugins(player: MediaCorePlayer | null, plugins: MediaPlugin[] 
   }
 }
 
-function useSerializedOptions(value: unknown): string {
+function useSerializedValue(value: unknown): string {
   return useMemo(() => {
     if (value == null) return 'null';
     try {

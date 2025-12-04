@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { PlaybackSnapshot } from '@web-loom/media-core';
 import { MediaCorePlayer, minimalControlsPlugin } from '@web-loom/media-core';
 import '../examples.css';
+import demoVideo from '../../../assets/demo-video.mp4';
+import demoPoster from '../../../assets/demo-poster.png';
 
 export function MediaCoreExample(): JSX.Element {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -14,12 +16,12 @@ export function MediaCoreExample(): JSX.Element {
         kind: 'video',
         sources: [
           {
-            src: '/src/assets/demo-video.mp4',
+            src: demoVideo,
             type: 'video/mp4',
             label: 'MP4',
           },
         ],
-        poster: '/src/assets/demo-poster.jpg',
+        poster: demoPoster,
       },
       { controls: false, autoplay: false },
     );
@@ -44,7 +46,7 @@ export function MediaCoreExample(): JSX.Element {
       player.dispose();
       playerRef.current = null;
     };
-  }, []);
+  }, [demoVideo, demoPoster]);
 
   return (
     <section className="example-container">

@@ -1,17 +1,19 @@
 import { MediaPlayer, useMediaPlayer, useMediaState } from '@web-loom/media-react';
 import '../examples.css';
+import demoVideo from '../../../assets/demo-video.mp4';
+import demoPoster from '../../../assets/demo-poster.png';
 
 export function MediaReactExample(): JSX.Element {
   const config = {
     kind: 'video' as const,
     sources: [
       {
-        src: '/src/assets/demo-video.mp4',
+        src: demoVideo,
         type: 'video/mp4',
         label: 'MP4',
       },
     ],
-    poster: '/src/assets/demo-poster.jpg',
+    poster: demoPoster,
   };
 
   const { containerRef, player } = useMediaPlayer(config);
@@ -28,11 +30,7 @@ export function MediaReactExample(): JSX.Element {
       <div className="media-demo">
         <div className="media-demo-card">
           <h3>MediaPlayer Component</h3>
-          <MediaPlayer
-            config={config}
-            className="media-demo-player"
-            data-testid="media-react-player"
-          />
+          <MediaPlayer config={config} className="media-demo-player" data-testid="media-react-player" />
         </div>
 
         <div className="media-demo-card">
