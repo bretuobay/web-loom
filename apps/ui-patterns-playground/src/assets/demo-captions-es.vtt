@@ -1,0 +1,10 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:05.000
+Bienvenido a la demostración de Patrones de Arquitectura.
+
+00:00:05.000 --> 00:00:09.500
+Este ejemplo muestra el reproductor de MediaCore en acción.
+
+00:00:09.500 --> 00:00:15.000
+Utiliza los controles personalizados para explorar las diferentes opciones de configuración.

@@ -1,0 +1,10 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:05.000
+Welcome to the Architecture Patterns demo.
+
+00:00:05.000 --> 00:00:09.500
+This example highlights the MediaCore player in action.
+
+00:00:09.500 --> 00:00:15.000
+Use the custom controls to explore different configuration options.
