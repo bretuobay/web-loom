@@ -31,6 +31,7 @@ dist
 *.timestamp-*.mjs
 .tsbuildinfo/
 *.tsbuildinfo
+.vite/
 
 
 # Debug

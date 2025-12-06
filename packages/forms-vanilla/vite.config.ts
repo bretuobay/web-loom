@@ -10,6 +10,11 @@ export default defineConfig({
       exclude: ['src/**/*.test.*', 'src/**/*.spec.*', 'tests/**/*'],
     }),
   ],
+  resolve: {
+    alias: {
+      '@web-loom/forms-core': resolve(__dirname, '../forms-core/src'),
+    },
+  },
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),

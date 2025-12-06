@@ -9,7 +9,6 @@
             "DOM.Iterable"
         ],
         "outDir": "dist",
-        "rootDir": "src",
         "declaration": true,
         "declarationMap": true,
         "strict": true,
@@ -22,7 +21,7 @@
         "resolveJsonModule": true
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
     ],
     "exclude": [
         "dist",
