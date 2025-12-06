@@ -58,7 +58,7 @@
   /* Directly styling the canvas, assuming its parent div controls size */
   max-width: 100%;
   /* Ensure canvas is responsive within its container */
-  height: 300px !important;
+  max-height: 200px !important;
   /* Force height; Chart.js can be tricky with parent-defined height sometimes */
 }
 
