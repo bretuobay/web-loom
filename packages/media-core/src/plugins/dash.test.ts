@@ -43,14 +43,20 @@ describe('createDashPlugin', () => {
     const video = container.querySelector('video');
     expect(video).toBeTruthy();
 
-    await Promise.resolve();
+    // Wait for async plugin initialization to complete
+    await vi.waitFor(() => {
+      expect(FakeDashPlayer.instances).toHaveLength(1);
+    });
+
     expect(loader).toHaveBeenCalledTimes(1);
-    expect(FakeDashPlayer.instances).toHaveLength(1);
     const instance = FakeDashPlayer.instances[0];
     expect(instance.initialize).toHaveBeenCalledWith(video, '/manifest.mpd', false);
 
     await player.setSources([{ src: '/next.mpd' }]);
-    await Promise.resolve();
+    // Wait for source change to process
+    await vi.waitFor(() => {
+      expect(instance.attachSource).toHaveBeenCalled();
+    });
     expect(instance.attachSource).toHaveBeenCalledWith('/next.mpd');
 
     player.dispose();
