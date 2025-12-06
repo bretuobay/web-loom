@@ -6,7 +6,7 @@ import { parseArgs } from '../../cli/dispatcher.js';
 export const workspaceInfoCommand: Command = {
   name: 'workspace info',
   description: 'Display workspace summary',
-  
+
   async run(args: string[], context: CommandContext): Promise<number> {
     try {
       const parsed = parseArgs(args);
@@ -23,13 +23,13 @@ export const workspaceInfoCommand: Command = {
           packages: packages.length,
           workspaceName: workspaceConfig.rootPackageJson.name || 'Unknown',
           hasTurboConfig: Boolean(workspaceConfig.turboConfig),
-          projects: workspaceConfig.projects.map(p => ({
+          projects: workspaceConfig.projects.map((p) => ({
             name: p.name,
             type: p.type,
-            path: p.path
-          }))
+            path: p.path,
+          })),
         };
-        
+
         outputResult(jsonData, true);
       } else {
         console.log(`\nWorkspace: ${workspaceConfig.rootPackageJson.name || 'Unknown'}`);
@@ -37,17 +37,17 @@ export const workspaceInfoCommand: Command = {
         console.log(`Apps: ${apps.length}`);
         console.log(`Packages: ${packages.length}`);
         console.log(`Turbo config: ${workspaceConfig.turboConfig ? 'Yes' : 'No'}`);
-        
+
         if (totalProjects > 0) {
           console.log(`\nProjects by type:`);
           if (apps.length > 0) {
             console.log(`\nApps (${apps.length}):`);
-            apps.forEach(app => console.log(`  • ${app.name}`));
+            apps.forEach((app) => console.log(`  • ${app.name}`));
           }
-          
+
           if (packages.length > 0) {
             console.log(`\nPackages (${packages.length}):`);
-            packages.forEach(pkg => console.log(`  • ${pkg.name}`));
+            packages.forEach((pkg) => console.log(`  • ${pkg.name}`));
           }
         }
       }
@@ -57,5 +57,5 @@ export const workspaceInfoCommand: Command = {
       console.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return 1;
     }
-  }
+  },
 };
