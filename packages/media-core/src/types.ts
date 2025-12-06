@@ -56,15 +56,7 @@ export interface MediaSourceConfig {
   chapters?: ChapterMetadata[];
 }
 
-export type PlaybackState =
-  | 'idle'
-  | 'loading'
-  | 'ready'
-  | 'playing'
-  | 'paused'
-  | 'seeking'
-  | 'ended'
-  | 'error';
+export type PlaybackState = 'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'seeking' | 'ended' | 'error';
 
 export interface PlaybackSnapshot {
   state: PlaybackState;
@@ -135,9 +127,7 @@ export interface MediaEventMap {
 
 export type MediaEventName = keyof MediaEventMap;
 
-export type MediaEventHandler<E extends MediaEventName> = (
-  payload: MediaEventMap[E]
-) => void;
+export type MediaEventHandler<E extends MediaEventName> = (payload: MediaEventMap[E]) => void;
 
 export interface MediaPlayer {
   readonly id: string;

@@ -8,7 +8,7 @@ export default defineConfig({
       entry: './src/index.ts',
       formats: ['es', 'umd'],
       name: 'MediaCore',
-      fileName: format => `media-core.${format}.js`,
+      fileName: (format) => `media-core.${format}.js`,
     },
     rollupOptions: {
       output: {},

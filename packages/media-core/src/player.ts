@@ -358,9 +358,7 @@ export class MediaCorePlayer implements MediaPlayer {
     if (!this.activeTextTrackId) {
       return null;
     }
-    return (
-      this.sourceConfig.tracks?.find((track) => track.id === this.activeTextTrackId) ?? null
-    );
+    return this.sourceConfig.tracks?.find((track) => track.id === this.activeTextTrackId) ?? null;
   }
 
   getThumbnailForTime(timeInSeconds: number): string | null {
@@ -399,25 +397,38 @@ export class MediaCorePlayer implements MediaPlayer {
   async enterPictureInPicture(): Promise<void> {
     this.ensureLazyElementIsMounted();
     const video = this.elementRef;
-    const request = video && video instanceof HTMLVideoElement ? (video as HTMLVideoElement & { requestPictureInPicture?: () => Promise<void> }).requestPictureInPicture : undefined;
+    const request =
+      video && video instanceof HTMLVideoElement
+        ? (video as HTMLVideoElement & { requestPictureInPicture?: () => Promise<void> }).requestPictureInPicture
+        : undefined;
     if (video instanceof HTMLVideoElement && typeof request === 'function') {
       await request.call(video);
     }
   }
 
   async exitPictureInPicture(): Promise<void> {
-    const doc = (this.host?.ownerDocument ?? document) as Document & { exitPictureInPicture?: () => Promise<void>; pictureInPictureElement?: Element | null };
+    const doc = (this.host?.ownerDocument ?? document) as Document & {
+      exitPictureInPicture?: () => Promise<void>;
+      pictureInPictureElement?: Element | null;
+    };
     if (typeof doc.exitPictureInPicture === 'function' && doc.pictureInPictureElement) {
       await doc.exitPictureInPicture();
     }
   }
 
   isPictureInPictureSupported(): boolean {
-    const doc = (this.host?.ownerDocument ?? document) as Document & { pictureInPictureEnabled?: boolean; exitPictureInPicture?: () => Promise<void> };
-    const proto = HTMLVideoElement.prototype as HTMLVideoElement & { requestPictureInPicture?: () => Promise<PictureInPictureWindow> };
+    const doc = (this.host?.ownerDocument ?? document) as Document & {
+      pictureInPictureEnabled?: boolean;
+      exitPictureInPicture?: () => Promise<void>;
+    };
+    const proto = HTMLVideoElement.prototype as HTMLVideoElement & {
+      requestPictureInPicture?: () => Promise<PictureInPictureWindow>;
+    };
     const elementSupport = typeof proto.requestPictureInPicture === 'function';
     const documentSupport =
-      typeof doc.pictureInPictureEnabled === 'boolean' ? doc.pictureInPictureEnabled : typeof doc.exitPictureInPicture === 'function';
+      typeof doc.pictureInPictureEnabled === 'boolean'
+        ? doc.pictureInPictureEnabled
+        : typeof doc.exitPictureInPicture === 'function';
     return Boolean(elementSupport && documentSupport);
   }
 

@@ -30,7 +30,7 @@ export interface MediaPlayerProps {
   'data-testid'?: string;
 }
 
-export const MediaPlayer = forwardRef<MediaCorePlayer, MediaPlayerProps>(function MediaPlayer(
+export const MediaPlayer = forwardRef<MediaCorePlayer | null, MediaPlayerProps>(function MediaPlayer(
   { config, options, plugins, autoMount, className, onReady, 'data-testid': testId },
   ref,
 ) {
@@ -41,16 +41,7 @@ export const MediaPlayer = forwardRef<MediaCorePlayer, MediaPlayerProps>(functio
   const { containerRef, player } = useMediaPlayer(config, options, hookOptions);
   const snapshot = useMediaState(player);
 
-  useImperativeHandle(
-    ref,
-    () => {
-      if (!player) {
-        throw new Error('MediaPlayer: Cannot access player before it is initialized');
-      }
-      return player;
-    },
-    [player]
-  );
+  useImperativeHandle(ref, () => player as any, [player]);
 
   useEffect(() => {
     if (snapshot?.state === 'ready') {
@@ -58,12 +49,5 @@ export const MediaPlayer = forwardRef<MediaCorePlayer, MediaPlayerProps>(functio
     }
   }, [snapshot, onReady]);
 
-  return (
-    <div
-      ref={containerRef}
-      className={className}
-      data-testid={testId}
-      data-media-player-kind={config.kind}
-    />
-  );
+  return <div ref={containerRef} className={className} data-testid={testId} data-media-player-kind={config.kind} />;
 });

@@ -50,9 +50,12 @@ describe('createHlsPlugin', () => {
     const video = container.querySelector('video');
     expect(video).toBeTruthy();
 
-    await Promise.resolve();
+    // Wait for async plugin initialization to complete
+    await vi.waitFor(() => {
+      expect(FakeHlsInstance.instances).toHaveLength(1);
+    });
+
     expect(loader).toHaveBeenCalledTimes(1);
-    expect(FakeHlsInstance.instances).toHaveLength(1);
     const instance = FakeHlsInstance.instances[0];
     expect(instance.attached).toBe(video);
     expect(instance.lastSource).toBe('/stream.m3u8');

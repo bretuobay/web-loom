@@ -7,9 +7,17 @@ export default defineConfig({
   plugins: [
     vue(),
     dts({
-      entryRoot: 'src',
+      insertTypesEntry: true,
+      include: ['src/**/*'],
+      exclude: ['src/**/*.test.*', 'src/**/*.spec.*', 'tests/**/*'],
+      tsconfigPath: './tsconfig.json',
     }),
   ],
+  resolve: {
+    alias: {
+      '@web-loom/media-core': path.resolve(__dirname, '../media-core/src'),
+    },
+  },
   build: {
     sourcemap: true,
     lib: {
@@ -19,7 +27,14 @@ export default defineConfig({
       fileName: (format) => (format === 'cjs' ? 'index.cjs' : 'index.js'),
     },
     rollupOptions: {
-      external: ['vue', '@web-loom/media-core'],
+      external: ['vue', '@web-loom/media-core', 'zod'],
+      output: {
+        globals: {
+          vue: 'Vue',
+          '@web-loom/media-core': 'MediaCore',
+          zod: 'Zod',
+        },
+      },
     },
   },
 });

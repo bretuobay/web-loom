@@ -99,11 +99,7 @@ export function useMediaPlayer(
 
   return { containerRef, player };
 }
-function registerPlugins(
-  player: MediaCorePlayer,
-  plugins: MediaPlugin[] | undefined,
-  registry: Set<string>,
-): void {
+function registerPlugins(player: MediaCorePlayer, plugins: MediaPlugin[] | undefined, registry: Set<string>): void {
   if (!plugins?.length) return;
   for (const plugin of plugins) {
     if (registry.has(plugin.name)) continue;

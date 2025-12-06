@@ -15,7 +15,7 @@ describe('MediaCorePlayer plugins', () => {
         kind: 'video',
         sources: [{ src: '/video.mp4', type: 'video/mp4' }],
       },
-      { controls: true }
+      { controls: true },
     );
 
     player.use(plugin, { label: 'demo' });

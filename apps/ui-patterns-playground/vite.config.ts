@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react-swc';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react()] as any, // Type assertion to handle Vite version mismatch
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
@@ -22,7 +22,15 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom'],
-    exclude: ['@web-loom/mvvm-core', '@web-loom/ui-core', '@web-loom/ui-patterns', '@web-loom/store-core', '@web-loom/event-bus-core', '@web-loom/media-core', '@web-loom/media-react'],
+    exclude: [
+      '@web-loom/mvvm-core',
+      '@web-loom/ui-core',
+      '@web-loom/ui-patterns',
+      '@web-loom/store-core',
+      '@web-loom/event-bus-core',
+      '@web-loom/media-core',
+      '@web-loom/media-react',
+    ],
   },
   build: {
     target: 'esnext',

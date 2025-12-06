@@ -3,7 +3,7 @@
  */
 
 import { ref, computed, onUnmounted } from 'vue';
-import type { UndoRedoStackState, UndoRedoStackActions, UndoRedoStackOptions } from '../../behaviors/undo-redo-stack';
+import type { UndoRedoStackState, UndoRedoStackOptions } from '../../behaviors/undo-redo-stack';
 import { createUndoRedoStack } from '../../behaviors/undo-redo-stack';
 
 /**

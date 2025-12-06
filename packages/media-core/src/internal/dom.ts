@@ -10,15 +10,13 @@ export function createMediaElement(kind: MediaKind): HTMLMediaElement | HTMLImag
   return document.createElement('video');
 }
 
-export function isTimeBasedElement(
-  element: HTMLMediaElement | HTMLImageElement
-): element is HTMLMediaElement {
+export function isTimeBasedElement(element: HTMLMediaElement | HTMLImageElement): element is HTMLMediaElement {
   return element.tagName === 'VIDEO' || element.tagName === 'AUDIO';
 }
 
 export function selectBestSource(
   element: HTMLMediaElement | HTMLImageElement,
-  sources: MediaSource[]
+  sources: MediaSource[],
 ): MediaSource | null {
   if (!sources.length) {
     return null;

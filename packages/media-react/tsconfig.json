@@ -21,7 +21,11 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "isolatedModules": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@web-loom/media-core": ["../media-core/src"]
+    }
   },
   "include": [
     "src/**/*"

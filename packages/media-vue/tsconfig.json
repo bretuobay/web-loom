@@ -6,7 +6,7 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@web-loom/media-core": ["../media-core/src/index.ts"]
+      "@web-loom/media-core": ["../media-core/src"]
     },
     "lib": [
       "ES2022",
