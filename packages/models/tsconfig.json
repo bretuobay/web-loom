@@ -5,16 +5,10 @@
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": false,
-    "module": "ESNext", // or "ES2022"
+    "module": "ESNext",
     "target": "ES2022",
     "moduleResolution": "bundler",
-    "rootDir": "src",
-    "baseUrl": ".",
-    "paths": {
-      "@web-loom/mvvm-core": [
-        "../../node_modules/@web-loom/mvvm-core"
-      ]
-    }
+    "baseUrl": "."
   },
   "include": [
     "src"
