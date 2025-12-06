@@ -1,6 +1,6 @@
 import type { Logger } from './Logger';
 import type { Transport } from './Transport';
-import type { LoggerConfig, LogLevel } from '../types/config.types';
+import type { LoggerConfig, LogLevel, NormalizedError } from '../types/config.types';
 import { shouldLog } from './LogLevel';
 import { StructuredLog } from './StructuredLog';
 import { BaseError } from '../errors/BaseError';
@@ -113,7 +113,7 @@ export class StructuredLogger implements Logger {
 
     const entry = StructuredLog.createEntry(level, formattedMessage, {
       source: this.source,
-      error,
+      error: error ? this.normalizeError(error) : undefined,
       data: { ...this.context, ...data },
       context: this.context,
     });
@@ -140,8 +140,8 @@ export class StructuredLogger implements Logger {
     });
   }
 
-  private normalizeError(error: Error): Record<string, unknown> {
-    const normalized: Record<string, unknown> = {
+  private normalizeError(error: Error): NormalizedError {
+    const normalized: NormalizedError = {
       name: error.name,
       message: error.message,
       stack: error.stack,

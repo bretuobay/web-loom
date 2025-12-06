@@ -10,6 +10,11 @@ export default defineConfig({
       entryRoot: 'src',
     }),
   ],
+  resolve: {
+    alias: {
+      '@web-loom/media-core': path.resolve(__dirname, '../media-core/src'),
+    },
+  },
   build: {
     sourcemap: true,
     lib: {
