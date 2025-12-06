@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react-swc';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react()] as any, // Type assertion to handle Vite version mismatch
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),

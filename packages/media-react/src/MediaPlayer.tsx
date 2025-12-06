@@ -42,9 +42,8 @@ export const MediaPlayer = forwardRef<MediaCorePlayer, MediaPlayerProps>(functio
   const snapshot = useMediaState(player);
 
   useImperativeHandle(ref, () => {
-    if (!player) {
-      throw new Error('MediaPlayer: Cannot access player before it is initialized');
-    }
+    // Return player (may be null during initial render)
+    // Consumers should check for null or wait for the player to be ready
     return player;
   }, [player]);
 

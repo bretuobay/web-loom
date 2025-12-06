@@ -20,8 +20,15 @@ describe('@web-loom/media-react', () => {
     const { getByTestId } = render(<TestComponent />);
     const container = getByTestId('player-container');
 
+    // Wait for video element to be mounted
     await waitFor(() => {
       expect(container.querySelector('video')).toBeTruthy();
+    });
+
+    // Wait for player to be ready before accessing ref
+    await waitFor(() => {
+      const video = container.querySelector('video');
+      expect(video).toBeTruthy();
     });
   });
 

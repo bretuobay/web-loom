@@ -27,9 +27,7 @@ describe('stackTrace', () => {
 
       if (parsed.frames.length > 0) {
         // At least one frame should have a function name or be anonymous
-        const hasFunction = parsed.frames.some(
-          (frame) => frame.functionName !== undefined
-        );
+        const hasFunction = parsed.frames.some((frame) => frame.functionName !== undefined);
         expect(hasFunction).toBe(true);
       }
     });
@@ -114,9 +112,7 @@ describe('stackTrace', () => {
       const frames = createMockFrames();
       const relevant = extractRelevantFrames(frames);
 
-      const hasNodeModules = relevant.some((f) =>
-        f.fileName?.includes('node_modules')
-      );
+      const hasNodeModules = relevant.some((f) => f.fileName?.includes('node_modules'));
       expect(hasNodeModules).toBe(false);
     });
 
@@ -124,9 +120,7 @@ describe('stackTrace', () => {
       const frames = createMockFrames();
       const relevant = extractRelevantFrames(frames);
 
-      const hasInternal = relevant.some(
-        (f) => f.fileName?.startsWith('internal/') || f.fileName?.startsWith('node:')
-      );
+      const hasInternal = relevant.some((f) => f.fileName?.startsWith('internal/') || f.fileName?.startsWith('node:'));
       expect(hasInternal).toBe(false);
     });
 
@@ -134,9 +128,7 @@ describe('stackTrace', () => {
       const frames = createMockFrames();
       const relevant = extractRelevantFrames(frames, { skipNodeModules: false });
 
-      const hasNodeModules = relevant.some((f) =>
-        f.fileName?.includes('node_modules')
-      );
+      const hasNodeModules = relevant.some((f) => f.fileName?.includes('node_modules'));
       expect(hasNodeModules).toBe(true);
     });
 
@@ -237,9 +229,7 @@ describe('stackTrace', () => {
     it('should not include captureStackTrace in the trace', () => {
       const frames = captureStackTrace();
 
-      const hasCaptureStackTrace = frames.some((f) =>
-        f.functionName?.includes('captureStackTrace')
-      );
+      const hasCaptureStackTrace = frames.some((f) => f.functionName?.includes('captureStackTrace'));
 
       // Should not include the captureStackTrace function itself
       expect(hasCaptureStackTrace).toBe(false);

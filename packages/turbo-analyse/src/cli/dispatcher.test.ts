@@ -1,11 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  registerCommand,
-  parseArgs,
-  dispatch,
-  type Command,
-  type CommandContext,
-} from './dispatcher';
+import { registerCommand, parseArgs, dispatch, type Command, type CommandContext } from './dispatcher';
 
 describe('dispatcher', () => {
   // Mock console methods

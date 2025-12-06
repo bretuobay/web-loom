@@ -27,6 +27,11 @@ out/
 build
 dist
 
+# Vite temporary files
+*.timestamp-*.mjs
+.tsbuildinfo/
+*.tsbuildinfo
+
 
 # Debug
 npm-debug.log*
