@@ -208,6 +208,7 @@ export class RovingFocusBehaviorService implements OnDestroy {
   private behavior: ReturnType<typeof createRovingFocus> | null = null;
   private state$ = new BehaviorSubject<RovingFocusState>({
     currentIndex: 0,
+    previousIndex: -1,
     items: [],
     orientation: 'vertical',
     wrap: true,
@@ -585,6 +586,7 @@ export class FormBehaviorService<T extends Record<string, any> = Record<string, 
   private state$ = new BehaviorSubject<FormState<T>>({
     values: {} as T,
     errors: {},
+    manualErrors: {},
     touched: {},
     dirty: {},
     isValidating: false,
