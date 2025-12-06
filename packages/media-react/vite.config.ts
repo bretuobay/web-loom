@@ -28,7 +28,15 @@ export default defineConfig({
       fileName: (format) => (format === 'cjs' ? 'index.cjs' : 'index.js'),
     },
     rollupOptions: {
-      external: ['react', 'react-dom', '@web-loom/media-core'],
+      external: ['react', 'react-dom', '@web-loom/media-core', 'zod'],
+      output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+          '@web-loom/media-core': 'MediaCore',
+          zod: 'Zod',
+        },
+      },
     },
   },
 });
