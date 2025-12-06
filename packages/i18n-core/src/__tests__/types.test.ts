@@ -18,13 +18,12 @@ describe('types.ts', () => {
     expect(supported.direction).toBe('ltr');
   });
 
-  it('Translations can be nested', () => {
+  it('Translations are flat string maps', () => {
     const t: Translations = {
       hello: 'Hello',
-      nested: { world: 'World' },
+      world: 'World',
     };
-    expect(typeof t.hello).toBe('string');
-    expect(typeof t.nested).toBe('object');
+    expect(Object.values(t).every((value) => typeof value === 'string')).toBe(true);
   });
 
   it('I18nConfig is type safe', () => {

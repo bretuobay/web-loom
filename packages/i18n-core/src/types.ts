@@ -9,10 +9,8 @@ export interface SupportedLocale {
   direction: 'ltr' | 'rtl';
 }
 
-// Translation structure
-export interface Translations {
-  [key: string]: string | Translations;
-}
+// Translation structure (flat record of string values)
+export type Translations = Record<string, string>;
 
 // i18n configuration
 export interface I18nConfig {

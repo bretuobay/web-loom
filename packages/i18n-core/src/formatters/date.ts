@@ -3,6 +3,7 @@ import type { Locale } from '../types';
 // Date formatter with caching
 class DateFormatter {
   private cache: Map<string, Intl.DateTimeFormat> = new Map();
+  private relativeCache: Map<string, Intl.RelativeTimeFormat> = new Map();
 
   private getFormatter(locale: Locale, options?: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
     const key = JSON.stringify([locale, options || {}]);
@@ -12,21 +13,33 @@ class DateFormatter {
     return this.cache.get(key)!;
   }
 
+  private getRelativeFormatter(locale: Locale, options?: Intl.RelativeTimeFormatOptions): Intl.RelativeTimeFormat {
+    const key = JSON.stringify([locale, options || {}]);
+    if (!this.relativeCache.has(key)) {
+      this.relativeCache.set(key, new Intl.RelativeTimeFormat(locale, options));
+    }
+    return this.relativeCache.get(key)!;
+  }
+
+  private normalizeDateValue(date: Date | string | number): Date {
+    return date instanceof Date ? date : new Date(date);
+  }
+
   format(date: Date | string | number, locale: Locale, options?: Intl.DateTimeFormatOptions): string {
-    return this.getFormatter(locale, options).format(new Date(date));
+    return this.getFormatter(locale, options).format(this.normalizeDateValue(date));
   }
 
   formatDate(date: Date | string | number, locale: Locale, options?: Intl.DateTimeFormatOptions): string {
-    return this.format(date, locale, { ...(options || {}), dateStyle: 'medium' });
+    return this.format(date, locale, { dateStyle: 'medium', ...(options || {}) });
   }
 
   formatTime(date: Date | string | number, locale: Locale, options?: Intl.DateTimeFormatOptions): string {
-    return this.format(date, locale, { ...(options || {}), timeStyle: 'medium' });
+    return this.format(date, locale, { timeStyle: 'medium', ...(options || {}) });
   }
 
   formatRelative(date: Date | string | number, locale: Locale, options?: Intl.RelativeTimeFormatOptions): string {
     const now = Date.now();
-    const value = new Date(date).getTime();
+    const value = this.normalizeDateValue(date).getTime();
     const diff = value - now;
     const absDiff = Math.abs(diff);
     let unit: Intl.RelativeTimeFormatUnit = 'second';
@@ -41,8 +54,7 @@ class DateFormatter {
       unit = 'day';
       amount = Math.round(diff / 86400000);
     }
-    const rtf = new Intl.RelativeTimeFormat(locale, options);
-    return rtf.format(amount, unit);
+    return this.getRelativeFormatter(locale, options).format(amount, unit);
   }
 }
 

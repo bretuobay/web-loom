@@ -1,7 +1,7 @@
 import type { Locale, Translations } from '../types';
 
 // Type-safe translation keys
-type TranslationKey<T extends Translations> = string & { __type: T };
+type TranslationKey<T extends Translations> = keyof T & string;
 
 // Translation registry
 class TranslationRegistry<T extends Translations = Translations> {
@@ -13,12 +13,12 @@ class TranslationRegistry<T extends Translations = Translations> {
   }
 
   // Get translation by key
-  get<Key extends keyof T>(locale: Locale, key: Key): T[Key] | undefined {
+  get<Key extends TranslationKey<T>>(locale: Locale, key: Key): T[Key] | undefined {
     return this.translations.get(locale)?.[key];
   }
 
   // Check if translation exists
-  has(locale: Locale, key: keyof T): boolean {
+  has(locale: Locale, key: TranslationKey<T>): boolean {
     return this.translations.get(locale)?.[key] !== undefined;
   }
 

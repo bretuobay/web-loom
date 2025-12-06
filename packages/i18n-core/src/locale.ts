@@ -1,27 +1,80 @@
-import type { Locale } from './types';
+import type { Locale, SupportedLocale } from './types';
+
+type SupportedLocaleInput = SupportedLocale | Locale;
+
+export interface LocalePreferenceConfig {
+  defaultLocale?: Locale;
+  fallbackLocale?: Locale;
+  supportedLocales?: SupportedLocaleInput[];
+}
+
+const DEFAULT_FALLBACK: Locale = 'en';
+
+const toLocaleCode = (entry: SupportedLocaleInput): Locale =>
+  normalizeLocale(typeof entry === 'string' ? entry : entry.code);
+
+function getNormalizedSupportedLocales(config?: LocalePreferenceConfig): Locale[] {
+  if (!config?.supportedLocales?.length) {
+    return [];
+  }
+  return config.supportedLocales.map(toLocaleCode);
+}
+
+function resolveFallbackLocale(config?: LocalePreferenceConfig): Locale {
+  if (config?.fallbackLocale) {
+    return normalizeLocale(config.fallbackLocale);
+  }
+  if (config?.defaultLocale) {
+    return normalizeLocale(config.defaultLocale);
+  }
+  return DEFAULT_FALLBACK;
+}
+
+function readNavigatorLocales(): Locale[] {
+  if (typeof navigator === 'undefined') {
+    return [];
+  }
+  if (Array.isArray((navigator as Navigator).languages) && navigator.languages.length > 0) {
+    return navigator.languages.map(normalizeLocale);
+  }
+  if (navigator.language) {
+    return [normalizeLocale(navigator.language)];
+  }
+  return [];
+}
 
 // Browser locale detection
-export function detectBrowserLocale(): Locale {
-  if (typeof navigator !== 'undefined' && navigator.language) {
-    return normalizeLocale(navigator.language);
-  }
-  return 'en'; // fallback
+export function detectBrowserLocale(config?: LocalePreferenceConfig): Locale {
+  const locales = getUserLocales(config);
+  return locales[0] ?? resolveFallbackLocale(config);
 }
 
 // Get user's preferred locales from browser
-export function getUserLocales(): Locale[] {
-  if (typeof navigator !== 'undefined' && navigator.languages) {
-    return navigator.languages.map(normalizeLocale);
+export function getUserLocales(config?: LocalePreferenceConfig): Locale[] {
+  const navigatorLocales = readNavigatorLocales();
+  const fallbackLocale = resolveFallbackLocale(config);
+  const preferred = navigatorLocales.length > 0 ? navigatorLocales : [fallbackLocale];
+  const supported = getNormalizedSupportedLocales(config);
+
+  if (!supported.length) {
+    return preferred;
   }
-  if (typeof navigator !== 'undefined' && navigator.language) {
-    return [normalizeLocale(navigator.language)];
+
+  const matches = preferred.filter((locale) => supported.includes(locale));
+  if (matches.length) {
+    return matches;
   }
-  return ['en'];
+
+  return supported.includes(fallbackLocale) ? [fallbackLocale] : [supported[0]];
 }
 
 // Validate if locale is supported
-export function isValidLocale(locale: Locale, supported: Locale[]): boolean {
-  return supported.includes(normalizeLocale(locale));
+export function isValidLocale(locale: Locale, supported: SupportedLocaleInput[]): boolean {
+  if (!supported.length) {
+    return false;
+  }
+  const normalized = normalizeLocale(locale);
+  return supported.some((entry) => toLocaleCode(entry) === normalized);
 }
 
 // Parse locale into components (language, region, script)

@@ -1,5 +1,6 @@
 export type { Locale, SupportedLocale, Translations, I18nConfig } from './types';
 export { detectBrowserLocale, getUserLocales, isValidLocale, parseLocale, normalizeLocale } from './locale';
+export type { LocalePreferenceConfig } from './locale';
 export { LocaleStore } from './store';
 export { isRTL, getTextDirection } from './rtl';
 
@@ -7,8 +8,9 @@ export { isRTL, getTextDirection } from './rtl';
 export type { TranslationKey } from './translations/registry';
 export { TranslationRegistry } from './translations/registry';
 export { TranslationLoader } from './translations/loader';
+export type { TranslationLoaderOptions } from './translations/loader';
 export { createTranslator, createTranslatorWithFallback } from './translations/t';
-export type { MissingTranslationHandler } from './translations/t';
+export type { MissingTranslationHandler, TranslatorOptions } from './translations/t';
 export { warnMissingTranslation, extractKeysFromSource, validateTranslations } from './translations/dev';
 
 // Phase 3: Formatters (Intl API Wrappers)

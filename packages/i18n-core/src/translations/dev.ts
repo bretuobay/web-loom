@@ -27,23 +27,12 @@ function validateTranslations<T extends Translations>(
   targetLocale: Locale,
   targetTranslations: T,
 ): { missing: string[]; extra: string[] } {
-  const baseKeys = flattenKeys(baseTranslations);
-  const targetKeys = flattenKeys(targetTranslations);
+  const baseKeys = Object.keys(baseTranslations);
+  const targetKeys = Object.keys(targetTranslations);
   return {
     missing: baseKeys.filter((k) => !targetKeys.includes(k)),
     extra: targetKeys.filter((k) => !baseKeys.includes(k)),
   };
-}
-
-// Helper to flatten nested translation keys
-function flattenKeys(obj: Translations, prefix = ''): string[] {
-  return Object.entries(obj).flatMap(([k, v]) => {
-    const key = prefix ? `${prefix}.${k}` : k;
-    if (typeof v === 'object' && v !== null) {
-      return flattenKeys(v as Translations, key);
-    }
-    return [key];
-  });
 }
 
 export { warnMissingTranslation, extractKeysFromSource, validateTranslations };

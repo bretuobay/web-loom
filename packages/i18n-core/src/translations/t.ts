@@ -1,22 +1,28 @@
 import type { Locale, Translations } from '../types';
-import { TranslationRegistry } from './registry';
+import { TranslationRegistry, type TranslationKey } from './registry';
+import { warnMissingTranslation } from './dev';
+
+// Missing translation handler
+type MissingTranslationHandler = (locale: Locale, key: string, params?: Record<string, unknown>) => string;
+
+interface TranslatorOptions {
+  onMissing?: MissingTranslationHandler;
+}
 
 // Create type-safe translation function
 function createTranslator<T extends Translations>(
   registry: TranslationRegistry<T>,
   locale: Locale,
-): (key: keyof T, params?: Record<string, unknown>) => string {
+  options?: TranslatorOptions,
+): (key: TranslationKey<T>, params?: Record<string, unknown>) => string {
   return (key, params) => {
     const value = registry.get(locale, key);
     if (typeof value === 'string') {
       return interpolate(value, params);
     }
-    return '';
+    return handleMissing(locale, String(key), params, options?.onMissing);
   };
 }
-
-// Missing translation handler
-type MissingTranslationHandler = (locale: Locale, key: string, params?: Record<string, unknown>) => string;
 
 // Create translator with missing key handling
 function createTranslatorWithFallback<T extends Translations>(
@@ -24,21 +30,31 @@ function createTranslatorWithFallback<T extends Translations>(
   locale: Locale,
   fallbackLocale: Locale,
   onMissing?: MissingTranslationHandler,
-): (key: keyof T, params?: Record<string, unknown>) => string {
+): (key: TranslationKey<T>, params?: Record<string, unknown>) => string {
   return (key, params) => {
-    let value = registry.get(locale, key);
-    if (typeof value === 'string') {
-      return interpolate(value, params);
+    const primary = registry.get(locale, key);
+    if (typeof primary === 'string') {
+      return interpolate(primary, params);
     }
-    value = registry.get(fallbackLocale, key);
-    if (typeof value === 'string') {
-      return interpolate(value, params);
+    const fallback = registry.get(fallbackLocale, key);
+    if (typeof fallback === 'string') {
+      return interpolate(fallback, params);
     }
-    if (onMissing) {
-      return onMissing(locale, String(key), params);
-    }
-    return '';
+    return handleMissing(locale, String(key), params, onMissing);
   };
+}
+
+function handleMissing(
+  locale: Locale,
+  key: string,
+  params: Record<string, unknown> | undefined,
+  onMissing?: MissingTranslationHandler,
+): string {
+  if (onMissing) {
+    return onMissing(locale, key, params);
+  }
+  warnMissingTranslation(locale, key, params);
+  return '';
 }
 
 // Simple interpolation: replaces {param} with params[param]
@@ -48,4 +64,4 @@ function interpolate(str: string, params?: Record<string, unknown>): string {
 }
 
 export { createTranslator, createTranslatorWithFallback };
-export type { MissingTranslationHandler };
+export type { MissingTranslationHandler, TranslatorOptions };
