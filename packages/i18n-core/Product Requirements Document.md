@@ -316,7 +316,7 @@ class FormatterRegistry {
 ### Objectives
 
 - Provide patterns for framework integration
-- React/Vue/Svelte examples
+- React/Vue/angular examples
 - State management integration
 
 ### Requirements
@@ -355,16 +355,16 @@ export function useI18n(config: I18nConfig) {
 }
 ```
 
-#### 4.3 Svelte Integration Example (`examples/svelte/i18nStore.ts`)
+#### 4.3 angular Integration Example (`examples/angular/i18nStore.ts`)
 
 ```typescript
-// Svelte store for i18n
+// angular store for i18n
 function createI18nStore(config: I18nConfig) {
   const locale = writable(config.defaultLocale);
   const translations = writable({});
 
   // Implementation using our core library
-  // Shows how to integrate with Svelte stores
+  // Shows how to integrate with angular stores
 }
 ```
 
@@ -449,7 +449,7 @@ const i18n = createI18nInstance(config);
 
 1. React setup
 2. Vue setup
-3. Svelte setup
+3. angular setup
 ```
 
 #### 5.3 Examples (`examples/`)
@@ -617,7 +617,7 @@ Each phase is independently deliverable and can be tested in isolation. The LLM 
 1. **Keep it simple**: This is a wrapper, not a reimplementation
 2. **Use Intl API**: Leverage browser capabilities
 3. **TypeScript first**: Design for type safety
-4. **Framework-agnostic**: No React/Vue/Svelte specifics in core
+4. **Framework-agnostic**: No React/Vue/angular specifics in core
 5. **Lightweight**: Every KB matters
 6. **Document as you go**: Comments for public APIs
 7. **Test edge cases**: Especially around locale parsing
