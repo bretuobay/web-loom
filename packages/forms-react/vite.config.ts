@@ -10,8 +10,14 @@ export default defineConfig({
       insertTypesEntry: true,
       include: ['src/**/*'],
       exclude: ['src/**/*.test.*', 'src/**/*.spec.*', 'tests/**/*'],
+      tsconfigPath: './tsconfig.json',
     }),
   ],
+  resolve: {
+    alias: {
+      '@web-loom/forms-core': resolve(__dirname, '../forms-core/src'),
+    },
+  },
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
@@ -20,11 +26,13 @@ export default defineConfig({
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
-      external: ['react', 'react-dom'],
+      external: ['react', 'react-dom', '@web-loom/forms-core', 'zod'],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
+          '@web-loom/forms-core': 'WebLoomFormsCore',
+          zod: 'Zod',
         },
       },
     },

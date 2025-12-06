@@ -31,7 +31,16 @@ export interface UseMediaPlayerResult {
   player: MediaCorePlayer | null;
 }
 
-const SNAPSHOT_EVENTS: Array<keyof MediaEventMap> = ['ready', 'play', 'pause', 'timeupdate', 'seeking', 'seeked', 'ended', 'error'];
+const SNAPSHOT_EVENTS: Array<keyof MediaEventMap> = [
+  'ready',
+  'play',
+  'pause',
+  'timeupdate',
+  'seeking',
+  'seeked',
+  'ended',
+  'error',
+];
 
 export function useMediaPlayer(
   config: MediaSourceConfig,
@@ -121,7 +130,7 @@ export function useMediaState(player: MediaCorePlayer | null | undefined): Playb
         if (state && typeof state === 'object' && 'state' in state) {
           setSnapshot(state as PlaybackSnapshot);
         }
-      })
+      }),
     );
     return () => {
       unsubs.forEach((dispose) => dispose());
@@ -131,7 +140,11 @@ export function useMediaState(player: MediaCorePlayer | null | undefined): Playb
   return snapshot;
 }
 
-function registerPlugins(player: MediaCorePlayer | null, plugins: MediaPlugin[] | undefined, registry: Set<string>): void {
+function registerPlugins(
+  player: MediaCorePlayer | null,
+  plugins: MediaPlugin[] | undefined,
+  registry: Set<string>,
+): void {
   if (!player || !plugins?.length) {
     return;
   }

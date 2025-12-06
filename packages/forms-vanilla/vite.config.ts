@@ -8,8 +8,14 @@ export default defineConfig({
       insertTypesEntry: true,
       include: ['src/**/*'],
       exclude: ['src/**/*.test.*', 'src/**/*.spec.*', 'tests/**/*'],
+      tsconfigPath: './tsconfig.json',
     }),
   ],
+  resolve: {
+    alias: {
+      '@web-loom/forms-core': resolve(__dirname, '../forms-core/src'),
+    },
+  },
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
@@ -18,9 +24,12 @@ export default defineConfig({
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
-      external: [],
+      external: ['@web-loom/forms-core', 'zod'],
       output: {
-        globals: {},
+        globals: {
+          '@web-loom/forms-core': 'WebLoomFormsCore',
+          zod: 'Zod',
+        },
       },
     },
     sourcemap: true,

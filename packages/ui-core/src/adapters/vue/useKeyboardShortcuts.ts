@@ -3,7 +3,7 @@
  */
 
 import { ref, computed, onUnmounted } from 'vue';
-import type { KeyboardShortcutsState, KeyboardShortcutsActions } from '../../behaviors/keyboard-shortcuts';
+import type { KeyboardShortcutsState } from '../../behaviors/keyboard-shortcuts';
 import { createKeyboardShortcuts } from '../../behaviors/keyboard-shortcuts';
 
 /**

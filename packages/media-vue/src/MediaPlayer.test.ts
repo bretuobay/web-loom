@@ -3,7 +3,8 @@ import { mount } from '@vue/test-utils';
 import { defineComponent } from 'vue';
 import type { MediaPlugin } from '@web-loom/media-core';
 import { MediaPlayer } from './MediaPlayer.js';
-import { useMediaPlayer, useMediaState } from './useMediaPlayer.js';
+import { useMediaPlayer } from './useMediaPlayer.js';
+import { useMediaState } from './useMediaState.js';
 
 const sampleConfig = {
   kind: 'video' as const,

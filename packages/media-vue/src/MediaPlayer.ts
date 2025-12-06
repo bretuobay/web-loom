@@ -1,17 +1,5 @@
-import {
-  defineComponent,
-  h,
-  mergeProps,
-  toRef,
-  watch,
-  type PropType,
-} from 'vue';
-import type {
-  MediaPlayerOptions,
-  MediaPlugin,
-  MediaSourceConfig,
-  PlaybackSnapshot,
-} from '@web-loom/media-core';
+import { defineComponent, h, mergeProps, toRef, watch, type PropType } from 'vue';
+import type { MediaPlayerOptions, MediaPlugin, MediaSourceConfig, PlaybackSnapshot } from '@web-loom/media-core';
 import { useMediaPlayer } from './useMediaPlayer.js';
 import { useMediaState } from './useMediaState.js';
 

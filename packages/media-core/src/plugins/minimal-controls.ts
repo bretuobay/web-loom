@@ -122,7 +122,7 @@ export const minimalControlsPlugin: MediaPlugin<MinimalControlsOptions> = {
         progress.setAttribute('aria-valuenow', progress.value);
         progress.setAttribute(
           'aria-valuetext',
-          `${formatTime(current)} of ${duration ? formatTime(duration) : 'unknown duration'} played`
+          `${formatTime(current)} of ${duration ? formatTime(duration) : 'unknown duration'} played`,
         );
       }
     };
