@@ -1302,7 +1302,7 @@ Visibility on scroll + priority action binding
     "prettier": "^3.7.3",
     "typescript": "~5.8.2",
     "vite": "^6.1.1",
-    "vite-plugin-dts": "^4.5.4",
+    "vite-plugin-dts": "^3.9.1",
     "vitest": "^3.2.4"
   }
 }
@@ -1369,7 +1369,7 @@ Visibility on scroll + priority action binding
     "prettier": "^3.7.3",
     "typescript": "~5.8.2",
     "vite": "^6.1.1",
-    "vite-plugin-dts": "^4.5.4",
+    "vite-plugin-dts": "^3.9.1",
     "vitest": "^3.2.4"
   }
 }
