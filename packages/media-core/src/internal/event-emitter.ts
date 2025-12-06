@@ -3,29 +3,20 @@ type Listener<Payload> = (payload: Payload) => void;
 export class TypedEventEmitter<EventMap extends Record<string, any>> {
   private listeners = new Map<keyof EventMap, Set<Listener<any>>>();
 
-  on<EventName extends keyof EventMap>(
-    event: EventName,
-    handler: Listener<EventMap[EventName]>
-  ): () => void {
+  on<EventName extends keyof EventMap>(event: EventName, handler: Listener<EventMap[EventName]>): () => void {
     this.getListeners(event).add(handler);
     return () => this.off(event, handler);
   }
 
-  once<EventName extends keyof EventMap>(
-    event: EventName,
-    handler: Listener<EventMap[EventName]>
-  ): () => void {
-    const wrapped: Listener<EventMap[EventName]> = payload => {
+  once<EventName extends keyof EventMap>(event: EventName, handler: Listener<EventMap[EventName]>): () => void {
+    const wrapped: Listener<EventMap[EventName]> = (payload) => {
       this.off(event, wrapped);
       handler(payload);
     };
     return this.on(event, wrapped);
   }
 
-  off<EventName extends keyof EventMap>(
-    event: EventName,
-    handler: Listener<EventMap[EventName]>
-  ): void {
+  off<EventName extends keyof EventMap>(event: EventName, handler: Listener<EventMap[EventName]>): void {
     const set = this.listeners.get(event);
     if (set) {
       set.delete(handler);

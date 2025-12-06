@@ -22,7 +22,7 @@ describe('dom helpers', () => {
 
   it('selects the most suitable playable source for media elements', () => {
     const video = document.createElement('video');
-    vi.spyOn(video, 'canPlayType').mockImplementation(type => (type === 'video/mp4' ? 'probably' : ''));
+    vi.spyOn(video, 'canPlayType').mockImplementation((type) => (type === 'video/mp4' ? 'probably' : ''));
 
     const sources: MediaSource[] = [
       { src: '/movie.webm', type: 'video/webm' },

@@ -22,7 +22,15 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom'],
-    exclude: ['@web-loom/mvvm-core', '@web-loom/ui-core', '@web-loom/ui-patterns', '@web-loom/store-core', '@web-loom/event-bus-core', '@web-loom/media-core', '@web-loom/media-react'],
+    exclude: [
+      '@web-loom/mvvm-core',
+      '@web-loom/ui-core',
+      '@web-loom/ui-patterns',
+      '@web-loom/store-core',
+      '@web-loom/event-bus-core',
+      '@web-loom/media-core',
+      '@web-loom/media-react',
+    ],
   },
   build: {
     target: 'esnext',

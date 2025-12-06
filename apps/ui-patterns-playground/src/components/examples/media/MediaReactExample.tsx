@@ -82,7 +82,7 @@ export function MediaReactExample(): JSX.Element {
       tracks: CAPTION_TRACKS,
       chapters: CHAPTERS,
     }),
-    [selectedQuality]
+    [selectedQuality],
   );
 
   const playerOptions = useMemo(
@@ -96,7 +96,7 @@ export function MediaReactExample(): JSX.Element {
       autoplay: autoplayMode === 'off' ? false : autoplayMode === 'muted' ? 'muted' : true,
       defaultTextTrackId: 'captions-en',
     }),
-    [useNativeControls, loopPlayback, autoplayMode]
+    [useNativeControls, loopPlayback, autoplayMode],
   );
 
   const { containerRef, player } = useMediaPlayer(config, playerOptions, { plugins: playerPlugins });
@@ -127,8 +127,9 @@ export function MediaReactExample(): JSX.Element {
     <section className="example-container">
       <h2>Media React – Declarative Component</h2>
       <p>
-        Demonstrates how <code>@web-loom/media-react</code> composes the declarative <code>&lt;MediaPlayer /&gt;</code> component
-        with hooks for custom layouts, source selection, captions, playback controls, and MediaCore plugin integration.
+        Demonstrates how <code>@web-loom/media-react</code> composes the declarative <code>&lt;MediaPlayer /&gt;</code>{' '}
+        component with hooks for custom layouts, source selection, captions, playback controls, and MediaCore plugin
+        integration.
       </p>
 
       <div className="example-controls" style={{ flexWrap: 'wrap' }}>
@@ -192,11 +193,7 @@ export function MediaReactExample(): JSX.Element {
         </div>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <input
-            type="checkbox"
-            checked={loopPlayback}
-            onChange={(event) => setLoopPlayback(event.target.checked)}
-          />
+          <input type="checkbox" checked={loopPlayback} onChange={(event) => setLoopPlayback(event.target.checked)} />
           Loop playback
         </label>
 

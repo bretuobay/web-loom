@@ -88,7 +88,7 @@ const PluginWidgetRenderer: React.FC<{ component: ReactPluginComponent }> = ({ c
 
 // --- host --------------------------------------------------------------
 
-export const PluginHost: React.FC = () => {
+export const PluginHost = () => {
   const [isRegistered, setIsRegistered] = useState(false);
 
   useEffect(() => {

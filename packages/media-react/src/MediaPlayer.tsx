@@ -41,16 +41,12 @@ export const MediaPlayer = forwardRef<MediaCorePlayer, MediaPlayerProps>(functio
   const { containerRef, player } = useMediaPlayer(config, options, hookOptions);
   const snapshot = useMediaState(player);
 
-  useImperativeHandle(
-    ref,
-    () => {
-      if (!player) {
-        throw new Error('MediaPlayer: Cannot access player before it is initialized');
-      }
-      return player;
-    },
-    [player]
-  );
+  useImperativeHandle(ref, () => {
+    if (!player) {
+      throw new Error('MediaPlayer: Cannot access player before it is initialized');
+    }
+    return player;
+  }, [player]);
 
   useEffect(() => {
     if (snapshot?.state === 'ready') {
@@ -58,12 +54,5 @@ export const MediaPlayer = forwardRef<MediaCorePlayer, MediaPlayerProps>(functio
     }
   }, [snapshot, onReady]);
 
-  return (
-    <div
-      ref={containerRef}
-      className={className}
-      data-testid={testId}
-      data-media-player-kind={config.kind}
-    />
-  );
+  return <div ref={containerRef} className={className} data-testid={testId} data-media-player-kind={config.kind} />;
 });

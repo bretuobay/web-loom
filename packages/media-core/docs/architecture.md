@@ -6,12 +6,12 @@ This document codifies the foundational architecture for the `@web-loom/media-co
 
 The media core is intentionally split into distinct layers so it can stay framework-agnostic while still providing hooks for UI, plugins, and adapters.
 
-| Layer | Responsibility | Notes |
-| --- | --- | --- |
-| Media Engine | Pure logic/state orchestration plus media-element lifecycle. Owns playback commands, source negotiation, event normalization, and plugin host lifecycle. | Runs without assuming a DOM until bound; can be reused in workers/tests. |
-| DOM Bindings | Concrete bindings to `<video>`, `<audio>`, and `<img>` elements. Responsible for element creation, attr syncing, event wiring, resize observers, and cleanup. | Exposes a tiny adapter surface so alternate render targets (e.g., React refs) can be supported. |
-| UI Shell & Themes | Optional minimal controls implemented as plugins. They consume the Media Engine API and emit DOM via CSS variables for theming. | Ships separately to keep the core headless by default. |
-| Framework Adapters | React/Vue/Svelte/Angular wrappers that translate framework lifecycle (mount/unmount, refs, hooks/stores) into Media Engine commands. | No framework-specific code leaks back into the core package. |
+| Layer              | Responsibility                                                                                                                                                | Notes                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Media Engine       | Pure logic/state orchestration plus media-element lifecycle. Owns playback commands, source negotiation, event normalization, and plugin host lifecycle.      | Runs without assuming a DOM until bound; can be reused in workers/tests.                        |
+| DOM Bindings       | Concrete bindings to `<video>`, `<audio>`, and `<img>` elements. Responsible for element creation, attr syncing, event wiring, resize observers, and cleanup. | Exposes a tiny adapter surface so alternate render targets (e.g., React refs) can be supported. |
+| UI Shell & Themes  | Optional minimal controls implemented as plugins. They consume the Media Engine API and emit DOM via CSS variables for theming.                               | Ships separately to keep the core headless by default.                                          |
+| Framework Adapters | React/Vue/Svelte/Angular wrappers that translate framework lifecycle (mount/unmount, refs, hooks/stores) into Media Engine commands.                          | No framework-specific code leaks back into the core package.                                    |
 
 The layers communicate strictly via TypeScript interfaces (`MediaPlayer`, `MediaPlugin`, etc.). Plugins never reach into DOM bindings directly; they interact through the player API and the event emitter so they can run in any adapter context.
 
