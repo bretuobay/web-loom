@@ -55,10 +55,11 @@ class FormatterRegistry {
   formatRelative(date: Date | string | number, options?: Intl.RelativeTimeFormatOptions): string {
     return this.date.formatRelative(date, this._locale, options);
   }
-
-  //   formatList(items: string[], options?: Intl.ListFormatOptions): string {
-  //     return this.list.format(items, this._locale, options);
-  //   }
+  //   verify later
+  // @ts-expect-error ignore missing types for Intl.ListFormatOptions
+  formatList(items: string[], options?: typeof Intl.ListFormatOptions): string {
+    return this.list.format(items, this._locale, options);
+  }
 
   selectPlural(value: number, options?: Intl.PluralRulesOptions): Intl.LDMLPluralRule {
     return this.plural.select(value, this._locale, options);
