@@ -93,7 +93,7 @@ export function MediaReactExample(): JSX.Element {
       responsive: true,
       aspectRatio: '16 / 9',
       loop: loopPlayback,
-      autoplay: autoplayMode === 'off' ? false : autoplayMode === 'muted' ? 'muted' : true,
+      autoplay: (autoplayMode === 'off' ? false : autoplayMode === 'muted' ? 'muted' : true) as boolean | 'muted',
       defaultTextTrackId: 'captions-en',
     }),
     [useNativeControls, loopPlayback, autoplayMode],
