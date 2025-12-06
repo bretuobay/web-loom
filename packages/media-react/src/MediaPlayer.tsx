@@ -30,7 +30,7 @@ export interface MediaPlayerProps {
   'data-testid'?: string;
 }
 
-export const MediaPlayer = forwardRef<MediaCorePlayer, MediaPlayerProps>(function MediaPlayer(
+export const MediaPlayer = forwardRef<MediaCorePlayer | null, MediaPlayerProps>(function MediaPlayer(
   { config, options, plugins, autoMount, className, onReady, 'data-testid': testId },
   ref,
 ) {
@@ -41,11 +41,7 @@ export const MediaPlayer = forwardRef<MediaCorePlayer, MediaPlayerProps>(functio
   const { containerRef, player } = useMediaPlayer(config, options, hookOptions);
   const snapshot = useMediaState(player);
 
-  useImperativeHandle(ref, () => {
-    // Return player (may be null during initial render)
-    // Consumers should check for null or wait for the player to be ready
-    return player;
-  }, [player]);
+  useImperativeHandle(ref, () => player as any, [player]);
 
   useEffect(() => {
     if (snapshot?.state === 'ready') {

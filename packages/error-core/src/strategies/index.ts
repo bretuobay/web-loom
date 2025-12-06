@@ -2,7 +2,7 @@
 export { RetryStrategy, RETRY_STRATEGIES } from './RetryStrategy';
 export { CircuitBreaker, CircuitOpenError, CIRCUIT_BREAKER_PRESETS } from './CircuitBreaker';
 export {
-  FallbackStrategy,
+  type FallbackStrategy,
   FallbackManager,
   CacheStrategy,
   DefaultValueStrategy,

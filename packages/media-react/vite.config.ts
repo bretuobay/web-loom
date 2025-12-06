@@ -7,7 +7,11 @@ export default defineConfig({
   plugins: [
     react(),
     dts({
-      entryRoot: 'src',
+      // entryRoot: 'src',
+      insertTypesEntry: true,
+      include: ['src/**/*'],
+      exclude: ['src/**/*.test.*', 'src/**/*.spec.*', 'tests/**/*'],
+      tsconfigPath: './tsconfig.json',
     }),
   ],
   resolve: {
