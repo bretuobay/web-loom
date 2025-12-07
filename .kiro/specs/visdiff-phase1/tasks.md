@@ -220,22 +220,22 @@
   - **Property 53: Comparison failure percentage**
   - **Validates: Requirements 12.3**
 
-- [ ] 7. Implement CLI commands
-- [ ] 7.1 Create CLI parser with Commander
+- [-] 7. Implement CLI commands
+- [x] 7.1 Create CLI parser with Commander
   - Set up Commander with program name and version
   - Define command structure (init, capture, compare, approve, watch, status)
   - Implement argument parsing and validation
   - Add help text and usage examples
   - _Requirements: 1.1, 2.1, 3.1, 4.1, 5.1, 7.1_
 
-- [ ] 7.2 Implement init command
+- [x] 7.2 Implement init command
   - Create default configuration file
   - Create directory structure
   - Output success message with next steps
   - Handle existing configuration preservation
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 7.3 Implement capture command
+- [x] 7.3 Implement capture command
   - Parse URL and options
   - Initialize browser manager and capture engine
   - Capture screenshots for all viewports
@@ -243,7 +243,7 @@
   - Output capture summary
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-- [ ] 7.4 Implement compare command
+- [x] 7.4 Implement compare command
   - Load configuration
   - Capture current screenshots
   - Load baselines and compare
@@ -251,11 +251,11 @@
   - Return appropriate exit code
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
 
-- [ ] 7.5 Write property test for success exit code
+- [x] 7.5 Write property test for success exit code
   - **Property 14: Success exit code**
   - **Validates: Requirements 3.7**
 
-- [ ] 7.6 Write property test for failure exit code
+- [x] 7.6 Write property test for failure exit code
   - **Property 15: Failure exit code**
   - **Validates: Requirements 3.8**
 
