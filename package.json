@@ -33,5 +33,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "vite-plugin-dts": "^3.9.1"
+  }
 }

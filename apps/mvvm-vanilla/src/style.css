@@ -63,3 +63,11 @@ button:focus-visible {
   padding: 2rem;
   text-align: center;
 }
+
+.sensor-reading-card canvas {
+  /* Directly styling the canvas, assuming its parent div controls size */
+  max-width: 100%;
+  /* Ensure canvas is responsive within its container */
+  max-height: 200px !important;
+  /* Force height; Chart.js can be tricky with parent-defined height sometimes */
+}
