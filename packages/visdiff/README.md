@@ -13,13 +13,17 @@ npx @web-loom/visdiff watch
 
 WebLoom VisDiff is being built in phases to transform how frontend teams handle visual quality. Here's our roadmap:
 
-### 🟢 **Now Available (Phase 1)**
+### 🟡 **In Development (Phase 1)**
+
+Phase 1 is currently under active development following a spec-driven approach:
 
 - **Local snapshot testing** - Capture and compare screenshots locally
 - **Zero-config setup** - Works with any project in under 2 minutes
 - **Multi-viewport support** - Mobile, tablet, and desktop screens
 - **Git integration** - Automatic baseline management per branch
 - **Simple CLI** - `visdiff watch` for instant feedback during development
+
+**Development Status**: Core infrastructure setup complete. See [SETUP.md](./SETUP.md) for details.
 
 ### 🔵 **Coming Soon (Phase 2 - Q2 2024)**
 

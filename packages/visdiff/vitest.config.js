@@ -2,10 +2,13 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    globals: true, // Optional: to use Vitest's globals like describe, it, expect without importing them
-    environment: 'jsdom', // Use jsdom to simulate browser environment
-    include: ['src/**/*.{test,spec}.{js,ts}'], // Pattern to find test files
-    testTimeout: 20000, // Increased test timeout
-    hookTimeout: 20000, // Increased hook timeout
+    globals: true,
+    environment: 'node', // Node environment for CLI tool
+    include: ['src/**/*.{test,spec}.{js,ts}', 'test/**/*.{test,spec}.{js,ts}'],
+    testTimeout: 30000, // Increased timeout for property-based tests
+    hookTimeout: 30000,
+    // Property-based testing configuration
+    // fast-check will run 100+ iterations by default
+    // Individual tests can override with fc.assert(property, { numRuns: N })
   },
 });

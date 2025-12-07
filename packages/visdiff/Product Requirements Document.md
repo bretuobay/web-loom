@@ -88,7 +88,7 @@ module.exports = {
 
 #### 5. Technical Specifications
 
-- **Runtime**: Node.js 16+
+- **Runtime**: Node.js 20+
 - **Browser Control**: Puppeteer (Chromium)
 - **Image Processing**: Sharp + pixelmatch
 - **Package Size**: < 20MB (including Chromium)
@@ -401,9 +401,9 @@ module.exports = {
 
 ### 3. Compatibility Matrix
 
-- **Node.js**: 16.x, 18.x, 20.x
+- **Node.js**: 20.x, 22.x, 24.x
 - **Browsers**: Chromium 115+, Firefox 115+
-- **Frameworks**: React 16.8+, Vue 3+, Svelte 3+, Angular 12+
+- **Frameworks**: React 19+, Vue 3+, Svelte 3+, Angular 18+
 - **Platforms**: macOS 10.15+, Windows 10+, Linux (Ubuntu 20.04+)
 
 ### 4. Quality Gates
@@ -487,6 +487,6 @@ module.exports = {
 ---
 
 **Document Version**: 1.0  
-**Last Updated**: January 15, 2024  
-**Owner**: Product Team, WebLoom  
+**Last Updated**: December 06, 2025
+**Owner**: Festus Yeboah
 **Status**: Draft for Review
