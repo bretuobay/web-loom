@@ -11,6 +11,9 @@ import chalk from 'chalk';
 import { initCommand } from './commands/init.js';
 import { captureCommand } from './commands/capture.js';
 import { compareCommand } from './commands/compare.js';
+import { approveCommand } from './commands/approve.js';
+import { statusCommand } from './commands/status.js';
+import { watchCommand } from './commands/watch.js';
 
 const program = new Command();
 
@@ -77,16 +80,9 @@ program
   .argument('[identifiers...]', 'Specific identifiers to approve (approves all if not specified)')
   .option('-c, --config <path>', 'Path to configuration file', 'visdiff.config.js')
   .option('--no-backup', 'Skip creating backup of old baselines', false)
-  .action(async (_identifiers, _options) => {
-    try {
-      console.log(chalk.blue('Approving changes...'));
-      // Implementation will be added in task 7.7
-      console.log(chalk.yellow('Approve command not yet implemented'));
-      process.exit(0);
-    } catch (error) {
-      console.error(chalk.red('Error during approval:'), error);
-      process.exit(1);
-    }
+  .action(async (identifiers, options) => {
+    const exitCode = await approveCommand(identifiers, options);
+    process.exit(exitCode);
   });
 
 /**
@@ -99,16 +95,9 @@ program
   .option('-c, --config <path>', 'Path to configuration file', 'visdiff.config.js')
   .option('-v, --verbose', 'Show detailed status information', false)
   .option('--json', 'Output status as JSON', false)
-  .action(async (_options) => {
-    try {
-      console.log(chalk.blue('Checking status...'));
-      // Implementation will be added in task 7.9
-      console.log(chalk.yellow('Status command not yet implemented'));
-      process.exit(0);
-    } catch (error) {
-      console.error(chalk.red('Error checking status:'), error);
-      process.exit(1);
-    }
+  .action(async (options) => {
+    const exitCode = await statusCommand(options);
+    process.exit(exitCode);
   });
 
 /**
@@ -122,16 +111,9 @@ program
   .option('-c, --config <path>', 'Path to configuration file', 'visdiff.config.js')
   .option('-i, --interval <ms>', 'Polling interval in milliseconds', '2000')
   .option('--debounce <ms>', 'Debounce delay in milliseconds', '500')
-  .action(async (_url, _options) => {
-    try {
-      console.log(chalk.blue('Starting watch mode...'));
-      // Implementation will be added in task 7.13
-      console.log(chalk.yellow('Watch command not yet implemented'));
-      process.exit(0);
-    } catch (error) {
-      console.error(chalk.red('Error in watch mode:'), error);
-      process.exit(1);
-    }
+  .action(async (url, options) => {
+    const exitCode = await watchCommand(url, options);
+    process.exit(exitCode);
   });
 
 // Add help examples
