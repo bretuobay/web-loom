@@ -66,7 +66,16 @@ export type StorageConfig = z.infer<typeof StorageConfigSchema>;
  */
 export const VisDiffConfigSchema = z.object({
   viewports: z.array(ViewportSchema).min(1, 'At least one viewport is required'),
-  paths: z.array(z.string().url('Each path must be a valid URL')).min(1, 'At least one path is required'),
+  paths: z
+    .array(
+      z
+        .string()
+        .url('Each path must be a valid URL')
+        .refine((url) => url.startsWith('http://') || url.startsWith('https://'), {
+          message: 'URL must use http:// or https:// protocol',
+        })
+    )
+    .min(1, 'At least one path is required'),
   captureOptions: CaptureOptionsSchema,
   diffOptions: DiffOptionsSchema,
   storage: StorageConfigSchema,
