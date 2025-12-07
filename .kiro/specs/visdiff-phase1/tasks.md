@@ -107,8 +107,8 @@
   - **Property 37: Memory usage monitoring**
   - **Validates: Requirements 8.5**
 
-- [ ] 5. Implement capture engine
-- [ ] 5.1 Create capture engine class
+- [x] 5. Implement capture engine
+- [x] 5.1 Create capture engine class
   - Implement capture() for single URL and viewport
   - Add viewport setting logic
   - Implement network idle detection
@@ -116,65 +116,65 @@
   - Handle capture timeouts with retries
   - _Requirements: 2.1, 2.4, 11.1, 11.2, 11.4_
 
-- [ ] 5.2 Write property test for browser navigation
+- [x] 5.2 Write property test for browser navigation
   - **Property 3: Browser navigation for valid URLs**
   - **Validates: Requirements 2.1**
 
-- [ ] 5.3 Write property test for network idle waiting
+- [x] 5.3 Write property test for network idle waiting
   - **Property 46: Network idle waiting**
   - **Validates: Requirements 11.1**
 
-- [ ] 5.4 Write property test for timeout fallback
+- [x] 5.4 Write property test for timeout fallback
   - **Property 47: Timeout fallback**
   - **Validates: Requirements 11.2**
 
-- [ ] 5.5 Write property test for pre-capture script execution
+- [x] 5.5 Write property test for pre-capture script execution
   - **Property 49: Pre-capture script execution**
   - **Validates: Requirements 11.4**
 
-- [ ] 5.2 Implement full-page capture with scrolling
+- [x] 5.2 Implement full-page capture with scrolling
   - Add fullPage option handling
   - Implement scroll and stitch logic for long pages
   - Ensure captured image height exceeds viewport for long content
   - _Requirements: 2.6_
 
-- [ ] 5.7 Write property test for full-page capture
+- [x] 5.7 Write property test for full-page capture
   - **Property 8: Full-page capture height**
   - **Validates: Requirements 2.6**
 
-- [ ] 5.8 Implement captureAll() for batch captures
+- [x] 5.8 Implement captureAll() for batch captures
   - Add parallel capture support for multiple viewports
   - Implement error resilience (continue on failure)
   - Generate capture summary with success/failure counts
   - _Requirements: 2.2, 2.4, 2.5_
 
-- [ ] 5.9 Write property test for viewport coverage
+- [x] 5.9 Write property test for viewport coverage
   - **Property 4: Complete viewport coverage**
   - **Validates: Requirements 2.2**
 
-- [ ] 5.10 Write property test for error resilience
+- [x] 5.10 Write property test for error resilience
   - **Property 6: Error resilience during capture**
   - **Validates: Requirements 2.4**
 
-- [ ] 5.11 Write property test for capture summary
+- [x] 5.11 Write property test for capture summary
   - **Property 7: Capture summary completeness**
   - **Validates: Requirements 2.5**
 
-- [ ] 5.12 Add custom wait conditions
+- [x] 5.12 Add custom wait conditions
   - Implement waitForSelector support
   - Add animation delay handling
   - _Requirements: 11.3, 11.5_
 
-- [ ] 5.13 Write property test for custom selector waiting
+- [x] 5.13 Write property test for custom selector waiting
   - **Property 48: Custom selector waiting**
   - **Validates: Requirements 11.3**
 
-- [ ] 5.14 Write property test for animation delay
+- [x] 5.14 Write property test for animation delay
   - **Property 50: Animation delay respect**
   - **Validates: Requirements 11.5**
 
-- [ ] 6. Implement comparison engine
-- [ ] 6.1 Create comparison engine class
+- [x] 6. Implement comparison engine
+- [x] 6.1 Create comparison engine class
   - Implement compare() using pixelmatch
   - Add threshold-based pass/fail logic
   - Implement ignoreAntialiasing option
@@ -182,41 +182,41 @@
   - Generate diff images with highlighted changes
   - _Requirements: 3.2, 3.3, 9.1, 9.2, 9.3, 9.4_
 
-- [ ] 6.2 Write property test for threshold respect
+- [x] 6.2 Write property test for threshold respect
   - **Property 10: Threshold respect**
   - **Validates: Requirements 3.2**
 
-- [ ] 6.3 Write property test for diff image generation
+- [x] 6.3 Write property test for diff image generation
   - **Property 11: Diff image generation on failure**
   - **Validates: Requirements 3.3**
 
-- [ ] 6.4 Write property test for anti-aliasing tolerance
+- [x] 6.4 Write property test for anti-aliasing tolerance
   - **Property 38: Anti-aliasing tolerance**
   - **Validates: Requirements 9.1**
 
-- [ ] 6.5 Write property test for color-blind comparison
+- [x] 6.5 Write property test for color-blind comparison
   - **Property 39: Color-blind comparison**
   - **Validates: Requirements 9.2**
 
-- [ ] 6.6 Write property test for threshold-based identity
+- [x] 6.6 Write property test for threshold-based identity
   - **Property 40: Threshold-based identity**
   - **Validates: Requirements 9.3**
 
-- [ ] 6.7 Write property test for diff visualization
+- [x] 6.7 Write property test for diff visualization
   - **Property 41: Diff visualization contrast**
   - **Validates: Requirements 9.4**
 
-- [ ] 6.8 Implement compareAll() for batch comparisons
+- [x] 6.8 Implement compareAll() for batch comparisons
   - Add parallel comparison support
   - Handle missing baselines gracefully
   - Calculate difference metrics (percentage, pixel count)
   - _Requirements: 3.1, 3.6, 12.3_
 
-- [ ] 6.9 Write property test for comparison coverage
+- [x] 6.9 Write property test for comparison coverage
   - **Property 9: Complete comparison coverage**
   - **Validates: Requirements 3.1**
 
-- [ ] 6.10 Write property test for comparison failure percentage
+- [x] 6.10 Write property test for comparison failure percentage
   - **Property 53: Comparison failure percentage**
   - **Validates: Requirements 12.3**
 
