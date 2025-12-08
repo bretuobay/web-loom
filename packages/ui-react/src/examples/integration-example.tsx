@@ -87,7 +87,7 @@ export function MasterDetailExample() {
           <Button
             key={item.id}
             onClick={() => masterDetail.actions.selectItem(item)}
-            variant={state.selectedItem?.id === item.id ? 'primary' : 'secondary'}
+            variant={state.selectedItem?.id === item.id ? 'primary' : 'default'}
           >
             {item.name}
           </Button>

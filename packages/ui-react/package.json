@@ -1,19 +1,39 @@
 {
   "name": "@repo/ui-react",
   "version": "0.5.2",
-  "private": true,
-  "types": "src/index.ts",
+  "author": "Festus Yeboah <festus.yeboah@hotmail.com>",
+  "license": "MIT",
+  "description": "A comprehensive React component library built on Web Loom UI ecosystem with headless behaviors and design system integration",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
     },
     "./components/*": {
-      "types": "./src/components/*/index.ts",
-      "default": "./src/components/*/index.ts"
+      "types": "./dist/components/*/index.d.ts",
+      "import": "./dist/components/*/index.js",
+      "require": "./dist/components/*/index.cjs",
+      "default": "./dist/components/*/index.js"
     },
-    "./styles/*": "./src/styles/*"
+    "./styles": "./dist/ui-react.css",
+    "./styles/*": "./dist/styles/*",
+    "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "INTEGRATION.md"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
@@ -43,6 +63,8 @@
     "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^9.33.0",
     "jsdom": "^26.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "storybook": "^8.4.7",
     "typescript": "5.8.2",
     "vite": "^6.1.1",
@@ -52,8 +74,30 @@
   "dependencies": {
     "@web-loom/design-core": "*",
     "@web-loom/ui-core": "*",
-    "@web-loom/ui-patterns": "*",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
-  }
+    "@web-loom/ui-patterns": "*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "keywords": [
+    "react",
+    "react-components",
+    "ui-library",
+    "design-system",
+    "web-loom",
+    "headless-ui",
+    "component-library",
+    "typescript",
+    "accessible"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/web-loom.git",
+    "directory": "packages/ui-react"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/web-loom/issues"
+  },
+  "homepage": "https://github.com/your-org/web-loom/tree/main/packages/ui-react#readme"
 }
