@@ -1,0 +1,43 @@
+/**
+ * Space Component Styles
+ */
+
+/* Base Space */
+.space {
+  display: flex;
+}
+
+/* Directions */
+.direction-horizontal {
+  flex-direction: row;
+}
+
+.direction-vertical {
+  flex-direction: column;
+}
+
+/* Alignment */
+.align-start {
+  align-items: flex-start;
+}
+
+.align-end {
+  align-items: flex-end;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.align-baseline {
+  align-items: baseline;
+}
+
+.align-stretch {
+  align-items: stretch;
+}
+
+/* Wrap */
+.wrap {
+  flex-wrap: wrap;
+}
