@@ -27,8 +27,8 @@ Implement the core `createForm()` factory function that initializes form state, 
 ```typescript
 // src/form.ts
 import { ZodSchema } from 'zod';
-import { FormState, FormConfig, FieldMeta } from './types';
-import { createEventEmitter } from './utils/events';
+import { FormState, FormConfig, FieldMeta, FormEventMap } from './types';
+import { EventEmitter } from '@web-loom/event-emitter-core';
 import { cloneDeep, setPath, getPath } from './utils/clone';
 
 export function createForm<T extends Record<string, unknown>>(config: FormConfig<T>): FormInstance<T> {
@@ -45,7 +45,7 @@ export function createForm<T extends Record<string, unknown>>(config: FormConfig
     submitCount: 0,
   };
 
-  const eventEmitter = createEventEmitter();
+  const eventEmitter = new EventEmitter<FormEventMap<T>>();
   const registeredFields = new Set<string>();
 
   // Core methods implementation...
@@ -150,8 +150,8 @@ interface FormInstance<T> {
 
 ```typescript
 import { ZodSchema, ZodError } from 'zod';
-import { FormConfig, FormState, FormInstance } from './types';
-import { EventEmitter } from './utils/events';
+import { FormConfig, FormState, FormInstance, FormEventMap } from './types';
+import { EventEmitter } from '@web-loom/event-emitter-core';
 import { getPath, setPath, cloneDeep } from './utils/clone';
 
 export function createForm<T extends Record<string, unknown>>(config: FormConfig<T>): FormInstance<T> {
@@ -210,39 +210,15 @@ export function createForm<T extends Record<string, unknown>>(config: FormConfig
 
 ### Utilities (`src/utils/`)
 
-#### Event Emitter (`src/utils/events.ts`)
+#### Event Emitter
 
-```typescript
-type EventCallback = (...args: unknown[]) => void;
+The bespoke emitter under `src/utils/events.ts` has been replaced by the shared [`@web-loom/event-emitter-core`](../event-emitter-core) package. Reuse it instead of maintaining local copies:
 
-export class EventEmitter {
-  private listeners = new Map<string, EventCallback[]>();
+```ts
+import { EventEmitter } from '@web-loom/event-emitter-core';
 
-  on(event: string, callback: EventCallback): () => void {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, []);
-    }
-
-    this.listeners.get(event)!.push(callback);
-
-    return () => this.off(event, callback);
-  }
-
-  off(event: string, callback: EventCallback): void {
-    const callbacks = this.listeners.get(event);
-    if (callbacks) {
-      const index = callbacks.indexOf(callback);
-      if (index > -1) {
-        callbacks.splice(index, 1);
-      }
-    }
-  }
-
-  emit(event: string, ...args: unknown[]): void {
-    const callbacks = this.listeners.get(event) || [];
-    callbacks.forEach((callback) => callback(...args));
-  }
-}
+const events = new EventEmitter<FormEventMap<MyForm>>();
+const unsubscribe = events.on('stateChange', (state) => console.log(state));
 ```
 
 #### Path Utilities (`src/utils/path.ts`)

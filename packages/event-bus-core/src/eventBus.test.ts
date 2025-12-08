@@ -267,6 +267,9 @@ describe('EventBus - Additional Edge Cases', () => {
   });
 
   it('should correctly handle listeners that throw errors', () => {
+    // Mock console.error to capture error logs
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     const erroringListener = vi.fn(() => {
       throw new Error('Test error in listener');
     });
@@ -275,12 +278,8 @@ describe('EventBus - Additional Edge Cases', () => {
     eventBus.on('test-event', erroringListener);
     eventBus.on('test-event', succeedingListener); // Registered after the erroring one
 
-    // Depending on desired behavior (PRD says "Error Handling in Listeners" is future),
-    // current synchronous emit might stop or continue.
-    // For now, let's assume it continues to call other listeners.
-    // If it should stop, this test needs adjustment.
-    // Let's test if the error is thrown and succeeding listener is still called.
-
+    // The EventEmitter now catches errors in listeners and logs them via reportError.
+    // Errors do NOT propagate out of emit - instead, all listeners continue to execute.
     let caughtError: Error | null = null;
     try {
       eventBus.emit('test-event', 'payloadError');
@@ -288,28 +287,30 @@ describe('EventBus - Additional Edge Cases', () => {
       caughtError = e;
     }
 
-    // This behavior might need clarification from PRD: should emit catch errors from listeners?
-    // The current implementation does not catch errors, so the error will propagate.
-    // The PRD mentions "Error Handling in Listeners" as a future consideration.
-    // So, for now, the error should propagate out of emit.
-    expect(caughtError).toBeInstanceOf(Error);
-    expect(caughtError?.message).toBe('Test error in listener');
+    // Error should NOT propagate (it's caught by EventEmitter)
+    expect(caughtError).toBeNull();
 
+    // Both listeners should have been called
     expect(erroringListener).toHaveBeenCalledTimes(1);
-    // If emit stops on error, this won't be called. If it continues, it will.
-    // Based on synchronous execution and no explicit error handling in emit, it should continue.
-    // However, the error from the first listener will stop the emit's loop if not caught by emit itself.
-    // The current implementation in eventBus.ts does NOT catch errors from listeners.
-    // So, succeedingListener will NOT be called if erroringListener is called first.
-    // Let's adjust the expectation.
-    // To make it testable, we can register the succeeding listener first.
+    expect(succeedingListener).toHaveBeenCalledTimes(1);
 
+    // Error should have been logged
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[event-emitter-core]'),
+      expect.any(Error)
+    );
+
+    consoleErrorSpy.mockRestore();
+
+    // Test with multiple listeners where one throws
     eventBus = createEventBus<TestEvents>(); // Reset
     const listener1 = vi.fn();
     const errorListener = vi.fn(() => {
       throw new Error('Listener error');
     });
     const listener2 = vi.fn();
+
+    const consoleErrorSpy2 = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     eventBus.on('test-event', listener1);
     eventBus.on('test-event', errorListener);
@@ -322,13 +323,18 @@ describe('EventBus - Additional Edge Cases', () => {
       thrownError = e;
     }
 
+    // All listeners should be called despite the error
     expect(listener1).toHaveBeenCalledTimes(1);
     expect(errorListener).toHaveBeenCalledTimes(1);
-    expect(thrownError).toBeInstanceOf(Error);
-    expect(thrownError.message).toBe('Listener error');
-    // Since the error in `errorListener` is not caught by the `emit` method's loop,
-    // `listener2` which is registered after `errorListener` will not be executed.
-    expect(listener2).not.toHaveBeenCalled();
+    expect(listener2).toHaveBeenCalledTimes(1);
+
+    // Error should not propagate
+    expect(thrownError).toBeNull();
+
+    // Error should have been logged
+    expect(consoleErrorSpy2).toHaveBeenCalled();
+
+    consoleErrorSpy2.mockRestore();
   });
 
   it('should handle re-entrant emit calls correctly', () => {

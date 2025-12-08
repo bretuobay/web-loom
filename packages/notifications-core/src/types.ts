@@ -40,10 +40,9 @@ export interface PushSubscriptionResult {
 
 export type NotificationEventName = 'permissionchange' | 'notificationclick' | 'notificationclose' | 'pushreceived';
 
-export interface NotificationEventMap {
+export interface NotificationEventMap extends Record<PropertyKey, unknown> {
   permissionchange: PermissionState;
   notificationclick: NotificationClickEvent;
   notificationclose: NotificationCloseEvent;
   pushreceived: unknown;
-  [event: string]: unknown;
 }

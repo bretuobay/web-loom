@@ -1,19 +1,19 @@
 // Event-based locale changes (framework-agnostic)
+import { EventEmitter } from '@web-loom/event-emitter-core';
 import type { Locale } from '../../src/types';
 
-type Callback = (locale: Locale) => void;
+type LocaleEvents = {
+  localeChange: Locale;
+};
 
 export class I18nEventEmitter {
-  private listeners: Set<Callback> = new Set();
+  private emitter = new EventEmitter<LocaleEvents>();
 
-  onLocaleChange(callback: Callback): () => void {
-    this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
+  onLocaleChange(callback: (locale: Locale) => void): () => void {
+    return this.emitter.on('localeChange', callback);
   }
 
   emitLocaleChange(locale: Locale): void {
-    for (const cb of this.listeners) {
-      cb(locale);
-    }
+    this.emitter.emit('localeChange', locale);
   }
 }

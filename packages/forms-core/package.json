@@ -47,6 +47,9 @@
   "optionalDependencies": {
     "@web-loom/storage-core": "*"
   },
+  "dependencies": {
+    "@web-loom/event-emitter-core": "*"
+  },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^8.32.1",

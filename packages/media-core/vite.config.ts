@@ -11,7 +11,12 @@ export default defineConfig({
       fileName: (format) => `media-core.${format}.js`,
     },
     rollupOptions: {
-      output: {},
+      external: ['@web-loom/event-emitter-core'],
+      output: {
+        globals: {
+          '@web-loom/event-emitter-core': 'EventEmitterCore',
+        },
+      },
     },
   },
   css: {

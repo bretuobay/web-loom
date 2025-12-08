@@ -13,7 +13,7 @@ import type {
   FormEventMap,
   FormErrors,
 } from '../types';
-import { EventEmitter } from '../utils/events';
+import { EventEmitter } from '@web-loom/event-emitter-core';
 import { getPath, setPath, deletePath, hasPath } from '../utils/path';
 import { validateWithZod, validateField } from '../validation';
 
@@ -520,7 +520,7 @@ class FormInstanceImpl<T extends Record<string, unknown> = Record<string, unknow
     this.validationTimeouts.clear();
 
     // Cleanup event emitter
-    this.eventEmitter.destroy();
+    this.eventEmitter.removeAllListeners();
 
     // Clear references
     this.registeredFields.clear();
