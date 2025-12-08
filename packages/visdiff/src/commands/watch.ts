@@ -33,7 +33,7 @@ function generateIdentifier(url: string, viewportName: string): string {
 async function performComparison(
   urls: string[],
   config: VisDiffConfig,
-  browserManager: BrowserManager,
+  _browserManager: BrowserManager,
   captureEngine: CaptureEngine,
   compareEngine: CompareEngine,
   storage: StorageManager
@@ -182,6 +182,7 @@ export async function watchCommand(
       urlsToWatch,
       config,
       browserManager,
+      captureEngine,
       compareEngine,
       storage
     );
@@ -242,7 +243,7 @@ export async function watchCommand(
       if (watchPaths.length > 0) {
         console.log(chalk.gray(`  Watching file system: ${watchPaths.join(', ')}`));
         
-        watcher = watch(watchPaths[0], { recursive: true }, async (eventType, filename) => {
+        watcher = watch(watchPaths[0]!, { recursive: true }, async (_eventType: string, filename: string | null) => {
           if (shouldExit || isRunning) {
             return;
           }

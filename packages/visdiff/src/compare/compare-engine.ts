@@ -183,13 +183,13 @@ export class CompareEngine {
       const a = buffer[i + 3];
 
       // Calculate luminance using standard formula
-      const luminance = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+      const luminance = Math.round(0.299 * (r ?? 0) + 0.587 * (g ?? 0) + 0.114 * (b ?? 0));
 
       // Set R, G, B to the same luminance value
       result[i] = luminance;
       result[i + 1] = luminance;
       result[i + 2] = luminance;
-      result[i + 3] = a;
+      result[i + 3] = a ?? 255;
     }
     return result;
   }
