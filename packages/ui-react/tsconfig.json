@@ -2,8 +2,30 @@
   "extends": "@repo/typescript-config/react-library.json",
   "compilerOptions": {
     "outDir": "dist",
-    "types": ["vitest/globals", "@testing-library/jest-dom"]
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
+    "paths": {
+      "@web-loom/design-core": ["../design-core/dist/index.d.ts"],
+      "@web-loom/ui-core": ["../ui-core/dist/index.d.ts"],
+      "@web-loom/ui-core/*": ["../ui-core/dist/*"],
+      "@web-loom/ui-patterns": ["../ui-patterns/dist/index.d.ts"],
+      "@web-loom/ui-patterns/*": ["../ui-patterns/dist/*"],
+      "@web-loom/store-core": ["../store-core/src/index.ts"],
+      "@web-loom/event-bus-core": ["../event-bus-core/src/index.ts"],
+      "@repo/ui-react": ["./src/index.ts"],
+      "@repo/ui-react/*": ["./src/*"]
+    }
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "../ui-core",
+    "../ui-patterns",
+    "../store-core",
+    "../event-bus-core",
+    "../design-core"
+  ]
 }
