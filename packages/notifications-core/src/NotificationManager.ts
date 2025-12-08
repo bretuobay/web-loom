@@ -1,4 +1,4 @@
-import { EventEmitter } from './eventEmitter';
+import { EventEmitter } from '@web-loom/event-emitter-core';
 import {
   type NotificationsConfig,
   type NotificationClickEvent,
@@ -14,7 +14,11 @@ import {
 export const PUSH_MESSAGE_TYPE = 'WEB_LOOM_PUSH_PAYLOAD';
 const DEFAULT_SW_PATH = '/sw.js';
 
-type EventCallback<TKey extends NotificationEventName> = (payload: NotificationEventMap[TKey]) => void;
+type EventCallback<TKey extends NotificationEventName> = NotificationEventMap[TKey] extends undefined | void
+  ? () => void
+  : NotificationEventMap[TKey] extends any[]
+    ? (...args: NotificationEventMap[TKey]) => void
+    : (arg: NotificationEventMap[TKey]) => void;
 
 export class NotificationManager {
   private config: NotificationsConfig;
@@ -103,11 +107,11 @@ export class NotificationManager {
   }
 
   subscribe<TKey extends NotificationEventName>(eventName: TKey, callback: EventCallback<TKey>) {
-    return this.events.subscribe(eventName, callback as EventCallback<any>);
+    return this.events.subscribe(eventName, callback as any);
   }
 
   unsubscribe<TKey extends NotificationEventName>(eventName: TKey, callback?: EventCallback<TKey>) {
-    this.events.unsubscribe(eventName, callback as EventCallback<any> | undefined);
+    this.events.unsubscribe(eventName, callback as any);
   }
 
   group(groupName: string) {

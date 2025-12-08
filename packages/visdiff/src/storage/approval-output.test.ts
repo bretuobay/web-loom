@@ -39,7 +39,7 @@ describe('Property 18: Approval output listing', () => {
           // Make identifiers unique
           const uniqueItems = items.map((item, idx) => {
             const newData = Buffer.alloc(item.data.length + 1);
-            item.data.copy(newData);
+            newData.set(item.data);
             newData[item.data.length] = idx;
             return {
               identifier: `${item.identifier}-${idx}`,
@@ -88,7 +88,7 @@ describe('Property 18: Approval output listing', () => {
           // Make identifiers unique
           const uniqueItems = items.map((item, idx) => {
             const newData = Buffer.alloc(item.data.length + 1);
-            item.data.copy(newData);
+            newData.set(item.data);
             newData[item.data.length] = idx;
             return {
               identifier: `${item.identifier}-${idx}`,
@@ -168,7 +168,7 @@ describe('Property 18: Approval output listing', () => {
           // Make identifiers unique
           const uniqueItems = items.map((item, idx) => {
             const newData = Buffer.alloc(item.data.length + 1);
-            item.data.copy(newData);
+            newData.set(item.data);
             newData[item.data.length] = idx;
             return {
               identifier: `${item.identifier}-${idx}`,
@@ -208,7 +208,7 @@ describe('Property 18: Approval output listing', () => {
           // Make identifiers unique
           const uniqueItems = items.map((item, idx) => {
             const newData = Buffer.alloc(item.data.length + 1);
-            item.data.copy(newData);
+            newData.set(item.data);
             newData[item.data.length] = idx;
             return {
               identifier: `${item.identifier}-${idx}`,

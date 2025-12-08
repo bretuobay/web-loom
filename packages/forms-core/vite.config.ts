@@ -11,11 +11,12 @@ export default defineConfig({
       fileName: (format) => `forms-core.${format}.js`,
     },
     rollupOptions: {
-      external: ['zod', '@web-loom/storage-core'],
+      external: ['zod', '@web-loom/storage-core', '@web-loom/event-emitter-core'],
       output: {
         globals: {
           zod: 'Zod',
           '@web-loom/storage-core': 'StorageCore',
+          '@web-loom/event-emitter-core': 'EventEmitterCore',
         },
       },
     },

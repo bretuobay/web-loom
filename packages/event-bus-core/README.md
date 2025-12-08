@@ -6,6 +6,9 @@ A lightweight, framework-agnostic Event Bus library for decoupled communication 
 
 `@web-loom/event-bus-core` provides a simple and efficient publish-subscribe pattern implementation written in TypeScript. It enables components or modules to communicate without direct dependencies on each other, facilitating a more modular and maintainable architecture.
 
+> ℹ️ **Event bus vs. event emitter**  
+> The bus is a higher-level abstraction that groups multiple event names under one instance and supports tuple payloads. Internally it now uses `@web-loom/event-emitter-core` for listener bookkeeping and error handling, so packages that only need localized dispatching can import the emitter directly.
+
 ## Features
 
 - **Type-safe**: Full TypeScript support with type inference for event names and payloads

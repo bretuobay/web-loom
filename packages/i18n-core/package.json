@@ -52,5 +52,8 @@
     "vite": "^6.1.1",
     "vite-plugin-dts": "^3.9.1",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@web-loom/event-emitter-core": "*"
   }
 }

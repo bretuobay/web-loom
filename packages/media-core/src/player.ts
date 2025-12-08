@@ -14,7 +14,7 @@ import type {
   PlaybackState,
   TextTrackConfig,
 } from './types.js';
-import { TypedEventEmitter } from './internal/event-emitter.js';
+import { EventEmitter } from '@web-loom/event-emitter-core';
 import { createMediaElement, isTimeBasedElement, selectBestSource } from './internal/dom.js';
 
 const MEDIA_EVENTS: Array<keyof MediaEventMap> = [
@@ -39,7 +39,7 @@ export class MediaCorePlayer implements MediaPlayer {
   private currentKind: MediaKind;
   private sourceConfig: MediaSourceConfig;
   private options: MediaPlayerOptions;
-  private emitter = new TypedEventEmitter<MediaEventMap>();
+  private emitter = new EventEmitter<MediaEventMap>();
   private elementRef: HTMLMediaElement | HTMLImageElement | null = null;
   private host: HTMLElement | null = null;
   private ownsElement = false;
@@ -128,7 +128,7 @@ export class MediaCorePlayer implements MediaPlayer {
     this.pluginCleanups.clear();
     this.activeTextTrackId = null;
     this.pendingTextTrackId = undefined;
-    this.emitter.emit('dispose', undefined);
+    this.emitter.emit('dispose');
     this.emitter.removeAll();
   }
 
@@ -433,39 +433,39 @@ export class MediaCorePlayer implements MediaPlayer {
   }
 
   on<E extends keyof MediaEventMap>(event: E, handler: MediaEventHandler<E>): () => void {
-    return this.emitter.on(event, handler);
+    return this.emitter.on(event, handler as any);
   }
 
   once<E extends keyof MediaEventMap>(event: E, handler: MediaEventHandler<E>): () => void {
-    return this.emitter.once(event, handler);
+    return this.emitter.once(event, handler as any);
   }
 
   off<E extends keyof MediaEventMap>(event: E, handler: MediaEventHandler<E>): void {
-    this.emitter.off(event, handler);
+    this.emitter.off(event, handler as any);
   }
 
   onMount(handler: MediaEventHandler<'mount'>): () => void {
-    return this.emitter.on('mount', handler);
+    return this.emitter.on('mount', handler as any);
   }
 
   onReady(handler: MediaEventHandler<'ready'>): () => void {
-    return this.emitter.on('ready', handler);
+    return this.emitter.on('ready', handler as any);
   }
 
   onPlay(handler: MediaEventHandler<'play'>): () => void {
-    return this.emitter.on('play', handler);
+    return this.emitter.on('play', handler as any);
   }
 
   onPause(handler: MediaEventHandler<'pause'>): () => void {
-    return this.emitter.on('pause', handler);
+    return this.emitter.on('pause', handler as any);
   }
 
   onEnd(handler: MediaEventHandler<'ended'>): () => void {
-    return this.emitter.on('ended', handler);
+    return this.emitter.on('ended', handler as any);
   }
 
   onDispose(handler: MediaEventHandler<'dispose'>): () => void {
-    return this.emitter.on('dispose', handler);
+    return this.emitter.on('dispose', handler as any);
   }
 
   use<TOptions extends MediaPluginOptions = MediaPluginOptions>(
@@ -542,8 +542,8 @@ export class MediaCorePlayer implements MediaPlayer {
       }
 
       if (element instanceof HTMLVideoElement) {
-        const onEnterPiP = () => this.emitter.emit('pictureinpictureenter', undefined);
-        const onLeavePiP = () => this.emitter.emit('pictureinpictureleave', undefined);
+        const onEnterPiP = () => this.emitter.emit('pictureinpictureenter');
+        const onLeavePiP = () => this.emitter.emit('pictureinpictureleave');
         element.addEventListener('enterpictureinpicture', onEnterPiP);
         element.addEventListener('leavepictureinpicture', onLeavePiP);
         this.nativeCleanup.push(() => element.removeEventListener('enterpictureinpicture', onEnterPiP));

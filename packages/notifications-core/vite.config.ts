@@ -11,9 +11,11 @@ export default defineConfig({
       fileName: (format) => `notifications-core.${format}.js`,
     },
     rollupOptions: {
-      // No external dependencies for QueryCore
+      external: ['@web-loom/event-emitter-core'],
       output: {
-        // No globals needed as no externals
+        globals: {
+          '@web-loom/event-emitter-core': 'EventEmitterCore',
+        },
       },
     },
   },

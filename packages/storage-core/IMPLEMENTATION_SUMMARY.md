@@ -188,7 +188,7 @@ To use this package in the web-loom ecosystem:
 - `src/backends/memory.ts` - Memory backend
 - `src/backends/webstorage.ts` - Web Storage backend
 - `src/utils/serialization.ts` - Serialization utilities
-- `src/utils/events.ts` - Event emitter
+- `@web-loom/event-emitter-core` - Shared event emitter
 - `examples/basic-usage.ts` - Usage examples
 - `examples/integration-with-viewmodel.ts` - Integration examples
 - `README.md` - Documentation

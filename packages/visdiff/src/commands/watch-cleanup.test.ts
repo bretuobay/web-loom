@@ -21,8 +21,8 @@ describe('Property 23: Resource cleanup on watch exit', () => {
     vi.clearAllMocks();
   });
 
-  it('should close browser manager when cleanup is called', () => {
-    fc.assert(
+  it('should close browser manager when cleanup is called', async () => {
+    await fc.assert(
       fc.asyncProperty(
         fc.integer({ min: 1, max: 10 }),
         async (numOperations) => {
@@ -82,8 +82,8 @@ describe('Property 23: Resource cleanup on watch exit', () => {
     );
   });
 
-  it('should handle browser cleanup errors gracefully', () => {
-    fc.assert(
+  it('should handle browser cleanup errors gracefully', async () => {
+    await fc.assert(
       fc.asyncProperty(
         fc.constantFrom(
           'Browser process not found',
@@ -111,7 +111,7 @@ describe('Property 23: Resource cleanup on watch exit', () => {
 
           // Verify cleanup was attempted
           expect(closeSpy).toHaveBeenCalled();
-          
+
           // Verify error was captured
           expect(cleanupError).toBeDefined();
           expect(cleanupError?.message).toBe(errorMessage);
@@ -151,8 +151,8 @@ describe('Property 23: Resource cleanup on watch exit', () => {
     );
   });
 
-  it('should clean up resources in the correct order', () => {
-    fc.assert(
+  it('should clean up resources in the correct order', async () => {
+    await fc.assert(
       fc.asyncProperty(
         fc.constant(null),
         async () => {
@@ -174,7 +174,7 @@ describe('Property 23: Resource cleanup on watch exit', () => {
           // Simulate cleanup sequence
           // 1. Close watcher first (stop detecting changes)
           mockWatcher.close();
-          
+
           // 2. Close browser (cleanup resources)
           await mockBrowserManager.close();
 
@@ -186,8 +186,8 @@ describe('Property 23: Resource cleanup on watch exit', () => {
     );
   });
 
-  it('should continue cleanup even if one component fails', () => {
-    fc.assert(
+  it('should continue cleanup even if one component fails', async () => {
+    await fc.assert(
       fc.asyncProperty(
         fc.constantFrom('watcher', 'browser'),
         async (failingComponent) => {
@@ -229,7 +229,7 @@ describe('Property 23: Resource cleanup on watch exit', () => {
           // Verify both cleanups were attempted
           expect(cleanupOrder).toContain('watcher');
           expect(cleanupOrder).toContain('browser');
-          
+
           // Verify error was captured
           expect(errors.length).toBe(1);
           expect(errors[0].message).toContain('cleanup failed');

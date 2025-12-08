@@ -7,37 +7,31 @@ export default defineConfig({
     lib: {
       entry: './src/index.ts',
       formats: ['es', 'umd'],
-      name: 'MediaCore',
-      fileName: (format) => `media-core.${format}.js`,
+      name: 'EventEmitterCore',
+      fileName: (format) => `event-emitter-core.${format}.js`,
     },
     rollupOptions: {
-      external: ['@web-loom/event-emitter-core'],
       output: {
-        globals: {
-          '@web-loom/event-emitter-core': 'EventEmitterCore',
-        },
+        // No globals needed as no externals
       },
     },
-  },
-  css: {
-    modules: false,
   },
   plugins: [
     dts({
       insertTypesEntry: true,
       outDir: 'dist',
       tsconfigPath: './tsconfig.json',
-      rollupTypes: true,
-    }),
+      rollupTypes: true
+    })
   ],
-  server: {
-    fs: {
-      allow: ['.', 'tests'],
-    },
-  },
   test: {
     globals: true,
     environment: 'node',
-    testTimeout: 10000,
+    include: ['src/**/*.test.ts'],
+    coverage: {
+      enabled: true,
+      reporter: ['text', 'html'],
+      reportsDirectory: './coverage'
+    }
   },
 });

@@ -99,7 +99,7 @@ export interface AsyncValidatorConfig {
 
 export type EventCallback = (...args: unknown[]) => void;
 
-export interface FormEventMap<T> extends Record<string, unknown[]> {
+export interface FormEventMap<T> extends Record<PropertyKey, unknown[]> {
   stateChange: [FormState<T>];
   fieldChange: [{ path: string; value: unknown; fieldState: FieldState }];
   fieldFocus: [{ path: string; fieldState: FieldState }];

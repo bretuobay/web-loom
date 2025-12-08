@@ -102,7 +102,7 @@ export interface MediaPlayerOptions {
   translations?: Record<string, string>;
 }
 
-export interface MediaEventMap {
+export interface MediaEventMap extends Record<PropertyKey, unknown> {
   mount: { element: HTMLMediaElement | HTMLImageElement };
   ready: PlaybackSnapshot;
   play: PlaybackSnapshot;
@@ -127,7 +127,11 @@ export interface MediaEventMap {
 
 export type MediaEventName = keyof MediaEventMap;
 
-export type MediaEventHandler<E extends MediaEventName> = (payload: MediaEventMap[E]) => void;
+export type MediaEventHandler<E extends MediaEventName> = MediaEventMap[E] extends undefined | void
+  ? () => void
+  : MediaEventMap[E] extends any[]
+    ? (...args: MediaEventMap[E]) => void
+    : (arg: MediaEventMap[E]) => void;
 
 export interface MediaPlayer {
   readonly id: string;

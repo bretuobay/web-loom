@@ -15,20 +15,25 @@ import type {
 import { MemoryBackend } from './backends/memory';
 import { WebStorageBackend } from './backends/webstorage';
 import { IndexedDBBackend } from './backends/indexeddb';
-import { EventEmitter, matchPattern } from './utils/events';
+import { EventEmitter } from '@web-loom/event-emitter-core';
+import { matchPattern } from './utils/events';
 import { createMigrationEngine } from './features/migrations';
+
+type StorageEventMap = {
+  '*': StorageChangeEvent;
+};
 
 export class StorageImpl implements Storage {
   private backend: StorageBackend;
   private config: StorageConfig;
   private _activeBackend: StorageBackendType;
-  private eventEmitter: EventEmitter<StorageChangeEvent>;
+  private eventEmitter: EventEmitter<StorageEventMap>;
 
   constructor(backend: StorageBackend, config: StorageConfig, activeBackend: StorageBackendType) {
     this.backend = backend;
     this.config = config;
     this._activeBackend = activeBackend;
-    this.eventEmitter = new EventEmitter();
+    this.eventEmitter = new EventEmitter<StorageEventMap>();
   }
 
   get activeBackend(): StorageBackendType {
@@ -101,7 +106,7 @@ export class StorageImpl implements Storage {
   }
 
   subscribe<T = any>(pattern: string, callback: (event: StorageChangeEvent<T>) => void): () => void {
-    return this.eventEmitter.on('*', (event: StorageChangeEvent) => {
+    return this.eventEmitter.on('*', (event) => {
       if (matchPattern(event.key, pattern)) {
         callback(event as StorageChangeEvent<T>);
       }

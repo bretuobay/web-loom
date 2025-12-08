@@ -53,7 +53,7 @@ Backends:
 Features:
 
 - Migrations: [`src/features/migrations.ts`](./src/features/migrations.ts)
-- Events: [`src/utils/events.ts`](./src/utils/events.ts)
+- Events: [`@web-loom/event-emitter-core`](../event-emitter-core) (see [`docs/event-emitter.md`](../../docs/event-emitter.md))
 - Serialization: [`src/utils/serialization.ts`](./src/utils/serialization.ts)
 
 Types:
