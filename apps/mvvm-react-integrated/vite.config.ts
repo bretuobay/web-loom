@@ -16,7 +16,7 @@ export default defineConfig({
       '@web-loom/ui-core/react': resolve(__dirname, '../../packages/ui-core/src/adapters/react'),
       '@web-loom/ui-patterns': resolve(__dirname, '../../packages/ui-patterns/src'),
       '@repo/shared': resolve(__dirname, '../../packages/shared/src'),
-      '@repo/ui': resolve(__dirname, '../../packages/ui/src'),
+      '@repo/ui-react': resolve(__dirname, '../../packages/ui/src'),
       '@repo/view-models': resolve(__dirname, '../../packages/view-models/src'),
     },
   },

@@ -1,0 +1,41 @@
+.loom-code-inline {
+  font-family: var(--typography-font-family-mono, 'JetBrains Mono'), monospace;
+  font-size: var(--typography-font-size-sm, 14px);
+  padding: 0 var(--spacing-1, 4px);
+  border-radius: var(--radius-sm, 4px);
+  background-color: var(--color-neutral-gray-100, #f3f4f6);
+  color: var(--color-neutral-gray-800, #1f2937);
+}
+
+[data-theme='dark'] .loom-code-inline {
+  background-color: var(--color-neutral-gray-800, #1f2937);
+  color: var(--color-neutral-gray-100, #f3f4f6);
+}
+
+.loom-code-block {
+  position: relative;
+  margin: 0;
+  padding: var(--spacing-4, 16px);
+  border-radius: var(--radius-md, 8px);
+  background-color: var(--color-neutral-gray-900, #0f172a);
+  color: var(--color-neutral-white, #fff);
+  font-family: var(--typography-font-family-mono, 'JetBrains Mono'), monospace;
+  font-size: var(--typography-font-size-sm, 14px);
+  overflow-x: auto;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.loom-code-block code {
+  font-family: inherit;
+}
+
+.loom-code-block::after {
+  content: attr(data-language);
+  position: absolute;
+  top: var(--spacing-3, 12px);
+  right: var(--spacing-3, 12px);
+  font-size: var(--typography-font-size-xs, 12px);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-neutral-gray-400, #9ca3af);
+}

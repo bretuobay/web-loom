@@ -26,6 +26,7 @@ coverage
 out/
 build
 dist
+storybook-static
 
 # Vite temporary files
 *.timestamp-*.mjs
@@ -48,3 +49,6 @@ yarn-error.log*
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Storybook
+/storybook-static
