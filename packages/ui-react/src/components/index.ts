@@ -6,3 +6,4 @@ export * from './grid';
 export * from './layout';
 export * from './menu';
 export * from './space';
+export * from './tabs';
