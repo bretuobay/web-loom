@@ -1,5 +1,7 @@
 # Web Loom React Component Library: Step-by-Step Implementation Tasks
 
+Tasks break down for packages/ui-react/PRODUCTS-REQUIREMENTS-DOCUMENT.md
+
 ## Phase 1: Foundation & Setup (Week 1-2)
 
 ### Task 1.1: Project Infrastructure Setup
