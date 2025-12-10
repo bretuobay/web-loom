@@ -1,0 +1,386 @@
+/**
+ * Button Component Styles
+ *
+ * Uses CSS custom properties from the theme system
+ */
+
+/* ==========================================================================
+   Base Button Styles
+   ========================================================================== */
+
+.button {
+  /* Reset */
+  appearance: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+  user-select: none;
+
+  /* Base styles */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ui-space-xs, 4px);
+  position: relative;
+  font-weight: var(--ui-font-weight-medium, 500);
+  text-align: center;
+  white-space: nowrap;
+  transition:
+    all var(--ui-transition-base, 200ms),
+    transform var(--ui-transition-fast, 150ms);
+  outline: none;
+  text-decoration: none;
+
+  /* Default size - middle */
+  height: var(--ui-button-height, 32px);
+  padding: 0 var(--ui-button-padding-x, 16px);
+  font-size: var(--ui-button-font-size, var(--ui-font-size-sm, 14px));
+  border-radius: var(--ui-button-border-radius, var(--ui-radius-md, 6px));
+  line-height: 1;
+}
+
+/* Focus visible styles for accessibility */
+.button:focus-visible {
+  outline: 2px solid var(--ui-color-primary, #1677ff);
+  outline-offset: 2px;
+  z-index: 1;
+}
+
+/* Active state */
+.button:active:not(.disabled):not(.loading) {
+  transform: scale(0.98);
+}
+
+/* ==========================================================================
+   Variant Styles
+   ========================================================================== */
+
+/* Primary Button */
+.variant-primary {
+  color: #ffffff;
+  background-color: var(--ui-color-primary, #1677ff);
+  border: 1px solid transparent;
+  box-shadow: var(--ui-shadow-xs, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+}
+
+.variant-primary:hover:not(.disabled):not(.loading) {
+  background-color: var(--ui-color-primary-hover, #4096ff);
+}
+
+.variant-primary:active:not(.disabled):not(.loading) {
+  background-color: var(--ui-color-primary-active, #0958d9);
+}
+
+/* Default Button */
+.variant-default {
+  color: var(--ui-color-text, rgba(0, 0, 0, 0.88));
+  background-color: var(--ui-color-bg, #ffffff);
+  border: 1px solid var(--ui-color-border, #d9d9d9);
+}
+
+.variant-default:hover:not(.disabled):not(.loading) {
+  color: var(--ui-color-primary, #1677ff);
+  border-color: var(--ui-color-primary, #1677ff);
+}
+
+.variant-default:active:not(.disabled):not(.loading) {
+  color: var(--ui-color-primary-active, #0958d9);
+  border-color: var(--ui-color-primary-active, #0958d9);
+}
+
+/* Dashed Button */
+.variant-dashed {
+  color: var(--ui-color-text, rgba(0, 0, 0, 0.88));
+  background-color: var(--ui-color-bg, #ffffff);
+  border: 1px dashed var(--ui-color-border, #d9d9d9);
+}
+
+.variant-dashed:hover:not(.disabled):not(.loading) {
+  color: var(--ui-color-primary, #1677ff);
+  border-color: var(--ui-color-primary, #1677ff);
+}
+
+.variant-dashed:active:not(.disabled):not(.loading) {
+  color: var(--ui-color-primary-active, #0958d9);
+  border-color: var(--ui-color-primary-active, #0958d9);
+}
+
+/* Link Button */
+.variant-link {
+  color: var(--ui-color-link, #1677ff);
+  background-color: transparent;
+  border: 1px solid transparent;
+  padding: 0;
+  height: auto;
+  text-decoration: none;
+}
+
+.variant-link:hover:not(.disabled):not(.loading) {
+  color: var(--ui-color-link-hover, #4096ff);
+  text-decoration: underline;
+}
+
+.variant-link:active:not(.disabled):not(.loading) {
+  color: var(--ui-color-link-active, #0958d9);
+}
+
+/* Text Button */
+.variant-text {
+  color: var(--ui-color-text, rgba(0, 0, 0, 0.88));
+  background-color: transparent;
+  border: 1px solid transparent;
+}
+
+.variant-text:hover:not(.disabled):not(.loading) {
+  background-color: var(--ui-color-bg-secondary, #fafafa);
+}
+
+.variant-text:active:not(.disabled):not(.loading) {
+  background-color: var(--ui-color-bg-tertiary, #f5f5f5);
+}
+
+/* ==========================================================================
+   Danger Variant
+   ========================================================================== */
+
+.danger.variant-primary {
+  background-color: var(--ui-color-error, #ff4d4f);
+  border-color: transparent;
+}
+
+.danger.variant-primary:hover:not(.disabled):not(.loading) {
+  background-color: var(--ui-color-error-hover, #ff7875);
+}
+
+.danger.variant-primary:active:not(.disabled):not(.loading) {
+  background-color: #d9363e;
+}
+
+.danger.variant-default {
+  color: var(--ui-color-error, #ff4d4f);
+  border-color: var(--ui-color-error, #ff4d4f);
+}
+
+.danger.variant-default:hover:not(.disabled):not(.loading) {
+  color: var(--ui-color-error-hover, #ff7875);
+  border-color: var(--ui-color-error-hover, #ff7875);
+}
+
+.danger.variant-dashed {
+  color: var(--ui-color-error, #ff4d4f);
+  border-color: var(--ui-color-error, #ff4d4f);
+}
+
+.danger.variant-dashed:hover:not(.disabled):not(.loading) {
+  color: var(--ui-color-error-hover, #ff7875);
+  border-color: var(--ui-color-error-hover, #ff7875);
+}
+
+/* ==========================================================================
+   Size Variants
+   ========================================================================== */
+
+.size-small {
+  height: 24px;
+  padding: 0 var(--ui-space-sm, 8px);
+  font-size: var(--ui-font-size-xs, 12px);
+  gap: calc(var(--ui-space-xs, 4px) / 2);
+}
+
+.size-middle {
+  height: var(--ui-button-height, 32px);
+  padding: 0 var(--ui-button-padding-x, 16px);
+  font-size: var(--ui-button-font-size, var(--ui-font-size-sm, 14px));
+}
+
+.size-large {
+  height: 40px;
+  padding: 0 var(--ui-space-lg, 24px);
+  font-size: var(--ui-font-size-base, 16px);
+  gap: var(--ui-space-sm, 8px);
+}
+
+/* ==========================================================================
+   Shape Variants
+   ========================================================================== */
+
+.shape-default {
+  border-radius: var(--ui-button-border-radius, var(--ui-radius-md, 6px));
+}
+
+.shape-round {
+  border-radius: var(--ui-radius-full, 9999px);
+}
+
+.shape-circle {
+  border-radius: 50%;
+  padding: 0;
+}
+
+.shape-circle.size-small {
+  width: 24px;
+  height: 24px;
+}
+
+.shape-circle.size-middle {
+  width: 32px;
+  height: 32px;
+}
+
+.shape-circle.size-large {
+  width: 40px;
+  height: 40px;
+}
+
+/* ==========================================================================
+   States
+   ========================================================================== */
+
+/* Disabled State */
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.disabled.variant-primary,
+.disabled.variant-default,
+.disabled.variant-dashed {
+  background-color: var(--ui-color-bg-tertiary, #f5f5f5);
+  color: var(--ui-color-text-disabled, rgba(0, 0, 0, 0.25));
+  border-color: var(--ui-color-border, #d9d9d9);
+}
+
+.disabled.variant-link,
+.disabled.variant-text {
+  color: var(--ui-color-text-disabled, rgba(0, 0, 0, 0.25));
+  background-color: transparent;
+}
+
+/* Loading State */
+.loading {
+  cursor: default;
+  position: relative;
+}
+
+.loading .content {
+  opacity: 0.6;
+}
+
+/* Block (Full Width) */
+.block {
+  display: flex;
+  width: 100%;
+}
+
+/* Icon Only Button */
+.iconOnly {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.iconOnly.size-small {
+  width: 24px;
+}
+
+.iconOnly.size-middle {
+  width: 32px;
+}
+
+.iconOnly.size-large {
+  width: 40px;
+}
+
+/* ==========================================================================
+   Icon and Content Spacing
+   ========================================================================== */
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+}
+
+.loadingIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   Loading Spinner
+   ========================================================================== */
+
+.spinner {
+  display: inline-block;
+}
+
+.spinnerSvg {
+  animation: spin 1s linear infinite;
+  display: block;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   Dark Mode Support
+   ========================================================================== */
+
+[data-theme='dark'] .variant-default,
+[data-theme='dark'] .variant-dashed {
+  background-color: var(--ui-color-bg, #141414);
+  border-color: var(--ui-color-border, #424242);
+  color: var(--ui-color-text, rgba(255, 255, 255, 0.85));
+}
+
+[data-theme='dark'] .variant-text:hover:not(.disabled):not(.loading) {
+  background-color: var(--ui-color-bg-secondary, #1f1f1f);
+}
+
+[data-theme='dark'] .variant-text:active:not(.disabled):not(.loading) {
+  background-color: var(--ui-color-bg-tertiary, #2a2a2a);
+}
+
+[data-theme='dark'] .disabled.variant-primary,
+[data-theme='dark'] .disabled.variant-default,
+[data-theme='dark'] .disabled.variant-dashed {
+  background-color: var(--ui-color-bg-tertiary, #2a2a2a);
+  color: var(--ui-color-text-disabled, rgba(255, 255, 255, 0.25));
+  border-color: var(--ui-color-border, #424242);
+}
+
+/* ==========================================================================
+   Accessibility
+   ========================================================================== */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .button {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .spinnerSvg {
+    animation: none;
+  }
+}

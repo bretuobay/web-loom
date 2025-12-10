@@ -4,7 +4,7 @@ const Footer = () => {
     <footer className="page-footer">
       <div className="footer-content">
         <div className="footer-links">
-          <a href="https://github.com/web-loom" className="footer-link">
+          <a href="https://github.com/bretuobay/web-loom.git" className="footer-link">
             GitHub
           </a>
           <a href="#" className="footer-link">

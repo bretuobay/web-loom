@@ -2,7 +2,7 @@
 
 /**
  * @web-loom/visdiff CLI Entry Point
- * 
+ *
  * This is the main entry point for the visdiff command-line tool.
  */
 
@@ -16,10 +16,7 @@ import { watchCommand } from './commands/watch.js';
 
 const program = new Command();
 
-program
-  .name('visdiff')
-  .description('Local-first visual regression testing tool')
-  .version('0.1.0');
+program.name('visdiff').description('Local-first visual regression testing tool').version('0.1.0');
 
 /**
  * Init Command
@@ -116,7 +113,9 @@ program
   });
 
 // Add help examples
-program.addHelpText('after', `
+program.addHelpText(
+  'after',
+  `
 
 Examples:
   $ visdiff init
@@ -126,8 +125,9 @@ Examples:
   $ visdiff status --verbose
   $ visdiff watch http://localhost:3000
 
-For more information, visit: https://github.com/web-loom/visdiff
-`);
+For more information, visit: https://github.com/bretuobay/web-loom.git/visdiff
+`,
+);
 
 // Parse command line arguments
 program.parse(process.argv);

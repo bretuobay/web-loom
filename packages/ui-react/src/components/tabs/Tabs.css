@@ -1,0 +1,368 @@
+/* Base tabs styles */
+.loom-tabs {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  color: var(--color-neutral-gray-900, #111827);
+  font-size: var(--typography-font-size-sm, 14px);
+  display: flex;
+}
+
+/* Top and bottom positioned tabs */
+.loom-tabs-top,
+.loom-tabs-bottom {
+  flex-direction: column;
+}
+
+/* Left and right positioned tabs */
+.loom-tabs-left,
+.loom-tabs-right {
+  flex-direction: row;
+}
+
+.loom-tabs-left .loom-tabs-nav {
+  flex-direction: column;
+}
+
+.loom-tabs-right {
+  flex-direction: row-reverse;
+}
+
+.loom-tabs-right .loom-tabs-nav {
+  flex-direction: column;
+}
+
+/* Tabs navigation */
+.loom-tabs-nav {
+  display: flex;
+  position: relative;
+  align-items: center;
+  gap: 0;
+}
+
+.loom-tabs-top .loom-tabs-nav,
+.loom-tabs-bottom .loom-tabs-nav {
+  flex-direction: row;
+}
+
+/* ============= Line Type ============= */
+.loom-tabs-line.loom-tabs-top .loom-tabs-nav {
+  border-bottom: var(--border-width-1, 1px) solid var(--color-neutral-gray-200, #e5e7eb);
+}
+
+.loom-tabs-line.loom-tabs-bottom .loom-tabs-nav {
+  border-top: var(--border-width-1, 1px) solid var(--color-neutral-gray-200, #e5e7eb);
+}
+
+.loom-tabs-line.loom-tabs-left .loom-tabs-nav {
+  border-right: var(--border-width-1, 1px) solid var(--color-neutral-gray-200, #e5e7eb);
+}
+
+.loom-tabs-line.loom-tabs-right .loom-tabs-nav {
+  border-left: var(--border-width-1, 1px) solid var(--color-neutral-gray-200, #e5e7eb);
+}
+
+/* ============= Card Type ============= */
+.loom-tabs-card .loom-tabs-nav,
+.loom-tabs-editable-card .loom-tabs-nav {
+  gap: var(--spacing-1, 4px);
+}
+
+.loom-tabs-card .loom-tabs-tab,
+.loom-tabs-editable-card .loom-tabs-tab {
+  background-color: var(--color-neutral-gray-100, #f3f4f6);
+  border: var(--border-width-1, 1px) solid var(--color-neutral-gray-200, #e5e7eb);
+  border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
+  margin-bottom: -1px;
+}
+
+.loom-tabs-card .loom-tabs-tab-active,
+.loom-tabs-editable-card .loom-tabs-tab-active {
+  background-color: var(--color-neutral-white, #ffffff);
+  border-bottom-color: var(--color-neutral-white, #ffffff);
+}
+
+.loom-tabs-card .loom-tabs-content,
+.loom-tabs-editable-card .loom-tabs-content {
+  border: var(--border-width-1, 1px) solid var(--color-neutral-gray-200, #e5e7eb);
+  border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) var(--radius-md, 8px);
+  padding: var(--spacing-4, 16px);
+}
+
+/* ============= Tab Item ============= */
+.loom-tabs-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2, 8px);
+  padding: var(--spacing-2, 8px) var(--spacing-4, 16px);
+  cursor: pointer;
+  transition: all var(--timing-fast, 120ms) ease;
+  user-select: none;
+  color: var(--color-neutral-gray-600, #475569);
+  font-weight: var(--typography-font-weight-normal, 400);
+  white-space: nowrap;
+}
+
+.loom-tabs-tab:hover:not(.loom-tabs-tab-disabled) {
+  color: var(--color-base-primary, #1e40af);
+}
+
+.loom-tabs-tab:focus-visible {
+  outline: 2px solid var(--color-base-primary, #1e40af);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm, 4px);
+}
+
+/* Line type tab indicator */
+.loom-tabs-line .loom-tabs-tab::after {
+  content: '';
+  position: absolute;
+  background-color: var(--color-base-primary, #1e40af);
+  transition: all var(--timing-fast, 120ms) ease;
+}
+
+.loom-tabs-line.loom-tabs-top .loom-tabs-tab::after {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: scaleX(0);
+}
+
+.loom-tabs-line.loom-tabs-bottom .loom-tabs-tab::after {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: scaleX(0);
+}
+
+.loom-tabs-line.loom-tabs-left .loom-tabs-tab::after {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: scaleY(0);
+}
+
+.loom-tabs-line.loom-tabs-right .loom-tabs-tab::after {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: scaleY(0);
+}
+
+.loom-tabs-line .loom-tabs-tab-active::after {
+  transform: scale(1);
+}
+
+/* Active tab state */
+.loom-tabs-tab-active {
+  color: var(--color-base-primary, #1e40af);
+  font-weight: var(--typography-font-weight-medium, 500);
+}
+
+/* Disabled tab state */
+.loom-tabs-tab-disabled {
+  color: var(--color-neutral-gray-400, #9ca3af);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.loom-tabs-tab-disabled:hover {
+  color: var(--color-neutral-gray-400, #9ca3af);
+}
+
+/* Tab label */
+.loom-tabs-tab-label {
+  display: inline-block;
+}
+
+/* ============= Editable Card Buttons ============= */
+.loom-tabs-tab-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin-left: var(--spacing-1, 4px);
+  border: none;
+  background: transparent;
+  color: var(--color-neutral-gray-500, #6b7280);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: var(--radius-sm, 4px);
+  transition: all var(--timing-fast, 120ms) ease;
+}
+
+.loom-tabs-tab-remove:hover {
+  background-color: var(--color-neutral-gray-200, #e5e7eb);
+  color: var(--color-neutral-gray-900, #111827);
+}
+
+.loom-tabs-tab-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: var(--spacing-1, 4px) var(--spacing-2, 8px);
+  border: var(--border-width-1, 1px) dashed var(--color-neutral-gray-300, #d1d5db);
+  background-color: var(--color-neutral-white, #ffffff);
+  color: var(--color-neutral-gray-600, #475569);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
+  transition: all var(--timing-fast, 120ms) ease;
+}
+
+.loom-tabs-tab-add:hover {
+  border-color: var(--color-base-primary, #1e40af);
+  color: var(--color-base-primary, #1e40af);
+}
+
+/* ============= Size Variants ============= */
+.loom-tabs-small .loom-tabs-tab {
+  padding: var(--spacing-1, 4px) var(--spacing-3, 12px);
+  font-size: var(--typography-font-size-xs, 12px);
+}
+
+.loom-tabs-large .loom-tabs-tab {
+  padding: var(--spacing-3, 12px) var(--spacing-5, 20px);
+  font-size: var(--typography-font-size-base, 16px);
+}
+
+/* ============= Tabs Content ============= */
+.loom-tabs-content {
+  flex: 1;
+  position: relative;
+}
+
+.loom-tabs-tabpane {
+  outline: none;
+}
+
+.loom-tabs-tabpane-inactive {
+  display: none;
+}
+
+.loom-tabs-tabpane-active {
+  display: block;
+  animation: loom-tabs-fade-in var(--timing-normal, 200ms) ease;
+}
+
+@keyframes loom-tabs-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============= Position Specific Styles ============= */
+.loom-tabs-bottom .loom-tabs-content {
+  order: -1;
+}
+
+.loom-tabs-bottom.loom-tabs-card .loom-tabs-tab,
+.loom-tabs-bottom.loom-tabs-editable-card .loom-tabs-tab {
+  border-radius: 0 0 var(--radius-md, 8px) var(--radius-md, 8px);
+  margin-top: -1px;
+  margin-bottom: 0;
+}
+
+.loom-tabs-bottom.loom-tabs-card .loom-tabs-tab-active,
+.loom-tabs-bottom.loom-tabs-editable-card .loom-tabs-tab-active {
+  border-top-color: var(--color-neutral-white, #ffffff);
+  border-bottom-color: var(--color-neutral-gray-200, #e5e7eb);
+}
+
+.loom-tabs-bottom.loom-tabs-card .loom-tabs-content,
+.loom-tabs-bottom.loom-tabs-editable-card .loom-tabs-content {
+  border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 var(--radius-md, 8px);
+  margin-bottom: var(--spacing-2, 8px);
+}
+
+/* Left positioned tabs */
+.loom-tabs-left .loom-tabs-nav {
+  margin-right: var(--spacing-4, 16px);
+}
+
+.loom-tabs-left .loom-tabs-tab {
+  width: 100%;
+  min-width: 120px;
+  justify-content: flex-start;
+}
+
+/* Right positioned tabs */
+.loom-tabs-right .loom-tabs-nav {
+  margin-left: var(--spacing-4, 16px);
+}
+
+.loom-tabs-right .loom-tabs-tab {
+  width: 100%;
+  min-width: 120px;
+  justify-content: flex-start;
+}
+
+/* ============= Dark Theme ============= */
+[data-theme='dark'] .loom-tabs {
+  color: var(--color-neutral-white, #ffffff);
+}
+
+[data-theme='dark'] .loom-tabs-line.loom-tabs-top .loom-tabs-nav,
+[data-theme='dark'] .loom-tabs-line.loom-tabs-bottom .loom-tabs-nav,
+[data-theme='dark'] .loom-tabs-line.loom-tabs-left .loom-tabs-nav,
+[data-theme='dark'] .loom-tabs-line.loom-tabs-right .loom-tabs-nav {
+  border-color: var(--color-neutral-gray-700, #374151);
+}
+
+[data-theme='dark'] .loom-tabs-tab {
+  color: var(--color-neutral-gray-400, #9ca3af);
+}
+
+[data-theme='dark'] .loom-tabs-tab:hover:not(.loom-tabs-tab-disabled) {
+  color: var(--color-neutral-white, #ffffff);
+}
+
+[data-theme='dark'] .loom-tabs-tab-active {
+  color: var(--color-neutral-white, #ffffff);
+}
+
+[data-theme='dark'] .loom-tabs-card .loom-tabs-tab,
+[data-theme='dark'] .loom-tabs-editable-card .loom-tabs-tab {
+  background-color: var(--color-neutral-gray-800, #1f2937);
+  border-color: var(--color-neutral-gray-700, #374151);
+}
+
+[data-theme='dark'] .loom-tabs-card .loom-tabs-tab-active,
+[data-theme='dark'] .loom-tabs-editable-card .loom-tabs-tab-active {
+  background-color: var(--color-neutral-gray-900, #111827);
+  border-bottom-color: var(--color-neutral-gray-900, #111827);
+}
+
+[data-theme='dark'] .loom-tabs-card .loom-tabs-content,
+[data-theme='dark'] .loom-tabs-editable-card .loom-tabs-content {
+  border-color: var(--color-neutral-gray-700, #374151);
+  background-color: var(--color-neutral-gray-900, #111827);
+}
+
+[data-theme='dark'] .loom-tabs-tab-remove:hover {
+  background-color: var(--color-neutral-gray-700, #374151);
+  color: var(--color-neutral-white, #ffffff);
+}
+
+[data-theme='dark'] .loom-tabs-tab-add {
+  background-color: var(--color-neutral-gray-800, #1f2937);
+  border-color: var(--color-neutral-gray-600, #4b5563);
+  color: var(--color-neutral-gray-400, #9ca3af);
+}
+
+[data-theme='dark'] .loom-tabs-tab-add:hover {
+  border-color: var(--color-base-primary, #1e40af);
+  color: var(--color-neutral-white, #ffffff);
+}
