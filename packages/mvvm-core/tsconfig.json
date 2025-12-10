@@ -34,7 +34,9 @@
     // in test files for vi to be available
     "types": [
       "vitest/globals"
-    ]
+    ],
+    "composite": true,
+    "incremental": true
   },
   "references": [
     // {
