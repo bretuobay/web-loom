@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { sensorReadingViewModel, SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
+import { sensorReadingViewModel, type SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
 import { Subscription } from 'rxjs';
 
 @customElement('sensor-reading-card')

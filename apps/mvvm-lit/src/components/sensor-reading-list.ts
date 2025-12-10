@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { sensorReadingViewModel, SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
+import { sensorReadingViewModel, type SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
 import { Subscription } from 'rxjs';
 
 @customElement('sensor-reading-list')
@@ -34,9 +34,8 @@ export class SensorReadingList extends LitElement {
                 ${this.sensorReadings.map(
                   (reading: any) =>
                     html`<li class="list-item">
-                      Reading ID: ${reading.id}, Sensor ID: ${reading.sensorId}, Timestamp: ${new Date(
-                        reading.timestamp,
-                      ).toLocaleString()}, Value: ${reading.value}
+                      Reading ID: ${reading.id}, Sensor ID: ${reading.sensorId}, Timestamp:
+                      ${new Date(reading.timestamp).toLocaleString()}, Value: ${reading.value}
                     </li>`,
                 )}
               </ul>

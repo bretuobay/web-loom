@@ -21,8 +21,12 @@
     "experimentalDecorators": true,
     "baseUrl": ".",
     "paths": {
-      "@repo/models/*": ["../../packages/models/src/*"],
-      "@web-loom/mvvm-core/*": ["../../packages/mvvm-core/src/*"]
+      "@repo/models/*": [
+        "../../packages/models/src/*"
+      ],
+      "@web-loom/mvvm-core/*": [
+        "../../packages/mvvm-core/src/*"
+      ]
     },
     "composite": true,
     "declaration": true,
@@ -32,15 +36,5 @@
   "include": [
     "src"
   ],
-  "references": [
-    {
-      "path": "../../packages/models"
-    },
-    {
-      "path": "../../packages/mvvm-core"
-    },
-    {
-      "path": "../../packages/view-models"
-    }
-  ]
+  "references": []
 }

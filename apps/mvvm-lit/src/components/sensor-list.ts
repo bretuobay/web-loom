@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { sensorViewModel, SensorListData } from '@repo/view-models/SensorViewModel';
+import { sensorViewModel, type SensorListData } from '@repo/view-models/SensorViewModel';
 import { Subscription } from 'rxjs';
 
 @customElement('sensor-list')

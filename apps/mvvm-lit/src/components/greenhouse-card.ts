@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { greenHouseViewModel, GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
+import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
 import { Subscription } from 'rxjs';
 
 @customElement('greenhouse-card')

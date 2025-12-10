@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { fixture, html } from '@open-wc/testing';
 import './greenhouse-list';
 
@@ -9,7 +9,7 @@ vi.mock('@repo/view-models/GreenHouseViewModel', () => {
   ];
   const mockViewModel = {
     data$: {
-      subscribe: (cb) => {
+      subscribe: (cb: (data: any) => void) => {
         cb(mockData);
         return {
           unsubscribe: () => {},
@@ -27,7 +27,7 @@ vi.mock('@repo/view-models/GreenHouseViewModel', () => {
 describe('GreenhouseList', () => {
   it('should render a list of greenhouses', async () => {
     const el = await fixture(html`<greenhouse-list></greenhouse-list>`);
-    await el.updateComplete;
+    await (el as any).updateComplete;
 
     const items = el.shadowRoot?.querySelectorAll('li');
     expect(items?.length).toBe(2);
