@@ -25,10 +25,9 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
 h1 {
@@ -177,4 +176,31 @@ button:focus-visible {
   color: inherit;
   margin: 0;
   /* Reset any default h3 margins if necessary */
+}
+
+/* Icon styles for header navigation */
+.icon::before {
+  content: '';
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.icon-greenhouse::before {
+  content: '🌿';
+}
+
+.icon-sensor::before {
+  content: '📡';
+}
+
+.icon-reading::before {
+  content: '📊';
+}
+
+.icon-alert::before {
+  content: '🚨';
 }
