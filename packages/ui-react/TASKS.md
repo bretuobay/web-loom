@@ -436,8 +436,9 @@ src/
 **Priority**: P1
 **Estimated Time**: 8 hours
 **Dependencies**: @web-loom/ui-core, @web-loom/ui-patterns
+Check if there is a pattern in ui core or ui patterns you can use or if you think it should export some reuseable menu pattern
 
-**Objective**: Create accessible Menu component
+**Objective**: Create accessible Menu component.
 
 **Steps**:
 

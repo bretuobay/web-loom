@@ -4,4 +4,5 @@ export * from './code';
 export * from './divider';
 export * from './grid';
 export * from './layout';
+export * from './menu';
 export * from './space';
