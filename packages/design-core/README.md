@@ -1,7 +1,7 @@
 # @web-loom/design-core
 
 [![Version](https://img.shields.io/npm/v/@web-loom/design-core.svg)](https://www.npmjs.com/package/@web-loom/design-core)
-[![License](https://img.shields.io/npm/l/@web-loom/design-core.svg)](https://github.com/web-loom/design-core/blob/main/LICENSE)
+[![License](https://img.shields.io/npm/l/@web-loom/design-core.svg)](https://github.com/bretuobay/web-loom.git/design-core/blob/main/LICENSE)
 
 A comprehensive, framework-agnostic design token system with built-in theming, CSS variable utilities, and a lightweight design system. Perfect for building scalable, maintainable design systems across React, Vue, Angular, and vanilla JavaScript applications.
 
@@ -818,7 +818,7 @@ Contributions are welcome! Please read our contributing guidelines before submit
 
 ```bash
 # Clone the repository
-git clone https://github.com/web-loom/web-loom.git
+git clone https://github.com/bretuobay/web-loom.git/web-loom.git
 cd web-loom/packages/design-core
 
 # Install dependencies
@@ -940,8 +940,8 @@ MIT © Festus Yeboah
 ## Support
 
 - Documentation: [Web Loom Docs](https://web-loom.dev)
-- Issues: [GitHub Issues](https://github.com/web-loom/web-loom/issues)
-- Discussions: [GitHub Discussions](https://github.com/web-loom/web-loom/discussions)
+- Issues: [GitHub Issues](https://github.com/bretuobay/web-loom.git/web-loom/issues)
+- Discussions: [GitHub Discussions](https://github.com/bretuobay/web-loom.git/web-loom/discussions)
 
 ---
 

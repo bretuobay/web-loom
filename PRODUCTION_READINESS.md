@@ -93,7 +93,7 @@ Example Fix Needed:
 {
 "repository": {
 "type": "git",
-"url": "https://github.com/your-org/web-loom.git",
+"url": "https://github.com/bretuobay/web-loom.git",
 "directory": "packages/mvvm-core"
 },
 "homepage": "https://github.com/your-org/web-loom#readme",
@@ -565,7 +565,7 @@ Estimated Effort: 3-5 days
 {
 "repository": {
 "type": "git",
-"url": "https://github.com/your-org/web-loom.git",
+"url": "https://github.com/bretuobay/web-loom.git",
 "directory": "packages/mvvm-core"
 },
 "homepage": "https://web-loom.dev",

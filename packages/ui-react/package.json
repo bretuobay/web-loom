@@ -93,7 +93,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/web-loom.git",
+    "url": "https://github.com/bretuobay/web-loom.git",
     "directory": "packages/ui-react"
   },
   "bugs": {
