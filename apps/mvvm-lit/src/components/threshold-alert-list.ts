@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { thresholdAlertViewModel, ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
@@ -35,7 +34,8 @@ export class ThresholdAlertList extends LitElement {
                 ${this.thresholdAlerts.map(
                   (alert: any) =>
                     html`<li class="list-item">
-                      Alert ID: ${alert.id}, Sensor ID: ${alert.sensorType}, Message: Max: ${alert.maxValue}, Min: ${alert.minValue}
+                      Alert ID: ${alert.id}, Sensor ID: ${alert.sensorType}, Message: Max: ${alert.maxValue}, Min:
+                      ${alert.minValue}
                     </li>`,
                 )}
               </ul>

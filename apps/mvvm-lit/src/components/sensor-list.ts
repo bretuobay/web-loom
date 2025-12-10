@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { sensorViewModel, SensorListData } from '@repo/view-models/SensorViewModel';
@@ -34,7 +33,9 @@ export class SensorList extends LitElement {
               <ul class="card-content list">
                 ${this.sensors.map(
                   (sensor: any) =>
-                    html`<li class="list-item">${sensor.greenhouse.name} ${sensor.type} (Status: ${sensor.status})</li>`,
+                    html`<li class="list-item">
+                      ${sensor.greenhouse.name} ${sensor.type} (Status: ${sensor.status})
+                    </li>`,
                 )}
               </ul>
             `

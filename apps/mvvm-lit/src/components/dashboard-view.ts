@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { Subscription, combineLatest } from 'rxjs';
