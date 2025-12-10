@@ -1,0 +1,40 @@
+/* Breadcrumb Styles */
+.breadcrumb {
+    display: block;
+    font-size: 14px;
+    color: var(--wl-color-text-secondary, #888);
+}
+
+.list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+}
+
+.link {
+    color: var(--wl-color-link, #1677ff);
+    text-decoration: none;
+    transition: color 0.2s;
+    cursor: pointer;
+}
+
+.link[aria-current='page'] {
+    color: var(--wl-color-text, #222);
+    font-weight: 500;
+    cursor: default;
+    pointer-events: none;
+}
+
+.separator {
+    margin: 0 8px;
+    color: var(--wl-color-border, #d9d9d9);
+    user-select: none;
+}
