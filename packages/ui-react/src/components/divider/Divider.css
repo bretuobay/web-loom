@@ -1,0 +1,129 @@
+/* Base divider styles */
+.loom-divider {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Horizontal divider */
+.loom-divider-horizontal {
+  display: flex;
+  clear: both;
+  width: 100%;
+  min-width: 100%;
+  margin: var(--spacing-5, 20px) 0;
+  border-top: var(--border-width-1, 1px) solid var(--color-neutral-gray-200, #e5e7eb);
+}
+
+/* Horizontal divider with text */
+.loom-divider-horizontal.loom-divider-with-text {
+  display: flex;
+  align-items: center;
+  margin: var(--spacing-4, 16px) 0;
+  color: var(--color-neutral-gray-900, #111827);
+  font-weight: var(--typography-font-weight-medium, 500);
+  font-size: var(--typography-font-size-base, 16px);
+  white-space: nowrap;
+  text-align: center;
+  border-top: 0;
+}
+
+.loom-divider-horizontal.loom-divider-with-text::before,
+.loom-divider-horizontal.loom-divider-with-text::after {
+  position: relative;
+  width: 50%;
+  border-top: var(--border-width-1, 1px) solid var(--color-neutral-gray-200, #e5e7eb);
+  transform: translateY(50%);
+  content: '';
+}
+
+/* Text alignment - center (default) */
+.loom-divider-with-text-center::before,
+.loom-divider-with-text-center::after {
+  width: 50%;
+}
+
+/* Text alignment - left */
+.loom-divider-with-text-left::before {
+  width: 5%;
+}
+
+.loom-divider-with-text-left::after {
+  width: 95%;
+}
+
+/* Text alignment - right */
+.loom-divider-with-text-right::before {
+  width: 95%;
+}
+
+.loom-divider-with-text-right::after {
+  width: 5%;
+}
+
+/* Inner text styling */
+.loom-divider-inner-text {
+  display: inline-block;
+  padding: 0 var(--spacing-3, 12px);
+}
+
+/* Plain text variant (less emphasis) */
+.loom-divider-plain.loom-divider-with-text {
+  color: var(--color-neutral-gray-600, #475569);
+  font-weight: var(--typography-font-weight-normal, 400);
+  font-size: var(--typography-font-size-sm, 14px);
+}
+
+/* Vertical divider */
+.loom-divider-vertical {
+  position: relative;
+  display: inline-block;
+  width: var(--border-width-1, 1px);
+  height: 0.9em;
+  margin: 0 var(--spacing-2, 8px);
+  vertical-align: middle;
+  background-color: var(--color-neutral-gray-200, #e5e7eb);
+}
+
+/* Dashed style */
+.loom-divider-horizontal.loom-divider-dashed {
+  border-top-style: dashed;
+}
+
+.loom-divider-horizontal.loom-divider-with-text.loom-divider-dashed::before,
+.loom-divider-horizontal.loom-divider-with-text.loom-divider-dashed::after {
+  border-top-style: dashed;
+}
+
+.loom-divider-vertical.loom-divider-dashed {
+  background-color: transparent;
+  border-left: var(--border-width-1, 1px) dashed var(--color-neutral-gray-200, #e5e7eb);
+}
+
+/* Dark theme support */
+[data-theme='dark'] .loom-divider-horizontal {
+  border-top-color: var(--color-neutral-gray-700, #374151);
+}
+
+[data-theme='dark'] .loom-divider-horizontal.loom-divider-with-text::before,
+[data-theme='dark'] .loom-divider-horizontal.loom-divider-with-text::after {
+  border-top-color: var(--color-neutral-gray-700, #374151);
+}
+
+[data-theme='dark'] .loom-divider-horizontal.loom-divider-with-text {
+  color: var(--color-neutral-white, #ffffff);
+}
+
+[data-theme='dark'] .loom-divider-plain.loom-divider-with-text {
+  color: var(--color-neutral-gray-400, #9ca3af);
+}
+
+[data-theme='dark'] .loom-divider-vertical {
+  background-color: var(--color-neutral-gray-700, #374151);
+}
+
+[data-theme='dark'] .loom-divider-vertical.loom-divider-dashed {
+  background-color: transparent;
+  border-left-color: var(--color-neutral-gray-700, #374151);
+}
