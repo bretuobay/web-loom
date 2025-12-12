@@ -14,8 +14,9 @@
     // "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": true,
-    "declaration": false,
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {

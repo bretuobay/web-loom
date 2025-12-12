@@ -592,7 +592,7 @@ Check if there is a pattern in ui core or ui patterns you can use or if you thin
 **Task ID**: WL-RCT-013
 **Priority**: P1
 **Estimated Time**: 10 hours
-**Dependencies**: @web-loom/ui-core
+**Dependencies**: Possible dependencies @web-loom/ui-core, @web-loom/forms-core, @web-loom/forms-react
 
 **Objective**: Create comprehensive Form with validation
 
