@@ -72,7 +72,7 @@ describe('InputSearch', () => {
     fireEvent.change(input, { target: { value: 'query' } });
     fireEvent.click(searchButton);
     expect(handleSearch).toHaveBeenCalledTimes(1);
-    expect(handleSearch.mock.calls[0][0]).toBe('query');
+    expect(handleSearch.mock.calls[0]?.[0]).toBe('query');
 
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
     expect(handleSearch).toHaveBeenCalledTimes(2);

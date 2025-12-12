@@ -68,9 +68,15 @@ export interface SelectProps
   children?: ReactNode;
 }
 
-export interface SelectOptionProps extends SelectOptionItem {}
+export interface SelectOptionProps extends Omit<SelectOptionItem, 'label'> {
+  label?: ReactNode;
+  children?: ReactNode;
+}
 
-export interface SelectOptGroupProps extends SelectOptGroup {}
+export interface SelectOptGroupProps extends Omit<SelectOptGroup, 'options'> {
+  options?: SelectOptionItem[];
+  children?: ReactNode;
+}
 
 type SelectEntry =
   | {
@@ -90,7 +96,7 @@ export interface SelectRenderedOption {
   group?: ReactNode;
 }
 
-const noopFilter = () => true;
+const noopFilter = (_input: string, _option: SelectRenderedOption) => true;
 
 function assignRef<T>(ref: ForwardedRef<T>, value: T | null) {
   if (!ref) return;
@@ -139,9 +145,9 @@ function buildOptionsFromChildren(children: ReactNode): SelectRenderedOption[] {
   const normalized: SelectRenderedOption[] = [];
 
   Children.forEach(children, (child) => {
-    if (!child || typeof child === 'string' || typeof child === 'number') return;
+    if (!child || typeof child === 'string' || typeof child === 'number' || typeof child === 'boolean') return;
 
-    if (!('type' in child)) return;
+    if (typeof child !== 'object' || !('type' in child)) return;
 
     const elementType = (child as React.ReactElement).type as any;
     if (elementType?.displayName === 'Select.OptGroup') {
@@ -172,7 +178,11 @@ function buildOptionsFromChildren(children: ReactNode): SelectRenderedOption[] {
   return normalized;
 }
 
-function buildRenderNodesFromOptions(options: SelectRenderedOption[], search: string, filterFn: typeof noopFilter) {
+function buildRenderNodesFromOptions(
+  options: SelectRenderedOption[],
+  search: string,
+  filterFn: (input: string, option: SelectRenderedOption) => boolean
+) {
   const nodes: SelectEntry[] = [];
   const seenGroupLabels = new Set<string>();
   const trimmedSearch = search.trim();
@@ -213,7 +223,7 @@ const baseArrowIcon = (
   </svg>
 );
 
-export const Select = forwardRef<HTMLDivElement, SelectProps>((props, forwardedRef) => {
+const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwardedRef) => {
   const {
     mode,
     allowClear = false,
@@ -268,6 +278,7 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, forwardedR
   });
   const listId = useId();
   const pendingSelectionsRef = useRef<string[]>([]);
+  const syncingSelectionRef = useRef(false);
   const handleRootRef = useCallback(
     (element: HTMLDivElement | null) => {
       containerRef.current = element;
@@ -342,6 +353,9 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, forwardedR
         isInitial = false;
         return;
       }
+      if (syncingSelectionRef.current) {
+        return;
+      }
       onChangeRef.current?.(
         state.selectedIds.length === 0
           ? undefined
@@ -365,7 +379,7 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, forwardedR
   }, [open, shouldShowSearch]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: globalThis.MouseEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false);
       }
@@ -378,8 +392,13 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, forwardedR
   useEffect(() => {
     if (!selectionBehaviorRef.current || value === undefined) return;
     const values = ensureValueArray(value);
-    selectionBehaviorRef.current.actions.clearSelection();
-    values.forEach((val) => selectionBehaviorRef.current?.actions.select(val));
+    syncingSelectionRef.current = true;
+    try {
+      selectionBehaviorRef.current.actions.clearSelection();
+      values.forEach((val) => selectionBehaviorRef.current?.actions.select(val));
+    } finally {
+      syncingSelectionRef.current = false;
+    }
   }, [value, optionValuesKey]);
 
   useEffect(() => {
@@ -443,6 +462,29 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, forwardedR
   const visibleNodes = renderNodes.slice(startIndex, endIndex);
   const totalHeight = renderNodes.length * ITEM_HEIGHT;
 
+  const selectedValues = listSelectionState?.selectedIds ?? [];
+
+  const handleOptionSelect = useCallback(
+    (optionValue: string) => {
+      if (disabled) return;
+      const option = optionMap.get(optionValue);
+      if (!option || option.disabled) return;
+      if (!selectionBehaviorRef.current) return;
+
+      if (isMultiple) {
+        selectionBehaviorRef.current.actions.toggleSelection(optionValue);
+        if (mode === 'tags' && searchValue.trim()) {
+          setSearchValue('');
+        }
+        return;
+      }
+
+      selectionBehaviorRef.current.actions.select(optionValue);
+      setOpen(false);
+    },
+    [disabled, isMultiple, mode, optionMap, searchValue]
+  );
+
   const handleControlKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
       if (disabled) return;
@@ -484,29 +526,6 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, forwardedR
     [disabled]
   );
 
-  const selectedValues = listSelectionState?.selectedIds ?? [];
-
-  const handleOptionSelect = useCallback(
-    (optionValue: string) => {
-      if (disabled) return;
-      const option = optionMap.get(optionValue);
-      if (!option || option.disabled) return;
-      if (!selectionBehaviorRef.current) return;
-
-      if (isMultiple) {
-        selectionBehaviorRef.current.actions.toggleSelection(optionValue);
-        if (mode === 'tags' && searchValue.trim()) {
-          setSearchValue('');
-        }
-        return;
-      }
-
-      selectionBehaviorRef.current.actions.select(optionValue);
-      setOpen(false);
-    },
-    [disabled, isMultiple, mode, optionMap, searchValue]
-  );
-
   const handleClear = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
@@ -523,6 +542,27 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, forwardedR
   const handleListScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
     setScrollTop(event.currentTarget.scrollTop);
   }, []);
+
+  const handleCreateTag = useCallback(() => {
+    if (mode !== 'tags') return;
+    const inputValue = searchValue.trim();
+    if (!inputValue) return;
+    if (optionMap.has(inputValue)) {
+      handleOptionSelect(inputValue);
+      return;
+    }
+    const newTag: SelectRenderedOption = {
+      type: 'option',
+      key: `tag-${inputValue}-${Date.now()}`,
+      value: inputValue,
+      label: inputValue,
+    };
+    setTagOptions((prev) => [...prev, newTag]);
+    pendingSelectionsRef.current = Array.from(new Set([...pendingSelectionsRef.current, inputValue]));
+    setSearchValue('');
+    const updatedSelection = Array.from(new Set([...selectedValues, inputValue]));
+    onChangeRef.current?.(updatedSelection);
+  }, [mode, optionMap, searchValue, selectedValues, handleOptionSelect]);
 
   const handleSearchKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
@@ -549,27 +589,6 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, forwardedR
     },
     [mode, focusValue, handleCreateTag, handleOptionSelect]
   );
-
-  const handleCreateTag = useCallback(() => {
-    if (mode !== 'tags') return;
-    const inputValue = searchValue.trim();
-    if (!inputValue) return;
-    if (optionMap.has(inputValue)) {
-      handleOptionSelect(inputValue);
-      return;
-    }
-    const newTag: SelectRenderedOption = {
-      type: 'option',
-      key: `tag-${inputValue}-${Date.now()}`,
-      value: inputValue,
-      label: inputValue,
-    };
-    setTagOptions((prev) => [...prev, newTag]);
-    pendingSelectionsRef.current = Array.from(new Set([...pendingSelectionsRef.current, inputValue]));
-    setSearchValue('');
-    const updatedSelection = Array.from(new Set([...selectedValues, inputValue]));
-    onChangeRef.current?.(updatedSelection);
-  }, [mode, optionMap, searchValue, selectedValues, handleOptionSelect]);
 
   const selectedOptions = selectedValues
     .map((value) => optionMap.get(value))
@@ -712,8 +731,17 @@ OptionComponent.displayName = 'Select.Option';
 const OptGroupComponent = (_props: SelectOptGroupProps) => null;
 OptGroupComponent.displayName = 'Select.OptGroup';
 
-Select.displayName = 'Select';
+type SelectComponent = typeof SelectInternal & {
+  Option: typeof OptionComponent;
+  OptGroup: typeof OptGroupComponent;
+  displayName?: string;
+};
+
+SelectInternal.displayName = 'Select';
+
+// Create the compound component
+const Select = SelectInternal as SelectComponent;
 Select.Option = OptionComponent;
 Select.OptGroup = OptGroupComponent;
 
-export type { SelectOptionProps, SelectOptGroupProps };
+export { Select };

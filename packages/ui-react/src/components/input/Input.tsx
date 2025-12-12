@@ -20,7 +20,7 @@ import styles from './Input.module.css';
 
 export type InputSize = 'small' | 'middle' | 'large';
 
-export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'prefix'> {
   size?: InputSize;
   allowClear?: boolean;
   prefix?: ReactNode;
