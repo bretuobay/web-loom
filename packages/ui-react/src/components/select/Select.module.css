@@ -1,0 +1,172 @@
+.select {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 200px;
+  font-family: var(--loom-font-family, 'Inter', system-ui, sans-serif);
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--loom-border-color, #d9d9d9);
+  border-radius: 6px;
+  padding: 6px 10px;
+  gap: 8px;
+  background: var(--loom-bg, #fff);
+  cursor: pointer;
+  min-height: 42px;
+}
+
+.select.disabled .control {
+  background: var(--loom-muted-bg, #f5f5f5);
+  cursor: not-allowed;
+  color: var(--loom-muted-color, #9e9e9e);
+}
+
+.valueArea {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-height: 26px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.tag {
+  background: var(--loom-tag-bg, #eef1ff);
+  color: var(--loom-tag-color, #1d2088);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.placeholder {
+  color: var(--loom-placeholder-color, #8c8c8c);
+}
+
+.singleValue {
+  color: inherit;
+}
+
+.clearButton {
+  border: none;
+  background: transparent;
+  padding: 2px;
+  display: inline-flex;
+  cursor: pointer;
+  color: inherit;
+}
+
+.arrow {
+  display: inline-flex;
+  color: var(--loom-icon-color, #666);
+}
+
+.dropdown {
+  position: absolute;
+  width: 100%;
+  margin-top: 4px;
+  background: var(--loom-bg, #fff);
+  border: 1px solid var(--loom-border-color, #d9d9d9);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  z-index: 10;
+}
+
+.searchWrapper {
+  padding: 8px;
+  border-bottom: 1px solid var(--loom-border-color, #e4e7ec);
+}
+
+.list {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0;
+  font-size: 14px;
+  color: var(--loom-muted-color, #6b7280);
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--loom-border-color, #d4d6db);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: loomSelectSpin 0.8s linear infinite;
+}
+
+@keyframes loomSelectSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--loom-muted-color, #6b7280);
+}
+
+.groupLabel {
+  padding: 6px 16px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--loom-muted-color, #909090);
+}
+
+.option {
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.option:hover {
+  background: var(--loom-hover-bg, #f5f5f5);
+}
+
+.selected {
+  font-weight: 600;
+}
+
+.highlighted {
+  background: var(--loom-active-bg, #eef2ff);
+}
+
+.disabledOption {
+  color: var(--loom-muted-color, #b5b5b5);
+  cursor: not-allowed;
+}
+
+.liveRegion {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

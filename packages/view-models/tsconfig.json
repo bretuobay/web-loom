@@ -4,13 +4,21 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@repo/models": [
-        "@repo/models"
+      "@repo/models/*": [
+        "../models/dist/*"
       ],
-      "@web-loom/mvvm-core": [
-        "@web-loom/mvvm-core"
+      "@web-loom/mvvm-core/*": [
+        "../mvvm-core/dist/*"
       ]
-    }
+    },
+    "composite": true,
+    "incremental": true,
+    "rootDir": "src",
+    "rootDirs": [
+      "src",
+      "../models/dist",
+      "../mvvm-core/dist"
+    ]
   },
   "include": [
     "src"
@@ -20,5 +28,13 @@
     "dist",
     "**/examples/**/*.ts",
     "**/examples/**/*.tsx"
+  ],
+  "references": [
+    {
+      "path": "../models"
+    },
+    {
+      "path": "../mvvm-core"
+    }
   ]
 }
