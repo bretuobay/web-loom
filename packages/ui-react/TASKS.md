@@ -767,7 +767,7 @@ Check if there is a pattern in ui core or ui patterns you can use or if you thin
 
 **Steps**:
 
-1. Integrate with ui-core selection behaviors
+1. Integrate with ui-core selection behaviors if they exist or create one if is worth it or don't decide based on correctness of abstraction and the philosophy of the framework
 2. Define component types
 
    ```typescript
@@ -814,15 +814,1063 @@ Check if there is a pattern in ui core or ui patterns you can use or if you thin
 
 ## Phase 5: Data Display (Week 5-6)
 
-[Continue with similar task breakdowns for Table, List, Tag, Badge, Avatar, etc.]
+### Task 5.1: Table Component
+
+```
+
+**Task ID**: WL-RCT-017
+**Priority**: P1
+**Estimated Time**: 12 hours
+**Dependencies**: @web-loom/ui-core, @web-loom/ui-patterns
+
+**Objective**: Create comprehensive Table component with sorting, filtering, and pagination
+
+**Steps**:
+
+1. Integrate with ui-core table behaviors
+
+   ```typescript
+   import { useTable, useSorting, usePagination } from '@web-loom/ui-core/table';
+   ```
+
+2. Define Table types
+
+   ```typescript
+   interface TableProps<T> {
+     columns: ColumnType<T>[];
+     dataSource?: T[];
+     loading?: boolean;
+     pagination?: false | PaginationConfig;
+     scroll?: { x?: number; y?: number };
+     rowSelection?: RowSelectionType<T>;
+     expandable?: ExpandableConfig<T>;
+     sortDirections?: ('ascend' | 'descend')[];
+   }
+
+   interface ColumnType<T> {
+     title?: React.ReactNode;
+     dataIndex?: keyof T;
+     key?: string;
+     render?: (value: any, record: T, index: number) => React.ReactNode;
+     sorter?: boolean | ((a: T, b: T) => number);
+     filters?: { text: string; value: string }[];
+     width?: number | string;
+     fixed?: 'left' | 'right';
+   }
+   ```
+
+3. Implement Table components
+   - Table (main container)
+   - Table.Column
+   - Table.ColumnGroup
+   - Virtual scrolling for large datasets
+   - Sticky headers and columns
+
+4. Add advanced features
+   - Row selection (single/multiple)
+   - Expandable rows
+   - Column resizing
+   - Column reordering
+   - Export functionality
+
+5. Add accessibility
+   - ARIA table roles
+   - Sortable column announcements
+   - Keyboard navigation
+   - Screen reader support for complex data
+
+6. Create Table stories
+   - Basic table
+   - Sortable columns
+   - Filterable data
+   - Pagination
+   - Row selection
+   - Expandable rows
+   - Fixed columns
+   - Loading states
+
+**Acceptance Criteria**:
+
+- ✓ Sorting works on all data types
+- ✓ Pagination controls table display
+- ✓ Row selection state managed correctly
+- ✓ Virtual scrolling handles 10k+ rows
+- ✓ Fixed columns scroll independently
+- ✓ All table features accessible via keyboard
+
+```
+
+### Task 5.2: List Component
+
+```
+
+**Task ID**: WL-RCT-018
+**Priority**: P1
+**Estimated Time**: 6 hours
+**Dependencies**: WL-RCT-002
+
+**Objective**: Create flexible List component for various data display patterns
+
+**Steps**:
+
+1. Define List types
+
+   ```typescript
+   interface ListProps<T> {
+     dataSource?: T[];
+     renderItem?: (item: T, index: number) => React.ReactNode;
+     size?: 'small' | 'default' | 'large';
+     split?: boolean;
+     bordered?: boolean;
+     header?: React.ReactNode;
+     footer?: React.ReactNode;
+     loading?: boolean;
+     pagination?: false | PaginationConfig;
+     grid?: GridConfig;
+   }
+
+   interface ListItemProps {
+     actions?: React.ReactNode[];
+     extra?: React.ReactNode;
+   }
+   ```
+
+2. Implement List components
+   - List (main container)
+   - List.Item
+   - List.Item.Meta (for structured content)
+   - Grid layout support
+
+3. Add loading states
+   - Skeleton loading
+   - Spinner integration
+   - Progressive loading
+
+4. Add accessibility
+   - List role attributes
+   - Item navigation
+   - Action button accessibility
+
+5. Create List stories
+   - Basic list
+   - With actions
+   - Grid layout
+   - Loading states
+   - Pagination
+   - Custom renderItem
+
+**Acceptance Criteria**:
+
+- ✓ List renders all item types
+- ✓ Grid layout calculates correctly
+- ✓ Actions position properly
+- ✓ Loading skeleton matches layout
+- ✓ Pagination integrates seamlessly
+
+```
+
+### Task 5.3: Tag Component
+
+```
+
+**Task ID**: WL-RCT-019
+**Priority**: P1
+**Estimated Time**: 4 hours
+**Dependencies**: WL-RCT-002
+
+**Objective**: Create Tag component for labels and categories
+
+**Steps**:
+
+1. Define Tag types
+
+   ```typescript
+   interface TagProps {
+     color?: string | 'success' | 'processing' | 'error' | 'warning' | 'default';
+     closable?: boolean;
+     closeIcon?: React.ReactNode;
+     visible?: boolean;
+     onClose?: (e: React.MouseEvent) => void;
+     icon?: React.ReactNode;
+     bordered?: boolean;
+   }
+   ```
+
+2. Implement Tag component
+   - Color variants (preset and custom)
+   - Closable functionality
+   - Icon support
+   - Bordered/borderless styles
+
+3. Create specialized variants
+   - Tag.CheckableTag (for selections)
+   - Status tags (success, error, warning)
+   - Interactive tags
+
+4. Add accessibility
+   - Close button labels
+   - Color meaning communication
+   - Keyboard interaction
+
+5. Create Tag stories
+   - Color variants
+   - Closable tags
+   - Checkable tags
+   - With icons
+   - Custom colors
+
+**Acceptance Criteria**:
+
+- ✓ All color variants render correctly
+- ✓ Close functionality works
+- ✓ Checkable tags toggle state
+- ✓ Custom colors apply properly
+- ✓ Icons align correctly
+
+```
+
+### Task 5.4: Badge Component
+
+```
+
+**Task ID**: WL-RCT-020
+**Priority**: P1
+**Estimated Time**: 3 hours
+**Dependencies**: WL-RCT-002
+
+**Objective**: Create Badge component for notifications and status
+
+**Steps**:
+
+1. Define Badge types
+
+   ```typescript
+   interface BadgeProps {
+     count?: React.ReactNode;
+     dot?: boolean;
+     showZero?: boolean;
+     overflowCount?: number;
+     offset?: [number, number];
+     size?: 'default' | 'small';
+     status?: 'success' | 'processing' | 'default' | 'error' | 'warning';
+     text?: React.ReactNode;
+     title?: string;
+   }
+   ```
+
+2. Implement Badge component
+   - Notification counts
+   - Dot indicator
+   - Status badges
+   - Overflow handling (99+)
+   - Positioning offset
+
+3. Add animations
+   - Count change transitions
+   - Appear/disappear effects
+   - Pulse animation for live updates
+
+4. Add accessibility
+   - Screen reader announcements
+   - Count descriptions
+   - Status meanings
+
+5. Create Badge stories
+   - Count badges
+   - Dot badges
+   - Status indicators
+   - Overflow states
+   - Animations
+
+**Acceptance Criteria**:
+
+- ✓ Count displays and updates correctly
+- ✓ Overflow shows 99+ format
+- ✓ Positioning offset works
+- ✓ Status colors match design system
+- ✓ Animations are smooth
+
+```
+
+### Task 5.5: Avatar Component
+
+```
+
+**Task ID**: WL-RCT-021
+**Priority**: P1
+**Estimated Time**: 4 hours
+**Dependencies**: WL-RCT-002
+
+**Objective**: Create Avatar component for user representation
+
+**Steps**:
+
+1. Define Avatar types
+
+   ```typescript
+   interface AvatarProps {
+     size?: number | 'large' | 'small' | 'default';
+     shape?: 'circle' | 'square';
+     src?: string;
+     alt?: string;
+     icon?: React.ReactNode;
+     gap?: number;
+     draggable?: boolean;
+     onError?: () => boolean;
+   }
+   ```
+
+2. Implement Avatar component
+   - Image avatars with fallback
+   - Icon avatars
+   - Text avatars (initials)
+   - Responsive sizing
+   - Error handling for images
+
+3. Create Avatar.Group
+   - Multiple avatar display
+   - Overlap handling
+   - Max count with overflow
+
+4. Add accessibility
+   - Alt text for images
+   - Meaningful names for icons/text
+   - Group descriptions
+
+5. Create Avatar stories
+   - Image avatars
+   - Icon avatars
+   - Text avatars
+   - Different sizes and shapes
+   - Avatar groups
+   - Error states
+
+**Acceptance Criteria**:
+
+- ✓ Image fallback works correctly
+- ✓ Text avatars generate initials
+- ✓ Groups handle overflow properly
+- ✓ All sizes render proportionally
+- ✓ Error handling prevents broken images
+
+```
+
+### Task 5.6: Descriptions Component
+
+```
+
+**Task ID**: WL-RCT-022
+**Priority**: P2
+**Estimated Time**: 4 hours
+**Dependencies**: WL-RCT-002
+
+**Objective**: Create Descriptions component for structured information display
+
+**Steps**:
+
+1. Define Descriptions types
+
+   ```typescript
+   interface DescriptionsProps {
+     title?: React.ReactNode;
+     extra?: React.ReactNode;
+     bordered?: boolean;
+     column?: number | Record<string, number>;
+     size?: 'default' | 'middle' | 'small';
+     layout?: 'horizontal' | 'vertical';
+     colon?: boolean;
+   }
+
+   interface DescriptionItemProps {
+     label?: React.ReactNode;
+     span?: number;
+   }
+   ```
+
+2. Implement Descriptions components
+   - Descriptions (container)
+   - Descriptions.Item
+   - Responsive column layout
+   - Bordered and borderless styles
+
+3. Add responsive behavior
+   - Column count per breakpoint
+   - Mobile-friendly stacking
+
+4. Create Descriptions stories
+   - Basic descriptions
+   - Bordered variant
+   - Multiple columns
+   - Responsive layouts
+
+**Acceptance Criteria**:
+
+- ✓ Columns respond to screen size
+- ✓ Bordered style renders correctly
+- ✓ Items span multiple columns
+- ✓ Vertical layout works on mobile
+
+```
+
+### Task 5.7: Empty Component
+
+```
+
+**Task ID**: WL-RCT-023
+**Priority**: P2
+**Estimated Time**: 2 hours
+**Dependencies**: WL-RCT-002
+
+**Objective**: Create Empty component for no-data states
+
+**Steps**:
+
+1. Define Empty types
+
+   ```typescript
+   interface EmptyProps {
+     description?: React.ReactNode;
+     image?: React.ReactNode;
+     imageStyle?: React.CSSProperties;
+   }
+   ```
+
+2. Implement Empty component
+   - Default empty illustration
+   - Custom images
+   - Descriptive text
+   - Call-to-action buttons
+
+3. Create Empty stories
+   - Default empty state
+   - Custom description
+   - Custom image
+   - With action buttons
+
+**Acceptance Criteria**:
+
+- ✓ Default illustration displays
+- ✓ Custom images render correctly
+- ✓ Description text is accessible
+- ✓ Actions are properly aligned
+
+```
 
 ## Phase 6: Feedback Components (Week 6)
 
-[Continue with similar task breakdowns for Modal, Message, Notification, Spin, etc.]
+### Task 6.1: Modal Component
+
+```
+
+**Task ID**: WL-RCT-024
+**Priority**: P1
+**Estimated Time**: 8 hours
+**Dependencies**: @web-loom/ui-core, @web-loom/ui-patterns
+
+**Objective**: Create Modal component with accessibility and animations
+
+**Steps**:
+
+1. Integrate with ui-core modal behaviors
+
+   ```typescript
+   import { useModal, useFocusTrap, useScrollLock } from '@web-loom/ui-core/modal';
+   ```
+
+2. Define Modal types
+
+   ```typescript
+   interface ModalProps {
+     open?: boolean;
+     title?: React.ReactNode;
+     closable?: boolean;
+     onOk?: (e: React.MouseEvent) => void;
+     onCancel?: (e: React.MouseEvent) => void;
+     width?: string | number;
+     centered?: boolean;
+     keyboard?: boolean;
+     maskClosable?: boolean;
+     confirmLoading?: boolean;
+     destroyOnClose?: boolean;
+   }
+   ```
+
+3. Implement Modal component
+   - Portal rendering
+   - Focus trap
+   - Scroll lock
+   - ESC key handling
+   - Backdrop click handling
+
+4. Create specialized modals
+   - Modal.confirm
+   - Modal.info
+   - Modal.success
+   - Modal.error
+   - Modal.warning
+
+5. Add animations
+   - Fade in/out
+   - Scale entrance
+   - Backdrop animations
+
+6. Add accessibility
+   - Focus management
+   - ARIA dialog pattern
+   - Screen reader announcements
+
+7. Create Modal stories
+   - Basic modal
+   - Confirmation modals
+   - Different sizes
+   - Nested modals
+   - Loading states
+
+**Acceptance Criteria**:
+
+- ✓ Focus traps inside modal
+- ✓ ESC key closes modal
+- ✓ Backdrop click behavior works
+- ✓ Body scroll is locked
+- ✓ Animations are smooth
+- ✓ ARIA attributes are correct
+
+```
+
+### Task 6.2: Message Component
+
+```
+
+**Task ID**: WL-RCT-025
+**Priority**: P1
+**Estimated Time**: 5 hours
+**Dependencies**: @web-loom/ui-core
+
+**Objective**: Create Message component for global notifications
+
+**Steps**:
+
+1. Define Message types
+
+   ```typescript
+   interface MessageConfig {
+     content: React.ReactNode;
+     duration?: number;
+     key?: string | number;
+     className?: string;
+     style?: React.CSSProperties;
+   }
+
+   interface MessageApi {
+     info: (config: MessageConfig) => void;
+     success: (config: MessageConfig) => void;
+     error: (config: MessageConfig) => void;
+     warning: (config: MessageConfig) => void;
+     loading: (config: MessageConfig) => void;
+     destroy: (key?: string | number) => void;
+   }
+   ```
+
+2. Implement Message system
+   - Global message container
+   - Imperative API (message.success())
+   - Auto-dismiss functionality
+   - Stack management
+
+3. Add animations
+   - Slide down entrance
+   - Fade out exit
+   - Stack rearrangement
+
+4. Add accessibility
+   - ARIA live regions
+   - Screen reader announcements
+   - Focus handling
+
+5. Create Message stories
+   - Different types
+   - Custom durations
+   - Loading states
+   - Multiple messages
+
+**Acceptance Criteria**:
+
+- ✓ Messages appear globally
+- ✓ Auto-dismiss works correctly
+- ✓ Stack manages multiple messages
+- ✓ Imperative API functions work
+- ✓ Accessible to screen readers
+
+```
+
+### Task 6.3: Notification Component
+
+```
+
+**Task ID**: WL-RCT-026
+**Priority**: P1
+**Estimated Time**: 6 hours
+**Dependencies**: @web-loom/ui-core
+
+**Objective**: Create Notification component for detailed alerts
+
+**Steps**:
+
+1. Define Notification types
+
+   ```typescript
+   interface NotificationConfig {
+     message: React.ReactNode;
+     description?: React.ReactNode;
+     icon?: React.ReactNode;
+     placement?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
+     duration?: number;
+     closeIcon?: React.ReactNode;
+     key?: string;
+     onClick?: () => void;
+     onClose?: () => void;
+   }
+   ```
+
+2. Implement Notification system
+   - Positioned containers (4 corners)
+   - Rich content support
+   - Action buttons
+   - Manual dismiss
+
+3. Add animations
+   - Slide in from edge
+   - Fade out on dismiss
+   - Position-specific entrances
+
+4. Create Notification stories
+   - Different placements
+   - With actions
+   - Rich content
+   - Auto-dismiss vs manual
+
+**Acceptance Criteria**:
+
+- ✓ Appears in correct position
+- ✓ Rich content renders properly
+- ✓ Actions work correctly
+- ✓ Manual close functions
+- ✓ Multiple notifications stack
+
+```
+
+### Task 6.4: Spin Component
+
+```
+
+**Task ID**: WL-RCT-027
+**Priority**: P1
+**Estimated Time**: 3 hours
+**Dependencies**: WL-RCT-002
+
+**Objective**: Create Spin component for loading states
+
+**Steps**:
+
+1. Define Spin types
+
+   ```typescript
+   interface SpinProps {
+     spinning?: boolean;
+     size?: 'small' | 'default' | 'large';
+     tip?: React.ReactNode;
+     delay?: number;
+     indicator?: React.ReactNode;
+     wrapperClassName?: string;
+   }
+   ```
+
+2. Implement Spin component
+   - Overlay spinning
+   - Inline spinning
+   - Custom indicators
+   - Delay before showing
+
+3. Add animations
+   - Smooth rotation
+   - Fade in/out
+   - Size transitions
+
+4. Create Spin stories
+   - Overlay spinning
+   - Inline spinning
+   - Different sizes
+   - Custom indicators
+   - With tips
+
+**Acceptance Criteria**:
+
+- ✓ Overlay covers content correctly
+- ✓ Delay prevents flash of spinner
+- ✓ Custom indicators work
+- ✓ Accessible to screen readers
+
+```
+
+### Task 6.5: Progress Component
+
+```
+
+**Task ID**: WL-RCT-028
+**Priority**: P1
+**Estimated Time**: 4 hours
+**Dependencies**: WL-RCT-002
+
+**Objective**: Create Progress component for task completion
+
+**Steps**:
+
+1. Define Progress types
+
+   ```typescript
+   interface ProgressProps {
+     type?: 'line' | 'circle' | 'dashboard';
+     percent?: number;
+     showInfo?: boolean;
+     status?: 'success' | 'exception' | 'active' | 'normal';
+     strokeLinecap?: 'round' | 'butt' | 'square';
+     strokeColor?: string | { from: string; to: string; direction: string };
+     trailColor?: string;
+     size?: 'default' | 'small' | [number, number];
+   }
+   ```
+
+2. Implement Progress component
+   - Line progress
+   - Circle progress
+   - Dashboard progress
+   - Gradient support
+
+3. Add animations
+   - Smooth progress changes
+   - Color transitions
+   - Success animations
+
+4. Create Progress stories
+   - Different types
+   - Various statuses
+   - Gradient colors
+   - Animated progress
+
+**Acceptance Criteria**:
+
+- ✓ Progress animates smoothly
+- ✓ Circle progress calculates correctly
+- ✓ Gradients render properly
+- ✓ Status colors apply correctly
+
+```
 
 ## Phase 7: Advanced Components (Week 7)
 
-[Continue with similar task breakdowns for DatePicker, Upload, Slider, etc.]
+### Task 7.1: DatePicker Component
+
+```
+
+**Task ID**: WL-RCT-029
+**Priority**: P1
+**Estimated Time**: 10 hours
+**Dependencies**: @web-loom/ui-core, date library (dayjs/date-fns)
+
+**Objective**: Create comprehensive DatePicker with ranges and time
+
+**Steps**:
+
+1. Choose and integrate date library
+
+   ```typescript
+   import dayjs from 'dayjs';
+   // or
+   import { format, parse, isValid } from 'date-fns';
+   ```
+
+2. Define DatePicker types
+
+   ```typescript
+   interface DatePickerProps {
+     value?: Dayjs;
+     defaultValue?: Dayjs;
+     format?: string;
+     disabled?: boolean;
+     disabledDate?: (currentDate: Dayjs) => boolean;
+     showTime?: boolean | TimePickerProps;
+     picker?: 'date' | 'week' | 'month' | 'quarter' | 'year';
+     showToday?: boolean;
+     locale?: Locale;
+   }
+   ```
+
+3. Implement DatePicker components
+   - DatePicker (single date)
+   - DatePicker.RangePicker
+   - DatePicker.TimePicker
+   - DatePicker.MonthPicker
+   - DatePicker.WeekPicker
+
+4. Add accessibility
+   - Keyboard navigation
+   - ARIA date picker pattern
+   - Screen reader support
+
+5. Create DatePicker stories
+   - Basic date selection
+   - Date ranges
+   - With time
+   - Different formats
+   - Disabled dates
+   - Localization
+
+**Acceptance Criteria**:
+
+- ✓ Date selection works accurately
+- ✓ Range picker validates ranges
+- ✓ Time picker integrates properly
+- ✓ Keyboard navigation works
+- ✓ Localization applies correctly
+
+```
+
+### Task 7.2: Upload Component
+
+```
+
+**Task ID**: WL-RCT-030
+**Priority**: P1
+**Estimated Time**: 8 hours
+**Dependencies**: @web-loom/ui-core
+
+**Objective**: Create Upload component with drag-drop and progress
+
+**Steps**:
+
+1. Define Upload types
+
+   ```typescript
+   interface UploadProps {
+     action?: string;
+     method?: 'POST' | 'PUT' | 'PATCH';
+     directory?: boolean;
+     data?: object | ((file: UploadFile) => object);
+     fileList?: UploadFile[];
+     headers?: object;
+     listType?: 'text' | 'picture' | 'picture-card';
+     multiple?: boolean;
+     name?: string;
+     showUploadList?: boolean | ShowUploadListInterface;
+     beforeUpload?: (file: UploadFile, FileList: UploadFile[]) => boolean | Promise<File>;
+     onChange?: (info: UploadChangeParam) => void;
+     onPreview?: (file: UploadFile) => void;
+     onRemove?: (file: UploadFile) => boolean | Promise<boolean>;
+   }
+   ```
+
+2. Implement Upload component
+   - File selection
+   - Drag and drop
+   - Progress tracking
+   - File list management
+
+3. Create upload variants
+   - Button upload
+   - Drag upload area
+   - Picture upload
+   - Avatar upload
+
+4. Add accessibility
+   - Keyboard file selection
+   - Screen reader announcements
+   - Progress announcements
+
+5. Create Upload stories
+   - Basic upload
+   - Drag and drop
+   - Picture upload
+   - Multiple files
+   - Custom upload
+
+**Acceptance Criteria**:
+
+- ✓ File selection works
+- ✓ Drag and drop functions
+- ✓ Progress displays correctly
+- ✓ File removal works
+- ✓ Custom upload logic executes
+
+```
+
+### Task 7.3: Slider Component
+
+```
+
+**Task ID**: WL-RCT-031
+**Priority**: P1
+**Estimated Time**: 6 hours
+**Dependencies**: @web-loom/ui-core
+
+**Objective**: Create Slider component for numeric input
+
+**Steps**:
+
+1. Define Slider types
+
+   ```typescript
+   interface SliderProps {
+     min?: number;
+     max?: number;
+     step?: number;
+     value?: number | [number, number];
+     defaultValue?: number | [number, number];
+     disabled?: boolean;
+     marks?: Record<number, React.ReactNode>;
+     included?: boolean;
+     vertical?: boolean;
+     range?: boolean;
+     tooltip?: { formatter?: (value: number) => React.ReactNode };
+   }
+   ```
+
+2. Implement Slider component
+   - Single value slider
+   - Range slider
+   - Vertical orientation
+   - Mark indicators
+   - Tooltip display
+
+3. Add accessibility
+   - ARIA slider pattern
+   - Keyboard control
+   - Value announcements
+
+4. Create Slider stories
+   - Basic slider
+   - Range slider
+   - With marks
+   - Vertical slider
+   - Disabled states
+
+**Acceptance Criteria**:
+
+- ✓ Value changes on drag
+- ✓ Keyboard control works
+- ✓ Range handles don't cross
+- ✓ Marks align correctly
+- ✓ Tooltips show values
+
+```
+
+### Task 7.4: TreeSelect Component
+
+```
+
+**Task ID**: WL-RCT-032
+**Priority**: P2
+**Estimated Time**: 8 hours
+**Dependencies**: @web-loom/ui-core, Tree component logic
+
+**Objective**: Create TreeSelect component for hierarchical selection
+
+**Steps**:
+
+1. Define TreeSelect types
+
+   ```typescript
+   interface TreeSelectProps {
+     treeData?: TreeNode[];
+     value?: string | string[];
+     multiple?: boolean;
+     checkable?: boolean;
+     showSearch?: boolean;
+     treeCheckStrictly?: boolean;
+     treeDefaultExpandAll?: boolean;
+     filterTreeNode?: (inputValue: string, treeNode: TreeNode) => boolean;
+   }
+   ```
+
+2. Implement TreeSelect component
+   - Tree structure display
+   - Single and multiple selection
+   - Search/filter functionality
+   - Checkable nodes
+
+3. Add accessibility
+   - Tree navigation
+   - Selection announcements
+   - Keyboard control
+
+4. Create TreeSelect stories
+   - Basic tree select
+   - Multiple selection
+   - Checkable trees
+   - Search functionality
+
+**Acceptance Criteria**:
+
+- ✓ Tree structure renders correctly
+- ✓ Selection works properly
+- ✓ Search filters nodes
+- ✓ Checkbox logic is correct
+
+```
+
+### Task 7.5: Transfer Component
+
+```
+
+**Task ID**: WL-RCT-033
+**Priority**: P2
+**Estimated Time**: 6 hours
+**Dependencies**: WL-RCT-002
+
+**Objective**: Create Transfer component for moving items between lists
+
+**Steps**:
+
+1. Define Transfer types
+
+   ```typescript
+   interface TransferProps {
+     dataSource: TransferItem[];
+     targetKeys?: string[];
+     selectedKeys?: string[];
+     render?: (item: TransferItem) => React.ReactNode;
+     titles?: string[];
+     operations?: string[];
+     showSearch?: boolean;
+     filterOption?: (inputValue: string, item: TransferItem) => boolean;
+     locale?: TransferLocale;
+   }
+   ```
+
+2. Implement Transfer component
+   - Two-panel layout
+   - Item selection
+   - Transfer operations
+   - Search functionality
+
+3. Add accessibility
+   - List navigation
+   - Transfer announcements
+   - Button labels
+
+4. Create Transfer stories
+   - Basic transfer
+   - With search
+   - Custom render
+   - Different operations
+
+**Acceptance Criteria**:
+
+- ✓ Items transfer between lists
+- ✓ Selection works correctly
+- ✓ Search filters items
+- ✓ Custom rendering works
+
+```
 
 ## Phase 8: Polish & Documentation (Week 8)
 

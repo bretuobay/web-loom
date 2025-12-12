@@ -17,6 +17,53 @@
   background: var(--loom-bg, #fff);
   cursor: pointer;
   min-height: 42px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.control:focus {
+  outline: none;
+  border-color: var(--loom-primary-color, #1890ff);
+  box-shadow: 0 0 0 2px var(--loom-primary-shadow, rgba(24, 144, 255, 0.1));
+}
+
+/* Size variants */
+.select.small .control {
+  min-height: 32px;
+  padding: 2px 8px;
+  font-size: 13px;
+}
+
+.select.small .valueArea {
+  min-height: 22px;
+}
+
+.select.large .control {
+  min-height: 48px;
+  padding: 8px 12px;
+  font-size: 16px;
+}
+
+.select.large .valueArea {
+  min-height: 30px;
+}
+
+/* Status states */
+.select.error .control {
+  border-color: var(--loom-error-color, #ff4d4f);
+}
+
+.select.error .control:focus {
+  border-color: var(--loom-error-color, #ff4d4f);
+  box-shadow: 0 0 0 2px var(--loom-error-shadow, rgba(255, 77, 79, 0.1));
+}
+
+.select.warning .control {
+  border-color: var(--loom-warning-color, #faad14);
+}
+
+.select.warning .control:focus {
+  border-color: var(--loom-warning-color, #faad14);
+  box-shadow: 0 0 0 2px var(--loom-warning-shadow, rgba(250, 173, 20, 0.1));
 }
 
 .select.disabled .control {
@@ -42,11 +89,58 @@
 }
 
 .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: var(--loom-tag-bg, #eef1ff);
   color: var(--loom-tag-color, #1d2088);
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 12px;
+  max-width: 100%;
+}
+
+.tagContent {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tagClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: currentColor;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.tagClose:hover {
+  opacity: 1;
+}
+
+.tagClose:focus {
+  outline: 2px solid var(--loom-primary-color, #1890ff);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* Small size tag adjustments */
+.select.small .tag {
+  font-size: 11px;
+  padding: 1px 6px;
+}
+
+/* Large size tag adjustments */
+.select.large .tag {
+  font-size: 13px;
+  padding: 3px 10px;
 }
 
 .placeholder {
@@ -140,6 +234,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.select.small .option {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.select.large .option {
+  padding: 12px 20px;
+  font-size: 16px;
 }
 
 .option:hover {

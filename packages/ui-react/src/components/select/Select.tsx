@@ -31,40 +31,96 @@ const ITEM_HEIGHT = 38;
 const DROPDOWN_MAX_HEIGHT = 260;
 const OVERSCAN_COUNT = 3;
 
+/**
+ * Size options for the Select component
+ */
+export type SelectSize = 'small' | 'middle' | 'large';
+
+/**
+ * Represents a single selectable option
+ */
 export interface SelectOptionItem {
+  /** Unique value for the option */
   value: string;
+  /** Display label for the option */
   label: ReactNode;
+  /** Whether the option is disabled */
   disabled?: boolean;
+  /** Tooltip text for the option */
   title?: string;
+  /** Custom key for React rendering */
   key?: string;
 }
 
+/**
+ * Represents a group of options
+ */
 export interface SelectOptGroup {
+  /** Label for the option group */
   label: ReactNode;
+  /** Custom key for React rendering */
   key?: string;
+  /** Array of options in the group */
   options: SelectOptionItem[];
 }
 
 export type SelectOptionDefinition = SelectOptionItem | SelectOptGroup;
 
+/**
+ * Props for the Select component
+ *
+ * @example
+ * ```tsx
+ * <Select
+ *   size="middle"
+ *   placeholder="Select an option"
+ *   options={[
+ *     { value: '1', label: 'Option 1' },
+ *     { value: '2', label: 'Option 2' },
+ *   ]}
+ *   onChange={(value) => console.log(value)}
+ * />
+ * ```
+ */
 export interface SelectProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange' | 'children'> {
+  /** Selection mode - single, multiple selection, or tags creation */
   mode?: 'multiple' | 'tags';
+  /** Show clear button when value is selected */
   allowClear?: boolean;
+  /** Enable search/filter functionality */
   showSearch?: boolean;
+  /** Custom filter function or boolean to enable/disable filtering */
   filterOption?:
     | boolean
     | ((input: string, option: SelectRenderedOption) => boolean);
+  /** Array of options or option groups */
   options?: SelectOptionDefinition[];
+  /** Loading state */
   loading?: boolean;
+  /** Custom content to show when no options match */
   notFoundContent?: ReactNode;
   /** Controlled value */
   value?: string | string[];
   /** Uncontrolled default value */
   defaultValue?: string | string[];
+  /** Placeholder text */
   placeholder?: ReactNode;
+  /** Disabled state */
   disabled?: boolean;
+  /** Size of the select component */
+  size?: SelectSize;
+  /** Test identifier */
+  'data-testid'?: string;
+  /** Accessible label for screen readers */
+  'aria-label'?: string;
+  /** ID of element that labels this select */
+  'aria-labelledby'?: string;
+  /** Status state for validation styling */
+  status?: 'error' | 'warning';
+  /** Callback when selected value changes */
   onChange?: (value: string | string[] | undefined) => void;
+  /** Child elements (for JSX API) */
   children?: ReactNode;
 }
 
@@ -223,6 +279,14 @@ const baseArrowIcon = (
   </svg>
 );
 
+/**
+ * Select component for choosing values from a list of options
+ *
+ * Supports single selection, multiple selection, and tag creation modes.
+ * Built on Web Loom's headless UI behaviors for consistent interaction patterns.
+ *
+ * @component
+ */
 const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwardedRef) => {
   const {
     mode,
@@ -236,6 +300,11 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
     defaultValue,
     placeholder = 'Select',
     disabled = false,
+    size = 'middle',
+    status,
+    'data-testid': dataTestId,
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledBy,
     onChange,
     className,
     children,
@@ -488,6 +557,8 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
   const handleControlKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
       if (disabled) return;
+
+      // Arrow navigation
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault();
         setOpen(true);
@@ -499,6 +570,23 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
         return;
       }
 
+      // Home/End navigation
+      if (event.key === 'Home') {
+        event.preventDefault();
+        setOpen(true);
+        focusBehaviorRef.current?.actions.moveTo(0);
+        return;
+      }
+
+      if (event.key === 'End') {
+        event.preventDefault();
+        setOpen(true);
+        const items = focusBehaviorRef.current?.getState().items || [];
+        focusBehaviorRef.current?.actions.moveTo(items.length - 1);
+        return;
+      }
+
+      // Enter to select
       if (event.key === 'Enter') {
         event.preventDefault();
         if (!open) {
@@ -510,9 +598,13 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
         }
       }
 
+      // Escape to close
       if (event.key === 'Escape') {
         event.preventDefault();
-        setOpen(false);
+        if (open) {
+          setOpen(false);
+          setSearchValue(''); // Clear search on escape
+        }
       }
     },
     [disabled, open, focusValue, handleOptionSelect]
@@ -531,6 +623,15 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
       event.stopPropagation();
       if (!selectionBehaviorRef.current) return;
       selectionBehaviorRef.current.actions.clearSelection();
+    },
+    []
+  );
+
+  const handleTagRemove = useCallback(
+    (valueToRemove: string, event: MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      if (!selectionBehaviorRef.current) return;
+      selectionBehaviorRef.current.actions.deselect(valueToRemove);
     },
     []
   );
@@ -598,6 +699,9 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
 
   const ariaLiveLabel = `${renderNodes.filter((node) => node.type === 'option').length} options available`;
 
+  // Generate option ID for aria-activedescendant
+  const activeOptionId = focusValue ? `${listId}-option-${focusValue}` : undefined;
+
   return (
     <div
       ref={handleRootRef}
@@ -605,7 +709,12 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
         [styles.open]: open,
         [styles.disabled]: disabled,
         [styles.multiple]: isMultiple,
+        [styles.small]: size === 'small',
+        [styles.large]: size === 'large',
+        [styles.error]: status === 'error',
+        [styles.warning]: status === 'warning',
       })}
+      data-testid={dataTestId}
       {...rest}
     >
       <div
@@ -614,6 +723,9 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
+        aria-activedescendant={open ? activeOptionId : undefined}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
         tabIndex={disabled ? -1 : 0}
         onClick={handleControlClick}
         onKeyDown={handleControlKeyDown}
@@ -621,10 +733,28 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
       >
         <div className={styles.valueArea}>
           {isMultiple ? (
-            <div className={styles.tags}> 
+            <div className={styles.tags}>
               {selectedOptions.map((option) => (
-                <span key={option.value} className={styles.tag}>
-                  {option.label}
+                <span key={option.value} className={styles.tag} role="option" aria-selected="true">
+                  <span className={styles.tagContent}>{option.label}</span>
+                  {!disabled && (
+                    <button
+                      type="button"
+                      className={styles.tagClose}
+                      onClick={(e) => handleTagRemove(option.value, e)}
+                      aria-label={`Remove ${typeof option.label === 'string' ? option.label : option.value}`}
+                      tabIndex={-1}
+                    >
+                      <svg viewBox="0 0 16 16" width="10" height="10" aria-hidden="true">
+                        <path
+                          d="M4 4l8 8M12 4l-8 8"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 </span>
               ))}
               {selectedOptions.length === 0 && <span className={styles.placeholder}>{placeholder}</span>}
@@ -693,9 +823,11 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
 
                     const isSelected = selectedValues.includes(node.value);
                     const isHighlighted = focusValue === node.value;
+                    const optionId = `${listId}-option-${node.value}`;
                     return (
                       <div
                         key={node.key}
+                        id={optionId}
                         role="option"
                         aria-selected={isSelected}
                         title={node.title?.toString()}
