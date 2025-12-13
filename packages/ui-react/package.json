@@ -34,6 +34,9 @@
   "sideEffects": [
     "*.css"
   ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",

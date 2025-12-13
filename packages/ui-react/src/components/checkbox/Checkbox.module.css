@@ -1,0 +1,111 @@
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  color: #111;
+  user-select: none;
+}
+
+.wrapper.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.control {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #c4cdd5;
+  border-radius: 4px;
+  background-color: #fff;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control:focus-within {
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.35);
+  border-color: #1890ff;
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.indicator {
+  width: 10px;
+  height: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.indicator::after {
+  content: '';
+  width: 6px;
+  height: 10px;
+  border: 2px solid transparent;
+  border-top: 0;
+  border-left: 0;
+  border-color: #fff;
+  transform: rotate(45deg) scale(0);
+  transform-origin: center;
+  transition: transform 0.15s ease;
+}
+
+.checked {
+  border-color: #1890ff;
+  background-color: #1890ff;
+}
+
+.checked .indicator::after {
+  transform: rotate(45deg) scale(1);
+}
+
+.indeterminate .indicator::after {
+  width: 8px;
+  height: 2px;
+  border: none;
+  background-color: #fff;
+  transform: scale(1);
+  border-radius: 1px;
+}
+
+.label {
+  flex: 1;
+}
+
+.groupFieldset {
+  border: 1px solid #ebedf0;
+  border-radius: 6px;
+  padding: 0.75rem 1rem 0.9rem;
+  background-color: #fff;
+}
+
+.groupLegend {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.groupChildren {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.required {
+  color: #ff4d4f;
+  font-size: 0.8rem;
+}
