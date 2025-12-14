@@ -823,7 +823,7 @@ Check if there is a pattern in ui core or ui patterns you can use or if you thin
 **Estimated Time**: 12 hours
 **Dependencies**: @web-loom/ui-core, @web-loom/ui-patterns
 
-**Objective**: Create comprehensive Table component with sorting, filtering, and pagination
+**Objective**: Create comprehensive Table component with sorting, filtering, and pagination. If pattern for table ( headless ui ) do not exist, then add them first
 
 **Steps**:
 

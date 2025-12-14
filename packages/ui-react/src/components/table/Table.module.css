@@ -1,0 +1,284 @@
+.tableContainer {
+  border-radius: 12px;
+  border: 1px solid #d8d8d8;
+  background-color: #fff;
+  position: relative;
+  font-family: inherit;
+  overflow: hidden;
+}
+
+.tableActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fafafa;
+  flex-wrap: wrap;
+}
+
+.actionGroup {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.scrollViewport {
+  width: 100%;
+  overflow: auto;
+}
+
+.virtualBody {
+  min-width: 100%;
+}
+
+.tableElement {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.95rem;
+  color: #1f1f1f;
+}
+
+.tableElement th,
+.tableElement td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fff;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tableElement thead th {
+  font-weight: 600;
+  background-color: #fff;
+  color: #0f172a;
+}
+
+.tableElement tbody tr:hover {
+  background-color: #fbfbfb;
+}
+
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background-color: #fff;
+}
+
+.stickyColumn {
+  position: sticky;
+  z-index: 2;
+  background-color: #fff;
+}
+
+.selectionCell {
+  width: 48px;
+  text-align: center;
+  padding: 0;
+}
+
+.resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 4;
+}
+
+.filterDropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.filterMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 10px;
+  z-index: 5;
+}
+
+.filterOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+
+.filterActions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  gap: 6px;
+}
+
+.filterTrigger {
+  border: 1px solid transparent;
+  background-color: #f2f3f5;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.filterTriggerActive {
+  border-color: #c0c9ff;
+  background-color: #eef3ff;
+}
+
+.cellContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sortIcon {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.filterBadge {
+  border-radius: 999px;
+  background-color: #d1eaff;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  color: #0d4ac1;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid #f0f0f0;
+  background-color: #fafafa;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  border-radius: 6px;
+  border: 1px solid #cecfd6;
+  background-color: #fff;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination select {
+  border-radius: 6px;
+  border: 1px solid #cecfd6;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  background-color: #fff;
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.85);
+  z-index: 4;
+}
+
+.loadingIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid transparent;
+  border-top-color: #1d70ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.emptyState {
+  padding: 32px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.expandedRow {
+  background-color: #f6f7fb;
+}
+
+.expandedCell {
+  padding-left: 40px;
+  font-size: 0.9rem;
+  color: #2f3542;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.virtualSpacer {
+  border: none;
+  height: 0;
+}
+
+.exportButton {
+  border-radius: 6px;
+  border: 1px solid #cecfd6;
+  background-color: #fff;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.expandButton {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
