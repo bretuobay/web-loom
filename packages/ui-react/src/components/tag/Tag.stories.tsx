@@ -9,7 +9,7 @@ import { Tag } from './Tag';
 import { useState } from 'react';
 
 const meta: Meta<typeof Tag> = {
-  title: 'Components/Data Display/Tag',
+  title: 'Components/Tag',
   component: Tag,
   parameters: {
     layout: 'centered',
