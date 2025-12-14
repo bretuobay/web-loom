@@ -1,5 +1,7 @@
+export * from './badge';
 export * from './breadcrumb';
 export * from './button';
+export * from './avatar';
 export * from './card';
 export * from './code';
 export * from './divider';
@@ -13,5 +15,6 @@ export * from './space';
 export * from './select';
 export * from './radio';
 export * from './tabs';
+export * from './tag';
 export * from './list';
 export * from './table';

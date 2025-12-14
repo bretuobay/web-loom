@@ -1,0 +1,86 @@
+/* Avatar styles leverage theme tokens when available */
+.avatar {
+  width: var(--avatar-size, 40px);
+  height: var(--avatar-size, 40px);
+  border-radius: var(--ui-radius-full, 999px);
+  background-color: var(--ui-color-bg-secondary, #f5f5f5);
+  color: var(--ui-color-text, rgba(0, 0, 0, 0.88));
+  font-weight: var(--ui-font-weight-medium, 500);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--ui-color-border, #d9d9d9);
+  font-size: calc(var(--avatar-size, 40px) / 2.4);
+  line-height: 1;
+  text-transform: uppercase;
+  position: relative;
+}
+
+.shape-circle {
+  border-radius: 50%;
+}
+
+.shape-square {
+  border-radius: var(--ui-radius-sm, 8px);
+}
+
+.hasImage {
+  font-size: 0;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--avatar-gap, 0px);
+}
+
+.iconWrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60%;
+  height: 60%;
+  color: inherit;
+}
+
+.initials {
+  font-size: calc(var(--avatar-size, 40px) / 2.6);
+  letter-spacing: 0.02em;
+}
+
+.placeholder {
+  width: 40%;
+  height: 40%;
+  border-radius: 50%;
+  background-color: var(--ui-color-border, #d9d9d9);
+}
+
+.group {
+  display: inline-flex;
+  align-items: center;
+}
+
+.groupItem {
+  position: relative;
+}
+
+.groupAvatarChild {
+  box-shadow: 0 0 0 2px var(--ui-color-bg, #ffffff);
+}
+
+.overflowAvatar {
+  background-color: var(--ui-color-bg, #ffffff);
+  border: 1px solid var(--ui-color-border, #d9d9d9);
+  color: var(--ui-color-text, rgba(0, 0, 0, 0.88));
+}
