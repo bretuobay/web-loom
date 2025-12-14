@@ -8,7 +8,14 @@
     "module": "ESNext",
     "target": "ES2022",
     "moduleResolution": "bundler",
-    "baseUrl": "."
+    "baseUrl": ".",
+    "composite": true,
+    "incremental": true,
+    "paths": {
+      "@web-loom/mvvm-core": [
+        "../mvvm-core/dist"
+      ]
+    }
   },
   "include": [
     "src"
@@ -18,5 +25,10 @@
     "dist",
     "**/examples/**/*.ts",
     "**/examples/**/*.tsx"
+  ],
+  "references": [
+    {
+      "path": "../mvvm-core"
+    }
   ]
 }

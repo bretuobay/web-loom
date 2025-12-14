@@ -1,0 +1,291 @@
+.tableContainer {
+  border-radius: var(--ui-radius-xl, 12px);
+  border: 1px solid var(--ui-color-border, #d9d9d9);
+  background-color: var(--ui-color-bg, #ffffff);
+  position: relative;
+  font-family: var(--ui-font-family,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif);
+  overflow: hidden;
+}
+
+.tableActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-sm, 8px);
+  padding: var(--ui-space-sm, 8px) var(--ui-space-md, 16px);
+  border-bottom: 1px solid var(--ui-color-border-secondary, #f0f0f0);
+  background-color: var(--ui-color-bg-secondary, #fafafa);
+  flex-wrap: wrap;
+}
+
+.actionGroup {
+  display: flex;
+  gap: var(--ui-space-sm, 8px);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.scrollViewport {
+  width: 100%;
+  overflow: auto;
+}
+
+.virtualBody {
+  min-width: 100%;
+}
+
+.tableElement {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--ui-font-size-sm, 14px);
+  color: var(--ui-color-text, rgba(0, 0, 0, 0.88));
+}
+
+.tableElement th,
+.tableElement td {
+  padding: var(--ui-space-sm, 8px) var(--ui-space-md, 16px);
+  text-align: left;
+  border-bottom: 1px solid var(--ui-color-border-secondary, #f0f0f0);
+  background-color: var(--ui-color-bg, #ffffff);
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tableElement thead th {
+  font-weight: var(--ui-font-weight-semibold, 600);
+  background-color: var(--ui-color-bg, #ffffff);
+  color: var(--ui-color-text, rgba(0, 0, 0, 0.88));
+}
+
+.tableElement tbody tr:hover {
+  background-color: var(--ui-color-bg-tertiary, #f5f5f5);
+}
+
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background-color: var(--ui-color-bg, #ffffff);
+}
+
+.stickyColumn {
+  position: sticky;
+  z-index: 2;
+  background-color: var(--ui-color-bg, #ffffff);
+}
+
+.selectionCell {
+  width: 48px;
+  text-align: center;
+  padding: 0;
+}
+
+.resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 4;
+}
+
+.filterDropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.filterMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 200px;
+  background: var(--ui-color-bg, #ffffff);
+  border: 1px solid var(--ui-color-border-secondary, #f0f0f0);
+  border-radius: var(--ui-radius-md, 6px);
+  box-shadow: var(--ui-shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+  padding: var(--ui-space-sm, 8px);
+  z-index: var(--ui-z-index-popover, 1060);
+}
+
+.filterOption {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-sm, 8px);
+  font-size: var(--ui-font-size-sm, 14px);
+  margin-bottom: var(--ui-space-xs, 4px);
+}
+
+.filterActions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--ui-space-sm, 8px);
+  gap: var(--ui-space-xs, 4px);
+}
+
+.filterTrigger {
+  border: 1px solid transparent;
+  background-color: var(--ui-color-bg-tertiary, #f5f5f5);
+  border-radius: var(--ui-radius-sm, 4px);
+  padding: var(--ui-space-xs, 4px) var(--ui-space-sm, 8px);
+  font-size: var(--ui-font-size-xs, 12px);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-xs, 4px);
+}
+
+.filterTriggerActive {
+  border-color: var(--ui-color-primary, #1677ff);
+  background-color: var(--ui-color-primary-bg, #e6f4ff);
+}
+
+.cellContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-sm, 8px);
+}
+
+.sortIcon {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.filterBadge {
+  border-radius: var(--ui-radius-full, 9999px);
+  background-color: var(--ui-color-primary-bg, #e6f4ff);
+  padding: var(--ui-space-xs, 4px) var(--ui-space-sm, 8px);
+  font-size: var(--ui-font-size-xs, 12px);
+  color: var(--ui-color-primary, #1677ff);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ui-space-sm, 8px);
+  padding: var(--ui-space-sm, 8px) var(--ui-space-md, 16px);
+  border-top: 1px solid var(--ui-color-border-secondary, #f0f0f0);
+  background-color: var(--ui-color-bg-secondary, #fafafa);
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  border-radius: var(--ui-radius-md, 6px);
+  border: 1px solid var(--ui-color-border, #d9d9d9);
+  background-color: var(--ui-color-bg, #ffffff);
+  padding: var(--ui-space-xs, 4px) var(--ui-space-sm, 8px);
+  cursor: pointer;
+  font-size: var(--ui-font-size-xs, 12px);
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination select {
+  border-radius: var(--ui-radius-md, 6px);
+  border: 1px solid var(--ui-color-border, #d9d9d9);
+  padding: var(--ui-space-xs, 4px) var(--ui-space-sm, 8px);
+  font-size: var(--ui-font-size-xs, 12px);
+  background-color: var(--ui-color-bg, #ffffff);
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--ui-color-overlay, rgba(255, 255, 255, 0.85));
+  z-index: var(--ui-z-index-modal-backdrop, 1040);
+}
+
+.loadingIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-sm, 8px);
+  font-weight: var(--ui-font-weight-medium, 500);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid transparent;
+  border-top-color: var(--ui-color-primary, #1677ff);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.emptyState {
+  padding: var(--ui-space-lg, 24px);
+  text-align: center;
+  color: var(--ui-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+.expandedRow {
+  background-color: var(--ui-color-bg-secondary, #fafafa);
+}
+
+.expandedCell {
+  padding-left: var(--ui-space-lg, 24px);
+  font-size: var(--ui-font-size-sm, 14px);
+  color: var(--ui-color-text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.virtualSpacer {
+  border: none;
+  height: 0;
+}
+
+.exportButton {
+  border-radius: var(--ui-radius-md, 6px);
+  border: 1px solid var(--ui-color-border, #d9d9d9);
+  background-color: var(--ui-color-bg, #ffffff);
+  padding: var(--ui-space-xs, 4px) var(--ui-space-md, 16px);
+  cursor: pointer;
+  font-size: var(--ui-font-size-sm, 14px);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-xs, 4px);
+}
+
+.expandButton {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-xs, 4px);
+}

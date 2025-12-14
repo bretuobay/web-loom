@@ -6,6 +6,25 @@
 
 import type { ThemeConfig } from './types';
 
+const checkboxComponentTokens = {
+  size: '18px',
+  gap: '0.45rem',
+  borderRadius: '4px',
+  indicatorSize: '10px',
+  borderWidth: '1px',
+  focusRing: 'rgba(22, 119, 255, 0.25)',
+};
+
+const radioComponentTokens = {
+  size: '16px',
+  gap: '0.35rem',
+  borderWidth: '1px',
+  indicatorSize: '8px',
+  buttonVertical: '0.35rem',
+  buttonHorizontal: '0.95rem',
+  buttonBorderRadius: '6px',
+};
+
 /**
  * Default light theme configuration
  */
@@ -140,6 +159,12 @@ export const defaultLightTheme: ThemeConfig = {
       padding: '24px',
       borderRadius: '8px',
       shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+    },
+    Checkbox: {
+      ...checkboxComponentTokens,
+    },
+    Radio: {
+      ...radioComponentTokens,
     },
   },
 };
@@ -278,6 +303,12 @@ export const defaultDarkTheme: ThemeConfig = {
       padding: '24px',
       borderRadius: '8px',
       shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.48), 0 1px 2px -1px rgba(0, 0, 0, 0.48)',
+    },
+    Checkbox: {
+      ...checkboxComponentTokens,
+    },
+    Radio: {
+      ...radioComponentTokens,
     },
   },
 };

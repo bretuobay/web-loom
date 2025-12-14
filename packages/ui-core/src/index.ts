@@ -61,6 +61,9 @@ export * from './adapters/react';
 // Type definitions
 export * from './types';
 
+// Table helpers
+export * from './table';
+
 /**
  * Package version
  */
