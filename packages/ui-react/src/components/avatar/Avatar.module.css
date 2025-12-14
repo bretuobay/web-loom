@@ -84,3 +84,45 @@
   border: 1px solid var(--ui-color-border, #d9d9d9);
   color: var(--ui-color-text, rgba(0, 0, 0, 0.88));
 }
+
+/* ==========================================================================
+   Dark Mode Support
+   ========================================================================== */
+
+[data-theme='dark'] .avatar {
+  background-color: var(--ui-color-bg-secondary, #1f1f1f);
+  border-color: var(--ui-color-border, #424242);
+  color: var(--ui-color-text, rgba(255, 255, 255, 0.85));
+}
+
+[data-theme='dark'] .placeholder {
+  background-color: var(--ui-color-border, #424242);
+}
+
+[data-theme='dark'] .groupAvatarChild {
+  box-shadow: 0 0 0 2px var(--ui-color-bg, #141414);
+}
+
+[data-theme='dark'] .overflowAvatar {
+  background-color: var(--ui-color-bg, #141414);
+  border-color: var(--ui-color-border, #424242);
+  color: var(--ui-color-text, rgba(255, 255, 255, 0.85));
+}
+
+/* ==========================================================================
+   Accessibility
+   ========================================================================== */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .avatar {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .avatar {
+    transition: none;
+  }
+}

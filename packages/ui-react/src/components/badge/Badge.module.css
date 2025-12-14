@@ -1,11 +1,23 @@
-/* Badge Wrapper */
+/**
+ * Badge Component Styles
+ *
+ * Uses CSS custom properties from the theme system
+ */
+
+/* ==========================================================================
+   Badge Wrapper
+   ========================================================================== */
+
 .badgeWrapper {
   position: relative;
   display: inline-block;
   line-height: 1;
 }
 
-/* Badge Dot/Count */
+/* ==========================================================================
+   Badge Dot/Count
+   ========================================================================== */
+
 .badge {
   position: absolute;
   top: 0;
@@ -15,45 +27,51 @@
   z-index: 10;
   min-width: 20px;
   height: 20px;
-  padding: 0 6px;
+  padding: 0 var(--ui-space-xs, 6px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--ui-font-size-xs, 12px);
+  font-weight: var(--ui-font-weight-medium, 500);
   line-height: 20px;
   white-space: nowrap;
   text-align: center;
-  background-color: #ff4d4f;
-  border-radius: 10px;
-  color: #fff;
-  box-shadow: 0 0 0 1px #fff;
-  animation: badgeZoomIn 0.3s cubic-bezier(0.12, 0.4, 0.29, 1.46);
+  background-color: var(--ui-color-error, #ff4d4f);
+  border-radius: var(--ui-radius-md, 10px);
+  color: var(--ui-color-white, #fff);
+  box-shadow: 0 0 0 1px var(--ui-color-bg, #fff);
+  animation: badgeZoomIn var(--ui-transition-normal, 0.3s) cubic-bezier(0.12, 0.4, 0.29, 1.46);
 }
 
 .badgeCount {
   display: inline-block;
-  animation: countChange 0.3s ease-in-out;
+  animation: countChange var(--ui-transition-normal, 0.3s) ease-in-out;
 }
 
-/* Dot variant */
+/* ==========================================================================
+   Dot Variant
+   ========================================================================== */
+
 .badgeDot {
   min-width: 6px;
   width: 6px;
   height: 6px;
   padding: 0;
-  border-radius: 100%;
+  border-radius: var(--ui-radius-full, 100%);
   animation: badgePulse 1.5s ease-in-out infinite;
 }
 
-/* Small size */
+/* ==========================================================================
+   Size Variants
+   ========================================================================== */
+
 .badgeSmall {
   min-width: 16px;
   height: 16px;
-  padding: 0 4px;
+  padding: 0 var(--ui-space-xs, 4px);
   font-size: 10px;
   line-height: 16px;
-  border-radius: 8px;
+  border-radius: var(--ui-radius-sm, 8px);
 }
 
 .badgeSmall.badgeDot {
@@ -67,77 +85,89 @@
   padding: 0 5px;
 }
 
-/* Status Badge (standalone) */
+/* ==========================================================================
+   Status Badge (Standalone)
+   ========================================================================== */
+
 .badgeStatus {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ui-space-sm, 8px);
 }
 
 .statusDot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--ui-radius-full, 50%);
   display: inline-block;
   animation: statusPulse 1.5s ease-in-out infinite;
 }
 
 .statusText {
-  font-size: 14px;
+  font-size: var(--ui-font-size-sm, 14px);
   line-height: 1.5;
-  color: rgba(0, 0, 0, 0.85);
+  color: var(--ui-color-text, rgba(0, 0, 0, 0.85));
 }
 
-/* Status Colors */
+/* ==========================================================================
+   Status Colors
+   ========================================================================== */
+
 .status-success {
-  background-color: #52c41a;
+  background-color: var(--ui-color-success, #52c41a);
 }
 
 .status-processing {
-  background-color: #1890ff;
+  background-color: var(--ui-color-primary, #1890ff);
   animation: processingPulse 1.2s ease-in-out infinite;
 }
 
 .status-default {
-  background-color: #d9d9d9;
+  background-color: var(--ui-color-border, #d9d9d9);
 }
 
 .status-error {
-  background-color: #ff4d4f;
+  background-color: var(--ui-color-error, #ff4d4f);
 }
 
 .status-warning {
-  background-color: #faad14;
+  background-color: var(--ui-color-warning, #faad14);
 }
 
-/* Standalone Badge */
+/* ==========================================================================
+   Standalone Badge
+   ========================================================================== */
+
 .badgeStandalone {
   display: inline-block;
   min-width: 20px;
   height: 20px;
-  padding: 0 6px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 0 var(--ui-space-xs, 6px);
+  font-size: var(--ui-font-size-xs, 12px);
+  font-weight: var(--ui-font-weight-medium, 500);
   line-height: 20px;
   text-align: center;
   white-space: nowrap;
-  background-color: #ff4d4f;
-  color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px #fff;
-  animation: badgeZoomIn 0.3s cubic-bezier(0.12, 0.4, 0.29, 1.46);
+  background-color: var(--ui-color-error, #ff4d4f);
+  color: var(--ui-color-white, #fff);
+  border-radius: var(--ui-radius-md, 10px);
+  box-shadow: 0 0 0 1px var(--ui-color-bg, #fff);
+  animation: badgeZoomIn var(--ui-transition-normal, 0.3s) cubic-bezier(0.12, 0.4, 0.29, 1.46);
 }
 
 .badgeStandalone.badgeSmall {
   min-width: 16px;
   height: 16px;
-  padding: 0 4px;
+  padding: 0 var(--ui-space-xs, 4px);
   font-size: 10px;
   line-height: 16px;
-  border-radius: 8px;
+  border-radius: var(--ui-radius-sm, 8px);
 }
 
-/* Animations */
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+
 @keyframes badgeZoomIn {
   0% {
     transform: translate(50%, -50%) scale(0);
@@ -195,16 +225,29 @@
   }
 }
 
-/* Reduce motion for accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .badge,
-  .badgeStandalone,
-  .badgeDot,
-  .statusDot,
-  .badgeCount {
-    animation: none;
-  }
+/* ==========================================================================
+   Dark Mode Support
+   ========================================================================== */
+
+[data-theme='dark'] .badge {
+  box-shadow: 0 0 0 1px var(--ui-color-bg, #141414);
 }
+
+[data-theme='dark'] .badgeStandalone {
+  box-shadow: 0 0 0 1px var(--ui-color-bg, #141414);
+}
+
+[data-theme='dark'] .statusText {
+  color: var(--ui-color-text, rgba(255, 255, 255, 0.85));
+}
+
+[data-theme='dark'] .status-default {
+  background-color: var(--ui-color-border, #424242);
+}
+
+/* ==========================================================================
+   Accessibility
+   ========================================================================== */
 
 /* Screen reader only */
 .sr-only {
@@ -217,4 +260,26 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .badge,
+  .badgeStandalone,
+  .badgeDot,
+  .statusDot,
+  .badgeCount {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .badge {
+    box-shadow: 0 0 0 2px var(--ui-color-bg, #fff);
+  }
+
+  .badgeStandalone {
+    box-shadow: 0 0 0 2px var(--ui-color-bg, #fff);
+  }
 }

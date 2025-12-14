@@ -248,3 +248,68 @@
     padding-left: 4px;
     padding-right: 8px;
 }
+
+/* ==========================================================================
+   Dark Mode Support
+   ========================================================================== */
+
+[data-theme='dark'] .tag {
+    color: var(--ui-color-text, rgba(255, 255, 255, 0.85));
+    background-color: var(--ui-color-fill-tertiary, rgba(255, 255, 255, 0.08));
+}
+
+[data-theme='dark'] .tag.bordered {
+    border-color: var(--ui-color-border, #424242);
+}
+
+[data-theme='dark'] .tag.checkable {
+    background-color: var(--ui-color-bg-container, #141414);
+    border-color: var(--ui-color-border, #424242);
+}
+
+[data-theme='dark'] .tag.checkable.checked {
+    background-color: var(--ui-color-primary-bg, #111d2c);
+    border-color: var(--ui-color-primary, #1677ff);
+    color: var(--ui-color-primary, #1677ff);
+}
+
+[data-theme='dark'] .closeButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode color variants */
+[data-theme='dark'] .tag.success {
+    color: var(--ui-color-success, #52c41a);
+    background-color: var(--ui-color-success-bg, #162312);
+}
+
+[data-theme='dark'] .tag.success.bordered {
+    border-color: var(--ui-color-success-border, #274916);
+}
+
+[data-theme='dark'] .tag.processing {
+    color: var(--ui-color-primary, #1677ff);
+    background-color: var(--ui-color-primary-bg, #111d2c);
+}
+
+[data-theme='dark'] .tag.processing.bordered {
+    border-color: var(--ui-color-primary-border, #15395b);
+}
+
+[data-theme='dark'] .tag.error {
+    color: var(--ui-color-error, #ff4d4f);
+    background-color: var(--ui-color-error-bg, #2a1215);
+}
+
+[data-theme='dark'] .tag.error.bordered {
+    border-color: var(--ui-color-error-border, #58181c);
+}
+
+[data-theme='dark'] .tag.warning {
+    color: var(--ui-color-warning, #faad14);
+    background-color: var(--ui-color-warning-bg, #2b2111);
+}
+
+[data-theme='dark'] .tag.warning.bordered {
+    border-color: var(--ui-color-warning-border, #594214);
+}
