@@ -20,3 +20,4 @@ export * from './tag';
 export * from './list';
 export * from './table';
 export { Empty } from './empty/Empty';
+export * from './modal';

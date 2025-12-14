@@ -59,6 +59,11 @@
       "import": "./dist/behaviors/undo-redo-stack.js",
       "default": "./dist/behaviors/undo-redo-stack.js"
     },
+    "./modal": {
+      "types": "./dist/modal/index.d.ts",
+      "import": "./dist/modal/index.js",
+      "default": "./dist/modal/index.js"
+    },
     "./react": {
       "types": "./dist/adapters/react/index.d.ts",
       "import": "./dist/adapters/react.js",
@@ -104,7 +109,8 @@
   ],
   "scripts": {
     "dev": "vite build --watch",
-    "build": "vite build",
+    "build": "vite build && npm run postbuild",
+    "postbuild": "echo \"export * from './modal/index';\" > dist/modal.d.ts",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
