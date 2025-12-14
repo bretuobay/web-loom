@@ -45,7 +45,11 @@ function buildColumnWidths<T>(columns: ColumnType<T>[]) {
   return widths;
 }
 
-function resolveRowKeyValue<T extends Record<string, unknown>>(record: T, rowKey: TableProps<T>['rowKey'], fallbackIndex: number): string {
+function resolveRowKeyValue<T extends Record<string, unknown>>(
+  record: T,
+  rowKey: TableProps<T>['rowKey'],
+  fallbackIndex: number,
+): string {
   if (typeof rowKey === 'function') {
     return rowKey(record);
   }

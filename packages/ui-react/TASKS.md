@@ -908,6 +908,7 @@ Check if there is a pattern in ui core or ui patterns you can use or if you thin
 **Priority**: P1
 **Estimated Time**: 6 hours
 **Dependencies**: WL-RCT-002
+**Dependencies**: @web-loom/ui-core, @web-loom/ui-patterns
 
 **Objective**: Create flexible List component for various data display patterns
 
