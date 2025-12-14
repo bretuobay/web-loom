@@ -103,7 +103,3 @@ Breadcrumb.Separator = function BreadcrumbSeparator({ children = '/', className,
     </span>
   );
 };
-
-Breadcrumb.displayName = 'Breadcrumb';
-
-export default Breadcrumb;

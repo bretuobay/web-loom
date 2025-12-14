@@ -62,6 +62,7 @@ export default defineConfig({
       output: {
         preserveModules: true,
         preserveModulesRoot: 'src',
+        exports: 'named',
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',

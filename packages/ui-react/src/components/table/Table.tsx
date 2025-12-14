@@ -800,10 +800,8 @@ const TableComponent = forwardRef(TableInner) as <T extends Record<string, unkno
 ) => ReturnType<typeof TableInner>;
 
 const Column = <T extends Record<string, unknown>>(_: ColumnType<T>) => null;
-Column.displayName = 'TableColumn';
 
 const ColumnGroup = <T extends Record<string, unknown>>(_: { title?: ReactNode; children?: ReactNode }) => null;
-ColumnGroup.displayName = 'TableColumnGroup';
 
 export const Table = Object.assign(TableComponent, {
   Column,

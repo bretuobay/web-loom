@@ -20,7 +20,8 @@
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
     "dev": "tsc --watch",
-    "build": "tsc --listFiles --diagnostics",
+    "build": "tsc",
+    "diagnostics": "tsc --listFiles --diagnostics",
     "test": "vitest run"
   },
   "devDependencies": {

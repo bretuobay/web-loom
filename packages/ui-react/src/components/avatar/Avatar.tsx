@@ -167,8 +167,6 @@ export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(
   }
 );
 
-Avatar.displayName = 'Avatar';
-
 export interface AvatarGroupProps extends HTMLAttributes<HTMLDivElement> {
   maxCount?: number;
   size?: AvatarSize;
@@ -256,5 +254,3 @@ export const AvatarGroup = forwardRef<HTMLDivElement, AvatarGroupProps>(
     );
   }
 );
-
-AvatarGroup.displayName = 'AvatarGroup';

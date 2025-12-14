@@ -35,5 +35,3 @@ export function Header({ children, className, style }: HeaderProps) {
     </header>
   );
 }
-
-Header.displayName = 'Layout.Header';

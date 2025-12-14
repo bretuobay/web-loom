@@ -35,5 +35,3 @@ export function Content({ children, className, style }: ContentProps) {
     </main>
   );
 }
-
-Content.displayName = 'Layout.Content';

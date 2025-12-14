@@ -133,5 +133,3 @@ export function Sider({
     </aside>
   );
 }
-
-Sider.displayName = 'Layout.Sider';

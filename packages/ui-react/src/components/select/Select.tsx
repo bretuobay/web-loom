@@ -858,18 +858,14 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
 });
 
 const OptionComponent = (_props: SelectOptionProps) => null;
-OptionComponent.displayName = 'Select.Option';
 
 const OptGroupComponent = (_props: SelectOptGroupProps) => null;
-OptGroupComponent.displayName = 'Select.OptGroup';
 
 type SelectComponent = typeof SelectInternal & {
   Option: typeof OptionComponent;
   OptGroup: typeof OptGroupComponent;
   displayName?: string;
 };
-
-SelectInternal.displayName = 'Select';
 
 // Create the compound component
 const Select = SelectInternal as SelectComponent;

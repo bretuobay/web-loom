@@ -169,8 +169,6 @@ const CheckboxComponent = forwardRef<HTMLInputElement, CheckboxProps>((props, fo
   );
 });
 
-CheckboxComponent.displayName = 'Checkbox';
-
 const CheckboxGroup = forwardRef<HTMLFieldSetElement, CheckboxGroupProps>((props, forwardedRef) => {
   const {
     value,
@@ -289,8 +287,6 @@ const CheckboxGroup = forwardRef<HTMLFieldSetElement, CheckboxGroupProps>((props
     </CheckboxGroupContext.Provider>
   );
 });
-
-CheckboxGroup.displayName = 'CheckboxGroup';
 
 const CheckboxWithGroup = CheckboxComponent as typeof CheckboxComponent & {
   Group: typeof CheckboxGroup;

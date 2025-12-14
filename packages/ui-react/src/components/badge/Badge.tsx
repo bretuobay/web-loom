@@ -175,6 +175,4 @@ const Badge = forwardRef<HTMLElement, BadgeProps>(
   },
 );
 
-Badge.displayName = 'Badge';
-
 export { Badge };

@@ -88,8 +88,6 @@ const DescriptionItem = forwardRef<HTMLDivElement, DescriptionItemProps>(
   },
 );
 
-DescriptionItem.displayName = 'DescriptionItem';
-
 /**
  * Descriptions component for displaying structured information
  *
@@ -277,8 +275,6 @@ const DescriptionsComponent = forwardRef<HTMLDivElement, DescriptionsProps>(
     );
   },
 );
-
-DescriptionsComponent.displayName = 'Descriptions';
 
 /**
  * Compound component type for Descriptions with Item sub-component

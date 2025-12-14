@@ -130,7 +130,3 @@ export const Empty = forwardRef<HTMLDivElement, EmptyProps>(
     );
   },
 );
-
-Empty.displayName = 'Empty';
-
-export default Empty;

@@ -175,8 +175,6 @@ const TagComponent = forwardRef<HTMLSpanElement, TagProps>(
   }
 );
 
-TagComponent.displayName = 'Tag';
-
 /**
  * CheckableTag component for selectable tags
  */
@@ -217,8 +215,6 @@ export const CheckableTag = forwardRef<HTMLSpanElement, CheckableTagProps>(
   }
 );
 
-CheckableTag.displayName = 'CheckableTag';
-
 // Create compound component with proper typing
 export interface TagType extends React.ForwardRefExoticComponent<TagProps & React.RefAttributes<HTMLSpanElement>> {
   CheckableTag: typeof CheckableTag;
@@ -228,4 +224,3 @@ const Tag = TagComponent as TagType;
 Tag.CheckableTag = CheckableTag;
 
 export { Tag };
-export default Tag;

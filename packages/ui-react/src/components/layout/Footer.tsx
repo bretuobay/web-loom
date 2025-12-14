@@ -35,5 +35,3 @@ export function Footer({ children, className, style }: FooterProps) {
     </footer>
   );
 }
-
-Footer.displayName = 'Layout.Footer';

@@ -165,5 +165,3 @@ export function Col({
     </div>
   );
 }
-
-Col.displayName = 'Col';
