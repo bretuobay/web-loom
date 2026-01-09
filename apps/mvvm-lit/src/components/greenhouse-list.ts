@@ -82,6 +82,9 @@ export class GreenhouseList extends LitElement {
 
   render() {
     return html`
+      <a href="/" class="back-button">
+        <img src="/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
+      </a>
       <section class="flex-container flex-row">
         <form class="form-container" @submit=${this.handleSubmit}>
           <div class="form-group">

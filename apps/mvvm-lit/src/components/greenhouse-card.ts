@@ -29,7 +29,7 @@ export class GreenhouseCard extends LitElement {
         <h3 class="card-title">
           <a href="/greenhouses" class="card-title-link">Greenhouses</a>
         </h3>
-        <p class="card-content">${this.greenhouses.length}</p>
+        <p class="card-content">Total: ${this.greenhouses.length}</p>
       </div>
     `;
   }

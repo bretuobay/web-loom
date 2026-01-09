@@ -29,7 +29,7 @@ export class ThresholdAlertCard extends LitElement {
         <h3 class="card-title">
           <a href="/threshold-alerts" class="card-title-link">Threshold Alerts</a>
         </h3>
-        <p class="card-content">${this.thresholdAlerts.length}</p>
+        <p class="card-content">Total: ${this.thresholdAlerts.length}</p>
       </div>
     `;
   }

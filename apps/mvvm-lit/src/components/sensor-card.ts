@@ -29,7 +29,7 @@ export class SensorCard extends LitElement {
         <h3 class="card-title">
           <a href="/sensors" class="card-title-link">Sensors</a>
         </h3>
-        <p class="card-content">${this.sensors.length}</p>
+        <p class="card-content">Total: ${this.sensors.length}</p>
       </div>
     `;
   }
