@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { Router } from '@lit-labs/router';
 
@@ -13,20 +13,9 @@ import './layout/app-footer';
 
 @customElement('app-shell')
 export class AppShell extends LitElement {
-  static styles = css`
-    :host {
-      display: block;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-  `;
+  createRenderRoot() {
+    return this;
+  }
 
   private router = new Router(this, [
     { path: '/', render: () => html`<dashboard-view></dashboard-view>` },

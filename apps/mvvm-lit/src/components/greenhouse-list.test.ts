@@ -29,7 +29,7 @@ describe('GreenhouseList', () => {
     const el = await fixture(html`<greenhouse-list></greenhouse-list>`);
     await (el as any).updateComplete;
 
-    const items = el.shadowRoot?.querySelectorAll('li');
+    const items = el.querySelectorAll('li');
     expect(items?.length).toBe(2);
     expect(items?.[0].textContent).toContain('Greenhouse 1');
     expect(items?.[1].textContent).toContain('Greenhouse 2');

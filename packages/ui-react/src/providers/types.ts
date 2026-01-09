@@ -222,6 +222,22 @@ export interface ComponentTokens {
     /** Card shadow */
     shadow?: string;
   };
+  Modal?: {
+    /** Maximum width for the dialog */
+    maxWidth?: string;
+    /** Dialog border radius */
+    borderRadius?: string;
+    /** Header padding */
+    headerPadding?: string;
+    /** Body padding */
+    bodyPadding?: string;
+    /** Footer padding */
+    footerPadding?: string;
+    /** Box shadow for the modal surface */
+    shadow?: string;
+    /** Opacity for the backdrop */
+    backdropOpacity?: string;
+  };
   // Add more component overrides as needed
   [key: string]: Record<string, string | number> | undefined;
 }

@@ -220,8 +220,6 @@ const ListItemInner = forwardRef<HTMLLIElement, ListItemProps>(
   },
 );
 
-ListItemInner.displayName = 'List.Item';
-
 const Meta = ({ avatar, title, description }: ListItemMetaProps) => (
   <div className={styles.meta}>
     {avatar && <div className={styles.metaAvatar}>{avatar}</div>}
@@ -400,7 +398,6 @@ interface ListComponent {
 
 const ListComponent = forwardRef<HTMLUListElement, ListProps<unknown>>(ListInner) as unknown as ListComponent;
 
-ListComponent.displayName = 'List';
 ListComponent.Item = ListItemInner as typeof ListItemInner & { Meta: typeof Meta };
 ListComponent.Item.Meta = Meta;
 

@@ -160,6 +160,15 @@ export const defaultLightTheme: ThemeConfig = {
       borderRadius: '8px',
       shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
     },
+    Modal: {
+      maxWidth: '520px',
+      borderRadius: '0.75rem',
+      headerPadding: '24px',
+      bodyPadding: '24px',
+      footerPadding: '16px',
+      shadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+      backdropOpacity: '0.55',
+    },
     Checkbox: {
       ...checkboxComponentTokens,
     },
@@ -303,6 +312,15 @@ export const defaultDarkTheme: ThemeConfig = {
       padding: '24px',
       borderRadius: '8px',
       shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.48), 0 1px 2px -1px rgba(0, 0, 0, 0.48)',
+    },
+    Modal: {
+      maxWidth: '520px',
+      borderRadius: '0.75rem',
+      headerPadding: '24px',
+      bodyPadding: '24px',
+      footerPadding: '16px',
+      shadow: '0 30px 60px -20px rgba(0, 0, 0, 0.6)',
+      backdropOpacity: '0.65',
     },
     Checkbox: {
       ...checkboxComponentTokens,

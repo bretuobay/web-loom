@@ -154,8 +154,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>((props, forwardedR
   );
 });
 
-Input.displayName = 'Input';
-
 export interface InputPasswordProps extends Omit<InputProps, 'type'> {
   /** Show password visibility toggle */
   visibilityToggle?: boolean;
@@ -223,8 +221,6 @@ export const InputPassword = forwardRef<HTMLInputElement, InputPasswordProps>((p
     />
   );
 });
-
-InputPassword.displayName = 'Input.Password';
 
 export interface InputSearchProps extends InputProps {
   /** Callback fired when the user submits the search */
@@ -306,8 +302,6 @@ export const InputSearch = forwardRef<HTMLInputElement, InputSearchProps>((props
   );
 });
 
-InputSearch.displayName = 'Input.Search';
-
 export interface InputTextAreaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'> {
   size?: InputSize;
 }
@@ -319,12 +313,8 @@ export const InputTextArea = forwardRef<HTMLTextAreaElement, InputTextAreaProps>
   return <textarea ref={forwardedRef} className={textareaClass} {...rest} />;
 });
 
-InputTextArea.displayName = 'Input.TextArea';
-
 export interface InputGroupProps extends HTMLAttributes<HTMLDivElement> {}
 
 export const InputGroup = forwardRef<HTMLDivElement, InputGroupProps>(({ className, ...rest }, forwardedRef) => {
   return <div ref={forwardedRef} className={cn(styles.group, className)} {...rest} />;
 });
-
-InputGroup.displayName = 'Input.Group';

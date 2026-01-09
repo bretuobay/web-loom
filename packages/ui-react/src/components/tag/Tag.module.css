@@ -1,0 +1,315 @@
+/**
+ * Tag Component Styles
+ *
+ * Uses CSS custom properties from the theme system
+ */
+
+/* ==========================================================================
+   Base Tag Styles
+   ========================================================================== */
+
+.tag {
+    /* Reset */
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    user-select: none;
+
+    /* Base styles */
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-xs, 4px);
+    position: relative;
+    font-size: var(--ui-font-size-sm, 12px);
+    line-height: 1.5;
+    padding: 2px 8px;
+    border-radius: var(--ui-radius-sm, 4px);
+    transition: all var(--ui-transition-base, 200ms);
+    white-space: nowrap;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    /* Default variant */
+    color: var(--ui-color-text, rgba(0, 0, 0, 0.88));
+    background-color: var(--ui-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+    border: 1px solid transparent;
+}
+
+.tag.bordered {
+    border-color: var(--ui-color-border, #d9d9d9);
+}
+
+/* ==========================================================================
+   Content and Icon Styles
+   ========================================================================== */
+
+.content {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.icon {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Close Button Styles
+   ========================================================================== */
+
+.closeButton {
+    /* Reset */
+    appearance: none;
+    border: none;
+    margin: 0;
+    padding: 0;
+    background: none;
+    font-family: inherit;
+    cursor: pointer;
+
+    /* Styles */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--ui-radius-xs, 2px);
+    color: currentColor;
+    opacity: 0.7;
+    transition: all var(--ui-transition-base, 200ms);
+    flex-shrink: 0;
+}
+
+.closeButton:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.closeButton:focus-visible {
+    outline: 1px solid var(--ui-color-primary, #1677ff);
+    outline-offset: 1px;
+    opacity: 1;
+}
+
+.tag.closable {
+    padding-right: 4px;
+}
+
+/* ==========================================================================
+   Color Variants
+   ========================================================================== */
+
+/* Success variant */
+.tag.success {
+    color: var(--ui-color-success, #52c41a);
+    background-color: var(--ui-color-success-bg, #f6ffed);
+}
+
+.tag.success.bordered {
+    border-color: var(--ui-color-success-border, #b7eb8f);
+}
+
+/* Processing/Info variant */
+.tag.processing {
+    color: var(--ui-color-primary, #1677ff);
+    background-color: var(--ui-color-primary-bg, #e6f4ff);
+}
+
+.tag.processing.bordered {
+    border-color: var(--ui-color-primary-border, #91caff);
+}
+
+/* Error variant */
+.tag.error {
+    color: var(--ui-color-error, #ff4d4f);
+    background-color: var(--ui-color-error-bg, #fff2f0);
+}
+
+.tag.error.bordered {
+    border-color: var(--ui-color-error-border, #ffccc7);
+}
+
+/* Warning variant */
+.tag.warning {
+    color: var(--ui-color-warning, #faad14);
+    background-color: var(--ui-color-warning-bg, #fffbe6);
+}
+
+.tag.warning.bordered {
+    border-color: var(--ui-color-warning-border, #ffe58f);
+}
+
+/* Default variant - already defined above */
+
+/* ==========================================================================
+   Custom Color Support
+   ========================================================================== */
+
+.tag.customColor {
+    color: var(--tag-color);
+    background-color: var(--tag-bg);
+}
+
+.tag.customColor.bordered {
+    border-color: var(--tag-border);
+}
+
+/* ==========================================================================
+   Checkable Tag Styles
+   ========================================================================== */
+
+.tag.checkable {
+    cursor: pointer;
+    border: 1px solid var(--ui-color-border, #d9d9d9);
+    background-color: var(--ui-color-bg-container, #ffffff);
+    transition: all var(--ui-transition-base, 200ms);
+}
+
+.tag.checkable:hover {
+    color: var(--ui-color-primary, #1677ff);
+    border-color: var(--ui-color-primary, #1677ff);
+}
+
+.tag.checkable:focus-visible {
+    outline: 2px solid var(--ui-color-primary, #1677ff);
+    outline-offset: 2px;
+    z-index: 1;
+}
+
+.tag.checkable.checked {
+    color: var(--ui-color-primary, #1677ff);
+    background-color: var(--ui-color-primary-bg, #e6f4ff);
+    border-color: var(--ui-color-primary, #1677ff);
+}
+
+.tag.checkable:active {
+    transform: scale(0.98);
+}
+
+/* ==========================================================================
+   Size Variations (if needed in future)
+   ========================================================================== */
+
+.tag.small {
+    padding: 0px 4px;
+    font-size: var(--ui-font-size-xs, 11px);
+    line-height: 1.4;
+}
+
+.tag.large {
+    padding: 4px 12px;
+    font-size: var(--ui-font-size-base, 14px);
+    line-height: 1.5;
+}
+
+/* ==========================================================================
+   Responsive and Accessibility
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .tag,
+    .closeButton,
+    .tag.checkable {
+        transition: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .tag {
+        border-width: 2px;
+    }
+
+    .tag.checkable {
+        border-width: 2px;
+    }
+}
+
+/* ==========================================================================
+   RTL Support
+   ========================================================================== */
+
+[dir='rtl'] .tag {
+    direction: rtl;
+}
+
+[dir='rtl'] .tag .icon {
+    margin-left: var(--ui-space-xs, 4px);
+    margin-right: 0;
+}
+
+[dir='rtl'] .tag.closable {
+    padding-left: 4px;
+    padding-right: 8px;
+}
+
+/* ==========================================================================
+   Dark Mode Support
+   ========================================================================== */
+
+[data-theme='dark'] .tag {
+    color: var(--ui-color-text, rgba(255, 255, 255, 0.85));
+    background-color: var(--ui-color-fill-tertiary, rgba(255, 255, 255, 0.08));
+}
+
+[data-theme='dark'] .tag.bordered {
+    border-color: var(--ui-color-border, #424242);
+}
+
+[data-theme='dark'] .tag.checkable {
+    background-color: var(--ui-color-bg-container, #141414);
+    border-color: var(--ui-color-border, #424242);
+}
+
+[data-theme='dark'] .tag.checkable.checked {
+    background-color: var(--ui-color-primary-bg, #111d2c);
+    border-color: var(--ui-color-primary, #1677ff);
+    color: var(--ui-color-primary, #1677ff);
+}
+
+[data-theme='dark'] .closeButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode color variants */
+[data-theme='dark'] .tag.success {
+    color: var(--ui-color-success, #52c41a);
+    background-color: var(--ui-color-success-bg, #162312);
+}
+
+[data-theme='dark'] .tag.success.bordered {
+    border-color: var(--ui-color-success-border, #274916);
+}
+
+[data-theme='dark'] .tag.processing {
+    color: var(--ui-color-primary, #1677ff);
+    background-color: var(--ui-color-primary-bg, #111d2c);
+}
+
+[data-theme='dark'] .tag.processing.bordered {
+    border-color: var(--ui-color-primary-border, #15395b);
+}
+
+[data-theme='dark'] .tag.error {
+    color: var(--ui-color-error, #ff4d4f);
+    background-color: var(--ui-color-error-bg, #2a1215);
+}
+
+[data-theme='dark'] .tag.error.bordered {
+    border-color: var(--ui-color-error-border, #58181c);
+}
+
+[data-theme='dark'] .tag.warning {
+    color: var(--ui-color-warning, #faad14);
+    background-color: var(--ui-color-warning-bg, #2b2111);
+}
+
+[data-theme='dark'] .tag.warning.bordered {
+    border-color: var(--ui-color-warning-border, #594214);
+}

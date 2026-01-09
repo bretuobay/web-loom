@@ -1154,6 +1154,8 @@ Check if there is a pattern in ui core or ui patterns you can use or if you thin
 - ✓ All sizes render proportionally
 - ✓ Error handling prevents broken images
 
+**Status**: Implemented in `src/components/avatar` with associated stories/tests.
+
 ```
 
 ### Task 5.6: Descriptions Component

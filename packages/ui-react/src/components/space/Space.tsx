@@ -139,5 +139,3 @@ export function Space({
     </div>
   );
 }
-
-Space.displayName = 'Space';

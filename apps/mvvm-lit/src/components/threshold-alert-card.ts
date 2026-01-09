@@ -5,6 +5,9 @@ import { Subscription } from 'rxjs';
 
 @customElement('threshold-alert-card')
 export class ThresholdAlertCard extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
   @state() private thresholdAlerts: ThresholdAlertListData = [];
   private subscription: Subscription | null = null;
 
@@ -23,9 +26,10 @@ export class ThresholdAlertCard extends LitElement {
   render() {
     return html`
       <div class="card">
-        <h3 class="card-title">Threshold Alerts</h3>
-        <p class="card-content">${this.thresholdAlerts.length}</p>
-        <a href="/threshold-alerts" class="card-link">View Threshold Alerts</a>
+        <h3 class="card-title">
+          <a href="/threshold-alerts" class="card-title-link">Threshold Alerts</a>
+        </h3>
+        <p class="card-content">Total: ${this.thresholdAlerts.length}</p>
       </div>
     `;
   }

@@ -30,7 +30,7 @@ body {
   align-items: center;
   font-size: 1.5em;
   /* Large font for header */
-  font-weight: bold;
+  font-weight: normal;
 }
 
 .header-item {

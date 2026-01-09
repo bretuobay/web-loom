@@ -116,5 +116,3 @@ export function Row({
     </RowContext.Provider>
   );
 }
-
-Row.displayName = 'Row';

@@ -5,6 +5,9 @@ import { Subscription } from 'rxjs';
 
 @customElement('sensor-reading-list')
 export class SensorReadingList extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
   @state() private sensorReadings: SensorReadingListData = [];
   private subscription: Subscription | null = null;
 
@@ -24,7 +27,7 @@ export class SensorReadingList extends LitElement {
   render() {
     return html`
       <a href="/" class="back-button">
-        <img src="/back-arrow.svg" alt="Back to dashboard" style="width: 36px; height: 36px" />
+        <img src="/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
       </a>
       <div class="card">
         <h1 class="card-title">Sensor Readings</h1>

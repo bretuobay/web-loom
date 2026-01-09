@@ -84,5 +84,3 @@ export function Layout({ children, className, style, direction = 'vertical' }: L
     </LayoutContext.Provider>
   );
 }
-
-Layout.displayName = 'Layout';

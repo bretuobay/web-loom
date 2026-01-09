@@ -30,6 +30,7 @@ const config: StorybookConfig = {
       { find: '@web-loom/ui-core/behaviors', replacement: resolve(__dirname, '../../ui-core/src/behaviors/index.ts') },
       { find: /^@web-loom\/ui-core\/behaviors\/(.*)$/, replacement: resolve(__dirname, '../../ui-core/src/behaviors/$1.ts') },
       { find: '@web-loom/ui-core/table', replacement: resolve(__dirname, '../../ui-core/src/table/index.ts') },
+      { find: '@web-loom/ui-core/modal', replacement: resolve(__dirname, '../../ui-core/src/modal/index.ts') },
       { find: '@web-loom/design-core', replacement: resolve(__dirname, '../../design-core/src/index.ts') },
       { find: '@web-loom/ui-core', replacement: resolve(__dirname, '../../ui-core/src/index.ts') },
       { find: '@web-loom/ui-patterns', replacement: resolve(__dirname, '../../ui-patterns/src/index.ts') },

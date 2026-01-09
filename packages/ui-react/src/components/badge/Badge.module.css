@@ -1,0 +1,285 @@
+/**
+ * Badge Component Styles
+ *
+ * Uses CSS custom properties from the theme system
+ */
+
+/* ==========================================================================
+   Badge Wrapper
+   ========================================================================== */
+
+.badgeWrapper {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   Badge Dot/Count
+   ========================================================================== */
+
+.badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+  transform-origin: 100% 0;
+  z-index: 10;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--ui-space-xs, 6px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--ui-font-size-xs, 12px);
+  font-weight: var(--ui-font-weight-medium, 500);
+  line-height: 20px;
+  white-space: nowrap;
+  text-align: center;
+  background-color: var(--ui-color-error, #ff4d4f);
+  border-radius: var(--ui-radius-md, 10px);
+  color: var(--ui-color-white, #fff);
+  box-shadow: 0 0 0 1px var(--ui-color-bg, #fff);
+  animation: badgeZoomIn var(--ui-transition-normal, 0.3s) cubic-bezier(0.12, 0.4, 0.29, 1.46);
+}
+
+.badgeCount {
+  display: inline-block;
+  animation: countChange var(--ui-transition-normal, 0.3s) ease-in-out;
+}
+
+/* ==========================================================================
+   Dot Variant
+   ========================================================================== */
+
+.badgeDot {
+  min-width: 6px;
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border-radius: var(--ui-radius-full, 100%);
+  animation: badgePulse 1.5s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   Size Variants
+   ========================================================================== */
+
+.badgeSmall {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 var(--ui-space-xs, 4px);
+  font-size: 10px;
+  line-height: 16px;
+  border-radius: var(--ui-radius-sm, 8px);
+}
+
+.badgeSmall.badgeDot {
+  width: 5px;
+  height: 5px;
+  min-width: 5px;
+}
+
+/* Multiple digits badge */
+.badgeMultiple {
+  padding: 0 5px;
+}
+
+/* ==========================================================================
+   Status Badge (Standalone)
+   ========================================================================== */
+
+.badgeStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-sm, 8px);
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--ui-radius-full, 50%);
+  display: inline-block;
+  animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+.statusText {
+  font-size: var(--ui-font-size-sm, 14px);
+  line-height: 1.5;
+  color: var(--ui-color-text, rgba(0, 0, 0, 0.85));
+}
+
+/* ==========================================================================
+   Status Colors
+   ========================================================================== */
+
+.status-success {
+  background-color: var(--ui-color-success, #52c41a);
+}
+
+.status-processing {
+  background-color: var(--ui-color-primary, #1890ff);
+  animation: processingPulse 1.2s ease-in-out infinite;
+}
+
+.status-default {
+  background-color: var(--ui-color-border, #d9d9d9);
+}
+
+.status-error {
+  background-color: var(--ui-color-error, #ff4d4f);
+}
+
+.status-warning {
+  background-color: var(--ui-color-warning, #faad14);
+}
+
+/* ==========================================================================
+   Standalone Badge
+   ========================================================================== */
+
+.badgeStandalone {
+  display: inline-block;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--ui-space-xs, 6px);
+  font-size: var(--ui-font-size-xs, 12px);
+  font-weight: var(--ui-font-weight-medium, 500);
+  line-height: 20px;
+  text-align: center;
+  white-space: nowrap;
+  background-color: var(--ui-color-error, #ff4d4f);
+  color: var(--ui-color-white, #fff);
+  border-radius: var(--ui-radius-md, 10px);
+  box-shadow: 0 0 0 1px var(--ui-color-bg, #fff);
+  animation: badgeZoomIn var(--ui-transition-normal, 0.3s) cubic-bezier(0.12, 0.4, 0.29, 1.46);
+}
+
+.badgeStandalone.badgeSmall {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 var(--ui-space-xs, 4px);
+  font-size: 10px;
+  line-height: 16px;
+  border-radius: var(--ui-radius-sm, 8px);
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+
+@keyframes badgeZoomIn {
+  0% {
+    transform: translate(50%, -50%) scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes badgePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes statusPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes processingPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes countChange {
+  0% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   Dark Mode Support
+   ========================================================================== */
+
+[data-theme='dark'] .badge {
+  box-shadow: 0 0 0 1px var(--ui-color-bg, #141414);
+}
+
+[data-theme='dark'] .badgeStandalone {
+  box-shadow: 0 0 0 1px var(--ui-color-bg, #141414);
+}
+
+[data-theme='dark'] .statusText {
+  color: var(--ui-color-text, rgba(255, 255, 255, 0.85));
+}
+
+[data-theme='dark'] .status-default {
+  background-color: var(--ui-color-border, #424242);
+}
+
+/* ==========================================================================
+   Accessibility
+   ========================================================================== */
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .badge,
+  .badgeStandalone,
+  .badgeDot,
+  .statusDot,
+  .badgeCount {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .badge {
+    box-shadow: 0 0 0 2px var(--ui-color-bg, #fff);
+  }
+
+  .badgeStandalone {
+    box-shadow: 0 0 0 2px var(--ui-color-bg, #fff);
+  }
+}

@@ -179,8 +179,6 @@ const RadioComponent = forwardRef<HTMLInputElement, RadioProps>((props, forwarde
   );
 });
 
-RadioComponent.displayName = 'Radio';
-
 const RadioGroup = forwardRef<HTMLFieldSetElement, RadioGroupProps>((props, forwardedRef) => {
   const {
     value,
@@ -282,13 +280,9 @@ const RadioGroup = forwardRef<HTMLFieldSetElement, RadioGroupProps>((props, forw
   );
 });
 
-RadioGroup.displayName = 'RadioGroup';
-
 const RadioButton = forwardRef<HTMLInputElement, RadioProps>((props, forwardedRef) => (
   <RadioComponent {...props} ref={forwardedRef} buttonStyle />
 ));
-
-RadioButton.displayName = 'RadioButton';
 
 const RadioWithGroup = RadioComponent as typeof RadioComponent & {
   Group: typeof RadioGroup;

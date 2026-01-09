@@ -5,6 +5,9 @@ import { Subscription } from 'rxjs';
 
 @customElement('sensor-card')
 export class SensorCard extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
   @state() private sensors: SensorListData = [];
   private subscription: Subscription | null = null;
 
@@ -23,9 +26,10 @@ export class SensorCard extends LitElement {
   render() {
     return html`
       <div class="card">
-        <h3 class="card-title">Sensors</h3>
-        <p class="card-content">${this.sensors.length}</p>
-        <a href="/sensors" class="card-link">View Sensors</a>
+        <h3 class="card-title">
+          <a href="/sensors" class="card-title-link">Sensors</a>
+        </h3>
+        <p class="card-content">Total: ${this.sensors.length}</p>
       </div>
     `;
   }

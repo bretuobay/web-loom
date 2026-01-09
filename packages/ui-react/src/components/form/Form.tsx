@@ -126,6 +126,5 @@ FormComponent.Item = FormItem;
 FormComponent.List = FormList;
 FormComponent.Provider = FormProvider;
 FormComponent.useForm = useForm;
-FormComponent.displayName = 'Form';
 
 export { FormComponent as Form };
