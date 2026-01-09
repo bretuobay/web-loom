@@ -176,6 +176,7 @@ packages/
 ## Important Notes
 
 - **Node version**: Requires Node.js >=18 (see `.nvmrc`)
+- **Node 23** nvm use 23 , the preferred version
 - **Package manager**: npm@10.9.2 (specified in `package.json`)
 - **Framework versions**: React 19, Angular latest, Vue 3 (check individual app `package.json`)
 - **TypeScript**: v5.8.2 across the monorepo

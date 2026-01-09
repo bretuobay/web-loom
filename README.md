@@ -319,6 +319,7 @@ viewModel.dispose(); // Cleanup subscriptions
 
 ## Tech Stack
 
+- **Node.js**: >=18 (recommended `nvm use 23` for local development)
 - **Language**: TypeScript 5.8.2
 - **Package Manager**: npm 10.9.2
 - **Build Tool**: Vite 6.x, Turborepo
@@ -327,6 +328,11 @@ viewModel.dispose(); // Cleanup subscriptions
 - **Validation**: Zod 3.x
 - **Testing**: Vitest 3.x
 - **Backend**: Express.js + SQLite (Sequelize)
+
+## Environment & Agent Setup
+
+- **Local tools**: Run `npm install` once, then use `nvm use 23` (or any Node >=18) before firing up tooling.
+- **AI agent guidance**: `CLAUDE.md` and `.kiro/steering/instructions.md` are mirrors that describe how Claude/agent assistants should work with the repo; keep the two files synchronized whenever the guidance changes.
 
 ## Project Structure
 
