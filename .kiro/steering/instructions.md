@@ -26,7 +26,7 @@ cd packages/mvvm-core && npm test              # Run tests once
 cd packages/mvvm-core && npm run test:watch    # Watch mode
 cd packages/mvvm-core && npm run test:coverage # With coverage
 
-# Packages with tests: mvvm-core, store-core, event-bus-core, query-core, plugin-core, design-core, prose-scriber
+# Packages with tests: mvvm-core, store-core, event-bus-core, query-core, plugin-core, design-core, typography-core, ui-core, ui-patterns, forms-core, http-core, i18n-core, storage-core, error-core
 ```
 
 ### API Development
@@ -46,7 +46,10 @@ npm start      # Run built API
 cd apps/mvvm-react && npm run dev
 cd apps/mvvm-angular && npm run dev
 cd apps/mvvm-vue && npm run dev
+cd apps/mvvm-lit && npm run dev
+cd apps/mvvm-vanilla && npm run dev
 cd apps/plugin-react && npm run dev
+cd apps/ui-patterns-playground && npm run dev
 ```
 
 ## Architecture
@@ -70,6 +73,7 @@ The repository implements a strict separation of concerns:
    - React implementation uses hooks to subscribe to ViewModel observables
    - Angular uses dependency injection and async pipe
    - Vue uses Composition API
+   - Lit uses decorators and reactive properties
    - Vanilla JS uses direct subscriptions with EJS templates
 
 ### Shared ViewModels
@@ -98,9 +102,27 @@ The `apps/plugin-react` app demonstrates this with React-based plugin host and a
 
 - **store-core**: Minimal reactive state management (alternative to Redux/Zustand)
 - **event-bus-core**: Framework-agnostic event bus for cross-component communication
+- **event-emitter-core**: Event emitter utilities
 - **query-core**: Zero-dependency data fetching and caching library
 - **design-core**: Theme and CSS variable utilities
+- **typography-core**: Typography and color utilities
 - **models**: Shared data models (used by API and apps)
+- **ui-core**: Headless UI behaviors (Dialog, Form, List Selection, Roving Focus, Disclosure)
+- **ui-patterns**: Composed UI patterns (Master-Detail, Wizard, Modal, Command Palette, etc.)
+- **ui-react**: React UI component adapters
+- **media-core**: Media player with plugins
+- **media-react**: React media player adapter
+- **media-vue**: Vue media player adapter
+- **forms-core**: Framework-agnostic form logic
+- **forms-react/forms-vue/forms-vanilla**: Framework-specific form adapters
+- **http-core**: HTTP utilities
+- **i18n-core**: Internationalization utilities
+- **storage-core**: Storage abstraction layer
+- **error-core**: Error handling utilities
+- **router-core**: Routing utilities
+- **notifications-core**: Notification utilities
+- **platform-core**: Platform utilities
+- **visdiff**: Visual diff utilities
 
 ## Key Technical Details
 
@@ -138,16 +160,19 @@ The `packages/mvvm-core/src/core/di-container.ts` provides simple DI for managin
 
 ```
 apps/
-  ├── mvvm-react/           # React MVVM demo
-  ├── mvvm-angular/         # Angular MVVM demo
-  ├── mvvm-vue/             # Vue.js MVVM demo
-  ├── mvvm-vanilla/         # Vanilla JS + EJS MVVM demo
-  ├── mvvm-react-integrated/# React with integrated patterns
-  ├── mvvm-react-native/    # React Native MVVM
-  ├── plugin-react/         # Plugin host application
-  ├── plugin-docs/          # Plugin documentation
-  ├── api/                  # Express + SQLite backend
-  └── docs/                 # Next.js documentation site
+  ├── mvvm-react/              # React MVVM demo
+  ├── mvvm-angular/            # Angular MVVM demo
+  ├── mvvm-vue/                # Vue.js MVVM demo
+  ├── mvvm-vanilla/            # Vanilla JS + EJS MVVM demo
+  ├── mvvm-lit/                # Lit web components MVVM demo
+  ├── mvvm-react-integrated/   # React with integrated patterns
+  ├── mvvm-react-native/       # React Native MVVM
+  ├── mvvm-book/               # MVVM documentation app
+  ├── plugin-react/            # Plugin host application
+  ├── plugin-docs/             # Plugin documentation
+  ├── ui-patterns-playground/  # UI patterns playground
+  ├── api/                     # Express + SQLite backend
+  └── docs/                    # Next.js documentation site
 
 packages/
   ├── mvvm-core/            # Core MVVM library (BaseModel, BaseViewModel, etc.)
@@ -156,13 +181,31 @@ packages/
   ├── plugin-core/          # Plugin architecture library
   ├── store-core/           # State management library
   ├── event-bus-core/       # Event bus library
+  ├── event-emitter-core/   # Event emitter utilities
   ├── query-core/           # Data fetching/caching library
+  ├── ui-core/              # Headless UI behaviors
+  ├── ui-patterns/          # Composed UI patterns
+  ├── ui-react/             # React UI component adapters
+  ├── media-core/           # Media player core
+  ├── media-react/          # React media adapter
+  ├── media-vue/            # Vue media adapter
+  ├── forms-core/           # Form logic core
+  ├── forms-react/          # React form adapter
+  ├── forms-vanilla/        # Vanilla JS form adapter
+  ├── forms-vue/            # Vue form adapter
+  ├── http-core/            # HTTP utilities
+  ├── i18n-core/            # Internationalization
+  ├── storage-core/         # Storage abstraction
+  ├── error-core/           # Error handling
+  ├── router-core/          # Routing utilities
+  ├── notifications-core/   # Notifications
+  ├── platform-core/        # Platform utilities
   ├── design-core/          # Theme utilities
-  ├── prose-scriber/        # Text/color utilities
-  ├── @repo/ui/             # React component library
-  ├── @repo/shared/         # Shared utilities and styles
-  ├── @repo/eslint-config/  # Shared ESLint config
-  └── @repo/typescript-config/ # Shared tsconfig
+  ├── typography-core/      # Typography & color utilities
+  ├── visdiff/              # Visual diff utilities
+  ├── shared/               # Shared utilities and styles
+  ├── eslint-config/        # Shared ESLint config
+  └── typescript-config/    # Shared TypeScript config
 ```
 
 ## Development Workflow
@@ -176,8 +219,9 @@ packages/
 ## Important Notes
 
 - **Node version**: Requires Node.js >=18 (see `.nvmrc`)
+- **Node 23** nvm use 23 , the preferred version
 - **Package manager**: npm@10.9.2 (specified in `package.json`)
-- **Framework versions**: React 19, Angular latest, Vue 3 (check individual app `package.json`)
+- **Framework versions**: React 19, Angular latest, Vue 3, Lit 3 (check individual app `package.json`)
 - **TypeScript**: v5.8.2 across the monorepo
 - **Build outputs**: `.next/`, `dist/` directories are gitignored
 
@@ -192,4 +236,5 @@ When implementing features across frameworks:
    - React: `useEffect` + `subscribe()`
    - Angular: `async` pipe in templates
    - Vue: `watchEffect` or `computed`
+   - Lit: Reactive controllers or `@state` decorators with subscriptions
    - Vanilla: Direct `.subscribe()` with manual cleanup

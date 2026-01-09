@@ -144,12 +144,19 @@ All apps share ViewModels from `packages/view-models`, demonstrating true cross-
 - **[mvvm-angular](apps/mvvm-angular)** - Angular with dependency injection
 - **[mvvm-vue](apps/mvvm-vue)** - Vue.js with Composition API
 - **[mvvm-vanilla](apps/mvvm-vanilla)** - Vanilla JS + EJS templates
+- **[mvvm-lit](apps/mvvm-lit)** - Lit web components implementation
 - **[mvvm-react-native](apps/mvvm-react-native)** - React Native mobile app
+- **[mvvm-react-integrated](apps/mvvm-react-integrated)** - React with integrated patterns
+- **[mvvm-book](apps/mvvm-book)** - MVVM documentation/book app
 
 ### Plugin System
 
 - **[plugin-react](apps/plugin-react)** - Plugin host with dynamic plugin loading
 - **[plugin-docs](apps/plugin-docs)** - Plugin system documentation
+
+### UI Playground
+
+- **[ui-patterns-playground](apps/ui-patterns-playground)** - Interactive playground for UI patterns
 
 ### Backend
 
@@ -225,29 +232,39 @@ Framework-Specific Components (Your App)
 
 ## Package Overview
 
-| Package                        | Description                     | Version |
-| ------------------------------ | ------------------------------- | ------- |
-| `@web-loom/ui-core`            | Headless UI behaviors           | 0.5.2   |
-| `@web-loom/ui-patterns`        | Composed UI patterns            | 0.5.2   |
-| `@web-loom/mvvm-core`          | MVVM architecture library       | 0.5.2   |
-| `@web-loom/store-core`         | Reactive state management       | 0.5.2   |
-| `@web-loom/event-bus-core`     | Event bus                       | 0.5.2   |
-| `@web-loom/query-core`         | Data fetching & caching         | 0.5.2   |
-| `@web-loom/plugin-core`        | Plugin architecture             | 0.5.2   |
-| `@web-loom/media-core`         | Media player with plugins       | 0.5.2   |
-| `@web-loom/design-core`        | Theme utilities                 | 0.5.2   |
-| `@web-loom/typography-core`    | Typography utilities            | 0.5.2   |
-| `@web-loom/forms-core`         | Form logic (framework-agnostic) | 0.1.0   |
-| `@web-loom/forms-react`        | React form adapter              | 0.1.0   |
-| `@web-loom/forms-vanilla`      | Vanilla JS form adapter         | 0.1.0   |
-| `@web-loom/forms-vue`          | Vue form adapter                | 0.1.0   |
-| `@web-loom/http-core`          | HTTP utilities                  | 0.5.2   |
-| `@web-loom/models`             | Shared models                   | 0.5.2   |
-| `@web-loom/view-models`        | Shared ViewModels               | 0.5.2   |
-| `@web-loom/router-core`        | Routing utilities               | 0.5.2   |
-| `@web-loom/notifications-core` | Notification utilities          | 0.5.2   |
-| `@web-loom/platform-core`      | Platform utilities              | 0.5.2   |
-| `@web-loom/shared`             | Shared utilities                | 0.5.2   |
+| Package                         | Description                           | Version |
+| ------------------------------- | ------------------------------------- | ------- |
+| `@web-loom/ui-core`             | Headless UI behaviors                 | 0.5.2   |
+| `@web-loom/ui-patterns`         | Composed UI patterns                  | 0.5.2   |
+| `@web-loom/ui-react`            | React UI component adapters           | 0.5.2   |
+| `@web-loom/mvvm-core`           | MVVM architecture library             | 0.5.2   |
+| `@web-loom/store-core`          | Reactive state management             | 0.5.2   |
+| `@web-loom/event-bus-core`      | Event bus                             | 0.5.2   |
+| `@web-loom/event-emitter-core`  | Event emitter utilities               | 0.5.2   |
+| `@web-loom/query-core`          | Data fetching & caching               | 0.5.2   |
+| `@web-loom/plugin-core`         | Plugin architecture                   | 0.5.2   |
+| `@web-loom/media-core`          | Media player with plugins             | 0.5.2   |
+| `@web-loom/media-react`         | React media player adapter            | 0.5.2   |
+| `@web-loom/media-vue`           | Vue media player adapter              | 0.5.2   |
+| `@web-loom/design-core`         | Theme utilities                       | 0.5.2   |
+| `@web-loom/typography-core`     | Typography utilities                  | 0.5.2   |
+| `@web-loom/forms-core`          | Form logic (framework-agnostic)       | 0.1.0   |
+| `@web-loom/forms-react`         | React form adapter                    | 0.1.0   |
+| `@web-loom/forms-vanilla`       | Vanilla JS form adapter               | 0.1.0   |
+| `@web-loom/forms-vue`           | Vue form adapter                      | 0.1.0   |
+| `@web-loom/http-core`           | HTTP utilities                        | 0.5.2   |
+| `@web-loom/i18n-core`           | Internationalization utilities        | 0.5.2   |
+| `@web-loom/storage-core`        | Storage abstraction layer             | 0.5.2   |
+| `@web-loom/error-core`          | Error handling utilities              | 0.5.2   |
+| `@web-loom/models`              | Shared models                         | 0.5.2   |
+| `@web-loom/view-models`         | Shared ViewModels                     | 0.5.2   |
+| `@web-loom/router-core`         | Routing utilities                     | 0.5.2   |
+| `@web-loom/notifications-core`  | Notification utilities                | 0.5.2   |
+| `@web-loom/platform-core`       | Platform utilities                    | 0.5.2   |
+| `@web-loom/shared`              | Shared utilities                      | 0.5.2   |
+| `@web-loom/visdiff`             | Visual diff utilities                 | 0.5.2   |
+| `@repo/eslint-config`           | Shared ESLint configuration           | -       |
+| `@repo/typescript-config`       | Shared TypeScript configuration       | -       |
 
 All packages are tree-shakeable with ESM support.
 
@@ -319,6 +336,7 @@ viewModel.dispose(); // Cleanup subscriptions
 
 ## Tech Stack
 
+- **Node.js**: >=18 (recommended `nvm use 23` for local development)
 - **Language**: TypeScript 5.8.2
 - **Package Manager**: npm 10.9.2
 - **Build Tool**: Vite 6.x, Turborepo
@@ -328,30 +346,61 @@ viewModel.dispose(); // Cleanup subscriptions
 - **Testing**: Vitest 3.x
 - **Backend**: Express.js + SQLite (Sequelize)
 
+## Environment & Agent Setup
+
+- **Local tools**: Run `npm install` once, then use `nvm use 23` (or any Node >=18) before firing up tooling.
+- **AI agent guidance**: `CLAUDE.md` and `.kiro/steering/instructions.md` are mirrors that describe how Claude/agent assistants should work with the repo; keep the two files synchronized whenever the guidance changes.
+
 ## Project Structure
 
 ```
 web-loom/
 ├── apps/
-│   ├── mvvm-react/           # React MVVM demo
-│   ├── mvvm-angular/         # Angular MVVM demo
-│   ├── mvvm-vue/             # Vue MVVM demo
-│   ├── mvvm-vanilla/         # Vanilla JS MVVM
-│   ├── mvvm-react-native/    # React Native MVVM
-│   ├── plugin-react/         # Plugin host app
-│   ├── api/                  # Express + SQLite backend
-│   └── docs/                 # Next.js docs site
+│   ├── mvvm-react/              # React MVVM demo
+│   ├── mvvm-angular/            # Angular MVVM demo
+│   ├── mvvm-vue/                # Vue MVVM demo
+│   ├── mvvm-vanilla/            # Vanilla JS MVVM
+│   ├── mvvm-lit/                # Lit web components MVVM
+│   ├── mvvm-react-native/       # React Native MVVM
+│   ├── mvvm-react-integrated/   # React with integrated patterns
+│   ├── mvvm-book/               # MVVM documentation app
+│   ├── plugin-react/            # Plugin host app
+│   ├── plugin-docs/             # Plugin documentation
+│   ├── ui-patterns-playground/  # UI patterns playground
+│   ├── api/                     # Express + SQLite backend
+│   └── docs/                    # Next.js docs site
 ├── packages/
 │   ├── mvvm-core/            # Core MVVM library
 │   ├── view-models/          # Shared ViewModels
+│   ├── models/               # Shared data models
 │   ├── ui-core/              # Headless UI behaviors
 │   ├── ui-patterns/          # Composed UI patterns
+│   ├── ui-react/             # React UI adapters
 │   ├── store-core/           # State management
 │   ├── event-bus-core/       # Event bus
+│   ├── event-emitter-core/   # Event emitter utilities
 │   ├── query-core/           # Data fetching
 │   ├── plugin-core/          # Plugin architecture
-│   ├── prose-scriber/        # Typography & color utils
-│   └── design-core/          # Theme utilities
+│   ├── media-core/           # Media player core
+│   ├── media-react/          # React media adapter
+│   ├── media-vue/            # Vue media adapter
+│   ├── forms-core/           # Form logic core
+│   ├── forms-react/          # React form adapter
+│   ├── forms-vanilla/        # Vanilla JS form adapter
+│   ├── forms-vue/            # Vue form adapter
+│   ├── http-core/            # HTTP utilities
+│   ├── i18n-core/            # Internationalization
+│   ├── storage-core/         # Storage abstraction
+│   ├── error-core/           # Error handling
+│   ├── router-core/          # Routing utilities
+│   ├── notifications-core/   # Notifications
+│   ├── platform-core/        # Platform utilities
+│   ├── typography-core/      # Typography & color utils
+│   ├── design-core/          # Theme utilities
+│   ├── visdiff/              # Visual diff utilities
+│   ├── shared/               # Shared utilities
+│   ├── eslint-config/        # Shared ESLint config
+│   └── typescript-config/    # Shared TypeScript config
 └── [configs and tooling]
 ```
 
@@ -361,10 +410,16 @@ Detailed documentation available in each package's README:
 
 - [UI Core Documentation](packages/ui-core/README.md)
 - [UI Patterns Documentation](packages/ui-patterns/README.md)
+- [UI React Documentation](packages/ui-react/README.md)
 - [MVVM Core Documentation](packages/mvvm-core/README.md)
+- [Store Core Documentation](packages/store-core/README.md)
 - [Event Bus Documentation](packages/event-bus-core/README.md)
+- [Event Emitter Documentation](packages/event-emitter-core/README.md)
+- [Query Core Documentation](packages/query-core/README.md)
 - [Plugin Core Documentation](packages/plugin-core/README.md)
 - [Media Core Documentation](packages/media-core/README.md)
+- [Media React Documentation](packages/media-react/README.md)
+- [Media Vue Documentation](packages/media-vue/README.md)
 - [Design Core Documentation](packages/design-core/README.md)
 - [Typography Core Documentation](packages/typography-core/README.md)
 - [Forms Core Documentation](packages/forms-core/README.md)
@@ -372,11 +427,15 @@ Detailed documentation available in each package's README:
 - [Forms Vanilla Documentation](packages/forms-vanilla/README.md)
 - [Forms Vue Documentation](packages/forms-vue/README.md)
 - [HTTP Core Documentation](packages/http-core/README.md)
+- [I18n Core Documentation](packages/i18n-core/README.md)
+- [Storage Core Documentation](packages/storage-core/README.md)
+- [Error Core Documentation](packages/error-core/README.md)
 - [Models Documentation](packages/models/README.md)
 - [View Models Documentation](packages/view-models/README.md)
 - [Router Core Documentation](packages/router-core/README.md)
 - [Notifications Core Documentation](packages/notifications-core/README.md)
 - [Platform Core Documentation](packages/platform-core/README.md)
+- [Visdiff Documentation](packages/visdiff/README.md)
 - [Shared Documentation](packages/shared/README.md)
 
 ## Examples
