@@ -1,54 +1,12 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { navigationViewModel, type NavigationListData } from '@repo/shared/view-models/NavigationViewModel';
 
 @customElement('app-header')
 export class AppHeader extends LitElement {
-  static styles = css`
-    :host {
-      display: block;
-    }
-
-    .header {
-      background: #2c3e50;
-      color: white;
-      padding: 1rem 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .header-item {
-      color: white;
-      text-decoration: none;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      transition: background-color 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .header-item:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-
-    .flex-container {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
-
-    .brand {
-      font-size: 1.25rem;
-      font-weight: bold;
-    }
-
-    .icon {
-      font-size: 1rem;
-    }
-  `;
+  createRenderRoot() {
+    return this;
+  }
 
   @state()
   private navigationItems: NavigationListData[] = [];
@@ -82,8 +40,8 @@ export class AppHeader extends LitElement {
     return html`
       <header class="header">
         <a
-          href="#"
-          class="header-item brand"
+          href="/dashboard"
+          class="header-item"
           @click=${(e: Event) => {
             e.preventDefault();
             this.handleNavigation('/dashboard');
@@ -95,14 +53,13 @@ export class AppHeader extends LitElement {
           ${this.navigationItems.map(
             (item) => html`
               <a
-                href="#"
+                href="/${item.id}"
                 class="header-item"
                 @click=${(e: Event) => {
                   e.preventDefault();
                   this.handleNavigation(`/${item.id}`);
                 }}
-              >
-                <i class="icon icon-${item.icon}"></i>
+                >
                 ${item.label}
               </a>
             `,

@@ -1,206 +1,74 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Arial', sans-serif;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-
-button:hover {
-  border-color: #646cff;
-}
-
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-
-  a:hover {
-    color: #747bff;
-  }
-
-  button {
-    background-color: #f9f9f9;
-  }
-}
-
-/* add dashboard: temp here */
-
-.dashboard-container {
-  padding: 20px;
-  font-family: Arial, sans-serif;
-  /* Added a basic font for better appearance */
-
-  width: 600px;
+app-shell {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+  background: #fff;
   align-items: center;
 }
 
-.dashboard-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
+app-shell .content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  width: min(1280px, 100%);
 }
 
-.card {
-  border: 1px solid #e0e0e0;
-  /* Lightened border color */
-  border-radius: 8px;
-  padding: 15px;
-  background-color: #ffffff;
-  /* Explicitly set background to white */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-  /* Softened shadow */
-  transition: box-shadow 0.3s ease-in-out;
-  /* Smooth transition for hover effects */
-
-  width: 400px;
+app-header,
+app-footer {
+  width: min(1280px, 100%);
 }
 
-.card:hover {
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-  /* Slightly more pronounced shadow on hover */
+app-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
-.card h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  /* Added margin below heading */
-  color: #333;
-  /* Darker color for heading text */
-  font-size: 1.25em;
-  /* Slightly larger heading */
+app-container main {
+  flex: 1;
+  padding: 4rem clamp(1.5rem, 4vw, 6rem);
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: stretch;
 }
 
-/* Styling for the canvas wrapper in SensorReadingCard */
-/* Note: The subtask mentioned .sensor-reading-card .chart-container
-   My SensorReadingCard.tsx implementation wrapped the canvas in a div:
-   <div style={{ position: 'relative', height: '300px', width: '100%' }}>
-     <canvas id="sensorReadingsChart"></canvas>
-   </div>
-   So, I will target this structure. For more robustness, it would be better to add a class
-   to that wrapper div, e.g., "chart-wrapper"
-*/
-.sensor-reading-card canvas {
-  /* Directly styling the canvas, assuming its parent div controls size */
-  max-width: 100%;
-  /* Ensure canvas is responsive within its container */
-  max-height: 200px !important;
-  /* Force height; Chart.js can be tricky with parent-defined height sometimes */
+.dashboard-container {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0 1.25rem;
 }
 
-/* If a wrapper div like .chart-container is used, the style would be:
-.sensor-reading-card .chart-container {
-  height: 300px;
-  position: relative;
-  width: 100%; // Ensure it takes full width of the card
-}
-*/
-
-.card-total-text {
-  font-size: 1.2em;
-  /* Larger size for emphasis */
-  color: #000000;
-  /* Black color for the total text */
-  font-weight: bold;
-  /* Make the total count stand out more */
-  margin-top: 10px;
-  /* Add some space above the total text */
-  margin-bottom: 5px;
-  /* Adjust bottom margin as needed */
-}
-
-.card-header-link {
-  color: #007bff;
-  /* A nice blue color */
-  text-decoration: none;
-  /* Remove underline by default */
-  cursor: pointer;
-}
-
-.card-header-link:hover {
-  text-decoration: underline;
-  /* Underline on hover for better UX */
-}
-
-/* Ensure the h3 inside the link inherits the color */
-.card-header-link h3 {
-  color: inherit;
+.dashboard-container h2 {
   margin: 0;
-  /* Reset any default h3 margins if necessary */
+  font-size: 2.25rem;
+  font-weight: bold;
 }
 
-/* Icon styles for header navigation */
-.icon::before {
-  content: '';
+.dashboard-container .flex-container {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.card-title-link {
+  color: #1d4ed8;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
   display: inline-block;
-  width: 1rem;
-  height: 1rem;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+  padding-bottom: 0.25rem;
 }
 
-.icon-greenhouse::before {
-  content: '🌿';
-}
-
-.icon-sensor::before {
-  content: '📡';
-}
-
-.icon-reading::before {
-  content: '📊';
-}
-
-.icon-alert::before {
-  content: '🚨';
+.card-title-link:hover {
+  text-decoration: none;
+  border-color: #1d4ed8;
 }

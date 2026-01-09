@@ -5,6 +5,9 @@ import { Subscription } from 'rxjs';
 
 @customElement('sensor-reading-list')
 export class SensorReadingList extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
   @state() private sensorReadings: SensorReadingListData = [];
   private subscription: Subscription | null = null;
 

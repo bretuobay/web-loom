@@ -14,6 +14,9 @@ import './threshold-alert-card';
 
 @customElement('dashboard-view')
 export class DashboardView extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
   @state() private isLoading = true;
   private subscriptions: Subscription[] = [];
 

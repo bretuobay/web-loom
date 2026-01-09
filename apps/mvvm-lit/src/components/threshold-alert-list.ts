@@ -5,6 +5,9 @@ import { Subscription } from 'rxjs';
 
 @customElement('threshold-alert-list')
 export class ThresholdAlertList extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
   @state() private thresholdAlerts: ThresholdAlertListData = [];
   private subscription: Subscription | null = null;
 

@@ -5,6 +5,9 @@ import { Subscription } from 'rxjs';
 
 @customElement('greenhouse-list')
 export class GreenhouseList extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
   @state()
   private greenhouses: GreenhouseData[] = [];
 
@@ -57,10 +60,23 @@ export class GreenhouseList extends LitElement {
   private handleUpdate(id?: string) {
     const greenhouse = this.greenhouses.find((gh) => gh.id === id);
     if (greenhouse) {
-      (this.shadowRoot?.getElementById('name') as HTMLInputElement).value = greenhouse.name;
-      (this.shadowRoot?.getElementById('location') as HTMLTextAreaElement).value = greenhouse.location;
-      (this.shadowRoot?.getElementById('size') as HTMLSelectElement).value = greenhouse.size;
-      (this.shadowRoot?.getElementById('cropType') as HTMLInputElement).value = greenhouse.cropType || '';
+      const nameInput = this.querySelector<HTMLInputElement>('#name');
+      const locationInput = this.querySelector<HTMLTextAreaElement>('#location');
+      const sizeSelect = this.querySelector<HTMLSelectElement>('#size');
+      const cropTypeInput = this.querySelector<HTMLInputElement>('#cropType');
+
+      if (nameInput) {
+        nameInput.value = greenhouse.name;
+      }
+      if (locationInput) {
+        locationInput.value = greenhouse.location;
+      }
+      if (sizeSelect) {
+        sizeSelect.value = greenhouse.size;
+      }
+      if (cropTypeInput) {
+        cropTypeInput.value = greenhouse.cropType || '';
+      }
     }
   }
 
