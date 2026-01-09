@@ -80,3 +80,14 @@ h2 {
   font-weight: normal;
   padding-top: 3rem;
 }
+
+.card-chart {
+  margin-top: 1rem;
+}
+
+.card-chart canvas {
+  width: 100%;
+  display: block;
+  height: 240px;
+  max-width: 100%;
+}

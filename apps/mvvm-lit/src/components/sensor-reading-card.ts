@@ -1,7 +1,8 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, type PropertyValues } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { sensorReadingViewModel, type SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
 import { Subscription } from 'rxjs';
+import { renderSensorReadingsChart } from './sensor-reading-chart';
 
 @customElement('sensor-reading-card')
 export class SensorReadingCard extends LitElement {
@@ -23,6 +24,13 @@ export class SensorReadingCard extends LitElement {
     this.subscription?.unsubscribe();
   }
 
+  updated(changedProperties: PropertyValues<this>) {
+    super.updated(changedProperties);
+    if (changedProperties.has('sensorReadings')) {
+      renderSensorReadingsChart(this.sensorReadings);
+    }
+  }
+
   render() {
     return html`
       <div class="card">
@@ -30,6 +38,9 @@ export class SensorReadingCard extends LitElement {
           <a href="/sensor-readings" class="card-title-link">Sensor Readings</a>
         </h3>
         <p class="card-content">Total: ${this.sensorReadings.length}</p>
+        <div class="card-chart">
+          <canvas id="sensorReadingsChart"></canvas>
+        </div>
       </div>
     `;
   }

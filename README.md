@@ -1,6 +1,10 @@
-# Web Loom - Framework-Agnostic UI Architecture Toolkit
+<div align="center">
+  <img src="webloom.png" alt="Web Loom Logo" width="200"/>
 
-A comprehensive monorepo demonstrating MVVM architecture, headless UI patterns, and plugin systems across multiple frontend frameworks.
+  # Web Loom - Framework-Agnostic UI Architecture Toolkit
+
+  A comprehensive monorepo demonstrating MVVM architecture, headless UI patterns, and plugin systems across multiple frontend frameworks.
+</div>
 
 ## Overview
 
