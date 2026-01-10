@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 import { useObservable } from '../hooks/useObservable';
-import { Link } from 'react-router-dom';
+import { Link } from '../router/Routing';
 import BackArrow from '../assets/back-arrow.svg';
 
 export function SensorList() {

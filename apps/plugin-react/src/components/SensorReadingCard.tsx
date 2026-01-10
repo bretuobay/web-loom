@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '../router/Routing';
 import {
   Chart,
   LineController,
@@ -22,6 +22,7 @@ interface SensorReadingCardProps {
 
 const SensorReadingCard: React.FC<SensorReadingCardProps> = ({ sensorReadings }) => {
   const chartInstanceRef = useRef<Chart | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     if (sensorReadings.length === 0) {
@@ -32,7 +33,7 @@ const SensorReadingCard: React.FC<SensorReadingCardProps> = ({ sensorReadings })
       return; // Don't render chart if there's no data
     }
 
-    const canvasElement = document.getElementById('sensorReadingsChart') as HTMLCanvasElement | null;
+    const canvasElement = canvasRef.current;
     if (!canvasElement) {
       console.error('Canvas element not found');
       return;
@@ -102,7 +103,7 @@ const SensorReadingCard: React.FC<SensorReadingCardProps> = ({ sensorReadings })
         <h3 className="card-title">Sensor Readings</h3>
       </Link>
       <div className="card-content">
-        <canvas id="sensorReadingsChart"></canvas>
+        <canvas ref={canvasRef}></canvas>
       </div>
       <p className="card-content">Total Readings: {sensorReadings.length}</p>
     </div>

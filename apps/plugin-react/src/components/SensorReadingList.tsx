@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { sensorReadingViewModel, type SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
 import { useObservable } from '../hooks/useObservable';
-import { Link } from 'react-router-dom';
+import { Link } from '../router/Routing';
 import BackArrow from '../assets/back-arrow.svg';
 
 export function SensorReadingList() {

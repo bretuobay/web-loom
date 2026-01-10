@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
 import { useObservable } from '../hooks/useObservable';
 import BackArrow from '../assets/back-arrow.svg';
-import { Link } from 'react-router-dom';
+import { Link } from '../router/Routing';
 
 const greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
 
