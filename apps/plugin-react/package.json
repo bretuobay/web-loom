@@ -12,8 +12,12 @@
   },
   "dependencies": {
     "@repo/plugin-core": "*",
+    "@repo/shared": "*",
+    "@repo/view-models": "*",
+    "chart.js": "^4.4.3",
+    "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react": "^19.1.0"
+    "react-router-dom": "^7.6.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
