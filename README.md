@@ -8,7 +8,11 @@
 
 ## Overview
 
-Web Loom showcases how framework-agnostic architecture patterns enable code reuse and consistency across React, Angular, Vue.js, and vanilla JavaScript. The project includes production-ready libraries for state management, UI behaviors, and plugin systems.
+**Web Loom** is a living demonstration that modern frontend architecture should prioritize **timeless patterns over trending frameworks**. While React, Vue, and Angular dominate today's landscape, they're ephemeral—tools that will eventually fade. What remains constant are architectural principles: MVVM separation, headless UI behaviors, and framework-agnostic design.
+
+This monorepo proves you can write business logic **once** and deploy it across **five frameworks** (React, Angular, Vue, Lit, Vanilla JS) without modification. The same ViewModel, the same Model, the same UI behavior—zero rewrites.
+
+**The Result**: When the next framework hype arrives, you rewrite 20% of your codebase (the View layer) instead of 100%. Your ViewModels, Models, and UI behaviors survive intact. This is **sustainable architecture**.
 
 ## Key Features
 
@@ -18,6 +22,20 @@ Web Loom showcases how framework-agnostic architecture patterns enable code reus
 - **Plugin System**: Dynamic plugin architecture with framework adapters
 - **Type-Safe**: Full TypeScript support across all packages
 - **Reactive**: RxJS-powered reactive data flow with automatic UI updates
+
+## Why Web Loom Exists
+
+Modern frontend development suffers from **framework fatigue**. Every 2-3 years, a new framework emerges, and teams face the choice: rewrite everything or fall behind. This cycle is unsustainable.
+
+**Web Loom demonstrates the alternative**: Build your architecture on **framework-agnostic foundations** that outlive any single framework:
+
+1. **MVVM Architecture**: Business logic in ViewModels, not components. Test it independently, reuse it everywhere.
+2. **Headless UI Behaviors**: Dialog logic, form validation, keyboard navigation—write once, use in React, Vue, Angular, or vanilla JS.
+3. **Clean Separation**: Views are thin rendering layers. Swap React for Vue? Change 20% of code, not 100%.
+
+The monorepo includes **five implementations** of the same greenhouse monitoring app across React, Angular, Vue, Lit, and vanilla JavaScript—all sharing the same ViewModels, Models, and UI behaviors. No code duplication. No framework lock-in.
+
+**This isn't theoretical**. Companies like Microsoft (TypeScript compiler), Figma (rendering engine), and Linear (data sync) build their cores framework-agnostic. Web Loom shows you how.
 
 ## Quick Start
 
@@ -442,47 +460,445 @@ Detailed documentation available in each package's README:
 - [Visdiff Documentation](packages/visdiff/README.md)
 - [Shared Documentation](packages/shared/README.md)
 
-## Examples
+## Architecture Philosophy
 
-### Cross-Framework Data Sharing
+> **Why Framework-Agnostic Architecture Matters**
+>
+> React, Vue, Angular, and Svelte are excellent UI rendering libraries, but they're just that—rendering layers. The real power lies in solid architectural foundations that transcend any single framework. Web Loom demonstrates how framework-agnostic patterns enable:
+>
+> - **Longevity**: Your business logic survives framework churn
+> - **Maintainability**: Clean separation of concerns reduces complexity
+> - **Flexibility**: Switch frameworks without rewriting core logic
+> - **Testability**: Test business logic independently of UI
+> - **Team Scalability**: Developers can work across different apps using the same patterns
+
+## Architecture Diagrams
+
+### MVVM Architecture Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         VIEW LAYER                              │
+│  (React / Angular / Vue / Lit / Vanilla - Framework-Specific)  │
+│                                                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
+│  │  React   │  │ Angular  │  │   Vue    │  │   Lit    │      │
+│  │Component │  │Component │  │Component │  │ Element  │      │
+│  └─────┬────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘      │
+│        │            │             │             │              │
+│        └────────────┴─────────────┴─────────────┘              │
+│                         │                                       │
+│                    Subscribe to                                 │
+│                    Observables                                  │
+└─────────────────────────┼───────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      VIEWMODEL LAYER                            │
+│       (packages/mvvm-core + packages/view-models)               │
+│              Framework-Agnostic Business Logic                  │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │            BaseViewModel / RestfulApiViewModel            │  │
+│  │                                                            │  │
+│  │  • Exposes: data$, isLoading$, error$, validationErrors$ │  │
+│  │  • Commands: fetchCommand, createCommand, updateCommand   │  │
+│  │  • Computed: Derived observables (e.g., activeSensors$)  │  │
+│  │  • Lifecycle: dispose() for cleanup                       │  │
+│  └────────────────────┬───────────────────────────────────────┘  │
+│                       │ Uses                                     │
+│                       ▼                                          │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │                    Model Layer                            │  │
+│  │         (BaseModel / RestfulApiModel)                     │  │
+│  │                                                            │  │
+│  │  • RxJS BehaviorSubjects for reactive state              │  │
+│  │  • Zod schema validation                                  │  │
+│  │  • HTTP communication (RestfulApiModel)                   │  │
+│  │  • State management (data$, isLoading$, error$)          │  │
+│  └────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### MVVM with Supporting Libraries Integration
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                          VIEW LAYER                                │
+│         React Components / Angular / Vue / Lit / Vanilla          │
+└────────────────────────────┬───────────────────────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│                       VIEWMODEL LAYER                              │
+│                                                                    │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │                  UserViewModel (Example)                     │  │
+│  │                                                              │  │
+│  │  • Observables: users$, isLoading$, selectedUser$           │  │
+│  │  • Commands: fetchUsers(), createUser(), deleteUser()       │  │
+│  │  • Validation: validationErrors$                            │  │
+│  │                                                              │  │
+│  │  Integration Points:                                        │  │
+│  │                                                              │  │
+│  │  ┌─────────────────────────────────────────────────────┐   │  │
+│  │  │  1. EVENT BUS (Cross-Feature Communication)         │   │  │
+│  │  │     Where: When one feature needs to notify others  │   │  │
+│  │  │                                                      │   │  │
+│  │  │     eventBus.emit('user:created', user);            │   │  │
+│  │  │     eventBus.on('auth:logout', () => this.reset()); │   │  │
+│  │  └─────────────────────────────────────────────────────┘   │  │
+│  │                                                              │  │
+│  │  ┌─────────────────────────────────────────────────────┐   │  │
+│  │  │  2. STORE (Shared UI State - NOT Business Logic)    │   │  │
+│  │  │     Where: UI-only state (theme, sidebar, modals)   │   │  │
+│  │  │     DON'T: Use for business data (use Model)        │   │  │
+│  │  │                                                      │   │  │
+│  │  │     const uiStore = createStore({ theme: 'dark' }); │   │  │
+│  │  └─────────────────────────────────────────────────────┘   │  │
+│  │                                                              │  │
+│  │  ┌─────────────────────────────────────────────────────┐   │  │
+│  │  │  3. QUERY CORE (Advanced Caching)                   │   │  │
+│  │  │     Where: When Model's built-in caching isn't      │   │  │
+│  │  │            enough (complex cache invalidation)      │   │  │
+│  │  │                                                      │   │  │
+│  │  │     queryCore.defineEndpoint('users', fetchUsers);  │   │  │
+│  │  └─────────────────────────────────────────────────────┘   │  │
+│  └──────────────────────────┬───────────────────────────────────┘  │
+│                             ▼                                      │
+│  ┌──────────────────────────────────────────────────────────────┐ │
+│  │                      MODEL LAYER                             │ │
+│  │  • Business data and state (users, sensors, etc.)            │ │
+│  │  • API communication (RestfulApiModel)                       │ │
+│  │  • Validation (Zod schemas)                                  │ │
+│  │  • This is the SOURCE OF TRUTH for business data             │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+└────────────────────────────────────────────────────────────────────┘
+
+                               │
+                               │ HTTP Requests
+                               ▼
+                    ┌─────────────────────┐
+                    │    Backend API      │
+                    │  (Express + SQLite) │
+                    └─────────────────────┘
+```
+
+### Integration Guidelines: When to Use What
+
+#### ✅ DO: Use Event Bus in ViewModel
+
+**Use Case**: Cross-feature communication (user created → refresh dashboard)
 
 ```typescript
-// packages/view-models/sensor.viewmodel.ts (Shared)
-export class SensorViewModel extends RestfulApiViewModel<Sensor[], typeof SensorSchema> {
-  constructor() {
-    super(new SensorModel());
-  }
-
-  get activeSensors$() {
-    return this.data$.pipe(
-      map(sensors => sensors?.filter(s => s.active))
-    );
+class UserViewModel extends RestfulApiViewModel {
+  async createUser(data: User) {
+    const user = await this.model.create(data);
+    // Notify other features
+    eventBus.emit('user:created', user);
+    return user;
   }
 }
 
-// Used in React
-function SensorList() {
-  const vm = useMemo(() => new SensorViewModel(), []);
-  const sensors = useObservable(vm.activeSensors$, []);
-  return <ul>{sensors.map(s => <li>{s.name}</li>)}</ul>;
+class DashboardViewModel extends BaseViewModel {
+  init() {
+    // Listen for events from other features
+    eventBus.on('user:created', () => this.refreshStats());
+  }
+}
+```
+
+#### ❌ DON'T: Use Store for Business Data
+
+**Wrong**:
+```typescript
+// ❌ BAD: Business data in UI store
+const store = createStore({ users: [] });
+```
+
+**Right**:
+```typescript
+// ✅ GOOD: Business data in Model
+class UserModel extends RestfulApiModel<User[]> {
+  // data$ observable contains users
+}
+```
+
+#### ✅ DO: Use Store for UI-Only State
+
+**Use Case**: Sidebar open/closed, theme, modal state
+
+```typescript
+// ✅ GOOD: Pure UI state
+const uiStore = createStore({
+  sidebarOpen: true,
+  theme: 'dark',
+  activeModal: null
+}, (set) => ({
+  toggleSidebar: () => set(s => ({ sidebarOpen: !s.sidebarOpen })),
+  setTheme: (theme) => set({ theme })
+}));
+```
+
+#### ✅ DO: Use Query Core for Advanced Caching
+
+**Use Case**: When you need fine-grained cache invalidation beyond Model's built-in caching
+
+```typescript
+// For most cases, RestfulApiModel's built-in caching is enough
+class UserViewModel extends RestfulApiViewModel {
+  // Built-in caching via Model
 }
 
-// Used in Angular
-@Component({...})
-class SensorListComponent {
-  constructor(public vm: SensorViewModel) {}
-  sensors$ = this.vm.activeSensors$;
-}
+// Use QueryCore when you need more control:
+queryCore.defineEndpoint('users', fetchUsers, {
+  cacheTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: true,
+  invalidateOn: ['user:created', 'user:updated']
+});
+```
 
-// Used in Vue
-setup() {
-  const vm = new SensorViewModel();
-  const sensors = ref([]);
-  watch(() => vm.activeSensors$, (obs) => {
-    obs.subscribe(s => sensors.value = s);
-  });
-  return { sensors };
-}
+### Layered Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  PRESENTATION LAYER (Views)                                 │
+│  • React/Vue/Angular Components                             │
+│  • Headless UI Behaviors (from @web-loom/ui-core)          │
+│  • NO business logic here                                   │
+└────────────────────────────┬────────────────────────────────┘
+                             │ Binds to
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│  BUSINESS LOGIC LAYER (ViewModels)                          │
+│  • Presentation logic                                       │
+│  • User interaction handlers                                │
+│  • Computed observables                                     │
+│  • Event Bus integration (cross-feature events)             │
+└────────────────────────────┬────────────────────────────────┘
+                             │ Uses
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│  DATA LAYER (Models)                                        │
+│  • Data fetching & persistence                              │
+│  • Validation (Zod)                                         │
+│  • State management (RxJS)                                  │
+│  • Single source of truth                                   │
+└────────────────────────────┬────────────────────────────────┘
+                             │ Calls
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│  INFRASTRUCTURE LAYER                                       │
+│  • HTTP Client (@web-loom/http-core)                        │
+│  • Storage (@web-loom/storage-core)                         │
+│  • Error Handling (@web-loom/error-core)                    │
+│  • i18n (@web-loom/i18n-core)                               │
+└─────────────────────────────────────────────────────────────┘
+
+CROSS-CUTTING CONCERNS (Used Across All Layers):
+┌─────────────────────────────────────────────────────────────┐
+│  • Event Bus (cross-feature communication)                  │
+│  • Store (UI-only state like theme, sidebar)                │
+│  • Router (navigation state)                                │
+│  • Notifications (user feedback)                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Headless UI Patterns & Behaviors: The Modern Necessity
+
+### Why Headless UI Matters
+
+Modern frontend development has a critical flaw: **tight coupling between logic and presentation**. Most component libraries (Material-UI, Ant Design, Bootstrap) bundle behavior with styling, making them:
+
+- **Inflexible**: Difficult to customize without fighting the library
+- **Bloated**: Ship CSS you don't need
+- **Framework-locked**: Can't reuse across React, Vue, Angular
+- **Update-dependent**: Breaking changes force rewrites
+
+**Headless UI** solves this by separating **behavior** from **presentation**:
+
+```
+Traditional Component:
+┌────────────────────────────┐
+│   <MaterialButton />       │
+│  ┌──────────────────────┐  │
+│  │ Logic + Styles + DOM │  │  ❌ All coupled together
+│  └──────────────────────┘  │
+└────────────────────────────┘
+
+Headless Approach:
+┌────────────────────────────┐
+│  createDialogBehavior()    │
+│  ┌──────────────────────┐  │
+│  │    Pure Logic Only   │  │  ✅ Framework-agnostic
+│  └──────────────────────┘  │
+└────────────────────────────┘
+         │
+         ▼ Use in ANY framework with YOUR styling
+┌─────────┬─────────┬─────────┬─────────┐
+│ React   │ Vue     │ Angular │ Vanilla │
+└─────────┴─────────┴─────────┴─────────┘
+```
+
+### Web Loom's Headless Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  @web-loom/ui-core (Atomic Behaviors)                       │
+│  Framework-agnostic, behavior-only, <2KB each              │
+│                                                             │
+│  • DialogBehavior     - Modal/dialog management            │
+│  • FormBehavior       - Form state & validation            │
+│  • ListSelection      - Keyboard navigation & selection    │
+│  • RovingFocus        - Accessible focus management        │
+│  • Disclosure         - Expand/collapse logic              │
+│  • DragDrop           - Drag and drop state                │
+│  • Accordion          - Accordion behavior                 │
+│  • Tabs               - Tab navigation                     │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ Composed into
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  @web-loom/ui-patterns (Composite Patterns)                 │
+│  Higher-level patterns built from behaviors                 │
+│                                                             │
+│  • Wizard            = FormBehavior + Navigation            │
+│  • MasterDetail      = ListSelection + Focus                │
+│  • CommandPalette    = Search + ListSelection + Keyboard   │
+│  • Modal             = DialogBehavior + Focus Trap          │
+│  • Sidebar           = Disclosure + Navigation              │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ Used by
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Framework-Specific Components (Your App)                   │
+│  You provide the styling, we provide the behavior           │
+│                                                             │
+│  React:    <Dialog behavior={dialogBehavior} />            │
+│  Vue:      <Dialog v-model="dialog.state" />               │
+│  Angular:  <dialog [behavior]="dialog">                    │
+│  Vanilla:  dialog.mount(element)                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Benefits Demonstrated in Web Loom
+
+#### 1. **Framework Portability**
+
+The same `createDialogBehavior()` works in:
+- React: `mvvm-react` app
+- Vue: `mvvm-vue` app
+- Angular: `mvvm-angular` app
+- Lit: `mvvm-lit` app
+- Vanilla JS: `mvvm-vanilla` app
+
+**Business Value**: Migrate frameworks without rewriting logic.
+
+#### 2. **Accessibility by Default**
+
+Behaviors include proper:
+- Keyboard navigation (Arrow keys, Enter, Escape)
+- Focus management (Focus trap, roving tabindex)
+- ARIA attributes (roles, states, properties)
+- Screen reader support
+
+**Business Value**: Meet WCAG compliance without accessibility experts on every feature.
+
+#### 3. **Testability**
+
+```typescript
+// Test behavior independently of UI
+const dialog = createDialogBehavior();
+dialog.actions.open({ title: 'Test' });
+expect(dialog.state.isOpen).toBe(true);
+expect(dialog.state.content.title).toBe('Test');
+```
+
+**Business Value**: Faster tests, fewer bugs.
+
+#### 4. **Zero Style Conflicts**
+
+No CSS shipped. Use Tailwind, CSS Modules, Styled Components—whatever you want.
+
+**Business Value**: No `!important` hacks, no style overrides.
+
+#### 5. **Tree-Shakeable**
+
+```typescript
+// Only import what you need
+import { createDialogBehavior } from '@web-loom/ui-core';
+// DialogBehavior is ~1.8KB, not 100KB+ like full component libraries
+```
+
+**Business Value**: Faster load times, better Core Web Vitals.
+
+### Real-World Pattern: Command Palette
+
+```
+Command Palette = Composition of Behaviors
+┌─────────────────────────────────────────────┐
+│           createCommandPalette()            │
+│                                             │
+│  ┌────────────────────────────────────┐    │
+│  │  DialogBehavior                    │    │
+│  │  • isOpen state                    │    │
+│  │  • open/close actions              │    │
+│  └────────────────────────────────────┘    │
+│              +                              │
+│  ┌────────────────────────────────────┐    │
+│  │  FormBehavior (Search Input)       │    │
+│  │  • Search query state              │    │
+│  │  • Input validation                │    │
+│  └────────────────────────────────────┘    │
+│              +                              │
+│  ┌────────────────────────────────────┐    │
+│  │  ListSelectionBehavior             │    │
+│  │  • Arrow key navigation            │    │
+│  │  • Selected item                   │    │
+│  └────────────────────────────────────┘    │
+│              +                              │
+│  ┌────────────────────────────────────┐    │
+│  │  Event Bus Integration             │    │
+│  │  • Emit 'command:executed' event   │    │
+│  └────────────────────────────────────┘    │
+└─────────────────────────────────────────────┘
+```
+
+Each behavior is:
+- **Tested independently**: Unit test each behavior
+- **Reusable**: Use `ListSelectionBehavior` in dropdowns, tables, menus
+- **Framework-agnostic**: Write once, use everywhere
+
+### Study These Patterns for Modern Apps
+
+Web Loom demonstrates production-ready patterns you should master:
+
+1. **Separation of Concerns**: Behavior vs. Presentation
+2. **Composition over Inheritance**: Build complex patterns from simple behaviors
+3. **Accessibility First**: Bake it into behaviors, not bolt it on later
+4. **Framework Agnostic**: Don't bet your architecture on React's longevity
+5. **Type Safety**: TypeScript across behaviors, patterns, and adapters
+
+**Why This Matters**: In 2-3 years, when the next framework hype comes, you'll migrate the View layer but keep your behaviors, ViewModels, and business logic intact.
+
+## The Web Loom Advantage
+
+```
+Traditional Approach:
+Framework (React) → Rewrite Everything → New Framework (Vue)
+├─ Components (100%)  ❌ Rewrite
+├─ Business Logic (100%)  ❌ Rewrite
+└─ State Management (100%)  ❌ Rewrite
+
+Web Loom Approach:
+Framework (React) → Swap View Layer → New Framework (Vue)
+├─ Views (20% of codebase)  ❌ Rewrite
+├─ ViewModels (30%)  ✅ Keep
+├─ Models (30%)  ✅ Keep
+├─ UI Behaviors (10%)  ✅ Keep
+└─ Infrastructure (10%)  ✅ Keep
+
+**Result**: Rewrite 20%, keep 80%
 ```
 
 ## Contributing
@@ -495,7 +911,17 @@ MIT
 
 ## Learn More
 
-- [MVVM Architecture Guide](packages/mvvm-core/README.md)
-- [Headless UI Patterns](packages/ui-patterns/README.md)
-- [Plugin System Guide](packages/plugin-core/README.md)
-- [Turborepo Documentation](https://turborepo.com/docs)
+### Core Architectural Concepts
+- [MVVM Architecture Guide](packages/mvvm-core/README.md) - Deep dive into Models, ViewModels, and reactive patterns
+- [Headless UI Behaviors](packages/ui-core/README.md) - Framework-agnostic UI behaviors
+- [Headless UI Patterns](packages/ui-patterns/README.md) - Composed patterns like Wizard, MasterDetail, CommandPalette
+- [Plugin System Guide](packages/plugin-core/README.md) - Dynamic plugin architecture
+
+### Supporting Libraries
+- [Store Core](packages/store-core/README.md) - Minimal reactive state management
+- [Event Bus Core](packages/event-bus-core/README.md) - Cross-feature communication
+- [Query Core](packages/query-core/README.md) - Advanced data fetching and caching
+- [Forms Core](packages/forms-core/README.md) - Framework-agnostic form management
+
+### Tools & Infrastructure
+- [Turborepo Documentation](https://turborepo.com/docs) - Monorepo build system
