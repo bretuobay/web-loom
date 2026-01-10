@@ -1,6 +1,6 @@
 import type { SensorListData } from '@repo/view-models/SensorViewModel';
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '../router/Routing';
 
 interface SensorCardProps {
   sensors: SensorListData | null;

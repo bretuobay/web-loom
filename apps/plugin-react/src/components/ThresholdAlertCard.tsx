@@ -1,6 +1,6 @@
 import type { ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '../router/Routing';
 
 interface ThresholdAlertCardProps {
   thresholdAlerts: ThresholdAlertListData;
