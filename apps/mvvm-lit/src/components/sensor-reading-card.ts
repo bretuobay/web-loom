@@ -24,7 +24,7 @@ export class SensorReadingCard extends LitElement {
     this.subscription?.unsubscribe();
   }
 
-  updated(changedProperties: PropertyValues<this>) {
+  updated(changedProperties: PropertyValues) {
     super.updated(changedProperties);
     if (changedProperties.has('sensorReadings')) {
       renderSensorReadingsChart(this.sensorReadings);
