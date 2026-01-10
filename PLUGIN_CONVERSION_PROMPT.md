@@ -1,17 +1,25 @@
-# LLM Coding Agent Prompt: Convert MVVM React App to Plugin Architecture
+# LLM Coding Agent Prompt: Convert Traditional React App to Plugin Architecture
 
 ## Project Overview
 
-You are working with the Web Loom monorepo, a comprehensive framework for building MVVM applications. Your task is to reimplement the existing `apps/mvvm-react` application using the plugin architecture defined in the packages, specifically replacing the existing demo plugins in `apps/plugin-react/src/plugins` with greenhouse management system plugins based on the components from `apps/mvvm-react`.
+You are working with the Web Loom monorepo, a comprehensive framework for building MVVM applications. The React components from the greenhouse management MVVM app have already been moved to `apps/plugin-react/src/components`. Your task is to convert the traditional React Router-based application structure to use the plugin architecture defined in `packages/plugin-core`.
+
+## Current State
+
+The `apps/plugin-react` app currently has:
+
+- All greenhouse management components moved to `src/components/`
+- Traditional React Router setup in `App.tsx`
+- Layout components in `src/layout/`
+- Standard React app structure
 
 ## Repository Structure Context
 
 This is a turborepo monorepo with the following key structure:
 
-### Current Apps
+### Target App
 
-- `apps/mvvm-react/` - Existing greenhouse management MVVM React app (source of components to convert)
-- `apps/plugin-react/` - Existing plugin host app (target app to modify)
+- `apps/plugin-react/` - Plugin host app with moved greenhouse components
 
 ### Key Packages
 
@@ -21,9 +29,9 @@ This is a turborepo monorepo with the following key structure:
 - `packages/mvvm-core/` - Core MVVM framework
 - `packages/shared/` - Shared utilities and styles
 
-## Current MVVM React App Structure (`apps/mvvm-react`)
+## Current Components Available (`apps/plugin-react/src/components`)
 
-The existing app has these key components:
+All these components are already available and working:
 
 ### Main Components
 
@@ -43,7 +51,7 @@ The existing app has these key components:
 - `Container.tsx` - Layout container
 - `Footer.tsx` - Footer component
 
-### Routing Structure
+### Current Routing Structure (to be converted)
 
 - `/` and `/dashboard` - Dashboard component
 - `/greenhouses` - GreenhouseList component
@@ -68,11 +76,11 @@ The existing app has these key components:
 
 The plugin system provides:
 
-- `PluginManifest<T>` interface for declaring plugin metadata
-- `PluginModule` interface for plugin lifecycle hooks
-- `PluginRegistry` class for managing plugin registration
+- `PluginManifest<T>` interface for declaring plugin metadata, routes, widgets, and menu items
+- `PluginModule` interface with lifecycle hooks (init, mount, unmount)
+- `PluginRegistry` class for managing plugin registration and state
 - `FrameworkAdapter<T>` for framework-specific component mounting
-- Support for widgets, routes, and menu items
+- Plugin state management ('registered', 'loading', 'loaded', 'mounted', 'unmounted', 'error')
 
 ### Plugin Manifest Structure
 
@@ -89,93 +97,152 @@ interface PluginManifest<T extends TComponent = TComponent> {
   menuItems?: PluginMenuItem[];
   widgets?: PluginWidgetDefinition<T>[];
   metadata?: Record<string, unknown>;
+  dependencies?: Record<string, string>;
 }
 ```
 
-### Current Plugin Host Structure (`apps/plugin-react`)
+### Plugin Module Lifecycle
 
-- `src/host/PluginHost.tsx` - Main plugin host component with React adapter
-- `src/config/plugin.config.ts` - Plugin manifest configuration
-- `src/types.ts` - TypeScript type definitions
-- Currently has 3 demo plugins: hello-world, chart, and long
+```typescript
+interface PluginModule {
+  init?: (sdk: PluginSDK) => Promise<void> | void;
+  mount?: (sdk: PluginSDK) => Promise<void> | void;
+  unmount?: () => Promise<void> | void;
+}
+```
+
+### Framework Adapter
+
+```typescript
+interface FrameworkAdapter<T extends TComponent = TComponent> {
+  mountComponent(component: T, container: HTMLElement): void;
+  unmountComponent(container: HTMLElement): void;
+}
+```
 
 ## Your Task
 
-Replace the existing demo plugins in `apps/plugin-react/src/plugins` with a complete greenhouse management system structured as plugins. Convert each major component/view from the MVVM React app into individual plugins.
+Convert the traditional React Router-based application structure in `apps/plugin-react` to use the plugin architecture system. The greenhouse management components are already available in `src/components/` and need to be organized into plugins and loaded dynamically.
 
-### Required Plugin Structure
+### Current Structure to Convert
+
+The current `App.tsx` uses traditional React Router:
+
+```tsx
+function App() {
+  return (
+    <BrowserRouter>
+      <Header />
+      <Container>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/greenhouses" element={<GreenhouseList />} />
+          <Route path="/sensors" element={<SensorList />} />
+          <Route path="/sensor-readings" element={<SensorReadingList />} />
+          <Route path="/threshold-alerts" element={<ThresholdAlertList />} />
+        </Routes>
+      </Container>
+      <Footer />
+    </BrowserRouter>
+  );
+}
+```
+
+### Target Plugin Structure
 
 Create the following plugins in `apps/plugin-react/src/plugins/`:
 
 1. **Dashboard Plugin** (`dashboard/`)
-   - Convert `Dashboard.tsx` to a plugin widget
-   - Include all dashboard cards as sub-components
+   - Use existing `Dashboard.tsx` component
+   - Include dashboard cards as widgets
+   - Route: `/` and `/dashboard`
 
 2. **Greenhouse Plugin** (`greenhouse/`)
-   - Convert `GreenhouseCard.tsx` and `GreenhouseList.tsx`
-   - Provide both card and list widgets
-   - Include route for `/greenhouses`
+   - Use existing `GreenhouseCard.tsx` and `GreenhouseList.tsx`
+   - Provide both card widget and list route
+   - Route: `/greenhouses`
 
 3. **Sensor Plugin** (`sensor/`)
-   - Convert `SensorCard.tsx` and `SensorList.tsx`
-   - Provide both card and list widgets
-   - Include route for `/sensors`
+   - Use existing `SensorCard.tsx` and `SensorList.tsx`
+   - Provide both card widget and list route
+   - Route: `/sensors`
 
 4. **Sensor Reading Plugin** (`sensor-reading/`)
-   - Convert `SensorReadingCard.tsx` and `SensorReadingList.tsx`
-   - Provide both card and list widgets
-   - Include route for `/sensor-readings`
+   - Use existing `SensorReadingCard.tsx` and `SensorReadingList.tsx`
+   - Provide both card widget and list route
+   - Route: `/sensor-readings`
 
 5. **Threshold Alert Plugin** (`threshold-alert/`)
-   - Convert `ThresholdAlertCard.tsx` and `ThresholdAlertList.tsx`
-   - Provide both card and list widgets
-   - Include route for `/threshold-alerts`
+   - Use existing `ThresholdAlertCard.tsx` and `ThresholdAlertList.tsx`
+   - Provide both card widget and list route
+   - Route: `/threshold-alerts`
 
 6. **Navigation Plugin** (`navigation/`)
-   - Convert `Header.tsx` to a navigation plugin
-   - Provide menu items for all routes
+   - Use existing `Header.tsx` component
+   - Provide navigation menu items for all routes
 
 ### Each Plugin Should Include:
 
-1. **index.ts** - Plugin module export with lifecycle hooks
-2. **[PluginName].tsx** - Main plugin components
-3. **components/** folder if multiple sub-components needed
-4. Proper TypeScript typing using `ReactPluginComponent`
+1. **index.ts** - Plugin module export implementing `PluginModule` interface
+2. **Components** - Import existing components from `../components/`
+3. Proper TypeScript typing using React component types
+4. Plugin manifest registration in configuration
+
+### Required Implementation Steps
+
+1. **Create Plugin Host System**
+   - Create `src/host/PluginHost.tsx` with React adapter
+   - Implement `FrameworkAdapter<React.ComponentType>` for mounting/unmounting React components
+   - Support both route-based and widget-based plugin rendering
+
+2. **Create Plugin Configuration**
+   - Create `src/config/plugin.config.ts` with all plugin manifests
+   - Register all 6 greenhouse management plugins
+   - Include route definitions, menu items, and widget definitions
+
+3. **Update App.tsx**
+   - Replace traditional React Router structure
+   - Use `PluginHost` component instead
+   - Maintain layout structure (Header, Container, Footer)
+
+4. **Create TypeScript Types**
+   - Create `src/types.ts` defining `ReactPluginComponent` type
+   - Ensure compatibility with plugin-core interfaces
 
 ### Plugin Configuration Requirements
 
-Update `apps/plugin-react/src/config/plugin.config.ts` to:
+Create `apps/plugin-react/src/config/plugin.config.ts` with:
 
-- Remove existing demo plugin manifests
-- Add all 6 new greenhouse management plugin manifests
-- Include proper route definitions for navigation
-- Include widget definitions for dashboard display
-- Include menu items for header navigation
+- All 6 greenhouse management plugin manifests
+- Route definitions for navigation between components
+- Widget definitions for dashboard display
+- Menu items for header navigation
 
 ### Technical Requirements
 
-1. **Preserve Existing Functionality**
-   - All components should work exactly as in the original MVVM React app
-   - Maintain reactive data binding using `useObservable` hook
-   - Keep all view model dependencies intact
-   - Preserve styling and layout
+1. **Use Existing Components**
+   - Import all components from `src/components/` directory
+   - Do NOT duplicate or copy existing component files
+   - Maintain all existing functionality and styling
 
 2. **Plugin Architecture Compliance**
-   - Each plugin must export a `PluginModule` object
-   - Components must be typed as `ReactPluginComponent`
-   - Use proper plugin manifest structure
+   - Each plugin must implement `PluginModule` interface with optional lifecycle hooks
+   - Use proper plugin manifest structure from `packages/plugin-core`
    - Support both widget and route-based rendering
+   - Follow plugin state management pattern
 
-3. **Dependencies**
-   - Import view models from `@repo/view-models`
-   - Use `useObservable` hook from the appropriate location
-   - Maintain chart.js integration where applicable
-   - Keep react-router-dom compatibility for routes
+3. **Preserve Dependencies**
+   - Keep all view model imports from `@repo/view-models`
+   - Maintain `useObservable` hook usage from existing location
+   - Preserve chart.js integration where applicable
+   - Keep all reactive MVVM patterns intact
 
-4. **Plugin Host Integration**
-   - Update the main `PluginHost.tsx` if needed for layout
-   - Ensure proper React 19 concurrent rendering compatibility
-   - Support both widget-based and route-based plugin rendering
+4. **React Framework Integration**
+   - Create React-specific `FrameworkAdapter` for component mounting
+   - Ensure compatibility with React 19 concurrent rendering
+   - Support both BrowserRouter routing and plugin-based routing
+   - Maintain existing layout structure
 
 ### File Structure Example
 
@@ -184,12 +251,14 @@ For the Dashboard Plugin:
 ```
 apps/plugin-react/src/plugins/dashboard/
 ├── index.ts                    # Plugin module export
-├── Dashboard.tsx              # Main dashboard widget
-└── components/
-    ├── GreenhouseCard.tsx
-    ├── SensorCard.tsx
-    ├── SensorReadingCard.tsx
-    └── ThresholdAlertCard.tsx
+└── Dashboard.tsx               # Import and re-export from ../components/Dashboard
+```
+
+Plugin index.ts should import existing components:
+
+```typescript
+import Dashboard from '../components/Dashboard';
+// Additional imports as needed
 ```
 
 ### Expected Plugin Manifest Example
@@ -205,18 +274,18 @@ apps/plugin-react/src/plugins/dashboard/
     {
       id: 'greenhouse-dashboard-widget',
       title: 'Dashboard',
-      component: components.Dashboard,
+      component: Dashboard, // Imported from components
     },
   ],
   routes: [
     {
       path: '/',
-      component: components.Dashboard,
+      component: Dashboard,
       exact: true,
     },
     {
       path: '/dashboard',
-      component: components.Dashboard,
+      component: Dashboard,
       exact: true,
     },
   ],
@@ -230,32 +299,74 @@ apps/plugin-react/src/plugins/dashboard/
 }
 ```
 
+### Plugin Module Example
+
+```typescript
+import type { PluginModule } from '@repo/plugin-core';
+import Dashboard from '../components/Dashboard';
+
+const dashboardModule: PluginModule = {
+  init: async (sdk) => {
+    console.log('Dashboard plugin initialized');
+  },
+  mount: async (sdk) => {
+    console.log('Dashboard plugin mounted');
+  },
+  unmount: async () => {
+    console.log('Dashboard plugin unmounted');
+  },
+};
+
+export const components = {
+  Dashboard,
+};
+
+export default dashboardModule;
+```
+
 ## Implementation Notes
 
-1. **Data Flow**: Maintain the same reactive data flow using view models and the `useObservable` hook
-2. **Routing**: Convert React Router routes to plugin route definitions
-3. **Navigation**: Convert header navigation to plugin menu items
-4. **Styling**: Preserve existing CSS classes and styling
-5. **Error Handling**: Maintain existing error handling patterns
-6. **Performance**: Ensure plugin lazy loading doesn't break functionality
+1. **Component Reuse**: Import all existing components from `src/components/` - do not copy or duplicate files
+2. **Plugin Organization**: Each plugin should be minimal and mainly serve as a wrapper for existing components
+3. **Routing Conversion**: Convert React Router paths to plugin route definitions
+4. **Navigation Integration**: Convert header navigation links to plugin menu items
+5. **Layout Preservation**: Maintain the existing Header/Container/Footer layout structure
+6. **State Management**: Preserve all existing view model integrations and reactive patterns
+7. **Plugin Lifecycle**: Use lifecycle hooks (init, mount, unmount) for proper resource management
 
 ## Deliverables
 
-1. Remove all existing demo plugins from `apps/plugin-react/src/plugins/`
-2. Implement all 6 greenhouse management plugins with proper structure
-3. Update plugin configuration with all new manifests
-4. Ensure the plugin host properly renders both widgets and routes
-5. Verify all functionality from the original MVVM React app is preserved
-6. Test navigation between all plugin routes works correctly
+1. **Plugin System Setup**
+   - Create `src/host/PluginHost.tsx` with React framework adapter
+   - Create `src/config/plugin.config.ts` with all plugin manifests
+   - Create `src/types.ts` with React plugin type definitions
 
-This is a demo application, so no tests are required. Focus on functional implementation and proper plugin architecture compliance.
+2. **Plugin Implementation**
+   - Create 6 plugin directories in `src/plugins/`
+   - Each plugin with `index.ts` implementing `PluginModule`
+   - Import and re-export components from `src/components/`
+
+3. **App Conversion**
+   - Convert `App.tsx` from React Router to plugin host
+   - Maintain existing layout structure
+   - Support both route navigation and widget rendering
+
+4. **Integration**
+   - Register all plugins in the configuration
+   - Ensure navigation menu items work correctly
+   - Test all routes and dashboard widgets function properly
+
+This is a demo application, so no tests are required. Focus on converting the traditional React Router structure to the plugin architecture while preserving all existing functionality.
 
 ## Success Criteria
 
-- All original MVVM React app functionality is preserved
-- Plugin architecture is properly implemented
-- Navigation works between all sections
-- Dashboard displays all widgets correctly
-- Each plugin is properly isolated and follows the established patterns
+- All existing component functionality is preserved without modification
+- Plugin architecture is properly implemented using `packages/plugin-core`
+- Traditional React Router structure is replaced with plugin-based routing
+- Navigation works correctly between all plugin routes
+- Dashboard displays all widgets from plugins
+- Each plugin follows the established `PluginModule` interface
+- Plugin manifests are properly configured with routes, widgets, and menu items
 - No TypeScript compilation errors
 - Application runs without runtime errors
+- Existing MVVM reactive patterns remain intact
