@@ -1,28 +1,20 @@
-// vite.config.ts
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import react from '@vitejs/plugin-react';
 
-// https://vite.dev/config/
+// https://vitejs.dev/config/
 export default defineConfig({
+  plugins: [react()],
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      '@repo/models': resolve(__dirname, '../../packages/models/src'),
+      '@repo/view-models': resolve(
+        __dirname,
+        '../../packages/view-models/src',
+      ),
+      '@repo/shared': resolve(__dirname, '../../packages/shared/src'),
+      '@repo/plugin-core': resolve(__dirname, '../../packages/plugin-core/src'),
     },
-    // de-dupe if the plugin is linked during local dev
-    dedupe: ['react', 'react-dom'],
-  },
-  build: {
-    rollupOptions: {
-      // don't bundle these; use host's copies
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
-    },
-    target: 'esnext',
-    sourcemap: true,
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom'],
-  },
-  define: {
-    __DEV__: process.env.NODE_ENV === 'development',
   },
 });

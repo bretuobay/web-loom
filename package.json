@@ -3,9 +3,9 @@
   "private": true,
   "scripts": {
     "postinstall": "node scripts/postinstall/vite-require-fix.cjs",
-    "build": "turbo run build",
-    "dev": "turbo run dev --concurrency=50",
-    "lint": "turbo run lint",
+    "build": "npx turbo run build",
+    "dev": "npx turbo run dev --filter=@repo/plugin-react-app",
+    "lint": "npx turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "test": "turbo run test"
