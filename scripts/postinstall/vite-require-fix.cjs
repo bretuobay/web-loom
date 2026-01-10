@@ -6,8 +6,8 @@ const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const targetFile = path.join(projectRoot, 'node_modules', 'vite', 'dist', 'node', 'chunks', 'dep-D4NMHUTW.js');
-const brokenLine = 'const { fileURLToPath, pathToFileURL } = require$$1$1;';
-const fixedLine = 'const { fileURLToPath, pathToFileURL } = require$1$1;';
+const brokenLine = 'const { fileURLToPath, pathToFileURL } = require$1$1;';
+const fixedLine = 'import { fileURLToPath, pathToFileURL } from \'node:url\';';
 
 function log(message) {
   console.log(`[vite-patch] ${message}`);

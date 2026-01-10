@@ -1,0 +1,39 @@
+
+> dev
+> npx turbo run dev --filter=@repo/plugin-react-app
+
+• turbo 2.7.3
+• Packages in scope: @repo/plugin-react-app
+• Running dev in 1 packages
+• Remote caching disabled
+@repo/plugin-react-app:dev: cache bypass, force executing 9785bb02c9ed20e3
+@repo/plugin-react-app:dev:
+@repo/plugin-react-app:dev: > @repo/plugin-react-app@0.5.2 dev
+@repo/plugin-react-app:dev: > vite
+@repo/plugin-react-app:dev:
+@repo/plugin-react-app:dev: file:///app/node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:11644
+@repo/plugin-react-app:dev: const { fileURLToPath, pathToFileURL } = require$$1$1;
+@repo/plugin-react-app:dev:                                          ^
+@repo/plugin-react-app:dev:
+@repo/plugin-react-app:dev: ReferenceError: require$$1$1 is not defined
+@repo/plugin-react-app:dev:     at file:///app/node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:11644:42
+@repo/plugin-react-app:dev:     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+@repo/plugin-react-app:dev:     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+@repo/plugin-react-app:dev:
+@repo/plugin-react-app:dev: Node.js v22.21.1
+@repo/plugin-react-app:dev: npm error Lifecycle script `dev` failed with error:
+@repo/plugin-react-app:dev: npm error code 1
+@repo/plugin-react-app:dev: npm error path /app/apps/plugin-react
+@repo/plugin-react-app:dev: npm error workspace @repo/plugin-react-app@0.5.2
+@repo/plugin-react-app:dev: npm error location /app/apps/plugin-react
+@repo/plugin-react-app:dev: npm error command failed
+@repo/plugin-react-app:dev: npm error command sh -c vite
+@repo/plugin-react-app:dev: ERROR: command finished with error: command (/app/apps/plugin-react) /app/node_modules/.bin/npm run dev exited (1)
+@repo/plugin-react-app#dev: command (/app/apps/plugin-react) /app/node_modules/.bin/npm run dev exited (1)
+
+ Tasks:    0 successful, 1 total
+Cached:    0 cached, 1 total
+  Time:    1.111s
+Failed:    @repo/plugin-react-app#dev
+
+ ERROR  run failed: command  exited (1)
