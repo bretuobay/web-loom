@@ -8,7 +8,11 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "count-loc": "node scripts/count-loc.js",
+    "count-loc:json": "node scripts/count-loc.js --json",
+    "count-loc:cloc": "bash scripts/count-loc.sh",
+    "count-loc:visualize": "node scripts/visualize-loc.js"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
@@ -19,6 +23,7 @@
     "prettier": "^3.7.3",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4.1.11",
+    "tsx": "^4.19.2",
     "turbo": "^2.5.3",
     "typescript": "5.8.2",
     "vitest": "^3.2.4"
