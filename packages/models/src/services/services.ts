@@ -1,6 +1,6 @@
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
-interface ApiEndpoint {
+export interface ApiEndpoint {
   method: HttpMethod;
   path: string;
 }
@@ -28,6 +28,13 @@ interface ApiRegistry {
     list: ApiEndpoint;
     create: ApiEndpoint;
     delete: (id: number) => ApiEndpoint;
+  };
+  auth: {
+    signup: ApiEndpoint;
+    signin: ApiEndpoint;
+    me: ApiEndpoint;
+    changePassword: ApiEndpoint;
+    signout: ApiEndpoint;
   };
 }
 
@@ -63,5 +70,12 @@ export const apiRegistry: ApiRegistry = {
     list: { method: 'GET', path: '/api/alerts' },
     create: { method: 'POST', path: '/api/alerts' },
     delete: (id) => ({ method: 'DELETE', path: `/api/alerts/${id}` }),
+  },
+  auth: {
+    signup: { method: 'POST', path: '/api/auth/signup' },
+    signin: { method: 'POST', path: '/api/auth/signin' },
+    me: { method: 'GET', path: '/api/auth/me' },
+    changePassword: { method: 'POST', path: '/api/auth/change-password' },
+    signout: { method: 'POST', path: '/api/auth/signout' },
   },
 };

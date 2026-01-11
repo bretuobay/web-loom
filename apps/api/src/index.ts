@@ -5,8 +5,10 @@ import greenhouseRoutes from './routes/greenhouse'; // Import greenhouse routes
 import sensorRoutes from './routes/sensor'; // Import sensor routes
 import sensorReadingRoutes from './routes/sensorReading'; // Import sensor reading routes
 import thresholdAlertRoutes from './routes/thresholdAlert'; // Import threshold alert routes
+import authRoutes from './routes/auth';
+import config from './config/config';
 
-const allowedOrigins = [
+const allowedOrigins = new Set([
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
@@ -20,7 +22,22 @@ const allowedOrigins = [
   'http://localhost:53710',
   'http://localhost:8081',
   'http://localhost:8082',
-];
+]);
+
+const isLocalhostOrigin = (origin: string) => {
+  try {
+    const url = new URL(origin);
+    const hostname = url.hostname;
+    return (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname === '[::1]'
+    );
+  } catch {
+    return false;
+  }
+};
 
 const corsOptions: CorsOptions = {
   credentials: true,
@@ -28,17 +45,17 @@ const corsOptions: CorsOptions = {
     // allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not ' + 'allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    if (allowedOrigins.has(origin) || isLocalhostOrigin(origin)) {
+      return callback(null, true);
     }
 
-    return callback(null, true);
+    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+    return callback(new Error(msg), false);
   },
 };
 
 const app = express();
-const PORT = process.env.PORT || 3700;
+const PORT = config.port;
 
 // Enable CORS with specified options
 app.use(cors(corsOptions));
@@ -61,6 +78,7 @@ app.use('/api/readings', sensorReadingRoutes);
 
 // Mount threshold alert routes
 app.use('/api/alerts', thresholdAlertRoutes);
+app.use('/api/auth', authRoutes);
 
 // Initialize Sequelize and start server
 const startServer = async () => {

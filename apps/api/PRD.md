@@ -186,7 +186,31 @@ GET /api/sensors/:id/history?range=24h
 
 Fetch historical data for charting
 
-8. Future Considerations (Not MVP)
+8. Authentication & Identity
+
+Add a lightweight authentication layer to demonstrate MVVM/user flows in downstream apps and protect sensor/greenhouse data.
+
+1. Sign-up
+   - POST `/api/auth/signup`
+   - Body: `{ email, password (min 8 chars), firstName?, lastName? }`
+   - Response: sanitized user profile plus a short-lived session token.
+
+2. Sign-in
+   - POST `/api/auth/signin`
+   - Body: `{ email, password }`
+   - Response: sanitized user profile plus session token.
+
+3. Change password
+   - POST `/api/auth/change-password`
+   - Headers: `Authorization: Bearer <session token>`
+   - Body: `{ currentPassword, newPassword }`, issues a new token when successful.
+
+4. Support endpoints
+   - GET `/api/auth/me` returns the signed-in user profile (secured by the token).
+   - POST `/api/auth/signout` clears the active token/session.
+   - Tokens expire automatically and are stored hashed so components can validate identity without exposing raw secrets.
+
+9. Future Considerations (Not MVP)
 
 User authentication & roles
 
