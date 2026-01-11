@@ -19,6 +19,7 @@
     "@web-loom/mvvm-core": "*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "rxjs": "^7.8.0",
     "zod": "^3.25.0"
   },
   "devDependencies": {

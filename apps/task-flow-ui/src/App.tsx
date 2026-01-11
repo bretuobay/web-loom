@@ -7,6 +7,8 @@ import { ProjectBoardViewModel } from './view-models/ProjectBoardViewModel';
 import { useObservable } from './hooks/useObservable';
 import { PluginSpotlight } from './components/PluginSpotlight';
 import { ProjectCard } from './components/ProjectCard';
+import { formatProjectStatus } from './domain/values/projectStatus';
+import type { ProjectEntity } from './domain/entities/project';
 
 const registerPlugins = () => {
   const registry = new PluginRegistry();
@@ -60,11 +62,9 @@ const registerPlugins = () => {
   return registry;
 };
 
-const formatStatus = (status: string) => status.replace(/\b\w/g, (char) => char.toUpperCase());
-
 function App() {
   const viewModel = useMemo(() => new ProjectBoardViewModel(), []);
-  const projects = useObservable<any>(viewModel.data$, []);
+  const projects = useObservable<ProjectEntity[]>(viewModel.data$, []);
   const isLoading = useObservable(viewModel.isLoading$, false);
   const registry = useMemo(registerPlugins, []);
   const pluginDefinitions = useMemo(() => Array.from(registry.plugins.values()), [registry]);
@@ -97,7 +97,7 @@ function App() {
         <div className="status-badges">
           {statusSummary.map((status) => (
             <span key={status.status} className="status-badge">
-              {formatStatus(status.status)} · {status.count}
+              {formatProjectStatus(status.status)} · {status.count}
             </span>
           ))}
         </div>
@@ -105,7 +105,7 @@ function App() {
           <p className="panel__empty">Loading projects…</p>
         ) : (
           <div className="project-grid">
-            {projects.map((project: any) => (
+            {projects.map((project) => (
               <ProjectCard
                 key={project.id}
                 project={project}
