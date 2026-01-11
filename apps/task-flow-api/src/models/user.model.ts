@@ -1,0 +1,83 @@
+import { DataTypes, Model, Optional } from 'sequelize';
+import bcrypt from 'bcryptjs';
+import { sequelize } from '../database/client';
+
+export const USER_ROLES = ['member', 'admin'] as const;
+export type UserRole = (typeof USER_ROLES)[number];
+
+export interface UserAttributes {
+  id: string;
+  email: string;
+  displayName: string;
+  passwordHash: string;
+  avatarUrl: string | null;
+  role: UserRole;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserCreationAttributes
+  extends Optional<UserAttributes, 'id' | 'avatarUrl' | 'role' | 'createdAt' | 'updatedAt'> {
+  password: string;
+}
+
+export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
+  declare id: string;
+  declare email: string;
+  declare displayName: string;
+  declare passwordHash: string;
+  declare avatarUrl: string | null;
+  declare role: UserRole;
+  declare createdAt: Date;
+  declare updatedAt: Date;
+}
+
+User.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
+    email: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      unique: true
+    },
+    displayName: {
+      type: DataTypes.STRING(120),
+      allowNull: false
+    },
+    passwordHash: {
+      type: DataTypes.STRING(255),
+      allowNull: false
+    },
+    avatarUrl: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      defaultValue: null
+    },
+    role: {
+      type: DataTypes.ENUM(...USER_ROLES),
+      allowNull: false,
+      defaultValue: USER_ROLES[0]
+    }
+  },
+  {
+    sequelize,
+    tableName: 'users',
+    timestamps: true,
+    hooks: {
+      beforeCreate: async (user: User, options: any) => {
+        if (options.password) {
+          user.passwordHash = await bcrypt.hash(options.password, 10);
+        }
+      },
+      beforeUpdate: async (user: User, options: any) => {
+        if (options.password) {
+          user.passwordHash = await bcrypt.hash(options.password, 10);
+        }
+      }
+    }
+  }
+);
