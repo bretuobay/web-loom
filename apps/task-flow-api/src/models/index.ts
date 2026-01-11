@@ -1,7 +1,7 @@
-import { Project } from './project.model';
-import { Task } from './task.model';
-import { User } from './user.model';
-import { Comment } from './comment.model';
+import { Project } from './project.model.js';
+import { Task } from './task.model.js';
+import { User } from './user.model.js';
+import { Comment } from './comment.model.js';
 
 export const registerModels = () => {
   if (!Project.associations || !Project.associations.tasks) {

@@ -1,4 +1,4 @@
-import { QueryInterface, Sequelize, Transaction, QueryTypes, UniqueConstraintError } from 'sequelize';
+import { DataTypes, QueryInterface, QueryTypes, Sequelize, Transaction, UniqueConstraintError } from 'sequelize';
 
 const MIGRATION_TABLE = 'migrations_meta';
 
@@ -11,39 +11,38 @@ interface MigrationRecord {
 export interface Migration {
   version: number;
   name: string;
-  up: (queryInterface: QueryInterface, sequelize: typeof Sequelize, transaction: Transaction) => Promise<void>;
+  up: (queryInterface: QueryInterface, sequelize: Sequelize, transaction: Transaction) => Promise<void>;
 }
 
 const normalizeTableName = (entry: string | { tableName: string }): string =>
   typeof entry === 'string' ? entry : entry.tableName;
 
-async function ensureMigrationTable(queryInterface: QueryInterface, sequelize: typeof Sequelize) {
+async function ensureMigrationTable(queryInterface: QueryInterface, sequelize: Sequelize) {
   const tables = await queryInterface.showAllTables();
   const names = tables.map(normalizeTableName);
   if (!names.includes(MIGRATION_TABLE)) {
     await queryInterface.createTable(MIGRATION_TABLE, {
       version: {
-        type: Sequelize.DataTypes.INTEGER,
+        type: DataTypes.INTEGER,
         allowNull: false,
         primaryKey: true
       },
       name: {
-        type: Sequelize.DataTypes.STRING(255),
+        type: DataTypes.STRING(255),
         allowNull: false
       },
       executedAt: {
-        type: Sequelize.DataTypes.DATE,
+        type: DataTypes.DATE,
         allowNull: false
       }
     });
   }
 }
 
-async function readExecutedMigrations(sequelize: typeof Sequelize): Promise<Set<number>> {
-  const [records] = await sequelize.query(
-    `SELECT version FROM ${MIGRATION_TABLE}`,
-    { type: QueryTypes.SELECT }
-  );
+async function readExecutedMigrations(sequelize: Sequelize): Promise<Set<number>> {
+  const [records] = await sequelize.query(`SELECT version FROM ${MIGRATION_TABLE}`, {
+    type: QueryTypes.SELECT
+  });
   if (!Array.isArray(records)) {
     return new Set();
   }
@@ -68,7 +67,7 @@ async function readExecutedMigrations(sequelize: typeof Sequelize): Promise<Set<
 
 export async function runMigrations(sequelize: Sequelize, migrations: Migration[]) {
   const queryInterface = sequelize.getQueryInterface();
-  await ensureMigrationTable(queryInterface, Sequelize);
+  await ensureMigrationTable(queryInterface, sequelize);
   const executed = await readExecutedMigrations(sequelize);
 
   const sortedMigrations = [...migrations].sort((a, b) => a.version - b.version);
@@ -77,8 +76,8 @@ export async function runMigrations(sequelize: Sequelize, migrations: Migration[
       continue;
     }
 
-    await queryInterface.sequelize.transaction(async (transaction) => {
-      await migration.up(queryInterface, Sequelize, transaction);
+    await queryInterface.sequelize.transaction(async (transaction: Transaction) => {
+      await migration.up(queryInterface, sequelize, transaction);
       try {
         await queryInterface.bulkInsert(
           MIGRATION_TABLE,

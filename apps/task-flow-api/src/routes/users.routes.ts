@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticate } from '../middleware/authenticate';
-import { userService } from '../services/userService';
-import { USER_ROLES } from '../models/user.model';
+import { authenticate } from '../middleware/authenticate.js';
+import { userService } from '../services/userService.js';
+import { USER_ROLES } from '../models/user.model.js';
 
 const router = Router();
-router.use(authenticate);
 
 const createSchema = z.object({
   email: z.string().email(),
@@ -42,7 +41,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.post('/', async (req, res, next) => {
+router.post('/', authenticate, async (req, res, next) => {
   try {
     const payload = createSchema.parse(req.body);
     const user = await userService.create(payload);
@@ -52,7 +51,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', authenticate, async (req, res, next) => {
   try {
     const payload = updateSchema.parse(req.body);
     const user = await userService.update(req.params.id, payload);
@@ -62,7 +61,7 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', authenticate, async (req, res, next) => {
   try {
     await userService.remove(req.params.id);
     res.status(204).end();

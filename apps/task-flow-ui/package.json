@@ -17,6 +17,8 @@
     "@repo/plugin-core": "*",
     "@repo/shared": "*",
     "@web-loom/mvvm-core": "*",
+    "@web-loom/router-core": "*",
+    "@web-loom/forms-core": "*",
     "@web-loom/store-core": "*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

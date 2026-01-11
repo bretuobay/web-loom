@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '../database/client';
+import { sequelize } from '../database/client.js';
 
 export const TASK_STATUSES = ['backlog', 'in-progress', 'review', 'done'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
@@ -17,8 +17,8 @@ export interface TaskAttributes {
   assigneeId: string | null;
   dueDate: Date | null;
   projectId: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface TaskCreationAttributes

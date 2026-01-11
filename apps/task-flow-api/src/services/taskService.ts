@@ -1,5 +1,5 @@
-import { Task, TaskCreationAttributes } from '../models/task.model';
-import { ApiError } from '../middleware/httpErrors';
+import { Task, TaskCreationAttributes } from '../models/task.model.js';
+import { ApiError } from '../middleware/httpErrors.js';
 
 export interface TaskFilters {
   status?: string;

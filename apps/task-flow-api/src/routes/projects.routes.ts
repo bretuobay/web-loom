@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticate } from '../middleware/authenticate';
-import { projectService } from '../services/projectService';
-import { PROJECT_STATUSES } from '../models/project.model';
+import { authenticate } from '../middleware/authenticate.js';
+import { projectService } from '../services/projectService.js';
+import { PROJECT_STATUSES } from '../models/project.model.js';
 
 const router = Router();
-router.use(authenticate);
 
 const projectSchema = z.object({
   name: z.string().min(1).max(255),
@@ -23,7 +22,7 @@ router.get('/', async (_req, res, next) => {
   }
 });
 
-router.post('/', async (req, res, next) => {
+router.post('/', authenticate, async (req, res, next) => {
   try {
     const payload = projectSchema.parse(req.body);
     const project = await projectService.create(payload);
@@ -42,7 +41,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', authenticate, async (req, res, next) => {
   try {
     const payload = projectSchema.partial().parse(req.body);
     const project = await projectService.update(req.params.id, payload);
@@ -52,7 +51,7 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', authenticate, async (req, res, next) => {
   try {
     await projectService.remove(req.params.id);
     res.status(204).end();

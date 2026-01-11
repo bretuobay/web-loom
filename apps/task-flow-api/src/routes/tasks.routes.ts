@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticate } from '../middleware/authenticate';
-import { taskService } from '../services/taskService';
-import { TASK_PRIORITIES, TASK_STATUSES } from '../models/task.model';
+import { authenticate } from '../middleware/authenticate.js';
+import { taskService } from '../services/taskService.js';
+import { TASK_PRIORITIES, TASK_STATUSES } from '../models/task.model.js';
 
 const router = Router();
-router.use(authenticate);
 
 const taskSchema = z.object({
   title: z.string().min(1).max(255),
@@ -44,7 +43,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.post('/', async (req, res, next) => {
+router.post('/', authenticate, async (req, res, next) => {
   try {
     const parsed = taskSchema.parse(req.body);
     const task = await taskService.create(parsed);
@@ -54,7 +53,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', authenticate, async (req, res, next) => {
   try {
     const payload = taskSchema.partial().parse(req.body);
     const task = await taskService.update(req.params.id, payload);
@@ -64,7 +63,7 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', authenticate, async (req, res, next) => {
   try {
     await taskService.remove(req.params.id);
     res.status(204).end();

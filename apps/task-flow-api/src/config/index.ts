@@ -18,6 +18,7 @@ export const config = {
   },
   env: process.env.NODE_ENV ?? 'development',
   port: 4001, // Number(process.env.PORT ?? 4000),
+  host: process.env.HOST ?? '127.0.0.1',
   database: {
     storagePath: path.resolve(rootDir, fileName),
     logging: process.env.DB_LOGGING === 'true',

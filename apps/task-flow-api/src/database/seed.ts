@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
-import { Project } from '../models/project.model';
-import { Task, TASK_PRIORITIES, TASK_STATUSES } from '../models/task.model';
-import { User } from '../models/user.model';
-import { Comment } from '../models/comment.model';
+import { Project } from '../models/project.model.js';
+import { Task, TASK_PRIORITIES, TASK_STATUSES } from '../models/task.model.js';
+import { User } from '../models/user.model.js';
+import { Comment } from '../models/comment.model.js';
 
 const sampleProjects = [
   {
@@ -74,9 +74,16 @@ const sampleComments = [
 ];
 
 export const seedInitialData = async () => {
-  const existing = await Project.count();
-  if (existing > 0) {
+  const existingUsers = await User.count();
+  if (existingUsers > 0) {
     return;
+  }
+
+  const existingProjects = await Project.count();
+  if (existingProjects > 0) {
+    await Comment.destroy({ where: {}, truncate: true, cascade: true });
+    await Task.destroy({ where: {}, truncate: true, cascade: true });
+    await Project.destroy({ where: {}, truncate: true, cascade: true });
   }
 
   const createdUsers: User[] = [];
@@ -85,9 +92,9 @@ export const seedInitialData = async () => {
     const user = await User.create({
       email: entry.email,
       displayName: entry.displayName,
-      passwordHash,
       role: entry.role,
-      avatarUrl: entry.avatarUrl
+      avatarUrl: entry.avatarUrl,
+      passwordHash
     });
     createdUsers.push(user);
   }

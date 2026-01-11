@@ -1,5 +1,6 @@
-import { ApiError } from '../middleware/httpErrors';
-import { User, UserRole } from '../models/user.model';
+import bcrypt from 'bcryptjs';
+import { ApiError } from '../middleware/httpErrors.js';
+import { User, UserAttributes, UserRole } from '../models/user.model.js';
 
 export const sanitizeUserRecord = (user: User) => {
   const clone = user.get({ plain: true }) as Partial<User>;
@@ -53,12 +54,13 @@ export const userService = {
       throw new ApiError('A user with that email already exists', 409);
     }
 
+    const passwordHash = await bcrypt.hash(payload.password, 10);
     const user = await User.create({
       email: payload.email,
       displayName: payload.displayName,
-      password: payload.password,
       role: payload.role ?? 'member',
-      avatarUrl: payload.avatarUrl ?? null
+      avatarUrl: payload.avatarUrl ?? null,
+      passwordHash
     });
 
     return sanitizeUserRecord(user);
@@ -70,7 +72,7 @@ export const userService = {
       throw new ApiError('User not found', 404);
     }
 
-    const payload: any = {};
+    const payload: Partial<UserAttributes> = {};
     if (updates.displayName !== undefined) {
       payload.displayName = updates.displayName;
     }
@@ -82,7 +84,7 @@ export const userService = {
     }
 
     if (updates.password) {
-      payload.password = updates.password;
+      payload.passwordHash = await bcrypt.hash(updates.password, 10);
     }
 
     return sanitizeUserRecord(await user.update(payload));

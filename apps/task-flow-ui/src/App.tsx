@@ -1,14 +1,37 @@
 import '@repo/shared/styles';
 import './App.css';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PluginRegistry } from '@repo/plugin-core';
-import { ProjectBoardViewModel } from './view-models/ProjectBoardViewModel';
-import { useObservable } from './hooks/useObservable';
+import { createRouter, type RouteDefinition, type RouteMatch } from '@web-loom/router-core';
+import { ProjectList } from './components/ProjectList';
+import { TaskBoard } from './components/TaskBoard';
 import { PluginSpotlight } from './components/PluginSpotlight';
-import { ProjectCard } from './components/ProjectCard';
-import { formatProjectStatus } from './domain/values/projectStatus';
-import type { ProjectEntity } from './domain/entities/project';
+
+const routes: RouteDefinition[] = [
+  { path: '/', name: 'home', meta: { view: 'projects' as const } },
+  { path: '/projects', name: 'projects', meta: { view: 'projects' as const } },
+  { path: '/tasks', name: 'tasks', meta: { view: 'tasks' as const } },
+  {
+    path: '/:pathMatch(.*)',
+    name: 'not-found',
+    matchStrategy: 'prefix',
+    meta: { view: 'not-found' as const }
+  }
+];
+
+type AppView = 'projects' | 'tasks' | 'not-found';
+
+const router = createRouter({
+  mode: 'history',
+  base: '/',
+  routes
+});
+
+const navItems: { label: string; path: string; view: AppView }[] = [
+  { label: 'Projects', path: '/projects', view: 'projects' },
+  { label: 'Task board', path: '/tasks', view: 'tasks' }
+];
 
 const registerPlugins = () => {
   const registry = new PluginRegistry();
@@ -28,15 +51,15 @@ const registerPlugins = () => {
             <span>5.2 days</span>
             <p>Average cycle time</p>
           </div>
-        ),
-      },
+        )
+      }
     ],
     menuItems: [
       {
         label: 'Kanban view',
-        path: '/kanban',
-      },
-    ],
+        path: '/kanban'
+      }
+    ]
   });
 
   registry.register({
@@ -54,21 +77,37 @@ const registerPlugins = () => {
             <span>3</span>
             <p>fresh plugins</p>
           </div>
-        ),
-      },
-    ],
+        )
+      }
+    ]
   });
 
   return registry;
 };
 
 function App() {
-  const viewModel = useMemo(() => new ProjectBoardViewModel(), []);
-  const projects = useObservable<ProjectEntity[]>(viewModel.data$, []);
-  const isLoading = useObservable(viewModel.isLoading$, false);
+  const [route, setRoute] = useState<RouteMatch>(router.currentRoute);
   const registry = useMemo(registerPlugins, []);
   const pluginDefinitions = useMemo(() => Array.from(registry.plugins.values()), [registry]);
-  const statusSummary = viewModel.getStatusSummary();
+  const currentView = (route.meta.view as AppView) ?? 'projects';
+
+  useEffect(() => {
+    const unsubscribe = router.subscribe((next) => setRoute(next));
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = router.onError((error) => {
+      console.error('Router error', error);
+    });
+    return unsubscribe;
+  }, []);
+
+  const navigateTo = (path: string) => {
+    router.push(path).catch((error) => {
+      console.error('Navigation failed', error);
+    });
+  };
 
   return (
     <div className="taskflow-shell">
@@ -76,45 +115,44 @@ function App() {
         <div>
           <p className="hero__eyebrow">Web Loom · MVVM Demo</p>
           <h1>TaskFlow · Project Management</h1>
-          <p>Real-time inspired experience built on Web Loom ViewModels, plugin registry, and reactive state.</p>
+          <p>
+            Real-time inspired experience built on Web Loom ViewModels, plugin registry, reactive state,
+            and lightweight routing.
+          </p>
         </div>
-        <button className="hero__cta" type="button" onClick={() => viewModel.addProject()}>
-          Launch another sprint
+        <button className="hero__cta" type="button" onClick={() => navigateTo('/tasks')}>
+          Open Task Board
         </button>
       </header>
 
-      <section className="panel">
-        <div className="panel__header">
-          <h2>Project Explorer</h2>
+      <nav className="taskflow-nav" aria-label="TaskFlow navigation">
+        {navItems.map((item) => (
           <button
-            className="panel__button"
+            key={item.path}
             type="button"
-            onClick={() => viewModel.cycleProjectStatus(projects[0]?.id ?? '')}
+            className={`taskflow-nav__button ${currentView === item.view ? 'is-active' : ''}`}
+            onClick={() => navigateTo(item.path)}
           >
-            Refresh phase
+            {item.label}
           </button>
-        </div>
-        <div className="status-badges">
-          {statusSummary.map((status) => (
-            <span key={status.status} className="status-badge">
-              {formatProjectStatus(status.status)} · {status.count}
-            </span>
-          ))}
-        </div>
-        {isLoading ? (
-          <p className="panel__empty">Loading projects…</p>
-        ) : (
-          <div className="project-grid">
-            {projects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onCycleStatus={(id) => viewModel.cycleProjectStatus(id)}
-              />
-            ))}
-          </div>
+        ))}
+      </nav>
+
+      <main className="taskflow-main">
+        {currentView === 'projects' && <ProjectList />}
+        {currentView === 'tasks' && <TaskBoard />}
+        {currentView === 'not-found' && (
+          <section className="panel">
+            <div className="panel__header">
+              <h2>Page not found</h2>
+            </div>
+            <p className="panel__empty">No matching route for {route.fullPath}.</p>
+            <button type="button" onClick={() => navigateTo('/projects')}>
+              Return home
+            </button>
+          </section>
         )}
-      </section>
+      </main>
 
       <section className="panel panel--plugins">
         <div className="panel__header">

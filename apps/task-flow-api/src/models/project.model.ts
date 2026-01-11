@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '../database/client';
+import { sequelize } from '../database/client.js';
 
 export const PROJECT_STATUSES = ['planning', 'active', 'paused', 'completed'] as const;
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
@@ -10,8 +10,8 @@ export interface ProjectAttributes {
   description: string;
   color: string;
   status: ProjectStatus;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface ProjectCreationAttributes

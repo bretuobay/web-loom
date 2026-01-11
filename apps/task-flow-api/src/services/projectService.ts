@@ -1,5 +1,5 @@
-import { Project, ProjectCreationAttributes } from '../models/project.model';
-import { ApiError } from '../middleware/httpErrors';
+import { Project, ProjectCreationAttributes } from '../models/project.model.js';
+import { ApiError } from '../middleware/httpErrors.js';
 
 const taskIncludes = [
   {

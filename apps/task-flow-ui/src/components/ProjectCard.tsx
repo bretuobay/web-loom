@@ -4,6 +4,7 @@ import { ProjectStatus, formatProjectStatus } from '../domain/values/projectStat
 interface Props {
   project: ProjectEntity;
   onCycleStatus: (id: string) => void;
+  onViewDetails?: (projectId: string) => void;
 }
 
 const statusBadge = (status: ProjectStatus) => {
@@ -39,9 +40,16 @@ export function ProjectCard({ project, onCycleStatus }: Props) {
           {project.completedCount} / {project.tasksCount} tasks • {completion}% complete
         </small>
       </div>
-      <button className="project-card__action" type="button" onClick={() => onCycleStatus(project.id)}>
-        Move to next phase
-      </button>
+      <div className="project-card__footer">
+        <button className="project-card__action" type="button" onClick={() => onCycleStatus(project.id)}>
+          Move to next phase
+        </button>
+        {onViewDetails && (
+          <button className="project-card__details" type="button" onClick={() => onViewDetails(project.id)}>
+            View details
+          </button>
+        )}
+      </div>
     </article>
   );
 }

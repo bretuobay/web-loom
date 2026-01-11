@@ -1,8 +1,9 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { ApiError } from '../middleware/httpErrors';
-import { config } from '../config';
-import { User, UserRole } from '../models/user.model';
+import jwt, { Secret, SignOptions } from 'jsonwebtoken';
+import type { StringValue } from 'ms';
+import { ApiError } from '../middleware/httpErrors.js';
+import { config } from '../config/index.js';
+import { User, UserRole } from '../models/user.model.js';
 
 export interface AuthTokenPayload {
   userId: string;
@@ -18,14 +19,15 @@ export const authService = {
       role: user.role
     };
 
-    return jwt.sign(payload, config.auth.jwtSecret as string, {
-      expiresIn: config.auth.expiresIn
-    });
+    const options: SignOptions = {
+      expiresIn: config.auth.expiresIn as StringValue
+    };
+    return jwt.sign(payload, config.auth.jwtSecret as Secret, options);
   },
 
   verifyToken(token: string): AuthTokenPayload {
     try {
-      return jwt.verify(token, config.auth.jwtSecret as string) as AuthTokenPayload;
+      return jwt.verify(token, config.auth.jwtSecret as Secret) as AuthTokenPayload;
     } catch (error) {
       throw new ApiError('Invalid or expired token', 401);
     }

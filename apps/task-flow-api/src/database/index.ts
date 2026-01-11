@@ -1,7 +1,7 @@
-import { sequelize } from './client';
-import { registerModels } from '../models';
-import { runMigrations } from './migrations/runner';
-import { migrations } from './migrations';
+import { sequelize } from './client.js';
+import { registerModels } from '../models/index.js';
+import { runMigrations } from './migrations/runner.js';
+import { migrations } from './migrations/index.js';
 
 export const connectDatabase = async () => {
   await sequelize.authenticate();

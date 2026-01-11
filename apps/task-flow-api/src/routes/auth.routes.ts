@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { ApiError } from '../middleware/httpErrors';
-import { authenticate } from '../middleware/authenticate';
-import { authService } from '../services/authService';
-import { userService, sanitizeUserRecord } from '../services/userService';
-import { USER_ROLES } from '../models/user.model';
+import { ApiError } from '../middleware/httpErrors.js';
+import { authenticate } from '../middleware/authenticate.js';
+import { authService } from '../services/authService.js';
+import { userService, sanitizeUserRecord } from '../services/userService.js';
+import { USER_ROLES } from '../models/user.model.js';
 
 const router = Router();
 

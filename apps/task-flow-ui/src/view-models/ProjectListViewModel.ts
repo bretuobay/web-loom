@@ -4,6 +4,7 @@ import { IProjectRepository } from '../domain/repositories/interfaces';
 import { ApiProjectRepository } from '../domain/repositories/ApiProjectRepository';
 import { ProjectStore } from '../domain/stores/projectStore';
 import { ProjectEntity } from '../domain/entities/project';
+import { PROJECT_STATUSES, ProjectStatus } from '../domain/values/projectStatus';
 
 interface ProjectListState {
   selectedProjectId?: string;
@@ -30,7 +31,12 @@ export class ProjectListViewModel {
   private readonly selectedProjectId$ = new BehaviorSubject<string | undefined>(undefined);
   private readonly isDetailOpen$ = new BehaviorSubject(false);
   private readonly searchTerm$ = new BehaviorSubject('');
+  private readonly loading$ = new BehaviorSubject(false);
+  private readonly error$ = new BehaviorSubject<string | null>(null);
   public readonly filteredProjects$ = new BehaviorSubject<ProjectEntity[]>([]);
+  public readonly isLoading$ = this.loading$.asObservable();
+  public readonly errorMessage$ = this.error$.asObservable();
+  private readonly statusSequence: ProjectStatus[] = PROJECT_STATUSES;
 
   constructor(private readonly repository: IProjectRepository = new ApiProjectRepository()) {
     this.projectStore = new ProjectStore(this.repository);
@@ -82,10 +88,32 @@ export class ProjectListViewModel {
   }
 
   public async refresh() {
-    await this.projectStore.refresh();
+    this.loading$.next(true);
+    this.error$.next(null);
+    try {
+      await this.projectStore.refresh();
+    } catch (error) {
+      this.error$.next(error instanceof Error ? error.message : 'Failed to load projects');
+    } finally {
+      this.loading$.next(false);
+    }
   }
 
   public updateProject(projectId: string, updater: (project: ProjectEntity) => ProjectEntity) {
     this.projectStore.mutate(projectId, updater);
+  }
+
+  public cycleProjectStatus(projectId: string) {
+    const snapshot = this.projectStore.snapshot;
+    const project = snapshot.find((item) => item.id === projectId);
+    if (!project) {
+      return;
+    }
+    const index = this.statusSequence.indexOf(project.status);
+    if (index === -1) {
+      return;
+    }
+    const nextStatus = this.statusSequence[(index + 1) % this.statusSequence.length];
+    this.projectStore.mutate(projectId, (existing) => existing.withStatus(nextStatus));
   }
 }

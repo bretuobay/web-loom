@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticate } from '../middleware/authenticate';
-import { commentService } from '../services/commentService';
-import { ApiError } from '../middleware/httpErrors';
+import { authenticate } from '../middleware/authenticate.js';
+import { commentService } from '../services/commentService.js';
+import { ApiError } from '../middleware/httpErrors.js';
 
 const router = Router();
-router.use(authenticate);
 
 const createSchema = z.object({
   taskId: z.string().uuid(),
@@ -25,7 +24,7 @@ router.get('/task/:taskId', async (req, res, next) => {
   }
 });
 
-router.post('/', async (req, res, next) => {
+router.post('/', authenticate, async (req, res, next) => {
   try {
     if (!req.user) {
       throw new ApiError('Unauthorized', 401);
@@ -42,7 +41,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', authenticate, async (req, res, next) => {
   try {
     if (!req.user) {
       throw new ApiError('Unauthorized', 401);
@@ -61,7 +60,7 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', authenticate, async (req, res, next) => {
   try {
     if (!req.user) {
       throw new ApiError('Unauthorized', 401);

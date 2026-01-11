@@ -1,6 +1,6 @@
-import { Comment } from '../models/comment.model';
-import { Task } from '../models/task.model';
-import { ApiError } from '../middleware/httpErrors';
+import { Comment } from '../models/comment.model.js';
+import { Task } from '../models/task.model.js';
+import { ApiError } from '../middleware/httpErrors.js';
 
 export interface CommentCreationPayload {
   content: string;

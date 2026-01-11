@@ -1,32 +1,6 @@
 const DEFAULT_BASE_URL = 'http://localhost:4001';
-
-export class TaskFlowApiClient {
-  constructor(private baseUrl = import.meta.env.VITE_TASKFLOW_API_BASE_URL ?? DEFAULT_BASE_URL) {}
-
-  private async request<T>(path: string): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    if (!response.ok) {
-      throw new Error(`TaskFlow API request failed: ${response.statusText}`);
-    }
-    return response.json();
-  }
-
-  fetchProjects() {
-    return this.request<ProjectResponse[]>('/projects');
-  }
-
-  fetchTasks() {
-    return this.request<TaskResponse[]>('/tasks');
-  }
-
-  fetchUsers() {
-    return this.request<UserResponse[]>('/users');
-  }
-}
+const DEFAULT_DEMO_EMAIL = import.meta.env.VITE_TASKFLOW_API_DEMO_EMAIL ?? 'admin@taskflow.local';
+const DEFAULT_DEMO_PASSWORD = import.meta.env.VITE_TASKFLOW_API_DEMO_PASSWORD ?? 'supersecure';
 
 export interface ProjectResponse {
   id: string;
@@ -57,4 +31,91 @@ export interface UserResponse {
   email: string;
   avatarUrl: string | null;
   role: string;
+}
+
+interface AuthResponse {
+  token: string;
+  user: unknown;
+}
+
+export class TaskFlowApiClient {
+  private token: string | null = null;
+  private pendingAuth: Promise<void> | null = null;
+
+  constructor(private baseUrl = import.meta.env.VITE_TASKFLOW_API_BASE_URL ?? DEFAULT_BASE_URL) {}
+
+  setAuthToken(token: string | null) {
+    this.token = token;
+  }
+
+  async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+    await this.ensureAuthToken();
+
+    const headers = new Headers(options.headers ?? {});
+    headers.set('Content-Type', 'application/json');
+    if (this.token) {
+      headers.set('Authorization', `Bearer ${this.token}`);
+    }
+
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      ...options,
+      headers
+    });
+    if (!response.ok) {
+      throw new Error(`TaskFlow API request failed: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  async fetchProjects() {
+    return this.request<ProjectResponse[]>('/projects');
+  }
+
+  async fetchTasks() {
+    return this.request<TaskResponse[]>('/tasks');
+  }
+
+  async fetchUsers() {
+    return this.request<UserResponse[]>('/users');
+  }
+
+  private async ensureAuthToken() {
+    if (this.token) {
+      return;
+    }
+
+    if (!this.pendingAuth) {
+      this.pendingAuth = this.authenticateDemoUser();
+    }
+
+    await this.pendingAuth;
+  }
+
+  private async authenticateDemoUser() {
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: DEFAULT_DEMO_EMAIL,
+          password: DEFAULT_DEMO_PASSWORD
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Unable to authenticate to TaskFlow API: ${response.statusText}`);
+      }
+
+      const payload = (await response.json()) as AuthResponse;
+      if (!payload.token) {
+        throw new Error('TaskFlow API did not return an auth token');
+      }
+
+      this.token = payload.token;
+    } finally {
+      this.pendingAuth = null;
+    }
+  }
 }

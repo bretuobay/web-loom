@@ -25,6 +25,10 @@ export class TaskBoardViewModel {
   private readonly taskStore: TaskStore;
   private readonly store = createTaskBoardStore();
   private readonly filter$ = new BehaviorSubject<TaskStatus | null>(null);
+  private readonly loading$ = new BehaviorSubject(true);
+  private readonly error$ = new BehaviorSubject<string | null>(null);
+  public readonly isLoading$ = this.loading$.asObservable();
+  public readonly errorMessage$ = this.error$.asObservable();
   public readonly tasks$ = new BehaviorSubject<TaskEntity[]>([]);
   public readonly filtered$ = new BehaviorSubject<TaskEntity[]>([]);
 
@@ -42,7 +46,15 @@ export class TaskBoardViewModel {
   }
 
   public async refresh() {
-    await this.taskStore.refresh();
+    this.loading$.next(true);
+    this.error$.next(null);
+    try {
+      await this.taskStore.refresh();
+    } catch (error) {
+      this.error$.next(error instanceof Error ? error.message : 'Failed to load tasks');
+    } finally {
+      this.loading$.next(false);
+    }
   }
 
   public setStatusFilter(status: TaskStatus | null) {

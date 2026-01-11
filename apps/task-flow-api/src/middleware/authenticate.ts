@@ -1,6 +1,6 @@
 import { RequestHandler } from 'express';
-import { ApiError } from './httpErrors';
-import { authService } from '../services/authService';
+import { ApiError } from './httpErrors.js';
+import { authService } from '../services/authService.js';
 
 export const authenticate: RequestHandler = (req, _res, next) => {
   const header = req.headers.authorization;

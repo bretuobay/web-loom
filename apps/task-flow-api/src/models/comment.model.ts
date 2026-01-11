@@ -1,13 +1,13 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '../database/client';
+import { sequelize } from '../database/client.js';
 
 export interface CommentAttributes {
   id: string;
   content: string;
   taskId: string;
   authorId: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface CommentCreationAttributes extends Optional<CommentAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
