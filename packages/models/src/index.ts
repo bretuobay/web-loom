@@ -10,6 +10,8 @@ export type {
   SensorReadingListData,
   ThresholdAlertData,
   ThresholdAlertListData,
+  UserData,
+  AuthTokenResponseData,
 } from './schemas';
 
 export {
@@ -29,3 +31,5 @@ export { GreenHouseModel, greenHouseConfig } from './GreenHouseModel';
 export { SensorModel } from './SensorModel';
 export { SensorReadingModel, sensorReadingsConfig } from './SensorReadingModel';
 export { ThresholdAlertModel } from './ThresholdAlertModel';
+export { AuthModel } from './AuthModel';
+export type { SignInPayload, SignUpPayload, ChangePasswordPayload } from './AuthModel';

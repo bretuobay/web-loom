@@ -3,6 +3,8 @@ import { Greenhouse } from '../models/Greenhouse';
 import { Sensor } from '../models/Sensor';
 import { SensorReading } from '../models/SensorReading';
 import { ThresholdAlert } from '../models/ThresholdAlert';
+import { User } from '../models/User';
+import { hashPassword } from '../services/auth';
 
 async function seedGreenhouses(): Promise<Greenhouse[]> {
   console.log('Seeding greenhouses...');
@@ -158,6 +160,19 @@ async function seedThresholdAlerts(greenhouses: Greenhouse[]): Promise<void> {
   console.log(`Threshold alerts seeded: ${alertData.length}`);
 }
 
+async function seedUsers(): Promise<void> {
+  console.log('Seeding demo users...');
+  const { hash, salt } = await hashPassword('ChangeMe!2025');
+  await User.create({
+    email: 'demo@agrosense.local',
+    passwordHash: hash,
+    passwordSalt: salt,
+    firstName: 'Demo',
+    lastName: 'Operator',
+  });
+  console.log('Demo user seeded: demo@agrosense.local');
+}
+
 async function main() {
   console.log('Starting database seeding process...');
   try {
@@ -168,6 +183,7 @@ async function main() {
     const createdSensors = await seedSensors(createdGreenhouses);
     await seedSensorReadings(createdSensors);
     await seedThresholdAlerts(createdGreenhouses); // Alerts are per greenhouse
+    await seedUsers();
 
     console.log('Database seeding completed successfully.');
   } catch (error) {

@@ -62,3 +62,37 @@ export interface ThresholdAlertResponseDTO {
   maxValue: number;
   greenhouseId: number;
 }
+
+// Auth
+export interface AuthUserDTO {
+  id: number;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AuthTokenResponseDTO {
+  message: string;
+  token: string;
+  expiresAt: string;
+  user: AuthUserDTO;
+}
+
+export interface SignUpDTO {
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+export interface SignInDTO {
+  email: string;
+  password: string;
+}
+
+export interface ChangePasswordDTO {
+  currentPassword: string;
+  newPassword: string;
+}
