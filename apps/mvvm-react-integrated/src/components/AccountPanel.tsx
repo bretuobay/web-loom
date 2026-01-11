@@ -1,13 +1,12 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useState, memo, type ChangeEvent, type FormEvent } from 'react';
 import type { UserData } from '@repo/models';
 import { authViewModel } from '@repo/view-models/AuthViewModel';
 import { useObservable } from '../hooks/useObservable';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../providers/AuthProvider';
 
-export function AccountPanel() {
+export const AccountPanel = memo(function AccountPanel() {
   const user = useObservable<UserData | null>(authViewModel.user$, null);
-  const isLoading = useObservable(authViewModel.isLoading$, false);
-  const navigate = useNavigate();
+  const { isLoading } = useAuth();
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '' });
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -41,28 +40,16 @@ export function AccountPanel() {
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await authViewModel.signOutCommand.execute();
-      navigate('/auth', { replace: true });
-    } catch (error) {
-      console.error('Sign out failed:', error);
-    }
-  };
-
   const displayName = user.firstName || user.email;
 
   return (
     <section className="account-panel">
       <div className="account-summary">
         <div>
-          <p className="account-summary-label">Signed in as</p>
+          <p className="account-summary-label">Account Information</p>
           <h3 className="account-summary-name">{displayName}</h3>
           <p className="account-summary-email">{user.email}</p>
         </div>
-        <button type="button" className="button btn-secondary" onClick={handleSignOut} disabled={isLoading}>
-          Sign out
-        </button>
       </div>
 
       <form className="account-form" onSubmit={handleSubmit}>
@@ -98,4 +85,4 @@ export function AccountPanel() {
       </form>
     </section>
   );
-}
+});

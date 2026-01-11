@@ -1,6 +1,6 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useState, memo, type ChangeEvent, type FormEvent } from 'react';
 import { authViewModel } from '@repo/view-models/AuthViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useAuth } from '../providers/AuthProvider';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -11,12 +11,12 @@ const initialFormState = {
   lastName: '',
 };
 
-export function AuthGate() {
+export const AuthGate = memo(function AuthGate() {
   const [mode, setMode] = useState<AuthMode>('signin');
   const [formState, setFormState] = useState(initialFormState);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const isLoading = useObservable(authViewModel.isLoading$, false);
+  const { isLoading } = useAuth();
 
   const handleModeChange = (nextMode: AuthMode) => {
     setMode(nextMode);
@@ -144,4 +144,4 @@ export function AuthGate() {
       </div>
     </div>
   );
-}
+});
