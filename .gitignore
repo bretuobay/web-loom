@@ -44,6 +44,10 @@ yarn-error.log*
 .DS_Store
 *.pem
 
+# Generated reports
+loc-report.json
+loc-report.html
+
 # Playwright
 /test-results/
 /playwright-report/
