@@ -13,14 +13,16 @@ export interface TaskAttributes {
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  assignee: string;
+  assigneeName: string;
+  assigneeId: string | null;
   dueDate: Date | null;
   projectId: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface TaskCreationAttributes extends Optional<TaskAttributes, 'id' | 'dueDate' | 'createdAt' | 'updatedAt'> {}
+export interface TaskCreationAttributes
+  extends Optional<TaskAttributes, 'id' | 'dueDate' | 'createdAt' | 'updatedAt' | 'assigneeName' | 'assigneeId'> {}
 
 export class Task extends Model<TaskAttributes, TaskCreationAttributes> implements TaskAttributes {
   declare id: string;
@@ -28,7 +30,8 @@ export class Task extends Model<TaskAttributes, TaskCreationAttributes> implemen
   declare description: string;
   declare status: TaskStatus;
   declare priority: TaskPriority;
-  declare assignee: string;
+  declare assigneeName: string;
+  declare assigneeId: string | null;
   declare dueDate: Date | null;
   declare projectId: string;
   declare createdAt: Date;
@@ -61,10 +64,15 @@ Task.init(
       allowNull: false,
       defaultValue: 'medium'
     },
-    assignee: {
+    assigneeName: {
+      field: 'assignee',
       type: DataTypes.STRING(120),
       allowNull: false,
       defaultValue: 'Unassigned'
+    },
+    assigneeId: {
+      type: DataTypes.UUID,
+      allowNull: true
     },
     dueDate: {
       type: DataTypes.DATE,

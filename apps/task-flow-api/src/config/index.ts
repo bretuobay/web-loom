@@ -22,4 +22,8 @@ export const config = {
     storagePath: path.resolve(rootDir, fileName),
     logging: process.env.DB_LOGGING === 'true',
   },
+  auth: {
+    jwtSecret: process.env.JWT_SECRET ?? 'taskflow-api-secret',
+    expiresIn: process.env.JWT_EXPIRES_IN ?? '1h'
+  }
 };

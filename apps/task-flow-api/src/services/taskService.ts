@@ -3,9 +3,22 @@ import { ApiError } from '../middleware/httpErrors';
 
 export interface TaskFilters {
   status?: string;
-  assignee?: string;
+  assigneeName?: string;
+  assigneeId?: string;
   projectId?: string;
 }
+
+const defaultIncludes = [
+  { association: 'project' },
+  {
+    association: 'assignee',
+    attributes: ['id', 'displayName', 'email', 'avatarUrl', 'role']
+  },
+  {
+    association: 'comments',
+    include: [{ association: 'author', attributes: ['id', 'displayName', 'email', 'avatarUrl'] }]
+  }
+];
 
 export const taskService = {
   list: async (filters: TaskFilters = {}) => {
@@ -14,8 +27,11 @@ export const taskService = {
     if (filters.status) {
       where.status = filters.status;
     }
-    if (filters.assignee) {
-      where.assignee = filters.assignee;
+    if (filters.assigneeName) {
+      where.assigneeName = filters.assigneeName;
+    }
+    if (filters.assigneeId) {
+      where.assigneeId = filters.assigneeId;
     }
     if (filters.projectId) {
       where.projectId = filters.projectId;
@@ -23,21 +39,24 @@ export const taskService = {
 
     return Task.findAll({
       where,
-      include: [{ association: 'project' }],
+      include: defaultIncludes,
       order: [['dueDate', 'ASC']]
     });
   },
 
   getById: async (id: string) => {
-    const task = await Task.findByPk(id);
+    const task = await Task.findByPk(id, {
+      include: defaultIncludes
+    });
     if (!task) {
       throw new ApiError('Task not found', 404);
     }
     return task;
   },
 
-  create: (payload: TaskCreationAttributes) => {
-    return Task.create(payload);
+  create: async (payload: TaskCreationAttributes) => {
+    const task = await Task.create(payload);
+    return taskService.getById(task.id);
   },
 
   update: async (id: string, updates: Partial<TaskCreationAttributes>) => {
@@ -45,7 +64,8 @@ export const taskService = {
     if (!task) {
       throw new ApiError('Task not found', 404);
     }
-    return task.update(updates);
+    await task.update(updates);
+    return taskService.getById(id);
   },
 
   remove: async (id: string) => {

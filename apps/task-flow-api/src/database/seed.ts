@@ -1,5 +1,8 @@
+import bcrypt from 'bcryptjs';
 import { Project } from '../models/project.model';
 import { Task, TASK_PRIORITIES, TASK_STATUSES } from '../models/task.model';
+import { User } from '../models/user.model';
+import { Comment } from '../models/comment.model';
 
 const sampleProjects = [
   {
@@ -22,25 +25,52 @@ const sampleProjects = [
   }
 ];
 
+const sampleUsers = [
+  {
+    email: 'admin@taskflow.local',
+    displayName: 'Ivy Turing',
+    password: 'supersecure',
+    role: 'admin' as const,
+    avatarUrl: 'https://i.pravatar.cc/48?img=3'
+  },
+  {
+    email: 'maia@taskflow.local',
+    displayName: 'Maia Rivera',
+    password: 'maia1234',
+    role: 'member' as const,
+    avatarUrl: 'https://i.pravatar.cc/48?img=12'
+  },
+  {
+    email: 'leo@taskflow.local',
+    displayName: 'Leo Mateo',
+    password: 'leoBuilds',
+    role: 'member' as const,
+    avatarUrl: 'https://i.pravatar.cc/48?img=15'
+  }
+];
+
 const sampleTasks = [
   {
     title: 'Design Kanban layout',
     description: 'Wireframe the Kanban plugin and define swimlane states.',
-    assignee: 'Ayesha',
     dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 4)
   },
   {
     title: 'Review API contracts',
     description: 'Validate TaskFlow API routes with the new OpenAPI generator.',
-    assignee: 'Mateo',
     dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
   },
   {
     title: 'Finalize plugin manifest',
     description: 'Document metadata and dependencies for the Kanban widget.',
-    assignee: 'Sora',
     dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2)
   }
+];
+
+const sampleComments = [
+  'Can we add a filter to highlight overdue tasks?',
+  'Love the color palette, but let us keep accessibility tokens in mind.',
+  'Let’s make sure the plugin manifest includes analytics metadata as part of the release.'
 ];
 
 export const seedInitialData = async () => {
@@ -49,21 +79,47 @@ export const seedInitialData = async () => {
     return;
   }
 
+  const createdUsers: User[] = [];
+  for (const entry of sampleUsers) {
+    const passwordHash = await bcrypt.hash(entry.password, 10);
+    const user = await User.create({
+      email: entry.email,
+      displayName: entry.displayName,
+      passwordHash,
+      role: entry.role,
+      avatarUrl: entry.avatarUrl
+    });
+    createdUsers.push(user);
+  }
+
   const createdProjects: Project[] = [];
   for (const entry of sampleProjects) {
     const project = await Project.create(entry);
     createdProjects.push(project);
   }
 
+  const createdTasks = [];
   for (const taskTemplate of sampleTasks) {
     const project = createdProjects[Math.floor(Math.random() * createdProjects.length)];
-    await Task.create(
-      {
-        ...taskTemplate,
-        status: TASK_STATUSES[Math.floor(Math.random() * TASK_STATUSES.length)],
-        priority: TASK_PRIORITIES[Math.floor(Math.random() * TASK_PRIORITIES.length)],
-        projectId: project.id
-      }
-    );
+    const assignee = createdUsers[Math.floor(Math.random() * createdUsers.length)];
+    const task = await Task.create({
+      ...taskTemplate,
+      status: TASK_STATUSES[Math.floor(Math.random() * TASK_STATUSES.length)],
+      priority: TASK_PRIORITIES[Math.floor(Math.random() * TASK_PRIORITIES.length)],
+      projectId: project.id,
+      assigneeName: assignee.displayName,
+      assigneeId: assignee.id
+    });
+    createdTasks.push(task);
+  }
+
+  for (const comment of sampleComments) {
+    const task = createdTasks[Math.floor(Math.random() * createdTasks.length)];
+    const author = createdUsers[Math.floor(Math.random() * createdUsers.length)];
+    await Comment.create({
+      content: comment,
+      taskId: task.id,
+      authorId: author.id
+    });
   }
 };

@@ -1,14 +1,17 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { authenticate } from '../middleware/authenticate';
 import { taskService } from '../services/taskService';
 import { TASK_PRIORITIES, TASK_STATUSES } from '../models/task.model';
 
 const router = Router();
+router.use(authenticate);
 
 const taskSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().max(1024).optional().default(''),
-  assignee: z.string().max(120).optional().default('Unassigned'),
+  assigneeName: z.string().max(120).optional().default('Unassigned'),
+  assigneeId: z.string().uuid().optional().nullable(),
   status: z.enum(TASK_STATUSES).optional().default('backlog'),
   priority: z.enum(TASK_PRIORITIES).optional().default('medium'),
   dueDate: z.string().optional().transform((value) => (value ? new Date(value) : null)),
@@ -17,7 +20,8 @@ const taskSchema = z.object({
 
 const querySchema = z.object({
   status: z.enum(TASK_STATUSES).optional(),
-  assignee: z.string().optional(),
+  assigneeName: z.string().optional(),
+  assigneeId: z.string().uuid().optional(),
   projectId: z.string().uuid().optional()
 });
 

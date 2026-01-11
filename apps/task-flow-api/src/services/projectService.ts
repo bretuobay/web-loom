@@ -1,17 +1,37 @@
 import { Project, ProjectCreationAttributes } from '../models/project.model';
-import { Task } from '../models/task.model';
 import { ApiError } from '../middleware/httpErrors';
+
+const taskIncludes = [
+  {
+    association: 'assignee',
+    attributes: ['id', 'displayName', 'email', 'avatarUrl', 'role']
+  },
+  {
+    association: 'comments',
+    include: [{ association: 'author', attributes: ['id', 'displayName', 'email', 'avatarUrl'] }]
+  }
+];
 
 export const projectService = {
   list: () => {
     return Project.findAll({
-      include: { model: Task, as: 'tasks' }
+      include: [
+        {
+          association: 'tasks',
+          include: taskIncludes
+        }
+      ]
     });
   },
 
   getById: async (id: string) => {
     const project = await Project.findByPk(id, {
-      include: { model: Task, as: 'tasks' }
+      include: [
+        {
+          association: 'tasks',
+          include: taskIncludes
+        }
+      ]
     });
 
     if (!project) {

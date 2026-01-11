@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { authenticate } from '../middleware/authenticate';
 import { projectService } from '../services/projectService';
 import { PROJECT_STATUSES } from '../models/project.model';
 
 const router = Router();
+router.use(authenticate);
 
 const projectSchema = z.object({
   name: z.string().min(1).max(255),
