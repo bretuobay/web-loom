@@ -1,0 +1,42 @@
+{
+  "name": "task-flow-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .ts,.tsx",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "type-check": "tsc --build --force",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
+  },
+  "dependencies": {
+    "@repo/plugin-core": "*",
+    "@repo/shared": "*",
+    "@web-loom/mvvm-core": "*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@typescript-eslint/eslint-plugin": "^8.32.1",
+    "@typescript-eslint/parser": "^8.32.1",
+    "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.35.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.7.3",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  }
+}
