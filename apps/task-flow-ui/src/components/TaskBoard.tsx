@@ -25,8 +25,8 @@ export function TaskBoard({ viewModel }: Props) {
     [allTasks]
   );
 
-  const handleSubmit = async (_values: TaskFormValues) => {
-    await viewModelInstance.refresh();
+  const handleSubmit = async (values: TaskFormValues) => {
+    await viewModelInstance.createTask(values);
   };
 
   return (

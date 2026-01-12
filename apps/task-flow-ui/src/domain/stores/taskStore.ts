@@ -1,7 +1,8 @@
 import { BehaviorSubject } from 'rxjs';
 import { TaskEntity } from '../entities/task';
+import type { TaskCreationPayload } from '../entities/task';
 import { ApiTaskRepository } from '../repositories/ApiTaskRepository';
-import { ITaskRepository } from '../repositories/interfaces';
+import type { ITaskRepository } from '../repositories/interfaces';
 
 export class TaskStore {
   private readonly _tasks$ = new BehaviorSubject<TaskEntity[]>([]);
@@ -19,6 +20,12 @@ export class TaskStore {
   async refresh() {
     const tasks = await this.repository.fetchAll();
     this._tasks$.next(tasks);
+  }
+
+  async create(payload: TaskCreationPayload) {
+    const task = await this.repository.create(payload);
+    this._tasks$.next([...this.snapshot, task]);
+    return task;
   }
 
   findById(id: string) {

@@ -1,6 +1,6 @@
 import { TASK_PRIORITIES, TaskPriority } from '../values/taskPriority';
 import { TASK_STATUSES, TaskStatus } from '../values/taskStatus';
-import { UserEntity } from './user';
+import { UserEntity, UserApiResponse } from './user';
 
 export interface TaskApiResponse {
   id: string;
@@ -15,6 +15,19 @@ export interface TaskApiResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface TaskCreationPayload {
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueDate?: string | null;
+  projectId: string;
+  assigneeId?: string | null;
+  assigneeName?: string;
+}
+
+export type TaskFormValues = Pick<TaskCreationPayload, 'title' | 'description' | 'status' | 'priority' | 'dueDate'>;
 
 export class TaskEntity {
   constructor(

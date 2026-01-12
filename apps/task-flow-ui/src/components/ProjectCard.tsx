@@ -1,5 +1,5 @@
 import { ProjectEntity } from '../domain/entities/project';
-import { ProjectStatus, formatProjectStatus } from '../domain/values/projectStatus';
+import { type ProjectStatus, formatProjectStatus } from '../domain/values/projectStatus';
 
 interface Props {
   project: ProjectEntity;
@@ -22,8 +22,9 @@ const statusBadge = (status: ProjectStatus) => {
   }
 };
 
-export function ProjectCard({ project, onCycleStatus }: Props) {
-  const completion = project.tasksCount > 0 ? Math.min(100, Math.round((project.completedCount / project.tasksCount) * 100)) : 0;
+export function ProjectCard({ project, onCycleStatus, onViewDetails }: Props) {
+  const completion =
+    project.tasksCount > 0 ? Math.min(100, Math.round((project.completedCount / project.tasksCount) * 100)) : 0;
 
   return (
     <article className="project-card" style={{ borderColor: project.color }}>
@@ -32,10 +33,15 @@ export function ProjectCard({ project, onCycleStatus }: Props) {
           <h3>{project.name}</h3>
           <p className="project-card__description">{project.description}</p>
         </div>
-        <span className={`project-card__status ${statusBadge(project.status)}`}>{formatProjectStatus(project.status)}</span>
+        <span className={`project-card__status ${statusBadge(project.status)}`}>
+          {formatProjectStatus(project.status)}
+        </span>
       </header>
       <div className="project-card__progress">
-        <div className="project-card__progress-bar" style={{ width: `${completion}%`, backgroundColor: project.color }} />
+        <div
+          className="project-card__progress-bar"
+          style={{ width: `${completion}%`, backgroundColor: project.color }}
+        />
         <small>
           {project.completedCount} / {project.tasksCount} tasks • {completion}% complete
         </small>

@@ -2,8 +2,8 @@ import { BehaviorSubject } from 'rxjs';
 import { ProjectStore } from '../domain/stores/projectStore';
 import { ApiProjectRepository } from '../domain/repositories/ApiProjectRepository';
 import { ProjectEntity } from '../domain/entities/project';
-import { PROJECT_STATUSES, ProjectStatus } from '../domain/values/projectStatus';
-import { IProjectRepository } from '../domain/repositories/interfaces';
+import { PROJECT_STATUSES, type ProjectStatus } from '../domain/values/projectStatus';
+import { type IProjectRepository } from '../domain/repositories/interfaces';
 
 export class ProjectBoardViewModel {
   private readonly statusSequence = PROJECT_STATUSES;
@@ -33,7 +33,7 @@ export class ProjectBoardViewModel {
   public getStatusSummary() {
     return this.statusSequence.map((status) => ({
       status,
-      count: this.store.snapshot.filter((project) => project.status === status).length
+      count: this.store.snapshot.filter((project) => project.status === status).length,
     }));
   }
 

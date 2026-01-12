@@ -1,3 +1,5 @@
+import type { TaskCreationPayload } from '../entities/task';
+
 const DEFAULT_BASE_URL = 'http://localhost:4001';
 const DEFAULT_DEMO_EMAIL = import.meta.env.VITE_TASKFLOW_API_DEMO_EMAIL ?? 'admin@taskflow.local';
 const DEFAULT_DEMO_PASSWORD = import.meta.env.VITE_TASKFLOW_API_DEMO_PASSWORD ?? 'supersecure';
@@ -77,6 +79,13 @@ export class TaskFlowApiClient {
 
   async fetchUsers() {
     return this.request<UserResponse[]>('/users');
+  }
+
+  async createTask(payload: TaskCreationPayload) {
+    return this.request<TaskResponse>('/tasks', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
   }
 
   private async ensureAuthToken() {

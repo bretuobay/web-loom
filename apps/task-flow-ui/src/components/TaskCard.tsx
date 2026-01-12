@@ -1,5 +1,5 @@
 import { TaskEntity } from '../domain/entities/task';
-import { TASK_STATUSES, TaskStatus, formatTaskStatus } from '../domain/values/taskStatus';
+import { TASK_STATUSES, type TaskStatus, formatTaskStatus } from '../domain/values/taskStatus';
 import { TASK_PRIORITIES, formatTaskPriority } from '../domain/values/taskPriority';
 
 interface Props {
@@ -12,13 +12,13 @@ const statusTone: Record<TaskStatus, string> = {
   backlog: 'task-card__status--muted',
   'in-progress': 'task-card__status--accent',
   review: 'task-card__status--warning',
-  done: 'task-card__status--success'
+  done: 'task-card__status--success',
 };
 
-const priorityTone: Record<typeof TASK_PRIORITIES[number], string> = {
+const priorityTone: Record<(typeof TASK_PRIORITIES)[number], string> = {
   low: 'task-card__priority--muted',
   medium: 'task-card__priority--accent',
-  high: 'task-card__priority--warning'
+  high: 'task-card__priority--warning',
 };
 
 export function TaskCard({ task, onStatusChange, onSelect }: Props) {
@@ -44,7 +44,9 @@ export function TaskCard({ task, onStatusChange, onSelect }: Props) {
       <div className="task-card__meta">
         <div>
           <strong>Priority</strong>
-          <span className={`task-card__priority ${priorityTone[task.priority]}`}>{formatTaskPriority(task.priority)}</span>
+          <span className={`task-card__priority ${priorityTone[task.priority]}`}>
+            {formatTaskPriority(task.priority)}
+          </span>
         </div>
         <div>
           <strong>Due</strong>

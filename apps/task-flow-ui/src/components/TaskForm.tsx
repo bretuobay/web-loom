@@ -1,25 +1,26 @@
 import { FormFactory } from '@web-loom/forms-core';
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { z } from 'zod';
 import { TASK_PRIORITIES, formatTaskPriority } from '../domain/values/taskPriority';
 import { TASK_STATUSES, formatTaskStatus } from '../domain/values/taskStatus';
+import type { TaskFormValues } from '../domain/entities/task';
+
+export type { TaskFormValues };
 
 const TASK_FORM_SCHEMA = z.object({
   title: z.string().min(3, 'Task title is required'),
   description: z.string().optional(),
   status: z.enum(TASK_STATUSES),
   priority: z.enum(TASK_PRIORITIES),
-  dueDate: z.string().nullable()
+  dueDate: z.string().nullable(),
 });
-
-export type TaskFormValues = z.infer<typeof TASK_FORM_SCHEMA>;
 
 const DEFAULT_FORM_VALUES: TaskFormValues = {
   title: '',
   description: '',
   status: TASK_STATUSES[0],
   priority: TASK_PRIORITIES[1],
-  dueDate: null
+  dueDate: null,
 };
 
 interface TaskFormProps {
@@ -30,39 +31,67 @@ interface TaskFormProps {
   onCancel?: () => void;
 }
 
-export function TaskForm({ onSubmit, initialValues, title = 'Create task', submitLabel = 'Save task', onCancel }: TaskFormProps) {
+export function TaskForm({
+  onSubmit,
+  initialValues,
+  title = 'Create task',
+  submitLabel = 'Save task',
+  onCancel,
+}: TaskFormProps) {
   const mergedInitial = useMemo(() => ({ ...DEFAULT_FORM_VALUES, ...initialValues }), [initialValues]);
 
-  const form = useMemo(
-    () =>
-      FormFactory.create({
-        schema: TASK_FORM_SCHEMA,
-        defaultValues: DEFAULT_FORM_VALUES,
-        validateOnChange: true,
-        validateOnBlur: true,
-        onSubmit
-      }),
-    [onSubmit]
-  );
+  // Use a ref to keep the latest onSubmit callback
+  const onSubmitRef = useRef(onSubmit);
+
+  useEffect(() => {
+    onSubmitRef.current = onSubmit;
+  }, [onSubmit]);
+
+  // Create form instance once and store in ref
+  const formRef = useRef<ReturnType<typeof FormFactory.create> | null>(null);
+
+  if (!formRef.current) {
+    formRef.current = FormFactory.create({
+      schema: TASK_FORM_SCHEMA,
+      defaultValues: DEFAULT_FORM_VALUES,
+      validateOnChange: true,
+      validateOnBlur: true
+    });
+  }
+
+  const form = formRef.current;
 
   useEffect(() => {
     form.reset(mergedInitial);
   }, [form, mergedInitial]);
 
   useEffect(() => {
+    const isDestroyed = Boolean((form as unknown as { destroyed?: boolean }).destroyed);
+    if (isDestroyed) {
+      return;
+    }
+
     const unregisters = [
       form.registerField('title'),
       form.registerField('description'),
       form.registerField('status'),
       form.registerField('priority'),
-      form.registerField('dueDate')
+      form.registerField('dueDate'),
     ];
     return () => {
       unregisters.forEach((dispose) => dispose());
     };
   }, [form]);
 
-  useEffect(() => () => form.destroy(), [form]);
+  // Destroy form only when component unmounts (not on every render)
+  useEffect(() => {
+    return () => {
+      if (formRef.current) {
+        formRef.current.destroy();
+        formRef.current = null;
+      }
+    };
+  }, []);
 
   const [formState, setFormState] = useState(form.getState());
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -74,13 +103,18 @@ export function TaskForm({ onSubmit, initialValues, title = 'Create task', submi
   }, [form]);
 
   useEffect(() => {
-    const unsubscribe = form.subscribe('submit', ({ success }) => {
+    const unsubscribe = form.subscribe('submit', async ({ values, success }) => {
       if (success) {
         setFeedback('Task saved!');
         if (feedbackTimer.current) {
           clearTimeout(feedbackTimer.current);
         }
         feedbackTimer.current = window.setTimeout(() => setFeedback(null), 3000);
+        try {
+          await onSubmitRef.current(values as TaskFormValues);
+        } catch (error) {
+          console.error('Task form submission failed', error);
+        }
       } else {
         setFeedback('Please fix the highlighted fields.');
       }
@@ -132,7 +166,11 @@ export function TaskForm({ onSubmit, initialValues, title = 'Create task', submi
       <div className="task-form__grid">
         <div className="task-form__field">
           <label htmlFor="task-status">Status</label>
-          <select id="task-status" value={values.status} onChange={(event) => setFieldValue('status', event.target.value)}>
+          <select
+            id="task-status"
+            value={values.status}
+            onChange={(event) => setFieldValue('status', event.target.value)}
+          >
             {TASK_STATUSES.map((status) => (
               <option key={status} value={status}>
                 {formatTaskStatus(status)}

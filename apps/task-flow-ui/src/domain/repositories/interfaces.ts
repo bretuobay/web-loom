@@ -1,6 +1,6 @@
-import { ProjectEntity } from '../entities/project';
-import { TaskEntity } from '../entities/task';
-import { UserEntity } from '../entities/user';
+import type { ProjectEntity } from '../entities/project';
+import type { TaskCreationPayload, TaskEntity } from '../entities/task';
+import type { UserEntity } from '../entities/user';
 
 export interface IProjectRepository {
   fetchAll(): Promise<ProjectEntity[]>;
@@ -10,6 +10,7 @@ export interface IProjectRepository {
 export interface ITaskRepository {
   fetchAll(): Promise<TaskEntity[]>;
   getById(id: string): Promise<TaskEntity | null>;
+  create(payload: TaskCreationPayload): Promise<TaskEntity>;
 }
 
 export interface IUserRepository {
