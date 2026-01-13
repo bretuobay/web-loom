@@ -5,6 +5,10 @@ import { resolve } from 'path';
 // https://vite.dev/config/
 export default defineConfig({
   cacheDir: 'node_modules/.vite',
+  server: {
+    port: 5174,
+    strictPort: true,
+  },
   plugins: [vue()],
   resolve: {
     alias: {
