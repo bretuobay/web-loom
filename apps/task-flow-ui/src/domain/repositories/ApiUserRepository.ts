@@ -1,9 +1,9 @@
 import { UserEntity, UserApiResponse } from '../entities/user';
 import { IUserRepository } from './interfaces';
-import { TaskFlowApiClient } from '../services/apiClient';
+import { taskFlowApiClient } from '../services/apiClient';
 
 export class ApiUserRepository implements IUserRepository {
-  constructor(private client = new TaskFlowApiClient()) {}
+  constructor(private client = taskFlowApiClient) {}
 
   async fetchAll() {
     const payload = await this.client.fetchUsers();

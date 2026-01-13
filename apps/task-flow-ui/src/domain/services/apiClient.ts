@@ -1,8 +1,28 @@
 import type { TaskCreationPayload } from '../entities/task';
+import type { UserApiResponse } from '../entities/user';
 
 const DEFAULT_BASE_URL = 'http://localhost:4001';
-const DEFAULT_DEMO_EMAIL = import.meta.env.VITE_TASKFLOW_API_DEMO_EMAIL ?? 'admin@taskflow.local';
-const DEFAULT_DEMO_PASSWORD = import.meta.env.VITE_TASKFLOW_API_DEMO_PASSWORD ?? 'supersecure';
+
+export interface AuthResponse {
+  token: string;
+  user: UserApiResponse;
+}
+
+export interface AuthPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload extends AuthPayload {
+  displayName: string;
+  role?: string;
+  avatarUrl?: string | null;
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
 
 export interface ProjectResponse {
   id: string;
@@ -35,24 +55,16 @@ export interface UserResponse {
   role: string;
 }
 
-interface AuthResponse {
-  token: string;
-  user: unknown;
-}
-
 export class TaskFlowApiClient {
   private token: string | null = null;
-  private pendingAuth: Promise<void> | null = null;
 
   constructor(private baseUrl = import.meta.env.VITE_TASKFLOW_API_BASE_URL ?? DEFAULT_BASE_URL) {}
 
-  setAuthToken(token: string | null) {
+  setToken(token: string | null) {
     this.token = token;
   }
 
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
-    await this.ensureAuthToken();
-
     const headers = new Headers(options.headers ?? {});
     headers.set('Content-Type', 'application/json');
     if (this.token) {
@@ -63,10 +75,46 @@ export class TaskFlowApiClient {
       ...options,
       headers
     });
+
     if (!response.ok) {
-      throw new Error(`TaskFlow API request failed: ${response.status} ${response.statusText}`);
+      let errorMessage = `${response.status} ${response.statusText}`;
+      try {
+        const body = await response.json();
+        if (body?.message) {
+          errorMessage = body.message;
+        }
+      } catch {
+        // Ignore JSON parse errors
+      }
+      throw new Error(`TaskFlow API request failed: ${errorMessage}`);
     }
+
+    if (response.status === 204) {
+      return undefined as unknown as T;
+    }
+
     return response.json();
+  }
+
+  async login(payload: AuthPayload) {
+    return this.request<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async register(payload: RegisterPayload) {
+    return this.request<AuthResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async changePassword(payload: ChangePasswordPayload) {
+    return this.request<void>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
   }
 
   async fetchProjects() {
@@ -87,44 +135,6 @@ export class TaskFlowApiClient {
       body: JSON.stringify(payload)
     });
   }
-
-  private async ensureAuthToken() {
-    if (this.token) {
-      return;
-    }
-
-    if (!this.pendingAuth) {
-      this.pendingAuth = this.authenticateDemoUser();
-    }
-
-    await this.pendingAuth;
-  }
-
-  private async authenticateDemoUser() {
-    try {
-      const response = await fetch(`${this.baseUrl}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: DEFAULT_DEMO_EMAIL,
-          password: DEFAULT_DEMO_PASSWORD
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Unable to authenticate to TaskFlow API: ${response.statusText}`);
-      }
-
-      const payload = (await response.json()) as AuthResponse;
-      if (!payload.token) {
-        throw new Error('TaskFlow API did not return an auth token');
-      }
-
-      this.token = payload.token;
-    } finally {
-      this.pendingAuth = null;
-    }
-  }
 }
+
+export const taskFlowApiClient = new TaskFlowApiClient();

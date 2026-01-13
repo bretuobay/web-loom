@@ -1,10 +1,10 @@
 import { TaskEntity } from '../entities/task';
 import type { TaskCreationPayload, TaskApiResponse } from '../entities/task';
-import { TaskFlowApiClient } from '../services/apiClient';
+import { taskFlowApiClient } from '../services/apiClient';
 import type { ITaskRepository } from './interfaces';
 
 export class ApiTaskRepository implements ITaskRepository {
-  constructor(private client = new TaskFlowApiClient()) {}
+  constructor(private client = taskFlowApiClient) {}
 
   async fetchAll() {
     const payload = await this.client.fetchTasks();

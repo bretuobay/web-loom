@@ -1,36 +1,25 @@
 import '@repo/shared/styles';
 import './App.css';
 
-import { useEffect, useMemo, useState } from 'react';
-import { PluginRegistry } from '@repo/plugin-core';
-import { createRouter, type RouteDefinition, type RouteMatch } from '@web-loom/router-core';
+import { useMemo } from 'react';
+import { PluginRegistry, type PluginDefinition } from '@repo/plugin-core';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  NavLink,
+  useNavigate
+} from 'react-router-dom';
 import { ProjectList } from './components/ProjectList';
 import { TaskBoard } from './components/TaskBoard';
 import { PluginSpotlight } from './components/PluginSpotlight';
+import { AuthViewModel } from './view-models/AuthViewModel';
+import { AuthPage } from './pages/AuthPage';
+import { useObservable } from './hooks/useObservable';
 
-const routes: RouteDefinition[] = [
-  { path: '/', name: 'home', meta: { view: 'projects' as const } },
-  { path: '/projects', name: 'projects', meta: { view: 'projects' as const } },
-  { path: '/tasks', name: 'tasks', meta: { view: 'tasks' as const } },
-  {
-    path: '/:pathMatch(.*)',
-    name: 'not-found',
-    matchStrategy: 'prefix',
-    meta: { view: 'not-found' as const }
-  }
-];
-
-type AppView = 'projects' | 'tasks' | 'not-found';
-
-const router = createRouter({
-  mode: 'history',
-  base: '/',
-  routes
-});
-
-const navItems: { label: string; path: string; view: AppView }[] = [
-  { label: 'Projects', path: '/projects', view: 'projects' },
-  { label: 'Task board', path: '/tasks', view: 'tasks' }
+const navItems = [
+  { label: 'Projects', path: '/projects' },
+  { label: 'Task board', path: '/tasks' }
 ];
 
 const registerPlugins = () => {
@@ -85,28 +74,34 @@ const registerPlugins = () => {
   return registry;
 };
 
-function App() {
-  const [route, setRoute] = useState<RouteMatch>(router.currentRoute);
-  const registry = useMemo(registerPlugins, []);
-  const pluginDefinitions = useMemo(() => Array.from(registry.plugins.values()), [registry]);
-  const currentView = (route.meta.view as AppView) ?? 'projects';
+function NotFoundPanel() {
+  const navigate = useNavigate();
+  return (
+    <section className="panel">
+      <div className="panel__header">
+        <h2>Page not found</h2>
+      </div>
+      <p className="panel__empty">No matching route for this path.</p>
+      <button type="button" onClick={() => navigate('/projects')}>
+        Return home
+      </button>
+    </section>
+  );
+}
 
-  useEffect(() => {
-    const unsubscribe = router.subscribe((next) => setRoute(next));
-    return unsubscribe;
-  }, []);
+function MainShell({
+  authViewModel,
+  pluginDefinitions
+}: {
+  authViewModel: AuthViewModel;
+  pluginDefinitions: PluginDefinition[];
+}) {
+  const currentUser = useObservable(authViewModel.userObservable, null);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const unsubscribe = router.onError((error) => {
-      console.error('Router error', error);
-    });
-    return unsubscribe;
-  }, []);
-
-  const navigateTo = (path: string) => {
-    router.push(path).catch((error) => {
-      console.error('Navigation failed', error);
-    });
+  const handleLogout = () => {
+    authViewModel.logout();
+    navigate('/auth');
   };
 
   return (
@@ -120,38 +115,51 @@ function App() {
             and lightweight routing.
           </p>
         </div>
-        <button className="hero__cta" type="button" onClick={() => navigateTo('/tasks')}>
+        <button className="hero__cta" type="button" onClick={() => navigate('/tasks')}>
           Open Task Board
         </button>
       </header>
 
       <nav className="taskflow-nav" aria-label="TaskFlow navigation">
         {navItems.map((item) => (
-          <button
+          <NavLink
             key={item.path}
-            type="button"
-            className={`taskflow-nav__button ${currentView === item.view ? 'is-active' : ''}`}
-            onClick={() => navigateTo(item.path)}
+            to={item.path}
+            className={({ isActive }) =>
+              `taskflow-nav__button ${isActive ? 'is-active' : ''}`
+            }
           >
             {item.label}
-          </button>
+          </NavLink>
         ))}
+        <NavLink className="taskflow-nav__button" to="/auth">
+          Sign in / register
+        </NavLink>
       </nav>
 
-      <main className="taskflow-main">
-        {currentView === 'projects' && <ProjectList />}
-        {currentView === 'tasks' && <TaskBoard />}
-        {currentView === 'not-found' && (
-          <section className="panel">
-            <div className="panel__header">
-              <h2>Page not found</h2>
-            </div>
-            <p className="panel__empty">No matching route for {route.fullPath}.</p>
-            <button type="button" onClick={() => navigateTo('/projects')}>
-              Return home
+      <div className="taskflow-auth-status">
+        {currentUser ? (
+          <>
+            <span>
+              Signed in as <strong>{currentUser.displayName}</strong> ({currentUser.email}) · role:{' '}
+              {currentUser.role}
+            </span>
+            <button type="button" className="panel__button" onClick={handleLogout}>
+              Logout
             </button>
-          </section>
+          </>
+        ) : (
+          <span className="taskflow-auth-status__muted">Not signed in</span>
         )}
+      </div>
+
+      <main className="taskflow-main">
+        <Routes>
+          <Route index element={<ProjectList />} />
+          <Route path="projects" element={<ProjectList />} />
+          <Route path="tasks" element={<TaskBoard />} />
+          <Route path="*" element={<NotFoundPanel />} />
+        </Routes>
       </main>
 
       <section className="panel panel--plugins">
@@ -165,6 +173,24 @@ function App() {
         </div>
       </section>
     </div>
+  );
+}
+
+function App() {
+  const registry = useMemo(registerPlugins, []);
+  const pluginDefinitions = useMemo(() => Array.from(registry.plugins.values()), [registry]);
+  const authViewModel = useMemo(() => new AuthViewModel(), []);
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/auth" element={<AuthPage viewModel={authViewModel} />} />
+        <Route
+          path="/*"
+          element={<MainShell authViewModel={authViewModel} pluginDefinitions={pluginDefinitions} />}
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

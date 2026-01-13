@@ -1,10 +1,10 @@
 import { ProjectEntity } from '../entities/project';
 import { ProjectApiResponse } from '../entities/project';
 import { IProjectRepository } from './interfaces';
-import { TaskFlowApiClient } from '../services/apiClient';
+import { taskFlowApiClient } from '../services/apiClient';
 
 export class ApiProjectRepository implements IProjectRepository {
-  constructor(private client = new TaskFlowApiClient()) {}
+  constructor(private client = taskFlowApiClient) {}
 
   async fetchAll() {
     const payload = await this.client.fetchProjects();

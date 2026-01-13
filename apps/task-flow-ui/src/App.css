@@ -285,6 +285,38 @@
   border-color: rgba(59, 130, 246, 0.9);
 }
 
+.taskflow-auth-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0;
+  color: #94a3b8;
+}
+
+.taskflow-auth-status span {
+  font-size: 0.9rem;
+}
+
+.taskflow-auth-status__muted {
+  color: #94a3b8;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  background: radial-gradient(circle at top, rgba(59, 130, 246, 0.2), transparent 40%),
+    rgba(2, 6, 23, 0.95);
+}
+
+.auth-page__panel {
+  width: min(480px, 100%);
+}
+
 .taskflow-main {
   display: flex;
   flex-direction: column;
@@ -637,6 +669,18 @@
 .task-form__error {
   font-size: 0.75rem;
   color: #f87171;
+}
+
+.auth-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.auth-panel__details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 @media (max-width: 900px) {
