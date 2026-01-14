@@ -1,0 +1,103 @@
+/**
+ * Task Flow Theme Tokens
+ * Builds on @web-loom/design-core tokens to establish semantic values
+ * aligned with the project management dashboard aesthetic.
+ */
+
+/* Core token imports */
+@import '@web-loom/design-core/css/colors.css';
+@import '@web-loom/design-core/css/spacing.css';
+@import '@web-loom/design-core/css/typography.css';
+@import '@web-loom/design-core/css/shadows.css';
+@import '@web-loom/design-core/css/radii.css';
+@import '@web-loom/design-core/css/borders.css';
+@import '@web-loom/design-core/css/transitions.css';
+@import '@web-loom/design-core/css/opacity.css';
+@import '@web-loom/design-core/css/z-index.css';
+
+:root {
+  /* Project status palette */
+  --project-status-active: #1e40af;
+  --project-status-completed: var(--colors-success);
+  --project-status-onhold: #f59e0b;
+  --project-status-overdue: var(--colors-danger);
+
+  /* Task priority indicators */
+  --task-priority-critical: #dc2626;
+  --task-priority-high: var(--colors-danger);
+  --task-priority-medium: var(--colors-warning);
+  --task-priority-low: var(--colors-secondary);
+
+  /* Dashboard layout */
+  --dashboard-header-bg: #0f172a;
+  --dashboard-sidebar-bg: var(--colors-background-elevated);
+  --dashboard-content-bg: var(--colors-background-page);
+  --dashboard-gutter: var(--spacing-6);
+  --dashboard-radius: var(--radii-xl);
+
+  /* Card system */
+  --taskcard-bg: var(--colors-background-surface);
+  --taskcard-border: var(--colors-border-default);
+  --taskcard-shadow: var(--shadows-sm);
+  --taskcard-hover-shadow: var(--shadows-md);
+  --taskcard-radius: var(--radii-lg);
+  --taskcard-padding: var(--spacing-4);
+
+  /* Button variants */
+  --btn-primary-bg: var(--colors-primary);
+  --btn-primary-text: var(--colors-text-inverted);
+  --btn-secondary-bg: var(--colors-background-surface);
+  --btn-secondary-text: var(--colors-text-primary);
+  --btn-success-bg: var(--colors-success);
+  --btn-danger-bg: var(--colors-danger);
+  --btn-radius: var(--radii-full);
+
+  /* Interactive elements */
+  --focus-ring: 2px solid rgba(59, 130, 246, 0.8);
+  --badge-radius: var(--radii-full);
+
+  /* Visualization helpers */
+  --viz-chart-primary: var(--colors-primary);
+  --viz-chart-secondary: #38bdf8;
+  --progress-track: rgba(15, 23, 42, 0.4);
+  --progress-thumb: var(--colors-success);
+
+  /* Typography overrides */
+  --dashboard-heading: var(--typography-fontSize-lg);
+  --dashboard-text: var(--typography-fontSize-md);
+
+  /* App-level atmosphere */
+  --app-background-gradient: radial-gradient(circle at 20% -10%, #1e3a8a 0%, #0f172a 45%, #020617 100%);
+  --app-accent-gradient: linear-gradient(135deg, #38bdf8, #6366f1);
+  --glass-panel-bg: rgba(15, 23, 42, 0.75);
+  --glass-panel-border: rgba(148, 163, 184, 0.35);
+  --glass-panel-shadow: var(--shadows-lg);
+
+  /* Task board */
+  --taskboard-bg: rgba(12, 18, 44, 0.92);
+  --taskboard-border: rgba(59, 130, 246, 0.35);
+  --taskboard-shadow: 0 30px 60px rgba(2, 6, 23, 0.8);
+  --taskcard-contrast-bg: rgba(15, 23, 42, 0.65);
+  --taskcard-border-rim: rgba(59, 130, 246, 0.25);
+  --taskcard-striped-bg: linear-gradient(120deg, rgba(14, 165, 233, 0.08) 0%, rgba(99, 102, 241, 0.08) 50%, rgba(14, 165, 233, 0.03) 100%);
+  --taskcard-glow: 0 20px 40px rgba(59, 130, 246, 0.35);
+
+  /* Inputs + badges */
+  --input-border-default: rgba(148, 163, 184, 0.4);
+  --input-border-strong: rgba(99, 102, 241, 0.65);
+  --badge-glow: 0 0 12px rgba(59, 130, 246, 0.4);
+}
+
+[data-theme='dark'] {
+  --dashboard-header-bg: #0f172a;
+  --dashboard-sidebar-bg: rgba(15, 23, 42, 0.7);
+  --dashboard-content-bg: #020617;
+}
+
+[data-theme='light'] {
+  --dashboard-header-bg: var(--colors-background-surface);
+  --dashboard-sidebar-bg: var(--colors-background-page);
+  --dashboard-content-bg: #f8fafc;
+  --taskcard-bg: #ffffff;
+  --taskcard-border: rgba(15, 23, 42, 0.1);
+}

@@ -269,7 +269,123 @@
 - **T3.1.4**: Create real-time comment system
 - **T3.1.5**: Handle connection states and reconnection
 
-#### Task 3.2: Enhanced UX
+#### Task 3.3: Design System Integration & Task Flow Theme
+
+**Objective**: Apply the Web Loom design system (`packages/design-core`) to the task-flow-ui application and create a cohesive, professional theme specifically tailored for project management workflows.
+
+**Context**:
+This is a public demo that showcases the integration between:
+
+- **UI**: `apps/task-flow-ui` (React + Vite frontend)
+- **API**: `apps/task-flow-api` (Express backend with CRUD routes)
+
+The task involves implementing the design system setup pattern established in `apps/mvvm-react-integrated` to create a polished, branded experience for the task flow project.
+
+**Target Theme**: Professional Project Management Dashboard
+
+- **Primary Color Palette**: Blue-based productivity theme (#1E40AF primary, #64748B secondary)
+- **Style**: Modern flat design with subtle shadows and clean typography
+- **Focus**: Task-oriented, productivity-focused visual hierarchy
+
+**Technical Requirements**:
+
+- **T3.3.1**: Install and configure @web-loom/design-core dependency
+  - Add `@web-loom/design-core` to task-flow-ui package.json dependencies
+  - Ensure proper TypeScript support and CSS import capabilities
+  - Set up build system integration for design token CSS files
+
+- **T3.3.2**: Create task-flow specific design token system
+  - Create `src/styles/tokens.css` importing base design-core tokens:
+    - Colors, spacing, typography, shadows, radii, borders, transitions
+  - Define semantic task-flow tokens:
+    - Project status colors (active, completed, on-hold, overdue)
+    - Task priority indicators (high, medium, low, critical)
+    - Board/card system colors and spacing
+    - Dashboard component tokens
+
+- **T3.3.3**: Implement task-flow theme CSS custom properties
+  - **Project Cards**: Define card styling with subtle shadows, hover states
+  - **Task Items**: Create priority-based visual indicators and status badges
+  - **Dashboard Layout**: Header, sidebar, main content area tokens
+  - **Interactive Elements**: Button variants (primary, secondary, danger, success)
+  - **Data Visualization**: Chart colors, progress bars, status indicators
+
+- **T3.3.4**: Apply design system to existing components
+  - Update main application styles (index.css, App.css)
+  - Style core components: ProjectList, TaskList, TaskCard, ProjectCard
+  - Implement consistent spacing, typography, and color usage
+  - Add hover states, focus rings, and interaction feedback
+
+- **T3.3.5**: Create responsive task flow layout system
+  - Mobile-first responsive breakpoints using design-core tokens
+  - Dashboard grid system for project overview
+  - Kanban board responsive behavior
+  - Mobile task creation and editing interfaces
+
+- **T3.3.6**: Implement theme-aware component variants
+  - Create styled component variants for task status (TODO, IN_PROGRESS, DONE)
+  - Priority-based visual styling (background colors, border indicators)
+  - Project health indicators (on-track, at-risk, overdue)
+  - Team member avatars and presence indicators
+
+**Design Theme Specifications**:
+
+```css
+/* Task Flow Custom Theme - Based on Design Core Tokens */
+:root {
+  /* Project Status Colors */
+  --project-status-active: var(--colors-primary);
+  --project-status-completed: var(--colors-success);
+  --project-status-onhold: var(--colors-warning);
+  --project-status-overdue: var(--colors-danger);
+
+  /* Task Priority Colors */
+  --task-priority-critical: #dc2626;
+  --task-priority-high: var(--colors-danger);
+  --task-priority-medium: var(--colors-warning);
+  --task-priority-low: var(--colors-secondary);
+
+  /* Task Flow Specific Components */
+  --taskcard-bg: var(--colors-background-surface);
+  --taskcard-border: var(--colors-border-default);
+  --taskcard-shadow: var(--shadows-sm);
+  --taskcard-hover-shadow: var(--shadows-md);
+
+  /* Dashboard Layout */
+  --dashboard-header-bg: var(--colors-primary);
+  --dashboard-sidebar-bg: var(--colors-background-elevated);
+  --dashboard-content-bg: var(--colors-background-page);
+}
+```
+
+**Implementation Pattern** (following `apps/mvvm-react-integrated`):
+
+1. Import design-core CSS tokens in main CSS files
+2. Create semantic token mappings for task-flow specific use cases
+3. Apply tokens consistently across React components
+4. Use CSS custom properties for dynamic theming support
+5. Implement responsive behavior using design-core breakpoints
+
+**Acceptance Criteria**:
+
+- [ ] Design-core package successfully integrated and building
+- [ ] Custom task-flow tokens defined and documented
+- [ ] All major UI components styled consistently using design tokens
+- [ ] Responsive layout works across mobile, tablet, and desktop
+- [ ] Task status, priority, and project health visually distinct
+- [ ] Theme follows modern flat design principles with subtle depth
+- [ ] All interactive elements have proper hover/focus states
+- [ ] Components maintain accessibility standards (contrast, focus rings)
+
+**Files to Create/Modify**:
+
+- `apps/task-flow-ui/package.json` - Add design-core dependency
+- `apps/task-flow-ui/src/styles/tokens.css` - Task flow design tokens
+- `apps/task-flow-ui/src/styles/theme.css` - Task flow theme implementation
+- `apps/task-flow-ui/src/index.css` - Global styles with design system integration
+- Component CSS files - Apply design tokens to existing components
+
+#### Task 3.4: Enhanced UX
 
 - **T3.2.1**: Add keyboard shortcuts
 - **T3.2.2**: Implement optimistic updates
@@ -277,7 +393,7 @@
 - **T3.2.4**: Create responsive mobile layout
 - **T3.2.5**: Add animations and transitions
 
-#### Task 3.3: File Management
+#### Task 3.4: File Management
 
 - **T3.3.1**: Implement file upload API
 - **T3.3.2**: Add task attachment support

@@ -1,57 +1,142 @@
 .taskflow-shell {
-  padding: 2rem;
+  padding: calc(var(--dashboard-gutter) * 1.2);
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: var(--dashboard-gutter);
+  background: transparent;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
 }
 
-.hero {
+.taskflow-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 50%);
+  pointer-events: none;
+}
+
+.layout-header {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.75));
+  padding: var(--dashboard-gutter);
+  border: 1px solid var(--glass-panel-border);
+  border-radius: var(--taskcard-radius);
+  box-shadow: var(--taskcard-shadow);
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 
-.hero h1 {
-  margin: 0.25rem 0;
-  font-size: 2.75rem;
+.layout-header__content {
+  max-width: 560px;
 }
 
-.hero__eyebrow {
+.layout-header__eyebrow {
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   margin: 0;
-  color: #38bdf8;
+  color: var(--viz-chart-secondary);
 }
 
-.hero__cta {
-  background: linear-gradient(135deg, #22d3ee, #6366f1);
-  color: #0f172a;
-  border: none;
-  padding: 0.85rem 1.75rem;
+.layout-header__content h1 {
+  margin: 0.35rem 0;
+  font-size: var(--dashboard-heading);
+}
+
+.layout-header__content p {
+  margin: 0;
+  font-size: var(--dashboard-text);
+  color: var(--colors-text-muted);
+}
+
+.layout-header__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.layout-header__nav {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.layout-header__nav-link {
   border-radius: 999px;
+  padding: 0.35rem 1.15rem;
+  border: 1px solid transparent;
+  color: var(--colors-text-primary);
+  font-weight: 600;
+  text-transform: capitalize;
+  background: rgba(15, 23, 42, 0.4);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.layout-header__nav-link.is-active {
+  border-color: var(--btn-primary-bg);
+  background: rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
+}
+
+.layout-header__cta {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: var(--btn-radius);
+  padding: 0.75rem 1.5rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.hero__cta:hover {
-  transform: translateY(-2px);
+.layout-header__cta:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--taskcard-shadow);
+}
+
+.layout-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dashboard-gutter);
+}
+
+.layout-footer {
+  border-top: 1px solid var(--glass-panel-border);
+  padding-top: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--colors-text-muted);
+}
+
+.layout-footer__note {
+  margin: 0.25rem 0 0;
+}
+
+.layout-footer__cta {
+  color: var(--viz-chart-secondary);
+  font-weight: 600;
 }
 
 .panel {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 1rem;
+  background: var(--glass-panel-bg);
+  border: 1px solid var(--glass-panel-border);
+  border-radius: var(--taskcard-radius);
   padding: 1.5rem;
-  box-shadow: 0 20px 55px rgba(15, 23, 42, 0.5);
+  box-shadow: var(--glass-panel-shadow);
+  backdrop-filter: blur(18px);
+  position: relative;
 }
 
 .panel--auth {
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.6));
-  border-color: rgba(99, 102, 241, 0.6);
-  box-shadow: 0 30px 65px rgba(15, 23, 42, 0.6);
+  background: var(--glass-panel-bg);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: var(--glass-panel-shadow);
 }
 
 .panel__header {
@@ -69,11 +154,12 @@
 
 .panel__button {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  color: inherit;
+  border: 1px solid var(--btn-primary-bg);
+  color: var(--btn-primary-text);
   padding: 0.6rem 1.25rem;
   border-radius: 999px;
   cursor: pointer;
+  transition: box-shadow 0.2s ease;
 }
 
 .panel__subhead {
@@ -97,6 +183,27 @@
   font-size: 0.85rem;
 }
 
+.status-badge--project-active {
+  background: rgba(30, 64, 175, 0.15);
+  color: #c7d2fe;
+  border-color: rgba(14, 165, 233, 0.4);
+}
+
+.status-badge--project-completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--project-status-completed);
+}
+
+.status-badge--project-onhold {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--project-status-onhold);
+}
+
+.status-badge--project-overdue {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--project-status-overdue);
+}
+
 .project-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -104,11 +211,12 @@
 }
 
 .project-card {
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 1rem;
-  padding: 1rem 1.25rem;
-  background: rgba(15, 23, 42, 0.75);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  border: 1px solid var(--taskcard-border);
+  border-radius: var(--taskcard-radius);
+  padding: var(--taskcard-padding);
+  background: var(--taskcard-bg);
+  box-shadow: var(--taskcard-shadow);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -116,7 +224,8 @@
 
 .project-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(59, 130, 246, 0.9);
+  border-color: var(--btn-primary-bg);
+  box-shadow: var(--taskcard-hover-shadow);
 }
 
 .project-card__header {
@@ -133,7 +242,7 @@
 
 .project-card__description {
   margin: 0.35rem 0 0;
-  color: #cbd5f5;
+  color: var(--colors-text-muted);
   font-size: 0.95rem;
 }
 
@@ -146,23 +255,23 @@
 }
 
 .badge--muted {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.4);
+  color: var(--colors-text-muted);
 }
 
 .badge--accent {
-  background: rgba(59, 130, 246, 0.15);
-  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--viz-chart-secondary);
 }
 
 .badge--warning {
   background: rgba(251, 191, 36, 0.15);
-  color: #facc15;
+  color: var(--task-priority-medium);
 }
 
 .badge--success {
-  background: rgba(28, 211, 122, 0.15);
-  color: #4ade80;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--project-status-completed);
 }
 
 .project-card__progress {
@@ -174,21 +283,22 @@
 .project-card__progress-bar {
   height: 6px;
   border-radius: 999px;
-  background: #38bdf8;
+  background: linear-gradient(90deg, var(--progress-thumb) 45%, var(--progress-track) 45%);
 }
 
 .project-card__progress small {
-  color: #cbd5f5;
+  color: var(--colors-text-muted);
 }
 
 .project-card__action {
   border: 0;
   border-radius: 999px;
   padding: 0.55rem;
-  background: rgba(125, 211, 252, 0.25);
-  color: #e0f2fe;
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
   font-weight: 600;
   cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .panel--plugins {
@@ -266,29 +376,6 @@
 
 .panel__empty {
   color: #cbd5f5;
-}
-
-.taskflow-nav {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.taskflow-nav__button {
-  border: 1px solid rgba(148, 163, 184, 0.5);
-  background: transparent;
-  border-radius: 999px;
-  padding: 0.55rem 1.1rem;
-  color: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.taskflow-nav__button.is-active {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: rgba(59, 130, 246, 0.9);
 }
 
 .taskflow-auth-status {
@@ -431,14 +518,24 @@
 }
 
 .task-board {
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: var(--taskboard-bg);
+  border: 1px solid var(--taskboard-border);
   border-radius: 1.25rem;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.5);
+  box-shadow: var(--taskboard-shadow);
+  position: relative;
+}
+
+.task-board::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  pointer-events: none;
 }
 
 .task-board__header {
@@ -457,18 +554,19 @@
 .task-board__filters button,
 .task-board__filters-clear {
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  border: 1px solid var(--glass-panel-border);
   padding: 0.4rem 0.85rem;
-  background: transparent;
-  color: inherit;
+  background: rgba(15, 23, 42, 0.3);
+  color: var(--colors-text-primary);
   cursor: pointer;
   font-size: 0.8rem;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .task-board__filters button.is-active {
-  border-color: rgba(59, 130, 246, 0.8);
+  border-color: var(--btn-primary-bg);
   background: rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.35);
 }
 
 .task-board__error {
@@ -500,20 +598,22 @@
 }
 
 .task-board__form {
-  background: rgba(2, 6, 23, 0.6);
+  background: var(--taskcard-contrast-bg);
   border-radius: 1rem;
   padding: 1rem;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: 1px solid var(--taskcard-border-rim);
+  box-shadow: var(--taskcard-glow);
 }
 
 .task-card {
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--taskcard-border-rim);
   border-radius: 1rem;
   padding: 1rem;
-  background: rgba(15, 23, 42, 0.7);
+  background: var(--taskcard-contrast-bg);
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  box-shadow: var(--taskcard-glow);
 }
 
 .task-card__header {
@@ -673,8 +773,8 @@
   border-radius: 0.75rem;
   border: none;
   padding: 0.55rem 1rem;
-  background: linear-gradient(135deg, #22d3ee, #6366f1);
-  color: #0f172a;
+  background: linear-gradient(135deg, var(--btn-primary-bg), #2563eb);
+  color: var(--btn-primary-text);
   font-weight: 700;
   cursor: pointer;
 }

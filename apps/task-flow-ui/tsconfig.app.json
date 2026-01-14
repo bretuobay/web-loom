@@ -20,7 +20,9 @@
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@web-loom/design-core": ["../../packages/design-core/src"],
+      "@web-loom/design-core/*": ["../../packages/design-core/src/*"]
     }
   },
   "include": ["src"],

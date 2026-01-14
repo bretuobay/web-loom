@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { z } from 'zod';
 import { useObservable } from '../hooks/useObservable';
 import { AuthViewModel } from '../view-models/AuthViewModel';
@@ -6,18 +6,18 @@ import { formatUserRole, USER_ROLES, type UserRole } from '../domain/values/user
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters')
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 const registerSchema = loginSchema.extend({
   displayName: z.string().min(2, 'Display name is required'),
   role: z.enum(USER_ROLES),
-  avatarUrl: z.string().url('Enter a valid URL').optional().or(z.literal(''))
+  avatarUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
 });
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(6, 'Current password is required'),
-  newPassword: z.string().min(8, 'New password must be at least 8 characters')
+  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
 });
 
 const makeFieldId = (form: string, field: string) => `auth-${form}-${field}`;
@@ -43,7 +43,7 @@ const registerTabId = 'auth-register-tab';
 
 const loginFieldIds = {
   email: makeFieldId('login', 'email'),
-  password: makeFieldId('login', 'password')
+  password: makeFieldId('login', 'password'),
 };
 
 const registerFieldIds = {
@@ -52,13 +52,13 @@ const registerFieldIds = {
   role: makeFieldId('register', 'role'),
   avatarUrl: makeFieldId('register', 'avatar'),
   password: makeFieldId('register', 'password'),
-  confirmPassword: makeFieldId('register', 'confirm-password')
+  confirmPassword: makeFieldId('register', 'confirm-password'),
 };
 
 const changePasswordFieldIds = {
   currentPassword: makeFieldId('change-password', 'current'),
   newPassword: makeFieldId('change-password', 'new'),
-  confirmPassword: makeFieldId('change-password', 'confirm')
+  confirmPassword: makeFieldId('change-password', 'confirm'),
 };
 
 const registerPasswordHintId = `${registerFieldIds.password}-hint`;
@@ -103,7 +103,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
     displayName: '',
     confirmPassword: '',
     role: USER_ROLES[0],
-    avatarUrl: ''
+    avatarUrl: '',
   });
   const [registerErrors, setRegisterErrors] = useState<Record<string, string>>({});
   const [registerFeedback, setRegisterFeedback] = useState<string | null>(null);
@@ -111,7 +111,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
   const [changePasswordValues, setChangePasswordValues] = useState<ChangePasswordFormValues>({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [changePasswordErrors, setChangePasswordErrors] = useState<Record<string, string>>({});
   const [changePasswordFeedback, setChangePasswordFeedback] = useState<string | null>(null);
@@ -119,19 +119,19 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
 
   const registerPasswordDescribedBy = joinDescribedBy(
     registerPasswordHintId,
-    registerErrors.password ? errorId(registerFieldIds.password) : undefined
+    registerErrors.password ? errorId(registerFieldIds.password) : undefined,
   );
   const registerRoleDescribedBy = joinDescribedBy(
     registerRoleHintId,
-    registerErrors.role ? errorId(registerFieldIds.role) : undefined
+    registerErrors.role ? errorId(registerFieldIds.role) : undefined,
   );
   const changePasswordNewDescribedBy = joinDescribedBy(
     changePasswordNewHintId,
-    changePasswordErrors.newPassword ? errorId(changePasswordFieldIds.newPassword) : undefined
+    changePasswordErrors.newPassword ? errorId(changePasswordFieldIds.newPassword) : undefined,
   );
   const registerAvatarDescribedBy = joinDescribedBy(
     registerAvatarHintId,
-    registerErrors.avatarUrl ? errorId(registerFieldIds.avatarUrl) : undefined
+    registerErrors.avatarUrl ? errorId(registerFieldIds.avatarUrl) : undefined,
   );
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -164,7 +164,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
     const { confirmPassword, ...rest } = registerValues;
     const payload = {
       ...rest,
-      avatarUrl: rest.avatarUrl.trim() || undefined
+      avatarUrl: rest.avatarUrl?.trim() || undefined,
     };
     const validation = registerSchema.safeParse(payload);
     if (!validation.success) {
@@ -192,7 +192,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
     }
     const validation = changePasswordSchema.safeParse({
       currentPassword: changePasswordValues.currentPassword,
-      newPassword: changePasswordValues.newPassword
+      newPassword: changePasswordValues.newPassword,
     });
     if (!validation.success) {
       setChangePasswordErrors(formatErrors(validation));
@@ -208,12 +208,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
   };
 
   const loginForm = (
-    <form
-      className="task-form task-form--panel"
-      onSubmit={handleLogin}
-      noValidate
-      aria-labelledby={loginHeadingId}
-    >
+    <form className="task-form task-form--panel" onSubmit={handleLogin} noValidate aria-labelledby={loginHeadingId}>
       <div className="task-form__field">
         <label htmlFor={loginFieldIds.email}>Email address</label>
         <input
@@ -222,20 +217,13 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           placeholder="you@example.com"
           autoComplete="username"
           value={loginValues.email}
-          onChange={(event) =>
-            setLoginValues((prev) => ({ ...prev, email: event.target.value }))
-          }
+          onChange={(event) => setLoginValues((prev) => ({ ...prev, email: event.target.value }))}
           required
           aria-invalid={Boolean(loginErrors.email)}
-          aria-describedby={
-            loginErrors.email ? errorId(loginFieldIds.email) : undefined
-          }
+          aria-describedby={loginErrors.email ? errorId(loginFieldIds.email) : undefined}
         />
         {loginErrors.email && (
-          <p
-            className="task-form__error"
-            id={errorId(loginFieldIds.email)}
-          >
+          <p className="task-form__error" id={errorId(loginFieldIds.email)}>
             {loginErrors.email}
           </p>
         )}
@@ -247,20 +235,13 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           type="password"
           autoComplete="current-password"
           value={loginValues.password}
-          onChange={(event) =>
-            setLoginValues((prev) => ({ ...prev, password: event.target.value }))
-          }
+          onChange={(event) => setLoginValues((prev) => ({ ...prev, password: event.target.value }))}
           required
           aria-invalid={Boolean(loginErrors.password)}
-          aria-describedby={
-            loginErrors.password ? errorId(loginFieldIds.password) : undefined
-          }
+          aria-describedby={loginErrors.password ? errorId(loginFieldIds.password) : undefined}
         />
         {loginErrors.password && (
-          <p
-            className="task-form__error"
-            id={errorId(loginFieldIds.password)}
-          >
+          <p className="task-form__error" id={errorId(loginFieldIds.password)}>
             {loginErrors.password}
           </p>
         )}
@@ -269,12 +250,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
         Sign in
       </button>
       {loginFeedback && (
-        <p
-          className="task-form__feedback"
-          id={loginFeedbackId}
-          role="status"
-          aria-live="polite"
-        >
+        <p className="task-form__feedback" id={loginFeedbackId} role="status" aria-live="polite">
           {loginFeedback}
         </p>
       )}
@@ -295,20 +271,13 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           type="text"
           autoComplete="name"
           value={registerValues.displayName}
-          onChange={(event) =>
-            setRegisterValues((prev) => ({ ...prev, displayName: event.target.value }))
-          }
+          onChange={(event) => setRegisterValues((prev) => ({ ...prev, displayName: event.target.value }))}
           required
           aria-invalid={Boolean(registerErrors.displayName)}
-          aria-describedby={
-            registerErrors.displayName ? errorId(registerFieldIds.displayName) : undefined
-          }
+          aria-describedby={registerErrors.displayName ? errorId(registerFieldIds.displayName) : undefined}
         />
         {registerErrors.displayName && (
-          <p
-            className="task-form__error"
-            id={errorId(registerFieldIds.displayName)}
-          >
+          <p className="task-form__error" id={errorId(registerFieldIds.displayName)}>
             {registerErrors.displayName}
           </p>
         )}
@@ -323,9 +292,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           onChange={(event) => setRegisterValues((prev) => ({ ...prev, email: event.target.value }))}
           required
           aria-invalid={Boolean(registerErrors.email)}
-          aria-describedby={
-            registerErrors.email ? errorId(registerFieldIds.email) : undefined
-          }
+          aria-describedby={registerErrors.email ? errorId(registerFieldIds.email) : undefined}
         />
         {registerErrors.email && (
           <p className="task-form__error" id={errorId(registerFieldIds.email)}>
@@ -338,9 +305,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
         <select
           id={registerFieldIds.role}
           value={registerValues.role}
-          onChange={(event) =>
-            setRegisterValues((prev) => ({ ...prev, role: event.target.value as UserRole }))
-          }
+          onChange={(event) => setRegisterValues((prev) => ({ ...prev, role: event.target.value as UserRole }))}
           aria-invalid={Boolean(registerErrors.role)}
           aria-describedby={registerRoleDescribedBy}
           required
@@ -355,10 +320,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           Choose a role that matches the access you need.
         </p>
         {registerErrors.role && (
-          <p
-            className="task-form__error"
-            id={errorId(registerFieldIds.role)}
-          >
+          <p className="task-form__error" id={errorId(registerFieldIds.role)}>
             {registerErrors.role}
           </p>
         )}
@@ -370,9 +332,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           type="url"
           autoComplete="url"
           value={registerValues.avatarUrl}
-          onChange={(event) =>
-            setRegisterValues((prev) => ({ ...prev, avatarUrl: event.target.value }))
-          }
+          onChange={(event) => setRegisterValues((prev) => ({ ...prev, avatarUrl: event.target.value }))}
           aria-describedby={registerAvatarDescribedBy}
           aria-invalid={Boolean(registerErrors.avatarUrl)}
         />
@@ -380,10 +340,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           Upload a PNG, GIF, or JPEG by pasting a public link.
         </p>
         {registerErrors.avatarUrl && (
-          <p
-            className="task-form__error"
-            id={errorId(registerFieldIds.avatarUrl)}
-          >
+          <p className="task-form__error" id={errorId(registerFieldIds.avatarUrl)}>
             {registerErrors.avatarUrl}
           </p>
         )}
@@ -395,9 +352,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           type="password"
           autoComplete="new-password"
           value={registerValues.password}
-          onChange={(event) =>
-            setRegisterValues((prev) => ({ ...prev, password: event.target.value }))
-          }
+          onChange={(event) => setRegisterValues((prev) => ({ ...prev, password: event.target.value }))}
           required
           aria-invalid={Boolean(registerErrors.password)}
           aria-describedby={registerPasswordDescribedBy}
@@ -406,10 +361,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           At least 8 characters with a mix of letters and numbers.
         </p>
         {registerErrors.password && (
-          <p
-            className="task-form__error"
-            id={errorId(registerFieldIds.password)}
-          >
+          <p className="task-form__error" id={errorId(registerFieldIds.password)}>
             {registerErrors.password}
           </p>
         )}
@@ -421,22 +373,13 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           type="password"
           autoComplete="new-password"
           value={registerValues.confirmPassword}
-          onChange={(event) =>
-            setRegisterValues((prev) => ({ ...prev, confirmPassword: event.target.value }))
-          }
+          onChange={(event) => setRegisterValues((prev) => ({ ...prev, confirmPassword: event.target.value }))}
           required
           aria-invalid={Boolean(registerErrors.confirmPassword)}
-          aria-describedby={
-            registerErrors.confirmPassword
-              ? errorId(registerFieldIds.confirmPassword)
-              : undefined
-          }
+          aria-describedby={registerErrors.confirmPassword ? errorId(registerFieldIds.confirmPassword) : undefined}
         />
         {registerErrors.confirmPassword && (
-          <p
-            className="task-form__error"
-            id={errorId(registerFieldIds.confirmPassword)}
-          >
+          <p className="task-form__error" id={errorId(registerFieldIds.confirmPassword)}>
             {registerErrors.confirmPassword}
           </p>
         )}
@@ -445,12 +388,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
         Register
       </button>
       {registerFeedback && (
-        <p
-          className="task-form__feedback"
-          id={registerFeedbackId}
-          role="status"
-          aria-live="polite"
-        >
+        <p className="task-form__feedback" id={registerFeedbackId} role="status" aria-live="polite">
           {registerFeedback}
         </p>
       )}
@@ -471,22 +409,15 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           type="password"
           autoComplete="current-password"
           value={changePasswordValues.currentPassword}
-          onChange={(event) =>
-            setChangePasswordValues((prev) => ({ ...prev, currentPassword: event.target.value }))
-          }
+          onChange={(event) => setChangePasswordValues((prev) => ({ ...prev, currentPassword: event.target.value }))}
           required
           aria-invalid={Boolean(changePasswordErrors.currentPassword)}
           aria-describedby={
-            changePasswordErrors.currentPassword
-              ? errorId(changePasswordFieldIds.currentPassword)
-              : undefined
+            changePasswordErrors.currentPassword ? errorId(changePasswordFieldIds.currentPassword) : undefined
           }
         />
         {changePasswordErrors.currentPassword && (
-          <p
-            className="task-form__error"
-            id={errorId(changePasswordFieldIds.currentPassword)}
-          >
+          <p className="task-form__error" id={errorId(changePasswordFieldIds.currentPassword)}>
             {changePasswordErrors.currentPassword}
           </p>
         )}
@@ -498,9 +429,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           type="password"
           autoComplete="new-password"
           value={changePasswordValues.newPassword}
-          onChange={(event) =>
-            setChangePasswordValues((prev) => ({ ...prev, newPassword: event.target.value }))
-          }
+          onChange={(event) => setChangePasswordValues((prev) => ({ ...prev, newPassword: event.target.value }))}
           required
           aria-invalid={Boolean(changePasswordErrors.newPassword)}
           aria-describedby={changePasswordNewDescribedBy}
@@ -509,10 +438,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           Choose a unique password you can rotate regularly.
         </p>
         {changePasswordErrors.newPassword && (
-          <p
-            className="task-form__error"
-            id={errorId(changePasswordFieldIds.newPassword)}
-          >
+          <p className="task-form__error" id={errorId(changePasswordFieldIds.newPassword)}>
             {changePasswordErrors.newPassword}
           </p>
         )}
@@ -524,22 +450,15 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
           type="password"
           autoComplete="new-password"
           value={changePasswordValues.confirmPassword}
-          onChange={(event) =>
-            setChangePasswordValues((prev) => ({ ...prev, confirmPassword: event.target.value }))
-          }
+          onChange={(event) => setChangePasswordValues((prev) => ({ ...prev, confirmPassword: event.target.value }))}
           required
           aria-invalid={Boolean(changePasswordErrors.confirmPassword)}
           aria-describedby={
-            changePasswordErrors.confirmPassword
-              ? errorId(changePasswordFieldIds.confirmPassword)
-              : undefined
+            changePasswordErrors.confirmPassword ? errorId(changePasswordFieldIds.confirmPassword) : undefined
           }
         />
         {changePasswordErrors.confirmPassword && (
-          <p
-            className="task-form__error"
-            id={errorId(changePasswordFieldIds.confirmPassword)}
-          >
+          <p className="task-form__error" id={errorId(changePasswordFieldIds.confirmPassword)}>
             {changePasswordErrors.confirmPassword}
           </p>
         )}
@@ -548,12 +467,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
         Update password
       </button>
       {changePasswordFeedback && (
-        <p
-          className="task-form__feedback"
-          id={changePasswordFeedbackId}
-          role="status"
-          aria-live="polite"
-        >
+        <p className="task-form__feedback" id={changePasswordFeedbackId} role="status" aria-live="polite">
           {changePasswordFeedback}
         </p>
       )}
@@ -574,20 +488,13 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
   );
 
   const registerCard = (
-    <article
-      id={registerCardId}
-      role="tabpanel"
-      className="auth-panel__card"
-      aria-labelledby={registerHeadingId}
-    >
+    <article id={registerCardId} role="tabpanel" className="auth-panel__card" aria-labelledby={registerHeadingId}>
       <div className="auth-panel__card-header">
         <div>
           <h3 id={registerHeadingId}>Create an account</h3>
           <p className="auth-panel__eyebrow">New here?</p>
         </div>
-        <p className="auth-panel__card-note">
-          Create a profile, pick a role, and jump straight into Loom.
-        </p>
+        <p className="auth-panel__card-note">Create a profile, pick a role, and jump straight into Loom.</p>
       </div>
       {registerForm}
     </article>
@@ -615,9 +522,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
     <div className="auth-panel__nav" role="tablist" aria-label="Authentication options">
       <button
         type="button"
-        className={`auth-panel__nav-link ${
-          activeForm === 'login' ? 'auth-panel__nav-link--selected' : ''
-        }`}
+        className={`auth-panel__nav-link ${activeForm === 'login' ? 'auth-panel__nav-link--selected' : ''}`}
         role="tab"
         id={loginTabId}
         aria-controls={loginCardId}
@@ -629,9 +534,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
       </button>
       <button
         type="button"
-        className={`auth-panel__nav-link ${
-          activeForm === 'register' ? 'auth-panel__nav-link--selected' : ''
-        }`}
+        className={`auth-panel__nav-link ${activeForm === 'register' ? 'auth-panel__nav-link--selected' : ''}`}
         role="tab"
         id={registerTabId}
         aria-controls={registerCardId}
@@ -647,9 +550,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
   const authForms = (
     <div className="auth-panel__single">
       {formNav}
-      <div className="auth-panel__single-card">
-        {activeForm === 'login' ? loginCard : registerCard}
-      </div>
+      <div className="auth-panel__single-card">{activeForm === 'login' ? loginCard : registerCard}</div>
     </div>
   );
 
@@ -658,18 +559,11 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
       <div className="panel__header">
         <div>
           <h2 id="auth-panel-heading">Authentication</h2>
-          <p className="panel__subhead">
-            Securely sign in or create a new account for Loom.
-          </p>
+          <p className="panel__subhead">Securely sign in or create a new account for Loom.</p>
         </div>
       </div>
       {errorMessage && (
-        <p
-          id={globalErrorId}
-          className="task-form__error"
-          role="alert"
-          aria-live="assertive"
-        >
+        <p id={globalErrorId} className="task-form__error" role="alert" aria-live="assertive">
           {errorMessage}
         </p>
       )}
@@ -679,8 +573,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
         <div className="auth-panel__details">
           <div className="auth-panel__details__header">
             <p className="auth-panel__details__text" aria-live="polite">
-              Signed in as <strong>{user.displayName}</strong> ({user.email}) · role:{' '}
-              {user.role}
+              Signed in as <strong>{user.displayName}</strong> ({user.email}) · role: {user.role}
             </p>
             <button type="button" className="panel__button" onClick={() => viewModel.logout()}>
               Logout

@@ -3,19 +3,16 @@ import './App.css';
 
 import { useMemo } from 'react';
 import { PluginRegistry, type PluginDefinition } from '@repo/plugin-core';
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  NavLink,
-  useNavigate
-} from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { ProjectList } from './components/ProjectList';
 import { TaskBoard } from './components/TaskBoard';
 import { PluginSpotlight } from './components/PluginSpotlight';
 import { AuthViewModel } from './view-models/AuthViewModel';
 import { AuthPage } from './pages/AuthPage';
 import { useObservable } from './hooks/useObservable';
+import { Header } from './layout/Header';
+import { Container } from './layout/Container';
+import { Footer } from './layout/Footer';
 
 const navItems = [
   { label: 'Projects', path: '/projects' },
@@ -106,36 +103,7 @@ function MainShell({
 
   return (
     <div className="taskflow-shell">
-      <header className="hero">
-        <div>
-          <p className="hero__eyebrow">Web Loom · MVVM Demo</p>
-          <h1>TaskFlow · Project Management</h1>
-          <p>
-            Real-time inspired experience built on Web Loom ViewModels, plugin registry, reactive state,
-            and lightweight routing.
-          </p>
-        </div>
-        <button className="hero__cta" type="button" onClick={() => navigate('/tasks')}>
-          Open Task Board
-        </button>
-      </header>
-
-      <nav className="taskflow-nav" aria-label="TaskFlow navigation">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `taskflow-nav__button ${isActive ? 'is-active' : ''}`
-            }
-          >
-            {item.label}
-          </NavLink>
-        ))}
-        <NavLink className="taskflow-nav__button" to="/auth">
-          Sign in / register
-        </NavLink>
-      </nav>
+      <Header navItems={navItems} onTaskBoardClick={() => navigate('/tasks')} />
 
       <div className="taskflow-auth-status">
         {currentUser ? (
@@ -153,25 +121,29 @@ function MainShell({
         )}
       </div>
 
-      <main className="taskflow-main">
-        <Routes>
-          <Route index element={<ProjectList />} />
-          <Route path="projects" element={<ProjectList />} />
-          <Route path="tasks" element={<TaskBoard />} />
-          <Route path="*" element={<NotFoundPanel />} />
-        </Routes>
-      </main>
+      <Container>
+        <main className="taskflow-main">
+          <Routes>
+            <Route index element={<ProjectList />} />
+            <Route path="projects" element={<ProjectList />} />
+            <Route path="tasks" element={<TaskBoard />} />
+            <Route path="*" element={<NotFoundPanel />} />
+          </Routes>
+        </main>
 
-      <section className="panel panel--plugins">
-        <div className="panel__header">
-          <h2>Plugin Registry</h2>
-        </div>
-        <div className="plugin-grid">
-          {pluginDefinitions.map((plugin) => (
-            <PluginSpotlight key={plugin.manifest.id} plugin={plugin.manifest} />
-          ))}
-        </div>
-      </section>
+        <section className="panel panel--plugins">
+          <div className="panel__header">
+            <h2>Plugin Registry</h2>
+          </div>
+          <div className="plugin-grid">
+            {pluginDefinitions.map((plugin) => (
+              <PluginSpotlight key={plugin.manifest.id} plugin={plugin.manifest} />
+            ))}
+          </div>
+        </section>
+      </Container>
+
+      <Footer />
     </div>
   );
 }

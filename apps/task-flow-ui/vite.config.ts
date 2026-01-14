@@ -11,6 +11,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      '@web-loom/design-core': path.resolve(__dirname, '../../packages/design-core/src'),
+      '@web-loom/design-core/design-system': path.resolve(
+        __dirname,
+        '../../packages/design-core/src/design-system'
+      ),
     },
   },
 });
