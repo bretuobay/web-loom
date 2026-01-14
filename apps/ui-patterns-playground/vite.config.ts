@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react-swc';
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    port: 5179,
+    strictPort: true,
+  },
   plugins: [react()] as any, // Type assertion to handle Vite version mismatch
   resolve: {
     alias: {

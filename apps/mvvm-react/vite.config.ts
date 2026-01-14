@@ -4,6 +4,10 @@ import { resolve } from 'path';
 // https://vite.dev/config/
 export default defineConfig({
   cacheDir: 'node_modules/.vite',
+  server: {
+    port: 5173,
+    strictPort: true,
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
