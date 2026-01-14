@@ -1,6 +1,7 @@
 import { TaskEntity } from '../domain/entities/task';
 import { TASK_STATUSES, type TaskStatus, formatTaskStatus } from '../domain/values/taskStatus';
 import { TASK_PRIORITIES, formatTaskPriority } from '../domain/values/taskPriority';
+import styles from './TaskCard.module.css';
 
 interface Props {
   task: TaskEntity;
@@ -9,16 +10,16 @@ interface Props {
 }
 
 const statusTone: Record<TaskStatus, string> = {
-  backlog: 'task-card__status--muted',
-  'in-progress': 'task-card__status--accent',
-  review: 'task-card__status--warning',
-  done: 'task-card__status--success',
+  backlog: styles.statusMuted,
+  'in-progress': styles.statusAccent,
+  review: styles.statusWarning,
+  done: styles.statusSuccess,
 };
 
 const priorityTone: Record<(typeof TASK_PRIORITIES)[number], string> = {
-  low: 'task-card__priority--muted',
-  medium: 'task-card__priority--accent',
-  high: 'task-card__priority--warning',
+  low: styles.priorityMuted,
+  medium: styles.priorityAccent,
+  high: styles.priorityWarning,
 };
 
 export function TaskCard({ task, onStatusChange, onSelect }: Props) {
@@ -32,19 +33,19 @@ export function TaskCard({ task, onStatusChange, onSelect }: Props) {
   };
 
   return (
-    <article className="task-card">
-      <header className="task-card__header">
+    <article className={styles.card}>
+      <header className={styles.header}>
         <div>
-          <h3>{task.title}</h3>
-          <p>{task.description}</p>
+          <h3 className={styles.title}>{task.title}</h3>
+          <p className={styles.description}>{task.description}</p>
         </div>
-        <span className={`task-card__status ${statusTone[task.status]}`}>{formatTaskStatus(task.status)}</span>
+        <span className={`${styles.status} ${statusTone[task.status]}`}>{formatTaskStatus(task.status)}</span>
       </header>
 
-      <div className="task-card__meta">
+      <div className={styles.meta}>
         <div>
           <strong>Priority</strong>
-          <span className={`task-card__priority ${priorityTone[task.priority]}`}>
+          <span className={`${styles.priority} ${priorityTone[task.priority]}`}>
             {formatTaskPriority(task.priority)}
           </span>
         </div>
@@ -58,14 +59,14 @@ export function TaskCard({ task, onStatusChange, onSelect }: Props) {
         </div>
       </div>
 
-      <footer className="task-card__actions">
+      <footer className={styles.actions}>
         {onStatusChange && (
-          <button type="button" onClick={handleStatusCycle}>
+          <button type="button" onClick={handleStatusCycle} className={styles.button}>
             Move to {formatTaskStatus(nextStatus)}
           </button>
         )}
         {onSelect && (
-          <button type="button" className="task-card__details" onClick={() => onSelect(task.id)}>
+          <button type="button" className={styles.detailsButton} onClick={() => onSelect(task.id)}>
             View task
           </button>
         )}

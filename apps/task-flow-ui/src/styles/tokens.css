@@ -1,10 +1,12 @@
 /**
- * Task Flow Theme Tokens
- * Builds on @web-loom/design-core tokens to establish semantic values
- * aligned with the project management dashboard aesthetic.
+ * @name: tokens.css
+ * @description: Design tokens for the Task Flow application.
+ * This file centralizes the visual design attributes of the application,
+ * building upon the @web-loom/design-core foundation.
  */
 
-/* Core token imports */
+/* 1. CORE IMPORTS */
+/* Import the foundational design tokens from the design-core package. */
 @import '@web-loom/design-core/css/colors.css';
 @import '@web-loom/design-core/css/spacing.css';
 @import '@web-loom/design-core/css/typography.css';
@@ -15,36 +17,59 @@
 @import '@web-loom/design-core/css/opacity.css';
 @import '@web-loom/design-core/css/z-index.css';
 
+/* 2. BASE TOKENS */
+/* Establish the foundational theme settings for both light and dark modes. */
 :root {
-  /* Project status palette */
-  --project-status-active: #1e40af;
+  --app-background-gradient: radial-gradient(circle at 10% -20%, rgba(25, 25, 25, 0.95) 0%, rgba(9, 11, 15, 0.9) 40%, #050509 100%);
+  --app-accent-gradient: linear-gradient(135deg, rgba(218, 221, 225, 0.6), rgba(183, 190, 197, 0.6));
+  --focus-ring-color: rgba(59, 130, 246, 0.8);
+}
+
+/* 3. SEMANTIC TOKENS */
+/* Define semantic tokens that give context to the design system. */
+:root {
+  /* Brand Colors */
+  --brand-primary: #1E40AF;
+  --brand-secondary: #64748B;
+
+  /* Project Status Palette */
+  --project-status-active: var(--brand-primary);
   --project-status-completed: var(--colors-success);
-  --project-status-onhold: #f59e0b;
+  --project-status-onhold: var(--colors-warning);
   --project-status-overdue: var(--colors-danger);
 
-  /* Task priority indicators */
+  /* Task Priority Indicators */
   --task-priority-critical: #dc2626;
   --task-priority-high: var(--colors-danger);
   --task-priority-medium: var(--colors-warning);
-  --task-priority-low: var(--colors-secondary);
+  --task-priority-low: var(--brand-secondary);
 
-  /* Dashboard layout */
+  /* Interactive Elements */
+  --focus-ring: 2px solid var(--focus-ring-color);
+
+  /* Layout */
+  --dashboard-gutter: var(--spacing-6);
+  --dashboard-radius: var(--radii-xl);
+}
+
+/* 4. COMPONENT TOKENS */
+/* Define tokens for specific UI components. */
+:root {
+  /* Dashboard */
   --dashboard-header-bg: #0f172a;
   --dashboard-sidebar-bg: var(--colors-background-elevated);
   --dashboard-content-bg: var(--colors-background-page);
-  --dashboard-gutter: var(--spacing-6);
-  --dashboard-radius: var(--radii-xl);
 
-  /* Card system */
-  --taskcard-bg: var(--colors-background-surface);
-  --taskcard-border: var(--colors-border-default);
-  --taskcard-shadow: var(--shadows-sm);
-  --taskcard-hover-shadow: var(--shadows-md);
-  --taskcard-radius: var(--radii-lg);
-  --taskcard-padding: var(--spacing-4);
+  /* Cards */
+  --card-bg: var(--colors-background-surface);
+  --card-border: var(--colors-border-default);
+  --card-shadow: var(--shadows-sm);
+  --card-hover-shadow: var(--shadows-md);
+  --card-radius: var(--radii-lg);
+  --card-padding: var(--spacing-4);
 
-  /* Button variants */
-  --btn-primary-bg: var(--colors-primary);
+  /* Buttons */
+  --btn-primary-bg: var(--brand-primary);
   --btn-primary-text: var(--colors-text-inverted);
   --btn-secondary-bg: var(--colors-background-surface);
   --btn-secondary-text: var(--colors-text-primary);
@@ -52,31 +77,15 @@
   --btn-danger-bg: var(--colors-danger);
   --btn-radius: var(--radii-full);
 
-  /* Interactive elements */
-  --focus-ring: 2px solid rgba(59, 130, 246, 0.8);
+  /* Badges */
   --badge-radius: var(--radii-full);
+  --badge-glow: 0 0 12px var(--focus-ring-color);
 
-  /* Visualization helpers */
-  --viz-chart-primary: var(--colors-primary);
-  --viz-chart-secondary: #38bdf8;
-  --progress-track: rgba(15, 23, 42, 0.4);
-  --progress-thumb: var(--colors-success);
+  /* Inputs */
+  --input-border-default: rgba(148, 163, 184, 0.4);
+  --input-border-strong: rgba(99, 102, 241, 0.65);
 
-  /* Typography overrides */
-  --dashboard-heading: var(--typography-fontSize-lg);
-  --dashboard-text: var(--typography-fontSize-md);
-
-  /* App-level atmosphere */
-  --app-background-gradient: radial-gradient(circle at 10% -20%, rgba(25, 25, 25, 0.95) 0%, rgba(9, 11, 15, 0.9) 40%, #050509 100%);
-  --app-accent-gradient: linear-gradient(135deg, rgba(218, 221, 225, 0.6), rgba(183, 190, 197, 0.6));
-  --glass-panel-bg: rgba(20, 22, 28, 0.9);
-  --glass-panel-border: rgba(179, 184, 194, 0.45);
-  --glass-panel-shadow: var(--shadows-lg);
-  --panel-surface: var(--colors-background-surface);
-  --panel-border: rgba(148, 163, 184, 0.35);
-  --hero-surface: rgba(15, 23, 42, 0.85);
-
-  /* Task board */
+  /* Task Board */
   --taskboard-bg: rgba(12, 18, 44, 0.92);
   --taskboard-border: rgba(59, 130, 246, 0.35);
   --taskboard-shadow: 0 30px 60px rgba(2, 6, 23, 0.8);
@@ -84,33 +93,21 @@
   --taskcard-border-rim: rgba(59, 130, 246, 0.25);
   --taskcard-striped-bg: linear-gradient(120deg, rgba(14, 165, 233, 0.08) 0%, rgba(99, 102, 241, 0.08) 50%, rgba(14, 165, 233, 0.03) 100%);
   --taskcard-glow: 0 20px 40px rgba(59, 130, 246, 0.35);
-
-  /* Inputs + badges */
-  --input-border-default: rgba(148, 163, 184, 0.4);
-  --input-border-strong: rgba(99, 102, 241, 0.65);
-  --badge-glow: 0 0 12px rgba(59, 130, 246, 0.4);
 }
 
+/* 5. THEME-SPECIFIC OVERRIDES */
 [data-theme='dark'] {
   --dashboard-header-bg: #0f172a;
   --dashboard-sidebar-bg: rgba(15, 23, 42, 0.7);
   --dashboard-content-bg: #020617;
-  --glass-panel-bg: rgba(12, 18, 44, 0.9);
-  --glass-panel-border: rgba(148, 163, 184, 0.4);
-  --panel-surface: rgba(14, 22, 40, 0.85);
-  --panel-border: rgba(144, 202, 255, 0.4);
-  --hero-surface: rgba(15, 23, 42, 0.95);
+  --card-bg: rgba(14, 22, 40, 0.85);
+  --card-border: rgba(144, 202, 255, 0.4);
 }
 
 [data-theme='light'] {
   --dashboard-header-bg: var(--colors-background-surface);
   --dashboard-sidebar-bg: var(--colors-background-page);
   --dashboard-content-bg: #f8fafc;
-  --taskcard-bg: #ffffff;
-  --taskcard-border: rgba(15, 23, 42, 0.1);
-  --glass-panel-bg: rgba(255, 255, 255, 0.85);
-  --glass-panel-border: rgba(15, 23, 42, 0.1);
-  --panel-surface: var(--colors-background-surface);
-  --panel-border: rgba(15, 23, 42, 0.15);
-  --hero-surface: rgba(255, 255, 255, 0.85);
+  --card-bg: #ffffff;
+  --card-border: rgba(15, 23, 42, 0.1);
 }

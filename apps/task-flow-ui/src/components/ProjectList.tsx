@@ -3,6 +3,7 @@ import { ProjectListViewModel } from '../view-models/ProjectListViewModel';
 import { useObservable } from '../hooks/useObservable';
 import { ProjectCard } from './ProjectCard';
 import { formatProjectStatus } from '../domain/values/projectStatus';
+import styles from './ProjectList.module.css';
 
 interface Props {
   viewModel?: ProjectListViewModel;
@@ -35,39 +36,40 @@ export function ProjectList({ viewModel }: Props) {
   };
 
   return (
-    <section className="project-list">
-      <header className="project-list__header">
+    <section className={styles.container}>
+      <header className={styles.header}>
         <div>
-          <h2>Project Explorer</h2>
-          <p className="project-list__subhead">Live task management powered by the TaskFlow API.</p>
+          <h2 className={styles.title}>Project Explorer</h2>
+          <p className={styles.subtitle}>Live task management powered by the TaskFlow API.</p>
         </div>
-        <div className="project-list__controls">
+        <div className={styles.controls}>
           <input
             type="search"
             aria-label="Search projects"
             placeholder="Search projects…"
             value={searchTerm}
             onChange={(event) => vm.setSearchTerm(event.target.value)}
+            className={styles.searchInput}
           />
-          <button type="button" onClick={() => vm.refresh()}>
+          <button type="button" onClick={() => vm.refresh()} className={styles.button}>
             Refresh
           </button>
         </div>
       </header>
 
       {errorMessage && (
-        <div className="project-list__error">
+        <div className={styles.error}>
           <p>{errorMessage}</p>
-          <button type="button" onClick={() => vm.refresh()}>
+          <button type="button" onClick={() => vm.refresh()} className={styles.button}>
             Retry
           </button>
         </div>
       )}
 
       {isLoading ? (
-        <p className="panel__empty">Loading projects…</p>
+        <p className={styles.empty}>Loading projects…</p>
       ) : (
-        <div className="project-grid">
+        <div className={styles.grid}>
           {projects.map((project) => (
             <ProjectCard
               key={project.id}
@@ -77,24 +79,24 @@ export function ProjectList({ viewModel }: Props) {
             />
           ))}
           {!projects.length && !errorMessage && (
-            <p className="project-list__empty">No projects match your search term.</p>
+            <p className={styles.empty}>No projects match your search term.</p>
           )}
         </div>
       )}
 
       {detailOpen && selectedProject && (
-        <aside className="project-list__detail">
-          <div className="project-list__detail-header">
-            <h3>{selectedProject.name}</h3>
-            <button type="button" onClick={() => vm.toggleDetailPanel()}>
+        <aside className={styles.detailPanel}>
+          <div className={styles.detailHeader}>
+            <h3 className={styles.detailTitle}>{selectedProject.name}</h3>
+            <button type="button" onClick={() => vm.toggleDetailPanel()} className={styles.button}>
               Close
             </button>
           </div>
           <p>{selectedProject.description}</p>
-          <p className="project-list__detail-meta">
+          <p>
             {selectedProject.completedCount} / {selectedProject.tasksCount} tasks complete
           </p>
-          <div className="project-list__detail-stats">
+          <div>
             <span>Status: {formatProjectStatus(selectedProject.status)}</span>
             <span>Color: {selectedProject.color}</span>
           </div>

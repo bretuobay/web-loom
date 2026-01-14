@@ -56,3 +56,6 @@ loc-report.html
 
 # Storybook
 /storybook-static
+
+# Log files
+*.log

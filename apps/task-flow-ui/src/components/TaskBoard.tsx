@@ -4,6 +4,7 @@ import { useObservable } from '../hooks/useObservable';
 import { TaskCard } from './TaskCard';
 import { TaskForm, type TaskFormValues } from './TaskForm';
 import { TASK_STATUSES, formatTaskStatus } from '../domain/values/taskStatus';
+import styles from './TaskBoard.module.css';
 
 interface Props {
   viewModel?: TaskBoardViewModel;
@@ -20,7 +21,7 @@ export function TaskBoard({ viewModel }: Props) {
     () =>
       TASK_STATUSES.map((status) => ({
         status,
-        count: allTasks.filter((task) => task.status === status).length
+        count: allTasks.filter((task) => task.status === status).length,
       })),
     [allTasks]
   );
@@ -30,20 +31,22 @@ export function TaskBoard({ viewModel }: Props) {
   };
 
   return (
-    <section className="task-board">
-      <header className="task-board__header">
+    <section className={styles.container}>
+      <header className={styles.header}>
         <div>
-          <h2>Task Board</h2>
-          <p className="project-list__subhead">Filtered tasks and lightweight creation form.</p>
+          <h2 className={styles.title}>Task Board</h2>
+          <p className={styles.subtitle}>Filtered tasks and lightweight creation form.</p>
         </div>
-        <div className="task-board__filters">
+        <div className={styles.filters}>
           {TASK_STATUSES.map((status) => {
             const bucket = statusBuckets.find((entry) => entry.status === status);
             return (
               <button
                 key={status}
                 type="button"
-                className={viewModelInstance.currentFilter === status ? 'is-active' : ''}
+                className={`${styles.filterButton} ${
+                  viewModelInstance.currentFilter === status ? styles.active : ''
+                }`}
                 onClick={() => viewModelInstance.setStatusFilter(status)}
               >
                 {formatTaskStatus(status)} ({bucket?.count ?? 0})
@@ -52,7 +55,7 @@ export function TaskBoard({ viewModel }: Props) {
           })}
           <button
             type="button"
-            className="task-board__filters-clear"
+            className={styles.clearButton}
             onClick={() => viewModelInstance.setStatusFilter(null)}
           >
             Show all
@@ -61,30 +64,30 @@ export function TaskBoard({ viewModel }: Props) {
       </header>
 
       {errorMessage && (
-        <div className="task-board__error">
+        <div className={styles.error}>
           <p>{errorMessage}</p>
-          <button type="button" onClick={() => viewModelInstance.refresh()}>
+          <button type="button" onClick={() => viewModelInstance.refresh()} className={styles.button}>
             Retry
           </button>
         </div>
       )}
 
       {isLoading ? (
-        <p className="panel__empty">Loading tasks…</p>
+        <p className={styles.empty}>Loading tasks…</p>
       ) : (
-        <div className="task-board__layout">
-          <div className="task-board__list">
+        <div className={styles.layout}>
+          <div className={styles.list}>
             {tasks.length ? (
-              <div className="task-board__grid">
+              <div className={styles.grid}>
                 {tasks.map((task) => (
                   <TaskCard key={task.id} task={task} />
                 ))}
               </div>
             ) : (
-              <p className="project-list__empty">No tasks match the current filter.</p>
+              <p className={styles.empty}>No tasks match the current filter.</p>
             )}
           </div>
-          <div className="task-board__form">
+          <div className={styles.form}>
             <TaskForm onSubmit={handleSubmit} submitLabel="Schedule work" />
           </div>
         </div>
