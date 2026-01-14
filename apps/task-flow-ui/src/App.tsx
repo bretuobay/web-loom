@@ -1,8 +1,8 @@
 import '@repo/shared/styles';
 import './App.css';
 
-import { useMemo } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { ReactNode, useMemo } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { PluginRegistry, type PluginDefinition } from '@repo/plugin-core';
 import { PluginSpotlight } from './components/PluginSpotlight';
 import { ProjectList } from './components/ProjectList';
@@ -13,6 +13,7 @@ import { Header } from './layout/Header';
 import { Footer } from './layout/Footer';
 import { Container } from './layout/Container';
 import { ThemeProvider, useTheme, type ThemeMode } from './providers/ThemeProvider';
+import { useObservable } from './hooks/useObservable';
 
 const navItems = [
   { label: 'Projects', path: '/projects' },
@@ -110,6 +111,16 @@ function HeroPanel({
   );
 }
 
+function RequireAuth({ viewModel, children }: { viewModel: AuthViewModel; children: ReactNode }) {
+  const currentUser = useObservable(viewModel.userObservable, null);
+
+  if (!currentUser) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function MainShell({
   authViewModel,
   pluginDefinitions
@@ -119,6 +130,12 @@ function MainShell({
 }) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const currentUser = useObservable(authViewModel.userObservable, null);
+
+  const handleLogout = () => {
+    authViewModel.logout();
+    navigate('/auth');
+  };
 
   return (
     <div className="taskflow-shell">
@@ -127,6 +144,8 @@ function MainShell({
         navItems={navItems}
         onTaskBoardClick={() => navigate('/tasks')}
         onToggleTheme={toggleTheme}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       <HeroPanel
@@ -174,11 +193,15 @@ function App() {
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/auth" element={<AuthPage viewModel={authViewModel} />} />
-          <Route
-            path="/*"
-            element={<MainShell authViewModel={authViewModel} pluginDefinitions={pluginDefinitions} />}
-          />
+        <Route path="/auth" element={<AuthPage viewModel={authViewModel} />} />
+        <Route
+          path="/*"
+          element={
+            <RequireAuth viewModel={authViewModel}>
+              <MainShell authViewModel={authViewModel} pluginDefinitions={pluginDefinitions} />
+            </RequireAuth>
+          }
+        />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

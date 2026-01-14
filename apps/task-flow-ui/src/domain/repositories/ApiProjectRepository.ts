@@ -1,16 +1,18 @@
 import { ProjectEntity } from '../entities/project';
-import { ProjectApiResponse } from '../entities/project';
-import { IProjectRepository } from './interfaces';
+import type { ProjectApiResponse } from '../entities/project';
+import type { IProjectRepository } from './interfaces';
 import { taskFlowApiClient } from '../services/apiClient';
 
 export class ApiProjectRepository implements IProjectRepository {
-  constructor(private client = taskFlowApiClient) {}
+  private client: typeof taskFlowApiClient;
+
+  constructor(client = taskFlowApiClient) {
+    this.client = client;
+  }
 
   async fetchAll() {
     const payload = await this.client.fetchProjects();
-    return payload.map((project) =>
-      ProjectEntity.fromApi(project as ProjectApiResponse)
-    );
+    return payload.map((project) => ProjectEntity.fromApi(project as ProjectApiResponse));
   }
 
   async getById(id: string) {

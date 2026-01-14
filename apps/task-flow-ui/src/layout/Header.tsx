@@ -11,9 +11,11 @@ export interface HeaderProps {
   onTaskBoardClick: () => void;
   onToggleTheme: () => void;
   theme: ThemeMode;
+  currentUser?: { displayName: string; role: string };
+  onLogout?: () => void;
 }
 
-export function Header({ navItems, onTaskBoardClick, onToggleTheme, theme }: HeaderProps) {
+export function Header({ navItems, onTaskBoardClick, onToggleTheme, theme, currentUser, onLogout }: HeaderProps) {
   return (
     <header className="layout-header">
       <div className="layout-header__branding">
@@ -26,18 +28,27 @@ export function Header({ navItems, onTaskBoardClick, onToggleTheme, theme }: Hea
             <NavLink
               key={item.path}
               to={item.path}
-              className={({ isActive }) =>
-                `layout-header__nav-link ${isActive ? 'is-active' : ''}`
-              }
+              className={({ isActive }) => `layout-header__nav-link ${isActive ? 'is-active' : ''}`}
             >
               {item.label}
             </NavLink>
           ))}
-          <NavLink className="layout-header__nav-link" to="/auth">
-            Sign in / register
-          </NavLink>
         </nav>
         <div className="layout-header__controls">
+          {currentUser ? (
+            <div className="layout-header__user">
+              <span>
+                Signed in as <strong>{currentUser.displayName}</strong> · {currentUser.role}
+              </span>
+              <button className="layout-header__signout" type="button" onClick={onLogout}>
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <NavLink className="layout-header__nav-link" to="/auth">
+              Sign in / register
+            </NavLink>
+          )}
           <button
             type="button"
             className="layout-header__theme-toggle"

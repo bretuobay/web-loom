@@ -4,7 +4,11 @@ import { taskFlowApiClient } from '../services/apiClient';
 import type { ITaskRepository } from './interfaces';
 
 export class ApiTaskRepository implements ITaskRepository {
-  constructor(private client = taskFlowApiClient) {}
+  private client;
+
+  constructor(client = taskFlowApiClient) {
+    this.client = client;
+  }
 
   async fetchAll() {
     const payload = await this.client.fetchTasks();

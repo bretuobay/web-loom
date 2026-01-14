@@ -1,11 +1,14 @@
-import { BehaviorSubject, Observable } from 'rxjs';
-import { IProjectRepository } from '../repositories/interfaces';
+import { BehaviorSubject, type Observable } from 'rxjs';
+import type { IProjectRepository } from '../repositories/interfaces';
 import { ProjectEntity } from '../entities/project';
 
 export class ProjectStore {
   private readonly _projects$ = new BehaviorSubject<ProjectEntity[]>([]);
+  private readonly repository: IProjectRepository;
 
-  constructor(private readonly repository: IProjectRepository) {}
+  constructor(repository: IProjectRepository) {
+    this.repository = repository;
+  }
 
   get data$(): Observable<ProjectEntity[]> {
     return this._projects$.asObservable();

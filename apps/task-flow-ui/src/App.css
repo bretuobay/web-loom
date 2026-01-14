@@ -122,6 +122,30 @@
   color: var(--btn-primary-text);
 }
 
+.layout-header__user {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--colors-text-secondary);
+}
+
+.layout-header__signout {
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  color: var(--colors-text-primary);
+  font-weight: 600;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.layout-header__signout:hover {
+  border-color: var(--btn-primary-bg);
+}
+
 .layout-header__cta {
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);

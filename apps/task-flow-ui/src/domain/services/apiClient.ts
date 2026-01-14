@@ -57,8 +57,11 @@ export interface UserResponse {
 
 export class TaskFlowApiClient {
   private token: string | null = null;
+  private baseUrl: string;
 
-  constructor(private baseUrl = import.meta.env.VITE_TASKFLOW_API_BASE_URL ?? DEFAULT_BASE_URL) {}
+  constructor(baseUrl: string = DEFAULT_BASE_URL) {
+    this.baseUrl = baseUrl;
+  }
 
   setToken(token: string | null) {
     this.token = token;
@@ -73,7 +76,7 @@ export class TaskFlowApiClient {
 
     const response = await fetch(`${this.baseUrl}${path}`, {
       ...options,
-      headers
+      headers,
     });
 
     if (!response.ok) {
@@ -99,21 +102,21 @@ export class TaskFlowApiClient {
   async login(payload: AuthPayload) {
     return this.request<AuthResponse>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
   }
 
   async register(payload: RegisterPayload) {
     return this.request<AuthResponse>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
   }
 
   async changePassword(payload: ChangePasswordPayload) {
     return this.request<void>('/auth/change-password', {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
   }
 
@@ -132,7 +135,7 @@ export class TaskFlowApiClient {
   async createTask(payload: TaskCreationPayload) {
     return this.request<TaskResponse>('/tasks', {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
   }
 }

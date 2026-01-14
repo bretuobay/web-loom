@@ -6,8 +6,11 @@ import type { ITaskRepository } from '../repositories/interfaces';
 
 export class TaskStore {
   private readonly _tasks$ = new BehaviorSubject<TaskEntity[]>([]);
+  private readonly repository: ITaskRepository;
 
-  constructor(private readonly repository: ITaskRepository = new ApiTaskRepository()) {}
+  constructor(repository: ITaskRepository = new ApiTaskRepository()) {
+    this.repository = repository;
+  }
 
   get data$() {
     return this._tasks$.asObservable();
