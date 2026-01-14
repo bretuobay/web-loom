@@ -102,6 +102,34 @@
   --dashboard-content-bg: #020617;
   --card-bg: rgba(14, 22, 40, 0.85);
   --card-border: rgba(144, 202, 255, 0.4);
+
+  /* Background gradient for dark mode */
+  --app-background-gradient: radial-gradient(circle at 10% -20%, rgba(25, 25, 25, 0.95) 0%, rgba(9, 11, 15, 0.9) 40%, #050509 100%);
+
+  /* Panel and surface colors for dark mode */
+  --panel-surface: rgba(15, 23, 42, 0.85);
+  --panel-border: rgba(148, 163, 184, 0.25);
+  --hero-surface: rgba(15, 23, 42, 0.7);
+  --glass-panel-border: rgba(148, 163, 184, 0.2);
+  --glass-panel-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+
+  /* Task card tokens for dark mode */
+  --taskcard-bg: rgba(20, 30, 50, 0.9);
+  --taskcard-border: rgba(148, 163, 184, 0.2);
+  --taskcard-radius: 1rem;
+  --taskcard-padding: 1.25rem;
+  --taskcard-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  --taskcard-hover-shadow: 0 15px 35px rgba(59, 130, 246, 0.25);
+
+  /* Progress bar tokens */
+  --progress-track: rgba(148, 163, 184, 0.2);
+  --progress-thumb: var(--btn-primary-bg);
+
+  /* Chart/visualization tokens */
+  --viz-chart-secondary: #60a5fa;
+
+  /* Muted text for dark mode - ensure good contrast */
+  --colors-text-muted: #94a3b8;
 }
 
 [data-theme='light'] {
@@ -110,4 +138,32 @@
   --dashboard-content-bg: #f8fafc;
   --card-bg: #ffffff;
   --card-border: rgba(15, 23, 42, 0.1);
+
+  /* Background gradient for light mode */
+  --app-background-gradient: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+
+  /* Panel and surface colors for light mode */
+  --panel-surface: #ffffff;
+  --panel-border: rgba(15, 23, 42, 0.1);
+  --hero-surface: rgba(255, 255, 255, 0.9);
+  --glass-panel-border: rgba(15, 23, 42, 0.08);
+  --glass-panel-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
+
+  /* Task card tokens for light mode */
+  --taskcard-bg: #ffffff;
+  --taskcard-border: rgba(15, 23, 42, 0.1);
+  --taskcard-radius: 1rem;
+  --taskcard-padding: 1.25rem;
+  --taskcard-shadow: 0 4px 15px rgba(15, 23, 42, 0.08);
+  --taskcard-hover-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+
+  /* Progress bar tokens */
+  --progress-track: rgba(15, 23, 42, 0.1);
+  --progress-thumb: var(--btn-primary-bg);
+
+  /* Chart/visualization tokens */
+  --viz-chart-secondary: #3b82f6;
+
+  /* Muted text for light mode */
+  --colors-text-muted: #64748b;
 }

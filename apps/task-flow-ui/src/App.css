@@ -328,15 +328,16 @@
 .status-badge {
   padding: 0.5rem 0.9rem;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--panel-surface);
+  border: 1px solid var(--panel-border);
   font-size: 0.85rem;
+  color: var(--colors-text-primary);
 }
 
 .status-badge--project-active {
-  background: rgba(30, 64, 175, 0.15);
-  color: #c7d2fe;
-  border-color: rgba(14, 165, 233, 0.4);
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--viz-chart-secondary);
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
 .status-badge--project-completed {
@@ -405,8 +406,8 @@
 }
 
 .badge--muted {
-  background: rgba(15, 23, 42, 0.4);
-  color: var(--colors-text-muted);
+  background: var(--panel-surface);
+  color: var(--colors-text-secondary);
 }
 
 .badge--accent {
@@ -489,11 +490,12 @@
 }
 
 .plugin-spotlight__version {
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--panel-surface);
   padding: 0.25rem 0.65rem;
   border-radius: 999px;
   font-size: 0.75rem;
-  color: var(--colors-text-primary);
+  color: var(--colors-text-secondary);
+  border: 1px solid var(--panel-border);
 }
 
 .plugin-spotlight__description {
@@ -515,9 +517,9 @@
   gap: 0.3rem;
   padding: 0.6rem 0.8rem;
   border-radius: 0.8rem;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(14, 165, 233, 0.4);
-  color: #e0f2fe;
+  background: var(--panel-surface);
+  border: 1px solid var(--panel-border);
+  color: var(--colors-text-primary);
 }
 
 .widget-pill span {
@@ -535,8 +537,7 @@
   align-items: center;
   justify-content: center;
   padding: 3rem 1rem;
-  background: radial-gradient(circle at top, rgba(59, 130, 246, 0.2), transparent 40%),
-    rgba(2, 6, 23, 0.95);
+  background: var(--app-background-gradient);
 }
 
 .auth-page__panel {
@@ -580,17 +581,18 @@
 
 .project-list__controls input {
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.5);
+  border: 1px solid var(--panel-border);
   padding: 0.45rem 0.9rem;
-  background: rgba(15, 23, 42, 0.6);
-  color: #e2e8f0;
+  background: var(--panel-surface);
+  color: var(--colors-text-primary);
 }
 
 .project-list__controls button {
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  border: 1px solid var(--panel-border);
   padding: 0.45rem 1rem;
-  background: transparent;
+  background: var(--panel-surface);
+  color: var(--colors-text-primary);
   cursor: pointer;
 }
 
@@ -606,12 +608,12 @@
 }
 
 .project-list__empty {
-  color: #cbd5f5;
+  color: var(--colors-text-secondary);
   margin: 0;
 }
 
 .project-list__detail {
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  border-top: 1px solid var(--panel-border);
   padding-top: 1rem;
 }
 
@@ -623,7 +625,7 @@
 }
 
 .project-list__detail-meta {
-  color: #cbd5f5;
+  color: var(--colors-text-secondary);
   margin: 0.5rem 0;
 }
 
@@ -631,7 +633,7 @@
   display: flex;
   gap: 1rem;
   font-size: 0.9rem;
-  color: #94a3b8;
+  color: var(--colors-text-muted);
 }
 
 .project-card__footer {
@@ -641,9 +643,9 @@
 }
 
 .project-card__details {
-  background: rgba(56, 189, 248, 0.2);
-  border: none;
-  color: #a5f3fc;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--viz-chart-secondary);
   border-radius: 999px;
   padding: 0.45rem 0.9rem;
   cursor: pointer;
@@ -763,7 +765,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: #cbd5f5;
+  color: var(--colors-text-secondary);
 }
 
 .task-card__meta strong {
@@ -771,7 +773,7 @@
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--colors-text-muted);
 }
 
 .task-card__actions {
@@ -783,19 +785,19 @@
 .task-card__actions button {
   flex: 1;
   border-radius: 0.75rem;
-  border: none;
+  border: 1px solid var(--panel-border);
   padding: 0.5rem 0.75rem;
-  background: rgba(59, 130, 246, 0.25);
-  color: #e0f2fe;
+  background: var(--panel-surface);
+  color: var(--colors-text-primary);
   cursor: pointer;
 }
 
 .task-card__details {
-  background: rgba(14, 165, 233, 0.5);
+  background: rgba(59, 130, 246, 0.2);
   border-radius: 0.75rem;
-  border: none;
+  border: 1px solid rgba(59, 130, 246, 0.3);
   padding: 0.45rem 0.9rem;
-  color: #e0f2fe;
+  color: var(--viz-chart-secondary);
   cursor: pointer;
   font-weight: 600;
 }
@@ -815,13 +817,14 @@
 }
 
 .task-card__status--muted {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  background: var(--panel-surface);
+  border: 1px solid var(--panel-border);
+  color: var(--colors-text-secondary);
 }
 
 .task-card__status--accent {
   background: rgba(59, 130, 246, 0.15);
-  color: #38bdf8;
+  color: var(--viz-chart-secondary);
 }
 
 .task-card__status--warning {
@@ -835,11 +838,11 @@
 }
 
 .task-card__priority--muted {
-  color: #cbd5f5;
+  color: var(--colors-text-secondary);
 }
 
 .task-card__priority--accent {
-  color: #38bdf8;
+  color: var(--viz-chart-secondary);
 }
 
 .task-card__priority--warning {
@@ -867,9 +870,9 @@
 .task-form__field select,
 .task-form__field textarea {
   border-radius: 0.75rem;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(2, 6, 23, 0.6);
-  color: #e2e8f0;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-surface);
+  color: var(--colors-text-primary);
   padding: 0.45rem 0.75rem;
   font: inherit;
 }
@@ -922,18 +925,18 @@
 
 .task-form__cancel {
   background: transparent;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  color: #e2e8f0;
+  border: 1px solid var(--panel-border);
+  color: var(--colors-text-primary);
 }
 
 .task-form__feedback {
   font-size: 0.8rem;
-  color: #acc6ff;
+  color: var(--viz-chart-secondary);
 }
 
 .task-form__hint {
   margin: 0;
-  color: #94a3b8;
+  color: var(--colors-text-muted);
   font-size: 0.75rem;
 }
 
@@ -953,17 +956,17 @@
   align-self: flex-start;
   display: inline-flex;
   gap: 0.35rem;
-  background: rgba(15, 23, 42, 0.7);
+  background: var(--panel-surface);
   border-radius: 999px;
   padding: 0.25rem;
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  border: 1px solid var(--panel-border);
   flex-wrap: wrap;
 }
 
 .auth-panel__nav-link {
   border: none;
   background: transparent;
-  color: #e2e8f0;
+  color: var(--colors-text-primary);
   font: inherit;
   padding: 0.45rem 1.1rem;
   border-radius: 999px;
@@ -972,8 +975,8 @@
 }
 
 .auth-panel__nav-link--selected {
-  background: rgba(99, 102, 241, 0.85);
-  color: #f8fafc;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
   box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
 }
 
@@ -982,14 +985,14 @@
 }
 
 .auth-panel__card {
-  background: linear-gradient(200deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.8));
-  border: 1px solid rgba(99, 102, 241, 0.45);
+  background: var(--panel-surface);
+  border: 1px solid var(--panel-border);
   border-radius: 1.1rem;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  box-shadow: 0 25px 45px rgba(2, 6, 23, 0.65);
+  box-shadow: var(--glass-panel-shadow);
 }
 
 .auth-panel__card-header {
@@ -1002,12 +1005,13 @@
 .auth-panel__card-note {
   margin: 0;
   font-size: 0.85rem;
-  color: #94a3b8;
+  color: var(--colors-text-muted);
 }
 
 .auth-panel__card-header h3 {
   margin: 0;
   font-size: 1.2rem;
+  color: var(--colors-text-primary);
 }
 
 .auth-panel__eyebrow {
@@ -1015,7 +1019,7 @@
   letter-spacing: 0.25em;
   text-transform: uppercase;
   font-size: 0.65rem;
-  color: #38bdf8;
+  color: var(--viz-chart-secondary);
 }
 
 .auth-panel__details {
@@ -1035,7 +1039,7 @@
 
 .auth-panel__details__text {
   margin: 0;
-  color: #e2e8f0;
+  color: var(--colors-text-primary);
   font-size: 0.95rem;
 }
 
