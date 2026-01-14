@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import type { ThemeMode } from '../providers/ThemeProvider';
 
 interface NavItem {
   label: string;
@@ -8,21 +9,19 @@ interface NavItem {
 export interface HeaderProps {
   navItems: NavItem[];
   onTaskBoardClick: () => void;
+  onToggleTheme: () => void;
+  theme: ThemeMode;
 }
 
-export function Header({ navItems, onTaskBoardClick }: HeaderProps) {
+export function Header({ navItems, onTaskBoardClick, onToggleTheme, theme }: HeaderProps) {
   return (
     <header className="layout-header">
-      <div className="layout-header__content">
+      <div className="layout-header__branding">
         <p className="layout-header__eyebrow">Web Loom · MVVM Demo</p>
         <h1>TaskFlow · Project Management</h1>
-        <p>
-          Real-time inspired experience built on Web Loom ViewModels, plugin registry, reactive state,
-          and lightweight routing.
-        </p>
       </div>
       <div className="layout-header__actions">
-        <nav className="layout-header__nav" aria-label="TaskFlow navigation">
+        <nav className="layout-header__nav" aria-label="Primary">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -38,9 +37,19 @@ export function Header({ navItems, onTaskBoardClick }: HeaderProps) {
             Sign in / register
           </NavLink>
         </nav>
-        <button className="layout-header__cta" type="button" onClick={onTaskBoardClick}>
-          Open Task Board
-        </button>
+        <div className="layout-header__controls">
+          <button
+            type="button"
+            className="layout-header__theme-toggle"
+            onClick={onToggleTheme}
+            aria-label="Toggle theme mode"
+          >
+            {theme === 'light' ? 'Night mode' : 'Day mode'}
+          </button>
+          <button className="layout-header__cta" type="button" onClick={onTaskBoardClick}>
+            Open Task Board
+          </button>
+        </div>
       </div>
     </header>
   );

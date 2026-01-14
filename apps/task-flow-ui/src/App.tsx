@@ -2,17 +2,17 @@ import '@repo/shared/styles';
 import './App.css';
 
 import { useMemo } from 'react';
-import { PluginRegistry, type PluginDefinition } from '@repo/plugin-core';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { PluginRegistry, type PluginDefinition } from '@repo/plugin-core';
+import { PluginSpotlight } from './components/PluginSpotlight';
 import { ProjectList } from './components/ProjectList';
 import { TaskBoard } from './components/TaskBoard';
-import { PluginSpotlight } from './components/PluginSpotlight';
-import { AuthViewModel } from './view-models/AuthViewModel';
 import { AuthPage } from './pages/AuthPage';
-import { useObservable } from './hooks/useObservable';
+import { AuthViewModel } from './view-models/AuthViewModel';
 import { Header } from './layout/Header';
-import { Container } from './layout/Container';
 import { Footer } from './layout/Footer';
+import { Container } from './layout/Container';
+import { ThemeProvider, useTheme, type ThemeMode } from './providers/ThemeProvider';
 
 const navItems = [
   { label: 'Projects', path: '/projects' },
@@ -86,6 +86,30 @@ function NotFoundPanel() {
   );
 }
 
+function HeroPanel({
+  onTaskBoardClick,
+  onProjectsClick
+}: {
+  onTaskBoardClick: () => void;
+  onProjectsClick: () => void;
+}) {
+  return (
+    <section className="taskflow-hero">
+      <div className="taskflow-hero__content">
+        <h2 className="sr-only">TaskFlow workspace</h2>
+        <div className="taskflow-hero__actions">
+          <button type="button" className="layout-header__cta" onClick={onTaskBoardClick}>
+            Launch task board
+          </button>
+          <button type="button" className="taskflow-hero__secondary" onClick={onProjectsClick}>
+            Review projects
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function MainShell({
   authViewModel,
   pluginDefinitions
@@ -93,54 +117,47 @@ function MainShell({
   authViewModel: AuthViewModel;
   pluginDefinitions: PluginDefinition[];
 }) {
-  const currentUser = useObservable(authViewModel.userObservable, null);
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    authViewModel.logout();
-    navigate('/auth');
-  };
 
   return (
     <div className="taskflow-shell">
-      <Header navItems={navItems} onTaskBoardClick={() => navigate('/tasks')} />
+      <Header
+        theme={theme}
+        navItems={navItems}
+        onTaskBoardClick={() => navigate('/tasks')}
+        onToggleTheme={toggleTheme}
+      />
 
-      <div className="taskflow-auth-status">
-        {currentUser ? (
-          <>
-            <span>
-              Signed in as <strong>{currentUser.displayName}</strong> ({currentUser.email}) · role:{' '}
-              {currentUser.role}
-            </span>
-            <button type="button" className="panel__button" onClick={handleLogout}>
-              Logout
-            </button>
-          </>
-        ) : (
-          <span className="taskflow-auth-status__muted">Not signed in</span>
-        )}
-      </div>
+      <HeroPanel
+        onTaskBoardClick={() => navigate('/tasks')}
+        onProjectsClick={() => navigate('/projects')}
+      />
 
       <Container>
-        <main className="taskflow-main">
-          <Routes>
-            <Route index element={<ProjectList />} />
-            <Route path="projects" element={<ProjectList />} />
-            <Route path="tasks" element={<TaskBoard />} />
-            <Route path="*" element={<NotFoundPanel />} />
-          </Routes>
-        </main>
-
-        <section className="panel panel--plugins">
-          <div className="panel__header">
-            <h2>Plugin Registry</h2>
-          </div>
-          <div className="plugin-grid">
-            {pluginDefinitions.map((plugin) => (
-              <PluginSpotlight key={plugin.manifest.id} plugin={plugin.manifest} />
-            ))}
-          </div>
-        </section>
+        <div className="taskflow-grid">
+          <main className="taskflow-main">
+            <Routes>
+              <Route index element={<ProjectList />} />
+              <Route path="projects" element={<ProjectList />} />
+              <Route path="tasks" element={<TaskBoard />} />
+              <Route path="*" element={<NotFoundPanel />} />
+            </Routes>
+          </main>
+          <aside className="taskflow-aside">
+            <section className="panel panel--plugins">
+              <div className="panel__header">
+                <h2>Plugin Registry</h2>
+                <p className="panel__subhead">Activate widgets, nav hooks, and lightweight integrations.</p>
+              </div>
+              <div className="plugin-grid">
+                {pluginDefinitions.map((plugin) => (
+                  <PluginSpotlight key={plugin.manifest.id} plugin={plugin.manifest} />
+                ))}
+              </div>
+            </section>
+          </aside>
+        </div>
       </Container>
 
       <Footer />
@@ -154,15 +171,17 @@ function App() {
   const authViewModel = useMemo(() => new AuthViewModel(), []);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/auth" element={<AuthPage viewModel={authViewModel} />} />
-        <Route
-          path="/*"
-          element={<MainShell authViewModel={authViewModel} pluginDefinitions={pluginDefinitions} />}
-        />
-      </Routes>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/auth" element={<AuthPage viewModel={authViewModel} />} />
+          <Route
+            path="/*"
+            element={<MainShell authViewModel={authViewModel} pluginDefinitions={pluginDefinitions} />}
+          />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

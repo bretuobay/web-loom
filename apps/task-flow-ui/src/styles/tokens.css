@@ -67,11 +67,14 @@
   --dashboard-text: var(--typography-fontSize-md);
 
   /* App-level atmosphere */
-  --app-background-gradient: radial-gradient(circle at 20% -10%, #1e3a8a 0%, #0f172a 45%, #020617 100%);
-  --app-accent-gradient: linear-gradient(135deg, #38bdf8, #6366f1);
-  --glass-panel-bg: rgba(15, 23, 42, 0.75);
-  --glass-panel-border: rgba(148, 163, 184, 0.35);
+  --app-background-gradient: radial-gradient(circle at 10% -20%, rgba(25, 25, 25, 0.95) 0%, rgba(9, 11, 15, 0.9) 40%, #050509 100%);
+  --app-accent-gradient: linear-gradient(135deg, rgba(218, 221, 225, 0.6), rgba(183, 190, 197, 0.6));
+  --glass-panel-bg: rgba(20, 22, 28, 0.9);
+  --glass-panel-border: rgba(179, 184, 194, 0.45);
   --glass-panel-shadow: var(--shadows-lg);
+  --panel-surface: var(--colors-background-surface);
+  --panel-border: rgba(148, 163, 184, 0.35);
+  --hero-surface: rgba(15, 23, 42, 0.85);
 
   /* Task board */
   --taskboard-bg: rgba(12, 18, 44, 0.92);
@@ -92,6 +95,11 @@
   --dashboard-header-bg: #0f172a;
   --dashboard-sidebar-bg: rgba(15, 23, 42, 0.7);
   --dashboard-content-bg: #020617;
+  --glass-panel-bg: rgba(12, 18, 44, 0.9);
+  --glass-panel-border: rgba(148, 163, 184, 0.4);
+  --panel-surface: rgba(14, 22, 40, 0.85);
+  --panel-border: rgba(144, 202, 255, 0.4);
+  --hero-surface: rgba(15, 23, 42, 0.95);
 }
 
 [data-theme='light'] {
@@ -100,4 +108,9 @@
   --dashboard-content-bg: #f8fafc;
   --taskcard-bg: #ffffff;
   --taskcard-border: rgba(15, 23, 42, 0.1);
+  --glass-panel-bg: rgba(255, 255, 255, 0.85);
+  --glass-panel-border: rgba(15, 23, 42, 0.1);
+  --panel-surface: var(--colors-background-surface);
+  --panel-border: rgba(15, 23, 42, 0.15);
+  --hero-surface: rgba(255, 255, 255, 0.85);
 }
