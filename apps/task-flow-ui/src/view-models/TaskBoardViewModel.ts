@@ -103,6 +103,16 @@ export class TaskBoardViewModel {
     }
   }
 
+  public async uploadAttachment(taskId: string, file: File) {
+    try {
+      await this.taskStore.uploadAttachment(taskId, file);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Attachment upload failed';
+      this.error$.next(message);
+      throw error;
+    }
+  }
+
   public setStatusFilter(status: TaskStatus | null) {
     if (status) {
       this.store.actions.setStatusFilter(status);

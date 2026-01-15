@@ -10,6 +10,11 @@
   gap: var(--spacing-4);
 }
 
+.selected {
+  border-color: var(--btn-primary-bg);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+
 .card:hover {
   box-shadow: var(--card-hover-shadow);
   transform: translateY(-2px);
@@ -96,6 +101,18 @@
 
 .detailsButton:hover {
   opacity: 0.9;
+}
+
+.attachmentSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  border-top: 1px solid var(--card-border);
+  padding-top: var(--spacing-3);
+}
+
+.uploadWrapper {
+  width: 100%;
 }
 
 /* Status and Priority Tones */

@@ -3,6 +3,7 @@ import { Project } from '../models/project.model.js';
 import { Task, TASK_PRIORITIES, TASK_STATUSES } from '../models/task.model.js';
 import { User } from '../models/user.model.js';
 import { Comment } from '../models/comment.model.js';
+import { Attachment } from '../models/attachment.model.js';
 
 const sampleProjects = [
   {
@@ -81,6 +82,7 @@ export const seedInitialData = async () => {
 
   const existingProjects = await Project.count();
   if (existingProjects > 0) {
+    await Attachment.destroy({ where: {}, truncate: true, cascade: true });
     await Comment.destroy({ where: {}, truncate: true, cascade: true });
     await Task.destroy({ where: {}, truncate: true, cascade: true });
     await Project.destroy({ where: {}, truncate: true, cascade: true });

@@ -2,6 +2,7 @@ import { Project } from './project.model.js';
 import { Task } from './task.model.js';
 import { User } from './user.model.js';
 import { Comment } from './comment.model.js';
+import { Attachment } from './attachment.model.js';
 
 export const registerModels = () => {
   if (!Project.associations || !Project.associations.tasks) {
@@ -28,6 +29,14 @@ export const registerModels = () => {
     Comment.belongsTo(Task, { foreignKey: 'taskId', as: 'task' });
   }
 
+  if (!Task.associations || !Task.associations.attachments) {
+    Task.hasMany(Attachment, { foreignKey: 'taskId', as: 'attachments' });
+  }
+
+  if (!Attachment.associations || !Attachment.associations.task) {
+    Attachment.belongsTo(Task, { foreignKey: 'taskId', as: 'task' });
+  }
+
   if (!Comment.associations || !Comment.associations.author) {
     Comment.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
   }
@@ -37,4 +46,4 @@ export const registerModels = () => {
   }
 };
 
-export { Project, Task, User, Comment };
+export { Project, Task, User, Comment, Attachment };

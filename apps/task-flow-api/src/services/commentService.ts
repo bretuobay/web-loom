@@ -39,7 +39,8 @@ export const commentService = {
       throw new ApiError('Task not found', 404);
     }
 
-    return Comment.create(payload);
+    const comment = await Comment.create(payload);
+    return commentService.getById(comment.id);
   },
 
   update: async (id: string, updates: CommentUpdatePayload) => {

@@ -1,5 +1,6 @@
 import { TASK_PRIORITIES, type TaskPriority } from '../values/taskPriority';
 import { TASK_STATUSES, type TaskStatus } from '../values/taskStatus';
+import { AttachmentEntity, type AttachmentApiResponse } from './attachment';
 import { UserEntity, type UserApiResponse } from './user';
 
 export interface TaskApiResponse {
@@ -14,6 +15,7 @@ export interface TaskApiResponse {
   assignee?: UserApiResponse;
   createdAt: string;
   updatedAt: string;
+  attachments?: AttachmentApiResponse[];
 }
 
 export interface TaskCreationPayload {
@@ -39,6 +41,7 @@ export class TaskEntity {
   readonly projectId: string;
   readonly assigneeId: string | null;
   readonly assignee: UserEntity | null;
+  readonly attachments: AttachmentEntity[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -52,6 +55,7 @@ export class TaskEntity {
     projectId: string,
     assigneeId: string | null,
     assignee: UserEntity | null,
+    attachments: AttachmentEntity[],
     createdAt: Date,
     updatedAt: Date
   ) {
@@ -64,6 +68,7 @@ export class TaskEntity {
     this.projectId = projectId;
     this.assigneeId = assigneeId;
     this.assignee = assignee;
+    this.attachments = attachments;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
@@ -77,6 +82,7 @@ export class TaskEntity {
       : 'medium';
 
     const assignee = payload.assignee ? UserEntity.fromApi(payload.assignee) : null;
+    const attachments = payload.attachments?.map((attachment) => AttachmentEntity.fromApi(attachment)) ?? [];
 
     return new TaskEntity(
       payload.id,
@@ -88,6 +94,7 @@ export class TaskEntity {
       payload.projectId,
       payload.assigneeId,
       assignee,
+      attachments,
       new Date(payload.createdAt),
       new Date(payload.updatedAt)
     );
@@ -95,5 +102,22 @@ export class TaskEntity {
 
   get isDone() {
     return this.status === 'done';
+  }
+
+  withAttachments(attachments: AttachmentEntity[]) {
+    return new TaskEntity(
+      this.id,
+      this.title,
+      this.description,
+      this.status,
+      this.priority,
+      this.dueDate,
+      this.projectId,
+      this.assigneeId,
+      this.assignee,
+      attachments,
+      this.createdAt,
+      this.updatedAt
+    );
   }
 }

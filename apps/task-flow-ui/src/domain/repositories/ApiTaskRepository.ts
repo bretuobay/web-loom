@@ -1,5 +1,6 @@
 import { TaskEntity } from '../entities/task';
 import type { TaskCreationPayload, TaskApiResponse } from '../entities/task';
+import { AttachmentEntity } from '../entities/attachment';
 import { taskFlowApiClient } from '../services/apiClient';
 import type { ITaskRepository } from './interfaces';
 
@@ -23,5 +24,10 @@ export class ApiTaskRepository implements ITaskRepository {
   async create(payload: TaskCreationPayload) {
     const response = await this.client.createTask(payload);
     return TaskEntity.fromApi(response);
+  }
+
+  async uploadAttachment(taskId: string, file: File) {
+    const response = await this.client.uploadTaskAttachment(taskId, file);
+    return AttachmentEntity.fromApi(response);
   }
 }

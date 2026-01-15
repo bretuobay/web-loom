@@ -31,6 +31,14 @@ export function TaskBoard({ viewModel }: Props) {
     await viewModelInstance.createTask(values);
   };
 
+  const handleAttachmentUpload = async (taskId: string, file: File) => {
+    try {
+      await viewModelInstance.uploadAttachment(taskId, file);
+    } catch {
+      // Errors are surfaced through the view model observable.
+    }
+  };
+
   return (
     <section className={styles.container}>
       <header className={styles.header}>
@@ -89,7 +97,7 @@ export function TaskBoard({ viewModel }: Props) {
               <div className={`${styles.grid} stagger-container`}>
                 {tasks.map((task) => (
                   <div key={task.id} className="stagger-item">
-                    <TaskCard task={task} />
+                    <TaskCard task={task} onUploadAttachment={handleAttachmentUpload} />
                   </div>
                 ))}
               </div>

@@ -1,6 +1,7 @@
 import { BehaviorSubject } from 'rxjs';
 import { TaskEntity } from '../entities/task';
 import type { TaskCreationPayload } from '../entities/task';
+import type { AttachmentEntity } from '../entities/attachment';
 import { ApiTaskRepository } from '../repositories/ApiTaskRepository';
 import type { ITaskRepository } from '../repositories/interfaces';
 
@@ -68,6 +69,7 @@ export class TaskStore {
       payload.projectId,
       payload.assigneeId ?? null,
       null, // No assignee entity for optimistic task
+      [],
       now,
       now
     );
@@ -110,6 +112,15 @@ export class TaskStore {
       const err = error instanceof Error ? error : new Error('Failed to create task');
       return { success: false, task: null, error: err };
     }
+  }
+
+  async uploadAttachment(taskId: string, file: File): Promise<AttachmentEntity> {
+    const attachment = await this.repository.uploadAttachment(taskId, file);
+    const updated = this.snapshot.map((task) =>
+      task.id === taskId ? task.withAttachments([...task.attachments, attachment]) : task
+    );
+    this._tasks$.next(updated);
+    return attachment;
   }
 
   findById(id: string) {

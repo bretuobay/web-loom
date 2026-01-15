@@ -1,12 +1,16 @@
 import { TaskEntity } from '../domain/entities/task';
 import { TASK_STATUSES, type TaskStatus, formatTaskStatus } from '../domain/values/taskStatus';
 import { TASK_PRIORITIES, formatTaskPriority } from '../domain/values/taskPriority';
+import { TaskAttachments } from './TaskAttachments';
+import { FileUploadDropzone } from './FileUploadDropzone';
 import styles from './TaskCard.module.css';
 
 interface Props {
   task: TaskEntity;
   onStatusChange?: (taskId: string, nextStatus: TaskStatus) => void;
   onSelect?: (taskId: string) => void;
+  onUploadAttachment?: (taskId: string, file: File) => Promise<void>;
+  isSelected?: boolean;
 }
 
 const statusTone: Record<TaskStatus, string> = {
@@ -22,7 +26,7 @@ const priorityTone: Record<(typeof TASK_PRIORITIES)[number], string> = {
   high: styles.priorityWarning,
 };
 
-export function TaskCard({ task, onStatusChange, onSelect }: Props) {
+export function TaskCard({ task, onStatusChange, onSelect, onUploadAttachment, isSelected }: Props) {
   const currentIndex = TASK_STATUSES.indexOf(task.status);
   const nextStatus = TASK_STATUSES[(currentIndex + 1) % TASK_STATUSES.length];
   const dueDateLabel = task.dueDate ? task.dueDate.toLocaleDateString() : 'No due date';
@@ -32,8 +36,15 @@ export function TaskCard({ task, onStatusChange, onSelect }: Props) {
     onStatusChange(task.id, nextStatus);
   };
 
+  const handleAttachmentUpload = async (file: File) => {
+    if (!onUploadAttachment) {
+      return;
+    }
+    await onUploadAttachment(task.id, file);
+  };
+
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${isSelected ? styles.selected : ''}`}>
       <header className={styles.header}>
         <div>
           <h3 className={styles.title}>{task.title}</h3>
@@ -57,6 +68,15 @@ export function TaskCard({ task, onStatusChange, onSelect }: Props) {
           <strong>Assignee</strong>
           <span>{task.assignee?.displayName ?? 'Unassigned'}</span>
         </div>
+      </div>
+
+      <div className={styles.attachmentSection}>
+        <TaskAttachments attachments={task.attachments} />
+        {onUploadAttachment && (
+          <div className={styles.uploadWrapper}>
+            <FileUploadDropzone onFileSelected={handleAttachmentUpload} />
+          </div>
+        )}
       </div>
 
       <footer className={styles.actions}>
