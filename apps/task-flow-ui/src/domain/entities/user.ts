@@ -7,13 +7,25 @@ export interface UserApiResponse {
 }
 
 export class UserEntity {
+  readonly id: string;
+  readonly displayName: string;
+  readonly email: string;
+  readonly avatarUrl: string | null;
+  readonly role: string;
+
   constructor(
-    public readonly id: string,
-    public readonly displayName: string,
-    public readonly email: string,
-    public readonly avatarUrl: string | null,
-    public readonly role: string
-  ) {}
+    id: string,
+    displayName: string,
+    email: string,
+    avatarUrl: string | null,
+    role: string
+  ) {
+    this.id = id;
+    this.displayName = displayName;
+    this.email = email;
+    this.avatarUrl = avatarUrl;
+    this.role = role;
+  }
 
   static fromApi(payload: UserApiResponse) {
     return new UserEntity(payload.id, payload.displayName, payload.email, payload.avatarUrl, payload.role);

@@ -1,0 +1,67 @@
+.indicator {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.animated {
+  animation: slideUp 300ms ease-out;
+}
+
+.offline {
+  background-color: #fbbf24;
+  color: #1f2937;
+}
+
+.syncing {
+  background-color: #10b981;
+  color: #ffffff;
+}
+
+.icon {
+  font-size: 1rem;
+}
+
+.syncing .icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated {
+    animation: none;
+  }
+
+  .syncing .icon {
+    animation: none;
+  }
+}

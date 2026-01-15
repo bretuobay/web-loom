@@ -3,8 +3,8 @@ import { createStore } from '@web-loom/store-core';
 import { TaskEntity } from '../domain/entities/task';
 import type { TaskCreationPayload, TaskFormValues } from '../domain/entities/task';
 import { TaskStore } from '../domain/stores/taskStore';
-import { ApiProjectRepository } from '../domain/repositories/ApiProjectRepository';
-import { ApiTaskRepository } from '../domain/repositories/ApiTaskRepository';
+import { CachingProjectRepository } from '../domain/repositories/CachingProjectRepository';
+import { CachingTaskRepository } from '../domain/repositories/CachingTaskRepository';
 import type { ITaskRepository } from '../domain/repositories/interfaces';
 import { ProjectStore } from '../domain/stores/projectStore';
 import type { TaskStatus } from '../domain/values/taskStatus';
@@ -35,11 +35,11 @@ export class TaskBoardViewModel {
   public readonly errorMessage$ = this.error$.asObservable();
   public readonly tasks$ = new BehaviorSubject<TaskEntity[]>([]);
   public readonly filtered$ = new BehaviorSubject<TaskEntity[]>([]);
-  private readonly projectStore = new ProjectStore(new ApiProjectRepository());
+  private readonly projectStore = new ProjectStore(new CachingProjectRepository());
   private projectLoadPromise: Promise<void> | null = null;
 
   constructor(repository?: ITaskRepository) {
-    this.repository = repository ?? new ApiTaskRepository();
+    this.repository = repository ?? new CachingTaskRepository();
     this.taskStore = new TaskStore(this.repository);
     this.store.subscribe((state) => {
       this.filter$.next(state.statusFilter);

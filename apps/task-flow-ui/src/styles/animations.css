@@ -1,0 +1,342 @@
+/* ==========================================================================
+   Animation System
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Keyframe Definitions
+   -------------------------------------------------------------------------- */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.25rem);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Animation Utility Classes
+   -------------------------------------------------------------------------- */
+
+.animate-fadeIn {
+  animation: fadeIn var(--transition-duration-normal, 200ms) var(--transition-timing, ease-out) forwards;
+}
+
+.animate-fadeOut {
+  animation: fadeOut var(--transition-duration-normal, 200ms) var(--transition-timing, ease-out) forwards;
+}
+
+.animate-slideInFromTop {
+  animation: slideInFromTop var(--transition-duration-normal, 200ms) var(--transition-timing, ease-out) forwards;
+}
+
+.animate-slideInFromBottom {
+  animation: slideInFromBottom var(--transition-duration-normal, 200ms) var(--transition-timing, ease-out) forwards;
+}
+
+.animate-slideInFromLeft {
+  animation: slideInFromLeft var(--transition-duration-normal, 200ms) var(--transition-timing, ease-out) forwards;
+}
+
+.animate-slideInFromRight {
+  animation: slideInFromRight var(--transition-duration-normal, 200ms) var(--transition-timing, ease-out) forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn var(--transition-duration-fast, 150ms) var(--transition-timing, ease-out) forwards;
+}
+
+.animate-scaleOut {
+  animation: scaleOut var(--transition-duration-fast, 150ms) var(--transition-timing, ease-out) forwards;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-bounce {
+  animation: bounce 1s ease-in-out infinite;
+}
+
+/* --------------------------------------------------------------------------
+   Skeleton Loading Styles
+   -------------------------------------------------------------------------- */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base, rgba(128, 128, 128, 0.1)) 0%,
+    var(--skeleton-highlight, rgba(128, 128, 128, 0.2)) 50%,
+    var(--skeleton-base, rgba(128, 128, 128, 0.1)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.skeleton-text {
+  height: 1em;
+  margin-bottom: 0.5em;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.skeleton-text:last-child {
+  width: 70%;
+}
+
+.skeleton-title {
+  height: 1.5em;
+  width: 60%;
+  margin-bottom: 0.75em;
+}
+
+.skeleton-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+}
+
+.skeleton-button {
+  height: 2.5rem;
+  width: 6rem;
+  border-radius: var(--radius-md, 8px);
+}
+
+.skeleton-card {
+  padding: 1rem;
+  border-radius: var(--radius-md, 8px);
+  background: var(--panel-surface, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.1));
+}
+
+/* --------------------------------------------------------------------------
+   Staggered List Animation
+   -------------------------------------------------------------------------- */
+
+.stagger-container > .stagger-item {
+  opacity: 0;
+  animation: slideInFromBottom var(--transition-duration-normal, 200ms) var(--transition-timing, ease-out) forwards;
+}
+
+.stagger-container > .stagger-item:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.stagger-container > .stagger-item:nth-child(2) {
+  animation-delay: 50ms;
+}
+
+.stagger-container > .stagger-item:nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.stagger-container > .stagger-item:nth-child(4) {
+  animation-delay: 150ms;
+}
+
+.stagger-container > .stagger-item:nth-child(5) {
+  animation-delay: 200ms;
+}
+
+.stagger-container > .stagger-item:nth-child(6) {
+  animation-delay: 250ms;
+}
+
+.stagger-container > .stagger-item:nth-child(7) {
+  animation-delay: 300ms;
+}
+
+.stagger-container > .stagger-item:nth-child(8) {
+  animation-delay: 350ms;
+}
+
+.stagger-container > .stagger-item:nth-child(9) {
+  animation-delay: 400ms;
+}
+
+.stagger-container > .stagger-item:nth-child(10) {
+  animation-delay: 450ms;
+}
+
+/* --------------------------------------------------------------------------
+   Transition Utilities
+   -------------------------------------------------------------------------- */
+
+.transition-all {
+  transition: all var(--transition-duration-fast, 150ms) var(--transition-timing, ease-out);
+}
+
+.transition-colors {
+  transition: color var(--transition-duration-fast, 150ms) var(--transition-timing, ease-out),
+    background-color var(--transition-duration-fast, 150ms) var(--transition-timing, ease-out),
+    border-color var(--transition-duration-fast, 150ms) var(--transition-timing, ease-out);
+}
+
+.transition-opacity {
+  transition: opacity var(--transition-duration-fast, 150ms) var(--transition-timing, ease-out);
+}
+
+.transition-transform {
+  transition: transform var(--transition-duration-fast, 150ms) var(--transition-timing, ease-out);
+}
+
+/* --------------------------------------------------------------------------
+   Reduced Motion Overrides
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .animate-fadeIn,
+  .animate-fadeOut,
+  .animate-slideInFromTop,
+  .animate-slideInFromBottom,
+  .animate-slideInFromLeft,
+  .animate-slideInFromRight,
+  .animate-scaleIn,
+  .animate-scaleOut {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .animate-pulse,
+  .animate-spin,
+  .animate-bounce {
+    animation: none;
+  }
+
+  .skeleton {
+    animation: none;
+    background: var(--skeleton-base, rgba(128, 128, 128, 0.15));
+  }
+
+  .stagger-container > .stagger-item {
+    animation: none;
+    opacity: 1;
+  }
+}

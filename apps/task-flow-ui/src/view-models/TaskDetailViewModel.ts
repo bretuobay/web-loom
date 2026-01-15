@@ -3,7 +3,7 @@ import { createStore } from '@web-loom/store-core';
 import { TaskEntity } from '../domain/entities/task';
 import { TaskStore } from '../domain/stores/taskStore';
 import { ApiTaskRepository } from '../domain/repositories/ApiTaskRepository';
-import { ITaskRepository } from '../domain/repositories/interfaces';
+import type { ITaskRepository } from '../domain/repositories/interfaces';
 
 interface TaskDetailState {
   selectedTaskId?: string;

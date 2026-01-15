@@ -1,5 +1,5 @@
-import { PROJECT_STATUSES, ProjectStatus } from '../values/projectStatus';
-import { TaskEntity, TaskApiResponse } from './task';
+import { PROJECT_STATUSES, type ProjectStatus } from '../values/projectStatus';
+import { TaskEntity, type TaskApiResponse } from './task';
 
 export interface ProjectApiResponse {
   id: string;
@@ -20,7 +20,11 @@ type ProjectProps = {
 };
 
 export class ProjectEntity {
-  constructor(public readonly props: ProjectProps) {}
+  readonly props: ProjectProps;
+
+  constructor(props: ProjectProps) {
+    this.props = props;
+  }
 
   get id() {
     return this.props.id;

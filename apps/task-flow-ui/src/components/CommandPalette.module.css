@@ -1,0 +1,135 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+}
+
+.container {
+  width: min(600px, 90vw);
+  max-height: 60vh;
+  background-color: var(--panel-surface);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--card-radius, 1rem);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.animated {
+  animation: slideIn 150ms ease-out;
+}
+
+.noAnimation {
+  /* No animation for reduced motion preference */
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.input {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: none;
+  border-bottom: 1px solid var(--panel-border);
+  background-color: transparent;
+  color: var(--colors-text-primary);
+  font-size: 1.1rem;
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--colors-text-muted);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.item:hover,
+.item.selected {
+  background-color: var(--colors-background-elevated, rgba(255, 255, 255, 0.05));
+}
+
+.itemContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--colors-text-primary);
+}
+
+.category {
+  font-size: 0.75rem;
+  color: var(--colors-text-muted);
+}
+
+.shortcut {
+  padding: 0.25rem 0.5rem;
+  background-color: var(--colors-background-elevated, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--panel-border);
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-family: ui-monospace, monospace;
+  color: var(--colors-text-secondary);
+}
+
+.empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--colors-text-muted);
+}
+
+.footer {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--panel-border);
+  font-size: 0.75rem;
+  color: var(--colors-text-muted);
+}
+
+.footer kbd {
+  padding: 0 0.25rem;
+  background-color: var(--colors-background-elevated, rgba(255, 255, 255, 0.05));
+  border-radius: 0.2rem;
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated {
+    animation: none;
+  }
+}
