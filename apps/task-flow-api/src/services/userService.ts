@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { ApiError } from '../middleware/httpErrors.js';
-import { User, UserAttributes, UserRole } from '../models/user.model.js';
+import { User, UserAttributes, UserPreferences, UserRole } from '../models/user.model.js';
 
 export const sanitizeUserRecord = (user: User) => {
   const clone = user.get({ plain: true }) as Partial<User>;
@@ -21,6 +21,7 @@ export interface UpdateUserPayload {
   password?: string;
   role?: UserRole;
   avatarUrl?: string | null;
+  preferences?: UserPreferences | null;
 }
 
 export const userService = {
@@ -81,6 +82,9 @@ export const userService = {
     }
     if (updates.avatarUrl !== undefined) {
       payload.avatarUrl = updates.avatarUrl;
+    }
+    if (updates.preferences !== undefined) {
+      payload.preferences = updates.preferences;
     }
 
     if (updates.password) {

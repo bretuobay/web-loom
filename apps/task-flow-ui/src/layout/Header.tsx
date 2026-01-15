@@ -13,9 +13,18 @@ export interface HeaderProps {
   theme: ThemeMode;
   currentUser?: { displayName: string; role: string };
   onLogout?: () => void;
+  onProfileClick?: () => void;
 }
 
-export function Header({ navItems, onTaskBoardClick, onToggleTheme, theme, currentUser, onLogout }: HeaderProps) {
+export function Header({
+  navItems,
+  onTaskBoardClick,
+  onToggleTheme,
+  theme,
+  currentUser,
+  onLogout,
+  onProfileClick
+}: HeaderProps) {
   return (
     <header className="layout-header">
       <div className="layout-header__branding">
@@ -48,6 +57,11 @@ export function Header({ navItems, onTaskBoardClick, onToggleTheme, theme, curre
             <NavLink className="layout-header__nav-link" to="/auth">
               Sign in / register
             </NavLink>
+          )}
+          {currentUser && onProfileClick && (
+            <button className="layout-header__profile" type="button" onClick={onProfileClick}>
+              Profile
+            </button>
           )}
           <button
             type="button"

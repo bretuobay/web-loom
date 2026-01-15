@@ -4,6 +4,10 @@ import { sequelize } from '../database/client.js';
 export const USER_ROLES = ['member', 'admin'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
+export interface UserPreferences {
+  theme?: 'light' | 'dark';
+}
+
 export interface UserAttributes {
   id: string;
   email: string;
@@ -11,6 +15,7 @@ export interface UserAttributes {
   passwordHash: string;
   avatarUrl: string | null;
   role: UserRole;
+  preferences: UserPreferences | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -27,6 +32,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   declare passwordHash: string;
   declare avatarUrl: string | null;
   declare role: UserRole;
+  declare preferences: UserPreferences | null;
   declare createdAt: Date;
   declare updatedAt: Date;
 }
@@ -60,6 +66,11 @@ User.init(
       type: DataTypes.ENUM(...USER_ROLES),
       allowNull: false,
       defaultValue: USER_ROLES[0]
+    },
+    preferences: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {}
     }
   },
   {

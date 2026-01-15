@@ -54,6 +54,22 @@ export class AuthViewModel {
     }
   }
 
+  private getStoredToken() {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    return window.localStorage.getItem(STORAGE_TOKEN_KEY);
+  }
+
+  public refreshUser(user: UserEntity) {
+    const token = this.getStoredToken();
+    if (!token) {
+      this.user$.next(user);
+      return;
+    }
+    this.persistSession(token, user);
+  }
+
   private setError(message: string | null) {
     this.error$.next(message);
   }

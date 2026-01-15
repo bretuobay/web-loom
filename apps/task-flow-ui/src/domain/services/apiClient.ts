@@ -1,5 +1,5 @@
 import type { TaskCreationPayload } from '../entities/task';
-import type { UserApiResponse } from '../entities/user';
+import type { ProfilePreferences, UserApiResponse } from '../entities/user';
 
 const DEFAULT_BASE_URL = 'http://localhost:4001';
 
@@ -58,12 +58,12 @@ export interface AttachmentResponse {
   updatedAt: string;
 }
 
-export interface UserResponse {
-  id: string;
-  displayName: string;
-  email: string;
-  avatarUrl: string | null;
-  role: string;
+export interface UserResponse extends UserApiResponse {}
+
+export interface ProfileUpdatePayload {
+  displayName?: string;
+  avatarUrl?: string | null;
+  preferences?: ProfilePreferences | null;
 }
 
 export interface CommentResponse {
@@ -179,6 +179,17 @@ export class TaskFlowApiClient {
   async createComment(payload: { taskId: string; content: string }) {
     return this.request<CommentResponse>('/comments', {
       method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async fetchProfile() {
+    return this.request<UserApiResponse>('/profile');
+  }
+
+  async updateProfile(payload: ProfileUpdatePayload) {
+    return this.request<UserApiResponse>('/profile', {
+      method: 'PUT',
       body: JSON.stringify(payload)
     });
   }

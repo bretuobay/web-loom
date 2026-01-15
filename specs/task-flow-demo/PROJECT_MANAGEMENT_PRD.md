@@ -408,6 +408,12 @@ The task involves implementing the design system setup pattern established in `a
 - **T3.5.3**: Surface threaded comments and quick-reply form inside the project detail drawer (MVVM-bound, `forms-core` validation)
 - **T3.5.4**: Show comment counts/thumbnails on task cards and keep the drawer/list in sync with the selected task
 
+#### Task 3.6: Profile Management
+
+- **T3.6.1**: Create profile endpoints so authenticated users can read/update their display name, avatar, and preferences while preserving the existing password flow
+- **T3.6.2**: Build a ProfileViewModel that keeps user data reactive, validates edits (`forms-core`), and centralizes avatar + preferences updates
+- **T3.6.3**: Add a profile/settings panel in the shell that shows the current tokenized user, allows editing with save/cancel actions, and displays feedback without leaking password hashes
+- **T3.6.4**: Persist profile edits to the store and refresh downstream components to keep the task/project surfaces in sync with the latest user metadata
 ### Phase 4: Polish & Documentation
 
 #### Task 4.1: Testing

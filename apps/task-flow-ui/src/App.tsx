@@ -1,7 +1,7 @@
 import '@repo/shared/styles';
 import './App.css';
 
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { PluginRegistry, type PluginDefinition } from '@repo/plugin-core';
 import { PluginSpotlight } from './components/PluginSpotlight';
@@ -16,6 +16,8 @@ import { ThemeProvider, useTheme } from './providers/ThemeProvider';
 import { useObservable } from './hooks/useObservable';
 import { CommandPalette } from './components/CommandPalette';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { ProfilePanel } from './components/ProfilePanel';
+import { ProfileViewModel } from './view-models/ProfileViewModel';
 
 const navItems = [
   { label: 'Projects', path: '/projects' },
@@ -134,6 +136,12 @@ function MainShell({
   const navigate = useNavigate();
   const currentUser = useObservable(authViewModel.userObservable, null);
 
+  const profileViewModel = useMemo(() => new ProfileViewModel(authViewModel), [authViewModel]);
+  const [isProfileOpen, setProfileOpen] = useState(false);
+  useEffect(() => {
+    void profileViewModel.loadProfile();
+  }, [profileViewModel]);
+
   const handleLogout = () => {
     authViewModel.logout();
     navigate('/auth');
@@ -155,40 +163,42 @@ function MainShell({
           onToggleTheme={toggleTheme}
           currentUser={currentUser ? { displayName: currentUser.displayName, role: currentUser.role } : undefined}
           onLogout={handleLogout}
+          onProfileClick={() => setProfileOpen(true)}
         />
 
-      <HeroPanel
-        onTaskBoardClick={() => navigate('/tasks')}
-        onProjectsClick={() => navigate('/projects')}
-      />
+        <HeroPanel
+          onTaskBoardClick={() => navigate('/tasks')}
+          onProjectsClick={() => navigate('/projects')}
+        />
 
-      <Container>
-        <div className="taskflow-grid">
-          <main className="taskflow-main">
-            <Routes>
-              <Route index element={<ProjectList />} />
-              <Route path="projects" element={<ProjectList />} />
-              <Route path="tasks" element={<TaskBoard />} />
-              <Route path="*" element={<NotFoundPanel />} />
-            </Routes>
-          </main>
-          <aside className="taskflow-aside">
-            <section className="panel panel--plugins">
-              <div className="panel__header">
-                <h2>Plugin Registry</h2>
-                <p className="panel__subhead">Activate widgets, nav hooks, and lightweight integrations.</p>
-              </div>
-              <div className="plugin-grid">
-                {pluginDefinitions.map((plugin) => (
-                  <PluginSpotlight key={plugin.manifest.id} plugin={plugin.manifest} />
-                ))}
-              </div>
-            </section>
-          </aside>
-        </div>
-      </Container>
+        <Container>
+          <div className="taskflow-grid">
+            <main className="taskflow-main">
+              <Routes>
+                <Route index element={<ProjectList />} />
+                <Route path="projects" element={<ProjectList />} />
+                <Route path="tasks" element={<TaskBoard />} />
+                <Route path="*" element={<NotFoundPanel />} />
+              </Routes>
+            </main>
+            <aside className="taskflow-aside">
+              <section className="panel panel--plugins">
+                <div className="panel__header">
+                  <h2>Plugin Registry</h2>
+                  <p className="panel__subhead">Activate widgets, nav hooks, and lightweight integrations.</p>
+                </div>
+                <div className="plugin-grid">
+                  {pluginDefinitions.map((plugin) => (
+                    <PluginSpotlight key={plugin.manifest.id} plugin={plugin.manifest} />
+                  ))}
+                </div>
+              </section>
+            </aside>
+          </div>
+        </Container>
 
-      <Footer />
+        <Footer />
+        <ProfilePanel viewModel={profileViewModel} isOpen={isProfileOpen} onClose={() => setProfileOpen(false)} />
       </div>
     </>
   );

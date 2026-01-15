@@ -7,6 +7,7 @@ import taskRoutes from './routes/tasks.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/users.routes.js';
 import commentRoutes from './routes/comments.routes.js';
+import profileRoutes from './routes/profile.routes.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { config } from './config/index.js';
@@ -23,6 +24,7 @@ app.use('/projects', projectRoutes);
 app.use('/tasks', taskRoutes);
 app.use('/users', userRoutes);
 app.use('/comments', commentRoutes);
+app.use('/profile', profileRoutes);
 
 app.use('/uploads', express.static(config.app.uploadsPath));
 

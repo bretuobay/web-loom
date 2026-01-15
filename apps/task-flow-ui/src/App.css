@@ -149,6 +149,22 @@
   border-color: var(--btn-primary-bg);
 }
 
+.layout-header__profile {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--btn-primary-bg);
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.layout-header__profile:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(59, 130, 246, 0.2);
+}
+
 .layout-header__cta {
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
