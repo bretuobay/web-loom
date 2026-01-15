@@ -112,3 +112,47 @@
   margin: 0;
   color: var(--colors-text-secondary);
 }
+
+.formSection {
+  border: 1px dashed var(--card-border);
+  border-radius: var(--card-radius);
+  padding: var(--spacing-3);
+  background: var(--colors-background-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.formHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.formTitle {
+  margin: 0;
+  font-size: var(--typography-fontSize-md);
+  font-weight: var(--typography-fontWeight-semibold);
+}
+
+.formToggle {
+  border: none;
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+  font-size: var(--typography-fontSize-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  transition: background-color var(--transitions-fast);
+}
+
+.formToggle:hover {
+  background-color: var(--colors-background-hover);
+}
+
+.formWrapper {
+  margin-top: var(--spacing-1);
+}

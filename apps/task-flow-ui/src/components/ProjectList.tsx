@@ -24,6 +24,7 @@ export function ProjectList({ viewModel }: Props) {
     [allProjects, selectedProjectId]
   );
   const projectTasks = useObservable(vm.projectTasks$, []);
+  const isTaskFormOpen = useObservable(vm.isTaskFormOpen$, false);
 
   const searchTerm = vm.searchTerm;
 
@@ -102,11 +103,21 @@ export function ProjectList({ viewModel }: Props) {
               project={selectedProject}
               tasks={projectTasks}
               onClose={() => vm.toggleDetailPanel()}
+              isTaskFormOpen={isTaskFormOpen}
+              onToggleTaskForm={() => vm.toggleTaskForm()}
               onUploadAttachment={async (taskId, file) => {
                 try {
                   await vm.uploadAttachment(taskId, file);
                 } catch {
                   // Errors surface via the view model observable
+                }
+              }}
+              onCreateTask={async (values) => {
+                try {
+                  await vm.createTaskForProject(selectedProject.id, values);
+                  vm.toggleTaskForm();
+                } catch {
+                  // Errors surfaced via VM error observable
                 }
               }}
             />

@@ -2,6 +2,7 @@ import type { TaskEntity } from '../domain/entities/task';
 import type { ProjectEntity } from '../domain/entities/project';
 import { formatProjectStatus } from '../domain/values/projectStatus';
 import { TaskCard } from './TaskCard';
+import { TaskForm, type TaskFormValues } from './TaskForm';
 import styles from './ProjectDetailPanel.module.css';
 
 interface ProjectDetailPanelProps {
@@ -9,13 +10,19 @@ interface ProjectDetailPanelProps {
   tasks: TaskEntity[];
   onClose: () => void;
   onUploadAttachment: (taskId: string, file: File) => Promise<void>;
+  isTaskFormOpen: boolean;
+  onToggleTaskForm: () => void;
+  onCreateTask: (values: TaskFormValues) => Promise<void>;
 }
 
 export function ProjectDetailPanel({
   project,
   tasks,
   onClose,
-  onUploadAttachment
+  onUploadAttachment,
+  isTaskFormOpen,
+  onToggleTaskForm,
+  onCreateTask
 }: ProjectDetailPanelProps) {
   const completed = tasks.filter((task) => task.isDone).length;
   const total = tasks.length;
@@ -62,6 +69,24 @@ export function ProjectDetailPanel({
             Showing {visibleTasks.length} task{visibleTasks.length === 1 ? '' : 's'}
           </p>
         </div>
+
+        <section className={styles.formSection}>
+          <div className={styles.formHeader}>
+            <h4 className={styles.formTitle}>Add a task</h4>
+            <button type="button" className={styles.formToggle} onClick={onToggleTaskForm}>
+              {isTaskFormOpen ? 'Hide form' : 'Add task'}
+            </button>
+          </div>
+          {isTaskFormOpen && (
+            <div className={styles.formWrapper}>
+              <TaskForm
+                title="Quick task"
+                submitLabel="Create task"
+                onSubmit={onCreateTask}
+              />
+            </div>
+          )}
+        </section>
 
         {visibleTasks.length ? (
           <div className={styles.taskList}>

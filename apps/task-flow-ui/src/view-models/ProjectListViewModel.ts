@@ -6,6 +6,7 @@ import { CachingTaskRepository } from '../domain/repositories/CachingTaskReposit
 import { ProjectStore } from '../domain/stores/projectStore';
 import { TaskStore } from '../domain/stores/taskStore';
 import { ProjectEntity } from '../domain/entities/project';
+import type { TaskFormValues } from '../domain/entities/task';
 import { TaskEntity } from '../domain/entities/task';
 import { PROJECT_STATUSES, type ProjectStatus } from '../domain/values/projectStatus';
 
@@ -13,22 +14,27 @@ interface ProjectListState {
   selectedProjectId?: string;
   isDetailOpen: boolean;
   searchTerm: string;
+  isTaskFormOpen: boolean;
 }
 
 interface ProjectListActions {
   selectProject: (id?: string) => void;
   toggleDetail: () => void;
   setSearchTerm: (term: string) => void;
+  toggleTaskForm: () => void;
+  setTaskFormOpen: (isOpen: boolean) => void;
 }
 
 export class ProjectListViewModel {
   private readonly projectStore: ProjectStore;
   private readonly uiStore = createStore<ProjectListState, ProjectListActions>(
-    { selectedProjectId: undefined, isDetailOpen: false, searchTerm: '' },
+    { selectedProjectId: undefined, isDetailOpen: false, searchTerm: '', isTaskFormOpen: false },
     (set) => ({
       selectProject: (id) => set((state) => ({ ...state, selectedProjectId: id })),
       toggleDetail: () => set((state) => ({ ...state, isDetailOpen: !state.isDetailOpen })),
-      setSearchTerm: (term) => set((state) => ({ ...state, searchTerm: term }))
+      setSearchTerm: (term) => set((state) => ({ ...state, searchTerm: term })),
+      toggleTaskForm: () => set((state) => ({ ...state, isTaskFormOpen: !state.isTaskFormOpen })),
+      setTaskFormOpen: (isOpen) => set((state) => ({ ...state, isTaskFormOpen: isOpen }))
     })
   );
   private readonly selectedProjectId$ = new BehaviorSubject<string | undefined>(undefined);
@@ -36,6 +42,7 @@ export class ProjectListViewModel {
   private readonly searchTerm$ = new BehaviorSubject('');
   private readonly loading$ = new BehaviorSubject(false);
   private readonly error$ = new BehaviorSubject<string | null>(null);
+  private readonly _isTaskFormOpen$ = new BehaviorSubject(false);
   private readonly taskStore: TaskStore;
   private readonly projectTasksSubject = new BehaviorSubject<TaskEntity[]>([]);
   public readonly filteredProjects$ = new BehaviorSubject<ProjectEntity[]>([]);
@@ -53,6 +60,7 @@ export class ProjectListViewModel {
       this.selectedProjectId$.next(state.selectedProjectId);
       this.isDetailOpen$.next(state.isDetailOpen);
       this.searchTerm$.next(state.searchTerm);
+      this._isTaskFormOpen$.next(state.isTaskFormOpen);
     });
     combineLatest([this.taskStore.data$, this.selectedProjectId$]).subscribe(([tasks, projectId]) => {
       if (!projectId) {
@@ -92,12 +100,25 @@ export class ProjectListViewModel {
     return this.uiStore.getState().searchTerm;
   }
 
+  get isTaskFormOpen() {
+    return this.uiStore.getState().isTaskFormOpen;
+  }
+
   public selectProject(id: string) {
     this.uiStore.actions.selectProject(id);
+    this.uiStore.actions.setTaskFormOpen(false);
   }
 
   public toggleDetailPanel() {
     this.uiStore.actions.toggleDetail();
+  }
+
+  public toggleTaskForm() {
+    this.uiStore.actions.toggleTaskForm();
+  }
+
+  public get isTaskFormOpen$() {
+    return this._isTaskFormOpen$.asObservable();
   }
 
   public setSearchTerm(term: string) {
@@ -126,6 +147,20 @@ export class ProjectListViewModel {
       await this.taskStore.uploadAttachment(taskId, file);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Attachment upload failed';
+      this.error$.next(message);
+      throw error;
+    }
+  }
+
+  public async createTaskForProject(projectId: string, values: TaskFormValues) {
+    this.error$.next(null);
+    try {
+      await this.taskStore.create({
+        ...values,
+        projectId
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create task';
       this.error$.next(message);
       throw error;
     }
