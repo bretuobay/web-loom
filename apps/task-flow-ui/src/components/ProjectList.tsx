@@ -4,6 +4,7 @@ import { useObservable } from '../hooks/useObservable';
 import { ProjectCard } from './ProjectCard';
 import { SkeletonList } from './Skeleton';
 import { formatProjectStatus } from '../domain/values/projectStatus';
+import { ProjectDetailPanel } from './ProjectDetailPanel';
 import styles from './ProjectList.module.css';
 
 interface Props {
@@ -22,6 +23,7 @@ export function ProjectList({ viewModel }: Props) {
     () => (selectedProjectId ? allProjects.find((project) => project.id === selectedProjectId) ?? null : null),
     [allProjects, selectedProjectId]
   );
+  const projectTasks = useObservable(vm.projectTasks$, []);
 
   const searchTerm = vm.searchTerm;
 
@@ -96,20 +98,18 @@ export function ProjectList({ viewModel }: Props) {
             aria-hidden="true"
           />
           <aside className={`${styles.detailPanel} animate-slideInFromRight`}>
-            <div className={styles.detailHeader}>
-              <h3 className={styles.detailTitle}>{selectedProject.name}</h3>
-              <button type="button" onClick={() => vm.toggleDetailPanel()} className={styles.button}>
-                Close
-              </button>
-            </div>
-            <p>{selectedProject.description}</p>
-            <p>
-              {selectedProject.completedCount} / {selectedProject.tasksCount} tasks complete
-            </p>
-            <div>
-              <span>Status: {formatProjectStatus(selectedProject.status)}</span>
-              <span>Color: {selectedProject.color}</span>
-            </div>
+            <ProjectDetailPanel
+              project={selectedProject}
+              tasks={projectTasks}
+              onClose={() => vm.toggleDetailPanel()}
+              onUploadAttachment={async (taskId, file) => {
+                try {
+                  await vm.uploadAttachment(taskId, file);
+                } catch {
+                  // Errors surface via the view model observable
+                }
+              }}
+            />
           </aside>
         </>
       )}
