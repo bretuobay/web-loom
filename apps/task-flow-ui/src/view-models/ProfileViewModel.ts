@@ -37,7 +37,12 @@ export class ProfileViewModel {
   public readonly isLoading$: Observable<boolean>;
   public readonly isSaving$: Observable<boolean>;
 
-  constructor(private readonly authViewModel: AuthViewModel, private readonly client = taskFlowApiClient) {
+  private readonly authViewModel: AuthViewModel;
+  private readonly client: typeof taskFlowApiClient;
+
+  constructor(authViewModel: AuthViewModel, client = taskFlowApiClient) {
+    this.authViewModel = authViewModel;
+    this.client = client;
     this.subscriptions.add(
       this.authViewModel.userObservable.subscribe((user) => {
         if (!user) {
