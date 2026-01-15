@@ -17,6 +17,10 @@ const defaultIncludes = [
   {
     association: 'comments',
     include: [{ association: 'author', attributes: ['id', 'displayName', 'email', 'avatarUrl'] }]
+  },
+  {
+    association: 'attachments',
+    attributes: ['id', 'originalName', 'mimeType', 'size', 'storedName', 'downloadUrl', 'createdAt', 'updatedAt']
   }
 ];
 

@@ -1,5 +1,6 @@
 import { createStorage, type Storage } from '@web-loom/storage-core';
 import { TaskEntity, type TaskApiResponse, type TaskCreationPayload } from '../entities/task';
+import type { AttachmentEntity } from '../entities/attachment';
 import { ApiTaskRepository } from './ApiTaskRepository';
 import type { ITaskRepository } from './interfaces';
 
@@ -53,6 +54,20 @@ export class CachingTaskRepository implements ITaskRepository {
           assigneeId: t.assigneeId,
           dueDate: t.dueDate?.toISOString() ?? null,
           projectId: t.projectId,
+          attachments: t.attachments.map((attachment) => {
+            const updatedAt =
+              !Number.isNaN(attachment.updatedAt.getTime()) ? attachment.updatedAt : attachment.createdAt;
+            return {
+              id: attachment.id,
+              taskId: attachment.taskId,
+              originalName: attachment.originalName,
+              mimeType: attachment.mimeType,
+              size: attachment.size,
+              downloadUrl: attachment.downloadUrl,
+              createdAt: attachment.createdAt.toISOString(),
+              updatedAt: updatedAt.toISOString()
+            };
+          }),
           createdAt: t.createdAt.toISOString(),
           updatedAt: t.updatedAt.toISOString()
         })),
@@ -80,5 +95,16 @@ export class CachingTaskRepository implements ITaskRepository {
   async create(payload: TaskCreationPayload): Promise<TaskEntity> {
     // Creation requires online - no offline queue per requirements
     return this.apiRepo.create(payload);
+  }
+
+  async uploadAttachment(taskId: string, file: File): Promise<AttachmentEntity> {
+    const attachment = await this.apiRepo.uploadAttachment(taskId, file);
+    await this.invalidateCache();
+    return attachment;
+  }
+
+  private async invalidateCache() {
+    const storage = await getStorage();
+    await storage.delete(CACHE_KEY);
   }
 }

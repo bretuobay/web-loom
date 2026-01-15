@@ -47,6 +47,17 @@ export interface TaskResponse {
   updatedAt: string;
 }
 
+export interface AttachmentResponse {
+  id: string;
+  taskId: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  downloadUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserResponse {
   id: string;
   displayName: string;
@@ -69,7 +80,9 @@ export class TaskFlowApiClient {
 
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const headers = new Headers(options.headers ?? {});
-    headers.set('Content-Type', 'application/json');
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
     if (this.token) {
       headers.set('Authorization', `Bearer ${this.token}`);
     }
@@ -136,6 +149,17 @@ export class TaskFlowApiClient {
     return this.request<TaskResponse>('/tasks', {
       method: 'POST',
       body: JSON.stringify(payload),
+    });
+  }
+
+  async uploadTaskAttachment(taskId: string, file: File) {
+    return this.request<AttachmentResponse>(`/tasks/${taskId}/attachments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'x-file-name': encodeURIComponent(file.name)
+      },
+      body: file
     });
   }
 }

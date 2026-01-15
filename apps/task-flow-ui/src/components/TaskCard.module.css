@@ -98,6 +98,18 @@
   opacity: 0.9;
 }
 
+.attachmentSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  border-top: 1px solid var(--card-border);
+  padding-top: var(--spacing-3);
+}
+
+.uploadWrapper {
+  width: 100%;
+}
+
 /* Status and Priority Tones */
 .statusMuted { background-color: var(--colors-background-elevated); color: var(--colors-text-secondary); }
 .statusAccent { background-color: var(--project-status-active); color: var(--colors-text-inverted); }
