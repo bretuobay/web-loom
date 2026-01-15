@@ -1,8 +1,10 @@
-import { BehaviorSubject } from 'rxjs';
-import type { ProfilePreferences, UserApiResponse } from '../domain/entities/user';
+import { BehaviorSubject, Subscription, type Observable } from 'rxjs';
+import type { ProfilePreferences } from '../domain/entities/user';
 import { UserEntity } from '../domain/entities/user';
 import { taskFlowApiClient } from '../domain/services/apiClient';
 import { AuthViewModel } from './AuthViewModel';
+import { Command } from '@web-loom/mvvm-core';
+import { startWith } from 'rxjs/operators';
 
 interface ProfileFormState {
   displayName: string;
@@ -23,26 +25,69 @@ export class ProfileViewModel {
   private readonly form$ = new BehaviorSubject<ProfileFormState>(this.createEmptyForm());
   public readonly formObservable = this.form$.asObservable();
 
-  private readonly loading$ = new BehaviorSubject(false);
-  public readonly isLoading$ = this.loading$.asObservable();
-
-  private readonly saving$ = new BehaviorSubject(false);
-  public readonly isSaving$ = this.saving$.asObservable();
+  private readonly subscriptions = new Subscription();
 
   private readonly feedback$ = new BehaviorSubject<FeedbackMessage>(null);
   public readonly feedbackObservable = this.feedback$.asObservable();
 
   private currentProfile: UserEntity | null = null;
 
+  public readonly loadCommand: Command<void, void>;
+  public readonly saveCommand: Command<void, void>;
+  public readonly isLoading$: Observable<boolean>;
+  public readonly isSaving$: Observable<boolean>;
+
   constructor(private readonly authViewModel: AuthViewModel, private readonly client = taskFlowApiClient) {
-    this.authViewModel.userObservable.subscribe((user) => {
-      if (!user) {
-        return;
+    this.subscriptions.add(
+      this.authViewModel.userObservable.subscribe((user) => {
+        if (!user) {
+          return;
+        }
+        this.currentProfile = user;
+        this.profile$.next(user);
+        this.resetForm(user);
+      }),
+    );
+
+    this.loadCommand = new Command(async () => {
+      this.clearFeedback();
+      try {
+        const response = await this.client.fetchProfile();
+        const profile = UserEntity.fromApi(response);
+        this.currentProfile = profile;
+        this.profile$.next(profile);
+        this.authViewModel.refreshUser(profile);
+        this.resetForm(profile);
+      } catch (error) {
+        this.setFeedback('Unable to load profile. Please try again.', 'error');
+        throw error;
       }
-      this.currentProfile = user;
-      this.profile$.next(user);
-      this.resetForm(user);
     });
+
+    this.saveCommand = new Command(async () => {
+      const form = this.getFormState();
+      const payload = {
+        displayName: form.displayName.trim(),
+        avatarUrl: form.avatarUrl && form.avatarUrl.trim() ? form.avatarUrl.trim() : null,
+        preferences: form.preferences,
+      };
+      this.clearFeedback();
+      try {
+        const updated = await this.client.updateProfile(payload);
+        const profile = UserEntity.fromApi(updated);
+        this.currentProfile = profile;
+        this.profile$.next(profile);
+        this.authViewModel.refreshUser(profile);
+        this.resetForm(profile);
+        this.setFeedback('Profile updated successfully.', 'success');
+      } catch (error) {
+        this.setFeedback('Unable to save profile changes.', 'error');
+        throw error;
+      }
+    });
+
+    this.isLoading$ = this.loadCommand.isExecuting$.pipe(startWith(false));
+    this.isSaving$ = this.saveCommand.isExecuting$.pipe(startWith(false));
   }
 
   private createEmptyForm(): ProfileFormState {
@@ -85,21 +130,7 @@ export class ProfileViewModel {
   }
 
   public async loadProfile() {
-    this.loading$.next(true);
-    this.clearFeedback();
-    try {
-      const response = await this.client.fetchProfile();
-      const profile = UserEntity.fromApi(response);
-      this.currentProfile = profile;
-      this.profile$.next(profile);
-      this.authViewModel.refreshUser(profile);
-      this.resetForm(profile);
-    } catch (error) {
-      this.setFeedback('Unable to load profile. Please try again.', 'error');
-      throw error;
-    } finally {
-      this.loading$.next(false);
-    }
+    await this.loadCommand.execute();
   }
 
   public setDisplayName(value: string) {
@@ -127,28 +158,13 @@ export class ProfileViewModel {
   }
 
   public async saveProfile() {
-    const form = this.getFormState();
-    const payload = {
-      displayName: form.displayName.trim(),
-      avatarUrl: form.avatarUrl && form.avatarUrl.trim() ? form.avatarUrl.trim() : null,
-      preferences: form.preferences
-    };
-    this.saving$.next(true);
-    this.clearFeedback();
-    try {
-      const updated = await this.client.updateProfile(payload);
-      const profile = UserEntity.fromApi(updated);
-      this.currentProfile = profile;
-      this.profile$.next(profile);
-      this.authViewModel.refreshUser(profile);
-      this.resetForm(profile);
-      this.setFeedback('Profile updated successfully.', 'success');
-    } catch (error) {
-      this.setFeedback('Unable to save profile changes.', 'error');
-      throw error;
-    } finally {
-      this.saving$.next(false);
-    }
+    await this.saveCommand.execute();
+  }
+
+  public dispose() {
+    this.subscriptions.unsubscribe();
+    this.loadCommand.dispose();
+    this.saveCommand.dispose();
   }
 
   public cancel() {
