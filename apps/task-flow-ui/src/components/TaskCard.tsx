@@ -10,6 +10,7 @@ interface Props {
   onStatusChange?: (taskId: string, nextStatus: TaskStatus) => void;
   onSelect?: (taskId: string) => void;
   onUploadAttachment?: (taskId: string, file: File) => Promise<void>;
+  isSelected?: boolean;
 }
 
 const statusTone: Record<TaskStatus, string> = {
@@ -25,7 +26,7 @@ const priorityTone: Record<(typeof TASK_PRIORITIES)[number], string> = {
   high: styles.priorityWarning,
 };
 
-export function TaskCard({ task, onStatusChange, onSelect, onUploadAttachment }: Props) {
+export function TaskCard({ task, onStatusChange, onSelect, onUploadAttachment, isSelected }: Props) {
   const currentIndex = TASK_STATUSES.indexOf(task.status);
   const nextStatus = TASK_STATUSES[(currentIndex + 1) % TASK_STATUSES.length];
   const dueDateLabel = task.dueDate ? task.dueDate.toLocaleDateString() : 'No due date';
@@ -43,7 +44,7 @@ export function TaskCard({ task, onStatusChange, onSelect, onUploadAttachment }:
   };
 
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${isSelected ? styles.selected : ''}`}>
       <header className={styles.header}>
         <div>
           <h3 className={styles.title}>{task.title}</h3>

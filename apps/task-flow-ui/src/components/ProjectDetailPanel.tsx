@@ -1,8 +1,11 @@
+import { useEffect, useMemo, useState } from 'react';
 import type { TaskEntity } from '../domain/entities/task';
 import type { ProjectEntity } from '../domain/entities/project';
 import { formatProjectStatus } from '../domain/values/projectStatus';
 import { TaskCard } from './TaskCard';
+import { TaskComments } from './TaskComments';
 import { TaskForm, type TaskFormValues } from './TaskForm';
+import { TaskCommentsViewModel } from '../view-models/TaskCommentsViewModel';
 import styles from './ProjectDetailPanel.module.css';
 
 interface ProjectDetailPanelProps {
@@ -29,6 +32,17 @@ export function ProjectDetailPanel({
   const percentage = total ? Math.round((completed / total) * 100) : 0;
   const activeTasks = tasks.filter((task) => task.status !== 'done');
   const visibleTasks = activeTasks.length ? activeTasks : tasks;
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(visibleTasks[0]?.id ?? null);
+  const commentsViewModel = useMemo(() => new TaskCommentsViewModel(), []);
+
+  useEffect(() => {
+    if (visibleTasks.length && !visibleTasks.some((task) => task.id === activeTaskId)) {
+      setActiveTaskId(visibleTasks[0].id);
+    }
+    if (!visibleTasks.length) {
+      setActiveTaskId(null);
+    }
+  }, [visibleTasks, activeTaskId]);
 
   return (
     <div className={styles.root}>
@@ -92,7 +106,12 @@ export function ProjectDetailPanel({
           <div className={styles.taskList}>
             {visibleTasks.map((task) => (
               <div key={task.id} className={styles.taskCardWrapper}>
-                <TaskCard task={task} onUploadAttachment={onUploadAttachment} />
+                <TaskCard
+                  task={task}
+                  onUploadAttachment={onUploadAttachment}
+                  onSelect={(taskId) => setActiveTaskId(taskId)}
+                  isSelected={activeTaskId === task.id}
+                />
               </div>
             ))}
           </div>
@@ -100,6 +119,10 @@ export function ProjectDetailPanel({
           <p className={styles.empty}>No tasks are currently active for this project.</p>
         )}
       </section>
+
+      {activeTaskId && (
+        <TaskComments taskId={activeTaskId} viewModel={commentsViewModel} />
+      )}
     </div>
   );
 }

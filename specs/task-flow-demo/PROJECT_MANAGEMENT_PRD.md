@@ -401,6 +401,13 @@ The task involves implementing the design system setup pattern established in `a
 - **T3.3.4**: Implement drag-and-drop file upload
 - **T3.3.5**: Add file type validation and size limits
 
+#### Task 3.5: Collaboration & Comments
+
+- **T3.5.1**: Add persistent comments to the API (list/create/update/delete) with author metadata
+- **T3.5.2**: Create a comments ViewModel + repository wiring so UI components can stream threads per task
+- **T3.5.3**: Surface threaded comments and quick-reply form inside the project detail drawer (MVVM-bound, `forms-core` validation)
+- **T3.5.4**: Show comment counts/thumbnails on task cards and keep the drawer/list in sync with the selected task
+
 ### Phase 4: Polish & Documentation
 
 #### Task 4.1: Testing

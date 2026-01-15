@@ -66,6 +66,15 @@ export interface UserResponse {
   role: string;
 }
 
+export interface CommentResponse {
+  id: string;
+  content: string;
+  taskId: string;
+  author: UserResponse;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class TaskFlowApiClient {
   private token: string | null = null;
   private baseUrl: string;
@@ -160,6 +169,17 @@ export class TaskFlowApiClient {
         'x-file-name': encodeURIComponent(file.name)
       },
       body: file
+    });
+  }
+
+  async fetchComments(taskId: string) {
+    return this.request<CommentResponse[]>(`/comments/task/${taskId}`);
+  }
+
+  async createComment(payload: { taskId: string; content: string }) {
+    return this.request<CommentResponse>('/comments', {
+      method: 'POST',
+      body: JSON.stringify(payload)
     });
   }
 }
