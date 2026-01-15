@@ -17,14 +17,20 @@ export function TaskComments({ taskId, viewModel }: TaskCommentsProps) {
 
   useEffect(() => {
     if (taskId) {
-      void vm.load(taskId);
+      void vm.load(taskId).catch(() => {
+        /* error handled by view model */
+      });
     }
   }, [taskId, vm]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    await vm.addComment(taskId, draft);
-    setDraft('');
+    try {
+      await vm.addComment(taskId, draft);
+      setDraft('');
+    } catch {
+      // View model already published the text error via the observable
+    }
   };
 
   return (
