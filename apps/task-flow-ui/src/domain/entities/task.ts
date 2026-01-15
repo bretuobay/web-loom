@@ -1,6 +1,6 @@
-import { TASK_PRIORITIES, TaskPriority } from '../values/taskPriority';
-import { TASK_STATUSES, TaskStatus } from '../values/taskStatus';
-import { UserEntity, UserApiResponse } from './user';
+import { TASK_PRIORITIES, type TaskPriority } from '../values/taskPriority';
+import { TASK_STATUSES, type TaskStatus } from '../values/taskStatus';
+import { UserEntity, type UserApiResponse } from './user';
 
 export interface TaskApiResponse {
   id: string;
@@ -30,19 +30,43 @@ export interface TaskCreationPayload {
 export type TaskFormValues = Pick<TaskCreationPayload, 'title' | 'description' | 'status' | 'priority' | 'dueDate'>;
 
 export class TaskEntity {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly status: TaskStatus;
+  readonly priority: TaskPriority;
+  readonly dueDate: Date | null;
+  readonly projectId: string;
+  readonly assigneeId: string | null;
+  readonly assignee: UserEntity | null;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+
   constructor(
-    public readonly id: string,
-    public readonly title: string,
-    public readonly description: string,
-    public readonly status: TaskStatus,
-    public readonly priority: TaskPriority,
-    public readonly dueDate: Date | null,
-    public readonly projectId: string,
-    public readonly assigneeId: string | null,
-    public readonly assignee: UserEntity | null,
-    public readonly createdAt: Date,
-    public readonly updatedAt: Date
-  ) {}
+    id: string,
+    title: string,
+    description: string,
+    status: TaskStatus,
+    priority: TaskPriority,
+    dueDate: Date | null,
+    projectId: string,
+    assigneeId: string | null,
+    assignee: UserEntity | null,
+    createdAt: Date,
+    updatedAt: Date
+  ) {
+    this.id = id;
+    this.title = title;
+    this.description = description;
+    this.status = status;
+    this.priority = priority;
+    this.dueDate = dueDate;
+    this.projectId = projectId;
+    this.assigneeId = assigneeId;
+    this.assignee = assignee;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
 
   static fromApi(payload: TaskApiResponse) {
     const status = TASK_STATUSES.includes(payload.status as TaskStatus)

@@ -86,20 +86,28 @@
   color: var(--colors-text-secondary);
 }
 
+.detailOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: var(--zIndex-overlay, 900);
+}
+
 .detailPanel {
   position: fixed;
   top: 0;
   right: 0;
   height: 100%;
   width: 100%;
-  background-color: var(--dashboard-sidebar-bg);
-  box-shadow: var(--shadows-lg);
-  padding: var(--card-padding);
-  z-index: var(--zIndex-modal);
+  background-color: var(--panel-surface, var(--dashboard-sidebar-bg));
+  box-shadow: -4px 0 25px rgba(0, 0, 0, 0.3);
+  padding: var(--spacing-6);
+  z-index: var(--zIndex-modal, 1000);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
-  border-left: 1px solid var(--card-border);
+  border-left: 1px solid var(--panel-border, var(--card-border));
+  overflow-y: auto;
 }
 
 .detailHeader {

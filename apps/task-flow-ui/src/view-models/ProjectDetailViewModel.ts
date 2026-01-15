@@ -1,13 +1,15 @@
 import { combineLatest, BehaviorSubject } from 'rxjs';
 import { ProjectEntity } from '../domain/entities/project';
 import { ProjectListViewModel } from './ProjectListViewModel';
-import { ProjectStatus } from '../domain/values/projectStatus';
+import type { ProjectStatus } from '../domain/values/projectStatus';
 
 export class ProjectDetailViewModel {
   private readonly project$ = new BehaviorSubject<ProjectEntity | null>(null);
   private readonly isOpen$ = new BehaviorSubject(false);
+  private readonly listViewModel: ProjectListViewModel;
 
-  constructor(private readonly listViewModel: ProjectListViewModel) {
+  constructor(listViewModel: ProjectListViewModel) {
+    this.listViewModel = listViewModel;
     combineLatest([this.listViewModel.projects$, this.listViewModel.selectedProject$]).subscribe(
       ([projects, selectedId]) => {
         const project = projects.find((item) => item.id === selectedId) ?? null;

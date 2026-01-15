@@ -1,10 +1,10 @@
 import { combineLatest, BehaviorSubject } from 'rxjs';
 import { createStore } from '@web-loom/store-core';
-import { IProjectRepository } from '../domain/repositories/interfaces';
-import { ApiProjectRepository } from '../domain/repositories/ApiProjectRepository';
+import type { IProjectRepository } from '../domain/repositories/interfaces';
+import { CachingProjectRepository } from '../domain/repositories/CachingProjectRepository';
 import { ProjectStore } from '../domain/stores/projectStore';
 import { ProjectEntity } from '../domain/entities/project';
-import { PROJECT_STATUSES, ProjectStatus } from '../domain/values/projectStatus';
+import { PROJECT_STATUSES, type ProjectStatus } from '../domain/values/projectStatus';
 
 interface ProjectListState {
   selectedProjectId?: string;
@@ -36,10 +36,10 @@ export class ProjectListViewModel {
   public readonly filteredProjects$ = new BehaviorSubject<ProjectEntity[]>([]);
   public readonly isLoading$ = this.loading$.asObservable();
   public readonly errorMessage$ = this.error$.asObservable();
-  private readonly statusSequence: ProjectStatus[] = PROJECT_STATUSES;
+  private readonly statusSequence: readonly ProjectStatus[] = PROJECT_STATUSES;
 
-  constructor(private readonly repository: IProjectRepository = new ApiProjectRepository()) {
-    this.projectStore = new ProjectStore(this.repository);
+  constructor(repository: IProjectRepository = new CachingProjectRepository()) {
+    this.projectStore = new ProjectStore(repository);
     this.uiStore.subscribe((state) => {
       this.selectedProjectId$.next(state.selectedProjectId);
       this.isDetailOpen$.next(state.isDetailOpen);

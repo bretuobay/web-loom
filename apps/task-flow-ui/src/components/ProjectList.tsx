@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { ProjectListViewModel } from '../view-models/ProjectListViewModel';
 import { useObservable } from '../hooks/useObservable';
 import { ProjectCard } from './ProjectCard';
+import { SkeletonList } from './Skeleton';
 import { formatProjectStatus } from '../domain/values/projectStatus';
 import styles from './ProjectList.module.css';
 
@@ -67,40 +68,50 @@ export function ProjectList({ viewModel }: Props) {
       )}
 
       {isLoading ? (
-        <p className={styles.empty}>Loading projects…</p>
-      ) : (
         <div className={styles.grid}>
+          <SkeletonList type="project" count={3} />
+        </div>
+      ) : (
+        <div className={`${styles.grid} stagger-container`}>
           {projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onCycleStatus={(id) => vm.cycleProjectStatus(id)}
-              onViewDetails={(id) => handleViewDetails(id)}
-            />
+            <div key={project.id} className="stagger-item">
+              <ProjectCard
+                project={project}
+                onCycleStatus={(id) => vm.cycleProjectStatus(id)}
+                onViewDetails={(id) => handleViewDetails(id)}
+              />
+            </div>
           ))}
           {!projects.length && !errorMessage && (
-            <p className={styles.empty}>No projects match your search term.</p>
+            <p className={`${styles.empty} animate-fadeIn`}>No projects match your search term.</p>
           )}
         </div>
       )}
 
       {detailOpen && selectedProject && (
-        <aside className={styles.detailPanel}>
-          <div className={styles.detailHeader}>
-            <h3 className={styles.detailTitle}>{selectedProject.name}</h3>
-            <button type="button" onClick={() => vm.toggleDetailPanel()} className={styles.button}>
-              Close
-            </button>
-          </div>
-          <p>{selectedProject.description}</p>
-          <p>
-            {selectedProject.completedCount} / {selectedProject.tasksCount} tasks complete
-          </p>
-          <div>
-            <span>Status: {formatProjectStatus(selectedProject.status)}</span>
-            <span>Color: {selectedProject.color}</span>
-          </div>
-        </aside>
+        <>
+          <div
+            className={`${styles.detailOverlay} animate-fadeIn`}
+            onClick={() => vm.toggleDetailPanel()}
+            aria-hidden="true"
+          />
+          <aside className={`${styles.detailPanel} animate-slideInFromRight`}>
+            <div className={styles.detailHeader}>
+              <h3 className={styles.detailTitle}>{selectedProject.name}</h3>
+              <button type="button" onClick={() => vm.toggleDetailPanel()} className={styles.button}>
+                Close
+              </button>
+            </div>
+            <p>{selectedProject.description}</p>
+            <p>
+              {selectedProject.completedCount} / {selectedProject.tasksCount} tasks complete
+            </p>
+            <div>
+              <span>Status: {formatProjectStatus(selectedProject.status)}</span>
+              <span>Color: {selectedProject.color}</span>
+            </div>
+          </aside>
+        </>
       )}
     </section>
   );

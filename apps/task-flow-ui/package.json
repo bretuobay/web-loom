@@ -20,6 +20,8 @@
     "@web-loom/forms-core": "*",
     "@web-loom/store-core": "*",
     "@web-loom/design-core": "*",
+    "@web-loom/storage-core": "*",
+    "@web-loom/ui-patterns": "*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^6.22.0",

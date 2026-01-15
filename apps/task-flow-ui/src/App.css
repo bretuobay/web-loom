@@ -1,3 +1,6 @@
+/* Import animation utilities */
+@import './styles/animations.css';
+
 .taskflow-shell {
   padding: calc(var(--dashboard-gutter) * 1.2);
   display: flex;
@@ -1047,12 +1050,284 @@
   flex-shrink: 0;
 }
 
-@media (max-width: 900px) {
+/* ================================
+   RESPONSIVE BREAKPOINTS
+   Mobile-first approach
+   sm: 640px, md: 768px, lg: 1024px
+   ================================ */
+
+/* Mobile-first base styles (< 640px) */
+
+/* Touch-friendly tap targets */
+button,
+.layout-header__nav-link,
+.layout-header__cta,
+.layout-header__theme-toggle,
+.layout-header__signout {
+  min-height: 44px;
+}
+
+/* Mobile navigation toggle (hidden by default on larger screens) */
+.mobile-nav-toggle {
+  display: none;
+}
+
+/* Mobile overrides (< 640px) */
+@media (max-width: 639px) {
+  .taskflow-shell {
+    padding: 0.75rem;
+  }
+
+  .layout-header {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .layout-header__branding {
+    text-align: center;
+  }
+
+  .layout-header__branding h1 {
+    font-size: 1.25rem;
+  }
+
+  .layout-header__actions {
+    gap: 0.5rem;
+  }
+
+  .layout-header__nav {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .layout-header__nav-link {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+  }
+
+  .layout-header__controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .layout-header__user {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .taskflow-hero {
+    padding: 0.75rem;
+  }
+
+  .taskflow-hero__actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .taskflow-hero__actions button {
+    width: 100%;
+  }
+
+  .taskflow-grid {
+    grid-template-columns: 1fr;
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+
+  .taskflow-aside {
+    display: none;
+  }
+
+  .project-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .project-card {
+    padding: 1rem;
+  }
+
+  .project-card__header h3 {
+    font-size: 1.1rem;
+  }
+
   .task-board__layout {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .task-board__filters {
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+  }
+
+  .task-board__filters button {
+    flex-shrink: 0;
+  }
+
+  .task-board__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding: 1rem;
+  }
+
+  .panel__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .panel__header h2 {
+    font-size: 1.25rem;
+  }
+
+  .project-list__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .project-list__controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .project-list__controls input {
+    width: 100%;
+  }
+
+  .project-list__controls button {
+    width: 100%;
+  }
+
+  .task-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-page {
+    padding: 1rem;
+  }
+
+  .auth-panel__card {
+    padding: 1rem;
+  }
+
+  .layout-footer {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .layout-footer__links {
     justify-content: center;
+  }
+}
+
+/* Small tablets (>= 640px) */
+@media (min-width: 640px) {
+  .taskflow-shell {
+    padding: 1rem;
+  }
+
+  .layout-header {
+    padding: 1rem;
+  }
+
+  .layout-header__branding h1 {
+    font-size: 1.5rem;
+  }
+
+  .taskflow-hero__actions {
+    flex-direction: row;
+    width: auto;
+  }
+
+  .taskflow-hero__actions button {
+    width: auto;
+  }
+
+  .taskflow-grid {
+    padding: 1rem;
+  }
+
+  .project-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .project-list__header {
+    flex-direction: row;
+  }
+
+  .project-list__controls {
+    flex-direction: row;
+    width: auto;
+  }
+}
+
+/* Tablets (>= 768px) */
+@media (min-width: 768px) {
+  .taskflow-shell {
+    padding: calc(var(--dashboard-gutter, 1.5rem) * 0.8);
+  }
+
+  .layout-header {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    padding: calc(var(--dashboard-gutter, 1.5rem) * 0.8);
+  }
+
+  .layout-header__branding {
+    text-align: left;
+  }
+
+  .layout-header__branding h1 {
+    font-size: var(--dashboard-heading, 1.75rem);
+  }
+
+  .layout-header__controls {
+    justify-content: flex-end;
+  }
+
+  .taskflow-hero {
+    padding: calc(var(--dashboard-gutter, 1.5rem) * 0.8);
+  }
+
+  .taskflow-grid {
+    grid-template-columns: 1fr;
+    padding: var(--dashboard-gutter, 1.5rem);
+  }
+
+  .taskflow-aside {
+    display: flex;
+  }
+
+  .task-board__layout {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+  }
+}
+
+/* Desktop (>= 1024px) */
+@media (min-width: 1024px) {
+  .taskflow-shell {
+    padding: calc(var(--dashboard-gutter, 1.5rem) * 1.2);
+  }
+
+  .taskflow-grid {
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 360px);
+  }
+
+  .project-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .task-board__layout {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
   }
 }

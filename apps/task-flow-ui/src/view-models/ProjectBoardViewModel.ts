@@ -2,7 +2,7 @@ import { BehaviorSubject } from 'rxjs';
 import { ProjectStore } from '../domain/stores/projectStore';
 import { ApiProjectRepository } from '../domain/repositories/ApiProjectRepository';
 import { ProjectEntity } from '../domain/entities/project';
-import { PROJECT_STATUSES, type ProjectStatus } from '../domain/values/projectStatus';
+import { PROJECT_STATUSES } from '../domain/values/projectStatus';
 import { type IProjectRepository } from '../domain/repositories/interfaces';
 
 export class ProjectBoardViewModel {

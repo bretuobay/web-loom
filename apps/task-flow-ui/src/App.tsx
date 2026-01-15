@@ -1,7 +1,7 @@
 import '@repo/shared/styles';
 import './App.css';
 
-import { ReactNode, useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { PluginRegistry, type PluginDefinition } from '@repo/plugin-core';
 import { PluginSpotlight } from './components/PluginSpotlight';
@@ -12,8 +12,10 @@ import { AuthViewModel } from './view-models/AuthViewModel';
 import { Header } from './layout/Header';
 import { Footer } from './layout/Footer';
 import { Container } from './layout/Container';
-import { ThemeProvider, useTheme, type ThemeMode } from './providers/ThemeProvider';
+import { ThemeProvider, useTheme } from './providers/ThemeProvider';
 import { useObservable } from './hooks/useObservable';
+import { CommandPalette } from './components/CommandPalette';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 const navItems = [
   { label: 'Projects', path: '/projects' },
@@ -138,15 +140,22 @@ function MainShell({
   };
 
   return (
-    <div className="taskflow-shell">
-      <Header
-        theme={theme}
-        navItems={navItems}
-        onTaskBoardClick={() => navigate('/tasks')}
+    <>
+      <CommandPalette
         onToggleTheme={toggleTheme}
-        currentUser={currentUser}
         onLogout={handleLogout}
+        isAuthenticated={!!currentUser}
       />
+      <OfflineIndicator />
+      <div className="taskflow-shell">
+        <Header
+          theme={theme}
+          navItems={navItems}
+          onTaskBoardClick={() => navigate('/tasks')}
+          onToggleTheme={toggleTheme}
+          currentUser={currentUser ? { displayName: currentUser.displayName, role: currentUser.role } : undefined}
+          onLogout={handleLogout}
+        />
 
       <HeroPanel
         onTaskBoardClick={() => navigate('/tasks')}
@@ -180,7 +189,8 @@ function MainShell({
       </Container>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }
 

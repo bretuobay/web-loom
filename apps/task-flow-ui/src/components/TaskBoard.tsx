@@ -3,6 +3,7 @@ import { TaskBoardViewModel } from '../view-models/TaskBoardViewModel';
 import { useObservable } from '../hooks/useObservable';
 import { TaskCard } from './TaskCard';
 import { TaskForm, type TaskFormValues } from './TaskForm';
+import { SkeletonList } from './Skeleton';
 import { TASK_STATUSES, formatTaskStatus } from '../domain/values/taskStatus';
 import styles from './TaskBoard.module.css';
 
@@ -73,18 +74,27 @@ export function TaskBoard({ viewModel }: Props) {
       )}
 
       {isLoading ? (
-        <p className={styles.empty}>Loading tasks…</p>
+        <div className={styles.layout}>
+          <div className={styles.list}>
+            <SkeletonList type="task" count={4} />
+          </div>
+          <div className={styles.form}>
+            <TaskForm onSubmit={handleSubmit} submitLabel="Schedule work" />
+          </div>
+        </div>
       ) : (
         <div className={styles.layout}>
           <div className={styles.list}>
             {tasks.length ? (
-              <div className={styles.grid}>
+              <div className={`${styles.grid} stagger-container`}>
                 {tasks.map((task) => (
-                  <TaskCard key={task.id} task={task} />
+                  <div key={task.id} className="stagger-item">
+                    <TaskCard task={task} />
+                  </div>
                 ))}
               </div>
             ) : (
-              <p className={styles.empty}>No tasks match the current filter.</p>
+              <p className={`${styles.empty} animate-fadeIn`}>No tasks match the current filter.</p>
             )}
           </div>
           <div className={styles.form}>
