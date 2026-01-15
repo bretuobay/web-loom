@@ -91,9 +91,10 @@ export function ProfilePanel({ viewModel, isOpen, onClose }: ProfilePanelProps) 
   const canSave = form.isDirty && form.displayName.trim().length >= 2 && !isSaving;
   const previewInitial = form.displayName || profile?.displayName || 'You';
   const avatarUrl = form.avatarUrl ?? profile?.avatarUrl;
+  const overlayClass = `${styles.overlay} ${theme === 'light' ? styles.overlayLight : styles.overlayDark}`;
 
   return (
-    <div className={styles.overlay} onClick={handleOverlayClick}>
+    <div className={overlayClass} onClick={handleOverlayClick}>
       <aside className={styles.panel} role="dialog" aria-modal="true" aria-label="Profile settings">
         <header className={styles.header}>
           <div>
