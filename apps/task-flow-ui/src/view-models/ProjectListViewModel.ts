@@ -49,11 +49,13 @@ export class ProjectListViewModel {
   public readonly isLoading$ = this.loading$.asObservable();
   public readonly errorMessage$ = this.error$.asObservable();
   private readonly statusSequence: readonly ProjectStatus[] = PROJECT_STATUSES;
+  private readonly repository: IProjectRepository;
 
   constructor(
     repository: IProjectRepository = new CachingProjectRepository(),
     taskRepository: ITaskRepository = new CachingTaskRepository()
   ) {
+    this.repository = repository;
     this.projectStore = new ProjectStore(repository);
     this.taskStore = new TaskStore(taskRepository);
     this.uiStore.subscribe((state) => {
@@ -170,17 +172,29 @@ export class ProjectListViewModel {
     this.projectStore.mutate(projectId, updater);
   }
 
-  public cycleProjectStatus(projectId: string) {
+  public async cycleProjectStatus(projectId: string) {
     const snapshot = this.projectStore.snapshot;
     const project = snapshot.find((item) => item.id === projectId);
     if (!project) {
       return;
     }
+
     const index = this.statusSequence.indexOf(project.status);
     if (index === -1) {
       return;
     }
+
     const nextStatus = this.statusSequence[(index + 1) % this.statusSequence.length];
     this.projectStore.mutate(projectId, (existing) => existing.withStatus(nextStatus));
+    this.error$.next(null);
+
+    try {
+      const updated = await this.repository.update(projectId, { status: nextStatus });
+      this.projectStore.mutate(projectId, () => updated);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to update project status';
+      this.error$.next(message);
+      this.projectStore.mutate(projectId, () => project);
+    }
   }
 }

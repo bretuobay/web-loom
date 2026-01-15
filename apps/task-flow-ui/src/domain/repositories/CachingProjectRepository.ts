@@ -83,4 +83,11 @@ export class CachingProjectRepository implements IProjectRepository {
     const projects = await this.fetchAll();
     return projects.find((p) => p.id === id) ?? null;
   }
+
+  async update(id: string, payload: Partial<ProjectApiResponse>): Promise<ProjectEntity> {
+    const storage = await getStorage();
+    const updated = await this.apiRepo.update(id, payload);
+    await storage.delete(CACHE_KEY);
+    return updated;
+  }
 }

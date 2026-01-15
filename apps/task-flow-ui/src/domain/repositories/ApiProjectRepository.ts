@@ -19,4 +19,9 @@ export class ApiProjectRepository implements IProjectRepository {
     const projects = await this.fetchAll();
     return projects.find((project) => project.id === id) ?? null;
   }
+
+  async update(id: string, payload: Partial<ProjectApiResponse>) {
+    const project = await this.client.updateProject(id, payload);
+    return ProjectEntity.fromApi(project);
+  }
 }

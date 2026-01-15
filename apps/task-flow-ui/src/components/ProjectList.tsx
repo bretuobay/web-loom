@@ -80,7 +80,9 @@ export function ProjectList({ viewModel }: Props) {
             <div key={project.id} className="stagger-item">
               <ProjectCard
                 project={project}
-                onCycleStatus={(id) => vm.cycleProjectStatus(id)}
+                onCycleStatus={(id) => {
+                  void vm.cycleProjectStatus(id);
+                }}
                 onViewDetails={(id) => handleViewDetails(id)}
               />
             </div>

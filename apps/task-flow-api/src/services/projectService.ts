@@ -50,7 +50,8 @@ export const projectService = {
     if (!project) {
       throw new ApiError('Project not found', 404);
     }
-    return project.update(updates);
+    await project.update(updates);
+    return projectService.getById(id);
   },
 
   remove: async (id: string) => {

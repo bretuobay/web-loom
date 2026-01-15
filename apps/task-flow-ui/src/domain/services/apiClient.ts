@@ -161,6 +161,13 @@ export class TaskFlowApiClient {
     });
   }
 
+  async updateProject(projectId: string, payload: Partial<ProjectResponse>) {
+    return this.request<ProjectResponse>(`/projects/${projectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
   async uploadTaskAttachment(taskId: string, file: File) {
     return this.request<AttachmentResponse>(`/tasks/${taskId}/attachments`, {
       method: 'POST',

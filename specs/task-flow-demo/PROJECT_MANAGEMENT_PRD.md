@@ -269,6 +269,12 @@
 - **T3.1.4**: Create real-time comment system
 - **T3.1.5**: Handle connection states and reconnection
 
+#### Task 3.2: Project Status Persistence
+
+- **T3.2.1**: Ensure the project PUT endpoint accepts status transitions and returns the fully hydrated project (with tasks) after persisting the new state
+- **T3.2.2**: Update the `ProjectListViewModel`/detail flows to call the API when cycling a project’s status, keep the UI optimistic, and surface errors when persistence fails
+- **T3.2.3**: Keep project/task surfaces in sync with the latest status (refresh caches after persistence and refresh task/project counts in the UI)
+
 #### Task 3.3: Design System Integration & Task Flow Theme
 
 **Objective**: Apply the Web Loom design system (`packages/design-core`) to the task-flow-ui application and create a cohesive, professional theme specifically tailored for project management workflows.
