@@ -23,6 +23,9 @@
     "react": ">=16.8.0",
     "@web-loom/forms-core": "*"
   },
+  "dependencies": {
+    "@web-loom/event-emitter-core": "*"
+  },
   "devDependencies": {
     "@types/react": "^18.3.18",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
