@@ -8,28 +8,28 @@ interface NavItem {
 
 export interface HeaderProps {
   navItems: NavItem[];
-  onTaskBoardClick: () => void;
   onToggleTheme: () => void;
   theme: ThemeMode;
   currentUser?: { displayName: string; role: string };
   onLogout?: () => void;
   onProfileClick?: () => void;
+  onCommandPalette?: () => void;
 }
 
 export function Header({
   navItems,
-  onTaskBoardClick,
   onToggleTheme,
   theme,
   currentUser,
   onLogout,
-  onProfileClick
+  onProfileClick,
+  onCommandPalette,
 }: HeaderProps) {
   return (
     <header className="layout-header">
       <div className="layout-header__branding">
-        <p className="layout-header__eyebrow">Web Loom · MVVM Demo</p>
-        <h1>TaskFlow · Project Management</h1>
+        <p className="layout-header__eyebrow">Web Loom</p>
+        <h1>TaskFlow </h1>
       </div>
       <div className="layout-header__actions">
         <nav className="layout-header__nav" aria-label="Primary">
@@ -47,7 +47,9 @@ export function Header({
           {currentUser ? (
             <div className="layout-header__user">
               <span>
-                Signed in as <strong>{currentUser.displayName}</strong> · {currentUser.role}
+                <strong>
+                  {currentUser.displayName} ({currentUser.role})
+                </strong>
               </span>
               <button className="layout-header__signout" type="button" onClick={onLogout}>
                 Sign out
@@ -63,6 +65,18 @@ export function Header({
               Profile
             </button>
           )}
+          {onCommandPalette && (
+            <button
+              type="button"
+              className="layout-header__command-palette"
+              onClick={onCommandPalette}
+              aria-label="Open command palette"
+              title="Command Palette (Ctrl+K)"
+            >
+              <span aria-hidden="true">⌘</span>
+              <kbd>K</kbd>
+            </button>
+          )}
           <button
             type="button"
             className="layout-header__theme-toggle"
@@ -70,9 +84,6 @@ export function Header({
             aria-label="Toggle theme mode"
           >
             {theme === 'light' ? 'Night mode' : 'Day mode'}
-          </button>
-          <button className="layout-header__cta" type="button" onClick={onTaskBoardClick}>
-            Open Task Board
           </button>
         </div>
       </div>

@@ -1,13 +1,13 @@
 import '@repo/shared/styles';
 import './App.css';
 
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { PluginRegistry, type PluginDefinition } from '@repo/plugin-core';
-import { PluginSpotlight } from './components/PluginSpotlight';
 import { ProjectList } from './components/ProjectList';
 import { TaskBoard } from './components/TaskBoard';
 import { TodoPanel } from './components/TodoPanel';
+import { DashboardPage } from './pages/DashboardPage';
 import { AuthPage } from './pages/AuthPage';
 import { AuthViewModel } from './view-models/AuthViewModel';
 import { Header } from './layout/Header';
@@ -19,11 +19,13 @@ import { CommandPalette } from './components/CommandPalette';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { ProfilePanel } from './components/ProfilePanel';
 import { ProfileViewModel } from './view-models/ProfileViewModel';
+import { MetricsWidget } from './plugins/metrics/MetricsWidget';
 
 const navItems = [
+  { label: 'Dashboard', path: '/dashboard' },
   { label: 'Projects', path: '/projects' },
   { label: 'Task board', path: '/tasks' },
-  { label: 'Todos', path: '/todos' }
+  { label: 'Todos', path: '/todos' },
 ];
 
 const registerPlugins = () => {
@@ -44,15 +46,30 @@ const registerPlugins = () => {
             <span>5.2 days</span>
             <p>Average cycle time</p>
           </div>
-        )
-      }
+        ),
+      },
     ],
     menuItems: [
       {
         label: 'Kanban view',
-        path: '/kanban'
-      }
-    ]
+        path: '/kanban',
+      },
+    ],
+  });
+
+  registry.register({
+    id: 'taskflow-metrics',
+    name: 'Flow Metrics',
+    version: '0.1.0',
+    entry: '/plugins/metrics',
+    description: 'Dashboard plugin powered by MVVM view models to surface live flow health stats.',
+    widgets: [
+      {
+        id: 'flow-health',
+        title: 'Flow health',
+        component: MetricsWidget,
+      },
+    ],
   });
 
   registry.register({
@@ -70,9 +87,9 @@ const registerPlugins = () => {
             <span>3</span>
             <p>fresh plugins</p>
           </div>
-        )
-      }
-    ]
+        ),
+      },
+    ],
   });
 
   return registry;
@@ -93,35 +110,6 @@ function NotFoundPanel() {
   );
 }
 
-function HeroPanel({
-  onTaskBoardClick,
-  onProjectsClick,
-  onTodosClick
-}: {
-  onTaskBoardClick: () => void;
-  onProjectsClick: () => void;
-  onTodosClick: () => void;
-}) {
-  return (
-    <section className="taskflow-hero">
-      <div className="taskflow-hero__content">
-        <h2 className="sr-only">TaskFlow workspace</h2>
-        <div className="taskflow-hero__actions">
-          <button type="button" className="layout-header__cta" onClick={onTaskBoardClick}>
-            Launch task board
-          </button>
-          <button type="button" className="taskflow-hero__secondary" onClick={onProjectsClick}>
-            Review projects
-          </button>
-          <button type="button" className="taskflow-hero__secondary" onClick={onTodosClick}>
-            Open todo vault
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function RequireAuth({ viewModel, children }: { viewModel: AuthViewModel; children: ReactNode }) {
   const currentUser = useObservable(viewModel.userObservable, null);
 
@@ -134,7 +122,7 @@ function RequireAuth({ viewModel, children }: { viewModel: AuthViewModel; childr
 
 function MainShell({
   authViewModel,
-  pluginDefinitions
+  pluginDefinitions,
 }: {
   authViewModel: AuthViewModel;
   pluginDefinitions: PluginDefinition[];
@@ -145,9 +133,15 @@ function MainShell({
 
   const profileViewModel = useMemo(() => new ProfileViewModel(authViewModel), [authViewModel]);
   const [isProfileOpen, setProfileOpen] = useState(false);
+  const [openCommandPalette, setOpenCommandPalette] = useState<(() => void) | null>(null);
+
   useEffect(() => {
     void profileViewModel.loadProfile();
   }, [profileViewModel]);
+
+  const handleCommandPaletteReady = useCallback((open: () => void) => {
+    setOpenCommandPalette(() => open);
+  }, []);
 
   const handleLogout = () => {
     authViewModel.logout();
@@ -160,49 +154,32 @@ function MainShell({
         onToggleTheme={toggleTheme}
         onLogout={handleLogout}
         isAuthenticated={!!currentUser}
+        onReady={handleCommandPaletteReady}
       />
       <OfflineIndicator />
       <div className="taskflow-shell">
         <Header
           theme={theme}
           navItems={navItems}
-          onTaskBoardClick={() => navigate('/tasks')}
           onToggleTheme={toggleTheme}
           currentUser={currentUser ? { displayName: currentUser.displayName, role: currentUser.role } : undefined}
           onLogout={handleLogout}
           onProfileClick={() => setProfileOpen(true)}
-        />
-
-        <HeroPanel
-          onTaskBoardClick={() => navigate('/tasks')}
-          onProjectsClick={() => navigate('/projects')}
-          onTodosClick={() => navigate('/todos')}
+          onCommandPalette={openCommandPalette ?? undefined}
         />
 
         <Container>
           <div className="taskflow-grid">
             <main className="taskflow-main">
-            <Routes>
-              <Route index element={<ProjectList />} />
-              <Route path="projects" element={<ProjectList />} />
-              <Route path="tasks" element={<TaskBoard />} />
-              <Route path="todos" element={<TodoPanel />} />
-              <Route path="*" element={<NotFoundPanel />} />
-            </Routes>
+              <Routes>
+                <Route index element={<ProjectList />} />
+                <Route path="dashboard" element={<DashboardPage pluginDefinitions={pluginDefinitions} />} />
+                <Route path="projects" element={<ProjectList />} />
+                <Route path="tasks" element={<TaskBoard />} />
+                <Route path="todos" element={<TodoPanel />} />
+                <Route path="*" element={<NotFoundPanel />} />
+              </Routes>
             </main>
-            <aside className="taskflow-aside">
-              <section className="panel panel--plugins">
-                <div className="panel__header">
-                  <h2>Plugin Registry</h2>
-                  <p className="panel__subhead">Activate widgets, nav hooks, and lightweight integrations.</p>
-                </div>
-                <div className="plugin-grid">
-                  {pluginDefinitions.map((plugin) => (
-                    <PluginSpotlight key={plugin.manifest.id} plugin={plugin.manifest} />
-                  ))}
-                </div>
-              </section>
-            </aside>
           </div>
         </Container>
 
@@ -222,15 +199,15 @@ function App() {
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
-        <Route path="/auth" element={<AuthPage viewModel={authViewModel} />} />
-        <Route
-          path="/*"
-          element={
-            <RequireAuth viewModel={authViewModel}>
-              <MainShell authViewModel={authViewModel} pluginDefinitions={pluginDefinitions} />
-            </RequireAuth>
-          }
-        />
+          <Route path="/auth" element={<AuthPage viewModel={authViewModel} />} />
+          <Route
+            path="/*"
+            element={
+              <RequireAuth viewModel={authViewModel}>
+                <MainShell authViewModel={authViewModel} pluginDefinitions={pluginDefinitions} />
+              </RequireAuth>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
