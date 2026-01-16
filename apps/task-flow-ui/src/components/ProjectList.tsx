@@ -5,6 +5,8 @@ import { ProjectCard } from './ProjectCard';
 import { SkeletonList } from './Skeleton';
 import { formatProjectStatus } from '../domain/values/projectStatus';
 import { ProjectDetailPanel } from './ProjectDetailPanel';
+import { ProjectForm } from './ProjectForm';
+import type { ProjectFormValues } from '../domain/entities/project';
 import styles from './ProjectList.module.css';
 
 interface Props {
@@ -16,6 +18,8 @@ export function ProjectList({ viewModel }: Props) {
   const projects = useObservable(vm.filteredProjects$, []);
   const allProjects = useObservable(vm.projects$, []);
   const isLoading = useObservable(vm.isLoading$, false);
+  const isProjectFormOpen = useObservable(vm.isProjectFormOpen$, false);
+  const isCreatingProject = useObservable(vm.isProjectFormSubmitting$, false);
   const errorMessage = useObservable(vm.errorMessage$, null);
   const detailOpen = useObservable(vm.isDetailPanelOpen$, false);
   const selectedProjectId = useObservable(vm.selectedProject$, undefined);
@@ -25,6 +29,7 @@ export function ProjectList({ viewModel }: Props) {
   );
   const projectTasks = useObservable(vm.projectTasks$, []);
   const isTaskFormOpen = useObservable(vm.isTaskFormOpen$, false);
+  const projectFormError = useObservable(vm.projectFormError$, null);
 
   const searchTerm = vm.searchTerm;
 
@@ -39,12 +44,19 @@ export function ProjectList({ viewModel }: Props) {
     }
   };
 
+  const handleCreateProject = async (values: ProjectFormValues) => {
+    try {
+      await vm.createProject(values);
+    } catch {
+      // Errors are surfaced via the view model observable
+    }
+  };
+
   return (
     <section className={styles.container}>
       <header className={styles.header}>
-        <div>
+        <div className={styles.headerTitle}>
           <h2 className={styles.title}>Project Explorer</h2>
-          <p className={styles.subtitle}>Live task management powered by the TaskFlow API.</p>
         </div>
         <div className={styles.controls}>
           <input
@@ -55,11 +67,31 @@ export function ProjectList({ viewModel }: Props) {
             onChange={(event) => vm.setSearchTerm(event.target.value)}
             className={styles.searchInput}
           />
-          <button type="button" onClick={() => vm.refresh()} className={styles.button}>
-            Refresh
-          </button>
+          <div className={styles.controlActions}>
+            <button type="button" onClick={() => vm.refresh()} className={styles.button}>
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={() => vm.toggleProjectForm()}
+              className={`${styles.button} ${styles.primaryButton}`}
+            >
+              {isProjectFormOpen ? 'Hide project form' : 'New project'}
+            </button>
+          </div>
         </div>
       </header>
+
+      {isProjectFormOpen && (
+        <section className={styles.projectFormPanel}>
+          <ProjectForm
+            onSubmit={handleCreateProject}
+            onCancel={() => vm.toggleProjectForm()}
+            isSubmitting={isCreatingProject}
+          />
+          {projectFormError && <p className={styles.formError}>{projectFormError}</p>}
+        </section>
+      )}
 
       {errorMessage && (
         <div className={styles.error}>

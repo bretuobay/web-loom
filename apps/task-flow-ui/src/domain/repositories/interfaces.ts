@@ -1,4 +1,4 @@
-import type { ProjectEntity, ProjectApiResponse } from '../entities/project';
+import type { ProjectEntity, ProjectApiResponse, ProjectCreationPayload } from '../entities/project';
 import type { TaskCreationPayload, TaskEntity } from '../entities/task';
 import type { AttachmentEntity } from '../entities/attachment';
 import type { UserEntity } from '../entities/user';
@@ -8,6 +8,7 @@ export interface IProjectRepository {
   fetchAll(): Promise<ProjectEntity[]>;
   getById(id: string): Promise<ProjectEntity | null>;
   update(id: string, payload: Partial<ProjectApiResponse>): Promise<ProjectEntity>;
+  create(payload: ProjectCreationPayload): Promise<ProjectEntity>;
 }
 
 export interface ITaskRepository {

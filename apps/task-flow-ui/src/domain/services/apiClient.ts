@@ -1,3 +1,4 @@
+import type { ProjectCreationPayload } from '../entities/project';
 import type { TaskCreationPayload } from '../entities/task';
 import type { ProfilePreferences, UserApiResponse } from '../entities/user';
 
@@ -164,6 +165,13 @@ export class TaskFlowApiClient {
   async updateProject(projectId: string, payload: Partial<ProjectResponse>) {
     return this.request<ProjectResponse>(`/projects/${projectId}`, {
       method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async createProject(payload: ProjectCreationPayload) {
+    return this.request<ProjectResponse>('/projects', {
+      method: 'POST',
       body: JSON.stringify(payload),
     });
   }

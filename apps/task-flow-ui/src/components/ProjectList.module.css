@@ -4,10 +4,18 @@
 
 .header {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-3);
   margin-bottom: var(--spacing-6);
+}
+
+.headerTitle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 220px;
 }
 
 .title {
@@ -16,17 +24,11 @@
   margin: 0;
 }
 
-.subtitle {
-  font-size: var(--typography-fontSize-md);
-  color: var(--colors-text-secondary);
-  margin-top: var(--spacing-1);
-}
-
 .controls {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: var(--spacing-3);
-  width: 100%;
+  align-items: center;
 }
 
 .searchInput {
@@ -36,12 +38,21 @@
   padding: var(--spacing-2) var(--spacing-3);
   font-size: var(--typography-fontSize-sm);
   color: var(--colors-text-primary);
-  width: 100%;
+  min-width: 220px;
+  max-width: 320px;
+  flex: 1;
 }
 
 .searchInput:focus {
   outline: none;
   border-color: var(--input-border-strong);
+}
+
+.controlActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  align-items: center;
 }
 
 .button {
@@ -62,6 +73,16 @@
   background-color: var(--colors-background-hover);
 }
 
+.primaryButton {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: transparent;
+}
+
+.primaryButton:hover {
+  filter: brightness(1.05);
+}
+
 .error {
   background-color: var(--colors-danger-muted);
   border: 1px solid var(--colors-danger-default);
@@ -72,6 +93,24 @@
   flex-direction: column;
   gap: var(--spacing-2);
   align-items: flex-start;
+}
+
+.projectFormPanel {
+  margin-bottom: var(--spacing-6);
+  padding: var(--spacing-4);
+  border-radius: var(--card-radius);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-surface);
+  box-shadow: var(--card-shadow);
+}
+
+.formError {
+  margin-top: var(--spacing-3);
+  padding: var(--spacing-3);
+  border-radius: var(--card-radius);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+  color: var(--colors-danger, #f87171);
 }
 
 .grid {

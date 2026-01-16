@@ -1,5 +1,5 @@
 import { createStorage, type Storage } from '@web-loom/storage-core';
-import { ProjectEntity, type ProjectApiResponse } from '../entities/project';
+import { ProjectEntity, type ProjectApiResponse, type ProjectCreationPayload } from '../entities/project';
 import { ApiProjectRepository } from './ApiProjectRepository';
 import type { IProjectRepository } from './interfaces';
 
@@ -89,5 +89,12 @@ export class CachingProjectRepository implements IProjectRepository {
     const updated = await this.apiRepo.update(id, payload);
     await storage.delete(CACHE_KEY);
     return updated;
+  }
+
+  async create(payload: ProjectCreationPayload) {
+    const storage = await getStorage();
+    const created = await this.apiRepo.create(payload);
+    await storage.delete(CACHE_KEY);
+    return created;
   }
 }

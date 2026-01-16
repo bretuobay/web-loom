@@ -96,3 +96,17 @@ export class ProjectEntity {
     return new ProjectEntity({ ...this.props, tasks });
   }
 }
+
+export interface ProjectCreationPayload {
+  name: string;
+  description?: string;
+  color?: string;
+  status?: ProjectStatus;
+}
+
+export interface ProjectFormValues {
+  name: string;
+  description?: string;
+  color: string;
+  status: ProjectStatus;
+}

@@ -5,9 +5,8 @@ import { CachingProjectRepository } from '../domain/repositories/CachingProjectR
 import { CachingTaskRepository } from '../domain/repositories/CachingTaskRepository';
 import { ProjectStore } from '../domain/stores/projectStore';
 import { TaskStore } from '../domain/stores/taskStore';
-import { ProjectEntity } from '../domain/entities/project';
-import type { TaskFormValues } from '../domain/entities/task';
-import { TaskEntity } from '../domain/entities/task';
+import { ProjectEntity, type ProjectCreationPayload, type ProjectFormValues } from '../domain/entities/project';
+import { TaskEntity, type TaskFormValues } from '../domain/entities/task';
 import { PROJECT_STATUSES, type ProjectStatus } from '../domain/values/projectStatus';
 
 interface ProjectListState {
@@ -15,6 +14,7 @@ interface ProjectListState {
   isDetailOpen: boolean;
   searchTerm: string;
   isTaskFormOpen: boolean;
+  isProjectFormOpen: boolean;
 }
 
 interface ProjectListActions {
@@ -23,18 +23,28 @@ interface ProjectListActions {
   setSearchTerm: (term: string) => void;
   toggleTaskForm: () => void;
   setTaskFormOpen: (isOpen: boolean) => void;
+  toggleProjectForm: () => void;
+  setProjectFormOpen: (isOpen: boolean) => void;
 }
 
 export class ProjectListViewModel {
   private readonly projectStore: ProjectStore;
   private readonly uiStore = createStore<ProjectListState, ProjectListActions>(
-    { selectedProjectId: undefined, isDetailOpen: false, searchTerm: '', isTaskFormOpen: false },
+    {
+      selectedProjectId: undefined,
+      isDetailOpen: false,
+      searchTerm: '',
+      isTaskFormOpen: false,
+      isProjectFormOpen: false
+    },
     (set) => ({
       selectProject: (id) => set((state) => ({ ...state, selectedProjectId: id })),
       toggleDetail: () => set((state) => ({ ...state, isDetailOpen: !state.isDetailOpen })),
       setSearchTerm: (term) => set((state) => ({ ...state, searchTerm: term })),
       toggleTaskForm: () => set((state) => ({ ...state, isTaskFormOpen: !state.isTaskFormOpen })),
-      setTaskFormOpen: (isOpen) => set((state) => ({ ...state, isTaskFormOpen: isOpen }))
+      setTaskFormOpen: (isOpen) => set((state) => ({ ...state, isTaskFormOpen: isOpen })),
+      toggleProjectForm: () => set((state) => ({ ...state, isProjectFormOpen: !state.isProjectFormOpen })),
+      setProjectFormOpen: (isOpen) => set((state) => ({ ...state, isProjectFormOpen: isOpen }))
     })
   );
   private readonly selectedProjectId$ = new BehaviorSubject<string | undefined>(undefined);
@@ -43,11 +53,17 @@ export class ProjectListViewModel {
   private readonly loading$ = new BehaviorSubject(false);
   private readonly error$ = new BehaviorSubject<string | null>(null);
   private readonly _isTaskFormOpen$ = new BehaviorSubject(false);
+  private readonly projectFormOpen$ = new BehaviorSubject(false);
+  private readonly projectFormLoading$ = new BehaviorSubject(false);
+  private readonly _projectFormError$ = new BehaviorSubject<string | null>(null);
   private readonly taskStore: TaskStore;
   private readonly projectTasksSubject = new BehaviorSubject<TaskEntity[]>([]);
   public readonly filteredProjects$ = new BehaviorSubject<ProjectEntity[]>([]);
   public readonly isLoading$ = this.loading$.asObservable();
   public readonly errorMessage$ = this.error$.asObservable();
+  public readonly isProjectFormOpen$ = this.projectFormOpen$.asObservable();
+  public readonly isProjectFormSubmitting$ = this.projectFormLoading$.asObservable();
+  public readonly projectFormError$ = this._projectFormError$.asObservable();
   private readonly statusSequence: readonly ProjectStatus[] = PROJECT_STATUSES;
   private readonly repository: IProjectRepository;
 
@@ -63,6 +79,7 @@ export class ProjectListViewModel {
       this.isDetailOpen$.next(state.isDetailOpen);
       this.searchTerm$.next(state.searchTerm);
       this._isTaskFormOpen$.next(state.isTaskFormOpen);
+      this.projectFormOpen$.next(state.isProjectFormOpen);
     });
     combineLatest([this.taskStore.data$, this.selectedProjectId$]).subscribe(([tasks, projectId]) => {
       if (!projectId) {
@@ -106,6 +123,10 @@ export class ProjectListViewModel {
     return this.uiStore.getState().isTaskFormOpen;
   }
 
+  get isProjectFormOpen() {
+    return this.uiStore.getState().isProjectFormOpen;
+  }
+
   public selectProject(id: string) {
     this.uiStore.actions.selectProject(id);
     this.uiStore.actions.setTaskFormOpen(false);
@@ -119,8 +140,36 @@ export class ProjectListViewModel {
     this.uiStore.actions.toggleTaskForm();
   }
 
+  public toggleProjectForm() {
+    this.uiStore.actions.toggleProjectForm();
+    this._projectFormError$.next(null);
+  }
+
   public get isTaskFormOpen$() {
     return this._isTaskFormOpen$.asObservable();
+  }
+
+  public async createProject(values: ProjectFormValues) {
+    this._projectFormError$.next(null);
+    this.projectFormLoading$.next(true);
+    try {
+      const description = values.description?.trim();
+      const payload: ProjectCreationPayload = {
+        name: values.name.trim(),
+        description: description && description.length > 0 ? description : undefined,
+        color: values.color,
+        status: values.status
+      };
+      const created = await this.repository.create(payload);
+      this.projectStore.append(created);
+      this.uiStore.actions.setProjectFormOpen(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create project';
+      this._projectFormError$.next(message);
+      throw error;
+    } finally {
+      this.projectFormLoading$.next(false);
+    }
   }
 
   public setSearchTerm(term: string) {

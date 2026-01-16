@@ -1,5 +1,5 @@
 import { ProjectEntity } from '../entities/project';
-import type { ProjectApiResponse } from '../entities/project';
+import type { ProjectApiResponse, ProjectCreationPayload } from '../entities/project';
 import type { IProjectRepository } from './interfaces';
 import { taskFlowApiClient } from '../services/apiClient';
 
@@ -22,6 +22,11 @@ export class ApiProjectRepository implements IProjectRepository {
 
   async update(id: string, payload: Partial<ProjectApiResponse>) {
     const project = await this.client.updateProject(id, payload);
+    return ProjectEntity.fromApi(project);
+  }
+
+  async create(payload: ProjectCreationPayload) {
+    const project = await this.client.createProject(payload);
     return ProjectEntity.fromApi(project);
   }
 }

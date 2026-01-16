@@ -233,6 +233,12 @@
 - **T1.5.4**: Implement basic routing with router-core
 - **T1.5.5**: Add loading and error states
 
+#### Task 1.6: Project CRUD Operations (API + UI)
+
+- **T1.6.1**: Verify that `apps/task-flow-api` exposes a full project CRUD surface (POST/PUT/DELETE) with parameter validation (name, description, color, status) so clients can reliably persist new workspaces.
+- **T1.6.2**: Extend the shared MVVM repositories and stores so `ProjectListViewModel` can coordinate creation, optimistic state updates, and error handling via observables (e.g., `projectFormError$`, `isProjectFormSubmitting$`) when calling the new API surface.
+- **T1.6.3**: Surface a toggleable `ProjectForm` in the project explorer UI that uses the MVVM view model to submit `ProjectFormValues` (name, description, color, status), reuse the existing Web Loom form styling, and display server and client validation feedback before refreshing the project list.
+
 ### Phase 2: Plugin System
 
 #### Task 2.1: Plugin Architecture
