@@ -8,7 +8,6 @@ interface NavItem {
 
 export interface HeaderProps {
   navItems: NavItem[];
-  onTaskBoardClick: () => void;
   onToggleTheme: () => void;
   theme: ThemeMode;
   currentUser?: { displayName: string; role: string };
@@ -19,7 +18,6 @@ export interface HeaderProps {
 
 export function Header({
   navItems,
-  onTaskBoardClick,
   onToggleTheme,
   theme,
   currentUser,
