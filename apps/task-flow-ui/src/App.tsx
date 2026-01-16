@@ -19,6 +19,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { ProfilePanel } from './components/ProfilePanel';
 import { ProfileViewModel } from './view-models/ProfileViewModel';
+import { MetricsWidget } from './plugins/metrics/MetricsWidget';
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard' },
@@ -52,6 +53,21 @@ const registerPlugins = () => {
       {
         label: 'Kanban view',
         path: '/kanban',
+      },
+    ],
+  });
+
+  registry.register({
+    id: 'taskflow-metrics',
+    name: 'Flow Metrics',
+    version: '0.1.0',
+    entry: '/plugins/metrics',
+    description: 'Dashboard plugin powered by MVVM view models to surface live flow health stats.',
+    widgets: [
+      {
+        id: 'flow-health',
+        title: 'Flow health',
+        component: MetricsWidget,
       },
     ],
   });

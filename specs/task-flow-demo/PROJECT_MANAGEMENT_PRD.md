@@ -43,6 +43,7 @@
 - **FR-004.2**: Plugin marketplace UI for discovering/enabling plugins
 - **FR-004.3**: Runtime plugin loading and unloading
 - **FR-004.4**: Plugin configuration persistence
+- **FR-004.5**: Ship a view-model backed `Flow Metrics` plugin that surfaces status breakdowns and overdue alerts through the same plugin registry that delivers widgets and menu hooks, proving the MVVM + plugin contract works end-to-end.
 
 #### FR-005: Real-time Features
 
@@ -70,6 +71,7 @@
 - **NFR-002.2**: Responsive design for desktop and mobile
 - **NFR-002.3**: Keyboard shortcuts for power users
 - **NFR-002.4**: Dark/light theme switching
+- **NFR-002.5**: Dashboard panels (especially the plugin registry) must consume design-token-driven styling so both day/night modes render without broken gradients or unreadable cards.
 
 #### NFR-003: Architecture
 
@@ -129,6 +131,7 @@
    - Entities: Plugin, PluginConfig
    - Value Objects: PluginManifest
    - Services: PluginRegistryService
+   - Demonstration Plugin: The `Flow Metrics` plugin wires the MVVM `MetricsViewModel` (which subscribes to `TaskStore` + `CachingTaskRepository`) to compute status breakdowns, overdue alerts, and focus insights; the widget is registered like any other plugin contribution so the dashboard can render it inside the plugin grid to prove the architecture.
 
 5. **Todo Domain**
    - Entities: Todo (title, details, completed flag, due date, owner)
@@ -196,6 +199,14 @@
 - **PluginTabs**: Dynamic tabs for different view plugins
 - **FilterPanel**: Collapsible panel for task filtering
 - **CommentThread**: Real-time comment system
+
+### Plugin Widget Surface
+
+- **Plugin registry cards** now coexist with a widget preview grid inside the dashboard panel so plugin contributions can render actual UI instead of just metadata.
+- **Flow Metrics plugin** demonstrates how MVVM-powered data (via `MetricsViewModel` observing `TaskStore`/`CachingTaskRepository`) feeds widget components registered through `PluginManifest.widgets`. The widget surface renders these components inside the grid so the host UI can show live status breakdowns and overdue alerts supplied by the plugin without knowing any domain details.
+- **Widgets stay decoupled**: each plugin exports a manifest + view model, the host reads `widget.component` from the registry, and the dashboard renders it alongside the metadata cards.
+- **Grid-first layout & theming**: The dashboard widget area now uses CSS Grid (not stacked flex boxes) so plugin cards line up evenly, and every wrapper relies on Web Loom design tokens (`--panel-surface`, `--panel-border`, etc.) to keep night mode styling intact instead of hard-coded gradients.
+- **Dense card layout**: Plugin registry cards keep padding tight (≈1rem), remove excess min-height, and stack via responsive grid columns so the white space between cards shrinks and the dashboard feels compact while remaining readable.
 
 ### Todo Workspace UI
 
