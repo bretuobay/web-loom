@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, useCallback, type FormEvent } from 'react';
 import { todoViewModel, type TodoListItem } from '../view-models/TodoViewModel';
 
-import { useObservable } from '../hooks/useObservable';
+import { useTodoState } from '../hooks/useTodoState';
 import styles from './TodoPanel.module.css';
 
 type NormalizedTodo = TodoListItem & {
@@ -54,28 +54,38 @@ const ensureDate = (value: string) => {
   return parsed;
 };
 
-export function TodoPanel() {
-  const todos = useObservable(todoViewModel.data$, [] as TodoListItem[]);
-  const isLoading = useObservable(todoViewModel.isLoading$, true);
-  const viewModelError = useObservable(todoViewModel.error$, null);
-  const [hidePast, setHidePast] = useState(false);
+// Stable date references - computed once per day (page load)
+const createStableDates = () => {
   const now = new Date();
   const today = startOfDay(now);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const todayKey = today.toISOString().split('T')[0];
+  return { today, tomorrow, todayKey, todayTimestamp: today.getTime() };
+};
+
+const STABLE_DATES = createStableDates();
+
+export function TodoPanel() {
+  // Use combined hook to batch all observable updates into single state change
+  const { todos, isLoading, error: viewModelError } = useTodoState();
+  const [hidePast, setHidePast] = useState(false);
+
+  // Use stable date references to prevent useMemo invalidation
+  const { today, tomorrow, todayKey, todayTimestamp } = STABLE_DATES;
   const defaultDue = todayKey;
-  const [formState, setFormState] = useState({
+
+  const [formState, setFormState] = useState(() => ({
     title: '',
     details: '',
     dueDate: defaultDue
-  });
+  }));
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     void todoViewModel.fetchCommand.execute();
-  }, [todoViewModel]);
+  }, []);
 
   const normalizedTodos = useMemo(() => {
     if (!todos) return [];
@@ -98,7 +108,8 @@ export function TodoPanel() {
 
     let entries = Object.values(map);
     if (hidePast) {
-      entries = entries.filter((group) => group.date.getTime() >= today.getTime());
+      // Use stable timestamp for comparison
+      entries = entries.filter((group) => group.date.getTime() >= todayTimestamp);
     }
 
     entries.sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -110,55 +121,64 @@ export function TodoPanel() {
     }
 
     return entries;
-  }, [normalizedTodos, hidePast, today, todayKey]);
+  }, [normalizedTodos, hidePast, todayTimestamp, todayKey]);
 
   const totals = useMemo(
     () => ({
       total: normalizedTodos.length,
       completed: normalizedTodos.filter((todo) => todo.completed).length,
       upcoming: normalizedTodos.filter(
-        (todo) => startOfDay(todo.dueDateObj).getTime() >= today.getTime()
+        (todo) => startOfDay(todo.dueDateObj).getTime() >= todayTimestamp
       ).length
     }),
-    [normalizedTodos, today]
+    [normalizedTodos, todayTimestamp]
   );
 
   const todaysGroup = groupedEntries.find((group) => group.iso === todayKey);
   const todaysCount = todaysGroup?.todos.length ?? 0;
   const errorMessage = describeError(viewModelError);
 
-  const handleTogglePast = () => {
+  const handleTogglePast = useCallback(() => {
     setHidePast((current) => !current);
-  };
+  }, []);
 
-  const handleFormChange = (field: 'title' | 'details' | 'dueDate', value: string) => {
+  const handleFormChange = useCallback((field: 'title' | 'details' | 'dueDate', value: string) => {
     setFormState((current) => ({ ...current, [field]: value }));
-  };
+  }, []);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!formState.title.trim()) {
+
+    // Read current form values via ref-like access in the callback
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const title = (formData.get('title') as string)?.trim() || '';
+    const details = (formData.get('details') as string)?.trim() || '';
+    const dueDate = (formData.get('dueDate') as string) || '';
+
+    if (!title) {
       setFormError('Give this todo a short title.');
       return;
     }
+
     setFormError(null);
     setSubmitting(true);
-    try {
-      await todoViewModel.createCommand.execute({
-        title: formState.title.trim(),
-        details: formState.details.trim() || undefined,
-        dueDate: formState.dueDate || undefined
-      });
+
+    todoViewModel.createCommand.execute({
+      title,
+      details: details || undefined,
+      dueDate: dueDate || undefined
+    }).then(() => {
       setFormState({ title: '', details: '', dueDate: defaultDue });
-    } catch (error) {
+    }).catch((error) => {
       const message = describeError(error);
       setFormError(message ?? 'Unable to save todo');
-    } finally {
+    }).finally(() => {
       setSubmitting(false);
-    }
-  };
+    });
+  }, [defaultDue]);
 
-  const handleToggleComplete = async (todo: NormalizedTodo) => {
+  const handleToggleComplete = useCallback(async (todo: NormalizedTodo) => {
     try {
       await todoViewModel.updateCommand.execute({
         id: todo.id,
@@ -167,19 +187,19 @@ export function TodoPanel() {
     } catch {
       // Handled via shared error stream
     }
-  };
+  }, []);
 
-  const handleDelete = async (todoId: string) => {
+  const handleDelete = useCallback(async (todoId: string) => {
     try {
       await todoViewModel.deleteCommand.execute(todoId);
     } catch {
       // ViewModel error observable surfaces this
     }
-  };
+  }, []);
 
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     void todoViewModel.fetchCommand.execute();
-  };
+  }, []);
 
   return (
     <section className={styles.container}>
@@ -304,6 +324,7 @@ export function TodoPanel() {
               <span>Title</span>
               <input
                 type="text"
+                name="title"
                 value={formState.title}
                 onChange={(event) => handleFormChange('title', event.target.value)}
                 placeholder="What needs your attention?"
@@ -312,6 +333,7 @@ export function TodoPanel() {
             <label className={styles.control}>
               <span>Details (optional)</span>
               <textarea
+                name="details"
                 value={formState.details}
                 onChange={(event) => handleFormChange('details', event.target.value)}
                 placeholder="Add context or links"
@@ -322,6 +344,7 @@ export function TodoPanel() {
               <span>Due</span>
               <input
                 type="date"
+                name="dueDate"
                 value={formState.dueDate}
                 onChange={(event) => handleFormChange('dueDate', event.target.value)}
                 max="2099-12-31"
