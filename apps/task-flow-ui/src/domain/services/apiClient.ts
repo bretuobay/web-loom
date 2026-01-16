@@ -162,6 +162,19 @@ export class TaskFlowApiClient {
     });
   }
 
+  async updateTask(taskId: string, payload: Partial<TaskCreationPayload>) {
+    return this.request<TaskResponse>(`/tasks/${taskId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteTask(taskId: string) {
+    return this.request<void>(`/tasks/${taskId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async updateProject(projectId: string, payload: Partial<ProjectResponse>) {
     return this.request<ProjectResponse>(`/projects/${projectId}`, {
       method: 'PUT',

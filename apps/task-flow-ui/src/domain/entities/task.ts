@@ -29,6 +29,8 @@ export interface TaskCreationPayload {
   assigneeName?: string;
 }
 
+export type TaskUpdatePayload = Partial<TaskCreationPayload>;
+
 export type TaskFormValues = Pick<TaskCreationPayload, 'title' | 'description' | 'status' | 'priority' | 'dueDate'>;
 
 export class TaskEntity {

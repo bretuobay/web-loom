@@ -113,6 +113,32 @@ export class TaskBoardViewModel {
     }
   }
 
+  public async updateTask(taskId: string, values: TaskFormValues) {
+    this.loading$.next(true);
+    this.error$.next(null);
+    try {
+      await this.taskStore.updateTask(taskId, values);
+    } catch (error) {
+      this.error$.next(error instanceof Error ? error.message : 'Failed to update task');
+      throw error;
+    } finally {
+      this.loading$.next(false);
+    }
+  }
+
+  public async deleteTask(taskId: string) {
+    this.loading$.next(true);
+    this.error$.next(null);
+    try {
+      await this.taskStore.deleteTask(taskId);
+    } catch (error) {
+      this.error$.next(error instanceof Error ? error.message : 'Failed to delete task');
+      throw error;
+    } finally {
+      this.loading$.next(false);
+    }
+  }
+
   public setStatusFilter(status: TaskStatus | null) {
     if (status) {
       this.store.actions.setStatusFilter(status);

@@ -1,5 +1,5 @@
 import { createStorage, type Storage } from '@web-loom/storage-core';
-import { TaskEntity, type TaskApiResponse, type TaskCreationPayload } from '../entities/task';
+import { TaskEntity, type TaskApiResponse, type TaskCreationPayload, type TaskUpdatePayload } from '../entities/task';
 import type { AttachmentEntity } from '../entities/attachment';
 import { ApiTaskRepository } from './ApiTaskRepository';
 import type { ITaskRepository } from './interfaces';
@@ -101,6 +101,17 @@ export class CachingTaskRepository implements ITaskRepository {
     const attachment = await this.apiRepo.uploadAttachment(taskId, file);
     await this.invalidateCache();
     return attachment;
+  }
+
+  async update(id: string, payload: TaskUpdatePayload): Promise<TaskEntity> {
+    const task = await this.apiRepo.update(id, payload);
+    await this.invalidateCache();
+    return task;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.apiRepo.delete(id);
+    await this.invalidateCache();
   }
 
   private async invalidateCache() {

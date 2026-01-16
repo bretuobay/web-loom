@@ -1,6 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
 import { TaskEntity } from '../entities/task';
-import type { TaskCreationPayload } from '../entities/task';
+import type { TaskCreationPayload, TaskUpdatePayload } from '../entities/task';
 import type { AttachmentEntity } from '../entities/attachment';
 import { ApiTaskRepository } from '../repositories/ApiTaskRepository';
 import type { ITaskRepository } from '../repositories/interfaces';
@@ -121,6 +121,17 @@ export class TaskStore {
     );
     this._tasks$.next(updated);
     return attachment;
+  }
+
+  async updateTask(id: string, payload: TaskUpdatePayload) {
+    const updatedTask = await this.repository.update(id, payload);
+    this._tasks$.next(this.snapshot.map((task) => (task.id === id ? updatedTask : task)));
+    return updatedTask;
+  }
+
+  async deleteTask(id: string) {
+    await this.repository.delete(id);
+    this._tasks$.next(this.snapshot.filter((task) => task.id !== id));
   }
 
   findById(id: string) {
