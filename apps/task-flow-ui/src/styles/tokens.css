@@ -50,6 +50,25 @@
   /* Layout */
   --dashboard-gutter: var(--spacing-6);
   --dashboard-radius: var(--radii-xl);
+  --layout-max-width: 1200px;
+  --layout-max-width-md: 480px;
+  --layout-max-width-sm: 320px;
+  --layout-min-height-lg: 160px;
+  --layout-min-height-touch: 44px;
+  --spacing-px: -1px;
+  --spacing-px-2: 2px;
+  --spacing-px-3: 3px;
+  --spacing-px-negative-3: -3px;
+  --backdrop-filter-lg: blur(18px);
+
+  /* Grid Templates */
+  --grid-template-columns-cards: repeat(auto-fit, minmax(260px, 1fr));
+  --grid-template-columns-form: repeat(auto-fit, minmax(150px, 1fr));
+  --grid-template-columns-desktop: minmax(0, 2fr) minmax(280px, 360px);
+  --grid-template-columns-desktop-alt: minmax(0, 1fr) minmax(320px, 360px);
+  --grid-template-columns-desktop-project-grid: repeat(auto-fill, minmax(280px, 1fr));
+  --grid-template-columns-tablet: minmax(0, 1fr) minmax(280px, 320px);
+  --grid-template-columns-mobile: 1fr;
 
   /* Z-index layers */
   --zIndex-dropdown: 100;
@@ -87,6 +106,14 @@
   /* Badges */
   --badge-radius: var(--radii-full);
   --badge-glow: 0 0 12px var(--focus-ring-color);
+  --badge-muted-bg: var(--panel-surface);
+  --badge-muted-text: var(--colors-text-secondary);
+  --badge-accent-bg: rgba(56, 189, 248, 0.15);
+  --badge-accent-text: var(--viz-chart-secondary);
+  --badge-success-bg: rgba(16, 185, 129, 0.15);
+  --badge-success-text: var(--project-status-completed);
+  --badge-warning-bg: rgba(251, 191, 36, 0.15);
+  --badge-warning-text: var(--task-priority-medium);
 
   /* Inputs */
   --input-border-default: rgba(148, 163, 184, 0.4);
@@ -141,6 +168,11 @@
   /* Skeleton loading tokens */
   --skeleton-base: rgba(148, 163, 184, 0.1);
   --skeleton-highlight: rgba(148, 163, 184, 0.2);
+
+  /* Badge overrides for dark mode */
+  --badge-accent-text: #60a5fa;
+  --badge-success-text: #4ade80;
+  --badge-warning-text: #facc15;
 }
 
 [data-theme='light'] {
@@ -181,4 +213,9 @@
   /* Skeleton loading tokens */
   --skeleton-base: rgba(15, 23, 42, 0.08);
   --skeleton-highlight: rgba(15, 23, 42, 0.15);
+
+  /* Badge overrides for light mode */
+  --badge-accent-text: #3b82f6;
+  --badge-success-text: #10b981;
+  --badge-warning-text: #f59e0b;
 }
