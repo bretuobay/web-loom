@@ -125,6 +125,34 @@
   color: var(--btn-primary-text);
 }
 
+.layout-header__command-palette {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: var(--radii-md, 0.5rem);
+  background: var(--colors-background-elevated, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--panel-border, rgba(148, 163, 184, 0.3));
+  color: var(--colors-text-secondary);
+  font-size: 0.75rem;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.layout-header__command-palette:hover {
+  background: var(--colors-background-elevated, rgba(255, 255, 255, 0.1));
+  border-color: var(--btn-primary-bg);
+  color: var(--colors-text-primary);
+}
+
+.layout-header__command-palette kbd {
+  padding: 0.1rem 0.35rem;
+  background: var(--colors-background-page, rgba(0, 0, 0, 0.2));
+  border-radius: 0.2rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.7rem;
+}
+
 .layout-header__user {
   display: flex;
   flex-wrap: wrap;

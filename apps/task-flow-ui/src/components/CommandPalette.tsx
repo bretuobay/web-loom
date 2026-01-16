@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { createCommandPalette, type Command } from '@web-loom/ui-patterns';
@@ -10,12 +10,14 @@ interface CommandPaletteProps {
   onToggleTheme: () => void;
   onLogout?: () => void;
   isAuthenticated: boolean;
+  onReady?: (open: () => void) => void;
 }
 
 export function CommandPalette({
   onToggleTheme,
   onLogout,
-  isAuthenticated
+  isAuthenticated,
+  onReady
 }: CommandPaletteProps) {
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
@@ -39,6 +41,14 @@ export function CommandPalette({
         action: () => navigate('/tasks')
       },
       {
+        id: 'nav-todos',
+        label: 'Go to Todos',
+        category: 'Navigation',
+        keywords: ['todos', 'checklist', 'daily', 'personal'],
+        shortcut: 'G D',
+        action: () => navigate('/todos')
+      },
+      {
         id: 'theme-toggle',
         label: 'Toggle Theme',
         category: 'Preferences',
@@ -60,11 +70,19 @@ export function CommandPalette({
     return createCommandPalette({ commands });
   }, [navigate, onToggleTheme, onLogout, isAuthenticated]);
 
-  const [state, setState] = useState(palette.getState());
+  const [state, setState] = useState(() => palette.getState());
 
-  // Subscribe to state changes
+  // Subscribe to state changes - use callback to ignore oldState argument
   useEffect(() => {
-    return palette.subscribe(setState);
+    // Sync state immediately when palette changes
+    setState(palette.getState());
+
+    // Subscribe with a wrapper that handles the (newState, oldState) signature
+    const unsubscribe = palette.subscribe((newState) => {
+      setState(newState);
+    });
+
+    return unsubscribe;
   }, [palette]);
 
   // Cleanup on unmount
@@ -72,12 +90,34 @@ export function CommandPalette({
     return () => palette.destroy();
   }, [palette]);
 
-  // Global keyboard shortcut to open command palette
+  // Keep a ref to the current palette so the open function is always stable
+  const paletteRef = useRef(palette);
+  paletteRef.current = palette;
+
+  // Create a stable open function that always uses the current palette
+  const stableOpen = useCallback(() => {
+    paletteRef.current.actions.open();
+  }, []);
+
+  // Notify parent when palette is ready (only once with stable function)
+  useEffect(() => {
+    if (onReady) {
+      onReady(stableOpen);
+    }
+  }, [onReady, stableOpen]);
+
+  // Global keyboard shortcuts to open command palette
   useKeyboardShortcuts({
     shortcuts: [
       {
         key: 'k',
         ctrl: true,
+        action: () => palette.actions.open()
+      },
+      {
+        key: 'p',
+        ctrl: true,
+        shift: true,
         action: () => palette.actions.open()
       }
     ]

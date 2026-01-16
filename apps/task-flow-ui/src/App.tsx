@@ -1,7 +1,7 @@
 import '@repo/shared/styles';
 import './App.css';
 
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { PluginRegistry, type PluginDefinition } from '@repo/plugin-core';
 import { PluginSpotlight } from './components/PluginSpotlight';
@@ -23,7 +23,7 @@ import { ProfileViewModel } from './view-models/ProfileViewModel';
 const navItems = [
   { label: 'Projects', path: '/projects' },
   { label: 'Task board', path: '/tasks' },
-  { label: 'Todos', path: '/todos' }
+  { label: 'Todos', path: '/todos' },
 ];
 
 const registerPlugins = () => {
@@ -44,15 +44,15 @@ const registerPlugins = () => {
             <span>5.2 days</span>
             <p>Average cycle time</p>
           </div>
-        )
-      }
+        ),
+      },
     ],
     menuItems: [
       {
         label: 'Kanban view',
-        path: '/kanban'
-      }
-    ]
+        path: '/kanban',
+      },
+    ],
   });
 
   registry.register({
@@ -70,9 +70,9 @@ const registerPlugins = () => {
             <span>3</span>
             <p>fresh plugins</p>
           </div>
-        )
-      }
-    ]
+        ),
+      },
+    ],
   });
 
   return registry;
@@ -96,7 +96,7 @@ function NotFoundPanel() {
 function HeroPanel({
   onTaskBoardClick,
   onProjectsClick,
-  onTodosClick
+  onTodosClick,
 }: {
   onTaskBoardClick: () => void;
   onProjectsClick: () => void;
@@ -134,7 +134,7 @@ function RequireAuth({ viewModel, children }: { viewModel: AuthViewModel; childr
 
 function MainShell({
   authViewModel,
-  pluginDefinitions
+  pluginDefinitions,
 }: {
   authViewModel: AuthViewModel;
   pluginDefinitions: PluginDefinition[];
@@ -145,9 +145,15 @@ function MainShell({
 
   const profileViewModel = useMemo(() => new ProfileViewModel(authViewModel), [authViewModel]);
   const [isProfileOpen, setProfileOpen] = useState(false);
+  const [openCommandPalette, setOpenCommandPalette] = useState<(() => void) | null>(null);
+
   useEffect(() => {
     void profileViewModel.loadProfile();
   }, [profileViewModel]);
+
+  const handleCommandPaletteReady = useCallback((open: () => void) => {
+    setOpenCommandPalette(() => open);
+  }, []);
 
   const handleLogout = () => {
     authViewModel.logout();
@@ -160,6 +166,7 @@ function MainShell({
         onToggleTheme={toggleTheme}
         onLogout={handleLogout}
         isAuthenticated={!!currentUser}
+        onReady={handleCommandPaletteReady}
       />
       <OfflineIndicator />
       <div className="taskflow-shell">
@@ -171,6 +178,7 @@ function MainShell({
           currentUser={currentUser ? { displayName: currentUser.displayName, role: currentUser.role } : undefined}
           onLogout={handleLogout}
           onProfileClick={() => setProfileOpen(true)}
+          onCommandPalette={openCommandPalette ?? undefined}
         />
 
         <HeroPanel
@@ -182,13 +190,13 @@ function MainShell({
         <Container>
           <div className="taskflow-grid">
             <main className="taskflow-main">
-            <Routes>
-              <Route index element={<ProjectList />} />
-              <Route path="projects" element={<ProjectList />} />
-              <Route path="tasks" element={<TaskBoard />} />
-              <Route path="todos" element={<TodoPanel />} />
-              <Route path="*" element={<NotFoundPanel />} />
-            </Routes>
+              <Routes>
+                <Route index element={<ProjectList />} />
+                <Route path="projects" element={<ProjectList />} />
+                <Route path="tasks" element={<TaskBoard />} />
+                <Route path="todos" element={<TodoPanel />} />
+                <Route path="*" element={<NotFoundPanel />} />
+              </Routes>
             </main>
             <aside className="taskflow-aside">
               <section className="panel panel--plugins">
@@ -222,15 +230,15 @@ function App() {
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
-        <Route path="/auth" element={<AuthPage viewModel={authViewModel} />} />
-        <Route
-          path="/*"
-          element={
-            <RequireAuth viewModel={authViewModel}>
-              <MainShell authViewModel={authViewModel} pluginDefinitions={pluginDefinitions} />
-            </RequireAuth>
-          }
-        />
+          <Route path="/auth" element={<AuthPage viewModel={authViewModel} />} />
+          <Route
+            path="/*"
+            element={
+              <RequireAuth viewModel={authViewModel}>
+                <MainShell authViewModel={authViewModel} pluginDefinitions={pluginDefinitions} />
+              </RequireAuth>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
