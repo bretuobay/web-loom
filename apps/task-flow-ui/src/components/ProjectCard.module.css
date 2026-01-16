@@ -87,8 +87,8 @@
 
 .footer {
   display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-2);
+  flex-direction: column;
+  gap: var(--spacing-3);
   margin-top: auto;
   padding-top: var(--spacing-4);
   border-top: 1px solid var(--card-border);
@@ -122,4 +122,37 @@
 
 .detailsButton:hover {
   opacity: 0.9;
+}
+
+.primaryActions {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.secondaryActions {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.secondaryButton {
+  border: 1px solid var(--card-border);
+  background: var(--colors-background-elevated);
+  color: var(--colors-text-primary);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--btn-radius);
+  font-size: var(--typography-fontSize-sm);
+  font-weight: var(--typography-fontWeight-medium);
+  cursor: pointer;
+  transition: border-color var(--transitions-fast), background-color var(--transitions-fast);
+}
+
+.secondaryButton:hover {
+  border-color: var(--btn-primary-bg);
+}
+
+.secondaryButtonDanger {
+  border-color: var(--colors-danger);
+  color: var(--colors-danger);
 }

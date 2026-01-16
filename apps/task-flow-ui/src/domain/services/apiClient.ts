@@ -176,6 +176,12 @@ export class TaskFlowApiClient {
     });
   }
 
+  async deleteProject(projectId: string) {
+    return this.request<void>(`/projects/${projectId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async uploadTaskAttachment(taskId: string, file: File) {
     return this.request<AttachmentResponse>(`/tasks/${taskId}/attachments`, {
       method: 'POST',

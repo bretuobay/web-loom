@@ -56,6 +56,8 @@ export class ProjectListViewModel {
   private readonly projectFormOpen$ = new BehaviorSubject(false);
   private readonly projectFormLoading$ = new BehaviorSubject(false);
   private readonly _projectFormError$ = new BehaviorSubject<string | null>(null);
+  private readonly projectFormMode$ = new BehaviorSubject<'create' | 'edit'>('create');
+  private readonly editingProject$ = new BehaviorSubject<ProjectEntity | null>(null);
   private readonly taskStore: TaskStore;
   private readonly projectTasksSubject = new BehaviorSubject<TaskEntity[]>([]);
   public readonly filteredProjects$ = new BehaviorSubject<ProjectEntity[]>([]);
@@ -64,6 +66,8 @@ export class ProjectListViewModel {
   public readonly isProjectFormOpen$ = this.projectFormOpen$.asObservable();
   public readonly isProjectFormSubmitting$ = this.projectFormLoading$.asObservable();
   public readonly projectFormError$ = this._projectFormError$.asObservable();
+  public readonly projectFormModeObservable$ = this.projectFormMode$.asObservable();
+  public readonly editingProjectObservable$ = this.editingProject$.asObservable();
   private readonly statusSequence: readonly ProjectStatus[] = PROJECT_STATUSES;
   private readonly repository: IProjectRepository;
 
@@ -141,7 +145,31 @@ export class ProjectListViewModel {
   }
 
   public toggleProjectForm() {
-    this.uiStore.actions.toggleProjectForm();
+    if (this.isProjectFormOpen) {
+      this.closeProjectForm();
+      return;
+    }
+    this.openProjectFormForCreate();
+  }
+
+  public openProjectFormForCreate() {
+    this.projectFormMode$.next('create');
+    this.editingProject$.next(null);
+    this._projectFormError$.next(null);
+    this.uiStore.actions.setProjectFormOpen(true);
+  }
+
+  public openProjectFormForEdit(project: ProjectEntity) {
+    this.projectFormMode$.next('edit');
+    this.editingProject$.next(project);
+    this._projectFormError$.next(null);
+    this.uiStore.actions.setProjectFormOpen(true);
+  }
+
+  public closeProjectForm() {
+    this.uiStore.actions.setProjectFormOpen(false);
+    this.editingProject$.next(null);
+    this.projectFormMode$.next('create');
     this._projectFormError$.next(null);
   }
 
@@ -149,26 +177,48 @@ export class ProjectListViewModel {
     return this._isTaskFormOpen$.asObservable();
   }
 
-  public async createProject(values: ProjectFormValues) {
+  public async submitProjectForm(values: ProjectFormValues) {
     this._projectFormError$.next(null);
     this.projectFormLoading$.next(true);
     try {
       const description = values.description?.trim();
-      const payload: ProjectCreationPayload = {
+      const payload = {
         name: values.name.trim(),
         description: description && description.length > 0 ? description : undefined,
         color: values.color,
         status: values.status
       };
-      const created = await this.repository.create(payload);
-      this.projectStore.append(created);
-      this.uiStore.actions.setProjectFormOpen(false);
+
+      if (this.projectFormMode$.getValue() === 'edit') {
+        const editing = this.editingProject$.getValue();
+        if (!editing) {
+          throw new Error('No project selected for editing');
+        }
+        const updated = await this.repository.update(editing.id, payload);
+        this.projectStore.mutate(editing.id, () => updated);
+      } else {
+        const created = await this.repository.create(payload);
+        this.projectStore.append(created);
+      }
+      this.closeProjectForm();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create project';
+      const message = error instanceof Error ? error.message : 'Failed to save project';
       this._projectFormError$.next(message);
       throw error;
     } finally {
       this.projectFormLoading$.next(false);
+    }
+  }
+
+  public async deleteProject(projectId: string) {
+    this.error$.next(null);
+    try {
+      await this.repository.delete(projectId);
+      this.projectStore.remove(projectId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete project';
+      this.error$.next(message);
+      throw error;
     }
   }
 

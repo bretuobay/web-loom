@@ -97,4 +97,10 @@ export class CachingProjectRepository implements IProjectRepository {
     await storage.delete(CACHE_KEY);
     return created;
   }
+
+  async delete(id: string) {
+    const storage = await getStorage();
+    await this.apiRepo.delete(id);
+    await storage.delete(CACHE_KEY);
+  }
 }

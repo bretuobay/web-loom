@@ -8,6 +8,7 @@ export interface IProjectRepository {
   fetchAll(): Promise<ProjectEntity[]>;
   getById(id: string): Promise<ProjectEntity | null>;
   update(id: string, payload: Partial<ProjectApiResponse>): Promise<ProjectEntity>;
+  delete(id: string): Promise<void>;
   create(payload: ProjectCreationPayload): Promise<ProjectEntity>;
 }
 

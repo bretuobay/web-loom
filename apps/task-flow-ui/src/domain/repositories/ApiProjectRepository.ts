@@ -29,4 +29,8 @@ export class ApiProjectRepository implements IProjectRepository {
     const project = await this.client.createProject(payload);
     return ProjectEntity.fromApi(project);
   }
+
+  async delete(id: string) {
+    await this.client.deleteProject(id);
+  }
 }

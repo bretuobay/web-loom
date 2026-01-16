@@ -6,7 +6,7 @@ import { SkeletonList } from './Skeleton';
 import { formatProjectStatus } from '../domain/values/projectStatus';
 import { ProjectDetailPanel } from './ProjectDetailPanel';
 import { ProjectForm } from './ProjectForm';
-import type { ProjectFormValues } from '../domain/entities/project';
+import type { ProjectEntity, ProjectFormValues } from '../domain/entities/project';
 import styles from './ProjectList.module.css';
 
 interface Props {
@@ -20,6 +20,8 @@ export function ProjectList({ viewModel }: Props) {
   const isLoading = useObservable(vm.isLoading$, false);
   const isProjectFormOpen = useObservable(vm.isProjectFormOpen$, false);
   const isCreatingProject = useObservable(vm.isProjectFormSubmitting$, false);
+  const projectFormMode = useObservable(vm.projectFormModeObservable$, 'create');
+  const editingProject = useObservable(vm.editingProjectObservable$, null);
   const errorMessage = useObservable(vm.errorMessage$, null);
   const detailOpen = useObservable(vm.isDetailPanelOpen$, false);
   const selectedProjectId = useObservable(vm.selectedProject$, undefined);
@@ -30,6 +32,19 @@ export function ProjectList({ viewModel }: Props) {
   const projectTasks = useObservable(vm.projectTasks$, []);
   const isTaskFormOpen = useObservable(vm.isTaskFormOpen$, false);
   const projectFormError = useObservable(vm.projectFormError$, null);
+
+  const projectFormInitialValues = editingProject
+    ? {
+        name: editingProject.name,
+        description: editingProject.description,
+        color: editingProject.color,
+        status: editingProject.status
+      }
+    : undefined;
+  const projectFormTitle = projectFormMode === 'edit' ? 'Edit project' : 'Create project';
+  const projectFormButtonLabel = projectFormMode === 'edit' ? 'Save changes' : 'Create project';
+  const newProjectButtonLabel =
+    isProjectFormOpen && projectFormMode === 'create' ? 'Hide project form' : 'New project';
 
   const searchTerm = vm.searchTerm;
 
@@ -44,12 +59,36 @@ export function ProjectList({ viewModel }: Props) {
     }
   };
 
-  const handleCreateProject = async (values: ProjectFormValues) => {
+  const handleSubmitProject = async (values: ProjectFormValues) => {
     try {
-      await vm.createProject(values);
+      await vm.submitProjectForm(values);
     } catch {
       // Errors are surfaced via the view model observable
     }
+  };
+
+  const handleEditProject = (project: ProjectEntity) => {
+    vm.openProjectFormForEdit(project);
+  };
+
+  const handleDeleteProject = async (project: ProjectEntity) => {
+    if (!window.confirm(`Delete ${project.name}? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await vm.deleteProject(project.id);
+    } catch {
+      // Errors surface via vm.errorMessage$
+    }
+  };
+
+  const handleToggleCreateForm = () => {
+    if (isProjectFormOpen && projectFormMode === 'create') {
+      vm.closeProjectForm();
+      return;
+    }
+    vm.openProjectFormForCreate();
   };
 
   return (
@@ -73,10 +112,10 @@ export function ProjectList({ viewModel }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => vm.toggleProjectForm()}
+              onClick={handleToggleCreateForm}
               className={`${styles.button} ${styles.primaryButton}`}
             >
-              {isProjectFormOpen ? 'Hide project form' : 'New project'}
+              {newProjectButtonLabel}
             </button>
           </div>
         </div>
@@ -85,8 +124,11 @@ export function ProjectList({ viewModel }: Props) {
       {isProjectFormOpen && (
         <section className={styles.projectFormPanel}>
           <ProjectForm
-            onSubmit={handleCreateProject}
-            onCancel={() => vm.toggleProjectForm()}
+            title={projectFormTitle}
+            submitLabel={projectFormButtonLabel}
+            initialValues={projectFormInitialValues}
+            onSubmit={handleSubmitProject}
+            onCancel={() => vm.closeProjectForm()}
             isSubmitting={isCreatingProject}
           />
           {projectFormError && <p className={styles.formError}>{projectFormError}</p>}
@@ -116,6 +158,8 @@ export function ProjectList({ viewModel }: Props) {
                   void vm.cycleProjectStatus(id);
                 }}
                 onViewDetails={(id) => handleViewDetails(id)}
+                onEdit={() => handleEditProject(project)}
+                onDelete={() => void handleDeleteProject(project)}
               />
             </div>
           ))}

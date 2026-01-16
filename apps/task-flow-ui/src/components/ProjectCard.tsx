@@ -6,6 +6,8 @@ interface Props {
   project: ProjectEntity;
   onCycleStatus: (id: string) => void;
   onViewDetails?: (projectId: string) => void;
+  onEdit?: (projectId: string) => void;
+  onDelete?: (projectId: string) => void;
 }
 
 const statusBadge = (status: ProjectStatus) => {
@@ -23,7 +25,7 @@ const statusBadge = (status: ProjectStatus) => {
   }
 };
 
-export function ProjectCard({ project, onCycleStatus, onViewDetails }: Props) {
+export function ProjectCard({ project, onCycleStatus, onViewDetails, onEdit, onDelete }: Props) {
   const completion =
     project.tasksCount > 0 ? Math.min(100, Math.round((project.completedCount / project.tasksCount) * 100)) : 0;
 
@@ -50,13 +52,29 @@ export function ProjectCard({ project, onCycleStatus, onViewDetails }: Props) {
         </small>
       </div>
       <div className={styles.footer}>
-        <button className={styles.actionButton} type="button" onClick={() => onCycleStatus(project.id)}>
-          Move to next phase
-        </button>
-        {onViewDetails && (
-          <button className={styles.detailsButton} type="button" onClick={() => onViewDetails(project.id)}>
-            View details
+        <div className={styles.primaryActions}>
+          <button className={styles.actionButton} type="button" onClick={() => onCycleStatus(project.id)}>
+            Move to next phase
           </button>
+          {onViewDetails && (
+            <button className={styles.detailsButton} type="button" onClick={() => onViewDetails(project.id)}>
+              View details
+            </button>
+          )}
+        </div>
+        {(onEdit || onDelete) && (
+          <div className={styles.secondaryActions}>
+            {onEdit && (
+              <button className={styles.secondaryButton} type="button" onClick={() => onEdit(project.id)}>
+                Edit
+              </button>
+            )}
+            {onDelete && (
+              <button className={styles.secondaryButtonDanger} type="button" onClick={() => onDelete(project.id)}>
+                Delete
+              </button>
+            )}
+          </div>
         )}
       </div>
     </article>

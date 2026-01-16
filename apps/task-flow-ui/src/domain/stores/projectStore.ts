@@ -33,4 +33,8 @@ export class ProjectStore {
   append(project: ProjectEntity) {
     this._projects$.next([...this.snapshot, project]);
   }
+
+  remove(projectId: string) {
+    this._projects$.next(this.snapshot.filter((project) => project.id !== projectId));
+  }
 }
