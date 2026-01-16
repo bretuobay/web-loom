@@ -1,5 +1,5 @@
 import type { ProjectEntity, ProjectApiResponse, ProjectCreationPayload } from '../entities/project';
-import type { TaskCreationPayload, TaskEntity } from '../entities/task';
+import type { TaskCreationPayload, TaskEntity, TaskUpdatePayload } from '../entities/task';
 import type { AttachmentEntity } from '../entities/attachment';
 import type { UserEntity } from '../entities/user';
 import { CommentEntity } from '../entities/comment';
@@ -17,6 +17,8 @@ export interface ITaskRepository {
   getById(id: string): Promise<TaskEntity | null>;
   create(payload: TaskCreationPayload): Promise<TaskEntity>;
   uploadAttachment(taskId: string, file: File): Promise<AttachmentEntity>;
+  update(id: string, payload: TaskUpdatePayload): Promise<TaskEntity>;
+  delete(id: string): Promise<void>;
 }
 
 export interface ICommentRepository {

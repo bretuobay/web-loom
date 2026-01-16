@@ -16,6 +16,7 @@
   "dependencies": {
     "@repo/plugin-core": "*",
     "@repo/shared": "*",
+    "@repo/models": "*",
     "@web-loom/mvvm-core": "*",
     "@web-loom/forms-core": "*",
     "@web-loom/store-core": "*",

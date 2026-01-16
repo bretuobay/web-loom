@@ -50,6 +50,12 @@
 - **FR-005.2**: Presence indicators showing active users
 - **FR-005.3**: Real-time commenting system
 
+#### FR-006: Personal Todo Workspace
+
+- **FR-006.1**: Surface a standalone `Todos` workspace from the top navigation so the personal checklist is always available, even when users are browsing other projects or task boards.
+- **FR-006.2**: Allow users to create, update, complete, and delete todos through MVVM-powered forms/commands; the payload includes `title`, optional `details`, optional `dueDate`, and a completion flag while the backend defaults unset due dates to today.
+- **FR-006.3**: Render todos grouped by due date, pin today’s groups at the top, and provide a “Hide past days” toggle so stale reminders can be collapsed without losing history.
+
 ### Non-Functional Requirements
 
 #### NFR-001: Performance
@@ -124,6 +130,11 @@
    - Value Objects: PluginManifest
    - Services: PluginRegistryService
 
+5. **Todo Domain**
+   - Entities: Todo (title, details, completed flag, due date, owner)
+   - Value Objects: TodoDueDate, TodoVisibility (today vs. future)
+   - Services: TodoService (scopes lists/updates to the authenticated user, defaults missing due dates to the current day, and exposes CRUD operations used by the UI)
+
 ### Technical Stack
 
 #### Frontend (task-flow-ui)
@@ -186,6 +197,12 @@
 - **FilterPanel**: Collapsible panel for task filtering
 - **CommentThread**: Real-time comment system
 
+### Todo Workspace UI
+
+- The header navigation gains a _Todos_ entry that opens a dedicated workspace presenting the personal checklist independently from projects and boards.
+- The todo panel splits the stream by due date, keeps today’s buckets pinned inside the main content area, and surfaces a “Hide past days” toggle plus creation controls that default unset due dates to today.
+- A shared MVVM TodoViewModel (via `@repo/view-models/TodoViewModel`) wires the UI to the `/todos` endpoints so creation, updates, completion, and deletion stay synchronized with the API while exposing loading/error observables for buttons and badges.
+
 ---
 
 ## 🔧 Implementation Tasks
@@ -238,6 +255,28 @@
 - **T1.6.1**: Verify that `apps/task-flow-api` exposes a full project CRUD surface (POST/PUT/DELETE) with parameter validation (name, description, color, status) so clients can reliably persist new workspaces.
 - **T1.6.2**: Extend the shared MVVM repositories and stores so `ProjectListViewModel` can coordinate creation, optimistic state updates, and error handling via observables (e.g., `projectFormError$`, `isProjectFormSubmitting$`) when calling the new API surface.
 - **T1.6.3**: Surface a toggleable `ProjectForm` in the project explorer UI that uses the MVVM view model to submit `ProjectFormValues` (name, description, color, status), reuse the existing Web Loom form styling, and display server and client validation feedback before refreshing the project list.
+
+#### Task 1.7: Task CRUD Operations (API + UI)
+
+- **T1.7.1**: Deliver an end-to-end task CRUD endpoint surface in `apps/task-flow-api` so projects can list, create, read, update, and delete tasks. At a minimum the API surfaces must include:
+  - `GET    /api/projects/:id/tasks` — list tasks scoped to a project.
+  - `POST   /api/projects/:id/tasks` — create a new task for a project.
+  - `GET    /api/tasks/:id` — hydrate task details for editing flows.
+  - `PUT    /api/tasks/:id` — persist task updates (status, description, priority, due date, assignee).
+  - `DELETE /api/tasks/:id` — remove a task and its attachments/metadata.
+- **T1.7.2**: Extend the shared MVVM task stack (`TaskStore`, repositories, `TaskBoardViewModel`, etc.) so the TaskBoard UI can invoke the new endpoints, keep observable task lists in sync, and expose error/loading state for the edit/delete flows without duplicating business logic across components.
+- **T1.7.3**: Update the TaskBoard UI to surface editing/deletion affordances (e.g., select a card to open an `Edit task` form, show a delete action, and keep the creation form alongside the MVVM-powered flows) while honoring the current MVVM wiring (commands, observables, store updates).
+
+#### Task 1.8: Todo Workspace (API + UI)
+
+- **T1.8.1**: Build the `/todos` CRUD surface on `apps/task-flow-api` so every request is scoped to the authenticated user, default the due date to today when omitted, and return the user’s list ordered by due date.
+  - `GET    /todos` — fetch user-specific todos, includes owner metadata and sorts ascending on dueDate.
+  - `POST   /todos` — accept `{ title, details?, dueDate? }`, set missing due dates to the current day, respond with the created todo and a 201 status.
+  - `PUT    /todos/:id` — update title, details, dueDate, or completion flag for an owned todo.
+  - `DELETE /todos/:id` — delete the todo and return 204.
+- **T1.8.2**: Extend `packages/models` with `TodoModel`/`todoConfig` and `packages/view-models` with `TodoViewModel`, wiring `taskFlowAuthFetcher` so the MVVM commands respect the stored JWT token when calling the new API.
+- **T1.8.3**: Add a `Todos` header nav item that renders a `TodoPanel` on its own route; the panel should group items by day, keep today’s buckets at the top, and expose controls for create/update/delete plus a “Hide past days” toggle.
+- **T1.8.4**: Polish the new UI to show todays first, present friendly badges (completed vs. open), include a lightweight creation form, and keep the layout consistent with the design system tokens used elsewhere in the app.
 
 ### Phase 2: Plugin System
 

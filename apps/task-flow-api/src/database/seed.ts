@@ -4,6 +4,7 @@ import { Task, TASK_PRIORITIES, TASK_STATUSES } from '../models/task.model.js';
 import { User } from '../models/user.model.js';
 import { Comment } from '../models/comment.model.js';
 import { Attachment } from '../models/attachment.model.js';
+import { Todo } from '../models/todo.model.js';
 
 const sampleProjects = [
   {
@@ -74,6 +75,24 @@ const sampleComments = [
   'Let’s make sure the plugin manifest includes analytics metadata as part of the release.'
 ];
 
+const sampleTodos = [
+  {
+    title: 'Write release notes',
+    details: 'Summarize TaskFlow updates and the new TODO workspace.',
+    daysFromNow: 0
+  },
+  {
+    title: 'Review plugin telemetry',
+    details: 'Check that the plugin registry metrics match the dashboard.',
+    daysFromNow: 1
+  },
+  {
+    title: 'Refine onboarding guide',
+    details: 'Document MVVM tips for new contributors.',
+    daysFromNow: 2
+  }
+];
+
 export const seedInitialData = async () => {
   const existingUsers = await User.count();
   if (existingUsers > 0) {
@@ -85,6 +104,7 @@ export const seedInitialData = async () => {
     await Attachment.destroy({ where: {}, truncate: true, cascade: true });
     await Comment.destroy({ where: {}, truncate: true, cascade: true });
     await Task.destroy({ where: {}, truncate: true, cascade: true });
+    await Todo.destroy({ where: {}, truncate: true, cascade: true });
     await Project.destroy({ where: {}, truncate: true, cascade: true });
   }
 
@@ -129,6 +149,16 @@ export const seedInitialData = async () => {
       content: comment,
       taskId: task.id,
       authorId: author.id
+    });
+  }
+
+  for (const todoTemplate of sampleTodos) {
+    const owner = createdUsers[Math.floor(Math.random() * createdUsers.length)];
+    await Todo.create({
+      title: todoTemplate.title,
+      details: todoTemplate.details,
+      userId: owner.id,
+      dueDate: new Date(Date.now() + todoTemplate.daysFromNow * 86400000)
     });
   }
 };

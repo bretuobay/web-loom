@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TaskBoardViewModel } from '../view-models/TaskBoardViewModel';
 import { useObservable } from '../hooks/useObservable';
 import { TaskCard } from './TaskCard';
@@ -17,6 +17,32 @@ export function TaskBoard({ viewModel }: Props) {
   const allTasks = useObservable(viewModelInstance.tasks$, []);
   const isLoading = useObservable(viewModelInstance.isLoading$, true);
   const errorMessage = useObservable(viewModelInstance.errorMessage$, null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  const selectedTask = useMemo(() => {
+    if (!selectedTaskId) return null;
+    return allTasks.find((task) => task.id === selectedTaskId) ?? null;
+  }, [allTasks, selectedTaskId]);
+
+  useEffect(() => {
+    if (selectedTaskId && !allTasks.some((task) => task.id === selectedTaskId)) {
+      setSelectedTaskId(null);
+    }
+  }, [allTasks, selectedTaskId]);
+
+  const selectedInitialValues = useMemo(() => {
+    if (!selectedTask) {
+      return undefined;
+    }
+
+    return {
+      title: selectedTask.title,
+      description: selectedTask.description,
+      status: selectedTask.status,
+      priority: selectedTask.priority,
+      dueDate: selectedTask.dueDate ? selectedTask.dueDate.toISOString().split('T')[0] : null
+    };
+  }, [selectedTask]);
 
   const statusBuckets = useMemo(
     () =>
@@ -37,6 +63,30 @@ export function TaskBoard({ viewModel }: Props) {
     } catch {
       // Errors are surfaced through the view model observable.
     }
+  };
+
+  const handleUpdate = async (values: TaskFormValues) => {
+    if (!selectedTask) return;
+    try {
+      await viewModelInstance.updateTask(selectedTask.id, values);
+      setSelectedTaskId(null);
+    } catch {
+      // Keep the form open so the user can retry.
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedTask) return;
+    try {
+      await viewModelInstance.deleteTask(selectedTask.id);
+      setSelectedTaskId(null);
+    } catch {
+      // Keep selection to allow retry.
+    }
+  };
+
+  const handleSelect = (taskId: string) => {
+    setSelectedTaskId((current) => (current === taskId ? null : taskId));
   };
 
   return (
@@ -97,7 +147,12 @@ export function TaskBoard({ viewModel }: Props) {
               <div className={`${styles.grid} stagger-container`}>
                 {tasks.map((task) => (
                   <div key={task.id} className="stagger-item">
-                    <TaskCard task={task} onUploadAttachment={handleAttachmentUpload} />
+                    <TaskCard
+                      task={task}
+                      isSelected={selectedTaskId === task.id}
+                      onSelect={handleSelect}
+                      onUploadAttachment={handleAttachmentUpload}
+                    />
                   </div>
                 ))}
               </div>
@@ -106,7 +161,32 @@ export function TaskBoard({ viewModel }: Props) {
             )}
           </div>
           <div className={styles.form}>
-            <TaskForm onSubmit={handleSubmit} submitLabel="Schedule work" />
+            {selectedTask ? (
+              <>
+                <p className={styles.editingLabel}>
+                  Editing &ldquo;{selectedTask.title}&rdquo;
+                </p>
+                <TaskForm
+                  onSubmit={handleUpdate}
+                  initialValues={selectedInitialValues}
+                  title="Edit task"
+                  submitLabel="Update task"
+                  onCancel={() => setSelectedTaskId(null)}
+                />
+                <div className={styles.editActions}>
+                  <button
+                    type="button"
+                    className={styles.deleteButton}
+                    onClick={handleDelete}
+                    disabled={isLoading}
+                  >
+                    Delete task
+                  </button>
+                </div>
+              </>
+            ) : (
+              <TaskForm onSubmit={handleSubmit} submitLabel="Schedule work" />
+            )}
           </div>
         </div>
       )}
