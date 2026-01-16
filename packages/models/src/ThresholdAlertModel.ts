@@ -1,6 +1,6 @@
 import { RestfulApiModel } from '@web-loom/mvvm-core';
 import { ThresholdAlertListSchema, type ThresholdAlertListData } from './schemas/alert.schema';
-import { fetchWithCache, nativeFetcher } from './utils/fetcher';
+import { fetchWithCache } from './utils/fetcher';
 import { apiRegistry } from './services/services';
 import { API_BASE_URL } from './config';
 
