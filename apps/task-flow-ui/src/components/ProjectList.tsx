@@ -3,7 +3,6 @@ import { ProjectListViewModel } from '../view-models/ProjectListViewModel';
 import { useObservable } from '../hooks/useObservable';
 import { ProjectCard } from './ProjectCard';
 import { SkeletonList } from './Skeleton';
-import { formatProjectStatus } from '../domain/values/projectStatus';
 import { ProjectDetailPanel } from './ProjectDetailPanel';
 import { ProjectForm } from './ProjectForm';
 import type { ProjectEntity, ProjectFormValues } from '../domain/entities/project';

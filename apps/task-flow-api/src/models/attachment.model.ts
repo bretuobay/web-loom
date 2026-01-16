@@ -9,6 +9,7 @@ export interface AttachmentAttributes {
   storedName: string;
   mimeType: string;
   size: number;
+  downloadUrl?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }

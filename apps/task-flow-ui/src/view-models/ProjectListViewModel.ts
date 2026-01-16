@@ -5,7 +5,7 @@ import { CachingProjectRepository } from '../domain/repositories/CachingProjectR
 import { CachingTaskRepository } from '../domain/repositories/CachingTaskRepository';
 import { ProjectStore } from '../domain/stores/projectStore';
 import { TaskStore } from '../domain/stores/taskStore';
-import { ProjectEntity, type ProjectCreationPayload, type ProjectFormValues } from '../domain/entities/project';
+import { ProjectEntity, type ProjectFormValues } from '../domain/entities/project';
 import { TaskEntity, type TaskFormValues } from '../domain/entities/task';
 import { PROJECT_STATUSES, type ProjectStatus } from '../domain/values/projectStatus';
 
