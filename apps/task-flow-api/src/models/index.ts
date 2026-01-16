@@ -3,6 +3,7 @@ import { Task } from './task.model.js';
 import { User } from './user.model.js';
 import { Comment } from './comment.model.js';
 import { Attachment } from './attachment.model.js';
+import { Todo } from './todo.model.js';
 
 export const registerModels = () => {
   if (!Project.associations || !Project.associations.tasks) {
@@ -44,6 +45,14 @@ export const registerModels = () => {
   if (!User.associations || !User.associations.comments) {
     User.hasMany(Comment, { foreignKey: 'authorId', as: 'comments' });
   }
+
+  if (!User.associations || !User.associations.todos) {
+    User.hasMany(Todo, { foreignKey: 'userId', as: 'todos' });
+  }
+
+  if (!Todo.associations || !Todo.associations.owner) {
+    Todo.belongsTo(User, { foreignKey: 'userId', as: 'owner' });
+  }
 };
 
-export { Project, Task, User, Comment, Attachment };
+export { Project, Task, User, Comment, Attachment, Todo };

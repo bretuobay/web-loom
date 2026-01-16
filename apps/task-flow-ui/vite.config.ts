@@ -21,6 +21,7 @@ export default defineConfig({
       '@web-loom/ui-patterns': path.resolve(__dirname, '../../packages/ui-patterns/src'),
       '@repo/shared': path.resolve(__dirname, '../../packages/shared/src'),
       '@repo/plugin-core': path.resolve(__dirname, '../../packages/plugin-core/src'),
+      '@repo/models': path.resolve(__dirname, '../../packages/models/src'),
     },
   },
   optimizeDeps: {
@@ -34,6 +35,7 @@ export default defineConfig({
       '@web-loom/event-bus-core',
       '@web-loom/ui-core',
       '@web-loom/ui-patterns',
+      '@repo/models',
     ],
   },
   define: {

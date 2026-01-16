@@ -7,6 +7,7 @@ import { PluginRegistry, type PluginDefinition } from '@repo/plugin-core';
 import { PluginSpotlight } from './components/PluginSpotlight';
 import { ProjectList } from './components/ProjectList';
 import { TaskBoard } from './components/TaskBoard';
+import { TodoPanel } from './components/TodoPanel';
 import { AuthPage } from './pages/AuthPage';
 import { AuthViewModel } from './view-models/AuthViewModel';
 import { Header } from './layout/Header';
@@ -21,7 +22,8 @@ import { ProfileViewModel } from './view-models/ProfileViewModel';
 
 const navItems = [
   { label: 'Projects', path: '/projects' },
-  { label: 'Task board', path: '/tasks' }
+  { label: 'Task board', path: '/tasks' },
+  { label: 'Todos', path: '/todos' }
 ];
 
 const registerPlugins = () => {
@@ -93,10 +95,12 @@ function NotFoundPanel() {
 
 function HeroPanel({
   onTaskBoardClick,
-  onProjectsClick
+  onProjectsClick,
+  onTodosClick
 }: {
   onTaskBoardClick: () => void;
   onProjectsClick: () => void;
+  onTodosClick: () => void;
 }) {
   return (
     <section className="taskflow-hero">
@@ -108,6 +112,9 @@ function HeroPanel({
           </button>
           <button type="button" className="taskflow-hero__secondary" onClick={onProjectsClick}>
             Review projects
+          </button>
+          <button type="button" className="taskflow-hero__secondary" onClick={onTodosClick}>
+            Open todo vault
           </button>
         </div>
       </div>
@@ -169,17 +176,19 @@ function MainShell({
         <HeroPanel
           onTaskBoardClick={() => navigate('/tasks')}
           onProjectsClick={() => navigate('/projects')}
+          onTodosClick={() => navigate('/todos')}
         />
 
         <Container>
           <div className="taskflow-grid">
             <main className="taskflow-main">
-              <Routes>
-                <Route index element={<ProjectList />} />
-                <Route path="projects" element={<ProjectList />} />
-                <Route path="tasks" element={<TaskBoard />} />
-                <Route path="*" element={<NotFoundPanel />} />
-              </Routes>
+            <Routes>
+              <Route index element={<ProjectList />} />
+              <Route path="projects" element={<ProjectList />} />
+              <Route path="tasks" element={<TaskBoard />} />
+              <Route path="todos" element={<TodoPanel />} />
+              <Route path="*" element={<NotFoundPanel />} />
+            </Routes>
             </main>
             <aside className="taskflow-aside">
               <section className="panel panel--plugins">

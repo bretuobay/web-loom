@@ -1,0 +1,346 @@
+.container {
+  border: 1px solid var(--panel-border);
+  border-radius: var(--taskcard-radius);
+  background: var(--panel-surface);
+  padding: 1.5rem;
+  box-shadow: var(--taskcard-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--colors-text-secondary);
+}
+
+.header h2 {
+  margin: 0.25rem 0;
+  font-size: 1.6rem;
+}
+
+.lede {
+  margin: 0;
+  color: var(--colors-text-secondary);
+  font-size: 0.95rem;
+}
+
+.headerActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.stats {
+  display: flex;
+  gap: 0.9rem;
+}
+
+.stat {
+  text-align: right;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--colors-text-secondary);
+}
+
+.toggleButton {
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-surface);
+  padding: 0.45rem 1rem;
+  color: var(--colors-text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.toggleButtonActive {
+  border-color: var(--btn-primary-bg);
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--btn-primary-bg);
+}
+
+.error {
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  background: rgba(254, 226, 226, 0.4);
+  padding: 0.9rem;
+  border-radius: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.error p {
+  margin: 0;
+  color: #b91c1c;
+}
+
+.metaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: var(--colors-text-secondary);
+}
+
+.metaLabel {
+  margin: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 1.25rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.loading {
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--colors-text-primary);
+  text-align: center;
+}
+
+.group {
+  border: 1px solid var(--panel-border);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: var(--panel-surface);
+  box-shadow: var(--glass-panel-shadow);
+}
+
+.groupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+}
+
+.groupTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.groupCount {
+  font-size: 0.8rem;
+  color: var(--colors-text-secondary);
+}
+
+.groupDate {
+  font-size: 0.8rem;
+  color: var(--colors-text-secondary);
+}
+
+.groupList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.todoCard {
+  border: 1px solid var(--panel-border);
+  border-radius: 0.9rem;
+  padding: 0.9rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), var(--panel-surface));
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.todoCardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.todoCardHeader h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.todoCardHeader p {
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+  color: var(--colors-text-secondary);
+}
+
+.badge {
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.badgeSuccess {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+.badgePending {
+  border-color: rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+}
+
+.todoCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pill {
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  padding: 0.2rem 0.7rem;
+  font-size: 0.8rem;
+  background: var(--panel-surface);
+  color: var(--colors-text-secondary);
+}
+
+.todoActions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.todoActions button {
+  border-radius: 0.75rem;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-surface);
+  padding: 0.35rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.todoActions button:hover {
+  border-color: var(--btn-primary-bg);
+  color: var(--btn-primary-bg);
+}
+
+.danger {
+  color: #dc2626;
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+.empty {
+  margin: 2rem 0;
+  text-align: center;
+  color: var(--colors-text-secondary);
+}
+
+.formPanel {
+  border: 1px solid var(--panel-border);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: rgba(59, 130, 246, 0.04);
+  box-shadow: var(--glass-panel-shadow);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.formHeader h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.formHint {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--colors-text-secondary);
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--colors-text-secondary);
+}
+
+.control input,
+.control textarea {
+  border-radius: 0.8rem;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-surface);
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: var(--colors-text-primary);
+}
+
+.control textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.formError {
+  margin: 0;
+  color: #ef4444;
+  font-size: 0.85rem;
+}
+
+.form button {
+  border: none;
+  border-radius: 0.9rem;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(135deg, var(--btn-primary-bg), #2563eb);
+  color: var(--btn-primary-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .formPanel {
+    order: 2;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .headerActions {
+    align-items: flex-start;
+  }
+}
