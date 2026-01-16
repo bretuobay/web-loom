@@ -56,8 +56,8 @@ export const todoService = {
   },
 
   update: async (userId: string, id: string, updates: TodoUpdateInput) => {
-    const todo = await Todo.findByPk(id);
-    ensureTodoOwnership(todo, userId);
+    const maybeTodo = await Todo.findByPk(id);
+    const todo = ensureTodoOwnership(maybeTodo, userId);
     await todo.update({
       title: updates.title ?? todo.title,
       details: updates.details ?? todo.details,
@@ -68,8 +68,8 @@ export const todoService = {
   },
 
   remove: async (userId: string, id: string) => {
-    const todo = await Todo.findByPk(id);
-    ensureTodoOwnership(todo, userId);
+    const maybeTodo = await Todo.findByPk(id);
+    const todo = ensureTodoOwnership(maybeTodo, userId);
     await todo.destroy();
     return true;
   }
