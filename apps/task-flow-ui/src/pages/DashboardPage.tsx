@@ -17,20 +17,21 @@ export function DashboardPage({ pluginDefinitions }: DashboardPageProps) {
     (plugin.manifest.widgets ?? []).map((widget) => ({
       pluginId: plugin.manifest.id,
       pluginName: plugin.manifest.name,
-      widget: widget as PluginWidgetDefinition<ComponentType<unknown>>
-    }))
+      widget: widget as PluginWidgetDefinition<ComponentType<unknown>>,
+    })),
   );
 
   return (
     <section className="panel panel--plugins">
       <div className="panel__header">
-        <h2>Plugin Registry</h2>
-        <p className="panel__subhead">Activate widgets, nav hooks, and lightweight integrations.</p>
+        <h2>Plugin Dashboard</h2>
+        <p className="panel__subhead">Active widgets and available plugin integrations</p>
       </div>
 
       <div className="plugin-dashboard">
         {pluginWidgets.length > 0 && (
           <div className="plugin-dashboard__widgets">
+            <h3 className="plugin-section-title">Active Widgets</h3>
             <div className="plugin-widget-grid">
               {pluginWidgets.map(({ pluginId, pluginName, widget }) => {
                 const WidgetComponent = widget.component;
@@ -51,10 +52,13 @@ export function DashboardPage({ pluginDefinitions }: DashboardPageProps) {
           </div>
         )}
 
-        <div className="plugin-dashboard__registry">
-          {pluginDefinitions.map((plugin) => (
-            <PluginSpotlight key={plugin.manifest.id} plugin={plugin.manifest} />
-          ))}
+        <div>
+          <h3 className="plugin-section-title">Plugin Registry</h3>
+          <div className="plugin-dashboard__registry">
+            {pluginDefinitions.map((plugin) => (
+              <PluginSpotlight key={plugin.manifest.id} plugin={plugin.manifest} />
+            ))}
+          </div>
         </div>
       </div>
     </section>
