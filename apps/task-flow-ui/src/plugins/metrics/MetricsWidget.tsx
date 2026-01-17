@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { TASK_STATUSES, type TaskStatus, formatTaskStatus } from '../../domain/values/taskStatus';
+import { TASK_STATUSES, formatTaskStatus } from '../../domain/values/taskStatus';
 import { useObservable } from '../../hooks/useObservable';
 import { MetricsViewModel, initialMetricsSnapshot } from '../../view-models/MetricsViewModel';
 
