@@ -2,7 +2,7 @@ import type { ProjectCreationPayload } from '../entities/project';
 import type { TaskCreationPayload } from '../entities/task';
 import type { ProfilePreferences, UserApiResponse } from '../entities/user';
 
-const DEFAULT_BASE_URL = 'http://localhost:4001';
+const DEFAULT_BASE_URL = 'http://localhost:8001';
 
 export interface AuthResponse {
   token: string;

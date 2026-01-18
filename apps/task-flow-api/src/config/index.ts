@@ -11,7 +11,7 @@ const rootDir = path.resolve(__dirname, '../..');
 
 const dbFile = process.env.DB_FILE ?? 'db.sqlite';
 const host = process.env.HOST ?? '127.0.0.1';
-const port = Number(process.env.PORT ?? 4001);
+const port = Number(process.env.PORT ?? 8001);
 const uploadsPath = path.resolve(rootDir, 'uploads');
 const baseUrlEnv = process.env.APP_URL;
 const appBaseUrl = baseUrlEnv ? baseUrlEnv : `http://${host}:${port}`;

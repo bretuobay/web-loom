@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
 import { nativeFetcher } from '@repo/models';
 
-const TODO_API_BASE_URL = 'http://localhost:4001';
+const TODO_API_BASE_URL = 'http://localhost:8001';
 const TODO_ENDPOINT = '/todos';
 const TASKFLOW_TOKEN_STORAGE_KEY = 'taskflow_token';
 
