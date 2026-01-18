@@ -1,6 +1,6 @@
 {
   "name": "@repo/ui-react",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "author": "Festus Yeboah <festus.yeboah@hotmail.com>",
   "license": "MIT",
   "description": "A comprehensive React component library built on Web Loom UI ecosystem with headless behaviors and design system integration",
