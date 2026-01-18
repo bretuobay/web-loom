@@ -132,7 +132,8 @@ async function initializeMasterTokens(): Promise<void> {
     const categoryName = fileName.replace('.json', '');
     try {
       // Dynamically import JSON token files.
-      const tokenModule = await import(`../tokens/${fileName}`);
+      // Note: .json must be in the static part of the import for Vite to analyze it.
+      const tokenModule = await import(`../tokens/${categoryName}.json`);
       rawTokens[categoryName] = tokenModule.default || tokenModule;
     } catch (error) {
       console.error(
