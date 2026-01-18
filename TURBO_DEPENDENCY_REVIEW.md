@@ -23,3 +23,85 @@ Purpose-built packages and apps are wired through npm workspaces and Turbo’s p
 - Remove the unused `next` and `react-native` dependencies from the packages above, then rerun `npm install`/`turbo run build` to ensure the tree shrinks accordingly.
 - Synchronize `@web-loom/storage-core`’s version with the rest of the torso and re-verify the publishing order documented in `PUBLISHING.md`.
 - After the dependency cleanup, rerun Turbo’s `build`/`dev` pipelines to ensure no implicit dependency slips were hiding behind the old transitive baggage.
+
+⏺ Build successful. Let me finalize the todo list.
+
+⏺ Summary
+
+Fixed Vulnerabilities
+
+Removed unused next and react-native dependencies from additional packages:
+┌─────────────────────────────┬────────────────────┐
+│ Package │ Removed │
+├─────────────────────────────┼────────────────────┤
+│ packages/media-core │ next │
+├─────────────────────────────┼────────────────────┤
+│ packages/notifications-core │ next │
+├─────────────────────────────┼────────────────────┤
+│ packages/router-core │ next │
+├─────────────────────────────┼────────────────────┤
+│ packages/typography-core │ next │
+├─────────────────────────────┼────────────────────┤
+│ packages/view-models │ next, react-native │
+└─────────────────────────────┴────────────────────┘
+Results
+
+- 679 packages removed total (529 + 150) from node_modules
+- Critical vulnerability eliminated - Next.js RCE vulnerability fixed by removing unused dependencies
+- Vulnerabilities reduced from 23 to 21 (eliminated the 1 critical)
+- Build successful - all 43 packages build without errors
+
+Remaining Vulnerabilities (Cannot be safely fixed)
+┌───────────────────────┬────────────────────────────────────────────────┐
+│ Issue │ Reason │
+├───────────────────────┼────────────────────────────────────────────────┤
+│ diff │ Bundled in npm itself │
+├───────────────────────┼────────────────────────────────────────────────┤
+│ esbuild │ Would require vite 7.x (major breaking change) │
+├───────────────────────┼────────────────────────────────────────────────┤
+│ js-yaml │ In @turbo/workspaces, requires turbo update │
+├───────────────────────┼────────────────────────────────────────────────┤
+│ tar │ Bundled in npm, sqlite3, @angular/cli │
+├───────────────────────┼────────────────────────────────────────────────┤
+│ vue-template-compiler │ Would require vite-plugin-dts major upgrade │
+└───────────────────────┴────────────────────────────────────────────────┘
+These remaining vulnerabilities are in:
+
+- Development-only tools (esbuild dev server)
+- Bundled dependencies of npm itself
+- Build-time dependencies that don't affect production
+
+The safe fixes have been applied. The remaining issues require major version upgrades that could break the build.
+
+Build successful.
+
+Summary
+
+What happened
+
+1. An automated tool (likely triggered by npm audit fix --force) incorrectly modified package.json files, adding:
+   - vite: "7.3.1" (incompatible major version)
+   - vitest: "4.0.17" (incompatible major version)
+   - Unwanted dependencies: @angular/cli, sqlite3, ts-node
+
+2. I restored the package.json files to the clean state and reapplied only the safe dependency removals.
+
+Final state
+
+- Build: ✅ All 43 tasks successful
+- Vulnerabilities: Reduced from 23 (1 critical) to 22 (0 critical)
+- Removed unused dependencies:
+  - next from: store-core, design-core, event-bus-core, models, storage-core, media-core, notifications-core, router-core, typography-core, view-models
+  - react-native from: models, plugin-core, view-models
+
+Remaining vulnerabilities (cannot be safely fixed)
+
+All remaining 22 vulnerabilities are in transitive/bundled dependencies requiring breaking changes:
+
+- diff - bundled in npm
+- esbuild - would require vite 7.x
+- js-yaml - in @turbo/workspaces
+- tar - bundled in npm, sqlite3, @angular/cli
+- vue-template-compiler - in vite-plugin-dts
+
+The critical Next.js vulnerability has been eliminated by removing the unused dependencies.

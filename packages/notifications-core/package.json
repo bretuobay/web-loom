@@ -51,7 +51,6 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@web-loom/event-emitter-core": "*",
-    "next": "15.5.6"
+    "@web-loom/event-emitter-core": "*"
   }
 }
