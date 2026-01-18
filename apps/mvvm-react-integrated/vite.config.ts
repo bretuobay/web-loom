@@ -2,20 +2,10 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { createAliases } from '../../scripts/vite-alias';
 
-// Packages this app imports - used for optimizeDeps pre-bundling
-const appDependencies = [
+// External packages to pre-bundle (not workspace packages which are linked)
+const optimizeDepsInclude = [
   'react',
   'react-dom',
-  '@web-loom/design-core',
-  '@web-loom/store-core',
-  '@web-loom/mvvm-core',
-  '@web-loom/query-core',
-  '@web-loom/event-bus-core',
-  '@web-loom/ui-core',
-  '@web-loom/ui-patterns',
-  '@repo/shared',
-  '@repo/ui-react',
-  '@repo/view-models',
 ];
 
 // https://vite.dev/config/
@@ -34,7 +24,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: appDependencies,
+    include: optimizeDepsInclude,
   },
   build: {
     target: 'esnext',

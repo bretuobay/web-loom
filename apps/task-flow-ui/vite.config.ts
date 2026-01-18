@@ -2,21 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import { createAliases } from '../../scripts/vite-alias';
 
-// Packages this app imports - used for optimizeDeps pre-bundling
-const appDependencies = [
+// External packages to pre-bundle (not workspace packages which are linked)
+const optimizeDepsInclude = [
   'react',
   'react-dom',
-  '@web-loom/design-core',
-  '@web-loom/store-core',
-  '@web-loom/mvvm-core',
-  '@web-loom/query-core',
-  '@web-loom/event-bus-core',
-  '@web-loom/event-emitter-core',
-  '@web-loom/ui-core',
-  '@web-loom/ui-patterns',
-  '@repo/shared',
-  '@repo/plugin-core',
-  '@repo/models',
 ];
 
 export default defineConfig({
@@ -29,7 +18,7 @@ export default defineConfig({
     alias: createAliases(__dirname),
   },
   optimizeDeps: {
-    include: appDependencies,
+    include: optimizeDepsInclude,
   },
   define: {
     __DEV__: process.env.NODE_ENV === 'development',

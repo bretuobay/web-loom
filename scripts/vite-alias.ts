@@ -8,17 +8,21 @@ import { resolve } from 'path';
  *
  * Usage in vite.config.ts:
  * ```ts
- * import { createAliases, workspacePackages } from '../../scripts/vite-alias';
+ * import { createAliases } from '../../scripts/vite-alias';
  *
  * export default defineConfig({
  *   resolve: {
  *     alias: createAliases(__dirname),
  *   },
  *   optimizeDeps: {
- *     include: ['react', 'react-dom', ...workspacePackages],
+ *     // Only include external packages, NOT workspace packages (they're linked)
+ *     include: ['react', 'react-dom'],
  *   },
  * });
  * ```
+ *
+ * Note: Workspace packages (@repo/*, @web-loom/*) should NOT be in optimizeDeps.include
+ * because they're symlinked via npm workspaces. Vite handles linked packages differently.
  */
 
 /** All @web-loom/* workspace packages */
