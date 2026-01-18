@@ -41,7 +41,7 @@ describe('Configuration Error Reporting', () => {
               [{ width: 1920, height: -1, name: 'invalid' }], // Negative height
               [{ width: 10000, height: 1080, name: 'invalid' }], // Width too large
               [{ width: 1920, height: 10000, name: 'invalid' }], // Height too large
-              [{ width: 1920, height: 1080, name: '' }] // Empty name
+              [{ width: 1920, height: 1080, name: '' }], // Empty name
             ),
             paths: fc.constantFrom(['http://localhost:3000']),
           }),
@@ -51,7 +51,7 @@ describe('Configuration Error Reporting', () => {
             paths: fc.constantFrom(
               [], // Empty array
               ['not-a-url'], // Invalid URL
-              ['ftp://invalid.com'] // Invalid protocol
+              ['ftp://invalid.com'], // Invalid protocol
             ),
           }),
           // Invalid capture options
@@ -60,7 +60,7 @@ describe('Configuration Error Reporting', () => {
             paths: fc.constantFrom(['http://localhost:3000']),
             captureOptions: fc.constantFrom(
               { fullPage: false, omitBackground: false, timeout: -1 }, // Negative timeout
-              { fullPage: false, omitBackground: false, timeout: 400000 } // Timeout too large
+              { fullPage: false, omitBackground: false, timeout: 400000 }, // Timeout too large
             ),
           }),
           // Invalid diff options
@@ -85,7 +85,7 @@ describe('Configuration Error Reporting', () => {
                 ignoreAntialiasing: true,
                 ignoreColors: false,
                 highlightColor: 'red',
-              } // Invalid color format
+              }, // Invalid color format
             ),
           }),
           // Invalid storage config
@@ -95,20 +95,16 @@ describe('Configuration Error Reporting', () => {
             storage: fc.constantFrom(
               { baselineDir: '', diffDir: '.visdiff/diffs', format: 'png' as const }, // Empty baselineDir
               { baselineDir: '.visdiff/baselines', diffDir: '', format: 'png' as const }, // Empty diffDir
-              { baselineDir: '.visdiff/baselines', diffDir: '.visdiff/diffs', format: 'gif' as const } // Invalid format
+              { baselineDir: '.visdiff/baselines', diffDir: '.visdiff/diffs', format: 'gif' as const }, // Invalid format
             ),
-          })
+          }),
         ),
         async (invalidConfig) => {
           const testDir = await createTestDir();
           try {
             // Create invalid configuration file
             const configPath = join(testDir, CONFIG_FILE_NAME);
-            await writeFile(
-              configPath,
-              `export default ${JSON.stringify(invalidConfig, null, 2)};`,
-              'utf-8'
-            );
+            await writeFile(configPath, `export default ${JSON.stringify(invalidConfig, null, 2)};`, 'utf-8');
 
             // Attempt to load configuration
             try {
@@ -130,9 +126,9 @@ describe('Configuration Error Reporting', () => {
           } finally {
             await cleanupTestDir(testDir);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -190,11 +186,7 @@ describe('Configuration Error Reporting', () => {
       const testDir = await createTestDir();
       try {
         const configPath = join(testDir, CONFIG_FILE_NAME);
-        await writeFile(
-          configPath,
-          `export default ${JSON.stringify(testCase.config, null, 2)};`,
-          'utf-8'
-        );
+        await writeFile(configPath, `export default ${JSON.stringify(testCase.config, null, 2)};`, 'utf-8');
 
         try {
           await loadConfig(testDir);
@@ -256,7 +248,7 @@ describe('Configuration Error Reporting', () => {
               diffDir: '.visdiff/diffs',
               format: 'png' as const,
             }),
-          })
+          }),
         ),
         async (invalidConfig) => {
           const testDir = await createTestDir();
@@ -274,9 +266,9 @@ describe('Configuration Error Reporting', () => {
           } finally {
             await cleanupTestDir(testDir);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -314,11 +306,7 @@ describe('Configuration Error Reporting', () => {
       };
 
       const configPath = join(testDir, CONFIG_FILE_NAME);
-      await writeFile(
-        configPath,
-        `export default ${JSON.stringify(invalidConfig, null, 2)};`,
-        'utf-8'
-      );
+      await writeFile(configPath, `export default ${JSON.stringify(invalidConfig, null, 2)};`, 'utf-8');
 
       try {
         await loadConfig(testDir);

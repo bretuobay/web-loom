@@ -11,7 +11,7 @@ const createSchema = z.object({
   displayName: z.string().min(2).max(120),
   password: z.string().min(6),
   role: z.enum(USER_ROLES).optional(),
-  avatarUrl: z.string().url().optional()
+  avatarUrl: z.string().url().optional(),
 });
 
 const updateSchema = z
@@ -19,7 +19,7 @@ const updateSchema = z
     displayName: z.string().min(2).max(120).optional(),
     password: z.string().min(6).optional(),
     role: z.enum(USER_ROLES).optional(),
-    avatarUrl: z.string().url().optional().nullable()
+    avatarUrl: z.string().url().optional().nullable(),
   })
   .partial();
 

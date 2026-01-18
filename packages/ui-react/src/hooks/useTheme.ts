@@ -156,6 +156,6 @@ export function useToggleTheme(): () => void {
         }
       }
     },
-    [mode, setMode]
+    [mode, setMode],
   );
 }

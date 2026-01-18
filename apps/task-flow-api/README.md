@@ -13,11 +13,11 @@ A TypeScript + Express backend that exposes CRUD routes for projects and tasks b
 
 ## Environment variables
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `PORT` | `4000` | Port that Express listens on. |
-| `DB_FILE` | `db.sqlite` | Relative path to the SQLite database file. |
-| `DB_LOGGING` | `false` | Set to `true` to enable Sequelize SQL logging. |
+| Variable     | Default     | Description                                    |
+| ------------ | ----------- | ---------------------------------------------- |
+| `PORT`       | `4000`      | Port that Express listens on.                  |
+| `DB_FILE`    | `db.sqlite` | Relative path to the SQLite database file.     |
+| `DB_LOGGING` | `false`     | Set to `true` to enable Sequelize SQL logging. |
 
 ## Notes
 

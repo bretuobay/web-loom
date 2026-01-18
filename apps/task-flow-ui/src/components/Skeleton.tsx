@@ -17,13 +17,7 @@ interface SkeletonProps {
 /**
  * Base skeleton loading placeholder
  */
-export function Skeleton({
-  width,
-  height,
-  variant = 'text',
-  className = '',
-  style
-}: SkeletonProps) {
+export function Skeleton({ width, height, variant = 'text', className = '', style }: SkeletonProps) {
   const variantClass = styles[variant] || '';
 
   return (
@@ -32,7 +26,7 @@ export function Skeleton({
       style={{
         width: typeof width === 'number' ? `${width}px` : width,
         height: typeof height === 'number' ? `${height}px` : height,
-        ...style
+        ...style,
       }}
       aria-hidden="true"
     />
@@ -111,7 +105,7 @@ export function TableSkeleton({ rows = 5, columns = 4, columnWidths }: TableSkel
               key={colIndex}
               className={`${styles.skeleton} ${styles.tableCell}`}
               style={{
-                width: widths[colIndex] || `${100 / columns}%`
+                width: widths[colIndex] || `${100 / columns}%`,
               }}
             />
           ))}

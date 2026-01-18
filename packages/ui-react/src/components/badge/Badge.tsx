@@ -80,8 +80,7 @@ const Badge = forwardRef<HTMLElement, BadgeProps>(
     const shouldShowCount = hasCount && (showZero || numericCount > 0);
 
     // Format the count display
-    const displayCount =
-      typeof count === 'number' && count > overflowCount ? `${overflowCount}+` : count;
+    const displayCount = typeof count === 'number' && count > overflowCount ? `${overflowCount}+` : count;
 
     // Calculate offset styles
     const offsetStyle: React.CSSProperties = offset
@@ -105,10 +104,7 @@ const Badge = forwardRef<HTMLElement, BadgeProps>(
           className={cn(styles.badgeStatus, className)}
           title={title}
         >
-          <span
-            className={cn(styles.statusDot, styles[`status-${status}`])}
-            style={colorStyle}
-          />
+          <span className={cn(styles.statusDot, styles[`status-${status}`])} style={colorStyle} />
           {text && <span className={styles.statusText}>{text}</span>}
         </span>
       );
@@ -117,31 +113,21 @@ const Badge = forwardRef<HTMLElement, BadgeProps>(
     // Badge wrapping children
     if (children) {
       return (
-        <span
-          ref={ref as React.ForwardedRef<HTMLSpanElement>}
-          className={cn(styles.badgeWrapper, className)}
-        >
+        <span ref={ref as React.ForwardedRef<HTMLSpanElement>} className={cn(styles.badgeWrapper, className)}>
           {children}
           {shouldShowBadge && (
             <sup
-              className={cn(
-                styles.badge,
-                {
-                  [styles.badgeDot]: dot,
-                  [styles.badgeSmall]: size === 'small',
-                  [styles.badgeStatus]: status,
-                  [styles[`status-${status}`]]: status,
-                  [styles.badgeMultiple]: !dot && shouldShowCount && numericCount > 9,
-                },
-              )}
+              className={cn(styles.badge, {
+                [styles.badgeDot]: dot,
+                [styles.badgeSmall]: size === 'small',
+                [styles.badgeStatus]: status,
+                [styles[`status-${status}`]]: status,
+                [styles.badgeMultiple]: !dot && shouldShowCount && numericCount > 9,
+              })}
               style={{ ...offsetStyle, ...colorStyle }}
               title={title || (typeof count === 'number' ? String(count) : undefined)}
             >
-              {!dot && shouldShowCount && (
-                <span className={styles.badgeCount}>
-                  {displayCount}
-                </span>
-              )}
+              {!dot && shouldShowCount && <span className={styles.badgeCount}>{displayCount}</span>}
               <span className="sr-only">
                 {typeof count === 'number' && count > 0
                   ? `${count} notification${count > 1 ? 's' : ''}`

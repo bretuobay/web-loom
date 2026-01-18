@@ -21,7 +21,7 @@ const createTaskDetailStore = () =>
   createStore<TaskDetailState, TaskDetailActions>({ selectedTaskId: undefined, isOpen: false, notes: '' }, (set) => ({
     openTask: (id) => set((state) => ({ ...state, selectedTaskId: id, isOpen: true })),
     closeTask: () => set((state) => ({ ...state, selectedTaskId: undefined, isOpen: false })),
-    setNotes: (notes) => set((state) => ({ ...state, notes }))
+    setNotes: (notes) => set((state) => ({ ...state, notes })),
   }));
 
 export class TaskDetailViewModel {

@@ -11,13 +11,7 @@ export {
   DEFAULT_CONFIG,
 } from './schema.js';
 
-export type {
-  Viewport,
-  CaptureOptions,
-  DiffOptions,
-  StorageConfig,
-  VisDiffConfig,
-} from './schema.js';
+export type { Viewport, CaptureOptions, DiffOptions, StorageConfig, VisDiffConfig } from './schema.js';
 
 export {
   loadConfig,

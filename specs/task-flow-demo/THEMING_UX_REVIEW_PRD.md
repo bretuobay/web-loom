@@ -73,12 +73,12 @@ Systematic review of every screen, component, and interaction state to document 
 
 Each issue will be classified by:
 
-| Classification | Description |
-|----------------|-------------|
-| **Severity** | Critical / Major / Minor / Polish |
-| **Category** | Spacing / Typography / Color / Interaction / Layout / Responsive |
-| **Component** | Specific component or view affected |
-| **Effort** | Low (< 30 min) / Medium (1-2 hrs) / High (> 2 hrs) |
+| Classification | Description                                                      |
+| -------------- | ---------------------------------------------------------------- |
+| **Severity**   | Critical / Major / Minor / Polish                                |
+| **Category**   | Spacing / Typography / Color / Interaction / Layout / Responsive |
+| **Component**  | Specific component or view affected                              |
+| **Effort**     | Low (< 30 min) / Medium (1-2 hrs) / High (> 2 hrs)               |
 
 ### Phase 3: Prioritized Remediation
 
@@ -302,6 +302,7 @@ Use this template when documenting discovered issues:
 [Specific CSS/token changes needed]
 
 **Acceptance Criteria**:
+
 - [ ] [Specific measurable criteria]
 ```
 
@@ -371,13 +372,13 @@ Layout
 
 ## Risk Mitigation
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Breaking existing working styles | High | Use feature branches, visual regression tests |
-| Introducing accessibility regressions | High | Run axe-core before/after each change |
-| Scope creep into new features | Medium | Strict adherence to PRD scope; new features go to separate PRD |
-| Performance degradation | Medium | Monitor bundle size and runtime metrics |
-| Inconsistent fixes across team | Low | Use component checklist for every fix |
+| Risk                                  | Impact | Mitigation                                                     |
+| ------------------------------------- | ------ | -------------------------------------------------------------- |
+| Breaking existing working styles      | High   | Use feature branches, visual regression tests                  |
+| Introducing accessibility regressions | High   | Run axe-core before/after each change                          |
+| Scope creep into new features         | Medium | Strict adherence to PRD scope; new features go to separate PRD |
+| Performance degradation               | Medium | Monitor bundle size and runtime metrics                        |
+| Inconsistent fixes across team        | Low    | Use component checklist for every fix                          |
 
 ---
 
@@ -386,20 +387,22 @@ Layout
 Reference the existing token structure in `packages/design-core` and `apps/task-flow-ui/src/styles/`:
 
 ### Spacing Scale
+
 ```css
 --spacing-0: 0;
---spacing-1: 0.25rem;   /* 4px */
---spacing-2: 0.5rem;    /* 8px */
---spacing-3: 0.75rem;   /* 12px */
---spacing-4: 1rem;      /* 16px */
---spacing-5: 1.25rem;   /* 20px */
---spacing-6: 1.5rem;    /* 24px */
---spacing-8: 2rem;      /* 32px */
---spacing-10: 2.5rem;   /* 40px */
---spacing-12: 3rem;     /* 48px */
+--spacing-1: 0.25rem; /* 4px */
+--spacing-2: 0.5rem; /* 8px */
+--spacing-3: 0.75rem; /* 12px */
+--spacing-4: 1rem; /* 16px */
+--spacing-5: 1.25rem; /* 20px */
+--spacing-6: 1.5rem; /* 24px */
+--spacing-8: 2rem; /* 32px */
+--spacing-10: 2.5rem; /* 40px */
+--spacing-12: 3rem; /* 48px */
 ```
 
 ### Typography Scale
+
 ```css
 --font-size-xs: 0.75rem;
 --font-size-sm: 0.875rem;
@@ -411,27 +414,25 @@ Reference the existing token structure in `packages/design-core` and `apps/task-
 ```
 
 ### Semantic Colors
+
 ```css
---color-primary: /* primary brand color */
---color-secondary: /* secondary/muted color */
---color-success: /* positive actions, completion */
---color-warning: /* caution states */
---color-danger: /* destructive actions, errors */
---color-info: /* informational notices */
+--color-primary: /* primary brand color */ --color-secondary: /* secondary/muted color */
+  --color-success: /* positive actions, completion */ --color-warning: /* caution states */
+  --color-danger: /* destructive actions, errors */ --color-info: /* informational notices */;
 ```
 
 ---
 
 ## Appendix B: Browser Support Matrix
 
-| Browser | Version | Priority |
-|---------|---------|----------|
-| Chrome | Latest 2 | High |
-| Firefox | Latest 2 | High |
-| Safari | Latest 2 | High |
-| Edge | Latest 2 | Medium |
-| Mobile Safari | iOS 14+ | High |
-| Chrome Mobile | Latest | High |
+| Browser       | Version  | Priority |
+| ------------- | -------- | -------- |
+| Chrome        | Latest 2 | High     |
+| Firefox       | Latest 2 | High     |
+| Safari        | Latest 2 | High     |
+| Edge          | Latest 2 | Medium   |
+| Mobile Safari | iOS 14+  | High     |
+| Chrome Mobile | Latest   | High     |
 
 ---
 
@@ -467,24 +468,39 @@ Motion & Animation
 ## Appendix D: Quick Fix Reference
 
 ### Common Spacing Fixes
+
 ```css
 /* Before (hardcoded) */
-.component { padding: 16px; margin-bottom: 24px; }
+.component {
+  padding: 16px;
+  margin-bottom: 24px;
+}
 
 /* After (tokenized) */
-.component { padding: var(--spacing-4); margin-bottom: var(--spacing-6); }
+.component {
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+}
 ```
 
 ### Common Color Fixes
+
 ```css
 /* Before (hardcoded) */
-.button { background: #3b82f6; color: #fff; }
+.button {
+  background: #3b82f6;
+  color: #fff;
+}
 
 /* After (tokenized) */
-.button { background: var(--color-primary); color: var(--color-text-on-primary); }
+.button {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+}
 ```
 
 ### Focus Ring Pattern
+
 ```css
 .interactive:focus-visible {
   outline: 2px solid var(--color-focus-ring);
@@ -493,9 +509,12 @@ Motion & Animation
 ```
 
 ### Hover State Pattern
+
 ```css
 .card {
-  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+  transition:
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 .card:hover {
   box-shadow: var(--shadow-md);

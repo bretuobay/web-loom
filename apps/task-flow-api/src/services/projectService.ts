@@ -4,12 +4,12 @@ import { ApiError } from '../middleware/httpErrors.js';
 const taskIncludes = [
   {
     association: 'assignee',
-    attributes: ['id', 'displayName', 'email', 'avatarUrl', 'role']
+    attributes: ['id', 'displayName', 'email', 'avatarUrl', 'role'],
   },
   {
     association: 'comments',
-    include: [{ association: 'author', attributes: ['id', 'displayName', 'email', 'avatarUrl'] }]
-  }
+    include: [{ association: 'author', attributes: ['id', 'displayName', 'email', 'avatarUrl'] }],
+  },
 ];
 
 export const projectService = {
@@ -18,9 +18,9 @@ export const projectService = {
       include: [
         {
           association: 'tasks',
-          include: taskIncludes
-        }
-      ]
+          include: taskIncludes,
+        },
+      ],
     });
   },
 
@@ -29,9 +29,9 @@ export const projectService = {
       include: [
         {
           association: 'tasks',
-          include: taskIncludes
-        }
-      ]
+          include: taskIncludes,
+        },
+      ],
     });
 
     if (!project) {
@@ -61,5 +61,5 @@ export const projectService = {
     }
     await project.destroy();
     return true;
-  }
+  },
 };

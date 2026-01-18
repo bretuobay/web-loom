@@ -25,23 +25,23 @@ async function ensureMigrationTable(queryInterface: QueryInterface, sequelize: S
       version: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        primaryKey: true
+        primaryKey: true,
       },
       name: {
         type: DataTypes.STRING(255),
-        allowNull: false
+        allowNull: false,
       },
       executedAt: {
         type: DataTypes.DATE,
-        allowNull: false
-      }
+        allowNull: false,
+      },
     });
   }
 }
 
 async function readExecutedMigrations(sequelize: Sequelize): Promise<Set<number>> {
   const [records] = await sequelize.query(`SELECT version FROM ${MIGRATION_TABLE}`, {
-    type: QueryTypes.SELECT
+    type: QueryTypes.SELECT,
   });
   if (!Array.isArray(records)) {
     return new Set();
@@ -51,11 +51,7 @@ async function readExecutedMigrations(sequelize: Sequelize): Promise<Set<number>
   for (const row of records as Record<string, unknown>[]) {
     const value = row.version ?? row['version'];
     const version =
-      typeof value === 'string'
-        ? Number.parseInt(value, 10)
-        : typeof value === 'number'
-        ? value
-        : undefined;
+      typeof value === 'string' ? Number.parseInt(value, 10) : typeof value === 'number' ? value : undefined;
 
     if (version !== undefined && !Number.isNaN(version)) {
       versions.add(version);
@@ -85,15 +81,14 @@ export async function runMigrations(sequelize: Sequelize, migrations: Migration[
             {
               version: migration.version,
               name: migration.name,
-              executedAt: new Date()
-            }
+              executedAt: new Date(),
+            },
           ],
-          { transaction }
+          { transaction },
         );
       } catch (error) {
         if (error instanceof UniqueConstraintError) {
-          const versionConflict =
-            Array.isArray(error.fields) && error.fields.includes('version');
+          const versionConflict = Array.isArray(error.fields) && error.fields.includes('version');
           const versionFieldExists =
             typeof error.fields === 'object' &&
             !Array.isArray(error.fields) &&

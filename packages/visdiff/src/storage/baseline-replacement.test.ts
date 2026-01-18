@@ -63,9 +63,9 @@ describe('Property 16: Baseline replacement on approval', () => {
           expect(loadedNew).not.toBeNull();
           expect(loadedNew?.equals(newScreenshot)).toBe(true);
           expect(loadedNew?.equals(originalBaseline)).toBe(false);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -78,7 +78,7 @@ describe('Property 16: Baseline replacement on approval', () => {
             original: fc.uint8Array({ minLength: 10, maxLength: 50 }),
             updated: fc.uint8Array({ minLength: 10, maxLength: 50 }),
           }),
-          { minLength: 2, maxLength: 10 }
+          { minLength: 2, maxLength: 10 },
         ),
         async (items) => {
           // Ensure each item has different original and updated data
@@ -114,9 +114,9 @@ describe('Property 16: Baseline replacement on approval', () => {
             expect(loaded).not.toBeNull();
             expect(loaded?.equals(Buffer.from(item.updated))).toBe(true);
           }
-        }
+        },
       ),
-      { numRuns: 50 }
+      { numRuns: 50 },
     );
   });
 
@@ -149,9 +149,9 @@ describe('Property 16: Baseline replacement on approval', () => {
           const loaded = await storageManager.loadBaseline(uniqueIdentifier);
           expect(loaded).not.toBeNull();
           expect(loaded?.equals(screenshot)).toBe(true);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

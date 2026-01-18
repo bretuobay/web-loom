@@ -34,10 +34,9 @@ describe('Property 3: Browser navigation for valid URLs', () => {
         protocol: fc.constantFrom('http', 'https'),
         domain: fc.constantFrom('example.com', 'localhost', '127.0.0.1'),
         port: fc.option(fc.integer({ min: 3000, max: 9999 }), { nil: undefined }),
-        path: fc.option(
-          fc.stringOf(fc.constantFrom('/', 'a', 'b', 'c', '-', '_'), { maxLength: 20 }),
-          { nil: undefined }
-        ),
+        path: fc.option(fc.stringOf(fc.constantFrom('/', 'a', 'b', 'c', '-', '_'), { maxLength: 20 }), {
+          nil: undefined,
+        }),
       })
       .map(({ protocol, domain, port, path }) => {
         let url = `${protocol}://${domain}`;
@@ -88,14 +87,12 @@ describe('Property 3: Browser navigation for valid URLs', () => {
       {
         numRuns: 20, // Reduced for faster execution
         timeout: 120000, // 2 minutes total timeout
-      }
+      },
     );
   }, 150000); // 2.5 minute test timeout
 
   it('should handle localhost URLs with various ports', async () => {
-    const localhostUrlArb = fc
-      .integer({ min: 3000, max: 9999 })
-      .map((port) => `http://localhost:${port}`);
+    const localhostUrlArb = fc.integer({ min: 3000, max: 9999 }).map((port) => `http://localhost:${port}`);
 
     const viewport: Viewport = {
       width: 1024,
@@ -122,7 +119,7 @@ describe('Property 3: Browser navigation for valid URLs', () => {
       {
         numRuns: 10,
         timeout: 60000,
-      }
+      },
     );
   }, 90000);
 });

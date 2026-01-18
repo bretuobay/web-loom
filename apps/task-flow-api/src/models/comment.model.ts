@@ -26,24 +26,24 @@ Comment.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     content: {
       type: DataTypes.TEXT,
-      allowNull: false
+      allowNull: false,
     },
     taskId: {
       type: DataTypes.UUID,
-      allowNull: false
+      allowNull: false,
     },
     authorId: {
       type: DataTypes.UUID,
-      allowNull: false
-    }
+      allowNull: false,
+    },
   },
   {
     sequelize,
     tableName: 'comments',
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );

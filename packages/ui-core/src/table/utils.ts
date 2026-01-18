@@ -44,7 +44,7 @@ export function getSortCycle(directions?: SortDirection[]): (SortDirection | und
 export function getNextSortState<T>(
   column: ColumnType<T>,
   currentState: SortingState | undefined,
-  cycle: (SortDirection | undefined)[]
+  cycle: (SortDirection | undefined)[],
 ): SortingState {
   const key = getColumnKey(column);
   const isSameColumn = currentState?.columnKey === key;
@@ -64,12 +64,7 @@ export function applySort<T>(data: T[], column: ColumnType<T> | undefined, order
   if (!column || !order) return [...data];
   const { sorter } = column;
 
-  const comparator =
-    typeof sorter === 'function'
-      ? sorter
-      : sorter
-      ? defaultComparator(column)
-      : undefined;
+  const comparator = typeof sorter === 'function' ? sorter : sorter ? defaultComparator(column) : undefined;
 
   if (!comparator) {
     return [...data];

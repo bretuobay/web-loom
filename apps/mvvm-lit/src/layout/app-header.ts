@@ -59,7 +59,7 @@ export class AppHeader extends LitElement {
                   e.preventDefault();
                   this.handleNavigation(`/${item.id}`);
                 }}
-                >
+              >
                 ${item.label}
               </a>
             `,

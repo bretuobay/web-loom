@@ -99,11 +99,7 @@ describe('Property 41: Diff visualization contrast', () => {
               const pixelB = diffRaw[i * 4 + 2];
 
               // Check if pixel is close to highlight color (within tolerance)
-              if (
-                Math.abs(pixelR - r) < 10 &&
-                Math.abs(pixelG - g) < 10 &&
-                Math.abs(pixelB - b) < 10
-              ) {
+              if (Math.abs(pixelR - r) < 10 && Math.abs(pixelG - g) < 10 && Math.abs(pixelB - b) < 10) {
                 highlightPixelCount++;
               }
             }
@@ -111,9 +107,9 @@ describe('Property 41: Diff visualization contrast', () => {
             // At least some pixels should be highlighted
             expect(highlightPixelCount).toBeGreaterThan(0);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -164,9 +160,9 @@ describe('Property 41: Diff visualization contrast', () => {
             expect(diffMetadata.height).toBe(height);
             expect(diffMetadata.format).toBe('png');
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -213,9 +209,9 @@ describe('Property 41: Diff visualization contrast', () => {
           // Diff image should be generated for this significant difference
           expect(result.diffImage).toBeDefined();
           expect(result.passed).toBe(false);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

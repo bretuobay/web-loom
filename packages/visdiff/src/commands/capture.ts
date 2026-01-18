@@ -24,17 +24,14 @@ function generateIdentifier(url: string, viewportName: string): string {
   // Extract path from URL
   const urlObj = new URL(url);
   const path = urlObj.pathname === '/' ? 'home' : urlObj.pathname.replace(/\//g, '-').replace(/^-/, '');
-  
+
   return `${path}-${viewportName}`;
 }
 
 /**
  * Execute the capture command
  */
-export async function captureCommand(
-  urls: string[],
-  options: CaptureOptions = {}
-): Promise<number> {
+export async function captureCommand(urls: string[], options: CaptureOptions = {}): Promise<number> {
   const cwd = process.cwd();
   let browserManager: BrowserManager | null = null;
 
@@ -45,7 +42,7 @@ export async function captureCommand(
 
     // Determine URLs to capture
     const urlsToCapture = urls.length > 0 ? urls : config.paths;
-    
+
     if (urlsToCapture.length === 0) {
       console.error(chalk.red('✗ No URLs specified'));
       console.log(chalk.gray('  Provide URLs as arguments or configure them in visdiff.config.js'));
@@ -55,7 +52,7 @@ export async function captureCommand(
     // Determine viewports to use
     let viewports = config.viewports;
     if (options.viewport) {
-      const selectedViewport = config.viewports.find(v => v.name === options.viewport);
+      const selectedViewport = config.viewports.find((v) => v.name === options.viewport);
       if (!selectedViewport) {
         console.error(chalk.red(`✗ Viewport "${options.viewport}" not found in configuration`));
         return 1;
@@ -84,11 +81,7 @@ export async function captureCommand(
     await storage.initialize();
 
     // Capture all screenshots
-    const summary = await captureEngine.captureAll(
-      urlsToCapture,
-      viewports,
-      captureOptions
-    );
+    const summary = await captureEngine.captureAll(urlsToCapture, viewports, captureOptions);
 
     // Save baselines
     console.log(chalk.blue('Saving baselines...'));
@@ -98,10 +91,14 @@ export async function captureCommand(
       if (result.success) {
         const identifier = generateIdentifier(result.url, result.viewport.name);
         await storage.saveBaseline(identifier, result.image);
-        
+
         console.log(chalk.green(`  ✓ ${identifier}`));
-        console.log(chalk.gray(`    ${result.metadata.dimensions.width}x${result.metadata.dimensions.height} (${(result.metadata.imageSize / 1024).toFixed(1)}KB)`));
-        
+        console.log(
+          chalk.gray(
+            `    ${result.metadata.dimensions.width}x${result.metadata.dimensions.height} (${(result.metadata.imageSize / 1024).toFixed(1)}KB)`,
+          ),
+        );
+
         savedCount++;
       } else {
         const identifier = generateIdentifier(result.url, result.viewport.name);

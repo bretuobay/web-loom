@@ -12,7 +12,7 @@ interface TodoState {
 const INITIAL_STATE: TodoState = {
   todos: [],
   isLoading: true,
-  error: null
+  error: null,
 };
 
 // Deep comparison for todo state
@@ -39,45 +39,43 @@ export function useTodoState(): TodoState {
   const [state, setState] = useState<TodoState>(() => {
     // Synchronously read current values from BehaviorSubjects
     let syncState = INITIAL_STATE;
-    const sub = combineLatest([
-      todoViewModel.data$,
-      todoViewModel.isLoading$,
-      todoViewModel.error$
-    ]).subscribe(([todos, isLoading, error]) => {
-      syncState = {
-        todos: (todos ?? []) as TodoListItem[],
-        isLoading,
-        error
-      };
-    });
+    const sub = combineLatest([todoViewModel.data$, todoViewModel.isLoading$, todoViewModel.error$]).subscribe(
+      ([todos, isLoading, error]) => {
+        syncState = {
+          todos: (todos ?? []) as TodoListItem[],
+          isLoading,
+          error,
+        };
+      },
+    );
     sub.unsubscribe();
     stateRef.current = syncState;
     return syncState;
   });
 
   useEffect(() => {
-    const subscription = combineLatest([
-      todoViewModel.data$,
-      todoViewModel.isLoading$,
-      todoViewModel.error$
-    ]).pipe(
-      // Map to state shape
-      map(([todos, isLoading, error]): TodoState => ({
-        todos: (todos ?? []) as TodoListItem[],
-        isLoading,
-        error
-      })),
-      // Debounce rapid successive emissions (batches within 16ms - one frame)
-      debounceTime(16),
-      // Only emit if state actually changed
-      distinctUntilChanged(stateEqual)
-    ).subscribe((newState) => {
-      // Additional guard
-      if (!stateEqual(stateRef.current, newState)) {
-        stateRef.current = newState;
-        setState(newState);
-      }
-    });
+    const subscription = combineLatest([todoViewModel.data$, todoViewModel.isLoading$, todoViewModel.error$])
+      .pipe(
+        // Map to state shape
+        map(
+          ([todos, isLoading, error]): TodoState => ({
+            todos: (todos ?? []) as TodoListItem[],
+            isLoading,
+            error,
+          }),
+        ),
+        // Debounce rapid successive emissions (batches within 16ms - one frame)
+        debounceTime(16),
+        // Only emit if state actually changed
+        distinctUntilChanged(stateEqual),
+      )
+      .subscribe((newState) => {
+        // Additional guard
+        if (!stateEqual(stateRef.current, newState)) {
+          stateRef.current = newState;
+          setState(newState);
+        }
+      });
 
     return () => subscription.unsubscribe();
   }, []);

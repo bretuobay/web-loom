@@ -63,6 +63,7 @@ Create Card component for content containers with comprehensive features includi
 ## Features Implemented
 
 ### ✅ Core Features
+
 - [x] Card component with header, body, footer sections
 - [x] Title prop (optional, supports ReactNode)
 - [x] Description/children content
@@ -70,6 +71,7 @@ Create Card component for content containers with comprehensive features includi
 - [x] Footer content
 
 ### ✅ New Features (Task 2.3)
+
 - [x] `extra` prop for header actions/content (top-right)
 - [x] `bordered` prop (default: true)
 - [x] `hoverable` prop with lift animation (default: true)
@@ -80,6 +82,7 @@ Create Card component for content containers with comprehensive features includi
 - [x] Link support via `href` prop
 
 ### ✅ Styling & Theming
+
 - [x] CSS custom properties integration
 - [x] Design system token usage
 - [x] Dark theme support
@@ -88,6 +91,7 @@ Create Card component for content containers with comprehensive features includi
 - [x] Modular CSS classes
 
 ### ✅ Testing & Documentation
+
 - [x] 14 comprehensive unit tests (100% passing)
 - [x] 15+ Storybook stories
 - [x] Complete README with examples
@@ -133,10 +137,10 @@ interface CardProps extends HTMLAttributes<HTMLElement> {
   badge?: ReactNode;
   footer?: ReactNode;
   extra?: ReactNode;
-  bordered?: boolean;           // default: true
-  hoverable?: boolean;          // default: true
-  loading?: boolean;            // default: false
-  size?: 'default' | 'small';   // default: 'default'
+  bordered?: boolean; // default: true
+  hoverable?: boolean; // default: true
+  loading?: boolean; // default: false
+  size?: 'default' | 'small'; // default: 'default'
   cover?: ReactNode;
   actions?: ReactNode[];
   href?: string;
@@ -148,11 +152,13 @@ interface CardProps extends HTMLAttributes<HTMLElement> {
 ## Usage Examples
 
 ### Basic Card
+
 ```tsx
 <Card title="Card Title" description="Card description" />
 ```
 
 ### Card with All Features
+
 ```tsx
 <Card
   title="Project Dashboard"
@@ -161,10 +167,7 @@ interface CardProps extends HTMLAttributes<HTMLElement> {
   extra={<button>Settings</button>}
   cover={<img src="cover.jpg" alt="Cover" />}
   footer="Last updated: 2 hours ago"
-  actions={[
-    <button key="view">View</button>,
-    <button key="edit">Edit</button>
-  ]}
+  actions={[<button key="view">View</button>, <button key="edit">Edit</button>]}
   size="default"
   bordered={true}
   hoverable={true}
@@ -172,6 +175,7 @@ interface CardProps extends HTMLAttributes<HTMLElement> {
 ```
 
 ### Loading Card
+
 ```tsx
 <Card title="Loading..." loading={true} />
 ```
@@ -189,6 +193,7 @@ Test Files  1 passed (1)
 ```
 
 ### Test Coverage
+
 - Semantic HTML rendering (article/anchor)
 - Badge and footer content
 - Extra content in header
@@ -205,6 +210,7 @@ Test Files  1 passed (1)
 ## Storybook Stories
 
 Created 15+ comprehensive stories:
+
 1. Default
 2. WithBadgeAndFooter
 3. AsLink
@@ -242,6 +248,7 @@ All stories are interactive with controls for live editing.
 ## Browser Compatibility
 
 Tested and working in:
+
 - Chrome (latest)
 - Firefox (latest)
 - Safari (latest)
@@ -252,24 +259,22 @@ Tested and working in:
 **NONE** - All changes are backward compatible. The existing Card API is preserved, and all new features are optional additions.
 
 Existing code will continue to work:
+
 ```tsx
 // This still works exactly as before
-<Card
-  title="Design tokens"
-  description="Explore primitives"
-  badge="Beta"
-  footer="Learn more →"
-/>
+<Card title="Design tokens" description="Explore primitives" badge="Beta" footer="Learn more →" />
 ```
 
 ## Next Steps & Recommendations
 
 ### Immediate Next Steps
+
 1. ✅ Task complete - ready for integration
 2. Run Storybook to view all variants: `npm run storybook`
 3. Review README.md for usage guidelines
 
 ### Future Enhancements (Optional)
+
 - [ ] Add Card.Meta subcomponent for avatar + description pattern
 - [ ] Add Card.Grid container component for card layouts
 - [ ] Add customizable loading skeleton (number of lines, widths)
@@ -279,6 +284,7 @@ Existing code will continue to work:
 - [ ] Add expandable/collapsible card variant
 
 ### Related Tasks
+
 - Task 2.1: Grid System ✅ (can use with Card)
 - Task 2.2: Layout Component ✅ (can contain Cards)
 - Task 2.4: Divider Component (can use between Cards)

@@ -113,7 +113,7 @@ const TagComponent = forwardRef<HTMLSpanElement, TagProps>(
       style,
       ...rest
     },
-    ref
+    ref,
   ) => {
     const [isVisible, setIsVisible] = useState(visible);
 
@@ -130,9 +130,7 @@ const TagComponent = forwardRef<HTMLSpanElement, TagProps>(
     }
 
     // Check if color is a preset or custom
-    const isPresetColor = ['success', 'processing', 'error', 'warning', 'default'].includes(
-      color as TagColorType
-    );
+    const isPresetColor = ['success', 'processing', 'error', 'warning', 'default'].includes(color as TagColorType);
 
     // Build CSS classes
     const tagClasses = cn(
@@ -143,7 +141,7 @@ const TagComponent = forwardRef<HTMLSpanElement, TagProps>(
         [styles[color as TagColorType]]: isPresetColor,
         [styles.customColor]: !isPresetColor,
       },
-      className
+      className,
     );
 
     // Custom color styles
@@ -161,18 +159,13 @@ const TagComponent = forwardRef<HTMLSpanElement, TagProps>(
         {icon && <span className={styles.icon}>{icon}</span>}
         <span className={styles.content}>{children}</span>
         {closable && (
-          <button
-            type="button"
-            className={styles.closeButton}
-            onClick={handleClose}
-            aria-label="Close tag"
-          >
+          <button type="button" className={styles.closeButton} onClick={handleClose} aria-label="Close tag">
             {closeIcon || <CloseIcon />}
           </button>
         )}
       </span>
     );
-  }
+  },
 );
 
 /**
@@ -190,7 +183,7 @@ export const CheckableTag = forwardRef<HTMLSpanElement, CheckableTagProps>(
       {
         [styles.checked]: checked,
       },
-      className
+      className,
     );
 
     return (
@@ -212,7 +205,7 @@ export const CheckableTag = forwardRef<HTMLSpanElement, CheckableTagProps>(
         <span className={styles.content}>{children}</span>
       </span>
     );
-  }
+  },
 );
 
 // Create compound component with proper typing

@@ -27,13 +27,13 @@ export interface UpdateUserPayload {
 export const userService = {
   list: () => {
     return User.findAll({
-      attributes: { exclude: ['passwordHash'] }
+      attributes: { exclude: ['passwordHash'] },
     });
   },
 
   getById: async (id: string) => {
     const user = await User.findByPk(id, {
-      attributes: { exclude: ['passwordHash'] }
+      attributes: { exclude: ['passwordHash'] },
     });
 
     if (!user) {
@@ -45,7 +45,7 @@ export const userService = {
 
   findByEmail: (email: string) => {
     return User.findOne({
-      where: { email }
+      where: { email },
     });
   },
 
@@ -61,7 +61,7 @@ export const userService = {
       displayName: payload.displayName,
       role: payload.role ?? 'member',
       avatarUrl: payload.avatarUrl ?? null,
-      passwordHash
+      passwordHash,
     });
 
     return sanitizeUserRecord(user);
@@ -102,5 +102,5 @@ export const userService = {
 
     await user.destroy();
     return true;
-  }
+  },
 };

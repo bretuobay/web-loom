@@ -210,7 +210,7 @@ Add a lightweight authentication layer to demonstrate MVVM/user flows in downstr
    - POST `/api/auth/signout` clears the active token/session.
    - Tokens expire automatically and are stored hashed so components can validate identity without exposing raw secrets.
 
-9. Future Considerations (Not MVP)
+5. Future Considerations (Not MVP)
 
 User authentication & roles
 

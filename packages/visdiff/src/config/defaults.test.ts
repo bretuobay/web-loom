@@ -38,7 +38,7 @@ describe('Default Configuration', () => {
               expect.objectContaining({ name: 'mobile' }),
               expect.objectContaining({ name: 'tablet' }),
               expect.objectContaining({ name: 'desktop' }),
-            ])
+            ]),
           );
 
           // Should have default paths
@@ -64,9 +64,9 @@ describe('Default Configuration', () => {
           expect(config.storage.baselineDir).toBeDefined();
           expect(config.storage.diffDir).toBeDefined();
           expect(config.storage.format).toMatch(/^(png|jpeg)$/);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -79,45 +79,38 @@ describe('Default Configuration', () => {
               fc.record({
                 width: fc.integer({ min: 1, max: 7680 }),
                 height: fc.integer({ min: 1, max: 4320 }),
-                name: fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
+                name: fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
               }),
-              { minLength: 1, maxLength: 3 }
+              { minLength: 1, maxLength: 3 },
             ),
-            { nil: undefined }
+            { nil: undefined },
           ),
           paths: fc.option(
-            fc.array(
-              fc.constantFrom('http://localhost:3000', 'https://example.com'),
-              { minLength: 1, maxLength: 3 }
-            ),
-            { nil: undefined }
+            fc.array(fc.constantFrom('http://localhost:3000', 'https://example.com'), { minLength: 1, maxLength: 3 }),
+            { nil: undefined },
           ),
           captureOptions: fc.option(
             fc.record({
               fullPage: fc.option(fc.boolean(), { nil: undefined }),
               timeout: fc.option(fc.integer({ min: 1000, max: 60000 }), { nil: undefined }),
             }),
-            { nil: undefined }
+            { nil: undefined },
           ),
           diffOptions: fc.option(
             fc.record({
               threshold: fc.option(fc.double({ min: 0, max: 1, noNaN: true }), { nil: undefined }),
             }),
-            { nil: undefined }
+            { nil: undefined },
           ),
         }),
         (userConfig) => {
           // Merge user config with defaults, filtering out undefined values
           const cleanCaptureOptions = userConfig.captureOptions
-            ? Object.fromEntries(
-                Object.entries(userConfig.captureOptions).filter(([_, v]) => v !== undefined)
-              )
+            ? Object.fromEntries(Object.entries(userConfig.captureOptions).filter(([_, v]) => v !== undefined))
             : {};
 
           const cleanDiffOptions = userConfig.diffOptions
-            ? Object.fromEntries(
-                Object.entries(userConfig.diffOptions).filter(([_, v]) => v !== undefined)
-              )
+            ? Object.fromEntries(Object.entries(userConfig.diffOptions).filter(([_, v]) => v !== undefined))
             : {};
 
           const mergedConfig: VisDiffConfig = {
@@ -168,18 +161,18 @@ describe('Default Configuration', () => {
           } else {
             expect(mergedConfig.diffOptions.threshold).toBe(DEFAULT_CONFIG.diffOptions.threshold);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   it('should have sensible default values', () => {
     // Default viewports should cover common device sizes
     expect(DEFAULT_CONFIG.viewports).toHaveLength(3);
-    expect(DEFAULT_CONFIG.viewports.some(v => v.name === 'mobile')).toBe(true);
-    expect(DEFAULT_CONFIG.viewports.some(v => v.name === 'tablet')).toBe(true);
-    expect(DEFAULT_CONFIG.viewports.some(v => v.name === 'desktop')).toBe(true);
+    expect(DEFAULT_CONFIG.viewports.some((v) => v.name === 'mobile')).toBe(true);
+    expect(DEFAULT_CONFIG.viewports.some((v) => v.name === 'tablet')).toBe(true);
+    expect(DEFAULT_CONFIG.viewports.some((v) => v.name === 'desktop')).toBe(true);
 
     // Default timeout should be reasonable (30 seconds)
     expect(DEFAULT_CONFIG.captureOptions.timeout).toBe(30000);
@@ -225,7 +218,7 @@ describe('Default Configuration', () => {
         expect(config.storage.diffDir).toBeDefined();
         expect(config.storage.format).toBeDefined();
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

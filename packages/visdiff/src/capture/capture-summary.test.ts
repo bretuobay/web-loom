@@ -29,15 +29,14 @@ describe('Property 7: Capture summary completeness', () => {
 
   it('should include success and failure counts in summary', async () => {
     // Generator for URL lists with mix of valid and invalid
-    const urlListArb = fc
-      .array(
-        fc.constantFrom(
-          'about:blank',
-          'data:text/html,<h1>Test</h1>',
-          'http://192.0.2.1:9999' // Non-routable
-        ),
-        { minLength: 2, maxLength: 6 }
-      );
+    const urlListArb = fc.array(
+      fc.constantFrom(
+        'about:blank',
+        'data:text/html,<h1>Test</h1>',
+        'http://192.0.2.1:9999', // Non-routable
+      ),
+      { minLength: 2, maxLength: 6 },
+    );
 
     const viewport: Viewport = {
       width: 800,
@@ -85,7 +84,7 @@ describe('Property 7: Capture summary completeness', () => {
       {
         numRuns: 10,
         timeout: 120000,
-      }
+      },
     );
   }, 150000);
 
@@ -224,7 +223,7 @@ describe('Property 7: Capture summary completeness', () => {
       {
         numRuns: 10,
         timeout: 120000,
-      }
+      },
     );
   }, 150000);
 

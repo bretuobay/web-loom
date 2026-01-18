@@ -53,7 +53,7 @@ describe('Property 17: Baseline backup on approval', () => {
           // Check that backup directory exists and contains the original baseline
           const backupDir = path.join(tempDir, '.visdiff/backups');
           const backupEntries = await fs.readdir(backupDir, { withFileTypes: true });
-          const backupDirs = backupEntries.filter(e => e.isDirectory());
+          const backupDirs = backupEntries.filter((e) => e.isDirectory());
 
           // Should have at least one backup directory
           expect(backupDirs.length).toBeGreaterThan(0);
@@ -63,7 +63,8 @@ describe('Property 17: Baseline backup on approval', () => {
           const backupFilePath = path.join(backupDir, latestBackupDir.name, `${identifier}.png`);
 
           // Verify the backup file exists
-          const backupExists = await fs.access(backupFilePath)
+          const backupExists = await fs
+            .access(backupFilePath)
             .then(() => true)
             .catch(() => false);
 
@@ -73,9 +74,9 @@ describe('Property 17: Baseline backup on approval', () => {
           const backupContent = await fs.readFile(backupFilePath);
           expect(backupContent.equals(originalBaseline)).toBe(true);
           expect(backupContent.equals(newScreenshot)).toBe(false);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -88,7 +89,7 @@ describe('Property 17: Baseline backup on approval', () => {
             original: fc.uint8Array({ minLength: 10, maxLength: 50 }),
             updated: fc.uint8Array({ minLength: 10, maxLength: 50 }),
           }),
-          { minLength: 2, maxLength: 5 }
+          { minLength: 2, maxLength: 5 },
         ),
         async (items) => {
           // Make identifiers unique and ensure data is different
@@ -115,7 +116,7 @@ describe('Property 17: Baseline backup on approval', () => {
           // Check backup directory
           const backupDir = path.join(tempDir, '.visdiff/backups');
           const backupEntries = await fs.readdir(backupDir, { withFileTypes: true });
-          const backupDirs = backupEntries.filter(e => e.isDirectory());
+          const backupDirs = backupEntries.filter((e) => e.isDirectory());
 
           expect(backupDirs.length).toBeGreaterThan(0);
 
@@ -129,9 +130,9 @@ describe('Property 17: Baseline backup on approval', () => {
             const backupContent = await fs.readFile(backupFilePath);
             expect(backupContent.equals(item.original)).toBe(true);
           }
-        }
+        },
       ),
-      { numRuns: 50 }
+      { numRuns: 50 },
     );
   });
 
@@ -162,7 +163,7 @@ describe('Property 17: Baseline backup on approval', () => {
           // Check backup directory naming
           const backupDir = path.join(tempDir, '.visdiff/backups');
           const backupEntries = await fs.readdir(backupDir, { withFileTypes: true });
-          const backupDirs = backupEntries.filter(e => e.isDirectory());
+          const backupDirs = backupEntries.filter((e) => e.isDirectory());
 
           expect(backupDirs.length).toBeGreaterThan(0);
 
@@ -177,9 +178,9 @@ describe('Property 17: Baseline backup on approval', () => {
           // Verify the timestamp is reasonable (within a few seconds of approval time)
           const timeDiff = Math.abs(backupTimestamp.getTime() - beforeApproval.getTime());
           expect(timeDiff).toBeLessThan(5000); // Within 5 seconds
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -202,7 +203,8 @@ describe('Property 17: Baseline backup on approval', () => {
 
           // Backup directory should exist
           const backupDir = path.join(tempDir, '.visdiff/backups');
-          const backupExists = await fs.access(backupDir)
+          const backupExists = await fs
+            .access(backupDir)
             .then(() => true)
             .catch(() => false);
 
@@ -210,11 +212,11 @@ describe('Property 17: Baseline backup on approval', () => {
 
           // There should be at least one backup directory (even if it's empty)
           const backupEntries = await fs.readdir(backupDir, { withFileTypes: true });
-          const backupDirs = backupEntries.filter(e => e.isDirectory());
+          const backupDirs = backupEntries.filter((e) => e.isDirectory());
           expect(backupDirs.length).toBeGreaterThan(0);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

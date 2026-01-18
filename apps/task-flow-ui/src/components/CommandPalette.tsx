@@ -13,12 +13,7 @@ interface CommandPaletteProps {
   onReady?: (open: () => void) => void;
 }
 
-export function CommandPalette({
-  onToggleTheme,
-  onLogout,
-  isAuthenticated,
-  onReady
-}: CommandPaletteProps) {
+export function CommandPalette({ onToggleTheme, onLogout, isAuthenticated, onReady }: CommandPaletteProps) {
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
 
@@ -30,7 +25,7 @@ export function CommandPalette({
         category: 'Navigation',
         keywords: ['projects', 'list', 'home'],
         shortcut: 'G P',
-        action: () => navigate('/projects')
+        action: () => navigate('/projects'),
       },
       {
         id: 'nav-tasks',
@@ -38,7 +33,7 @@ export function CommandPalette({
         category: 'Navigation',
         keywords: ['tasks', 'board', 'kanban'],
         shortcut: 'G T',
-        action: () => navigate('/tasks')
+        action: () => navigate('/tasks'),
       },
       {
         id: 'nav-todos',
@@ -46,15 +41,15 @@ export function CommandPalette({
         category: 'Navigation',
         keywords: ['todos', 'checklist', 'daily', 'personal'],
         shortcut: 'G D',
-        action: () => navigate('/todos')
+        action: () => navigate('/todos'),
       },
       {
         id: 'theme-toggle',
         label: 'Toggle Theme',
         category: 'Preferences',
         keywords: ['dark', 'light', 'mode', 'theme', 'night', 'day'],
-        action: onToggleTheme
-      }
+        action: onToggleTheme,
+      },
     ];
 
     if (isAuthenticated && onLogout) {
@@ -63,7 +58,7 @@ export function CommandPalette({
         label: 'Sign Out',
         category: 'Account',
         keywords: ['logout', 'sign out', 'exit'],
-        action: onLogout
+        action: onLogout,
       });
     }
 
@@ -112,15 +107,15 @@ export function CommandPalette({
       {
         key: 'k',
         ctrl: true,
-        action: () => palette.actions.open()
+        action: () => palette.actions.open(),
       },
       {
         key: 'p',
         ctrl: true,
         shift: true,
-        action: () => palette.actions.open()
-      }
-    ]
+        action: () => palette.actions.open(),
+      },
+    ],
   });
 
   // Handle keyboard navigation within palette
@@ -145,7 +140,7 @@ export function CommandPalette({
           break;
       }
     },
-    [palette]
+    [palette],
   );
 
   if (!state.isOpen) return null;
@@ -181,18 +176,12 @@ export function CommandPalette({
             >
               <div className={styles.itemContent}>
                 <span className={styles.label}>{command.label}</span>
-                {command.category && (
-                  <span className={styles.category}>{command.category}</span>
-                )}
+                {command.category && <span className={styles.category}>{command.category}</span>}
               </div>
-              {command.shortcut && (
-                <kbd className={styles.shortcut}>{command.shortcut}</kbd>
-              )}
+              {command.shortcut && <kbd className={styles.shortcut}>{command.shortcut}</kbd>}
             </li>
           ))}
-          {state.filteredCommands.length === 0 && (
-            <li className={styles.empty}>No commands found</li>
-          )}
+          {state.filteredCommands.length === 0 && <li className={styles.empty}>No commands found</li>}
         </ul>
         <footer className={styles.footer}>
           <span>
@@ -207,6 +196,6 @@ export function CommandPalette({
         </footer>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

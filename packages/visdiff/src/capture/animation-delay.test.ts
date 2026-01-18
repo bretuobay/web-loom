@@ -71,7 +71,7 @@ describe('Property 50: Animation delay respect', () => {
       {
         numRuns: 10,
         timeout: 60000,
-      }
+      },
     );
   }, 90000);
 
@@ -264,7 +264,7 @@ describe('Property 50: Animation delay respect', () => {
       {
         numRuns: 10,
         timeout: 60000,
-      }
+      },
     );
   }, 90000);
 });

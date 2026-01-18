@@ -41,15 +41,15 @@ function App() {
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `type` | `'horizontal' \| 'vertical'` | `'horizontal'` | Type of divider |
-| `orientation` | `'left' \| 'center' \| 'right'` | `'center'` | Text alignment (only for horizontal with text) |
-| `dashed` | `boolean` | `false` | Whether to use dashed line style |
-| `plain` | `boolean` | `false` | Whether to use plain text style (less emphasis) |
-| `children` | `ReactNode` | - | Text or content to display in divider (only horizontal) |
+| Prop          | Type                            | Default        | Description                                             |
+| ------------- | ------------------------------- | -------------- | ------------------------------------------------------- |
+| `type`        | `'horizontal' \| 'vertical'`    | `'horizontal'` | Type of divider                                         |
+| `orientation` | `'left' \| 'center' \| 'right'` | `'center'`     | Text alignment (only for horizontal with text)          |
+| `dashed`      | `boolean`                       | `false`        | Whether to use dashed line style                        |
+| `plain`       | `boolean`                       | `false`        | Whether to use plain text style (less emphasis)         |
+| `children`    | `ReactNode`                     | -              | Text or content to display in divider (only horizontal) |
 
-All standard HTML div attributes are also supported (className, style, data-*, etc.).
+All standard HTML div attributes are also supported (className, style, data-\*, etc.).
 
 ## Examples
 
@@ -161,12 +161,14 @@ Dividers can contain any React node, not just text.
 
 ```tsx
 <Divider>
-  <span style={{
-    background: '#1e40af',
-    color: 'white',
-    padding: '4px 12px',
-    borderRadius: '12px'
-  }}>
+  <span
+    style={{
+      background: '#1e40af',
+      color: 'white',
+      padding: '4px 12px',
+      borderRadius: '12px',
+    }}
+  >
     ⭐ Featured Section
   </span>
 </Divider>
@@ -237,10 +239,7 @@ The Divider component uses CSS custom properties from the Web Loom design system
 ### Custom Styling
 
 ```tsx
-<Divider
-  className="my-divider"
-  style={{ margin: '32px 0' }}
->
+<Divider className="my-divider" style={{ margin: '32px 0' }}>
   Custom Styled
 </Divider>
 ```
@@ -284,7 +283,9 @@ The Divider automatically adapts to dark theme when `data-theme="dark"` is prese
 ### Subtle Separators
 
 ```tsx
-<Divider dashed plain>Optional Content Below</Divider>
+<Divider dashed plain>
+  Optional Content Below
+</Divider>
 ```
 
 ### Inline Lists
@@ -324,7 +325,7 @@ const dividerProps: DividerProps = {
   plain: false,
 };
 
-<Divider {...dividerProps}>Text</Divider>
+<Divider {...dividerProps}>Text</Divider>;
 ```
 
 ## Browser Support

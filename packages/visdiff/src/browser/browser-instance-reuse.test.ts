@@ -52,10 +52,10 @@ describe('Property 33: Browser instance reuse', () => {
           // Browser should still be running (not closed)
           expect(manager.isRunning()).toBe(true);
         }),
-        { numRuns: 10 }
+        { numRuns: 10 },
       );
     },
-    { timeout: 60000 }
+    { timeout: 60000 },
   );
 
   it(
@@ -96,12 +96,12 @@ describe('Property 33: Browser instance reuse', () => {
             for (const page of secondPages) {
               await manager.releasePage(page);
             }
-          }
+          },
         ),
-        { numRuns: 10 }
+        { numRuns: 10 },
       );
     },
-    { timeout: 60000 }
+    { timeout: 60000 },
   );
 
   it(
@@ -132,9 +132,9 @@ describe('Property 33: Browser instance reuse', () => {
             await manager.releasePage(page);
           }
         }),
-        { numRuns: 10 }
+        { numRuns: 10 },
       );
     },
-    { timeout: 60000 }
+    { timeout: 60000 },
   );
 });

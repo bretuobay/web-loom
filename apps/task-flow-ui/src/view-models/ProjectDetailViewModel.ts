@@ -14,7 +14,7 @@ export class ProjectDetailViewModel {
       ([projects, selectedId]) => {
         const project = projects.find((item) => item.id === selectedId) ?? null;
         this.project$.next(project);
-      }
+      },
     );
     this.listViewModel.isDetailPanelOpen$.subscribe((isOpen) => this.isOpen$.next(isOpen));
   }

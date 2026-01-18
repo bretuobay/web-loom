@@ -34,6 +34,7 @@ WebLoom VisDiff Phase 1 implements a local-first visual regression testing tool 
 ### Component Responsibilities
 
 **CLI Layer**
+
 - Parse command-line arguments and options
 - Validate user input
 - Format output for terminal display
@@ -41,6 +42,7 @@ WebLoom VisDiff Phase 1 implements a local-first visual regression testing tool 
 - Provide help and usage information
 
 **Core Orchestrator**
+
 - Coordinate workflow between components
 - Manage application state and lifecycle
 - Handle errors and provide recovery strategies
@@ -48,6 +50,7 @@ WebLoom VisDiff Phase 1 implements a local-first visual regression testing tool 
 - Enforce configuration constraints
 
 **Browser Manager**
+
 - Launch and manage Puppeteer browser instances
 - Pool browser pages for reuse
 - Handle browser crashes and restarts
@@ -55,6 +58,7 @@ WebLoom VisDiff Phase 1 implements a local-first visual regression testing tool 
 - Clean up resources on shutdown
 
 **Capture Engine**
+
 - Navigate to URLs and wait for page ready
 - Capture screenshots at specified viewports
 - Handle full-page scrolling and stitching
@@ -62,6 +66,7 @@ WebLoom VisDiff Phase 1 implements a local-first visual regression testing tool 
 - Manage capture timeouts and retries
 
 **Compare Engine**
+
 - Load baseline and current images
 - Perform pixel-level comparison using pixelmatch
 - Apply threshold and ignore options
@@ -69,6 +74,7 @@ WebLoom VisDiff Phase 1 implements a local-first visual regression testing tool 
 - Calculate difference metrics
 
 **Storage Manager**
+
 - Read and write configuration files
 - Organize baseline and diff directories
 - Generate timestamped output directories
@@ -307,226 +313,281 @@ project-root/
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+_A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 ### Property 1: Default configuration application
-*For any* invocation of the init command without configuration options, the system should create a configuration file with default viewports, paths, and capture options
+
+_For any_ invocation of the init command without configuration options, the system should create a configuration file with default viewports, paths, and capture options
 **Validates: Requirements 1.3**
 
 ### Property 2: Configuration preservation on re-initialization
-*For any* existing configuration file, running the init command should preserve the existing configuration without overwriting it
+
+_For any_ existing configuration file, running the init command should preserve the existing configuration without overwriting it
 **Validates: Requirements 1.4**
 
 ### Property 3: Browser navigation for valid URLs
-*For any* valid URL provided to the capture command, the system should successfully launch a headless browser and navigate to that URL
+
+_For any_ valid URL provided to the capture command, the system should successfully launch a headless browser and navigate to that URL
 **Validates: Requirements 2.1**
 
 ### Property 4: Complete viewport coverage
-*For any* set of configured viewports, the capture command should produce screenshots for all viewports
+
+_For any_ set of configured viewports, the capture command should produce screenshots for all viewports
 **Validates: Requirements 2.2**
 
 ### Property 5: Consistent file naming convention
-*For any* page name and viewport combination, the stored screenshot filename should include both the page name and viewport name
+
+_For any_ page name and viewport combination, the stored screenshot filename should include both the page name and viewport name
 **Validates: Requirements 2.3**
 
 ### Property 6: Error resilience during capture
-*For any* page that fails to load within the timeout period, the system should report the error and continue capturing remaining pages
+
+_For any_ page that fails to load within the timeout period, the system should report the error and continue capturing remaining pages
 **Validates: Requirements 2.4**
 
 ### Property 7: Capture summary completeness
-*For any* capture run, the output summary should include counts of both successful and failed captures
+
+_For any_ capture run, the output summary should include counts of both successful and failed captures
 **Validates: Requirements 2.5**
 
 ### Property 8: Full-page capture height
-*For any* page with content exceeding the viewport height, full-page capture should produce an image taller than the viewport
+
+_For any_ page with content exceeding the viewport height, full-page capture should produce an image taller than the viewport
 **Validates: Requirements 2.6**
 
 ### Property 9: Complete comparison coverage
-*For any* configuration with multiple paths and viewports, the compare command should capture and compare all combinations
+
+_For any_ configuration with multiple paths and viewports, the compare command should capture and compare all combinations
 **Validates: Requirements 3.1**
 
 ### Property 10: Threshold respect
-*For any* configured threshold value, pixel differences below that threshold should result in a passing comparison
+
+_For any_ configured threshold value, pixel differences below that threshold should result in a passing comparison
 **Validates: Requirements 3.2**
 
 ### Property 11: Diff image generation on failure
-*For any* comparison where differences exceed the threshold, a diff image highlighting changed regions should be generated
+
+_For any_ comparison where differences exceed the threshold, a diff image highlighting changed regions should be generated
 **Validates: Requirements 3.3**
 
 ### Property 12: Timestamped diff storage
-*For any* comparison run that detects differences, the diff output should be stored in a directory with a timestamp
+
+_For any_ comparison run that detects differences, the diff output should be stored in a directory with a timestamp
 **Validates: Requirements 3.4**
 
 ### Property 13: JSON report generation
-*For any* completed comparison, a summary report in valid JSON format should be generated
+
+_For any_ completed comparison, a summary report in valid JSON format should be generated
 **Validates: Requirements 3.5**
 
 ### Property 14: Success exit code
-*For any* comparison run where all comparisons pass, the system should return exit code 0
+
+_For any_ comparison run where all comparisons pass, the system should return exit code 0
 **Validates: Requirements 3.7**
 
 ### Property 15: Failure exit code
-*For any* comparison run where at least one comparison fails, the system should return a non-zero exit code
+
+_For any_ comparison run where at least one comparison fails, the system should return a non-zero exit code
 **Validates: Requirements 3.8**
 
 ### Property 16: Baseline replacement on approval
-*For any* existing baseline, running the approve command should replace it with the current screenshot
+
+_For any_ existing baseline, running the approve command should replace it with the current screenshot
 **Validates: Requirements 4.1**
 
 ### Property 17: Baseline backup on approval
-*For any* approval operation, the original baselines should be preserved in a backup directory before replacement
+
+_For any_ approval operation, the original baselines should be preserved in a backup directory before replacement
 **Validates: Requirements 4.2**
 
 ### Property 18: Approval output listing
-*For any* approve command execution, the output should list all baselines that were updated
+
+_For any_ approve command execution, the output should list all baselines that were updated
 **Validates: Requirements 4.3**
 
 ### Property 19: Selective approval
-*For any* subset of paths specified in the approve command, only baselines for those paths should be updated
+
+_For any_ subset of paths specified in the approve command, only baselines for those paths should be updated
 **Validates: Requirements 4.5**
 
 ### Property 20: Automatic capture on change in watch mode
-*For any* change detected in the watched application, the system should automatically capture and compare screenshots
+
+_For any_ change detected in the watched application, the system should automatically capture and compare screenshots
 **Validates: Requirements 5.2**
 
 ### Property 21: Real-time output in watch mode
-*For any* comparison performed in watch mode, results should be displayed in the terminal in real-time
+
+_For any_ comparison performed in watch mode, results should be displayed in the terminal in real-time
 **Validates: Requirements 5.3**
 
 ### Property 22: Watch mode resilience
-*For any* comparison failure in watch mode, the system should continue watching without exiting
+
+_For any_ comparison failure in watch mode, the system should continue watching without exiting
 **Validates: Requirements 5.4**
 
 ### Property 23: Resource cleanup on watch exit
-*For any* watch mode session, stopping the watcher should clean up all browser resources and exit gracefully
+
+_For any_ watch mode session, stopping the watcher should clean up all browser resources and exit gracefully
 **Validates: Requirements 5.5**
 
 ### Property 24: Configuration validation
-*For any* configuration file, the system should validate it against the schema and reject invalid configurations
+
+_For any_ configuration file, the system should validate it against the schema and reject invalid configurations
 **Validates: Requirements 6.1**
 
 ### Property 25: Custom viewport respect
-*For any* custom viewport configuration with width, height, and name, the system should use those exact values for captures
+
+_For any_ custom viewport configuration with width, height, and name, the system should use those exact values for captures
 **Validates: Requirements 6.2**
 
 ### Property 26: Capture options application
-*For any* capture options specified (fullPage, omitBackground, timeout), the system should apply those settings during capture
+
+_For any_ capture options specified (fullPage, omitBackground, timeout), the system should apply those settings during capture
 **Validates: Requirements 6.3**
 
 ### Property 27: Diff options application
-*For any* diff options configured (threshold, ignoreAntialiasing, ignoreColors), the system should apply those settings during comparison
+
+_For any_ diff options configured (threshold, ignoreAntialiasing, ignoreColors), the system should apply those settings during comparison
 **Validates: Requirements 6.4**
 
 ### Property 28: Custom storage paths
-*For any* custom storage paths specified in configuration, the system should store baselines and diffs in those directories
+
+_For any_ custom storage paths specified in configuration, the system should store baselines and diffs in those directories
 **Validates: Requirements 6.5**
 
 ### Property 29: Configuration error reporting
-*For any* invalid configuration, the system should report validation errors with helpful messages
+
+_For any_ invalid configuration, the system should report validation errors with helpful messages
 **Validates: Requirements 6.6**
 
 ### Property 30: Status count accuracy
-*For any* status command execution, the displayed counts of passed, failed, and new screenshots should match the latest comparison results
+
+_For any_ status command execution, the displayed counts of passed, failed, and new screenshots should match the latest comparison results
 **Validates: Requirements 7.2**
 
 ### Property 31: Status timestamp inclusion
-*For any* status display, the timestamp of the last comparison should be included
+
+_For any_ status display, the timestamp of the last comparison should be included
 **Validates: Requirements 7.4**
 
 ### Property 32: Status failure details
-*For any* failed comparisons, the status command should list the specific paths and viewports that failed
+
+_For any_ failed comparisons, the status command should list the specific paths and viewports that failed
 **Validates: Requirements 7.5**
 
 ### Property 33: Browser instance reuse
-*For any* sequence of multiple captures, the same browser instance should be reused rather than launching new instances
+
+_For any_ sequence of multiple captures, the same browser instance should be reused rather than launching new instances
 **Validates: Requirements 8.1**
 
 ### Property 34: Page cleanup after capture
-*For any* completed capture, the browser page should be closed to free memory
+
+_For any_ completed capture, the browser page should be closed to free memory
 **Validates: Requirements 8.2**
 
 ### Property 35: Process termination on exit
-*For any* system exit, all browser processes should be terminated
+
+_For any_ system exit, all browser processes should be terminated
 **Validates: Requirements 8.3**
 
 ### Property 36: Browser crash recovery
-*For any* browser crash, the system should detect the failure and restart the browser
+
+_For any_ browser crash, the system should detect the failure and restart the browser
 **Validates: Requirements 8.4**
 
 ### Property 37: Memory usage monitoring
-*For any* execution where memory usage exceeds 1GB, the system should log a warning
+
+_For any_ execution where memory usage exceeds 1GB, the system should log a warning
 **Validates: Requirements 8.5**
 
 ### Property 38: Anti-aliasing tolerance
-*For any* pair of images with only anti-aliasing differences and ignoreAntialiasing enabled, the comparison should pass
+
+_For any_ pair of images with only anti-aliasing differences and ignoreAntialiasing enabled, the comparison should pass
 **Validates: Requirements 9.1**
 
 ### Property 39: Color-blind comparison
-*For any* pair of images with only color differences and ignoreColors enabled, the comparison should pass
+
+_For any_ pair of images with only color differences and ignoreColors enabled, the comparison should pass
 **Validates: Requirements 9.2**
 
 ### Property 40: Threshold-based identity
-*For any* pixel difference percentage below the configured threshold, the images should be considered identical
+
+_For any_ pixel difference percentage below the configured threshold, the images should be considered identical
 **Validates: Requirements 9.3**
 
 ### Property 41: Diff visualization contrast
-*For any* generated diff image, changed pixels should be highlighted in a contrasting color
+
+_For any_ generated diff image, changed pixels should be highlighted in a contrasting color
 **Validates: Requirements 9.4**
 
 ### Property 42: CI environment detection
-*For any* execution in a CI environment (detected via environment variables), the system should adjust output formatting for machine readability
+
+_For any_ execution in a CI environment (detected via environment variables), the system should adjust output formatting for machine readability
 **Validates: Requirements 10.1**
 
 ### Property 43: CI failure exit code
-*For any* comparison failure in a CI environment, the system should return a non-zero exit code
+
+_For any_ comparison failure in a CI environment, the system should return a non-zero exit code
 **Validates: Requirements 10.2**
 
 ### Property 44: CI JSON output
-*For any* execution in a CI environment, the system should output machine-readable JSON reports
+
+_For any_ execution in a CI environment, the system should output machine-readable JSON reports
 **Validates: Requirements 10.3**
 
 ### Property 45: CI timeout compliance
-*For any* execution in a CI environment, the system should complete within the configured timeout period
+
+_For any_ execution in a CI environment, the system should complete within the configured timeout period
 **Validates: Requirements 10.5**
 
 ### Property 46: Network idle waiting
-*For any* page capture, the system should wait for network idle before taking the screenshot
+
+_For any_ page capture, the system should wait for network idle before taking the screenshot
 **Validates: Requirements 11.1**
 
 ### Property 47: Timeout fallback
-*For any* network idle timeout expiration, the system should proceed with capture and log a warning
+
+_For any_ network idle timeout expiration, the system should proceed with capture and log a warning
 **Validates: Requirements 11.2**
 
 ### Property 48: Custom selector waiting
-*For any* custom wait selector specified, the system should wait for that selector to appear before capturing
+
+_For any_ custom wait selector specified, the system should wait for that selector to appear before capturing
 **Validates: Requirements 11.3**
 
 ### Property 49: Pre-capture script execution
-*For any* custom script specified, the system should execute it before taking the screenshot
+
+_For any_ custom script specified, the system should execute it before taking the screenshot
 **Validates: Requirements 11.4**
 
 ### Property 50: Animation delay respect
-*For any* configured animation delay, the system should wait for that duration before capturing
+
+_For any_ configured animation delay, the system should wait for that duration before capturing
 **Validates: Requirements 11.5**
 
 ### Property 51: Descriptive error messages
-*For any* error that occurs, the system should output a descriptive error message with context
+
+_For any_ error that occurs, the system should output a descriptive error message with context
 **Validates: Requirements 12.1**
 
 ### Property 52: Navigation error details
-*For any* browser navigation failure, the error message should include the URL and error details
+
+_For any_ browser navigation failure, the error message should include the URL and error details
 **Validates: Requirements 12.2**
 
 ### Property 53: Comparison failure percentage
-*For any* image comparison failure, the system should report the percentage difference
+
+_For any_ image comparison failure, the system should report the percentage difference
 **Validates: Requirements 12.3**
 
 ### Property 54: Configuration error specificity
-*For any* invalid configuration, the error message should highlight the specific configuration errors
+
+_For any_ invalid configuration, the error message should highlight the specific configuration errors
 **Validates: Requirements 12.4**
 
 ### Property 55: Verbose logging detail
-*For any* execution with verbose logging enabled, the system should output detailed execution information
+
+_For any_ execution with verbose logging enabled, the system should output detailed execution information
 **Validates: Requirements 12.5**
 
 ## Error Handling
@@ -534,6 +595,7 @@ project-root/
 ### Error Categories
 
 **Configuration Errors**
+
 - Invalid configuration schema
 - Missing required fields
 - Invalid viewport dimensions
@@ -541,6 +603,7 @@ project-root/
 - Invalid file paths
 
 **Browser Errors**
+
 - Browser launch failure
 - Browser crash during execution
 - Page navigation timeout
@@ -548,6 +611,7 @@ project-root/
 - Memory exhaustion
 
 **Capture Errors**
+
 - Screenshot capture failure
 - Network timeout
 - Selector not found
@@ -555,6 +619,7 @@ project-root/
 - Full-page stitching failure
 
 **Comparison Errors**
+
 - Image dimension mismatch
 - Baseline not found
 - Image decode failure
@@ -562,6 +627,7 @@ project-root/
 - File write failure
 
 **File System Errors**
+
 - Permission denied
 - Disk space exhausted
 - Directory creation failure
@@ -571,21 +637,25 @@ project-root/
 ### Error Handling Strategies
 
 **Retry with Exponential Backoff**
+
 - Browser launch failures: 3 retries with 1s, 2s, 4s delays
 - Page navigation failures: 2 retries with 2s, 4s delays
 - File system operations: 2 retries with 500ms, 1s delays
 
 **Graceful Degradation**
+
 - Continue with remaining captures if one fails
 - Continue watching after comparison failures in watch mode
 - Proceed with capture if network idle timeout expires
 
 **Resource Cleanup**
+
 - Always close browser pages after capture
 - Always terminate browser processes on exit
 - Always release file handles after operations
 
 **User Feedback**
+
 - Log errors with context and suggestions
 - Provide actionable error messages
 - Include relevant URLs, paths, and identifiers in errors
@@ -598,24 +668,28 @@ project-root/
 Unit tests will verify individual components in isolation:
 
 **CLI Parser Tests**
+
 - Command parsing with various argument combinations
 - Option validation and default value application
 - Help text generation
 - Error handling for invalid arguments
 
 **Configuration Tests**
+
 - Schema validation with valid and invalid configs
 - Default value merging
 - File loading and saving
 - Path resolution
 
 **Browser Manager Tests**
+
 - Browser launch and shutdown
 - Page pooling and reuse
 - Memory monitoring
 - Crash detection and recovery
 
 **Capture Engine Tests**
+
 - Screenshot capture with various options
 - Viewport setting
 - Network idle detection
@@ -623,6 +697,7 @@ Unit tests will verify individual components in isolation:
 - Full-page scrolling logic
 
 **Compare Engine Tests**
+
 - Pixel-level comparison with various thresholds
 - Anti-aliasing detection
 - Color-blind comparison
@@ -630,6 +705,7 @@ Unit tests will verify individual components in isolation:
 - Dimension mismatch handling
 
 **Storage Manager Tests**
+
 - Baseline loading and saving
 - Diff output organization
 - Report generation
@@ -654,6 +730,7 @@ Property-based tests will use **fast-check** (JavaScript property testing librar
 10. **Memory bounds**: For any execution, memory usage should stay within limits
 
 Each property-based test will be tagged with a comment referencing the design document:
+
 ```javascript
 // Feature: visdiff-phase1, Property 13: JSON report generation
 test.prop([fc.array(fc.record({...}))])('generates valid JSON reports', async (results) => {
@@ -675,6 +752,7 @@ Integration tests will verify end-to-end workflows:
 ### Performance Testing
 
 Performance benchmarks will track:
+
 - Time to capture single page: < 3s
 - Time to compare single image: < 100ms
 - Memory usage during 100 captures: < 1GB
@@ -718,27 +796,32 @@ Performance benchmarks will track:
 ### Optimization Strategies
 
 **Browser Pooling**
+
 - Reuse browser instances across captures
 - Pool pages for concurrent captures
 - Lazy browser launch (only when needed)
 
 **Parallel Capture**
+
 - Capture multiple viewports concurrently
 - Use worker threads for image processing
 - Batch file system operations
 
 **Caching**
+
 - Cache configuration after first load
 - Cache baseline images in memory during comparison
 - Reuse browser context for same domain
 
 **Memory Management**
+
 - Close pages immediately after capture
 - Stream large images to disk
 - Limit concurrent captures based on available memory
 - Monitor and warn on high memory usage
 
 **Disk I/O**
+
 - Use async file operations
 - Batch writes when possible
 - Compress images efficiently

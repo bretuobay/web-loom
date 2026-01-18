@@ -12,7 +12,7 @@ describe('Space', () => {
       <Space>
         <div>Item 1</div>
         <div>Item 2</div>
-      </Space>
+      </Space>,
     );
     expect(screen.getByText('Item 1')).toBeInTheDocument();
     expect(screen.getByText('Item 2')).toBeInTheDocument();
@@ -23,7 +23,7 @@ describe('Space', () => {
       <Space direction="vertical">
         <div>Item 1</div>
         <div>Item 2</div>
-      </Space>
+      </Space>,
     );
     const space = container.firstChild as HTMLElement;
     expect(space.className).toContain('direction-vertical');
@@ -34,7 +34,7 @@ describe('Space', () => {
       <Space>
         <div>Item 1</div>
         <div>Item 2</div>
-      </Space>
+      </Space>,
     );
     const space = container.firstChild as HTMLElement;
     expect(space.className).toContain('direction-horizontal');
@@ -44,7 +44,7 @@ describe('Space', () => {
     const { container } = render(
       <Space size="large">
         <div>Item</div>
-      </Space>
+      </Space>,
     );
     const space = container.firstChild as HTMLElement;
     expect(space.style.gap).toBe('24px');
@@ -54,7 +54,7 @@ describe('Space', () => {
     const { container } = render(
       <Space size={32}>
         <div>Item</div>
-      </Space>
+      </Space>,
     );
     const space = container.firstChild as HTMLElement;
     expect(space.style.gap).toBe('32px');
@@ -64,7 +64,7 @@ describe('Space', () => {
     const { container } = render(
       <Space>
         <div>Item</div>
-      </Space>
+      </Space>,
     );
     const space = container.firstChild as HTMLElement;
     expect(space.style.gap).toBe('16px');
@@ -74,7 +74,7 @@ describe('Space', () => {
     const { container } = render(
       <Space align="center">
         <div>Item</div>
-      </Space>
+      </Space>,
     );
     const space = container.firstChild as HTMLElement;
     expect(space.className).toContain('align-center');
@@ -84,7 +84,7 @@ describe('Space', () => {
     const { container } = render(
       <Space wrap>
         <div>Item</div>
-      </Space>
+      </Space>,
     );
     const space = container.firstChild as HTMLElement;
     expect(space.className).toContain('wrap');
@@ -94,7 +94,7 @@ describe('Space', () => {
     const { container } = render(
       <Space>
         <div>Item</div>
-      </Space>
+      </Space>,
     );
     const space = container.firstChild as HTMLElement;
     expect(space.className).not.toContain('wrap');
@@ -104,7 +104,7 @@ describe('Space', () => {
     const { container } = render(
       <Space className="custom-space">
         <div>Item</div>
-      </Space>
+      </Space>,
     );
     const space = container.firstChild as HTMLElement;
     expect(space.className).toContain('custom-space');
@@ -114,7 +114,7 @@ describe('Space', () => {
     const { container } = render(
       <Space style={{ backgroundColor: 'red' }}>
         <div>Item</div>
-      </Space>
+      </Space>,
     );
     const space = container.firstChild as HTMLElement;
     expect(space.style.backgroundColor).toBe('red');
@@ -127,7 +127,7 @@ describe('Space', () => {
         {null}
         {undefined}
         <div>Item 2</div>
-      </Space>
+      </Space>,
     );
     const space = container.firstChild as HTMLElement;
     expect(space.children.length).toBe(2);

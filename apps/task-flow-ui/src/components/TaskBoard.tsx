@@ -40,7 +40,7 @@ export function TaskBoard({ viewModel }: Props) {
       description: selectedTask.description,
       status: selectedTask.status,
       priority: selectedTask.priority,
-      dueDate: selectedTask.dueDate ? selectedTask.dueDate.toISOString().split('T')[0] : null
+      dueDate: selectedTask.dueDate ? selectedTask.dueDate.toISOString().split('T')[0] : null,
     };
   }, [selectedTask]);
 
@@ -50,7 +50,7 @@ export function TaskBoard({ viewModel }: Props) {
         status,
         count: allTasks.filter((task) => task.status === status).length,
       })),
-    [allTasks]
+    [allTasks],
   );
 
   const handleSubmit = async (values: TaskFormValues) => {
@@ -103,20 +103,14 @@ export function TaskBoard({ viewModel }: Props) {
               <button
                 key={status}
                 type="button"
-                className={`${styles.filterButton} ${
-                  viewModelInstance.currentFilter === status ? styles.active : ''
-                }`}
+                className={`${styles.filterButton} ${viewModelInstance.currentFilter === status ? styles.active : ''}`}
                 onClick={() => viewModelInstance.setStatusFilter(status)}
               >
                 {formatTaskStatus(status)} ({bucket?.count ?? 0})
               </button>
             );
           })}
-          <button
-            type="button"
-            className={styles.clearButton}
-            onClick={() => viewModelInstance.setStatusFilter(null)}
-          >
+          <button type="button" className={styles.clearButton} onClick={() => viewModelInstance.setStatusFilter(null)}>
             Show all
           </button>
         </div>
@@ -163,9 +157,7 @@ export function TaskBoard({ viewModel }: Props) {
           <div className={styles.form}>
             {selectedTask ? (
               <>
-                <p className={styles.editingLabel}>
-                  Editing &ldquo;{selectedTask.title}&rdquo;
-                </p>
+                <p className={styles.editingLabel}>Editing &ldquo;{selectedTask.title}&rdquo;</p>
                 <TaskForm
                   onSubmit={handleUpdate}
                   initialValues={selectedInitialValues}
@@ -174,12 +166,7 @@ export function TaskBoard({ viewModel }: Props) {
                   onCancel={() => setSelectedTaskId(null)}
                 />
                 <div className={styles.editActions}>
-                  <button
-                    type="button"
-                    className={styles.deleteButton}
-                    onClick={handleDelete}
-                    disabled={isLoading}
-                  >
+                  <button type="button" className={styles.deleteButton} onClick={handleDelete} disabled={isLoading}>
                     Delete task
                   </button>
                 </div>

@@ -37,8 +37,8 @@ export const Basic: Story = {
           onCancel={() => setOpen(false)}
         >
           <p>
-            This modal is built with portal rendering, focus trapping, scroll locking, and smooth
-            entrance animations. Clicking outside or pressing ESC closes the overlay.
+            This modal is built with portal rendering, focus trapping, scroll locking, and smooth entrance animations.
+            Clicking outside or pressing ESC closes the overlay.
           </p>
         </Modal>
       </>
@@ -131,8 +131,8 @@ export const DifferentSizes: Story = {
           onCancel={() => setLarge(false)}
         >
           <p>
-            Wider panels are ideal for showcasing dense data or large forms. They still respect the
-            centered alignment and animation contract.
+            Wider panels are ideal for showcasing dense data or large forms. They still respect the centered alignment
+            and animation contract.
           </p>
         </Modal>
       </div>

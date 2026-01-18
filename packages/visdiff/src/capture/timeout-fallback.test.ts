@@ -51,7 +51,7 @@ describe('Property 47: Timeout fallback', () => {
         const result = await captureEngine.capture(
           'http://192.0.2.1:9999', // TEST-NET-1 address (non-routable)
           viewport,
-          options
+          options,
         );
 
         // Should return a result (not throw)
@@ -71,7 +71,7 @@ describe('Property 47: Timeout fallback', () => {
       {
         numRuns: 10,
         timeout: 60000,
-      }
+      },
     );
   }, 90000);
 
@@ -126,7 +126,7 @@ describe('Property 47: Timeout fallback', () => {
       {
         numRuns: 10,
         timeout: 60000,
-      }
+      },
     );
   }, 90000);
 

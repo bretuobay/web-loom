@@ -23,4 +23,3 @@ describe('Code', () => {
     expect(pre).toHaveAttribute('data-language', 'ts');
   });
 });
-

@@ -39,15 +39,13 @@ export function useObservable<T>(observable: Observable<T>, initialValue: T) {
 
   useEffect(() => {
     // Use distinctUntilChanged with shallow comparison to prevent redundant updates
-    const subscription = observable
-      .pipe(distinctUntilChanged(shallowEqual))
-      .subscribe((newValue) => {
-        // Additional guard: only update if value actually changed
-        if (!shallowEqual(valueRef.current, newValue)) {
-          valueRef.current = newValue;
-          setValue(newValue);
-        }
-      });
+    const subscription = observable.pipe(distinctUntilChanged(shallowEqual)).subscribe((newValue) => {
+      // Additional guard: only update if value actually changed
+      if (!shallowEqual(valueRef.current, newValue)) {
+        valueRef.current = newValue;
+        setValue(newValue);
+      }
+    });
     return () => subscription.unsubscribe();
   }, [observable]);
 

@@ -50,7 +50,7 @@ describe('Property 13: JSON report generation', () => {
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (results, timestamp) => {
           const { manager, dir: tempDir } = await createStorageManager();
-          
+
           // Save the report
           await manager.saveReport(results, timestamp);
 
@@ -63,15 +63,11 @@ describe('Property 13: JSON report generation', () => {
           const seconds = String(timestamp.getSeconds()).padStart(2, '0');
           const timestampDir = `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
 
-          const reportPath = path.join(
-            tempDir,
-            '.visdiff/diffs',
-            timestampDir,
-            'report.json'
-          );
+          const reportPath = path.join(tempDir, '.visdiff/diffs', timestampDir, 'report.json');
 
           // Verify file exists
-          const fileExists = await fs.access(reportPath)
+          const fileExists = await fs
+            .access(reportPath)
             .then(() => true)
             .catch(() => false);
 
@@ -80,7 +76,7 @@ describe('Property 13: JSON report generation', () => {
           // Read and parse the JSON
           const content = await fs.readFile(reportPath, 'utf-8');
           let report;
-          
+
           // Verify it's valid JSON
           expect(() => {
             report = JSON.parse(content);
@@ -101,8 +97,8 @@ describe('Property 13: JSON report generation', () => {
 
           // Verify summary counts are correct
           expect(report.summary.total).toBe(results.length);
-          expect(report.summary.passed).toBe(results.filter(r => r.passed).length);
-          expect(report.summary.failed).toBe(results.filter(r => !r.passed && !r.error).length);
+          expect(report.summary.passed).toBe(results.filter((r) => r.passed).length);
+          expect(report.summary.failed).toBe(results.filter((r) => !r.passed && !r.error).length);
 
           // Verify results array
           expect(Array.isArray(report.results)).toBe(true);
@@ -115,13 +111,13 @@ describe('Property 13: JSON report generation', () => {
             expect(result).toHaveProperty('difference');
             expect(result).toHaveProperty('dimensions');
             expect(result).toHaveProperty('pixelsDifferent');
-            
+
             // Verify diffImage buffer is not included in JSON
             expect(result.diffImage).toBeUndefined();
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -132,7 +128,7 @@ describe('Property 13: JSON report generation', () => {
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (results, timestamp) => {
           const { manager } = await createStorageManager();
-          
+
           await manager.saveReport(results, timestamp);
 
           const report = await manager.getLatestReport();
@@ -143,24 +139,23 @@ describe('Property 13: JSON report generation', () => {
             expect(report.summary.total).toBe(results.length);
 
             // Verify passed count
-            const expectedPassed = results.filter(r => r.passed).length;
+            const expectedPassed = results.filter((r) => r.passed).length;
             expect(report.summary.passed).toBe(expectedPassed);
 
             // Verify failed count (not passed and no error)
-            const expectedFailed = results.filter(r => !r.passed && !r.error).length;
+            const expectedFailed = results.filter((r) => !r.passed && !r.error).length;
             expect(report.summary.failed).toBe(expectedFailed);
 
             // Verify new count (results with errors)
-            const expectedNew = results.filter(r => r.error).length;
+            const expectedNew = results.filter((r) => r.error).length;
             expect(report.summary.new).toBe(expectedNew);
 
             // Verify counts add up correctly
-            expect(report.summary.passed + report.summary.failed + report.summary.new)
-              .toBe(report.summary.total);
+            expect(report.summary.passed + report.summary.failed + report.summary.new).toBe(report.summary.total);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -171,7 +166,7 @@ describe('Property 13: JSON report generation', () => {
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (results, timestamp) => {
           const { manager } = await createStorageManager();
-          
+
           await manager.saveReport(results, timestamp);
 
           const report = await manager.getLatestReport();
@@ -180,14 +175,14 @@ describe('Property 13: JSON report generation', () => {
           if (report) {
             // Verify timestamp is preserved
             expect(report.timestamp).toBeInstanceOf(Date);
-            
+
             // Verify the timestamp matches exactly (after JSON serialization round-trip)
             // We compare the ISO strings since that's what gets serialized
             expect(report.timestamp.toISOString()).toBe(timestamp.toISOString());
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -214,21 +209,21 @@ describe('Property 13: JSON report generation', () => {
         fc.array(comparisonResultArbitrary, { minLength: 1, maxLength: 5 }),
         fc.tuple(
           fc.date({ min: new Date('2024-01-01'), max: new Date('2024-12-31') }),
-          fc.date({ min: new Date('2025-01-01'), max: new Date('2025-12-31') })
+          fc.date({ min: new Date('2025-01-01'), max: new Date('2025-12-31') }),
         ),
         async (results, [olderTimestamp, newerTimestamp]) => {
           const { manager } = await createStorageManager();
-          
+
           // Save older report
           await manager.saveReport(
-            results.map(r => ({ ...r, identifier: `old-${r.identifier}` })),
-            olderTimestamp
+            results.map((r) => ({ ...r, identifier: `old-${r.identifier}` })),
+            olderTimestamp,
           );
 
           // Save newer report
           await manager.saveReport(
-            results.map(r => ({ ...r, identifier: `new-${r.identifier}` })),
-            newerTimestamp
+            results.map((r) => ({ ...r, identifier: `new-${r.identifier}` })),
+            newerTimestamp,
           );
 
           // Get latest should return the newer one
@@ -239,9 +234,9 @@ describe('Property 13: JSON report generation', () => {
             // Verify it's the newer report by checking identifiers
             expect(latest.results[0].identifier).toContain('new-');
           }
-        }
+        },
       ),
-      { numRuns: 50 }
+      { numRuns: 50 },
     );
   });
 });

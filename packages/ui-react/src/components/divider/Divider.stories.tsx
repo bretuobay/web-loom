@@ -197,9 +197,7 @@ export const MultipleOrientations: Story = {
         magna aliqua.
       </p>
       <Divider orientation="center">Main Content</Divider>
-      <p>
-        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-      </p>
+      <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
       <Divider orientation="right">Conclusion</Divider>
       <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
     </div>

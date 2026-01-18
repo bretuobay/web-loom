@@ -122,7 +122,7 @@ export function Space({
     {
       [styles.wrap]: wrap,
     },
-    className
+    className,
   );
 
   // Build inline styles

@@ -1,6 +1,6 @@
 /**
  * Property-based testing setup verification
- * 
+ *
  * This test verifies that fast-check is properly configured
  * and can run property-based tests with 100+ iterations.
  */
@@ -17,7 +17,7 @@ describe('Property-based testing setup', () => {
         const doubleReversed = reversed.split('').reverse().join('');
         return doubleReversed === str;
       }),
-      { numRuns: 100 } // Explicitly set to 100 iterations
+      { numRuns: 100 }, // Explicitly set to 100 iterations
     );
   });
 
@@ -28,7 +28,7 @@ describe('Property-based testing setup', () => {
         const combined = [...arr1, ...arr2];
         return combined.length === arr1.length + arr2.length;
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

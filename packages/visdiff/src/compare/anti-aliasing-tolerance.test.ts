@@ -92,11 +92,7 @@ describe('Property 38: Anti-aliasing tolerance', () => {
           };
 
           const engine = new CompareEngine();
-          const resultWithIgnore = await engine.compare(
-            baselineImage,
-            currentImage,
-            optionsWithIgnore
-          );
+          const resultWithIgnore = await engine.compare(baselineImage, currentImage, optionsWithIgnore);
 
           // Test with ignoreAntialiasing disabled
           const optionsWithoutIgnore: DiffOptions = {
@@ -106,20 +102,14 @@ describe('Property 38: Anti-aliasing tolerance', () => {
             highlightColor: '#FF0000',
           };
 
-          const resultWithoutIgnore = await engine.compare(
-            baselineImage,
-            currentImage,
-            optionsWithoutIgnore
-          );
+          const resultWithoutIgnore = await engine.compare(baselineImage, currentImage, optionsWithoutIgnore);
 
           // With ignoreAntialiasing enabled, the difference should be smaller
           // or the comparison should be more likely to pass
-          expect(resultWithIgnore.difference).toBeLessThanOrEqual(
-            resultWithoutIgnore.difference
-          );
-        }
+          expect(resultWithIgnore.difference).toBeLessThanOrEqual(resultWithoutIgnore.difference);
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -182,9 +172,9 @@ describe('Property 38: Anti-aliasing tolerance', () => {
 
           // With ignoreAntialiasing disabled, differences should be detected
           expect(result.pixelsDifferent).toBeGreaterThan(0);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

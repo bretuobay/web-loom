@@ -180,13 +180,7 @@ export interface TransitionTokens {
  * Complete design token set
  */
 export interface DesignTokens
-  extends ColorTokens,
-    SpacingTokens,
-    TypographyTokens,
-    RadiusTokens,
-    ShadowTokens,
-    ZIndexTokens,
-    TransitionTokens {}
+  extends ColorTokens, SpacingTokens, TypographyTokens, RadiusTokens, ShadowTokens, ZIndexTokens, TransitionTokens {}
 
 /**
  * Component-specific configuration overrides

@@ -14,7 +14,7 @@ const ACCEPTED_MIME_TYPES = [
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -109,9 +109,7 @@ export function FileUploadDropzone({ onFileSelected, disabled = false }: FileUpl
 
   return (
     <div
-      className={`${styles.dropzone} ${isDragging ? styles.active : ''} ${
-        disabled ? styles.disabled : ''
-      }`}
+      className={`${styles.dropzone} ${isDragging ? styles.active : ''} ${disabled ? styles.disabled : ''}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -119,19 +117,11 @@ export function FileUploadDropzone({ onFileSelected, disabled = false }: FileUpl
       onClick={startBrowse}
       aria-disabled={disabled || isUploading}
     >
-      <input
-        ref={inputRef}
-        type="file"
-        className={styles.input}
-        onChange={handleInputChange}
-        disabled={disabled}
-      />
+      <input ref={inputRef} type="file" className={styles.input} onChange={handleInputChange} disabled={disabled} />
       <p className={styles.primaryText}>
         {isUploading ? 'Uploading attachment…' : 'Drag a file here or click to upload'}
       </p>
-      <p className={styles.secondaryText}>
-        Allowed: PNG · JPEG · WEBP · GIF · PDF · DOCX · XLSX · ZIP · TXT
-      </p>
+      <p className={styles.secondaryText}>Allowed: PNG · JPEG · WEBP · GIF · PDF · DOCX · XLSX · ZIP · TXT</p>
       <p className={styles.secondaryText}>Max size: {formatBytes(MAX_UPLOAD_BYTES)}</p>
       {feedback && (
         <p role="status" className={styles.feedback}>

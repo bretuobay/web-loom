@@ -78,9 +78,9 @@ describe('Property 9: Complete comparison coverage', () => {
             expect(result.difference).toBeLessThanOrEqual(1);
             expect(result.pixelsDifferent).toBeGreaterThanOrEqual(0);
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -158,9 +158,9 @@ describe('Property 9: Complete comparison coverage', () => {
           const failedCount = results.filter((r) => !r.passed).length;
 
           expect(passedCount + failedCount).toBe(numComparisons);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -225,9 +225,9 @@ describe('Property 9: Complete comparison coverage', () => {
             expect(results[i].dimensions.width).toBe(expectedWidth);
             expect(results[i].dimensions.height).toBe(expectedHeight);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

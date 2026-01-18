@@ -75,9 +75,7 @@ export class BrowserManager {
       });
     } catch (error) {
       this.browser = null;
-      throw new Error(
-        `Failed to launch browser: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new Error(`Failed to launch browser: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -164,7 +162,7 @@ export class BrowserManager {
     const closePromises = this.pagePool.map((page) =>
       page.close().catch(() => {
         // Ignore errors when closing pages
-      })
+      }),
     );
     await Promise.all(closePromises);
     this.pagePool = [];

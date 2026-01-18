@@ -109,20 +109,7 @@ function parseSize(size: number | ColSize | undefined): ColSize {
  * </Row>
  * ```
  */
-export function Col({
-  span,
-  offset,
-  order,
-  xs,
-  sm,
-  md,
-  lg,
-  xl,
-  xxl,
-  className,
-  style,
-  children,
-}: ColProps) {
+export function Col({ span, offset, order, xs, sm, md, lg, xl, xxl, className, style, children }: ColProps) {
   const { gutterH } = useContext(RowContext);
 
   // Parse responsive sizes
@@ -149,7 +136,7 @@ export function Col({
     xlSize.offset && styles[`col-xl-offset-${xlSize.offset}`],
     xxlSize.span && styles[`col-xxl-${xxlSize.span}`],
     xxlSize.offset && styles[`col-xxl-offset-${xxlSize.offset}`],
-    className
+    className,
   );
 
   const colStyle: CSSProperties = {

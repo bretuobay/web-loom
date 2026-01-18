@@ -16,7 +16,7 @@ export const RESOLVED_CONFIG_FILE = 'config.json';
 export class ConfigurationError extends Error {
   constructor(
     message: string,
-    public readonly details?: unknown
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ConfigurationError';
@@ -46,10 +46,7 @@ export async function loadConfig(cwd: string = process.cwd()): Promise<VisDiffCo
     const result = VisDiffConfigSchema.safeParse(mergedConfig);
 
     if (!result.success) {
-      throw new ConfigurationError(
-        'Invalid configuration in visdiff.config.js',
-        result.error.format()
-      );
+      throw new ConfigurationError('Invalid configuration in visdiff.config.js', result.error.format());
     }
 
     return result.data;
@@ -65,20 +62,14 @@ export async function loadConfig(cwd: string = process.cwd()): Promise<VisDiffCo
     }
 
     // Wrap other errors
-    throw new ConfigurationError(
-      `Failed to load configuration: ${(error as Error).message}`,
-      error
-    );
+    throw new ConfigurationError(`Failed to load configuration: ${(error as Error).message}`, error);
   }
 }
 
 /**
  * Save resolved configuration to .visdiff/config.json
  */
-export async function saveConfig(
-  config: VisDiffConfig,
-  cwd: string = process.cwd()
-): Promise<void> {
+export async function saveConfig(config: VisDiffConfig, cwd: string = process.cwd()): Promise<void> {
   const configDir = join(cwd, RESOLVED_CONFIG_DIR);
   const configPath = join(configDir, RESOLVED_CONFIG_FILE);
 
@@ -87,10 +78,7 @@ export async function saveConfig(
     const result = VisDiffConfigSchema.safeParse(config);
 
     if (!result.success) {
-      throw new ConfigurationError(
-        'Cannot save invalid configuration',
-        result.error.format()
-      );
+      throw new ConfigurationError('Cannot save invalid configuration', result.error.format());
     }
 
     // Ensure .visdiff directory exists
@@ -103,10 +91,7 @@ export async function saveConfig(
       throw error;
     }
 
-    throw new ConfigurationError(
-      `Failed to save configuration: ${(error as Error).message}`,
-      error
-    );
+    throw new ConfigurationError(`Failed to save configuration: ${(error as Error).message}`, error);
   }
 }
 
@@ -125,10 +110,7 @@ export async function loadResolvedConfig(cwd: string = process.cwd()): Promise<V
     const result = VisDiffConfigSchema.safeParse(config);
 
     if (!result.success) {
-      throw new ConfigurationError(
-        'Invalid resolved configuration in .visdiff/config.json',
-        result.error.format()
-      );
+      throw new ConfigurationError('Invalid resolved configuration in .visdiff/config.json', result.error.format());
     }
 
     return result.data;
@@ -144,10 +126,7 @@ export async function loadResolvedConfig(cwd: string = process.cwd()): Promise<V
     }
 
     // Wrap other errors
-    throw new ConfigurationError(
-      `Failed to load resolved configuration: ${(error as Error).message}`,
-      error
-    );
+    throw new ConfigurationError(`Failed to load resolved configuration: ${(error as Error).message}`, error);
   }
 }
 
@@ -158,9 +137,7 @@ export async function loadResolvedConfig(cwd: string = process.cwd()): Promise<V
 function mergeWithDefaults(userConfig: Partial<VisDiffConfig>): VisDiffConfig {
   // Helper to filter out undefined values from an object
   const filterUndefined = <T extends Record<string, unknown>>(obj: T): Partial<T> => {
-    return Object.fromEntries(
-      Object.entries(obj).filter(([_, v]) => v !== undefined)
-    ) as Partial<T>;
+    return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined)) as Partial<T>;
   };
 
   return {

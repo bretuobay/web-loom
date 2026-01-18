@@ -82,11 +82,7 @@ const CONFIG_PATTERNS = [
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte']);
 
 // Test file patterns
-const TEST_PATTERNS = [
-  /\.test\.(ts|tsx|js|jsx)$/,
-  /\.spec\.(ts|tsx|js|jsx)$/,
-  /__tests__\//,
-];
+const TEST_PATTERNS = [/\.test\.(ts|tsx|js|jsx)$/, /\.spec\.(ts|tsx|js|jsx)$/, /__tests__\//];
 
 function isSkipDir(name: string): boolean {
   return SKIP_DIRS.has(name) || name.startsWith('.');
@@ -97,11 +93,11 @@ function isSkipFile(name: string): boolean {
   if (name.endsWith('.md')) return true;
   if (name.endsWith('.json') && !name.includes('package.json')) return true;
   if (name.endsWith('.lock')) return true;
-  return CONFIG_PATTERNS.some(pattern => pattern.test(name));
+  return CONFIG_PATTERNS.some((pattern) => pattern.test(name));
 }
 
 function isTestFile(filePath: string): boolean {
-  return TEST_PATTERNS.some(pattern => pattern.test(filePath));
+  return TEST_PATTERNS.some((pattern) => pattern.test(filePath));
 }
 
 function isSourceFile(filePath: string): boolean {
@@ -306,11 +302,11 @@ function printStats(label: string, stats: CodeStats): void {
   const pct = stats.lines > 0 ? ((stats.code / stats.lines) * 100).toFixed(1) : '0.0';
   console.log(
     `${label.padEnd(35)} ${formatNumber(stats.files).padStart(6)} files  ` +
-    `${formatNumber(stats.lines).padStart(8)} lines  ` +
-    `${formatNumber(stats.code).padStart(8)} code  ` +
-    `${formatNumber(stats.comments).padStart(8)} comments  ` +
-    `${formatNumber(stats.blanks).padStart(8)} blanks  ` +
-    `${pct.padStart(5)}%`
+      `${formatNumber(stats.lines).padStart(8)} lines  ` +
+      `${formatNumber(stats.code).padStart(8)} code  ` +
+      `${formatNumber(stats.comments).padStart(8)} comments  ` +
+      `${formatNumber(stats.blanks).padStart(8)} blanks  ` +
+      `${pct.padStart(5)}%`,
   );
 }
 
@@ -327,10 +323,13 @@ function printReport(report: Report): void {
   console.log('-'.repeat(120));
   printStats('TOTAL', report.totals.overall.total);
 
-  const testCoverage = report.totals.overall.source.code > 0
-    ? ((report.totals.overall.tests.code / report.totals.overall.source.code) * 100).toFixed(1)
-    : '0.0';
-  console.log(`\nTest to Source Ratio: ${testCoverage}% (${formatNumber(report.totals.overall.tests.code)} test lines / ${formatNumber(report.totals.overall.source.code)} source lines)`);
+  const testCoverage =
+    report.totals.overall.source.code > 0
+      ? ((report.totals.overall.tests.code / report.totals.overall.source.code) * 100).toFixed(1)
+      : '0.0';
+  console.log(
+    `\nTest to Source Ratio: ${testCoverage}% (${formatNumber(report.totals.overall.tests.code)} test lines / ${formatNumber(report.totals.overall.source.code)} source lines)`,
+  );
 
   // Packages
   console.log('\n📦 PACKAGES\n');
@@ -338,8 +337,7 @@ function printReport(report: Report): void {
   printStats('All Packages - Tests', report.totals.packages.tests);
   console.log('-'.repeat(120));
 
-  const sortedPackages = Object.entries(report.packages)
-    .sort(([, a], [, b]) => b.total.code - a.total.code);
+  const sortedPackages = Object.entries(report.packages).sort(([, a], [, b]) => b.total.code - a.total.code);
 
   for (const [name, stats] of sortedPackages) {
     if (stats.total.code === 0) continue;
@@ -354,8 +352,7 @@ function printReport(report: Report): void {
   printStats('All Apps - Tests', report.totals.apps.tests);
   console.log('-'.repeat(120));
 
-  const sortedApps = Object.entries(report.apps)
-    .sort(([, a], [, b]) => b.total.code - a.total.code);
+  const sortedApps = Object.entries(report.apps).sort(([, a], [, b]) => b.total.code - a.total.code);
 
   for (const [name, stats] of sortedApps) {
     if (stats.total.code === 0) continue;
@@ -375,7 +372,9 @@ function printReport(report: Report): void {
 
   for (let i = 0; i < allProjects.length; i++) {
     const { name, stats } = allProjects[i];
-    console.log(`${(i + 1).toString().padStart(2)}. ${name.padEnd(40)} ${formatNumber(stats.source.code).padStart(8)} lines of code`);
+    console.log(
+      `${(i + 1).toString().padStart(2)}. ${name.padEnd(40)} ${formatNumber(stats.source.code).padStart(8)} lines of code`,
+    );
   }
 
   console.log('\n' + '='.repeat(120) + '\n');

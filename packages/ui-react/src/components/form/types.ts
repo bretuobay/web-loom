@@ -12,8 +12,10 @@ export interface FormErrorInfo<TSchema extends ZodSchema = ZodSchema> {
   errors: Record<string, string>;
 }
 
-export interface FormProps<TSchema extends ZodSchema = ZodSchema>
-  extends Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onFinish' | 'onSubmit'> {
+export interface FormProps<TSchema extends ZodSchema = ZodSchema> extends Omit<
+  React.FormHTMLAttributes<HTMLFormElement>,
+  'onFinish' | 'onSubmit'
+> {
   form: UseFormReturn<TSchema>;
   layout?: FormLayout;
   colon?: boolean;

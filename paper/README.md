@@ -42,6 +42,7 @@ For LLM consumption or comprehensive reading, use the combine script:
 ### Script Features
 
 The `combine-docs.sh` script:
+
 - Combines all markdown files in logical reading order
 - Outputs to paper directory
 - Adds clear section separators showing source file names
@@ -71,6 +72,7 @@ cd paper
 ```
 
 This provides comprehensive context about:
+
 - Project architecture and philosophy
 - Implementation patterns
 - Framework adapter strategies
@@ -92,6 +94,7 @@ Share the combined documentation (in the paper/ folder) as a single file for new
 ## Maintaining Documentation
 
 When adding new documentation:
+
 1. Create a new `.md` file in this folder
 2. Update the `FILES` array in `combine-docs.sh` to include it
 3. Run the script to regenerate combined files

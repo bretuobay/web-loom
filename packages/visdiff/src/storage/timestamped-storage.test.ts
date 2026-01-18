@@ -59,7 +59,8 @@ describe('Property 12: Timestamped diff storage', () => {
           const diffBasePath = path.join(tempDir, '.visdiff/diffs');
           const timestampedPath = path.join(diffBasePath, expectedTimestampDir);
 
-          const dirExists = await fs.access(timestampedPath)
+          const dirExists = await fs
+            .access(timestampedPath)
             .then(() => true)
             .catch(() => false);
 
@@ -67,7 +68,8 @@ describe('Property 12: Timestamped diff storage', () => {
 
           // Verify the diff file exists in the timestamped directory
           const diffFilePath = path.join(timestampedPath, `diff-${identifier}.png`);
-          const fileExists = await fs.access(diffFilePath)
+          const fileExists = await fs
+            .access(diffFilePath)
             .then(() => true)
             .catch(() => false);
 
@@ -75,9 +77,9 @@ describe('Property 12: Timestamped diff storage', () => {
 
           // Verify the timestamp format is correct (YYYY-MM-DD-HH-mm-ss)
           expect(expectedTimestampDir).toMatch(/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}$/);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -87,7 +89,7 @@ describe('Property 12: Timestamped diff storage', () => {
         fc.stringMatching(/^[a-z][a-z0-9-]{0,20}$/),
         fc.tuple(
           fc.date({ min: new Date('2024-01-01'), max: new Date('2025-06-30') }),
-          fc.date({ min: new Date('2025-07-01'), max: new Date('2025-12-31') })
+          fc.date({ min: new Date('2025-07-01'), max: new Date('2025-12-31') }),
         ),
         async (identifier, [timestamp1, timestamp2]) => {
           // Ensure timestamps are different
@@ -119,7 +121,7 @@ describe('Property 12: Timestamped diff storage', () => {
           // Check that both timestamped directories exist
           const diffBasePath = path.join(tempDir, '.visdiff/diffs');
           const entries = await fs.readdir(diffBasePath, { withFileTypes: true });
-          const dirs = entries.filter(e => e.isDirectory()).map(e => e.name);
+          const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
 
           // Should have at least 2 directories (could be same if timestamps round to same second)
           expect(dirs.length).toBeGreaterThanOrEqual(1);
@@ -128,9 +130,9 @@ describe('Property 12: Timestamped diff storage', () => {
           for (const dir of dirs) {
             expect(dir).toMatch(/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}$/);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -154,13 +156,13 @@ describe('Property 12: Timestamped diff storage', () => {
           // The timestamped directory should not be created for passed comparisons
           const diffBasePath = path.join(tempDir, '.visdiff/diffs');
           const entries = await fs.readdir(diffBasePath, { withFileTypes: true });
-          const dirs = entries.filter(e => e.isDirectory());
+          const dirs = entries.filter((e) => e.isDirectory());
 
           // Should have no directories since no diff was saved
           expect(dirs.length).toBe(0);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

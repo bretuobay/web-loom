@@ -12,10 +12,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     lib: {
-        entry: {
-          index: resolve(__dirname, 'src/index.ts'),
-          // Individual behavior entries for tree-shaking
-          'behaviors/dialog': resolve(__dirname, 'src/behaviors/dialog.ts'),
+      entry: {
+        index: resolve(__dirname, 'src/index.ts'),
+        // Individual behavior entries for tree-shaking
+        'behaviors/dialog': resolve(__dirname, 'src/behaviors/dialog.ts'),
         'behaviors/disclosure': resolve(__dirname, 'src/behaviors/disclosure.ts'),
         'behaviors/form': resolve(__dirname, 'src/behaviors/form.ts'),
         'behaviors/list-selection': resolve(__dirname, 'src/behaviors/list-selection.ts'),

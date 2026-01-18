@@ -26,8 +26,10 @@ export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement
   children?: ReactNode;
 }
 
-export interface CheckboxGroupProps
-  extends Omit<FieldsetHTMLAttributes<HTMLFieldSetElement>, 'onChange' | 'defaultValue'> {
+export interface CheckboxGroupProps extends Omit<
+  FieldsetHTMLAttributes<HTMLFieldSetElement>,
+  'onChange' | 'defaultValue'
+> {
   value?: CheckboxValueType[];
   defaultValue?: CheckboxValueType[];
   onChange?: (checked: CheckboxValueType[]) => void;
@@ -112,11 +114,7 @@ const CheckboxComponent = forwardRef<HTMLInputElement, CheckboxProps>((props, fo
     };
   }, [group, resolvedValue]);
 
-  const isChecked = group
-    ? group.isChecked(resolvedValue)
-    : isControlled
-      ? checked
-      : uncontrolledChecked;
+  const isChecked = group ? group.isChecked(resolvedValue) : isControlled ? checked : uncontrolledChecked;
   const isDisabled = disabled || group?.disabled;
 
   const handleChange = useCallback(

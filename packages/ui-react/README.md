@@ -70,6 +70,7 @@ Update `tsconfig.json` to map sibling packages to their source files:
 ```
 
 **Benefits**:
+
 - TypeScript resolves to source files for better intellisense
 - Jump-to-definition navigates to source, not built files
 - Type checking across package boundaries
@@ -97,6 +98,7 @@ export default defineConfig({
 ```
 
 **Benefits**:
+
 - Vite resolves imports during development and build
 - Hot module replacement works across packages
 - Faster builds by avoiding pre-built artifacts
@@ -123,6 +125,7 @@ export default defineConfig({
 ```
 
 **Benefits**:
+
 - Prevents bundling sibling packages into your package
 - Reduces bundle size
 - Avoids duplicate code in consuming applications
@@ -344,6 +347,7 @@ ls -la ../ui-patterns/src/index.ts
 ### Issue: Circular dependencies
 
 **Solution**:
+
 1. Check import statements - avoid deep imports that could create cycles
 2. Use the barrel exports (`index.ts`) instead of direct file imports
 3. Review dependency graph in `package.json`
@@ -378,6 +382,7 @@ npm list @web-loom/store-core
 ### 3. Follow the Dependency Graph
 
 Respect the dependency hierarchy:
+
 - Components depend on behaviors/patterns
 - Patterns depend on behaviors
 - Behaviors depend on store/event-bus

@@ -12,16 +12,16 @@ const defaultIncludes = [
   { association: 'project' },
   {
     association: 'assignee',
-    attributes: ['id', 'displayName', 'email', 'avatarUrl', 'role']
+    attributes: ['id', 'displayName', 'email', 'avatarUrl', 'role'],
   },
   {
     association: 'comments',
-    include: [{ association: 'author', attributes: ['id', 'displayName', 'email', 'avatarUrl'] }]
+    include: [{ association: 'author', attributes: ['id', 'displayName', 'email', 'avatarUrl'] }],
   },
   {
     association: 'attachments',
-    attributes: ['id', 'originalName', 'mimeType', 'size', 'storedName', 'downloadUrl', 'createdAt', 'updatedAt']
-  }
+    attributes: ['id', 'originalName', 'mimeType', 'size', 'storedName', 'downloadUrl', 'createdAt', 'updatedAt'],
+  },
 ];
 
 export const taskService = {
@@ -44,13 +44,13 @@ export const taskService = {
     return Task.findAll({
       where,
       include: defaultIncludes,
-      order: [['dueDate', 'ASC']]
+      order: [['dueDate', 'ASC']],
     });
   },
 
   getById: async (id: string) => {
     const task = await Task.findByPk(id, {
-      include: defaultIncludes
+      include: defaultIncludes,
     });
     if (!task) {
       throw new ApiError('Task not found', 404);
@@ -79,5 +79,5 @@ export const taskService = {
     }
     await task.destroy();
     return true;
-  }
+  },
 };

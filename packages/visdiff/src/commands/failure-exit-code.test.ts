@@ -2,7 +2,7 @@
  * Property Test: Failure exit code
  * Feature: visdiff-phase1, Property 15: Failure exit code
  * Validates: Requirements 3.8
- * 
+ *
  * For any comparison run where at least one comparison fails, the system should return a non-zero exit code
  */
 
@@ -41,7 +41,7 @@ describe('Property 15: Failure exit code', () => {
             height: fc.integer({ min: 480, max: 1080 }),
             name: fc.constantFrom('mobile', 'tablet', 'desktop'),
           }),
-          { minLength: 1, maxLength: 3 }
+          { minLength: 1, maxLength: 3 },
         ),
         fc.float({ min: Math.fround(0.15), max: Math.fround(0.5) }), // Large differences that fail
         fc.integer({ min: 1, max: 10 }), // Number of failures
@@ -78,8 +78,8 @@ describe('Property 15: Failure exit code', () => {
           vi.mocked(BrowserManager).mockImplementation(() => mockBrowserManager as any);
 
           // Mock capture engine - all captures succeed
-          const captureResults = urls.flatMap(url =>
-            viewports.map(viewport => ({
+          const captureResults = urls.flatMap((url) =>
+            viewports.map((viewport) => ({
               url,
               viewport,
               image: Buffer.from('mock-image'),
@@ -90,7 +90,7 @@ describe('Property 15: Failure exit code', () => {
                 imageSize: 1024,
                 dimensions: { width: viewport.width, height: viewport.height },
               },
-            }))
+            })),
           );
 
           const mockCaptureEngine = {
@@ -106,7 +106,7 @@ describe('Property 15: Failure exit code', () => {
           // Mock compare engine - some comparisons fail
           const totalComparisons = captureResults.length;
           const actualFailures = Math.min(numFailures, totalComparisons);
-          
+
           const comparisonResults = captureResults.map((_, index) => ({
             identifier: `test-${index}`,
             passed: index >= actualFailures, // First N fail, rest pass
@@ -136,9 +136,9 @@ describe('Property 15: Failure exit code', () => {
           // Property: When at least one comparison fails, exit code should be non-zero
           expect(exitCode).not.toBe(0);
           expect(exitCode).toBe(1);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

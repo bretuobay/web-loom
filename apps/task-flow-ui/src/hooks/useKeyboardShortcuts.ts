@@ -15,10 +15,7 @@ interface UseKeyboardShortcutsOptions {
   shortcuts: ShortcutConfig[];
 }
 
-export function useKeyboardShortcuts({
-  enabled = true,
-  shortcuts
-}: UseKeyboardShortcutsOptions) {
+export function useKeyboardShortcuts({ enabled = true, shortcuts }: UseKeyboardShortcutsOptions) {
   const shortcutsRef = useRef(shortcuts);
   shortcutsRef.current = shortcuts;
 
@@ -27,25 +24,16 @@ export function useKeyboardShortcuts({
       if (!enabled) return;
 
       const target = event.target as HTMLElement;
-      const isInputField =
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable;
+      const isInputField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
       // Allow Escape to work even in inputs
       if (isInputField && event.key !== 'Escape') return;
 
-      const isMac =
-        typeof navigator !== 'undefined' &&
-        /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+      const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
 
       for (const shortcut of shortcutsRef.current) {
         // Check modifier keys
-        const ctrlMatch = shortcut.ctrl
-          ? isMac
-            ? event.metaKey
-            : event.ctrlKey
-          : !event.ctrlKey && !event.metaKey;
+        const ctrlMatch = shortcut.ctrl ? (isMac ? event.metaKey : event.ctrlKey) : !event.ctrlKey && !event.metaKey;
 
         const metaMatch = shortcut.meta ? event.metaKey : true;
         const shiftMatch = shortcut.shift ? event.shiftKey : !event.shiftKey;
@@ -53,14 +41,9 @@ export function useKeyboardShortcuts({
 
         // Special handling for Cmd/Ctrl+K style shortcuts
         const modifierMatch =
-          shortcut.ctrl !== undefined
-            ? ctrlMatch && shiftMatch && altMatch
-            : metaMatch && shiftMatch && altMatch;
+          shortcut.ctrl !== undefined ? ctrlMatch && shiftMatch && altMatch : metaMatch && shiftMatch && altMatch;
 
-        if (
-          event.key.toLowerCase() === shortcut.key.toLowerCase() &&
-          modifierMatch
-        ) {
+        if (event.key.toLowerCase() === shortcut.key.toLowerCase() && modifierMatch) {
           if (shortcut.preventDefault !== false) {
             event.preventDefault();
           }
@@ -69,7 +52,7 @@ export function useKeyboardShortcuts({
         }
       }
     },
-    [enabled]
+    [enabled],
   );
 
   useEffect(() => {

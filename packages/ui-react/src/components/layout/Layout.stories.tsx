@@ -97,9 +97,7 @@ export const NestedLayout: StoryObj = {
       <Layout.Content>
         <Layout style={{ padding: '24px 0', background: '#fff' }}>
           <Layout.Header style={{ backgroundColor: '#f0f0f0' }}>Content Header</Layout.Header>
-          <Layout.Content style={{ padding: '0 24px', minHeight: '280px' }}>
-            Inner Content
-          </Layout.Content>
+          <Layout.Content style={{ padding: '0 24px', minHeight: '280px' }}>Inner Content</Layout.Content>
           <Layout.Footer style={{ background: '#f0f0f0' }}>Content Footer</Layout.Footer>
         </Layout>
       </Layout.Content>

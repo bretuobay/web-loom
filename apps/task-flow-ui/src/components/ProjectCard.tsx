@@ -36,16 +36,11 @@ export function ProjectCard({ project, onCycleStatus, onViewDetails, onEdit, onD
           <h3 className={styles.title}>{project.name}</h3>
           <p className={styles.description}>{project.description}</p>
         </div>
-        <span className={`${styles.status} ${statusBadge(project.status)}`}>
-          {formatProjectStatus(project.status)}
-        </span>
+        <span className={`${styles.status} ${statusBadge(project.status)}`}>{formatProjectStatus(project.status)}</span>
       </header>
       <div className={styles.progress}>
         <div className={styles.progressBarContainer}>
-          <div
-            className={styles.progressBar}
-            style={{ width: `${completion}%`, backgroundColor: project.color }}
-          />
+          <div className={styles.progressBar} style={{ width: `${completion}%`, backgroundColor: project.color }} />
         </div>
         <small className={styles.progressText}>
           {project.completedCount} / {project.tasksCount} tasks • {completion}% complete

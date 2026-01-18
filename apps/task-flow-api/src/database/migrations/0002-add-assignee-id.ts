@@ -18,14 +18,14 @@ const migration: Migration = {
         allowNull: true,
         references: {
           model: 'users',
-          key: 'id'
+          key: 'id',
         },
         onDelete: 'SET NULL',
-        onUpdate: 'CASCADE'
+        onUpdate: 'CASCADE',
       },
-      { transaction }
+      { transaction },
     );
-  }
+  },
 };
 
 export default migration;

@@ -16,11 +16,11 @@ export const authService = {
     const payload: AuthTokenPayload = {
       userId: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
     };
 
     const options: SignOptions = {
-      expiresIn: config.auth.expiresIn as StringValue
+      expiresIn: config.auth.expiresIn as StringValue,
     };
     return jwt.sign(payload, config.auth.jwtSecret as Secret, options);
   },
@@ -35,5 +35,5 @@ export const authService = {
 
   comparePassword(user: User, password: string): Promise<boolean> {
     return bcrypt.compare(password, user.passwordHash);
-  }
+  },
 };

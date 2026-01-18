@@ -33,7 +33,7 @@ This document outlines the systematic port assignments for all experimental apps
 | UI App       | API App       | UI Port | API Port |
 | ------------ | ------------- | ------- | -------- |
 | task-flow-ui | task-flow-api | 5178    | 8001     |
-| mvvm-*       | api           | varies  | 8000     |
+| mvvm-\*      | api           | varies  | 8000     |
 
 ## Running Multiple Apps
 

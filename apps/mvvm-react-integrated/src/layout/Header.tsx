@@ -48,10 +48,7 @@ export const Header = memo(function Header() {
         {isAuthenticated && (
           <div className="header-user">
             <span className="header-user-name">{user?.firstName || user?.email || 'Account'}</span>
-            <NavLink
-              to="/settings"
-              className={({ isActive }) => `button btn-secondary ${isActive ? 'active' : ''}`}
-            >
+            <NavLink to="/settings" className={({ isActive }) => `button btn-secondary ${isActive ? 'active' : ''}`}>
               Settings
             </NavLink>
             <button

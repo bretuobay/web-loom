@@ -75,9 +75,9 @@ describe('Property 53: Comparison failure percentage', () => {
           // (allowing for some tolerance due to pixelmatch's algorithm)
           expect(result.difference).toBeGreaterThan(0);
           expect(result.difference).toBeLessThanOrEqual(diffRatio + 0.1);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -124,9 +124,9 @@ describe('Property 53: Comparison failure percentage', () => {
           expect(result.difference).toBe(0);
           expect(result.pixelsDifferent).toBe(0);
           expect(result.passed).toBe(true);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -173,9 +173,9 @@ describe('Property 53: Comparison failure percentage', () => {
           expect(result.difference).toBeGreaterThan(0.9);
           expect(result.pixelsDifferent).toBe(width * height);
           expect(result.passed).toBe(false);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -240,9 +240,9 @@ describe('Property 53: Comparison failure percentage', () => {
           // Difference percentage should match pixel count
           const calculatedDiff = result.pixelsDifferent / totalPixels;
           expect(Math.abs(result.difference - calculatedDiff)).toBeLessThan(0.001);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

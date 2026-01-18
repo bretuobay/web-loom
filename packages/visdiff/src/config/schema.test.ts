@@ -22,18 +22,15 @@ describe('Configuration Schema Validation', () => {
         fc.record({
           width: fc.integer({ min: 1, max: 7680 }),
           height: fc.integer({ min: 1, max: 4320 }),
-          name: fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
-          deviceScaleFactor: fc.option(
-            fc.double({ min: 0.1, max: 5, noNaN: true }),
-            { nil: undefined }
-          ),
+          name: fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
+          deviceScaleFactor: fc.option(fc.double({ min: 0.1, max: 5, noNaN: true }), { nil: undefined }),
         }),
         (viewport) => {
           const result = ViewportSchema.safeParse(viewport);
           expect(result.success).toBe(true);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -70,9 +67,9 @@ describe('Configuration Schema Validation', () => {
         (options) => {
           const result = CaptureOptionsSchema.safeParse(options);
           expect(result.success).toBe(true);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -101,22 +98,14 @@ describe('Configuration Schema Validation', () => {
           threshold: fc.double({ min: 0, max: 1, noNaN: true }),
           ignoreAntialiasing: fc.boolean(),
           ignoreColors: fc.boolean(),
-          highlightColor: fc.constantFrom(
-            '#FF0000',
-            '#00FF00',
-            '#0000FF',
-            '#FFFFFF',
-            '#000000',
-            '#ABCDEF',
-            '#123456'
-          ),
+          highlightColor: fc.constantFrom('#FF0000', '#00FF00', '#0000FF', '#FFFFFF', '#000000', '#ABCDEF', '#123456'),
         }),
         (options) => {
           const result = DiffOptionsSchema.safeParse(options);
           expect(result.success).toBe(true);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -153,17 +142,17 @@ describe('Configuration Schema Validation', () => {
     fc.assert(
       fc.property(
         fc.record({
-          baselineDir: fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
-          diffDir: fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
+          baselineDir: fc.string({ minLength: 1, maxLength: 100 }).filter((s) => s.trim().length > 0),
+          diffDir: fc.string({ minLength: 1, maxLength: 100 }).filter((s) => s.trim().length > 0),
           format: fc.constantFrom('png', 'jpeg'),
           compression: fc.option(fc.integer({ min: 0, max: 100 }), { nil: undefined }),
         }),
         (storage) => {
           const result = StorageConfigSchema.safeParse(storage);
           expect(result.success).toBe(true);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -202,18 +191,18 @@ describe('Configuration Schema Validation', () => {
             fc.record({
               width: fc.integer({ min: 1, max: 7680 }),
               height: fc.integer({ min: 1, max: 4320 }),
-              name: fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
+              name: fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
             }),
-            { minLength: 1, maxLength: 5 }
+            { minLength: 1, maxLength: 5 },
           ),
           paths: fc.array(
             fc.constantFrom(
               'http://localhost:3000',
               'https://example.com',
               'http://localhost:8080/page',
-              'https://test.com/path'
+              'https://test.com/path',
             ),
-            { minLength: 1, maxLength: 5 }
+            { minLength: 1, maxLength: 5 },
           ),
           captureOptions: fc.record({
             fullPage: fc.boolean(),
@@ -227,17 +216,17 @@ describe('Configuration Schema Validation', () => {
             highlightColor: fc.constantFrom('#FF0000', '#00FF00', '#0000FF'),
           }),
           storage: fc.record({
-            baselineDir: fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
-            diffDir: fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
+            baselineDir: fc.string({ minLength: 1, maxLength: 100 }).filter((s) => s.trim().length > 0),
+            diffDir: fc.string({ minLength: 1, maxLength: 100 }).filter((s) => s.trim().length > 0),
             format: fc.constantFrom('png', 'jpeg'),
           }),
         }),
         (config) => {
           const result = VisDiffConfigSchema.safeParse(config);
           expect(result.success).toBe(true);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 

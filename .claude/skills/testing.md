@@ -34,9 +34,9 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html']
-    }
-  }
+      reporter: ['text', 'json', 'html'],
+    },
+  },
 });
 ```
 
@@ -83,7 +83,7 @@ import { firstValueFrom } from 'rxjs';
 
 it('emits loading state', async () => {
   const loadingStates: boolean[] = [];
-  vm.isLoading$.subscribe(state => loadingStates.push(state));
+  vm.isLoading$.subscribe((state) => loadingStates.push(state));
 
   await vm.fetchCommand.execute();
 
@@ -150,8 +150,8 @@ const mockViewModel = {
   isLoading$: new BehaviorSubject(false),
   fetchCommand: {
     execute: vi.fn(),
-    isExecuting$: new BehaviorSubject(false)
-  }
+    isExecuting$: new BehaviorSubject(false),
+  },
 };
 ```
 
@@ -171,6 +171,7 @@ npm run test:coverage
 ```
 
 Coverage excludes:
+
 - `node_modules/`
 - `dist/`
 - Config files (`*.config.*`)

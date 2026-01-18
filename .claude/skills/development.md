@@ -12,14 +12,14 @@ npm run dev              # Start all apps in dev mode
 
 ## Core Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start all apps in dev mode (concurrency=20) |
-| `npm run build` | Build all packages and apps |
-| `npm run lint` | Lint all packages |
-| `npm run format` | Format code with Prettier |
-| `npm run check-types` | Type-check all packages |
-| `npm run test` | Run all tests |
+| Command               | Description                                 |
+| --------------------- | ------------------------------------------- |
+| `npm run dev`         | Start all apps in dev mode (concurrency=20) |
+| `npm run build`       | Build all packages and apps                 |
+| `npm run lint`        | Lint all packages                           |
+| `npm run format`      | Format code with Prettier                   |
+| `npm run check-types` | Type-check all packages                     |
+| `npm run test`        | Run all tests                               |
 
 ## Turbo Commands
 
@@ -138,17 +138,20 @@ npm run format           # Code formatted
 ## Troubleshooting
 
 ### Alias Resolution Issues
+
 - Check Vite config `resolve.alias` matches package paths
 - Ensure Vitest config mirrors Vite aliases
 - Verify `optimizeDeps.include` for pre-bundling
 
 ### Build Cache Issues
+
 ```bash
 turbo run build --force  # Bypass Turbo cache
 rm -rf node_modules/.vite  # Clear Vite cache
 ```
 
 ### Port Conflicts
+
 - mvvm-react: 5173
 - task-flow-ui: 5178
 - api: 3000

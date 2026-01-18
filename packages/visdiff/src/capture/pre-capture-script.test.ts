@@ -38,7 +38,7 @@ describe('Property 49: Pre-capture script execution', () => {
       // Set a global variable
       'window.testExecuted = true;',
       // Multiple operations
-      'document.body.setAttribute("data-script", "ran"); window.scriptRan = true;'
+      'document.body.setAttribute("data-script", "ran"); window.scriptRan = true;',
     );
 
     const viewport: Viewport = {
@@ -65,18 +65,10 @@ describe('Property 49: Pre-capture script execution', () => {
         };
 
         // Capture with script
-        const resultWithScript = await captureEngine.capture(
-          'about:blank',
-          viewport,
-          optionsWithScript
-        );
+        const resultWithScript = await captureEngine.capture('about:blank', viewport, optionsWithScript);
 
         // Capture without script
-        const resultWithoutScript = await captureEngine.capture(
-          'about:blank',
-          viewport,
-          optionsWithoutScript
-        );
+        const resultWithoutScript = await captureEngine.capture('about:blank', viewport, optionsWithoutScript);
 
         // Both should succeed
         expect(resultWithScript.success).toBe(true);
@@ -92,7 +84,7 @@ describe('Property 49: Pre-capture script execution', () => {
       {
         numRuns: 10,
         timeout: 60000,
-      }
+      },
     );
   }, 90000);
 
@@ -155,7 +147,7 @@ describe('Property 49: Pre-capture script execution', () => {
       {
         numRuns: 10,
         timeout: 60000,
-      }
+      },
     );
   }, 90000);
 
@@ -216,11 +208,7 @@ describe('Property 49: Pre-capture script execution', () => {
     };
 
     const resultWithScript = await captureEngine.capture('about:blank', viewport, optionsWithScript);
-    const resultWithoutScript = await captureEngine.capture(
-      'about:blank',
-      viewport,
-      optionsWithoutScript
-    );
+    const resultWithoutScript = await captureEngine.capture('about:blank', viewport, optionsWithoutScript);
 
     // Both should succeed
     expect(resultWithScript.success).toBe(true);

@@ -142,7 +142,22 @@ export const CustomRenderItem: Story = {
       renderItem={(member) => (
         <List.Item>
           <List.Item.Meta
-            avatar={<div style={{ width: 40, height: 40, background: '#2563eb', color: '#fff', borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{member.avatar}</div>}
+            avatar={
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  background: '#2563eb',
+                  color: '#fff',
+                  borderRadius: 999,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {member.avatar}
+              </div>
+            }
             title={member.name}
             description={member.role}
           />

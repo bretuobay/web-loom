@@ -31,15 +31,10 @@ export type CaptureOptions = z.infer<typeof CaptureOptionsSchema>;
  * Diff options schema
  */
 export const DiffOptionsSchema = z.object({
-  threshold: z
-    .number()
-    .min(0, 'Threshold must be >= 0')
-    .max(1, 'Threshold must be <= 1'),
+  threshold: z.number().min(0, 'Threshold must be >= 0').max(1, 'Threshold must be <= 1'),
   ignoreAntialiasing: z.boolean(),
   ignoreColors: z.boolean(),
-  highlightColor: z
-    .string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, 'Highlight color must be a valid hex color (e.g., #FF0000)'),
+  highlightColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Highlight color must be a valid hex color (e.g., #FF0000)'),
 });
 
 export type DiffOptions = z.infer<typeof DiffOptionsSchema>;
@@ -51,12 +46,7 @@ export const StorageConfigSchema = z.object({
   baselineDir: z.string().min(1, 'Baseline directory is required'),
   diffDir: z.string().min(1, 'Diff directory is required'),
   format: z.enum(['png', 'jpeg']),
-  compression: z
-    .number()
-    .int()
-    .min(0, 'Compression must be >= 0')
-    .max(100, 'Compression must be <= 100')
-    .optional(),
+  compression: z.number().int().min(0, 'Compression must be >= 0').max(100, 'Compression must be <= 100').optional(),
 });
 
 export type StorageConfig = z.infer<typeof StorageConfigSchema>;
@@ -73,7 +63,7 @@ export const VisDiffConfigSchema = z.object({
         .url('Each path must be a valid URL')
         .refine((url) => url.startsWith('http://') || url.startsWith('https://'), {
           message: 'URL must use http:// or https:// protocol',
-        })
+        }),
     )
     .min(1, 'At least one path is required'),
   captureOptions: CaptureOptionsSchema,

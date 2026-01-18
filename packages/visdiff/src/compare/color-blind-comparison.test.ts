@@ -52,11 +52,7 @@ describe('Property 39: Color-blind comparison', () => {
           };
 
           const engine = new CompareEngine();
-          const resultWithIgnore = await engine.compare(
-            baselineImage,
-            currentImage,
-            optionsWithIgnore
-          );
+          const resultWithIgnore = await engine.compare(baselineImage, currentImage, optionsWithIgnore);
 
           // Test with ignoreColors disabled
           const optionsWithoutIgnore: DiffOptions = {
@@ -66,20 +62,14 @@ describe('Property 39: Color-blind comparison', () => {
             highlightColor: '#FF0000',
           };
 
-          const resultWithoutIgnore = await engine.compare(
-            baselineImage,
-            currentImage,
-            optionsWithoutIgnore
-          );
+          const resultWithoutIgnore = await engine.compare(baselineImage, currentImage, optionsWithoutIgnore);
 
           // With ignoreColors enabled, the difference should be smaller
           // because we're only comparing luminance
-          expect(resultWithIgnore.difference).toBeLessThanOrEqual(
-            resultWithoutIgnore.difference
-          );
-        }
+          expect(resultWithIgnore.difference).toBeLessThanOrEqual(resultWithoutIgnore.difference);
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -126,9 +116,9 @@ describe('Property 39: Color-blind comparison', () => {
           // Even with ignoreColors enabled, significant luminance differences should be detected
           expect(result.pixelsDifferent).toBeGreaterThan(0);
           expect(result.passed).toBe(false);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -176,9 +166,9 @@ describe('Property 39: Color-blind comparison', () => {
           // With ignoreColors disabled, color differences should be detected
           expect(result.pixelsDifferent).toBeGreaterThan(0);
           expect(result.passed).toBe(false);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

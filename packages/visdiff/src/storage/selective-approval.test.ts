@@ -34,7 +34,7 @@ describe('Property 19: Selective approval', () => {
             original: fc.uint8Array({ minLength: 10, maxLength: 50 }),
             updated: fc.uint8Array({ minLength: 10, maxLength: 50 }),
           }),
-          { minLength: 3, maxLength: 10 }
+          { minLength: 3, maxLength: 10 },
         ),
         async (items) => {
           // Make identifiers unique and ensure data is different
@@ -57,7 +57,7 @@ describe('Property 19: Selective approval', () => {
 
           // Select a subset to approve (at least 1, but not all)
           const numToApprove = Math.max(1, Math.floor(uniqueItems.length / 2));
-          const toApprove = uniqueItems.slice(0, numToApprove).map(item => item.identifier);
+          const toApprove = uniqueItems.slice(0, numToApprove).map((item) => item.identifier);
           const notToApprove = uniqueItems.slice(numToApprove);
 
           // Approve only the selected identifiers
@@ -84,9 +84,9 @@ describe('Property 19: Selective approval', () => {
             expect(loaded?.equals(item.original)).toBe(true);
             expect(loaded?.equals(item.updated)).toBe(false);
           }
-        }
+        },
       ),
-      { numRuns: 50 }
+      { numRuns: 50 },
     );
   });
 
@@ -99,7 +99,7 @@ describe('Property 19: Selective approval', () => {
             original: fc.uint8Array({ minLength: 10, maxLength: 50 }),
             updated: fc.uint8Array({ minLength: 10, maxLength: 50 }),
           }),
-          { minLength: 2, maxLength: 5 }
+          { minLength: 2, maxLength: 5 },
         ),
         async (items) => {
           const uniqueItems = items.map((item, idx) => ({
@@ -136,9 +136,9 @@ describe('Property 19: Selective approval', () => {
             const loaded = await storageManager.loadBaseline(uniqueItems[i].identifier);
             expect(loaded?.equals(uniqueItems[i].original)).toBe(true);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -151,7 +151,7 @@ describe('Property 19: Selective approval', () => {
             original: fc.uint8Array({ minLength: 10, maxLength: 50 }),
             updated: fc.uint8Array({ minLength: 10, maxLength: 50 }),
           }),
-          { minLength: 2, maxLength: 5 }
+          { minLength: 2, maxLength: 5 },
         ),
         fc.stringMatching(/^nonexistent-[a-z0-9]{5}$/),
         async (items, nonExistentId) => {
@@ -180,9 +180,9 @@ describe('Property 19: Selective approval', () => {
           expect(approved.length).toBe(1);
           expect(approved[0]).toBe(uniqueItems[0].identifier);
           expect(approved).not.toContain(nonExistentId);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -195,7 +195,7 @@ describe('Property 19: Selective approval', () => {
             original: fc.uint8Array({ minLength: 10, maxLength: 50 }),
             updated: fc.uint8Array({ minLength: 10, maxLength: 50 }),
           }),
-          { minLength: 2, maxLength: 5 }
+          { minLength: 2, maxLength: 5 },
         ),
         async (items) => {
           const uniqueItems = items.map((item, idx) => ({
@@ -226,9 +226,9 @@ describe('Property 19: Selective approval', () => {
             const loaded = await storageManager.loadBaseline(item.identifier);
             expect(loaded?.equals(item.original)).toBe(true);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

@@ -27,7 +27,7 @@ describe('Property 32: Status failure details', () => {
   // Helper to create a unique test environment with config
   async function createTestEnvironment(): Promise<{ dir: string; manager: StorageManager }> {
     const uniqueDir = await fs.mkdtemp(path.join(baseTempDir, 'iter-'));
-    
+
     // Create config file
     const configPath = path.join(uniqueDir, 'visdiff.config.js');
     await fs.writeFile(
@@ -38,12 +38,12 @@ describe('Property 32: Status failure details', () => {
         captureOptions: { fullPage: false, omitBackground: false, timeout: 30000 },
         diffOptions: { threshold: 0.01, ignoreAntialiasing: true, ignoreColors: false, highlightColor: '#ff00ff' },
         storage: { baselineDir: '.visdiff/baselines', diffDir: '.visdiff/diffs', format: 'png' }
-      };`
+      };`,
     );
 
     const manager = new StorageManager(uniqueDir);
     await manager.initialize();
-    
+
     return { dir: uniqueDir, manager };
   }
 
@@ -82,21 +82,21 @@ describe('Property 32: Status failure details', () => {
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (failedResults, passingResults, timestamp) => {
           const { dir, manager } = await createTestEnvironment();
-          
+
           // Make identifiers unique by adding index suffix
           const uniqueFailedResults = failedResults.map((r, i) => ({
             ...r,
             identifier: `${r.identifier}-f${i}`,
           }));
-          
+
           const uniquePassingResults = passingResults.map((r, i) => ({
             ...r,
             identifier: `${r.identifier}-p${i}`,
           }));
-          
+
           // Combine failed and passing results
           const allResults = [...uniqueFailedResults, ...uniquePassingResults];
-          
+
           // Save report
           await manager.saveReport(allResults, timestamp);
 
@@ -142,9 +142,9 @@ describe('Property 32: Status failure details', () => {
           } finally {
             process.chdir(originalCwd);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -155,13 +155,13 @@ describe('Property 32: Status failure details', () => {
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (failedResults, timestamp) => {
           const { dir, manager } = await createTestEnvironment();
-          
+
           // Make identifiers unique
           const uniqueFailedResults = failedResults.map((r, i) => ({
             ...r,
             identifier: `${r.identifier}-${i}`,
           }));
-          
+
           await manager.saveReport(uniqueFailedResults, timestamp);
 
           const originalCwd = process.cwd();
@@ -190,9 +190,9 @@ describe('Property 32: Status failure details', () => {
           } finally {
             process.chdir(originalCwd);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -203,13 +203,13 @@ describe('Property 32: Status failure details', () => {
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (failedResults, timestamp) => {
           const { dir, manager } = await createTestEnvironment();
-          
+
           // Make identifiers unique
           const uniqueFailedResults = failedResults.map((r, i) => ({
             ...r,
             identifier: `${r.identifier}-${i}`,
           }));
-          
+
           await manager.saveReport(uniqueFailedResults, timestamp);
 
           const originalCwd = process.cwd();
@@ -238,9 +238,9 @@ describe('Property 32: Status failure details', () => {
           } finally {
             process.chdir(originalCwd);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -251,7 +251,7 @@ describe('Property 32: Status failure details', () => {
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (failedResults, timestamp) => {
           const { dir, manager } = await createTestEnvironment();
-          
+
           await manager.saveReport(failedResults, timestamp);
 
           const originalCwd = process.cwd();
@@ -262,7 +262,7 @@ describe('Property 32: Status failure details', () => {
             const originalLog = console.log;
             const logs: string[] = [];
             console.log = (...args: any[]) => {
-              logs.push(args.map(arg => String(arg)).join(' '));
+              logs.push(args.map((arg) => String(arg)).join(' '));
             };
 
             await statusCommand({ json: false });
@@ -271,27 +271,27 @@ describe('Property 32: Status failure details', () => {
             console.log = originalLog;
 
             // Verify that output contains "Failed Comparisons:" section
-            const hasFailedSection = logs.some(log => log.includes('Failed Comparisons:'));
+            const hasFailedSection = logs.some((log) => log.includes('Failed Comparisons:'));
             expect(hasFailedSection).toBe(true);
 
             // Verify each failed identifier appears in the output
             for (const failedResult of failedResults) {
-              const identifierFound = logs.some(log => log.includes(failedResult.identifier));
+              const identifierFound = logs.some((log) => log.includes(failedResult.identifier));
               expect(identifierFound).toBe(true);
             }
 
             // Verify difference percentages are shown
             for (const failedResult of failedResults) {
               const percentageStr = (failedResult.difference * 100).toFixed(2);
-              const percentageFound = logs.some(log => log.includes(percentageStr));
+              const percentageFound = logs.some((log) => log.includes(percentageStr));
               expect(percentageFound).toBe(true);
             }
           } finally {
             process.chdir(originalCwd);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -302,7 +302,7 @@ describe('Property 32: Status failure details', () => {
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (passingResults, timestamp) => {
           const { dir, manager } = await createTestEnvironment();
-          
+
           await manager.saveReport(passingResults, timestamp);
 
           const originalCwd = process.cwd();
@@ -327,15 +327,15 @@ describe('Property 32: Status failure details', () => {
           } finally {
             process.chdir(originalCwd);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   it('should handle edge case of single failed comparison', async () => {
     const { dir, manager } = await createTestEnvironment();
-    
+
     const results: ComparisonResult[] = [
       {
         identifier: 'home-desktop',
@@ -374,14 +374,14 @@ describe('Property 32: Status failure details', () => {
 
   it('should handle edge case of many failed comparisons', async () => {
     const { dir, manager } = await createTestEnvironment();
-    
+
     // Create 50 failed comparisons
     const results: ComparisonResult[] = Array.from({ length: 50 }, (_, i) => ({
       identifier: `page-${i}-desktop`,
       passed: false,
-      difference: 0.02 + (i * 0.001),
+      difference: 0.02 + i * 0.001,
       dimensions: { width: 1920, height: 1080 },
-      pixelsDifferent: 1000 + (i * 100),
+      pixelsDifferent: 1000 + i * 100,
     }));
 
     await manager.saveReport(results, new Date());
@@ -403,13 +403,13 @@ describe('Property 32: Status failure details', () => {
 
       // Verify all 50 failed comparisons are listed
       expect(output.failed.length).toBe(50);
-      
+
       // Verify each has correct details
       for (let i = 0; i < 50; i++) {
         const found = output.failed.find((f: any) => f.identifier === `page-${i}-desktop`);
         expect(found).toBeDefined();
-        expect(found.difference).toBeCloseTo(0.02 + (i * 0.001), 5);
-        expect(found.pixelsDifferent).toBe(1000 + (i * 100));
+        expect(found.difference).toBeCloseTo(0.02 + i * 0.001, 5);
+        expect(found.pixelsDifferent).toBe(1000 + i * 100);
       }
     } finally {
       process.chdir(originalCwd);
@@ -418,7 +418,7 @@ describe('Property 32: Status failure details', () => {
 
   it('should handle mixed results with some failed', async () => {
     const { dir, manager } = await createTestEnvironment();
-    
+
     const results: ComparisonResult[] = [
       {
         identifier: 'home-desktop',
@@ -469,7 +469,7 @@ describe('Property 32: Status failure details', () => {
 
       // Verify only the 2 failed comparisons are listed
       expect(output.failed.length).toBe(2);
-      
+
       const aboutFound = output.failed.find((f: any) => f.identifier === 'about-desktop');
       expect(aboutFound).toBeDefined();
       expect(aboutFound.difference).toBe(0.05);
@@ -493,7 +493,7 @@ describe('Property 32: Status failure details', () => {
 
   it('should exclude error results from failed list', async () => {
     const { dir, manager } = await createTestEnvironment();
-    
+
     const results: ComparisonResult[] = [
       {
         identifier: 'home-desktop',
@@ -532,7 +532,7 @@ describe('Property 32: Status failure details', () => {
       // Verify only the actual failed comparison is listed (not the error)
       expect(output.failed.length).toBe(1);
       expect(output.failed[0].identifier).toBe('home-desktop');
-      
+
       // Verify error result is not in failed list
       const errorFound = output.failed.find((f: any) => f.identifier === 'about-desktop');
       expect(errorFound).toBeUndefined();
@@ -556,12 +556,12 @@ describe('Property 32: Status failure details', () => {
             pixelsDifferent: fc.integer({ min: 1000, max: 1000000 }),
             error: fc.constant(undefined),
           }),
-          { minLength: 1, maxLength: 10 }
+          { minLength: 1, maxLength: 10 },
         ),
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (failedResults, timestamp) => {
           const { dir, manager } = await createTestEnvironment();
-          
+
           await manager.saveReport(failedResults, timestamp);
 
           const originalCwd = process.cwd();
@@ -589,15 +589,15 @@ describe('Property 32: Status failure details', () => {
           } finally {
             process.chdir(originalCwd);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   it('should show verbose details when verbose flag is set', async () => {
     const { dir, manager } = await createTestEnvironment();
-    
+
     const results: ComparisonResult[] = [
       {
         identifier: 'home-desktop',
@@ -617,18 +617,18 @@ describe('Property 32: Status failure details', () => {
       const originalLog = console.log;
       const logs: string[] = [];
       console.log = (...args: any[]) => {
-        logs.push(args.map(arg => String(arg)).join(' '));
+        logs.push(args.map((arg) => String(arg)).join(' '));
       };
 
       await statusCommand({ json: false, verbose: true });
       console.log = originalLog;
 
       // Verify verbose output includes dimensions
-      const hasDimensions = logs.some(log => log.includes('Dimensions:') && log.includes('1920x1080'));
+      const hasDimensions = logs.some((log) => log.includes('Dimensions:') && log.includes('1920x1080'));
       expect(hasDimensions).toBe(true);
 
       // Verify verbose output includes pixel count
-      const hasPixelCount = logs.some(log => log.includes('Pixels different:') && log.includes('5,000'));
+      const hasPixelCount = logs.some((log) => log.includes('Pixels different:') && log.includes('5,000'));
       expect(hasPixelCount).toBe(true);
     } finally {
       process.chdir(originalCwd);

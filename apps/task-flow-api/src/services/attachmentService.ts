@@ -46,7 +46,7 @@ export const attachmentService = {
         originalName: payload.originalName,
         storedName,
         mimeType: payload.mimeType,
-        size: payload.size
+        size: payload.size,
       });
     } catch (error) {
       await fs.rm(destination).catch(() => {});
@@ -54,5 +54,5 @@ export const attachmentService = {
     }
 
     return attachment;
-  }
+  },
 };

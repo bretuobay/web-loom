@@ -25,7 +25,7 @@ export class UserEntity {
     email: string,
     avatarUrl: string | null,
     role: string,
-    preferences: ProfilePreferences
+    preferences: ProfilePreferences,
   ) {
     this.id = id;
     this.displayName = displayName;
@@ -42,7 +42,7 @@ export class UserEntity {
       payload.email,
       payload.avatarUrl,
       payload.role,
-      payload.preferences ?? {}
+      payload.preferences ?? {},
     );
   }
 }

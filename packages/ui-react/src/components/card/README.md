@@ -29,12 +29,7 @@ npm install @web-loom/ui-react
 import { Card } from '@web-loom/ui-react';
 
 function App() {
-  return (
-    <Card
-      title="Card Title"
-      description="This is a simple card with a title and description."
-    />
-  );
+  return <Card title="Card Title" description="This is a simple card with a title and description." />;
 }
 ```
 
@@ -42,23 +37,23 @@ function App() {
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `title` | `ReactNode` | - | Card title (appears in header) |
-| `description` | `ReactNode` | - | Card description/body content |
-| `children` | `ReactNode` | - | Alternative to description |
-| `badge` | `ReactNode` | - | Badge displayed at the top of the card |
-| `footer` | `ReactNode` | - | Footer content |
-| `extra` | `ReactNode` | - | Extra content to display in the header (top-right) |
-| `bordered` | `boolean` | `true` | Whether to show border |
-| `hoverable` | `boolean` | `true` | Whether card has hover lift effect |
-| `loading` | `boolean` | `false` | Show loading skeleton |
-| `size` | `'default' \| 'small'` | `'default'` | Card size |
-| `cover` | `ReactNode` | - | Cover image or media content |
-| `actions` | `ReactNode[]` | - | Array of action elements displayed at the bottom |
-| `href` | `string` | - | Makes card a clickable link |
-| `rel` | `string` | `'noreferrer noopener'` | Link rel attribute (when href is provided) |
-| `target` | `HTMLAttributeAnchorTarget` | `'_blank'` | Link target attribute (when href is provided) |
+| Prop          | Type                        | Default                 | Description                                        |
+| ------------- | --------------------------- | ----------------------- | -------------------------------------------------- |
+| `title`       | `ReactNode`                 | -                       | Card title (appears in header)                     |
+| `description` | `ReactNode`                 | -                       | Card description/body content                      |
+| `children`    | `ReactNode`                 | -                       | Alternative to description                         |
+| `badge`       | `ReactNode`                 | -                       | Badge displayed at the top of the card             |
+| `footer`      | `ReactNode`                 | -                       | Footer content                                     |
+| `extra`       | `ReactNode`                 | -                       | Extra content to display in the header (top-right) |
+| `bordered`    | `boolean`                   | `true`                  | Whether to show border                             |
+| `hoverable`   | `boolean`                   | `true`                  | Whether card has hover lift effect                 |
+| `loading`     | `boolean`                   | `false`                 | Show loading skeleton                              |
+| `size`        | `'default' \| 'small'`      | `'default'`             | Card size                                          |
+| `cover`       | `ReactNode`                 | -                       | Cover image or media content                       |
+| `actions`     | `ReactNode[]`               | -                       | Array of action elements displayed at the bottom   |
+| `href`        | `string`                    | -                       | Makes card a clickable link                        |
+| `rel`         | `string`                    | `'noreferrer noopener'` | Link rel attribute (when href is provided)         |
+| `target`      | `HTMLAttributeAnchorTarget` | `'_blank'`              | Link target attribute (when href is provided)      |
 
 All standard HTML attributes for `<article>` or `<a>` elements are also supported.
 
@@ -67,10 +62,7 @@ All standard HTML attributes for `<article>` or `<a>` elements are also supporte
 ### Basic Card
 
 ```tsx
-<Card
-  title="Basic Card"
-  description="A simple card with title and description."
-/>
+<Card title="Basic Card" description="A simple card with title and description." />
 ```
 
 ### Card with Badge and Footer
@@ -101,31 +93,19 @@ All standard HTML attributes for `<article>` or `<a>` elements are also supporte
 ### Small Card
 
 ```tsx
-<Card
-  title="Small Card"
-  description="Compact size with reduced padding."
-  size="small"
-/>
+<Card title="Small Card" description="Compact size with reduced padding." size="small" />
 ```
 
 ### Borderless Card
 
 ```tsx
-<Card
-  title="Borderless"
-  description="Card without border, only shadow."
-  bordered={false}
-/>
+<Card title="Borderless" description="Card without border, only shadow." bordered={false} />
 ```
 
 ### Non-Hoverable Card
 
 ```tsx
-<Card
-  title="Static Card"
-  description="No hover effects on this card."
-  hoverable={false}
-/>
+<Card title="Static Card" description="No hover effects on this card." hoverable={false} />
 ```
 
 ### Card with Cover Image
@@ -135,11 +115,7 @@ All standard HTML attributes for `<article>` or `<a>` elements are also supporte
   title="Beautiful Landscape"
   description="A stunning view captured at sunset."
   cover={
-    <img
-      src="/path/to/image.jpg"
-      alt="Landscape"
-      style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-    />
+    <img src="/path/to/image.jpg" alt="Landscape" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
   }
 />
 ```
@@ -150,11 +126,7 @@ All standard HTML attributes for `<article>` or `<a>` elements are also supporte
 <Card
   title="User Profile"
   description="Manage your account"
-  actions={[
-    <button key="edit">Edit</button>,
-    <button key="share">Share</button>,
-    <button key="delete">Delete</button>,
-  ]}
+  actions={[<button key="edit">Edit</button>, <button key="share">Share</button>, <button key="delete">Delete</button>]}
 />
 ```
 
@@ -172,11 +144,7 @@ All standard HTML attributes for `<article>` or `<a>` elements are also supporte
 ### Loading Card
 
 ```tsx
-<Card
-  title="Loading..."
-  description="Content is being loaded"
-  loading={true}
-/>
+<Card title="Loading..." description="Content is being loaded" loading={true} />
 ```
 
 ### Complex Card (All Features)
@@ -188,15 +156,17 @@ All standard HTML attributes for `<article>` or `<a>` elements are also supporte
   badge="Premium"
   extra={<span style={{ color: 'green' }}>● Active</span>}
   cover={
-    <div style={{
-      height: '150px',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: 'white',
-      fontSize: '24px',
-    }}>
+    <div
+      style={{
+        height: '150px',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontSize: '24px',
+      }}
+    >
       📊 Analytics
     </div>
   }
@@ -206,10 +176,7 @@ All standard HTML attributes for `<article>` or `<a>` elements are also supporte
       <span>12 members</span>
     </div>
   }
-  actions={[
-    <button key="view">View</button>,
-    <button key="report">Report</button>,
-  ]}
+  actions={[<button key="view">View</button>, <button key="report">Report</button>]}
 />
 ```
 
@@ -254,11 +221,7 @@ The Card component uses CSS custom properties (CSS variables) from the Web Loom 
 ### Custom Styling
 
 ```tsx
-<Card
-  title="Custom Styled Card"
-  className="my-custom-card"
-  style={{ maxWidth: '400px' }}
-/>
+<Card title="Custom Styled Card" className="my-custom-card" style={{ maxWidth: '400px' }} />
 ```
 
 ```css
@@ -302,7 +265,7 @@ const cardProps: CardProps = {
   bordered: true,
 };
 
-<Card {...cardProps} />
+<Card {...cardProps} />;
 ```
 
 ## Browser Support

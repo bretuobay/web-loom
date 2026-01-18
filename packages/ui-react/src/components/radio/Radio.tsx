@@ -92,7 +92,7 @@ const RadioComponent = forwardRef<HTMLInputElement, RadioProps>((props, forwarde
         forwardedRef.current = element;
       }
     },
-    [forwardedRef]
+    [forwardedRef],
   );
 
   useEffect(() => {
@@ -156,7 +156,7 @@ const RadioComponent = forwardRef<HTMLInputElement, RadioProps>((props, forwarde
 
       onChange?.(event);
     },
-    [group, isDisabled, isControlled, onChange, resolvedValue]
+    [group, isDisabled, isControlled, onChange, resolvedValue],
   );
 
   return (
@@ -224,7 +224,7 @@ const RadioGroup = forwardRef<HTMLFieldSetElement, RadioGroupProps>((props, forw
       }
       onChange?.(nextValue);
     },
-    [isControlled, onChange]
+    [isControlled, onChange],
   );
 
   const selectValue = useCallback(
@@ -234,7 +234,7 @@ const RadioGroup = forwardRef<HTMLFieldSetElement, RadioGroupProps>((props, forw
       behavior.actions.select(createValueKey(nextValue));
       triggerChange(nextValue);
     },
-    [triggerChange]
+    [triggerChange],
   );
 
   const fallbackName = useId();
@@ -250,17 +250,12 @@ const RadioGroup = forwardRef<HTMLFieldSetElement, RadioGroupProps>((props, forw
       selectedKey,
       onChange: selectValue,
     }),
-    [disabled, effectiveName, required, selectValue, selectedKey]
+    [disabled, effectiveName, required, selectValue, selectedKey],
   );
 
   return (
     <RadioGroupContext.Provider value={contextValue}>
-      <fieldset
-        ref={forwardedRef}
-        className={className}
-        disabled={disabled}
-        {...rest}
-      >
+      <fieldset ref={forwardedRef} className={className} disabled={disabled} {...rest}>
         {label && (
           <legend id={legendId}>
             {label}

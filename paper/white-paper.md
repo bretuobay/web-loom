@@ -87,21 +87,27 @@ The layered architecture is illustrated in `paper/architecture-overview.md`, whe
 ### 4.2 Core Architectural Components
 
 #### `mvvm-core`
+
 `mvvm-core` defines the base abstractions for models and ViewModels. Models encapsulate RESTful API access, optimistic caching, validation through Zod, and RxJS-powered observables. ViewModels compose models, expose computed observables, and implement command objects that front-ends can trigger without knowing HTTP details. Disposables manage subscription cleanup so every consumer can release resources deterministically.
 
 #### `plugin-core`
+
 The plugin subsystem defines manifests, lifecycle hooks (install, start, activate, dispose), and registries where hosts can register or replace behaviors at runtime. Plugins declare dependencies on services (storage, HTTP clients, event bus) that the host satisfies via dependency injection, mirroring desktop IoC strategies. The plugin host captures plugin metadata, ensures isolation between plugins, and communicates via the shared event bus for lifecycle coordination.
 
 #### `event-bus-core`
+
 This lightweight pub/sub layer centralizes cross-module messages. ViewModels emit domain events (e.g., `sensor:threshold:exceeded`), and other ViewModels or behaviors subscribe without referencing specific frameworks. The event bus stays framework-agnostic by relying only on typed payload contracts. Plugins, stores, and UI patterns all depend on the bus for notifications and commands, making it the nexus for decoupled communication.
 
 #### Framework Adapters
+
 Adapters exist in `apps/mvvm-*` and `packages/ui-*` projects. Each adapter maps the shared ViewModel observables and behavior actions into framework idioms: React uses hooks and context, Vue relies on the Composition API, Angular binds via `@Input/@Output`, and vanilla JS mounts event listeners manually. These adapters are intentionally thin—they never recreate domain logic but only translate data binding surfaces.
 
 #### UI Patterns and Design Systems
+
 `ui-core` exposes atomic behaviors (dialog, disclosure, list selection) implemented purely in TypeScript, enabling reuse across contexts. `ui-patterns` composes those behaviors into higher-level flows (wizards, command palettes, master-detail), making them drop-in experiences for any view layer. Because they avoid embedding styles, consumers apply CSS-in-JS, Tailwind, or plain CSS as desired.
 
 #### Supporting Infrastructure
+
 `store-core` manages UI-only state (theme, drawer visibility) while leaving business data to ViewModels. `query-core` handles advanced caching beyond what the models provide: it tracks background refetches, dedupes requests, and invalidates based on events broadcast over the event bus. This infrastructure closes the loop between reactive models and UI representation.
 
 ### 4.3 Design Patterns Implementation
@@ -134,13 +140,13 @@ These diagrams accompany the prose above and can be used in presentations or doc
 
 While React, Vue, Angular, and Svelte have evolved to be efficient reactive template platforms, they differ in how they frame architectural responsibility. Web Loom, by contrast, is a meta-framework that bottoms out in shared behaviors and ViewModels. Table 1 compares the trade-offs:
 
-| Framework | Learning Curve | Framework Lock-In Risk | Testability | Maintainability | Performance Implications | Developer Experience |
-|-----------|----------------|------------------------|-------------|-----------------|--------------------------|---------------------|
-| React + Redux/Zustand | Moderate; hooks + state libs | Medium; large ecosystem | High when logic is extracted to hooks/services | Component-heavy; decisions on hook placement | Excellent with tree-shaking, though bundle size can spike | Flexible; a large library ecosystem |
-| Vue + Pinia/Vuex | Gentle thanks to templates/composition API | Low-medium; community tooling | High when using Composition API + reactive refs | Cleaner than React due to directives; still mixes logic in templates | Great; small runtime | Pleasant for designers transitioning from HTML |
-| Angular + RxJS/NgRx | Steep; TypeScript + DI + RxJS | Low; opinionated but monolithic | Very high; DI + services enable unit testing | Structured; CLI scaffolds but verbose | Excellent; ahead-of-time builds | Enterprise-ready but verbose |
-| Svelte/SvelteKit | Moderate; little boilerplate | Medium; closer to compiler | Good; stores + reactive statements are testable but tied to Svelte | Leaner code but lacks formal layering | Very high; compiled output is small | Great DX but smaller ecosystem |
-| **Web Loom (Meta-Framework)** | High initially (need to understand MVVM + behaviors) | Very low; business logic portable across adapters | Very high; ViewModels and behaviors test independently | High; separation of concerns keeps layer responsibilities crisp | Comparable to individual frameworks; only View layer swaps | Requires understanding MVVM but rewards reusability |
+| Framework                     | Learning Curve                                       | Framework Lock-In Risk                            | Testability                                                        | Maintainability                                                      | Performance Implications                                   | Developer Experience                                |
+| ----------------------------- | ---------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------- |
+| React + Redux/Zustand         | Moderate; hooks + state libs                         | Medium; large ecosystem                           | High when logic is extracted to hooks/services                     | Component-heavy; decisions on hook placement                         | Excellent with tree-shaking, though bundle size can spike  | Flexible; a large library ecosystem                 |
+| Vue + Pinia/Vuex              | Gentle thanks to templates/composition API           | Low-medium; community tooling                     | High when using Composition API + reactive refs                    | Cleaner than React due to directives; still mixes logic in templates | Great; small runtime                                       | Pleasant for designers transitioning from HTML      |
+| Angular + RxJS/NgRx           | Steep; TypeScript + DI + RxJS                        | Low; opinionated but monolithic                   | Very high; DI + services enable unit testing                       | Structured; CLI scaffolds but verbose                                | Excellent; ahead-of-time builds                            | Enterprise-ready but verbose                        |
+| Svelte/SvelteKit              | Moderate; little boilerplate                         | Medium; closer to compiler                        | Good; stores + reactive statements are testable but tied to Svelte | Leaner code but lacks formal layering                                | Very high; compiled output is small                        | Great DX but smaller ecosystem                      |
+| **Web Loom (Meta-Framework)** | High initially (need to understand MVVM + behaviors) | Very low; business logic portable across adapters | Very high; ViewModels and behaviors test independently             | High; separation of concerns keeps layer responsibilities crisp      | Comparable to individual frameworks; only View layer swaps | Requires understanding MVVM but rewards reusability |
 
 Table 1 shows that while traditional frameworks prioritize reactive templates, Web Loom prioritizes architectural resilience. The learning curve is higher because teams must internalize MVVM, adapters, and plugin patterns, but the payoff is significantly reduced lock-in and dramatically improved testability.
 
@@ -244,6 +250,7 @@ When should teams defend Web Loom’s meta-framework? Use cases involve long-liv
 The Web Loom meta-framework demonstrates that beyond reactive templates lies a sustainable architecture grounded in MVVM, shared behaviors, plugin registries, and adapter patterns. By decoupling views from ViewModels, reusing TypeScript-based behaviors, and orchestrating communication via an event bus, organizations can reduce lock-in, improve testability, and keep domain expertise portable across React, Vue, Angular, Lit, and vanilla JS. The AgroSense case study proves this in practice: the same greenhouse, sensor, reading, and alert logic feeds every renderer, while adapters remain thin.
 
 The call to action is clear:
+
 1. **Treat your frontend stack as a platform** – define clear layers (models, ViewModels, behaviors, adapters) and keep each layer focused on its responsibility so teams can reason about architecture and not just components.
 2. **Share infrastructure across projects** – build or adopt meta-framework primitives (event bus, plugin core, UI behaviors) to avoid repeating the same solutions in every codebase.
 3. **Collaborate on migration paths** – document how adapters replace each other and keep shared ViewModels stable so swapping frameworks becomes a predictable, low-risk activity.

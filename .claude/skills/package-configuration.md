@@ -17,14 +17,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    strictPort: true
+    strictPort: true,
   },
   build: {
     target: 'esnext',
-    sourcemap: true
+    sourcemap: true,
   },
   define: {
-    __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production')
+    __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production'),
   },
   resolve: {
     alias: {
@@ -33,12 +33,12 @@ export default defineConfig({
       '@repo/view-models': path.resolve(__dirname, '../../packages/view-models/src'),
       '@web-loom/mvvm-core': path.resolve(__dirname, '../../packages/mvvm-core/src'),
       '@web-loom/ui-core': path.resolve(__dirname, '../../packages/ui-core/src'),
-      '@web-loom/design-core': path.resolve(__dirname, '../../packages/design-core/src')
-    }
+      '@web-loom/design-core': path.resolve(__dirname, '../../packages/design-core/src'),
+    },
   },
   optimizeDeps: {
-    include: ['@repo/models', '@repo/view-models']
-  }
+    include: ['@repo/models', '@repo/view-models'],
+  },
 });
 ```
 
@@ -63,7 +63,7 @@ export default defineConfig({
   resolve: {
     alias: {
       // Same aliases as Vite config
-    }
+    },
   },
   test: {
     globals: true,
@@ -74,9 +74,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules', 'dist', '*.config.*']
-    }
-  }
+      exclude: ['node_modules', 'dist', '*.config.*'],
+    },
+  },
 });
 ```
 
@@ -92,13 +92,13 @@ Root `turbo.json` governs caching and task dependencies.
 
 ### Standard Tasks
 
-| Task | Cache | Dependencies | Notes |
-|------|-------|--------------|-------|
-| `build` | Yes | `^build` | Depends on upstream builds |
-| `lint` | Yes | - | Runs independently |
-| `check-types` | Yes | - | TypeScript validation |
-| `test` | Yes | `^build` | Depends on builds |
-| `dev` | No | - | Persistent, no cache |
+| Task          | Cache | Dependencies | Notes                      |
+| ------------- | ----- | ------------ | -------------------------- |
+| `build`       | Yes   | `^build`     | Depends on upstream builds |
+| `lint`        | Yes   | -            | Runs independently         |
+| `check-types` | Yes   | -            | TypeScript validation      |
+| `test`        | Yes   | `^build`     | Depends on builds          |
+| `dev`         | No    | -            | Persistent, no cache       |
 
 ### Required Package Scripts
 

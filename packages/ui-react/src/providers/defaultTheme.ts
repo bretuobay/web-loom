@@ -92,8 +92,7 @@ export const defaultLightTheme: ThemeConfig = {
     spaceXXL: '48px',
 
     // Typography
-    fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     fontFamilyMono: "'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
     fontSizeXS: '12px',
     fontSizeSM: '14px',
@@ -245,8 +244,7 @@ export const defaultDarkTheme: ThemeConfig = {
     spaceXXL: '48px',
 
     // Typography (same as light theme)
-    fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     fontFamilyMono: "'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
     fontSizeXS: '12px',
     fontSizeSM: '14px',

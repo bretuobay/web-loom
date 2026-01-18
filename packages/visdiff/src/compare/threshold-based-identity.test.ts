@@ -72,9 +72,9 @@ describe('Property 40: Threshold-based identity', () => {
           if (result.difference < threshold) {
             expect(result.passed).toBe(true);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -138,9 +138,9 @@ describe('Property 40: Threshold-based identity', () => {
           if (result.difference > threshold) {
             expect(result.passed).toBe(false);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -203,9 +203,9 @@ describe('Property 40: Threshold-based identity', () => {
           // The result should be consistent with the threshold comparison
           // passed should be true if difference <= threshold
           expect(result.passed).toBe(result.difference <= threshold);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

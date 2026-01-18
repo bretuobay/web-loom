@@ -29,14 +29,7 @@ describe('Property 48: Custom selector waiting', () => {
 
   it('should wait for custom selector before capturing', async () => {
     // Generator for various CSS selectors
-    const selectorArb = fc.constantFrom(
-      'h1',
-      '#test-id',
-      '.test-class',
-      'div',
-      'body',
-      '[data-test]'
-    );
+    const selectorArb = fc.constantFrom('h1', '#test-id', '.test-class', 'div', 'body', '[data-test]');
 
     const viewport: Viewport = {
       width: 800,
@@ -74,7 +67,7 @@ describe('Property 48: Custom selector waiting', () => {
       {
         numRuns: 10,
         timeout: 60000,
-      }
+      },
     );
   }, 90000);
 
@@ -213,7 +206,7 @@ describe('Property 48: Custom selector waiting', () => {
       {
         numRuns: 10,
         timeout: 60000,
-      }
+      },
     );
   }, 90000);
 

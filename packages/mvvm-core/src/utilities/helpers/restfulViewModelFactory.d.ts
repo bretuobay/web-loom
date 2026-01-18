@@ -7,15 +7,15 @@ import { RestfulApiViewModel } from '../../viewmodels/RestfulApiViewModel';
  * @template TSchema The Zod schema for validating the data.
  */
 export interface ViewModelFactoryConfig<TData, TSchema extends ZodSchema<TData>> {
-    /**
-     * Configuration for the RestfulApiModel.
-     * Excludes 'schema' as it's provided separately in this config.
-     */
-    modelConfig: Omit<TConstructorInput<TData, TSchema>, 'schema'>;
-    /**
-     * The Zod schema for data validation.
-     */
-    schema: TSchema;
+  /**
+   * Configuration for the RestfulApiModel.
+   * Excludes 'schema' as it's provided separately in this config.
+   */
+  modelConfig: Omit<TConstructorInput<TData, TSchema>, 'schema'>;
+  /**
+   * The Zod schema for data validation.
+   */
+  schema: TSchema;
 }
 /**
  * Creates a reactive RestfulApiViewModel instance.
@@ -56,5 +56,7 @@ export interface ViewModelFactoryConfig<TData, TSchema extends ZodSchema<TData>>
  * userViewModel.data$.subscribe(data => console.log(data));
  * ```
  */
-export declare function createReactiveViewModel<TData, TSchema extends ZodSchema<TData>>(factoryConfig: ViewModelFactoryConfig<TData, TSchema>): RestfulApiViewModel<TData, TSchema>;
+export declare function createReactiveViewModel<TData, TSchema extends ZodSchema<TData>>(
+  factoryConfig: ViewModelFactoryConfig<TData, TSchema>,
+): RestfulApiViewModel<TData, TSchema>;
 //# sourceMappingURL=restfulViewModelFactory.d.ts.map

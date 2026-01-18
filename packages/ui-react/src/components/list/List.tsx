@@ -186,7 +186,7 @@ const ListItemInner = forwardRef<HTMLLIElement, ListItemProps>(
         if (!onClick) return;
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          onClick((event as unknown) as MouseEvent<HTMLLIElement>);
+          onClick(event as unknown as MouseEvent<HTMLLIElement>);
         }
       },
       [onClick, onKeyDown],
@@ -327,11 +327,7 @@ const ListInner = <T,>(
         }
       }
 
-      return (
-        <ListItemInner key={key}>
-          {content}
-        </ListItemInner>
-      );
+      return <ListItemInner key={key}>{content}</ListItemInner>;
     });
   }, [displayData, normalizedPage, renderItem, rowKey, safePageSize, showData]);
 
@@ -344,16 +340,12 @@ const ListInner = <T,>(
       {header && <div className={styles.listHeader}>{header}</div>}
       <ul
         ref={ref}
-        className={cn(
-          styles.list,
-          styles[`size-${size}`],
-          {
-            [styles.split]: split,
-            [styles.bordered]: bordered,
-            [styles.loading]: loading,
-            [styles.gridLayout]: Boolean(grid),
-          },
-        )}
+        className={cn(styles.list, styles[`size-${size}`], {
+          [styles.split]: split,
+          [styles.bordered]: bordered,
+          [styles.loading]: loading,
+          [styles.gridLayout]: Boolean(grid),
+        })}
         role="list"
         aria-busy={loading}
         style={{ ...appliedGridStyle, ...style }}

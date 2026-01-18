@@ -6,7 +6,7 @@ router.get('/', (_req, res) => {
   res.json({
     status: 'ok',
     time: new Date().toISOString(),
-    message: 'TaskFlow API is healthy'
+    message: 'TaskFlow API is healthy',
   });
 });
 

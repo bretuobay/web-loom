@@ -27,7 +27,7 @@ export class AttachmentEntity {
     size: number,
     downloadUrl: string,
     createdAt: Date,
-    updatedAt: Date
+    updatedAt: Date,
   ) {
     this.id = id;
     this.taskId = taskId;
@@ -51,7 +51,7 @@ export class AttachmentEntity {
       payload.size,
       payload.downloadUrl,
       createdAt,
-      updatedAt
+      updatedAt,
     );
   }
 

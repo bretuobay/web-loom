@@ -14,7 +14,7 @@ const TodoSchema = z.object({
   dueDate: z.string(),
   userId: z.string().uuid(),
   createdAt: z.string(),
-  updatedAt: z.string()
+  updatedAt: z.string(),
 });
 
 export type TodoListItem = z.infer<typeof TodoSchema>;
@@ -69,14 +69,14 @@ const todoConfig = {
   fetcher: taskFlowAuthFetcher,
   schema: TodoListSchema,
   initialData: [] as TodoListData,
-  validateSchema: false
+  validateSchema: false,
 } as const;
 
 type TodoViewModelConfig = ViewModelFactoryConfig<TodoListData, typeof TodoListSchema>;
 
 const config: TodoViewModelConfig = {
   modelConfig: todoConfig,
-  schema: TodoListSchema
+  schema: TodoListSchema,
 };
 
 export const todoViewModel = createReactiveViewModel(config);

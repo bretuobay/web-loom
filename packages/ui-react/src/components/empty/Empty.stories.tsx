@@ -122,12 +122,7 @@ export const CustomImage: Story = {
     image: (
       <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
         <circle cx="32" cy="32" r="30" fill="#e6f4ff" />
-        <path
-          d="M32 20v24M20 32h24"
-          stroke="#1677ff"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
+        <path d="M32 20v24M20 32h24" stroke="#1677ff" strokeWidth="3" strokeLinecap="round" />
       </svg>
     ),
     description: 'Click the button to add your first item',
@@ -182,7 +177,17 @@ export const EmptyList: Story = {
 export const EmptyInbox: Story = {
   name: 'Inbox - No Messages',
   render: () => (
-    <div style={{ width: 600, height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d9d9d9', borderRadius: 8 }}>
+    <div
+      style={{
+        width: 600,
+        height: 400,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: '1px solid #d9d9d9',
+        borderRadius: 8,
+      }}
+    >
       <Empty
         size="large"
         image={<span style={{ fontSize: 64 }}>📬</span>}
@@ -204,11 +209,7 @@ export const Error404: Story = {
     <div style={{ width: '100%', minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <Empty
         size="large"
-        image={
-          <div style={{ fontSize: 72, fontWeight: 700, color: '#d9d9d9' }}>
-            404
-          </div>
-        }
+        image={<div style={{ fontSize: 72, fontWeight: 700, color: '#d9d9d9' }}>404</div>}
         description={
           <span>
             <strong style={{ fontSize: 18 }}>Page Not Found</strong>
@@ -217,7 +218,9 @@ export const Error404: Story = {
           </span>
         }
       >
-        <Button variant="primary" size="large">Go Home</Button>
+        <Button variant="primary" size="large">
+          Go Home
+        </Button>
       </Empty>
     </div>
   ),

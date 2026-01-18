@@ -105,16 +105,11 @@ const packagePaths: Record<string, string> = {
  * @param additionalAliases - Optional extra aliases to merge
  * @returns Alias configuration object for Vite
  */
-export function createAliases(
-  dirname: string,
-  additionalAliases: Record<string, string> = {}
-): Record<string, string> {
+export function createAliases(dirname: string, additionalAliases: Record<string, string> = {}): Record<string, string> {
   // Calculate the root path (assumes apps are in apps/ or packages are in packages/)
   const isInApps = dirname.includes('/apps/');
   const isInPackages = dirname.includes('/packages/');
-  const rootPath = isInApps || isInPackages
-    ? resolve(dirname, '../..')
-    : dirname;
+  const rootPath = isInApps || isInPackages ? resolve(dirname, '../..') : dirname;
 
   const aliases: Record<string, string> = {
     '@': resolve(dirname, './src'),
@@ -139,7 +134,7 @@ export function createAliases(
  */
 export function createAliasArray(
   dirname: string,
-  additionalAliases: Array<{ find: string | RegExp; replacement: string }> = []
+  additionalAliases: Array<{ find: string | RegExp; replacement: string }> = [],
 ): Array<{ find: string | RegExp; replacement: string }> {
   const objectAliases = createAliases(dirname);
 
@@ -158,12 +153,8 @@ export function createAliasArray(
  * @param usedPackages - Array of package names the app imports
  * @returns Filtered list of workspace packages
  */
-export function filterWorkspacePackages(
-  usedPackages: readonly string[]
-): string[] {
-  return usedPackages.filter(
-    (pkg) => webLoomPackages.includes(pkg as any) || repoPackages.includes(pkg as any)
-  );
+export function filterWorkspacePackages(usedPackages: readonly string[]): string[] {
+  return usedPackages.filter((pkg) => webLoomPackages.includes(pkg as any) || repoPackages.includes(pkg as any));
 }
 
 /**

@@ -37,37 +37,38 @@ describe('Property 5: Consistent file naming convention', () => {
         async (pageName, viewportName) => {
           // Create identifier from page name and viewport
           const identifier = `${pageName}-${viewportName}`;
-          
+
           // Create a dummy image buffer
           const imageBuffer = Buffer.from('fake-image-data');
-          
+
           // Save the baseline
           await storageManager.saveBaseline(identifier, imageBuffer);
-          
+
           // Check that the file exists with the expected naming convention
           const baselineDir = path.join(tempDir, '.visdiff/baselines');
           const expectedFilename = `${identifier}.png`;
           const expectedPath = path.join(baselineDir, expectedFilename);
-          
+
           // Verify file exists
-          const fileExists = await fs.access(expectedPath)
+          const fileExists = await fs
+            .access(expectedPath)
             .then(() => true)
             .catch(() => false);
-          
+
           expect(fileExists).toBe(true);
-          
+
           // Verify filename includes both page name and viewport name
           expect(expectedFilename).toContain(pageName);
           expect(expectedFilename).toContain(viewportName);
           expect(expectedFilename).toMatch(/\.png$/);
-          
+
           // Verify we can load it back
           const loaded = await storageManager.loadBaseline(identifier);
           expect(loaded).not.toBeNull();
           expect(loaded?.toString()).toBe(imageBuffer.toString());
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -79,7 +80,7 @@ describe('Property 5: Consistent file naming convention', () => {
         async (pageName, viewportName) => {
           const identifier = `${pageName}-${viewportName}`;
           const timestamp = new Date();
-          
+
           const result = {
             identifier,
             passed: false,
@@ -88,9 +89,9 @@ describe('Property 5: Consistent file naming convention', () => {
             dimensions: { width: 800, height: 600 },
             pixelsDifferent: 1000,
           };
-          
+
           await storageManager.saveDiff(result, timestamp);
-          
+
           // Check that diff file follows naming convention
           const year = timestamp.getFullYear();
           const month = String(timestamp.getMonth() + 1).padStart(2, '0');
@@ -99,22 +100,18 @@ describe('Property 5: Consistent file naming convention', () => {
           const minutes = String(timestamp.getMinutes()).padStart(2, '0');
           const seconds = String(timestamp.getSeconds()).padStart(2, '0');
           const timestampDir = `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
-          
-          const diffPath = path.join(
-            tempDir,
-            '.visdiff/diffs',
-            timestampDir,
-            `diff-${identifier}.png`
-          );
-          
-          const fileExists = await fs.access(diffPath)
+
+          const diffPath = path.join(tempDir, '.visdiff/diffs', timestampDir, `diff-${identifier}.png`);
+
+          const fileExists = await fs
+            .access(diffPath)
             .then(() => true)
             .catch(() => false);
-          
+
           expect(fileExists).toBe(true);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

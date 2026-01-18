@@ -107,7 +107,7 @@ describe('Property 6: Error resilience during capture', () => {
     const urlPatternArb = fc.constantFrom(
       'about:blank',
       'data:text/html,<h1>Test</h1>',
-      'http://192.0.2.1:9999' // Non-routable
+      'http://192.0.2.1:9999', // Non-routable
     );
 
     const urlsArb = fc.array(urlPatternArb, { minLength: 3, maxLength: 8 });
@@ -147,7 +147,7 @@ describe('Property 6: Error resilience during capture', () => {
       {
         numRuns: 10,
         timeout: 120000,
-      }
+      },
     );
   }, 150000);
 

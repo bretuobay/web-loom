@@ -3,12 +3,7 @@ import * as fc from 'fast-check';
 import { mkdir, writeFile, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import {
-  loadConfig,
-  saveConfig,
-  loadResolvedConfig,
-  CONFIG_FILE_NAME,
-} from './loader.js';
+import { loadConfig, saveConfig, loadResolvedConfig, CONFIG_FILE_NAME } from './loader.js';
 import { DEFAULT_CONFIG } from './schema.js';
 
 describe('Configuration Preservation', () => {
@@ -42,18 +37,14 @@ describe('Configuration Preservation', () => {
             fc.record({
               width: fc.integer({ min: 1, max: 7680 }),
               height: fc.integer({ min: 1, max: 4320 }),
-              name: fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
+              name: fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
             }),
-            { minLength: 1, maxLength: 3 }
+            { minLength: 1, maxLength: 3 },
           ),
-          paths: fc.array(
-            fc.constantFrom(
-              'http://localhost:3000',
-              'https://example.com',
-              'http://localhost:8080'
-            ),
-            { minLength: 1, maxLength: 3 }
-          ),
+          paths: fc.array(fc.constantFrom('http://localhost:3000', 'https://example.com', 'http://localhost:8080'), {
+            minLength: 1,
+            maxLength: 3,
+          }),
           captureOptions: fc.record({
             fullPage: fc.boolean(),
             omitBackground: fc.boolean(),
@@ -66,8 +57,8 @@ describe('Configuration Preservation', () => {
             highlightColor: fc.constantFrom('#FF0000', '#00FF00', '#0000FF'),
           }),
           storage: fc.record({
-            baselineDir: fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
-            diffDir: fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
+            baselineDir: fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
+            diffDir: fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
             format: fc.constantFrom('png', 'jpeg'),
           }),
         }),
@@ -76,11 +67,7 @@ describe('Configuration Preservation', () => {
           try {
             // Step 1: Create an existing configuration file
             const configPath = join(testDir, CONFIG_FILE_NAME);
-            await writeFile(
-              configPath,
-              `export default ${JSON.stringify(existingConfig, null, 2)};`,
-              'utf-8'
-            );
+            await writeFile(configPath, `export default ${JSON.stringify(existingConfig, null, 2)};`, 'utf-8');
 
             // Step 2: Load the configuration (simulating first init)
             const loadedConfig1 = await loadConfig(testDir);
@@ -105,9 +92,9 @@ describe('Configuration Preservation', () => {
           } finally {
             await cleanupTestDir(testDir);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -121,11 +108,7 @@ describe('Configuration Preservation', () => {
       };
 
       const configPath = join(testDir, CONFIG_FILE_NAME);
-      await writeFile(
-        configPath,
-        `export default ${JSON.stringify(initialConfig, null, 2)};`,
-        'utf-8'
-      );
+      await writeFile(configPath, `export default ${JSON.stringify(initialConfig, null, 2)};`, 'utf-8');
 
       // Load and save configuration (simulating init)
       const loaded = await loadConfig(testDir);
@@ -150,25 +133,21 @@ describe('Configuration Preservation', () => {
             fc.record({
               width: fc.integer({ min: 1, max: 7680 }),
               height: fc.integer({ min: 1, max: 4320 }),
-              name: fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
+              name: fc.string({ minLength: 1, maxLength: 50 }).filter((s) => s.trim().length > 0),
             }),
-            { minLength: 1, maxLength: 3 }
+            { minLength: 1, maxLength: 3 },
           ),
-          paths: fc.array(
-            fc.constantFrom('http://localhost:3000', 'https://example.com'),
-            { minLength: 1, maxLength: 3 }
-          ),
+          paths: fc.array(fc.constantFrom('http://localhost:3000', 'https://example.com'), {
+            minLength: 1,
+            maxLength: 3,
+          }),
         }),
         async (userConfig) => {
           const testDir = await createTestDir();
           try {
             // Create user configuration
             const configPath = join(testDir, CONFIG_FILE_NAME);
-            await writeFile(
-              configPath,
-              `export default ${JSON.stringify(userConfig, null, 2)};`,
-              'utf-8'
-            );
+            await writeFile(configPath, `export default ${JSON.stringify(userConfig, null, 2)};`, 'utf-8');
 
             // Load and save
             const config1 = await loadConfig(testDir);
@@ -186,9 +165,9 @@ describe('Configuration Preservation', () => {
           } finally {
             await cleanupTestDir(testDir);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -217,31 +196,26 @@ describe('Configuration Preservation', () => {
   it('should preserve partial user configurations', () => {
     fc.assert(
       fc.asyncProperty(
-        fc.record({
-          paths: fc.option(
-            fc.array(
-              fc.constantFrom('http://localhost:3000', 'https://example.com'),
-              { minLength: 1, maxLength: 2 }
+        fc
+          .record({
+            paths: fc.option(
+              fc.array(fc.constantFrom('http://localhost:3000', 'https://example.com'), { minLength: 1, maxLength: 2 }),
+              { nil: undefined },
             ),
-            { nil: undefined }
-          ),
-          captureOptions: fc.option(
-            fc.record({
-              timeout: fc.integer({ min: 5000, max: 60000 }),
-            }),
-            { nil: undefined }
-          ),
-        }).filter(config => config.paths !== undefined || config.captureOptions !== undefined),
+            captureOptions: fc.option(
+              fc.record({
+                timeout: fc.integer({ min: 5000, max: 60000 }),
+              }),
+              { nil: undefined },
+            ),
+          })
+          .filter((config) => config.paths !== undefined || config.captureOptions !== undefined),
         async (partialConfig) => {
           const testDir = await createTestDir();
           try {
             // Create partial user configuration
             const configPath = join(testDir, CONFIG_FILE_NAME);
-            await writeFile(
-              configPath,
-              `export default ${JSON.stringify(partialConfig, null, 2)};`,
-              'utf-8'
-            );
+            await writeFile(configPath, `export default ${JSON.stringify(partialConfig, null, 2)};`, 'utf-8');
 
             // Load configuration
             const loaded1 = await loadConfig(testDir);
@@ -266,9 +240,9 @@ describe('Configuration Preservation', () => {
           } finally {
             await cleanupTestDir(testDir);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

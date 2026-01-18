@@ -3,10 +3,7 @@ import react from '@vitejs/plugin-react-swc';
 import { createAliases } from '../../scripts/vite-alias';
 
 // External packages to pre-bundle (not workspace packages which are linked)
-const optimizeDepsInclude = [
-  'react',
-  'react-dom',
-];
+const optimizeDepsInclude = ['react', 'react-dom'];
 
 export default defineConfig({
   server: {

@@ -476,6 +476,7 @@ The task involves implementing the design system setup pattern established in `a
 - **T3.6.2**: Build a ProfileViewModel that keeps user data reactive, validates edits (`forms-core`), and centralizes avatar + preferences updates
 - **T3.6.3**: Add a profile/settings panel in the shell that shows the current tokenized user, allows editing with save/cancel actions, and displays feedback without leaking password hashes
 - **T3.6.4**: Persist profile edits to the store and refresh downstream components to keep the task/project surfaces in sync with the latest user metadata
+
 ### Phase 4: Polish & Documentation
 
 #### Task 4.1: Testing

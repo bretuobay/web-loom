@@ -11,20 +11,20 @@ const sampleProjects = [
     name: 'Apollo Launch',
     description: 'Prepare a launch-ready project management dashboard for the Apollo program.',
     color: '#2563eb',
-    status: 'active' as const
+    status: 'active' as const,
   },
   {
     name: 'Atlas Migration',
     description: 'Move Atlas analytics to the new Web Loom platform before Q3.',
     color: '#0ea5e9',
-    status: 'planning' as const
+    status: 'planning' as const,
   },
   {
     name: 'Comet Calendar',
     description: 'Design a collaborative calendar plugin for space-planning teams.',
     color: '#16a34a',
-    status: 'paused' as const
-  }
+    status: 'paused' as const,
+  },
 ];
 
 const sampleUsers = [
@@ -33,64 +33,64 @@ const sampleUsers = [
     displayName: 'Ivy Turing',
     password: 'supersecure',
     role: 'admin' as const,
-    avatarUrl: 'https://i.pravatar.cc/48?img=3'
+    avatarUrl: 'https://i.pravatar.cc/48?img=3',
   },
   {
     email: 'maia@taskflow.local',
     displayName: 'Maia Rivera',
     password: 'maia1234',
     role: 'member' as const,
-    avatarUrl: 'https://i.pravatar.cc/48?img=12'
+    avatarUrl: 'https://i.pravatar.cc/48?img=12',
   },
   {
     email: 'leo@taskflow.local',
     displayName: 'Leo Mateo',
     password: 'leoBuilds',
     role: 'member' as const,
-    avatarUrl: 'https://i.pravatar.cc/48?img=15'
-  }
+    avatarUrl: 'https://i.pravatar.cc/48?img=15',
+  },
 ];
 
 const sampleTasks = [
   {
     title: 'Design Kanban layout',
     description: 'Wireframe the Kanban plugin and define swimlane states.',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 4)
+    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 4),
   },
   {
     title: 'Review API contracts',
     description: 'Validate TaskFlow API routes with the new OpenAPI generator.',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
+    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
   },
   {
     title: 'Finalize plugin manifest',
     description: 'Document metadata and dependencies for the Kanban widget.',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2)
-  }
+    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2),
+  },
 ];
 
 const sampleComments = [
   'Can we add a filter to highlight overdue tasks?',
   'Love the color palette, but let us keep accessibility tokens in mind.',
-  'Let’s make sure the plugin manifest includes analytics metadata as part of the release.'
+  'Let’s make sure the plugin manifest includes analytics metadata as part of the release.',
 ];
 
 const sampleTodos = [
   {
     title: 'Write release notes',
     details: 'Summarize TaskFlow updates and the new TODO workspace.',
-    daysFromNow: 0
+    daysFromNow: 0,
   },
   {
     title: 'Review plugin telemetry',
     details: 'Check that the plugin registry metrics match the dashboard.',
-    daysFromNow: 1
+    daysFromNow: 1,
   },
   {
     title: 'Refine onboarding guide',
     details: 'Document MVVM tips for new contributors.',
-    daysFromNow: 2
-  }
+    daysFromNow: 2,
+  },
 ];
 
 export const seedInitialData = async () => {
@@ -116,7 +116,7 @@ export const seedInitialData = async () => {
       displayName: entry.displayName,
       role: entry.role,
       avatarUrl: entry.avatarUrl,
-      passwordHash
+      passwordHash,
     });
     createdUsers.push(user);
   }
@@ -137,7 +137,7 @@ export const seedInitialData = async () => {
       priority: TASK_PRIORITIES[Math.floor(Math.random() * TASK_PRIORITIES.length)],
       projectId: project.id,
       assigneeName: assignee.displayName,
-      assigneeId: assignee.id
+      assigneeId: assignee.id,
     });
     createdTasks.push(task);
   }
@@ -148,7 +148,7 @@ export const seedInitialData = async () => {
     await Comment.create({
       content: comment,
       taskId: task.id,
-      authorId: author.id
+      authorId: author.id,
     });
   }
 
@@ -158,7 +158,7 @@ export const seedInitialData = async () => {
       title: todoTemplate.title,
       details: todoTemplate.details,
       userId: owner.id,
-      dueDate: new Date(Date.now() + todoTemplate.daysFromNow * 86400000)
+      dueDate: new Date(Date.now() + todoTemplate.daysFromNow * 86400000),
     });
   }
 };

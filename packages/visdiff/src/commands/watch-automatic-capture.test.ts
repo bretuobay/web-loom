@@ -2,8 +2,8 @@
  * Property Test: Automatic capture on change in watch mode
  * Feature: visdiff-phase1, Property 20: Automatic capture on change in watch mode
  * Validates: Requirements 5.2
- * 
- * For any change detected in the watched application, the system should 
+ *
+ * For any change detected in the watched application, the system should
  * automatically capture and compare screenshots
  */
 
@@ -36,7 +36,7 @@ describe.skip('Property 20: Automatic capture on change in watch mode', () => {
     // Store original process.on
     originalProcessOn = process.on;
     signalHandlers = new Map();
-    
+
     // Mock process.on to capture signal handlers
     process.on = vi.fn((signal: string, handler: Function) => {
       signalHandlers.set(signal, handler);
@@ -86,25 +86,37 @@ describe.skip('Property 20: Automatic capture on change in watch mode', () => {
     const mockCompareAll = vi.fn().mockResolvedValue([]);
     const mockBrowserClose = vi.fn().mockResolvedValue(undefined);
 
-    vi.mocked(BrowserManager).mockImplementation(() => ({
-      launch: vi.fn().mockResolvedValue(undefined),
-      close: mockBrowserClose,
-    } as any));
-    
-    vi.mocked(CaptureEngine).mockImplementation(() => ({
-      captureAll: mockCaptureAll,
-    } as any));
-    
-    vi.mocked(CompareEngine).mockImplementation(() => ({
-      compareAll: mockCompareAll,
-    } as any));
-    
-    vi.mocked(StorageManager).mockImplementation(() => ({
-      initialize: vi.fn().mockResolvedValue(undefined),
-      loadBaseline: vi.fn().mockResolvedValue(null),
-      saveDiff: vi.fn().mockResolvedValue(undefined),
-      saveReport: vi.fn().mockResolvedValue(undefined),
-    } as any));
+    vi.mocked(BrowserManager).mockImplementation(
+      () =>
+        ({
+          launch: vi.fn().mockResolvedValue(undefined),
+          close: mockBrowserClose,
+        }) as any,
+    );
+
+    vi.mocked(CaptureEngine).mockImplementation(
+      () =>
+        ({
+          captureAll: mockCaptureAll,
+        }) as any,
+    );
+
+    vi.mocked(CompareEngine).mockImplementation(
+      () =>
+        ({
+          compareAll: mockCompareAll,
+        }) as any,
+    );
+
+    vi.mocked(StorageManager).mockImplementation(
+      () =>
+        ({
+          initialize: vi.fn().mockResolvedValue(undefined),
+          loadBaseline: vi.fn().mockResolvedValue(null),
+          saveDiff: vi.fn().mockResolvedValue(undefined),
+          saveReport: vi.fn().mockResolvedValue(undefined),
+        }) as any,
+    );
 
     // Now run property test
     await fc.assert(
@@ -112,40 +124,40 @@ describe.skip('Property 20: Automatic capture on change in watch mode', () => {
         fc.webUrl({ validSchemes: ['http', 'https'] }),
         fc.integer({ min: 500, max: 2000 }),
         async (url, pollInterval) => {
-      // Start watch command (don't await - it runs indefinitely)
-      void watchCommand(url, {
-        interval: pollInterval.toString(),
-        debounce: '100',
-      });
+          // Start watch command (don't await - it runs indefinitely)
+          void watchCommand(url, {
+            interval: pollInterval.toString(),
+            debounce: '100',
+          });
 
-      // Wait for initial comparison and at least one poll
-      await new Promise(resolve => setTimeout(resolve, pollInterval + 300));
+          // Wait for initial comparison and at least one poll
+          await new Promise((resolve) => setTimeout(resolve, pollInterval + 300));
 
-      // Verify captureAll was called (initial + at least one poll)
-      expect(mockCaptureAll).toHaveBeenCalled();
-      expect(mockCaptureAll.mock.calls.length).toBeGreaterThanOrEqual(1);
+          // Verify captureAll was called (initial + at least one poll)
+          expect(mockCaptureAll).toHaveBeenCalled();
+          expect(mockCaptureAll.mock.calls.length).toBeGreaterThanOrEqual(1);
 
-      // Trigger cleanup
-      const sigintHandler = signalHandlers.get('SIGINT');
-      if (sigintHandler) {
-        await sigintHandler();
-      }
+          // Trigger cleanup
+          const sigintHandler = signalHandlers.get('SIGINT');
+          if (sigintHandler) {
+            await sigintHandler();
+          }
 
-      // Verify browser was closed
-      expect(mockBrowserClose).toHaveBeenCalled();
-      
-      // Clear call history for next iteration
-      mockCaptureAll.mockClear();
-      mockBrowserClose.mockClear();
-        }
+          // Verify browser was closed
+          expect(mockBrowserClose).toHaveBeenCalled();
+
+          // Clear call history for next iteration
+          mockCaptureAll.mockClear();
+          mockBrowserClose.mockClear();
+        },
       ),
-      { numRuns: 50 }
+      { numRuns: 50 },
     );
   });
 
   it('should handle changes detected in watch mode', async () => {
     const url = 'http://localhost:3000';
-    
+
     // Setup mocks for this test - create shared mock functions
     const mockCaptureAll = vi.fn().mockResolvedValue({
       results: [],
@@ -157,25 +169,37 @@ describe.skip('Property 20: Automatic capture on change in watch mode', () => {
     const mockCompareAll = vi.fn().mockResolvedValue([]);
     const mockBrowserClose = vi.fn().mockResolvedValue(undefined);
 
-    vi.mocked(BrowserManager).mockImplementation(() => ({
-      launch: vi.fn().mockResolvedValue(undefined),
-      close: mockBrowserClose,
-    } as any));
-    
-    vi.mocked(CaptureEngine).mockImplementation(() => ({
-      captureAll: mockCaptureAll,
-    } as any));
-    
-    vi.mocked(CompareEngine).mockImplementation(() => ({
-      compareAll: mockCompareAll,
-    } as any));
-    
-    vi.mocked(StorageManager).mockImplementation(() => ({
-      initialize: vi.fn().mockResolvedValue(undefined),
-      loadBaseline: vi.fn().mockResolvedValue(null),
-      saveDiff: vi.fn().mockResolvedValue(undefined),
-      saveReport: vi.fn().mockResolvedValue(undefined),
-    } as any));
+    vi.mocked(BrowserManager).mockImplementation(
+      () =>
+        ({
+          launch: vi.fn().mockResolvedValue(undefined),
+          close: mockBrowserClose,
+        }) as any,
+    );
+
+    vi.mocked(CaptureEngine).mockImplementation(
+      () =>
+        ({
+          captureAll: mockCaptureAll,
+        }) as any,
+    );
+
+    vi.mocked(CompareEngine).mockImplementation(
+      () =>
+        ({
+          compareAll: mockCompareAll,
+        }) as any,
+    );
+
+    vi.mocked(StorageManager).mockImplementation(
+      () =>
+        ({
+          initialize: vi.fn().mockResolvedValue(undefined),
+          loadBaseline: vi.fn().mockResolvedValue(null),
+          saveDiff: vi.fn().mockResolvedValue(undefined),
+          saveReport: vi.fn().mockResolvedValue(undefined),
+        }) as any,
+    );
 
     // Start watch command
     void watchCommand(url, {
@@ -184,7 +208,7 @@ describe.skip('Property 20: Automatic capture on change in watch mode', () => {
     });
 
     // Wait for initial comparison and at least one poll
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     // Verify automatic capture occurred
     expect(mockCaptureAll).toHaveBeenCalled();

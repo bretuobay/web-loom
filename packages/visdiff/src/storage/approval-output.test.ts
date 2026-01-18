@@ -33,7 +33,7 @@ describe('Property 18: Approval output listing', () => {
             identifier: fc.stringMatching(/^[a-z][a-z0-9-]{0,15}$/),
             data: fc.uint8Array({ minLength: 10, maxLength: 50 }),
           }),
-          { minLength: 1, maxLength: 10 }
+          { minLength: 1, maxLength: 10 },
         ),
         async (items) => {
           // Make identifiers unique
@@ -58,7 +58,7 @@ describe('Property 18: Approval output listing', () => {
 
           // Verify the output list contains all updated baselines
           expect(approved).toHaveLength(uniqueItems.length);
-          
+
           // Verify each identifier appears in the output
           for (const item of uniqueItems) {
             expect(approved).toContain(item.identifier);
@@ -67,9 +67,9 @@ describe('Property 18: Approval output listing', () => {
           // Verify no duplicates in the output
           const uniqueApproved = new Set(approved);
           expect(uniqueApproved.size).toBe(approved.length);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -81,7 +81,7 @@ describe('Property 18: Approval output listing', () => {
             identifier: fc.stringMatching(/^[a-z][a-z0-9-]{0,15}$/),
             data: fc.uint8Array({ minLength: 10, maxLength: 50 }),
           }),
-          { minLength: 2, maxLength: 10 }
+          { minLength: 2, maxLength: 10 },
         ),
         fc.array(fc.stringMatching(/^[a-z][a-z0-9-]{0,15}$/), { minLength: 1, maxLength: 5 }),
         async (items, extraIdentifiers) => {
@@ -104,31 +104,31 @@ describe('Property 18: Approval output listing', () => {
 
           // Try to approve with extra identifiers that don't have screenshots
           const toApprove = [
-            ...uniqueItems.map(i => i.identifier),
-            ...extraIdentifiers.map((id, idx) => `${id}-extra-${idx}`)
+            ...uniqueItems.map((i) => i.identifier),
+            ...extraIdentifiers.map((id, idx) => `${id}-extra-${idx}`),
           ];
 
           const approved = await storageManager.approveChanges(currentScreenshots, toApprove);
 
           // Verify only the identifiers with actual screenshots were approved
           expect(approved).toHaveLength(uniqueItems.length);
-          
+
           for (const item of uniqueItems) {
             expect(approved).toContain(item.identifier);
           }
 
           // Verify extra identifiers are NOT in the output
           for (const extraId of extraIdentifiers) {
-            const extraIdWithSuffix = extraId.match(/^[a-z][a-z0-9-]{0,15}$/) 
+            const extraIdWithSuffix = extraId.match(/^[a-z][a-z0-9-]{0,15}$/)
               ? extraIdentifiers.map((id, idx) => `${id}-extra-${idx}`)
               : [];
             for (const id of extraIdWithSuffix) {
               expect(approved).not.toContain(id);
             }
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -148,9 +148,9 @@ describe('Property 18: Approval output listing', () => {
 
           // Verify output is empty
           expect(approved).toHaveLength(0);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -162,7 +162,7 @@ describe('Property 18: Approval output listing', () => {
             identifier: fc.stringMatching(/^[a-z][a-z0-9-]{0,15}$/),
             data: fc.uint8Array({ minLength: 10, maxLength: 50 }),
           }),
-          { minLength: 2, maxLength: 10 }
+          { minLength: 2, maxLength: 10 },
         ),
         async (items) => {
           // Make identifiers unique
@@ -183,14 +183,14 @@ describe('Property 18: Approval output listing', () => {
           }
 
           // Approve with explicit order
-          const orderedIdentifiers = uniqueItems.map(i => i.identifier);
+          const orderedIdentifiers = uniqueItems.map((i) => i.identifier);
           const approved = await storageManager.approveChanges(currentScreenshots, orderedIdentifiers);
 
           // Verify the output maintains the same order
           expect(approved).toEqual(orderedIdentifiers);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -202,7 +202,7 @@ describe('Property 18: Approval output listing', () => {
             identifier: fc.stringMatching(/^[a-z][a-z0-9-]{0,15}$/),
             data: fc.uint8Array({ minLength: 10, maxLength: 50 }),
           }),
-          { minLength: 1, maxLength: 10 }
+          { minLength: 1, maxLength: 10 },
         ),
         async (items) => {
           // Make identifiers unique
@@ -229,14 +229,14 @@ describe('Property 18: Approval output listing', () => {
           for (const identifier of approved) {
             const loaded = await storageManager.loadBaseline(identifier);
             expect(loaded).not.toBeNull();
-            
+
             // Verify it matches the screenshot we approved
             const expectedData = currentScreenshots.get(identifier);
             expect(loaded?.equals(expectedData!)).toBe(true);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

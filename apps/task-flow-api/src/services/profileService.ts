@@ -9,5 +9,5 @@ export interface ProfileUpdatePayload {
 
 export const profileService = {
   getProfile: (userId: string) => userService.getById(userId),
-  updateProfile: (userId: string, data: ProfileUpdatePayload) => userService.update(userId, data)
+  updateProfile: (userId: string, data: ProfileUpdatePayload) => userService.update(userId, data),
 };

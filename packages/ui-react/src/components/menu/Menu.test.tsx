@@ -8,7 +8,7 @@ describe('Menu', () => {
       <Menu>
         <Menu.Item itemKey="1">Item 1</Menu.Item>
         <Menu.Item itemKey="2">Item 2</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const menu = container.querySelector('.loom-menu');
@@ -20,7 +20,7 @@ describe('Menu', () => {
     const { container } = render(
       <Menu mode="horizontal">
         <Menu.Item itemKey="1">Item 1</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const menu = container.querySelector('.loom-menu');
@@ -31,7 +31,7 @@ describe('Menu', () => {
     const { container } = render(
       <Menu mode="inline">
         <Menu.Item itemKey="1">Item 1</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const menu = container.querySelector('.loom-menu');
@@ -42,7 +42,7 @@ describe('Menu', () => {
     const { container } = render(
       <Menu theme="dark">
         <Menu.Item itemKey="1">Item 1</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const menu = container.querySelector('.loom-menu');
@@ -55,7 +55,7 @@ describe('Menu', () => {
         <Menu.Item itemKey="1">Item 1</Menu.Item>
         <Menu.Item itemKey="2">Item 2</Menu.Item>
         <Menu.Item itemKey="3">Item 3</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     expect(screen.getByText('Item 1')).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('Menu', () => {
       <Menu onSelect={handleSelect}>
         <Menu.Item itemKey="1">Item 1</Menu.Item>
         <Menu.Item itemKey="2">Item 2</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const item1 = screen.getByText('Item 1');
@@ -84,7 +84,7 @@ describe('Menu', () => {
       <Menu selectedKeys={['2']}>
         <Menu.Item itemKey="1">Item 1</Menu.Item>
         <Menu.Item itemKey="2">Item 2</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const item2 = screen.getByText('Item 2').parentElement;
@@ -98,7 +98,7 @@ describe('Menu', () => {
     render(
       <Menu onSelect={handleSelect}>
         <Menu.Item itemKey="1">Item 1</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const item = screen.getByText('Item 1').parentElement!;
@@ -120,7 +120,7 @@ describe('Menu', () => {
         <Menu.Item itemKey="1" disabled>
           Disabled Item
         </Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const item = screen.getByText('Disabled Item').parentElement!;
@@ -137,7 +137,7 @@ describe('Menu', () => {
         <Menu.Item itemKey="1" icon={<span data-testid="icon">🏠</span>}>
           Home
         </Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     expect(screen.getByTestId('icon')).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe('Menu', () => {
           <Menu.Item itemKey="1">Subitem 1</Menu.Item>
           <Menu.Item itemKey="2">Subitem 2</Menu.Item>
         </Menu.SubMenu>
-      </Menu>
+      </Menu>,
     );
 
     expect(screen.getByText('Submenu')).toBeInTheDocument();
@@ -163,7 +163,7 @@ describe('Menu', () => {
         <Menu.SubMenu itemKey="sub1" title="Submenu">
           <Menu.Item itemKey="1">Subitem 1</Menu.Item>
         </Menu.SubMenu>
-      </Menu>
+      </Menu>,
     );
 
     const submenuTitle = screen.getByText('Submenu');
@@ -186,7 +186,7 @@ describe('Menu', () => {
         <Menu.SubMenu itemKey="sub1" title="Submenu">
           <Menu.Item itemKey="1">Subitem 1</Menu.Item>
         </Menu.SubMenu>
-      </Menu>
+      </Menu>,
     );
 
     const submenuTitle = screen.getByText('Submenu');
@@ -206,7 +206,7 @@ describe('Menu', () => {
         <Menu.Item itemKey="1">Item 1</Menu.Item>
         <Menu.Divider />
         <Menu.Item itemKey="2">Item 2</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const divider = container.querySelector('.loom-menu-divider');
@@ -221,7 +221,7 @@ describe('Menu', () => {
           <Menu.Item itemKey="1">Item 1</Menu.Item>
           <Menu.Item itemKey="2">Item 2</Menu.Item>
         </Menu.ItemGroup>
-      </Menu>
+      </Menu>,
     );
 
     expect(screen.getByText('Group 1')).toBeInTheDocument();
@@ -235,7 +235,7 @@ describe('Menu', () => {
         <Menu.Item itemKey="1" icon={<span>🏠</span>}>
           Home
         </Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const menu = container.querySelector('.loom-menu');
@@ -247,7 +247,7 @@ describe('Menu', () => {
       <Menu selectedKeys={['1']}>
         <Menu.Item itemKey="1">Item 1</Menu.Item>
         <Menu.Item itemKey="2">Item 2</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     let item1 = screen.getByText('Item 1').parentElement;
@@ -257,7 +257,7 @@ describe('Menu', () => {
       <Menu selectedKeys={['2']}>
         <Menu.Item itemKey="1">Item 1</Menu.Item>
         <Menu.Item itemKey="2">Item 2</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const item2 = screen.getByText('Item 2').parentElement;
@@ -270,7 +270,7 @@ describe('Menu', () => {
       <Menu defaultSelectedKeys={['1']}>
         <Menu.Item itemKey="1">Item 1</Menu.Item>
         <Menu.Item itemKey="2">Item 2</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const item1 = screen.getByText('Item 1').parentElement;
@@ -287,7 +287,7 @@ describe('Menu', () => {
     const { container } = render(
       <Menu className="custom-menu">
         <Menu.Item itemKey="1">Item 1</Menu.Item>
-      </Menu>
+      </Menu>,
     );
 
     const menu = container.querySelector('.loom-menu');

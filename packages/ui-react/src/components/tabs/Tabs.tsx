@@ -44,15 +44,13 @@ export function Tabs({
   const tabsListRef = useRef<HTMLDivElement>(null);
 
   // Get all tab keys from children
-  const tabPanes = Children.toArray(children).filter(
-    (child): child is ReactElement<TabPaneProps> => isValidElement(child)
+  const tabPanes = Children.toArray(children).filter((child): child is ReactElement<TabPaneProps> =>
+    isValidElement(child),
   );
 
   const firstTabKey = tabPanes[0]?.props.tabKey;
 
-  const [uncontrolledActiveKey, setUncontrolledActiveKey] = useState<string>(
-    defaultActiveKey || firstTabKey || ''
-  );
+  const [uncontrolledActiveKey, setUncontrolledActiveKey] = useState<string>(defaultActiveKey || firstTabKey || '');
 
   const isControlled = controlledActiveKey !== undefined;
   const activeKey = isControlled ? controlledActiveKey : uncontrolledActiveKey;
@@ -64,7 +62,7 @@ export function Tabs({
       }
       onChange?.(key);
     },
-    [isControlled, onChange]
+    [isControlled, onChange],
   );
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -117,13 +115,7 @@ export function Tabs({
     onEdit,
   };
 
-  const tabsClasses = cn(
-    'loom-tabs',
-    `loom-tabs-${type}`,
-    `loom-tabs-${size}`,
-    `loom-tabs-${tabPosition}`,
-    className
-  );
+  const tabsClasses = cn('loom-tabs', `loom-tabs-${type}`, `loom-tabs-${size}`, `loom-tabs-${tabPosition}`, className);
 
   const isVertical = tabPosition === 'left' || tabPosition === 'right';
 
@@ -177,11 +169,7 @@ export function Tabs({
             );
           })}
           {type === 'editable-card' && (
-            <button
-              className="loom-tabs-tab-add"
-              aria-label="Add tab"
-              onClick={() => onEdit?.('', 'add')}
-            >
+            <button className="loom-tabs-tab-add" aria-label="Add tab" onClick={() => onEdit?.('', 'add')}>
               +
             </button>
           )}

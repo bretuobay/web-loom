@@ -8,12 +8,7 @@ export interface SortingResult<T> {
   getNextSortState: (column: ColumnType<T>) => SortingState;
 }
 
-export function useSorting<T>({
-  data,
-  columns,
-  state,
-  sortDirections,
-}: UseSortingOptions<T>): SortingResult<T> {
+export function useSorting<T>({ data, columns, state, sortDirections }: UseSortingOptions<T>): SortingResult<T> {
   const cycle = getSortCycle(sortDirections);
   const activeColumn = columns.find((column, index) => getColumnKey(column, index) === state?.columnKey);
   const sortedData = applySort(data, activeColumn, state?.order);

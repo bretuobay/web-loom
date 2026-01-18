@@ -46,11 +46,7 @@ describe('Configuration Loader', () => {
       };
 
       const configPath = join(testDir, CONFIG_FILE_NAME);
-      await writeFile(
-        configPath,
-        `export default ${JSON.stringify(userConfig, null, 2)};`,
-        'utf-8'
-      );
+      await writeFile(configPath, `export default ${JSON.stringify(userConfig, null, 2)};`, 'utf-8');
 
       const config = await loadConfig(testDir);
 
@@ -69,11 +65,7 @@ describe('Configuration Loader', () => {
       };
 
       const configPath = join(testDir, CONFIG_FILE_NAME);
-      await writeFile(
-        configPath,
-        `export default ${JSON.stringify(invalidConfig, null, 2)};`,
-        'utf-8'
-      );
+      await writeFile(configPath, `export default ${JSON.stringify(invalidConfig, null, 2)};`, 'utf-8');
 
       await expect(loadConfig(testDir)).rejects.toThrow(ConfigurationError);
     });
@@ -151,7 +143,7 @@ describe('Configuration Loader', () => {
       await writeFile(
         configPath,
         JSON.stringify({ viewports: [], paths: [] }), // Invalid
-        'utf-8'
+        'utf-8',
       );
 
       await expect(loadResolvedConfig(testDir)).rejects.toThrow(ConfigurationError);
@@ -197,11 +189,7 @@ describe('Configuration Loader', () => {
       };
 
       const configPath = join(testDir, CONFIG_FILE_NAME);
-      await writeFile(
-        configPath,
-        `export default ${JSON.stringify(userConfig, null, 2)};`,
-        'utf-8'
-      );
+      await writeFile(configPath, `export default ${JSON.stringify(userConfig, null, 2)};`, 'utf-8');
 
       const config = await loadConfig(testDir);
 
@@ -223,11 +211,7 @@ describe('Configuration Loader', () => {
       };
 
       const configPath = join(testDir, CONFIG_FILE_NAME);
-      await writeFile(
-        configPath,
-        `export default ${JSON.stringify(userConfig, null, 2)};`,
-        'utf-8'
-      );
+      await writeFile(configPath, `export default ${JSON.stringify(userConfig, null, 2)};`, 'utf-8');
 
       const config = await loadConfig(testDir);
 
@@ -249,11 +233,7 @@ describe('Configuration Loader', () => {
       };
 
       const configPath = join(testDir, CONFIG_FILE_NAME);
-      await writeFile(
-        configPath,
-        `export default ${JSON.stringify(invalidConfig, null, 2)};`,
-        'utf-8'
-      );
+      await writeFile(configPath, `export default ${JSON.stringify(invalidConfig, null, 2)};`, 'utf-8');
 
       try {
         await loadConfig(testDir);

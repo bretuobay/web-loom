@@ -80,15 +80,7 @@ function parseGutter(gutter: number | [number, number] | undefined): [number, nu
  * </Row>
  * ```
  */
-export function Row({
-  gutter,
-  justify = 'start',
-  align = 'top',
-  wrap = true,
-  className,
-  style,
-  children,
-}: RowProps) {
+export function Row({ gutter, justify = 'start', align = 'top', wrap = true, className, style, children }: RowProps) {
   const [gutterH, gutterV] = parseGutter(gutter);
 
   const rowClasses = cn(
@@ -98,7 +90,7 @@ export function Row({
     {
       [styles.wrap]: wrap,
     },
-    className
+    className,
   );
 
   const rowStyle: CSSProperties = {

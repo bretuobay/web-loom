@@ -57,11 +57,7 @@ describe('Property 46: Network idle waiting', () => {
         const resultWithIdle = await captureEngine.capture(url, viewport, optionsWithNetworkIdle);
 
         // Capture without network idle waiting
-        const resultWithoutIdle = await captureEngine.capture(
-          url,
-          viewport,
-          optionsWithoutNetworkIdle
-        );
+        const resultWithoutIdle = await captureEngine.capture(url, viewport, optionsWithoutNetworkIdle);
 
         // Both should succeed for about:blank
         expect(resultWithIdle.success).toBe(true);
@@ -79,7 +75,7 @@ describe('Property 46: Network idle waiting', () => {
       {
         numRuns: 10,
         timeout: 60000,
-      }
+      },
     );
   }, 90000);
 
@@ -134,7 +130,7 @@ describe('Property 46: Network idle waiting', () => {
       {
         numRuns: 10,
         timeout: 60000,
-      }
+      },
     );
   }, 90000);
 });

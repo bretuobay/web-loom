@@ -18,4 +18,4 @@ Recommendations:
 3. Evaluate Web Loom’s reference implementations for guidance on command-pattern bindings, plugin lifecycles, and dependency injection strategies that keep behavior consistent across multiple clients.
 4. Encourage cross-functional teams to document architectural trade-offs and migration strategies, ensuring that the benefits of separation of concerns are preserved as products scale.
 
-Web Loom stands as a proof of concept that front-end architecture can be principled, portable, and resilient without sacrificing the reactivity developers expect today. This paper will detail how to realize that vision, providing both strategic recommendations for leadership and practical guidance for engineering teams. 
+Web Loom stands as a proof of concept that front-end architecture can be principled, portable, and resilient without sacrificing the reactivity developers expect today. This paper will detail how to realize that vision, providing both strategic recommendations for leadership and practical guidance for engineering teams.

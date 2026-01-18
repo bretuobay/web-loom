@@ -200,9 +200,9 @@ export class TaskFlowApiClient {
       method: 'POST',
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
-        'x-file-name': encodeURIComponent(file.name)
+        'x-file-name': encodeURIComponent(file.name),
       },
-      body: file
+      body: file,
     });
   }
 
@@ -213,7 +213,7 @@ export class TaskFlowApiClient {
   async createComment(payload: { taskId: string; content: string }) {
     return this.request<CommentResponse>('/comments', {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
   }
 
@@ -224,7 +224,7 @@ export class TaskFlowApiClient {
   async updateProfile(payload: ProfileUpdatePayload) {
     return this.request<UserApiResponse>('/profile', {
       method: 'PUT',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
   }
 }

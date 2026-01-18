@@ -59,7 +59,7 @@ export class TaskEntity {
     assignee: UserEntity | null,
     attachments: AttachmentEntity[],
     createdAt: Date,
-    updatedAt: Date
+    updatedAt: Date,
   ) {
     this.id = id;
     this.title = title;
@@ -76,9 +76,7 @@ export class TaskEntity {
   }
 
   static fromApi(payload: TaskApiResponse) {
-    const status = TASK_STATUSES.includes(payload.status as TaskStatus)
-      ? (payload.status as TaskStatus)
-      : 'backlog';
+    const status = TASK_STATUSES.includes(payload.status as TaskStatus) ? (payload.status as TaskStatus) : 'backlog';
     const priority = TASK_PRIORITIES.includes(payload.priority as TaskPriority)
       ? (payload.priority as TaskPriority)
       : 'medium';
@@ -98,7 +96,7 @@ export class TaskEntity {
       assignee,
       attachments,
       new Date(payload.createdAt),
-      new Date(payload.updatedAt)
+      new Date(payload.updatedAt),
     );
   }
 
@@ -119,7 +117,7 @@ export class TaskEntity {
       this.assignee,
       attachments,
       this.createdAt,
-      this.updatedAt
+      this.updatedAt,
     );
   }
 }

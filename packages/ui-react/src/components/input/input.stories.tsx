@@ -77,13 +77,7 @@ export const PrefixSuffix: Story = {
 };
 
 export const Addons: Story = {
-  render: () => (
-    <Input
-      placeholder="Recipient"
-      addonBefore="http://"
-      addonAfter=".com"
-    />
-  ),
+  render: () => <Input placeholder="Recipient" addonBefore="http://" addonAfter=".com" />,
 };
 
 export const Clearable: Story = {
@@ -106,22 +100,11 @@ export const PasswordField: Story = {
 };
 
 export const SearchField: Story = {
-  render: () => (
-    <InputSearch
-      placeholder="Search pattern"
-      onSearch={action('search')}
-    />
-  ),
+  render: () => <InputSearch placeholder="Search pattern" onSearch={action('search')} />,
 };
 
 export const TextArea: Story = {
-  render: () => (
-    <InputTextArea
-      size="large"
-      placeholder="Leave your thoughts"
-      rows={4}
-    />
-  ),
+  render: () => <InputTextArea size="large" placeholder="Leave your thoughts" rows={4} />,
 };
 
 export const Grouped: Story = {

@@ -255,9 +255,7 @@ export const DynamicCount: Story = {
             Reset
           </button>
         </div>
-        <p style={{ fontSize: 14, color: '#666' }}>
-          Current count: {count}
-        </p>
+        <p style={{ fontSize: 14, color: '#666' }}>Current count: {count}</p>
       </div>
     );
   },
