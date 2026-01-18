@@ -1,5 +1,11 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { createAliases } from '../../scripts/vite-alias';
+
+// External packages to pre-bundle (not workspace packages which are linked)
+const optimizeDepsInclude = [
+  'react',
+  'react-dom',
+];
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,18 +15,10 @@ export default defineConfig({
     strictPort: true,
   },
   resolve: {
-    alias: {
-      '@': resolve(__dirname, './src'),
-      '@repo/models': resolve(__dirname, '../../packages/models/src'),
-      '@repo/view-models': resolve(__dirname, '../../packages/view-models/src'),
-      '@repo/shared': resolve(__dirname, '../../packages/shared/src'),
-      '@web-loom/mvvm-core': resolve(__dirname, '../../packages/mvvm-core/src'),
-      '@web-loom/ui-core': resolve(__dirname, '../../packages/ui-core/src'),
-      '@web-loom/ui-patterns': resolve(__dirname, '../../packages/ui-patterns/src'),
-    },
+    alias: createAliases(__dirname),
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', '@web-loom/mvvm-core', '@web-loom/ui-core', '@web-loom/ui-patterns'],
+    include: optimizeDepsInclude,
   },
   build: {
     target: 'esnext',
