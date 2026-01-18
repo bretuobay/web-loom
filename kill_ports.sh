@@ -10,6 +10,12 @@
 ports=(
   3000  # docs (Next.js)
   3001  # mvvm-book (Next.js) 
+  3002  #  (Next.js)
+  3003  # web-loom-home (Next.js)
+  3004  # web-loom-experiments (Next.js)
+  3005  # web-loom-ui (Next.js)
+  3006  # web-loom-blog (Next.js)
+  3007  # web-loom-markdown-editor (Next.js)
   4200  # mvvm-angular (Angular)
   5173  # mvvm-react (Vite)
   5174  # mvvm-vue (Vite)

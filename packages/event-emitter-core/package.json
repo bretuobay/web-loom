@@ -4,7 +4,7 @@
   "description": "Tiny, type-safe event emitter shared across Web Loom packages.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
-  "private": false,
+  "private": true,
   "type": "module",
   "files": [
     "dist"

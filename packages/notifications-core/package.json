@@ -3,7 +3,7 @@
   "description": "A lightweight, framework-agnostic Event Bus library.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
-  "private": false,
+  "private": true,
   "version": "0.5.2",
   "type": "module",
   "files": [
@@ -51,7 +51,6 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@web-loom/event-emitter-core": "*",
-    "next": "15.5.6"
+    "@web-loom/event-emitter-core": "*"
   }
 }

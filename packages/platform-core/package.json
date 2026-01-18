@@ -3,7 +3,7 @@
   "description": "Device & platform detection library with reactive observables for modern web applications.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
-  "private": false,
+  "private": true,
   "version": "0.5.2",
   "type": "module",
   "files": [

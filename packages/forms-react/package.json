@@ -52,5 +52,6 @@
     "typescript"
   ],
   "author": "Web Loom Team",
-  "license": "MIT"
+  "license": "MIT",
+  "private": true
 }

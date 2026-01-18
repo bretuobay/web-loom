@@ -73,8 +73,5 @@
     "vite": "^6.1.1",
     "vite-plugin-dts": "^3.9.1",
     "vitest": "^3.2.4"
-  },
-  "dependencies": {
-    "next": "^15.5.9"
   }
 }

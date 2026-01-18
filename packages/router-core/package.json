@@ -3,7 +3,7 @@
   "description": "A lightweight, framework-agnostic Event Bus library.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
-  "private": false,
+  "private": true,
   "version": "0.5.2",
   "type": "module",
   "files": [
@@ -49,8 +49,5 @@
     "vite": "^6.1.1",
     "vite-plugin-dts": "^3.9.1",
     "vitest": "^3.2.4"
-  },
-  "dependencies": {
-    "next": "15.5.6"
   }
 }
