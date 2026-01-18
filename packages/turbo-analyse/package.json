@@ -3,7 +3,7 @@
   "description": "CLI tool for analysing and optimizing TurboRepo monorepos.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
-  "private": false,
+  "private": true,
   "version": "0.5.2",
   "type": "module",
   "files": [

@@ -4,7 +4,7 @@
   "author": "Festus Yeboah <festus.yeboah@hotmail.com>",
   "license": "MIT",
   "description": "A comprehensive React component library built on Web Loom UI ecosystem with headless behaviors and design system integration",
-  "private": false,
+  "private": true,
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
