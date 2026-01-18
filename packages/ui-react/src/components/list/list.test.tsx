@@ -29,7 +29,7 @@ describe('List component', () => {
           total: items.length,
           onChange: handleChange,
         }}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /next page/i }));
@@ -41,12 +41,10 @@ describe('List component', () => {
     const onClick = vi.fn();
     render(
       <List>
-        <List.Item actions={[<button key="edit">Edit</button>]}
-          onClick={onClick}
-        >
+        <List.Item actions={[<button key="edit">Edit</button>]} onClick={onClick}>
           Clickable
         </List.Item>
-      </List>
+      </List>,
     );
 
     const action = screen.getByRole('button', { name: /edit/i });

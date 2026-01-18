@@ -54,11 +54,7 @@ export class CaptureEngine {
   /**
    * Capture a screenshot for a single URL and viewport
    */
-  async capture(
-    url: string,
-    viewport: Viewport,
-    options: CaptureOptions
-  ): Promise<CaptureResult> {
+  async capture(url: string, viewport: Viewport, options: CaptureOptions): Promise<CaptureResult> {
     const startTime = Date.now();
     let page: Page | null = null;
     let lastError: Error | null = null;
@@ -170,10 +166,7 @@ export class CaptureEngine {
   /**
    * Get the dimensions of the captured image
    */
-  private async getImageDimensions(
-    page: Page,
-    fullPage: boolean
-  ): Promise<{ width: number; height: number }> {
+  private async getImageDimensions(page: Page, fullPage: boolean): Promise<{ width: number; height: number }> {
     if (fullPage) {
       // For full page, get the entire document dimensions
       const dimensions = await page.evaluate(() => {
@@ -196,11 +189,7 @@ export class CaptureEngine {
   /**
    * Capture screenshots for multiple URLs and viewports
    */
-  async captureAll(
-    urls: string[],
-    viewports: Viewport[],
-    options: CaptureOptions
-  ): Promise<CaptureSummary> {
+  async captureAll(urls: string[], viewports: Viewport[], options: CaptureOptions): Promise<CaptureSummary> {
     const results: CaptureResult[] = [];
 
     // Generate all combinations of URLs and viewports

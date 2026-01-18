@@ -37,9 +37,7 @@ export const MultiSelect: Story = {
       <Select
         mode="multiple"
         value={values}
-        onChange={(next) =>
-          setValues(Array.isArray(next) ? next : typeof next === 'string' ? [next] : [])
-        }
+        onChange={(next) => setValues(Array.isArray(next) ? next : typeof next === 'string' ? [next] : [])}
         options={basicOptions}
         allowClear
       />
@@ -56,7 +54,7 @@ export const Searchable: Story = {
           label: `Option ${index + 1}`,
           value: `option-${index + 1}`,
         })),
-      []
+      [],
     );
 
     return (
@@ -90,14 +88,7 @@ export const GroupedOptions: Story = {
 };
 
 export const Loading: Story = {
-  render: () => (
-    <Select
-      loading
-      options={basicOptions}
-      placeholder="Loading options"
-      notFoundContent="Still loading"
-    />
-  ),
+  render: () => <Select loading options={basicOptions} placeholder="Loading options" notFoundContent="Still loading" />,
 };
 
 export const SizeVariants: Story = {
@@ -109,9 +100,7 @@ export const SizeVariants: Story = {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>
-            Small Size
-          </label>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Small Size</label>
           <Select
             size="small"
             value={smallValue}
@@ -121,9 +110,7 @@ export const SizeVariants: Story = {
           />
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>
-            Middle Size (Default)
-          </label>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Middle Size (Default)</label>
           <Select
             size="middle"
             value={middleValue}
@@ -133,9 +120,7 @@ export const SizeVariants: Story = {
           />
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>
-            Large Size
-          </label>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Large Size</label>
           <Select
             size="large"
             value={largeValue}
@@ -157,9 +142,7 @@ export const StatusStates: Story = {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>
-            Error Status
-          </label>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Error Status</label>
           <Select
             status="error"
             value={errorValue}
@@ -173,9 +156,7 @@ export const StatusStates: Story = {
           </span>
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>
-            Warning Status
-          </label>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Warning Status</label>
           <Select
             status="warning"
             value={warningValue}
@@ -205,9 +186,7 @@ export const MultipleWithTagRemoval: Story = {
         <Select
           mode="multiple"
           value={values}
-          onChange={(next) =>
-            setValues(Array.isArray(next) ? next : typeof next === 'string' ? [next] : [])
-          }
+          onChange={(next) => setValues(Array.isArray(next) ? next : typeof next === 'string' ? [next] : [])}
           options={basicOptions}
           placeholder="Select fruits"
           allowClear
@@ -238,16 +217,26 @@ export const AccessibilityDemo: Story = {
           data-testid="fruit-select"
         />
         <div style={{ marginTop: '16px', padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}>
-          <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '14px' }}>
-            Keyboard Navigation:
-          </p>
+          <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '14px' }}>Keyboard Navigation:</p>
           <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '12px' }}>
-            <li><kbd>Enter</kbd> - Open/close dropdown</li>
-            <li><kbd>↑</kbd> / <kbd>↓</kbd> - Navigate options</li>
-            <li><kbd>Home</kbd> - Jump to first option</li>
-            <li><kbd>End</kbd> - Jump to last option</li>
-            <li><kbd>Escape</kbd> - Close dropdown and clear search</li>
-            <li><kbd>Enter</kbd> (when open) - Select highlighted option</li>
+            <li>
+              <kbd>Enter</kbd> - Open/close dropdown
+            </li>
+            <li>
+              <kbd>↑</kbd> / <kbd>↓</kbd> - Navigate options
+            </li>
+            <li>
+              <kbd>Home</kbd> - Jump to first option
+            </li>
+            <li>
+              <kbd>End</kbd> - Jump to last option
+            </li>
+            <li>
+              <kbd>Escape</kbd> - Close dropdown and clear search
+            </li>
+            <li>
+              <kbd>Enter</kbd> (when open) - Select highlighted option
+            </li>
           </ul>
         </div>
       </div>
@@ -267,9 +256,7 @@ export const TagsMode: Story = {
         <Select
           mode="tags"
           value={tags}
-          onChange={(next) =>
-            setTags(Array.isArray(next) ? next : typeof next === 'string' ? [next] : [])
-          }
+          onChange={(next) => setTags(Array.isArray(next) ? next : typeof next === 'string' ? [next] : [])}
           options={basicOptions}
           placeholder="Type to create new tags or select existing"
           allowClear
@@ -286,30 +273,15 @@ export const DisabledState: Story = {
   render: () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div>
-        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>
-          Disabled (No Selection)
-        </label>
-        <Select
-          disabled
-          options={basicOptions}
-          placeholder="Disabled select"
-        />
+        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Disabled (No Selection)</label>
+        <Select disabled options={basicOptions} placeholder="Disabled select" />
       </div>
       <div>
-        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>
-          Disabled (With Selection)
-        </label>
-        <Select
-          disabled
-          value="apple"
-          options={basicOptions}
-          placeholder="Disabled select"
-        />
+        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Disabled (With Selection)</label>
+        <Select disabled value="apple" options={basicOptions} placeholder="Disabled select" />
       </div>
       <div>
-        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>
-          Disabled Multiple (With Tags)
-        </label>
+        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Disabled Multiple (With Tags)</label>
         <Select
           disabled
           mode="multiple"
@@ -334,9 +306,7 @@ export const CustomFiltering: Story = {
 
     return (
       <div>
-        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>
-          Search by Name or Description
-        </label>
+        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Search by Name or Description</label>
         <Select
           showSearch
           value={value}

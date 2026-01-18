@@ -23,11 +23,7 @@ export class CompareEngine {
    * @param options - Diff options
    * @returns Comparison result with pass/fail status and diff image
    */
-  async compare(
-    baseline: Buffer,
-    current: Buffer,
-    options: DiffOptions
-  ): Promise<ComparisonResult> {
+  async compare(baseline: Buffer, current: Buffer, options: DiffOptions): Promise<ComparisonResult> {
     try {
       // Load images with sharp
       const baselineImage = sharp(baseline);
@@ -38,10 +34,7 @@ export class CompareEngine {
       const currentMetadata = await currentImage.metadata();
 
       // Check dimensions match
-      if (
-        baselineMetadata.width !== currentMetadata.width ||
-        baselineMetadata.height !== currentMetadata.height
-      ) {
+      if (baselineMetadata.width !== currentMetadata.width || baselineMetadata.height !== currentMetadata.height) {
         return {
           identifier: '',
           passed: false,
@@ -52,7 +45,7 @@ export class CompareEngine {
           },
           pixelsDifferent: 0,
           error: new Error(
-            `Dimension mismatch: baseline ${baselineMetadata.width}x${baselineMetadata.height} vs current ${currentMetadata.width}x${currentMetadata.height}`
+            `Dimension mismatch: baseline ${baselineMetadata.width}x${baselineMetadata.height} vs current ${currentMetadata.width}x${currentMetadata.height}`,
           ),
         };
       }
@@ -77,20 +70,13 @@ export class CompareEngine {
       const highlightRGB = this.parseHexColor(options.highlightColor);
 
       // Perform pixel comparison
-      const pixelsDifferent = pixelmatch(
-        baselineRaw,
-        currentRaw,
-        diffBuffer,
-        width,
-        height,
-        {
-          threshold: options.threshold,
-          includeAA: !options.ignoreAntialiasing,
-          alpha: 0.1,
-          aaColor: [255, 255, 0], // Yellow for anti-aliasing differences
-          diffColor: highlightRGB,
-        }
-      );
+      const pixelsDifferent = pixelmatch(baselineRaw, currentRaw, diffBuffer, width, height, {
+        threshold: options.threshold,
+        includeAA: !options.ignoreAntialiasing,
+        alpha: 0.1,
+        aaColor: [255, 255, 0], // Yellow for anti-aliasing differences
+        diffColor: highlightRGB,
+      });
 
       // Calculate difference percentage
       const totalPixels = width * height;
@@ -139,10 +125,7 @@ export class CompareEngine {
    * @param options - Diff options
    * @returns Array of comparison results
    */
-  async compareAll(
-    comparisons: ComparisonPair[],
-    options: DiffOptions
-  ): Promise<ComparisonResult[]> {
+  async compareAll(comparisons: ComparisonPair[], options: DiffOptions): Promise<ComparisonResult[]> {
     const results = await Promise.all(
       comparisons.map(async (pair) => {
         const result = await this.compare(pair.baseline, pair.current, options);
@@ -150,7 +133,7 @@ export class CompareEngine {
           ...result,
           identifier: pair.identifier,
         };
-      })
+      }),
     );
 
     return results;

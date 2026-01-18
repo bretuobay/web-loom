@@ -30,21 +30,25 @@ npm run count-loc:cloc
 The LOC counter:
 
 ✅ **Separates source from tests**
+
 - Automatically detects `.test.ts`, `.spec.ts`, `__tests__/` files
 - Reports source vs test code separately
 
 ✅ **Excludes non-code files**
+
 - `node_modules`, `dist`, `build`, `.next`, `coverage`
 - Config files (`.config.js`, `tsconfig.json`, etc.)
 - Markdown files, JSON, lock files
 - Assets (images, fonts, etc.)
 
 ✅ **Counts real code**
+
 - Lines of code (excluding blanks and comments)
 - Files, blanks, comments tracked separately
 - Code density percentage
 
 ✅ **Organized reports**
+
 - Breakdown by packages and apps
 - Top 10 largest codebases
 - Test-to-source ratio
@@ -57,6 +61,7 @@ The LOC counter:
 **Command:** `npm run count-loc:visualize`
 
 **Features:**
+
 - Beautiful, interactive HTML dashboard
 - Chart.js visualizations (pie charts, bar charts)
 - Automatically opens in your default browser
@@ -65,6 +70,7 @@ The LOC counter:
 - Zero configuration required
 
 **What You Get:**
+
 - **Distribution Chart**: Visual breakdown of code vs comments vs blanks
 - **Source vs Tests Chart**: Compare source and test code across packages and apps
 - **Top 10 Packages Chart**: Horizontal bar chart of largest packages
@@ -73,6 +79,7 @@ The LOC counter:
 - **Summary Cards**: Key metrics at a glance
 
 **Perfect For:**
+
 - Quick project overview
 - Sharing with stakeholders
 - Team presentations
@@ -83,12 +90,14 @@ The LOC counter:
 **Command:** `npm run count-loc`
 
 **Pros:**
+
 - No external dependencies
 - Consistent cross-platform
 - Detailed breakdowns
 - JSON export option
 
 **Example Output:**
+
 ```
 ========================================================================================================================
 WEB LOOM - LINES OF CODE REPORT
@@ -113,6 +122,7 @@ Test to Source Ratio: 18.8% (7,230 test lines / 38,450 source lines)
 **Command:** `npm run count-loc:cloc`
 
 **Requirements:**
+
 - `cloc` or `tokei` installed
 
 ```bash
@@ -127,6 +137,7 @@ cargo install tokei
 ```
 
 **Pros:**
+
 - Industry-standard tools
 - Very fast on large codebases
 - Language detection
@@ -138,11 +149,13 @@ cargo install tokei
 **Output:** `loc-report.json`
 
 Use for:
+
 - CI/CD metrics
 - Trend analysis over time
 - Custom reporting/visualization
 
 **Example JSON:**
+
 ```json
 {
   "packages": {
@@ -159,6 +172,7 @@ Use for:
 ### What's Counted
 
 #### Source Code Extensions
+
 - `.ts` - TypeScript
 - `.tsx` - TypeScript React
 - `.js` - JavaScript
@@ -167,11 +181,13 @@ Use for:
 - `.svelte` - Svelte components
 
 #### Test File Patterns
+
 - `*.test.ts`, `*.test.tsx`
 - `*.spec.ts`, `*.spec.tsx`
 - Files in `__tests__/` directories
 
 #### Excluded Directories
+
 ```
 node_modules/
 dist/
@@ -186,6 +202,7 @@ assets/
 ```
 
 #### Excluded Files
+
 - Config files: `*.config.js`, `vite.config.ts`, `tsconfig.json`
 - Documentation: `*.md`
 - Data files: `*.json` (except package.json)
@@ -302,7 +319,7 @@ The TypeScript version counts code more conservatively (excludes more config fil
 ### Performance
 
 | Codebase Size | TypeScript | cloc | tokei |
-|---------------|------------|------|-------|
+| ------------- | ---------- | ---- | ----- |
 | Small (<10K)  | ~1s        | ~1s  | <1s   |
 | Medium (50K)  | ~3s        | ~2s  | <1s   |
 | Large (100K+) | ~8s        | ~4s  | ~1s   |
@@ -317,9 +334,15 @@ Edit `scripts/count-loc.ts`:
 
 ```typescript
 const SOURCE_EXTENSIONS = new Set([
-  '.ts', '.tsx', '.js', '.jsx',
-  '.vue', '.svelte',
-  '.rs', '.go', '.py'  // Add your languages
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.vue',
+  '.svelte',
+  '.rs',
+  '.go',
+  '.py', // Add your languages
 ]);
 ```
 
@@ -327,8 +350,9 @@ const SOURCE_EXTENSIONS = new Set([
 
 ```typescript
 const SKIP_DIRS = new Set([
-  'node_modules', 'dist',
-  'my-custom-dir'  // Add custom directories
+  'node_modules',
+  'dist',
+  'my-custom-dir', // Add custom directories
 ]);
 ```
 

@@ -16,7 +16,7 @@ describe('Status Command', () => {
   beforeEach(async () => {
     // Create test directory structure
     await fs.mkdir(diffDir, { recursive: true });
-    
+
     // Create a default config file
     const configPath = path.join(testDir, 'visdiff.config.js');
     await fs.writeFile(
@@ -27,7 +27,7 @@ describe('Status Command', () => {
         captureOptions: { fullPage: false, omitBackground: false, timeout: 30000 },
         diffOptions: { threshold: 0.01, ignoreAntialiasing: true, ignoreColors: false, highlightColor: '#ff00ff' },
         storage: { baselineDir: '.visdiff/baselines', diffDir: '.visdiff/diffs', format: 'png' }
-      };`
+      };`,
     );
   });
 
@@ -81,10 +81,7 @@ describe('Status Command', () => {
       },
     };
 
-    await fs.writeFile(
-      path.join(reportDir, 'report.json'),
-      JSON.stringify(report, null, 2)
-    );
+    await fs.writeFile(path.join(reportDir, 'report.json'), JSON.stringify(report, null, 2));
 
     const originalCwd = process.cwd();
     process.chdir(testDir);
@@ -115,10 +112,7 @@ describe('Status Command', () => {
       },
     };
 
-    await fs.writeFile(
-      path.join(reportDir, 'report.json'),
-      JSON.stringify(report, null, 2)
-    );
+    await fs.writeFile(path.join(reportDir, 'report.json'), JSON.stringify(report, null, 2));
 
     const originalCwd = process.cwd();
     process.chdir(testDir);
@@ -164,10 +158,7 @@ describe('Status Command', () => {
       },
     };
 
-    await fs.writeFile(
-      path.join(reportDir, 'report.json'),
-      JSON.stringify(report, null, 2)
-    );
+    await fs.writeFile(path.join(reportDir, 'report.json'), JSON.stringify(report, null, 2));
 
     const originalCwd = process.cwd();
     process.chdir(testDir);

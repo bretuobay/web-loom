@@ -30,7 +30,7 @@ describe('Button', () => {
       render(
         <Button data-testid="test-button" aria-label="Test Button">
           Click me
-        </Button>
+        </Button>,
       );
       const button = screen.getByTestId('test-button');
       expect(button).toHaveAttribute('aria-label', 'Test Button');
@@ -138,7 +138,7 @@ describe('Button', () => {
       render(
         <Button loading icon={<span data-testid="icon">Icon</span>}>
           Loading
-        </Button>
+        </Button>,
       );
       expect(screen.queryByTestId('icon')).not.toBeInTheDocument();
     });
@@ -154,7 +154,7 @@ describe('Button', () => {
       render(
         <Button loading onClick={handleClick}>
           Loading
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -198,7 +198,7 @@ describe('Button', () => {
       render(
         <Button disabled onClick={handleClick}>
           Disabled
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -217,7 +217,7 @@ describe('Button', () => {
       render(
         <Button variant="link" danger>
           Danger Link
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button.className).not.toContain('danger');
@@ -227,7 +227,7 @@ describe('Button', () => {
       render(
         <Button variant="text" danger>
           Danger Text
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button.className).not.toContain('danger');
@@ -237,7 +237,7 @@ describe('Button', () => {
       render(
         <Button variant="primary" danger>
           Delete
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button.className).toContain('danger');
@@ -247,9 +247,7 @@ describe('Button', () => {
 
   describe('Icon Support', () => {
     it('should render icon before text', () => {
-      const { container } = render(
-        <Button icon={<span data-testid="icon">Icon</span>}>Text</Button>
-      );
+      const { container } = render(<Button icon={<span data-testid="icon">Icon</span>}>Text</Button>);
       const iconSpan = container.querySelector('[class*="icon"]');
       expect(iconSpan).toBeInTheDocument();
       expect(screen.getByTestId('icon')).toBeInTheDocument();
@@ -263,17 +261,13 @@ describe('Button', () => {
     });
 
     it('should not apply iconOnly class when text is present', () => {
-      render(
-        <Button icon={<span data-testid="icon">Icon</span>}>Text</Button>
-      );
+      render(<Button icon={<span data-testid="icon">Icon</span>}>Text</Button>);
       const button = screen.getByRole('button');
       expect(button.className).not.toContain('iconOnly');
     });
 
     it('should add aria-hidden to icon', () => {
-      const { container } = render(
-        <Button icon={<span data-testid="icon">Icon</span>}>Text</Button>
-      );
+      const { container } = render(<Button icon={<span data-testid="icon">Icon</span>}>Text</Button>);
       const iconWrapper = container.querySelector('[class*="icon"]');
       expect(iconWrapper).toHaveAttribute('aria-hidden', 'true');
     });
@@ -307,7 +301,7 @@ describe('Button', () => {
       render(
         <Button disabled onClick={handleClick}>
           Disabled
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -319,7 +313,7 @@ describe('Button', () => {
       render(
         <Button loading onClick={handleClick}>
           Loading
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -403,13 +397,9 @@ describe('Button', () => {
   describe('TypeScript Props', () => {
     it('should accept all ButtonHTMLAttributes', () => {
       render(
-        <Button
-          title="Button Title"
-          data-testid="test"
-          aria-describedby="description"
-        >
+        <Button title="Button Title" data-testid="test" aria-describedby="description">
           Button
-        </Button>
+        </Button>,
       );
       const button = screen.getByTestId('test');
       expect(button).toHaveAttribute('title', 'Button Title');
@@ -430,7 +420,7 @@ describe('Button', () => {
           className="custom-class"
         >
           Combined
-        </Button>
+        </Button>,
       );
 
       const button = screen.getByRole('button');
@@ -448,7 +438,7 @@ describe('Button', () => {
       render(
         <Button variant="primary" danger>
           Delete
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button.className).toContain('variant-primary');
@@ -456,9 +446,7 @@ describe('Button', () => {
     });
 
     it('should render small circle icon button', () => {
-      render(
-        <Button size="small" shape="circle" icon={<span>Icon</span>} />
-      );
+      render(<Button size="small" shape="circle" icon={<span>Icon</span>} />);
       const button = screen.getByRole('button');
       expect(button.className).toContain('size-small');
       expect(button.className).toContain('shape-circle');

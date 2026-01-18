@@ -106,7 +106,7 @@ export function ThemeProvider({
       setMode,
       cssVarPrefix,
     }),
-    [theme, mode, setTheme, setMode, cssVarPrefix]
+    [theme, mode, setTheme, setMode, cssVarPrefix],
   );
 
   return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;

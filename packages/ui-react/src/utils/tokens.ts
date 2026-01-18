@@ -22,10 +22,7 @@ import type { DesignTokens } from '../providers/types';
  * // Returns: { '--ui-color-primary': '#1677ff', '--ui-font-size': '14px' }
  * ```
  */
-export function mapDesignTokensToCSS(
-  tokens: Partial<DesignTokens>,
-  prefix = 'ui'
-): Record<string, string> {
+export function mapDesignTokensToCSS(tokens: Partial<DesignTokens>, prefix = 'ui'): Record<string, string> {
   const cssVars: Record<string, string> = {};
 
   Object.entries(tokens).forEach(([key, value]) => {
@@ -84,10 +81,7 @@ export function getCSSVarRef(key: string, fallback?: string, prefix = 'ui'): str
  * // Returns: { colorPrimary: '#ff0000', fontSize: '14px' }
  * ```
  */
-export function mergeTokens<T extends Record<string, any>>(
-  defaultTokens: T,
-  customTokens?: Partial<T>
-): T {
+export function mergeTokens<T extends Record<string, any>>(defaultTokens: T, customTokens?: Partial<T>): T {
   if (!customTokens) {
     return defaultTokens;
   }
@@ -105,10 +99,7 @@ export function mergeTokens<T extends Record<string, any>>(
  * @param componentName - Component name (e.g., 'Button', 'Input')
  * @returns Component-specific tokens or empty object
  */
-export function getComponentTokens(
-  allTokens: any,
-  componentName: string
-): Record<string, any> {
+export function getComponentTokens(allTokens: any, componentName: string): Record<string, any> {
   if (!allTokens?.components?.[componentName]) {
     return {};
   }
@@ -135,7 +126,7 @@ export function getComponentTokens(
 export function createComponentVars(
   componentName: string,
   tokens: Record<string, any>,
-  prefix = 'ui'
+  prefix = 'ui',
 ): Record<string, string> {
   const cssVars: Record<string, string> = {};
   const componentPrefix = componentName.toLowerCase();

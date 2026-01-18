@@ -19,4 +19,3 @@ export * from './utils';
 
 // Version
 export const version = '0.5.2';
-

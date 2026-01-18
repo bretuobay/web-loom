@@ -14,8 +14,10 @@ export interface ProjectAttributes {
   updatedAt?: Date;
 }
 
-export interface ProjectCreationAttributes
-  extends Optional<ProjectAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'color' | 'status'> {}
+export interface ProjectCreationAttributes extends Optional<
+  ProjectAttributes,
+  'id' | 'createdAt' | 'updatedAt' | 'description' | 'color' | 'status'
+> {}
 
 export class Project extends Model<ProjectAttributes, ProjectCreationAttributes> implements ProjectAttributes {
   declare id: string;
@@ -32,31 +34,31 @@ Project.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     name: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: false,
     },
     description: {
       type: DataTypes.TEXT,
       allowNull: false,
-      defaultValue: ''
+      defaultValue: '',
     },
     color: {
       type: DataTypes.STRING(20),
       allowNull: false,
-      defaultValue: '#60a5fa'
+      defaultValue: '#60a5fa',
     },
     status: {
       type: DataTypes.ENUM(...PROJECT_STATUSES),
       allowNull: false,
-      defaultValue: 'planning'
-    }
+      defaultValue: 'planning',
+    },
   },
   {
     sequelize,
     tableName: 'projects',
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );

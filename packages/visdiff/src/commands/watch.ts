@@ -36,15 +36,11 @@ async function performComparison(
   _browserManager: BrowserManager,
   captureEngine: CaptureEngine,
   compareEngine: CompareEngine,
-  storage: StorageManager
+  storage: StorageManager,
 ): Promise<{ passed: number; failed: number; new: number }> {
   try {
     // Capture current screenshots
-    const captureSummary = await captureEngine.captureAll(
-      urls,
-      config.viewports,
-      config.captureOptions
-    );
+    const captureSummary = await captureEngine.captureAll(urls, config.viewports, config.captureOptions);
 
     // Load baselines and prepare comparisons
     const comparisons: ComparisonPair[] = [];
@@ -106,15 +102,12 @@ async function performComparison(
 /**
  * Display comparison results in real-time
  */
-function displayResults(
-  results: { passed: number; failed: number; new: number },
-  timestamp: Date
-): void {
+function displayResults(results: { passed: number; failed: number; new: number }, timestamp: Date): void {
   const timeStr = timestamp.toLocaleTimeString();
-  
+
   console.log();
   console.log(chalk.blue(`[${timeStr}] Comparison complete:`));
-  
+
   if (results.failed === 0 && results.new === 0) {
     console.log(chalk.green(`  ✓ All ${results.passed} comparison(s) passed`));
   } else {
@@ -126,17 +119,14 @@ function displayResults(
       console.log(chalk.yellow(`  New: ${results.new}`));
     }
   }
-  
+
   console.log(chalk.gray('  Watching for changes...'));
 }
 
 /**
  * Execute the watch command
  */
-export async function watchCommand(
-  url: string | undefined,
-  options: WatchOptions = {}
-): Promise<number> {
+export async function watchCommand(url: string | undefined, options: WatchOptions = {}): Promise<number> {
   const cwd = process.cwd();
   let browserManager: BrowserManager | null = null;
   let watcher: FSWatcher | null = null;
@@ -155,7 +145,7 @@ export async function watchCommand(
 
     // Determine URLs to watch
     const urlsToWatch = url ? [url] : config.paths;
-    
+
     if (urlsToWatch.length === 0) {
       console.error(chalk.red('✗ No URLs specified'));
       console.log(chalk.gray('  Provide a URL as argument or configure paths in visdiff.config.js'));
@@ -184,7 +174,7 @@ export async function watchCommand(
       browserManager,
       captureEngine,
       compareEngine,
-      storage
+      storage,
     );
     displayResults(initialResults, new Date());
 
@@ -206,7 +196,7 @@ export async function watchCommand(
         }
 
         isRunning = true;
-        
+
         try {
           const results = await performComparison(
             urlsToWatch,
@@ -214,7 +204,7 @@ export async function watchCommand(
             browserManager!,
             captureEngine,
             compareEngine,
-            storage
+            storage,
           );
           displayResults(results, new Date());
         } catch (error) {
@@ -227,11 +217,11 @@ export async function watchCommand(
     }, pollInterval);
 
     // Set up file system watcher for local files (if watching localhost)
-    const isLocalhost = urlsToWatch.some(u => u.includes('localhost') || u.includes('127.0.0.1'));
-    
+    const isLocalhost = urlsToWatch.some((u) => u.includes('localhost') || u.includes('127.0.0.1'));
+
     if (isLocalhost) {
       // Watch common source directories
-      const watchPaths = ['src', 'public', 'dist', 'build'].filter(p => {
+      const watchPaths = ['src', 'public', 'dist', 'build'].filter((p) => {
         try {
           const fs = require('fs');
           return fs.existsSync(p);
@@ -242,7 +232,7 @@ export async function watchCommand(
 
       if (watchPaths.length > 0) {
         console.log(chalk.gray(`  Watching file system: ${watchPaths.join(', ')}`));
-        
+
         watcher = watch(watchPaths[0]!, { recursive: true }, async (_eventType: string, filename: string | null) => {
           if (shouldExit || isRunning) {
             return;
@@ -260,7 +250,7 @@ export async function watchCommand(
 
             isRunning = true;
             console.log(chalk.gray(`  Change detected: ${filename || 'unknown'}`));
-            
+
             try {
               const results = await performComparison(
                 urlsToWatch,
@@ -268,7 +258,7 @@ export async function watchCommand(
                 browserManager!,
                 captureEngine,
                 compareEngine,
-                storage
+                storage,
               );
               displayResults(results, new Date());
             } catch (error) {
@@ -287,7 +277,7 @@ export async function watchCommand(
       if (shouldExit) {
         return;
       }
-      
+
       shouldExit = true;
       console.log();
       console.log(chalk.blue('Shutting down watch mode...'));
@@ -324,16 +314,15 @@ export async function watchCommand(
     return new Promise<number>(() => {
       // This promise never resolves - watch mode runs until interrupted
     });
-
   } catch (error) {
     console.error(chalk.red('✗ Watch mode failed'));
     console.error(chalk.red((error as Error).message));
-    
+
     // Clean up on error
     if (watcher) {
       watcher.close();
     }
-    
+
     if (browserManager) {
       try {
         await browserManager.close();
@@ -341,7 +330,7 @@ export async function watchCommand(
         console.error(chalk.yellow('Warning: Failed to close browser'), cleanupError);
       }
     }
-    
+
     return 1;
   }
 }

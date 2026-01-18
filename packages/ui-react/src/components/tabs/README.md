@@ -53,16 +53,16 @@ Main tabs container component.
 
 #### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `activeKey` | `string` | - | Currently active tab key (controlled mode) |
-| `defaultActiveKey` | `string` | First tab key | Default active tab key (uncontrolled mode) |
-| `type` | `'line' \| 'card' \| 'editable-card'` | `'line'` | Tab type variant |
-| `size` | `'large' \| 'middle' \| 'small'` | `'middle'` | Tab size |
-| `tabPosition` | `'top' \| 'right' \| 'bottom' \| 'left'` | `'top'` | Position of tabs |
-| `onChange` | `(activeKey: string) => void` | - | Callback when active tab changes |
-| `onEdit` | `(targetKey: string, action: 'add' \| 'remove') => void` | - | Callback for editable tabs (add/remove) |
-| `className` | `string` | - | Additional CSS class name |
+| Prop               | Type                                                     | Default       | Description                                |
+| ------------------ | -------------------------------------------------------- | ------------- | ------------------------------------------ |
+| `activeKey`        | `string`                                                 | -             | Currently active tab key (controlled mode) |
+| `defaultActiveKey` | `string`                                                 | First tab key | Default active tab key (uncontrolled mode) |
+| `type`             | `'line' \| 'card' \| 'editable-card'`                    | `'line'`      | Tab type variant                           |
+| `size`             | `'large' \| 'middle' \| 'small'`                         | `'middle'`    | Tab size                                   |
+| `tabPosition`      | `'top' \| 'right' \| 'bottom' \| 'left'`                 | `'top'`       | Position of tabs                           |
+| `onChange`         | `(activeKey: string) => void`                            | -             | Callback when active tab changes           |
+| `onEdit`           | `(targetKey: string, action: 'add' \| 'remove') => void` | -             | Callback for editable tabs (add/remove)    |
+| `className`        | `string`                                                 | -             | Additional CSS class name                  |
 
 ### Tabs.TabPane
 
@@ -70,13 +70,13 @@ Individual tab pane component.
 
 #### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `tabKey` | `string` | - | **Required.** Unique key for the tab pane |
-| `tab` | `ReactNode` | - | **Required.** Tab label/title |
-| `disabled` | `boolean` | `false` | Whether the tab is disabled |
-| `closable` | `boolean` | `true` | Whether the tab is closable (only for editable-card type) |
-| `children` | `ReactNode` | - | Tab pane content |
+| Prop       | Type        | Default | Description                                               |
+| ---------- | ----------- | ------- | --------------------------------------------------------- |
+| `tabKey`   | `string`    | -       | **Required.** Unique key for the tab pane                 |
+| `tab`      | `ReactNode` | -       | **Required.** Tab label/title                             |
+| `disabled` | `boolean`   | `false` | Whether the tab is disabled                               |
+| `closable` | `boolean`   | `true`  | Whether the tab is closable (only for editable-card type) |
+| `children` | `ReactNode` | -       | Tab pane content                                          |
 
 ## Examples
 
@@ -106,11 +106,14 @@ function EditableTabs() {
   const handleEdit = (targetKey: string, action: 'add' | 'remove') => {
     if (action === 'add') {
       const newKey = `${Date.now()}`;
-      setTabs([...tabs, {
-        key: newKey,
-        tab: 'New Tab',
-        content: 'New Content'
-      }]);
+      setTabs([
+        ...tabs,
+        {
+          key: newKey,
+          tab: 'New Tab',
+          content: 'New Content',
+        },
+      ]);
       setActiveKey(newKey);
     } else {
       const newTabs = tabs.filter((tab) => tab.key !== targetKey);
@@ -122,12 +125,7 @@ function EditableTabs() {
   };
 
   return (
-    <Tabs
-      type="editable-card"
-      activeKey={activeKey}
-      onChange={setActiveKey}
-      onEdit={handleEdit}
-    >
+    <Tabs type="editable-card" activeKey={activeKey} onChange={setActiveKey} onEdit={handleEdit}>
       {tabs.map((tab) => (
         <Tabs.TabPane key={tab.key} tabKey={tab.key} tab={tab.tab}>
           {tab.content}
@@ -191,8 +189,12 @@ function ControlledTabs() {
         <button onClick={() => setActiveKey('2')}>Tab 2</button>
       </div>
       <Tabs activeKey={activeKey} onChange={setActiveKey}>
-        <Tabs.TabPane tabKey="1" tab="Tab 1">Content 1</Tabs.TabPane>
-        <Tabs.TabPane tabKey="2" tab="Tab 2">Content 2</Tabs.TabPane>
+        <Tabs.TabPane tabKey="1" tab="Tab 1">
+          Content 1
+        </Tabs.TabPane>
+        <Tabs.TabPane tabKey="2" tab="Tab 2">
+          Content 2
+        </Tabs.TabPane>
       </Tabs>
     </div>
   );
@@ -249,19 +251,9 @@ function EditableWithFixedTab() {
   };
 
   return (
-    <Tabs
-      type="editable-card"
-      activeKey={activeKey}
-      onChange={setActiveKey}
-      onEdit={handleEdit}
-    >
+    <Tabs type="editable-card" activeKey={activeKey} onChange={setActiveKey} onEdit={handleEdit}>
       {tabs.map((tab) => (
-        <Tabs.TabPane
-          key={tab.key}
-          tabKey={tab.key}
-          tab={tab.tab}
-          closable={tab.closable}
-        >
+        <Tabs.TabPane key={tab.key} tabKey={tab.key} tab={tab.tab} closable={tab.closable}>
           {tab.content}
         </Tabs.TabPane>
       ))}
@@ -299,22 +291,27 @@ The Tabs component follows WAI-ARIA best practices:
 The Tabs component uses CSS custom properties from the design system:
 
 ### Colors
+
 - `--color-base-primary`: Active tab color
 - `--color-neutral-gray-*`: Borders, backgrounds, and text colors
 - `--color-neutral-white`: White backgrounds
 
 ### Typography
+
 - `--typography-font-size-*`: Font sizes for different sizes
 - `--typography-font-weight-*`: Font weights
 
 ### Spacing
+
 - `--spacing-*`: Padding and margins
 
 ### Border
+
 - `--border-width-1`: Border widths
 - `--radius-*`: Border radius
 
 ### Timing
+
 - `--timing-fast`: Transition duration
 - `--timing-normal`: Animation duration
 
@@ -325,7 +322,9 @@ The component automatically supports dark theme via `[data-theme='dark']` attrib
 ```tsx
 <div data-theme="dark">
   <Tabs defaultActiveKey="1">
-    <Tabs.TabPane tabKey="1" tab="Tab 1">Dark theme content</Tabs.TabPane>
+    <Tabs.TabPane tabKey="1" tab="Tab 1">
+      Dark theme content
+    </Tabs.TabPane>
   </Tabs>
 </div>
 ```
@@ -442,7 +441,7 @@ For responsive layouts, consider changing tab position or type based on screen s
 
 ```tsx
 <Tabs type="editable-card" activeKey={activeDoc} onChange={setActiveDoc} onEdit={handleEdit}>
-  {documents.map(doc => (
+  {documents.map((doc) => (
     <Tabs.TabPane key={doc.id} tabKey={doc.id} tab={doc.name}>
       <Editor content={doc.content} />
     </Tabs.TabPane>

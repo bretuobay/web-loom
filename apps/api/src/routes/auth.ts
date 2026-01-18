@@ -125,7 +125,11 @@ router.post('/change-password', requireAuth, async (req: Request, res: Response)
     }
 
     const { currentPassword, newPassword } = validationResult.data;
-    const isCurrentValid = await verifyPassword(currentPassword, authReq.authUser.passwordHash, authReq.authUser.passwordSalt);
+    const isCurrentValid = await verifyPassword(
+      currentPassword,
+      authReq.authUser.passwordHash,
+      authReq.authUser.passwordSalt,
+    );
     if (!isCurrentValid) {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }

@@ -21,7 +21,7 @@ const ALLOWED_ATTACHMENT_TYPES = new Set([
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ]);
 const attachmentBodyParser = express.raw({ type: () => true, limit: MAX_ATTACHMENT_BYTES });
 
@@ -32,15 +32,18 @@ const taskSchema = z.object({
   assigneeId: z.string().uuid().optional().nullable(),
   status: z.enum(TASK_STATUSES).optional().default('backlog'),
   priority: z.enum(TASK_PRIORITIES).optional().default('medium'),
-  dueDate: z.string().optional().transform((value) => (value ? new Date(value) : null)),
-  projectId: z.string().uuid()
+  dueDate: z
+    .string()
+    .optional()
+    .transform((value) => (value ? new Date(value) : null)),
+  projectId: z.string().uuid(),
 });
 
 const querySchema = z.object({
   status: z.enum(TASK_STATUSES).optional(),
   assigneeName: z.string().optional(),
   assigneeId: z.string().uuid().optional(),
-  projectId: z.string().uuid().optional()
+  projectId: z.string().uuid().optional(),
 });
 
 router.get('/', async (req, res, next) => {
@@ -72,51 +75,46 @@ router.post('/', authenticate, async (req, res, next) => {
   }
 });
 
-router.post(
-  '/:id/attachments',
-  authenticate,
-  attachmentBodyParser,
-  async (req, res, next) => {
-    try {
-      if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
-        throw new ApiError('No file data provided', 400);
-      }
-
-      const rawName = req.get('x-file-name');
-      if (!rawName) {
-        throw new ApiError('Missing file name header', 400);
-      }
-
-      let originalName: string;
-      try {
-        originalName = decodeURIComponent(rawName);
-      } catch {
-        originalName = rawName;
-      }
-
-      const mimeType = req.get('content-type') ?? 'application/octet-stream';
-      if (!ALLOWED_ATTACHMENT_TYPES.has(mimeType)) {
-        throw new ApiError('Unsupported file type', 415);
-      }
-
-      if (req.body.length > MAX_ATTACHMENT_BYTES) {
-        throw new ApiError('File exceeds size limit', 413);
-      }
-
-      const attachment = await attachmentService.create({
-        taskId: req.params.id,
-        buffer: req.body,
-        originalName,
-        mimeType,
-        size: req.body.length
-      });
-
-      res.status(201).json(attachment);
-    } catch (error) {
-      next(error);
+router.post('/:id/attachments', authenticate, attachmentBodyParser, async (req, res, next) => {
+  try {
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+      throw new ApiError('No file data provided', 400);
     }
+
+    const rawName = req.get('x-file-name');
+    if (!rawName) {
+      throw new ApiError('Missing file name header', 400);
+    }
+
+    let originalName: string;
+    try {
+      originalName = decodeURIComponent(rawName);
+    } catch {
+      originalName = rawName;
+    }
+
+    const mimeType = req.get('content-type') ?? 'application/octet-stream';
+    if (!ALLOWED_ATTACHMENT_TYPES.has(mimeType)) {
+      throw new ApiError('Unsupported file type', 415);
+    }
+
+    if (req.body.length > MAX_ATTACHMENT_BYTES) {
+      throw new ApiError('File exceeds size limit', 413);
+    }
+
+    const attachment = await attachmentService.create({
+      taskId: req.params.id,
+      buffer: req.body,
+      originalName,
+      mimeType,
+      size: req.body.length,
+    });
+
+    res.status(201).json(attachment);
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 router.put('/:id', authenticate, async (req, res, next) => {
   try {

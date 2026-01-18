@@ -12,8 +12,10 @@ export interface TodoAttributes {
   updatedAt?: Date;
 }
 
-export interface TodoCreationAttributes
-  extends Optional<TodoAttributes, 'id' | 'details' | 'completed' | 'dueDate' | 'createdAt' | 'updatedAt'> {}
+export interface TodoCreationAttributes extends Optional<
+  TodoAttributes,
+  'id' | 'details' | 'completed' | 'dueDate' | 'createdAt' | 'updatedAt'
+> {}
 
 export class Todo extends Model<TodoAttributes, TodoCreationAttributes> implements TodoAttributes {
   declare id: string;
@@ -31,35 +33,35 @@ Todo.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     title: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: false,
     },
     details: {
       type: DataTypes.TEXT,
       allowNull: false,
-      defaultValue: ''
+      defaultValue: '',
     },
     completed: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: false
+      defaultValue: false,
     },
     dueDate: {
       type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: sequelize.literal('CURRENT_DATE')
+      defaultValue: sequelize.literal('CURRENT_DATE'),
     },
     userId: {
       type: DataTypes.UUID,
-      allowNull: false
-    }
+      allowNull: false,
+    },
   },
   {
     sequelize,
     tableName: 'todos',
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );

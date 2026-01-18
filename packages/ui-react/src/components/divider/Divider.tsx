@@ -40,7 +40,7 @@ export function Divider({
       'loom-divider-dashed': dashed,
       'loom-divider-plain': plain,
     },
-    className
+    className,
   );
 
   // Vertical divider doesn't support text

@@ -49,7 +49,7 @@ export function Menu({
       }
       onSelect?.(key);
     },
-    [isControlled, onSelect]
+    [isControlled, onSelect],
   );
 
   const contextValue: MenuContextValue = {
@@ -68,7 +68,7 @@ export function Menu({
     {
       'loom-menu-inline-collapsed': mode === 'inline' && inlineCollapsed,
     },
-    className
+    className,
   );
 
   return (

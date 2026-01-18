@@ -33,8 +33,8 @@ export const todoService = {
       where: { userId },
       order: [
         ['dueDate', 'ASC'],
-        ['createdAt', 'ASC']
-      ]
+        ['createdAt', 'ASC'],
+      ],
     });
   },
 
@@ -50,7 +50,7 @@ export const todoService = {
       title: payload.title,
       details: payload.details ?? '',
       dueDate,
-      completed: payload.completed ?? false
+      completed: payload.completed ?? false,
     });
     return todo;
   },
@@ -62,7 +62,7 @@ export const todoService = {
       title: updates.title ?? todo.title,
       details: updates.details ?? todo.details,
       dueDate: updates.dueDate ?? todo.dueDate,
-      completed: updates.completed ?? todo.completed
+      completed: updates.completed ?? todo.completed,
     });
     return todo;
   },
@@ -72,5 +72,5 @@ export const todoService = {
     const todo = ensureTodoOwnership(maybeTodo, userId);
     await todo.destroy();
     return true;
-  }
+  },
 };

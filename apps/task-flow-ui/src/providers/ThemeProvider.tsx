@@ -139,9 +139,5 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
 
   const setThemeMode = (mode: ThemeMode) => setThemeState(mode);
 
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setThemeMode }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ theme, toggleTheme, setThemeMode }}>{children}</ThemeContext.Provider>;
 };

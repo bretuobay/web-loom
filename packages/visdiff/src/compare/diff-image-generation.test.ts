@@ -82,9 +82,9 @@ describe('Property 11: Diff image generation on failure', () => {
             expect(diffMetadata.width).toBe(width);
             expect(diffMetadata.height).toBe(height);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -132,9 +132,9 @@ describe('Property 11: Diff image generation on failure', () => {
           if (result.passed) {
             expect(result.diffImage).toBeUndefined();
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

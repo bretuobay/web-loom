@@ -25,8 +25,8 @@ export function ProjectList({ viewModel }: Props) {
   const detailOpen = useObservable(vm.isDetailPanelOpen$, false);
   const selectedProjectId = useObservable(vm.selectedProject$, undefined);
   const selectedProject = useMemo(
-    () => (selectedProjectId ? allProjects.find((project) => project.id === selectedProjectId) ?? null : null),
-    [allProjects, selectedProjectId]
+    () => (selectedProjectId ? (allProjects.find((project) => project.id === selectedProjectId) ?? null) : null),
+    [allProjects, selectedProjectId],
   );
   const projectTasks = useObservable(vm.projectTasks$, []);
   const isTaskFormOpen = useObservable(vm.isTaskFormOpen$, false);
@@ -37,13 +37,12 @@ export function ProjectList({ viewModel }: Props) {
         name: editingProject.name,
         description: editingProject.description,
         color: editingProject.color,
-        status: editingProject.status
+        status: editingProject.status,
       }
     : undefined;
   const projectFormTitle = projectFormMode === 'edit' ? 'Edit project' : 'Create project';
   const projectFormButtonLabel = projectFormMode === 'edit' ? 'Save changes' : 'Create project';
-  const newProjectButtonLabel =
-    isProjectFormOpen && projectFormMode === 'create' ? 'Hide project form' : 'New project';
+  const newProjectButtonLabel = isProjectFormOpen && projectFormMode === 'create' ? 'Hide project form' : 'New project';
 
   const searchTerm = vm.searchTerm;
 

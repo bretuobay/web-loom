@@ -49,35 +49,35 @@ function App() {
 
 Main menu container component.
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `mode` | `'vertical' \| 'horizontal' \| 'inline'` | `'vertical'` | Menu orientation |
-| `theme` | `'light' \| 'dark'` | `'light'` | Color theme |
-| `selectedKeys` | `string[]` | - | Selected menu keys (controlled) |
-| `defaultSelectedKeys` | `string[]` | `[]` | Default selected keys (uncontrolled) |
-| `inlineCollapsed` | `boolean` | `false` | Collapse inline menu to icons only |
-| `onSelect` | `(key: string) => void` | - | Selection change callback |
+| Prop                  | Type                                     | Default      | Description                          |
+| --------------------- | ---------------------------------------- | ------------ | ------------------------------------ |
+| `mode`                | `'vertical' \| 'horizontal' \| 'inline'` | `'vertical'` | Menu orientation                     |
+| `theme`               | `'light' \| 'dark'`                      | `'light'`    | Color theme                          |
+| `selectedKeys`        | `string[]`                               | -            | Selected menu keys (controlled)      |
+| `defaultSelectedKeys` | `string[]`                               | `[]`         | Default selected keys (uncontrolled) |
+| `inlineCollapsed`     | `boolean`                                | `false`      | Collapse inline menu to icons only   |
+| `onSelect`            | `(key: string) => void`                  | -            | Selection change callback            |
 
 ### Menu.Item
 
 Individual menu item.
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `itemKey` | `string` | **required** | Unique identifier for the item |
-| `icon` | `ReactNode` | - | Icon to display before label |
-| `disabled` | `boolean` | `false` | Whether item is disabled |
+| Prop       | Type        | Default      | Description                    |
+| ---------- | ----------- | ------------ | ------------------------------ |
+| `itemKey`  | `string`    | **required** | Unique identifier for the item |
+| `icon`     | `ReactNode` | -            | Icon to display before label   |
+| `disabled` | `boolean`   | `false`      | Whether item is disabled       |
 
 ### Menu.SubMenu
 
 Submenu with nested items.
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `itemKey` | `string` | **required** | Unique identifier for submenu |
-| `title` | `ReactNode` | **required** | Submenu title/label |
-| `icon` | `ReactNode` | - | Icon to display before title |
-| `disabled` | `boolean` | `false` | Whether submenu is disabled |
+| Prop       | Type        | Default      | Description                   |
+| ---------- | ----------- | ------------ | ----------------------------- |
+| `itemKey`  | `string`    | **required** | Unique identifier for submenu |
+| `title`    | `ReactNode` | **required** | Submenu title/label           |
+| `icon`     | `ReactNode` | -            | Icon to display before title  |
+| `disabled` | `boolean`   | `false`      | Whether submenu is disabled   |
 
 ### Menu.Divider
 
@@ -87,9 +87,9 @@ Visual separator between menu items.
 
 Group of related menu items with optional title.
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `title` | `ReactNode` | - | Group title/label |
+| Prop    | Type        | Default | Description       |
+| ------- | ----------- | ------- | ----------------- |
+| `title` | `ReactNode` | -       | Group title/label |
 
 ## Examples
 
@@ -97,9 +97,15 @@ Group of related menu items with optional title.
 
 ```tsx
 <Menu style={{ width: 256 }}>
-  <Menu.Item itemKey="home" icon="🏠">Home</Menu.Item>
-  <Menu.Item itemKey="dashboard" icon="📊">Dashboard</Menu.Item>
-  <Menu.Item itemKey="settings" icon="⚙️">Settings</Menu.Item>
+  <Menu.Item itemKey="home" icon="🏠">
+    Home
+  </Menu.Item>
+  <Menu.Item itemKey="dashboard" icon="📊">
+    Dashboard
+  </Menu.Item>
+  <Menu.Item itemKey="settings" icon="⚙️">
+    Settings
+  </Menu.Item>
 </Menu>
 ```
 
@@ -133,13 +139,17 @@ function ControlledMenu() {
 
 ```tsx
 <Menu style={{ width: 256 }}>
-  <Menu.Item itemKey="home" icon="🏠">Home</Menu.Item>
+  <Menu.Item itemKey="home" icon="🏠">
+    Home
+  </Menu.Item>
   <Menu.SubMenu itemKey="products" title="Products" icon="📦">
     <Menu.Item itemKey="electronics">Electronics</Menu.Item>
     <Menu.Item itemKey="clothing">Clothing</Menu.Item>
     <Menu.Item itemKey="books">Books</Menu.Item>
   </Menu.SubMenu>
-  <Menu.Item itemKey="contact" icon="📧">Contact</Menu.Item>
+  <Menu.Item itemKey="contact" icon="📧">
+    Contact
+  </Menu.Item>
 </Menu>
 ```
 
@@ -190,9 +200,15 @@ function ControlledMenu() {
 
 ```tsx
 <Menu theme="dark" style={{ width: 256 }}>
-  <Menu.Item itemKey="home" icon="🏠">Home</Menu.Item>
-  <Menu.Item itemKey="dashboard" icon="📊">Dashboard</Menu.Item>
-  <Menu.Item itemKey="settings" icon="⚙️">Settings</Menu.Item>
+  <Menu.Item itemKey="home" icon="🏠">
+    Home
+  </Menu.Item>
+  <Menu.Item itemKey="dashboard" icon="📊">
+    Dashboard
+  </Menu.Item>
+  <Menu.Item itemKey="settings" icon="⚙️">
+    Settings
+  </Menu.Item>
 </Menu>
 ```
 
@@ -204,13 +220,17 @@ function CollapsibleMenu() {
 
   return (
     <>
-      <button onClick={() => setCollapsed(!collapsed)}>
-        {collapsed ? 'Expand' : 'Collapse'}
-      </button>
+      <button onClick={() => setCollapsed(!collapsed)}>{collapsed ? 'Expand' : 'Collapse'}</button>
       <Menu mode="inline" inlineCollapsed={collapsed}>
-        <Menu.Item itemKey="home" icon="🏠">Home</Menu.Item>
-        <Menu.Item itemKey="dashboard" icon="📊">Dashboard</Menu.Item>
-        <Menu.Item itemKey="settings" icon="⚙️">Settings</Menu.Item>
+        <Menu.Item itemKey="home" icon="🏠">
+          Home
+        </Menu.Item>
+        <Menu.Item itemKey="dashboard" icon="📊">
+          Dashboard
+        </Menu.Item>
+        <Menu.Item itemKey="settings" icon="⚙️">
+          Settings
+        </Menu.Item>
       </Menu>
     </>
   );
@@ -222,7 +242,9 @@ function CollapsibleMenu() {
 ```tsx
 <Menu style={{ width: 256 }}>
   <Menu.Item itemKey="home">Home</Menu.Item>
-  <Menu.Item itemKey="dashboard" disabled>Dashboard (Disabled)</Menu.Item>
+  <Menu.Item itemKey="dashboard" disabled>
+    Dashboard (Disabled)
+  </Menu.Item>
   <Menu.SubMenu itemKey="products" title="Products" disabled>
     <Menu.Item itemKey="item1">Item 1</Menu.Item>
   </Menu.SubMenu>

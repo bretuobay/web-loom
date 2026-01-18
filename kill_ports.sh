@@ -8,15 +8,13 @@
 # API/Backend: 8000-8099
 
 ports=(
+  # Next.js apps (3000-3099)
   3000  # docs (Next.js)
-  3001  # mvvm-book (Next.js) 
-  3002  #  (Next.js)
-  3003  # web-loom-home (Next.js)
-  3004  # web-loom-experiments (Next.js)
-  3005  # web-loom-ui (Next.js)
-  3006  # web-loom-blog (Next.js)
-  3007  # web-loom-markdown-editor (Next.js)
+  3001  # mvvm-book (Next.js)
+  3002  # plugin-docs (Next.js)
+  # Angular apps (4200-4299)
   4200  # mvvm-angular (Angular)
+  # Vite apps (5173-5199)
   5173  # mvvm-react (Vite)
   5174  # mvvm-vue (Vite)
   5175  # mvvm-vanilla (Vite)
@@ -24,8 +22,10 @@ ports=(
   5177  # mvvm-react-integrated (Vite)
   5178  # task-flow-ui (Vite)
   5179  # ui-patterns-playground (Vite)
-  5180  # Backup port in case Vite falls back
+  5180  # plugin-react (Vite)
+  # API/Backend (8000-8099)
   8000  # api (Node.js/Express)
+  8001  # task-flow-api (Node.js/Express)
 )
 
 echo "🧹 Cleaning up development server ports..."

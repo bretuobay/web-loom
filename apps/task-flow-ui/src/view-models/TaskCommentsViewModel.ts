@@ -53,10 +53,7 @@ export class TaskCommentsViewModel {
       }
     });
 
-    this.isLoading$ = combineLatest([
-      this.fetchCommand.isExecuting$,
-      this.createCommand.isExecuting$,
-    ]).pipe(
+    this.isLoading$ = combineLatest([this.fetchCommand.isExecuting$, this.createCommand.isExecuting$]).pipe(
       map(([isFetching, isCreating]) => isFetching || isCreating),
       startWith(false),
     );

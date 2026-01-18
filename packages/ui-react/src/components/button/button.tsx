@@ -87,16 +87,16 @@ function LoadingSpinner({ size = 'middle' }: { size?: ButtonSize }) {
   const spinnerSize = size === 'small' ? 12 : size === 'large' ? 16 : 14;
 
   return (
-    <span className={styles.spinner} role="status" aria-label="Loading" style={{
+    <span
+      className={styles.spinner}
+      role="status"
+      aria-label="Loading"
+      style={{
         width: `${spinnerSize}px`,
         height: `${spinnerSize}px`,
-      }}>
-      <svg
-        viewBox="0 0 16 16"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={styles.spinnerSvg}
-      >
+      }}
+    >
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className={styles.spinnerSvg}>
         <circle
           cx="8"
           cy="8"
@@ -153,7 +153,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       onClick,
       ...props
     },
-    ref
+    ref,
   ) => {
     // Determine if button should be disabled
     const isDisabled = disabled || loading;
@@ -171,7 +171,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         [styles.disabled]: isDisabled,
         [styles.iconOnly]: !children && (icon || loading),
       },
-      className
+      className,
     );
 
     // Handle click when loading
@@ -209,5 +209,5 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {children && <span className={styles.content}>{children}</span>}
       </button>
     );
-  }
+  },
 );

@@ -12,7 +12,9 @@ export function TaskAttachments({ attachments }: TaskAttachmentsProps) {
       <header className={styles.header}>
         <div>
           <p className={styles.label}>Attachments</p>
-          <p className={styles.subtitle}>{attachments.length} file{attachments.length === 1 ? '' : 's'}</p>
+          <p className={styles.subtitle}>
+            {attachments.length} file{attachments.length === 1 ? '' : 's'}
+          </p>
         </div>
       </header>
 

@@ -15,11 +15,7 @@ const startOfDay = (value: Date) => {
 };
 
 const isSameDay = (a: Date, b: Date) => {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 };
 
 const describeDateGroup = (date: Date, today: Date, tomorrow: Date) => {
@@ -32,7 +28,7 @@ const describeDateGroup = (date: Date, today: Date, tomorrow: Date) => {
   return date.toLocaleDateString(undefined, {
     weekday: 'short',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
   });
 };
 
@@ -78,7 +74,7 @@ export function TodoPanel() {
   const [formState, setFormState] = useState(() => ({
     title: '',
     details: '',
-    dueDate: defaultDue
+    dueDate: defaultDue,
   }));
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
@@ -91,7 +87,7 @@ export function TodoPanel() {
     if (!todos) return [];
     return todos.map((todo) => ({
       ...todo,
-      dueDateObj: ensureDate(todo.dueDate)
+      dueDateObj: ensureDate(todo.dueDate),
     }));
   }, [todos]);
 
@@ -127,11 +123,9 @@ export function TodoPanel() {
     () => ({
       total: normalizedTodos.length,
       completed: normalizedTodos.filter((todo) => todo.completed).length,
-      upcoming: normalizedTodos.filter(
-        (todo) => startOfDay(todo.dueDateObj).getTime() >= todayTimestamp
-      ).length
+      upcoming: normalizedTodos.filter((todo) => startOfDay(todo.dueDateObj).getTime() >= todayTimestamp).length,
     }),
-    [normalizedTodos, todayTimestamp]
+    [normalizedTodos, todayTimestamp],
   );
 
   const todaysGroup = groupedEntries.find((group) => group.iso === todayKey);
@@ -146,43 +140,50 @@ export function TodoPanel() {
     setFormState((current) => ({ ...current, [field]: value }));
   }, []);
 
-  const handleSubmit = useCallback((event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
 
-    // Read current form values via ref-like access in the callback
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const title = (formData.get('title') as string)?.trim() || '';
-    const details = (formData.get('details') as string)?.trim() || '';
-    const dueDate = (formData.get('dueDate') as string) || '';
+      // Read current form values via ref-like access in the callback
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+      const title = (formData.get('title') as string)?.trim() || '';
+      const details = (formData.get('details') as string)?.trim() || '';
+      const dueDate = (formData.get('dueDate') as string) || '';
 
-    if (!title) {
-      setFormError('Give this todo a short title.');
-      return;
-    }
+      if (!title) {
+        setFormError('Give this todo a short title.');
+        return;
+      }
 
-    setFormError(null);
-    setSubmitting(true);
+      setFormError(null);
+      setSubmitting(true);
 
-    todoViewModel.createCommand.execute({
-      title,
-      details: details || undefined,
-      dueDate: dueDate || undefined
-    }).then(() => {
-      setFormState({ title: '', details: '', dueDate: defaultDue });
-    }).catch((error) => {
-      const message = describeError(error);
-      setFormError(message ?? 'Unable to save todo');
-    }).finally(() => {
-      setSubmitting(false);
-    });
-  }, [defaultDue]);
+      todoViewModel.createCommand
+        .execute({
+          title,
+          details: details || undefined,
+          dueDate: dueDate || undefined,
+        })
+        .then(() => {
+          setFormState({ title: '', details: '', dueDate: defaultDue });
+        })
+        .catch((error) => {
+          const message = describeError(error);
+          setFormError(message ?? 'Unable to save todo');
+        })
+        .finally(() => {
+          setSubmitting(false);
+        });
+    },
+    [defaultDue],
+  );
 
   const handleToggleComplete = useCallback(async (todo: NormalizedTodo) => {
     try {
       await todoViewModel.updateCommand.execute({
         id: todo.id,
-        payload: { completed: !todo.completed }
+        payload: { completed: !todo.completed },
       });
     } catch {
       // Handled via shared error stream
@@ -268,7 +269,7 @@ export function TodoPanel() {
                   <span className={styles.groupDate}>
                     {group.date.toLocaleDateString(undefined, {
                       month: 'short',
-                      day: 'numeric'
+                      day: 'numeric',
                     })}
                   </span>
                 </header>
@@ -281,9 +282,7 @@ export function TodoPanel() {
                           {todo.details && <p>{todo.details}</p>}
                         </div>
                         <span
-                          className={`${styles.badge} ${
-                            todo.completed ? styles.badgeSuccess : styles.badgePending
-                          }`}
+                          className={`${styles.badge} ${todo.completed ? styles.badgeSuccess : styles.badgePending}`}
                         >
                           {todo.completed ? 'Done' : 'Open'}
                         </span>
@@ -293,10 +292,7 @@ export function TodoPanel() {
                           Due {todo.dueDateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </span>
                         <div className={styles.todoActions}>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleComplete(todo)}
-                          >
+                          <button type="button" onClick={() => handleToggleComplete(todo)}>
                             {todo.completed ? 'Reopen' : 'Complete'}
                           </button>
                           <button type="button" className={styles.danger} onClick={() => handleDelete(todo.id)}>

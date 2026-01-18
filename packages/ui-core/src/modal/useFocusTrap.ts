@@ -23,7 +23,7 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
 
 function focusFirstElement(
   container: HTMLElement,
-  initialFocusRef?: RefObject<HTMLElement> | MutableRefObject<HTMLElement | null>
+  initialFocusRef?: RefObject<HTMLElement> | MutableRefObject<HTMLElement | null>,
 ) {
   const target = initialFocusRef?.current ?? getFocusableElements(container)[0] ?? container;
   if (target && typeof target.focus === 'function') {
@@ -41,7 +41,7 @@ export interface FocusTrapOptions {
 export function useFocusTrap(
   containerRef: RefObject<HTMLElement> | MutableRefObject<HTMLElement | null>,
   active = true,
-  options?: FocusTrapOptions
+  options?: FocusTrapOptions,
 ) {
   const { initialFocusRef } = options ?? {};
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
@@ -77,7 +77,7 @@ export function useFocusTrap(
         lastElement.focus({ preventScroll: true });
       }
     },
-    [containerRef]
+    [containerRef],
   );
 
   useIsomorphicLayoutEffect(() => {

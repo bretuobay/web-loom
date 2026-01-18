@@ -77,7 +77,7 @@ export function Sider({
 
   // Use controlled or internal state
   const [internalCollapsed, setInternalCollapsed] = useState(false);
-  const isCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : (collapsible ? siderCollapsed : false);
+  const isCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : collapsible ? siderCollapsed : false;
 
   // Sync with layout context
   useEffect(() => {
@@ -103,7 +103,7 @@ export function Sider({
       [styles.collapsed]: isCollapsed,
       [styles.collapsible]: collapsible,
     },
-    className
+    className,
   );
 
   const siderStyle: CSSProperties = {
@@ -114,17 +114,20 @@ export function Sider({
     ...style,
   };
 
-  const defaultTrigger = trigger === undefined && collapsible ? (
-    <button
-      type="button"
-      className={styles.trigger}
-      onClick={handleToggle}
-      aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      aria-expanded={!isCollapsed}
-    >
-      <span className={styles.triggerIcon}>{isCollapsed ? '→' : '←'}</span>
-    </button>
-  ) : trigger;
+  const defaultTrigger =
+    trigger === undefined && collapsible ? (
+      <button
+        type="button"
+        className={styles.trigger}
+        onClick={handleToggle}
+        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        aria-expanded={!isCollapsed}
+      >
+        <span className={styles.triggerIcon}>{isCollapsed ? '→' : '←'}</span>
+      </button>
+    ) : (
+      trigger
+    );
 
   return (
     <aside className={siderClasses} style={siderStyle} role="navigation" aria-label="Sidebar navigation">

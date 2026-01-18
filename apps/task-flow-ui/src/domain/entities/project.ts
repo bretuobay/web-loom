@@ -71,12 +71,13 @@ export class ProjectEntity {
       description: payload.description,
       color: payload.color,
       status,
-      tasks
+      tasks,
     });
   }
 
   static createDraft(overrides: Partial<ProjectProps> = {}) {
-    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `project-${Math.random()}`;
+    const id =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `project-${Math.random()}`;
     return new ProjectEntity({
       id,
       name: 'New TaskFlow project',
@@ -84,7 +85,7 @@ export class ProjectEntity {
       color: '#38bdf8',
       status: PROJECT_STATUSES[0],
       tasks: [],
-      ...overrides
+      ...overrides,
     });
   }
 

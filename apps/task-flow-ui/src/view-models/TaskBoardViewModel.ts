@@ -21,7 +21,7 @@ interface TaskBoardActions {
 const createTaskBoardStore = () =>
   createStore<TaskBoardState, TaskBoardActions>({ statusFilter: null }, (set) => ({
     setStatusFilter: (status) => set((state) => ({ ...state, statusFilter: status })),
-    clearFilter: () => set((state) => ({ ...state, statusFilter: null }))
+    clearFilter: () => set((state) => ({ ...state, statusFilter: null })),
   }));
 
 export class TaskBoardViewModel {
@@ -91,7 +91,7 @@ export class TaskBoardViewModel {
 
       const payload: TaskCreationPayload = {
         ...values,
-        projectId
+        projectId,
       };
 
       await this.taskStore.create(payload);

@@ -20,8 +20,10 @@ export interface UserAttributes {
   updatedAt?: Date;
 }
 
-export interface UserCreationAttributes
-  extends Optional<UserAttributes, 'id' | 'avatarUrl' | 'role' | 'createdAt' | 'updatedAt' | 'passwordHash'> {
+export interface UserCreationAttributes extends Optional<
+  UserAttributes,
+  'id' | 'avatarUrl' | 'role' | 'createdAt' | 'updatedAt' | 'passwordHash'
+> {
   password?: string;
 }
 
@@ -42,40 +44,40 @@ User.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     email: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      unique: true
+      unique: true,
     },
     displayName: {
       type: DataTypes.STRING(120),
-      allowNull: false
+      allowNull: false,
     },
     passwordHash: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: false,
     },
     avatarUrl: {
       type: DataTypes.STRING(255),
       allowNull: true,
-      defaultValue: null
+      defaultValue: null,
     },
     role: {
       type: DataTypes.ENUM(...USER_ROLES),
       allowNull: false,
-      defaultValue: USER_ROLES[0]
+      defaultValue: USER_ROLES[0],
     },
     preferences: {
       type: DataTypes.JSON,
       allowNull: true,
-      defaultValue: {}
-    }
+      defaultValue: {},
+    },
   },
   {
     sequelize,
     tableName: 'users',
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );

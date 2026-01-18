@@ -59,7 +59,7 @@ export function useModal({
       }
       onCancel?.(event);
     },
-    [open, onCancel]
+    [open, onCancel],
   );
 
   const handleOk = useCallback(
@@ -69,7 +69,7 @@ export function useModal({
       }
       onOk?.(event);
     },
-    [open, onOk]
+    [open, onOk],
   );
 
   const handleBackdropClick = useCallback(
@@ -81,7 +81,7 @@ export function useModal({
         handleCancel(event);
       }
     },
-    [maskClosable, handleCancel]
+    [maskClosable, handleCancel],
   );
 
   const handleKeyDown = useCallback(
@@ -93,7 +93,7 @@ export function useModal({
         handleCancel(event);
       }
     },
-    [keyboard, handleCancel]
+    [keyboard, handleCancel],
   );
 
   return {

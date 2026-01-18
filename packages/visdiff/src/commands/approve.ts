@@ -16,10 +16,7 @@ export interface ApproveOptions {
 /**
  * Execute the approve command
  */
-export async function approveCommand(
-  identifiers: string[],
-  options: ApproveOptions = {}
-): Promise<number> {
+export async function approveCommand(identifiers: string[], options: ApproveOptions = {}): Promise<number> {
   const cwd = process.cwd();
 
   try {
@@ -44,10 +41,10 @@ export async function approveCommand(
     // Build map of current screenshots from the latest comparison
     // We need to re-capture or use the stored current screenshots
     // For now, we'll check which baselines exist and can be approved
-    
+
     // Get all failed comparisons that need approval
-    const failedResults = report.results.filter(r => !r.passed && !r.error);
-    
+    const failedResults = report.results.filter((r) => !r.passed && !r.error);
+
     if (failedResults.length === 0) {
       console.log(chalk.green('✓ No pending changes to approve'));
       console.log(chalk.gray('  All comparisons passed in the last run'));
@@ -55,9 +52,10 @@ export async function approveCommand(
     }
 
     // Determine which identifiers to approve
-    const toApprove = identifiers.length > 0 
-      ? identifiers.filter(id => failedResults.some(r => r.identifier === id))
-      : failedResults.map(r => r.identifier);
+    const toApprove =
+      identifiers.length > 0
+        ? identifiers.filter((id) => failedResults.some((r) => r.identifier === id))
+        : failedResults.map((r) => r.identifier);
 
     if (toApprove.length === 0) {
       console.log(chalk.yellow('⚠️  No matching identifiers found'));
@@ -84,7 +82,7 @@ export async function approveCommand(
     // 1. Store current screenshots during comparison
     // 2. Re-capture them here
     // For now, we'll document this limitation and provide a basic implementation
-    
+
     console.log(chalk.yellow('⚠️  Note: Approve command requires re-capturing screenshots'));
     console.log(chalk.gray('  This will be implemented in the next iteration'));
     console.log();

@@ -14,8 +14,10 @@ export interface AttachmentAttributes {
   updatedAt?: Date;
 }
 
-export interface AttachmentCreationAttributes
-  extends Optional<AttachmentAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+export interface AttachmentCreationAttributes extends Optional<
+  AttachmentAttributes,
+  'id' | 'createdAt' | 'updatedAt'
+> {}
 
 export class Attachment
   extends Model<AttachmentAttributes, AttachmentCreationAttributes>
@@ -44,27 +46,27 @@ Attachment.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     taskId: {
       type: DataTypes.UUID,
-      allowNull: false
+      allowNull: false,
     },
     originalName: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: false,
     },
     storedName: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: false,
     },
     mimeType: {
       type: DataTypes.STRING(128),
-      allowNull: false
+      allowNull: false,
     },
     size: {
       type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false
+      allowNull: false,
     },
     downloadUrl: {
       type: DataTypes.VIRTUAL,
@@ -74,12 +76,12 @@ Attachment.init(
           return null;
         }
         return `${config.app.baseUrl}/uploads/${storedName}`;
-      }
-    }
+      },
+    },
   },
   {
     sequelize,
     tableName: 'attachments',
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );

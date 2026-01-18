@@ -42,12 +42,12 @@ Errors thrown by listeners are caught and forwarded to `console.error` by defaul
 
 ## Package relationships
 
-| Package | Usage |
-| --- | --- |
-| `@web-loom/forms-core` | Debounced form events and lifecycle hooks. |
-| `@web-loom/storage-core` | Key-pattern subscriptions for cross-tab storage updates. |
-| `@web-loom/notifications-core` | Permission / push event fan-out. |
-| `@web-loom/media-core` | Player lifecycle events (play, pause, lazy loading, plugins). |
-| `@web-loom/event-bus-core` | Internal listener bookkeeping for the public bus API. |
+| Package                        | Usage                                                         |
+| ------------------------------ | ------------------------------------------------------------- |
+| `@web-loom/forms-core`         | Debounced form events and lifecycle hooks.                    |
+| `@web-loom/storage-core`       | Key-pattern subscriptions for cross-tab storage updates.      |
+| `@web-loom/notifications-core` | Permission / push event fan-out.                              |
+| `@web-loom/media-core`         | Player lifecycle events (play, pause, lazy loading, plugins). |
+| `@web-loom/event-bus-core`     | Internal listener bookkeeping for the public bus API.         |
 
 See `docs/event-emitter.md` in the repo root for package‑specific integration notes.

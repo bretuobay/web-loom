@@ -17,13 +17,13 @@ export const commentService = {
     return Comment.findAll({
       where: { taskId },
       include: [{ association: 'author', attributes: ['id', 'displayName', 'email', 'avatarUrl'] }],
-      order: [['createdAt', 'ASC']]
+      order: [['createdAt', 'ASC']],
     });
   },
 
   getById: async (id: string) => {
     const comment = await Comment.findByPk(id, {
-      include: [{ association: 'author', attributes: ['id', 'displayName', 'email', 'avatarUrl'] }]
+      include: [{ association: 'author', attributes: ['id', 'displayName', 'email', 'avatarUrl'] }],
     });
 
     if (!comment) {
@@ -52,5 +52,5 @@ export const commentService = {
     const comment = await commentService.getById(id);
     await comment.destroy();
     return true;
-  }
+  },
 };

@@ -27,6 +27,7 @@ Use this skill whenever MVVM is the primary pattern in play—new view models, m
 ## Concrete CRUD example
 
 Every new feature should follow the pattern captured in [references/mvvm-crud-flow.md](references/mvvm-crud-flow.md): export a shared model config, pass it to `createReactiveViewModel`, and let each app subscribe to `data$`/`isLoading$` while triggering `fetchCommand.execute()` inside lifecycle hooks (see `apps/mvvm-react/src/components/Dashboard.tsx`). This keeps shared packages reusable and apps focused on rendering observable updates.
+
 ## Application integration
 
 - The React, Angular, Vue, and vanilla MVVM starter apps under `apps/mvvm-*` all subscribe to observables exposed by view models. `apps/mvvm-react/README.md` contains a concrete Dashboard example: use the provided `useObservable` hook, call `fetchCommand.execute()` on mount, and dispose of the view model when the component unmounts. See [references/mvvm-react-example.md](references/mvvm-react-example.md) for the distilled workflow.

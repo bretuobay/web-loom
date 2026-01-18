@@ -120,13 +120,7 @@ export const SortableColumns: Story = {
 export const FilterableData: Story = {
   name: 'Filterable Data',
   render: () => (
-    <Table
-      columns={baseColumns}
-      dataSource={sampleData}
-      rowKey="id"
-      scroll={{ y: 400 }}
-      pagination={{ pageSize: 5 }}
-    />
+    <Table columns={baseColumns} dataSource={sampleData} rowKey="id" scroll={{ y: 400 }} pagination={{ pageSize: 5 }} />
   ),
 };
 
@@ -189,26 +183,11 @@ export const FixedColumns: Story = {
       }
       return column;
     });
-    return (
-      <Table
-        columns={fixedColumns}
-        dataSource={largeDataset}
-        scroll={{ x: 1200, y: 400 }}
-        rowKey="id"
-      />
-    );
+    return <Table columns={fixedColumns} dataSource={largeDataset} scroll={{ x: 1200, y: 400 }} rowKey="id" />;
   },
 };
 
 export const LoadingState: Story = {
   name: 'Loading State',
-  render: () => (
-    <Table
-      columns={baseColumns}
-      dataSource={[]}
-      loading
-      rowKey="id"
-      pagination={{ pageSize: 5 }}
-    />
-  ),
+  render: () => <Table columns={baseColumns} dataSource={[]} loading rowKey="id" pagination={{ pageSize: 5 }} />,
 };

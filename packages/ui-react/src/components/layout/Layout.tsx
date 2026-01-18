@@ -64,7 +64,7 @@ export function Layout({ children, className, style, direction = 'vertical' }: L
       siderCollapsedWidth: 80,
       hasSider,
     }),
-    [siderCollapsed, hasSider]
+    [siderCollapsed, hasSider],
   );
 
   const layoutClasses = cn(
@@ -73,7 +73,7 @@ export function Layout({ children, className, style, direction = 'vertical' }: L
     {
       [styles.hasSider]: hasSider,
     },
-    className
+    className,
   );
 
   return (

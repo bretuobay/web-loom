@@ -19,15 +19,7 @@ export interface SubMenuProps extends Omit<HTMLAttributes<HTMLLIElement>, 'title
 /**
  * SubMenu component for nested menu items.
  */
-export function SubMenu({
-  className,
-  itemKey,
-  title,
-  icon,
-  disabled = false,
-  children,
-  ...rest
-}: SubMenuProps) {
+export function SubMenu({ className, itemKey, title, icon, disabled = false, children, ...rest }: SubMenuProps) {
   const parentContext = useMenuContext();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -57,7 +49,7 @@ export function SubMenu({
       'loom-menu-submenu-open': isOpen,
       'loom-menu-submenu-disabled': disabled,
     },
-    className
+    className,
   );
 
   const childContext: MenuContextValue = {

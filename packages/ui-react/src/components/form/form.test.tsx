@@ -20,7 +20,7 @@ describe('Form component suite', () => {
           <input data-testid="name-input" />
         </Form.Item>
         <button type="submit">Submit</button>
-      </Form>
+      </Form>,
     );
 
     const input = screen.getByTestId('name-input');
@@ -57,7 +57,7 @@ describe('Form component suite', () => {
             </>
           )}
         </Form.List>
-      </Form>
+      </Form>,
     );
 
     fireEvent.click(screen.getByText('Add'));
@@ -87,7 +87,7 @@ describe('Form component suite', () => {
           </Form.Item>
           <button type="submit">Submit</button>
         </Form>
-      </Form.Provider>
+      </Form.Provider>,
     );
 
     const emailInput = screen.getByTestId('email-input');

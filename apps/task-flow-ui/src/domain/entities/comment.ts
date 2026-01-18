@@ -17,14 +17,7 @@ export class CommentEntity {
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
-  constructor(
-    id: string,
-    content: string,
-    taskId: string,
-    author: UserEntity,
-    createdAt: Date,
-    updatedAt: Date
-  ) {
+  constructor(id: string, content: string, taskId: string, author: UserEntity, createdAt: Date, updatedAt: Date) {
     this.id = id;
     this.content = content;
     this.taskId = taskId;
@@ -40,7 +33,7 @@ export class CommentEntity {
       payload.taskId,
       UserEntity.fromApi(payload.author),
       new Date(payload.createdAt),
-      new Date(payload.updatedAt)
+      new Date(payload.updatedAt),
     );
   }
 

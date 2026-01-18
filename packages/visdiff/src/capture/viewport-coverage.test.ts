@@ -60,7 +60,7 @@ describe('Property 4: Complete viewport coverage', () => {
             (r) =>
               r.viewport.width === viewport.width &&
               r.viewport.height === viewport.height &&
-              r.viewport.name === viewport.name
+              r.viewport.name === viewport.name,
           );
 
           expect(result).toBeDefined();
@@ -74,7 +74,7 @@ describe('Property 4: Complete viewport coverage', () => {
       {
         numRuns: 10,
         timeout: 120000,
-      }
+      },
     );
   }, 150000);
 
@@ -109,7 +109,7 @@ describe('Property 4: Complete viewport coverage', () => {
             r.url === url &&
             r.viewport.width === viewport.width &&
             r.viewport.height === viewport.height &&
-            r.viewport.name === viewport.name
+            r.viewport.name === viewport.name,
         );
 
         expect(result).toBeDefined();
@@ -151,7 +151,7 @@ describe('Property 4: Complete viewport coverage', () => {
       {
         numRuns: 10,
         timeout: 120000,
-      }
+      },
     );
   }, 150000);
 
@@ -196,7 +196,7 @@ describe('Property 4: Complete viewport coverage', () => {
       dims.map((d, i) => ({
         ...d,
         name: `viewport-${idx}-${i}`,
-      }))
+      })),
     );
 
     const url = 'about:blank';
@@ -222,7 +222,7 @@ describe('Property 4: Complete viewport coverage', () => {
       {
         numRuns: 10,
         timeout: 120000,
-      }
+      },
     );
   }, 150000);
 });

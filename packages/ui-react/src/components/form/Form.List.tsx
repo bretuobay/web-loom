@@ -5,17 +5,7 @@ import styles from './Form.module.css';
 import type { FormListProps, FormListOperations } from './types';
 
 export function FormList({ name, children, className, style }: FormListProps) {
-  const {
-    fields,
-    append,
-    prepend,
-    insert,
-    remove,
-    move,
-    swap,
-    replace,
-    clear,
-  } = useFieldArray(name);
+  const { fields, append, prepend, insert, remove, move, swap, replace, clear } = useFieldArray(name);
 
   const operations = useMemo<FormListOperations>(
     () => ({ append, prepend, insert, remove, move, swap, replace, clear }),

@@ -23,7 +23,7 @@ describe('Avatar', () => {
     render(
       <Avatar src="broken.png" alt="Profile" draggable>
         Name
-      </Avatar>
+      </Avatar>,
     );
     const image = screen.getByAltText('Profile');
     fireEvent.error(image);
@@ -36,7 +36,7 @@ describe('Avatar', () => {
     render(
       <Avatar src="broken.png" alt="Profile" onError={handleError}>
         Name
-      </Avatar>
+      </Avatar>,
     );
     const image = screen.getByAltText('Profile');
     fireEvent.error(image);
@@ -54,7 +54,7 @@ describe('AvatarGroup', () => {
         <Avatar>Beta</Avatar>
         <Avatar>Gamma</Avatar>
         <Avatar>Delta</Avatar>
-      </AvatarGroup>
+      </AvatarGroup>,
     );
 
     expect(screen.getByRole('group', { name: /Team/ })).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('AvatarGroup', () => {
     render(
       <AvatarGroup size="large">
         <Avatar data-testid="child" />
-      </AvatarGroup>
+      </AvatarGroup>,
     );
 
     const child = screen.getByTestId('child');

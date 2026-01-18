@@ -27,7 +27,7 @@ describe('Property 31: Status timestamp inclusion', () => {
   // Helper to create a unique test environment with config
   async function createTestEnvironment(): Promise<{ dir: string; manager: StorageManager }> {
     const uniqueDir = await fs.mkdtemp(path.join(baseTempDir, 'iter-'));
-    
+
     // Create config file
     const configPath = path.join(uniqueDir, 'visdiff.config.js');
     await fs.writeFile(
@@ -38,12 +38,12 @@ describe('Property 31: Status timestamp inclusion', () => {
         captureOptions: { fullPage: false, omitBackground: false, timeout: 30000 },
         diffOptions: { threshold: 0.01, ignoreAntialiasing: true, ignoreColors: false, highlightColor: '#ff00ff' },
         storage: { baselineDir: '.visdiff/baselines', diffDir: '.visdiff/diffs', format: 'png' }
-      };`
+      };`,
     );
 
     const manager = new StorageManager(uniqueDir);
     await manager.initialize();
-    
+
     return { dir: uniqueDir, manager };
   }
 
@@ -66,7 +66,7 @@ describe('Property 31: Status timestamp inclusion', () => {
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (results, timestamp) => {
           const { dir, manager } = await createTestEnvironment();
-          
+
           // Save a report with the generated results and timestamp
           await manager.saveReport(results, timestamp);
 
@@ -109,46 +109,43 @@ describe('Property 31: Status timestamp inclusion', () => {
           } finally {
             process.chdir(originalCwd);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   it('should include timestamp for reports with no results', async () => {
     await fc.assert(
-      fc.asyncProperty(
-        fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
-        async (timestamp) => {
-          const { dir, manager } = await createTestEnvironment();
-          
-          // Save a report with no results but with a timestamp
-          await manager.saveReport([], timestamp);
+      fc.asyncProperty(fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }), async (timestamp) => {
+        const { dir, manager } = await createTestEnvironment();
 
-          const originalCwd = process.cwd();
-          process.chdir(dir);
+        // Save a report with no results but with a timestamp
+        await manager.saveReport([], timestamp);
 
-          try {
-            const originalLog = console.log;
-            let jsonOutput = '';
-            console.log = (msg: string) => {
-              jsonOutput = msg;
-            };
+        const originalCwd = process.cwd();
+        process.chdir(dir);
 
-            await statusCommand({ json: true });
-            console.log = originalLog;
+        try {
+          const originalLog = console.log;
+          let jsonOutput = '';
+          console.log = (msg: string) => {
+            jsonOutput = msg;
+          };
 
-            const output = JSON.parse(jsonOutput);
+          await statusCommand({ json: true });
+          console.log = originalLog;
 
-            // Verify timestamp is included even with no results
-            expect(output.timestamp).toBeDefined();
-            expect(output.timestamp).toBe(timestamp.toISOString());
-          } finally {
-            process.chdir(originalCwd);
-          }
+          const output = JSON.parse(jsonOutput);
+
+          // Verify timestamp is included even with no results
+          expect(output.timestamp).toBeDefined();
+          expect(output.timestamp).toBe(timestamp.toISOString());
+        } finally {
+          process.chdir(originalCwd);
         }
-      ),
-      { numRuns: 100 }
+      }),
+      { numRuns: 100 },
     );
   });
 
@@ -159,10 +156,10 @@ describe('Property 31: Status timestamp inclusion', () => {
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (results, timestamp) => {
           const { dir, manager } = await createTestEnvironment();
-          
+
           // Force all results to pass
-          const passingResults = results.map(r => ({ ...r, passed: true, difference: 0.001 }));
-          
+          const passingResults = results.map((r) => ({ ...r, passed: true, difference: 0.001 }));
+
           await manager.saveReport(passingResults, timestamp);
 
           const originalCwd = process.cwd();
@@ -185,9 +182,9 @@ describe('Property 31: Status timestamp inclusion', () => {
           } finally {
             process.chdir(originalCwd);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -198,10 +195,10 @@ describe('Property 31: Status timestamp inclusion', () => {
         fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }),
         async (results, timestamp) => {
           const { dir, manager } = await createTestEnvironment();
-          
+
           // Force all results to fail
-          const failingResults = results.map(r => ({ ...r, passed: false, difference: 0.05 }));
-          
+          const failingResults = results.map((r) => ({ ...r, passed: false, difference: 0.05 }));
+
           await manager.saveReport(failingResults, timestamp);
 
           const originalCwd = process.cwd();
@@ -224,65 +221,62 @@ describe('Property 31: Status timestamp inclusion', () => {
           } finally {
             process.chdir(originalCwd);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   it('should preserve timestamp precision across different dates', async () => {
     await fc.assert(
-      fc.asyncProperty(
-        fc.date({ min: new Date('2020-01-01'), max: new Date('2030-12-31') }),
-        async (timestamp) => {
-          const { dir, manager } = await createTestEnvironment();
-          
-          // Create a simple result
-          const results: ComparisonResult[] = [
-            {
-              identifier: 'test-page',
-              passed: true,
-              difference: 0.001,
-              dimensions: { width: 1920, height: 1080 },
-              pixelsDifferent: 10,
-            },
-          ];
-          
-          await manager.saveReport(results, timestamp);
+      fc.asyncProperty(fc.date({ min: new Date('2020-01-01'), max: new Date('2030-12-31') }), async (timestamp) => {
+        const { dir, manager } = await createTestEnvironment();
 
-          const originalCwd = process.cwd();
-          process.chdir(dir);
+        // Create a simple result
+        const results: ComparisonResult[] = [
+          {
+            identifier: 'test-page',
+            passed: true,
+            difference: 0.001,
+            dimensions: { width: 1920, height: 1080 },
+            pixelsDifferent: 10,
+          },
+        ];
 
-          try {
-            const originalLog = console.log;
-            let jsonOutput = '';
-            console.log = (msg: string) => {
-              jsonOutput = msg;
-            };
+        await manager.saveReport(results, timestamp);
 
-            await statusCommand({ json: true });
-            console.log = originalLog;
+        const originalCwd = process.cwd();
+        process.chdir(dir);
 
-            const output = JSON.parse(jsonOutput);
+        try {
+          const originalLog = console.log;
+          let jsonOutput = '';
+          console.log = (msg: string) => {
+            jsonOutput = msg;
+          };
 
-            // Verify exact timestamp match
-            const outputDate = new Date(output.timestamp);
-            expect(outputDate.getTime()).toBe(timestamp.getTime());
-            
-            // Verify ISO format
-            expect(output.timestamp).toBe(timestamp.toISOString());
-          } finally {
-            process.chdir(originalCwd);
-          }
+          await statusCommand({ json: true });
+          console.log = originalLog;
+
+          const output = JSON.parse(jsonOutput);
+
+          // Verify exact timestamp match
+          const outputDate = new Date(output.timestamp);
+          expect(outputDate.getTime()).toBe(timestamp.getTime());
+
+          // Verify ISO format
+          expect(output.timestamp).toBe(timestamp.toISOString());
+        } finally {
+          process.chdir(originalCwd);
         }
-      ),
-      { numRuns: 100 }
+      }),
+      { numRuns: 100 },
     );
   });
 
   it('should include timestamp in non-JSON output', async () => {
     const { dir, manager } = await createTestEnvironment();
-    
+
     const timestamp = new Date('2024-12-07T14:30:22.000Z');
     const results: ComparisonResult[] = [
       {
@@ -304,7 +298,7 @@ describe('Property 31: Status timestamp inclusion', () => {
       const originalLog = console.log;
       const logs: string[] = [];
       console.log = (...args: any[]) => {
-        logs.push(args.map(arg => String(arg)).join(' '));
+        logs.push(args.map((arg) => String(arg)).join(' '));
       };
 
       await statusCommand({ json: false });
@@ -313,12 +307,10 @@ describe('Property 31: Status timestamp inclusion', () => {
       console.log = originalLog;
 
       // Verify that some log contains timestamp information
-      const hasTimestamp = logs.some(log => 
-        log.includes('Last comparison:') || 
-        log.includes('ago') ||
-        log.includes('just now')
+      const hasTimestamp = logs.some(
+        (log) => log.includes('Last comparison:') || log.includes('ago') || log.includes('just now'),
       );
-      
+
       expect(hasTimestamp).toBe(true);
     } finally {
       process.chdir(originalCwd);
@@ -327,7 +319,7 @@ describe('Property 31: Status timestamp inclusion', () => {
 
   it('should handle recent timestamps correctly', async () => {
     const { dir, manager } = await createTestEnvironment();
-    
+
     // Create a very recent timestamp (within the last minute)
     const timestamp = new Date(Date.now() - 30000); // 30 seconds ago
     const results: ComparisonResult[] = [
@@ -368,7 +360,7 @@ describe('Property 31: Status timestamp inclusion', () => {
 
   it('should handle old timestamps correctly', async () => {
     const { dir, manager } = await createTestEnvironment();
-    
+
     // Create an old timestamp (several days ago)
     const timestamp = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
     const results: ComparisonResult[] = [
@@ -408,7 +400,7 @@ describe('Property 31: Status timestamp inclusion', () => {
 
   it('should handle edge case of timestamp at midnight', async () => {
     const { dir, manager } = await createTestEnvironment();
-    
+
     const timestamp = new Date('2024-12-07T00:00:00.000Z');
     const results: ComparisonResult[] = [
       {
@@ -445,7 +437,7 @@ describe('Property 31: Status timestamp inclusion', () => {
 
   it('should handle edge case of timestamp with milliseconds', async () => {
     const { dir, manager } = await createTestEnvironment();
-    
+
     const timestamp = new Date('2024-12-07T14:30:22.456Z');
     const results: ComparisonResult[] = [
       {

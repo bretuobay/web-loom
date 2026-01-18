@@ -37,16 +37,16 @@ unsubscribe();
 
 ### Methods
 
-| Method | Description |
-| --- | --- |
-| `on(event, listener)` | Register a listener and receive an unsubscribe function. |
-| `subscribe(event, listener)` | Alias for `on` (used by legacy packages). |
-| `once(event, listener)` | Register a listener that removes itself after the first call. |
-| `off(event?, listener?)` | Remove a specific listener, every listener for an event, or everything. |
-| `unsubscribe(event, listener?)` | Alias for `off`. |
-| `emit(event, ...payload)` | Synchronously invoke listeners with typed payloads. |
-| `removeAllListeners(event?)` / `removeAll(event?)` / `clear()` | Clean up listeners. |
-| `listenerCount(event)` / `hasListeners(event)` / `eventNames()` | Runtime inspection helpers. |
+| Method                                                          | Description                                                             |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `on(event, listener)`                                           | Register a listener and receive an unsubscribe function.                |
+| `subscribe(event, listener)`                                    | Alias for `on` (used by legacy packages).                               |
+| `once(event, listener)`                                         | Register a listener that removes itself after the first call.           |
+| `off(event?, listener?)`                                        | Remove a specific listener, every listener for an event, or everything. |
+| `unsubscribe(event, listener?)`                                 | Alias for `off`.                                                        |
+| `emit(event, ...payload)`                                       | Synchronously invoke listeners with typed payloads.                     |
+| `removeAllListeners(event?)` / `removeAll(event?)` / `clear()`  | Clean up listeners.                                                     |
+| `listenerCount(event)` / `hasListeners(event)` / `eventNames()` | Runtime inspection helpers.                                             |
 
 Errors thrown by listeners are caught; by default we warn via `console.error`. Pass an `onError` callback to centralize reporting.
 

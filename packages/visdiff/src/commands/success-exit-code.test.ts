@@ -2,7 +2,7 @@
  * Property Test: Success exit code
  * Feature: visdiff-phase1, Property 14: Success exit code
  * Validates: Requirements 3.7
- * 
+ *
  * For any comparison run where all comparisons pass, the system should return exit code 0
  */
 
@@ -41,7 +41,7 @@ describe('Property 14: Success exit code', () => {
             height: fc.integer({ min: 480, max: 1080 }),
             name: fc.constantFrom('mobile', 'tablet', 'desktop'),
           }),
-          { minLength: 1, maxLength: 3 }
+          { minLength: 1, maxLength: 3 },
         ),
         fc.float({ min: 0, max: Math.fround(0.05) }), // Small differences that pass
         async (urls, viewports, difference) => {
@@ -77,8 +77,8 @@ describe('Property 14: Success exit code', () => {
           vi.mocked(BrowserManager).mockImplementation(() => mockBrowserManager as any);
 
           // Mock capture engine - all captures succeed
-          const captureResults = urls.flatMap(url =>
-            viewports.map(viewport => ({
+          const captureResults = urls.flatMap((url) =>
+            viewports.map((viewport) => ({
               url,
               viewport,
               image: Buffer.from('mock-image'),
@@ -89,7 +89,7 @@ describe('Property 14: Success exit code', () => {
                 imageSize: 1024,
                 dimensions: { width: viewport.width, height: viewport.height },
               },
-            }))
+            })),
           );
 
           const mockCaptureEngine = {
@@ -130,9 +130,9 @@ describe('Property 14: Success exit code', () => {
 
           // Property: When all comparisons pass, exit code should be 0
           expect(exitCode).toBe(0);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

@@ -21,8 +21,8 @@ export default defineConfig({
       insertTypesEntry: true,
       outDir: 'dist',
       tsconfigPath: './tsconfig.json',
-      rollupTypes: true
-    })
+      rollupTypes: true,
+    }),
   ],
   test: {
     globals: true,
@@ -31,7 +31,7 @@ export default defineConfig({
     coverage: {
       enabled: true,
       reporter: ['text', 'html'],
-      reportsDirectory: './coverage'
-    }
+      reportsDirectory: './coverage',
+    },
   },
 });

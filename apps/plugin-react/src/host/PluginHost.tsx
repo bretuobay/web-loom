@@ -1,12 +1,4 @@
-import React, {
-  createContext,
-  createElement,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { createContext, createElement, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { PluginRegistry, PluginSDKImplementation } from '@repo/plugin-core';
 import type {
@@ -93,9 +85,7 @@ export const PluginHostProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         component: widget.component as ReactPluginComponent,
       };
       setWidgets((prev) =>
-        prev.some((entry) => entry.id === normalizedWidget.id)
-          ? prev
-          : [...prev, normalizedWidget],
+        prev.some((entry) => entry.id === normalizedWidget.id) ? prev : [...prev, normalizedWidget],
       );
     };
 
@@ -107,9 +97,9 @@ export const PluginHostProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setMenuItems((prev) => (prev.some((entry) => entry.label === item.label) ? prev : [...prev, item]));
     };
 
-      const removeMenuItem = (label: string) => {
-        setMenuItems((prev) => prev.filter((entry) => entry.label !== label));
-      };
+    const removeMenuItem = (label: string) => {
+      setMenuItems((prev) => prev.filter((entry) => entry.label !== label));
+    };
 
     const handlers = eventHandlersRef.current;
 
@@ -259,7 +249,7 @@ export const PluginHost: React.FC = () => {
   const { routes, widgets, isReady } = usePluginHostContext();
   const location = useLocation();
   const showWidgets = ['/', '/dashboard'].includes(location.pathname);
-  const shouldHideRoute = (path: string) => showWidgets && ['/','/dashboard'].includes(path);
+  const shouldHideRoute = (path: string) => showWidgets && ['/', '/dashboard'].includes(path);
 
   if (!isReady) {
     return <p>Loading plugins...</p>;

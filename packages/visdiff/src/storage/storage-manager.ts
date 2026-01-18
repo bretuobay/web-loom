@@ -90,7 +90,7 @@ export class StorageManager {
 
     const timestampDir = this.getTimestampedDir(timestamp);
     const diffDir = path.join(this.getAbsolutePath(this.paths.diffDir), timestampDir);
-    
+
     await fs.mkdir(diffDir, { recursive: true });
 
     const filename = this.getDiffFilename(result.identifier);
@@ -107,20 +107,20 @@ export class StorageManager {
   async saveReport(results: ComparisonResult[], timestamp: Date): Promise<void> {
     const timestampDir = this.getTimestampedDir(timestamp);
     const diffDir = path.join(this.getAbsolutePath(this.paths.diffDir), timestampDir);
-    
+
     await fs.mkdir(diffDir, { recursive: true });
 
     const report: Report = {
       timestamp,
-      results: results.map(r => ({
+      results: results.map((r) => ({
         ...r,
         diffImage: undefined, // Don't include buffer in JSON
       })),
       summary: {
         total: results.length,
-        passed: results.filter(r => r.passed).length,
-        failed: results.filter(r => !r.passed && !r.error).length,
-        new: results.filter(r => r.error).length,
+        passed: results.filter((r) => r.passed).length,
+        failed: results.filter((r) => !r.passed && !r.error).length,
+        new: results.filter((r) => r.error).length,
       },
     };
 
@@ -138,8 +138,8 @@ export class StorageManager {
     try {
       const entries = await fs.readdir(diffDir, { withFileTypes: true });
       const dirs = entries
-        .filter(e => e.isDirectory())
-        .map(e => e.name)
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
         .sort()
         .reverse();
 
@@ -152,13 +152,13 @@ export class StorageManager {
         return null;
       }
       const reportPath = path.join(diffDir, latestDir, 'report.json');
-      
+
       const content = await fs.readFile(reportPath, 'utf-8');
       const report = JSON.parse(content);
-      
+
       // Convert timestamp string back to Date
       report.timestamp = new Date(report.timestamp);
-      
+
       return report;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -176,18 +176,18 @@ export class StorageManager {
     const timestamp = new Date();
     const timestampDir = this.getTimestampedDir(timestamp);
     const backupDir = path.join(this.getAbsolutePath(this.paths.backupDir), timestampDir);
-    
+
     await fs.mkdir(backupDir, { recursive: true });
 
     const baselineDir = this.getAbsolutePath(this.paths.baselineDir);
-    
+
     try {
       const files = await fs.readdir(baselineDir);
-      
+
       for (const file of files) {
         const srcPath = path.join(baselineDir, file);
         const destPath = path.join(backupDir, file);
-        
+
         const stat = await fs.stat(srcPath);
         if (stat.isFile()) {
           await fs.copyFile(srcPath, destPath);
@@ -207,10 +207,7 @@ export class StorageManager {
    * @param identifiers - Optional array of specific identifiers to approve
    * @param currentScreenshots - Map of identifier to image buffer
    */
-  async approveChanges(
-    currentScreenshots: Map<string, Buffer>,
-    identifiers?: string[]
-  ): Promise<string[]> {
+  async approveChanges(currentScreenshots: Map<string, Buffer>, identifiers?: string[]): Promise<string[]> {
     // Backup existing baselines first
     await this.backupBaselines();
 

@@ -19,15 +19,7 @@ describe('Input', () => {
   });
 
   it('renders prefix, suffix, and addons', () => {
-    render(
-      <Input
-        placeholder="Url"
-        prefix="https://"
-        suffix="/home"
-        addonBefore="http://"
-        addonAfter=".com"
-      />
-    );
+    render(<Input placeholder="Url" prefix="https://" suffix="/home" addonBefore="http://" addonAfter=".com" />);
 
     expect(screen.getByText('https://')).toBeInTheDocument();
     expect(screen.getByText('/home')).toBeInTheDocument();
@@ -40,7 +32,7 @@ describe('Input', () => {
       <InputGroup>
         <Input placeholder="First" />
         <Input placeholder="Last" />
-      </InputGroup>
+      </InputGroup>,
     );
 
     expect(screen.getByPlaceholderText('First')).toBeInTheDocument();

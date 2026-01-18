@@ -12,51 +12,51 @@ const migration: Migration = {
           type: DataTypes.UUID,
           allowNull: false,
           primaryKey: true,
-          defaultValue: DataTypes.UUIDV4
+          defaultValue: DataTypes.UUIDV4,
         },
         title: {
           type: DataTypes.STRING(255),
-          allowNull: false
+          allowNull: false,
         },
         details: {
           type: DataTypes.TEXT,
           allowNull: false,
-          defaultValue: ''
+          defaultValue: '',
         },
         completed: {
           type: DataTypes.BOOLEAN,
           allowNull: false,
-          defaultValue: false
+          defaultValue: false,
         },
         dueDate: {
           type: DataTypes.DATE,
           allowNull: false,
-          defaultValue: Sequelize.literal('CURRENT_DATE')
+          defaultValue: Sequelize.literal('CURRENT_DATE'),
         },
         userId: {
           type: DataTypes.UUID,
           allowNull: false,
           references: {
             model: 'users',
-            key: 'id'
+            key: 'id',
           },
           onDelete: 'CASCADE',
-          onUpdate: 'CASCADE'
+          onUpdate: 'CASCADE',
         },
         createdAt: {
           type: DataTypes.DATE,
           allowNull: false,
-          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
         },
         updatedAt: {
           type: DataTypes.DATE,
           allowNull: false,
-          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
-        }
+          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        },
       },
-      { transaction }
+      { transaction },
     );
-  }
+  },
 };
 
 export default migration;

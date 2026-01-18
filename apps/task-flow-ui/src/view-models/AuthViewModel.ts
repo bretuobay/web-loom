@@ -1,10 +1,5 @@
 import { BehaviorSubject } from 'rxjs';
-import type {
-  AuthPayload,
-  RegisterPayload,
-  ChangePasswordPayload,
-  AuthResponse
-} from '../domain/services/apiClient';
+import type { AuthPayload, RegisterPayload, ChangePasswordPayload, AuthResponse } from '../domain/services/apiClient';
 import { taskFlowApiClient } from '../domain/services/apiClient';
 import { UserEntity } from '../domain/entities/user';
 

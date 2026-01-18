@@ -21,8 +21,10 @@ export interface TaskAttributes {
   updatedAt?: Date;
 }
 
-export interface TaskCreationAttributes
-  extends Optional<TaskAttributes, 'id' | 'dueDate' | 'createdAt' | 'updatedAt' | 'assigneeName' | 'assigneeId'> {}
+export interface TaskCreationAttributes extends Optional<
+  TaskAttributes,
+  'id' | 'dueDate' | 'createdAt' | 'updatedAt' | 'assigneeName' | 'assigneeId'
+> {}
 
 export class Task extends Model<TaskAttributes, TaskCreationAttributes> implements TaskAttributes {
   declare id: string;
@@ -43,49 +45,49 @@ Task.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     title: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: false,
     },
     description: {
       type: DataTypes.TEXT,
       allowNull: false,
-      defaultValue: ''
+      defaultValue: '',
     },
     status: {
       type: DataTypes.ENUM(...TASK_STATUSES),
       allowNull: false,
-      defaultValue: 'backlog'
+      defaultValue: 'backlog',
     },
     priority: {
       type: DataTypes.ENUM(...TASK_PRIORITIES),
       allowNull: false,
-      defaultValue: 'medium'
+      defaultValue: 'medium',
     },
     assigneeName: {
       field: 'assignee',
       type: DataTypes.STRING(120),
       allowNull: false,
-      defaultValue: 'Unassigned'
+      defaultValue: 'Unassigned',
     },
     assigneeId: {
       type: DataTypes.UUID,
-      allowNull: true
+      allowNull: true,
     },
     dueDate: {
       type: DataTypes.DATE,
-      allowNull: true
+      allowNull: true,
     },
     projectId: {
       type: DataTypes.UUID,
-      allowNull: false
-    }
+      allowNull: false,
+    },
   },
   {
     sequelize,
     tableName: 'tasks',
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );

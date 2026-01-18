@@ -9,7 +9,7 @@ const initialFormState = {
   displayName: '',
   avatarUrl: null,
   preferences: {},
-  isDirty: false
+  isDirty: false,
 };
 
 interface ProfilePanelProps {

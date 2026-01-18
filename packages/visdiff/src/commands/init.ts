@@ -85,7 +85,7 @@ export async function initCommand(options: InitOptions = {}): Promise<number> {
     } else {
       // Create default configuration file
       await writeFile(configPath, DEFAULT_CONFIG_TEMPLATE, 'utf-8');
-      
+
       if (options.force) {
         console.log(chalk.green('✓ Configuration file updated'));
       } else {

@@ -23,12 +23,7 @@ describe('Select Component', () => {
     });
 
     it('should have proper aria attributes', () => {
-      render(
-        <Select
-          aria-label="Choose option"
-          options={mockOptions}
-        />
-      );
+      render(<Select aria-label="Choose option" options={mockOptions} />);
       const combobox = screen.getByRole('combobox');
       expect(combobox).toHaveAttribute('aria-label', 'Choose option');
       expect(combobox).toHaveAttribute('aria-haspopup', 'listbox');
@@ -40,7 +35,7 @@ describe('Select Component', () => {
         <>
           <label id="select-label">My Label</label>
           <Select aria-labelledby="select-label" options={mockOptions} />
-        </>
+        </>,
       );
       const combobox = screen.getByRole('combobox');
       expect(combobox).toHaveAttribute('aria-labelledby', 'select-label');
@@ -187,14 +182,7 @@ describe('Select Component', () => {
 
     it('should clear selection when clear button is clicked', async () => {
       const handleChange = vi.fn();
-      render(
-        <Select
-          options={mockOptions}
-          value="1"
-          allowClear
-          onChange={handleChange}
-        />
-      );
+      render(<Select options={mockOptions} value="1" allowClear onChange={handleChange} />);
 
       const clearButton = screen.getByLabelText('Clear selection');
       fireEvent.click(clearButton);
@@ -205,26 +193,14 @@ describe('Select Component', () => {
 
   describe('Multiple Selection Mode', () => {
     it('should render multiple selected values as tags', () => {
-      render(
-        <Select
-          mode="multiple"
-          options={mockOptions}
-          value={['1', '2']}
-        />
-      );
+      render(<Select mode="multiple" options={mockOptions} value={['1', '2']} />);
 
       expect(screen.getByText('Option 1')).toBeInTheDocument();
       expect(screen.getByText('Option 2')).toBeInTheDocument();
     });
 
     it('should render remove buttons on tags', () => {
-      render(
-        <Select
-          mode="multiple"
-          options={mockOptions}
-          value={['1', '2']}
-        />
-      );
+      render(<Select mode="multiple" options={mockOptions} value={['1', '2']} />);
 
       const removeButtons = screen.getAllByLabelText(/Remove/);
       expect(removeButtons).toHaveLength(2);
@@ -232,14 +208,7 @@ describe('Select Component', () => {
 
     it('should remove tag when close button is clicked', async () => {
       const handleChange = vi.fn();
-      render(
-        <Select
-          mode="multiple"
-          options={mockOptions}
-          value={['1', '2']}
-          onChange={handleChange}
-        />
-      );
+      render(<Select mode="multiple" options={mockOptions} value={['1', '2']} onChange={handleChange} />);
 
       const removeButton = screen.getByLabelText('Remove Option 1');
       fireEvent.click(removeButton);
@@ -248,27 +217,14 @@ describe('Select Component', () => {
     });
 
     it('should not show remove buttons when disabled', () => {
-      render(
-        <Select
-          mode="multiple"
-          options={mockOptions}
-          value={['1', '2']}
-          disabled
-        />
-      );
+      render(<Select mode="multiple" options={mockOptions} value={['1', '2']} disabled />);
 
       const removeButtons = screen.queryAllByLabelText(/Remove/);
       expect(removeButtons).toHaveLength(0);
     });
 
     it('should have proper ARIA attributes on tags', () => {
-      render(
-        <Select
-          mode="multiple"
-          options={mockOptions}
-          value={['1']}
-        />
-      );
+      render(<Select mode="multiple" options={mockOptions} value={['1']} />);
 
       const tag = screen.getByText('Option 1').parentElement;
       expect(tag).toHaveAttribute('role', 'option');

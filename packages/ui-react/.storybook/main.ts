@@ -19,16 +19,20 @@ const config: StorybookConfig = {
     baseConfig.resolve = baseConfig.resolve ?? {};
 
     // Convert existing alias to array format if it exists
-    const existingAlias = Array.isArray(baseConfig.resolve.alias)
-      ? baseConfig.resolve.alias
-      : [];
+    const existingAlias = Array.isArray(baseConfig.resolve.alias) ? baseConfig.resolve.alias : [];
 
     // More specific patterns must come first
     baseConfig.resolve.alias = [
       ...existingAlias,
-      { find: '@web-loom/design-core/design-system', replacement: resolve(__dirname, '../../design-core/src/design-system') },
+      {
+        find: '@web-loom/design-core/design-system',
+        replacement: resolve(__dirname, '../../design-core/src/design-system'),
+      },
       { find: '@web-loom/ui-core/behaviors', replacement: resolve(__dirname, '../../ui-core/src/behaviors/index.ts') },
-      { find: /^@web-loom\/ui-core\/behaviors\/(.*)$/, replacement: resolve(__dirname, '../../ui-core/src/behaviors/$1.ts') },
+      {
+        find: /^@web-loom\/ui-core\/behaviors\/(.*)$/,
+        replacement: resolve(__dirname, '../../ui-core/src/behaviors/$1.ts'),
+      },
       { find: '@web-loom/ui-core/table', replacement: resolve(__dirname, '../../ui-core/src/table/index.ts') },
       { find: '@web-loom/ui-core/modal', replacement: resolve(__dirname, '../../ui-core/src/modal/index.ts') },
       { find: '@web-loom/design-core', replacement: resolve(__dirname, '../../design-core/src/index.ts') },

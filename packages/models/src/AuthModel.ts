@@ -3,12 +3,7 @@ import { BehaviorSubject } from 'rxjs';
 import { apiRegistry, type ApiEndpoint } from './services/services';
 import { API_BASE_URL } from './config';
 import { nativeFetcher } from './utils/fetcher';
-import {
-  AuthTokenResponseSchema,
-  type AuthTokenResponseData,
-  type UserData,
-  UserSchema,
-} from './schemas/auth.schema';
+import { AuthTokenResponseSchema, type AuthTokenResponseData, type UserData, UserSchema } from './schemas/auth.schema';
 
 type AuthHeadersResolver = (extra?: HeadersInit) => HeadersInit;
 
@@ -160,7 +155,7 @@ export class AuthModel extends RestfulApiModel<UserData, typeof UserSchema> {
     }
 
     const fallback = await response.text();
-    return (fallback as unknown) as T;
+    return fallback as unknown as T;
   }
 
   private adoptSession(session: AuthTokenResponseData): void {

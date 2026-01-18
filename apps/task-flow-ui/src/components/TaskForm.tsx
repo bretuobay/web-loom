@@ -11,7 +11,7 @@ const TASK_FORM_SCHEMA = z.object({
   description: z.string().optional(),
   status: z.enum(TASK_STATUSES),
   priority: z.enum(TASK_PRIORITIES),
-  dueDate: z.string().nullable()
+  dueDate: z.string().nullable(),
 });
 
 const DEFAULT_FORM_VALUES: TaskFormValues = {
@@ -19,7 +19,7 @@ const DEFAULT_FORM_VALUES: TaskFormValues = {
   description: '',
   status: TASK_STATUSES[0],
   priority: TASK_PRIORITIES[1],
-  dueDate: null
+  dueDate: null,
 };
 
 interface TaskFormProps {
@@ -45,7 +45,7 @@ export function TaskForm({
   initialValues,
   title = 'Create task',
   submitLabel = 'Save task',
-  onCancel
+  onCancel,
 }: TaskFormProps) {
   const mergedInitial = useMemo(() => ({ ...DEFAULT_FORM_VALUES, ...initialValues }), [initialValues]);
   const [values, setValues] = useState<TaskFormValues>(mergedInitial);
@@ -76,7 +76,8 @@ export function TaskForm({
   };
 
   const handleChange = (field: keyof TaskFormValues, rawValue: unknown) => {
-    const nextValue = field === 'dueDate' ? (rawValue === '' ? null : String(rawValue)) : (rawValue as TaskFormValues[typeof field]);
+    const nextValue =
+      field === 'dueDate' ? (rawValue === '' ? null : String(rawValue)) : (rawValue as TaskFormValues[typeof field]);
     const next = { ...values, [field]: nextValue };
     setValues(next);
     if (errors[field]) {

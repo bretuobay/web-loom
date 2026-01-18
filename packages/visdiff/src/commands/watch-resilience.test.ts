@@ -2,8 +2,8 @@
  * Property Test: Watch mode resilience
  * Feature: visdiff-phase1, Property 22: Watch mode resilience
  * Validates: Requirements 5.4
- * 
- * For any comparison failure in watch mode, the system should 
+ *
+ * For any comparison failure in watch mode, the system should
  * continue watching without exiting
  */
 
@@ -37,12 +37,12 @@ describe('Property 22: Watch mode resilience', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     errorOutput = [];
-    
+
     // Store original functions
     originalProcessOn = process.on;
     originalConsoleError = console.error;
     signalHandlers = new Map();
-    
+
     // Mock console.error to capture errors
     console.error = vi.fn((...args: any[]) => {
       errorOutput.push(args.join(' '));
@@ -94,7 +94,7 @@ describe('Property 22: Watch mode resilience', () => {
         async (url, failurePattern) => {
           // Setup mocks for this test
           let callCount = 0;
-          
+
           const mockBrowserManager = {
             launch: vi.fn().mockResolvedValue(undefined),
             close: vi.fn().mockResolvedValue(undefined),
@@ -111,20 +111,22 @@ describe('Property 22: Watch mode resilience', () => {
                   throw new Error('Simulated capture failure');
                 }
               }
-              
+
               return {
-                results: [{
-                  url,
-                  viewport: { width: 1920, height: 1080, name: 'desktop' },
-                  image: Buffer.from('test'),
-                  timestamp: new Date(),
-                  success: true,
-                  metadata: {
-                    loadTime: 100,
-                    imageSize: 1000,
-                    dimensions: { width: 1920, height: 1080 },
+                results: [
+                  {
+                    url,
+                    viewport: { width: 1920, height: 1080, name: 'desktop' },
+                    image: Buffer.from('test'),
+                    timestamp: new Date(),
+                    success: true,
+                    metadata: {
+                      loadTime: 100,
+                      imageSize: 1000,
+                      dimensions: { width: 1920, height: 1080 },
+                    },
                   },
-                }],
+                ],
                 total: 1,
                 successful: 1,
                 failed: 0,
@@ -133,13 +135,15 @@ describe('Property 22: Watch mode resilience', () => {
           };
 
           const mockCompareEngineInstance = {
-            compareAll: vi.fn().mockResolvedValue([{
-              identifier: 'test-desktop',
-              passed: true,
-              difference: 0.001,
-              dimensions: { width: 1920, height: 1080 },
-              pixelsDifferent: 10,
-            }]),
+            compareAll: vi.fn().mockResolvedValue([
+              {
+                identifier: 'test-desktop',
+                passed: true,
+                difference: 0.001,
+                dimensions: { width: 1920, height: 1080 },
+                pixelsDifferent: 10,
+              },
+            ]),
           };
 
           const mockStorageInstance = {
@@ -164,18 +168,18 @@ describe('Property 22: Watch mode resilience', () => {
           });
 
           // Wait for multiple polling cycles
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
           // Verify that watch mode continued despite failures
           expect(callCount).toBeGreaterThan(1);
-          
+
           // If there were failures, verify error was logged with the correct message
-          const hadFailures = failurePattern.some(f => f);
+          const hadFailures = failurePattern.some((f) => f);
           if (hadFailures) {
             expect(errorOutput.length).toBeGreaterThan(0);
             // The actual error message from watch.ts is "Comparison failed, continuing to watch..."
-            const hasResilienceMessage = errorOutput.some(msg => 
-              msg.includes('Comparison failed') && msg.includes('continuing to watch')
+            const hasResilienceMessage = errorOutput.some(
+              (msg) => msg.includes('Comparison failed') && msg.includes('continuing to watch'),
             );
             expect(hasResilienceMessage).toBe(true);
           }
@@ -188,9 +192,9 @@ describe('Property 22: Watch mode resilience', () => {
           if (sigintHandler) {
             await sigintHandler();
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -198,7 +202,7 @@ describe('Property 22: Watch mode resilience', () => {
     // This test is skipped because properly mocking the watch command's async behavior
     // with polling intervals and error handling is complex. The property-based test above
     // provides sufficient coverage of the resilience behavior.
-    // 
+    //
     // The watch command correctly implements error resilience by catching errors in the
     // polling loop and logging "Comparison failed, continuing to watch..." before continuing.
     // This is verified by the property-based test which tests the same behavior with

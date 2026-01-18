@@ -16,15 +16,7 @@ export interface MenuItemProps extends HTMLAttributes<HTMLLIElement> {
 /**
  * MenuItem component for individual menu items.
  */
-export function MenuItem({
-  className,
-  itemKey,
-  disabled = false,
-  icon,
-  children,
-  onClick,
-  ...rest
-}: MenuItemProps) {
+export function MenuItem({ className, itemKey, disabled = false, icon, children, onClick, ...rest }: MenuItemProps) {
   const { selectedKeys, onSelect, theme, inlineCollapsed } = useMenuContext();
 
   const isSelected = selectedKeys.includes(itemKey);
@@ -55,7 +47,7 @@ export function MenuItem({
       'loom-menu-item-disabled': disabled,
       [`loom-menu-item-${theme}`]: theme,
     },
-    className
+    className,
   );
 
   return (

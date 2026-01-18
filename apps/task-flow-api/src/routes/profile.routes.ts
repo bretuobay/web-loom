@@ -11,9 +11,9 @@ const profileSchema = z.object({
   avatarUrl: z.string().url().optional().nullable(),
   preferences: z
     .object({
-      theme: z.enum(['light', 'dark']).optional()
+      theme: z.enum(['light', 'dark']).optional(),
     })
-    .optional()
+    .optional(),
 });
 
 router.get('/', authenticate, async (req, res, next) => {

@@ -35,7 +35,7 @@ export class ProjectListViewModel {
       isDetailOpen: false,
       searchTerm: '',
       isTaskFormOpen: false,
-      isProjectFormOpen: false
+      isProjectFormOpen: false,
     },
     (set) => ({
       selectProject: (id) => set((state) => ({ ...state, selectedProjectId: id })),
@@ -44,8 +44,8 @@ export class ProjectListViewModel {
       toggleTaskForm: () => set((state) => ({ ...state, isTaskFormOpen: !state.isTaskFormOpen })),
       setTaskFormOpen: (isOpen) => set((state) => ({ ...state, isTaskFormOpen: isOpen })),
       toggleProjectForm: () => set((state) => ({ ...state, isProjectFormOpen: !state.isProjectFormOpen })),
-      setProjectFormOpen: (isOpen) => set((state) => ({ ...state, isProjectFormOpen: isOpen }))
-    })
+      setProjectFormOpen: (isOpen) => set((state) => ({ ...state, isProjectFormOpen: isOpen })),
+    }),
   );
   private readonly selectedProjectId$ = new BehaviorSubject<string | undefined>(undefined);
   private readonly isDetailOpen$ = new BehaviorSubject(false);
@@ -73,7 +73,7 @@ export class ProjectListViewModel {
 
   constructor(
     repository: IProjectRepository = new CachingProjectRepository(),
-    taskRepository: ITaskRepository = new CachingTaskRepository()
+    taskRepository: ITaskRepository = new CachingTaskRepository(),
   ) {
     this.repository = repository;
     this.projectStore = new ProjectStore(repository);
@@ -97,8 +97,7 @@ export class ProjectListViewModel {
       const filtered = normalized
         ? projects.filter(
             (project) =>
-              project.name.toLowerCase().includes(normalized) ||
-              project.description.toLowerCase().includes(normalized)
+              project.name.toLowerCase().includes(normalized) || project.description.toLowerCase().includes(normalized),
           )
         : projects;
       this.filteredProjects$.next(filtered);
@@ -186,7 +185,7 @@ export class ProjectListViewModel {
         name: values.name.trim(),
         description: description && description.length > 0 ? description : undefined,
         color: values.color,
-        status: values.status
+        status: values.status,
       };
 
       if (this.projectFormMode$.getValue() === 'edit') {
@@ -258,7 +257,7 @@ export class ProjectListViewModel {
     try {
       await this.taskStore.create({
         ...values,
-        projectId
+        projectId,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create task';

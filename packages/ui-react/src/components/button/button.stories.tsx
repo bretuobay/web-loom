@@ -23,7 +23,12 @@ const IconDownload = () => (
 const IconSettings = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
     <circle cx="8" cy="8" r="2" fill="currentColor" />
-    <path d="M8 1v2m0 10v2M1 8h2m10 0h2M3.5 3.5l1.4 1.4m6.2 6.2l1.4 1.4M3.5 12.5l1.4-1.4m6.2-6.2l1.4-1.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path
+      d="M8 1v2m0 10v2M1 8h2m10 0h2M3.5 3.5l1.4 1.4m6.2 6.2l1.4 1.4M3.5 12.5l1.4-1.4m6.2-6.2l1.4-1.4"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
@@ -260,9 +265,7 @@ export const AllVariants: Story = {
   render: () => (
     <div style={{ display: 'grid', gap: '24px', maxWidth: '800px' }}>
       <div>
-        <h3 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>
-          Primary Variant
-        </h3>
+        <h3 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>Primary Variant</h3>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <Button variant="primary" size="small">
             Small
@@ -286,9 +289,7 @@ export const AllVariants: Story = {
       </div>
 
       <div>
-        <h3 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>
-          Default Variant
-        </h3>
+        <h3 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>Default Variant</h3>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <Button variant="default" size="small">
             Small
@@ -312,9 +313,7 @@ export const AllVariants: Story = {
       </div>
 
       <div>
-        <h3 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>
-          Dashed Variant
-        </h3>
+        <h3 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>Dashed Variant</h3>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <Button variant="dashed" size="small">
             Small
@@ -380,9 +379,7 @@ export const AllVariants: Story = {
       </div>
 
       <div>
-        <h3 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>
-          Shapes & Icons
-        </h3>
+        <h3 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>Shapes & Icons</h3>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
           <Button shape="default">Default</Button>
           <Button shape="round">Round</Button>
@@ -412,4 +409,3 @@ export const Playground: Story = {
     block: false,
   },
 };
-

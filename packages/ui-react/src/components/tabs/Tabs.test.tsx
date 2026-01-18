@@ -12,7 +12,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     expect(screen.getByText('Tab 1')).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tabs = container.querySelector('.loom-tabs');
@@ -39,7 +39,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tabs = container.querySelector('.loom-tabs');
@@ -52,7 +52,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tabs = container.querySelector('.loom-tabs');
@@ -65,7 +65,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     let tabs = container.querySelector('.loom-tabs');
@@ -76,7 +76,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
     tabs = container.querySelector('.loom-tabs');
     expect(tabs).toHaveClass('loom-tabs-bottom');
@@ -86,7 +86,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
     tabs = container.querySelector('.loom-tabs');
     expect(tabs).toHaveClass('loom-tabs-left');
@@ -96,7 +96,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
     tabs = container.querySelector('.loom-tabs');
     expect(tabs).toHaveClass('loom-tabs-right');
@@ -108,7 +108,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     let tabs = container.querySelector('.loom-tabs');
@@ -119,7 +119,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
     tabs = container.querySelector('.loom-tabs');
     expect(tabs).toHaveClass('loom-tabs-middle');
@@ -129,7 +129,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
     tabs = container.querySelector('.loom-tabs');
     expect(tabs).toHaveClass('loom-tabs-large');
@@ -144,7 +144,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     // Content 2 should be visible
@@ -163,7 +163,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     expect(screen.getByText('Content 1')).toBeVisible();
@@ -176,7 +176,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     expect(screen.getByText('Content 2')).toBeVisible();
@@ -193,7 +193,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     fireEvent.click(screen.getByText('Tab 2'));
@@ -209,7 +209,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tabs = container.querySelectorAll('[role="tab"]');
@@ -228,7 +228,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2" disabled>
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const disabledTab = screen.getByText('Tab 2').parentElement;
@@ -246,7 +246,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     expect(screen.getByLabelText('Add tab')).toBeInTheDocument();
@@ -261,7 +261,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const removeButtons = screen.getAllByLabelText('Remove tab');
@@ -277,7 +277,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const removeButtons = screen.getAllByLabelText('Remove tab');
@@ -293,7 +293,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2" disabled>
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const removeButtons = screen.getAllByLabelText('Remove tab');
@@ -308,7 +308,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     fireEvent.click(screen.getByLabelText('Add tab'));
@@ -326,7 +326,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const removeButtons = screen.getAllByLabelText('Remove tab');
@@ -342,19 +342,14 @@ describe('Tabs', () => {
     const handleEdit = vi.fn();
 
     render(
-      <Tabs
-        type="editable-card"
-        defaultActiveKey="1"
-        onChange={handleChange}
-        onEdit={handleEdit}
-      >
+      <Tabs type="editable-card" defaultActiveKey="1" onChange={handleChange} onEdit={handleEdit}>
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const removeButtons = screen.getAllByLabelText('Remove tab');
@@ -381,7 +376,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="3" tab="Tab 3">
           Content 3
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tablist = container.querySelector('[role="tablist"]');
@@ -409,7 +404,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="3" tab="Tab 3">
           Content 3
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tablist = container.querySelector('[role="tablist"]');
@@ -434,7 +429,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tablist = container.querySelector('[role="tablist"]');
@@ -460,7 +455,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tab2 = screen.getByText('Tab 2').parentElement;
@@ -479,7 +474,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tab2 = screen.getByText('Tab 2').parentElement;
@@ -496,7 +491,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tablist = container.querySelector('[role="tablist"]');
@@ -517,7 +512,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     let tablist = container.querySelector('[role="tablist"]');
@@ -528,7 +523,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     tablist = container.querySelector('[role="tablist"]');
@@ -544,7 +539,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="2" tab="Tab 2">
           Content 2
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tabs = container.querySelectorAll('[role="tab"]');
@@ -558,7 +553,7 @@ describe('Tabs', () => {
         <Tabs.TabPane tabKey="1" tab="Tab 1">
           Content 1
         </Tabs.TabPane>
-      </Tabs>
+      </Tabs>,
     );
 
     const tabs = container.querySelector('.loom-tabs');

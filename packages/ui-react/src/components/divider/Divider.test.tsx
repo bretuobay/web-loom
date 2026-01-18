@@ -76,7 +76,7 @@ describe('Divider', () => {
     render(
       <Divider>
         <span data-testid="custom-content">Custom Content</span>
-      </Divider>
+      </Divider>,
     );
 
     expect(screen.getByTestId('custom-content')).toBeInTheDocument();
@@ -109,7 +109,7 @@ describe('Divider', () => {
     const { container } = render(
       <Divider dashed orientation="left">
         Dashed Text
-      </Divider>
+      </Divider>,
     );
 
     const divider = container.querySelector('.loom-divider');
@@ -121,7 +121,7 @@ describe('Divider', () => {
     const { container } = render(
       <Divider plain dashed>
         Plain Dashed
-      </Divider>
+      </Divider>,
     );
 
     const divider = container.querySelector('.loom-divider');

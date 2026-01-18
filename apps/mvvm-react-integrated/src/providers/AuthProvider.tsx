@@ -13,11 +13,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = useObservable(authViewModel.isAuthenticated$, false);
   const isLoading = useObservable(authViewModel.isLoading$, false);
 
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ isAuthenticated, isLoading }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

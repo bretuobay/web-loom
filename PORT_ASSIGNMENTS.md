@@ -15,6 +15,7 @@ This document outlines the systematic port assignments for all experimental apps
 | ---------------------- | --------------- | ---- | ------------- |
 | docs                   | Next.js         | 3000 | `npm run dev` |
 | mvvm-book              | Next.js         | 3001 | `npm run dev` |
+| plugin-docs            | Next.js         | 3002 | `npm run dev` |
 | mvvm-angular           | Angular         | 4200 | `npm run dev` |
 | mvvm-react             | Vite + React    | 5173 | `npm run dev` |
 | mvvm-vue               | Vite + Vue      | 5174 | `npm run dev` |
@@ -23,7 +24,16 @@ This document outlines the systematic port assignments for all experimental apps
 | mvvm-react-integrated  | Vite + React    | 5177 | `npm run dev` |
 | task-flow-ui           | Vite + React    | 5178 | `npm run dev` |
 | ui-patterns-playground | Vite + React    | 5179 | `npm run dev` |
+| plugin-react           | Vite + React    | 5180 | `npm run dev` |
 | api                    | Node.js/Express | 8000 | `npm run dev` |
+| task-flow-api          | Node.js/Express | 8001 | `npm run dev` |
+
+### API/UI Pairings
+
+| UI App       | API App       | UI Port | API Port |
+| ------------ | ------------- | ------- | -------- |
+| task-flow-ui | task-flow-api | 5178    | 8001     |
+| mvvm-\*      | api           | varies  | 8000     |
 
 ## Running Multiple Apps
 
@@ -202,5 +212,5 @@ Check if ports are properly assigned:
 lsof -i :5173
 
 # Check all assigned ports
-lsof -i :3000-3001 -i :4200 -i :5173-5179 -i :8000
+lsof -i :3000-3002 -i :4200 -i :5173-5180 -i :8000-8001
 ```

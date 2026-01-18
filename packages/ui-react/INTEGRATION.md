@@ -52,6 +52,7 @@ Using `"*"` allows Turborepo to resolve workspace packages automatically.
 ```
 
 **Key Points:**
+
 - Paths point to `dist` directories for built packages (ui-core, ui-patterns)
 - `moduleResolution: "bundler"` matches the sibling packages' configuration
 - `skipLibCheck: true` avoids type checking sibling package internals
@@ -89,6 +90,7 @@ Using `"*"` allows Turborepo to resolve workspace packages automatically.
 ```
 
 **Key Points:**
+
 - Vite aliases resolve to source files for HMR and source maps
 - Special alias for `design-core/design-system` to handle CSS imports
 - All sibling packages are marked as external to avoid bundling
@@ -230,6 +232,7 @@ cd ../ui-patterns && npm run build
 ### Issue: Module not found during build
 
 **Solution:**
+
 1. Ensure dependencies are installed: `npm install`
 2. Check that package.json has correct workspace dependencies
 3. Verify Rollup externals list includes all sibling packages
@@ -277,11 +280,13 @@ When building multiple packages, follow dependency order:
 ### Why Two Different Path Configurations?
 
 **TypeScript paths → dist files:**
+
 - Avoids type checking sibling package internals
 - Prevents strictness setting conflicts
 - Faster type checking
 
 **Vite aliases → source files:**
+
 - Enables hot module replacement
 - Provides better source maps
 - Allows debugging into sibling packages
@@ -289,6 +294,7 @@ When building multiple packages, follow dependency order:
 ### Why External Dependencies?
 
 Marking sibling packages as external:
+
 - Prevents code duplication
 - Allows consuming apps to control versions
 - Reduces bundle size

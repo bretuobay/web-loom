@@ -44,8 +44,8 @@ export async function statusCommand(options: StatusOptions = {}): Promise<number
         timestamp: report.timestamp.toISOString(),
         summary: report.summary,
         failed: report.results
-          .filter(r => !r.passed && !r.error)
-          .map(r => ({
+          .filter((r) => !r.passed && !r.error)
+          .map((r) => ({
             identifier: r.identifier,
             difference: r.difference,
             pixelsDifferent: r.pixelsDifferent,
@@ -64,29 +64,29 @@ export async function statusCommand(options: StatusOptions = {}): Promise<number
     // Display counts with color coding
     console.log(chalk.bold('Summary:'));
     console.log(chalk.gray(`  Total:  ${report.summary.total}`));
-    
+
     if (report.summary.passed > 0) {
       console.log(chalk.green(`  Passed: ${report.summary.passed}`));
     }
-    
+
     if (report.summary.failed > 0) {
       console.log(chalk.red(`  Failed: ${report.summary.failed}`));
     }
-    
+
     if (report.summary.new > 0) {
       console.log(chalk.yellow(`  New:    ${report.summary.new}`));
     }
 
     // List failed paths and viewports
-    const failedResults = report.results.filter(r => !r.passed && !r.error);
-    
+    const failedResults = report.results.filter((r) => !r.passed && !r.error);
+
     if (failedResults.length > 0) {
       console.log();
       console.log(chalk.bold.red('Failed Comparisons:'));
-      
+
       for (const result of failedResults) {
         console.log(chalk.red(`  ✗ ${result.identifier}`));
-        
+
         if (options.verbose) {
           console.log(chalk.gray(`    Difference: ${(result.difference * 100).toFixed(2)}%`));
           console.log(chalk.gray(`    Pixels different: ${result.pixelsDifferent.toLocaleString()}`));
@@ -95,7 +95,7 @@ export async function statusCommand(options: StatusOptions = {}): Promise<number
           console.log(chalk.gray(`    Difference: ${(result.difference * 100).toFixed(2)}%`));
         }
       }
-      
+
       console.log();
       console.log(chalk.blue('ℹ️  Next steps:'));
       console.log(chalk.gray('  1. Review diff images in .visdiff/diffs/'));
@@ -104,16 +104,16 @@ export async function statusCommand(options: StatusOptions = {}): Promise<number
     }
 
     // List new baselines needed
-    const newResults = report.results.filter(r => r.error);
-    
+    const newResults = report.results.filter((r) => r.error);
+
     if (newResults.length > 0) {
       console.log();
       console.log(chalk.bold.yellow('Missing Baselines:'));
-      
+
       for (const result of newResults) {
         console.log(chalk.yellow(`  ⚠️  ${result.identifier}`));
       }
-      
+
       console.log();
       console.log(chalk.blue('ℹ️  Run "visdiff capture" to create baselines'));
     }

@@ -86,7 +86,7 @@ describe('Property 8: Full-page capture height', () => {
       {
         numRuns: 10,
         timeout: 120000,
-      }
+      },
     );
   }, 150000);
 
@@ -158,7 +158,7 @@ describe('Property 8: Full-page capture height', () => {
       {
         numRuns: 10,
         timeout: 120000,
-      }
+      },
     );
   }, 150000);
 

@@ -17,14 +17,14 @@ const PROJECT_FORM_SCHEMA = z.object({
   name: z.string().min(3, 'Project name is required'),
   description: z.string().max(1024).optional(),
   status: z.enum(PROJECT_STATUSES),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Pick a valid color token')
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Pick a valid color token'),
 });
 
 const DEFAULT_VALUES: ProjectFormValues = {
   name: '',
   description: '',
   color: '#60a5fa',
-  status: PROJECT_STATUSES[0]
+  status: PROJECT_STATUSES[0],
 };
 
 const formatErrors = (result: z.SafeParseReturnType<ProjectFormValues, ProjectFormValues>) => {
@@ -44,7 +44,7 @@ export function ProjectForm({
   initialValues,
   title = 'Create project',
   submitLabel = 'Save project',
-  isSubmitting = false
+  isSubmitting = false,
 }: ProjectFormProps) {
   const mergedInitial = useMemo(() => ({ ...DEFAULT_VALUES, ...initialValues }), [initialValues]);
   const [values, setValues] = useState<ProjectFormValues>(mergedInitial);

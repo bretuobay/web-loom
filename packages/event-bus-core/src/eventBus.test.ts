@@ -295,10 +295,7 @@ describe('EventBus - Additional Edge Cases', () => {
     expect(succeedingListener).toHaveBeenCalledTimes(1);
 
     // Error should have been logged
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('[event-emitter-core]'),
-      expect.any(Error)
-    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[event-emitter-core]'), expect.any(Error));
 
     consoleErrorSpy.mockRestore();
 

@@ -12,7 +12,10 @@ interface UserAttributes {
   sessionTokenExpiresAt?: Date | null;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'firstName' | 'lastName' | 'sessionTokenHash' | 'sessionTokenExpiresAt'> {}
+interface UserCreationAttributes extends Optional<
+  UserAttributes,
+  'id' | 'firstName' | 'lastName' | 'sessionTokenHash' | 'sessionTokenExpiresAt'
+> {}
 
 @Table({
   tableName: 'Users',

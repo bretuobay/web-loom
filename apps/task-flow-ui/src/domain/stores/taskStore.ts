@@ -71,17 +71,14 @@ export class TaskStore {
       null, // No assignee entity for optimistic task
       [],
       now,
-      now
+      now,
     );
 
     // Apply optimistic update immediately
     this._tasks$.next([...this.snapshot, optimisticTask]);
 
     // Track pending operation
-    this._pendingOperations$.next([
-      ...this._pendingOperations$.getValue(),
-      { id: tempId, type: 'create', tempId }
-    ]);
+    this._pendingOperations$.next([...this._pendingOperations$.getValue(), { id: tempId, type: 'create', tempId }]);
 
     try {
       // Make the actual API call
@@ -89,15 +86,11 @@ export class TaskStore {
 
       // Replace temp task with server response
       const currentTasks = this.snapshot;
-      const updatedTasks = currentTasks.map((task) =>
-        task.id === tempId ? serverTask : task
-      );
+      const updatedTasks = currentTasks.map((task) => (task.id === tempId ? serverTask : task));
       this._tasks$.next(updatedTasks);
 
       // Remove pending operation
-      this._pendingOperations$.next(
-        this._pendingOperations$.getValue().filter((op) => op.tempId !== tempId)
-      );
+      this._pendingOperations$.next(this._pendingOperations$.getValue().filter((op) => op.tempId !== tempId));
 
       return { success: true, task: serverTask };
     } catch (error) {
@@ -105,9 +98,7 @@ export class TaskStore {
       this._tasks$.next(this.snapshot.filter((task) => task.id !== tempId));
 
       // Remove pending operation
-      this._pendingOperations$.next(
-        this._pendingOperations$.getValue().filter((op) => op.tempId !== tempId)
-      );
+      this._pendingOperations$.next(this._pendingOperations$.getValue().filter((op) => op.tempId !== tempId));
 
       const err = error instanceof Error ? error : new Error('Failed to create task');
       return { success: false, task: null, error: err };
@@ -117,7 +108,7 @@ export class TaskStore {
   async uploadAttachment(taskId: string, file: File): Promise<AttachmentEntity> {
     const attachment = await this.repository.uploadAttachment(taskId, file);
     const updated = this.snapshot.map((task) =>
-      task.id === taskId ? task.withAttachments([...task.attachments, attachment]) : task
+      task.id === taskId ? task.withAttachments([...task.attachments, attachment]) : task,
     );
     this._tasks$.next(updated);
     return attachment;
@@ -148,8 +139,6 @@ export class TaskStore {
    * Check if a task has a pending operation (e.g., being created)
    */
   isPending(taskId: string): boolean {
-    return this._pendingOperations$.getValue().some(
-      (op) => op.id === taskId || op.tempId === taskId
-    );
+    return this._pendingOperations$.getValue().some((op) => op.id === taskId || op.tempId === taskId);
   }
 }

@@ -80,24 +80,22 @@ function FormItemLayout({
   className?: string;
   style?: CSSProperties;
 }) {
-  const { layout, colon: contextColon, labelAlign: contextLabelAlign, requiredMark: contextRequired } =
-    useFormLayout();
+  const { layout, colon: contextColon, labelAlign: contextLabelAlign, requiredMark: contextRequired } = useFormLayout();
   const showColon = colon ?? contextColon;
   const resolvedLabelAlign = labelAlign ?? contextLabelAlign;
   const isOptionalMarker = contextRequired === 'optional' && !required;
 
-  const formattedLabel =
-    typeof label === 'string' && showColon && !label.trim().endsWith(':') ? `${label}:` : label;
+  const formattedLabel = typeof label === 'string' && showColon && !label.trim().endsWith(':') ? `${label}:` : label;
 
-  const requiredIndicator = required
-    ? <span className={styles.required} aria-hidden="true">*</span>
-    : isOptionalMarker
-      ? (
-        <span className={styles.required} aria-hidden="true">
-          (Optional)
-        </span>
-      )
-      : null;
+  const requiredIndicator = required ? (
+    <span className={styles.required} aria-hidden="true">
+      *
+    </span>
+  ) : isOptionalMarker ? (
+    <span className={styles.required} aria-hidden="true">
+      (Optional)
+    </span>
+  ) : null;
 
   const wrapperClasses = cn(styles.formItem, className);
   const labelClasses = cn(styles.label, resolvedLabelAlign === 'right' && styles.labelRight);
@@ -150,7 +148,7 @@ function FormItemField({
   const descriptionIdentifier = description ? `${fieldId}-description` : undefined;
   const errorIdentifier = `${fieldId}-error`;
 
-  const isRequired = required ?? (rules?.some((rule) => rule.required) ?? false);
+  const isRequired = required ?? rules?.some((rule) => rule.required) ?? false;
 
   const runRules = useCallback(
     async (trigger: 'change' | 'blur', incomingValue?: unknown) => {
@@ -320,10 +318,5 @@ export function FormItem(props: FormItemProps) {
 
   const { name, ...rest } = props;
 
-  return (
-    <FormItemField
-      {...rest}
-      name={name}
-    />
-  );
+  return <FormItemField {...rest} name={name} />;
 }

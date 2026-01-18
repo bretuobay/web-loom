@@ -8,7 +8,7 @@ describe('Radio', () => {
     render(
       <Radio value="yes" onChange={handleChange}>
         Options
-      </Radio>
+      </Radio>,
     );
 
     fireEvent.click(screen.getByText('Options'));
@@ -23,7 +23,7 @@ describe('Radio.Group', () => {
       <Radio.Group defaultValue="first" onChange={handleChange} label="Choices">
         <Radio value="first">First</Radio>
         <Radio value="second">Second</Radio>
-      </Radio.Group>
+      </Radio.Group>,
     );
 
     fireEvent.click(screen.getByText('Second'));
@@ -35,7 +35,7 @@ describe('Radio.Group', () => {
     render(
       <Radio.Group disabled onChange={handleChange}>
         <Radio value="a">A</Radio>
-      </Radio.Group>
+      </Radio.Group>,
     );
 
     fireEvent.click(screen.getByText('A'));
@@ -50,7 +50,7 @@ describe('Radio.Button', () => {
       <Radio.Group onChange={handleChange} defaultValue="one">
         <Radio.Button value="one">One</Radio.Button>
         <Radio.Button value="two">Two</Radio.Button>
-      </Radio.Group>
+      </Radio.Group>,
     );
 
     fireEvent.click(screen.getByText('Two'));

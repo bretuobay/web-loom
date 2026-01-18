@@ -1,11 +1,11 @@
 # Web Loom - Complete Documentation
+
 # Framework-Agnostic UI Architecture Toolkit
 
 **Generated:** $(date)
 **Purpose:** Consolidated documentation for LLM consumption
 
 ---
-
 
 <!-- ============================================ -->
 <!-- SOURCE FILE: executive-summary.md -->
@@ -31,9 +31,7 @@ Recommendations:
 3. Evaluate Web Loom’s reference implementations for guidance on command-pattern bindings, plugin lifecycles, and dependency injection strategies that keep behavior consistent across multiple clients.
 4. Encourage cross-functional teams to document architectural trade-offs and migration strategies, ensuring that the benefits of separation of concerns are preserved as products scale.
 
-Web Loom stands as a proof of concept that front-end architecture can be principled, portable, and resilient without sacrificing the reactivity developers expect today. This paper will detail how to realize that vision, providing both strategic recommendations for leadership and practical guidance for engineering teams. 
-
-
+Web Loom stands as a proof of concept that front-end architecture can be principled, portable, and resilient without sacrificing the reactivity developers expect today. This paper will detail how to realize that vision, providing both strategic recommendations for leadership and practical guidance for engineering teams.
 
 <!-- ============================================ -->
 <!-- SOURCE FILE: architecture-overview.md -->
@@ -104,8 +102,6 @@ graph LR
     Error --> Plugin
 ```
 
-
-
 <!-- ============================================ -->
 <!-- SOURCE FILE: mvvm-pattern.md -->
 <!-- ============================================ -->
@@ -132,8 +128,6 @@ graph TD
     EventBus --> Adapter
     Command --> Adapter
 ```
-
-
 
 <!-- ============================================ -->
 <!-- SOURCE FILE: framework-adapters.md -->
@@ -165,8 +159,6 @@ graph TB
     Behaviors --> Vanilla
 ```
 
-
-
 <!-- ============================================ -->
 <!-- SOURCE FILE: plugin-system.md -->
 <!-- ============================================ -->
@@ -194,8 +186,6 @@ graph TD
     EventBus --> Adapter
 ```
 
-
-
 <!-- ============================================ -->
 <!-- SOURCE FILE: state-management.md -->
 <!-- ============================================ -->
@@ -219,8 +209,6 @@ graph LR
     View --> EventBus
     View --> Store
 ```
-
-
 
 <!-- ============================================ -->
 <!-- SOURCE FILE: prompt.md -->
@@ -529,8 +517,6 @@ Document the demo application showing:
 **Format**: Academic paper structure with proper headings, diagrams, and references
 **Deliverables**: Main paper + 5 mermaid architecture diagrams + code appendices
 
-
-
 <!-- ============================================ -->
 <!-- SOURCE FILE: ../README.md -->
 <!-- ============================================ -->
@@ -538,9 +524,10 @@ Document the demo application showing:
 <div align="center">
   <img src="webloom.png" alt="Web Loom Logo" width="200"/>
 
-  # Web Loom - Framework-Agnostic UI Architecture Toolkit
+# Web Loom - Framework-Agnostic UI Architecture Toolkit
 
-  A comprehensive monorepo demonstrating MVVM architecture, headless UI patterns, and plugin systems across multiple frontend frameworks.
+A comprehensive monorepo demonstrating MVVM architecture, headless UI patterns, and plugin systems across multiple frontend frameworks.
+
 </div>
 
 ## Overview
@@ -791,39 +778,39 @@ Framework-Specific Components (Your App)
 
 ## Package Overview
 
-| Package                         | Description                           | Version |
-| ------------------------------- | ------------------------------------- | ------- |
-| `@web-loom/ui-core`             | Headless UI behaviors                 | 0.5.2   |
-| `@web-loom/ui-patterns`         | Composed UI patterns                  | 0.5.2   |
-| `@web-loom/ui-react`            | React UI component adapters           | 0.5.2   |
-| `@web-loom/mvvm-core`           | MVVM architecture library             | 0.5.2   |
-| `@web-loom/store-core`          | Reactive state management             | 0.5.2   |
-| `@web-loom/event-bus-core`      | Event bus                             | 0.5.2   |
-| `@web-loom/event-emitter-core`  | Event emitter utilities               | 0.5.2   |
-| `@web-loom/query-core`          | Data fetching & caching               | 0.5.2   |
-| `@web-loom/plugin-core`         | Plugin architecture                   | 0.5.2   |
-| `@web-loom/media-core`          | Media player with plugins             | 0.5.2   |
-| `@web-loom/media-react`         | React media player adapter            | 0.5.2   |
-| `@web-loom/media-vue`           | Vue media player adapter              | 0.5.2   |
-| `@web-loom/design-core`         | Theme utilities                       | 0.5.2   |
-| `@web-loom/typography-core`     | Typography utilities                  | 0.5.2   |
-| `@web-loom/forms-core`          | Form logic (framework-agnostic)       | 0.1.0   |
-| `@web-loom/forms-react`         | React form adapter                    | 0.1.0   |
-| `@web-loom/forms-vanilla`       | Vanilla JS form adapter               | 0.1.0   |
-| `@web-loom/forms-vue`           | Vue form adapter                      | 0.1.0   |
-| `@web-loom/http-core`           | HTTP utilities                        | 0.5.2   |
-| `@web-loom/i18n-core`           | Internationalization utilities        | 0.5.2   |
-| `@web-loom/storage-core`        | Storage abstraction layer             | 0.5.2   |
-| `@web-loom/error-core`          | Error handling utilities              | 0.5.2   |
-| `@web-loom/models`              | Shared models                         | 0.5.2   |
-| `@web-loom/view-models`         | Shared ViewModels                     | 0.5.2   |
-| `@web-loom/router-core`         | Routing utilities                     | 0.5.2   |
-| `@web-loom/notifications-core`  | Notification utilities                | 0.5.2   |
-| `@web-loom/platform-core`       | Platform utilities                    | 0.5.2   |
-| `@web-loom/shared`              | Shared utilities                      | 0.5.2   |
-| `@web-loom/visdiff`             | Visual diff utilities                 | 0.5.2   |
-| `@repo/eslint-config`           | Shared ESLint configuration           | -       |
-| `@repo/typescript-config`       | Shared TypeScript configuration       | -       |
+| Package                        | Description                     | Version |
+| ------------------------------ | ------------------------------- | ------- |
+| `@web-loom/ui-core`            | Headless UI behaviors           | 0.5.2   |
+| `@web-loom/ui-patterns`        | Composed UI patterns            | 0.5.2   |
+| `@web-loom/ui-react`           | React UI component adapters     | 0.5.2   |
+| `@web-loom/mvvm-core`          | MVVM architecture library       | 0.5.2   |
+| `@web-loom/store-core`         | Reactive state management       | 0.5.2   |
+| `@web-loom/event-bus-core`     | Event bus                       | 0.5.2   |
+| `@web-loom/event-emitter-core` | Event emitter utilities         | 0.5.2   |
+| `@web-loom/query-core`         | Data fetching & caching         | 0.5.2   |
+| `@web-loom/plugin-core`        | Plugin architecture             | 0.5.2   |
+| `@web-loom/media-core`         | Media player with plugins       | 0.5.2   |
+| `@web-loom/media-react`        | React media player adapter      | 0.5.2   |
+| `@web-loom/media-vue`          | Vue media player adapter        | 0.5.2   |
+| `@web-loom/design-core`        | Theme utilities                 | 0.5.2   |
+| `@web-loom/typography-core`    | Typography utilities            | 0.5.2   |
+| `@web-loom/forms-core`         | Form logic (framework-agnostic) | 0.1.0   |
+| `@web-loom/forms-react`        | React form adapter              | 0.1.0   |
+| `@web-loom/forms-vanilla`      | Vanilla JS form adapter         | 0.1.0   |
+| `@web-loom/forms-vue`          | Vue form adapter                | 0.1.0   |
+| `@web-loom/http-core`          | HTTP utilities                  | 0.5.2   |
+| `@web-loom/i18n-core`          | Internationalization utilities  | 0.5.2   |
+| `@web-loom/storage-core`       | Storage abstraction layer       | 0.5.2   |
+| `@web-loom/error-core`         | Error handling utilities        | 0.5.2   |
+| `@web-loom/models`             | Shared models                   | 0.5.2   |
+| `@web-loom/view-models`        | Shared ViewModels               | 0.5.2   |
+| `@web-loom/router-core`        | Routing utilities               | 0.5.2   |
+| `@web-loom/notifications-core` | Notification utilities          | 0.5.2   |
+| `@web-loom/platform-core`      | Platform utilities              | 0.5.2   |
+| `@web-loom/shared`             | Shared utilities                | 0.5.2   |
+| `@web-loom/visdiff`            | Visual diff utilities           | 0.5.2   |
+| `@repo/eslint-config`          | Shared ESLint configuration     | -       |
+| `@repo/typescript-config`      | Shared TypeScript configuration | -       |
 
 All packages are tree-shakeable with ESM support.
 
@@ -1148,12 +1135,14 @@ class DashboardViewModel extends BaseViewModel {
 #### ❌ DON'T: Use Store for Business Data
 
 **Wrong**:
+
 ```typescript
 // ❌ BAD: Business data in UI store
 const store = createStore({ users: [] });
 ```
 
 **Right**:
+
 ```typescript
 // ✅ GOOD: Business data in Model
 class UserModel extends RestfulApiModel<User[]> {
@@ -1167,14 +1156,17 @@ class UserModel extends RestfulApiModel<User[]> {
 
 ```typescript
 // ✅ GOOD: Pure UI state
-const uiStore = createStore({
-  sidebarOpen: true,
-  theme: 'dark',
-  activeModal: null
-}, (set) => ({
-  toggleSidebar: () => set(s => ({ sidebarOpen: !s.sidebarOpen })),
-  setTheme: (theme) => set({ theme })
-}));
+const uiStore = createStore(
+  {
+    sidebarOpen: true,
+    theme: 'dark',
+    activeModal: null,
+  },
+  (set) => ({
+    toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+    setTheme: (theme) => set({ theme }),
+  }),
+);
 ```
 
 #### ✅ DO: Use Query Core for Advanced Caching
@@ -1191,7 +1183,7 @@ class UserViewModel extends RestfulApiViewModel {
 queryCore.defineEndpoint('users', fetchUsers, {
   cacheTime: 5 * 60 * 1000,
   refetchOnWindowFocus: true,
-  invalidateOn: ['user:created', 'user:updated']
+  invalidateOn: ['user:created', 'user:updated'],
 });
 ```
 
@@ -1323,6 +1315,7 @@ Headless Approach:
 #### 1. **Framework Portability**
 
 The same `createDialogBehavior()` works in:
+
 - React: `mvvm-react` app
 - Vue: `mvvm-vue` app
 - Angular: `mvvm-angular` app
@@ -1334,6 +1327,7 @@ The same `createDialogBehavior()` works in:
 #### 2. **Accessibility by Default**
 
 Behaviors include proper:
+
 - Keyboard navigation (Arrow keys, Enter, Escape)
 - Focus management (Focus trap, roving tabindex)
 - ARIA attributes (roles, states, properties)
@@ -1402,6 +1396,7 @@ Command Palette = Composition of Behaviors
 ```
 
 Each behavior is:
+
 - **Tested independently**: Unit test each behavior
 - **Reusable**: Use `ListSelectionBehavior` in dropdowns, tables, menus
 - **Framework-agnostic**: Write once, use everywhere
@@ -1449,21 +1444,22 @@ MIT
 ## Learn More
 
 ### Core Architectural Concepts
+
 - [MVVM Architecture Guide](packages/mvvm-core/README.md) - Deep dive into Models, ViewModels, and reactive patterns
 - [Headless UI Behaviors](packages/ui-core/README.md) - Framework-agnostic UI behaviors
 - [Headless UI Patterns](packages/ui-patterns/README.md) - Composed patterns like Wizard, MasterDetail, CommandPalette
 - [Plugin System Guide](packages/plugin-core/README.md) - Dynamic plugin architecture
 
 ### Supporting Libraries
+
 - [Store Core](packages/store-core/README.md) - Minimal reactive state management
 - [Event Bus Core](packages/event-bus-core/README.md) - Cross-feature communication
 - [Query Core](packages/query-core/README.md) - Advanced data fetching and caching
 - [Forms Core](packages/forms-core/README.md) - Framework-agnostic form management
 
 ### Tools & Infrastructure
+
 - [Turborepo Documentation](https://turborepo.com/docs) - Monorepo build system
-
-
 
 ---
 
@@ -1471,4 +1467,3 @@ MIT
 
 This document combines all Web Loom architectural documentation for comprehensive understanding.
 For the latest version, see: https://github.com/yourusername/web-loom
-

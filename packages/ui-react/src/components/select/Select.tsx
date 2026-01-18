@@ -82,8 +82,7 @@ export type SelectOptionDefinition = SelectOptionItem | SelectOptGroup;
  * />
  * ```
  */
-export interface SelectProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange' | 'children'> {
+export interface SelectProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange' | 'children'> {
   /** Selection mode - single, multiple selection, or tags creation */
   mode?: 'multiple' | 'tags';
   /** Show clear button when value is selected */
@@ -91,9 +90,7 @@ export interface SelectProps
   /** Enable search/filter functionality */
   showSearch?: boolean;
   /** Custom filter function or boolean to enable/disable filtering */
-  filterOption?:
-    | boolean
-    | ((input: string, option: SelectRenderedOption) => boolean);
+  filterOption?: boolean | ((input: string, option: SelectRenderedOption) => boolean);
   /** Array of options or option groups */
   options?: SelectOptionDefinition[];
   /** Loading state */
@@ -237,7 +234,7 @@ function buildOptionsFromChildren(children: ReactNode): SelectRenderedOption[] {
 function buildRenderNodesFromOptions(
   options: SelectRenderedOption[],
   search: string,
-  filterFn: (input: string, option: SelectRenderedOption) => boolean
+  filterFn: (input: string, option: SelectRenderedOption) => boolean,
 ) {
   const nodes: SelectEntry[] = [];
   const seenGroupLabels = new Set<string>();
@@ -264,12 +261,7 @@ function buildRenderNodesFromOptions(
 
 const baseClearIcon = (
   <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
-    <path
-      d="M4.5 4.5l7 7m0-7l-7 7"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-    />
+    <path d="M4.5 4.5l7 7m0-7l-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 );
 
@@ -319,10 +311,7 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
     return (input: string, option: SelectRenderedOption) => {
       const normalizedInput = input.toLowerCase();
       const label = typeof option.label === 'string' ? option.label : `${option.label ?? ''}`;
-      return (
-        label.toLowerCase().includes(normalizedInput) ||
-        option.value.toLowerCase().includes(normalizedInput)
-      );
+      return label.toLowerCase().includes(normalizedInput) || option.value.toLowerCase().includes(normalizedInput);
     };
   }, [filterOption]);
 
@@ -353,14 +342,12 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
       containerRef.current = element;
       assignRef(forwardedRef, element);
     },
-    [forwardedRef]
+    [forwardedRef],
   );
 
   const builtOptions = useMemo(() => {
     const fromProp = options
-      ? options.flatMap((option, index) =>
-         normalizeOptionDefinition(option, undefined, `prop-${index}`)
-        )
+      ? options.flatMap((option, index) => normalizeOptionDefinition(option, undefined, `prop-${index}`))
       : [];
     const fromChildren = buildOptionsFromChildren(children);
     const merged = options?.length ? fromProp : fromChildren;
@@ -378,7 +365,7 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
   const optionValues = useMemo(() => builtOptions.map((option) => option.value), [builtOptions]);
   const builtOptionsKey = useMemo(
     () => builtOptions.map((option) => `${option.key}:${option.value}`).join('|'),
-    [builtOptions]
+    [builtOptions],
   );
   const optionValuesKey = useMemo(() => optionValues.join('|'), [optionValues]);
 
@@ -394,8 +381,7 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
 
   useEffect(() => {
     const controlledSelection = valueRef.current !== undefined ? ensureValueArray(valueRef.current) : undefined;
-    const previousSelection =
-      selectionBehaviorRef.current?.getState().selectedIds ?? ensureValueArray(defaultValue);
+    const previousSelection = selectionBehaviorRef.current?.getState().selectedIds ?? ensureValueArray(defaultValue);
     const initialSelection =
       controlledSelection ??
       (pendingSelectionsRef.current.length > 0
@@ -430,7 +416,7 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
           ? undefined
           : selectionMode === 'multi'
             ? state.selectedIds
-            : state.selectedIds[0]
+            : state.selectedIds[0],
       );
     });
 
@@ -503,9 +489,7 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
   }, [renderNodes]);
 
   const focusValue = focusState.items[focusState.currentIndex] ?? null;
-  const highlightedEntryIndex = renderNodes.findIndex(
-    (entry) => entry.type === 'option' && entry.value === focusValue
-  );
+  const highlightedEntryIndex = renderNodes.findIndex((entry) => entry.type === 'option' && entry.value === focusValue);
 
   useEffect(() => {
     if (!dropdownRef.current || highlightedEntryIndex === -1) return;
@@ -551,7 +535,7 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
       selectionBehaviorRef.current.actions.select(optionValue);
       setOpen(false);
     },
-    [disabled, isMultiple, mode, optionMap, searchValue]
+    [disabled, isMultiple, mode, optionMap, searchValue],
   );
 
   const handleControlKeyDown = useCallback(
@@ -607,7 +591,7 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
         }
       }
     },
-    [disabled, open, focusValue, handleOptionSelect]
+    [disabled, open, focusValue, handleOptionSelect],
   );
 
   const handleControlClick = useCallback(
@@ -615,26 +599,20 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
       if (disabled) return;
       setOpen((prev) => !prev);
     },
-    [disabled]
+    [disabled],
   );
 
-  const handleClear = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      if (!selectionBehaviorRef.current) return;
-      selectionBehaviorRef.current.actions.clearSelection();
-    },
-    []
-  );
+  const handleClear = useCallback((event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!selectionBehaviorRef.current) return;
+    selectionBehaviorRef.current.actions.clearSelection();
+  }, []);
 
-  const handleTagRemove = useCallback(
-    (valueToRemove: string, event: MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      if (!selectionBehaviorRef.current) return;
-      selectionBehaviorRef.current.actions.deselect(valueToRemove);
-    },
-    []
-  );
+  const handleTagRemove = useCallback((valueToRemove: string, event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!selectionBehaviorRef.current) return;
+    selectionBehaviorRef.current.actions.deselect(valueToRemove);
+  }, []);
 
   const handleSearchChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     setSearchValue(event.target.value);
@@ -688,12 +666,10 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
         focusBehaviorRef.current?.actions.movePrevious();
       }
     },
-    [mode, focusValue, handleCreateTag, handleOptionSelect]
+    [mode, focusValue, handleCreateTag, handleOptionSelect],
   );
 
-  const selectedOptions = selectedValues
-    .map((value) => optionMap.get(value))
-    .filter(Boolean) as SelectRenderedOption[];
+  const selectedOptions = selectedValues.map((value) => optionMap.get(value)).filter(Boolean) as SelectRenderedOption[];
 
   const singleDisplay = selectedOptions[0]?.label ?? placeholder;
 
@@ -746,12 +722,7 @@ const SelectInternal = forwardRef<HTMLDivElement, SelectProps>((props, forwarded
                       tabIndex={-1}
                     >
                       <svg viewBox="0 0 16 16" width="10" height="10" aria-hidden="true">
-                        <path
-                          d="M4 4l8 8M12 4l-8 8"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
+                        <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                       </svg>
                     </button>
                   )}

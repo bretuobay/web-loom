@@ -16,11 +16,11 @@ const migration: Migration = {
       {
         type: DataTypes.JSON,
         allowNull: true,
-        defaultValue: {}
+        defaultValue: {},
       },
-      { transaction }
+      { transaction },
     );
-  }
+  },
 };
 
 export default migration;

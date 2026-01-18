@@ -7,7 +7,7 @@ export default defineConfig({
     coverage: {
       enabled: true,
       reporter: ['text', 'html'],
-      reportsDirectory: './coverage'
-    }
-  }
+      reportsDirectory: './coverage',
+    },
+  },
 });

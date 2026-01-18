@@ -2,10 +2,7 @@ import { defineConfig } from 'vite';
 import { createAliases } from '../../scripts/vite-alias';
 
 // External packages to pre-bundle (not workspace packages which are linked)
-const optimizeDepsInclude = [
-  'react',
-  'react-dom',
-];
+const optimizeDepsInclude = ['react', 'react-dom'];
 
 // https://vite.dev/config/
 export default defineConfig({

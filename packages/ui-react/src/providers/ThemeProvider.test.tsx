@@ -32,7 +32,7 @@ describe('ThemeProvider', () => {
       render(
         <ThemeProvider mode="light">
           <TestComponent />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       const element = screen.getByTestId('theme-mode');
@@ -48,7 +48,7 @@ describe('ThemeProvider', () => {
       render(
         <ThemeProvider>
           <TestComponent />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       expect(screen.getByTestId('mode').textContent).toBe('light');
@@ -63,7 +63,7 @@ describe('ThemeProvider', () => {
       render(
         <ThemeProvider mode="dark">
           <TestComponent />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       const element = screen.getByTestId('theme-color');
@@ -76,7 +76,7 @@ describe('ThemeProvider', () => {
       render(
         <ThemeProvider mode="light" container={container}>
           <div>Test</div>
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       await waitFor(() => {
@@ -95,7 +95,7 @@ describe('ThemeProvider', () => {
       const { rerender } = render(
         <ThemeProvider mode="light" container={container}>
           <TestComponent />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       // Initial light theme
@@ -117,7 +117,7 @@ describe('ThemeProvider', () => {
       render(
         <ThemeProvider mode="dark" container={container}>
           <div>Test</div>
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       await waitFor(() => {
@@ -136,7 +136,7 @@ describe('ThemeProvider', () => {
       render(
         <ThemeProvider mode="light">
           <TestComponent />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       expect(screen.getByTestId('primary').textContent).toBe(defaultLightTheme.token.colorPrimary);
@@ -164,7 +164,7 @@ describe('ThemeProvider', () => {
       render(
         <ThemeProvider mode="light">
           <TestComponent />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       screen.getByText('Update').click();
@@ -183,7 +183,7 @@ describe('ThemeProvider', () => {
       render(
         <ThemeProvider mode="light">
           <TestComponent />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       expect(screen.getByTestId('is-dark').textContent).toBe('false');
@@ -198,7 +198,7 @@ describe('ThemeProvider', () => {
       render(
         <ThemeProvider mode="dark">
           <TestComponent />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       expect(screen.getByTestId('is-dark').textContent).toBe('true');
@@ -221,7 +221,7 @@ describe('ThemeProvider', () => {
       render(
         <ThemeProvider mode="light">
           <TestComponent />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       expect(screen.getByTestId('mode').textContent).toBe('light');
@@ -244,7 +244,7 @@ describe('ThemeProvider', () => {
       render(
         <ThemeProvider mode="light">
           <TestComponent />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       expect(screen.getByTestId('token').textContent).toBe(defaultLightTheme.token.colorPrimary);
@@ -271,7 +271,7 @@ describe('ThemeProvider', () => {
           }}
         >
           <TestComponent />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       expect(screen.getByTestId('custom').textContent).toBe('#custom-primary');

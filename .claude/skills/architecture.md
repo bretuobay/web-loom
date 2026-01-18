@@ -49,6 +49,7 @@ Extends BaseModel with RESTful operations:
 ### Command Pattern
 
 Commands expose:
+
 - `execute()` - Trigger the action
 - `isExecuting$` - For loading spinners
 - `canExecute$` - For button enablement
@@ -64,7 +65,7 @@ export const greenHouseConfig = {
   baseUrl: '/api',
   endpoint: '/greenhouses',
   schema: GreenHouseSchema,
-  initialData: []
+  initialData: [],
 };
 ```
 
@@ -76,7 +77,7 @@ import { createReactiveViewModel } from '@web-loom/mvvm-core';
 
 export const greenHouseViewModel = createReactiveViewModel({
   modelConfig: greenHouseConfig,
-  schema: GreenHouseSchema
+  schema: GreenHouseSchema,
 });
 ```
 
@@ -96,23 +97,28 @@ useEffect(() => {
 ## Framework Integration Patterns
 
 ### React
+
 - `useObservable` hook bridges RxJS to React state
 - Call `fetchCommand.execute()` in `useEffect`
 - Dispose ViewModel on unmount
 
 ### Angular
+
 - Use `async` pipe in templates
 - Inject ViewModels via DI container
 
 ### Vue
+
 - Use `watchEffect` or Composition API
 - Subscribe in `onMounted`, unsubscribe in `onUnmounted`
 
 ### Lit
+
 - Use `@state` decorators with subscriptions
 - Subscribe in `connectedCallback`
 
 ### Vanilla JS
+
 - Direct `.subscribe()` calls
 - Manual cleanup on teardown
 

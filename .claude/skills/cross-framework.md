@@ -23,9 +23,7 @@ useEffect(() => {
 ### Angular
 
 ```html
-<div *ngIf="viewModel.data$ | async as data">
-  {{ data.name }}
-</div>
+<div *ngIf="viewModel.data$ | async as data">{{ data.name }}</div>
 ```
 
 ### Vue

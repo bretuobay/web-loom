@@ -9,8 +9,12 @@ const router = Router();
 const projectSchema = z.object({
   name: z.string().min(1).max(255),
   description: z.string().max(1024).optional().default(''),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().default('#60a5fa'),
-  status: z.enum(PROJECT_STATUSES).optional().default('planning')
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional()
+    .default('#60a5fa'),
+  status: z.enum(PROJECT_STATUSES).optional().default('planning'),
 });
 
 router.get('/', async (_req, res, next) => {

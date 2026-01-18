@@ -100,7 +100,7 @@ export class ProfileViewModel {
       displayName: '',
       avatarUrl: null,
       preferences: {},
-      isDirty: false
+      isDirty: false,
     };
   }
 
@@ -121,7 +121,7 @@ export class ProfileViewModel {
       displayName: profile.displayName,
       avatarUrl: profile.avatarUrl,
       preferences: { ...profile.preferences },
-      isDirty: false
+      isDirty: false,
     });
   }
 
@@ -129,7 +129,7 @@ export class ProfileViewModel {
     const next = {
       ...this.getFormState(),
       ...partial,
-      isDirty: true
+      isDirty: true,
     };
     this.form$.next(next);
   }
@@ -140,13 +140,13 @@ export class ProfileViewModel {
 
   public setDisplayName(value: string) {
     this.updateForm({
-      displayName: value
+      displayName: value,
     });
   }
 
   public setAvatarUrl(value: string | null) {
     this.updateForm({
-      avatarUrl: value
+      avatarUrl: value,
     });
   }
 
@@ -158,7 +158,7 @@ export class ProfileViewModel {
       delete preferences.theme;
     }
     this.updateForm({
-      preferences
+      preferences,
     });
   }
 

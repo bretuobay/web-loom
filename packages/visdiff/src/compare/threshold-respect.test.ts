@@ -35,10 +35,7 @@ describe('Property 10: Threshold respect', () => {
           // Create a current image with slight differences
           // Change a small number of pixels
           const totalPixels = width * height;
-          const actualPixelsToChange = Math.min(
-            pixelsToChange,
-            Math.floor(totalPixels * threshold * 0.5)
-          );
+          const actualPixelsToChange = Math.min(pixelsToChange, Math.floor(totalPixels * threshold * 0.5));
 
           // Create raw pixel data
           const rawData = Buffer.alloc(width * height * 4);
@@ -78,9 +75,9 @@ describe('Property 10: Threshold respect', () => {
           if (result.difference <= threshold) {
             expect(result.passed).toBe(true);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -146,9 +143,9 @@ describe('Property 10: Threshold respect', () => {
           if (result.difference > threshold) {
             expect(result.passed).toBe(false);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

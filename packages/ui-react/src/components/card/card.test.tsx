@@ -90,12 +90,7 @@ describe('Card', () => {
   });
 
   it('renders cover content', () => {
-    render(
-      <Card
-        title="Card with cover"
-        cover={<img src="test.jpg" alt="Test cover" />}
-      />,
-    );
+    render(<Card title="Card with cover" cover={<img src="test.jpg" alt="Test cover" />} />);
 
     const img = screen.getByAltText(/test cover/i);
     expect(img).toBeInTheDocument();
@@ -105,10 +100,7 @@ describe('Card', () => {
     render(
       <Card
         title="Card with actions"
-        actions={[
-          <button key="edit">Edit</button>,
-          <button key="delete">Delete</button>,
-        ]}
+        actions={[<button key="edit">Edit</button>, <button key="delete">Delete</button>]}
       />,
     );
 
@@ -138,4 +130,3 @@ describe('Card', () => {
     expect(screen.getByText(/title/i)).toBeInTheDocument();
   });
 });
-

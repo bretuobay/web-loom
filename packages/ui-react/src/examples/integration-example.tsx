@@ -24,7 +24,7 @@ export function DialogExample() {
       id: 'example-dialog',
       onOpen: () => console.log('Dialog opened'),
       onClose: () => console.log('Dialog closed'),
-    })
+    }),
   );
 
   const [state, setState] = useState(dialog.getState());
@@ -36,9 +36,7 @@ export function DialogExample() {
 
   return (
     <div>
-      <Button onClick={() => dialog.actions.open({ title: 'Example Dialog' })}>
-        Open Dialog
-      </Button>
+      <Button onClick={() => dialog.actions.open({ title: 'Example Dialog' })}>Open Dialog</Button>
 
       {state.isOpen && (
         <div role="dialog" aria-modal="true" style={{ padding: '20px' }}>
@@ -69,7 +67,7 @@ export function MasterDetailExample() {
       onSelectionChange: (item: Item | null) => {
         console.log('Selected:', item);
       },
-    })
+    }),
   );
 
   const [state, setState] = useState(masterDetail.getState());

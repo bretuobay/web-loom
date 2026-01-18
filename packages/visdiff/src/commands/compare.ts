@@ -25,17 +25,14 @@ function generateIdentifier(url: string, viewportName: string): string {
   // Extract path from URL
   const urlObj = new URL(url);
   const path = urlObj.pathname === '/' ? 'home' : urlObj.pathname.replace(/\//g, '-').replace(/^-/, '');
-  
+
   return `${path}-${viewportName}`;
 }
 
 /**
  * Execute the compare command
  */
-export async function compareCommand(
-  urls: string[],
-  options: CompareOptions = {}
-): Promise<number> {
+export async function compareCommand(urls: string[], options: CompareOptions = {}): Promise<number> {
   const cwd = process.cwd();
   let browserManager: BrowserManager | null = null;
 
@@ -46,7 +43,7 @@ export async function compareCommand(
 
     // Determine URLs to compare
     const urlsToCompare = urls.length > 0 ? urls : config.paths;
-    
+
     if (urlsToCompare.length === 0) {
       console.error(chalk.red('✗ No URLs specified'));
       console.log(chalk.gray('  Provide URLs as arguments or configure them in visdiff.config.js'));
@@ -59,7 +56,9 @@ export async function compareCommand(
       ...(options.threshold && { threshold: parseFloat(options.threshold) }),
     };
 
-    console.log(chalk.blue(`Comparing ${urlsToCompare.length} URL(s) across ${config.viewports.length} viewport(s)...`));
+    console.log(
+      chalk.blue(`Comparing ${urlsToCompare.length} URL(s) across ${config.viewports.length} viewport(s)...`),
+    );
     console.log();
 
     // Initialize components
@@ -75,11 +74,7 @@ export async function compareCommand(
 
     // Capture current screenshots
     console.log(chalk.blue('Capturing current screenshots...'));
-    const captureSummary = await captureEngine.captureAll(
-      urlsToCompare,
-      config.viewports,
-      config.captureOptions
-    );
+    const captureSummary = await captureEngine.captureAll(urlsToCompare, config.viewports, config.captureOptions);
 
     if (captureSummary.failed > 0) {
       console.log(chalk.yellow(`⚠️  ${captureSummary.failed} capture(s) failed`));
@@ -132,13 +127,17 @@ export async function compareCommand(
         passedCount++;
       } else {
         console.log(chalk.red(`  ✗ ${result.identifier}`));
-        console.log(chalk.gray(`    Difference: ${(result.difference * 100).toFixed(2)}% (threshold: ${(diffOptions.threshold * 100).toFixed(2)}%)`));
-        
+        console.log(
+          chalk.gray(
+            `    Difference: ${(result.difference * 100).toFixed(2)}% (threshold: ${(diffOptions.threshold * 100).toFixed(2)}%)`,
+          ),
+        );
+
         // Save diff image
         if (result.diffImage) {
           await storage.saveDiff(result, timestamp);
         }
-        
+
         failedCount++;
       }
     }
@@ -173,18 +172,18 @@ export async function compareCommand(
         console.log(chalk.gray(`   New: ${newBaselines}`));
       }
       console.log();
-      
+
       if (failedCount > 0) {
         console.log(chalk.blue('ℹ️  Next steps:'));
         console.log(chalk.gray('  1. Review diff images in .visdiff/diffs/'));
         console.log(chalk.gray('  2. Run "visdiff approve" to accept changes as new baselines'));
       }
-      
+
       if (newBaselines > 0 && options.failOnMissing !== false) {
         console.log(chalk.blue('ℹ️  Missing baselines:'));
         console.log(chalk.gray('  Run "visdiff capture" to create baselines for new screenshots'));
       }
-      
+
       console.log();
       return 1;
     }

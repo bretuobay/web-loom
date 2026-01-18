@@ -25,7 +25,7 @@ export function ProjectDetailPanel({
   onUploadAttachment,
   isTaskFormOpen,
   onToggleTaskForm,
-  onCreateTask
+  onCreateTask,
 }: ProjectDetailPanelProps) {
   const completed = tasks.filter((task) => task.isDone).length;
   const total = tasks.length;
@@ -93,11 +93,7 @@ export function ProjectDetailPanel({
           </div>
           {isTaskFormOpen && (
             <div className={styles.formWrapper}>
-              <TaskForm
-                title="Quick task"
-                submitLabel="Create task"
-                onSubmit={onCreateTask}
-              />
+              <TaskForm title="Quick task" submitLabel="Create task" onSubmit={onCreateTask} />
             </div>
           )}
         </section>
@@ -120,9 +116,7 @@ export function ProjectDetailPanel({
         )}
       </section>
 
-      {activeTaskId && (
-        <TaskComments taskId={activeTaskId} viewModel={commentsViewModel} />
-      )}
+      {activeTaskId && <TaskComments taskId={activeTaskId} viewModel={commentsViewModel} />}
     </div>
   );
 }

@@ -93,7 +93,14 @@ export class GreenhouseList extends LitElement {
           </div>
           <div class="form-group">
             <label for="location">Location:</label>
-            <textarea id="location" name="location" required rows="3" class="textarea-field" placeholder="Location"></textarea>
+            <textarea
+              id="location"
+              name="location"
+              required
+              rows="3"
+              class="textarea-field"
+              placeholder="Location"
+            ></textarea>
           </div>
           <div class="form-group">
             <label for="size">Size:</label>
@@ -114,20 +121,24 @@ export class GreenhouseList extends LitElement {
           <h1 class="card-title">Greenhouses</h1>
           ${this.greenhouses && this.greenhouses.length > 0
             ? html`
-                  <ul class="card-content list">
-                    ${this.greenhouses.map(
-                      (gh) => html`
-                        <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
-                          <span>${gh.name}</span>
-                          <div class="button-group">
-                            <button class="button-tiny button-tiny-delete" @click=${() => this.handleDelete(gh.id)}>Delete</button>
-                            <button class="button-tiny button-tiny-edit" @click=${() => this.handleUpdate(gh.id)}>Edit</button>
-                          </div>
-                        </li>
-                      `,
-                    )}
-                  </ul>
-                `
+                <ul class="card-content list">
+                  ${this.greenhouses.map(
+                    (gh) => html`
+                      <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
+                        <span>${gh.name}</span>
+                        <div class="button-group">
+                          <button class="button-tiny button-tiny-delete" @click=${() => this.handleDelete(gh.id)}>
+                            Delete
+                          </button>
+                          <button class="button-tiny button-tiny-edit" @click=${() => this.handleUpdate(gh.id)}>
+                            Edit
+                          </button>
+                        </div>
+                      </li>
+                    `,
+                  )}
+                </ul>
+              `
             : html`<p>No greenhouses found or still loading...</p>`}
         </div>
       </section>

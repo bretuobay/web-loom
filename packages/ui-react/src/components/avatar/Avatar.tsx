@@ -33,10 +33,7 @@ const clampNumber = (value: number) => Math.max(0, value);
 
 const getInitials = (value?: string) => {
   if (!value) return '';
-  const tokens = value
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const tokens = value.trim().split(/\s+/).filter(Boolean);
 
   if (tokens.length === 0) return '';
 
@@ -84,7 +81,7 @@ export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(
       style,
       ...rest
     },
-    ref
+    ref,
   ) => {
     const [hasImageError, setHasImageError] = useState(false);
 
@@ -126,7 +123,7 @@ export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(
       {
         [styles.hasImage]: shouldShowImage,
       },
-      className
+      className,
     );
 
     return (
@@ -164,7 +161,7 @@ export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(
         )}
       </span>
     );
-  }
+  },
 );
 
 export interface AvatarGroupProps extends HTMLAttributes<HTMLDivElement> {
@@ -175,26 +172,10 @@ export interface AvatarGroupProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export const AvatarGroup = forwardRef<HTMLDivElement, AvatarGroupProps>(
-  (
-    {
-      children,
-      className,
-      maxCount,
-      size,
-      gap = 8,
-      description,
-      style,
-      ...rest
-    },
-    ref
-  ) => {
-    const childArray = useMemo(
-      () => Children.toArray(children).filter(Boolean),
-      [children]
-    );
+  ({ children, className, maxCount, size, gap = 8, description, style, ...rest }, ref) => {
+    const childArray = useMemo(() => Children.toArray(children).filter(Boolean), [children]);
 
-    const normalizedMax =
-      typeof maxCount === 'number' ? Math.max(0, maxCount) : childArray.length;
+    const normalizedMax = typeof maxCount === 'number' ? Math.max(0, maxCount) : childArray.length;
     const visibleChildren = childArray.slice(0, normalizedMax);
     const overflowCount = Math.max(0, childArray.length - normalizedMax);
     const normalizedGap = clampNumber(gap);
@@ -241,16 +222,12 @@ export const AvatarGroup = forwardRef<HTMLDivElement, AvatarGroupProps>(
             }}
             key="overflow"
           >
-            <Avatar
-              size={size}
-              className={styles.overflowAvatar}
-              aria-label={`${overflowCount} more avatars`}
-            >
+            <Avatar size={size} className={styles.overflowAvatar} aria-label={`${overflowCount} more avatars`}>
               +{overflowCount}
             </Avatar>
           </span>
         )}
       </div>
     );
-  }
+  },
 );

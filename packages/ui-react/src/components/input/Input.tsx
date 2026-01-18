@@ -31,13 +31,7 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
 
 const baseClearIcon = (
   <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
-    <path
-      d="M4 4l8 8M12 4l-8 8"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -90,7 +84,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>((props, forwardedR
       }
       onChange?.(event);
     },
-    [onChange, valueProp]
+    [onChange, valueProp],
   );
 
   const handleRef = useCallback(
@@ -98,7 +92,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>((props, forwardedR
       inputRef.current = element;
       assignRef(forwardedRef, element);
     },
-    [forwardedRef]
+    [forwardedRef],
   );
 
   const handleClear = useCallback(() => {
@@ -121,7 +115,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>((props, forwardedR
       [styles.hasAddonAfter]: Boolean(addonAfter),
       [styles.disabled]: disabled,
     },
-    className
+    className,
   );
 
   return (
@@ -138,12 +132,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>((props, forwardedR
           {...rest}
         />
         {showClear && (
-          <button
-            type="button"
-            className={styles.clearButton}
-            onClick={handleClear}
-            aria-label="Clear input"
-          >
+          <button type="button" className={styles.clearButton} onClick={handleClear} aria-label="Clear input">
             {baseClearIcon}
           </button>
         )}
@@ -207,19 +196,15 @@ export const InputPassword = forwardRef<HTMLInputElement, InputPasswordProps>((p
   ) : null;
 
   const suffixContent = visibilityToggle ? (
-    <>{suffix}{toggleButton}</>
+    <>
+      {suffix}
+      {toggleButton}
+    </>
   ) : (
     suffix
   );
 
-  return (
-    <Input
-      {...rest}
-      ref={forwardedRef}
-      type={visible ? 'text' : 'password'}
-      suffix={suffixContent}
-    />
-  );
+  return <Input {...rest} ref={forwardedRef} type={visible ? 'text' : 'password'} suffix={suffixContent} />;
 });
 
 export interface InputSearchProps extends InputProps {
@@ -250,7 +235,7 @@ export const InputSearch = forwardRef<HTMLInputElement, InputSearchProps>((props
       inputRef.current = element;
       assignRef(forwardedRef, element);
     },
-    [forwardedRef]
+    [forwardedRef],
   );
 
   const triggerSearch = useCallback(
@@ -259,14 +244,14 @@ export const InputSearch = forwardRef<HTMLInputElement, InputSearchProps>((props
       if (!onSearch) return;
       onSearch(value, event);
     },
-    [onSearch]
+    [onSearch],
   );
 
   const handleButtonClick = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       triggerSearch(event);
     },
-    [triggerSearch]
+    [triggerSearch],
   );
 
   const handleKeyDown = useCallback(
@@ -276,7 +261,7 @@ export const InputSearch = forwardRef<HTMLInputElement, InputSearchProps>((props
       }
       onKeyDown?.(event);
     },
-    [onKeyDown, triggerSearch]
+    [onKeyDown, triggerSearch],
   );
 
   const disabled = rest.disabled ?? false;
@@ -284,11 +269,7 @@ export const InputSearch = forwardRef<HTMLInputElement, InputSearchProps>((props
 
   return (
     <div className={styles.group}>
-      <Input
-        {...rest}
-        ref={handleRef}
-        onKeyDown={handleKeyDown}
-      />
+      <Input {...rest} ref={handleRef} onKeyDown={handleKeyDown} />
       <button
         type="button"
         className={styles.searchButton}

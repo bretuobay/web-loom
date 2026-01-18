@@ -10,13 +10,13 @@ const router = Router();
 
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6)
+  password: z.string().min(6),
 });
 
 const registerSchema = loginSchema.extend({
   displayName: z.string().min(2).max(120),
   role: z.enum(USER_ROLES).optional(),
-  avatarUrl: z.string().url().optional()
+  avatarUrl: z.string().url().optional(),
 });
 
 router.post('/login', async (req, res, next) => {
@@ -35,7 +35,7 @@ router.post('/login', async (req, res, next) => {
     const token = authService.generateToken(user);
     res.json({
       token,
-      user: sanitizeUserRecord(user)
+      user: sanitizeUserRecord(user),
     });
   } catch (error) {
     next(error);
@@ -53,7 +53,7 @@ router.post('/register', async (req, res, next) => {
     const token = authService.generateToken(storedUser);
     res.status(201).json({
       token,
-      user
+      user,
     });
   } catch (error) {
     next(error);
@@ -62,7 +62,7 @@ router.post('/register', async (req, res, next) => {
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(6, 'Current password is required'),
-  newPassword: z.string().min(8, 'New password must be at least 8 characters')
+  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
 });
 
 router.post('/change-password', authenticate, async (req, res, next) => {

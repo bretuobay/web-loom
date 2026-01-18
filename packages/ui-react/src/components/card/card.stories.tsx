@@ -208,24 +208,9 @@ export const ComplexCard: Story = {
 export const CardGrid: Story = {
   render: () => (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', maxWidth: '900px' }}>
-      <Card
-        title="Analytics"
-        description="View your analytics dashboard"
-        badge="New"
-        footer="View details →"
-      />
-      <Card
-        title="Reports"
-        description="Generate and export reports"
-        size="small"
-        footer="Generate →"
-      />
-      <Card
-        title="Settings"
-        description="Configure your preferences"
-        hoverable={false}
-        footer="Configure →"
-      />
+      <Card title="Analytics" description="View your analytics dashboard" badge="New" footer="View details →" />
+      <Card title="Reports" description="Generate and export reports" size="small" footer="Generate →" />
+      <Card title="Settings" description="Configure your preferences" hoverable={false} footer="Configure →" />
     </div>
   ),
 };
@@ -255,4 +240,3 @@ export const CustomTitle: Story = {
     description: 'Title can be any React node, not just a string.',
   },
 };
-

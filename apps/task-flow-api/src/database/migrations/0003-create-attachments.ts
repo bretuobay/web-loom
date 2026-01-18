@@ -17,48 +17,48 @@ const migration: Migration = {
           type: DataTypes.UUID,
           allowNull: false,
           primaryKey: true,
-          defaultValue: DataTypes.UUIDV4
+          defaultValue: DataTypes.UUIDV4,
         },
         taskId: {
           type: DataTypes.UUID,
           allowNull: false,
           references: {
             model: 'tasks',
-            key: 'id'
+            key: 'id',
           },
           onDelete: 'CASCADE',
-          onUpdate: 'CASCADE'
+          onUpdate: 'CASCADE',
         },
         originalName: {
           type: DataTypes.STRING(255),
-          allowNull: false
+          allowNull: false,
         },
         storedName: {
           type: DataTypes.STRING(255),
-          allowNull: false
+          allowNull: false,
         },
         mimeType: {
           type: DataTypes.STRING(128),
-          allowNull: false
+          allowNull: false,
         },
         size: {
           type: DataTypes.INTEGER.UNSIGNED,
-          allowNull: false
+          allowNull: false,
         },
         createdAt: {
           type: DataTypes.DATE,
           allowNull: false,
-          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
         },
         updatedAt: {
           type: DataTypes.DATE,
           allowNull: false,
-          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
-        }
+          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        },
       },
-      { transaction }
+      { transaction },
     );
-  }
+  },
 };
 
 export default migration;

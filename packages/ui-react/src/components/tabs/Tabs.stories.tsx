@@ -70,12 +70,7 @@ export const EditableCard: Story = {
     };
 
     return (
-      <Tabs
-        type="editable-card"
-        activeKey={activeKey}
-        onChange={setActiveKey}
-        onEdit={handleEdit}
-      >
+      <Tabs type="editable-card" activeKey={activeKey} onChange={setActiveKey} onEdit={handleEdit}>
         {tabs.map((tab) => (
           <Tabs.TabPane key={tab.key} tabKey={tab.key} tab={tab.tab}>
             <div style={{ padding: '16px' }}>{tab.content}</div>
@@ -248,13 +243,12 @@ export const WithComplexContent: Story = {
         <div style={{ padding: '24px' }}>
           <h2>Article Title</h2>
           <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
-            incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
-            exercitation ullamco laboris.
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
+            dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
           </p>
           <p>
-            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat
-            nulla pariatur. Excepteur sint occaecat cupidatat non proident.
+            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+            Excepteur sint occaecat cupidatat non proident.
           </p>
         </div>
       </Tabs.TabPane>
@@ -296,10 +290,7 @@ export const EditableWithNonClosableTabs: Story = {
     const handleEdit = (targetKey: string, action: 'add' | 'remove') => {
       if (action === 'add') {
         const newKey = `${Date.now()}`;
-        setTabs([
-          ...tabs,
-          { key: newKey, tab: `New Tab`, content: `Content of New Tab`, closable: true },
-        ]);
+        setTabs([...tabs, { key: newKey, tab: `New Tab`, content: `Content of New Tab`, closable: true }]);
         setActiveKey(newKey);
       } else {
         const newTabs = tabs.filter((tab) => tab.key !== targetKey);
@@ -311,19 +302,9 @@ export const EditableWithNonClosableTabs: Story = {
     };
 
     return (
-      <Tabs
-        type="editable-card"
-        activeKey={activeKey}
-        onChange={setActiveKey}
-        onEdit={handleEdit}
-      >
+      <Tabs type="editable-card" activeKey={activeKey} onChange={setActiveKey} onEdit={handleEdit}>
         {tabs.map((tab) => (
-          <Tabs.TabPane
-            key={tab.key}
-            tabKey={tab.key}
-            tab={tab.tab}
-            closable={tab.closable}
-          >
+          <Tabs.TabPane key={tab.key} tabKey={tab.key} tab={tab.tab} closable={tab.closable}>
             <div style={{ padding: '16px' }}>{tab.content}</div>
           </Tabs.TabPane>
         ))}
@@ -344,9 +325,7 @@ export const ApplicationInterface: Story = {
           minHeight: '400px',
         }}
       >
-        <h1 style={{ marginBottom: '24px', color: 'var(--color-neutral-gray-900, #111827)' }}>
-          Application Dashboard
-        </h1>
+        <h1 style={{ marginBottom: '24px', color: 'var(--color-neutral-gray-900, #111827)' }}>Application Dashboard</h1>
         <Tabs type="card" activeKey={activeKey} onChange={setActiveKey}>
           <Tabs.TabPane tabKey="dashboard" tab="📊 Dashboard">
             <div style={{ padding: '24px', backgroundColor: 'white', minHeight: '200px' }}>
@@ -390,10 +369,7 @@ export const DocumentEditor: Story = {
     const handleEdit = (targetKey: string, action: 'add' | 'remove') => {
       if (action === 'add') {
         const newKey = `${Date.now()}`;
-        setTabs([
-          ...tabs,
-          { key: newKey, tab: `Untitled-${newKey}.txt`, content: '' },
-        ]);
+        setTabs([...tabs, { key: newKey, tab: `Untitled-${newKey}.txt`, content: '' }]);
         setActiveKey(newKey);
       } else {
         const newTabs = tabs.filter((tab) => tab.key !== targetKey);

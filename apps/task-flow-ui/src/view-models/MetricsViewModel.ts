@@ -2,11 +2,7 @@ import { BehaviorSubject } from 'rxjs';
 import { CachingTaskRepository } from '../domain/repositories/CachingTaskRepository';
 import { TaskStore } from '../domain/stores/taskStore';
 import { TaskEntity } from '../domain/entities/task';
-import {
-  TASK_STATUSES,
-  type TaskStatus,
-  formatTaskStatus
-} from '../domain/values/taskStatus';
+import { TASK_STATUSES, type TaskStatus, formatTaskStatus } from '../domain/values/taskStatus';
 
 export interface MetricsSnapshot {
   totalTasks: number;
@@ -19,10 +15,13 @@ export interface MetricsSnapshot {
 }
 
 const createEmptyBreakdown = (): Record<TaskStatus, number> =>
-  TASK_STATUSES.reduce<Record<TaskStatus, number>>((acc, status) => {
-    acc[status] = 0;
-    return acc;
-  }, {} as Record<TaskStatus, number>);
+  TASK_STATUSES.reduce<Record<TaskStatus, number>>(
+    (acc, status) => {
+      acc[status] = 0;
+      return acc;
+    },
+    {} as Record<TaskStatus, number>,
+  );
 
 export const initialMetricsSnapshot: MetricsSnapshot = {
   totalTasks: 0,
@@ -31,7 +30,7 @@ export const initialMetricsSnapshot: MetricsSnapshot = {
   focusInsight: 'Waiting for data…',
   nextDueTask: null,
   statusBreakdown: createEmptyBreakdown(),
-  lastUpdated: null
+  lastUpdated: null,
 };
 
 export class MetricsViewModel {
@@ -74,16 +73,13 @@ export class MetricsViewModel {
     const completedTotal = breakdown.done ?? 0;
     const busiestStatus = TASK_STATUSES.reduce<TaskStatus>(
       (winner, current) => (breakdown[current] > breakdown[winner] ? current : winner),
-      TASK_STATUSES[0]
+      TASK_STATUSES[0],
     );
-    const nextDueTaskEntity = tasks
-      .filter((task) => task.dueDate)
-      .sort((a, b) => (a.dueDate!.getTime() - b.dueDate!.getTime()))[0] ?? null;
+    const nextDueTaskEntity =
+      tasks.filter((task) => task.dueDate).sort((a, b) => a.dueDate!.getTime() - b.dueDate!.getTime())[0] ?? null;
 
     const completionRate = total === 0 ? 0 : Math.round((completedTotal / total) * 100);
-    const overdueTasks = tasks.filter(
-      (task) => task.dueDate && task.dueDate < now && task.status !== 'done'
-    ).length;
+    const overdueTasks = tasks.filter((task) => task.dueDate && task.dueDate < now && task.status !== 'done').length;
 
     return {
       totalTasks: total,
@@ -94,11 +90,11 @@ export class MetricsViewModel {
         nextDueTaskEntity && nextDueTaskEntity.dueDate
           ? {
               title: nextDueTaskEntity.title,
-              dueDate: nextDueTaskEntity.dueDate.toLocaleDateString()
+              dueDate: nextDueTaskEntity.dueDate.toLocaleDateString(),
             }
           : null,
       statusBreakdown: breakdown,
-      lastUpdated: new Date().toLocaleTimeString()
+      lastUpdated: new Date().toLocaleTimeString(),
     };
   }
 }

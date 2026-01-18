@@ -64,7 +64,10 @@ const renderCardContent = ({
   actions,
   loading,
   size,
-}: Pick<CardProps, 'title' | 'badge' | 'description' | 'children' | 'footer' | 'extra' | 'cover' | 'actions' | 'loading' | 'size'>) => (
+}: Pick<
+  CardProps,
+  'title' | 'badge' | 'description' | 'children' | 'footer' | 'extra' | 'cover' | 'actions' | 'loading' | 'size'
+>) => (
   <>
     {cover ? <div className="loom-card-cover">{cover}</div> : null}
     <div className="loom-card-body">
@@ -85,9 +88,7 @@ const renderCardContent = ({
               {extra ? <div className="loom-card-extra">{extra}</div> : null}
             </header>
           ) : null}
-          {description || children ? (
-            <div className="loom-card-description">{description ?? children}</div>
-          ) : null}
+          {description || children ? <div className="loom-card-description">{description ?? children}</div> : null}
           {footer ? <div className="loom-card-footer">{footer}</div> : null}
         </>
       )}
@@ -136,7 +137,7 @@ export function Card({
       'loom-card-small': size === 'small',
       'loom-card-loading': loading,
     },
-    className
+    className,
   );
 
   const content = renderCardContent({

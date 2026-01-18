@@ -54,10 +54,7 @@ export function themeToCSSVars(theme: ThemeConfig, prefix = 'ui'): Record<string
 /**
  * Inject CSS variables into a container element
  */
-export function injectCSSVars(
-  container: HTMLElement,
-  cssVars: Record<string, string>
-): void {
+export function injectCSSVars(container: HTMLElement, cssVars: Record<string, string>): void {
   Object.entries(cssVars).forEach(([key, value]) => {
     container.style.setProperty(key, value);
   });
@@ -66,10 +63,7 @@ export function injectCSSVars(
 /**
  * Remove CSS variables from a container element
  */
-export function removeCSSVars(
-  container: HTMLElement,
-  cssVars: Record<string, string>
-): void {
+export function removeCSSVars(container: HTMLElement, cssVars: Record<string, string>): void {
   Object.keys(cssVars).forEach((key) => {
     container.style.removeProperty(key);
   });
@@ -121,11 +115,7 @@ export function watchSystemTheme(callback: (isDark: boolean) => void): () => voi
  * Generate CSS variables stylesheet as a string
  * Useful for SSR or static generation
  */
-export function generateCSSVarsStylesheet(
-  theme: ThemeConfig,
-  prefix = 'ui',
-  selector = ':root'
-): string {
+export function generateCSSVarsStylesheet(theme: ThemeConfig, prefix = 'ui', selector = ':root'): string {
   const cssVars = themeToCSSVars(theme, prefix);
 
   const declarations = Object.entries(cssVars)
@@ -138,11 +128,7 @@ export function generateCSSVarsStylesheet(
 /**
  * Create a style element with CSS variables
  */
-export function createStyleElement(
-  theme: ThemeConfig,
-  prefix = 'ui',
-  id = 'ui-react-theme'
-): HTMLStyleElement {
+export function createStyleElement(theme: ThemeConfig, prefix = 'ui', id = 'ui-react-theme'): HTMLStyleElement {
   const style = document.createElement('style');
   style.id = id;
   style.textContent = generateCSSVarsStylesheet(theme, prefix);
@@ -152,11 +138,7 @@ export function createStyleElement(
 /**
  * Update or create theme style element
  */
-export function updateThemeStyle(
-  theme: ThemeConfig,
-  prefix = 'ui',
-  id = 'ui-react-theme'
-): void {
+export function updateThemeStyle(theme: ThemeConfig, prefix = 'ui', id = 'ui-react-theme'): void {
   if (typeof document === 'undefined') return;
 
   let styleElement = document.getElementById(id) as HTMLStyleElement | null;

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
 import { nativeFetcher } from '@repo/models';
 
-const TODO_API_BASE_URL = 'http://localhost:4001';
+const TODO_API_BASE_URL = 'http://localhost:8001';
 const TODO_ENDPOINT = '/todos';
 const TASKFLOW_TOKEN_STORAGE_KEY = 'taskflow_token';
 
@@ -14,7 +14,7 @@ const TodoSchema = z.object({
   dueDate: z.string(),
   userId: z.string().uuid(),
   createdAt: z.string(),
-  updatedAt: z.string()
+  updatedAt: z.string(),
 });
 
 export type TodoListItem = z.infer<typeof TodoSchema>;
@@ -69,14 +69,14 @@ const todoConfig = {
   fetcher: taskFlowAuthFetcher,
   schema: TodoListSchema,
   initialData: [] as TodoListData,
-  validateSchema: false
+  validateSchema: false,
 } as const;
 
 type TodoViewModelConfig = ViewModelFactoryConfig<TodoListData, typeof TodoListSchema>;
 
 const config: TodoViewModelConfig = {
   modelConfig: todoConfig,
-  schema: TodoListSchema
+  schema: TodoListSchema,
 };
 
 export const todoViewModel = createReactiveViewModel(config);

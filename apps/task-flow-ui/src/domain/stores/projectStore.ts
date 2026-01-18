@@ -24,9 +24,7 @@ export class ProjectStore {
   }
 
   mutate(projectId: string, updater: (project: ProjectEntity) => ProjectEntity) {
-    const updated = this.snapshot.map((project) =>
-      project.id === projectId ? updater(project) : project
-    );
+    const updated = this.snapshot.map((project) => (project.id === projectId ? updater(project) : project));
     this._projects$.next(updated);
   }
 

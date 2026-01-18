@@ -21,13 +21,11 @@
      - Dev dependencies (vitest, fast-check, TypeScript, ESLint, Prettier)
      - CLI bin entry point (`visdiff` command)
      - Proper build scripts using TypeScript compiler
-   
    - `tsconfig.json` - Configured with:
      - Strict mode enabled
      - Node.js module resolution
      - All strict type checking options
      - Proper output configuration
-   
    - `vitest.config.js` - Configured with:
      - Node environment (for CLI tool)
      - 30s timeout for property-based tests
@@ -41,7 +39,6 @@
      - commander@^11.0.0 - CLI argument parsing
      - zod@^3.22.0 - Schema validation
      - chalk@^5.3.0 - Terminal output formatting
-   
    - **Dev Dependencies:**
      - vitest@^3.2.4 - Testing framework
      - fast-check@^3.15.0 - Property-based testing
@@ -54,6 +51,7 @@
 ### ⚠️ Installation Issue
 
 The dependencies cannot be installed on the current Node.js version (v16.13.0) because:
+
 - The project requires Node.js 22 (as specified in `.nvmrc`)
 - Core dependencies (puppeteer, sharp, vitest, eslint) require Node 18+
 - There's an esbuild version mismatch issue
@@ -63,6 +61,7 @@ The dependencies cannot be installed on the current Node.js version (v16.13.0) b
 To complete the installation, you need to:
 
 1. **Switch to Node.js 22:**
+
    ```bash
    nvm use 22
    # or
@@ -71,6 +70,7 @@ To complete the installation, you need to:
    ```
 
 2. **Install dependencies:**
+
    ```bash
    cd packages/visdiff
    npm install
@@ -85,6 +85,7 @@ To complete the installation, you need to:
 ### 📋 Next Steps
 
 Once dependencies are installed, the following will be ready:
+
 - ✅ Project structure with src/, dist/, and test/ directories
 - ✅ All core and dev dependencies installed
 - ✅ TypeScript configured with strict mode

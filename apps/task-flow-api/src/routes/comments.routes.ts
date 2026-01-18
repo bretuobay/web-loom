@@ -8,11 +8,11 @@ const router = Router();
 
 const createSchema = z.object({
   taskId: z.string().uuid(),
-  content: z.string().min(1).max(1024)
+  content: z.string().min(1).max(1024),
 });
 
 const updateSchema = z.object({
-  content: z.string().min(1).max(1024).optional()
+  content: z.string().min(1).max(1024).optional(),
 });
 
 router.get('/task/:taskId', async (req, res, next) => {
@@ -33,7 +33,7 @@ router.post('/', authenticate, async (req, res, next) => {
     const payload = createSchema.parse(req.body);
     const comment = await commentService.create({
       ...payload,
-      authorId: req.user.userId
+      authorId: req.user.userId,
     });
     res.status(201).json(comment);
   } catch (error) {

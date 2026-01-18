@@ -10,13 +10,12 @@ const todoSchema = z.object({
   title: z.string().min(1).max(255),
   details: z.string().max(1024).optional().default(''),
   completed: z.boolean().optional(),
-  dueDate: z
-    .preprocess((value) => {
-      if (typeof value === 'string' && value.trim() !== '') {
-        return new Date(value);
-      }
-      return undefined;
-    }, z.date().optional())
+  dueDate: z.preprocess((value) => {
+    if (typeof value === 'string' && value.trim() !== '') {
+      return new Date(value);
+    }
+    return undefined;
+  }, z.date().optional()),
 });
 
 const ensureUser = (userId?: string) => {

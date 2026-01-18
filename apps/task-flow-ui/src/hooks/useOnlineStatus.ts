@@ -7,9 +7,7 @@ interface OnlineStatusResult {
 }
 
 export function useOnlineStatus(): OnlineStatusResult {
-  const [isOnline, setIsOnline] = useState(() =>
-    typeof navigator !== 'undefined' ? navigator.onLine : true
-  );
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
   const [wasOffline, setWasOffline] = useState(false);
   const [lastOnlineAt, setLastOnlineAt] = useState<Date | null>(null);
 

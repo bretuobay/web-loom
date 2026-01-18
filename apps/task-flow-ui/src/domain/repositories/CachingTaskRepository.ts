@@ -15,7 +15,7 @@ function getStorage(): Promise<Storage> {
       backend: ['indexeddb', 'localstorage', 'memory'],
       name: 'taskflow-cache',
       namespace: 'repositories',
-      defaultTTL: CACHE_TTL
+      defaultTTL: CACHE_TTL,
     });
   }
   return storagePromise;
@@ -49,14 +49,21 @@ export class CachingTaskRepository implements ITaskRepository {
           status: t.status,
           priority: t.priority,
           assignee: t.assignee
-            ? { id: t.assignee.id, displayName: t.assignee.displayName, email: t.assignee.email, avatarUrl: t.assignee.avatarUrl, role: t.assignee.role }
+            ? {
+                id: t.assignee.id,
+                displayName: t.assignee.displayName,
+                email: t.assignee.email,
+                avatarUrl: t.assignee.avatarUrl,
+                role: t.assignee.role,
+              }
             : undefined,
           assigneeId: t.assigneeId,
           dueDate: t.dueDate?.toISOString() ?? null,
           projectId: t.projectId,
           attachments: t.attachments.map((attachment) => {
-            const updatedAt =
-              !Number.isNaN(attachment.updatedAt.getTime()) ? attachment.updatedAt : attachment.createdAt;
+            const updatedAt = !Number.isNaN(attachment.updatedAt.getTime())
+              ? attachment.updatedAt
+              : attachment.createdAt;
             return {
               id: attachment.id,
               taskId: attachment.taskId,
@@ -65,13 +72,13 @@ export class CachingTaskRepository implements ITaskRepository {
               size: attachment.size,
               downloadUrl: attachment.downloadUrl,
               createdAt: attachment.createdAt.toISOString(),
-              updatedAt: updatedAt.toISOString()
+              updatedAt: updatedAt.toISOString(),
             };
           }),
           createdAt: t.createdAt.toISOString(),
-          updatedAt: t.updatedAt.toISOString()
+          updatedAt: t.updatedAt.toISOString(),
         })),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       await storage.set(CACHE_KEY, cacheData);
 
