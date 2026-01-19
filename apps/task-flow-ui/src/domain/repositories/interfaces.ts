@@ -2,7 +2,7 @@ import type { ProjectEntity, ProjectApiResponse, ProjectCreationPayload } from '
 import type { TaskCreationPayload, TaskEntity, TaskUpdatePayload } from '../entities/task';
 import type { AttachmentEntity } from '../entities/attachment';
 import type { UserEntity } from '../entities/user';
-import { CommentEntity } from '../entities/comment';
+import type { CommentEntity } from '../entities/comment';
 
 export interface IProjectRepository {
   fetchAll(): Promise<ProjectEntity[]>;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { MediaCorePlayer } from '@web-loom/media-core';
 import type {
   MediaEventMap,
@@ -48,64 +48,97 @@ export function useMediaPlayer(
   hookOptions: UseMediaPlayerOptions = {},
 ): UseMediaPlayerResult {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
-  const playerRef = useRef<MediaCorePlayer | null>(null);
+  const [player, setPlayer] = useState<MediaCorePlayer | null>(() => {
+    // Initialize player immediately if autoMount is false
+    if (hookOptions.autoMount === false) {
+      return new MediaCorePlayer(config, options ?? {});
+    }
+    return null;
+  });
+  const playerRef = useRef(player);
   const registeredPlugins = useRef<Set<string>>(new Set());
   const autoMount = hookOptions.autoMount !== false;
   const optionsKey = useSerializedValue(options);
   const configKey = useSerializedValue(config);
+  const prevConfigKey = useRef(configKey);
 
-  const getPlayer = () => {
+  // Update player config when config changes
+  useLayoutEffect(() => {
+    if (playerRef.current && prevConfigKey.current !== configKey) {
+      playerRef.current.setMediaConfig(config);
+      prevConfigKey.current = configKey;
+    }
+  }, [config, configKey]);
+
+  // Create and mount player when container is available
+  useLayoutEffect(() => {
+    if (!autoMount || !container) {
+      return;
+    }
+
+    // Create player if it doesn't exist
     if (!playerRef.current) {
-      playerRef.current = new MediaCorePlayer(config, options ?? {});
+      const newPlayer = new MediaCorePlayer(config, options ?? {});
+      playerRef.current = newPlayer;
+      setPlayer(newPlayer);
     }
-    return playerRef.current;
-  };
 
-  useEffect(() => {
-    getPlayer().setMediaConfig(config);
-  }, [configKey]);
+    const currentPlayer = playerRef.current;
+    const plugins = registeredPlugins.current;
 
-  useEffect(() => {
-    if (!autoMount) {
-      return () => {
-        playerRef.current?.dispose();
-        playerRef.current = null;
-      };
-    }
-    const player = getPlayer();
-    if (!container) {
-      return;
-    }
-    player.mount(container);
-    registerPlugins(player, hookOptions.plugins, registeredPlugins.current);
+    currentPlayer.mount(container);
+    registerPlugins(currentPlayer, hookOptions.plugins, plugins);
+
     return () => {
-      player.dispose();
+      currentPlayer.dispose();
       playerRef.current = null;
-      registeredPlugins.current.clear();
+      setPlayer(null);
+      plugins.clear();
     };
-  }, [container, autoMount, hookOptions.plugins]);
+  }, [container, autoMount, config, options, hookOptions.plugins, configKey, optionsKey]);
 
-  const initialOptionsKey = useRef(optionsKey);
-  useEffect(() => {
-    if (initialOptionsKey.current === optionsKey) {
+  // Recreate player when options change
+  const prevOptionsKey = useRef(optionsKey);
+  useLayoutEffect(() => {
+    if (prevOptionsKey.current === optionsKey) {
       return;
     }
-    initialOptionsKey.current = optionsKey;
-    const containerEl = container;
-    playerRef.current?.dispose();
-    playerRef.current = new MediaCorePlayer(config, options ?? {});
-    registeredPlugins.current.clear();
-    if (autoMount && containerEl) {
-      playerRef.current.mount(containerEl);
-      registerPlugins(playerRef.current, hookOptions.plugins, registeredPlugins.current);
-    }
-  }, [optionsKey, autoMount, container, hookOptions.plugins]);
+    prevOptionsKey.current = optionsKey;
 
+    // Dispose old player
+    if (playerRef.current) {
+      playerRef.current.dispose();
+    }
+
+    // Create new player
+    const newPlayer = new MediaCorePlayer(config, options ?? {});
+    playerRef.current = newPlayer;
+    setPlayer(newPlayer);
+    registeredPlugins.current.clear();
+
+    // Mount if needed
+    if (autoMount && container) {
+      newPlayer.mount(container);
+      registerPlugins(newPlayer, hookOptions.plugins, registeredPlugins.current);
+    }
+
+    return () => {
+      if (playerRef.current === newPlayer) {
+        newPlayer.dispose();
+        playerRef.current = null;
+        setPlayer(null);
+        registeredPlugins.current.clear();
+      }
+    };
+  }, [optionsKey, config, options, autoMount, container, hookOptions.plugins]);
+
+  // Final cleanup
   useEffect(() => {
     return () => {
-      playerRef.current?.dispose();
-      playerRef.current = null;
-      registeredPlugins.current.clear();
+      if (playerRef.current) {
+        playerRef.current.dispose();
+        playerRef.current = null;
+      }
     };
   }, []);
 
@@ -113,18 +146,18 @@ export function useMediaPlayer(
     setContainer(node);
   }, []);
 
-  return { containerRef, player: playerRef.current };
+  return { containerRef, player };
 }
 
 export function useMediaState(player: MediaCorePlayer | null | undefined): PlaybackSnapshot | null {
   const [snapshot, setSnapshot] = useState<PlaybackSnapshot | null>(() => player?.getState() ?? null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!player) {
-      setSnapshot(null);
       return;
     }
-    setSnapshot(player.getState());
+
+    // Subscribe to player events
     const unsubs = SNAPSHOT_EVENTS.map((eventName) =>
       player.on(eventName, (state) => {
         if (state && typeof state === 'object' && 'state' in state) {
@@ -132,9 +165,19 @@ export function useMediaState(player: MediaCorePlayer | null | undefined): Playb
         }
       }),
     );
+
     return () => {
       unsubs.forEach((dispose) => dispose());
     };
+  }, [player]);
+
+  // When player changes, sync snapshot immediately
+  useLayoutEffect(() => {
+    if (player) {
+      setSnapshot(player.getState());
+    } else {
+      setSnapshot(null);
+    }
   }, [player]);
 
   return snapshot;
@@ -157,19 +200,25 @@ function registerPlugins(
       if (error instanceof Error && /has already been registered/i.test(error.message)) {
         continue;
       }
-      // eslint-disable-next-line no-console
       console.warn(`@web-loom/media-react: Failed to register plugin "${plugin.name}":`, error);
     }
   }
 }
 
+let serializationFallbackCounter = 0;
+
 function useSerializedValue(value: unknown): string {
+  const fallbackIdRef = useRef<string | null>(null);
+
   return useMemo(() => {
     if (value == null) return 'null';
     try {
       return JSON.stringify(value);
     } catch {
-      return String(Math.random());
+      if (!fallbackIdRef.current) {
+        fallbackIdRef.current = `non-serializable-${++serializationFallbackCounter}`;
+      }
+      return fallbackIdRef.current;
     }
   }, [value]);
 }

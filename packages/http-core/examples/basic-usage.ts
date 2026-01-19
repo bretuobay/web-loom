@@ -2,8 +2,6 @@
  * Basic Usage Examples for @web-loom/http-core
  */
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { createHttpClient, createMockAdapter } from '../src';
 
 // ============================================================================

@@ -80,13 +80,14 @@ export function PhotoGalleryExample() {
           gridLayout.actions.navigateRight();
           break;
         case 'Enter':
-        case ' ':
+        case ' ': {
           e.preventDefault();
           const focusedPhoto = photos[gridLayout.getState().focusedIndex];
           if (focusedPhoto) {
             gridLayout.actions.selectItem(focusedPhoto.id);
           }
           break;
+        }
       }
     };
 

@@ -59,7 +59,7 @@ export interface AttachmentResponse {
   updatedAt: string;
 }
 
-export interface UserResponse extends UserApiResponse {}
+export type UserResponse = UserApiResponse;
 
 export interface ProfileUpdatePayload {
   displayName?: string;

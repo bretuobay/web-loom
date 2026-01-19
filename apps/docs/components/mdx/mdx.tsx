@@ -18,8 +18,8 @@ const transformToSlug = (input: string) => {
     .join('-')
     .split('&')
     .join('-and-')
-    .replace(/[^\w\-]+/g, '')
-    .replace(/\-\-+/g, '-');
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-');
 };
 
 const generateHeading = (headingLevel: number) => {

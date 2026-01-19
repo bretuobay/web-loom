@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from 'react';
 import { z } from 'zod';
 import { useObservable } from '../hooks/useObservable';
-import { AuthViewModel } from '../view-models/AuthViewModel';
+import type { AuthViewModel } from '../view-models/AuthViewModel';
 import { formatUserRole, USER_ROLES, type UserRole } from '../domain/values/userRole';
 
 const loginSchema = z.object({
@@ -161,7 +161,7 @@ export function AuthPanel({ viewModel }: AuthPanelProps) {
       return;
     }
 
-    const { confirmPassword, ...rest } = registerValues;
+    const { confirmPassword: _confirmPassword, ...rest } = registerValues;
     const payload = {
       ...rest,
       avatarUrl: rest.avatarUrl?.trim() || undefined,

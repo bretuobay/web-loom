@@ -1,6 +1,9 @@
 <template>
-  <main class="flex-container flex-column flex-app" style="padding: 20px">
-    <slot></slot>
+  <main
+    class="flex-container flex-column flex-app"
+    style="padding: 20px"
+  >
+    <slot />
   </main>
 </template>
 

@@ -110,7 +110,6 @@ function registerPlugins(player: MediaCorePlayer, plugins: MediaPlugin[] | undef
       if (error instanceof Error && /already been registered/i.test(error.message)) {
         continue;
       }
-      // eslint-disable-next-line no-console
       console.warn(`@web-loom/media-vue: Failed to register plugin "${plugin.name}"`, error);
     }
   }

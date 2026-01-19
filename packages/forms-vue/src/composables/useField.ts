@@ -41,7 +41,7 @@ export function useField<TValue = unknown>(name: string, config: UseFieldConfig 
   );
 
   // Subscribe to field value
-  const fieldValue = useFormSubscription(form, (state) => {
+  const fieldValue = useFormSubscription(form, (_state) => {
     const value = form.getFieldValue(name);
     return config.format ? config.format(value) : value;
   });

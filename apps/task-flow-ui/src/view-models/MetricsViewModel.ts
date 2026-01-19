@@ -1,7 +1,7 @@
 import { BehaviorSubject } from 'rxjs';
 import { CachingTaskRepository } from '../domain/repositories/CachingTaskRepository';
 import { TaskStore } from '../domain/stores/taskStore';
-import { TaskEntity } from '../domain/entities/task';
+import type { TaskEntity } from '../domain/entities/task';
 import { TASK_STATUSES, type TaskStatus, formatTaskStatus } from '../domain/values/taskStatus';
 
 export interface MetricsSnapshot {

@@ -1,6 +1,6 @@
 import { combineLatest, BehaviorSubject } from 'rxjs';
-import { ProjectEntity } from '../domain/entities/project';
-import { ProjectListViewModel } from './ProjectListViewModel';
+import type { ProjectEntity } from '../domain/entities/project';
+import type { ProjectListViewModel } from './ProjectListViewModel';
 import type { ProjectStatus } from '../domain/values/projectStatus';
 
 export class ProjectDetailViewModel {

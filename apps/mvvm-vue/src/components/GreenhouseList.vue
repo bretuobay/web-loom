@@ -1,63 +1,96 @@
 <template>
-  <router-link to="/" class="back-button">
+  <router-link
+    to="/"
+    class="back-button"
+  >
     <BackArrow class="back-arrow" />
   </router-link>
   <section class="flex-container flex-row">
-    <form class="form-container" @submit.prevent="handleSubmit">
+    <form
+      class="form-container"
+      @submit.prevent="handleSubmit"
+    >
       <div class="form-group">
         <label for="name">Greenhouse Name:</label>
         <input
-          type="text"
           id="name"
-          name="name"
           v-model="formData.name"
+          type="text"
+          name="name"
           required
           class="input-field"
           placeholder="Enter greenhouse name"
-        />
+        >
       </div>
 
       <div class="form-group">
         <label for="location">Location:</label>
         <textarea
           id="location"
-          name="location"
           v-model="formData.location"
+          name="location"
           required
           rows="3"
           class="textarea-field"
           placeholder="Location"
-        ></textarea>
+        />
       </div>
 
       <div class="form-group">
         <label for="size">Size:</label>
-        <select id="size" class="select-field" name="size" v-model="formData.size" required>
-          <option value="">Select size</option>
-          <option value="25sqm">25sqm / Small</option>
-          <option value="50sqm">50sqm / Medium</option>
-          <option value="100sqm">100sqm / Large</option>
+        <select
+          id="size"
+          v-model="formData.size"
+          class="select-field"
+          name="size"
+          required
+        >
+          <option value="">
+            Select size
+          </option>
+          <option value="25sqm">
+            25sqm / Small
+          </option>
+          <option value="50sqm">
+            50sqm / Medium
+          </option>
+          <option value="100sqm">
+            100sqm / Large
+          </option>
         </select>
       </div>
 
       <div class="form-group">
         <label for="cropType">Crop Type:</label>
         <input
-          type="text"
-          name="cropType"
           id="cropType"
           v-model="formData.cropType"
+          type="text"
+          name="cropType"
           class="input-field"
           placeholder="Enter crop type"
-        />
+        >
       </div>
 
-      <button type="submit" class="button">Submit</button>
+      <button
+        type="submit"
+        class="button"
+      >
+        Submit
+      </button>
     </form>
 
-    <div class="card" style="max-width: 600px">
-      <h1 class="card-title">Greenhouses</h1>
-      <div v-if="isLoading" class="card-content">
+    <div
+      class="card"
+      style="max-width: 600px"
+    >
+      <h1 class="card-title">
+        Greenhouses
+      </h1>
+      <div
+        v-if="isLoading"
+        class="card-content"
+      >
         <p>Loading greenhouses...</p>
       </div>
       <div v-else-if="greenhouses && greenhouses.length > 0">
@@ -70,14 +103,26 @@
           >
             <span>{{ gh.name }}</span>
             <div class="button-group">
-              <button class="button-tiny button-tiny-delete" @click="handleDelete(gh.id)">Delete</button>
-              <button class="button-tiny button-tiny-edit" @click="handleUpdate(gh.id)">Edit</button>
+              <button
+                class="button-tiny button-tiny-delete"
+                @click="handleDelete(gh.id)"
+              >
+                Delete
+              </button>
+              <button
+                class="button-tiny button-tiny-edit"
+                @click="handleUpdate(gh.id)"
+              >
+                Edit
+              </button>
             </div>
           </li>
         </ul>
       </div>
       <div v-else>
-        <p class="card-content">No greenhouses found.</p>
+        <p class="card-content">
+          No greenhouses found.
+        </p>
       </div>
     </div>
   </section>
