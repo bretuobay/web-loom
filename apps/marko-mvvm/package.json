@@ -15,7 +15,7 @@
   },
   "private": true,
   "scripts": {
-    "dev": "marko-run",
+    "dev": "marko-run --port 5739",
     "build": "marko-run build",
     "preview": "marko-run preview",
     "type-check": "tsc --noEmit",

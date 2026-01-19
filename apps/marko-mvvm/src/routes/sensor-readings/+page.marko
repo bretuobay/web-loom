@@ -1,11 +1,29 @@
-import ObservableData from '../../tags/observable-data.marko';
+import { subscribeToObservable } from '../../utils/marko-observable';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
 
-<script>
+<let/sensorReadings=[]>
+<let/isLoading=true>
+
+<effect() {
+  // Execute fetch command on mount
   sensorReadingViewModel.fetchCommand.execute().catch((error) => {
     console.error('Failed to load readings', error);
   });
-</script>
+
+  // Subscribe to data observables
+  const unsubData = subscribeToObservable(sensorReadingViewModel.data$, (value) => {
+    sensorReadings = value ?? [];
+  });
+
+  const unsubLoading = subscribeToObservable(sensorReadingViewModel.isLoading$, (value) => {
+    isLoading = value;
+  });
+
+  return () => {
+    unsubData();
+    unsubLoading();
+  };
+}/>
 
 <section>
   <div class='flex-between'>
@@ -15,38 +33,33 @@ import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel
     <h2>Sensor readings</h2>
   </div>
 
-  <ObservableData viewModel='sensorReading' initialData=[]>
-    <@loading>
-      <div class='card'>
-        <p class='card-blurb'>
-          Loading live readings...
-        </p>
-      </div>
-    </@loading>
-    <@data|sensorReadings|>
-      <div class='card list-card'>
-        <h3>Sensor readings</h3>
-        <if=sensorReadings.length === 0>
-          <p class='small'>
-            No readings are available yet.
-          </p>
-        </if>
-        <else>
-          <ul class='list'>
-            <for|reading| of=sensorReadings>
-              <li class='list-item'>
-                <div>
-                  <strong>Sensor ${reading.sensorId}</strong>
-                  <small>${new Date(reading.timestamp).toLocaleString()}</small>
-                </div>
-                <span class='pill-status status-active'>
-                  Value: ${reading.value}
-                </span>
-              </li>
-            </for>
-          </ul>
-        </else>
-      </div>
-    </@data>
-  </ObservableData>
+  <div class='card list-card'>
+    <h3>Sensor readings</h3>
+
+    <if=isLoading>
+      <p class='small'>
+        Loading live readings...
+      </p>
+    </if>
+    <else-if=sensorReadings.length === 0>
+      <p class='small'>
+        No readings are available yet.
+      </p>
+    </else-if>
+    <else>
+      <ul class='list'>
+        <for|reading| of=sensorReadings>
+          <li class='list-item'>
+            <div>
+              <strong>Sensor ${reading.sensorId}</strong>
+              <small>${new Date(reading.timestamp).toLocaleString()}</small>
+            </div>
+            <span class='pill-status status-active'>
+              Value: ${reading.value}
+            </span>
+          </li>
+        </for>
+      </ul>
+    </else>
+  </div>
 </section>

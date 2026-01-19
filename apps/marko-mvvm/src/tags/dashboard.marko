@@ -2,107 +2,103 @@ import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
-import ObservableData from './observable-data.marko';
+import { observableToPromise, subscribeToObservable } from '../utils/marko-observable';
 import GreenhouseCard from './cards/greenhouse-card.marko';
 import SensorCard from './cards/sensor-card.marko';
 import SensorReadingCard from './cards/sensor-reading-card.marko';
 import ThresholdAlertCard from './cards/threshold-alert-card.marko';
+// Subscribe to observables for reactive data
+<let/greenHouses=[]>
+<let/isLoadingGreenHouses=true>
+<let/sensors=[]>
+<let/isLoadingSensors=true>
+<let/sensorReadings=[]>
+<let/isLoadingSensorReadings=true>
+<let/thresholdAlerts=[]>
+<let/isLoadingThresholdAlerts=true>
 
-<let/isFetching=true>
-<let/errorMessage=''>
+<effect() {
+  // Execute fetch commands on mount
+  Promise.all([
+    greenHouseViewModel.fetchCommand.execute(),
+    sensorViewModel.fetchCommand.execute(),
+    sensorReadingViewModel.fetchCommand.execute(),
+    thresholdAlertViewModel.fetchCommand.execute(),
+  ]).catch((error) => {
+    console.error('Error fetching dashboard data:', error);
+  });
 
-<script>
-  (async () => {
-    errorMessage = '';
-    isFetching = true;
-    try {
-      await Promise.all([
-        greenHouseViewModel.fetchCommand.execute(),
-        sensorViewModel.fetchCommand.execute(),
-        sensorReadingViewModel.fetchCommand.execute(),
-        thresholdAlertViewModel.fetchCommand.execute(),
-      ]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to load';
-      console.error('Dashboard fetch failed', error);
-      errorMessage = message;
-    } finally {
-      isFetching = false;
-    }
-  })();
-</script>
+  // Subscribe to data observables
+  const unsubGreenHouses = subscribeToObservable(greenHouseViewModel.data$, (value) => {
+    greenHouses = value ?? [];
+  });
+
+  const unsubLoadingGreenHouses = subscribeToObservable(greenHouseViewModel.isLoading$, (value) => {
+    isLoadingGreenHouses = value;
+  });
+
+  const unsubSensors = subscribeToObservable(sensorViewModel.data$, (value) => {
+    sensors = value ?? [];
+  });
+
+  const unsubLoadingSensors = subscribeToObservable(sensorViewModel.isLoading$, (value) => {
+    isLoadingSensors = value;
+  });
+
+  const unsubSensorReadings = subscribeToObservable(sensorReadingViewModel.data$, (value) => {
+    sensorReadings = value ?? [];
+  });
+
+  const unsubLoadingSensorReadings = subscribeToObservable(sensorReadingViewModel.isLoading$, (value) => {
+    isLoadingSensorReadings = value;
+  });
+
+  const unsubThresholdAlerts = subscribeToObservable(thresholdAlertViewModel.data$, (value) => {
+    thresholdAlerts = value ?? [];
+  });
+
+  const unsubLoadingThresholdAlerts = subscribeToObservable(thresholdAlertViewModel.isLoading$, (value) => {
+    isLoadingThresholdAlerts = value;
+  });
+
+  // Cleanup subscriptions
+  return () => {
+    unsubGreenHouses();
+    unsubLoadingGreenHouses();
+    unsubSensors();
+    unsubLoadingSensors();
+    unsubSensorReadings();
+    unsubLoadingSensorReadings();
+    unsubThresholdAlerts();
+    unsubLoadingThresholdAlerts();
+  };
+}/>
 
 <section class='dashboard-page'>
-  <if=errorMessage>
-    <p class='observable-error'>
-      Failed to load dashboard: ${errorMessage}
-    </p>
-  </if>
-  <if=isFetching && !errorMessage>
+  <if=isLoadingGreenHouses || isLoadingSensors || isLoadingSensorReadings || isLoadingThresholdAlerts>
     <p class='small'>
-      Refreshing dashboard data...
+      Loading dashboard data...
     </p>
   </if>
-  <div class='dashboard-grid'>
-    <ObservableData viewModel='greenhouse' initialData=[]>
-      <@data|greenhouses|>
-        <GreenhouseCard greenhouses=greenhouses/>
-      </@data>
-      <@loading>
-        <div class='card'>
-          <p class='card-blurb'>
-            Loading greenhouses...
-          </p>
-        </div>
-      </@loading>
-    </ObservableData>
+  <else>
+    <h2>Dashboard</h2>
+    <div class='dashboard-grid'>
+      <GreenhouseCard greenhouses=greenHouses/>
+      <SensorCard sensors=sensors/>
+      <ThresholdAlertCard thresholdAlerts=thresholdAlerts/>
+      <SensorReadingCard sensorReadings=sensorReadings/>
+    </div>
 
-    <ObservableData viewModel='sensor' initialData=[]>
-      <@data|sensors|>
-        <SensorCard sensors=sensors/>
-      </@data>
-      <@loading>
-        <div class='card'>
-          <p class='card-blurb'>
-            Loading sensors...
-          </p>
-        </div>
-      </@loading>
-    </ObservableData>
-
-    <ObservableData viewModel='thresholdAlert' initialData=[]>
-      <@data|thresholdAlerts|>
-        <ThresholdAlertCard thresholdAlerts=thresholdAlerts/>
-      </@data>
-      <@loading>
-        <div class='card'>
-          <p class='card-blurb'>
-            Loading alerts...
-          </p>
-        </div>
-      </@loading>
-    </ObservableData>
-
-    <ObservableData viewModel='sensorReading' initialData=[]>
-      <@data|sensorReadings|>
-        <SensorReadingCard sensorReadings=sensorReadings/>
-      </@data>
-      <@loading>
-        <div class='card'>
-          <p class='card-blurb'>
-            Loading readings...
-          </p>
-        </div>
-      </@loading>
-    </ObservableData>
-  </div>
-
-  <div class='card list-card'>
-    <h3>Recent sensor readings</h3>
-    <ObservableData viewModel='sensorReading' initialData=[]>
-      <@data|sensorReadings|>
+    <div class='card list-card'>
+      <h3>Recent sensor readings</h3>
+      <if=sensorReadings.length === 0>
+        <p class='small'>
+          No sensor readings available yet.
+        </p>
+      </if>
+      <else>
         <ul class='list'>
-          <for|reading| of=((sensorReadings ?? []).slice(-5).reverse())>
+          <for|reading| of=(sensorReadings.slice(-5).reverse())>
             <li class='list-item'>
               <div>
                 <strong>Sensor ID:</strong>
@@ -115,12 +111,7 @@ import ThresholdAlertCard from './cards/threshold-alert-card.marko';
             </li>
           </for>
         </ul>
-      </@data>
-      <@loading>
-        <p class='small'>
-          Waiting on sensor readings...
-        </p>
-      </@loading>
-    </ObservableData>
-  </div>
+      </else>
+    </div>
+  </else>
 </section>

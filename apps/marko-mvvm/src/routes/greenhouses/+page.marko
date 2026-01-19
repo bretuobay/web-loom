@@ -9,14 +9,23 @@ static const initialForm = {
 };
 
 <let/greenhouses=[]>
-<let/formData={...initialForm}>
+<let/formData={ ...initialForm }>
 <let/editingId=null>
-<let/statusMessage="">
+<let/statusMessage=''>
 <let/isSubmitting=false>
 <let/isLoading=true>
 
 <script>
   const subscriptions = [];
+
+  const updateFormField = (field, value) => {
+    formData = { ...formData, [field]: value };
+  };
+
+  const extractEventValue = (event) => {
+    const target = event.target;
+    return target?.value ?? '';
+  };
 
   subscriptions.push(
     safeSubscribe(greenHouseViewModel.data$, (list) => {
@@ -28,6 +37,14 @@ static const initialForm = {
       isLoading = loading;
     }),
   );
+
+  if (greenHouseViewModel.error$) {
+    subscriptions.push(
+      safeSubscribe(greenHouseViewModel.error$, (error) => {
+        statusMessage = error instanceof Error ? error.message : String(error);
+      }),
+    );
+  }
 
   greenHouseViewModel.fetchCommand.execute().catch((error) => {
     console.error('Failed to load greenhouses', error);
@@ -89,7 +106,9 @@ static const initialForm = {
             name="name"
             class="input-field"
             value=formData.name
-            onInput(event) { formData = { ...formData, name: event.target.value }; }
+          onInput(event) {
+              updateFormField('name', extractEventValue(event));
+            }
             required
             placeholder="Ventura North"
           />
@@ -101,7 +120,9 @@ static const initialForm = {
             id="location"
             name="location"
             class="textarea-field"
-            onInput(event) { formData = { ...formData, location: event.target.value }; }
+            onInput(event) {
+              updateFormField('location', extractEventValue(event));
+            }
             required
             placeholder="City, Country"
           >${formData.location}</textarea>
@@ -114,7 +135,9 @@ static const initialForm = {
             name="size"
             class="select-field"
             value=formData.size
-            onInput(event) { formData = { ...formData, size: event.target.value }; }
+            onInput(event) {
+              updateFormField('size', extractEventValue(event));
+            }
             required
           >
             <option value="">Select size</option>
@@ -131,7 +154,9 @@ static const initialForm = {
             name="cropType"
             class="input-field"
             value=formData.cropType
-            onInput(event) { formData = { ...formData, cropType: event.target.value }; }
+            onInput(event: InputEvent) {
+              updateFormField('cropType', extractEventValue(event));
+            }
             placeholder="Lettuce, herbs..."
           />
         </div>

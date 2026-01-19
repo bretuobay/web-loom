@@ -1,11 +1,29 @@
-import ObservableData from '../../tags/observable-data.marko';
+import { subscribeToObservable } from '../../utils/marko-observable';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 
-<script>
+<let/sensors=[]>
+<let/isLoading=true>
+
+<effect() {
+  // Execute fetch command on mount
   sensorViewModel.fetchCommand.execute().catch((error) => {
     console.error('Failed to load sensors', error);
   });
-</script>
+
+  // Subscribe to data observables
+  const unsubData = subscribeToObservable(sensorViewModel.data$, (value) => {
+    sensors = value ?? [];
+  });
+
+  const unsubLoading = subscribeToObservable(sensorViewModel.isLoading$, (value) => {
+    isLoading = value;
+  });
+
+  return () => {
+    unsubData();
+    unsubLoading();
+  };
+}/>
 
 <section>
   <div class='flex-between'>
@@ -15,40 +33,35 @@ import { sensorViewModel } from '@repo/view-models/SensorViewModel';
     <h2>Sensors</h2>
   </div>
 
-  <ObservableData viewModel='sensor' initialData=[]>
-    <@loading>
-      <div class='card'>
-        <p class='card-blurb'>
-          Fetching latest sensors...
-        </p>
-      </div>
-    </@loading>
-    <@data|sensors|>
-      <div class='card list-card'>
-        <h3 class='card-title'>
-          Sensors
-        </h3>
-        <if=sensors.length === 0>
-          <p class='small'>
-            No sensors have been registered yet.
-          </p>
-        </if>
-        <else>
-          <ul class='list'>
-            <for|sensor| of=sensors>
-              <li class='list-item'>
-                <div>
-                  <strong>${sensor.greenhouse?.name ?? 'Unnamed greenhouse'}</strong>
-                  <small>${sensor.type}</small>
-                </div>
-                <span class=`pill-status ${sensor.status === 'active' ? 'status-active' : 'status-inactive'}`>
-                  ${sensor.status}
-                </span>
-              </li>
-            </for>
-          </ul>
-        </else>
-      </div>
-    </@data>
-  </ObservableData>
+  <div class='card list-card'>
+    <h3 class='card-title'>
+      Sensors
+    </h3>
+
+    <if=isLoading>
+      <p class='small'>
+        Fetching latest sensors...
+      </p>
+    </if>
+    <else-if=sensors.length === 0>
+      <p class='small'>
+        No sensors have been registered yet.
+      </p>
+    </else-if>
+    <else>
+      <ul class='list'>
+        <for|sensor| of=sensors>
+          <li class='list-item'>
+            <div>
+              <strong>${sensor.greenhouse?.name ?? 'Unnamed greenhouse'}</strong>
+              <small>${sensor.type}</small>
+            </div>
+            <span class=`pill-status ${sensor.status === 'active' ? 'status-active' : 'status-inactive'}`>
+              ${sensor.status}
+            </span>
+          </li>
+        </for>
+      </ul>
+    </else>
+  </div>
 </section>

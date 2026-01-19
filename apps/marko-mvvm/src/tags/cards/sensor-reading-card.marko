@@ -1,13 +1,14 @@
 import type { SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
 export interface Input {
-  sensorReadings: SensorReadingListData[];
+  sensorReadings: SensorReadingListData;
 }
-static function getBlurb(readings: SensorReadingListData[]) {
-  if (!readings || !readings.length) {
+static function getBlurb(readings: SensorReadingListData) {
+  if (!readings || readings.length === 0) {
     return 'Waiting for reading data...';
   }
   const latest = readings[readings.length - 1];
-  return `Length ${latest.length} `;
+  const timestampLabel = new Date(latest.timestamp).toLocaleTimeString();
+  return `Latest value ${latest.value} at ${timestampLabel}`;
 }
 
 <div class='card'>
