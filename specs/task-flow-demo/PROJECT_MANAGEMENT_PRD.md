@@ -30,6 +30,8 @@
 - **FR-002.3**: Tasks support rich text descriptions using typography-core
 - **FR-002.4**: Tasks can be filtered by: status, assignee, priority, due date
 - **FR-002.5**: Tasks can be searched by title and description
+- **FR-002.6**: Task edit flows are first-class citizens—when a task is selected the edit form/drawer surfaces the same fields used for creation, surfaces server/client validation feedback, keeps the attachment upload controls visible, and re-syncs the list when updates succeed.
+- **FR-002.7**: Tasks can be deleted from either the Task Board or the project detail drawer; the client prompts for confirmation, disables the delete control during the API call, and shows success/error feedback while keeping task counts and selection state in sync so the next relevant task is highlighted.
 
 #### FR-003: User Management
 
@@ -195,6 +197,7 @@
 
 - **ProjectSelector**: Dropdown to switch between projects
 - **TaskCard**: Draggable card displaying task information
+- **ProjectDetailPanel**: Side drawer that lists active project tasks, allows selection to reveal comments, exposes the TaskForm for quick creation, and includes a delete control with confirmation and loading feedback so users can complete all CRUD actions without leaving the project context.
 - **TaskModal**: Detailed task view/edit form
 - **PluginTabs**: Dynamic tabs for different view plugins
 - **FilterPanel**: Collapsible panel for task filtering
@@ -277,6 +280,7 @@
   - `DELETE /api/tasks/:id` — remove a task and its attachments/metadata.
 - **T1.7.2**: Extend the shared MVVM task stack (`TaskStore`, repositories, `TaskBoardViewModel`, etc.) so the TaskBoard UI can invoke the new endpoints, keep observable task lists in sync, and expose error/loading state for the edit/delete flows without duplicating business logic across components.
 - **T1.7.3**: Update the TaskBoard UI to surface editing/deletion affordances (e.g., select a card to open an `Edit task` form, show a delete action, and keep the creation form alongside the MVVM-powered flows) while honoring the current MVVM wiring (commands, observables, store updates).
+- **T1.7.4**: Extend the project detail drawer so that selected tasks can be deleted or edited inline; add a dedicated delete control with confirmation, disable it while the API request is running, and reuse the shared MVVM error/loading observables so the drawer can re-select the next best task after a deletion.
 
 #### Task 1.8: Todo Workspace (API + UI)
 

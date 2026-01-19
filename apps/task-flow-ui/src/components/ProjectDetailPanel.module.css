@@ -104,6 +104,34 @@
   gap: var(--spacing-3);
 }
 
+.taskActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--spacing-2);
+}
+
+.deleteButton {
+  border: none;
+  background-color: var(--btn-danger-bg, #dc2626);
+  color: var(--colors-text-inverted, #fff);
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--btn-radius);
+  font-size: var(--typography-fontSize-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  cursor: pointer;
+  transition: background-color var(--transitions-fast);
+}
+
+.deleteButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.deleteButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .taskCardWrapper {
   width: 100%;
 }

@@ -268,6 +268,17 @@ export class ProjectListViewModel {
     }
   }
 
+  public async deleteTask(taskId: string) {
+    this.error$.next(null);
+    try {
+      await this.taskStore.deleteTask(taskId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete task';
+      this.error$.next(message);
+      throw error;
+    }
+  }
+
   public updateProject(projectId: string, updater: (project: ProjectEntity) => ProjectEntity) {
     this.projectStore.mutate(projectId, updater);
   }

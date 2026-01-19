@@ -16,6 +16,7 @@ interface ProjectDetailPanelProps {
   isTaskFormOpen: boolean;
   onToggleTaskForm: () => void;
   onCreateTask: (values: TaskFormValues) => Promise<void>;
+  onDeleteTask: (taskId: string) => Promise<void>;
 }
 
 export function ProjectDetailPanel({
@@ -26,23 +27,45 @@ export function ProjectDetailPanel({
   isTaskFormOpen,
   onToggleTaskForm,
   onCreateTask,
+  onDeleteTask,
 }: ProjectDetailPanelProps) {
   const completed = tasks.filter((task) => task.isDone).length;
   const total = tasks.length;
   const percentage = total ? Math.round((completed / total) * 100) : 0;
   const activeTasks = tasks.filter((task) => task.status !== 'done');
   const visibleTasks = activeTasks.length ? activeTasks : tasks;
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(visibleTasks[0]?.id ?? null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const commentsViewModel = useMemo(() => new TaskCommentsViewModel(), []);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const selectedTask = visibleTasks.find((task) => task.id === selectedTaskId) ?? null;
 
   useEffect(() => {
-    if (visibleTasks.length && !visibleTasks.some((task) => task.id === activeTaskId)) {
-      setActiveTaskId(visibleTasks[0].id);
+    if (selectedTaskId && !visibleTasks.some((task) => task.id === selectedTaskId)) {
+      setSelectedTaskId(null);
     }
-    if (!visibleTasks.length) {
-      setActiveTaskId(null);
+  }, [visibleTasks, selectedTaskId]);
+
+  const handleDeleteSelectedTask = async () => {
+    if (!selectedTask) {
+      return;
     }
-  }, [visibleTasks, activeTaskId]);
+
+    const confirmed = window.confirm(
+      `Delete “${selectedTask.title}” from ${project.name}? This cannot be undone.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await onDeleteTask(selectedTask.id);
+    } catch {
+      // Keep the task selected so the user can retry if something fails.
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className={styles.root}>
@@ -105,8 +128,9 @@ export function ProjectDetailPanel({
                 <TaskCard
                   task={task}
                   onUploadAttachment={onUploadAttachment}
-                  onSelect={(taskId) => setActiveTaskId(taskId)}
-                  isSelected={activeTaskId === task.id}
+                  onSelect={(taskId) => setSelectedTaskId(taskId)}
+                  isSelected={selectedTaskId === task.id}
+                  viewLabel="Select task"
                 />
               </div>
             ))}
@@ -114,9 +138,21 @@ export function ProjectDetailPanel({
         ) : (
           <p className={styles.empty}>No tasks are currently active for this project.</p>
         )}
+        {selectedTask && (
+          <div className={styles.taskActions}>
+            <button
+              type="button"
+              className={styles.deleteButton}
+              onClick={handleDeleteSelectedTask}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting task…' : 'Delete selected task'}
+            </button>
+          </div>
+        )}
       </section>
 
-      {activeTaskId && <TaskComments taskId={activeTaskId} viewModel={commentsViewModel} />}
+      {selectedTaskId && <TaskComments taskId={selectedTaskId} viewModel={commentsViewModel} />}
     </div>
   );
 }

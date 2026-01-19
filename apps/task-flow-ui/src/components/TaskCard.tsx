@@ -11,7 +11,10 @@ interface Props {
   onStatusChange?: (taskId: string, nextStatus: TaskStatus) => void;
   onSelect?: (taskId: string) => void;
   onUploadAttachment?: (taskId: string, file: File) => Promise<void>;
+  onDelete?: (taskId: string) => void;
   isSelected?: boolean;
+  viewLabel?: string;
+  deleteLabel?: string;
 }
 
 const statusTone: Record<TaskStatus, string> = {
@@ -27,7 +30,16 @@ const priorityTone: Record<(typeof TASK_PRIORITIES)[number], string> = {
   high: styles.priorityWarning,
 };
 
-export function TaskCard({ task, onStatusChange, onSelect, onUploadAttachment, isSelected }: Props) {
+export function TaskCard({
+  task,
+  onStatusChange,
+  onSelect,
+  onUploadAttachment,
+  onDelete,
+  isSelected,
+  viewLabel,
+  deleteLabel,
+}: Props) {
   const currentIndex = TASK_STATUSES.indexOf(task.status);
   const nextStatus = TASK_STATUSES[(currentIndex + 1) % TASK_STATUSES.length];
   const dueDateLabel = task.dueDate ? task.dueDate.toLocaleDateString() : 'No due date';
@@ -88,7 +100,12 @@ export function TaskCard({ task, onStatusChange, onSelect, onUploadAttachment, i
         )}
         {onSelect && (
           <button type="button" className={styles.detailsButton} onClick={() => onSelect(task.id)}>
-            View task
+            {viewLabel ?? 'View task'}
+          </button>
+        )}
+        {onDelete && (
+          <button type="button" className={styles.deleteButton} onClick={() => onDelete(task.id)}>
+            {deleteLabel ?? 'Delete'}
           </button>
         )}
       </footer>

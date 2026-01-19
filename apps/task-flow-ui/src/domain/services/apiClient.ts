@@ -76,9 +76,17 @@ export interface CommentResponse {
   updatedAt: string;
 }
 
+export class SessionExpiredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SessionExpiredError';
+  }
+}
+
 export class TaskFlowApiClient {
   private token: string | null = null;
   private baseUrl: string;
+  private readonly sessionExpiredHandlers = new Set<() => void>();
 
   constructor(baseUrl: string = DEFAULT_BASE_URL) {
     this.baseUrl = baseUrl;
@@ -86,6 +94,17 @@ export class TaskFlowApiClient {
 
   setToken(token: string | null) {
     this.token = token;
+  }
+
+  onSessionExpired(handler: () => void) {
+    this.sessionExpiredHandlers.add(handler);
+    return () => {
+      this.sessionExpiredHandlers.delete(handler);
+    };
+  }
+
+  private notifySessionExpired() {
+    this.sessionExpiredHandlers.forEach((handler) => handler());
   }
 
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -111,6 +130,10 @@ export class TaskFlowApiClient {
         }
       } catch {
         // Ignore JSON parse errors
+      }
+      if (response.status === 401) {
+        this.notifySessionExpired();
+        throw new SessionExpiredError(`TaskFlow API request failed: ${errorMessage}`);
       }
       throw new Error(`TaskFlow API request failed: ${errorMessage}`);
     }

@@ -85,6 +85,18 @@ export function TaskBoard({ viewModel }: Props) {
     }
   };
 
+  const handleDeleteCard = async (taskId: string) => {
+    const confirmed = window.confirm('Delete this task? This cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      await viewModelInstance.deleteTask(taskId);
+      setSelectedTaskId((current) => (current === taskId ? null : current));
+    } catch {
+      // Failures surface through the view model; keep the card selected so the user can retry.
+    }
+  };
+
   const handleSelect = (taskId: string) => {
     setSelectedTaskId((current) => (current === taskId ? null : taskId));
   };
@@ -146,6 +158,8 @@ export function TaskBoard({ viewModel }: Props) {
                       isSelected={selectedTaskId === task.id}
                       onSelect={handleSelect}
                       onUploadAttachment={handleAttachmentUpload}
+                      onDelete={handleDeleteCard}
+                      deleteLabel="Delete task"
                     />
                   </div>
                 ))}
