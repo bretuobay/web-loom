@@ -9,8 +9,38 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@": ["src"],
+      "@/*": ["src/*"],
+      "@repo/models": ["../../packages/models/src"],
+      "@repo/models/*": ["../../packages/models/src/*"],
+      "@repo/view-models": ["../../packages/view-models/src"],
+      "@repo/view-models/*": ["../../packages/view-models/src/*"],
+      "@repo/shared": ["../../packages/shared/src"],
+      "@repo/shared/*": ["../../packages/shared/src/*"],
+      "@web-loom/mvvm-core": ["../../packages/mvvm-core/src"],
+      "@web-loom/mvvm-core/*": ["../../packages/mvvm-core/src/*"],
+      "@web-loom/ui-core": ["../../packages/ui-core/src"],
+      "@web-loom/ui-core/*": ["../../packages/ui-core/src/*"],
+      "@web-loom/ui-patterns": ["../../packages/ui-patterns/src"],
+      "@web-loom/ui-patterns/*": ["../../packages/ui-patterns/src/*"]
+    },
     "composite": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "references": []
+  "references": [
+    {
+      "path": "../../packages/models"
+    },
+    {
+      "path": "../../packages/view-models"
+    },
+    {
+      "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/mvvm-core"
+    }
+  ]
 }

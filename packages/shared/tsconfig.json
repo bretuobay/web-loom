@@ -7,7 +7,9 @@
       "@web-loom/mvvm-core": [
         "../../node_modules/@web-loom/mvvm-core"
       ]
-    }
+    },
+    "composite": true,
+    "incremental": true
   },
   "include": [
     "src"

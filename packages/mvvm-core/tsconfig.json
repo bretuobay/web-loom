@@ -39,9 +39,9 @@
     "incremental": true
   },
   "references": [
-    // {
-    //   "path": "@web-loom/query-core"
-    // }
+    {
+      "path": "../query-core"
+    }
   ],
   "include": [
     "src"
