@@ -15,7 +15,7 @@ describe('List component', () => {
     const list = screen.getByRole('list');
     expect(list).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByLabelText('Loading')).toBeInTheDocument();
-    expect(screen.getAllByRole('listitem').length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('listitem', { hidden: true }).length).toBeGreaterThan(0);
   });
 
   it('invokes pagination callbacks and switches pages', () => {

@@ -145,6 +145,9 @@
 }
 
 /* Default variant - already defined above */
+.tag.default {
+    /* Provide an explicit default variant class for testing and overrides */
+}
 
 /* ==========================================================================
    Custom Color Support

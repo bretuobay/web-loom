@@ -9,19 +9,23 @@ describe('Form component suite', () => {
       name: z.string().min(1, 'Name is required'),
     });
 
-    const form = Form.useForm({
-      schema,
-      defaultValues: { name: '' },
-    });
+    function RequiredFieldForm() {
+      const form = Form.useForm({
+        schema,
+        defaultValues: { name: '' },
+      });
 
-    render(
-      <Form form={form}>
-        <Form.Item label="Name" name="name" rules={[{ required: true, message: 'Name is required' }]}>
-          <input data-testid="name-input" />
-        </Form.Item>
-        <button type="submit">Submit</button>
-      </Form>,
-    );
+      return (
+        <Form form={form}>
+          <Form.Item label="Name" name="name" rules={[{ required: true, message: 'Name is required' }]}>
+            <input data-testid="name-input" />
+          </Form.Item>
+          <button type="submit">Submit</button>
+        </Form>
+      );
+    }
+
+    render(<RequiredFieldForm />);
 
     const input = screen.getByTestId('name-input');
     fireEvent.blur(input);
@@ -36,29 +40,33 @@ describe('Form component suite', () => {
       items: z.array(z.object({ value: z.string().min(1) })),
     });
 
-    const form = Form.useForm({
-      schema,
-      defaultValues: { items: [] },
-    });
+    function DynamicListForm() {
+      const form = Form.useForm({
+        schema,
+        defaultValues: { items: [] },
+      });
 
-    render(
-      <Form form={form}>
-        <Form.List name="items">
-          {(fields, operations) => (
-            <>
-              {fields.map((field, index) => (
-                <Form.Item key={field.id} label={`Item ${index + 1}`} name={`items.${index}.value`}>
-                  <input data-testid={`item-${index}`} />
-                </Form.Item>
-              ))}
-              <button type="button" onClick={() => operations.append({ value: '' })}>
-                Add
-              </button>
-            </>
-          )}
-        </Form.List>
-      </Form>,
-    );
+      return (
+        <Form form={form}>
+          <Form.List name="items">
+            {(fields, operations) => (
+              <>
+                {fields.map((field, index) => (
+                  <Form.Item key={field.id} label={`Item ${index + 1}`} name={`items.${index}.value`}>
+                    <input data-testid={`item-${index}`} />
+                  </Form.Item>
+                ))}
+                <button type="button" onClick={() => operations.append({ value: '' })}>
+                  Add
+                </button>
+              </>
+            )}
+          </Form.List>
+        </Form>
+      );
+    }
+
+    render(<DynamicListForm />);
 
     fireEvent.click(screen.getByText('Add'));
 
@@ -72,23 +80,27 @@ describe('Form component suite', () => {
       email: z.string().email(),
     });
 
-    const form = Form.useForm({
-      schema,
-      defaultValues: { email: '' },
-    });
-
     const finishSpy = vi.fn();
 
-    render(
-      <Form.Provider onFormFinish={finishSpy}>
-        <Form form={form} name="newsletter" onFinish={({ email }) => {}}>
-          <Form.Item label="Email" name="email">
-            <input data-testid="email-input" />
-          </Form.Item>
-          <button type="submit">Submit</button>
-        </Form>
-      </Form.Provider>,
-    );
+    function SubmitForm() {
+      const form = Form.useForm({
+        schema,
+        defaultValues: { email: '' },
+      });
+
+      return (
+        <Form.Provider onFormFinish={finishSpy}>
+          <Form form={form} name="newsletter" onFinish={({ email }) => ({ email })}>
+            <Form.Item label="Email" name="email">
+              <input data-testid="email-input" />
+            </Form.Item>
+            <button type="submit">Submit</button>
+          </Form>
+        </Form.Provider>
+      );
+    }
+
+    render(<SubmitForm />);
 
     const emailInput = screen.getByTestId('email-input');
     fireEvent.change(emailInput, { target: { value: 'user@example.com' } });
