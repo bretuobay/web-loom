@@ -10,12 +10,16 @@ export class AuthViewModel {
   private readonly user$ = new BehaviorSubject<UserEntity | null>(null);
   private readonly loading$ = new BehaviorSubject(false);
   private readonly error$ = new BehaviorSubject<string | null>(null);
+  private sessionExpiredNotified = false;
 
   public readonly userObservable = this.user$.asObservable();
   public readonly isLoading$ = this.loading$.asObservable();
   public readonly errorMessage$ = this.error$.asObservable();
 
   constructor() {
+    taskFlowApiClient.onSessionExpired(() => {
+      this.handleSessionExpired();
+    });
     if (typeof window === 'undefined') {
       return;
     }
@@ -41,6 +45,7 @@ export class AuthViewModel {
       return;
     }
     if (token && user) {
+      this.sessionExpiredNotified = false;
       window.localStorage.setItem(STORAGE_TOKEN_KEY, token);
       window.localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
     } else {
@@ -77,6 +82,15 @@ export class AuthViewModel {
     const user = UserEntity.fromApi(result.user);
     this.persistSession(result.token, user);
     return user;
+  }
+
+  private handleSessionExpired() {
+    if (this.sessionExpiredNotified) {
+      return;
+    }
+    this.sessionExpiredNotified = true;
+    this.persistSession(null, null);
+    this.setError('Your session has expired. Please sign in again.');
   }
 
   public async login(payload: AuthPayload) {
