@@ -23,6 +23,8 @@
       "@/*": ["src/*"],
       "@web-loom/design-core": ["../../packages/design-core/src"],
       "@web-loom/design-core/*": ["../../packages/design-core/src/*"],
+      "@web-loom/store-core": ["../../packages/store-core/src"],
+      "@web-loom/store-core/*": ["../../packages/store-core/src/*"],
       "@repo/models": ["../../packages/models/src"],
       "@repo/models/*": ["../../packages/models/src/*"]
     }
