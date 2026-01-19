@@ -6,6 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { act } from 'react-dom/test-utils';
 import { ThemeProvider } from './ThemeProvider';
 import { useTheme, useIsDarkMode, useToggleTheme, useThemeToken } from '../hooks/useTheme';
 import { defaultLightTheme, defaultDarkTheme } from './defaultTheme';
@@ -142,7 +143,7 @@ describe('ThemeProvider', () => {
       expect(screen.getByTestId('primary').textContent).toBe(defaultLightTheme.token.colorPrimary);
     });
 
-    it('should allow theme updates', () => {
+    it('should allow theme updates', async () => {
       function TestComponent() {
         const { theme, setTheme } = useTheme();
         return (
@@ -167,9 +168,13 @@ describe('ThemeProvider', () => {
         </ThemeProvider>,
       );
 
-      screen.getByText('Update').click();
+      act(() => {
+        screen.getByText('Update').click();
+      });
 
-      expect(screen.getByTestId('color').textContent).toBe('#custom');
+      await waitFor(() => {
+        expect(screen.getByTestId('color').textContent).toBe('#custom');
+      });
     });
   });
 
@@ -206,7 +211,7 @@ describe('ThemeProvider', () => {
   });
 
   describe('useToggleTheme Hook', () => {
-    it('should toggle between light and dark', () => {
+    it('should toggle between light and dark', async () => {
       function TestComponent() {
         const { mode } = useTheme();
         const toggle = useToggleTheme();
@@ -226,11 +231,21 @@ describe('ThemeProvider', () => {
 
       expect(screen.getByTestId('mode').textContent).toBe('light');
 
-      screen.getByText('Toggle').click();
-      expect(screen.getByTestId('mode').textContent).toBe('dark');
+      const toggle = screen.getByText('Toggle');
 
-      screen.getByText('Toggle').click();
-      expect(screen.getByTestId('mode').textContent).toBe('light');
+      act(() => {
+        toggle.click();
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('mode').textContent).toBe('dark');
+      });
+
+      act(() => {
+        toggle.click();
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('mode').textContent).toBe('light');
+      });
     });
   });
 

@@ -44,12 +44,12 @@ export function ThemeProvider({
   const setTheme = useCallback((newTheme: Partial<ThemeConfig>) => {
     setCustomTheme((prev) => ({
       token: {
-        ...prev?.token,
-        ...newTheme.token,
+        ...(prev?.token ?? {}),
+        ...(newTheme.token ?? {}),
       },
       components: {
-        ...prev?.components,
-        ...newTheme.components,
+        ...(prev?.components ?? {}),
+        ...(newTheme.components ?? {}),
       },
     }));
   }, []);

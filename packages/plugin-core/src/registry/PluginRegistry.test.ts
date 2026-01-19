@@ -28,12 +28,35 @@ describe('PluginRegistry', () => {
     it('should throw an error for a manifest with a missing id', () => {
       const invalidManifest = { ...validManifest, id: undefined };
       // @ts-expect-error
-      expect(() => registry.register(invalidManifest)).toThrow('Invalid plugin manifest');
+      expect(() => registry.register(invalidManifest)).toThrow(/Invalid plugin manifest/);
     });
 
     it('should throw an error for a duplicate plugin id', () => {
       registry.register(validManifest);
       expect(() => registry.register(validManifest)).toThrow('Plugin with ID "my-plugin" is already registered.');
+    });
+  });
+
+  describe('plugin retrieval helpers', () => {
+    it('should expose registered plugins via get and getAll', () => {
+      const manifestA = { ...validManifest, id: 'a' };
+      const manifestB = { ...validManifest, id: 'b' };
+      registry.register(manifestA);
+      registry.register(manifestB);
+
+      expect(registry.get('a')?.manifest.id).toBe('a');
+      expect(registry.get('b')?.manifest.id).toBe('b');
+
+      const all = registry.getAll();
+      expect(all).toHaveLength(2);
+      expect(all.map((def) => def.manifest.id)).toEqual(['a', 'b']);
+    });
+
+    it('should remove entries when unregister is called', () => {
+      registry.register(validManifest);
+      registry.unregister('my-plugin');
+      expect(registry.get('my-plugin')).toBeUndefined();
+      expect(registry.getAll()).toHaveLength(0);
     });
   });
 
@@ -67,6 +90,19 @@ describe('PluginRegistry', () => {
       registry.register(manifestC);
       const order = registry.resolveLoadOrder();
       expect(order).toEqual(['c', 'b', 'a']);
+    });
+
+    it('should order plugins with shared dependencies before the dependents', () => {
+      const dependent = { ...validManifest, id: 'dependent', dependencies: { base: '1.0.0', util: '1.0.0' } };
+      const base = { ...validManifest, id: 'base' };
+      const util = { ...validManifest, id: 'util' };
+      registry.register(dependent);
+      registry.register(base);
+      registry.register(util);
+
+      const order = registry.resolveLoadOrder();
+      expect(order.indexOf('base')).toBeLessThan(order.indexOf('dependent'));
+      expect(order.indexOf('util')).toBeLessThan(order.indexOf('dependent'));
     });
 
     it('should throw an error for a missing dependency', () => {

@@ -5,23 +5,36 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
-import { Tag, CheckableTag } from './Tag';
+import { Tag, CheckableTag, type TagColorType } from './Tag';
+import styles from './Tag.module.css';
+
+const getTagRoot = (content: string) => screen.getByText(content).closest(`.${styles.tag}`);
+const getCheckableTagRoot = (content: string) => screen.getByText(content).closest(`.${styles.tag}`);
+
+const colorClassMap: Record<TagColorType, string> = {
+  success: styles.success,
+  processing: styles.processing,
+  error: styles.error,
+  warning: styles.warning,
+  default: styles.default,
+};
 
 describe('Tag', () => {
   describe('Basic Rendering', () => {
     it('renders with default props', () => {
       render(<Tag>Test Tag</Tag>);
 
-      const tag = screen.getByText('Test Tag');
+      const tag = getTagRoot('Test Tag');
       expect(tag).toBeInTheDocument();
-      expect(tag).toHaveClass('tag');
+      expect(tag).toHaveClass(styles.tag);
     });
 
     it('renders with custom className', () => {
       render(<Tag className="custom-class">Test Tag</Tag>);
 
-      const tag = screen.getByText('Test Tag');
+      const tag = getTagRoot('Test Tag');
       expect(tag).toHaveClass('custom-class');
+      expect(tag).toHaveClass(styles.tag);
     });
 
     it('forwards ref correctly', () => {
@@ -33,18 +46,23 @@ describe('Tag', () => {
   });
 
   describe('Color Variants', () => {
-    it.each(['success', 'processing', 'error', 'warning', 'default'])('renders %s color variant', (color) => {
-      render(<Tag color={color}>Test Tag</Tag>);
+    it.each(['success', 'processing', 'error', 'warning', 'default'] as TagColorType[])(
+      'renders %s color variant',
+      (color) => {
+        render(<Tag color={color}>Test Tag</Tag>);
 
-      const tag = screen.getByText('Test Tag');
-      expect(tag).toHaveClass(color);
-    });
+        const tag = getTagRoot('Test Tag');
+        expect(tag).toHaveClass(styles.tag);
+        expect(tag).toHaveClass(colorClassMap[color]);
+      },
+    );
 
     it('handles custom colors', () => {
       render(<Tag color="#ff0000">Custom Color Tag</Tag>);
 
-      const tag = screen.getByText('Custom Color Tag');
-      expect(tag).toHaveClass('customColor');
+      const tag = getTagRoot('Custom Color Tag');
+      expect(tag).toHaveClass(styles.tag);
+      expect(tag).toHaveClass(styles.customColor);
       expect(tag).toHaveStyle('--tag-color: #ff0000');
     });
   });
@@ -79,12 +97,10 @@ describe('Tag', () => {
     it('hides tag after closing when no external visibility control', async () => {
       render(<Tag closable>Closable Tag</Tag>);
 
-      const tag = screen.getByText('Closable Tag');
       const closeButton = screen.getByRole('button', { name: /close tag/i });
-
       await userEvent.click(closeButton);
 
-      expect(tag).not.toBeInTheDocument();
+      expect(screen.queryByText('Closable Tag')).not.toBeInTheDocument();
     });
 
     it('renders custom close icon', () => {
@@ -111,12 +127,13 @@ describe('Tag', () => {
       const icon = <span data-testid="tag-icon">★</span>;
       render(<Tag icon={icon}>Content</Tag>);
 
-      const tag = screen.getByText('Content').parentElement;
+      const tag = getTagRoot('Content');
       const iconElement = screen.getByTestId('tag-icon');
+      const iconWrapper = tag?.querySelector(`.${styles.icon}`);
       const contentElement = screen.getByText('Content');
 
-      expect(tag?.firstChild).toBe(iconElement.parentElement);
-      expect(tag?.lastChild?.previousSibling).toBe(contentElement.parentElement);
+      expect(iconWrapper).toContainElement(iconElement);
+      expect(iconWrapper?.nextElementSibling).toBe(contentElement);
     });
   });
 
@@ -124,15 +141,15 @@ describe('Tag', () => {
     it('applies bordered class by default', () => {
       render(<Tag>Bordered Tag</Tag>);
 
-      const tag = screen.getByText('Bordered Tag');
-      expect(tag).toHaveClass('bordered');
+      const tag = getTagRoot('Bordered Tag');
+      expect(tag).toHaveClass(styles.bordered);
     });
 
     it('removes bordered class when bordered=false', () => {
       render(<Tag bordered={false}>Borderless Tag</Tag>);
 
-      const tag = screen.getByText('Borderless Tag');
-      expect(tag).not.toHaveClass('bordered');
+      const tag = getTagRoot('Borderless Tag');
+      expect(tag).not.toHaveClass(styles.bordered);
     });
   });
 
@@ -182,18 +199,18 @@ describe('CheckableTag', () => {
     it('renders with default props', () => {
       render(<CheckableTag>Checkable Tag</CheckableTag>);
 
-      const tag = screen.getByText('Checkable Tag');
+      const tag = getCheckableTagRoot('Checkable Tag');
       expect(tag).toBeInTheDocument();
-      expect(tag).toHaveClass('tag', 'checkable');
+      expect(tag).toHaveClass(styles.tag, styles.checkable);
     });
 
     it('has proper ARIA attributes', () => {
       render(<CheckableTag checked={false}>Checkable Tag</CheckableTag>);
 
-      const tag = screen.getByText('Checkable Tag');
+      const tag = getCheckableTagRoot('Checkable Tag');
       expect(tag).toHaveAttribute('role', 'checkbox');
       expect(tag).toHaveAttribute('aria-checked', 'false');
-      expect(tag).toHaveAttribute('tabIndex', '0');
+      expect(tag).toHaveAttribute('tabindex', '0');
     });
   });
 
@@ -201,16 +218,16 @@ describe('CheckableTag', () => {
     it('applies checked class when checked=true', () => {
       render(<CheckableTag checked={true}>Checked Tag</CheckableTag>);
 
-      const tag = screen.getByText('Checked Tag');
-      expect(tag).toHaveClass('checked');
+      const tag = getCheckableTagRoot('Checked Tag');
+      expect(tag).toHaveClass(styles.checked);
       expect(tag).toHaveAttribute('aria-checked', 'true');
     });
 
     it('does not apply checked class when checked=false', () => {
       render(<CheckableTag checked={false}>Unchecked Tag</CheckableTag>);
 
-      const tag = screen.getByText('Unchecked Tag');
-      expect(tag).not.toHaveClass('checked');
+      const tag = getCheckableTagRoot('Unchecked Tag');
+      expect(tag).not.toHaveClass(styles.checked);
       expect(tag).toHaveAttribute('aria-checked', 'false');
     });
   });
@@ -224,8 +241,8 @@ describe('CheckableTag', () => {
         </CheckableTag>,
       );
 
-      const tag = screen.getByText('Clickable Tag');
-      await userEvent.click(tag);
+      const tag = getCheckableTagRoot('Clickable Tag');
+      await userEvent.click(tag!);
 
       expect(onChange).toHaveBeenCalledTimes(1);
       expect(onChange).toHaveBeenCalledWith(true);
@@ -239,8 +256,8 @@ describe('CheckableTag', () => {
         </CheckableTag>,
       );
 
-      const tag = screen.getByText('Toggle Tag');
-      await userEvent.click(tag);
+      const tag = getCheckableTagRoot('Toggle Tag');
+      await userEvent.click(tag!);
 
       expect(onChange).toHaveBeenCalledWith(false);
     });
@@ -253,10 +270,10 @@ describe('CheckableTag', () => {
         </CheckableTag>,
       );
 
-      const tag = screen.getByText('Keyboard Tag');
-      tag.focus();
+      const tag = getCheckableTagRoot('Keyboard Tag');
+      tag?.focus();
 
-      fireEvent.keyDown(tag, { key: 'Enter' });
+      fireEvent.keyDown(tag!, { key: 'Enter' });
 
       expect(onChange).toHaveBeenCalledWith(true);
     });
@@ -269,10 +286,10 @@ describe('CheckableTag', () => {
         </CheckableTag>,
       );
 
-      const tag = screen.getByText('Keyboard Tag');
-      tag.focus();
+      const tag = getCheckableTagRoot('Keyboard Tag');
+      tag?.focus();
 
-      fireEvent.keyDown(tag, { key: ' ' });
+      fireEvent.keyDown(tag!, { key: ' ' });
 
       expect(onChange).toHaveBeenCalledWith(true);
     });
@@ -285,12 +302,12 @@ describe('CheckableTag', () => {
         </CheckableTag>,
       );
 
-      const tag = screen.getByText('Space Tag');
+      const tag = getCheckableTagRoot('Space Tag');
       const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true });
       const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
 
-      tag.focus();
-      fireEvent(tag, event);
+      tag?.focus();
+      fireEvent(tag!, event);
 
       expect(preventDefaultSpy).toHaveBeenCalled();
     });
@@ -300,8 +317,8 @@ describe('CheckableTag', () => {
     it('is focusable', () => {
       render(<CheckableTag>Focusable Tag</CheckableTag>);
 
-      const tag = screen.getByText('Focusable Tag');
-      tag.focus();
+      const tag = getCheckableTagRoot('Focusable Tag');
+      tag?.focus();
 
       expect(document.activeElement).toBe(tag);
     });
