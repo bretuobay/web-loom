@@ -1,0 +1,218 @@
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { safeSubscribe } from '../../utils/observable-helper';
+
+static const initialForm = {
+  name: '',
+  location: '',
+  size: '',
+  cropType: '',
+};
+
+<let/greenhouses=[]>
+<let/formData={...initialForm}>
+<let/editingId=null>
+<let/statusMessage="">
+<let/isSubmitting=false>
+<let/isLoading=true>
+
+<script>
+  const subscriptions = [];
+
+  subscriptions.push(
+    safeSubscribe(greenHouseViewModel.data$, (list) => {
+      greenhouses = list ?? [];
+    }),
+  );
+  subscriptions.push(
+    safeSubscribe(greenHouseViewModel.isLoading$, (loading) => {
+      isLoading = loading;
+    }),
+  );
+
+  greenHouseViewModel.fetchCommand.execute().catch((error) => {
+    console.error('Failed to load greenhouses', error);
+    statusMessage = error instanceof Error ? error.message : 'Unable to load greenhouses.';
+  });
+
+  $cleanup(() => {
+    subscriptions.forEach((sub) => sub.unsubscribe());
+  });
+</script>
+
+<section>
+  <div class="flex-between">
+    <a class="back-link" href="/dashboard">← Dashboard</a>
+    <p class="small">Shared greenhouse ViewModel data in action.</p>
+  </div>
+
+  <div class="form-card">
+    <h2>${editingId ? 'Edit greenhouse' : 'Add a greenhouse'}</h2>
+    <form onSubmit(event) {
+      event.preventDefault();
+      if (!formData.name.trim() || !formData.location.trim() || !formData.size.trim()) {
+        statusMessage = 'Name, location, and size are required.';
+        return;
+      }
+      const payload = {
+        name: formData.name.trim(),
+        location: formData.location.trim(),
+        size: formData.size.trim(),
+        cropType: formData.cropType.trim(),
+      };
+      isSubmitting = true;
+      statusMessage = '';
+      (async () => {
+        try {
+          if (editingId) {
+            await greenHouseViewModel.updateCommand.execute({ id: editingId, payload });
+            editingId = null;
+            formData = { ...initialForm };
+            statusMessage = 'Greenhouse updated.';
+          } else {
+            await greenHouseViewModel.createCommand.execute(payload);
+            formData = { ...initialForm };
+            statusMessage = 'Greenhouse created.';
+          }
+        } catch (error) {
+          console.error('Failed to save greenhouse', error);
+          statusMessage = error instanceof Error ? error.message : 'Unable to save greenhouse.';
+        } finally {
+          isSubmitting = false;
+        }
+      })();
+    }>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input
+            id="name"
+            name="name"
+            class="input-field"
+            value=formData.name
+            onInput(event) { formData = { ...formData, name: event.target.value }; }
+            required
+            placeholder="Ventura North"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="location">Location</label>
+          <textarea
+            id="location"
+            name="location"
+            class="textarea-field"
+            onInput(event) { formData = { ...formData, location: event.target.value }; }
+            required
+            placeholder="City, Country"
+          >${formData.location}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="size">Size</label>
+          <select
+            id="size"
+            name="size"
+            class="select-field"
+            value=formData.size
+            onInput(event) { formData = { ...formData, size: event.target.value }; }
+            required
+          >
+            <option value="">Select size</option>
+            <option value="25sqm">25sqm / Small</option>
+            <option value="50sqm">50sqm / Medium</option>
+            <option value="100sqm">100sqm / Large</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="cropType">Crop Type</label>
+          <input
+            id="cropType"
+            name="cropType"
+            class="input-field"
+            value=formData.cropType
+            onInput(event) { formData = { ...formData, cropType: event.target.value }; }
+            placeholder="Lettuce, herbs..."
+          />
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button class="button" type="submit" disabled=isSubmitting>
+          ${isSubmitting ? 'Saving...' : editingId ? 'Update greenhouse' : 'Save greenhouse'}
+        </button>
+        <button class="button button-muted" type="button" onClick() {
+          editingId = null;
+          formData = { ...initialForm };
+          statusMessage = '';
+        }>
+          Reset form
+        </button>
+      </div>
+
+      <if=statusMessage>
+        <p class="small">${statusMessage}</p>
+      </if>
+    </form>
+  </div>
+
+  <div class="card list-card">
+    <h2>Greenhouse inventory</h2>
+    <if=isLoading>
+      <p class="small">Loading greenhouse data...</p>
+    </if>
+    <else>
+      <if=(greenhouses.length === 0)>
+        <p class="small">No greenhouses configured yet.</p>
+      </if>
+      <else>
+        <ul class="list">
+          <for|gh| of=greenhouses>
+            <li class="list-item">
+              <div>
+                <strong>${gh.name}</strong>
+                <small>${gh.location}</small>
+                <small>${gh.size}</small>
+                <small>${gh.cropType ?? 'Crop type not set'}</small>
+              </div>
+              <div class="button-group">
+                <button
+                  class="button button-muted"
+                  type="button"
+                  onClick() {
+                    editingId = gh.id;
+                    formData = {
+                      name: gh.name,
+                      location: gh.location,
+                      size: gh.size,
+                      cropType: gh.cropType ?? '',
+                    };
+                  }
+                >
+                  Edit
+                </button>
+                <button
+                  class="button button-danger"
+                  type="button"
+                  onClick() {
+                    (async () => {
+                      try {
+                        await greenHouseViewModel.deleteCommand.execute(gh.id);
+                        statusMessage = 'Greenhouse deleted.';
+                      } catch (error) {
+                        console.error('Failed to delete greenhouse', error);
+                        statusMessage = error instanceof Error ? error.message : 'Unable to delete greenhouse.';
+                      }
+                    })();
+                  }
+                >
+                  Delete
+                </button>
+              </div>
+            </li>
+          </for>
+        </ul>
+      </else>
+    </else>
+  </div>
+</section>

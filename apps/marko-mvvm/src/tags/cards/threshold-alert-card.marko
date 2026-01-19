@@ -1,0 +1,23 @@
+import type { ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
+export interface Input {
+  thresholdAlerts: ThresholdAlertListData[];
+}
+static function getBlurb(alerts: any) {
+  if (!alerts || !alerts.length) {
+    return 'Create alert thresholds to guard missions.';
+  }
+  const latest = alerts[alerts.length - 1];
+  return `${latest.sensorType.toUpperCase()} alerts: ${latest.minValue}–${latest.maxValue}`;
+}
+
+<div class='card'>
+  <a class='card-header-link' href='/threshold-alerts'>
+    <h3>Threshold Alerts</h3>
+  </a>
+  <p class='card-total'>
+    Active alerts: ${input.thresholdAlerts?.length ?? 0}
+  </p>
+  <p class='card-blurb'>
+    ${getBlurb(input.thresholdAlerts)}
+  </p>
+</div>

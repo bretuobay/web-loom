@@ -1,0 +1,23 @@
+import type { SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
+export interface Input {
+  sensorReadings: SensorReadingListData[];
+}
+static function getBlurb(readings: SensorReadingListData[]) {
+  if (!readings || !readings.length) {
+    return 'Waiting for reading data...';
+  }
+  const latest = readings[readings.length - 1];
+  return `Length ${latest.length} `;
+}
+
+<div class='card'>
+  <a class='card-header-link' href='/sensor-readings'>
+    <h3>Sensor Readings</h3>
+  </a>
+  <p class='card-total'>
+    Total readings: ${input.sensorReadings?.length ?? 0}
+  </p>
+  <p class='card-blurb'>
+    ${getBlurb(input.sensorReadings)}
+  </p>
+</div>

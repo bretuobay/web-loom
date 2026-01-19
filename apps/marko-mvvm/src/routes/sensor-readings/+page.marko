@@ -1,0 +1,52 @@
+import ObservableData from '../../tags/observable-data.marko';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+
+<script>
+  sensorReadingViewModel.fetchCommand.execute().catch((error) => {
+    console.error('Failed to load readings', error);
+  });
+</script>
+
+<section>
+  <div class='flex-between'>
+    <a class='back-link' href='/'>
+      ← Dashboard
+    </a>
+    <h2>Sensor readings</h2>
+  </div>
+
+  <ObservableData viewModel='sensorReading' initialData=[]>
+    <@loading>
+      <div class='card'>
+        <p class='card-blurb'>
+          Loading live readings...
+        </p>
+      </div>
+    </@loading>
+    <@data|sensorReadings|>
+      <div class='card list-card'>
+        <h3>Sensor readings</h3>
+        <if=sensorReadings.length === 0>
+          <p class='small'>
+            No readings are available yet.
+          </p>
+        </if>
+        <else>
+          <ul class='list'>
+            <for|reading| of=sensorReadings>
+              <li class='list-item'>
+                <div>
+                  <strong>Sensor ${reading.sensorId}</strong>
+                  <small>${new Date(reading.timestamp).toLocaleString()}</small>
+                </div>
+                <span class='pill-status status-active'>
+                  Value: ${reading.value}
+                </span>
+              </li>
+            </for>
+          </ul>
+        </else>
+      </div>
+    </@data>
+  </ObservableData>
+</section>

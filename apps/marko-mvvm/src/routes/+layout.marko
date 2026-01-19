@@ -1,0 +1,30 @@
+static {
+  import '@repo/shared/styles';
+  import '../styles/app.css';
+}
+import AppHeader from '../tags/app-header.marko';
+import AppFooter from '../tags/app-footer.marko';
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Marko MVVM reference site for Web-Loom." />
+    <title>${$global.meta.pageTitle || 'Marko MVVM Dashboard'}</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <AppHeader />
+      <main class="content-area">
+        <div class="page-hero">
+          <h1 class="page-title">${$global.meta.pageTitle || 'Marko MVVM Dashboard'}</h1>
+          <p class="page-subtitle">${$global.meta.pageSubtitle || 'MVVM-first infrastructure powered by @web-loom/mvvm-core.'}</p>
+        </div>
+        <${input.content}/>
+      </main>
+      <AppFooter />
+    </div>
+  </body>
+</html>

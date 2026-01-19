@@ -1,0 +1,16 @@
+import type { GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
+export interface Input {
+  greenhouses: GreenhouseData[];
+}
+
+<div class='card'>
+  <a class='card-header-link' href='/greenhouses'>
+    <h3>Greenhouses</h3>
+  </a>
+  <p class='card-total'>
+    Total greenhouse zones: ${input.greenhouses?.length ?? 0}
+  </p>
+  <p class='card-blurb'>
+    Surface, location, and crop data stay in sync with the shared ViewModel.
+  </p>
+</div>

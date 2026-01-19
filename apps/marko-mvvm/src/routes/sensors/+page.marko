@@ -1,0 +1,54 @@
+import ObservableData from '../../tags/observable-data.marko';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+
+<script>
+  sensorViewModel.fetchCommand.execute().catch((error) => {
+    console.error('Failed to load sensors', error);
+  });
+</script>
+
+<section>
+  <div class='flex-between'>
+    <a class='back-link' href='/'>
+      ← Dashboard
+    </a>
+    <h2>Sensors</h2>
+  </div>
+
+  <ObservableData viewModel='sensor' initialData=[]>
+    <@loading>
+      <div class='card'>
+        <p class='card-blurb'>
+          Fetching latest sensors...
+        </p>
+      </div>
+    </@loading>
+    <@data|sensors|>
+      <div class='card list-card'>
+        <h3 class='card-title'>
+          Sensors
+        </h3>
+        <if=sensors.length === 0>
+          <p class='small'>
+            No sensors have been registered yet.
+          </p>
+        </if>
+        <else>
+          <ul class='list'>
+            <for|sensor| of=sensors>
+              <li class='list-item'>
+                <div>
+                  <strong>${sensor.greenhouse?.name ?? 'Unnamed greenhouse'}</strong>
+                  <small>${sensor.type}</small>
+                </div>
+                <span class=`pill-status ${sensor.status === 'active' ? 'status-active' : 'status-inactive'}`>
+                  ${sensor.status}
+                </span>
+              </li>
+            </for>
+          </ul>
+        </else>
+      </div>
+    </@data>
+  </ObservableData>
+</section>
