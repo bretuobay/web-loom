@@ -1,6 +1,6 @@
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import { createStore } from '@web-loom/store-core';
-import { TaskEntity } from '../domain/entities/task';
+import type { TaskEntity } from '../domain/entities/task';
 import { TaskStore } from '../domain/stores/taskStore';
 import { ApiTaskRepository } from '../domain/repositories/ApiTaskRepository';
 import type { ITaskRepository } from '../domain/repositories/interfaces';

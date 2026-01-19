@@ -1,18 +1,30 @@
 <template>
   <div class="card">
-    <router-link to="/sensor-readings" class="card-header-link">
-      <h5 class="card-title">Sensor Readings</h5>
+    <router-link
+      to="/sensor-readings"
+      class="card-header-link"
+    >
+      <h5 class="card-title">
+        Sensor Readings
+      </h5>
     </router-link>
     <div v-if="readings && readings.length > 0">
       <div>
-        <Line :data="chartData" :options="chartOptions" />
+        <Line
+          :data="chartData"
+          :options="chartOptions"
+        />
       </div>
       <div>
-        <p class="card-content">Total Readings: {{ readings.length }}</p>
+        <p class="card-content">
+          Total Readings: {{ readings.length }}
+        </p>
       </div>
     </div>
     <div v-else-if="isLoadingReadings">
-      <p class="card-content">Loading readings...</p>
+      <p class="card-content">
+        Loading readings...
+      </p>
     </div>
     <div v-else>
       <p>No readings available.</p>

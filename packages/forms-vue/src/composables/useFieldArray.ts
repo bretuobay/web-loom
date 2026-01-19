@@ -10,7 +10,7 @@ export function useFieldArray<TItem = unknown>(name: string): UseFieldArrayRetur
   const { form } = useFormContext();
 
   // Subscribe to array field value
-  const values = useFormSubscription(form, (state) => {
+  const values = useFormSubscription(form, (_state) => {
     const arrayValue = form.getFieldValue(name);
     return Array.isArray(arrayValue) ? arrayValue : [];
   });

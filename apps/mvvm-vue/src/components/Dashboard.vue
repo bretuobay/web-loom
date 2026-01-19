@@ -2,22 +2,28 @@
   <div class="dashboard-container">
     <h2>Dashboard</h2>
 
-    <div v-if="isLoading" class="loading-message">
+    <div
+      v-if="isLoading"
+      class="loading-message"
+    >
       <p>Loading dashboard data...</p>
     </div>
 
-    <div v-if="!isLoading" class="flex-container">
+    <div
+      v-if="!isLoading"
+      class="flex-container"
+    >
       <div className="flex-item">
-        <GreenhouseCard :greenhouseListDataProp="greenHouses" />
+        <GreenhouseCard :greenhouse-list-data-prop="greenHouses" />
       </div>
       <div className="flex-item">
-        <SensorCard :sensorListDataProp="sensors" />
+        <SensorCard :sensor-list-data-prop="sensors" />
       </div>
       <div className="flex-item">
-        <ThresholdAlertCard :thresholdAlertsProp="thresholdAlerts" />
+        <ThresholdAlertCard :threshold-alerts-prop="thresholdAlerts" />
       </div>
       <div className="flex-item">
-        <SensorReadingCard :sensorReadingsProp="sensorReadings" />
+        <SensorReadingCard :sensor-readings-prop="sensorReadings" />
       </div>
     </div>
   </div>

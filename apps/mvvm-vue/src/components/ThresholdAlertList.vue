@@ -1,14 +1,28 @@
 <template>
   <router-link to="/">
-    <div class="back-arrow" aria-label="Back to Dashboard"><BackArrow /></div>
+    <div
+      class="back-arrow"
+      aria-label="Back to Dashboard"
+    >
+      <BackArrow />
+    </div>
   </router-link>
   <div class="card">
-    <h3 class="card-title">Active Threshold Alerts</h3>
+    <h3 class="card-title">
+      Active Threshold Alerts
+    </h3>
     <div v-if="isLoading">
       <p>Loading alerts...</p>
     </div>
-    <ul v-else-if="alertsData && alertsData.length > 0" class="card-content list">
-      <li v-for="alert in alertsData" :key="alert.id" class="list-item">
+    <ul
+      v-else-if="alertsData && alertsData.length > 0"
+      class="card-content list"
+    >
+      <li
+        v-for="alert in alertsData"
+        :key="alert.id"
+        class="list-item"
+      >
         Alert ID: {{ alert.id }} | Sensor Type: {{ alert.sensorType || 'N/A' }} | Threshold: Max
         {{ alert.maxValue ?? 'N/A' }}, Min
         {{ alert.minValue ?? 'N/A' }}

@@ -2,7 +2,7 @@ import { BehaviorSubject, Subscription, type Observable } from 'rxjs';
 import type { ProfilePreferences } from '../domain/entities/user';
 import { UserEntity } from '../domain/entities/user';
 import { taskFlowApiClient } from '../domain/services/apiClient';
-import { AuthViewModel } from './AuthViewModel';
+import type { AuthViewModel } from './AuthViewModel';
 import { Command } from '@web-loom/mvvm-core';
 import { startWith } from 'rxjs/operators';
 

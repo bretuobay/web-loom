@@ -1,22 +1,37 @@
 <template>
   <router-link to="/">
-    <div class="back-arrow" aria-label="Back to Dashboard"><BackArrow /></div>
+    <div
+      class="back-arrow"
+      aria-label="Back to Dashboard"
+    >
+      <BackArrow />
+    </div>
   </router-link>
   <div class="card">
-    <h5 class="card-title">Readings {{ sensorId ? 'for Sensor ' + sensorId : 'List' }}</h5>
+    <h5 class="card-title">
+      Readings {{ sensorId ? 'for Sensor ' + sensorId : 'List' }}
+    </h5>
     <div v-if="isLoading">
-      <p class="content">Loading sensor readings...</p>
+      <p class="content">
+        Loading sensor readings...
+      </p>
     </div>
     <div v-else-if="filteredReadings && filteredReadings.length > 0">
       <ul class="card-content list">
-        <li v-for="reading in filteredReadings" :key="reading.id || reading.timestamp" class="list-item">
+        <li
+          v-for="reading in filteredReadings"
+          :key="reading.id || reading.timestamp"
+          class="list-item"
+        >
           Sensor ID: {{ reading.sensorId }} | Timestamp: {{ new Date(reading.timestamp).toLocaleString() }} | Value:
           {{ reading.value }}
         </li>
       </ul>
     </div>
     <div v-else>
-      <p class="card-content">No readings available {{ sensorId ? 'for this sensor' : '' }}.</p>
+      <p class="card-content">
+        No readings available {{ sensorId ? 'for this sensor' : '' }}.
+      </p>
     </div>
   </div>
 </template>

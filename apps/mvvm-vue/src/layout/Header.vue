@@ -1,10 +1,22 @@
 <template>
   <header class="header">
-    <router-link to="/" class="header-item">Dashboard</router-link>
+    <router-link
+      to="/"
+      class="header-item"
+    >
+      Dashboard
+    </router-link>
     <nav class="flex-container">
-      <router-link v-for="item in navigationList" :key="item.id" :to="`/${item.id}`" class="header-item">{{
-        item.label
-      }}</router-link>
+      <router-link
+        v-for="item in navigationList"
+        :key="item.id"
+        :to="`/${item.id}`"
+        class="header-item"
+      >
+        {{
+          item.label
+        }}
+      </router-link>
     </nav>
   </header>
 </template>

@@ -1,4 +1,4 @@
-import { ProjectEntity } from '../domain/entities/project';
+import type { ProjectEntity } from '../domain/entities/project';
 import { type ProjectStatus, formatProjectStatus } from '../domain/values/projectStatus';
 import styles from './ProjectCard.module.css';
 

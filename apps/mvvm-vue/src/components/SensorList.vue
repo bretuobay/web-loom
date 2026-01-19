@@ -1,15 +1,28 @@
 <template>
   <router-link to="/">
-    <div class="back-arrow" aria-label="Back to Dashboard"><BackArrow /></div>
+    <div
+      class="back-arrow"
+      aria-label="Back to Dashboard"
+    >
+      <BackArrow />
+    </div>
   </router-link>
   <div class="card">
-    <h4 class="card-title">Sensors {{ greenhouseId ? 'for Greenhouse ' + greenhouseId : 'List' }}</h4>
+    <h4 class="card-title">
+      Sensors {{ greenhouseId ? 'for Greenhouse ' + greenhouseId : 'List' }}
+    </h4>
     <div v-if="isLoading">
-      <p class="content">Loading sensors...</p>
+      <p class="content">
+        Loading sensors...
+      </p>
     </div>
     <div v-else-if="filteredSensors && filteredSensors.length > 0">
       <ul class="card-content list">
-        <li v-for="sensor in filteredSensors" :key="sensor.id" class="list-item">
+        <li
+          v-for="sensor in filteredSensors"
+          :key="sensor.id"
+          class="list-item"
+        >
           Sensor Type: {{ sensor.type }}
           <span v-if="sensor.greenhouse"> | Greenhouse: {{ sensor.greenhouse.name }}</span>
           <span v-if="sensor.greenhouse.name"> | Name: {{ sensor.greenhouse.name }}</span>

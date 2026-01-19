@@ -4,7 +4,7 @@ export type EventRecord = Record<PropertyKey, unknown>;
 
 export type EventArgs<TEvents extends EventRecord, TKey extends keyof TEvents> = TEvents[TKey] extends undefined | void
   ? []
-  : TEvents[TKey] extends any[]
+  : TEvents[TKey] extends unknown[]
     ? TEvents[TKey]
     : [TEvents[TKey]];
 

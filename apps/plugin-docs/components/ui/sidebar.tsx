@@ -2,16 +2,11 @@
 
 import { useRef, useEffect } from 'react';
 import { useAppProvider } from '@/app/app-provider';
-import { useSelectedLayoutSegments } from 'next/navigation';
-import Link from 'next/link';
 import SidebarLink from './sidebar-link';
-import SidebarLinkGroup from './sidebar-link-group';
-import SidebarLinkSubgroup from './sidebar-link-subgroup';
 
 export default function SupportSidebar() {
   const sidebar = useRef<HTMLDivElement>(null);
   const { sidebarOpen, setSidebarOpen } = useAppProvider();
-  const segments = useSelectedLayoutSegments();
 
   // close on click outside
   useEffect(() => {
