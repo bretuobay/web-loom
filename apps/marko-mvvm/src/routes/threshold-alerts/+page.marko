@@ -1,7 +1,7 @@
 import { subscribeToObservable } from '../../utils/marko-observable';
-import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+import { thresholdAlertViewModel, type ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
 
-<let/thresholdAlerts=[]>
+<let/thresholdAlerts=([] as ThresholdAlertListData)>
 <let/isLoading=true>
 
 <effect() {

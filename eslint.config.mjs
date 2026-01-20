@@ -12,6 +12,7 @@ const eslintConfig = [
       "coverage/**",
       ".turbo/**",
       "next-env.d.ts",
+      "apps/marko-mvvm/**",
     ],
   },
   {

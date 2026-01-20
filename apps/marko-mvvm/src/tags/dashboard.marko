@@ -1,20 +1,20 @@
-import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { sensorViewModel } from '@repo/view-models/SensorViewModel';
-import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
-import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
-import { observableToPromise, subscribeToObservable } from '../utils/marko-observable';
+import { greenHouseViewModel, type GreenhouseListData } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel, type SensorListData } from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel, type SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel, type ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
+import { subscribeToObservable } from '../utils/marko-observable';
 import GreenhouseCard from './cards/greenhouse-card.marko';
 import SensorCard from './cards/sensor-card.marko';
 import SensorReadingCard from './cards/sensor-reading-card.marko';
 import ThresholdAlertCard from './cards/threshold-alert-card.marko';
 // Subscribe to observables for reactive data
-<let/greenHouses=[]>
+<let/greenHouses=([] as GreenhouseListData)>
 <let/isLoadingGreenHouses=true>
-<let/sensors=[]>
+<let/sensors=([] as SensorListData)>
 <let/isLoadingSensors=true>
-<let/sensorReadings=[]>
+<let/sensorReadings=([] as SensorReadingListData)>
 <let/isLoadingSensorReadings=true>
-<let/thresholdAlerts=[]>
+<let/thresholdAlerts=([] as ThresholdAlertListData)>
 <let/isLoadingThresholdAlerts=true>
 
 <effect() {
