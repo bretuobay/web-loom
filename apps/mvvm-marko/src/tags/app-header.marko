@@ -1,0 +1,53 @@
+import { navigationViewModel, type NavigationListData } from '@repo/shared/view-models/NavigationViewModel';
+import { subscribeToObservable } from '../utils/marko-observable';
+
+<let/navigationItems=[] as NavigationListData[]>
+
+<effect() {
+  const unsubscribe = subscribeToObservable(navigationViewModel.navigationList.items$, (items) => {
+    navigationItems = items;
+  });
+
+  return () => {
+    unsubscribe();
+  };
+}/>
+
+<const/buildNavPath=(id: string) => '/' + id/>
+
+<header class="header">
+  <div class="brand-stack">
+    <p class="brand-title">Web-Loom MVVM</p>
+    <p class="brand-subtitle">Marko reference implementation</p>
+  </div>
+
+  <nav class="flex-container nav-links">
+    <a href="/dashboard" class="header-item">Dashboard</a>
+    <for|item| of=navigationItems>
+      <a href=buildNavPath(item.id) class="header-item">${item.label}</a>
+    </for>
+  </nav>
+</header>
+
+<style>
+  .brand-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .brand-title {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .brand-subtitle {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #475569;
+  }
+
+  .nav-links {
+    gap: 0.75rem;
+  }
+</style>
