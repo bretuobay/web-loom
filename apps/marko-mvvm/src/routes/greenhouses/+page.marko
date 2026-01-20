@@ -1,13 +1,11 @@
 import { greenHouseViewModel, type GreenhouseListData } from '@repo/view-models/GreenHouseViewModel';
 import { subscribeToObservable } from '../../utils/marko-observable';
-
 static const initialForm = {
   name: '',
   location: '',
   size: '',
   cropType: '',
 };
-
 static function extractEventValue(event: Event): string {
   const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
   return target?.value ?? '';
@@ -15,28 +13,28 @@ static function extractEventValue(event: Event): string {
 
 <let/greenhouses=([] as GreenhouseListData)>
 <let/formData={ ...initialForm }>
-<let/editingId=(null as string | null)>
+<let/editingId=null as string | null>
 <let/statusMessage=''>
 <let/isSubmitting=false>
 <let/isLoading=true>
 
-<const/handleNameInput = (event: Event) => {
+<const/handleNameInput=(event: Event) => {
   formData = { ...formData, name: extractEventValue(event) };
-}/>
+}>
 
-<const/handleLocationInput = (event: Event) => {
+<const/handleLocationInput=(event: Event) => {
   formData = { ...formData, location: extractEventValue(event) };
-}/>
+}>
 
-<const/handleSizeInput = (event: Event) => {
+<const/handleSizeInput=(event: Event) => {
   formData = { ...formData, size: extractEventValue(event) };
-}/>
+}>
 
-<const/handleCropTypeInput = (event: Event) => {
+<const/handleCropTypeInput=(event: Event) => {
   formData = { ...formData, cropType: extractEventValue(event) };
-}/>
+}>
 
-<const/handleSubmit = async (event: Event) => {
+<const/handleSubmit=async (event: Event) => {
   event.preventDefault();
   if (!formData.name.trim() || !formData.location.trim() || !formData.size.trim()) {
     statusMessage = 'Name, location, and size are required.';
@@ -67,15 +65,15 @@ static function extractEventValue(event: Event): string {
   } finally {
     isSubmitting = false;
   }
-}/>
+}>
 
-<const/handleReset = () => {
+<const/handleReset=() => {
   editingId = null;
   formData = { ...initialForm };
   statusMessage = '';
-}/>
+}>
 
-<const/handleEditClick = (event: Event) => {
+<const/handleEditClick=(event: Event) => {
   const button = event.currentTarget as HTMLButtonElement;
   const ghData = button.dataset.gh;
   if (ghData) {
@@ -88,9 +86,9 @@ static function extractEventValue(event: Event): string {
       cropType: gh.cropType ?? '',
     };
   }
-}/>
+}>
 
-<const/handleDeleteClick = async (event: Event) => {
+<const/handleDeleteClick=async (event: Event) => {
   const button = event.currentTarget as HTMLButtonElement;
   const id = button.dataset.id;
   if (!id) return;
@@ -101,9 +99,9 @@ static function extractEventValue(event: Event): string {
     console.error('Failed to delete greenhouse', error);
     statusMessage = error instanceof Error ? error.message : 'Unable to delete greenhouse.';
   }
-}/>
+}>
 
-<effect() {
+<script>
   // Execute fetch command on mount
   greenHouseViewModel.fetchCommand.execute().catch((error: unknown) => {
     console.error('Failed to load greenhouses', error);
@@ -130,7 +128,7 @@ static function extractEventValue(event: Event): string {
     unsubLoading();
     unsubError();
   };
-}/>
+</script>
 
 <section>
   <div class='flex-between'>

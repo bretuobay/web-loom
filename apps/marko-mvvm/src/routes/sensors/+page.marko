@@ -4,7 +4,7 @@ import { sensorViewModel, type SensorListData } from '@repo/view-models/SensorVi
 <let/sensors=([] as SensorListData)>
 <let/isLoading=true>
 
-<effect() {
+<script>
   // Execute fetch command on mount
   sensorViewModel.fetchCommand.execute().catch((error: unknown) => {
     console.error('Failed to load sensors', error);
@@ -23,7 +23,7 @@ import { sensorViewModel, type SensorListData } from '@repo/view-models/SensorVi
     unsubData();
     unsubLoading();
   };
-}/>
+</script>
 
 <section>
   <div class='flex-between'>
