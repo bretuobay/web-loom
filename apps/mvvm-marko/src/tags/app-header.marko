@@ -1,81 +1,53 @@
-<header class="app-header">
+import { navigationViewModel, type NavigationListData } from '@repo/shared/view-models/NavigationViewModel';
+import { subscribeToObservable } from '../utils/marko-observable';
+
+<let/navigationItems=[] as NavigationListData[]>
+
+<effect() {
+  const unsubscribe = subscribeToObservable(navigationViewModel.navigationList.items$, (items) => {
+    navigationItems = items;
+  });
+
+  return () => {
+    unsubscribe();
+  };
+}/>
+
+<const/buildNavPath=(id: string) => '/' + id/>
+
+<header class="header">
   <div class="brand-stack">
-    <div class="brand-icon">⚡︎</div>
-    <div>
-      <h1 class="brand-title">Web-Loom MVVM</h1>
-      <p class="brand-subtitle">Marko reference implementation</p>
-    </div>
+    <p class="brand-title">Web-Loom MVVM</p>
+    <p class="brand-subtitle">Marko reference implementation</p>
   </div>
-  <nav class="header-nav">
-    <a href="/dashboard" class="header-link">Dashboard</a>
-    <a href="/greenhouses" class="header-link">🌿 Greenhouses</a>
-    <a href="/sensors" class="header-link">🛰️ Sensors</a>
-    <a href="/sensor-readings" class="header-link">📈 Readings</a>
-    <a href="/threshold-alerts" class="header-link">⚠️ Alerts</a>
+
+  <nav class="flex-container nav-links">
+    <a href="/dashboard" class="header-item">Dashboard</a>
+    <for|item| of=navigationItems>
+      <a href=buildNavPath(item.id) class="header-item">${item.label}</a>
+    </for>
   </nav>
 </header>
 
 <style>
-  .app-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid rgba(15, 23, 42, 0.2);
-    background: #ffffff;
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
   .brand-stack {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .brand-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: #1d4ed8;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
+    flex-direction: column;
+    gap: 0.15rem;
   }
 
   .brand-title {
     margin: 0;
-    font-size: 1.25rem;
+    font-weight: 600;
   }
 
   .brand-subtitle {
     margin: 0;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #475569;
   }
 
-  .header-nav {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .header-link {
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
-    text-decoration: none;
-    color: #0f172a;
-    font-weight: 600;
-    transition: background 0.2s ease;
-  }
-
-  .header-link:hover {
-    background: rgba(148, 163, 184, 0.2);
+  .nav-links {
+    gap: 0.75rem;
   }
 </style>
