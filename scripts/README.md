@@ -364,3 +364,13 @@ npm run test         # Run all tests
 npm run check-types  # TypeScript type checking
 npm run count-loc    # Count lines of code
 ```
+## Demo Runner Helpers
+
+The `scripts/dev-helper` folder now holds CLI helpers that orchestrate the demo API + UI ports without manually juggling terminals.
+
+- `npm run demo:start [--frontends=mvvm-react,...|all] [--dry-run]` boots `apps/api` and the requested `mvvm-*` frontends, prints a port summary, and adds a friendly reminder that the data is seeded for demos.
+- `npm run demo:task-flow [--dry-run]` pairs `task-flow-api` and `task-flow-ui` so the Task Flow experience always has its matching backend in the same terminal.
+
+Both helpers surface port assignments before starting and point you to `PORT_ASSIGNMENTS.md` if you need to add or move ports.
+
+The demo runner also checks `npm_config_frontends`, so the frontend list still works when npm complains about "Unknown env config frontends", but to avoid the warning, prefer running it as `npm run demo:start -- --frontends=...`.

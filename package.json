@@ -6,6 +6,8 @@
     "prepare": "husky install",
     "build": "turbo run build",
     "dev": "turbo run dev --concurrency=50",
+    "demo:start": "node scripts/dev-helper/demo-runner.js",
+    "demo:task-flow": "node scripts/dev-helper/task-flow-runner.js",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
