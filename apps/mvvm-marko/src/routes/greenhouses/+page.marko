@@ -112,17 +112,14 @@ static function extractEventValue(event: Event): string {
   const unsubData = subscribeToObservable(greenHouseViewModel.data$, (value) => {
     greenhouses = value ?? [];
   });
-
   const unsubLoading = subscribeToObservable(greenHouseViewModel.isLoading$, (value) => {
     isLoading = value;
   });
-
   const unsubError = greenHouseViewModel.error$
     ? subscribeToObservable(greenHouseViewModel.error$, (error) => {
         statusMessage = error instanceof Error ? error.message : String(error);
       })
     : () => {};
-
   return () => {
     unsubData();
     unsubLoading();
