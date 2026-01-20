@@ -11,7 +11,8 @@ This package follows the requirements in `PRODUCTS_REQUIREMENT_DOCUMENT.md`. Wor
 - **ChartManager lifecycle** (Section 4.1.1): implement configuration ingestion, DOM mounting, series/axis/annotation registration, scale registry interactions, and cleanup (`destroy`, `update`, `render`). Provide plugin hooks (`use`, `uninstall`).
 - **Scale registry** (Section 4.1.2): wrap `d3-scale` continuums with registry helpers to create, update, and expose scales by id; add helpers to sync domains/ranges.
 - **Series abstraction** (Section 4.1.2): build base `Series` class plus `LineSeries` and (later) `AreaSeries`/others. Enforce tooltip metadata and data updates.
-- **Axis renderer** (Section 3.1.1, 3.2.3): map axis configs to DOM layers, support left/right orientations, and make it easy to extend with D3 axis generators.
+- **Axis renderer** (Section 3.1.1, 3.2.3): map axis configs to DOM layers, support left/right orientations, make it easy to extend with D3 axis generators, and honor a `visible` flag so axes can be hidden when minimalism is desired.
+- **Axis theming** (Section 3.1.6): add axis style defaults inspired by Chart.js (muted strokes, polished tick fonts, optional dashed grid lines) plus per-axis overrides so teams can keep the axis in-check without custom CSS hacks.
 - **Annotation & Tooltip layers** (Sections 3.1.5 & 3.1.4): render annotation metadata and tooltip overlays that can be shared across components; ensure tooltips honor strategies (follow/fixed) and formatting.
 
 ## 3. MVP Feature Set

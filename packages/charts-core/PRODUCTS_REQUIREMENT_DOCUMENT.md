@@ -280,7 +280,25 @@ interface AxisConfig {
   title?: string;
   format?: (value: any) => string;
   ticks?: number;
+  visible?: boolean;
+  style?: {
+    axisColor?: string;
+    axisWidth?: number;
+    tickColor?: string;
+    tickFont?: string;
+    tickFontSize?: number;
+    gridColor?: string;
+    gridWidth?: number;
+    gridDash?: string;
+  };
 }
+
+#### 3.1.6 Axis styling & visibility (Chart.js inspired)
+
+- Provide axis defaults that mirror the polished feel of Chart.js 4: thin, muted baselines (`rgba(13, 18, 44, 0.08)`), soft tick text (`#6b7280`), and a subtle background grid (`rgba(15, 23, 42, 0.05)`) so the axes stay supportive without dominating the data.
+- Offer boolean `visible` on `AxisConfig` so a chart can omit a particular axis entirely (a frequent requirement for minimal dashboards). When `visible` is false, skip all DOM layers and even tooltip alignment/extent calculations that depend on the axis.
+- Support `style` overrides per axis to adjust colors, stroke widths, font stack, and dashed grid lines so applications can mimic Chart.js themes or custom brand tokens. These settings should flow through to both D3 renderers and builder helpers (tip: default to `tickFont: 'Inter, system-ui, sans-serif'` and `gridDash: '4 4'`).
+- Document how axes inherit Chart.js-like defaults but can be swapped out by passing fully custom `AxisConfig` styling; encourage layering of the default palette with `chart.use` plugin decorators for hover/tick emphasis if needed.
 ```
 
 ### 5.3 SVG Icon Integration

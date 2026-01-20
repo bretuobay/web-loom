@@ -19,6 +19,13 @@ export class AnnotationLayer {
       const annotationNode = document.createElement('div');
       annotationNode.className = 'charts-core-annotation';
       annotationNode.textContent = annotation.label ?? annotation.tooltip ?? annotation.id ?? annotation.type;
+      annotationNode.dataset.type = annotation.type;
+      if (annotation.icon) {
+        annotationNode.dataset.icon = annotation.icon;
+      }
+      annotationNode.setAttribute('role', 'img');
+      annotationNode.setAttribute('aria-label', annotation.label ?? annotation.tooltip ?? 'annotation');
+      annotationNode.style.zIndex = '3';
       wrapper.appendChild(annotationNode);
     });
 

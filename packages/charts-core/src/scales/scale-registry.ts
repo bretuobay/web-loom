@@ -1,12 +1,32 @@
-import type { ScaleContinuousNumeric } from 'd3-scale';
+import { scaleLinear, scaleTime } from 'd3-scale';
+import type { ScaleLinear, ScaleTime } from 'd3-scale';
+import type { ChartScaleConfig } from '../core/types';
 
-export type ChartScale = ScaleContinuousNumeric<number, number>;
+export type ChartScale = ScaleLinear<number, number> | ScaleTime<number, number>;
 
 export class ScaleRegistry {
   private readonly scales = new Map<string, ChartScale>();
 
   register(id: string, scale: ChartScale): void {
     this.scales.set(id, scale);
+  }
+
+  create(config: ChartScaleConfig): ChartScale {
+    const scale =
+      config.type === 'time'
+        ? scaleTime<number, number>()
+        : scaleLinear<number, number>();
+
+    if (config.domain) {
+      (scale as any).domain(config.domain);
+    }
+
+    if (config.range) {
+      scale.range(config.range);
+    }
+
+    this.register(config.id, scale);
+    return scale;
   }
 
   get(id: string): ChartScale | undefined {

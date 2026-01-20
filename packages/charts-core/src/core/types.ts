@@ -31,9 +31,20 @@ export interface ChartDataPoint {
   [key: string]: any;
 }
 
+export type SeriesType = 'line' | 'area' | 'scatter';
+export type SeriesInterpolation = 'linear' | 'monotone' | 'basis' | 'step';
+
+export interface SeriesMarkerConfig {
+  show?: boolean;
+  radius?: number;
+  stroke?: string;
+  fill?: string;
+  hoverRadius?: number;
+}
+
 export interface SeriesConfig<T extends ChartDataPoint = ChartDataPoint> {
   id?: string;
-  type: 'line' | 'area' | 'scatter';
+  type: SeriesType;
   data: T[];
   xAccessor: (datum: T) => Date | number;
   yAccessor: (datum: T) => number;
@@ -42,6 +53,9 @@ export interface SeriesConfig<T extends ChartDataPoint = ChartDataPoint> {
   color?: string;
   strokeWidth?: number;
   area?: boolean;
+  curve?: SeriesInterpolation;
+  marker?: SeriesMarkerConfig;
+  lineWidth?: number;
 }
 
 export interface AxisConfig {
@@ -51,6 +65,7 @@ export interface AxisConfig {
   scale: string;
   position?: 'left' | 'right' | 'top' | 'bottom';
   format?: (value: number | Date) => string;
+  ticks?: number;
 }
 
 export interface TooltipData {
@@ -76,6 +91,15 @@ export interface AnnotationConfig {
   tooltip?: string;
 }
 
+export type ChartScaleType = 'linear' | 'time';
+
+export interface ChartScaleConfig {
+  id: string;
+  type: ChartScaleType;
+  domain?: [number | Date, number | Date];
+  range?: [number, number];
+}
+
 export interface ChartConfig {
   width: number;
   height: number;
@@ -84,4 +108,8 @@ export interface ChartConfig {
   animation?: AnimationConfig;
   accessibility?: AccessibilityConfig;
   tooltip?: TooltipConfig;
+  series?: SeriesConfig[];
+  axes?: AxisConfig[];
+  annotations?: AnnotationConfig[];
+  scales?: ChartScaleConfig[];
 }
