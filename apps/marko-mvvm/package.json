@@ -1,0 +1,24 @@
+{
+  "name": "marko-mvvm",
+  "description": "Marko + Web-Loom MVVM showcase",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@repo/shared": "*",
+    "@repo/view-models": "*",
+    "@web-loom/mvvm-core": "*",
+    "marko": "^6.0.132"
+  },
+  "devDependencies": {
+    "@marko/run": "^0.9.3",
+    "typescript": "^5.8.3"
+  },
+  "private": true,
+  "scripts": {
+    "dev": "marko-run --port 5739",
+    "build": "marko-run build",
+    "preview": "marko-run preview",
+    "type-check": "tsc --noEmit",
+    "start": "node --enable-source-maps ./dist/index.mjs"
+  }
+}

@@ -1,0 +1,67 @@
+import { subscribeToObservable } from '../../utils/marko-observable';
+import { sensorViewModel, type SensorListData } from '@repo/view-models/SensorViewModel';
+
+<let/sensors=([] as SensorListData)>
+<let/isLoading=true>
+
+<effect() {
+  // Execute fetch command on mount
+  sensorViewModel.fetchCommand.execute().catch((error: unknown) => {
+    console.error('Failed to load sensors', error);
+  });
+
+  // Subscribe to data observables
+  const unsubData = subscribeToObservable(sensorViewModel.data$, (value) => {
+    sensors = value ?? [];
+  });
+
+  const unsubLoading = subscribeToObservable(sensorViewModel.isLoading$, (value) => {
+    isLoading = value;
+  });
+
+  return () => {
+    unsubData();
+    unsubLoading();
+  };
+}/>
+
+<section>
+  <div class='flex-between'>
+    <a class='back-link' href='/'>
+      ← Dashboard
+    </a>
+    <h2>Sensors</h2>
+  </div>
+
+  <div class='card list-card'>
+    <h3 class='card-title'>
+      Sensors
+    </h3>
+
+    <if=isLoading>
+      <p class='small'>
+        Fetching latest sensors...
+      </p>
+    </if>
+    <else-if=sensors.length === 0>
+      <p class='small'>
+        No sensors have been registered yet.
+      </p>
+    </else-if>
+    <else>
+      <ul class='list'>
+        <for|sensor| of=sensors>
+          <li class='list-item'>
+            <div>
+              <strong>${sensor.greenhouse?.name ?? 'Unnamed greenhouse'}</strong>
+              <small>${sensor.type}</small>
+            </div>
+            <span class=`pill-status ${sensor.status === 'active' ? 'status-active' : 'status-inactive'}`>
+              ${sensor.status}
+            </span>
+          </li>
+        </for>
+      </ul>
+    </else>
+  </div>
+</section>

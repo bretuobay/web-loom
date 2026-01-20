@@ -1,0 +1,16 @@
+import type { SensorListData } from '@repo/view-models/SensorViewModel';
+export interface Input {
+  sensors: SensorListData;
+}
+
+<div class='card'>
+  <a class='card-header-link' href='/sensors'>
+    <h3>Sensors</h3>
+  </a>
+  <p class='card-total'>
+    Total sensors monitored: ${input.sensors?.length ?? 0}
+  </p>
+  <p class='card-blurb'>
+    Sensors stream live readings that power the dashboard and lists.
+  </p>
+</div>

@@ -1,0 +1,65 @@
+import { subscribeToObservable } from '../../utils/marko-observable';
+import { thresholdAlertViewModel, type ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
+
+<let/thresholdAlerts=([] as ThresholdAlertListData)>
+<let/isLoading=true>
+
+<effect() {
+  // Execute fetch command on mount
+  thresholdAlertViewModel.fetchCommand.execute().catch((error) => {
+    console.error('Failed to load alerts', error);
+  });
+
+  // Subscribe to data observables
+  const unsubData = subscribeToObservable(thresholdAlertViewModel.data$, (value) => {
+    thresholdAlerts = value ?? [];
+  });
+
+  const unsubLoading = subscribeToObservable(thresholdAlertViewModel.isLoading$, (value) => {
+    isLoading = value;
+  });
+
+  return () => {
+    unsubData();
+    unsubLoading();
+  };
+}/>
+
+<section>
+  <div class='flex-between'>
+    <a class='back-link' href='/'>
+      ← Dashboard
+    </a>
+    <h2>Threshold alerts</h2>
+  </div>
+
+  <div class='card list-card'>
+    <h3>Alert thresholds</h3>
+
+    <if=isLoading>
+      <p class='small'>
+        Loading alert thresholds...
+      </p>
+    </if>
+    <else-if=thresholdAlerts.length === 0>
+      <p class='small'>
+        No alerts defined.
+      </p>
+    </else-if>
+    <else>
+      <ul class='list'>
+        <for|alert| of=thresholdAlerts>
+          <li class='list-item'>
+            <div>
+              <strong>${alert.sensorType ?? 'Unknown'}</strong>
+              <small>Greenhouse ID: ${alert.greenhouseId ?? 'N/A'}</small>
+            </div>
+            <span class='pill-status status-active'>
+              Min: ${alert.minValue ?? 0} • Max: ${alert.maxValue ?? 0}
+            </span>
+          </li>
+        </for>
+      </ul>
+    </else>
+  </div>
+</section>
