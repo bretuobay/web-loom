@@ -4,9 +4,9 @@ import { sensorReadingViewModel, type SensorReadingListData } from '@repo/view-m
 <let/sensorReadings=([] as SensorReadingListData)>
 <let/isLoading=true>
 
-<effect() {
+<script>
   // Execute fetch command on mount
-  sensorReadingViewModel.fetchCommand.execute().catch((error) => {
+  sensorReadingViewModel.fetchCommand.execute().catch((error: unknown) => {
     console.error('Failed to load readings', error);
   });
 
@@ -23,7 +23,7 @@ import { sensorReadingViewModel, type SensorReadingListData } from '@repo/view-m
     unsubData();
     unsubLoading();
   };
-}/>
+</script>
 
 <section>
   <div class='flex-between'>

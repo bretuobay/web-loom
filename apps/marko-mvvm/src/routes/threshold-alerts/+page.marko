@@ -4,9 +4,9 @@ import { thresholdAlertViewModel, type ThresholdAlertListData } from '@repo/view
 <let/thresholdAlerts=([] as ThresholdAlertListData)>
 <let/isLoading=true>
 
-<effect() {
+<script>
   // Execute fetch command on mount
-  thresholdAlertViewModel.fetchCommand.execute().catch((error) => {
+  thresholdAlertViewModel.fetchCommand.execute().catch((error: unknown) => {
     console.error('Failed to load alerts', error);
   });
 
@@ -14,16 +14,14 @@ import { thresholdAlertViewModel, type ThresholdAlertListData } from '@repo/view
   const unsubData = subscribeToObservable(thresholdAlertViewModel.data$, (value) => {
     thresholdAlerts = value ?? [];
   });
-
   const unsubLoading = subscribeToObservable(thresholdAlertViewModel.isLoading$, (value) => {
     isLoading = value;
   });
-
   return () => {
     unsubData();
     unsubLoading();
   };
-}/>
+</script>
 
 <section>
   <div class='flex-between'>

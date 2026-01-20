@@ -1,4 +1,4 @@
-import { Observable, firstValueFrom, skip } from 'rxjs';
+import { type Observable, firstValueFrom, skip } from 'rxjs';
 
 /**
  * Convert an Observable to a Promise for initial SSR rendering
