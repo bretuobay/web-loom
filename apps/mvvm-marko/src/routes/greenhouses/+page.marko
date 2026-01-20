@@ -11,7 +11,7 @@ static function extractEventValue(event: Event): string {
   return target?.value ?? '';
 }
 
-<let/greenhouses=([] as GreenhouseListData)>
+<let/greenhouses=[] as GreenhouseListData>
 <let/formData={ ...initialForm }>
 <let/editingId=null as string | null>
 <let/statusMessage=''>
@@ -109,10 +109,10 @@ static function extractEventValue(event: Event): string {
   });
 
   // Subscribe to observables
-  const unsubData = subscribeToObservable(greenHouseViewModel.data$, (value) => {
+  const unsubData = subscribeToObservable(greenHouseViewModel.data$, (value: GreenhouseListData | null) => {
     greenhouses = value ?? [];
   });
-  const unsubLoading = subscribeToObservable(greenHouseViewModel.isLoading$, (value) => {
+  const unsubLoading = subscribeToObservable(greenHouseViewModel.isLoading$, (value: boolean) => {
     isLoading = value;
   });
   const unsubError = greenHouseViewModel.error$
