@@ -3,6 +3,15 @@
  */
 
 import type { ZodSchema, ZodError } from 'zod';
+
+// Export ErrorsContainer classes
+export { ErrorsContainer } from './ErrorsContainer';
+export { AsyncErrorsContainer } from './AsyncErrorsContainer';
+export { 
+  populateFromZodError, 
+  validateWithZodContainer, 
+  validateFieldWithZodContainer 
+} from './zodHelpers';
 import type { FormErrors, ValidationResult, AsyncValidatorConfig } from '../types';
 
 /**
