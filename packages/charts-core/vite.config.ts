@@ -21,7 +21,8 @@ export default defineConfig({
       insertTypesEntry: true,
       outDir: 'dist',
       tsconfigPath: './tsconfig.json',
-      rollupTypes: true,
+      rollupTypes: false,
+      skipDiagnostics: true,
     }),
   ],
   server: {

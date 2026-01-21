@@ -1,6 +1,6 @@
 import { Observable, BehaviorSubject } from 'rxjs';
 import { map, distinctUntilChanged } from 'rxjs/operators';
-import { IDisposable } from '../models/BaseModel';
+import type { IDisposable } from '../models/BaseModel';
 
 /**
  * Information about a single busy operation

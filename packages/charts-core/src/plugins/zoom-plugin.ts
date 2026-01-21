@@ -7,13 +7,11 @@ export interface ZoomPanPluginOptions {
 
 export class ZoomPanPlugin implements ChartPlugin {
   public readonly id = 'charts-core:zoom-pan';
-  private chart?: ChartManager;
   private wheelHandler?: (event: WheelEvent) => void;
 
   constructor(private options: ZoomPanPluginOptions = {}) {}
 
   install(chart: ChartManager): void {
-    this.chart = chart;
     const container = chart.getContainer();
     if (!container) {
       return;
@@ -33,7 +31,6 @@ export class ZoomPanPlugin implements ChartPlugin {
       chart['container'].removeEventListener('wheel', this.wheelHandler);
     }
 
-    this.chart = undefined;
     this.wheelHandler = undefined;
   }
 }

@@ -1,8 +1,8 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import { map, startWith, takeUntil } from 'rxjs/operators';
 import { ZodError } from 'zod';
-import { BaseModel, IDisposable } from '../models/BaseModel';
-import { ICommand } from '../commands/Command';
+import type { BaseModel, IDisposable } from '../models/BaseModel';
+import type { ICommand } from '../commands/Command';
 
 /**
  * @class BaseViewModel

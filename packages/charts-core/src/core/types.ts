@@ -58,6 +58,17 @@ export interface SeriesConfig<T extends ChartDataPoint = ChartDataPoint> {
   lineWidth?: number;
 }
 
+export interface AxisStyleConfig {
+  axisColor?: string;
+  axisWidth?: number;
+  tickColor?: string;
+  tickFont?: string;
+  tickFontSize?: number;
+  gridColor?: string;
+  gridWidth?: number;
+  gridDash?: string;
+}
+
 export interface AxisConfig {
   id: string;
   title?: string;
@@ -66,6 +77,8 @@ export interface AxisConfig {
   position?: 'left' | 'right' | 'top' | 'bottom';
   format?: (value: number | Date) => string;
   ticks?: number;
+  visible?: boolean;
+  style?: AxisStyleConfig;
 }
 
 export interface TooltipData {

@@ -30,20 +30,6 @@
       ]
     }
   },
-  "references": [
-    {
-      "path": "../../packages/models/tsconfig.json"
-    },
-    {
-      "path": "../../packages/view-models/tsconfig.json"
-    },
-    {
-      "path": "../../packages/mvvm-core/tsconfig.json"
-    },
-    {
-      "path": "../../packages/shared/tsconfig.json"
-    }
-  ],
   "files": [
     "src/main.ts"
   ],

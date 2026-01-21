@@ -1,7 +1,7 @@
 import { Observable, BehaviorSubject, combineLatest, Subscription } from 'rxjs';
 import { map, distinctUntilChanged } from 'rxjs/operators';
-import { ICommand } from './Command';
-import { IDisposable } from '../models/BaseModel';
+import type { ICommand } from './Command';
+import type { IDisposable } from '../models/BaseModel';
 
 /**
  * Options for CompositeCommand construction

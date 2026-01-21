@@ -1,4 +1,4 @@
-import type { AnnotationConfig, AxisConfig, ChartConfig, ChartDataPoint, SeriesConfig } from './types';
+import type { AnnotationConfig, AxisConfig, AxisStyleConfig, ChartConfig, ChartDataPoint, SeriesConfig } from './types';
 import { AxisRenderer } from '../axes';
 import { AnnotationLayer } from '../annotations';
 import { ScaleRegistry, ChartScale } from '../scales';
@@ -8,17 +8,6 @@ import { select } from 'd3-selection';
 import { area, curveBasis, curveLinear, curveMonotoneX, curveStep, line } from 'd3-shape';
 import { extent } from 'd3-array';
 import { format as formatDate } from 'date-fns';
-
-interface ChartAxisStyle {
-  axisColor: string;
-  axisWidth: number;
-  tickColor: string;
-  tickFont: string;
-  tickFontSize: number;
-  gridColor: string;
-  gridWidth: number;
-  gridDash: string;
-}
 
 export class ChartManager {
   private container: HTMLElement | null = null;
@@ -33,7 +22,7 @@ export class ChartManager {
   private readonly plugins = new Map<string, ChartPlugin>();
   private clipPathId?: string;
   private clipDef?: SVGDefsElement;
-  private readonly axisStyleDefaults: ChartAxisStyle = {
+  private readonly axisStyleDefaults: Required<AxisStyleConfig> = {
     axisColor: 'rgba(13, 18, 44, 0.12)',
     axisWidth: 1,
     tickColor: '#6b7280',
@@ -197,7 +186,7 @@ export class ChartManager {
     return axis.visible !== false;
   }
 
-  private getAxisStyle(axis: AxisConfig): ChartAxisStyle {
+  private getAxisStyle(axis: AxisConfig): Required<AxisStyleConfig> {
     return {
       ...this.axisStyleDefaults,
       ...axis.style,
@@ -241,7 +230,7 @@ export class ChartManager {
         return;
       }
 
-      const gridGroup = select(this.chartGroup)
+      const gridGroup = select<SVGGElement, unknown>(this.chartGroup!)
         .append('g')
         .attr('class', `charts-core-grid charts-core-grid-${axis.orient}`)
         .attr('fill', 'none')
@@ -356,7 +345,9 @@ export class ChartManager {
         const areaPath = this.createAreaPath(seriesConfig, xScale, yScale, innerHeight);
         areaPath?.setAttribute('fill', seriesConfig.color ?? 'rgba(59, 130, 246, 0.2)');
         areaPath?.setAttribute('stroke', 'none');
-        this.chartGroup!.appendChild(areaPath);
+        if (areaPath) {
+          this.chartGroup!.appendChild(areaPath);
+        }
       }
 
       const path = this.createLinePath(seriesConfig, xScale, yScale);

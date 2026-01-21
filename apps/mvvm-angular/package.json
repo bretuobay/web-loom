@@ -5,7 +5,7 @@
     "ng": "ng",
     "start": "ng serve --port 4200",
     "dev": "ng serve --port 4200",
-    "build": "ng build",
+    "build": "node scripts/build.js",
     "watch": "ng build --watch --configuration development",
     "test": "echo 'No unit tests configured for Angular app'"
   },
