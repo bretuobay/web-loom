@@ -12,10 +12,7 @@ export class ScaleRegistry {
   }
 
   create(config: ChartScaleConfig): ChartScale {
-    const scale =
-      config.type === 'time'
-        ? scaleTime<number, number>()
-        : scaleLinear<number, number>();
+    const scale = config.type === 'time' ? scaleTime<number, number>() : scaleLinear<number, number>();
 
     if (config.domain) {
       (scale as any).domain(config.domain);

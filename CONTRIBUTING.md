@@ -17,6 +17,7 @@ Thank you for your interest in contributing to Web Loom! We welcome contribution
 ### Setup
 
 1. **Fork the repository**
+
    ```bash
    # Fork via GitHub UI, then clone your fork
    git clone https://github.com/YOUR_USERNAME/web-loom.git
@@ -24,6 +25,7 @@ Thank you for your interest in contributing to Web Loom! We welcome contribution
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
@@ -60,6 +62,7 @@ npm run test:coverage
 ```
 
 **Test Coverage Requirements**:
+
 - Core packages: Aim for 80%+ coverage
 - Framework adapters: Test behavior, not framework internals
 - Use Vitest for all tests
@@ -101,6 +104,7 @@ npm test
 ### Framework Agnostic Patterns
 
 **✅ DO:**
+
 ```typescript
 // Framework-agnostic behavior using RxJS
 import { BehaviorSubject } from 'rxjs';
@@ -110,12 +114,13 @@ export function createDialog() {
   return {
     isOpen$,
     open: () => isOpen$.next(true),
-    close: () => isOpen$.next(false)
+    close: () => isOpen$.next(false),
   };
 }
 ```
 
 **❌ DON'T:**
+
 ```typescript
 // Framework-specific implementation in core package
 import { useState } from 'react'; // ❌ No framework imports in core
@@ -162,6 +167,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 **Types**:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -171,6 +177,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 - `perf`: Performance improvements
 
 **Examples**:
+
 ```bash
 feat(mvvm-core): add CompositeCommand support
 
@@ -210,6 +217,7 @@ and where to place framework-specific adapters.
 ### Submitting a PR
 
 1. **Push to your fork**
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -247,6 +255,7 @@ and where to place framework-specific adapters.
    - `@repo/*`: Internal/tooling packages
 
 2. **Create package structure**:
+
    ```bash
    cd packages
    mkdir your-package
@@ -255,6 +264,7 @@ and where to place framework-specific adapters.
    ```
 
 3. **Setup package.json**:
+
    ```json
    {
      "name": "@web-loom/your-package",
@@ -300,6 +310,7 @@ Use workspace protocol for internal packages:
 ### Publishing Checklist
 
 Before publishing a package:
+
 - [ ] Version bumped (semver)
 - [ ] CHANGELOG.md updated
 - [ ] Tests passing
@@ -378,15 +389,25 @@ Each package should have:
 [One-sentence description]
 
 ## Installation
+
 ## Quick Start
+
 ## Features
+
 ## API Reference
+
 ## Framework Integration
-  ### React
-  ### Vue
-  ### Angular
+
+### React
+
+### Vue
+
+### Angular
+
 ## Troubleshooting
+
 ## Contributing
+
 ## License
 ```
 
@@ -396,7 +417,7 @@ Each package should have:
 - **Complex logic**: Explain the "why", not the "what"
 - **TODOs**: Use `// TODO(username): description` format
 
-```typescript
+````typescript
 /**
  * Creates a dialog behavior with open/close state management.
  *
@@ -420,7 +441,7 @@ Each package should have:
 export function createDialog(options?: DialogOptions): DialogBehavior {
   // Implementation
 }
-```
+````
 
 ## Community Guidelines
 
@@ -433,6 +454,7 @@ export function createDialog(options?: DialogOptions): DialogBehavior {
 ## Framework-Specific Contributions
 
 ### Core Packages (Framework-Agnostic)
+
 - `mvvm-core`, `ui-core`, `ui-patterns`, `store-core`, `query-core`, `event-bus-core`, `plugin-core`, `router-core`, `forms-core`
 - **No framework imports allowed**
 - Use RxJS for reactivity
@@ -440,12 +462,14 @@ export function createDialog(options?: DialogOptions): DialogBehavior {
 - Adapters go in separate packages
 
 ### Framework Adapters
+
 - `ui-react`, `forms-react`, `forms-vue`, `forms-vanilla`, `media-react`, `media-vue`
 - Framework-specific implementations
 - Must maintain same API as core
 - Test with framework's testing tools
 
 ### Example Apps
+
 - `apps/mvvm-react`, `apps/mvvm-vue`, `apps/mvvm-angular`, etc.
 - Demonstrate real-world usage
 - Share ViewModels from `packages/view-models`
@@ -466,6 +490,7 @@ For maintainers, see [RELEASING.md](RELEASING.md) (to be created).
 ## Recognition
 
 Contributors will be recognized in:
+
 - CONTRIBUTORS.md (to be created)
 - Release notes
 - Project README

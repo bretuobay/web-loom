@@ -5,9 +5,9 @@ import { CachingProjectRepository } from '../domain/repositories/CachingProjectR
 import { CachingTaskRepository } from '../domain/repositories/CachingTaskRepository';
 import { ProjectStore } from '../domain/stores/projectStore';
 import { TaskStore } from '../domain/stores/taskStore';
-import type { ProjectEntity} from '../domain/entities/project';
+import type { ProjectEntity } from '../domain/entities/project';
 import { type ProjectFormValues } from '../domain/entities/project';
-import type { TaskEntity} from '../domain/entities/task';
+import type { TaskEntity } from '../domain/entities/task';
 import { type TaskFormValues } from '../domain/entities/task';
 import { PROJECT_STATUSES, type ProjectStatus } from '../domain/values/projectStatus';
 

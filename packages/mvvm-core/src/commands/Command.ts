@@ -1,5 +1,5 @@
-import { BehaviorSubject, Observable, isObservable, of, Subscription } from 'rxjs';
-import { first, map, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, isObservable, of, Subscription, combineLatest, Subject } from 'rxjs';
+import { first, map, switchMap, distinctUntilChanged, startWith } from 'rxjs/operators';
 import type { IDisposable } from '../models/BaseModel';
 
 /**
@@ -8,7 +8,7 @@ import type { IDisposable } from '../models/BaseModel';
  * @template TParam The type of the parameter passed to the command's execute function.
  * @template TResult The type of the result returned by the command's execute function.
  */
-export interface ICommand<TParam = void, TResult = void> {
+export interface ICommand<TParam = void, TResult = void> extends IDisposable {
   readonly canExecute$: Observable<boolean>;
   readonly isExecuting$: Observable<boolean>;
   readonly executeError$: Observable<any>;
@@ -58,12 +58,18 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
   protected readonly _isExecuting$ = new BehaviorSubject<boolean>(false);
   public readonly isExecuting$: Observable<boolean> = this._isExecuting$.asObservable();
 
-  protected readonly _canExecute$: Observable<boolean>; // Derived from constructor arg
+  protected _canExecute$: Observable<boolean>; // Mutable for fluent API rebuilding
   protected readonly _executeError$ = new BehaviorSubject<any>(null);
   public readonly executeError$: Observable<any> = this._executeError$.asObservable();
 
   private readonly _executeFn: (param: TParam) => Promise<TResult>;
   private _canExecuteSubscription: Subscription | undefined;
+
+  // Fluent API support
+  private readonly observedProperties: Observable<any>[] = [];
+  private readonly additionalCanExecuteConditions: Observable<boolean>[] = [];
+  private readonly _canExecuteChanged$ = new Subject<void>();
+  private baseCanExecute$: Observable<boolean>;
 
   /**
    * Creates a new CommandBuilder instance to fluently construct a Command.
@@ -104,6 +110,126 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
         'canExecuteFn must be an Observable<boolean> or a function returning boolean/Observable<boolean>.',
       );
     }
+
+    // Store base canExecute for fluent API rebuilding
+    this.baseCanExecute$ = this._canExecute$;
+  }
+
+  /**
+   * Observes a property observable and re-evaluates canExecute$ when it changes.
+   * The property value must be truthy for canExecute to be true.
+   *
+   * @param property$ Observable to observe
+   * @returns this (for fluent chaining)
+   *
+   * @example
+   * ```typescript
+   * this.submitCommand = new Command(() => this.submit())
+   *   .observesProperty(this.username$)
+   *   .observesProperty(this.email$);
+   * ```
+   */
+  observesProperty<T>(property$: Observable<T>): this {
+    if (this._isDisposed) {
+      console.warn('Cannot observe property on disposed Command');
+      return this;
+    }
+
+    this.observedProperties.push(property$);
+    this.rebuildCanExecute();
+    return this;
+  }
+
+  /**
+   * Adds an additional canExecute condition.
+   * All conditions must be true for canExecute$ to be true.
+   *
+   * @param canExecute$ Observable<boolean> condition
+   * @returns this (for fluent chaining)
+   *
+   * @example
+   * ```typescript
+   * this.submitCommand = new Command(() => this.submit())
+   *   .observesCanExecute(this.isFormValid$)
+   *   .observesCanExecute(this.isNotBusy$);
+   * ```
+   */
+  observesCanExecute(canExecute$: Observable<boolean>): this {
+    if (this._isDisposed) {
+      console.warn('Cannot add canExecute condition on disposed Command');
+      return this;
+    }
+
+    this.additionalCanExecuteConditions.push(canExecute$);
+    this.rebuildCanExecute();
+    return this;
+  }
+
+  /**
+   * Manually triggers re-evaluation of canExecute$ and notifies subscribers.
+   * Useful when canExecute depends on external state not tracked by observables.
+   *
+   * @example
+   * ```typescript
+   * updateSelection(items: Item[]): void {
+   *   this.selectedItems = items;
+   *   this.deleteCommand.raiseCanExecuteChanged();
+   * }
+   * ```
+   */
+  raiseCanExecuteChanged(): void {
+    if (this._isDisposed) return;
+    this._canExecuteChanged$.next();
+  }
+
+  /**
+   * Rebuilds the canExecute$ observable combining all conditions
+   * @private
+   */
+  private rebuildCanExecute(): void {
+    const allConditions: Observable<boolean>[] = [this.baseCanExecute$];
+
+    // Add additional canExecute conditions
+    allConditions.push(...this.additionalCanExecuteConditions);
+
+    // Convert observed properties to boolean conditions (truthy check)
+    const propertyConditions = this.observedProperties.map((prop$) =>
+      prop$.pipe(
+        map((value) => !!value),
+        startWith(false), // Assume false until first emission
+        distinctUntilChanged(),
+      ),
+    );
+
+    allConditions.push(...propertyConditions);
+
+    // Combine all conditions with manual trigger
+    if (
+      allConditions.length === 1 &&
+      this.observedProperties.length === 0 &&
+      this.additionalCanExecuteConditions.length === 0
+    ) {
+      // No additional conditions, just use base with manual trigger
+      this._canExecute$ = combineLatest([
+        this.baseCanExecute$,
+        this._canExecuteChanged$.pipe(startWith(undefined)),
+      ]).pipe(
+        map(([canExecute]) => canExecute),
+        distinctUntilChanged(),
+      );
+    } else {
+      // Combine all conditions
+      this._canExecute$ = combineLatest([
+        combineLatest(allConditions).pipe(
+          map((results) => results.every((r) => r === true)),
+          distinctUntilChanged(),
+        ),
+        this._canExecuteChanged$.pipe(startWith(undefined)),
+      ]).pipe(
+        map(([canExecute]) => canExecute),
+        distinctUntilChanged(),
+      );
+    }
   }
 
   public dispose(): void {
@@ -112,6 +238,7 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
     }
     this._isExecuting$.complete();
     this._executeError$.complete();
+    this._canExecuteChanged$.complete();
 
     if (this._canExecuteSubscription) {
       this._canExecuteSubscription.unsubscribe();
@@ -150,7 +277,6 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
     }
   }
 }
-
 
 /**
  * @class CommandBuilder

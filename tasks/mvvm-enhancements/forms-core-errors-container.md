@@ -57,8 +57,7 @@ export class ErrorsContainer<T extends Record<string, any>> {
   /**
    * Emits the property name when errors change, or null for overall state changes
    */
-  public readonly errorsChanged$: Observable<keyof T | null> =
-    this._errorsChanged$.asObservable();
+  public readonly errorsChanged$: Observable<keyof T | null> = this._errorsChanged$.asObservable();
 
   /**
    * Observable that emits true when any property has errors
@@ -66,7 +65,7 @@ export class ErrorsContainer<T extends Record<string, any>> {
   public readonly hasErrors$: Observable<boolean> = this._errorsChanged$.pipe(
     startWith(null),
     map(() => this.hasErrors),
-    distinctUntilChanged()
+    distinctUntilChanged(),
   );
 
   /**
@@ -104,10 +103,10 @@ export class ErrorsContainer<T extends Record<string, any>> {
    */
   getErrors$(propertyName: keyof T): Observable<string[]> {
     return this._errorsChanged$.pipe(
-      filter(prop => prop === null || prop === propertyName),
+      filter((prop) => prop === null || prop === propertyName),
       map(() => this.getErrors(propertyName)),
       startWith(this.getErrors(propertyName)),
-      distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b))
+      distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
     );
   }
 
@@ -115,9 +114,7 @@ export class ErrorsContainer<T extends Record<string, any>> {
    * Get first error for a property (convenience for single-error display)
    */
   getFirstError$(propertyName: keyof T): Observable<string | null> {
-    return this.getErrors$(propertyName).pipe(
-      map(errors => errors.length > 0 ? errors[0] : null)
-    );
+    return this.getErrors$(propertyName).pipe(map((errors) => (errors.length > 0 ? errors[0] : null)));
   }
 
   /**
@@ -132,8 +129,8 @@ export class ErrorsContainer<T extends Record<string, any>> {
    */
   hasPropertyErrors$(propertyName: keyof T): Observable<boolean> {
     return this.getErrors$(propertyName).pipe(
-      map(errors => errors.length > 0),
-      distinctUntilChanged()
+      map((errors) => errors.length > 0),
+      distinctUntilChanged(),
     );
   }
 
@@ -204,9 +201,7 @@ import { ErrorsContainer } from './ErrorsContainer';
  * Extends ErrorsContainer with async validation support.
  * Tracks which properties are currently being validated.
  */
-export class AsyncErrorsContainer<T extends Record<string, any>>
-  extends ErrorsContainer<T> {
-
+export class AsyncErrorsContainer<T extends Record<string, any>> extends ErrorsContainer<T> {
   private readonly validatingProperties = new Set<keyof T>();
   private readonly _isValidating$ = new BehaviorSubject<boolean>(false);
   private readonly _validatingProperties$ = new BehaviorSubject<Array<keyof T>>([]);
@@ -215,14 +210,12 @@ export class AsyncErrorsContainer<T extends Record<string, any>>
   /**
    * Observable indicating if any async validation is in progress
    */
-  public readonly isValidating$: Observable<boolean> =
-    this._isValidating$.asObservable();
+  public readonly isValidating$: Observable<boolean> = this._isValidating$.asObservable();
 
   /**
    * Observable of properties currently being validated
    */
-  public readonly validatingProperties$: Observable<Array<keyof T>> =
-    this._validatingProperties$.asObservable();
+  public readonly validatingProperties$: Observable<Array<keyof T>> = this._validatingProperties$.asObservable();
 
   /**
    * Check if a specific property is currently being validated
@@ -242,7 +235,7 @@ export class AsyncErrorsContainer<T extends Record<string, any>>
   async validateAsync(
     propertyName: keyof T,
     value: T[keyof T],
-    validator: (value: T[keyof T]) => Promise<string[]>
+    validator: (value: T[keyof T]) => Promise<string[]>,
   ): Promise<void> {
     // Cancel any pending validation for this property
     this.cancelPendingValidation(propertyName);
@@ -273,7 +266,7 @@ export class AsyncErrorsContainer<T extends Record<string, any>>
     propertyName: keyof T,
     value: T[keyof T],
     validator: (value: T[keyof T]) => Promise<string[]>,
-    debounceMs: number = 300
+    debounceMs: number = 300,
   ): () => void {
     // Cancel any pending validation for this property
     this.cancelPendingValidation(propertyName);
@@ -310,7 +303,7 @@ export class AsyncErrorsContainer<T extends Record<string, any>>
    * Cancel all pending validations
    */
   cancelAllPendingValidations(): void {
-    this.pendingValidations.forEach(controller => controller.abort());
+    this.pendingValidations.forEach((controller) => controller.abort());
     this.pendingValidations.clear();
   }
 
@@ -341,7 +334,7 @@ import { ErrorsContainer } from './ErrorsContainer';
  */
 export function populateFromZodError<T extends Record<string, any>>(
   container: ErrorsContainer<T>,
-  zodError: ZodError
+  zodError: ZodError,
 ): void {
   // Clear previous errors
   container.clearErrors();
@@ -349,7 +342,7 @@ export function populateFromZodError<T extends Record<string, any>>(
   // Group errors by field path
   const errorsByField = new Map<keyof T, string[]>();
 
-  zodError.errors.forEach(err => {
+  zodError.errors.forEach((err) => {
     const propertyName = err.path[0] as keyof T;
     if (propertyName) {
       const existing = errorsByField.get(propertyName) || [];
@@ -372,7 +365,7 @@ export function populateFromZodError<T extends Record<string, any>>(
 export function validateWithZod<T extends Record<string, any>>(
   container: ErrorsContainer<T>,
   schema: ZodSchema<T>,
-  data: Partial<T>
+  data: Partial<T>,
 ): boolean {
   const result = schema.safeParse(data);
 
@@ -396,7 +389,7 @@ export function validateFieldWithZod<T extends Record<string, any>>(
   schema: ZodSchema<T>,
   propertyName: keyof T,
   value: T[keyof T],
-  currentData: Partial<T>
+  currentData: Partial<T>,
 ): boolean {
   const dataToValidate = { ...currentData, [propertyName]: value } as T;
   const result = schema.safeParse(dataToValidate);
@@ -405,9 +398,7 @@ export function validateFieldWithZod<T extends Record<string, any>>(
     container.setErrors(propertyName, []);
     return true;
   } else {
-    const fieldErrors = result.error.errors
-      .filter(err => err.path[0] === propertyName)
-      .map(err => err.message);
+    const fieldErrors = result.error.errors.filter((err) => err.path[0] === propertyName).map((err) => err.message);
 
     container.setErrors(propertyName, fieldErrors);
     return fieldErrors.length === 0;
@@ -487,9 +478,7 @@ describe('ErrorsContainer', () => {
     });
 
     it('should emit when errors change', async () => {
-      const errorsPromise = container.getErrors$('email')
-        .pipe(take(3), toArray())
-        .toPromise();
+      const errorsPromise = container.getErrors$('email').pipe(take(3), toArray()).toPromise();
 
       container.setErrors('email', ['Error 1']);
       container.setErrors('email', ['Error 2']);
@@ -528,11 +517,7 @@ describe('AsyncErrorsContainer', () => {
 
   describe('validateAsync', () => {
     it('should set errors from async validator', async () => {
-      await container.validateAsync(
-        'email',
-        'test@test.com',
-        async () => ['Email already exists']
-      );
+      await container.validateAsync('email', 'test@test.com', async () => ['Email already exists']);
 
       expect(container.getErrors('email')).toEqual(['Email already exists']);
     });
@@ -540,14 +525,10 @@ describe('AsyncErrorsContainer', () => {
     it('should track validating state', async () => {
       let wasValidating = false;
 
-      const validationPromise = container.validateAsync(
-        'email',
-        'test@test.com',
-        async () => {
-          wasValidating = container.isPropertyValidating('email');
-          return [];
-        }
-      );
+      const validationPromise = container.validateAsync('email', 'test@test.com', async () => {
+        wasValidating = container.isPropertyValidating('email');
+        return [];
+      });
 
       await validationPromise;
       expect(wasValidating).toBe(true);
@@ -579,13 +560,11 @@ describe('Zod Integration', () => {
 
   it('should validate single field', () => {
     const container = new ErrorsContainer<TestForm>();
-    const isValid = validateFieldWithZod(
-      container,
-      schema,
-      'email',
-      'invalid',
-      { username: 'valid', email: '', password: '12345678' }
-    );
+    const isValid = validateFieldWithZod(container, schema, 'email', 'invalid', {
+      username: 'valid',
+      email: '',
+      password: '12345678',
+    });
 
     expect(isValid).toBe(false);
     expect(container.getErrors('email')).toContain('Invalid email format');

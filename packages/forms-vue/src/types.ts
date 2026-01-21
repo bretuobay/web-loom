@@ -1,11 +1,5 @@
 import type { Ref, ComputedRef } from 'vue';
-import type {
-  FormInstance,
-  FormState,
-  FormConfig,
-  InferFormValues,
-  InferFormOutput,
-} from '@web-loom/forms-core';
+import type { FormInstance, FormState, FormConfig, InferFormValues, InferFormOutput } from '@web-loom/forms-core';
 import type { ZodSchema } from 'zod';
 
 /**

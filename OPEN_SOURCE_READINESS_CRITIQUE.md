@@ -12,16 +12,16 @@ Web Loom represents **substantial technical achievement** with sophisticated arc
 
 ### Overall Readiness: 6/10
 
-| Category | Score | Status |
-|----------|-------|--------|
-| **Technical Quality** | 8/10 | ✅ Strong |
-| **Documentation** | 7/10 | ✅ Good |
-| **Testing** | 6/10 | ⚠️ Uneven |
-| **Legal/License** | 2/10 | ❌ Critical Gap |
-| **Community Guidelines** | 1/10 | ❌ Critical Gap |
-| **CI/CD** | 7/10 | ✅ Good |
-| **Security** | 5/10 | ⚠️ Needs Work |
-| **Publishing Readiness** | 6/10 | ⚠️ Partial |
+| Category                 | Score | Status          |
+| ------------------------ | ----- | --------------- |
+| **Technical Quality**    | 8/10  | ✅ Strong       |
+| **Documentation**        | 7/10  | ✅ Good         |
+| **Testing**              | 6/10  | ⚠️ Uneven       |
+| **Legal/License**        | 2/10  | ❌ Critical Gap |
+| **Community Guidelines** | 1/10  | ❌ Critical Gap |
+| **CI/CD**                | 7/10  | ✅ Good         |
+| **Security**             | 5/10  | ⚠️ Needs Work   |
+| **Publishing Readiness** | 6/10  | ⚠️ Partial      |
 
 ---
 
@@ -32,18 +32,21 @@ Web Loom represents **substantial technical achievement** with sophisticated arc
 **Status**: No LICENSE file in repository root
 
 **Impact**:
+
 - **Legally unusable** - Without an explicit license, all rights are reserved by default
 - Contributors cannot legally contribute
 - Users cannot legally use, modify, or distribute the code
 - Cannot publish to npm without legal clarity
 
 **Action Required**:
+
 ```bash
 # Add LICENSE file to repository root
 # All packages declare "license": "MIT" in package.json, so use MIT
 ```
 
 **Recommendation**: Add MIT License
+
 ```
 MIT License
 
@@ -69,6 +72,7 @@ SOFTWARE.
 ```
 
 **Also Required**:
+
 - Add LICENSE or LICENSE.md to each publishable package's `files` field in package.json
 - Ensure all packages reference the same license
 
@@ -79,6 +83,7 @@ SOFTWARE.
 **Status**: No contribution guidelines
 
 **Impact**:
+
 - Contributors don't know how to contribute
 - No code style guidelines
 - No PR process documented
@@ -91,12 +96,14 @@ SOFTWARE.
 # Contributing to Web Loom
 
 ## Getting Started
+
 - Fork the repository
 - Clone your fork
 - Install dependencies: `npm install`
 - Create a feature branch: `git checkout -b feature/your-feature`
 
 ## Development Workflow
+
 1. Make your changes
 2. Write tests for your changes
 3. Run tests: `npm test`
@@ -105,7 +112,9 @@ SOFTWARE.
 6. Build: `npm run build`
 
 ## Commit Messages
+
 Use conventional commits:
+
 - `feat: add new feature`
 - `fix: resolve bug`
 - `docs: update documentation`
@@ -113,6 +122,7 @@ Use conventional commits:
 - `refactor: code refactoring`
 
 ## Pull Request Process
+
 1. Update README.md if needed
 2. Update CHANGELOG.md
 3. Ensure all tests pass
@@ -120,17 +130,20 @@ Use conventional commits:
 5. Squash commits before merge
 
 ## Code Style
+
 - Follow ESLint rules
 - Use Prettier for formatting
 - Write TypeScript with strict types
 - Document public APIs with JSDoc
 
 ## Testing
+
 - Write unit tests for all new features
 - Aim for 80%+ coverage
 - Test across frameworks when applicable
 
 ## Package Development
+
 - Use workspace protocol for internal deps
 - Update package.json version following semver
 - Build before publishing
@@ -143,6 +156,7 @@ Use conventional commits:
 **Status**: No code of conduct
 
 **Impact**:
+
 - No community standards defined
 - No enforcement mechanism for inappropriate behavior
 - GitHub shows warning: "No code of conduct"
@@ -151,10 +165,12 @@ Use conventional commits:
 **Action Required**: Add Contributor Covenant or similar
 
 **Recommendation**: Use Contributor Covenant 2.1
+
 ```markdown
 # Contributor Covenant Code of Conduct
 
 ## Our Pledge
+
 We as members, contributors, and leaders pledge to make participation in our
 community a harassment-free experience for everyone, regardless of age, body
 size, visible or invisible disability, ethnicity, sex characteristics, gender
@@ -163,7 +179,9 @@ nationality, personal appearance, race, caste, color, religion, or sexual
 identity and orientation.
 
 ## Our Standards
+
 Examples of behavior that contributes to a positive environment:
+
 - Using welcoming and inclusive language
 - Being respectful of differing viewpoints and experiences
 - Gracefully accepting constructive criticism
@@ -171,6 +189,7 @@ Examples of behavior that contributes to a positive environment:
 - Showing empathy towards other community members
 
 ## Enforcement
+
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement at
 [INSERT CONTACT EMAIL].
@@ -185,6 +204,7 @@ All complaints will be reviewed and investigated promptly and fairly.
 **Status**: No security policy
 
 **Impact**:
+
 - No process for reporting vulnerabilities
 - Security researchers don't know how to contact maintainers
 - GitHub shows warning: "No security policy"
@@ -207,6 +227,7 @@ If you discover a security vulnerability, please email:
 **security@[your-domain].com**
 
 Please include:
+
 - Description of the vulnerability
 - Steps to reproduce
 - Potential impact
@@ -242,6 +263,7 @@ We will respond within 48 hours and provide a timeline for a fix.
    - Fix: `npm audit fix --force` (breaking change)
 
 **Action Required**:
+
 ```bash
 # 1. Fix non-breaking issues
 npm audit fix
@@ -268,6 +290,7 @@ npm run build
 **Issue**: Packages missing repository field in package.json
 
 **Current State**:
+
 ```json
 {
   "name": "@web-loom/mvvm-core",
@@ -278,6 +301,7 @@ npm run build
 ```
 
 **Action Required**: Add to ALL package.json files:
+
 ```json
 {
   "repository": {
@@ -297,6 +321,7 @@ npm run build
 ```
 
 **Impact**: Without these fields:
+
 - npm package pages lack links to source code
 - Users can't easily report bugs
 - Reduced discoverability
@@ -308,19 +333,20 @@ npm run build
 
 **Analysis**:
 
-| Package | Test Files | Source Files | Ratio | Status |
-|---------|-----------|--------------|-------|--------|
-| ui-core | 35 | 34 | 1:1 | ✅ Excellent |
-| ui-patterns | 17 | 13 | 1.3:1 | ✅ Excellent |
-| mvvm-core | 15 | 45 | 1:3 | ✅ Good |
-| query-core | 4 | 12 | 1:3 | ✅ Good |
-| **plugin-core** | **1** | **11** | **1:11** | ❌ **Poor** |
-| event-bus-core | 1 | 4 | 1:4 | ⚠️ Minimal |
-| store-core | 2 | 3 | 1:1.5 | ⚠️ Minimal |
-| forms-core | 3 | 10 | 1:3.3 | ⚠️ Minimal |
-| router-core | 3 | 8 | 1:2.7 | ⚠️ Minimal |
+| Package         | Test Files | Source Files | Ratio    | Status       |
+| --------------- | ---------- | ------------ | -------- | ------------ |
+| ui-core         | 35         | 34           | 1:1      | ✅ Excellent |
+| ui-patterns     | 17         | 13           | 1.3:1    | ✅ Excellent |
+| mvvm-core       | 15         | 45           | 1:3      | ✅ Good      |
+| query-core      | 4          | 12           | 1:3      | ✅ Good      |
+| **plugin-core** | **1**      | **11**       | **1:11** | ❌ **Poor**  |
+| event-bus-core  | 1          | 4            | 1:4      | ⚠️ Minimal   |
+| store-core      | 2          | 3            | 1:1.5    | ⚠️ Minimal   |
+| forms-core      | 3          | 10           | 1:3.3    | ⚠️ Minimal   |
+| router-core     | 3          | 8            | 1:2.7    | ⚠️ Minimal   |
 
 **Critical Findings**:
+
 - ✅ **81 total test files** - Good foundation
 - ✅ **Vitest 3.2.4** - Modern test framework
 - ✅ **Testing Library integration** - Proper React/Vue testing
@@ -329,6 +355,7 @@ npm run build
 - ❌ **No coverage reporting** configured
 
 **Failing Tests Detected**:
+
 ```
 forms-vanilla: No tests/broken setup
 forms-react: Test failures
@@ -337,6 +364,7 @@ design-core: Worker exit errors
 ```
 
 **Action Required**:
+
 1. **Fix failing test suites** (forms-react, forms-vanilla, design-core, store-core)
 2. **Expand plugin-core tests** - Currently 1:11 ratio, aim for 1:2-3
 3. **Add coverage reporting**:
@@ -369,6 +397,7 @@ design-core: Worker exit errors
 **Analysis**: Most core packages have READMEs, but quality varies
 
 **Gaps Identified**:
+
 - Some packages lack installation instructions
 - API documentation inconsistent
 - Missing "Quick Start" sections in some packages
@@ -404,6 +433,7 @@ npm install @web-loom/[package-name]
 [Description]
 
 **Parameters:**
+
 - `param1` (type): Description
 - `param2` (type): Description
 
@@ -421,12 +451,15 @@ npm install @web-loom/[package-name]
 ## Framework Integration
 
 ### React
+
 [React-specific usage]
 
 ### Vue
+
 [Vue-specific usage]
 
 ### Angular
+
 [Angular-specific usage]
 
 ## Troubleshooting
@@ -452,6 +485,7 @@ MIT
 **Status**: No CHANGELOG files detected
 
 **Impact**:
+
 - Users can't track changes between versions
 - Difficult to understand breaking changes
 - Poor upgrade experience
@@ -472,27 +506,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.4] - 2025-01-15
 
 ### Added
+
 - New feature X
 - Support for Y
 
 ### Changed
+
 - Improved performance of Z
 - Updated API for better consistency
 
 ### Deprecated
+
 - Feature A (will be removed in 1.0.0)
 
 ### Removed
+
 - Deprecated feature B
 
 ### Fixed
+
 - Bug in C
 - Issue with D
 
 ### Security
+
 - Fixed vulnerability in E
 
 ## [0.5.3] - 2025-01-01
+
 ...
 ```
 
@@ -507,6 +548,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Current State**: Next.js docs app exists in monorepo
 
 **Action Required**:
+
 1. **Deploy docs site** to Vercel/Netlify/GitHub Pages
 2. **Add documentation URL** to README.md and package.json
 3. **Comprehensive guides**:
@@ -520,6 +562,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Contributing Guide
 
 **Recommendation**: Use Docusaurus, VitePress, or existing Next.js app with:
+
 - TypeDoc for API documentation
 - MDX for rich content
 - Code sandboxes (CodeSandbox, StackBlitz)
@@ -535,10 +578,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Issue**: Mixed naming conventions
 
 **Current State**:
+
 - `@web-loom/*` - Scoped packages (good)
 - `@repo/*` - Internal-only packages (not for npm)
 
 **Packages marked `private: false` but using `@repo/*` scope**:
+
 ```
 @repo/models
 @repo/view-models
@@ -546,12 +591,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 
 **Action Required**:
+
 1. Decide if `@repo/*` packages should be publishable
 2. If yes, rename to `@web-loom/*`
 3. If no, mark as `"private": true` in package.json
 4. Update all cross-package dependencies
 
 **Recommendation**:
+
 - `@web-loom/*` - All public packages
 - Keep `@repo/eslint-config`, `@repo/typescript-config` as private
 
@@ -563,10 +610,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Action Required**: Create RELEASING.md:
 
-```markdown
+````markdown
 # Release Process
 
 ## Prerequisites
+
 - Maintainer access to npm @web-loom scope
 - GitHub repository write access
 - npm account with 2FA enabled
@@ -574,17 +622,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Steps
 
 ### 1. Version Bump
+
 \`\`\`bash
+
 # Bump version in package.json
+
 cd packages/[package-name]
 npm version patch|minor|major
 \`\`\`
 
 ### 2. Update Changelog
+
 - Add release notes to CHANGELOG.md
 - Document breaking changes
 
 ### 3. Build & Test
+
 \`\`\`bash
 npm run build
 npm run test
@@ -592,27 +645,32 @@ npm run check-types
 \`\`\`
 
 ### 4. Publish to npm
+
 \`\`\`bash
 npm publish --access public
 \`\`\`
 
 ### 5. Create GitHub Release
+
 - Tag: v[version]
 - Title: [Package] v[version]
 - Copy CHANGELOG entry
 
 ### 6. Announce
+
 - Twitter/X
 - Discord/Slack
 - Dev.to/Reddit
-\`\`\`
+  \`\`\`
 
 **Recommendation**: Use `Lerna` or `Changesets` for monorepo releases:
+
 ```bash
 npx changeset
 npx changeset version
 npx changeset publish
 ```
+````
 
 ---
 
@@ -621,12 +679,14 @@ npx changeset publish
 **Issue**: No defined support channels
 
 **Action Required**: Set up:
+
 1. **GitHub Discussions** - Q&A, ideas, showcases
 2. **Discord/Slack** - Real-time community support
 3. **Twitter/X** - Announcements
 4. **Stack Overflow tag** - `web-loom`
 
 **Add to README**:
+
 ```markdown
 ## Community & Support
 
@@ -644,11 +704,13 @@ npx changeset publish
 **Issue**: Limited keywords in package.json
 
 **Current Keywords** (mvvm-core):
+
 ```json
 ["mvvm", "rxjs", "zod", "web-framework", "frontend", "react", "angular", "vue", "typescript", "dashboard"]
 ```
 
 **Recommended Keywords** (improve discoverability):
+
 ```json
 [
   "mvvm",
@@ -685,12 +747,14 @@ npx changeset publish
 **Issue**: CI runs tests but doesn't report coverage
 
 **Current CI**:
+
 ```yaml
 - name: Run tests for @web-loom/mvvm-core
   run: npm test --workspace=@web-loom/mvvm-core
 ```
 
 **Action Required**: Add coverage reporting:
+
 ```yaml
 - name: Run tests with coverage
   run: npm test --workspace=@web-loom/mvvm-core -- --coverage
@@ -703,6 +767,7 @@ npx changeset publish
 ```
 
 **Add Badges** to README.md:
+
 ```markdown
 [![codecov](https://codecov.io/gh/[user]/web-loom/branch/main/graph/badge.svg)](https://codecov.io/gh/[user]/web-loom)
 [![Build Status](https://github.com/[user]/web-loom/workflows/CI/badge.svg)](https://github.com/[user]/web-loom/actions)
@@ -717,20 +782,21 @@ npx changeset publish
 **Recommendation**: Add Dependabot or Renovate
 
 **.github/dependabot.yml**:
+
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     open-pull-requests-limit: 10
     groups:
       dev-dependencies:
         patterns:
-          - "@types/*"
-          - "eslint*"
-          - "prettier*"
+          - '@types/*'
+          - 'eslint*'
+          - 'prettier*'
 ```
 
 ---
@@ -738,6 +804,7 @@ updates:
 ### 17. No Benchmarking/Performance Testing
 
 **Recommendation**: Add performance benchmarks for critical packages:
+
 - query-core (cache performance)
 - store-core (state updates)
 - mvvm-core (observable subscriptions)
@@ -751,6 +818,7 @@ Use `vitest bench` or `benchmark.js`.
 **Issue**: UI packages lack a11y documentation
 
 **Recommendation**: Document WCAG compliance:
+
 - Keyboard navigation patterns
 - Screen reader support
 - ARIA attributes
@@ -763,6 +831,7 @@ Add to ui-core/ui-patterns READMEs.
 ### 19. No Visual Regression Testing
 
 **Recommendation**: Add visual regression tests for UI patterns:
+
 - Chromatic
 - Percy
 - Playwright with screenshot comparison
@@ -774,6 +843,7 @@ Add to ui-core/ui-patterns READMEs.
 **Issue**: Example apps (mvvm-react, mvvm-vue, etc.) not deployed
 
 **Recommendation**: Deploy to Vercel/Netlify for live demos
+
 - Add "Live Demo" links to README
 - Helps users understand capabilities quickly
 
@@ -833,6 +903,7 @@ Add to ui-core/ui-patterns READMEs.
 ## Recommended Release Checklist
 
 ### Phase 1: Legal & Community (Week 1)
+
 - [ ] Add LICENSE file to repository root
 - [ ] Add LICENSE to each package's published files
 - [ ] Create CONTRIBUTING.md
@@ -841,6 +912,7 @@ Add to ui-core/ui-patterns READMEs.
 - [ ] Add repository/bugs/homepage to all package.json files
 
 ### Phase 2: Testing & Security (Week 2)
+
 - [ ] Fix failing test suites (forms-react, forms-vanilla, design-core, store-core)
 - [ ] Expand plugin-core test coverage (1:11 → 1:2-3 ratio)
 - [ ] Add coverage reporting to all packages
@@ -850,6 +922,7 @@ Add to ui-core/ui-patterns READMEs.
 - [ ] Re-test after security fixes
 
 ### Phase 3: Documentation (Week 3)
+
 - [ ] Deploy documentation site (docs app)
 - [ ] Add CHANGELOG.md to all packages
 - [ ] Standardize README.md templates
@@ -858,6 +931,7 @@ Add to ui-core/ui-patterns READMEs.
 - [ ] Document troubleshooting
 
 ### Phase 4: Publishing Setup (Week 4)
+
 - [ ] Register npm organization: `@web-loom`
 - [ ] Add npm credentials to GitHub Secrets
 - [ ] Test publish workflow on staging
@@ -866,6 +940,7 @@ Add to ui-core/ui-patterns READMEs.
 - [ ] Optimize package keywords for discoverability
 
 ### Phase 5: Community & Launch (Week 5)
+
 - [ ] Set up GitHub Discussions
 - [ ] Create Discord/Slack community
 - [ ] Add community links to README
@@ -875,6 +950,7 @@ Add to ui-core/ui-patterns READMEs.
 - [ ] Prepare social media content
 
 ### Phase 6: Launch (Week 6)
+
 - [ ] Publish v1.0.0 to npm
 - [ ] Create GitHub release
 - [ ] Post on Twitter/X
@@ -888,12 +964,14 @@ Add to ui-core/ui-patterns READMEs.
 ## Post-Launch Recommendations
 
 ### Weeks 1-4 After Launch
+
 - Monitor GitHub issues and respond quickly
 - Engage with community feedback
 - Fix critical bugs immediately
 - Release patches as needed
 
 ### Months 2-3
+
 - Publish tutorial series
 - Create video walkthroughs
 - Write comparison articles (Web Loom vs Redux/Zustand/React Query)
@@ -901,6 +979,7 @@ Add to ui-core/ui-patterns READMEs.
 - Conference talk proposals
 
 ### Months 3-6
+
 - Establish governance model
 - Onboard core contributors
 - Create roadmap for v2.0
@@ -913,6 +992,7 @@ Add to ui-core/ui-patterns READMEs.
 **Do NOT publish yet.** Complete Phase 1-3 (Legal, Testing, Documentation) as **minimum viable requirements**.
 
 ### Critical Path to Launch:
+
 1. **Week 1**: Add LICENSE, CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md
 2. **Week 2**: Fix failing tests, expand plugin-core coverage, fix security vulnerabilities
 3. **Week 3**: Deploy docs site, add CHANGELOGs, standardize READMEs
@@ -920,6 +1000,7 @@ Add to ui-core/ui-patterns READMEs.
 5. **Week 6**: Launch v1.0.0
 
 ### Success Metrics to Track:
+
 - npm downloads
 - GitHub stars
 - Contributors
@@ -927,6 +1008,7 @@ Add to ui-core/ui-patterns READMEs.
 - Community engagement (Discord members, discussions)
 
 ### Risk Mitigation:
+
 - Start with beta release (v0.9.0) to gather feedback
 - Gradual rollout (core packages first, then patterns)
 - Clear deprecation policy
@@ -939,6 +1021,7 @@ Add to ui-core/ui-patterns READMEs.
 Web Loom is a **technically impressive project** with solid architecture and comprehensive functionality. However, it lacks the **legal, testing, and community infrastructure** required for successful open source launch.
 
 **Primary Blockers**:
+
 1. No LICENSE (legal blocker)
 2. No contribution guidelines (community blocker)
 3. Uneven test coverage with failing tests (quality blocker)

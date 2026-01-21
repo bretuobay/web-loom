@@ -7,7 +7,6 @@ export interface TooltipPosition {
 
 export class TooltipManager {
   private tooltipElement?: HTMLElement;
-  private container?: HTMLElement;
 
   constructor(private config?: TooltipConfig) {}
 
@@ -15,8 +14,6 @@ export class TooltipManager {
     if (this.tooltipElement) {
       return;
     }
-
-    this.container = container;
     const tooltip = document.createElement('div');
     tooltip.className = 'charts-core-tooltip';
     tooltip.style.position = 'absolute';

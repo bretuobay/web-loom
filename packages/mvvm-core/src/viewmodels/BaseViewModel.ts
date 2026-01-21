@@ -1,7 +1,8 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import { map, startWith, takeUntil } from 'rxjs/operators';
 import { ZodError } from 'zod';
-import { BaseModel } from '../models/BaseModel';
+import type { BaseModel, IDisposable } from '../models/BaseModel';
+import type { ICommand } from '../commands/Command';
 
 /**
  * @class BaseViewModel
@@ -13,6 +14,7 @@ import { BaseModel } from '../models/BaseModel';
 export class BaseViewModel<TModel extends BaseModel<any, any>> {
   protected readonly _subscriptions = new Subscription();
   protected readonly _destroy$ = new Subject<void>(); // Used with takeUntil for disposal
+  private readonly _registeredCommands: ICommand<any, any>[] = [];
 
   // Expose observables directly from the injected model
   //    TODO: check for reason why we need to use @ts-ignore here
@@ -61,11 +63,51 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
   }
 
   /**
-   * Disposes of all RxJS subscriptions managed by this ViewModel.
+   * Register a command for automatic disposal when ViewModel is disposed.
+   * Returns the command for convenient assignment.
+   *
+   * @param command The command to register
+   * @returns The same command (for assignment chaining)
+   *
+   * @example
+   * ```typescript
+   * class MyViewModel extends BaseViewModel<MyModel> {
+   *   public readonly saveCommand = this.registerCommand(
+   *     new Command(() => this.save())
+   *   );
+   *
+   *   public readonly deleteCommand = this.registerCommand(
+   *     new Command(() => this.delete(), this.canDelete$)
+   *   );
+   * }
+   * ```
+   */
+  protected registerCommand<TParam, TResult>(command: ICommand<TParam, TResult>): ICommand<TParam, TResult> {
+    this._registeredCommands.push(command);
+    return command;
+  }
+
+  /**
+   * Check if an object has a dispose method
+   */
+  private isDisposable(obj: any): obj is IDisposable {
+    return obj && typeof obj.dispose === 'function';
+  }
+
+  /**
+   * Disposes of all RxJS subscriptions and registered commands managed by this ViewModel.
    * This method should be called when the ViewModel is no longer needed
    * to prevent memory leaks.
    */
   public dispose(): void {
+    // Dispose all registered commands
+    this._registeredCommands.forEach((cmd) => {
+      if (this.isDisposable(cmd)) {
+        cmd.dispose();
+      }
+    });
+    this._registeredCommands.length = 0; // Clear array
+
     this._destroy$.next();
     this._destroy$.complete();
     this._subscriptions.unsubscribe();

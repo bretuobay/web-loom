@@ -16,28 +16,30 @@ export class TodoItem extends BaseModel<TodoItemData, any> {
   }
 
   public get id(): string {
-    return this._data$.value!.id;
+    return this.getCurrentData()!.id;
   }
 
   public get text(): string {
-    return this._data$.value!.text;
+    return this.getCurrentData()!.text;
   }
 
   public setText(newText: string): void {
-    if (this._data$.value) {
-      this.setData({ ...this._data$.value, text: newText });
+    const currentData = this.getCurrentData();
+    if (currentData) {
+      this.setData({ ...currentData, text: newText });
     }
   }
 
   public get isCompleted(): boolean {
-    return this._data$.value!.isCompleted;
+    return this.getCurrentData()!.isCompleted;
   }
 
   public toggleCompletion(): void {
-    if (this._data$.value) {
+    const currentData = this.getCurrentData();
+    if (currentData) {
       this.setData({
-        ...this._data$.value,
-        isCompleted: !this._data$.value.isCompleted,
+        ...currentData,
+        isCompleted: !currentData.isCompleted,
       });
     }
   }

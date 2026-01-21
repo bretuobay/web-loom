@@ -205,7 +205,7 @@ export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> extends Ba
   public async create(
     payload: Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[],
   ): Promise<ExtractItemType<TData> | ExtractItemType<TData>[] | undefined> {
-    const originalData = this._data$.getValue();
+    const originalData = this.getCurrentData();
     const isPayloadArray = Array.isArray(payload);
 
     if (isPayloadArray && !Array.isArray(originalData) && originalData !== null) {
@@ -280,7 +280,7 @@ export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> extends Ba
       const createdItemsResults = await Promise.all(createdItemsPromises);
 
       // Success: Update data with server responses
-      let finalData = this._data$.getValue(); // Get current data, which is the optimistic data
+      let finalData = this.getCurrentData(); // Get current data, which is the optimistic data
       if (Array.isArray(finalData)) {
         let tempFinalDataArray = [...(finalData as ExtractItemType<TData>[])];
         createdItemsResults.forEach((createdItem, index) => {
@@ -341,7 +341,7 @@ export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> extends Ba
     id: string,
     payload: Partial<ExtractItemType<TData>>,
   ): Promise<ExtractItemType<TData> | undefined> {
-    const originalData = this._data$.getValue();
+    const originalData = this.getCurrentData();
     let itemToUpdateOriginal: ExtractItemType<TData> | undefined;
     let optimisticData: TData | null = null;
 
@@ -385,7 +385,7 @@ export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> extends Ba
       )) as ExtractItemType<TData>;
 
       // Success: Update data with server response
-      const currentDataAfterRequest = this._data$.getValue();
+      const currentDataAfterRequest = this.getCurrentData();
       if (Array.isArray(currentDataAfterRequest)) {
         this.setData(
           (currentDataAfterRequest as ExtractItemType<TData>[]).map((item: any) =>
@@ -434,7 +434,7 @@ export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> extends Ba
    *          Throws an error if the API request fails (after reverting optimistic changes).
    */
   public async delete(id: string): Promise<void> {
-    const originalData = this._data$.getValue();
+    const originalData = this.getCurrentData();
     let itemWasDeleted = false;
 
     if (Array.isArray(originalData)) {

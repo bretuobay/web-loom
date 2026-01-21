@@ -65,9 +65,7 @@ export class DirtyTracker<T = any> implements IDirtyTrackable {
   /**
    * Observable indicating if data has been modified from initial state
    */
-  public readonly isDirty$: Observable<boolean> = this._isDirty$.pipe(
-    distinctUntilChanged()
-  );
+  public readonly isDirty$: Observable<boolean> = this._isDirty$.pipe(distinctUntilChanged());
 
   /**
    * Current dirty state (synchronous)
@@ -104,7 +102,7 @@ export class DirtyTracker<T = any> implements IDirtyTrackable {
     this.subscription?.unsubscribe();
 
     let isFirst = true;
-    this.subscription = source$.subscribe(value => {
+    this.subscription = source$.subscribe((value) => {
       if (isFirst && treatFirstAsInitial) {
         this.setInitialValue(value);
         isFirst = false;
@@ -219,9 +217,7 @@ Continue in `src/state/DirtyTracker.ts`:
  *
  * @template T Object type with fields to track
  */
-export class FieldDirtyTracker<T extends Record<string, any>>
-  extends DirtyTracker<T> {
-
+export class FieldDirtyTracker<T extends Record<string, any>> extends DirtyTracker<T> {
   /**
    * Check if a specific field is dirty
    */
@@ -244,12 +240,9 @@ export class FieldDirtyTracker<T extends Record<string, any>>
     if (initial === undefined || current === undefined) return [];
 
     const dirtyFields: Array<keyof T> = [];
-    const allKeys = new Set([
-      ...Object.keys(initial),
-      ...Object.keys(current)
-    ]) as Set<keyof T>;
+    const allKeys = new Set([...Object.keys(initial), ...Object.keys(current)]) as Set<keyof T>;
 
-    allKeys.forEach(key => {
+    allKeys.forEach((key) => {
       if (!this.isFieldEqual(initial[key], current[key])) {
         dirtyFields.push(key);
       }
@@ -262,9 +255,7 @@ export class FieldDirtyTracker<T extends Record<string, any>>
    * Observable of dirty field names
    */
   get dirtyFields$(): Observable<Array<keyof T>> {
-    return this.isDirty$.pipe(
-      map(() => this.getDirtyFields())
-    );
+    return this.isDirty$.pipe(map(() => this.getDirtyFields()));
   }
 
   /**
@@ -277,7 +268,7 @@ export class FieldDirtyTracker<T extends Record<string, any>>
     if (!current) return {};
 
     const changes: Partial<T> = {};
-    dirtyFields.forEach(field => {
+    dirtyFields.forEach((field) => {
       changes[field] = current[field];
     });
 
@@ -405,7 +396,7 @@ describe('DirtyTracker', () => {
   describe('isDirty$', () => {
     it('should emit on dirty state changes', async () => {
       const emissions: boolean[] = [];
-      tracker.isDirty$.subscribe(v => emissions.push(v));
+      tracker.isDirty$.subscribe((v) => emissions.push(v));
 
       tracker.setInitialValue({ name: 'John', age: 30 });
       tracker.setCurrentValue({ name: 'Jane', age: 30 });

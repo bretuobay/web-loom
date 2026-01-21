@@ -222,11 +222,7 @@ export const AvatarGroup = forwardRef<HTMLDivElement, AvatarGroupProps>(
             }}
             key="overflow"
           >
-            <Avatar
-              size={size}
-              className={styles.overflowAvatar}
-              aria-label={`${overflowCount} more avatars`}
-            >
+            <Avatar size={size} className={styles.overflowAvatar} aria-label={`${overflowCount} more avatars`}>
               {`+${overflowCount}`}
             </Avatar>
           </span>

@@ -50,9 +50,7 @@ export function ProjectDetailPanel({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Delete “${selectedTask.title}” from ${project.name}? This cannot be undone.`,
-    );
+    const confirmed = window.confirm(`Delete “${selectedTask.title}” from ${project.name}? This cannot be undone.`);
     if (!confirmed) {
       return;
     }

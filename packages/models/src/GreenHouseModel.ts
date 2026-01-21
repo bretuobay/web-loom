@@ -47,7 +47,7 @@ export class GreenHouseModel extends RestfulApiModel<GreenhouseListData, typeof 
   //     //   this.data$ as BehaviorSubject<GreenhouseListData | null>
   //     // ).getValue();
   //     // console.log("[GreenHouseModel] Data after fetch:", latestData);
-  //     console.log(this._data$.getValue());
+  //     console.log(this.getCurrentData());
   //   } catch (error) {
   //     console.error("[GreenHouseModel] Error during fetch:", error);
   //     // Error is already set by super.fetch, but logging it here can be useful.
