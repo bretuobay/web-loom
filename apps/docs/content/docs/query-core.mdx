@@ -1,0 +1,109 @@
+---
+title: 'Query Core'
+summary: 'Document how @web-loom/query-core manages data fetching, caching, subscriptions, and integrates with MVVM Core and Task Flow UI.'
+topicTitle: 'Published Packages'
+topicSlug: 'packages'
+---
+
+# Query Core
+
+`@web-loom/query-core` is the lightweight, framework-neutral query cache that keeps HTTP interactions predictable, shareable, and easy to subscribe to from any renderer. It exposes declarative endpoint definitions, automatic caching, and observable state so you can stop wiring up repeated `fetch` logic and stale-data checks inside every component.
+
+## Installation & initialization
+
+```bash
+npm install @web-loom/query-core
+# or yarn add @web-loom/query-core
+# or pnpm add @web-loom/query-core
+```
+
+```ts
+import QueryCore from '@web-loom/query-core';
+
+const queryCore = new QueryCore({
+  cacheProvider: 'indexedDB',
+  defaultRefetchAfter: 5 * 60 * 1000,
+});
+```
+
+The constructor accepts `QueryCoreOptions` such as `cacheProvider` (`inMemory`, `localStorage`, `indexedDB`, or a custom provider) and a default `refetchAfter` duration in milliseconds.
+
+## Define endpoints
+
+Declare each data source with a unique key, fetcher function, and optional per-endpoint overrides. The method is asynchronous because it may hydrate cached data before returning.
+
+```ts
+await queryCore.defineEndpoint('projects', async () => {
+  const response = await fetch('/api/projects');
+  if (!response.ok) throw new Error('Failed to load projects');
+  return response.json();
+}, {
+  refetchAfter: 2 * 60 * 1000,
+  cacheProvider: 'localStorage',
+});
+```
+
+Each endpoint keeps track of the data payload, `isLoading`, `isError`, `error`, and `lastUpdated` timestamps via an `EndpointState<TData>` object.
+
+## Subscribe & react
+
+Components or viewmodels can subscribe to endpoint state changes and update reactively.
+
+```ts
+const unsubscribe = queryCore.subscribe('projects', (state) => {
+  console.log(state.isLoading ? 'loading' : 'data loaded');
+  if (state.data) {
+    renderProjects(state.data);
+  }
+});
+```
+
+The callback is called immediately with the current state and every time it changes. Call the returned function (or `queryCore.off` equivalent) to stop listening when a view unmounts.
+
+## Manual control
+
+Trigger refetches and cache invalidation explicitly:
+
+```ts
+await queryCore.refetch('projects'); // runs only if stale
+await queryCore.refetch('projects', true); // force refetch
+await queryCore.invalidate('projects'); // clears cache/state
+const snapshot = queryCore.getState('projects');
+```
+
+`refetch` is a no-op while a fetch is already running for that endpoint. `invalidate` removes the cached entry so the next subscriber or `refetch` will fetch fresh data.
+
+## Cache providers
+
+Query Core ships with in-memory, `localStorage`, and `indexedDB` providers, and you can implement the `CacheProvider` interface (`get`, `set`, `remove`, `clearAll`) to integrate custom stores. Choose a global provider or override per endpoint for hybrid strategies.
+
+## Reactive behaviors
+
+- Subscriptions refetch automatically if the cached data is stale based on `refetchAfter`.
+- Window focus and network reconnect events trigger refetches for all currently observed endpoints whose data is stale.
+- Observers always receive a structured clone of the stored data so mutations in one subscriber don't leak to others.
+
+## MVVM Core integration
+
+`@web-loom/mvvm-core` provides `QueryStateModel` and `QueryStateModelView` to wrap Query Core endpoints inside viewmodels. These helpers:
+
+1. Define an endpoint and start observing it within the model.
+2. Map `endpointState` into RxJS observables like `data$`, `isLoading$`, and `error$`.
+3. Expose commands (`refetchCommand`, `invalidateCommand`) for UI actions.
+
+This keeps the viewmodel as the boundary between UI components and the shared cache, while Query Core handles caching and deduplication.
+
+## Task Flow UI & other usage
+
+- `apps/mvvm-react-integrated` stores the `queryCore` instance inside `AppProvider`, defines endpoints such as sensor readings, and exposes `queryCore` in context for viewmodels and components to subscribe to shared data.
+- `apps/task-flow-ui` uses Query Core (via MVVM wrappers or direct subscriptions) to keep project/task lists synchronized across views and background refresh triggers.
+- Packages like `@web-loom/ui-patterns` can rely on query state when coordinating layout data or analytics events, even though they typically depend on viewmodels for data.
+
+## Best practices
+
+1. Prefer centralizing `QueryCore` definitions in a provider so endpoints stay consistent and share caches.
+2. Use typed cache keys (e.g., `projects`, `project-detail-123`) to avoid collisions and enable per-entity invalidation.
+3. Clean up subscriptions (`unsubscribe`) inside lifecycle hooks to avoid memory leaks.
+4. Compose Query Core with MVVM commands and stores for UI state while letting this package manage async data.
+
+Want to deep dive? Check `packages/query-core/README.md` and `packages/mvvm-core/examples/UsingQueryCoreWithMVVM.md` for full API signatures and integration recipes.

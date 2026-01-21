@@ -67,6 +67,9 @@ export default function SupportSidebar() {
                 <li>
                   <SidebarLink href="/docs/viewmodels">ViewModels</SidebarLink>
                 </li>
+                <li>
+                  <SidebarLink href="/docs/mvvm-core">MVVM Core Package</SidebarLink>
+                </li>
                 <li className="pt-4">
                   <SidebarLink href="/docs/mvvm-react-use-case">MVVM in React</SidebarLink>
                 </li>
@@ -75,6 +78,24 @@ export default function SupportSidebar() {
                 </li>
                 <li>
                   <SidebarLink href="/docs/mvvm-angular-use-case">MVVM in Angular</SidebarLink>
+                </li>
+                <li className="pt-4">
+                  <SidebarLink href="/docs/store-core">Store Core</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/event-bus-core">Event Bus Core</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/query-core">Query Core</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/ui-core">UI Core Behaviors</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/ui-patterns">UI Patterns</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/design-core">Design Core</SidebarLink>
                 </li>
               </ul>
             </nav>
