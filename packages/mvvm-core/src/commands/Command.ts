@@ -193,37 +193,41 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
     allConditions.push(...this.additionalCanExecuteConditions);
 
     // Convert observed properties to boolean conditions (truthy check)
-    const propertyConditions = this.observedProperties.map(prop$ =>
+    const propertyConditions = this.observedProperties.map((prop$) =>
       prop$.pipe(
-        map(value => !!value),
+        map((value) => !!value),
         startWith(false), // Assume false until first emission
-        distinctUntilChanged()
-      )
+        distinctUntilChanged(),
+      ),
     );
 
     allConditions.push(...propertyConditions);
 
     // Combine all conditions with manual trigger
-    if (allConditions.length === 1 && this.observedProperties.length === 0 && this.additionalCanExecuteConditions.length === 0) {
+    if (
+      allConditions.length === 1 &&
+      this.observedProperties.length === 0 &&
+      this.additionalCanExecuteConditions.length === 0
+    ) {
       // No additional conditions, just use base with manual trigger
       this._canExecute$ = combineLatest([
         this.baseCanExecute$,
-        this._canExecuteChanged$.pipe(startWith(undefined))
+        this._canExecuteChanged$.pipe(startWith(undefined)),
       ]).pipe(
         map(([canExecute]) => canExecute),
-        distinctUntilChanged()
+        distinctUntilChanged(),
       );
     } else {
       // Combine all conditions
       this._canExecute$ = combineLatest([
         combineLatest(allConditions).pipe(
-          map(results => results.every(r => r === true)),
-          distinctUntilChanged()
+          map((results) => results.every((r) => r === true)),
+          distinctUntilChanged(),
         ),
-        this._canExecuteChanged$.pipe(startWith(undefined))
+        this._canExecuteChanged$.pipe(startWith(undefined)),
       ]).pipe(
         map(([canExecute]) => canExecute),
-        distinctUntilChanged()
+        distinctUntilChanged(),
       );
     }
   }
@@ -273,7 +277,6 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
     }
   }
 }
-
 
 /**
  * @class CommandBuilder

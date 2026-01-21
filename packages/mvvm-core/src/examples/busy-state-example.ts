@@ -39,18 +39,9 @@ class DataDashboardViewModel extends BaseViewModel<BaseModel<any, any>> {
   public readonly loadAllCommand = new Command(async () => {
     // Multiple concurrent operations with individual busy reasons
     await Promise.all([
-      this.busyState.executeBusy(
-        () => this.loadUsers(),
-        'Loading users...'
-      ),
-      this.busyState.executeBusy(
-        () => this.loadOrders(),
-        'Loading orders...'
-      ),
-      this.busyState.executeBusy(
-        () => this.loadAnalytics(),
-        'Loading analytics...'
-      ),
+      this.busyState.executeBusy(() => this.loadUsers(), 'Loading users...'),
+      this.busyState.executeBusy(() => this.loadOrders(), 'Loading orders...'),
+      this.busyState.executeBusy(() => this.loadAnalytics(), 'Loading analytics...'),
     ]);
   });
 
@@ -66,39 +57,36 @@ class DataDashboardViewModel extends BaseViewModel<BaseModel<any, any>> {
 
   public readonly refreshCommand = new Command(async () => {
     // Using executeBusy for automatic cleanup
-    await this.busyState.executeBusy(
-      async () => {
-        await this.loadUsers();
-        await this.loadOrders();
-      },
-      'Refreshing data...'
-    );
+    await this.busyState.executeBusy(async () => {
+      await this.loadUsers();
+      await this.loadOrders();
+    }, 'Refreshing data...');
   });
 
   // Simulated async operations
   private async loadUsers(): Promise<User[]> {
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 1000));
     return [
       { id: '1', name: 'Alice' },
-      { id: '2', name: 'Bob' }
+      { id: '2', name: 'Bob' },
     ];
   }
 
   private async loadOrders(): Promise<Order[]> {
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1500));
     return [
       { id: '1', total: 100 },
-      { id: '2', total: 200 }
+      { id: '2', total: 200 },
     ];
   }
 
   private async loadAnalytics(): Promise<Analytics> {
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 800));
     return { revenue: 5000, users: 150 };
   }
 
   private async saveChanges(): Promise<void> {
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
   }
 
   public override dispose(): void {
@@ -115,14 +103,11 @@ class FormViewModel extends BaseViewModel<BaseModel<any, any>> {
   public readonly isBusy$ = this.busyState.isBusy$;
 
   public readonly validateCommand = new Command(async (data: any) => {
-    return await this.busyState.executeBusy(
-      async () => {
-        // Simulate async validation (e.g., check email uniqueness)
-        await new Promise(r => setTimeout(r, 300));
-        return { isValid: true };
-      },
-      'Validating...'
-    );
+    return await this.busyState.executeBusy(async () => {
+      // Simulate async validation (e.g., check email uniqueness)
+      await new Promise((r) => setTimeout(r, 300));
+      return { isValid: true };
+    }, 'Validating...');
   });
 
   public readonly submitCommand = new Command(async (data: any) => {
@@ -143,11 +128,11 @@ class FormViewModel extends BaseViewModel<BaseModel<any, any>> {
   });
 
   private async validateForm(data: any): Promise<void> {
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 200));
   }
 
   private async submitForm(data: any): Promise<void> {
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
   }
 
   public override dispose(): void {

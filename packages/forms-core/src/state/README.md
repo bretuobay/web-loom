@@ -36,7 +36,7 @@ tracker.setCurrentValue({ name: 'Jane', email: 'john@example.com', age: 30 });
 console.log(tracker.isDirty); // true
 
 // Subscribe to dirty state changes
-tracker.isDirty$.subscribe(isDirty => {
+tracker.isDirty$.subscribe((isDirty) => {
   console.log('Form is dirty:', isDirty);
 });
 
@@ -94,7 +94,7 @@ console.log(tracker.getDirtyFields()); // ['name', 'email']
 console.log(tracker.getChanges()); // { name: 'Jane', email: 'jane@example.com' }
 
 // Subscribe to dirty fields
-tracker.dirtyFields$.subscribe(fields => {
+tracker.dirtyFields$.subscribe((fields) => {
   console.log('Dirty fields:', fields);
 });
 ```
@@ -119,7 +119,7 @@ class EditFormViewModel {
 
     const confirmed = await this.dialogService.confirm(
       'You have unsaved changes. Are you sure you want to leave?',
-      'Unsaved Changes'
+      'Unsaved Changes',
     );
 
     callback(confirmed);

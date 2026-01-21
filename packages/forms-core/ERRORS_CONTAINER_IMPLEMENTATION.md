@@ -99,6 +99,7 @@ Extended functionality for async validation:
 All 41 tests pass successfully:
 
 ### ErrorsContainer Tests (27 tests)
+
 - Setting and getting errors
 - Checking error state
 - Observable error streams
@@ -109,6 +110,7 @@ All 41 tests pass successfully:
 - Disposal
 
 ### AsyncErrorsContainer Tests (10 tests)
+
 - Async validation
 - Validation state tracking
 - Debounced validation
@@ -117,6 +119,7 @@ All 41 tests pass successfully:
 - Disposal with cleanup
 
 ### Zod Integration Tests (4 tests)
+
 - Populating errors from Zod validation
 - Validating entire form
 - Validating single field
@@ -171,13 +174,7 @@ class RegistrationViewModel {
   public readonly hasErrors$ = this.errors.hasErrors$;
 
   updateField<K extends keyof FormData>(field: K, value: FormData[K]): void {
-    validateFieldWithZodContainer(
-      this.errors,
-      schema,
-      field,
-      value,
-      this.formData
-    );
+    validateFieldWithZodContainer(this.errors, schema, field, value, this.formData);
   }
 
   submit(): boolean {
@@ -208,7 +205,7 @@ class EmailValidator {
         const { exists } = await response.json();
         return exists ? ['Email already registered'] : [];
       },
-      500
+      500,
     );
   }
 }
@@ -230,17 +227,8 @@ class PasswordChangeViewModel {
     }
   }
 
-  private validateField<K extends keyof PasswordChangeData>(
-    field: K,
-    value: PasswordChangeData[K]
-  ): void {
-    validateFieldWithZodContainer(
-      this.errors,
-      schema,
-      field,
-      value,
-      this.formData
-    );
+  private validateField<K extends keyof PasswordChangeData>(field: K, value: PasswordChangeData[K]): void {
+    validateFieldWithZodContainer(this.errors, schema, field, value, this.formData);
   }
 }
 ```
@@ -252,11 +240,7 @@ class PasswordChangeViewModel {
 ```typescript
 export { ErrorsContainer } from './validation';
 export { AsyncErrorsContainer } from './validation';
-export { 
-  populateFromZodError, 
-  validateWithZodContainer, 
-  validateFieldWithZodContainer 
-} from './validation';
+export { populateFromZodError, validateWithZodContainer, validateFieldWithZodContainer } from './validation';
 ```
 
 ### Type Definitions
@@ -266,7 +250,7 @@ class ErrorsContainer<T extends Record<string, any>> {
   readonly errorsChanged$: Observable<keyof T | null>;
   readonly hasErrors$: Observable<boolean>;
   get hasErrors(): boolean;
-  
+
   setErrors(propertyName: keyof T, errors: string[]): void;
   getErrors(propertyName: keyof T): string[];
   getErrors$(propertyName: keyof T): Observable<string[]>;
@@ -280,22 +264,21 @@ class ErrorsContainer<T extends Record<string, any>> {
   dispose(): void;
 }
 
-class AsyncErrorsContainer<T extends Record<string, any>> 
-  extends ErrorsContainer<T> {
+class AsyncErrorsContainer<T extends Record<string, any>> extends ErrorsContainer<T> {
   readonly isValidating$: Observable<boolean>;
   readonly validatingProperties$: Observable<Array<keyof T>>;
-  
+
   isPropertyValidating(propertyName: keyof T): boolean;
   validateAsync(
     propertyName: keyof T,
     value: T[keyof T],
-    validator: (value: T[keyof T]) => Promise<string[]>
+    validator: (value: T[keyof T]) => Promise<string[]>,
   ): Promise<void>;
   validateAsyncDebounced(
     propertyName: keyof T,
     value: T[keyof T],
     validator: (value: T[keyof T]) => Promise<string[]>,
-    debounceMs?: number
+    debounceMs?: number,
   ): () => void;
   cancelPendingValidation(propertyName: keyof T): void;
   cancelAllPendingValidations(): void;

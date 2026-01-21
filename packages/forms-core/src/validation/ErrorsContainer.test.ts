@@ -76,9 +76,7 @@ describe('ErrorsContainer', () => {
     });
 
     it('should emit when errors change', async () => {
-      const errorsPromise = firstValueFrom(
-        container.getErrors$('email').pipe(take(3), toArray())
-      );
+      const errorsPromise = firstValueFrom(container.getErrors$('email').pipe(take(3), toArray()));
 
       container.setErrors('email', ['Error 1']);
       container.setErrors('email', ['Error 2']);
@@ -89,7 +87,7 @@ describe('ErrorsContainer', () => {
 
     it('should not emit duplicate values', async () => {
       const emissions: string[][] = [];
-      const sub = container.getErrors$('email').subscribe(e => emissions.push(e));
+      const sub = container.getErrors$('email').subscribe((e) => emissions.push(e));
 
       container.setErrors('email', ['Error']);
       container.setErrors('email', ['Error']);
@@ -121,9 +119,7 @@ describe('ErrorsContainer', () => {
     });
 
     it('should emit true when errors are set', async () => {
-      const promise = firstValueFrom(
-        container.hasPropertyErrors$('username').pipe(take(2), toArray())
-      );
+      const promise = firstValueFrom(container.hasPropertyErrors$('username').pipe(take(2), toArray()));
 
       container.setErrors('username', ['Error']);
 
@@ -139,9 +135,7 @@ describe('ErrorsContainer', () => {
     });
 
     it('should emit true when any errors exist', async () => {
-      const promise = firstValueFrom(
-        container.hasErrors$.pipe(take(2), toArray())
-      );
+      const promise = firstValueFrom(container.hasErrors$.pipe(take(2), toArray()));
 
       container.setErrors('username', ['Error']);
 
@@ -179,7 +173,7 @@ describe('ErrorsContainer', () => {
       const record = container.getAllErrorsAsRecord();
       expect(record).toEqual({
         username: ['Error 1'],
-        email: ['Error 2', 'Error 3']
+        email: ['Error 2', 'Error 3'],
       });
     });
   });
@@ -238,11 +232,7 @@ describe('AsyncErrorsContainer', () => {
 
   describe('validateAsync', () => {
     it('should set errors from async validator', async () => {
-      await container.validateAsync(
-        'email',
-        'test@test.com',
-        async () => ['Email already exists']
-      );
+      await container.validateAsync('email', 'test@test.com', async () => ['Email already exists']);
 
       expect(container.getErrors('email')).toEqual(['Email already exists']);
     });
@@ -250,11 +240,7 @@ describe('AsyncErrorsContainer', () => {
     it('should clear errors when validator returns empty array', async () => {
       container.setErrors('email', ['Old error']);
 
-      await container.validateAsync(
-        'email',
-        'test@test.com',
-        async () => []
-      );
+      await container.validateAsync('email', 'test@test.com', async () => []);
 
       expect(container.getErrors('email')).toEqual([]);
     });
@@ -262,15 +248,11 @@ describe('AsyncErrorsContainer', () => {
     it('should track validating state', async () => {
       let wasValidating = false;
 
-      const validationPromise = container.validateAsync(
-        'email',
-        'test@test.com',
-        async () => {
-          wasValidating = container.isPropertyValidating('email');
-          await new Promise(resolve => setTimeout(resolve, 10));
-          return [];
-        }
-      );
+      const validationPromise = container.validateAsync('email', 'test@test.com', async () => {
+        wasValidating = container.isPropertyValidating('email');
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        return [];
+      });
 
       await validationPromise;
       expect(wasValidating).toBe(true);
@@ -279,16 +261,12 @@ describe('AsyncErrorsContainer', () => {
 
     it('should emit isValidating$ observable', async () => {
       const emissions: boolean[] = [];
-      const sub = container.isValidating$.subscribe(v => emissions.push(v));
+      const sub = container.isValidating$.subscribe((v) => emissions.push(v));
 
-      await container.validateAsync(
-        'email',
-        'test@test.com',
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 10));
-          return [];
-        }
-      );
+      await container.validateAsync('email', 'test@test.com', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        return [];
+      });
 
       sub.unsubscribe();
 
@@ -304,7 +282,7 @@ describe('AsyncErrorsContainer', () => {
       const cancel1 = container.validateAsyncDebounced('email', 'test1', validator, 50);
       const cancel2 = container.validateAsyncDebounced('email', 'test2', validator, 50);
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Only the last call should execute
       expect(validator).toHaveBeenCalledTimes(1);
@@ -317,7 +295,7 @@ describe('AsyncErrorsContainer', () => {
       const cancel = container.validateAsyncDebounced('email', 'test', validator, 50);
       cancel();
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(validator).not.toHaveBeenCalled();
     });
@@ -330,7 +308,7 @@ describe('AsyncErrorsContainer', () => {
       container.validateAsyncDebounced('email', 'test', validator, 50);
       container.cancelPendingValidation('email');
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(validator).not.toHaveBeenCalled();
     });
@@ -344,7 +322,7 @@ describe('AsyncErrorsContainer', () => {
       container.validateAsyncDebounced('username', 'test2', validator, 50);
       container.cancelAllPendingValidations();
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(validator).not.toHaveBeenCalled();
     });
@@ -353,20 +331,16 @@ describe('AsyncErrorsContainer', () => {
   describe('validatingProperties$', () => {
     it('should emit properties being validated', async () => {
       const emissions: Array<Array<keyof TestForm>> = [];
-      const sub = container.validatingProperties$.subscribe(v => emissions.push(v));
+      const sub = container.validatingProperties$.subscribe((v) => emissions.push(v));
 
-      await container.validateAsync(
-        'email',
-        'test@test.com',
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 10));
-          return [];
-        }
-      );
+      await container.validateAsync('email', 'test@test.com', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        return [];
+      });
 
       sub.unsubscribe();
 
-      expect(emissions.some(e => e.includes('email'))).toBe(true);
+      expect(emissions.some((e) => e.includes('email'))).toBe(true);
     });
   });
 
@@ -377,7 +351,7 @@ describe('AsyncErrorsContainer', () => {
       container.validateAsyncDebounced('email', 'test', validator, 50);
       container.dispose();
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(validator).not.toHaveBeenCalled();
     });
@@ -424,13 +398,11 @@ describe('Zod Integration', () => {
   describe('validateFieldWithZodContainer', () => {
     it('should validate single field', () => {
       const container = new ErrorsContainer<TestForm>();
-      const isValid = validateFieldWithZodContainer(
-        container,
-        schema,
-        'email',
-        'invalid',
-        { username: 'valid', email: '', password: '12345678' }
-      );
+      const isValid = validateFieldWithZodContainer(container, schema, 'email', 'invalid', {
+        username: 'valid',
+        email: '',
+        password: '12345678',
+      });
 
       expect(isValid).toBe(false);
       expect(container.getErrors('email')).toContain('Invalid email format');
@@ -441,13 +413,11 @@ describe('Zod Integration', () => {
       const container = new ErrorsContainer<TestForm>();
       container.setErrors('email', ['Old error']);
 
-      const isValid = validateFieldWithZodContainer(
-        container,
-        schema,
-        'email',
-        'valid@email.com',
-        { username: 'valid', email: '', password: '12345678' }
-      );
+      const isValid = validateFieldWithZodContainer(container, schema, 'email', 'valid@email.com', {
+        username: 'valid',
+        email: '',
+        password: '12345678',
+      });
 
       expect(isValid).toBe(true);
       expect(container.getErrors('email')).toEqual([]);

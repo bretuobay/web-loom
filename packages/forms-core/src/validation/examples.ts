@@ -27,7 +27,7 @@ export function basicErrorsContainerExample() {
   console.log('Has errors:', errors.hasErrors);
 
   // Subscribe to errors
-  const subscription = errors.getErrors$('email').subscribe(emailErrors => {
+  const subscription = errors.getErrors$('email').subscribe((emailErrors) => {
     console.log('Email errors changed:', emailErrors);
   });
 
@@ -82,13 +82,7 @@ export function fieldLevelValidationExample() {
   };
 
   // Validate only email field
-  const isEmailValid = validateFieldWithZodContainer(
-    errors,
-    loginSchema,
-    'email',
-    'test@example.com',
-    currentData
-  );
+  const isEmailValid = validateFieldWithZodContainer(errors, loginSchema, 'email', 'test@example.com', currentData);
 
   console.log('Email valid:', isEmailValid);
   console.log('Email errors:', errors.getErrors('email'));
@@ -105,18 +99,14 @@ export async function asyncValidationExample() {
   const errors = new AsyncErrorsContainer<LoginFormData>();
 
   // Simulate async email uniqueness check
-  await errors.validateAsync(
-    'email',
-    'test@example.com',
-    async (email: string) => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 100));
+  await errors.validateAsync('email', 'test@example.com', async (email: string) => {
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Check if email exists
-      const emailExists = email === 'existing@example.com';
-      return emailExists ? ['Email already registered'] : [];
-    }
-  );
+    // Check if email exists
+    const emailExists = email === 'existing@example.com';
+    return emailExists ? ['Email already registered'] : [];
+  });
 
   console.log('Email errors:', errors.getErrors('email'));
 
@@ -141,10 +131,10 @@ export function debouncedValidationExample() {
         email,
         async (value: string) => {
           console.log('Validating:', value);
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise((resolve) => setTimeout(resolve, 50));
           return value.includes('@') ? [] : ['Invalid email'];
         },
-        300 // 300ms debounce
+        300, // 300ms debounce
       );
     }, index * 50);
   });
@@ -159,15 +149,17 @@ export function debouncedValidationExample() {
 // Example 6: Form ViewModel with ErrorsContainer
 // ============================================================================
 
-const registrationSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters'),
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
+const registrationSchema = z
+  .object({
+    username: z.string().min(3, 'Username must be at least 3 characters'),
+    email: z.string().email('Invalid email format'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 type RegistrationFormData = z.infer<typeof registrationSchema>;
 
@@ -182,29 +174,16 @@ export class RegistrationFormViewModel {
   public readonly confirmPasswordErrors$ = this.errors.getErrors$('confirmPassword');
   public readonly hasErrors$ = this.errors.hasErrors$;
 
-  updateField<K extends keyof RegistrationFormData>(
-    field: K,
-    value: RegistrationFormData[K]
-  ): void {
+  updateField<K extends keyof RegistrationFormData>(field: K, value: RegistrationFormData[K]): void {
     this.formData[field] = value;
 
     // Validate field
-    validateFieldWithZodContainer(
-      this.errors,
-      registrationSchema,
-      field,
-      value,
-      this.formData
-    );
+    validateFieldWithZodContainer(this.errors, registrationSchema, field, value, this.formData);
   }
 
   submit(): boolean {
     // Validate entire form
-    const isValid = validateWithZodContainer(
-      this.errors,
-      registrationSchema,
-      this.formData
-    );
+    const isValid = validateWithZodContainer(this.errors, registrationSchema, this.formData);
 
     if (!isValid) {
       console.log('Form has errors:', this.errors.getAllErrorsAsRecord());
@@ -247,7 +226,7 @@ export class EmailUniquenessValidator {
       email,
       async (value: string) => {
         // Simulate API call to check uniqueness
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         // Simulate checking against existing emails
         const existingEmails = ['existing@example.com', 'taken@example.com'];
@@ -255,7 +234,7 @@ export class EmailUniquenessValidator {
 
         return exists ? ['Email already registered'] : [];
       },
-      500 // 500ms debounce
+      500, // 500ms debounce
     );
   }
 
@@ -269,17 +248,20 @@ export class EmailUniquenessValidator {
 // Example 8: Multi-Field Validation with Dependencies
 // ============================================================================
 
-const passwordChangeSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmNewPassword: z.string(),
-}).refine(data => data.newPassword === data.confirmNewPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmNewPassword'],
-}).refine(data => data.currentPassword !== data.newPassword, {
-  message: 'New password must be different from current password',
-  path: ['newPassword'],
-});
+const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmNewPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmNewPassword'],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: 'New password must be different from current password',
+    path: ['newPassword'],
+  });
 
 type PasswordChangeData = z.infer<typeof passwordChangeSchema>;
 
@@ -311,25 +293,12 @@ export class PasswordChangeViewModel {
     this.validateField('confirmNewPassword', value);
   }
 
-  private validateField<K extends keyof PasswordChangeData>(
-    field: K,
-    value: PasswordChangeData[K]
-  ): void {
-    validateFieldWithZodContainer(
-      this.errors,
-      passwordChangeSchema,
-      field,
-      value,
-      this.formData
-    );
+  private validateField<K extends keyof PasswordChangeData>(field: K, value: PasswordChangeData[K]): void {
+    validateFieldWithZodContainer(this.errors, passwordChangeSchema, field, value, this.formData);
   }
 
   async submit(): Promise<boolean> {
-    const isValid = validateWithZodContainer(
-      this.errors,
-      passwordChangeSchema,
-      this.formData
-    );
+    const isValid = validateWithZodContainer(this.errors, passwordChangeSchema, this.formData);
 
     if (!isValid) {
       return false;
@@ -365,23 +334,11 @@ export class RealTimeFormValidator {
   public readonly hasPasswordErrors$ = this.errors.hasPropertyErrors$('password');
 
   validateEmail(email: string): void {
-    validateFieldWithZodContainer(
-      this.errors,
-      loginSchema,
-      'email',
-      email,
-      { email, password: '' }
-    );
+    validateFieldWithZodContainer(this.errors, loginSchema, 'email', email, { email, password: '' });
   }
 
   validatePassword(password: string): void {
-    validateFieldWithZodContainer(
-      this.errors,
-      loginSchema,
-      'password',
-      password,
-      { email: '', password }
-    );
+    validateFieldWithZodContainer(this.errors, loginSchema, 'password', password, { email: '', password });
   }
 
   dispose(): void {
@@ -401,20 +358,14 @@ export class CancellableValidator {
 
   async validateUsername(username: string): Promise<void> {
     // This will cancel any previous validation for username
-    await this.errors.validateAsync(
-      'username',
-      username,
-      async (value: string) => {
-        // Simulate slow API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+    await this.errors.validateAsync('username', username, async (value: string) => {
+      // Simulate slow API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // Check availability
-        const taken = ['admin', 'user', 'test'];
-        return taken.includes(value.toLowerCase())
-          ? ['Username is already taken']
-          : [];
-      }
-    );
+      // Check availability
+      const taken = ['admin', 'user', 'test'];
+      return taken.includes(value.toLowerCase()) ? ['Username is already taken'] : [];
+    });
   }
 
   cancelValidation(): void {

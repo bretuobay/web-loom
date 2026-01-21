@@ -274,9 +274,7 @@ export class ChartManager {
     this.config.axes?.forEach((axis) => {
       const isHorizontal = axis.orient === 'top' || axis.orient === 'bottom';
       const scaleType = isHorizontal ? 'time' : 'linear';
-      const range: [number, number] = isHorizontal
-        ? [0, innerWidth]
-        : [innerHeight, 0];
+      const range: [number, number] = isHorizontal ? [0, innerWidth] : [innerHeight, 0];
       const domain = this.computeAxisDomain(axis, isHorizontal);
       const existing = this.scales.get(axis.scale);
       if (existing) {
@@ -394,7 +392,12 @@ export class ChartManager {
     return path;
   }
 
-  private createAreaPath(series: SeriesConfig, xScale: ChartScale, yScale: ChartScale, innerHeight: number): SVGPathElement | null {
+  private createAreaPath(
+    series: SeriesConfig,
+    xScale: ChartScale,
+    yScale: ChartScale,
+    innerHeight: number,
+  ): SVGPathElement | null {
     const generator = area<ChartDataPoint>()
       .defined((d) => d.y !== undefined && d.x !== undefined)
       .curve(this.getCurve(series.curve))
@@ -487,15 +490,9 @@ export class ChartManager {
       group.call(axisGenerator as any);
 
       const style = this.getAxisStyle(axis);
-      group
-        .select('path')
-        .attr('stroke', style.axisColor)
-        .attr('stroke-width', `${style.axisWidth}`);
+      group.select('path').attr('stroke', style.axisColor).attr('stroke-width', `${style.axisWidth}`);
 
-      group
-        .selectAll('line')
-        .attr('stroke', style.axisColor)
-        .attr('stroke-width', `${style.axisWidth}`);
+      group.selectAll('line').attr('stroke', style.axisColor).attr('stroke-width', `${style.axisWidth}`);
 
       group
         .selectAll('text')
@@ -525,15 +522,23 @@ export class ChartManager {
     const tickFormat = axis.format ?? this.getDefaultFormatter(axis);
     const ticks = axis.ticks ?? (axis.orient === 'left' || axis.orient === 'right' ? 5 : 6);
     if (axis.orient === 'bottom') {
-      return axisBottom(scale as any).ticks(ticks).tickFormat(tickFormat as any);
+      return axisBottom(scale as any)
+        .ticks(ticks)
+        .tickFormat(tickFormat as any);
     }
     if (axis.orient === 'top') {
-      return axisTop(scale as any).ticks(ticks).tickFormat(tickFormat as any);
+      return axisTop(scale as any)
+        .ticks(ticks)
+        .tickFormat(tickFormat as any);
     }
     if (axis.orient === 'left') {
-      return axisLeft(scale as any).ticks(ticks).tickFormat(tickFormat as any);
+      return axisLeft(scale as any)
+        .ticks(ticks)
+        .tickFormat(tickFormat as any);
     }
-    return axisRight(scale as any).ticks(ticks).tickFormat(tickFormat as any);
+    return axisRight(scale as any)
+      .ticks(ticks)
+      .tickFormat(tickFormat as any);
   }
 
   private getDefaultFormatter(axis: AxisConfig): (value: number | Date) => string {
@@ -584,7 +589,11 @@ export class ChartManager {
     });
   }
 
-  private computeSharedPoint(event: PointerEvent, xScale: ChartScale, innerWidth: number): { data: { seriesId: string; point: ChartDataPoint; label?: string } } | null {
+  private computeSharedPoint(
+    event: PointerEvent,
+    xScale: ChartScale,
+    innerWidth: number,
+  ): { data: { seriesId: string; point: ChartDataPoint; label?: string } } | null {
     if (!this.container) {
       return null;
     }
@@ -649,14 +658,17 @@ export class ChartManager {
     }
 
     const rect = this.container.getBoundingClientRect();
-    this.tooltipManager.show({
-      seriesId: series.id ?? `${series.type}`,
-      point,
-      label: this.config.tooltip?.shared ? undefined : `${series.id ?? series.type}: ${point.y}`,
-    }, {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    });
+    this.tooltipManager.show(
+      {
+        seriesId: series.id ?? `${series.type}`,
+        point,
+        label: this.config.tooltip?.shared ? undefined : `${series.id ?? series.type}: ${point.y}`,
+      },
+      {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      },
+    );
   }
 }
 

@@ -82,9 +82,7 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
    * }
    * ```
    */
-  protected registerCommand<TParam, TResult>(
-    command: ICommand<TParam, TResult>
-  ): ICommand<TParam, TResult> {
+  protected registerCommand<TParam, TResult>(command: ICommand<TParam, TResult>): ICommand<TParam, TResult> {
     this._registeredCommands.push(command);
     return command;
   }
@@ -103,7 +101,7 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
    */
   public dispose(): void {
     // Dispose all registered commands
-    this._registeredCommands.forEach(cmd => {
+    this._registeredCommands.forEach((cmd) => {
       if (this.isDisposable(cmd)) {
         cmd.dispose();
       }

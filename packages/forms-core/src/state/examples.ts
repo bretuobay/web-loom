@@ -22,7 +22,7 @@ export function basicDirtyTrackingExample() {
   tracker.setInitialValue({
     name: 'John Doe',
     email: 'john@example.com',
-    age: 30
+    age: 30,
   });
 
   console.log('Initial state - isDirty:', tracker.isDirty); // false
@@ -31,7 +31,7 @@ export function basicDirtyTrackingExample() {
   tracker.setCurrentValue({
     name: 'Jane Doe',
     email: 'john@example.com',
-    age: 30
+    age: 30,
   });
 
   console.log('After edit - isDirty:', tracker.isDirty); // true
@@ -52,7 +52,7 @@ export function observableTrackingExample() {
   const formData$ = new BehaviorSubject<UserProfile>({
     name: 'John Doe',
     email: 'john@example.com',
-    age: 30
+    age: 30,
   });
 
   const tracker = new DirtyTracker<UserProfile>();
@@ -61,7 +61,7 @@ export function observableTrackingExample() {
   tracker.trackObservable(formData$);
 
   // Subscribe to dirty state changes
-  const subscription = tracker.isDirty$.subscribe(isDirty => {
+  const subscription = tracker.isDirty$.subscribe((isDirty) => {
     console.log('Form dirty state changed:', isDirty);
   });
 
@@ -69,7 +69,7 @@ export function observableTrackingExample() {
   formData$.next({
     name: 'Jane Doe',
     email: 'john@example.com',
-    age: 30
+    age: 30,
   });
 
   console.log('After edit - isDirty:', tracker.isDirty); // true
@@ -89,14 +89,14 @@ export function fieldDirtyTrackingExample() {
   tracker.setInitialValue({
     name: 'John Doe',
     email: 'john@example.com',
-    age: 30
+    age: 30,
   });
 
   // User edits name and email
   tracker.setCurrentValue({
     name: 'Jane Doe',
     email: 'jane@example.com',
-    age: 30
+    age: 30,
   });
 
   // Check which fields are dirty
@@ -123,7 +123,7 @@ export class UserFormViewModel {
   private formData$ = new BehaviorSubject<UserProfile>({
     name: '',
     email: '',
-    age: 0
+    age: 0,
   });
 
   public readonly isDirty$ = this.tracker.isDirty$;
@@ -154,7 +154,7 @@ export class UserFormViewModel {
     console.log('Saving changes:', changes);
 
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Mark as clean after successful save
     this.tracker.markClean();
@@ -230,7 +230,7 @@ export class FormWithConditionalSave {
     console.log('Saving:', dataToSave);
 
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     this.tracker.markClean();
   }
@@ -250,14 +250,14 @@ export function resetExample() {
   tracker.setInitialValue({
     name: 'John Doe',
     email: 'john@example.com',
-    age: 30
+    age: 30,
   });
 
   // User makes changes
   tracker.setCurrentValue({
     name: 'Jane Doe',
     email: 'jane@example.com',
-    age: 25
+    age: 25,
   });
 
   console.log('After changes - isDirty:', tracker.isDirty); // true
@@ -296,7 +296,7 @@ export class FormWithPartialUpdates {
     console.log('Sending PATCH request with:', changes);
 
     // Simulate API PATCH request
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     this.tracker.markClean();
   }

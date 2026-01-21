@@ -11,6 +11,7 @@
 ## Overview
 
 Implement navigation lifecycle interfaces that allow ViewModels to participate in navigation events:
+
 - `INavigationAware` - Lifecycle hooks for navigation to/from
 - `IConfirmNavigationRequest` - Confirm/cancel navigation (unsaved changes)
 - `IInitializeAsync` - Async initialization separate from constructor
@@ -189,20 +190,14 @@ export interface IConfirmNavigationRequest extends INavigationAware {
    *   callback(confirmed);
    * }
    */
-  confirmNavigationRequest(
-    context: NavigationContext,
-    callback: NavigationCallback
-  ): void | Promise<void>;
+  confirmNavigationRequest(context: NavigationContext, callback: NavigationCallback): void | Promise<void>;
 }
 
 /**
  * Type guard for IConfirmNavigationRequest
  */
 export function isConfirmNavigationRequest(obj: any): obj is IConfirmNavigationRequest {
-  return (
-    isNavigationAware(obj) &&
-    typeof obj.confirmNavigationRequest === 'function'
-  );
+  return isNavigationAware(obj) && typeof obj.confirmNavigationRequest === 'function';
 }
 ```
 
@@ -434,7 +429,7 @@ async function navigate(uri: string, params: Record<string, any>) {
 
   // Check for confirmation
   if (isConfirmNavigationRequest(currentVM)) {
-    const canNavigate = await new Promise<boolean>(resolve => {
+    const canNavigate = await new Promise<boolean>((resolve) => {
       currentVM.confirmNavigationRequest(context, resolve);
     });
     if (!canNavigate) return; // Navigation cancelled

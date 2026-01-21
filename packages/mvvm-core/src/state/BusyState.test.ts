@@ -72,10 +72,7 @@ describe('BusyState', () => {
     });
 
     it('should return operation result', async () => {
-      const result = await busyState.executeBusy(
-        async () => 'result',
-        'Test'
-      );
+      const result = await busyState.executeBusy(async () => 'result', 'Test');
       expect(result).toBe('result');
     });
 
@@ -83,7 +80,7 @@ describe('BusyState', () => {
       await expect(
         busyState.executeBusy(async () => {
           throw new Error('Test error');
-        }, 'Test')
+        }, 'Test'),
       ).rejects.toThrow('Test error');
 
       expect(busyState.isBusy).toBe(false);
@@ -102,11 +99,11 @@ describe('BusyState', () => {
     it('should handle multiple concurrent executeBusy calls', async () => {
       const results = await Promise.all([
         busyState.executeBusy(async () => {
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise((resolve) => setTimeout(resolve, 10));
           return 'result1';
         }, 'Op 1'),
         busyState.executeBusy(async () => {
-          await new Promise(resolve => setTimeout(resolve, 5));
+          await new Promise((resolve) => setTimeout(resolve, 5));
           return 'result2';
         }, 'Op 2'),
       ]);
@@ -130,7 +127,7 @@ describe('BusyState', () => {
 
     it('should emit distinct values only', async () => {
       const values: boolean[] = [];
-      const subscription = busyState.isBusy$.subscribe(val => values.push(val));
+      const subscription = busyState.isBusy$.subscribe((val) => values.push(val));
 
       const clear1 = busyState.setBusy('Op 1');
       const clear2 = busyState.setBusy('Op 2');
@@ -167,7 +164,7 @@ describe('BusyState', () => {
 
       const operations = await firstValueFrom(busyState.operations$);
       expect(operations).toHaveLength(3);
-      expect(operations.map(op => op.reason)).toEqual(['Op 1', 'Op 2', 'Op 3']);
+      expect(operations.map((op) => op.reason)).toEqual(['Op 1', 'Op 2', 'Op 3']);
     });
   });
 

@@ -78,6 +78,7 @@ Extended functionality for per-field tracking:
 All 31 tests pass successfully:
 
 ### DirtyTracker Tests (19 tests)
+
 - Initial state
 - Setting initial/current values
 - Observable tracking
@@ -89,6 +90,7 @@ All 31 tests pass successfully:
 - Edge cases (undefined, null, primitives, nested objects)
 
 ### FieldDirtyTracker Tests (12 tests)
+
 - Field-level dirty detection
 - Getting dirty fields
 - Getting changes
@@ -108,9 +110,7 @@ class EditFormViewModel {
       callback(true);
       return;
     }
-    const confirmed = await this.dialogService.confirm(
-      'You have unsaved changes. Are you sure you want to leave?'
-    );
+    const confirmed = await this.dialogService.confirm('You have unsaved changes. Are you sure you want to leave?');
     callback(confirmed);
   }
 }

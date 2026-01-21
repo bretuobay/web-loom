@@ -11,6 +11,7 @@
 ## Overview
 
 Implement centralized busy state management for ViewModels that tracks multiple concurrent operations. This provides:
+
 - Stacked busy states (multiple operations can be in progress)
 - Busy reasons for debugging/UI feedback
 - Convenient `executeBusy()` helper for async operations
@@ -66,29 +67,26 @@ export class BusyState implements IDisposable {
   /**
    * Observable of all currently active operations
    */
-  public readonly operations$: Observable<BusyOperation[]> =
-    this._operations$.asObservable();
+  public readonly operations$: Observable<BusyOperation[]> = this._operations$.asObservable();
 
   /**
    * Observable indicating if any operation is in progress
    */
   public readonly isBusy$: Observable<boolean> = this._operations$.pipe(
-    map(ops => ops.length > 0),
-    distinctUntilChanged()
+    map((ops) => ops.length > 0),
+    distinctUntilChanged(),
   );
 
   /**
    * Observable of current busy reasons (for UI display)
    */
-  public readonly busyReasons$: Observable<string[]> = this._operations$.pipe(
-    map(ops => ops.map(op => op.reason))
-  );
+  public readonly busyReasons$: Observable<string[]> = this._operations$.pipe(map((ops) => ops.map((op) => op.reason)));
 
   /**
    * Observable of the most recent busy reason (for single indicator UI)
    */
   public readonly currentReason$: Observable<string | null> = this._operations$.pipe(
-    map(ops => ops.length > 0 ? ops[ops.length - 1].reason : null)
+    map((ops) => (ops.length > 0 ? ops[ops.length - 1].reason : null)),
   );
 
   /**
@@ -124,7 +122,7 @@ export class BusyState implements IDisposable {
     const operation: BusyOperation = {
       id,
       reason,
-      startTime: new Date()
+      startTime: new Date(),
     };
 
     this.operations.set(id, operation);
@@ -153,10 +151,7 @@ export class BusyState implements IDisposable {
    *   'Loading data...'
    * );
    */
-  async executeBusy<T>(
-    operation: () => Promise<T>,
-    reason: string = 'Loading'
-  ): Promise<T> {
+  async executeBusy<T>(operation: () => Promise<T>, reason: string = 'Loading'): Promise<T> {
     const clearBusy = this.setBusy(reason);
 
     try {
@@ -261,10 +256,7 @@ describe('BusyState', () => {
     });
 
     it('should return operation result', async () => {
-      const result = await busyState.executeBusy(
-        async () => 'result',
-        'Test'
-      );
+      const result = await busyState.executeBusy(async () => 'result', 'Test');
       expect(result).toBe('result');
     });
 
@@ -272,7 +264,7 @@ describe('BusyState', () => {
       await expect(
         busyState.executeBusy(async () => {
           throw new Error('Test error');
-        }, 'Test')
+        }, 'Test'),
       ).rejects.toThrow('Test error');
 
       expect(busyState.isBusy).toBe(false);
@@ -389,18 +381,9 @@ class DataDashboardViewModel extends BaseViewModel<BaseModel<any, any>> {
   public readonly loadAllCommand = new Command(async () => {
     // Multiple concurrent operations
     await Promise.all([
-      this.busyState.executeBusy(
-        () => this.loadUsers(),
-        'Loading users...'
-      ),
-      this.busyState.executeBusy(
-        () => this.loadOrders(),
-        'Loading orders...'
-      ),
-      this.busyState.executeBusy(
-        () => this.loadAnalytics(),
-        'Loading analytics...'
-      ),
+      this.busyState.executeBusy(() => this.loadUsers(), 'Loading users...'),
+      this.busyState.executeBusy(() => this.loadOrders(), 'Loading orders...'),
+      this.busyState.executeBusy(() => this.loadAnalytics(), 'Loading analytics...'),
     ]);
   });
 
@@ -415,19 +398,19 @@ class DataDashboardViewModel extends BaseViewModel<BaseModel<any, any>> {
   });
 
   private async loadUsers(): Promise<void> {
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 1000));
   }
 
   private async loadOrders(): Promise<void> {
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1500));
   }
 
   private async loadAnalytics(): Promise<void> {
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 800));
   }
 
   private async saveChanges(): Promise<void> {
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
   }
 
   public override dispose(): void {

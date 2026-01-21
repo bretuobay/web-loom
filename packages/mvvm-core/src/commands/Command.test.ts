@@ -254,7 +254,6 @@ describe('Command', () => {
   });
 });
 
-
 describe('Command Fluent API', () => {
   describe('observesProperty', () => {
     it('should return this for chaining', () => {
@@ -271,7 +270,7 @@ describe('Command Fluent API', () => {
       const cmd = new Command(async () => {}).observesProperty(property$);
 
       // Wait for initial emission
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Initially falsy
       let canExecute = await cmd.canExecute$.pipe(first()).toPromise();
@@ -279,8 +278,8 @@ describe('Command Fluent API', () => {
 
       // Change to truthy
       property$.next('value');
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(true);
     });
@@ -289,7 +288,7 @@ describe('Command Fluent API', () => {
       const property$ = new BehaviorSubject('value');
       const cmd = new Command(async () => {}).observesProperty(property$);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Initially truthy
       let canExecute = await cmd.canExecute$.pipe(first()).toPromise();
@@ -297,8 +296,8 @@ describe('Command Fluent API', () => {
 
       // Change to falsy
       property$.next('');
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(false);
     });
@@ -306,11 +305,9 @@ describe('Command Fluent API', () => {
     it('should support multiple observed properties', async () => {
       const prop1$ = new BehaviorSubject('value1');
       const prop2$ = new BehaviorSubject('');
-      const cmd = new Command(async () => {})
-        .observesProperty(prop1$)
-        .observesProperty(prop2$);
+      const cmd = new Command(async () => {}).observesProperty(prop1$).observesProperty(prop2$);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // One falsy = cannot execute
       let canExecute = await cmd.canExecute$.pipe(first()).toPromise();
@@ -318,15 +315,15 @@ describe('Command Fluent API', () => {
 
       // Both truthy = can execute
       prop2$.next('value2');
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(true);
 
       // One becomes falsy again
       prop1$.next('');
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(false);
     });
@@ -335,7 +332,7 @@ describe('Command Fluent API', () => {
       const number$ = new BehaviorSubject(0);
       const cmd = new Command(async () => {}).observesProperty(number$);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // 0 is falsy
       let canExecute = await cmd.canExecute$.pipe(first()).toPromise();
@@ -343,8 +340,8 @@ describe('Command Fluent API', () => {
 
       // Non-zero is truthy
       number$.next(5);
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(true);
     });
@@ -376,10 +373,9 @@ describe('Command Fluent API', () => {
       const baseCanExecute$ = new BehaviorSubject(true);
       const additionalCondition$ = new BehaviorSubject(false);
 
-      const cmd = new Command(async () => {}, baseCanExecute$)
-        .observesCanExecute(additionalCondition$);
+      const cmd = new Command(async () => {}, baseCanExecute$).observesCanExecute(additionalCondition$);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Additional is false
       let canExecute = await cmd.canExecute$.pipe(first()).toPromise();
@@ -387,15 +383,15 @@ describe('Command Fluent API', () => {
 
       // Both true
       additionalCondition$.next(true);
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(true);
 
       // Base becomes false
       baseCanExecute$.next(false);
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(false);
     });
@@ -410,21 +406,21 @@ describe('Command Fluent API', () => {
         .observesCanExecute(cond2$)
         .observesCanExecute(cond3$);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       let canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(false);
 
       cond3$.next(true);
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(true);
 
       // Any one false = cannot execute
       cond2$.next(false);
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(false);
     });
@@ -447,13 +443,13 @@ describe('Command Fluent API', () => {
       const cmd = new Command(async () => {}, new BehaviorSubject(true));
 
       const values: boolean[] = [];
-      cmd.canExecute$.subscribe(v => values.push(v));
+      cmd.canExecute$.subscribe((v) => values.push(v));
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
       const initialLength = values.length;
 
       cmd.raiseCanExecuteChanged();
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Should have received at least one more update
       expect(values.length).toBeGreaterThanOrEqual(initialLength);
@@ -471,12 +467,12 @@ describe('Command Fluent API', () => {
       const cmd = new Command(async () => {}).observesProperty(property$);
 
       const values: boolean[] = [];
-      cmd.canExecute$.subscribe(v => values.push(v));
+      cmd.canExecute$.subscribe((v) => values.push(v));
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       cmd.raiseCanExecuteChanged();
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Should have emitted values
       expect(values.length).toBeGreaterThan(0);
@@ -493,29 +489,29 @@ describe('Command Fluent API', () => {
         .observesProperty(property$)
         .observesCanExecute(additionalCondition$);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       let canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(true);
 
       // Any false = cannot execute
       constructorCondition$.next(false);
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(false);
 
       // Restore constructor condition
       constructorCondition$.next(true);
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(true);
 
       // Property becomes falsy
       property$.next('');
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(false);
     });
@@ -525,11 +521,9 @@ describe('Command Fluent API', () => {
       const cond2$ = new BehaviorSubject(false);
       const executeFn = vi.fn(async () => 'result');
 
-      const cmd = new Command(executeFn)
-        .observesCanExecute(cond1$)
-        .observesCanExecute(cond2$);
+      const cmd = new Command(executeFn).observesCanExecute(cond1$).observesCanExecute(cond2$);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const result = await cmd.execute();
 
@@ -548,7 +542,7 @@ describe('Command Fluent API', () => {
         .observesCanExecute(cond2$)
         .observesProperty(property$);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const result = await cmd.execute();
 
@@ -566,7 +560,7 @@ describe('Command Fluent API', () => {
         .observesProperty(numberProp$)
         .observesCanExecute(boolCondition$);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // All falsy
       let canExecute = await cmd.canExecute$.pipe(first()).toPromise();
@@ -576,8 +570,8 @@ describe('Command Fluent API', () => {
       stringProp$.next('text');
       numberProp$.next(5);
       boolCondition$.next(true);
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       canExecute = await cmd.canExecute$.pipe(first()).toPromise();
       expect(canExecute).toBe(true);
     });
@@ -587,7 +581,7 @@ describe('Command Fluent API', () => {
     it('should complete canExecuteChanged$ subject', () => {
       const cmd = new Command(async () => {});
       const completeSpy = vi.fn();
-      
+
       (cmd as any)._canExecuteChanged$.subscribe({ complete: completeSpy });
 
       cmd.dispose();

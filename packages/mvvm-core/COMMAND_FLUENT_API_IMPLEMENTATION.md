@@ -11,11 +11,13 @@ Successfully implemented Prism-inspired fluent API enhancements for the `Command
 Added three fluent API methods for declarative command configuration:
 
 **New Methods:**
+
 - `observesProperty<T>(property$)`: Observes a property and re-evaluates canExecute when it changes (truthy check)
 - `observesCanExecute(canExecute$)`: Adds additional canExecute conditions (all must be true)
 - `raiseCanExecuteChanged()`: Manually triggers re-evaluation of canExecute
 
 **New Internal Infrastructure:**
+
 - `observedProperties`: Array tracking observed property observables
 - `additionalCanExecuteConditions`: Array tracking additional canExecute conditions
 - `_canExecuteChanged$`: Subject for manual trigger notifications
@@ -23,6 +25,7 @@ Added three fluent API methods for declarative command configuration:
 - `rebuildCanExecute()`: Combines all conditions into a single canExecute$ observable
 
 **Key Implementation Details:**
+
 - All methods return `this` for fluent chaining
 - Properties are evaluated with truthy check (`!!value`)
 - All conditions must be true for command to execute (AND logic)
@@ -33,6 +36,7 @@ Added three fluent API methods for declarative command configuration:
 ### 2. Comprehensive Test Suite (`src/commands/Command.test.ts`)
 
 **20 new tests covering:**
+
 - `observesProperty()` functionality (6 tests)
   - Returns this for chaining
   - Updates canExecute when property changes to truthy
@@ -64,6 +68,7 @@ Added three fluent API methods for declarative command configuration:
 ### 3. Usage Examples (`src/examples/command-fluent-api-example.ts`)
 
 Comprehensive examples demonstrating:
+
 - **RegistrationFormViewModel**: Complex form validation with multiple conditions
 - **ShoppingCartViewModel**: E-commerce cart operations with derived observables
 - **DocumentEditorViewModel**: Text editor with external state using raiseCanExecuteChanged
@@ -90,7 +95,7 @@ packages/mvvm-core/src/
 ✅ All existing tests pass (15/15)  
 ✅ New tests for fluent API methods pass (20/20)  
 ✅ `dispose()` cleans up new subscriptions/subjects  
-✅ Example demonstrating usage created  
+✅ Example demonstrating usage created
 
 ## Build Verification
 
@@ -98,7 +103,7 @@ packages/mvvm-core/src/
 ✅ Vite build successful  
 ✅ Type definitions generated correctly  
 ✅ No breaking changes introduced  
-✅ All existing tests still pass (275 tests total)  
+✅ All existing tests still pass (275 tests total)
 
 ## Usage Examples
 
@@ -112,9 +117,7 @@ const username$ = new BehaviorSubject('');
 const email$ = new BehaviorSubject('');
 
 // Command only enabled when both fields have values
-const submitCommand = new Command(() => submit())
-  .observesProperty(username$)
-  .observesProperty(email$);
+const submitCommand = new Command(() => submit()).observesProperty(username$).observesProperty(email$);
 ```
 
 ### Multiple Conditions
@@ -122,8 +125,8 @@ const submitCommand = new Command(() => submit())
 ```typescript
 import { map } from 'rxjs/operators';
 
-const isFormValid$ = formData$.pipe(map(data => data.isValid));
-const isNotBusy$ = isLoading$.pipe(map(loading => !loading));
+const isFormValid$ = formData$.pipe(map((data) => data.isValid));
+const isNotBusy$ = isLoading$.pipe(map((loading) => !loading));
 const hasAcceptedTerms$ = new BehaviorSubject(false);
 
 // All conditions must be true
@@ -139,9 +142,7 @@ const registerCommand = new Command(() => register())
 class MyViewModel extends BaseViewModel<MyModel> {
   private selectedItems: Item[] = [];
 
-  public readonly deleteCommand = this.registerCommand(
-    new Command(() => this.deleteSelected())
-  );
+  public readonly deleteCommand = this.registerCommand(new Command(() => this.deleteSelected()));
 
   // Called when selection changes (external event)
   updateSelection(items: Item[]): void {
@@ -167,22 +168,18 @@ class RegistrationFormViewModel extends BaseViewModel<RegistrationModel> {
   public readonly username$ = new BehaviorSubject('');
   public readonly email$ = new BehaviorSubject('');
   public readonly password$ = new BehaviorSubject('');
-  
-  public readonly isEmailValid$ = this.email$.pipe(
-    map(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-  );
-  
-  public readonly isPasswordValid$ = this.password$.pipe(
-    map(pwd => pwd.length >= 8 && /\d/.test(pwd))
-  );
+
+  public readonly isEmailValid$ = this.email$.pipe(map((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)));
+
+  public readonly isPasswordValid$ = this.password$.pipe(map((pwd) => pwd.length >= 8 && /\d/.test(pwd)));
 
   public readonly registerCommand = this.registerCommand(
     new Command(() => this.register())
-      .observesProperty(this.username$)        // Must have username
-      .observesProperty(this.email$)           // Must have email
-      .observesCanExecute(this.isEmailValid$)  // Email must be valid
+      .observesProperty(this.username$) // Must have username
+      .observesProperty(this.email$) // Must have email
+      .observesCanExecute(this.isEmailValid$) // Email must be valid
       .observesCanExecute(this.isPasswordValid$) // Password must be valid
-      .observesCanExecute(this.isLoading$.pipe(map(l => !l))) // Not busy
+      .observesCanExecute(this.isLoading$.pipe(map((l) => !l))), // Not busy
   );
 }
 ```
@@ -205,7 +202,7 @@ function MyForm() {
   }, []);
 
   return (
-    <button 
+    <button
       disabled={!canSubmit}
       onClick={() => vm.submitCommand.execute()}
     >
@@ -221,12 +218,8 @@ function MyForm() {
 @Component({
   selector: 'app-my-form',
   template: `
-    <button 
-      [disabled]="!(vm.submitCommand.canExecute$ | async)"
-      (click)="vm.submitCommand.execute()">
-      Submit
-    </button>
-  `
+    <button [disabled]="!(vm.submitCommand.canExecute$ | async)" (click)="vm.submitCommand.execute()">Submit</button>
+  `,
 })
 export class MyFormComponent implements OnDestroy {
   vm = new MyViewModel(new MyModel());
@@ -241,11 +234,7 @@ export class MyFormComponent implements OnDestroy {
 
 ```vue
 <template>
-  <button 
-    :disabled="!canSubmit"
-    @click="vm.submitCommand.execute()">
-    Submit
-  </button>
+  <button :disabled="!canSubmit" @click="vm.submitCommand.execute()">Submit</button>
 </template>
 
 <script setup lang="ts">
@@ -257,7 +246,7 @@ const canSubmit = ref(false);
 let sub: Subscription;
 
 onMounted(() => {
-  sub = vm.submitCommand.canExecute$.subscribe(val => canSubmit.value = val);
+  sub = vm.submitCommand.canExecute$.subscribe((val) => (canSubmit.value = val));
 });
 
 onUnmounted(() => {
@@ -274,12 +263,8 @@ This feature is **100% backward compatible**. Existing code continues to work wi
 ### Before (Still Works)
 
 ```typescript
-const canExecute$ = combineLatest([
-  this.isValid$,
-  this.isNotBusy$,
-  this.hasPermission$
-]).pipe(
-  map(([valid, notBusy, hasPermission]) => valid && notBusy && hasPermission)
+const canExecute$ = combineLatest([this.isValid$, this.isNotBusy$, this.hasPermission$]).pipe(
+  map(([valid, notBusy, hasPermission]) => valid && notBusy && hasPermission),
 );
 
 const command = new Command(() => this.execute(), canExecute$);
@@ -313,14 +298,14 @@ Properties are evaluated with JavaScript truthy check:
 
 ```typescript
 // Truthy values: non-empty strings, non-zero numbers, true, objects, arrays
-username$.next('john');      // true
-count$.next(5);              // true
-items$.next([1, 2, 3]);      // true
+username$.next('john'); // true
+count$.next(5); // true
+items$.next([1, 2, 3]); // true
 
 // Falsy values: empty string, 0, false, null, undefined
-username$.next('');          // false
-count$.next(0);              // false
-items$.next(null);           // false
+username$.next(''); // false
+count$.next(0); // false
+items$.next(null); // false
 ```
 
 ### Condition Combination
@@ -344,6 +329,7 @@ const cmd = new Command(() => {}, baseCanExecute$)
 ### Manual Trigger Use Cases
 
 Use `raiseCanExecuteChanged()` when:
+
 - Command depends on external state not tracked by observables
 - Selection state managed outside observables
 - Clipboard state changes
@@ -359,11 +345,11 @@ public dispose(): void {
   this._isExecuting$.complete();
   this._executeError$.complete();
   this._canExecuteChanged$.complete(); // NEW: Fluent API cleanup
-  
+
   if (this._canExecuteSubscription) {
     this._canExecuteSubscription.unsubscribe();
   }
-  
+
   this._isDisposed = true;
 }
 ```
@@ -379,17 +365,18 @@ public dispose(): void {
 
 This implementation adapts Prism's command patterns for web development:
 
-| Prism (C#/WPF) | Web Loom (TypeScript/RxJS) |
-|----------------|----------------------------|
-| `ObservesProperty(() => Property)` | `observesProperty(property$)` |
+| Prism (C#/WPF)                         | Web Loom (TypeScript/RxJS)        |
+| -------------------------------------- | --------------------------------- |
+| `ObservesProperty(() => Property)`     | `observesProperty(property$)`     |
 | `ObservesCanExecute(() => CanExecute)` | `observesCanExecute(canExecute$)` |
-| `RaiseCanExecuteChanged()` | `raiseCanExecuteChanged()` |
-| INotifyPropertyChanged | RxJS Observables |
-| Lambda expressions | Observable streams |
+| `RaiseCanExecuteChanged()`             | `raiseCanExecuteChanged()`        |
+| INotifyPropertyChanged                 | RxJS Observables                  |
+| Lambda expressions                     | Observable streams                |
 
 ## Related Features
 
 This feature complements:
+
 - **Command Disposal**: Commands registered with `registerCommand()` are automatically disposed
 - **BusyState**: Can be used together for comprehensive state management
 - **BaseViewModel**: Provides the context for command usage

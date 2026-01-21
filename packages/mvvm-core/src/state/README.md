@@ -21,10 +21,7 @@ import { BusyState } from '@web-loom/mvvm-core';
 const busyState = new BusyState();
 
 // Execute operation with automatic busy state
-const data = await busyState.executeBusy(
-  () => fetchData(),
-  'Loading data...'
-);
+const data = await busyState.executeBusy(() => fetchData(), 'Loading data...');
 ```
 
 ### Manual Busy State Management
@@ -49,10 +46,7 @@ class DashboardViewModel extends BaseViewModel<BaseModel<any, any>> {
   public readonly loadingReason$ = this.busyState.currentReason$;
 
   public readonly loadCommand = new Command(async () => {
-    await this.busyState.executeBusy(
-      () => this.loadData(),
-      'Loading dashboard...'
-    );
+    await this.busyState.executeBusy(() => this.loadData(), 'Loading dashboard...');
   });
 
   private async loadData(): Promise<void> {
@@ -80,37 +74,41 @@ await Promise.all([
 ## Observables
 
 ### `isBusy$: Observable<boolean>`
+
 Emits `true` when any operation is in progress, `false` otherwise.
 
 ```typescript
-busyState.isBusy$.subscribe(isBusy => {
+busyState.isBusy$.subscribe((isBusy) => {
   console.log('Busy:', isBusy);
 });
 ```
 
 ### `operations$: Observable<BusyOperation[]>`
+
 Emits array of all active operations with details (id, reason, startTime).
 
 ```typescript
-busyState.operations$.subscribe(operations => {
+busyState.operations$.subscribe((operations) => {
   console.log('Active operations:', operations.length);
 });
 ```
 
 ### `busyReasons$: Observable<string[]>`
+
 Emits array of all current operation reasons.
 
 ```typescript
-busyState.busyReasons$.subscribe(reasons => {
+busyState.busyReasons$.subscribe((reasons) => {
   console.log('Loading:', reasons.join(', '));
 });
 ```
 
 ### `currentReason$: Observable<string | null>`
+
 Emits the most recent operation reason (useful for single loading indicator).
 
 ```typescript
-busyState.currentReason$.subscribe(reason => {
+busyState.currentReason$.subscribe((reason) => {
   console.log('Current operation:', reason);
 });
 ```
@@ -153,17 +151,10 @@ function DashboardView() {
 @Component({
   selector: 'app-dashboard',
   template: `
-    <app-loading-overlay 
-      *ngIf="vm.isBusy$ | async" 
-      [message]="vm.loadingReason$ | async">
-    </app-loading-overlay>
-    
-    <button 
-      [disabled]="vm.isBusy$ | async" 
-      (click)="vm.loadCommand.execute()">
-      Load Data
-    </button>
-  `
+    <app-loading-overlay *ngIf="vm.isBusy$ | async" [message]="vm.loadingReason$ | async"> </app-loading-overlay>
+
+    <button [disabled]="vm.isBusy$ | async" (click)="vm.loadCommand.execute()">Load Data</button>
+  `,
 })
 export class DashboardComponent implements OnDestroy {
   vm = new DashboardViewModel(new BaseModel({}));
@@ -180,9 +171,7 @@ export class DashboardComponent implements OnDestroy {
 <template>
   <div>
     <LoadingOverlay v-if="isBusy" :message="reason" />
-    <button :disabled="isBusy" @click="vm.loadCommand.execute()">
-      Load Data
-    </button>
+    <button :disabled="isBusy" @click="vm.loadCommand.execute()">Load Data</button>
   </div>
 </template>
 
@@ -197,8 +186,8 @@ let sub1: Subscription;
 let sub2: Subscription;
 
 onMounted(() => {
-  sub1 = vm.isBusy$.subscribe(val => isBusy.value = val);
-  sub2 = vm.loadingReason$.subscribe(val => reason.value = val);
+  sub1 = vm.isBusy$.subscribe((val) => (isBusy.value = val));
+  sub2 = vm.loadingReason$.subscribe((val) => (reason.value = val));
 });
 
 onUnmounted(() => {
@@ -214,34 +203,42 @@ onUnmounted(() => {
 ### Methods
 
 #### `setBusy(reason?: string): () => void`
+
 Marks the state as busy and returns a cleanup function.
 
 **Parameters:**
+
 - `reason` (optional): Description of the operation (default: 'Loading')
 
 **Returns:** Cleanup function to clear this busy state
 
 #### `executeBusy<T>(operation: () => Promise<T>, reason?: string): Promise<T>`
+
 Executes an async operation with automatic busy state management.
 
 **Parameters:**
+
 - `operation`: Async function to execute
 - `reason` (optional): Description of the operation (default: 'Loading')
 
 **Returns:** Promise resolving to the operation result
 
 #### `clearAll(): void`
+
 Clears all busy states (use with caution).
 
 #### `dispose(): void`
+
 Cleans up resources and completes observables.
 
 ### Properties
 
 #### `isBusy: boolean`
+
 Synchronous check if currently busy.
 
 #### `operationCount: number`
+
 Number of active operations.
 
 ## Best Practices
@@ -261,14 +258,14 @@ import { firstValueFrom } from 'rxjs';
 describe('MyViewModel', () => {
   it('should set busy during load', async () => {
     const vm = new MyViewModel();
-    
+
     const loadPromise = vm.loadCommand.execute();
     const isBusy = await firstValueFrom(vm.busyState.isBusy$);
-    
+
     expect(isBusy).toBe(true);
-    
+
     await loadPromise;
-    
+
     const isBusyAfter = await firstValueFrom(vm.busyState.isBusy$);
     expect(isBusyAfter).toBe(false);
   });

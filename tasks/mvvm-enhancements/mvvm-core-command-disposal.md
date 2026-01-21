@@ -72,9 +72,7 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
    *   );
    * }
    */
-  protected registerCommand<TParam, TResult>(
-    command: ICommand<TParam, TResult>
-  ): ICommand<TParam, TResult> {
+  protected registerCommand<TParam, TResult>(command: ICommand<TParam, TResult>): ICommand<TParam, TResult> {
     this._registeredCommands.push(command);
     return command;
   }
@@ -92,7 +90,7 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
    */
   public dispose(): void {
     // Dispose all registered commands
-    this._registeredCommands.forEach(cmd => {
+    this._registeredCommands.forEach((cmd) => {
       if (this.isDisposable(cmd)) {
         cmd.dispose();
       }
@@ -124,13 +122,9 @@ describe('BaseViewModel Command Registration', () => {
   let viewModel: TestViewModel;
 
   class TestViewModel extends BaseViewModel<BaseModel<any, any>> {
-    public readonly cmd1 = this.registerCommand(
-      new Command(async () => 'result1')
-    );
+    public readonly cmd1 = this.registerCommand(new Command(async () => 'result1'));
 
-    public readonly cmd2 = this.registerCommand(
-      new Command(async () => 'result2')
-    );
+    public readonly cmd2 = this.registerCommand(new Command(async () => 'result2'));
 
     // Expose for testing
     public getRegisteredCommandCount(): number {

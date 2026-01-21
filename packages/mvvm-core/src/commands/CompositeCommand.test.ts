@@ -79,7 +79,7 @@ describe('CompositeCommand', () => {
       composite.register(cmd1);
       composite.register(cmd2);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const canExecute = await firstValueFrom(composite.canExecute$);
       expect(canExecute).toBe(false);
@@ -98,13 +98,13 @@ describe('CompositeCommand', () => {
 
       composite.register(cmd);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       let canExecute = await firstValueFrom(composite.canExecute$);
       expect(canExecute).toBe(true);
 
       canExecute$.next(false);
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       canExecute = await firstValueFrom(composite.canExecute$);
       expect(canExecute).toBe(false);
@@ -116,13 +116,13 @@ describe('CompositeCommand', () => {
       const cmd = new Command(async () => {}, canExecute$);
 
       composite.register(cmd);
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       let canExecute = await firstValueFrom(composite.canExecute$);
       expect(canExecute).toBe(false);
 
       composite.unregister(cmd);
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       canExecute = await firstValueFrom(composite.canExecute$);
       expect(canExecute).toBe(true); // No commands = can execute
@@ -134,8 +134,14 @@ describe('CompositeCommand', () => {
       const results: number[] = [];
       const composite = new CompositeCommand();
 
-      const cmd1 = new Command(async () => { results.push(1); return 'a'; });
-      const cmd2 = new Command(async () => { results.push(2); return 'b'; });
+      const cmd1 = new Command(async () => {
+        results.push(1);
+        return 'a';
+      });
+      const cmd2 = new Command(async () => {
+        results.push(2);
+        return 'b';
+      });
 
       composite.register(cmd1);
       composite.register(cmd2);
@@ -152,7 +158,7 @@ describe('CompositeCommand', () => {
       const composite = new CompositeCommand({ executionMode: 'sequential' });
 
       const cmd1 = new Command(async () => {
-        await new Promise(r => setTimeout(r, 10));
+        await new Promise((r) => setTimeout(r, 10));
         results.push(1);
         return 'a';
       });
@@ -195,7 +201,9 @@ describe('CompositeCommand', () => {
     it('should set executeError$ on failure', async () => {
       const composite = new CompositeCommand();
       const error = new Error('Test error');
-      const cmd = new Command(async () => { throw error; });
+      const cmd = new Command(async () => {
+        throw error;
+      });
 
       composite.register(cmd);
 
@@ -228,15 +236,19 @@ describe('CompositeCommand', () => {
     it('should be true while any command is executing', async () => {
       const composite = new CompositeCommand();
       let resolveCmd: () => void;
-      const cmdPromise = new Promise<void>(r => { resolveCmd = r; });
+      const cmdPromise = new Promise<void>((r) => {
+        resolveCmd = r;
+      });
 
-      const cmd = new Command(async () => { await cmdPromise; });
+      const cmd = new Command(async () => {
+        await cmdPromise;
+      });
       composite.register(cmd);
 
       const executePromise = composite.execute();
 
       // Wait a bit for execution to start
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Should be executing
       const isExecuting = await firstValueFrom(composite.isExecuting$);
@@ -259,15 +271,19 @@ describe('CompositeCommand', () => {
     it('should track child command execution state', async () => {
       const composite = new CompositeCommand();
       let resolveCmd: () => void;
-      const cmdPromise = new Promise<void>(r => { resolveCmd = r; });
+      const cmdPromise = new Promise<void>((r) => {
+        resolveCmd = r;
+      });
 
-      const cmd = new Command(async () => { await cmdPromise; });
+      const cmd = new Command(async () => {
+        await cmdPromise;
+      });
       composite.register(cmd);
 
       // Start execution
       const executePromise = cmd.execute();
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Composite should show as executing
       const isExecuting = await firstValueFrom(composite.isExecuting$);
@@ -396,7 +412,9 @@ describe('CompositeCommand', () => {
     it('should handle mixed success and failure in parallel mode', async () => {
       const composite = new CompositeCommand({ executionMode: 'parallel' });
       const cmd1 = new Command(async () => 'success');
-      const cmd2 = new Command(async () => { throw new Error('fail'); });
+      const cmd2 = new Command(async () => {
+        throw new Error('fail');
+      });
 
       composite.register(cmd1);
       composite.register(cmd2);
@@ -406,7 +424,9 @@ describe('CompositeCommand', () => {
 
     it('should stop on first error in sequential mode', async () => {
       const composite = new CompositeCommand({ executionMode: 'sequential' });
-      const spy1 = vi.fn(async () => { throw new Error('fail'); });
+      const spy1 = vi.fn(async () => {
+        throw new Error('fail');
+      });
       const spy2 = vi.fn(async () => 'success');
 
       const cmd1 = new Command(spy1);

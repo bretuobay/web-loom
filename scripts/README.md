@@ -364,6 +364,7 @@ npm run test         # Run all tests
 npm run check-types  # TypeScript type checking
 npm run count-loc    # Count lines of code
 ```
+
 ## Demo Runner Helpers
 
 The `scripts/dev-helper` folder now holds CLI helpers that orchestrate the demo API + UI ports without manually juggling terminals.

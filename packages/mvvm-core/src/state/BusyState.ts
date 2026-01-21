@@ -14,11 +14,11 @@ export interface BusyOperation {
 /**
  * Manages stacked busy states for multiple concurrent operations.
  * Useful for tracking loading states across multiple async operations.
- * 
+ *
  * @example
  * ```typescript
  * const busyState = new BusyState();
- * 
+ *
  * // Manual busy state management
  * const clearBusy = busyState.setBusy('Loading data...');
  * try {
@@ -26,7 +26,7 @@ export interface BusyOperation {
  * } finally {
  *   clearBusy();
  * }
- * 
+ *
  * // Automatic busy state management
  * const data = await busyState.executeBusy(
  *   () => fetchData(),
@@ -42,29 +42,26 @@ export class BusyState implements IDisposable {
   /**
    * Observable of all currently active operations
    */
-  public readonly operations$: Observable<BusyOperation[]> =
-    this._operations$.asObservable();
+  public readonly operations$: Observable<BusyOperation[]> = this._operations$.asObservable();
 
   /**
    * Observable indicating if any operation is in progress
    */
   public readonly isBusy$: Observable<boolean> = this._operations$.pipe(
-    map(ops => ops.length > 0),
-    distinctUntilChanged()
+    map((ops) => ops.length > 0),
+    distinctUntilChanged(),
   );
 
   /**
    * Observable of current busy reasons (for UI display)
    */
-  public readonly busyReasons$: Observable<string[]> = this._operations$.pipe(
-    map(ops => ops.map(op => op.reason))
-  );
+  public readonly busyReasons$: Observable<string[]> = this._operations$.pipe(map((ops) => ops.map((op) => op.reason)));
 
   /**
    * Observable of the most recent busy reason (for single indicator UI)
    */
   public readonly currentReason$: Observable<string | null> = this._operations$.pipe(
-    map(ops => ops.length > 0 ? ops[ops.length - 1].reason : null)
+    map((ops) => (ops.length > 0 ? ops[ops.length - 1].reason : null)),
   );
 
   /**
@@ -102,7 +99,7 @@ export class BusyState implements IDisposable {
     const operation: BusyOperation = {
       id,
       reason,
-      startTime: new Date()
+      startTime: new Date(),
     };
 
     this.operations.set(id, operation);
@@ -133,10 +130,7 @@ export class BusyState implements IDisposable {
    * );
    * ```
    */
-  async executeBusy<T>(
-    operation: () => Promise<T>,
-    reason: string = 'Loading'
-  ): Promise<T> {
+  async executeBusy<T>(operation: () => Promise<T>, reason: string = 'Loading'): Promise<T> {
     const clearBusy = this.setBusy(reason);
 
     try {

@@ -33,7 +33,7 @@ errors.setErrors('email', ['Invalid email format']);
 console.log(errors.getErrors('email')); // ['Invalid email format']
 
 // Subscribe to errors for a field
-errors.getErrors$('email').subscribe(fieldErrors => {
+errors.getErrors$('email').subscribe((fieldErrors) => {
   console.log('Email errors:', fieldErrors);
 });
 
@@ -76,13 +76,10 @@ console.log(errors.getErrors('password')); // ['Password must be at least 8 char
 import { validateFieldWithZodContainer } from '@web-loom/forms-core';
 
 // Validate single field
-const isEmailValid = validateFieldWithZodContainer(
-  errors,
-  schema,
-  'email',
-  'test@example.com',
-  { email: '', password: 'password123' }
-);
+const isEmailValid = validateFieldWithZodContainer(errors, schema, 'email', 'test@example.com', {
+  email: '',
+  password: 'password123',
+});
 
 console.log(isEmailValid); // true
 console.log(errors.getErrors('email')); // []
@@ -98,20 +95,16 @@ import { AsyncErrorsContainer } from '@web-loom/forms-core';
 const errors = new AsyncErrorsContainer<FormData>();
 
 // Async validation (e.g., check email uniqueness)
-await errors.validateAsync(
-  'email',
-  'test@example.com',
-  async (email) => {
-    const exists = await checkEmailExists(email);
-    return exists ? ['Email already registered'] : [];
-  }
-);
+await errors.validateAsync('email', 'test@example.com', async (email) => {
+  const exists = await checkEmailExists(email);
+  return exists ? ['Email already registered'] : [];
+});
 
 // Check if validation is in progress
 console.log(errors.isPropertyValidating('email')); // false
 
 // Subscribe to validation state
-errors.isValidating$.subscribe(isValidating => {
+errors.isValidating$.subscribe((isValidating) => {
   console.log('Validating:', isValidating);
 });
 ```
@@ -127,7 +120,7 @@ const cancel = errors.validateAsyncDebounced(
     const exists = await checkEmailExists(email);
     return exists ? ['Email already registered'] : [];
   },
-  300 // debounce delay in ms
+  300, // debounce delay in ms
 );
 
 // Cancel if needed
@@ -224,22 +217,12 @@ class RegistrationViewModel {
     this.formData[field] = value;
 
     // Validate field
-    validateFieldWithZodContainer(
-      this.errors,
-      schema,
-      field,
-      value,
-      this.formData
-    );
+    validateFieldWithZodContainer(this.errors, schema, field, value, this.formData);
   }
 
   async submit(): Promise<void> {
     // Validate entire form
-    const isValid = validateWithZodContainer(
-      this.errors,
-      schema,
-      this.formData
-    );
+    const isValid = validateWithZodContainer(this.errors, schema, this.formData);
 
     if (!isValid) {
       console.log('Form has errors:', this.errors.getAllErrorsAsRecord());
@@ -288,7 +271,7 @@ class EmailValidator {
 
         return exists ? ['Email already registered'] : [];
       },
-      500 // 500ms debounce
+      500, // 500ms debounce
     );
   }
 

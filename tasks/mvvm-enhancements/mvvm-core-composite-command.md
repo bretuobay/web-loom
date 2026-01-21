@@ -83,8 +83,8 @@ Continue in `src/commands/CompositeCommand.ts`:
  * - execute() runs all child commands
  */
 export class CompositeCommand<TParam = void, TResult = any[]>
-  implements ICompositeCommand<TParam, TResult>, IDisposable {
-
+  implements ICompositeCommand<TParam, TResult>, IDisposable
+{
   private readonly commands = new Set<ICommand<TParam, any>>();
   private readonly _commands$ = new BehaviorSubject<ICommand<TParam, any>[]>([]);
   private readonly _isExecuting$ = new BehaviorSubject<boolean>(false);
@@ -107,7 +107,7 @@ export class CompositeCommand<TParam = void, TResult = any[]>
 
     // Initialize canExecute$ - will be rebuilt when commands change
     this._canExecute$ = this._commands$.pipe(
-      map(() => true) // Default when no commands
+      map(() => true), // Default when no commands
     );
 
     this.rebuildObservables();
@@ -161,7 +161,7 @@ export class CompositeCommand<TParam = void, TResult = any[]>
 
     // Filter by active state if monitoring
     const commandsToExecute = this.options.monitorCommandActivity
-      ? commandsArray.filter(cmd => this.shouldExecuteCommand(cmd))
+      ? commandsArray.filter((cmd) => this.shouldExecuteCommand(cmd))
       : commandsArray;
 
     this._isExecuting$.next(true);
@@ -177,9 +177,7 @@ export class CompositeCommand<TParam = void, TResult = any[]>
           results.push(result);
         }
       } else {
-        results = await Promise.all(
-          commandsToExecute.map(cmd => cmd.execute(param))
-        );
+        results = await Promise.all(commandsToExecute.map((cmd) => cmd.execute(param)));
       }
 
       return results as TResult;
@@ -218,21 +216,17 @@ export class CompositeCommand<TParam = void, TResult = any[]>
     }
 
     // Combine all canExecute$ - ALL must be true
-    this._canExecute$ = combineLatest(
-      commandsArray.map(cmd => cmd.canExecute$)
-    ).pipe(
-      map(canExecuteStates => canExecuteStates.every(can => can)),
-      distinctUntilChanged()
+    this._canExecute$ = combineLatest(commandsArray.map((cmd) => cmd.canExecute$)).pipe(
+      map((canExecuteStates) => canExecuteStates.every((can) => can)),
+      distinctUntilChanged(),
     );
 
     // Combine all isExecuting$ - ANY true means executing
-    this.isExecutingSubscription = combineLatest(
-      commandsArray.map(cmd => cmd.isExecuting$)
-    ).pipe(
-      map(isExecutingStates => isExecutingStates.some(is => is))
-    ).subscribe(isExecuting => {
-      this._isExecuting$.next(isExecuting);
-    });
+    this.isExecutingSubscription = combineLatest(commandsArray.map((cmd) => cmd.isExecuting$))
+      .pipe(map((isExecutingStates) => isExecutingStates.some((is) => is)))
+      .subscribe((isExecuting) => {
+        this._isExecuting$.next(isExecuting);
+      });
   }
 
   /**
@@ -311,8 +305,14 @@ describe('CompositeCommand', () => {
       const results: number[] = [];
       const composite = new CompositeCommand();
 
-      const cmd1 = new Command(async () => { results.push(1); return 'a'; });
-      const cmd2 = new Command(async () => { results.push(2); return 'b'; });
+      const cmd1 = new Command(async () => {
+        results.push(1);
+        return 'a';
+      });
+      const cmd2 = new Command(async () => {
+        results.push(2);
+        return 'b';
+      });
 
       composite.register(cmd1);
       composite.register(cmd2);
@@ -329,7 +329,7 @@ describe('CompositeCommand', () => {
       const composite = new CompositeCommand({ executionMode: 'sequential' });
 
       const cmd1 = new Command(async () => {
-        await new Promise(r => setTimeout(r, 10));
+        await new Promise((r) => setTimeout(r, 10));
         results.push(1);
         return 'a';
       });
@@ -357,9 +357,13 @@ describe('CompositeCommand', () => {
     it('should be true while any command is executing', async () => {
       const composite = new CompositeCommand();
       let resolveCmd: () => void;
-      const cmdPromise = new Promise<void>(r => { resolveCmd = r; });
+      const cmdPromise = new Promise<void>((r) => {
+        resolveCmd = r;
+      });
 
-      const cmd = new Command(async () => { await cmdPromise; });
+      const cmd = new Command(async () => {
+        await cmdPromise;
+      });
       composite.register(cmd);
 
       const executePromise = composite.execute();

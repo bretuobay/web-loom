@@ -11,12 +11,14 @@ Successfully implemented automatic command disposal for `@web-loom/mvvm-core` as
 Added command registration and automatic disposal functionality:
 
 **New Features:**
+
 - `registerCommand<TParam, TResult>(command)`: Protected method to register commands for automatic disposal
 - `_registeredCommands`: Private array tracking all registered commands
 - `isDisposable(obj)`: Private type guard to check if an object has a dispose method
 - Enhanced `dispose()`: Now disposes all registered commands before cleaning up subscriptions
 
 **Key Implementation Details:**
+
 - Commands are stored in a private array
 - `registerCommand()` returns the command for convenient assignment chaining
 - `dispose()` safely handles commands without dispose methods
@@ -26,6 +28,7 @@ Added command registration and automatic disposal functionality:
 ### 2. Comprehensive Test Suite (`src/viewmodels/BaseViewModel.test.ts`)
 
 **10 new tests covering:**
+
 - `registerCommand()` functionality (4 tests)
   - Returns same command for chaining
   - Tracks registered commands
@@ -44,6 +47,7 @@ Added command registration and automatic disposal functionality:
 ### 3. Updated Imports
 
 Modified imports in `BaseViewModel.ts`:
+
 ```typescript
 import { BaseModel, IDisposable } from '../models/BaseModel';
 import { ICommand } from '../commands/Command';
@@ -68,7 +72,7 @@ packages/mvvm-core/src/
 ✅ Clears command array after disposal  
 ✅ Unit tests pass (10/10 new tests)  
 ✅ Existing tests still pass (255 total tests)  
-✅ Documentation added  
+✅ Documentation added
 
 ## Build Verification
 
@@ -76,7 +80,7 @@ packages/mvvm-core/src/
 ✅ Vite build successful  
 ✅ Type definitions generated correctly  
 ✅ No breaking changes introduced  
-✅ All existing tests still pass (255 tests total)  
+✅ All existing tests still pass (255 tests total)
 
 ## Usage Examples
 
@@ -87,25 +91,15 @@ import { BaseViewModel, BaseModel, Command } from '@web-loom/mvvm-core';
 
 class OrderViewModel extends BaseViewModel<OrderModel> {
   // Commands are automatically disposed when ViewModel is disposed
-  public readonly loadCommand = this.registerCommand(
-    new Command(() => this.model.fetch())
-  );
+  public readonly loadCommand = this.registerCommand(new Command(() => this.model.fetch()));
 
-  public readonly saveCommand = this.registerCommand(
-    new Command(() => this.model.save(), this.canSave$)
-  );
+  public readonly saveCommand = this.registerCommand(new Command(() => this.model.save(), this.canSave$));
 
-  public readonly deleteCommand = this.registerCommand(
-    new Command(() => this.model.delete(), this.canDelete$)
-  );
+  public readonly deleteCommand = this.registerCommand(new Command(() => this.model.delete(), this.canDelete$));
 
-  private readonly canSave$ = this.data$.pipe(
-    map(data => data !== null && data.isValid)
-  );
+  private readonly canSave$ = this.data$.pipe(map((data) => data !== null && data.isValid));
 
-  private readonly canDelete$ = this.data$.pipe(
-    map(data => data !== null)
-  );
+  private readonly canDelete$ = this.data$.pipe(map((data) => data !== null));
 }
 ```
 
@@ -140,7 +134,7 @@ function OrderView() {
     <button (click)="vm.loadCommand.execute()">Load</button>
     <button (click)="vm.saveCommand.execute()">Save</button>
     <button (click)="vm.deleteCommand.execute()">Delete</button>
-  `
+  `,
 })
 export class OrderComponent implements OnDestroy {
   vm = new OrderViewModel(new OrderModel());
@@ -182,7 +176,7 @@ This feature is **100% backward compatible**. Existing code continues to work wi
 ```typescript
 class MyViewModel extends BaseViewModel<MyModel> {
   public readonly myCommand = new Command(() => this.doSomething());
-  
+
   // Manual disposal needed (if you remember!)
   public override dispose(): void {
     if (this.myCommand && typeof this.myCommand.dispose === 'function') {
@@ -198,9 +192,7 @@ class MyViewModel extends BaseViewModel<MyModel> {
 ```typescript
 class MyViewModel extends BaseViewModel<MyModel> {
   // Automatic disposal - no override needed!
-  public readonly myCommand = this.registerCommand(
-    new Command(() => this.doSomething())
-  );
+  public readonly myCommand = this.registerCommand(new Command(() => this.doSomething()));
 }
 ```
 
@@ -261,11 +253,9 @@ class MyViewModel extends BaseViewModel<MyModel> {
 
   constructor(model: MyModel) {
     super(model);
-    
+
     // Register after super() call
-    this.myCommand = this.registerCommand(
-      new Command(() => this.doSomething())
-    );
+    this.myCommand = this.registerCommand(new Command(() => this.doSomething()));
   }
 }
 ```
@@ -273,6 +263,7 @@ class MyViewModel extends BaseViewModel<MyModel> {
 ## Testing
 
 All tests verify:
+
 - Command registration and tracking
 - Automatic disposal on ViewModel disposal
 - Graceful handling of commands without dispose
@@ -282,6 +273,7 @@ All tests verify:
 ## Related Features
 
 This feature complements:
+
 - **BusyState**: Can be used together for comprehensive state management
 - **Command Pattern**: Enhances the existing Command implementation
 - **BaseViewModel Disposal**: Extends the existing disposal infrastructure

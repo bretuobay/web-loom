@@ -6,7 +6,7 @@ import { ErrorsContainer } from './ErrorsContainer';
  */
 export function populateFromZodError<T extends Record<string, any>>(
   container: ErrorsContainer<T>,
-  zodError: ZodError
+  zodError: ZodError,
 ): void {
   // Clear previous errors
   container.clearErrors();
@@ -14,7 +14,7 @@ export function populateFromZodError<T extends Record<string, any>>(
   // Group errors by field path
   const errorsByField = new Map<keyof T, string[]>();
 
-  zodError.errors.forEach(err => {
+  zodError.errors.forEach((err) => {
     const propertyName = err.path[0] as keyof T;
     if (propertyName) {
       const existing = errorsByField.get(propertyName) || [];
@@ -37,7 +37,7 @@ export function populateFromZodError<T extends Record<string, any>>(
 export function validateWithZodContainer<T extends Record<string, any>>(
   container: ErrorsContainer<T>,
   schema: ZodSchema<T>,
-  data: Partial<T>
+  data: Partial<T>,
 ): boolean {
   const result = schema.safeParse(data);
 
@@ -61,7 +61,7 @@ export function validateFieldWithZodContainer<T extends Record<string, any>>(
   schema: ZodSchema<T>,
   propertyName: keyof T,
   value: T[keyof T],
-  currentData: Partial<T>
+  currentData: Partial<T>,
 ): boolean {
   const dataToValidate = { ...currentData, [propertyName]: value } as T;
   const result = schema.safeParse(dataToValidate);
@@ -70,9 +70,7 @@ export function validateFieldWithZodContainer<T extends Record<string, any>>(
     container.setErrors(propertyName, []);
     return true;
   } else {
-    const fieldErrors = result.error.errors
-      .filter(err => err.path[0] === propertyName)
-      .map(err => err.message);
+    const fieldErrors = result.error.errors.filter((err) => err.path[0] === propertyName).map((err) => err.message);
 
     container.setErrors(propertyName, fieldErrors);
     return fieldErrors.length === 0;

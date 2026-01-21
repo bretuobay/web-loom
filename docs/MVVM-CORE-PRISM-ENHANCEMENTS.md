@@ -29,6 +29,7 @@ This document outlines Prism Library features that could enhance `mvvm-core` to 
 **Prism Pattern**: CompositeCommand aggregates multiple child commands and executes them collectively.
 
 **Key Features**:
+
 - Maintains a list of child DelegateCommands
 - `canExecute$` returns false if ANY child cannot execute
 - `isExecuting$` returns true if ANY child is executing
@@ -46,27 +47,19 @@ interface ICompositeCommand<TParam = void, TResult = void[]> extends ICommand<TP
   readonly monitorCommandActivity: boolean;
 }
 
-class CompositeCommand<TParam = void, TResult = void[]>
-  implements ICompositeCommand<TParam, TResult>, IDisposable {
-
+class CompositeCommand<TParam = void, TResult = void[]> implements ICompositeCommand<TParam, TResult>, IDisposable {
   private readonly commands = new Set<ICommand<TParam, any>>();
   private readonly _canExecute$: Observable<boolean>;
   private readonly _isExecuting$: Observable<boolean>;
 
-  constructor(
-    private readonly monitorCommandActivity: boolean = false
-  ) {
+  constructor(private readonly monitorCommandActivity: boolean = false) {
     // Aggregate child command states
-    this._canExecute$ = combineLatest(
-      Array.from(this.commands).map(cmd => cmd.canExecute$)
-    ).pipe(
-      map(canExecuteStates => canExecuteStates.every(can => can))
+    this._canExecute$ = combineLatest(Array.from(this.commands).map((cmd) => cmd.canExecute$)).pipe(
+      map((canExecuteStates) => canExecuteStates.every((can) => can)),
     );
 
-    this._isExecuting$ = combineLatest(
-      Array.from(this.commands).map(cmd => cmd.isExecuting$)
-    ).pipe(
-      map(isExecutingStates => isExecutingStates.some(is => is))
+    this._isExecuting$ = combineLatest(Array.from(this.commands).map((cmd) => cmd.isExecuting$)).pipe(
+      map((isExecutingStates) => isExecutingStates.some((is) => is)),
     );
   }
 
@@ -83,14 +76,10 @@ class CompositeCommand<TParam = void, TResult = void[]>
 
   async execute(param: TParam): Promise<TResult> {
     const commandsToExecute = this.monitorCommandActivity
-      ? Array.from(this.commands).filter(cmd =>
-          this.implementsActiveAware(cmd) ? cmd.isActive : true
-        )
+      ? Array.from(this.commands).filter((cmd) => (this.implementsActiveAware(cmd) ? cmd.isActive : true))
       : Array.from(this.commands);
 
-    const results = await Promise.all(
-      commandsToExecute.map(cmd => cmd.execute(param))
-    );
+    const results = await Promise.all(commandsToExecute.map((cmd) => cmd.execute(param)));
 
     return results as TResult;
   }
@@ -102,12 +91,14 @@ class CompositeCommand<TParam = void, TResult = void[]>
 ```
 
 **Use Cases**:
+
 - Save All: Execute save commands across multiple view models
 - Zoom All: Apply zoom to all active child views
 - Toolbar Actions: Single toolbar button triggers multiple related operations
 - Batch Operations: Apply same action to collection of entities
 
 **References**:
+
 - [Prism Composite Commands Documentation](https://prismlibrary.github.io/docs/commands/composite-commands.html)
 - [Prism DelegateCommand and CompositeCommand (CodeProject)](https://www.codeproject.com/Articles/1055060/DelegateCommand-and-CompositeCommand-in-Prism)
 
@@ -120,6 +111,7 @@ class CompositeCommand<TParam = void, TResult = void[]>
 **Prism Pattern**: Commands automatically observe properties and re-evaluate `CanExecute` when properties change.
 
 **Prism Syntax**:
+
 ```csharp
 SubmitCommand = new DelegateCommand(ExecuteSubmit, CanExecuteSubmit)
     .ObservesProperty(() => IsValid)
@@ -139,14 +131,11 @@ class Command<TParam = void, TResult = void> implements ICommand<TParam, TResult
     this.observedProperties.push(property$);
 
     // Recombine canExecute$ with all observed properties
-    this._canExecute$ = combineLatest([
-      this.baseCanExecute$,
-      ...this.observedProperties
-    ]).pipe(
+    this._canExecute$ = combineLatest([this.baseCanExecute$, ...this.observedProperties]).pipe(
       map(([baseCanExecute, ...props]) => {
         // Custom logic: all observed properties must be truthy
-        return baseCanExecute && props.every(p => !!p);
-      })
+        return baseCanExecute && props.every((p) => !!p);
+      }),
     );
 
     return this; // Fluent API
@@ -157,11 +146,8 @@ class Command<TParam = void, TResult = void> implements ICommand<TParam, TResult
    */
   observesCanExecute(canExecute$: Observable<boolean>): this {
     // Combine with existing canExecute$
-    this._canExecute$ = combineLatest([
-      this._canExecute$,
-      canExecute$
-    ]).pipe(
-      map(([current, observed]) => current && observed)
+    this._canExecute$ = combineLatest([this._canExecute$, canExecute$]).pipe(
+      map(([current, observed]) => current && observed),
     );
 
     return this; // Fluent API
@@ -177,11 +163,9 @@ class MyViewModel extends BaseViewModel<MyModel> {
   constructor(model: MyModel) {
     super(model);
 
-    this.isValid$ = this.data$.pipe(
-      map(data => data !== null && data.name.length > 0)
-    );
+    this.isValid$ = this.data$.pipe(map((data) => data !== null && data.name.length > 0));
 
-    this.isNotBusy$ = this.isLoading$.pipe(map(loading => !loading));
+    this.isNotBusy$ = this.isLoading$.pipe(map((loading) => !loading));
 
     // Fluent command configuration
     this.submitCommand = new Command(() => this.submit())
@@ -192,12 +176,14 @@ class MyViewModel extends BaseViewModel<MyModel> {
 ```
 
 **Benefits**:
+
 - Declarative command configuration
 - Automatic CanExecute re-evaluation
 - Reduces boilerplate for complex command enablement logic
 - Fluent API improves readability
 
 **References**:
+
 - [Prism Commanding Documentation](https://docs.prismlibrary.com/docs/commands/commanding.html)
 - [ObservesProperty GitHub Discussion](https://github.com/PrismLibrary/Prism/issues/760)
 
@@ -225,7 +211,7 @@ class Command<TParam = void, TResult = void> implements ICommand<TParam, TResult
 
   raiseCanExecuteChanged(): void {
     // Re-evaluate the current canExecute state
-    this.canExecute$.pipe(first()).subscribe(canExecute => {
+    this.canExecute$.pipe(first()).subscribe((canExecute) => {
       this._canExecuteSubject.next(canExecute);
     });
   }
@@ -253,6 +239,7 @@ class MyViewModel extends BaseViewModel<MyModel> {
 **Prism Pattern**: `SetProperty<T>` method with optional callbacks and property name validation.
 
 **Prism Syntax**:
+
 ```csharp
 private string _name;
 public string Name
@@ -283,7 +270,7 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
   protected createProperty<T>(
     initialValue: T,
     onChanged?: (oldValue: T, newValue: T) => void,
-    propertyName?: string
+    propertyName?: string,
   ): {
     value$: Observable<T>;
     setValue: (newValue: T) => void;
@@ -292,10 +279,7 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
     const subject$ = new BehaviorSubject<T>(initialValue);
 
     return {
-      value$: subject$.asObservable().pipe(
-        distinctUntilChanged(),
-        takeUntil(this._destroy$)
-      ),
+      value$: subject$.asObservable().pipe(distinctUntilChanged(), takeUntil(this._destroy$)),
 
       setValue: (newValue: T) => {
         const oldValue = subject$.value;
@@ -309,7 +293,7 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
         }
       },
 
-      getValue: () => subject$.value
+      getValue: () => subject$.value,
     };
   }
 }
@@ -322,7 +306,7 @@ class CustomerViewModel extends BaseViewModel<CustomerModel> {
       console.log(`First name changed from "${oldValue}" to "${newValue}"`);
       this.saveCommand.raiseCanExecuteChanged();
     },
-    'firstName'
+    'firstName',
   );
 
   public readonly firstName$ = this._firstName.value$;
@@ -331,6 +315,7 @@ class CustomerViewModel extends BaseViewModel<CustomerModel> {
 ```
 
 **Benefits**:
+
 - Consistent property change handling
 - Automatic change notifications
 - Memory leak prevention via takeUntil
@@ -348,7 +333,7 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
   protected createValidatedProperty<T>(
     initialValue: T,
     validator: (value: T) => boolean | string,
-    propertyName?: string
+    propertyName?: string,
   ): {
     value$: Observable<T>;
     error$: Observable<string | null>;
@@ -361,7 +346,7 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
     return {
       value$: subject$.asObservable().pipe(takeUntil(this._destroy$)),
       error$: error$.asObservable().pipe(takeUntil(this._destroy$)),
-      isValid$: error$.pipe(map(err => err === null)),
+      isValid$: error$.pipe(map((err) => err === null)),
 
       setValue: (newValue: T) => {
         const validationResult = validator(newValue);
@@ -370,12 +355,10 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
           error$.next(null);
           subject$.next(newValue);
         } else {
-          const errorMessage = typeof validationResult === 'string'
-            ? validationResult
-            : 'Invalid value';
+          const errorMessage = typeof validationResult === 'string' ? validationResult : 'Invalid value';
           error$.next(errorMessage);
         }
-      }
+      },
     };
   }
 }
@@ -425,10 +408,7 @@ interface INavigationAware {
 }
 
 // Usage
-class CustomerDetailViewModel
-  extends BaseViewModel<CustomerModel>
-  implements INavigationAware {
-
+class CustomerDetailViewModel extends BaseViewModel<CustomerModel> implements INavigationAware {
   private currentCustomerId: string | null = null;
 
   isNavigationTarget(context: NavigationContext): boolean {
@@ -454,6 +434,7 @@ class CustomerDetailViewModel
 **Integration with router-core**: The router would check if ViewModels implement INavigationAware and call lifecycle methods appropriately.
 
 **References**:
+
 - [Prism Navigation Documentation](https://prismlibrary.github.io/docs/wpf/legacy/Navigation.html)
 - [View and ViewModel Participation in Navigation](https://prismlibrary.github.io/docs/wpf/region-navigation/view-viewmodel-participation.html)
 
@@ -480,23 +461,14 @@ interface IConfirmNavigationRequest extends INavigationAware {
    * @param context Navigation context
    * @param callback Callback to invoke with confirmation result
    */
-  confirmNavigationRequest(
-    context: NavigationContext,
-    callback: NavigationCallback
-  ): void | Promise<void>;
+  confirmNavigationRequest(context: NavigationContext, callback: NavigationCallback): void | Promise<void>;
 }
 
 // Usage
-class EditFormViewModel
-  extends BaseViewModel<FormModel>
-  implements IConfirmNavigationRequest {
-
+class EditFormViewModel extends BaseViewModel<FormModel> implements IConfirmNavigationRequest {
   private hasUnsavedChanges = false;
 
-  async confirmNavigationRequest(
-    context: NavigationContext,
-    callback: NavigationCallback
-  ): Promise<void> {
+  async confirmNavigationRequest(context: NavigationContext, callback: NavigationCallback): Promise<void> {
     if (!this.hasUnsavedChanges) {
       callback(true);
       return;
@@ -505,7 +477,7 @@ class EditFormViewModel
     // Show confirmation dialog (using ui-core or notifications-core)
     const confirmed = await this.dialogService.confirm(
       'You have unsaved changes. Are you sure you want to leave?',
-      'Unsaved Changes'
+      'Unsaved Changes',
     );
 
     callback(confirmed);
@@ -526,6 +498,7 @@ class EditFormViewModel
 ```
 
 **References**:
+
 - [Confirming Navigation (Prism)](https://docs.prismlibrary.com/docs/navigation/regions/confirming-navigation.html)
 - [3 Navigation Service (PrismNew)](https://prismnew.readthedocs.io/en/latest/Xamarin-Forms/3-Navigation-Service/)
 
@@ -553,10 +526,7 @@ interface IInitializeAsync {
 }
 
 // Usage
-class DashboardViewModel
-  extends BaseViewModel<DashboardModel>
-  implements IInitializeAsync {
-
+class DashboardViewModel extends BaseViewModel<DashboardModel> implements IInitializeAsync {
   async initializeAsync(parameters: Record<string, any>): Promise<void> {
     // Heavy initialization logic
     await this.loadUserPreferences();
@@ -573,6 +543,7 @@ class DashboardViewModel
 ```
 
 **Benefits over constructor**:
+
 - Async operations without blocking instantiation
 - Navigation parameters available during init
 - Testability: Can test ViewModel without triggering initialization
@@ -596,9 +567,7 @@ interface IDestructible {
 }
 
 // Enhanced BaseViewModel
-abstract class BaseViewModel<TModel extends BaseModel<any, any>>
-  implements IDisposable {
-
+abstract class BaseViewModel<TModel extends BaseModel<any, any>> implements IDisposable {
   public dispose(): void {
     // Check if implements IDestructible
     if (this.implementsDestructible()) {
@@ -634,18 +603,12 @@ interface IViewLifetime {
 }
 
 // Usage
-class CustomerListViewModel
-  extends BaseViewModel<CustomerListModel>
-  implements IViewLifetime {
-
+class CustomerListViewModel extends BaseViewModel<CustomerListModel> implements IViewLifetime {
   // Keep this view alive for fast back navigation
   readonly keepAlive = true;
 }
 
-class CustomerDetailViewModel
-  extends BaseViewModel<CustomerDetailModel>
-  implements IViewLifetime {
-
+class CustomerDetailViewModel extends BaseViewModel<CustomerDetailModel> implements IViewLifetime {
   // Don't keep detail views in memory
   readonly keepAlive = false;
 }
@@ -683,8 +646,8 @@ interface IActiveAware {
 // Base implementation
 abstract class ActiveAwareViewModel<TModel extends BaseModel<any, any>>
   extends BaseViewModel<TModel>
-  implements IActiveAware {
-
+  implements IActiveAware
+{
   private readonly _isActive$ = new BehaviorSubject<boolean>(false);
   public readonly isActive$ = this._isActive$.asObservable();
 
@@ -722,6 +685,7 @@ class TabViewModel extends ActiveAwareViewModel<TabModel> {
 ```
 
 **Integration with CompositeCommand**:
+
 ```typescript
 const zoomInCommand = new CompositeCommand(true); // monitorCommandActivity = true
 
@@ -731,6 +695,7 @@ tab2ViewModel.zoomCommand; // isActive = false → skips
 ```
 
 **References**:
+
 - [Prism IActiveAware and CompositeCommand](https://prismlibrary.github.io/docs/commands/composite-commands.html)
 
 ---
@@ -861,12 +826,14 @@ function OrderView() {
 ```
 
 **Benefits**:
+
 - Complete separation of concerns: ViewModel has zero UI knowledge
 - Testable: Can test ViewModel interaction logic without rendering UI
 - Framework-agnostic: Same ViewModel works across React, Vue, Angular
 - Type-safe interaction contracts
 
 **Interaction Types**:
+
 - `NotificationRequest`: Show toast/snackbar
 - `ConfirmationRequest`: Yes/No dialogs
 - `InputRequest`: Prompt for user input
@@ -874,8 +841,9 @@ function OrderView() {
 - `FilePickerRequest`: Request file selection
 
 **References**:
+
 - [Prism Advanced MVVM Scenarios](https://prismlibrary.github.io/docs/wpf/legacy/Implementing-MVVM.html)
-- [Implementing MVVM Pattern Using Prism Library (Microsoft)](https://learn.microsoft.com/en-us/previous-versions/msp-n-p/gg405484(v=pandp.40))
+- [Implementing MVVM Pattern Using Prism Library (Microsoft)](<https://learn.microsoft.com/en-us/previous-versions/msp-n-p/gg405484(v=pandp.40)>)
 
 ---
 
@@ -961,9 +929,9 @@ class ErrorsContainer<T = any> {
    */
   getErrors$(propertyName: keyof T): Observable<string[]> {
     return this._errorsChanged$.pipe(
-      filter(prop => prop === null || prop === propertyName),
+      filter((prop) => prop === null || prop === propertyName),
       map(() => this.getErrors(propertyName)),
-      startWith(this.getErrors(propertyName))
+      startWith(this.getErrors(propertyName)),
     );
   }
 }
@@ -979,9 +947,7 @@ interface CustomerData {
 class CustomerFormViewModel extends BaseViewModel<CustomerModel> {
   private readonly errorsContainer = new ErrorsContainer<CustomerData>();
 
-  public readonly hasErrors$ = this.errorsContainer.errorsChanged$.pipe(
-    map(() => this.errorsContainer.hasErrors)
-  );
+  public readonly hasErrors$ = this.errorsContainer.errorsChanged$.pipe(map(() => this.errorsContainer.hasErrors));
 
   public readonly firstNameErrors$ = this.errorsContainer.getErrors$('firstName');
   public readonly emailErrors$ = this.errorsContainer.getErrors$('email');
@@ -1030,7 +996,7 @@ class CustomerFormViewModel extends BaseViewModel<CustomerModel> {
       this.errorsContainer.clearErrors();
     } catch (error) {
       if (error instanceof ZodError) {
-        error.errors.forEach(err => {
+        error.errors.forEach((err) => {
           const propertyName = err.path[0] as keyof CustomerData;
           const currentErrors = this.errorsContainer.getErrors(propertyName);
           this.errorsContainer.setErrors(propertyName, [...currentErrors, err.message]);
@@ -1042,7 +1008,8 @@ class CustomerFormViewModel extends BaseViewModel<CustomerModel> {
 ```
 
 **References**:
-- [ErrorsContainer Class (Microsoft)](https://learn.microsoft.com/en-us/previous-versions/msp-n-p/gg431577(v=pandp.50))
+
+- [ErrorsContainer Class (Microsoft)](<https://learn.microsoft.com/en-us/previous-versions/msp-n-p/gg431577(v=pandp.50)>)
 - [Prism.Validation (GitHub)](https://github.com/mfe-/Prism.Validation)
 
 ---
@@ -1055,11 +1022,7 @@ class AsyncErrorsContainer<T = any> extends ErrorsContainer<T> {
   private readonly _isValidating$ = new BehaviorSubject<boolean>(false);
   public readonly isValidating$ = this._isValidating$.asObservable();
 
-  async validateAsync(
-    propertyName: keyof T,
-    value: any,
-    validator: (value: any) => Promise<string[]>
-  ): Promise<void> {
+  async validateAsync(propertyName: keyof T, value: any, validator: (value: any) => Promise<string[]>): Promise<void> {
     this.validatingProperties.add(propertyName);
     this._isValidating$.next(true);
 
@@ -1121,12 +1084,12 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
     observable$: Observable<T>,
     next?: (value: T) => void,
     error?: (error: any) => void,
-    complete?: () => void
+    complete?: () => void,
   ): Subscription {
     const sub = observable$.pipe(takeUntil(this._destroy$)).subscribe({
       next,
       error,
-      complete
+      complete,
     });
 
     this._subscriptions.add(sub);
@@ -1136,9 +1099,7 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
   /**
    * Create an observable that automatically completes when ViewModel is disposed
    */
-  protected createManagedObservable<T>(
-    factory: (observer: Observer<T>) => TeardownLogic
-  ): Observable<T> {
+  protected createManagedObservable<T>(factory: (observer: Observer<T>) => TeardownLogic): Observable<T> {
     return new Observable<T>(factory).pipe(takeUntil(this._destroy$));
   }
 }
@@ -1147,15 +1108,12 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
 class DashboardViewModel extends BaseViewModel<DashboardModel> {
   constructor(
     model: DashboardModel,
-    private readonly eventBus: EventBus<AppEvents>
+    private readonly eventBus: EventBus<AppEvents>,
   ) {
     super(model);
 
     // This subscription will automatically clean up when disposed
-    this.subscribe(
-      this.eventBus.on('user:logged-out'),
-      () => this.handleLogout()
-    );
+    this.subscribe(this.eventBus.on('user:logged-out'), () => this.handleLogout());
   }
 }
 ```
@@ -1179,6 +1137,7 @@ class ViewModelRegistry {
 ```
 
 **References**:
+
 - [Weak Event Patterns (Microsoft)](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/events/weak-event-patterns)
 - [Prism Memory Leak Issues (GitHub)](https://github.com/PrismLibrary/Prism/issues/345)
 - [Preventing Event-based Memory Leaks (Reed Copsey)](http://reedcopsey.com/2009/08/06/preventing-event-based-memory-leaks-weakeventmanager/)
@@ -1196,16 +1155,14 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
   /**
    * Register a command for automatic disposal
    */
-  protected registerCommand<TParam, TResult>(
-    command: ICommand<TParam, TResult>
-  ): ICommand<TParam, TResult> {
+  protected registerCommand<TParam, TResult>(command: ICommand<TParam, TResult>): ICommand<TParam, TResult> {
     this.commands.push(command);
     return command;
   }
 
   public dispose(): void {
     // Dispose all registered commands
-    this.commands.forEach(cmd => {
+    this.commands.forEach((cmd) => {
       if ('dispose' in cmd && typeof (cmd as any).dispose === 'function') {
         (cmd as any).dispose();
       }
@@ -1219,9 +1176,7 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
 
 // Usage
 class MyViewModel extends BaseViewModel<MyModel> {
-  public readonly saveCommand = this.registerCommand(
-    new Command(() => this.save())
-  );
+  public readonly saveCommand = this.registerCommand(new Command(() => this.save()));
 }
 ```
 
@@ -1262,10 +1217,7 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
   /**
    * Execute an async operation with automatic busy state management
    */
-  protected async executeBusy<T>(
-    operation: () => Promise<T>,
-    reason: string = 'Loading'
-  ): Promise<T> {
+  protected async executeBusy<T>(operation: () => Promise<T>, reason: string = 'Loading'): Promise<T> {
     const clearBusy = this.setBusy(reason);
 
     try {
@@ -1279,13 +1231,10 @@ abstract class BaseViewModel<TModel extends BaseModel<any, any>> {
 // Usage
 class CustomerListViewModel extends BaseViewModel<CustomerListModel> {
   async loadCustomers(): Promise<void> {
-    await this.executeBusy(
-      async () => {
-        const customers = await this.customerService.getAll();
-        this.model.setData(customers);
-      },
-      'Loading customers'
-    );
+    await this.executeBusy(async () => {
+      const customers = await this.customerService.getAll();
+      this.model.setData(customers);
+    }, 'Loading customers');
   }
 }
 ```
@@ -1305,8 +1254,8 @@ interface IDirtyTrackable {
 
 abstract class TrackableViewModel<TModel extends BaseModel<any, any>>
   extends BaseViewModel<TModel>
-  implements IDirtyTrackable {
-
+  implements IDirtyTrackable
+{
   private readonly _isDirty$ = new BehaviorSubject<boolean>(false);
   public readonly isDirty$ = this._isDirty$.asObservable();
 
@@ -1324,20 +1273,16 @@ abstract class TrackableViewModel<TModel extends BaseModel<any, any>>
   protected trackProperty<T>(property$: Observable<T>): Observable<T> {
     return property$.pipe(
       tap(() => this.markDirty()),
-      takeUntil(this._destroy$)
+      takeUntil(this._destroy$),
     );
   }
 }
 
 // Usage
 class EditCustomerViewModel extends TrackableViewModel<CustomerModel> {
-  public readonly firstName$ = this.trackProperty(this.model.data$.pipe(
-    map(data => data?.firstName ?? '')
-  ));
+  public readonly firstName$ = this.trackProperty(this.model.data$.pipe(map((data) => data?.firstName ?? '')));
 
-  public readonly canNavigateAway$ = this.isDirty$.pipe(
-    map(isDirty => !isDirty)
-  );
+  public readonly canNavigateAway$ = this.isDirty$.pipe(map((isDirty) => !isDirty));
 }
 ```
 
@@ -1345,22 +1290,22 @@ class EditCustomerViewModel extends TrackableViewModel<CustomerModel> {
 
 ## 9. Implementation Priority Matrix
 
-| Feature | Impact | Effort | Priority | Dependencies |
-|---------|--------|--------|----------|--------------|
-| **CompositeCommand** | High | Low | 🔴 P0 | None |
-| **ObservesProperty/ObservesCanExecute** | High | Medium | 🔴 P0 | Command enhancements |
-| **INavigationAware** | High | Medium | 🟠 P1 | router-core integration |
-| **InteractionRequest** | High | Medium | 🟠 P1 | None |
-| **ErrorsContainer** | High | Medium | 🟠 P1 | None |
-| **IActiveAware** | Medium | Low | 🟡 P2 | CompositeCommand |
-| **IConfirmNavigationRequest** | Medium | Low | 🟡 P2 | INavigationAware |
-| **Enhanced SetProperty** | Medium | Low | 🟡 P2 | None |
-| **RaiseCanExecuteChanged** | Low | Low | 🟢 P3 | None |
-| **WeakEvent Formalization** | Low | Low | 🟢 P3 | None |
-| **Dirty Tracking** | Medium | Low | 🟢 P3 | None |
-| **IDestructible** | Low | Low | 🟢 P3 | None |
-| **IInitializeAsync** | Medium | Low | 🟡 P2 | None |
-| **Busy Indicator** | Medium | Low | 🟡 P2 | None |
+| Feature                                 | Impact | Effort | Priority | Dependencies            |
+| --------------------------------------- | ------ | ------ | -------- | ----------------------- |
+| **CompositeCommand**                    | High   | Low    | 🔴 P0    | None                    |
+| **ObservesProperty/ObservesCanExecute** | High   | Medium | 🔴 P0    | Command enhancements    |
+| **INavigationAware**                    | High   | Medium | 🟠 P1    | router-core integration |
+| **InteractionRequest**                  | High   | Medium | 🟠 P1    | None                    |
+| **ErrorsContainer**                     | High   | Medium | 🟠 P1    | None                    |
+| **IActiveAware**                        | Medium | Low    | 🟡 P2    | CompositeCommand        |
+| **IConfirmNavigationRequest**           | Medium | Low    | 🟡 P2    | INavigationAware        |
+| **Enhanced SetProperty**                | Medium | Low    | 🟡 P2    | None                    |
+| **RaiseCanExecuteChanged**              | Low    | Low    | 🟢 P3    | None                    |
+| **WeakEvent Formalization**             | Low    | Low    | 🟢 P3    | None                    |
+| **Dirty Tracking**                      | Medium | Low    | 🟢 P3    | None                    |
+| **IDestructible**                       | Low    | Low    | 🟢 P3    | None                    |
+| **IInitializeAsync**                    | Medium | Low    | 🟡 P2    | None                    |
+| **Busy Indicator**                      | Medium | Low    | 🟡 P2    | None                    |
 
 ---
 
@@ -1369,10 +1314,12 @@ class EditCustomerViewModel extends TrackableViewModel<CustomerModel> {
 This roadmap outlines **14 major feature categories** inspired by Prism Library that would enhance `mvvm-core` as a standalone MVVM library for web/mobile development:
 
 ### Core Command Enhancements (P0)
+
 1. **CompositeCommand** - Execute multiple commands as one
 2. **ObservesProperty/ObservesCanExecute** - Declarative command enablement
 
 ### ViewModel Lifecycle (P1-P2)
+
 3. **INavigationAware** - Participate in navigation lifecycle
 4. **IConfirmNavigationRequest** - Confirm or cancel navigation
 5. **IInitializeAsync** - Async initialization separate from constructor
@@ -1380,19 +1327,23 @@ This roadmap outlines **14 major feature categories** inspired by Prism Library 
 7. **IViewLifetime** - Control ViewModel lifecycle (keepAlive)
 
 ### UI Communication (P1)
+
 8. **InteractionRequest** - ViewModel-to-View communication without coupling
 9. **ErrorsContainer** - Property-level validation error tracking
 
 ### State Management (P2)
+
 10. **IActiveAware** - Track active/inactive state
 11. **Enhanced SetProperty** - Property change callbacks
 12. **Dirty Tracking** - Track unsaved changes
 13. **Busy Indicator** - Centralized busy state management
 
 ### Memory Management (P3)
+
 14. **WeakEvent Pattern** - Formalized subscription management
 
 All patterns are adapted for:
+
 - **RxJS** instead of INotifyPropertyChanged
 - **Web/Mobile** instead of desktop
 - **Modern TypeScript** with strong typing
@@ -1410,10 +1361,10 @@ All patterns are adapted for:
 - [Navigation Using Prism Library for WPF](https://prismlibrary.github.io/docs/wpf/legacy/Navigation.html)
 - [View and ViewModel Participation in Navigation](https://prismlibrary.github.io/docs/wpf/region-navigation/view-viewmodel-participation.html)
 - [Confirming Navigation (Prism)](https://docs.prismlibrary.com/docs/navigation/regions/confirming-navigation.html)
-- [ErrorsContainer Class (Microsoft)](https://learn.microsoft.com/en-us/previous-versions/msp-n-p/gg431577(v=pandp.50))
+- [ErrorsContainer Class (Microsoft)](<https://learn.microsoft.com/en-us/previous-versions/msp-n-p/gg431577(v=pandp.50)>)
 - [Prism.Validation (GitHub)](https://github.com/mfe-/Prism.Validation)
 - [Weak Event Patterns (Microsoft)](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/events/weak-event-patterns)
 - [Prism Memory Leak Issues (GitHub)](https://github.com/PrismLibrary/Prism/issues/345)
 - [DelegateCommand Source Code (GitHub)](https://github.com/PrismLibrary/Prism/blob/master/src/Prism.Core/Commands/DelegateCommand.cs)
 - [Advanced MVVM Scenarios Using Prism Library](https://prismnew.readthedocs.io/en/latest/WPF/06-Advanced-MVVM/)
-- [Microsoft Learn: Implementing MVVM Pattern Using Prism Library 5.0](https://learn.microsoft.com/en-us/previous-versions/msp-n-p/gg405484(v=pandp.40))
+- [Microsoft Learn: Implementing MVVM Pattern Using Prism Library 5.0](<https://learn.microsoft.com/en-us/previous-versions/msp-n-p/gg405484(v=pandp.40)>)

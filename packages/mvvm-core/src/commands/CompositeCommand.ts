@@ -32,12 +32,12 @@ export interface ICompositeCommand<TParam = void, TResult = any[]> extends IComm
 
 /**
  * Aggregates multiple child commands and executes them collectively.
- * 
+ *
  * Key behaviors:
  * - canExecute$ is false if ANY child cannot execute
  * - isExecuting$ is true if ANY child is executing
  * - execute() runs all child commands and returns aggregated results
- * 
+ *
  * @example
  * ```typescript
  * // Create composite command for "Refresh All"
@@ -45,14 +45,14 @@ export interface ICompositeCommand<TParam = void, TResult = any[]> extends IComm
  * refreshAllCommand.register(refreshUsersCommand);
  * refreshAllCommand.register(refreshOrdersCommand);
  * refreshAllCommand.register(refreshStatsCommand);
- * 
+ *
  * // Execute all at once
  * await refreshAllCommand.execute();
  * ```
  */
 export class CompositeCommand<TParam = void, TResult = any[]>
-  implements ICompositeCommand<TParam, TResult>, IDisposable {
-
+  implements ICompositeCommand<TParam, TResult>, IDisposable
+{
   private readonly commands = new Set<ICommand<TParam, any>>();
   private readonly _commands$ = new BehaviorSubject<ICommand<TParam, any>[]>([]);
   private readonly _isExecuting$ = new BehaviorSubject<boolean>(false);
@@ -89,9 +89,9 @@ export class CompositeCommand<TParam = void, TResult = any[]>
 
   /**
    * Register a command to be executed as part of this composite
-   * 
+   *
    * @param command The command to register
-   * 
+   *
    * @example
    * ```typescript
    * const composite = new CompositeCommand();
@@ -112,7 +112,7 @@ export class CompositeCommand<TParam = void, TResult = any[]>
 
   /**
    * Unregister a command from this composite
-   * 
+   *
    * @param command The command to unregister
    */
   unregister(command: ICommand<TParam, any>): void {
@@ -123,7 +123,7 @@ export class CompositeCommand<TParam = void, TResult = any[]>
 
   /**
    * Execute all registered commands
-   * 
+   *
    * @param param Parameter to pass to all commands
    * @returns Array of results from all commands
    */
@@ -141,7 +141,7 @@ export class CompositeCommand<TParam = void, TResult = any[]>
 
     // Filter by active state if monitoring
     const commandsToExecute = this.options.monitorCommandActivity
-      ? commandsArray.filter(cmd => this.shouldExecuteCommand(cmd))
+      ? commandsArray.filter((cmd) => this.shouldExecuteCommand(cmd))
       : commandsArray;
 
     this._isExecuting$.next(true);
@@ -158,9 +158,7 @@ export class CompositeCommand<TParam = void, TResult = any[]>
         }
       } else {
         // Parallel execution
-        results = await Promise.all(
-          commandsToExecute.map(cmd => cmd.execute(param))
-        );
+        results = await Promise.all(commandsToExecute.map((cmd) => cmd.execute(param)));
       }
 
       return results as TResult;
@@ -201,21 +199,17 @@ export class CompositeCommand<TParam = void, TResult = any[]>
     }
 
     // Combine all canExecute$ - ALL must be true
-    this._canExecute$ = combineLatest(
-      commandsArray.map(cmd => cmd.canExecute$)
-    ).pipe(
-      map(canExecuteStates => canExecuteStates.every(can => can)),
-      distinctUntilChanged()
+    this._canExecute$ = combineLatest(commandsArray.map((cmd) => cmd.canExecute$)).pipe(
+      map((canExecuteStates) => canExecuteStates.every((can) => can)),
+      distinctUntilChanged(),
     );
 
     // Combine all isExecuting$ - ANY true means executing
-    this.isExecutingSubscription = combineLatest(
-      commandsArray.map(cmd => cmd.isExecuting$)
-    ).pipe(
-      map(isExecutingStates => isExecutingStates.some(is => is))
-    ).subscribe(isExecuting => {
-      this._isExecuting$.next(isExecuting);
-    });
+    this.isExecutingSubscription = combineLatest(commandsArray.map((cmd) => cmd.isExecuting$))
+      .pipe(map((isExecutingStates) => isExecutingStates.some((is) => is)))
+      .subscribe((isExecuting) => {
+        this._isExecuting$.next(isExecuting);
+      });
   }
 
   /**

@@ -110,17 +110,15 @@ import { IActiveAware } from '../lifecycle/IActiveAware';
  */
 export abstract class ActiveAwareViewModel<TModel extends BaseModel<any, any>>
   extends BaseViewModel<TModel>
-  implements IActiveAware {
-
+  implements IActiveAware
+{
   private readonly _isActive$ = new BehaviorSubject<boolean>(false);
 
   /**
    * Observable that emits when active state changes.
    * New subscribers receive the current value immediately.
    */
-  public readonly isActive$: Observable<boolean> = this._isActive$.pipe(
-    distinctUntilChanged()
-  );
+  public readonly isActive$: Observable<boolean> = this._isActive$.pipe(distinctUntilChanged());
 
   /**
    * Gets the current active state
@@ -263,7 +261,7 @@ describe('ActiveAwareViewModel', () => {
 
     it('should not emit duplicate values', async () => {
       const emissions: boolean[] = [];
-      vm.isActive$.subscribe(v => emissions.push(v));
+      vm.isActive$.subscribe((v) => emissions.push(v));
 
       vm.isActive = true;
       vm.isActive = true; // Same value
@@ -274,9 +272,7 @@ describe('ActiveAwareViewModel', () => {
     it('should call onIsActiveChanged', () => {
       vm.isActive = true;
 
-      expect(vm.activeChangeCalls).toEqual([
-        { isActive: true, wasActive: false }
-      ]);
+      expect(vm.activeChangeCalls).toEqual([{ isActive: true, wasActive: false }]);
     });
 
     it('should not call onIsActiveChanged for same value', () => {
@@ -410,13 +406,13 @@ When `monitorCommandActivity` is true, CompositeCommand can filter by active sta
 class CompositeCommand {
   async execute(param: TParam): Promise<TResult> {
     const commandsToExecute = this.monitorCommandActivity
-      ? Array.from(this.commands).filter(cmd => {
+      ? Array.from(this.commands).filter((cmd) => {
           // Only execute if command's owner is active
           return !isActiveAware(cmd) || cmd.isActive;
         })
       : Array.from(this.commands);
 
-    return Promise.all(commandsToExecute.map(cmd => cmd.execute(param)));
+    return Promise.all(commandsToExecute.map((cmd) => cmd.execute(param)));
   }
 }
 ```

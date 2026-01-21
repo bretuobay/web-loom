@@ -1,6 +1,6 @@
 import type { TaskEntity } from '../domain/entities/task';
 import { TASK_STATUSES, type TaskStatus, formatTaskStatus } from '../domain/values/taskStatus';
-import type { TASK_PRIORITIES} from '../domain/values/taskPriority';
+import type { TASK_PRIORITIES } from '../domain/values/taskPriority';
 import { formatTaskPriority } from '../domain/values/taskPriority';
 import { TaskAttachments } from './TaskAttachments';
 import { FileUploadDropzone } from './FileUploadDropzone';

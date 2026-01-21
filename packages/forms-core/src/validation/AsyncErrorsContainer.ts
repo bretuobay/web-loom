@@ -5,9 +5,7 @@ import { ErrorsContainer } from './ErrorsContainer';
  * Extends ErrorsContainer with async validation support.
  * Tracks which properties are currently being validated.
  */
-export class AsyncErrorsContainer<T extends Record<string, any>>
-  extends ErrorsContainer<T> {
-
+export class AsyncErrorsContainer<T extends Record<string, any>> extends ErrorsContainer<T> {
   private readonly validatingProperties = new Set<keyof T>();
   private readonly _isValidating$ = new BehaviorSubject<boolean>(false);
   private readonly _validatingProperties$ = new BehaviorSubject<Array<keyof T>>([]);
@@ -16,14 +14,12 @@ export class AsyncErrorsContainer<T extends Record<string, any>>
   /**
    * Observable indicating if any async validation is in progress
    */
-  public readonly isValidating$: Observable<boolean> =
-    this._isValidating$.asObservable();
+  public readonly isValidating$: Observable<boolean> = this._isValidating$.asObservable();
 
   /**
    * Observable of properties currently being validated
    */
-  public readonly validatingProperties$: Observable<Array<keyof T>> =
-    this._validatingProperties$.asObservable();
+  public readonly validatingProperties$: Observable<Array<keyof T>> = this._validatingProperties$.asObservable();
 
   /**
    * Check if a specific property is currently being validated
@@ -43,7 +39,7 @@ export class AsyncErrorsContainer<T extends Record<string, any>>
   async validateAsync(
     propertyName: keyof T,
     value: T[keyof T],
-    validator: (value: T[keyof T]) => Promise<string[]>
+    validator: (value: T[keyof T]) => Promise<string[]>,
   ): Promise<void> {
     // Cancel any pending validation for this property
     this.cancelPendingValidation(propertyName);
@@ -74,7 +70,7 @@ export class AsyncErrorsContainer<T extends Record<string, any>>
     propertyName: keyof T,
     value: T[keyof T],
     validator: (value: T[keyof T]) => Promise<string[]>,
-    debounceMs: number = 300
+    debounceMs: number = 300,
   ): () => void {
     // Cancel any pending validation for this property
     this.cancelPendingValidation(propertyName);
@@ -111,7 +107,7 @@ export class AsyncErrorsContainer<T extends Record<string, any>>
    * Cancel all pending validations
    */
   cancelAllPendingValidations(): void {
-    this.pendingValidations.forEach(controller => controller.abort());
+    this.pendingValidations.forEach((controller) => controller.abort());
     this.pendingValidations.clear();
   }
 

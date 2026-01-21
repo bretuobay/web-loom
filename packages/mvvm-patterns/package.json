@@ -1,0 +1,43 @@
+{
+  "name": "@web-loom/mvvm-patterns",
+  "version": "0.0.1",
+  "description": "Application-level MVVM patterns for Web Loom",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts,.tsx",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@web-loom/mvvm-core": "*"
+  },
+  "peerDependencies": {
+    "rxjs": "^7.8.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2",
+    "vitest": "^2.1.8",
+    "rxjs": "^7.8.0"
+  },
+  "keywords": [
+    "mvvm",
+    "patterns",
+    "interaction-request",
+    "active-aware"
+  ]
+}

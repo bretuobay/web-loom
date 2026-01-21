@@ -11,6 +11,7 @@ Successfully implemented the `CompositeCommand` class for `@web-loom/mvvm-core` 
 A command aggregator that executes multiple child commands collectively:
 
 **Key Features:**
+
 - `register(command)`: Add commands to the composite
 - `unregister(command)`: Remove commands from the composite
 - `canExecute$`: False if ANY child cannot execute (AND logic)
@@ -21,10 +22,12 @@ A command aggregator that executes multiple child commands collectively:
 - Proper disposal and cleanup
 
 **Configuration Options:**
+
 - `monitorCommandActivity`: Filter execution by `isActive` property
 - `executionMode`: 'parallel' (default) or 'sequential'
 
 **Implementation Details:**
+
 - Uses RxJS `combineLatest` to aggregate child command states
 - Rebuilds observables when commands are added/removed
 - Handles errors and propagates them appropriately
@@ -33,6 +36,7 @@ A command aggregator that executes multiple child commands collectively:
 ### 2. Comprehensive Test Suite (`src/commands/CompositeCommand.test.ts`)
 
 **28 tests covering:**
+
 - Registration (4 tests)
   - Register commands
   - Unregister commands
@@ -74,6 +78,7 @@ A command aggregator that executes multiple child commands collectively:
 ### 3. Usage Examples (`src/examples/composite-command-example.ts`)
 
 Comprehensive examples demonstrating:
+
 - **DashboardViewModel**: "Refresh All" button for multiple panels
 - **WizardViewModel**: "Save All" for multi-step forms
 - **DataTableViewModel**: Batch operations on selected items
@@ -83,6 +88,7 @@ Comprehensive examples demonstrating:
 ### 4. Updated Exports (`src/index.ts`)
 
 Added exports:
+
 - `CompositeCommand` class
 - `ICompositeCommand` interface
 - `CompositeCommandOptions` type
@@ -112,7 +118,7 @@ packages/mvvm-core/src/
 ✅ `dispose()` properly cleans up all subscriptions  
 ✅ Unit tests pass (28/28)  
 ✅ Exported from package index  
-✅ Example demonstrating usage  
+✅ Example demonstrating usage
 
 ## Build Verification
 
@@ -120,7 +126,7 @@ packages/mvvm-core/src/
 ✅ Vite build successful  
 ✅ Type definitions generated correctly  
 ✅ No breaking changes introduced  
-✅ All existing tests still pass (303 tests total)  
+✅ All existing tests still pass (303 tests total)
 
 ## Usage Examples
 
@@ -164,7 +170,7 @@ await vm.refreshAllCommand.execute(); // Refreshes all panels
 
 ```typescript
 const saveAllCommand = new CompositeCommand({
-  executionMode: 'sequential' // Execute one after another
+  executionMode: 'sequential', // Execute one after another
 });
 
 saveAllCommand.register(saveStep1Command);
@@ -179,7 +185,7 @@ await saveAllCommand.execute();
 
 ```typescript
 const refreshActiveTabsCommand = new CompositeCommand({
-  monitorCommandActivity: true // Only execute active commands
+  monitorCommandActivity: true, // Only execute active commands
 });
 
 // Commands with isActive property
@@ -201,17 +207,17 @@ await refreshActiveTabsCommand.execute();
 ```typescript
 class DataTableViewModel extends BaseViewModel<TableModel> {
   public readonly deleteSelectedCommand = new CompositeCommand({
-    executionMode: 'parallel' // Delete all at once
+    executionMode: 'parallel', // Delete all at once
   });
 
   updateSelection(selectedItems: Item[]): void {
     // Clear existing
-    this.deleteSelectedCommand.registeredCommands.forEach(cmd => {
+    this.deleteSelectedCommand.registeredCommands.forEach((cmd) => {
       this.deleteSelectedCommand.unregister(cmd);
     });
 
     // Register delete command for each selected item
-    selectedItems.forEach(item => {
+    selectedItems.forEach((item) => {
       const deleteCmd = new Command(async () => this.deleteItem(item.id));
       this.deleteSelectedCommand.register(deleteCmd);
     });
@@ -241,7 +247,7 @@ function DashboardView() {
   }, []);
 
   return (
-    <button 
+    <button
       disabled={!canRefreshAll || isRefreshing}
       onClick={() => vm.refreshAllCommand.execute()}
     >
@@ -257,12 +263,10 @@ function DashboardView() {
 @Component({
   selector: 'app-dashboard',
   template: `
-    <button 
-      [disabled]="!(vm.refreshAllCommand.canExecute$ | async)"
-      (click)="vm.refreshAllCommand.execute()">
+    <button [disabled]="!(vm.refreshAllCommand.canExecute$ | async)" (click)="vm.refreshAllCommand.execute()">
       Refresh All
     </button>
-  `
+  `,
 })
 export class DashboardComponent implements OnDestroy {
   vm = new DashboardViewModel(new DashboardModel());
@@ -277,11 +281,7 @@ export class DashboardComponent implements OnDestroy {
 
 ```vue
 <template>
-  <button 
-    :disabled="!canRefreshAll"
-    @click="vm.refreshAllCommand.execute()">
-    Refresh All
-  </button>
+  <button :disabled="!canRefreshAll" @click="vm.refreshAllCommand.execute()">Refresh All</button>
 </template>
 
 <script setup lang="ts">
@@ -293,7 +293,7 @@ const canRefreshAll = ref(true);
 let sub: Subscription;
 
 onMounted(() => {
-  sub = vm.refreshAllCommand.canExecute$.subscribe(val => canRefreshAll.value = val);
+  sub = vm.refreshAllCommand.canExecute$.subscribe((val) => (canRefreshAll.value = val));
 });
 
 onUnmounted(() => {
@@ -317,6 +317,7 @@ onUnmounted(() => {
 ## Use Cases
 
 ### Dashboard "Refresh All"
+
 ```typescript
 // Single button refreshes all panels
 refreshAllCommand.register(refreshUsersCommand);
@@ -325,6 +326,7 @@ refreshAllCommand.register(refreshStatsCommand);
 ```
 
 ### Multi-Form "Save All"
+
 ```typescript
 // Save all wizard steps in sequence
 saveAllCommand.register(saveStep1Command);
@@ -333,14 +335,16 @@ saveAllCommand.register(saveStep3Command);
 ```
 
 ### Batch Delete
+
 ```typescript
 // Delete all selected items in parallel
-selectedItems.forEach(item => {
+selectedItems.forEach((item) => {
   deleteAllCommand.register(new Command(() => deleteItem(item.id)));
 });
 ```
 
 ### Toolbar Actions
+
 ```typescript
 // Apply zoom to all active views
 zoomInCommand.register(view1ZoomCommand);
@@ -356,7 +360,7 @@ ALL child commands must be able to execute:
 
 ```typescript
 // canExecute$ = cmd1.canExecute$ AND cmd2.canExecute$ AND cmd3.canExecute$
-composite.canExecute$ // false if ANY child is false
+composite.canExecute$; // false if ANY child is false
 ```
 
 ### isExecuting$ Aggregation
@@ -365,18 +369,20 @@ ANY child command executing means composite is executing:
 
 ```typescript
 // isExecuting$ = cmd1.isExecuting$ OR cmd2.isExecuting$ OR cmd3.isExecuting$
-composite.isExecuting$ // true if ANY child is true
+composite.isExecuting$; // true if ANY child is true
 ```
 
 ### Execution Modes
 
 **Parallel (default):**
+
 ```typescript
 // All commands execute simultaneously
-const results = await Promise.all(commands.map(cmd => cmd.execute()));
+const results = await Promise.all(commands.map((cmd) => cmd.execute()));
 ```
 
 **Sequential:**
+
 ```typescript
 // Commands execute one after another
 for (const cmd of commands) {
@@ -387,11 +393,10 @@ for (const cmd of commands) {
 ### Active Awareness
 
 When `monitorCommandActivity: true`:
+
 ```typescript
 // Only executes commands where isActive === true
-const commandsToExecute = commands.filter(cmd => 
-  'isActive' in cmd && cmd.isActive === true
-);
+const commandsToExecute = commands.filter((cmd) => 'isActive' in cmd && cmd.isActive === true);
 ```
 
 ### Error Handling
@@ -401,19 +406,20 @@ const commandsToExecute = commands.filter(cmd =>
 
 ## Comparison with Prism Library
 
-| Prism (C#/WPF) | Web Loom (TypeScript/RxJS) |
-|----------------|----------------------------|
-| `CompositeCommand` | `CompositeCommand` |
-| `RegisterCommand()` | `register()` |
-| `UnregisterCommand()` | `unregister()` |
-| `CanExecute` property | `canExecute$` observable |
-| `IsExecuting` property | `isExecuting$` observable |
-| `IActiveAware` interface | `isActive` property check |
-| Event-based updates | RxJS observable streams |
+| Prism (C#/WPF)           | Web Loom (TypeScript/RxJS) |
+| ------------------------ | -------------------------- |
+| `CompositeCommand`       | `CompositeCommand`         |
+| `RegisterCommand()`      | `register()`               |
+| `UnregisterCommand()`    | `unregister()`             |
+| `CanExecute` property    | `canExecute$` observable   |
+| `IsExecuting` property   | `isExecuting$` observable  |
+| `IActiveAware` interface | `isActive` property check  |
+| Event-based updates      | RxJS observable streams    |
 
 ## Related Features
 
 This feature complements:
+
 - **Command**: Individual command implementation
 - **Command Fluent API**: Enhanced command configuration
 - **Command Disposal**: Automatic cleanup via registerCommand()

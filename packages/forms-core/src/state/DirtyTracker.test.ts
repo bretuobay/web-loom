@@ -123,29 +123,29 @@ describe('DirtyTracker', () => {
   describe('isDirty$', () => {
     it('should emit on dirty state changes', async () => {
       const emissions: boolean[] = [];
-      tracker.isDirty$.subscribe(v => emissions.push(v));
+      tracker.isDirty$.subscribe((v) => emissions.push(v));
 
       tracker.setInitialValue({ name: 'John', age: 30 });
       tracker.setCurrentValue({ name: 'Jane', age: 30 });
       tracker.markClean();
 
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       expect(emissions).toContain(true);
       expect(emissions[emissions.length - 1]).toBe(false);
     });
 
     it('should not emit duplicate values', async () => {
       const emissions: boolean[] = [];
-      tracker.isDirty$.subscribe(v => emissions.push(v));
+      tracker.isDirty$.subscribe((v) => emissions.push(v));
 
       tracker.setInitialValue({ name: 'John', age: 30 });
       tracker.setCurrentValue({ name: 'Jane', age: 30 });
       tracker.setCurrentValue({ name: 'Jane', age: 30 });
 
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
-      const trueCount = emissions.filter(v => v === true).length;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const trueCount = emissions.filter((v) => v === true).length;
       expect(trueCount).toBe(1);
     });
   });
@@ -272,12 +272,12 @@ describe('FieldDirtyTracker', () => {
   describe('dirtyFields$', () => {
     it('should emit dirty fields when state changes', async () => {
       const emissions: Array<Array<keyof typeof tracker>> = [];
-      tracker.dirtyFields$.subscribe(fields => emissions.push(fields));
+      tracker.dirtyFields$.subscribe((fields) => emissions.push(fields));
 
       tracker.setCurrentValue({ name: 'Jane', email: 'john@test.com', age: 30 });
 
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       const lastEmission = emissions[emissions.length - 1];
       expect(lastEmission).toContain('name');
       expect(lastEmission).not.toContain('email');

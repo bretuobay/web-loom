@@ -96,7 +96,11 @@ export const PluginEnhanced = () =>
   );
 
 export const MultiSeries = () =>
-  createStoryHost(buildMultiSeriesConfig(), undefined, 'Two line series rendered at once to demonstrate multi-variate config-based charts.');
+  createStoryHost(
+    buildMultiSeriesConfig(),
+    undefined,
+    'Two line series rendered at once to demonstrate multi-variate config-based charts.',
+  );
 
 const buildMultiSeriesConfig = (): ChartConfig => {
   const base = buildConfig();

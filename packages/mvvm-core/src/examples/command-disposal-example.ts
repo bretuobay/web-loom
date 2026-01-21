@@ -31,17 +31,11 @@ class ProductViewModel extends BaseViewModel<BaseModel<Product, any>> {
   public readonly incrementStockCommand: Command<number, void>;
 
   // Computed observables for command enablement
-  private readonly canSave$ = this.data$.pipe(
-    map(data => data !== null && data.name.length > 0 && data.price > 0)
-  );
+  private readonly canSave$ = this.data$.pipe(map((data) => data !== null && data.name.length > 0 && data.price > 0));
 
-  private readonly canDelete$ = this.data$.pipe(
-    map(data => data !== null && data.id.length > 0)
-  );
+  private readonly canDelete$ = this.data$.pipe(map((data) => data !== null && data.id.length > 0));
 
-  private readonly canModifyStock$ = this.data$.pipe(
-    map(data => data !== null)
-  );
+  private readonly canModifyStock$ = this.data$.pipe(map((data) => data !== null));
 
   constructor(model: BaseModel<Product, any>) {
     super(model);
@@ -49,67 +43,49 @@ class ProductViewModel extends BaseViewModel<BaseModel<Product, any>> {
     // Register commands - they will be automatically disposed when ViewModel is disposed
     this.loadCommand = this.registerCommand(
       new Command(async () => {
-        await this.busyState.executeBusy(
-          () => this.loadProduct(),
-          'Loading product...'
-        );
-      })
+        await this.busyState.executeBusy(() => this.loadProduct(), 'Loading product...');
+      }),
     );
 
     this.saveCommand = this.registerCommand(
-      new Command(
-        async () => {
-          await this.busyState.executeBusy(
-            () => this.saveProduct(),
-            'Saving product...'
-          );
-        },
-        this.canSave$
-      )
+      new Command(async () => {
+        await this.busyState.executeBusy(() => this.saveProduct(), 'Saving product...');
+      }, this.canSave$),
     );
 
     this.deleteCommand = this.registerCommand(
-      new Command(
-        async () => {
-          await this.busyState.executeBusy(
-            () => this.deleteProduct(),
-            'Deleting product...'
-          );
-        },
-        this.canDelete$
-      )
+      new Command(async () => {
+        await this.busyState.executeBusy(() => this.deleteProduct(), 'Deleting product...');
+      }, this.canDelete$),
     );
 
     this.incrementStockCommand = this.registerCommand(
-      new Command(
-        async (amount: number) => {
-          await this.incrementStock(amount);
-        },
-        this.canModifyStock$
-      )
+      new Command(async (amount: number) => {
+        await this.incrementStock(amount);
+      }, this.canModifyStock$),
     );
   }
 
   private async loadProduct(): Promise<void> {
     // Simulate API call
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
     this.model.setData({
       id: '1',
       name: 'Sample Product',
       price: 29.99,
-      stock: 100
+      stock: 100,
     });
   }
 
   private async saveProduct(): Promise<void> {
     // Simulate API call
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 300));
     console.log('Product saved:', this.model['_data$'].value);
   }
 
   private async deleteProduct(): Promise<void> {
     // Simulate API call
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 200));
     this.model.setData(null);
   }
 
@@ -118,7 +94,7 @@ class ProductViewModel extends BaseViewModel<BaseModel<Product, any>> {
     if (currentData) {
       this.model.setData({
         ...currentData,
-        stock: currentData.stock + amount
+        stock: currentData.stock + amount,
       });
     }
   }
@@ -126,7 +102,7 @@ class ProductViewModel extends BaseViewModel<BaseModel<Product, any>> {
   public override dispose(): void {
     // BusyState disposal
     this.busyState.dispose();
-    
+
     // Commands are automatically disposed by BaseViewModel
     super.dispose();
   }
@@ -141,9 +117,7 @@ class ShoppingCartViewModel extends BaseViewModel<BaseModel<any, any>> {
   public readonly clearCartCommand: Command<void, void>;
   public readonly checkoutCommand: Command<void, void>;
 
-  private readonly hasItems$ = this.data$.pipe(
-    map(data => data !== null && data.items && data.items.length > 0)
-  );
+  private readonly hasItems$ = this.data$.pipe(map((data) => data !== null && data.items && data.items.length > 0));
 
   constructor(model: BaseModel<any, any>) {
     super(model);
@@ -152,54 +126,45 @@ class ShoppingCartViewModel extends BaseViewModel<BaseModel<any, any>> {
     this.addItemCommand = this.registerCommand(
       new Command(async (productId: string) => {
         await this.addItem(productId);
-      })
+      }),
     );
 
     this.removeItemCommand = this.registerCommand(
-      new Command(
-        async (productId: string) => {
-          await this.removeItem(productId);
-        },
-        this.hasItems$
-      )
+      new Command(async (productId: string) => {
+        await this.removeItem(productId);
+      }, this.hasItems$),
     );
 
     this.clearCartCommand = this.registerCommand(
-      new Command(
-        async () => {
-          await this.clearCart();
-        },
-        this.hasItems$
-      )
+      new Command(async () => {
+        await this.clearCart();
+      }, this.hasItems$),
     );
 
     this.checkoutCommand = this.registerCommand(
-      new Command(
-        async () => {
-          await this.checkout();
-        },
-        this.hasItems$
-      )
+      new Command(async () => {
+        await this.checkout();
+      }, this.hasItems$),
     );
   }
 
   private async addItem(productId: string): Promise<void> {
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 100));
     console.log('Added item:', productId);
   }
 
   private async removeItem(productId: string): Promise<void> {
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 100));
     console.log('Removed item:', productId);
   }
 
   private async clearCart(): Promise<void> {
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 100));
     this.model.setData({ items: [] });
   }
 
   private async checkout(): Promise<void> {
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
     console.log('Checkout complete');
   }
 }
@@ -330,7 +295,7 @@ class MixedViewModel extends BaseViewModel<BaseModel<any, any>> {
     this.autoCommand = this.registerCommand(
       new Command(async () => {
         console.log('Auto command');
-      })
+      }),
     );
   }
 

@@ -44,43 +44,36 @@ class RegistrationFormViewModel extends BaseViewModel<BaseModel<RegistrationData
     super(model);
 
     // Email validation (simple regex)
-    this.isEmailValid$ = this.email$.pipe(
-      map(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    );
+    this.isEmailValid$ = this.email$.pipe(map((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)));
 
     // Password validation (min 8 chars, has number and special char)
     this.isPasswordValid$ = this.password$.pipe(
-      map(pwd => {
-        return pwd.length >= 8 &&
-               /\d/.test(pwd) &&
-               /[!@#$%^&*]/.test(pwd);
-      })
+      map((pwd) => {
+        return pwd.length >= 8 && /\d/.test(pwd) && /[!@#$%^&*]/.test(pwd);
+      }),
     );
 
     // Passwords match
-    this.passwordsMatch$ = this.password$.pipe(
-      map(pwd => pwd === this.confirmPassword$.value && pwd.length > 0)
-    );
+    this.passwordsMatch$ = this.password$.pipe(map((pwd) => pwd === this.confirmPassword$.value && pwd.length > 0));
 
     // Not busy
-    this.isNotBusy$ = this.isLoading$.pipe(map(loading => !loading));
+    this.isNotBusy$ = this.isLoading$.pipe(map((loading) => !loading));
 
     // Fluent command configuration - all conditions must be true
     this.submitCommand = this.registerCommand(
       new Command(() => this.register())
-        .observesProperty(this.username$)           // Must have username
-        .observesProperty(this.email$)              // Must have email
-        .observesCanExecute(this.isEmailValid$)     // Email must be valid format
-        .observesCanExecute(this.isPasswordValid$)  // Password must meet requirements
-        .observesCanExecute(this.passwordsMatch$)   // Passwords must match
+        .observesProperty(this.username$) // Must have username
+        .observesProperty(this.email$) // Must have email
+        .observesCanExecute(this.isEmailValid$) // Email must be valid format
+        .observesCanExecute(this.isPasswordValid$) // Password must meet requirements
+        .observesCanExecute(this.passwordsMatch$) // Passwords must match
         .observesCanExecute(this.hasAcceptedTerms$) // Must accept terms
-        .observesCanExecute(this.isNotBusy$)        // Not currently loading
+        .observesCanExecute(this.isNotBusy$), // Not currently loading
     );
 
     // Clear form command - only disabled when busy
     this.clearFormCommand = this.registerCommand(
-      new Command(() => this.clearForm())
-        .observesCanExecute(this.isNotBusy$)
+      new Command(() => this.clearForm()).observesCanExecute(this.isNotBusy$),
     );
   }
 
@@ -91,14 +84,14 @@ class RegistrationFormViewModel extends BaseViewModel<BaseModel<RegistrationData
     });
 
     // Simulate API call
-    await new Promise(r => setTimeout(r, 1000));
-    
+    await new Promise((r) => setTimeout(r, 1000));
+
     this.model.setData({
       username: this.username$.value,
       email: this.email$.value,
       password: this.password$.value,
       confirmPassword: this.confirmPassword$.value,
-      acceptedTerms: this.hasAcceptedTerms$.value
+      acceptedTerms: this.hasAcceptedTerms$.value,
     });
   }
 
@@ -141,58 +134,48 @@ class ShoppingCartViewModel extends BaseViewModel<BaseModel<any, any>> {
   constructor(model: BaseModel<any, any>) {
     super(model);
 
-    this.hasItems$ = this.items$.pipe(
-      map(items => items.length > 0)
-    );
+    this.hasItems$ = this.items$.pipe(map((items) => items.length > 0));
 
-    this.hasSelectedItem$ = this.selectedItemId$.pipe(
-      map(id => id !== null)
-    );
+    this.hasSelectedItem$ = this.selectedItemId$.pipe(map((id) => id !== null));
 
     this.totalAmount$ = this.items$.pipe(
-      map(items => items.reduce((sum, item) => sum + (item.price * item.quantity), 0))
+      map((items) => items.reduce((sum, item) => sum + item.price * item.quantity, 0)),
     );
 
-    this.canApplyCoupon$ = this.couponCode$.pipe(
-      map(code => code.length >= 3)
-    );
+    this.canApplyCoupon$ = this.couponCode$.pipe(map((code) => code.length >= 3));
 
     // Checkout requires items and not busy
     this.checkoutCommand = this.registerCommand(
       new Command(() => this.checkout())
         .observesCanExecute(this.hasItems$)
-        .observesCanExecute(this.isLoading$.pipe(map(l => !l)))
+        .observesCanExecute(this.isLoading$.pipe(map((l) => !l))),
     );
 
     // Remove selected requires selection
     this.removeSelectedCommand = this.registerCommand(
-      new Command(() => this.removeSelected())
-        .observesCanExecute(this.hasSelectedItem$)
+      new Command(() => this.removeSelected()).observesCanExecute(this.hasSelectedItem$),
     );
 
     // Apply coupon requires valid code and items
     this.applyCouponCommand = this.registerCommand(
-      new Command(() => this.applyCoupon())
-        .observesCanExecute(this.hasItems$)
-        .observesCanExecute(this.canApplyCoupon$)
+      new Command(() => this.applyCoupon()).observesCanExecute(this.hasItems$).observesCanExecute(this.canApplyCoupon$),
     );
 
     // Clear cart requires items
     this.clearCartCommand = this.registerCommand(
-      new Command(() => this.clearCart())
-        .observesCanExecute(this.hasItems$)
+      new Command(() => this.clearCart()).observesCanExecute(this.hasItems$),
     );
   }
 
   private async checkout(): Promise<void> {
     console.log('Checking out with items:', this.items$.value);
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
   }
 
   private async removeSelected(): Promise<void> {
     const selectedId = this.selectedItemId$.value;
     if (selectedId) {
-      const items = this.items$.value.filter(item => item.id !== selectedId);
+      const items = this.items$.value.filter((item) => item.id !== selectedId);
       this.items$.next(items);
       this.selectedItemId$.next(null);
     }
@@ -200,7 +183,7 @@ class ShoppingCartViewModel extends BaseViewModel<BaseModel<any, any>> {
 
   private async applyCoupon(): Promise<void> {
     console.log('Applying coupon:', this.couponCode$.value);
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 300));
   }
 
   private async clearCart(): Promise<void> {
@@ -215,7 +198,7 @@ class ShoppingCartViewModel extends BaseViewModel<BaseModel<any, any>> {
 class DocumentEditorViewModel extends BaseViewModel<BaseModel<any, any>> {
   public readonly content$ = new BehaviorSubject<string>('');
   public readonly isDirty$ = new BehaviorSubject<boolean>(false);
-  
+
   // External state not tracked by observables
   private clipboardHasContent = false;
   private selectedText: string | null = null;
@@ -231,23 +214,16 @@ class DocumentEditorViewModel extends BaseViewModel<BaseModel<any, any>> {
 
     // Save requires dirty state
     this.saveCommand = this.registerCommand(
-      new Command(() => this.save())
-        .observesCanExecute(this.isDirty$)
+      new Command(() => this.save()).observesCanExecute(this.isDirty$),
     ) as Command<void, void>;
 
     // Paste requires clipboard content (external state)
-    this.pasteCommand = this.registerCommand(
-      new Command(() => this.paste())
-    ) as Command<void, void>;
+    this.pasteCommand = this.registerCommand(new Command(() => this.paste())) as Command<void, void>;
 
     // Cut/Copy require selection (external state)
-    this.cutCommand = this.registerCommand(
-      new Command(() => this.cut())
-    ) as Command<void, void>;
+    this.cutCommand = this.registerCommand(new Command(() => this.cut())) as Command<void, void>;
 
-    this.copyCommand = this.registerCommand(
-      new Command(() => this.copy())
-    ) as Command<void, void>;
+    this.copyCommand = this.registerCommand(new Command(() => this.copy())) as Command<void, void>;
   }
 
   // Called when clipboard state changes (external event)
@@ -267,7 +243,7 @@ class DocumentEditorViewModel extends BaseViewModel<BaseModel<any, any>> {
 
   private async save(): Promise<void> {
     console.log('Saving document');
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 300));
     this.isDirty$.next(false);
   }
 
@@ -438,8 +414,4 @@ onUnmounted(() => {
 </script>
 */
 
-export { 
-  RegistrationFormViewModel, 
-  ShoppingCartViewModel, 
-  DocumentEditorViewModel 
-};
+export { RegistrationFormViewModel, ShoppingCartViewModel, DocumentEditorViewModel };

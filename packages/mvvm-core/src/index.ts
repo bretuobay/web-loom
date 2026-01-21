@@ -7,7 +7,16 @@ import { BaseViewModel } from './viewmodels/BaseViewModel';
 import { RestfulApiViewModel } from './viewmodels/RestfulApiViewModel';
 import { BusyState } from './state/BusyState';
 
-export { ObservableCollection, Command, CompositeCommand, BaseModel, RestfulApiModel, RestfulApiViewModel, BaseViewModel, BusyState };
+export {
+  ObservableCollection,
+  Command,
+  CompositeCommand,
+  BaseModel,
+  RestfulApiModel,
+  RestfulApiViewModel,
+  BaseViewModel,
+  BusyState,
+};
 
 export type { Fetcher } from './models/RestfulApiModel';
 export type { ICommand } from './commands/Command';

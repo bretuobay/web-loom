@@ -11,6 +11,7 @@
 ## Overview
 
 Enhance the existing `Command` class with Prism-inspired fluent API methods:
+
 - `observesProperty()` - Auto re-evaluate canExecute when properties change
 - `observesCanExecute()` - Combine multiple canExecute conditions
 - `raiseCanExecuteChanged()` - Manual trigger for re-evaluation
@@ -37,6 +38,7 @@ packages/mvvm-core/src/
 ### Step 1: Analyze Current Command Implementation
 
 The current `Command` class in `src/commands/Command.ts`:
+
 - Accepts `canExecuteFn` as `Observable<boolean>` or function in constructor
 - `canExecute$` combines base condition with `isExecuting$`
 
@@ -132,30 +134,25 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
    * Rebuilds the canExecute$ observable combining all conditions
    */
   private rebuildCanExecute(): void {
-    const allConditions: Observable<boolean>[] = [
-      this.baseCanExecute$,
-      ...this.additionalCanExecuteConditions,
-    ];
+    const allConditions: Observable<boolean>[] = [this.baseCanExecute$, ...this.additionalCanExecuteConditions];
 
     // Convert observed properties to boolean conditions (truthy check)
-    const propertyConditions = this.observedProperties.map(prop$ =>
+    const propertyConditions = this.observedProperties.map((prop$) =>
       prop$.pipe(
-        map(value => !!value),
-        startWith(false) // Assume false until first emission
-      )
+        map((value) => !!value),
+        startWith(false), // Assume false until first emission
+      ),
     );
 
     allConditions.push(...propertyConditions);
 
     // Combine with manual trigger
     this._canExecute$ = combineLatest([
-      combineLatest(allConditions).pipe(
-        map(results => results.every(r => r === true))
-      ),
-      this._canExecuteChanged$.pipe(startWith(undefined))
+      combineLatest(allConditions).pipe(map((results) => results.every((r) => r === true))),
+      this._canExecuteChanged$.pipe(startWith(undefined)),
     ]).pipe(
       map(([canExecute]) => canExecute),
-      distinctUntilChanged()
+      distinctUntilChanged(),
     );
   }
 
@@ -226,9 +223,7 @@ describe('Command Fluent API', () => {
     it('should support multiple observed properties', async () => {
       const prop1$ = new BehaviorSubject('value1');
       const prop2$ = new BehaviorSubject('');
-      const cmd = new Command(async () => {})
-        .observesProperty(prop1$)
-        .observesProperty(prop2$);
+      const cmd = new Command(async () => {}).observesProperty(prop1$).observesProperty(prop2$);
 
       // One falsy = cannot execute
       let canExecute = await firstValueFrom(cmd.canExecute$);
@@ -246,8 +241,7 @@ describe('Command Fluent API', () => {
       const baseCanExecute$ = new BehaviorSubject(true);
       const additionalCondition$ = new BehaviorSubject(false);
 
-      const cmd = new Command(async () => {}, baseCanExecute$)
-        .observesCanExecute(additionalCondition$);
+      const cmd = new Command(async () => {}, baseCanExecute$).observesCanExecute(additionalCondition$);
 
       // Additional is false
       let canExecute = await firstValueFrom(cmd.canExecute$);
@@ -283,12 +277,12 @@ describe('Command Fluent API', () => {
       let externalState = false;
       const cmd = new Command(
         async () => {},
-        new BehaviorSubject(true) // Always true from observable
+        new BehaviorSubject(true), // Always true from observable
       );
 
       // Manual trigger should cause subscribers to re-evaluate
       const values: boolean[] = [];
-      cmd.canExecute$.subscribe(v => values.push(v));
+      cmd.canExecute$.subscribe((v) => values.push(v));
 
       cmd.raiseCanExecuteChanged();
       cmd.raiseCanExecuteChanged();
@@ -347,23 +341,19 @@ class RegistrationFormViewModel extends BaseViewModel<BaseModel<any, any>> {
     super(model);
 
     // Email validation
-    this.isEmailValid$ = this.email$.pipe(
-      map(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    );
+    this.isEmailValid$ = this.email$.pipe(map((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)));
 
     // Password validation (min 8 chars)
-    this.isPasswordValid$ = this.password$.pipe(
-      map(pwd => pwd.length >= 8)
-    );
+    this.isPasswordValid$ = this.password$.pipe(map((pwd) => pwd.length >= 8));
 
     // Fluent command configuration
     this.registerCommand = new Command(() => this.register())
-      .observesProperty(this.username$)        // Must have username
-      .observesProperty(this.email$)           // Must have email
-      .observesCanExecute(this.isEmailValid$)  // Email must be valid format
+      .observesProperty(this.username$) // Must have username
+      .observesProperty(this.email$) // Must have email
+      .observesCanExecute(this.isEmailValid$) // Email must be valid format
       .observesCanExecute(this.isPasswordValid$) // Password must be valid
       .observesCanExecute(this.hasAcceptedTerms$) // Must accept terms
-      .observesCanExecute(this.isLoading$.pipe(map(l => !l))); // Not currently loading
+      .observesCanExecute(this.isLoading$.pipe(map((l) => !l))); // Not currently loading
   }
 
   private async register(): Promise<void> {
@@ -400,9 +390,7 @@ This is **backward compatible**. Existing code continues to work:
 const cmd = new Command(() => save(), canSave$);
 
 // New code (optional enhancement):
-const cmd = new Command(() => save())
-  .observesCanExecute(canSave$)
-  .observesCanExecute(isNotBusy$);
+const cmd = new Command(() => save()).observesCanExecute(canSave$).observesCanExecute(isNotBusy$);
 ```
 
 ---

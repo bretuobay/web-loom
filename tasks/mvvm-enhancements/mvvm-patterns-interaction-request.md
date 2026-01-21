@@ -139,8 +139,7 @@ export class InteractionRequest<T extends INotification> {
    * Observable that Views subscribe to for handling interaction requests.
    * Each emission contains the context and a callback for the response.
    */
-  public readonly requested$: Observable<InteractionRequestedEvent<T>> =
-    this._requested$.asObservable();
+  public readonly requested$: Observable<InteractionRequestedEvent<T>> = this._requested$.asObservable();
 
   /**
    * Raise an interaction request with a callback.
@@ -151,7 +150,7 @@ export class InteractionRequest<T extends INotification> {
   raise(context: T, callback?: (response: T) => void): void {
     this._requested$.next({
       context,
-      callback: callback || (() => {})
+      callback: callback || (() => {}),
     });
   }
 
@@ -190,12 +189,7 @@ Create `src/interactions/requests.ts`:
 
 ```typescript
 import { InteractionRequest } from './InteractionRequest';
-import {
-  IConfirmation,
-  INotification,
-  IInputRequest,
-  ISelectionRequest
-} from './types';
+import { IConfirmation, INotification, IInputRequest, ISelectionRequest } from './types';
 
 /**
  * Request for confirmation dialogs (Yes/No, OK/Cancel).
@@ -263,12 +257,7 @@ Create `src/interactions/index.ts`:
 ```typescript
 export * from './types';
 export { InteractionRequest } from './InteractionRequest';
-export {
-  ConfirmationRequest,
-  NotificationRequest,
-  InputRequest,
-  SelectionRequest
-} from './requests';
+export { ConfirmationRequest, NotificationRequest, InputRequest, SelectionRequest } from './requests';
 ```
 
 ### Step 5: Add Tests
@@ -279,12 +268,7 @@ Create `src/interactions/InteractionRequest.test.ts`:
 import { describe, it, expect, vi } from 'vitest';
 import { firstValueFrom } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
-import {
-  InteractionRequest,
-  ConfirmationRequest,
-  IConfirmation,
-  INotification
-} from './index';
+import { InteractionRequest, ConfirmationRequest, IConfirmation, INotification } from './index';
 
 describe('InteractionRequest', () => {
   describe('raise', () => {
@@ -302,7 +286,7 @@ describe('InteractionRequest', () => {
       const request = new InteractionRequest<INotification>();
       const callback = vi.fn();
 
-      request.requested$.subscribe(event => {
+      request.requested$.subscribe((event) => {
         event.callback({ content: 'Response' });
       });
 
@@ -314,7 +298,7 @@ describe('InteractionRequest', () => {
     it('should not throw when callback is not provided', () => {
       const request = new InteractionRequest<INotification>();
 
-      request.requested$.subscribe(event => {
+      request.requested$.subscribe((event) => {
         event.callback({ content: 'Response' });
       });
 
@@ -327,12 +311,12 @@ describe('InteractionRequest', () => {
       const request = new InteractionRequest<IConfirmation>();
 
       // Simulate view handling the request
-      request.requested$.subscribe(event => {
+      request.requested$.subscribe((event) => {
         event.callback({ ...event.context, confirmed: true });
       });
 
       const response = await request.raiseAsync({
-        content: 'Confirm?'
+        content: 'Confirm?',
       });
 
       expect(response.confirmed).toBe(true);
@@ -341,7 +325,7 @@ describe('InteractionRequest', () => {
     it('should work with async/await pattern', async () => {
       const request = new ConfirmationRequest();
 
-      request.requested$.subscribe(event => {
+      request.requested$.subscribe((event) => {
         // Simulate async dialog
         setTimeout(() => {
           event.callback({ ...event.context, confirmed: false });
@@ -350,7 +334,7 @@ describe('InteractionRequest', () => {
 
       const response = await request.raiseAsync({
         title: 'Delete',
-        content: 'Are you sure?'
+        content: 'Are you sure?',
       });
 
       expect(response.confirmed).toBe(false);
@@ -362,7 +346,7 @@ describe('InteractionRequest', () => {
       const request = new InteractionRequest<INotification>();
       const contexts: string[] = [];
 
-      request.requested$.subscribe(event => {
+      request.requested$.subscribe((event) => {
         contexts.push(event.context.content);
         event.callback(event.context);
       });
@@ -391,10 +375,10 @@ describe('ConfirmationRequest', () => {
   it('should work with IConfirmation type', async () => {
     const request = new ConfirmationRequest();
 
-    request.requested$.subscribe(event => {
+    request.requested$.subscribe((event) => {
       event.callback({
         ...event.context,
-        confirmed: true
+        confirmed: true,
       });
     });
 
@@ -402,7 +386,7 @@ describe('ConfirmationRequest', () => {
       title: 'Confirm',
       content: 'Proceed?',
       confirmText: 'Yes',
-      cancelText: 'No'
+      cancelText: 'No',
     });
 
     expect(response.confirmed).toBe(true);
@@ -478,8 +462,8 @@ function OrderView({ vm }: { vm: OrderViewModel }) {
 ```typescript
 // In setup()
 onMounted(() => {
-  vm.confirmDelete.requested$.subscribe(event => {
-    showConfirmDialog(event.context.content).then(confirmed => {
+  vm.confirmDelete.requested$.subscribe((event) => {
+    showConfirmDialog(event.context.content).then((confirmed) => {
       event.callback({ ...event.context, confirmed });
     });
   });

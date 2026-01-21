@@ -175,36 +175,36 @@ export function ProjectList({ viewModel }: Props) {
             aria-hidden="true"
           />
           <aside className={`${styles.detailPanel} animate-slideInFromRight`}>
-              <ProjectDetailPanel
-                project={selectedProject}
-                tasks={projectTasks}
-                onClose={() => vm.toggleDetailPanel()}
-                isTaskFormOpen={isTaskFormOpen}
-                onToggleTaskForm={() => vm.toggleTaskForm()}
-                onUploadAttachment={async (taskId, file) => {
-                  try {
-                    await vm.uploadAttachment(taskId, file);
-                  } catch {
-                    // Errors surface via the view model observable
-                  }
-                }}
-                onCreateTask={async (values) => {
-                  try {
-                    await vm.createTaskForProject(selectedProject.id, values);
-                    vm.toggleTaskForm();
-                  } catch {
-                    // Errors surfaced via VM error observable
-                  }
-                }}
-                onDeleteTask={async (taskId) => {
-                  try {
-                    await vm.deleteTask(taskId);
-                  } catch {
-                    // Keep the detail panel open so the user can retry.
-                  }
-                }}
-              />
-            </aside>
+            <ProjectDetailPanel
+              project={selectedProject}
+              tasks={projectTasks}
+              onClose={() => vm.toggleDetailPanel()}
+              isTaskFormOpen={isTaskFormOpen}
+              onToggleTaskForm={() => vm.toggleTaskForm()}
+              onUploadAttachment={async (taskId, file) => {
+                try {
+                  await vm.uploadAttachment(taskId, file);
+                } catch {
+                  // Errors surface via the view model observable
+                }
+              }}
+              onCreateTask={async (values) => {
+                try {
+                  await vm.createTaskForProject(selectedProject.id, values);
+                  vm.toggleTaskForm();
+                } catch {
+                  // Errors surfaced via VM error observable
+                }
+              }}
+              onDeleteTask={async (taskId) => {
+                try {
+                  await vm.deleteTask(taskId);
+                } catch {
+                  // Keep the detail panel open so the user can retry.
+                }
+              }}
+            />
+          </aside>
         </>
       )}
     </section>

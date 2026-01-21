@@ -119,7 +119,6 @@ describe('BaseViewModel', () => {
   });
 });
 
-
 describe('BaseViewModel Command Registration', () => {
   let model: MockBaseModel;
   let viewModel: TestViewModel;
@@ -130,14 +129,10 @@ describe('BaseViewModel Command Registration', () => {
 
     constructor(model: MockBaseModel) {
       super(model);
-      
-      this.cmd1 = this.registerCommand(
-        new Command(async () => 'result1')
-      );
 
-      this.cmd2 = this.registerCommand(
-        new Command(async () => 'result2')
-      );
+      this.cmd1 = this.registerCommand(new Command(async () => 'result1'));
+
+      this.cmd2 = this.registerCommand(new Command(async () => 'result2'));
     }
 
     // Expose for testing
@@ -174,7 +169,7 @@ describe('BaseViewModel Command Registration', () => {
     it('should register multiple commands independently', async () => {
       const result1 = await viewModel.cmd1.execute();
       const result2 = await viewModel.cmd2.execute();
-      
+
       expect(result1).toBe('result1');
       expect(result2).toBe('result2');
     });
@@ -213,24 +208,24 @@ describe('BaseViewModel Command Registration', () => {
 
     it('should prevent command execution after disposal', async () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      
+
       viewModel.dispose();
-      
+
       const result = await viewModel.cmd1.execute();
-      
+
       expect(result).toBeUndefined();
       expect(consoleSpy).toHaveBeenCalledWith('Command is disposed. Cannot execute.');
-      
+
       consoleSpy.mockRestore();
     });
 
     it('should dispose commands before completing observables', () => {
       const disposeOrder: string[] = [];
-      
+
       const disposeSpy = vi.spyOn(viewModel.cmd1 as any, 'dispose').mockImplementation(() => {
         disposeOrder.push('command');
       });
-      
+
       const destroySpy = vi.spyOn(viewModel['_destroy$'], 'next').mockImplementation(() => {
         disposeOrder.push('destroy');
       });
@@ -238,7 +233,7 @@ describe('BaseViewModel Command Registration', () => {
       viewModel.dispose();
 
       expect(disposeOrder).toEqual(['command', 'destroy']);
-      
+
       disposeSpy.mockRestore();
       destroySpy.mockRestore();
     });
