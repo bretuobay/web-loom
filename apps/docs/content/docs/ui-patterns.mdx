@@ -1,0 +1,55 @@
+---
+title: 'UI Patterns'
+summary: 'How to compose @web-loom/ui-patterns across frameworks, including key behaviors, event bus integration, and enhancing modals, wizards, toasts, and sidebars.'
+topicTitle: 'Published Packages'
+topicSlug: 'packages'
+---
+
+# UI Patterns
+
+`@web-loom/ui-patterns` composes atomic behaviors from `@web-loom/ui-core`, `store-core`, and `event-bus-core` into higher-level interactions such as wizards, modals, layouts, command palettes, and toast queues. These patterns are framework agnostic, expose state/actions/event buses, and can be composed to form complete UI flows (see the `packages/ui-patterns/docs` guides for in-depth coverage).
+
+## Available patterns
+
+| Pattern | Description | Use cases |
+| --- | --- | --- |
+| `createMasterDetail` | Synchronizes a list with a detail view plus selection events | Admin panels, dashboards, data explorers |
+| `createWizard` | Multi-step flows with validation, branching, and completion hooks | Onboarding, setup wizards, checkout flows |
+| `createModal` | Stackable modal manager with focus trapping and configurable dismiss | Confirmations, alerts, nested dialogs |
+| `createTabbedInterface` | Keyboard-aware tabs with activation/selection actions | Settings pages, tabbed dashboards |
+| `createSidebarShell` | Responsive navigation layout with collapsed/mobile modes | Layout scaffolds, docs sidebars |
+| `createToastQueue` | Notification queue with durations, priorities, and event hooks | System alerts, save confirmations |
+| `createCommandPalette` | Keyboard-driven command search + execution | IDE-style actions, shortcuts, quick access commands |
+
+Each pattern returns `getState()`, `actions`, and `destroy()` plus an optional `eventBus` that emits pattern-specific events like `item:selected`, `modal:opened`, `wizard:step-changed`, or `toast:added`.
+
+## Event Bus and observables
+
+Patterns expose an `eventBus` instance so unrelated modules can react to lifecycle events without prop drilling. For example, the HUD might listen to `masterDetail.eventBus` for `item:selected`, while a toast queue listens to `modal.eventBus` for `modal:closed` to show success toasts. `eventBus.on`, `once`, and `off` follow `@web-loom/event-bus-core` semantics.
+
+State updates are exposed through `getState()` snapshots and `subscribe()` callbacks, enabling frameworks to hook into React hooks, Angular services, or Vue refs without leaking implementation details.
+
+## Composition tips
+
+- Combine `createMasterDetail` with `createModal` and `createToastQueue` so selecting an item opens an edit modal that triggers toast notifications on save (see `packages/ui-patterns/docs/HUB_AND_SPOKE.md` or `packages/ui-patterns/src/patterns/modal.ts`).
+- Use `createWizard` validations and `getNextStep` overrides to conditionally branch (see `packages/ui-patterns/src/patterns/wizard.ts`).
+- Pair `createSidebarShell` with `createCommandPalette` and `createKeyboardShortcuts` from `ui-core` for responsive, keyboard-friendly navigation.
+
+## Theming and styling
+
+UI Patterns rely on `@web-loom/ui-core` behaviors, so they automatically pick up CSS custom properties injected via `@web-loom/design-core` themes (`createTheme`, `applyTheme`, `setTheme`). Apply your light/dark themes early, then instantiate patterns inside theme-aware providers to ensure layout tokens (colors, surfaces, shadows) respond to theme changes.
+
+## Real-world usage
+
+- `apps/task-flow-ui` and `apps/mvvm-react-integrated` compose several UI Patterns to build dashboards, modals, and toast notifications while MVVM viewmodels supply the data.
+- `apps/ui-patterns-playground` demonstrates each pattern with story-like examples plus `CommandPaletteExample`, `WizardExample`, `SettingsInterfaceExample`, and `HubAndSpokeExample` where patterns exchange events and share stores.
+- `packages/ui-patterns/docs` contains detailed doc pages (`GRID_LAYOUT.md`, `HUB_AND_SPOKE.md`, `PATTERN_ENHANCEMENTS.md`, etc.) that walk through hooks, events, and keyboard/accessibility details.
+
+## Best practices
+
+1. Prefer pattern APIs (`actions`, `eventBus`, `destroy`) over mutating internal stores directly.
+2. Cleanup with `destroy()` when the host component unmounts to unregister listeners and event bus handlers.
+3. Keep patterns focused: split responsibilities between UI Patterns (layout/interaction) and MVVM Core viewmodels (business data). Use `store-core` or `query-core` to share data/state across patterns.
+4. Explore the pattern enhancement docs for polished behaviors (modal escape/backdrop options, sidebar auto-collapse, toast positioning, keyboard navigation helpers).
+
+Want more? Check `packages/ui-patterns/README.md` plus `packages/ui-patterns/docs` for advanced scenarios bridging these patterns with your preferred framework.

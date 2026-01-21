@@ -1,0 +1,140 @@
+---
+title: 'Using Store Core for Reactive UI State'
+summary: 'Guide for wiring @web-loom/store-core into any framework and alongside MVVM Core so you can manage UI-only state consistently across the stack.'
+topicTitle: 'Published Packages'
+topicSlug: 'packages'
+---
+
+# Using Store Core for Reactive UI State
+
+`@web-loom/store-core` is a lightweight, framework-agnostic state container that keeps UI-only data predictable and easy to share between rendering layers and view models. The store exposes a single source of truth, actions for every mutation, and subscriptions that any framework (React, Vue, Svelte, vanilla) can listen to without bundling framework-specific helpers.
+
+## Install & import
+
+```bash
+npm install @web-loom/store-core
+# or yarn add @web-loom/store-core
+# or pnpm add @web-loom/store-core
+```
+
+```ts
+import { createStore } from '@web-loom/store-core';
+```
+
+The package is shipped as a published npm package and already powers the `apps/task-flow-ui` example, so the exact same import path already resolves inside your workspace or in the published bundle.
+
+## Define a store
+
+Create a store by supplying the shape of your state and a factory that returns the action implementations. Every mutation happens through `set`, which you can use with immutable updates, and the actions object becomes the public API that other parts of your app can call.
+
+```ts
+interface DialogState {
+  isOpen: boolean;
+  content: string | null;
+}
+
+interface DialogActions {
+  open: (content: string) => void;
+  close: () => void;
+}
+
+const dialogStore = createStore<DialogState, DialogActions>(
+  {
+    isOpen: false,
+    content: null,
+  },
+  (set) => ({
+    open: (content) => set((state) => ({ ...state, isOpen: true, content })),
+    close: () => set((state) => ({ ...state, isOpen: false, content: null })),
+  }),
+);
+```
+
+The returned store exposes:
+
+- `store.getState()` to read the current snapshot
+- `store.actions` to invoke mutations
+- `store.subscribe(listener)` to react to every change and receive the old/new state pair
+- `store.destroy()` when you need to clean up listeners (e.g., component unmount)
+
+## Subscribe from any framework
+
+With `store.subscribe` you can keep the UI in sync without coupling to React, Vue, or any other renderer.
+
+```tsx
+// React example
+function DialogToggle() {
+  const [dialogState, setDialogState] = useState(dialogStore.getState());
+
+  useEffect(() => {
+    const unsubscribe = dialogStore.subscribe((next) => setDialogState(next));
+    return unsubscribe;
+  }, []);
+
+  return (
+    <button onClick={() => dialogStore.actions.open('Hello')}>
+      {dialogState.isOpen ? 'Close' : 'Open'} Dialog
+    </button>
+  );
+}
+```
+
+```ts
+// Vue example
+export function useDialogStore() {
+  const state = reactive(dialogStore.getState());
+
+  watchEffect(() => {
+    const unsubscribe = dialogStore.subscribe((next) => {
+      Object.assign(state, next);
+    });
+    return unsubscribe;
+  });
+
+  return {
+    ...toRefs(state),
+    actions: dialogStore.actions,
+  };
+}
+```
+
+The pattern is the same in vanilla JS: subscribe once and update the DOM yourself or rerender the relevant section. The store API does not rely on any framework lifecycle.
+
+## Pairing with MVVM Core and apps/task-flow-ui
+
+Use `store-core` for UI state that should live beside your MVVM Core view models rather than inside a single observable stream or BehaviorSubject. For example, `apps/task-flow-ui/src/view-models/TaskBoardViewModel.ts` creates a small store to hold `statusFilter`, exposes `store.actions` for filter buttons, and replays the latest setting into an RxJS `BehaviorSubject` that drives the task filtering pipeline.
+
+Avoid mixing business data and UI state inside the same store. MVVM Core view models already provide `data$`, `isLoading$`, and the domain mutations you need. Layer a `store-core` store on top when you need to remember which tab is active, whether a drawer is open, or the selected filter in a table, and feed that UI state back into your view model logic via `store.subscribe` or `store.getState()`.
+
+## Persistence adapters
+
+If you want to keep UI state across reloads, pass a persistence configuration to `createStore`.
+
+```ts
+const preferencesStore = createStore(
+  defaultPreferences,
+  (set) => ({
+    setTheme: (theme) => set((state) => ({ ...state, theme })),
+    toggleNotifications: () => set((state) => ({ ...state, notifications: !state.notifications })),
+  }),
+  {
+    adapter: new LocalStorageAdapter(),
+    key: 'task-flow-ui-preferences',
+    autoSync: true,
+    merge: true,
+  },
+);
+```
+
+Available adapters include `LocalStorageAdapter`, `IndexedDBAdapter`, and `MemoryAdapter` for tests. Persistence is optional—without it the store runs purely in memory.
+
+## Best practices
+
+- Keep `createStore` state focused on UI-only concerns. Complex domain logic belongs in MVVM models and view models, while `store-core` handles toggles, filters, and other ephemeral pieces of UI.
+- Always mutate state through the provided actions so you retain full control over how state transitions happen.
+- Remember to call `store.destroy()` when a store is tied to a short-lived view (e.g., a modal service) to avoid leaking listeners.
+- Reuse stores instead of recreating them inside deeply nested components. For example, export the store from a module, then rehydrate it in your framework provider once and share it throughout the app.
+
+---
+
+Need more targeted examples? The `apps/task-flow-ui` ViewModels (`TaskBoardViewModel`, `TaskDetailViewModel`, `ProjectListViewModel`) demonstrate practical pairings between MVVM Core observables/commands and lightweight store-core state.
