@@ -26,6 +26,9 @@ export interface IBaseModel<TData, TSchema extends ZodSchema<TData>> extends IDi
   setError(err: any): void;
   clearError(): void;
   validate(data: any): TData;
+  getCurrentData(): TData | null;
+  getCurrentLoadingStatus(): boolean;
+  getCurrentError(): any;
 }
 
 export type TConstructorInput<TData, TSchema extends ZodSchema<TData>> = {
@@ -116,5 +119,29 @@ export class BaseModel<TData, TSchema extends ZodSchema<TData>> implements IBase
       return data as TData; // Return data as is if no schema provided
     }
     return this.schema.parse(data);
+  }
+
+  /**
+   * Gets the current value of the data observable.
+   * @returns The current data value.
+   */
+  public getCurrentData(): TData | null {
+    return this._data$.getValue();
+  }
+
+  /**
+   * Gets the current loading status.
+   * @returns The current loading status.
+   */
+  public getCurrentLoadingStatus(): boolean {
+    return this._isLoading$.getValue();
+  }
+
+  /**
+   * Gets the current error.
+   * @returns The current error value.
+   */
+  public getCurrentError(): any {
+    return this._error$.getValue();
   }
 }

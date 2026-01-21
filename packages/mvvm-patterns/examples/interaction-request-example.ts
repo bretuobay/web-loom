@@ -30,7 +30,7 @@ class OrderModel extends BaseModel<OrderData, any> {
   }
 
   updateStatus(status: OrderData['status']): void {
-    const currentData = this._data$.value;
+    const currentData = this.getCurrentData();
     if (currentData) {
       this.setData({ ...currentData, status });
     }
@@ -59,7 +59,7 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
    * Delete order with confirmation
    */
   async deleteOrder(): Promise<boolean> {
-    const orderData = this.model._data$.value;
+    const orderData = this.model.getCurrentData();
     if (!orderData) return false;
 
     // Request confirmation from the View
@@ -97,7 +97,7 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
    * Change order status with confirmation
    */
   async changeStatus(): Promise<void> {
-    const orderData = this.model._data$.value;
+    const orderData = this.model.getCurrentData();
     if (!orderData) return;
 
     // Request status selection
@@ -136,7 +136,7 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
    * Update customer name with input prompt
    */
   async updateCustomerName(): Promise<void> {
-    const orderData = this.model._data$.value;
+    const orderData = this.model.getCurrentData();
     if (!orderData) return;
 
     const response = await this.promptCustomerName.raiseAsync({
@@ -148,7 +148,7 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
     });
 
     if (response.inputValue && response.inputValue.trim()) {
-      const currentData = this.model._data$.value;
+      const currentData = this.model.getCurrentData();
       if (currentData) {
         this.model.setData({
           ...currentData,
@@ -264,23 +264,23 @@ export async function runInteractionRequestExample(): Promise<void> {
   const vm = new OrderViewModel(model);
   const viewHandler = new ViewHandler(vm);
 
-  console.log('Initial Order:', model._data$.value);
+  console.log('Initial Order:', model.getCurrentData());
 
   // Test 1: Update customer name
   console.log('\n--- Test 1: Update Customer Name ---');
   await vm.updateCustomerName();
-  console.log('Updated Order:', model._data$.value);
+  console.log('Updated Order:', model.getCurrentData());
 
   // Test 2: Change status
   console.log('\n--- Test 2: Change Order Status ---');
   await vm.changeStatus();
-  console.log('Updated Order:', model._data$.value);
+  console.log('Updated Order:', model.getCurrentData());
 
   // Test 3: Delete order
   console.log('\n--- Test 3: Delete Order ---');
   const deleted = await vm.deleteOrder();
   console.log('Deleted:', deleted);
-  console.log('Final Order:', model._data$.value);
+  console.log('Final Order:', model.getCurrentData());
 
   // Cleanup
   vm.dispose();

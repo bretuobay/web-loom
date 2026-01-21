@@ -8,7 +8,7 @@ import type { IDisposable } from '../models/BaseModel';
  * @template TParam The type of the parameter passed to the command's execute function.
  * @template TResult The type of the result returned by the command's execute function.
  */
-export interface ICommand<TParam = void, TResult = void> {
+export interface ICommand<TParam = void, TResult = void> extends IDisposable {
   readonly canExecute$: Observable<boolean>;
   readonly isExecuting$: Observable<boolean>;
   readonly executeError$: Observable<any>;

@@ -1,5 +1,5 @@
 import { BehaviorSubject, type Observable } from 'rxjs';
-import { BaseViewModel, Command } from '@web-loom/mvvm-core';
+import { BaseViewModel, Command, type ICommand } from '@web-loom/mvvm-core';
 import {
   AuthModel,
   type AuthTokenResponseData,
@@ -21,11 +21,11 @@ export class AuthViewModel extends BaseViewModel<AuthModel> {
     return this.model.token;
   }
 
-  public readonly signInCommand: Command<SignInPayload, AuthTokenResponseData>;
-  public readonly signUpCommand: Command<SignUpPayload, AuthTokenResponseData>;
-  public readonly changePasswordCommand: Command<ChangePasswordPayload, AuthTokenResponseData>;
-  public readonly signOutCommand: Command<void, void>;
-  public readonly refreshSessionCommand: Command<void, void>;
+  public readonly signInCommand: ICommand<SignInPayload, AuthTokenResponseData>;
+  public readonly signUpCommand: ICommand<SignUpPayload, AuthTokenResponseData>;
+  public readonly changePasswordCommand: ICommand<ChangePasswordPayload, AuthTokenResponseData>;
+  public readonly signOutCommand: ICommand<void, void>;
+  public readonly refreshSessionCommand: ICommand<void, void>;
 
   constructor(model: AuthModel) {
     super(model);
@@ -36,32 +36,42 @@ export class AuthViewModel extends BaseViewModel<AuthModel> {
     });
     this.addSubscription(subscription);
 
-    this.signInCommand = new Command(async (payload: SignInPayload) => {
-      const result = await model.signIn(payload);
-      this._sessionResult$.next(result);
-      return result;
-    });
+    this.signInCommand = Command.create<SignInPayload, AuthTokenResponseData>()
+      .withExecute(async (payload: SignInPayload) => {
+        const result = await model.signIn(payload);
+        this._sessionResult$.next(result);
+        return result;
+      })
+      .build();
 
-    this.signUpCommand = new Command(async (payload: SignUpPayload) => {
-      const result = await model.signUp(payload);
-      this._sessionResult$.next(result);
-      return result;
-    });
+    this.signUpCommand = Command.create<SignUpPayload, AuthTokenResponseData>()
+      .withExecute(async (payload: SignUpPayload) => {
+        const result = await model.signUp(payload);
+        this._sessionResult$.next(result);
+        return result;
+      })
+      .build();
 
-    this.changePasswordCommand = new Command(async (payload: ChangePasswordPayload) => {
-      const result = await model.changePassword(payload);
-      this._sessionResult$.next(result);
-      return result;
-    });
+    this.changePasswordCommand = Command.create<ChangePasswordPayload, AuthTokenResponseData>()
+      .withExecute(async (payload: ChangePasswordPayload) => {
+        const result = await model.changePassword(payload);
+        this._sessionResult$.next(result);
+        return result;
+      })
+      .build();
 
-    this.signOutCommand = new Command(async () => {
-      await model.signOut();
-      this._sessionResult$.next(null);
-    });
+    this.signOutCommand = Command.create<void, void>()
+      .withExecute(async () => {
+        await model.signOut();
+        this._sessionResult$.next(null);
+      })
+      .build();
 
-    this.refreshSessionCommand = new Command(async () => {
-      await model.fetch();
-    });
+    this.refreshSessionCommand = Command.create<void, void>()
+      .withExecute(async () => {
+        await model.fetch();
+      })
+      .build();
   }
 
   public dispose(): void {

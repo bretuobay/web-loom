@@ -23,7 +23,7 @@ class TabModel extends BaseModel<TabData, any> {
   }
 
   updateContent(content: string): void {
-    const currentData = this._data$.value;
+    const currentData = this.getCurrentData();
     if (currentData) {
       this.setData({
         ...currentData,
@@ -41,11 +41,11 @@ class TabViewModel extends ActiveAwareViewModel<TabModel> {
 
   constructor(model: TabModel) {
     super(model);
-    console.log(`TabViewModel created for: ${model._data$.value?.title}`);
+    console.log(`TabViewModel created for: ${model.getCurrentData()?.title}`);
   }
 
   protected onIsActiveChanged(isActive: boolean, wasActive: boolean): void {
-    const tabTitle = this.model._data$.value?.title || 'Unknown';
+    const tabTitle = this.model.getCurrentData()?.title || 'Unknown';
     
     if (isActive) {
       console.log(`✅ Tab "${tabTitle}" became active - starting updates`);
@@ -60,7 +60,7 @@ class TabViewModel extends ActiveAwareViewModel<TabModel> {
     // Simulate periodic updates (e.g., polling API)
     this.updateSubscription = interval(2000).subscribe(() => {
       this.updateCount++;
-      const tabTitle = this.model._data$.value?.title || 'Unknown';
+      const tabTitle = this.model.getCurrentData()?.title || 'Unknown';
       this.model.updateContent(`Updated content #${this.updateCount}`);
       console.log(`🔄 Tab "${tabTitle}" updated (count: ${this.updateCount})`);
     });
@@ -74,7 +74,7 @@ class TabViewModel extends ActiveAwareViewModel<TabModel> {
   }
 
   public override dispose(): void {
-    const tabTitle = this.model._data$.value?.title || 'Unknown';
+    const tabTitle = this.model.getCurrentData()?.title || 'Unknown';
     console.log(`🗑️  Disposing TabViewModel for: ${tabTitle}`);
     this.stopUpdates();
     super.dispose();
