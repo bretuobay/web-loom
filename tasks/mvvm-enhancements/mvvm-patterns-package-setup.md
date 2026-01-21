@@ -26,7 +26,7 @@ Create `packages/mvvm-patterns/package.json`:
 
 ```json
 {
-  "name": "@anthropic/mvvm-patterns",
+  "name": "@web-loom/mvvm-patterns",
   "version": "0.0.1",
   "description": "Application-level MVVM patterns for Web Loom",
   "type": "module",
@@ -39,9 +39,7 @@ Create `packages/mvvm-patterns/package.json`:
       "types": "./dist/index.d.ts"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -51,7 +49,7 @@ Create `packages/mvvm-patterns/package.json`:
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic/mvvm-core": "*"
+    "@web-loom/mvvm-core": "*"
   },
   "peerDependencies": {
     "rxjs": "^7.8.0"
@@ -61,12 +59,7 @@ Create `packages/mvvm-patterns/package.json`:
     "vitest": "^2.1.8",
     "rxjs": "^7.8.0"
   },
-  "keywords": [
-    "mvvm",
-    "patterns",
-    "interaction-request",
-    "active-aware"
-  ]
+  "keywords": ["mvvm", "patterns", "interaction-request", "active-aware"]
 }
 ```
 
@@ -107,7 +100,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@anthropic/mvvm-core': resolve(__dirname, '../mvvm-core/src'),
+      '@web-loom/mvvm-core': resolve(__dirname, '../mvvm-core/src'),
     },
   },
 });
@@ -187,6 +180,6 @@ npm test
 
 ## Notes
 
-- This package depends on `@anthropic/mvvm-core` for base classes
+- This package depends on `@web-loom/mvvm-core` for base classes
 - RxJS is a peer dependency (user's app provides it)
 - Follow existing Web Loom package patterns for consistency
