@@ -8,10 +8,8 @@
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": false,
-    "declaration": true,
-    "declarationMap": true,
-    "outDir": "dist",
+    "noEmit": true,
+    "declaration": false,
     "baseUrl": ".",
     "paths": {
       "@web-loom/mvvm-core": ["../mvvm-core/src"]
@@ -20,15 +18,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vitest/globals"],
-    "composite": true,
-    "incremental": true
+    "types": ["vitest/globals"]
   },
-  "references": [
-    {
-      "path": "../mvvm-core"
-    }
-  ],
   "include": ["src/**/*"],
   "exclude": [
     "node_modules",
@@ -39,6 +30,7 @@
     "**/*.test.ts",
     "**/*.spec.ts",
     "__tests__",
-    "**/*.bench.ts"
+    "**/*.bench.ts",
+    "examples"
   ]
 }

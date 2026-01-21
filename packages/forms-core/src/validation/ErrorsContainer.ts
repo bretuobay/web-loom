@@ -1,4 +1,4 @@
-import { Observable, Subject, BehaviorSubject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { map, filter, startWith, distinctUntilChanged } from 'rxjs/operators';
 
 /**

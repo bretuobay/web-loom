@@ -9,13 +9,16 @@
  */
 
 // Interaction Request Pattern
-// export { InteractionRequest } from './interactions/InteractionRequest';
-// export type { INotification, IConfirmation, InteractionRequestedEvent } from './interactions/types';
+export * from './interactions';
 
 // Active Aware Pattern
-// export { ActiveAwareViewModel } from './viewmodels/ActiveAwareViewModel';
-// export type { IActiveAware } from './lifecycle/IActiveAware';
-// export { isActiveAware } from './lifecycle/IActiveAware';
+export { ActiveAwareViewModel } from './viewmodels/ActiveAwareViewModel';
+export type { IActiveAware } from './lifecycle/IActiveAware';
+export { isActiveAware } from './lifecycle/IActiveAware';
 
-// Placeholder export to make package valid
+// Lifecycle exports
+export * from './lifecycle';
+export * from './viewmodels';
+
+// Version
 export const VERSION = '0.0.1';

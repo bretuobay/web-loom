@@ -1,0 +1,1 @@
+export { ActiveAwareViewModel } from './ActiveAwareViewModel';
