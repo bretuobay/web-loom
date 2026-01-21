@@ -1,116 +1,121 @@
 ---
-title: 'Using Store Core for Reactive UI State'
-summary: 'Guide for wiring @web-loom/store-core into any framework and alongside MVVM Core so you can manage UI-only state consistently across the stack.'
+title: 'Store Core'
+summary: 'A minimal client state management library for building reactive web applications.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
 ---
 
-# Using Store Core for Reactive UI State
+# Store Core
 
-`@web-loom/store-core` is a lightweight, framework-agnostic state container that keeps UI-only data predictable and easy to share between rendering layers and view models. The store exposes a single source of truth, actions for every mutation, and subscriptions that any framework (React, Vue, Svelte, vanilla) can listen to without bundling framework-specific helpers.
+`@web-loom/store-core` is a minimal, framework-agnostic client-side state management library designed for building reactive web applications. It provides a simple and efficient way to manage UI state with a focus on type safety and predictability.
 
-## Install & import
+## Overview
+
+Inspired by patterns from libraries like Redux and Zustand, `store-core` offers a `createStore` function to define a reactive store. This store encapsulates your application's state, actions to modify that state, and mechanisms to subscribe to state changes.
+
+The library is built with TypeScript and emphasizes:
+
+- **Simplicity:** An intuitive API with minimal boilerplate.
+- **Type Safety:** Full TypeScript support for robust type checking and autocompletion.
+- **Framework Agnostic:** Usable with any JavaScript framework (React, Vue, Angular, Svelte) or vanilla JavaScript.
+- **Predictable State Changes:** State modifications occur only through explicit actions, promoting immutability.
+- **Lightweight:** Small bundle size and high performance.
+
+## Core Concepts
+
+- **Store:** A single source of truth for a specific part of your application's state. It contains the state, actions, and subscription logic.
+- **State:** A plain JavaScript object representing the current data.
+- **Actions:** Functions defined within the store that encapsulate the logic for modifying the state. All state changes must go through actions.
+- **Selectors:** Functions that derive computed data from the state.
+- **Listeners:** Functions that are called whenever the state in the store changes, allowing UI components or other parts of the application to react.
+
+## Installation
 
 ```bash
 npm install @web-loom/store-core
-# or yarn add @web-loom/store-core
-# or pnpm add @web-loom/store-core
 ```
 
-```ts
+## Basic Usage
+
+```typescript
 import { createStore } from '@web-loom/store-core';
-```
 
-The package is shipped as a published npm package and already powers the `apps/task-flow-ui` example, so the exact same import path already resolves inside your workspace or in the published bundle.
-
-## Define a store
-
-Create a store by supplying the shape of your state and a factory that returns the action implementations. Every mutation happens through `set`, which you can use with immutable updates, and the actions object becomes the public API that other parts of your app can call.
-
-```ts
-interface DialogState {
-  isOpen: boolean;
-  content: string | null;
+// 1. Define your state interface
+interface CounterState {
+  count: number;
 }
 
-interface DialogActions {
-  open: (content: string) => void;
-  close: () => void;
+// 2. Define your actions interface
+interface CounterActions {
+  increment: () => void;
+  decrement: () => void;
+  add: (amount: number) => void;
 }
 
-const dialogStore = createStore<DialogState, DialogActions>(
-  {
-    isOpen: false,
-    content: null,
-  },
-  (set) => ({
-    open: (content) => set((state) => ({ ...state, isOpen: true, content })),
-    close: () => set((state) => ({ ...state, isOpen: false, content: null })),
+// 3. Create the store
+const store = createStore<CounterState, CounterActions>(
+  { count: 0 }, // Initial state
+  (set, get, actions) => ({
+    increment: () => set((state) => ({ ...state, count: state.count + 1 })),
+    decrement: () => set((state) => ({ ...state, count: state.count - 1 })),
+    add: (amount: number) => set((state) => ({ ...state, count: state.count + amount })),
   }),
 );
+
+// 4. Get current state
+console.log(store.getState()); // { count: 0 }
+
+// 5. Dispatch actions
+store.actions.increment();
+console.log(store.getState()); // { count: 1 }
+
+store.actions.add(5);
+console.log(store.getState()); // { count: 6 }
+
+// 6. Subscribe to state changes
+const unsubscribe = store.subscribe((newState, oldState) => {
+  console.log('State changed:', oldState, '->', newState);
+});
+
+store.actions.decrement();
+// Output: State changed: { count: 6 } -> { count: 5 }
+console.log(store.getState()); // { count: 5 }
+
+// 7. Unsubscribe when no longer needed
+unsubscribe();
+
+// 8. Destroy the store to clean up listeners (e.g., when a component unmounts)
+store.destroy();
 ```
 
-The returned store exposes:
+## API
 
-- `store.getState()` to read the current snapshot
-- `store.actions` to invoke mutations
-- `store.subscribe(listener)` to react to every change and receive the old/new state pair
-- `store.destroy()` when you need to clean up listeners (e.g., component unmount)
+### `createStore<S, A>(initialState, createActions)`
 
-## Subscribe from any framework
+- `initialState: S`: The initial state object.
+- `createActions: (set, get, actions) => A`: A function that receives:
+  - `set: (updater: (state: S) => S) => void`: A function to update the state. The `updater` function receives the current state and should return a new state object (immutability is key).
+  - `get: () => S`: A function to get the current state. Useful for actions that need to read the state before updating.
+  - `actions: A`: A reference to the actions object itself, allowing actions to call other actions.
+    This function must return an object containing your action implementations.
 
-With `store.subscribe` you can keep the UI in sync without coupling to React, Vue, or any other renderer.
+Returns a `Store` instance.
 
-```tsx
-// React example
-function DialogToggle() {
-  const [dialogState, setDialogState] = useState(dialogStore.getState());
+### `Store<S, A>` instance
 
-  useEffect(() => {
-    const unsubscribe = dialogStore.subscribe((next) => setDialogState(next));
-    return unsubscribe;
-  }, []);
+- `getState(): S`: Returns the current state.
+- `setState(updater: (state: S) => S): void`: Updates the state. Primarily for internal use by actions.
+- `subscribe(listener: (newState: S, oldState: S) => void): () => void`: Subscribes a listener to state changes. Returns an unsubscribe function.
+- `destroy(): void`: Clears all listeners. Call this to prevent memory leaks when the store is no longer needed.
+- `actions: A`: An object containing the actions you defined.
 
-  return (
-    <button onClick={() => dialogStore.actions.open('Hello')}>
-      {dialogState.isOpen ? 'Close' : 'Open'} Dialog
-    </button>
-  );
-}
-```
-
-```ts
-// Vue example
-export function useDialogStore() {
-  const state = reactive(dialogStore.getState());
-
-  watchEffect(() => {
-    const unsubscribe = dialogStore.subscribe((next) => {
-      Object.assign(state, next);
-    });
-    return unsubscribe;
-  });
-
-  return {
-    ...toRefs(state),
-    actions: dialogStore.actions,
-  };
-}
-```
-
-The pattern is the same in vanilla JS: subscribe once and update the DOM yourself or rerender the relevant section. The store API does not rely on any framework lifecycle.
-
-## Pairing with MVVM Core and apps/task-flow-ui
-
-Use `store-core` for UI state that should live beside your MVVM Core view models rather than inside a single observable stream or BehaviorSubject. For example, `apps/task-flow-ui/src/view-models/TaskBoardViewModel.ts` creates a small store to hold `statusFilter`, exposes `store.actions` for filter buttons, and replays the latest setting into an RxJS `BehaviorSubject` that drives the task filtering pipeline.
-
-Avoid mixing business data and UI state inside the same store. MVVM Core view models already provide `data$`, `isLoading$`, and the domain mutations you need. Layer a `store-core` store on top when you need to remember which tab is active, whether a drawer is open, or the selected filter in a table, and feed that UI state back into your view model logic via `store.subscribe` or `store.getState()`.
-
-## Persistence adapters
+## Persistence Adapters
 
 If you want to keep UI state across reloads, pass a persistence configuration to `createStore`.
 
 ```ts
+import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
+
 const preferencesStore = createStore(
   defaultPreferences,
   (set) => ({
@@ -128,13 +133,8 @@ const preferencesStore = createStore(
 
 Available adapters include `LocalStorageAdapter`, `IndexedDBAdapter`, and `MemoryAdapter` for tests. Persistence is optional—without it the store runs purely in memory.
 
-## Best practices
+## Pairing with MVVM Core
 
-- Keep `createStore` state focused on UI-only concerns. Complex domain logic belongs in MVVM models and view models, while `store-core` handles toggles, filters, and other ephemeral pieces of UI.
-- Always mutate state through the provided actions so you retain full control over how state transitions happen.
-- Remember to call `store.destroy()` when a store is tied to a short-lived view (e.g., a modal service) to avoid leaking listeners.
-- Reuse stores instead of recreating them inside deeply nested components. For example, export the store from a module, then rehydrate it in your framework provider once and share it throughout the app.
+Use `store-core` for UI state that should live beside your MVVM Core view models rather than inside a single observable stream or BehaviorSubject. For example, `apps/task-flow-ui/src/view-models/TaskBoardViewModel.ts` creates a small store to hold `statusFilter`, exposes `store.actions` for filter buttons, and replays the latest setting into an RxJS `BehaviorSubject` that drives the task filtering pipeline.
 
----
-
-Need more targeted examples? The `apps/task-flow-ui` ViewModels (`TaskBoardViewModel`, `TaskDetailViewModel`, `ProjectListViewModel`) demonstrate practical pairings between MVVM Core observables/commands and lightweight store-core state.
+Avoid mixing business data and UI state inside the same store. MVVM Core view models already provide `data$`, `isLoading$`, and the domain mutations you need. Layer a `store-core` store on top when you need to remember which tab is active, whether a drawer is open, or the selected filter in a table, and feed that UI state back into your view model logic via `store.subscribe` or `store.getState()`.

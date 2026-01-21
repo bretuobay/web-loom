@@ -1,91 +1,92 @@
 ---
 title: 'Design Core'
-summary: 'Explain how to use @web-loom/design-core tokens, theme utilities, and CSS helpers across apps.'
+summary: 'A minimal design system library for building reactive web applications.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
 ---
 
 # Design Core
 
-`@web-loom/design-core` is the token/stylesheet foundation for every Web Loom app. It exposes the canonical design tokens, CSS variable generators, and runtime theming helpers so you can keep colors, typography, spacing, and shadows consistent across frameworks (React, Vue, Angular, vanilla JS).
+`@web-loom/design-core` is a comprehensive, framework-agnostic design token system with built-in theming, CSS variable utilities, and a lightweight design system. It's perfect for building scalable, maintainable design systems across React, Vue, Angular, and vanilla JavaScript applications.
 
-## Installation & quick start
+## Features
+
+- **Design Tokens**: Single source of truth for colors, typography, spacing, shadows, and more.
+- **CSS Custom Properties**: Automatic CSS variable generation from design tokens.
+- **Dynamic Theming**: Runtime theme switching with light/dark mode support.
+- **Framework Agnostic**: Works with any JavaScript framework.
+- **TypeScript Support**: Fully typed APIs with excellent IDE autocomplete.
+
+## Installation
 
 ```bash
 npm install @web-loom/design-core
-# or yarn add @web-loom/design-core
-# or pnpm add @web-loom/design-core
 ```
 
-You can import the generated CSS directly (`@web-loom/design-core/design-system` or the individual `src/css/...` files) or generate CSS variables at runtime via `generateCssVariablesString`/`generateCssVariablesMap`. Combine those utilities with `getTokenValue`, `pathToCssVar`, and `getTokenVar` when you need tokens inside JavaScript.
+## Quick Start
 
-```ts
-import { getTokenVar, generateCssVariablesString } from '@web-loom/design-core/utils';
+### Import Pre-built CSS
 
-const vars = await generateCssVariablesString(':root');
-document.head.insertAdjacentHTML('beforeend', `<style>${vars}</style>`);
-const borderColor = getTokenVar('colors.border.default');
+For the quickest setup, import the pre-generated CSS files:
+
+```javascript
+// Import all token CSS variables
+import '@web-loom/design-core/design-system';
+
+// Or import specific token categories
+import '@web-loom/design-core/css/colors.css';
+import '@web-loom/design-core/css/spacing.css';
 ```
 
-## Token categories
+### Basic Usage with Utilities
 
-The package ships tokens for:
+```typescript
+import { getTokenValue, generateCssVariablesString } from '@web-loom/design-core/utils';
 
-- Colors (brand, background, semantic text, surfaces)
-- Typography (fonts, sizes, line heights)
-- Spacing & sizing (spacing, sizing, layout, icon sizes)
-- Elevation (shadows, borders, radii)
-- Opacity, transitions, breakpoints, gradients, z-index, focus rings, cursors, and more
+// Get a specific token value
+const primaryColor = await getTokenValue('colors.brand.primary');
 
-Tokens can reference other tokens so you always derive derived values from the canonical source. Use `getAllTokens()` to inspect the resolved tree when you need to build helper functions or documentation pages.
+// Generate and inject CSS variables
+const cssVars = await generateCssVariablesString(':root');
+const style = document.createElement('style');
+style.textContent = cssVars;
+document.head.appendChild(style);
+```
 
-## Runtime theming
+## Theming
 
-`createTheme`, `applyTheme`, and `setTheme` drive light/dark/high contrast experiences:
+The `@design-core` utilities provide a robust way to define and switch between different themes.
 
-1. Define overrides as partial tokens:
+### Defining a Theme
 
-```ts
-import { createTheme, applyTheme, setTheme } from '@web-loom/design-core/utils';
+```typescript
+import { createTheme } from '@web-loom/design-core/utils';
 
 const darkTheme = createTheme('dark', {
   colors: {
-    background: { page: '#050609', surface: '#0f1116' },
-    text: { primary: '#f3f4f6' },
-    brand: { primary: '#f6f7fb' },
+    background: {
+      page: '#121212',
+    },
+    text: {
+      primary: '#E0E0E0',
+    },
   },
 });
 ```
 
-2. Apply each theme (async) before switching:
+### Applying and Switching Themes
 
-```ts
+```typescript
+import { applyTheme, setTheme } from '@web-loom/design-core/utils';
+
+// Apply the theme styles
 await applyTheme(darkTheme);
-await applyTheme(lightTheme);
+
+// Activate the theme
+setTheme('dark');
 ```
-
-3. Use `setTheme('dark')` to toggle the `[data-theme="dark"]` selector. `setTheme` also remembers the last active theme so fallback logic is simple.
-
-Call `applyTheme` early (server or client) so CSS variables exist before the first paint. The Task Flow UI and MVVM React providers load both light and dark themes before calling `setTheme`, while the docs app uses `next-themes` to manage the `class` attribute via `apps/docs/app/theme-provider.tsx`.
-
-## JavaScript helpers
-
-- `getTokenValue(path)` resolves a token value asynchronously.
-- `pathToCssVar(path)` yields the CSS variable name (`--colors-brand-primary`).
-- `getTokenVar(path)` returns the `var(...)` string for inline styles.
-- `getSafeTokenVar(path)` guards against missing tokens and logs warnings.
-- `generateCssVariablesMap()` returns a flat map of CSS var names to values when you need to apply them programmatically.
-
-These helpers keep your JS styles aligned with the same tokens your CSS consumes.
 
 ## Interop with UI packages
 
 - UI Core and UI Patterns already read CSS custom properties introduced by Design Core. Theme toggles simply call `setTheme` while relying on CSS to update component palettes.
-- Store Core, Event Bus Core, and Query Core can store the active theme name or react to theme change events triggered by UI Patterns.
 - For documentation or marketing sites, load `@web-loom/design-core/design-system` once per app and call `applyTheme` inside the provider so `setTheme` can freely switch between `[data-theme="light"]` and `[data-theme="dark"]` variants.
-
-## Best practices
-
-1. Inject CSS variables before rendering to avoid flashes of unstyled themes (apply the default tokens in a `<style>` tag or import the CSS files). 2. Keep theme overrides focused on the tokens you need to change (colors, surfaces, shadows) and fall back to the default tokens for everything else. 3. Persist the user’s theme in local storage or URL parameters so `setTheme` restores the preferred mode on reload. 4. Use the same `applyTheme` + `setTheme` flow across apps so theme switching behaves identically.
-
-Need more detail? The full README (`packages/design-core/README.md`) covers caching, CSS generation, and advanced theme composition scenarios.

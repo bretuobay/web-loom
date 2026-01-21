@@ -1,84 +1,149 @@
 ---
 title: 'Event Bus Core'
-summary: 'How to wire @web-loom/event-bus-core for decoupled communication, with practical use cases and framework integrations.'
+summary: 'A lightweight, framework-agnostic Event Bus library for decoupled communication in modern web applications.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
 ---
 
 # Event Bus Core
 
-`@web-loom/event-bus-core` is the lightweight, TypeScript-friendly publish/subscribe layer that lets you broadcast events between disparate UI layers, view models, and behaviors without tight coupling. It builds on `@web-loom/event-emitter-core` and remains framework agnostic so any renderer (React, Vue, Angular, Svelte, vanilla) can emit or listen to the same events.
+`@web-loom/event-bus-core` is a lightweight, framework-agnostic Event Bus library for decoupled communication in modern web applications. It provides a simple and efficient publish-subscribe pattern implementation written in TypeScript.
 
-## Install & quick start
+## Features
+
+- **Type-safe**: Full TypeScript support with type inference for event names and payloads
+- **Framework-agnostic**: Works with React, Vue, Angular, Svelte, or vanilla JavaScript
+- **Lightweight**: Minimal bundle size (~1KB gzipped) with zero dependencies
+- **Simple API**: Intuitive methods for event registration, emission, and cleanup
+- **Flexible**: Support for single and multiple event listeners
+- **Reliable**: Stable listener execution order and memory leak prevention
+
+## Installation
 
 ```bash
 npm install @web-loom/event-bus-core
-# or yarn add @web-loom/event-bus-core
-# or pnpm add @web-loom/event-bus-core
 ```
 
-```ts
+## Quick Start
+
+```typescript
 import { createEventBus } from '@web-loom/event-bus-core';
 
+// Create an event bus
 const eventBus = createEventBus();
-eventBus.on('app:ready', () => console.log('App ready'));
-eventBus.emit('app:ready');
+
+// Subscribe to an event
+eventBus.on('user:login', (user) => {
+  console.log('User logged in:', user);
+});
+
+// Emit an event
+eventBus.emit('user:login', { id: '123', name: 'Alice' });
 ```
 
-## Type-safe event maps
+## Type-Safe Usage
 
-Define your payloads via an `EventMap` interface to keep names and tuples in sync across listeners and emitters.
+Define an `EventMap` interface to get full type safety and autocomplete:
 
-```ts
+```typescript
 import { createEventBus, type EventMap } from '@web-loom/event-bus-core';
 
+// Define your application's events
 interface AppEvents extends EventMap {
   'user:login': [{ userId: string; username: string }];
-  'notification:show': [{ message: string; type: 'info' | 'warning' | 'error' }];
-  'drawer:toggle': [{ open: boolean }];
+  'user:logout': [];
+  'notification:show': [{ message: string; type: 'info' | 'error' | 'success' }];
+  'data:updated': [{ entityId: string; changes: Record<string, any> }];
 }
 
-const bus = createEventBus<AppEvents>();
-bus.on('user:login', ({ username }) => console.log(`${username} signed in`));
-bus.emit('drawer:toggle', { open: true });
+// Create a type-safe event bus
+const eventBus = createEventBus<AppEvents>();
+
+// TypeScript will enforce correct event names and payload types
+eventBus.on('user:login', (payload) => {
+  // payload is typed as { userId: string; username: string }
+  console.log(`User ${payload.username} logged in`);
+});
+
+eventBus.emit('user:login', { userId: '123', username: 'Alice' });
 ```
 
-TypeScript enforces payload shapes for every `emit`, while `on` and `off` work with single or multiple event names.
+## API Reference
 
-## Framework and renderer integrations
+### `createEventBus<M>()`
 
-- **React:** Register handlers inside `useEffect`, return `off` calls for cleanup, and re-render on payload changes.
-- **Vue:** Use `onMounted`/`onUnmounted` to pair subscriptions with component lifecycles and keep `ref`s in sync via events.
-- **Angular:** Inject a shared bus and call `off` from `ngOnDestroy` so services/components release listeners automatically.
-- **Vanilla:** Store the listener functions, subscribe to relevant DOM events, and `off` when removing nodes.
+Creates a new event bus instance.
 
-Because the API only depends on plain functions, you can reuse the same bus instance for server-driven models, custom hooks, or even state machines.
+```typescript
+const eventBus = createEventBus<MyEventMap>();
+```
+
+### `on(event, listener)`
+
+Registers a listener function for one or more events.
+
+```typescript
+// Single event
+eventBus.on('user:login', (user) => {
+  console.log('User logged in:', user);
+});
+
+// Multiple events with the same handler
+eventBus.on(['user:login', 'user:register'], (user) => {
+  console.log('User event:', user);
+});
+```
+
+### `once(event, listener)`
+
+Registers a listener that executes only once, then automatically unsubscribes.
+
+```typescript
+eventBus.once('app:ready', () => {
+  console.log('App is ready! This will only log once.');
+});
+
+eventBus.emit('app:ready');
+eventBus.emit('app:ready'); // Listener won't fire again
+```
+
+### `emit(event, ...args)`
+
+Emits an event, calling all registered listeners with the provided arguments.
+
+```typescript
+eventBus.emit('notification:show', {
+  message: 'Operation successful',
+  type: 'success',
+});
+```
+
+### `off(event?, listener?)`
+
+Unregisters listeners. Three usage patterns:
+
+```typescript
+// Remove a specific listener from an event
+const handler = (data) => console.log(data);
+eventBus.on('user:login', handler);
+eventBus.off('user:login', handler);
+
+// Remove all listeners for an event
+eventBus.off('user:login');
+
+// Remove all listeners from all events
+eventBus.off();
+```
 
 ## Practical use cases
 
 1. **Cross-component coordination:** Share a singleton bus (e.g., `globalEventBus`) between unrelated UI fragments, such as a navigation shell and a notification toaster. Emit `notification:show` from business logic, and let a toast queue behavior attach listeners without adding props or context.
-2. **Commands and behaviors:** Packages like `@web-loom/ui-patterns` instantiate local buses (e.g., `HubAndSpokeEvents`, `ModalEvents`, `ToastQueue` events) to coordinate focus, flow, and layout state without referencing DOM siblings directly. Look at `packages/ui-patterns/src/patterns/{hub-and-spoke,modal,toast-queue}.ts` for concrete wiring.
-3. **Event aggregation:** Group multiple lower-level events into a single `orders:changed` signal so consumers can refresh views once per cycle instead of reacting to every CRUD event. Emit the aggregate event from a shared listener on `order:created`/`updated`/`deleted`.
-4. **Filtered listeners:** Create helper factories that wrap `eventBus.on('message:received', handler)` but only forward payloads that match a filter (user ID, resource type). Return the `off` callback from the factory so Monaco-style consumers can unsubscribe cleanly.
-5. **Global lifecycle hooks:** Signal app initialization (`app:ready`), environment changes (`theme:changed`), or cleanup (`app:shutdown`). These events can wake multiple packages (viewmodels, stores, UI patterns) without explicit dependencies between them.
+2. **Commands and behaviors:** Packages like `@web-loom/ui-patterns` instantiate local buses to coordinate focus, flow, and layout state without referencing DOM siblings directly.
+3. **Event aggregation:** Group multiple lower-level events into a single `orders:changed` signal so consumers can refresh views once per cycle instead of reacting to every CRUD event.
+4. **Filtered listeners:** Create helper factories that wrap `eventBus.on` but only forward payloads that match a filter (user ID, resource type).
+5. **Global lifecycle hooks:** Signal app initialization (`app:ready`), environment changes (`theme:changed`), or cleanup (`app:shutdown`).
 
-## Cleanup & best practices
-
-- Use `off(event, handler)` or `off()` inside cleanup hooks (`useEffect`, `onUnmounted`, `ngOnDestroy`) to prevent memory leaks.
-- For shared handlers, store the `(event, handler)` pairs and `off` them as a batch when disposing services or providers.
-- Favor `once` when reacting to a single-shot signal like `app:ready`.
-- Keep events focused on intents rather than UI widgets (e.g., `project:selected` instead of `project-card:clicked`) so listeners stay reusable.
-
-## Advanced patterns
-
-- **Namespaces:** Group events within prefixes (e.g., `user:*`, `cart:*`). Define dedicated event buses like `const cartBus = createEventBus<CartEvents>()` if you prefer isolation.
-- **Multiple listeners:** The bus guarantees deterministic ordering, so you can safely have analytics, cache invalidation, and UI updates listen to the same event without the emitter caring about the number of subscribers.
-- **Event aggregation and filtering:** Build helper utilities that emit derived events (`orders:changed`) or wrap listeners with guards for user ID, permissions, or throttling logic.
-
-## Where it's already used
+## Where it's used
 
 - `apps/task-flow-ui` and `apps/mvvm-react-integrated` create shared providers or services that emit lifecycle, notification, and selection events without tightly coupling components.
 - `@web-loom/ui-patterns` behaviors such as `hub-and-spoke`, `modal`, `toast-queue`, and `sidebar-shell` spin up their own buses to notify siblings about state changes (selection, open/close, status updates) while staying renderer-agnostic.
-- Internal tooling (see `packages/event-bus-core/src/*`) uses the `EventBus` type when building higher-order abstractions like aggregation helpers or typed emitters.
-
-Need more depth? The package README (`packages/event-bus-core/README.md`) walks through examples, advanced cleanup patterns, and emitter-based building blocks.
