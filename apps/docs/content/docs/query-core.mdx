@@ -74,7 +74,7 @@ export interface EndpointOptions {
 - `refetchAfter`: Endpoint-specific duration (in milliseconds) after which data is considered stale.
 - `cacheProvider`: Endpoint-specific cache provider (can be `'inMemory'`, `'localStorage'`, `'indexedDB'`, or a custom provider).
 
-#### `EndpointState<TData>`
+#### `EndpointState&lt;TData&gt;`
 
 Represents the state of an endpoint.
 
@@ -104,12 +104,12 @@ Creates a new `QueryCore` instance.
 const queryCore = new QueryCore({ cacheProvider: 'indexedDB' });
 ```
 
-### `async defineEndpoint<TData>(endpointKey: string, fetcher: () => Promise<TData>, options?: EndpointOptions): Promise<void>`
+### `async defineEndpoint&lt;TData&gt;(endpointKey: string, fetcher: () => Promise&lt;TData&gt;, options?: EndpointOptions): Promise<void>`
 
 Defines a new data endpoint or redefines an existing one. This method is asynchronous due to potential cache interactions (reading initial state).
 
 - `endpointKey` (string): A unique key to identify the endpoint (e.g., 'posts', 'user/1').
-- `fetcher` (() => Promise<TData>): An asynchronous function that returns a Promise resolving to the data.
+- `fetcher` (`() => Promise&lt;TData&gt;`): An asynchronous function that returns a Promise resolving to the data.
 - `options?` (EndpointOptions): Optional configuration for this specific endpoint.
 
 ```typescript
@@ -126,12 +126,12 @@ await queryCore.defineEndpoint('allPosts', fetchPosts, {
 });
 ```
 
-### `subscribe<TData>(endpointKey: string, callback: (state: EndpointState<TData>) => void): () => void`
+### `subscribe&lt;TData&gt;(endpointKey: string, callback: (state: EndpointState&lt;TData&gt;) => void): () => void`
 
 Subscribes a callback function to state changes for a specific endpoint. The callback is immediately invoked with the current state. Returns an unsubscribe function.
 
 - `endpointKey` (string): The key of the endpoint to subscribe to.
-- `callback` ((state: EndpointState<TData>) => void): Function to be called with the endpoint's state whenever it changes.
+- `callback` (`(state: EndpointState&lt;TData&gt;) => void`): Function to be called with the endpoint's state whenever it changes.
 
 ```typescript
 const unsubscribeFromPosts = queryCore.subscribe('allPosts', (postsState) => {
@@ -149,7 +149,7 @@ const unsubscribeFromPosts = queryCore.subscribe('allPosts', (postsState) => {
 // unsubscribeFromPosts();
 ```
 
-### `async refetch<TData>(endpointKey: string, forceRefetch: boolean = false): Promise<void>`
+### `async refetch&lt;TData&gt;(endpointKey: string, forceRefetch: boolean = false): Promise<void>`
 
 Manually triggers a data refetch for an endpoint.
 
@@ -179,7 +179,7 @@ await queryCore.invalidate('allPosts');
 console.log('Cache for allPosts has been cleared.');
 ```
 
-### `getState<TData>(endpointKey: string): EndpointState<TData>`
+### `getState&lt;TData&gt;(endpointKey: string): EndpointState&lt;TData&gt;`
 
 Retrieves the current state of an endpoint without subscribing. Returns a copy of the state. If the endpoint is not defined, it returns a default initial state.
 

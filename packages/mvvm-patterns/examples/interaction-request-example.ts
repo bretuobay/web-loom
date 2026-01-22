@@ -1,6 +1,6 @@
 /**
  * Example: Interaction Request Pattern
- * 
+ *
  * This example demonstrates how to use InteractionRequest
  * to enable ViewModels to request UI interactions without
  * direct coupling to the View layer.
@@ -73,13 +73,13 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
     if (response.confirmed) {
       try {
         this.model.delete();
-        
+
         // Notify success
         this.notifySuccess.raise({
           title: 'Success',
           content: 'Order deleted successfully',
         });
-        
+
         return true;
       } catch (error) {
         this.notifyError.raise({
@@ -124,7 +124,7 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
 
     if (confirmResponse.confirmed) {
       this.model.updateStatus(selectionResponse.selectedValue);
-      
+
       this.notifySuccess.raise({
         title: 'Status Updated',
         content: `Order status changed to ${selectionResponse.selectedValue}`,
@@ -170,7 +170,7 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
     this.notifyError.dispose();
     this.promptCustomerName.dispose();
     this.selectStatus.dispose();
-    
+
     super.dispose();
   }
 }
@@ -188,7 +188,7 @@ class ViewHandler {
       console.log(`   Title: ${event.context.title}`);
       console.log(`   Message: ${event.context.content}`);
       console.log(`   [${event.context.confirmText}] [${event.context.cancelText}]`);
-      
+
       // Simulate user clicking "Delete"
       const confirmed = true;
       event.callback({ ...event.context, confirmed });
@@ -198,7 +198,7 @@ class ViewHandler {
       console.log(`\n📋 Confirmation Dialog:`);
       console.log(`   Title: ${event.context.title}`);
       console.log(`   Message: ${event.context.content}`);
-      
+
       // Simulate user confirming
       const confirmed = true;
       event.callback({ ...event.context, confirmed });
@@ -227,7 +227,7 @@ class ViewHandler {
       console.log(`   Title: ${event.context.title}`);
       console.log(`   Message: ${event.context.content}`);
       console.log(`   Default: ${event.context.defaultValue}`);
-      
+
       // Simulate user entering new name
       const inputValue = 'Jane Smith';
       event.callback({ ...event.context, inputValue });
@@ -242,7 +242,7 @@ class ViewHandler {
       event.context.options.forEach((opt) => {
         console.log(`     - ${opt.label}`);
       });
-      
+
       // Simulate user selecting "shipped"
       const selectedValue = 'shipped' as OrderData['status'];
       event.callback({ ...event.context, selectedValue });

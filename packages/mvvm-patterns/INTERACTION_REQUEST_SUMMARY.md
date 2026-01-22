@@ -68,6 +68,7 @@
 ## Configuration Updates
 
 ### `src/index.ts`
+
 - Uncommented Interaction Request exports
 - Added wildcard export for interactions module
 
@@ -83,6 +84,7 @@ Duration    593ms
 ```
 
 All tests passing with comprehensive coverage:
+
 - ✅ Event emission on requested$
 - ✅ Callback invocation
 - ✅ Promise-based async pattern
@@ -146,11 +148,13 @@ class InteractionRequest<T extends INotification> {
 ## Integration Points
 
 ### With mvvm-core
+
 - Works seamlessly with `BaseViewModel`
 - Can be used in any ViewModel
 - Follows RxJS patterns
 
 ### With RxJS
+
 - Uses `Subject` for event emission
 - Returns `Observable` for subscriptions
 - Supports async/await with Promises
@@ -179,7 +183,7 @@ vm.confirmDelete.raise({ content: 'Delete?' }, (response) => {
 
 ```typescript
 const response = await vm.confirmDelete.raiseAsync({
-  content: 'Delete?'
+  content: 'Delete?',
 });
 if (response.confirmed) {
   // Handle confirmation
@@ -191,7 +195,7 @@ if (response.confirmed) {
 ```typescript
 vm.notify.raise({
   title: 'Success',
-  content: 'Operation completed'
+  content: 'Operation completed',
 });
 ```
 

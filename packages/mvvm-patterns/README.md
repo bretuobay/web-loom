@@ -43,16 +43,16 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
       title: 'Delete Order',
       content: 'Are you sure? This cannot be undone.',
       confirmText: 'Delete',
-      cancelText: 'Cancel'
+      cancelText: 'Cancel',
     });
 
     if (response.confirmed) {
       await this.model.delete();
-      
+
       // Show success notification
       this.notify.raise({
         title: 'Success',
-        content: 'Order deleted successfully'
+        content: 'Order deleted successfully',
       });
     }
   }
@@ -89,7 +89,7 @@ function OrderView({ vm }: { vm: OrderViewModel }) {
   return (
     <>
       <button onClick={() => vm.deleteOrder()}>Delete Order</button>
-      
+
       {confirmDialog && (
         <ConfirmDialog
           title={confirmDialog.title}
@@ -117,7 +117,7 @@ const response = await confirmRequest.raiseAsync({
   title: 'Confirm Action',
   content: 'Proceed with this action?',
   confirmText: 'Yes',
-  cancelText: 'No'
+  cancelText: 'No',
 });
 
 if (response.confirmed) {
@@ -133,7 +133,7 @@ For toast/snackbar notifications:
 const notify = new NotificationRequest();
 notify.raise({
   title: 'Success',
-  content: 'Changes saved successfully'
+  content: 'Changes saved successfully',
 });
 ```
 
@@ -148,7 +148,7 @@ const response = await inputRequest.raiseAsync({
   content: 'Enter new name:',
   placeholder: 'Item name',
   defaultValue: currentName,
-  inputType: 'text'
+  inputType: 'text',
 });
 
 if (response.inputValue) {
@@ -161,7 +161,11 @@ if (response.inputValue) {
 For selecting from options:
 
 ```typescript
-enum Priority { Low = 1, Medium = 2, High = 3 }
+enum Priority {
+  Low = 1,
+  Medium = 2,
+  High = 3,
+}
 
 const selectRequest = new SelectionRequest<Priority>();
 const response = await selectRequest.raiseAsync({
@@ -170,8 +174,8 @@ const response = await selectRequest.raiseAsync({
   options: [
     { label: 'Low', value: Priority.Low },
     { label: 'Medium', value: Priority.Medium },
-    { label: 'High', value: Priority.High }
-  ]
+    { label: 'High', value: Priority.High },
+  ],
 });
 
 if (response.selectedValue) {
@@ -197,7 +201,7 @@ const filePicker = new FilePickerRequest();
 const response = await filePicker.raiseAsync({
   content: 'Select files to upload',
   accept: 'image/*',
-  multiple: true
+  multiple: true,
 });
 ```
 
@@ -212,10 +216,7 @@ export default {
 
     onMounted(() => {
       vm.confirmDelete.requested$.subscribe(async (event) => {
-        const confirmed = await showConfirmDialog(
-          event.context.title,
-          event.context.content
-        );
+        const confirmed = await showConfirmDialog(event.context.title, event.context.content);
         event.callback({ ...event.context, confirmed });
       });
     });
@@ -225,7 +226,7 @@ export default {
     });
 
     return { vm };
-  }
+  },
 };
 ```
 
@@ -243,7 +244,7 @@ export default {
       (confirm)="handleConfirm(true)"
       (cancel)="handleConfirm(false)"
     ></app-confirm-dialog>
-  `
+  `,
 })
 export class OrderComponent implements OnInit, OnDestroy {
   confirmDialog: IConfirmation | null = null;
@@ -251,7 +252,7 @@ export class OrderComponent implements OnInit, OnDestroy {
   private subscription?: Subscription;
 
   ngOnInit() {
-    this.subscription = this.vm.confirmDelete.requested$.subscribe(event => {
+    this.subscription = this.vm.confirmDelete.requested$.subscribe((event) => {
       this.confirmDialog = event.context;
       this.callback = event.callback;
     });
@@ -367,12 +368,12 @@ function DashboardView() {
 ### Tab Component Integration
 
 ```typescript
-function TabPanel({ 
-  viewModel, 
-  isSelected 
-}: { 
-  viewModel: IActiveAware; 
-  isSelected: boolean 
+function TabPanel({
+  viewModel,
+  isSelected
+}: {
+  viewModel: IActiveAware;
+  isSelected: boolean
 }) {
   useEffect(() => {
     viewModel.isActive = isSelected;
@@ -407,7 +408,7 @@ class MyViewModel extends ActiveAwareViewModel<MyModel> {
     super(model);
 
     // React to active state changes
-    this.isActive$.subscribe(isActive => {
+    this.isActive$.subscribe((isActive) => {
       console.log(`ViewModel is now ${isActive ? 'active' : 'inactive'}`);
     });
   }
@@ -421,6 +422,7 @@ class MyViewModel extends ActiveAwareViewModel<MyModel> {
 Interface for objects that track active state.
 
 **Properties:**
+
 - `isActive: boolean` - Gets or sets the active state
 - `isActive$: Observable<boolean>` - Observable that emits when active state changes
 
@@ -429,6 +431,7 @@ Interface for objects that track active state.
 Base ViewModel class that implements `IActiveAware`.
 
 **Methods:**
+
 - `activate()` - Convenience method to set `isActive = true`
 - `deactivate()` - Convenience method to set `isActive = false`
 - `onIsActiveChanged(isActive: boolean, wasActive: boolean)` - Override to react to state changes

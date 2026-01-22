@@ -198,6 +198,7 @@ The `@web-loom/mvvm-patterns` package now includes:
    - Framework integration examples
 
 **Combined Total**:
+
 - 49 tests passing
 - 2 major patterns implemented
 - Production-ready
