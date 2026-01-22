@@ -3,6 +3,7 @@
 ## ✅ Task Requirements (from mvvm-patterns-active-aware.md)
 
 ### Core Implementation
+
 - [x] Create `src/lifecycle/IActiveAware.ts`
   - [x] `IActiveAware` interface with `isActive` property
   - [x] `IActiveAware` interface with `isActive$` observable
@@ -35,6 +36,7 @@
   - [x] Export from viewmodels module
 
 ### Testing
+
 - [x] Create `src/viewmodels/ActiveAwareViewModel.test.ts`
   - [x] Test initial state (inactive by default)
   - [x] Test `isActive$` initial emission
@@ -57,6 +59,7 @@
   - [x] All 27 tests passing
 
 ### Build & Configuration
+
 - [x] Update `package.json`
   - [x] Change build script to use Vite
   - [x] Add `vite-plugin-dts` dependency
@@ -75,6 +78,7 @@
   - [x] Exclude test files and examples
 
 ### Documentation
+
 - [x] Create `README.md`
   - [x] Package overview
   - [x] Installation instructions
@@ -105,6 +109,7 @@
 ## ✅ Quality Checks
 
 ### Code Quality
+
 - [x] TypeScript strict mode enabled
 - [x] No unused parameters (using `_` prefix)
 - [x] Proper error handling
@@ -112,12 +117,14 @@
 - [x] Follows existing code style
 
 ### Testing
+
 - [x] 100% code coverage for core functionality
 - [x] Edge cases tested (null, undefined, rapid changes)
 - [x] Integration tests with BaseViewModel
 - [x] Type guard validation tests
 
 ### Build
+
 - [x] `npm run build` succeeds
 - [x] `npm test` passes (27/27)
 - [x] `npm run check-types` passes
@@ -126,6 +133,7 @@
 - [x] Type declarations generated
 
 ### Documentation
+
 - [x] JSDoc comments on all public APIs
 - [x] Usage examples provided
 - [x] Integration patterns documented

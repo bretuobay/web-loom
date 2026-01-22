@@ -1,6 +1,6 @@
 /**
  * Example: Tab-based interface with Active Awareness
- * 
+ *
  * This example demonstrates how to use ActiveAwareViewModel
  * in a tab-based interface where inactive tabs pause their updates.
  */
@@ -46,7 +46,7 @@ class TabViewModel extends ActiveAwareViewModel<TabModel> {
 
   protected onIsActiveChanged(isActive: boolean, wasActive: boolean): void {
     const tabTitle = this.model.getCurrentData()?.title || 'Unknown';
-    
+
     if (isActive) {
       console.log(`✅ Tab "${tabTitle}" became active - starting updates`);
       this.startUpdates();
@@ -128,7 +128,7 @@ class TabContainer {
 
   dispose(): void {
     console.log('🧹 Disposing all tabs...');
-    this.tabs.forEach(tab => tab.dispose());
+    this.tabs.forEach((tab) => tab.dispose());
     this.tabs.clear();
   }
 }

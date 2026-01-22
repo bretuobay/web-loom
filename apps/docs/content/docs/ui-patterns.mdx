@@ -1,39 +1,141 @@
 ---
 title: 'UI Patterns'
-summary: 'How to compose @web-loom/ui-patterns across frameworks, including key behaviors, event bus integration, and enhancing modals, wizards, toasts, and sidebars.'
+summary: 'Composed UI patterns built on Web Loom UI Core behaviors.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
 ---
 
 # UI Patterns
 
-`@web-loom/ui-patterns` composes atomic behaviors from `@web-loom/ui-core`, `store-core`, and `event-bus-core` into higher-level interactions such as wizards, modals, layouts, command palettes, and toast queues. These patterns are framework agnostic, expose state/actions/event buses, and can be composed to form complete UI flows (see the `packages/ui-patterns/docs` guides for in-depth coverage).
+`@web-loom/ui-patterns` provides higher-level UI patterns that compose atomic behaviors from `@web-loom/ui-core` into complete interaction patterns. These patterns handle common UI workflows like master-detail views, wizards, modals, command palettes, and more. All patterns are framework-agnostic and work with React, Vue, Angular, or vanilla JavaScript.
 
-## Available patterns
+## Installation
 
-| Pattern | Description | Use cases |
-| --- | --- | --- |
-| `createMasterDetail` | Synchronizes a list with a detail view plus selection events | Admin panels, dashboards, data explorers |
-| `createWizard` | Multi-step flows with validation, branching, and completion hooks | Onboarding, setup wizards, checkout flows |
-| `createModal` | Stackable modal manager with focus trapping and configurable dismiss | Confirmations, alerts, nested dialogs |
-| `createTabbedInterface` | Keyboard-aware tabs with activation/selection actions | Settings pages, tabbed dashboards |
-| `createSidebarShell` | Responsive navigation layout with collapsed/mobile modes | Layout scaffolds, docs sidebars |
-| `createToastQueue` | Notification queue with durations, priorities, and event hooks | System alerts, save confirmations |
-| `createCommandPalette` | Keyboard-driven command search + execution | IDE-style actions, shortcuts, quick access commands |
+```bash
+npm install @web-loom/ui-patterns
+```
 
-Each pattern returns `getState()`, `actions`, and `destroy()` plus an optional `eventBus` that emits pattern-specific events like `item:selected`, `modal:opened`, `wizard:step-changed`, or `toast:added`.
+## Available Patterns
 
-## Event Bus and observables
+### Master-Detail Pattern
 
-Patterns expose an `eventBus` instance so unrelated modules can react to lifecycle events without prop drilling. For example, the HUD might listen to `masterDetail.eventBus` for `item:selected`, while a toast queue listens to `modal.eventBus` for `modal:closed` to show success toasts. `eventBus.on`, `once`, and `off` follow `@web-loom/event-bus-core` semantics.
+Split-view interfaces with synchronized list selection and detail view.
 
-State updates are exposed through `getState()` snapshots and `subscribe()` callbacks, enabling frameworks to hook into React hooks, Angular services, or Vue refs without leaking implementation details.
+```typescript
+import { createMasterDetail } from '@web-loom/ui-patterns';
 
-## Composition tips
+const masterDetail = createMasterDetail({
+  items,
+  getId: (item) => item.id,
+});
+```
 
-- Combine `createMasterDetail` with `createModal` and `createToastQueue` so selecting an item opens an edit modal that triggers toast notifications on save (see `packages/ui-patterns/docs/HUB_AND_SPOKE.md` or `packages/ui-patterns/src/patterns/modal.ts`).
-- Use `createWizard` validations and `getNextStep` overrides to conditionally branch (see `packages/ui-patterns/src/patterns/wizard.ts`).
-- Pair `createSidebarShell` with `createCommandPalette` and `createKeyboardShortcuts` from `ui-core` for responsive, keyboard-friendly navigation.
+### Wizard Pattern
+
+Multi-step flows with validation and optional branching logic.
+
+```typescript
+import { createWizard } from '@web-loom/ui-patterns';
+
+const wizard = createWizard<WizardData>({
+  steps: [
+    {
+      id: 'account-type',
+      label: 'Account Type',
+      validate: (data) => !data.accountType ? 'Required' : null,
+      getNextStep: (data) => data.accountType === 'business' ? 'company-info' : 'personal-info',
+    },
+    // ... other steps
+  ],
+  onComplete: async (data) => console.log('Wizard completed:', data),
+});
+```
+
+### Modal Pattern
+
+Modal dialog management with stacking support.
+
+```typescript
+import { createModal } from '@web-loom/ui-patterns';
+
+const modal = createModal({
+  id: 'confirmation-modal',
+  closeOnEscape: true,
+  closeOnBackdropClick: true,
+});
+```
+
+### Tabbed Interface Pattern
+
+Tab-based navigation with keyboard support.
+
+```typescript
+import { createTabbedInterface } from '@web-loom/ui-patterns';
+
+const tabs = createTabbedInterface({
+  tabs: [
+    { id: 'tab1', label: 'Profile' },
+    { id: 'tab2', label: 'Settings' },
+  ],
+  initialActiveTabId: 'tab1',
+});
+```
+
+### Sidebar Shell Pattern
+
+Collapsible navigation sidebar with responsive behavior.
+
+```typescript
+import { createSidebarShell } from '@web-loom/ui-patterns';
+
+const sidebar = createSidebarShell({
+  initialCollapsed: false,
+});
+```
+
+### Toast Queue Pattern
+
+Notification queue with auto-dismiss and priority support.
+
+```typescript
+import { createToastQueue } from '@web-loom/ui-patterns';
+
+const toasts = createToastQueue({
+  maxVisible: 3,
+  defaultDuration: 5000,
+});
+```
+
+### Command Palette Pattern
+
+Keyboard-driven command interface with fuzzy search.
+
+```typescript
+import { createCommandPalette } from '@web-loom/ui-patterns';
+
+const palette = createCommandPalette({
+  commands: [
+    {
+      id: 'new-file',
+      label: 'Create New File',
+      handler: () => console.log('Creating file...'),
+    },
+    // ... other commands
+  ],
+});
+```
+
+## Event Bus Integration
+
+All patterns include an event bus for listening to pattern-specific events:
+
+```typescript
+const masterDetail = createMasterDetail({ ... });
+
+masterDetail.eventBus.on('item:selected', (item) => {
+  console.log('Item selected:', item);
+});
+```
 
 ## Theming and styling
 
@@ -42,14 +144,4 @@ UI Patterns rely on `@web-loom/ui-core` behaviors, so they automatically pick up
 ## Real-world usage
 
 - `apps/task-flow-ui` and `apps/mvvm-react-integrated` compose several UI Patterns to build dashboards, modals, and toast notifications while MVVM viewmodels supply the data.
-- `apps/ui-patterns-playground` demonstrates each pattern with story-like examples plus `CommandPaletteExample`, `WizardExample`, `SettingsInterfaceExample`, and `HubAndSpokeExample` where patterns exchange events and share stores.
-- `packages/ui-patterns/docs` contains detailed doc pages (`GRID_LAYOUT.md`, `HUB_AND_SPOKE.md`, `PATTERN_ENHANCEMENTS.md`, etc.) that walk through hooks, events, and keyboard/accessibility details.
-
-## Best practices
-
-1. Prefer pattern APIs (`actions`, `eventBus`, `destroy`) over mutating internal stores directly.
-2. Cleanup with `destroy()` when the host component unmounts to unregister listeners and event bus handlers.
-3. Keep patterns focused: split responsibilities between UI Patterns (layout/interaction) and MVVM Core viewmodels (business data). Use `store-core` or `query-core` to share data/state across patterns.
-4. Explore the pattern enhancement docs for polished behaviors (modal escape/backdrop options, sidebar auto-collapse, toast positioning, keyboard navigation helpers).
-
-Want more? Check `packages/ui-patterns/README.md` plus `packages/ui-patterns/docs` for advanced scenarios bridging these patterns with your preferred framework.
+- `apps/ui-patterns-playground` demonstrates each pattern with story-like examples.

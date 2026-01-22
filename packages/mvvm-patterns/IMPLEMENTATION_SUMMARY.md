@@ -55,22 +55,26 @@
 ## Configuration Updates
 
 ### `package.json`
+
 - Updated build script to use Vite
 - Added `vite-plugin-dts` for type generation
 - Maintained all existing dependencies
 
 ### `vite.config.ts`
+
 - Added build configuration
 - Configured library output (ES + UMD)
 - Added DTS plugin for type generation
 - Proper externals configuration
 
 ### `tsconfig.json`
+
 - Simplified for type checking only
 - Removed composite/incremental (handled by Vite)
 - Excluded examples from compilation
 
 ### `src/index.ts`
+
 - Uncommented Active Awareness exports
 - Added wildcard exports for lifecycle and viewmodels
 
@@ -83,6 +87,7 @@ Duration    734ms
 ```
 
 All tests passing with comprehensive coverage:
+
 - ✅ Initial state verification
 - ✅ State change behavior
 - ✅ Observable emissions
@@ -119,17 +124,20 @@ All criteria from the task specification met:
 ## Integration Points
 
 ### With mvvm-core
+
 - Extends `BaseViewModel<TModel>`
 - Uses `BaseModel<any, any>` type constraint
 - Properly calls `super.dispose()`
 - Maintains all BaseViewModel functionality
 
 ### With RxJS
+
 - Uses `BehaviorSubject` for state management
 - Applies `distinctUntilChanged()` operator
 - Follows RxJS best practices
 
 ### Framework Integration Ready
+
 - React hooks example provided
 - Tab component pattern documented
 - Browser visibility API integration shown
@@ -153,12 +161,12 @@ class DashboardViewModel extends ActiveAwareViewModel<DashboardModel> {
 // In React
 function DashboardView() {
   const vm = useViewModel(() => new DashboardViewModel(model));
-  
+
   useEffect(() => {
     vm.isActive = true;
     return () => { vm.isActive = false; };
   }, [vm]);
-  
+
   return <div>Dashboard</div>;
 }
 ```

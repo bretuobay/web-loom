@@ -1,115 +1,395 @@
 ---
-title: 'MVVM Core Package'
-summary: 'Use @web-loom/mvvm-core for reactive models, viewmodels, commands, and observable collections across any framework.'
+title: 'MVVM Core'
+summary: 'A minimal MVVM framework for building reactive web applications.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
 ---
 
-# MVVM Core Package
+# MVVM Core
 
-`@web-loom/mvvm-core` is the framework-agnostic foundation for building reactive client applications. It wraps RxJS observables, Zod validation, and the command pattern into cohesive models and viewmodels so you can focus on business logic instead of plumbing UI state.
+`@web-loom/mvvm-core` is a framework-agnostic MVVM library for building reactive web applications with RxJS and Zod validation. It provides a complete MVVM (Model-View-ViewModel) implementation that works across React, Angular, Vue, and vanilla JavaScript. Built on RxJS for reactive data flow and Zod for type-safe validation, it simplifies state management and API interactions for client-heavy applications.
 
-## Installations & dependencies
+## Features
+
+- **MVVM Pattern**: BaseModel, BaseViewModel, RestfulApiModel with clear separation of concerns
+- **Reactive**: RxJS-powered observables for `data$`, `isLoading$`, `error$`
+- **Type-Safe**: Zod schema validation at compile-time and runtime
+- **RESTful APIs**: Simplified CRUD with optimistic updates and auto state management
+- **Command Pattern**: Encapsulated UI actions with `canExecute` and `isExecuting` states
+- **Observable Collections**: Reactive lists with granular change notifications
+- **Query Integration**: QueryStateModel for advanced caching with `@web-loom/query-core`
+- **Resource Management**: IDisposable pattern for proper cleanup
+- **Framework Agnostic**: No UI framework dependencies
+
+## Installation
 
 ```bash
 npm install @web-loom/mvvm-core rxjs zod
-# or yarn add @web-loom/mvvm-core rxjs zod
-# or pnpm add @web-loom/mvvm-core rxjs zod
 ```
 
-The package ships with TypeScript typings and depends only on `rxjs` and `zod`, which makes it lightweight and easy to adopt inside React, Vue, Angular, Svelte, or vanilla JavaScript apps.
-
-## Core building blocks
+## Core Concepts
 
 ### BaseModel
 
-`BaseModel` is the source of truth for a domain entity. It exposes `data$`, `isLoading$`, `error$`, and helper setters wrapped in RxJS `BehaviorSubject`s, plus validation against a Zod schema.
+Foundation for all models with reactive state management.
 
-```ts
+```typescript
 import { BaseModel } from '@web-loom/mvvm-core';
 import { z } from 'zod';
 
-const UserSchema = z.object({ id: z.string(), name: z.string().min(3) });
+const UserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(3),
+  email: z.string().email(),
+  age: z.number().positive().optional(),
+});
 
-class UserModel extends BaseModel<z.infer<typeof UserSchema>, typeof UserSchema> {
-  constructor(initialData?: z.infer<typeof UserSchema>) {
-    super({ initialData: initialData ?? null, schema: UserSchema });
+type User = z.infer<typeof UserSchema>;
+
+class UserModel extends BaseModel<User, typeof UserSchema> {
+  constructor(initialData?: User) {
+    super({ initialData: initialData || null, schema: UserSchema });
+  }
+}
+
+const model = new UserModel();
+model.data$.subscribe((user) => console.log('User:', user));
+model.setData({ id: '123', name: 'Alice', email: 'alice@example.com' });
+```
+
+**Key observables**:
+
+- `data$`: Current data state
+- `isLoading$`: Loading indicator
+- `error$`: Error state
+- `isError$`: Boolean error indicator
+
+### RestfulApiModel
+
+Extends BaseModel with CRUD operations and optimistic updates.
+
+```typescript
+import { RestfulApiModel, type Fetcher } from '@web-loom/mvvm-core';
+
+const fetcher: Fetcher = async (url, options) => {
+  const response = await fetch(url, options);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response;
+};
+
+class UserApiModel extends RestfulApiModel<User[], typeof UserSchema> {
+  constructor() {
+    super({
+      baseUrl: 'https://api.example.com',
+      endpoint: 'users',
+      fetcher,
+      schema: z.array(UserSchema),
+      initialData: null,
+    });
+  }
+}
+
+const api = new UserApiModel();
+
+// Fetch all users
+await api.fetch();
+
+// Create user (optimistic update)
+const newUser = await api.create({ name: 'Bob', email: 'bob@example.com' });
+
+// Update user
+await api.update('user-id', { name: 'Robert' });
+
+// Delete user
+await api.delete('user-id');
+```
+
+### BaseViewModel
+
+Connects Models to Views with presentation logic.
+
+```typescript
+import { BaseViewModel } from '@web-loom/mvvm-core';
+import { map } from 'rxjs/operators';
+
+class UserViewModel extends BaseViewModel<UserModel> {
+  constructor(model: UserModel) {
+    super(model);
+  }
+
+  // Computed observables
+  get displayName$() {
+    return this.data$.pipe(map((user) => (user ? `${user.name} (${user.email})` : 'No user')));
   }
 }
 ```
 
-If validation fails, the model surfaces the error via `error$` while still keeping the previously valid data intact.
+### RestfulApiViewModel
 
-### RestfulApiModel & QueryStateModel
+Extends BaseViewModel with CRUD commands for RESTful operations.
 
-`RestfulApiModel` extends `BaseModel` with CRUD helpers, optimistic updates, and automatic loading/error management for HTTP resources. It accepts a fetcher, endpoint, and Zod schema so every request is type-checked.
+```typescript
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
 
-`QueryStateModel` integrates with `@web-loom/query-core` when you need shared caching, deduped requests, or background refetching. Use `QueryStateModelView` to wrap the model in viewmodel-friendly observables.
+class UserListViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
+  constructor() {
+    super(new UserApiModel());
+  }
 
-### ObservableCollection
+  // Additional computed properties
+  get activeUsers$() {
+    return this.data$.pipe(map((users) => users?.filter((u) => u.active)));
+  }
+}
 
-Use `ObservableCollection` for reactive lists where you care about granular events (`add`, `update`, `remove`). It exposes `items$`, `changes$`, and utility helpers like `find`, `filter`, and `toArray` while keeping the underlying array immutable.
+const vm = new UserListViewModel();
 
-## ViewModels, commands, and DI
+// Use commands
+await vm.fetchCommand.execute();
+await vm.createCommand.execute({ name: 'New User', email: 'new@example.com' });
+await vm.updateCommand.execute({ id: '123', name: 'Updated' });
+await vm.deleteCommand.execute('123');
 
-`BaseViewModel` bridges models to views by exposing `data$`, `isLoading$`, and `error$` as readable observables. `RestfulApiViewModel` adds the `fetchCommand`, `createCommand`, `updateCommand`, and `deleteCommand` helpers built on the `Command` pattern.
+// Clean up
+vm.dispose();
+```
 
-Commands encapsulate UI actions with `canExecute$`, `isExecuting$`, and `result$`, so buttons can subscribe to their availability and loading state without manual bookkeeping.
+### Command Pattern
 
-```ts
+Encapsulates UI actions with execution control.
+
+```typescript
 import { Command } from '@web-loom/mvvm-core';
 import { BehaviorSubject } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 class AuthViewModel {
-  private readonly _status$ = new BehaviorSubject(false);
-  public readonly isLoggedIn$ = this._status$.asObservable();
+  private _isLoggedIn = new BehaviorSubject(false);
+  isLoggedIn$ = this._isLoggedIn.asObservable();
 
-  public readonly loginCommand = new Command(
-    async (password: string) => {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      const success = password === 'secret';
-      this._status$.next(success);
-      return success;
-    },
-    this.isLoggedIn$.pipe(map((loggedIn) => !loggedIn)),
+  loginCommand: Command<string, boolean>;
+
+  constructor() {
+    this.loginCommand = new Command(
+      async (password: string) => {
+        // Simulate API call
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const success = password === 'secret';
+        this._isLoggedIn.next(success);
+        return success;
+      },
+      // canExecute$ - only when not logged in
+      this.isLoggedIn$.pipe(map((loggedIn) => !loggedIn)),
+    );
+  }
+}
+
+const auth = new AuthViewModel();
+
+// Subscribe to command state
+auth.loginCommand.isExecuting$.subscribe((executing) => console.log('Logging in:', executing));
+auth.loginCommand.canExecute$.subscribe((canExecute) => console.log('Can login:', canExecute));
+
+// Execute command
+await auth.loginCommand.execute('secret');
+```
+
+### ObservableCollection
+
+Reactive collection with granular change notifications.
+
+```typescript
+import { ObservableCollection } from '@web-loom/mvvm-core';
+
+interface Todo {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+const todos = new ObservableCollection<Todo>([
+  { id: '1', text: 'Learn MVVM', completed: false },
+  { id: '2', text: 'Build app', completed: true },
+]);
+
+// Subscribe to changes
+todos.items$.subscribe((items) => console.log('Todos:', items));
+todos.changes$.subscribe((change) => console.log('Change:', change));
+
+// Manipulate collection
+todos.add({ id: '3', text: 'Deploy', completed: false });
+todos.update((todo) => todo.id === '1', { ...todo, completed: true });
+todos.remove((todo) => todo.completed);
+```
+
+### QueryStateModel & QueryStateModelView
+
+Integration with `@web-loom/query-core` for advanced caching.
+
+```typescript
+import { QueryStateModel, QueryStateModelView } from '@web-loom/mvvm-core';
+import QueryCore from '@web-loom/query-core';
+
+const queryCore = new QueryCore({ defaultRefetchAfter: 5 * 60 * 1000 });
+
+// Define endpoint
+queryCore.defineEndpoint<User[]>('users', async () => {
+  const res = await fetch('https://api.example.com/users');
+  return res.json();
+});
+
+// Create model
+class UsersQueryModel extends QueryStateModel<User[], typeof UserSchema> {
+  constructor() {
+    super({
+      queryCore,
+      endpointKey: 'users',
+      schema: z.array(UserSchema),
+    });
+  }
+}
+
+// Create ViewModel
+class UsersViewModel extends QueryStateModelView<User[], typeof UserSchema> {
+  constructor() {
+    super(new UsersQueryModel());
+  }
+}
+
+const vm = new UsersViewModel();
+
+// Subscribe to data
+vm.data$.subscribe((users) => console.log('Users:', users));
+
+// Refetch data
+await vm.refetchCommand.execute(true); // Force refetch
+
+// Invalidate cache
+await vm.invalidateCommand.execute();
+```
+
+## Framework Integration
+
+### React
+
+```tsx
+import { useState, useEffect, useMemo } from 'react';
+import { Observable } from 'rxjs';
+
+// Custom hook for RxJS observables
+function useObservable<T>(observable: Observable<T>, initialValue: T): T {
+  const [value, setValue] = useState<T>(initialValue);
+
+  useEffect(() => {
+    const subscription = observable.subscribe(setValue);
+    return () => subscription.unsubscribe();
+  }, [observable]);
+
+  return value;
+}
+
+// Component
+function UserList() {
+  const vm = useMemo(() => new UserListViewModel(), []);
+  const users = useObservable(vm.data$, null);
+  const isLoading = useObservable(vm.isLoading$, false);
+  const error = useObservable(vm.error$, null);
+
+  useEffect(() => {
+    vm.fetchCommand.execute();
+    return () => vm.dispose();
+  }, [vm]);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <ul>
+      {users?.map((user) => (
+        <li key={user.id}>{user.name}</li>
+      ))}
+    </ul>
   );
 }
 ```
 
-`DIContainer` helps share services and viewmodels across the app by registering singletons, transients, or factories.
+### Angular
 
-## Framework-agnostic consumption
+```typescript
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { UserListViewModel } from './viewmodels/user-list.viewmodel';
 
-You can consume MVVM Core in any renderer by subscribing to the RxJS observables: wrap them in React hooks, Angular async pipes, Vue refs, or manual DOM updates. The same viewmodel can be reused across different components or even different frameworks because none of the internals depend on a renderer.
+@Component({
+  selector: 'app-user-list',
+  template: `
+    <div *ngIf="vm.isLoading$ | async">Loading...</div>
+    <div *ngIf="vm.error$ | async as error">Error: {{ error.message }}</div>
+    <ul *ngIf="vm.data$ | async as users">
+      <li *ngFor="let user of users">{{ user.name }}</li>
+    </ul>
+  `,
+  providers: [UserListViewModel],
+})
+export class UserListComponent implements OnInit, OnDestroy {
+  constructor(public vm: UserListViewModel) {}
 
-## Pairing with Task Flow UI & Store Core
+  ngOnInit() {
+    this.vm.fetchCommand.execute();
+  }
 
-`apps/task-flow-ui` demonstrates how MVVM Core viewmodels coexist with `@web-loom/store-core`. For example, `apps/task-flow-ui/src/view-models/TaskBoardViewModel.ts` wires a tiny `store-core` store to keep the `statusFilter` and replays the selected filter into RxJS streams that power the task listing. Use store-core for ephemeral UI toggles (tabs, drawers, filters) and let MVVM Core models/viewmodels own the business data and async commands.
+  ngOnDestroy() {
+    this.vm.dispose();
+  }
+}
+```
 
-See the related guide [Using Store Core for Reactive UI State](/docs/store-core) for implementation details.
+### Vue
 
-## Advanced features & testing
+```vue
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { UserListViewModel } from './viewmodels/user-list.viewmodel';
 
-- `FormViewModel` manages field-level validation, dirty tracking, and submit commands with full Zod schema support.
-- `QueryableCollectionViewModel` adds filtering, sorting, paging, and exposes observables like `filteredItems$` and `currentPage$` for list-heavy screens.
-- `DIContainer` helps resolve shared services.
+const vm = new UserListViewModel();
+const users = ref([]);
+const isLoading = ref(false);
+const error = ref(null);
 
-Test viewmodels with Vitest by instantiating them, executing commands, and asserting on `data$`, `isLoading$`, or derived methods. Always call `dispose()` after tests to avoid leaking subscriptions.
+watch(
+  () => vm.data$,
+  (obs) => {
+    obs.subscribe((data) => (users.value = data));
+  },
+);
 
-## Best practices
+watch(
+  () => vm.isLoading$,
+  (obs) => {
+    obs.subscribe((loading) => (isLoading.value = loading));
+  },
+);
 
-1. Keep domain logic in models/viewmodels; UI components only consume observables and commands.
-2. Use schemas for validation so every model update stays type-safe.
-3. Dispose viewmodels when a screen unmounts to clean up RxJS subscriptions (`viewModel.dispose()`).
-4. Pair commands with `canExecute$` observables so UI can disable buttons automatically.
-5. Use `store.subscribe` from `store-core` when you need shared UI state that is not part of a model.
+watch(
+  () => vm.error$,
+  (obs) => {
+    obs.subscribe((err) => (error.value = err));
+  },
+);
 
-## API at a glance
+onMounted(() => {
+  vm.fetchCommand.execute();
+});
 
-- `BaseModel`, `RestfulApiModel`, `QueryableCollectionModel`
-- `BaseViewModel`, `RestfulApiViewModel`, `QueryStateModelView`
-- `Command`, `ObservableCollection`, `FormViewModel`, `QueryableCollectionViewModel`
-- `DIContainer`, `IModel`, `IViewModel`, `ICommand`, `ModelState`, `Fetcher`
+onUnmounted(() => {
+  vm.dispose();
+});
+</script>
 
-Want deeper reference? Check the package README at `packages/mvvm-core/README.md` inside the repository for complete API details and code samples.
+<template>
+  <div v-if="isLoading">Loading...</div>
+  <div v-if="error">Error: {{ error.message }}</div>
+  <ul v-if="users">
+    <li v-for="user in users" :key="user.id">{{ user.name }}</li>
+  </ul>
+</template>
+```
