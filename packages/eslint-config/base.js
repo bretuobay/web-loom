@@ -4,15 +4,26 @@ import turboPlugin from 'eslint-plugin-turbo';
 import tseslint from 'typescript-eslint';
 import onlyWarn from 'eslint-plugin-only-warn';
 
+const tsRecommendedWithRoot = [
+  ...tseslint.configs.recommended,
+  {
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: process.cwd(),
+      },
+    },
+  },
+];
+
 /**
  * A shared ESLint configuration for the repository.
  *
  * @type {import("eslint").Linter.Config[]}
- * */
+ */
 export const config = [
   js.configs.recommended,
   eslintConfigPrettier,
-  ...tseslint.configs.recommended,
+  ...tsRecommendedWithRoot,
   {
     plugins: {
       turbo: turboPlugin,
@@ -30,3 +41,5 @@ export const config = [
     ignores: ['dist/**'],
   },
 ];
+
+export { tsRecommendedWithRoot };
