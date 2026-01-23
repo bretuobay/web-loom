@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chart Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 2rem;
+      background: #f8fafc;
+    }
+    #chart {
+      background: white;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Chart Rendering Test</h1>
+  <div id="chart"></div>
+  
+  <script type="module">
+    import { ChartManager } from './dist/charts-core.es.js';
+    
+    const config = {
+      width: 760,
+      height: 420,
+      margin: { top: 24, right: 32, bottom: 40, left: 50 },
+      localization: { locale: 'en-US', dateFormat: 'MMM dd' },
+      axes: [
+        { id: 'x-axis', orient: 'bottom', scale: 'time-x' },
+        { id: 'y-axis', orient: 'left', scale: 'value-y' },
+      ],
+      series: [
+        {
+          type: 'line',
+          id: 'test-series',
+          data: [
+            { x: new Date('2024-01-01'), y: 40 },
+            { x: new Date('2024-02-01'), y: 48 },
+            { x: new Date('2024-03-01'), y: 120 },
+            { x: new Date('2024-04-01'), y: 80 },
+          ],
+          xAccessor: (datum) => datum.x,
+          yAccessor: (datum) => datum.y,
+          yScale: 'value-y',
+          curve: 'monotone',
+          marker: { show: true },
+          area: false,
+          color: '#0ea5e9',
+        },
+      ],
+      tooltip: {
+        enabled: true,
+        shared: false,
+        strategy: 'follow',
+      },
+    };
+    
+    const chart = new ChartManager(config);
+    chart.render('#chart');
+    
+    console.log('Chart rendered successfully');
+  </script>
+</body>
+</html>
