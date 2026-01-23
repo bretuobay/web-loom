@@ -5,10 +5,12 @@ import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
 import { useObservable } from '../hooks/useObservable';
 
+import CompositeCommandPanel from './CompositeCommandPanel';
 import GreenhouseCard from './GreenhouseCard';
 import SensorCard from './SensorCard';
 import SensorReadingCard from './SensorReadingCard';
 import ThresholdAlertCard from './ThresholdAlertCard';
+import FluentCommandShowcase from './FluentCommandShowcase';
 
 const Dashboard: React.FC = () => {
   const greenHouses = useObservable(greenHouseViewModel.data$, []);
@@ -54,6 +56,14 @@ const Dashboard: React.FC = () => {
           <div className="dashboard-header">
             <h2>Dashboard Overview</h2>
             <p className="dashboard-subtitle">Monitor your greenhouse environment in real-time</p>
+          </div>
+
+          <div className="dashboard-ops-panel">
+            <CompositeCommandPanel />
+          </div>
+
+          <div className="dashboard-ops-panel">
+            <FluentCommandShowcase />
           </div>
 
           {/* Stats Cards Row */}

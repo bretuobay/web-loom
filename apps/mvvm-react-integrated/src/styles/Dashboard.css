@@ -26,6 +26,10 @@
   font-weight: var(--typography-fontWeight-regular);
 }
 
+.dashboard-ops-panel {
+  margin-bottom: var(--spacing-3xl);
+}
+
 /* Stats Cards Grid - 3 columns */
 .dashboard-stats-grid {
   display: grid;
