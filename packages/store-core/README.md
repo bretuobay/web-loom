@@ -806,3 +806,18 @@ function TodoApp() {
 8. **Validate data**: Use validation libraries like Zod or custom validation logic to ensure data integrity.
 
 For more detailed information on the design and technical requirements, please refer to the [Product Requirements Document.md](./Product%20Requirements%20Document.md).
+
+### From the root README:
+
+#### [@web-loom/store-core](packages/store-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
+
+Minimal reactive state management library. Alternative to Redux/Zustand for simple state needs.
+
+**Key features**: <1KB, observable-based, type-safe actions
+
+```typescript
+import { createStore } from '@web-loom/store-core';
+const store = createStore(initialState, (set) => ({
+  increment: () => set((state) => ({ count: state.count + 1 })),
+}));
+```

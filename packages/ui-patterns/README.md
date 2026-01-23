@@ -440,3 +440,16 @@ import { createWizard } from '@web-loom/ui-patterns/patterns/wizard';
 ## License
 
 MIT
+
+### From the root README:
+
+#### [@web-loom/ui-patterns](packages/ui-patterns) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
+
+Composed UI patterns (Master-Detail, Wizard, Modal, Command Palette, Tabbed Interface, Sidebar Shell, Toast Queue). Built by composing ui-core behaviors.
+
+**Key features**: 7+ production patterns, event bus integration, validation support
+
+```typescript
+import { createWizard } from '@web-loom/ui-patterns';
+const wizard = createWizard({ steps: [...], onComplete: (data) => {...} });
+```

@@ -535,3 +535,17 @@ Works in all modern browsers and Node.js environments that support ES2015+.
 ## License
 
 MIT
+
+### From the root README:
+
+#### [@web-loom/event-bus-core](packages/event-bus-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
+
+Lightweight pub-sub event bus for cross-component communication. Type-safe with zero dependencies.
+
+**Key features**: <1KB gzipped, type-safe events, multiple listeners
+
+```typescript
+import { createEventBus } from '@web-loom/event-bus-core';
+const eventBus = createEventBus<AppEvents>();
+eventBus.on('user:login', (user) => console.log(user));
+```

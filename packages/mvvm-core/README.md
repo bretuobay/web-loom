@@ -583,3 +583,20 @@ import type { IModel, IViewModel, ICommand, IDisposable, ModelState, Fetcher } f
 ## License
 
 MIT
+
+### From the root README:
+
+#### [@web-loom/mvvm-core](packages/mvvm-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
+
+Complete MVVM implementation with BaseModel, BaseViewModel, RestfulApiModel, QueryStateModel, and Command pattern. RxJS-powered with Zod validation.
+
+**Key features**: Reactive models, RESTful API integration, optimistic updates, disposable resources
+
+```typescript
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+class UserViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
+  constructor() {
+    super(new UserApiModel());
+  }
+}
+```
