@@ -360,3 +360,11 @@ This project is licensed under the MIT License.
 ## Contributing
 
 Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for more details.
+
+### From the root README:
+
+#### [@web-loom/plugin-core](packages/plugin-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
+
+Framework-agnostic plugin registry and management system with lifecycle states and manifest-based configuration.
+
+**Key features**: Dynamic loading, framework adapters, type-safe manifests

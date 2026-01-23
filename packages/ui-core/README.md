@@ -389,3 +389,17 @@ Each documentation file includes:
 ## License
 
 MIT
+
+### From the root README:
+
+#### [@web-loom/ui-core](packages/ui-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
+
+Framework-agnostic headless UI behaviors (Dialog, Form, List Selection, Roving Focus, Disclosure). Pure logic with no styling assumptions, usable across all frameworks.
+
+**Key features**: Atomic behaviors, framework adapters, accessibility-first, <2KB per behavior
+
+```typescript
+import { createDialogBehavior } from '@web-loom/ui-core';
+const dialog = createDialogBehavior({ onOpen: (content) => console.log(content) });
+dialog.actions.open({ title: 'Hello' });
+```

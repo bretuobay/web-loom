@@ -816,3 +816,11 @@ For older browsers, consider polyfills for Web Animations API.
 ## License
 
 MIT
+
+### From the root README:
+
+#### [@web-loom/typography-core](packages/typography-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
+
+Typography and coloring utilities for design systems.
+
+**Key features**: Typography, color manipulation, theme system

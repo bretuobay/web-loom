@@ -952,3 +952,9 @@ Design token specifications inspired by:
 - [Design Tokens Community Group](https://design-tokens.github.io/community-group/)
 - [Style Dictionary](https://amzn.github.io/style-dictionary/)
 - [Theo](https://github.com/salesforce-ux/theo)
+
+### From the root README:
+
+#### [@web-loom/design-core](packages/design-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
+
+Theme and CSS variable utilities for design systems.

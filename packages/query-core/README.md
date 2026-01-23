@@ -280,3 +280,17 @@ const queryCore = new QueryCore({ cacheProvider: myCustomCache });
 - **Refetch on network reconnect:** If the browser goes offline and then comes back online, QueryCore will attempt to refetch all currently observed endpoints, assuming the data might be outdated.
 
 These automatic behaviors help keep application data fresh with minimal manual intervention.
+
+### From the root README:
+
+#### [@web-loom/query-core](packages/query-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
+
+Zero-dependency data fetching and caching library. Handles async data with automatic refetching and cache management.
+
+**Key features**: Automatic caching, background refetching, request deduplication
+
+```typescript
+import QueryCore from '@web-loom/query-core';
+const queryCore = new QueryCore();
+queryCore.defineEndpoint('users', () => fetch('/api/users'));
+```
