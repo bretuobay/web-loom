@@ -1,6 +1,8 @@
 import type { ChartDataPoint, SeriesConfig, TooltipData } from '../core/types';
 import type { TooltipPosition } from '../tooltips';
 
+export { SeriesRenderer, type GradientConfig } from './series-renderer';
+
 export interface SeriesTooltipPayload {
   data: TooltipData;
   position?: TooltipPosition;

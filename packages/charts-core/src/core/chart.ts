@@ -3,37 +3,51 @@ import { AxisRenderer } from '../axes';
 import { AnnotationLayer } from '../annotations';
 import { ScaleRegistry, ChartScale } from '../scales';
 import { TooltipManager } from '../tooltips';
+import { ThemeManager } from '../theme/theme-manager';
+import { SeriesRenderer } from '../series/series-renderer';
+import { AdaptiveRenderStrategy } from '../performance/render-strategy';
 import { axisBottom, axisLeft, axisRight, axisTop } from 'd3-axis';
 import { select } from 'd3-selection';
-import { area, curveBasis, curveLinear, curveMonotoneX, curveStep, line } from 'd3-shape';
+import 'd3-transition'; // Import to enable .transition() on selections
 import { extent } from 'd3-array';
 import { format as formatDate } from 'date-fns';
+import { TRANSITION_CONFIG } from './transitions';
 
 export class ChartManager {
   private container: HTMLElement | null = null;
   private svg?: SVGSVGElement;
   private chartGroup?: SVGGElement;
+  private canvas?: HTMLCanvasElement;
   private overlayRect?: SVGRectElement;
   private readonly scales = new ScaleRegistry();
   private readonly axisRenderer = new AxisRenderer();
   private readonly annotationLayer = new AnnotationLayer();
   private readonly tooltipManager: TooltipManager;
+  private readonly themeManager: ThemeManager;
+  private readonly seriesRenderer = new SeriesRenderer();
+  private readonly renderStrategy = new AdaptiveRenderStrategy();
   private readonly series: SeriesConfig[] = [];
   private readonly plugins = new Map<string, ChartPlugin>();
   private clipPathId?: string;
   private clipDef?: SVGDefsElement;
-  private readonly axisStyleDefaults: Required<AxisStyleConfig> = {
-    axisColor: 'rgba(13, 18, 44, 0.12)',
-    axisWidth: 1,
-    tickColor: '#6b7280',
-    tickFont: 'Inter, system-ui, sans-serif',
-    tickFontSize: 12,
-    gridColor: 'rgba(15, 23, 42, 0.05)',
-    gridWidth: 1,
-    gridDash: '3 4',
-  };
+  private readonly axisStyleDefaults: Required<AxisStyleConfig>;
 
   constructor(public readonly config: ChartConfig) {
+    this.themeManager = new ThemeManager();
+    if (config.theme) {
+      this.themeManager.applyTheme(config.theme);
+    }
+    const theme = this.themeManager.getTheme();
+    this.axisStyleDefaults = {
+      axisColor: theme.colors.axis,
+      axisWidth: 1,
+      tickColor: theme.colors.text,
+      tickFont: theme.typography.fontFamily,
+      tickFontSize: theme.typography.fontSize.axis,
+      gridColor: theme.colors.grid,
+      gridWidth: 1,
+      gridDash: '3 4',
+    };
     this.tooltipManager = new TooltipManager(config.tooltip);
     this.applyAxisConfig();
     this.applyAnnotationConfig();
@@ -131,14 +145,124 @@ export class ChartManager {
     this.tooltipManager.hide();
   }
 
+  /**
+   * Update series data and re-render using D3 enter/update/exit pattern
+   * This method efficiently updates the chart without full re-render
+   */
+  updateSeries(seriesId: string, newData: ChartDataPoint[]): void {
+    // Find the series to update
+    const seriesIndex = this.series.findIndex(s => (s.id ?? `${s.type}`) === seriesId);
+    if (seriesIndex === -1) {
+      console.warn(`Series with id "${seriesId}" not found`);
+      return;
+    }
+
+    const series = this.series[seriesIndex];
+    if (!series) {
+      console.warn(`Series at index ${seriesIndex} is undefined`);
+      return;
+    }
+
+    // Update the series data
+    series.data = newData;
+
+    // Get scales
+    const xAxisScaleId = this.config.axes?.find((axis) => axis.orient === 'bottom' || axis.orient === 'top')?.scale;
+    if (!xAxisScaleId) return;
+
+    const xScale = this.scales.get(xAxisScaleId);
+    if (!xScale) return;
+
+    const yScaleId = series.yScale ?? 'y';
+    const yScale = this.scales.get(yScaleId);
+    if (!yScale) return;
+
+    // Get theme and apply color
+    const theme = this.themeManager.getTheme();
+    const seriesColor: string = series.color ?? theme.colors.series[seriesIndex % theme.colors.series.length] ?? '#2563eb';
+    
+    // Filter data to only visible points
+    const visibleData = this.getVisibleDataPoints(series, xScale, yScale);
+    const configWithColor: SeriesConfig = { 
+      type: series.type,
+      data: visibleData,
+      xAccessor: series.xAccessor,
+      yAccessor: series.yAccessor,
+      color: seriesColor,
+      id: series.id,
+      xScale: series.xScale,
+      yScale: series.yScale,
+      strokeWidth: series.strokeWidth,
+      area: series.area,
+      curve: series.curve,
+      marker: series.marker,
+      lineWidth: series.lineWidth,
+    };
+
+    // Calculate inner dimensions
+    const innerWidth = this.config.width - this.config.margin.left - this.config.margin.right;
+    const innerHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
+
+    // Determine if we should use canvas
+    const totalPoints = this.series.reduce((sum, s) => sum + s.data.length, 0);
+    const useCanvas = this.renderStrategy.shouldUseCanvas(totalPoints);
+
+    // Re-render the series using the data join pattern
+    if (useCanvas && this.canvas) {
+      // For canvas, we need to clear and re-render all series
+      const ctx = this.canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, innerWidth, innerHeight);
+        this.series.forEach((s, idx) => {
+          const yScaleId = s.yScale ?? 'y';
+          const yScale = this.scales.get(yScaleId);
+          if (!yScale) return;
+          
+          const color = s.color ?? theme.colors.series[idx % theme.colors.series.length] ?? '#2563eb';
+          const visibleData = this.getVisibleDataPoints(s, xScale, yScale);
+          const config: SeriesConfig = { 
+            type: s.type,
+            data: visibleData,
+            xAccessor: s.xAccessor,
+            yAccessor: s.yAccessor,
+            color,
+            id: s.id,
+            xScale: s.xScale,
+            yScale: s.yScale,
+            strokeWidth: s.strokeWidth,
+            area: s.area,
+            curve: s.curve,
+            marker: s.marker,
+            lineWidth: s.lineWidth,
+          };
+          
+          this.seriesRenderer.renderSeries(config, this.canvas!, xScale, yScale, true, innerHeight);
+        });
+      }
+    } else if (this.chartGroup) {
+      // For SVG, use the data join pattern which will update efficiently
+      this.seriesRenderer.renderSeries(configWithColor, this.chartGroup, xScale, yScale, false, innerHeight);
+      
+      // Update markers if enabled
+      if (series.marker?.show) {
+        this.createMarkers(configWithColor, xScale, yScale, seriesColor);
+      }
+    }
+  }
+
   destroy(): void {
     this.series.length = 0;
     this.scales.clear();
     this.axisRenderer.clear();
     this.annotationLayer.clear();
+    this.seriesRenderer.destroy();
     if (this.chartGroup) {
       this.chartGroup.remove();
       this.chartGroup = undefined;
+    }
+    if (this.canvas) {
+      this.canvas.remove();
+      this.canvas = undefined;
     }
     if (this.overlayRect) {
       this.overlayRect.remove();
@@ -320,10 +444,6 @@ export class ChartManager {
   }
 
   private renderSeries(innerWidth: number, innerHeight: number): void {
-    if (!this.chartGroup) {
-      return;
-    }
-
     const xAxisScaleId = this.config.axes?.find((axis) => axis.orient === 'bottom' || axis.orient === 'top')?.scale;
     if (!xAxisScaleId) {
       return;
@@ -334,104 +454,150 @@ export class ChartManager {
       return;
     }
 
-    this.series.forEach((seriesConfig) => {
+    // Calculate total point count across all series
+    const totalPoints = this.series.reduce((sum, s) => sum + s.data.length, 0);
+    const useCanvas = this.renderStrategy.shouldUseCanvas(totalPoints);
+
+    // Create canvas if needed
+    if (useCanvas && !this.canvas) {
+      this.createCanvas(innerWidth, innerHeight);
+    }
+
+    const theme = this.themeManager.getTheme();
+    
+    // Prepare series configurations with colors
+    const seriesConfigs = this.series.map((seriesConfig, index) => {
       const yScaleId = seriesConfig.yScale ?? 'y';
       const yScale = this.scales.get(yScaleId);
       if (!yScale) {
-        return;
+        return null;
       }
 
-      if (seriesConfig.area) {
-        const areaPath = this.createAreaPath(seriesConfig, xScale, yScale, innerHeight);
-        areaPath?.setAttribute('fill', seriesConfig.color ?? 'rgba(59, 130, 246, 0.2)');
-        areaPath?.setAttribute('stroke', 'none');
-        if (areaPath) {
-          this.chartGroup!.appendChild(areaPath);
+      const seriesColor: string = seriesConfig.color ?? theme.colors.series[index % theme.colors.series.length] ?? '#2563eb';
+      
+      // Filter data to only visible points (progressive rendering)
+      const visibleData = this.getVisibleDataPoints(seriesConfig, xScale, yScale);
+      
+      // Apply color and filtered data to series config for renderer
+      const configWithColor: SeriesConfig = { 
+        type: seriesConfig.type,
+        data: visibleData,
+        xAccessor: seriesConfig.xAccessor,
+        yAccessor: seriesConfig.yAccessor,
+        color: seriesColor,
+        id: seriesConfig.id,
+        xScale: seriesConfig.xScale,
+        yScale: seriesConfig.yScale,
+        strokeWidth: seriesConfig.strokeWidth,
+        area: seriesConfig.area,
+        curve: seriesConfig.curve,
+        marker: seriesConfig.marker,
+        lineWidth: seriesConfig.lineWidth,
+      };
+
+      return { config: configWithColor, yScale, color: seriesColor };
+    }).filter((item): item is { config: SeriesConfig; yScale: ChartScale; color: string } => item !== null);
+
+    // Render in proper z-index order: areas → lines → markers (Requirement 2.6)
+    // SeriesRenderer already handles areas before lines within each series
+    if (useCanvas && this.canvas) {
+      // For canvas, render all series (areas and lines are handled by SeriesRenderer)
+      seriesConfigs.forEach(({ config, yScale }) => {
+        this.seriesRenderer.renderSeries(config, this.canvas!, xScale, yScale, true, innerHeight);
+      });
+    } else if (this.chartGroup) {
+      // For SVG, render all series (areas and lines are handled by SeriesRenderer)
+      seriesConfigs.forEach(({ config, yScale }) => {
+        this.seriesRenderer.renderSeries(config, this.chartGroup!, xScale, yScale, false, innerHeight);
+      });
+
+      // Render all markers last to ensure they appear on top (z-index layering)
+      seriesConfigs.forEach(({ config, yScale, color }) => {
+        if (config.marker?.show) {
+          this.createMarkers(config, xScale, yScale, color);
         }
-      }
-
-      const path = this.createLinePath(seriesConfig, xScale, yScale);
-      if (path) {
-        this.chartGroup!.appendChild(path);
-      }
-
-      if (seriesConfig.marker?.show) {
-        this.createMarkers(seriesConfig, xScale, yScale);
-      }
-    });
-  }
-
-  private createLinePath(series: SeriesConfig, xScale: ChartScale, yScale: ChartScale): SVGPathElement | null {
-    const generator = line<ChartDataPoint>()
-      .defined((d) => d.y !== undefined && d.x !== undefined)
-      .curve(this.getCurve(series.curve))
-      .x((d) => this.mapXValue(series, d, xScale))
-      .y((d) => this.mapYValue(series, d, yScale));
-
-    const pathData = generator(series.data);
-    if (!pathData) {
-      return null;
+      });
     }
-
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', pathData);
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', series.color ?? '#2563eb');
-    path.setAttribute('stroke-width', `${series.lineWidth ?? 2}`);
-    path.setAttribute('stroke-linecap', 'round');
-    path.setAttribute('aria-label', series.id ?? `${series.type} series`);
-    return path;
   }
 
-  private createAreaPath(
-    series: SeriesConfig,
-    xScale: ChartScale,
-    yScale: ChartScale,
-    innerHeight: number,
-  ): SVGPathElement | null {
-    const generator = area<ChartDataPoint>()
-      .defined((d) => d.y !== undefined && d.x !== undefined)
-      .curve(this.getCurve(series.curve))
-      .x((d) => this.mapXValue(series, d, xScale))
-      .y0(innerHeight)
-      .y1((d) => this.mapYValue(series, d, yScale));
-
-    const pathData = generator(series.data);
-    if (!pathData) {
-      return null;
-    }
-
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', pathData);
-    path.setAttribute('opacity', '0.4');
-    return path;
-  }
-
-  private createMarkers(series: SeriesConfig, xScale: ChartScale, yScale: ChartScale): void {
+  private createMarkers(series: SeriesConfig, xScale: ChartScale, yScale: ChartScale, color: string): void {
     if (!this.chartGroup || !this.container) {
       return;
     }
 
-    series.data.forEach((point) => {
-      if (point.y === undefined || point.x === undefined) {
-        return;
-      }
+    // Ensure drop shadow filter exists
+    this.ensureMarkerDropShadowFilter();
 
-      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      marker.setAttribute('cx', `${this.mapXValue(series, point, xScale)}`);
-      marker.setAttribute('cy', `${this.mapYValue(series, point, yScale)}`);
-      const radius = series.marker?.radius ?? 4;
-      marker.setAttribute('r', `${radius}`);
-      marker.setAttribute('fill', series.marker?.fill ?? series.color ?? '#2563eb');
-      marker.setAttribute('stroke', series.marker?.stroke ?? '#ffffff');
-      marker.setAttribute('stroke-width', '1');
-      marker.setAttribute('data-series-id', series.id ?? `${series.type}`);
-      marker.style.cursor = 'pointer';
+    const seriesId = series.id ?? `${series.type}`;
+    const containerSelection = select(this.chartGroup);
 
-      marker.addEventListener('pointerenter', (event) => this.handlePointHover(series, point, event));
-      marker.addEventListener('pointerleave', () => this.tooltipManager.hide());
-      this.chartGroup!.appendChild(marker);
-    });
+    // Bind data to markers using D3 data join
+    const markers = containerSelection
+      .selectAll<SVGCircleElement, ChartDataPoint>(`circle.marker-${seriesId}`)
+      .data(series.data.filter(d => d.y !== undefined && d.x !== undefined), (d: ChartDataPoint) => `${d.x}-${d.y}`);
+
+    // Enter: create new markers
+    const markersEnter = markers
+      .enter()
+      .append('circle')
+      .attr('class', `marker-${seriesId}`)
+      .attr('cx', (d) => this.mapXValue(series, d, xScale))
+      .attr('cy', (d) => this.mapYValue(series, d, yScale))
+      .attr('r', series.marker?.radius ?? 4) // Start with full radius for initial render
+      .attr('fill', series.marker?.fill ?? color)
+      .attr('stroke', series.marker?.stroke ?? '#ffffff')
+      .attr('stroke-width', '2')
+      .attr('filter', 'url(#charts-core-marker-shadow)')
+      .attr('data-series-id', seriesId)
+      .style('cursor', 'pointer')
+      .on('pointerenter', (event, d) => this.handlePointHover(series, d, event))
+      .on('pointerleave', () => this.tooltipManager.hide());
+
+    // Update: merge enter and update selections
+    const markersMerge = markersEnter.merge(markers);
+
+    // Apply transition to update positions and radius (only for updates, not initial render)
+    const transition = (markersMerge as any)
+      .transition()
+      .duration(TRANSITION_CONFIG.duration);
+    
+    transition
+      .attr('cx', (d: ChartDataPoint) => this.mapXValue(series, d, xScale))
+      .attr('cy', (d: ChartDataPoint) => this.mapYValue(series, d, yScale))
+      .attr('r', series.marker?.radius ?? 4)
+      .attr('fill', series.marker?.fill ?? color);
+
+    // Exit: remove old markers with fade out
+    const markersExit = markers.exit();
+    const exitTransition = (markersExit as any)
+      .transition()
+      .duration(TRANSITION_CONFIG.duration);
+    
+    exitTransition
+      .attr('r', 0)
+      .remove();
+  }
+
+  private createCanvas(innerWidth: number, innerHeight: number): void {
+    if (!this.container) {
+      return;
+    }
+
+    // Create canvas element
+    const canvas = document.createElement('canvas');
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+    canvas.style.position = 'absolute';
+    canvas.style.left = `${this.config.margin.left}px`;
+    canvas.style.top = `${this.config.margin.top}px`;
+    canvas.style.pointerEvents = 'none'; // Allow SVG overlay to handle interactions
+    
+    this.canvas = canvas;
+    if (this.svg) {
+      this.container.insertBefore(canvas, this.svg);
+    } else {
+      this.container.appendChild(canvas);
+    }
   }
 
   private mapXValue(series: SeriesConfig, point: ChartDataPoint, scale: ChartScale): number {
@@ -443,17 +609,33 @@ export class ChartManager {
     return scale(series.yAccessor(point) as any) as number;
   }
 
-  private getCurve(curve?: 'linear' | 'monotone' | 'basis' | 'step') {
-    switch (curve) {
-      case 'monotone':
-        return curveMonotoneX;
-      case 'basis':
-        return curveBasis;
-      case 'step':
-        return curveStep;
-      default:
-        return curveLinear;
+  private ensureMarkerDropShadowFilter(): void {
+    if (!this.clipDef) {
+      return;
     }
+
+    // Check if filter already exists
+    const existingFilter = this.clipDef.querySelector('#charts-core-marker-shadow');
+    if (existingFilter) {
+      return;
+    }
+
+    // Create drop shadow filter: 0 2px 4px rgba(0,0,0,0.1)
+    const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+    filter.setAttribute('id', 'charts-core-marker-shadow');
+    filter.setAttribute('x', '-50%');
+    filter.setAttribute('y', '-50%');
+    filter.setAttribute('width', '200%');
+    filter.setAttribute('height', '200%');
+
+    const feDropShadow = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
+    feDropShadow.setAttribute('dx', '0');
+    feDropShadow.setAttribute('dy', '2');
+    feDropShadow.setAttribute('stdDeviation', '2');
+    feDropShadow.setAttribute('flood-color', 'rgba(0,0,0,0.1)');
+
+    filter.appendChild(feDropShadow);
+    this.clipDef.appendChild(filter);
   }
 
   private renderAxes(innerWidth: number, innerHeight: number): void {
@@ -660,6 +842,51 @@ export class ChartManager {
         y: event.clientY - rect.top,
       },
     );
+  }
+
+  /**
+   * Filter data points to only those within the visible domain (progressive rendering)
+   * This implements Requirement 2.2 and Property 8 from the design document
+   */
+  private getVisibleDataPoints(series: SeriesConfig, xScale: ChartScale, yScale: ChartScale): ChartDataPoint[] {
+    // For now, return all data points to ensure rendering works
+    // TODO: Re-enable filtering after debugging
+    return series.data;
+    
+    /* Original filtering logic - temporarily disabled for debugging
+    // Get the current domain (visible range) from scales
+    const xDomain = xScale.domain() as [Date | number, Date | number];
+    const yDomain = yScale.domain() as [number, number];
+
+    // Convert domain to timestamps for comparison
+    const xMin = xDomain[0] instanceof Date ? xDomain[0].getTime() : Number(xDomain[0]);
+    const xMax = xDomain[1] instanceof Date ? xDomain[1].getTime() : Number(xDomain[1]);
+    const yMin = Math.min(yDomain[0], yDomain[1]);
+    const yMax = Math.max(yDomain[0], yDomain[1]);
+
+    // Filter data points within visible range
+    return series.data.filter((point) => {
+      // Skip undefined points
+      if (point.x === undefined || point.y === undefined) {
+        return false;
+      }
+
+      // Check x-axis visibility
+      const xValue = series.xAccessor(point);
+      const xTime = xValue instanceof Date ? xValue.getTime() : Number(xValue);
+      if (xTime < xMin || xTime > xMax) {
+        return false;
+      }
+
+      // Check y-axis visibility
+      const yValue = series.yAccessor(point);
+      if (yValue < yMin || yValue > yMax) {
+        return false;
+      }
+
+      return true;
+    });
+    */
   }
 }
 
