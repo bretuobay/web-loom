@@ -93,8 +93,8 @@ const CompositeCommandPanel: FC = () => {
         <p className="composite-command-panel__eyebrow">MVVM Core Pattern</p>
         <h3>Composite Command Control Center</h3>
         <p className="composite-command-panel__description">
-          Coordinate multiple fetches and diagnostics from one place.
-          CompositeCommand abstracts the orchestration so the UI only needs to toggle a single entry point.
+          Coordinate multiple fetches and diagnostics from one place. CompositeCommand abstracts the orchestration so
+          the UI only needs to toggle a single entry point.
         </p>
       </div>
 
@@ -102,9 +102,7 @@ const CompositeCommandPanel: FC = () => {
         <div className="composite-command-panel__action">
           <div className="composite-command-panel__action-header">
             <h4>Parallel refresh</h4>
-            <span className="composite-command-panel__badge">
-              {parallelIsExecuting ? 'Running' : 'Idle'}
-            </span>
+            <span className="composite-command-panel__badge">{parallelIsExecuting ? 'Running' : 'Idle'}</span>
           </div>
           <p>
             Simultaneously trigger greenhouses, sensors, sensor readings, and threshold alerts so the dashboard stays
@@ -117,19 +115,13 @@ const CompositeCommandPanel: FC = () => {
           >
             {parallelIsExecuting ? 'Refreshing...' : 'Refresh every stream'}
           </button>
-          {parallelError && (
-            <p className="composite-command-panel__error">
-              Parallel error: {String(parallelError)}
-            </p>
-          )}
+          {parallelError && <p className="composite-command-panel__error">Parallel error: {String(parallelError)}</p>}
         </div>
 
         <div className="composite-command-panel__action">
           <div className="composite-command-panel__action-header">
             <h4>Sequential diagnostics</h4>
-            <span className="composite-command-panel__badge">
-              {sequentialIsExecuting ? 'Running' : 'Idle'}
-            </span>
+            <span className="composite-command-panel__badge">{sequentialIsExecuting ? 'Running' : 'Idle'}</span>
           </div>
           <p>
             Execute sensor readings, alerts, and telemetry health checks one after another so each step has the latest
@@ -143,9 +135,7 @@ const CompositeCommandPanel: FC = () => {
             {sequentialIsExecuting ? 'Running diagnostics...' : 'Run diagnostics sequence'}
           </button>
           {sequentialError && (
-            <p className="composite-command-panel__error">
-              Diagnostics error: {String(sequentialError)}
-            </p>
+            <p className="composite-command-panel__error">Diagnostics error: {String(sequentialError)}</p>
           )}
         </div>
       </div>

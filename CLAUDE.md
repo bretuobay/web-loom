@@ -154,6 +154,7 @@ Infrastructure (HTTP, Storage, i18n, etc.)
 ```
 
 **Cross-cutting concerns** (used across all layers):
+
 - Event Bus (cross-feature communication)
 - Store (UI-only state like theme, sidebar)
 - Router (navigation state)
@@ -218,6 +219,7 @@ turbo run test --filter=mvvm-react
 ```
 
 **Key testing patterns:**
+
 - Test ViewModels independently of UI by mocking fetchers
 - Use RxJS `firstValueFrom` for single emissions, `.subscribe()` for state transitions
 - Always call `vm.dispose()` in test cleanup to prevent memory leaks
@@ -233,6 +235,7 @@ turbo run test --filter=mvvm-react
 ## Turbo Configuration
 
 The `turbo.json` defines task dependencies:
+
 - `build`: Depends on `^build` (upstream builds), cached
 - `lint`: Independent, cached
 - `check-types`: Independent, cached
