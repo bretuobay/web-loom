@@ -4,7 +4,7 @@
   "description": "Tiny, type-safe event emitter shared across Web Loom packages.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "type": "module",
   "files": [
     "dist"
@@ -20,6 +20,13 @@
       "default": "./dist/event-emitter-core.es.js"
     }
   },
+  "keywords": [
+    "event-emitter",
+    "pub-sub",
+    "typescript",
+    "tiny",
+    "web-loom"
+  ],
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
