@@ -46,6 +46,25 @@ yarn add @web-loom/design-core
 pnpm add @web-loom/design-core
 ```
 
+### Package Exports
+
+The package provides multiple entry points for different use cases:
+
+```typescript
+// Main entry - exports all types
+import * as DesignCore from '@web-loom/design-core';
+
+// Utility functions (tokens, theming, CSS variables)
+import { getTokenValue, createTheme, applyTheme } from '@web-loom/design-core/utils';
+
+// Type definitions only
+import type { ColorTokens, SpacingTokens } from '@web-loom/design-core/types';
+
+// CSS files
+import '@web-loom/design-core/design-system'; // All CSS
+import '@web-loom/design-core/css/colors.css'; // Specific token category
+```
+
 ### Basic Usage
 
 ```typescript

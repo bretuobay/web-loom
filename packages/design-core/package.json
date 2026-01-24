@@ -9,16 +9,28 @@
   "files": [
     "dist",
     "src/css",
-    "src/design-system"
+    "src/design-system",
+    "README.md",
+    "LICENSE"
   ],
-  "main": "./dist/design-core.umd.js",
+  "main": "./dist/index.js",
   "module": "./dist/design-core.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/design-core.es.js",
-      "require": "./dist/design-core.umd.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js",
+      "default": "./dist/utils/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "default": "./dist/types/index.js"
     },
     "./css/*": {
       "import": "./src/css/*.css",
@@ -52,6 +64,7 @@
     "generate:css": "node scripts/generate-css.cjs",
     "dev": "npm run generate:css && npx vite build --watch",
     "build": "npm run generate:css && npx vite build",
+    "verify:exports": "node scripts/verify-exports.mjs",
     "test": "vitest --watch=false",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",

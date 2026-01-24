@@ -1,23 +1,38 @@
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+import { resolve } from 'path';
 
 export default defineConfig({
   build: {
     outDir: 'dist', // Explicitly set outDir
     lib: {
-      entry: './src/index.ts',
-      formats: ['es', 'umd'],
+      entry: {
+        'design-core.es': './src/index.ts', // Main bundle for backwards compatibility
+        index: './src/index.ts',
+        'utils/index': './src/utils/index.ts',
+        'types/index': './src/types/index.ts',
+      },
+      formats: ['es'],
       name: 'DesignCore', // For UMD global variable
-      fileName: (format) => `design-core.${format}.js`,
     },
     rollupOptions: {
       // No external dependencies for QueryCore
       output: {
+        // Preserve module structure for better tree-shaking
+        preserveModules: false,
+        entryFileNames: '[name].js',
         // No globals needed as no externals
       },
     },
   },
-  plugins: [dts({ insertTypesEntry: true, outDir: 'dist', tsconfigPath: './tsconfig.json', rollupTypes: true })], // also specify for dts plugin
+  plugins: [
+    dts({
+      insertTypesEntry: true,
+      outDir: 'dist',
+      tsconfigPath: './tsconfig.json',
+      rollupTypes: false, // Don't roll up types, keep them separate
+    }),
+  ], // also specify for dts plugin
   server: {
     // Expose tests directory for the custom runner
     fs: {
