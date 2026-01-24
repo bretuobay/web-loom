@@ -3,46 +3,27 @@
   Do NOT manually edit this file or your changes will be lost.
 */
 
-import {
-  NotHandled,
-  NotMatched,
-  GetPaths,
-  PostPaths,
-  GetablePath,
-  GetableHref,
-  PostablePath,
-  PostableHref,
-  Platform,
-} from '@marko/run/namespace';
-import type * as Run from '@marko/run';
+import { NotHandled, NotMatched, GetPaths, PostPaths, GetablePath, GetableHref, PostablePath, PostableHref, Platform } from "@marko/run/namespace";
+import type * as Run from "@marko/run";
 
-declare module '@marko/run' {
-  interface AppData extends Run.DefineApp<{
-    routes: {
-      '/': { verb: 'get'; meta: typeof import('../src/routes/+meta.json') };
-      '/dashboard': { verb: 'get'; meta: typeof import('../src/routes/dashboard/+meta.json') };
-      '/greenhouses': { verb: 'get'; meta: typeof import('../src/routes/greenhouses/+meta.json') };
-      '/sensor-readings': { verb: 'get'; meta: typeof import('../src/routes/sensor-readings/+meta.json') };
-      '/sensors': { verb: 'get'; meta: typeof import('../src/routes/sensors/+meta.json') };
-      '/threshold-alerts': { verb: 'get'; meta: typeof import('../src/routes/threshold-alerts/+meta.json') };
-    };
-  }> {}
+
+declare module "@marko/run" {
+	interface AppData extends Run.DefineApp<{
+		routes: {
+			"/": { verb: "get"; meta: typeof import("../src/routes/+meta.json"); };
+			"/dashboard": { verb: "get"; meta: typeof import("../src/routes/dashboard/+meta.json"); };
+			"/greenhouses": { verb: "get"; meta: typeof import("../src/routes/greenhouses/+meta.json"); };
+			"/sensor-readings": { verb: "get"; meta: typeof import("../src/routes/sensor-readings/+meta.json"); };
+			"/sensors": { verb: "get"; meta: typeof import("../src/routes/sensors/+meta.json"); };
+			"/threshold-alerts": { verb: "get"; meta: typeof import("../src/routes/threshold-alerts/+meta.json"); };
+		}
+	}> {}
 }
 
-declare module '../src/routes/+page.marko' {
+declare module "../src/routes/+page.marko" {
   namespace MarkoRun {
-    export {
-      NotHandled,
-      NotMatched,
-      GetPaths,
-      PostPaths,
-      GetablePath,
-      GetableHref,
-      PostablePath,
-      PostableHref,
-      Platform,
-    };
-    export type Route = Run.Routes['/'];
+    export { NotHandled, NotMatched, GetPaths, PostPaths, GetablePath, GetableHref, PostablePath, PostableHref, Platform };
+    export type Route = Run.Routes["/"];
     export type Context = Run.MultiRouteContext<Route> & Marko.Global;
     export type Handler = Run.HandlerLike<Route>;
     /** @deprecated use `((context, next) => { ... }) satisfies MarkoRun.Handler` instead */
@@ -50,20 +31,10 @@ declare module '../src/routes/+page.marko' {
   }
 }
 
-declare module '../src/routes/dashboard/+page.marko' {
+declare module "../src/routes/dashboard/+page.marko" {
   namespace MarkoRun {
-    export {
-      NotHandled,
-      NotMatched,
-      GetPaths,
-      PostPaths,
-      GetablePath,
-      GetableHref,
-      PostablePath,
-      PostableHref,
-      Platform,
-    };
-    export type Route = Run.Routes['/dashboard'];
+    export { NotHandled, NotMatched, GetPaths, PostPaths, GetablePath, GetableHref, PostablePath, PostableHref, Platform };
+    export type Route = Run.Routes["/dashboard"];
     export type Context = Run.MultiRouteContext<Route> & Marko.Global;
     export type Handler = Run.HandlerLike<Route>;
     /** @deprecated use `((context, next) => { ... }) satisfies MarkoRun.Handler` instead */
@@ -71,20 +42,10 @@ declare module '../src/routes/dashboard/+page.marko' {
   }
 }
 
-declare module '../src/routes/greenhouses/+page.marko' {
+declare module "../src/routes/greenhouses/+page.marko" {
   namespace MarkoRun {
-    export {
-      NotHandled,
-      NotMatched,
-      GetPaths,
-      PostPaths,
-      GetablePath,
-      GetableHref,
-      PostablePath,
-      PostableHref,
-      Platform,
-    };
-    export type Route = Run.Routes['/greenhouses'];
+    export { NotHandled, NotMatched, GetPaths, PostPaths, GetablePath, GetableHref, PostablePath, PostableHref, Platform };
+    export type Route = Run.Routes["/greenhouses"];
     export type Context = Run.MultiRouteContext<Route> & Marko.Global;
     export type Handler = Run.HandlerLike<Route>;
     /** @deprecated use `((context, next) => { ... }) satisfies MarkoRun.Handler` instead */
@@ -92,20 +53,10 @@ declare module '../src/routes/greenhouses/+page.marko' {
   }
 }
 
-declare module '../src/routes/sensor-readings/+page.marko' {
+declare module "../src/routes/sensor-readings/+page.marko" {
   namespace MarkoRun {
-    export {
-      NotHandled,
-      NotMatched,
-      GetPaths,
-      PostPaths,
-      GetablePath,
-      GetableHref,
-      PostablePath,
-      PostableHref,
-      Platform,
-    };
-    export type Route = Run.Routes['/sensor-readings'];
+    export { NotHandled, NotMatched, GetPaths, PostPaths, GetablePath, GetableHref, PostablePath, PostableHref, Platform };
+    export type Route = Run.Routes["/sensor-readings"];
     export type Context = Run.MultiRouteContext<Route> & Marko.Global;
     export type Handler = Run.HandlerLike<Route>;
     /** @deprecated use `((context, next) => { ... }) satisfies MarkoRun.Handler` instead */
@@ -113,20 +64,10 @@ declare module '../src/routes/sensor-readings/+page.marko' {
   }
 }
 
-declare module '../src/routes/sensors/+page.marko' {
+declare module "../src/routes/sensors/+page.marko" {
   namespace MarkoRun {
-    export {
-      NotHandled,
-      NotMatched,
-      GetPaths,
-      PostPaths,
-      GetablePath,
-      GetableHref,
-      PostablePath,
-      PostableHref,
-      Platform,
-    };
-    export type Route = Run.Routes['/sensors'];
+    export { NotHandled, NotMatched, GetPaths, PostPaths, GetablePath, GetableHref, PostablePath, PostableHref, Platform };
+    export type Route = Run.Routes["/sensors"];
     export type Context = Run.MultiRouteContext<Route> & Marko.Global;
     export type Handler = Run.HandlerLike<Route>;
     /** @deprecated use `((context, next) => { ... }) satisfies MarkoRun.Handler` instead */
@@ -134,20 +75,10 @@ declare module '../src/routes/sensors/+page.marko' {
   }
 }
 
-declare module '../src/routes/threshold-alerts/+page.marko' {
+declare module "../src/routes/threshold-alerts/+page.marko" {
   namespace MarkoRun {
-    export {
-      NotHandled,
-      NotMatched,
-      GetPaths,
-      PostPaths,
-      GetablePath,
-      GetableHref,
-      PostablePath,
-      PostableHref,
-      Platform,
-    };
-    export type Route = Run.Routes['/threshold-alerts'];
+    export { NotHandled, NotMatched, GetPaths, PostPaths, GetablePath, GetableHref, PostablePath, PostableHref, Platform };
+    export type Route = Run.Routes["/threshold-alerts"];
     export type Context = Run.MultiRouteContext<Route> & Marko.Global;
     export type Handler = Run.HandlerLike<Route>;
     /** @deprecated use `((context, next) => { ... }) satisfies MarkoRun.Handler` instead */
@@ -155,27 +86,11 @@ declare module '../src/routes/threshold-alerts/+page.marko' {
   }
 }
 
-declare module '../src/routes/+layout.marko' {
-  export interface Input extends Run.LayoutInput<typeof import('../src/routes/+layout.marko')> {}
+declare module "../src/routes/+layout.marko" {
+  export interface Input extends Run.LayoutInput<typeof import("../src/routes/+layout.marko")> {}
   namespace MarkoRun {
-    export {
-      NotHandled,
-      NotMatched,
-      GetPaths,
-      PostPaths,
-      GetablePath,
-      GetableHref,
-      PostablePath,
-      PostableHref,
-      Platform,
-    };
-    export type Route = Run.Routes[
-      | '/'
-      | '/dashboard'
-      | '/greenhouses'
-      | '/sensor-readings'
-      | '/sensors'
-      | '/threshold-alerts'];
+    export { NotHandled, NotMatched, GetPaths, PostPaths, GetablePath, GetableHref, PostablePath, PostableHref, Platform };
+    export type Route = Run.Routes["/" | "/dashboard" | "/greenhouses" | "/sensor-readings" | "/sensors" | "/threshold-alerts"];
     export type Context = Run.MultiRouteContext<Route> & Marko.Global;
     export type Handler = Run.HandlerLike<Route>;
     /** @deprecated use `((context, next) => { ... }) satisfies MarkoRun.Handler` instead */
