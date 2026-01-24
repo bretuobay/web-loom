@@ -15,9 +15,5 @@ Runs `apps/api` plus one or more `mvvm-*` frontends:
 
 The helper prints a friendly header about the demo nature of this stack and forces strict ports before spawning each process.
 
-## `task-flow-runner.js`
-
-Use `npm run demo:task-flow` to start `task-flow-api` (port 8001) and `task-flow-ui` (port 5178) at the same time.
-
 - `--dry-run` shows the commands that would run.
 - The helper reiterates that the stack is seeded/demo only so you can safely experiment.
