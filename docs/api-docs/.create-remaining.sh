@@ -1,0 +1,11 @@
+#!/bin/bash
+echo "Creating remaining API documentation files..."
+echo "Files to create:"
+echo "- store-core.md"
+echo "- event-bus-core.md"
+echo "- event-emitter-core.md"
+echo "- ui-core.md"
+echo "- ui-patterns.md"
+echo "- design-core.md"
+echo "- charts-core.md"
+echo "- mvvm-patterns.md"
