@@ -4,7 +4,7 @@
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": false,
-  "version": "0.5.5",
+  "version": "0.5.6",
   "type": "module",
   "files": [
     "dist",
@@ -32,11 +32,21 @@
       "import": "./dist/types/index.js",
       "default": "./dist/types/index.js"
     },
-    "./css/*": {
-      "import": "./src/css/*.css",
-      "style": "./src/css/*.css",
-      "default": "./src/css/*.css"
-    },
+    "./css/borders.css": "./src/css/borders.css",
+    "./css/breakpoints.css": "./src/css/breakpoints.css",
+    "./css/colors.css": "./src/css/colors.css",
+    "./css/cursor-styles.css": "./src/css/cursor-styles.css",
+    "./css/focus-rings.css": "./src/css/focus-rings.css",
+    "./css/gradients.css": "./src/css/gradients.css",
+    "./css/opacity.css": "./src/css/opacity.css",
+    "./css/radii.css": "./src/css/radii.css",
+    "./css/shadows.css": "./src/css/shadows.css",
+    "./css/sizing.css": "./src/css/sizing.css",
+    "./css/spacing.css": "./src/css/spacing.css",
+    "./css/timing.css": "./src/css/timing.css",
+    "./css/transitions.css": "./src/css/transitions.css",
+    "./css/typography.css": "./src/css/typography.css",
+    "./css/z-index.css": "./src/css/z-index.css",
     "./design-system": {
       "import": "./src/design-system/index.css",
       "style": "./src/design-system/index.css",
