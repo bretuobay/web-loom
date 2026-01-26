@@ -1,82 +1,83 @@
 ---
-title: 'Getting Started with MVVM Core'
-summary: 'Learn how to build robust, reactive web applications using the MVVM Core library. This guide covers installation, basic concepts, and first steps.'
-topicTitle: 'MVVM Core'
-topicSlug: 'mvvm-core'
-nextTitle: 'Models and ViewModels'
-nextSlug: '/mvvm-core/models-and-viewmodels'
+title: 'Getting Started with Web Loom'
+summary: 'Explore the Web Loom philosophy, understand the key packages, and launch your first framework-agnostic UI project.'
+topicTitle: 'Published Packages'
+topicSlug: 'packages'
+nextTitle: 'Core Libraries'
+nextSlug: '/packages'
 ---
 
-# Getting Started with MVVM Core
+# Getting Started with Web Loom
 
-MVVM Core is a framework-agnostic library for building robust client-side applications using the Model-View-ViewModel (MVVM) pattern. It leverages **RxJS** for reactive data flow and **Zod** for strong data validation, making it easy to manage state and API interactions in React, Angular, Vue, and more.
+Web Loom is a production-ready, framework-agnostic UI architecture toolkit inspired by the battle-tested concepts of Prism. Instead of coupling your business logic to React, Angular, or any other framework, Web Loom keeps the MVVM pattern, headless UI behaviors, and plugin architecture in reusable packages under the `@web-loom` scope. This guide distills the mission from the root README, points into the API docs, and helps you launch your first reactive application.
 
-## Features
+## Philosophy Snapshot
 
-- **Reactive Data Flow:** All data, loading states, and errors are RxJS observables.
-- **Strong Validation:** Zod schemas for compile-time and runtime validation.
-- **RESTful API Management:** Built-in models for CRUD operations and optimistic updates.
-- **Command Pattern:** Encapsulate UI actions with canExecute/isExecuting states.
-- **Observable Collections:** Efficient, reactive list management.
-- **Resource Management:** Implements IDisposable for cleanup and memory safety.
-- **Framework Agnostic:** No direct UI dependencies.
+- **Framework-Agnostic First** – Every package works with React, Vue, Angular, Svelte, or vanilla JavaScript; the UI glue is entirely optional.
+- **MVVM + Prism Heritage** – `mvvm-core` brings Commands, CompositeCommands, and observable ViewModels. It mirrors Prism’s DelegateCommand semantics while exposing RxJS `isExecuting$`, `canExecute$`, and `executeError$` streams.
+- **Headless Behavior Stack** – `ui-core` offers atomic behaviors (dialogs, lists, forms), `ui-patterns` composes them into higher-level modules, and `design-core` supplies typography and theming.
+- **Reactive State & Data** – `store-core` handles local UI state (filters, drawers, toggles), `query-core` manages server-side data with caching and automatic refetch, and `event-bus-core` fills the EventAggregator role for cross-component messaging.
+- **Plugin Architecture** – Build extensible apps by registering plugin modules, routes, and adapters without rewiring your core logic.
 
-## Installation
+For a detailed 1:1 comparison with Prism, see the [Prism to Web Loom feature mapping](../../docs/PRISM-WEBLOOM-COMPARISON.md).
 
-Install the core library and its dependencies:
+## Quick Start Checklist
 
-```bash
-npm install @web-loom/mvvm-core rxjs zod
-# or
-yarn add @web-loom/mvvm-core rxjs zod
-```
+1. **Install the packages you need**
 
-## Basic Usage
+   ```bash
+   npm install @web-loom/mvvm-core @web-loom/query-core @web-loom/store-core @web-loom/ui-core @web-loom/ui-patterns @web-loom/event-bus-core @web-loom/design-core rxjs zod
+   ```
 
-### 1. Define a Model with Zod
+2. **Create a reactive UI store**
 
-```typescript
-import { BaseModel } from '@web-loom/mvvm-core';
-import { z } from 'zod';
+   ```ts
+   import { createStore } from '@web-loom/store-core';
 
-export const UserSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(3),
-  email: z.string().email(),
-  age: z.number().int().positive().optional(),
-});
+   const uiStore = createStore(
+     { drawerOpen: false },
+     (set) => ({
+       toggleDrawer: () => set((state) => ({ ...state, drawerOpen: !state.drawerOpen })),
+     }),
+   );
+   ```
 
-export type User = z.infer<typeof UserSchema>;
+3. **Wrap your domain logic with MVVM**
 
-export class UserModel extends BaseModel<User, typeof UserSchema> {
-  constructor(initialData?: User) {
-    super({ initialData: initialData || null, schema: UserSchema });
-  }
-}
-```
+   Build `BaseModel` + `BaseViewModel` pairs, expose commands, and rely on Zod schemas for validation. MVVM Core wires RxJS for subscriptions and commands so your ViewModels stay testable and framework-agnostic.
 
-### 2. Create a ViewModel
+4. **Connect to data sources**
 
-```typescript
-import { BaseViewModel } from '@web-loom/mvvm-core';
+   Register endpoints (`defineEndpoint`), subscribe to their state, and let `query-core` refresh stale data on focus/reconnect while deduplicating concurrent fetches.
 
-export class UserViewModel extends BaseViewModel<UserModel> {
-  constructor(model: UserModel) {
-    super(model);
-  }
-}
-```
+5. **Compose headless UI behaviors**
 
-### 3. Use in Your App
+   Use `ui-core` behaviors to encapsulate dialogs/forms/lists, stitch them together with `ui-patterns`, and layer in `store-core` state so UI preferences travel with your app.
 
-You can now use your model and viewmodel in your UI framework of choice. All properties are reactive observables, so you can subscribe or bind them directly in your components.
+## Package Highlights
 
-## Next Steps
+- `@web-loom/mvvm-core` – Models, ViewModels, commands, validation, and Prism-inspired utilities for pure presentation logic.
+- `@web-loom/query-core` – Server data fetching with caching, automatic stale-while-revalidate refetches, and manual `refetch`/`invalidate`.
+- `@web-loom/store-core` – Tiny, persistence-friendly store for UI parameters and filters; includes LocalStorage and IndexedDB adapters.
+- `@web-loom/ui-core` – Atomic, headless behaviors (dialogs, lists, forms) that stay styling-agnostic.
+- `@web-loom/ui-patterns` – Composed shell/module UI patterns built on `@web-loom/ui-core` behaviors.
+- `@web-loom/event-bus-core` – Typed event aggregation for cross-component coordination, Web Loom’s take on Prism’s EventAggregator.
+- `@web-loom/design-core` – Design tokens, typography utilities, and theme management helpers.
 
-- Learn about [Models and ViewModels](/mvvm-core/models-and-viewmodels)
-- Explore [API Management and Commands](/mvvm-core/api-management)
-- See [Observable Collections](/mvvm-core/observable-collections)
+Each package ships with detailed API documentation. Start by browsing the [published packages API index](../../docs/api-docs/README.md) for versions, install guidance, and code samples.
 
----
+## Prism Concepts in a Modern Tooling Stack
 
-For more details, see the [MVVM Core README](https://github.com/bretuobay/web-loom.git/mvvm-core) and the [API Development Plan](https://github.com/bretuobay/web-loom.git/mvvm-core/MVVM%20Web%20Library%20Development%20Plan%20for%20API%20Coding%20Agent.md).
+Web Loom keeps the intent of Prism alive:
+
+- **Commands** – `mvvm-core`’s `Command`/`CompositeCommand` expose observables and async safety, echoing Prism’s DelegateCommand.
+- **Event Bus** – `event-bus-core` replaces Prism’s EventAggregator with typed, observable-friendly APIs, plus an optional lightweight emitter for component-level events.
+- **Modules & Plugins** – The plugin core lets you register routes, behaviors, and UI modules just like Prism modules.
+
+## Where to Go Next
+
+- Browse the [Published Packages API Index](../../docs/api-docs/README.md) to dive deeper into each package.
+- Explore `mvvm-core` next (Models & ViewModels, API Management, Observable Collections) once you understand the broader ecosystem.
+- Check out the package-specific docs for store-core, query-core, ui-core, plugin-core, and others to see advanced patterns, persistence adapters, and framework integration tips.
+
+Welcome to Web Loom—build resilient, framework-agnostic applications with a toolkit that evolves with you.

@@ -109,9 +109,9 @@ Returns a `Store` instance.
 - `destroy(): void`: Clears all listeners. Call this to prevent memory leaks when the store is no longer needed.
 - `actions: A`: An object containing the actions you defined.
 
-## Persistence Adapters
+## Persistence
 
-If you want to keep UI state across reloads, pass a persistence configuration to `createStore`.
+Passing a persistence configuration to `createStore` lets you keep UI state across reloads or share it between tabs.
 
 ```ts
 import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
@@ -131,10 +131,387 @@ const preferencesStore = createStore(
 );
 ```
 
-Available adapters include `LocalStorageAdapter`, `IndexedDBAdapter`, and `MemoryAdapter` for tests. Persistence is optional—without it the store runs purely in memory.
+### Persistence Configuration
+
+```ts
+interface PersistenceConfig<S> {
+  adapter: PersistenceAdapter<S>;
+  key: string;
+  autoSync?: boolean;  // defaults to true
+  merge?: boolean;     // defaults to false
+  serialize?: (state: S) => string;
+  deserialize?: (data: string) => S;
+}
+```
+
+- `adapter`: One of the built-in adapters (or a custom implementation) that reads/writes the serialized state.
+- `key`: Storage key used by the adapter to scope your store's data.
+- `autoSync`: When `true`, `setState` automatically persists the state after every change.
+- `merge`: When `true`, hydrations merge with the incoming state instead of replacing it.
+- `serialize`/`deserialize`: Override the default JSON serializer when needed (e.g., for dates or typed data).
+
+### Built-in Adapters
+
+#### `LocalStorageAdapter`
+
+- Persists state into `window.localStorage` using JSON serialization.
+- ~5–10 MB quota per origin; be mindful of size and catch quota errors.
+- Synchronous API, so writes happen immediately.
+
+```ts
+import { LocalStorageAdapter } from '@web-loom/store-core';
+
+const store = createStore(
+  initialState,
+  createActions,
+  {
+    adapter: new LocalStorageAdapter(),
+    key: 'session-preferences',
+    autoSync: true,
+  },
+);
+```
+
+Use this adapter for lightweight UI preferences, auth flags, or small datasets that need to survive refreshes.
+
+#### `IndexedDBAdapter`
+
+- Stores data in IndexedDB for larger datasets or offline applications.
+- Asynchronous API (`Promise`-based) with higher quotas (~50 MB+).
+- Ideal for complex data structures that would exceed `localStorage`.
+
+```ts
+import { IndexedDBAdapter } from '@web-loom/store-core';
+
+const store = createStore(
+  initialState,
+  createActions,
+  {
+    adapter: new IndexedDBAdapter('my-documents-db'),
+    key: 'documents',
+    autoSync: true,
+  },
+);
+```
+
+Tip: Give each app a unique database name, handle quota rejections, and periodically clean outdated records.
+
+#### `MemoryAdapter`
+
+- In-memory persistence useful for tests or ephemeral state.
+- Mirrors the API of other adapters but keeps data only in RAM.
+
+```ts
+import { MemoryAdapter } from '@web-loom/store-core';
+
+const memoryAdapter = new MemoryAdapter<MyState>();
+
+const store = createStore(
+  initialState,
+  createActions,
+  {
+    adapter: memoryAdapter,
+    key: 'test-store',
+  },
+);
+
+memoryAdapter.clear();
+```
+
+### Persisted Store Methods
+
+When persistence is enabled, the returned store supports a few extra helpers:
+
+- `persist(): Promise<void>` – manually flush the current state to the adapter.
+- `hydrate(): Promise<void>` – reload state from storage (bypasses auto sync).
+- `clearPersisted(): Promise<void>` – erase stored state for this key.
+
+Use these when you need fine-grained control (e.g., when restoring from a backup or resetting the UI between users).
 
 ## Pairing with MVVM Core
 
-Use `store-core` for UI state that should live beside your MVVM Core view models rather than inside a single observable stream or BehaviorSubject. For example, `apps/task-flow-ui/src/view-models/TaskBoardViewModel.ts` creates a small store to hold `statusFilter`, exposes `store.actions` for filter buttons, and replays the latest setting into an RxJS `BehaviorSubject` that drives the task filtering pipeline.
+Use `store-core` for UI state that should live beside your MVVM Core view models rather than inside a single observable stream or BehaviorSubject. For example, a `TaskBoardViewModel` can create a small store to hold `statusFilter`, expose `store.actions` for filter buttons, and replay the latest setting into an RxJS `BehaviorSubject` that drives the task filtering pipeline.
 
 Avoid mixing business data and UI state inside the same store. MVVM Core view models already provide `data$`, `isLoading$`, and the domain mutations you need. Layer a `store-core` store on top when you need to remember which tab is active, whether a drawer is open, or the selected filter in a table, and feed that UI state back into your view model logic via `store.subscribe` or `store.getState()`.
+
+## Framework Integration
+
+`store-core` ships with no framework dependencies, but you can easily integrate it with React, Vue, or Angular by subscribing to the store and re-rendering when the state changes.
+
+### React
+
+```tsx
+import { useEffect, useState } from 'react';
+import type { Store } from '@web-loom/store-core';
+
+export function useStore<S, A>(store: Store<S, A>): [S, A] {
+  const [state, setState] = useState(store.getState());
+
+  useEffect(() => {
+    const unsubscribe = store.subscribe((newState) => {
+      setState(newState);
+    });
+    return unsubscribe;
+  }, [store]);
+
+  return [state, store.actions];
+}
+
+function Counter() {
+  const [state, actions] = useStore(counterStore);
+  return (
+    <div>
+      <p>Count: {state.count}</p>
+      <button onClick={actions.increment}>+</button>
+      <button onClick={actions.decrement}>-</button>
+    </div>
+  );
+}
+```
+
+### Vue 3
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue';
+import { counterStore } from './store';
+
+const state = ref(counterStore.getState());
+
+onMounted(() => {
+  const unsubscribe = counterStore.subscribe((newState) => {
+    state.value = newState;
+  });
+  onUnmounted(unsubscribe);
+});
+
+const actions = counterStore.actions;
+</script>
+
+<template>
+  <div>
+    <p>Count: {{ state.count }}</p>
+    <button @click="actions.increment">+</button>
+    <button @click="actions.decrement">-</button>
+  </div>
+</template>
+```
+
+### Angular
+
+```ts
+import { Injectable, OnDestroy } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+import { counterStore } from './store';
+
+@Injectable({ providedIn: 'root' })
+export class CounterService implements OnDestroy {
+  private state$ = new BehaviorSubject(counterStore.getState());
+  private unsubscribe: (() => void) | null = null;
+
+  constructor() {
+    this.unsubscribe = counterStore.subscribe((newState) => {
+      this.state$.next(newState);
+    });
+  }
+
+  get state() {
+    return this.state$.asObservable();
+  }
+
+  get actions() {
+    return counterStore.actions;
+  }
+
+  ngOnDestroy() {
+    this.unsubscribe?.();
+  }
+}
+```
+
+## Advanced Patterns
+
+### Async Actions
+
+Use async/await within actions to coordinate API calls while manually toggling loading and error flags.
+
+```ts
+const apiStore = createStore<ApiState, ApiActions>(
+  { data: null, loading: false, error: null },
+  (set, get) => ({
+    fetchUsers: async () => {
+      set((state) => ({ ...state, loading: true, error: null }));
+      try {
+        const response = await fetch('/api/users');
+        const users = await response.json();
+        set((state) => ({ ...state, data: users, loading: false }));
+      } catch (error) {
+        set((state) => ({ ...state, loading: false, error: error.message }));
+      }
+    },
+    clearError: () => set((state) => ({ ...state, error: null })),
+  })
+);
+```
+
+### Selectors (Computed Values)
+
+Selectors derive reusable, memoized data from the current state without re-subscribing to the store.
+
+```ts
+const todoSelectors = {
+  getVisibleTodos: (state: TodoState) => {
+    const { todos, filter } = state;
+    if (filter === 'active') return todos.filter((t) => !t.completed);
+    if (filter === 'completed') return todos.filter((t) => t.completed);
+    return todos;
+  },
+  getTodoStats: (state: TodoState) => ({
+    total: state.todos.length,
+    completed: state.todos.filter((t) => t.completed).length,
+    active: state.todos.filter((t) => !t.completed).length,
+  }),
+};
+```
+
+### Middleware Pattern
+
+Wrap stores with middleware to extend behavior (logging, time travel, auditing).
+
+```ts
+function createLogger<S, A>(storeName: string) {
+  return (store: Store<S, A>) => {
+    const originalSubscribe = store.subscribe;
+    store.subscribe = (listener) => {
+      return originalSubscribe((newState, oldState) => {
+        console.group(`🔄 ${storeName}`);
+        console.log('Previous:', oldState);
+        console.log('Next:', newState);
+        console.groupEnd();
+        listener(newState, oldState);
+      });
+    };
+    return store;
+  };
+}
+
+const enhancedStore = createLogger('Counter')(createStore(initialState, createActions));
+```
+
+### Time Travel (Undo/Redo)
+
+Time travel stores stash history internally and expose `undo`, `redo`, and helper flags.
+
+```ts
+function createTimeTravel<S, A>() {
+  const history: S[] = [];
+  let currentIndex = -1;
+  return (store: Store<S, A>) => {
+    const originalSetState = store.setState;
+    store.setState = (updater) => {
+      const newState = updater(store.getState());
+      history.splice(currentIndex + 1);
+      history.push(newState);
+      currentIndex = history.length - 1;
+      originalSetState(updater);
+    };
+    store.undo = () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        originalSetState(() => history[currentIndex]);
+      }
+    };
+    store.redo = () => {
+      if (currentIndex < history.length - 1) {
+        currentIndex++;
+        originalSetState(() => history[currentIndex]);
+      }
+    };
+    store.canUndo = () => currentIndex > 0;
+    store.canRedo = () => currentIndex < history.length - 1;
+    history.push(store.getState());
+    currentIndex = 0;
+    return store;
+  };
+}
+```
+
+## TypeScript Support
+
+`store-core` exports a rich type system so your stores remain type-safe.
+
+```ts
+import type {
+  Store,
+  PersistedStore,
+  Listener,
+  Actions,
+  State,
+  PersistenceAdapter,
+  PersistenceConfig,
+} from '@web-loom/store-core';
+```
+
+Define states and actions explicitly to unlock IDE autocompletion and compiler checks for every `set`, `get`, and action call.
+
+## Best Practices
+
+- Keep stores focused on a single domain (e.g., user, cart, UI).
+- Always return new state objects; never mutate the incoming state in `set`.
+- Unsubscribe when components are destroyed to avoid memory leaks.
+- Use selectors to encapsulate derived/computed data.
+- Handle loading/error flags when performing async actions.
+- Choose the right persistence adapter: `LocalStorageAdapter` for small settings, `IndexedDBAdapter` for large/offline datasets, `MemoryAdapter` for testing.
+- Invalidate or reset persisted state when switching contexts (logout, user switch).
+- Wrap manual `refetch` or async actions in `try/catch` and let the store state surface errors.
+
+## Common Patterns
+
+- **Global App State**: Export centralized stores from `store/app.ts` and import them wherever needed.
+- **Module-Scoped Stores**: Keep feature stores (cart, user, ui) near their components to reduce coupling.
+- **Composition**: Aggregate multiple stores in a root object (`const rootStore = { user: userStore, cart: cartStore }`).
+
+## Performance Tips
+
+1. Rely on shallow comparisons—`store-core` skips notifying subscribers when state references are stable.
+2. Subscribe only to stores you actually read to limit updates.
+3. Use memoized selectors for computed values that depend on multiple pieces of state.
+4. Batch related updates inside a single `set` call when changing multiple fields.
+
+## Troubleshooting
+
+### UI Doesn’t Update
+
+Ensure your action returns a new state object instead of mutating the existing one:
+
+```ts
+set((state) => ({ ...state, count: state.count + 1 }));
+```
+
+### Memory Leaks
+
+Always clean up subscriptions in effects/components/services:
+
+```ts
+useEffect(() => {
+  const unsubscribe = store.subscribe(handleChange);
+  return unsubscribe;
+}, []);
+```
+
+### Persistence Not Working
+
+Double-check adapter configuration:
+
+```ts
+{
+  adapter: new LocalStorageAdapter(),
+  key: 'my-app-state',
+  autoSync: true,
+}
+```
+
+## See Also
+
+- [Full README](../../packages/store-core/README.md)
+- [@web-loom/mvvm-core](./mvvm-core.md)

@@ -268,6 +268,108 @@ await vm.refetchCommand.execute(true); // Force refetch
 await vm.invalidateCommand.execute();
 ```
 
+## Usage Examples
+
+### Example 1: Simple user management
+
+`RestfulApiModel` and `RestfulApiViewModel` work together to fetch lists, expose computed values, and keep CRUD commands reactive.
+
+```typescript
+class UserViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
+  constructor() {
+    super(new UserModel());
+  }
+
+  get adminUsers$(): Observable<User[]> {
+    return this.data$.pipe(map((users) => users?.filter((user) => user.role === 'admin') || []));
+  }
+
+  async promoteToAdmin(userId: string): Promise<void> {
+    await this.updateCommand.execute({
+      id: userId,
+      data: { role: 'admin' }
+    });
+  }
+}
+
+const vm = new UserViewModel();
+await vm.fetchCommand.execute();
+vm.adminUsers$.subscribe((admins) => console.log('Admins:', admins));
+await vm.promoteToAdmin('user-123');
+```
+
+### Example 2: Validated registration form
+
+Use `FormViewModel` to declare validation rules, capture per-field errors, and run submit logic with a reusable schema.
+
+```typescript
+class RegistrationViewModel extends FormViewModel<RegistrationForm> {
+  constructor(private authService: AuthService) {
+    super({
+      initialValues: { username: '', email: '', password: '', confirmPassword: '' },
+      validationSchema: RegistrationSchema,
+      validateOnChange: true,
+      onSubmit: async (values) => {
+        await this.authService.register(values);
+      }
+    });
+  }
+
+  async checkUsername(username: string): Promise<void> {
+    const available = await this.authService.isUsernameAvailable(username);
+    if (!available) {
+      this.setFieldError('username', 'Username already taken');
+    }
+  }
+}
+```
+
+### Example 3: Paginated, filterable collections
+
+`QueryableCollectionViewModel` layers filtering, sorting, and pagination on top of any item list while keeping all updates observable.
+
+```typescript
+class ProductListViewModel {
+  private collectionVm = new QueryableCollectionViewModel<Product>({ items: products, pageSize: 10 });
+
+  filterByCategory(category: string) {
+    this.collectionVm.setFilter((product) => product.category === category);
+  }
+
+  sortByPrice(order: 'asc' | 'desc' = 'asc') {
+    this.collectionVm.setSortBy('price', order);
+  }
+}
+```
+
+### Example 4: Master-detail commands
+
+Commands keep user actions reactive by combining `canExecute$`, `isExecuting$`, and async work into a single construct.
+
+```typescript
+class OrderDetailViewModel extends BaseViewModel<OrderModel> {
+  readonly approveCommand = new Command(async () => this.model.update({ status: 'approved' }), this.data$.pipe(map((order) => order?.status === 'pending')));
+  readonly rejectCommand = new Command(async (reason: string) => this.model.update({ status: 'rejected', rejectionReason: reason }), this.data$.pipe(map((order) => order?.status === 'pending')));
+  readonly cancelCommand = new Command(async () => this.model.update({ status: 'cancelled' }), this.data$.pipe(map((order) => order?.status === 'approved')));
+}
+```
+
+## Best Practices
+
+- Dispose ViewModels and collections when components unmount to keep subscriptions from leaking.
+  ```tsx
+  useEffect(() => {
+    const vm = new MyViewModel();
+    return () => vm.dispose();
+  }, []);
+  ```
+- Define strict Zod schemas for every public model and reuse them across models, forms, and query state.
+- Build derived state with computed observables (`map`, `combineLatest`, etc.) instead of tying logic to a framework.
+- Subscribe to `error$` and command error streams to surface issues and wrap fetch calls in `try/catch` for polish.
+- Use helpers like `takeUntil` or dedicated destroy streams during Angular/ngOnDestroy lifecycles to enforce cleanup.
+- Test ViewModels in isolation (mock fetchers/commands) so business logic stays predictable without rendering UI.
+- Keep ViewModels framework-agnostic and prefer `Command` instances over ad-hoc methods for actions.
+
 ## Framework Integration
 
 ### React

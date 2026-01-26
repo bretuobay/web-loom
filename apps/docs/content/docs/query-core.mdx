@@ -98,99 +98,140 @@ export interface EndpointState<TData> {
 
 ### `constructor(options?: QueryCoreOptions)`
 
-Creates a new `QueryCore` instance.
+Creates a new `QueryCore` instance and seeds the default cache provider plus refetch policy.
 
 ```typescript
-const queryCore = new QueryCore({ cacheProvider: 'indexedDB' });
+const queryCore = new QueryCore({
+  cacheProvider: 'indexedDB',
+  defaultRefetchAfter: 5 * 60 * 1000,
+});
 ```
 
-### `async defineEndpoint&lt;TData&gt;(endpointKey: string, fetcher: () => Promise&lt;TData&gt;, options?: EndpointOptions): Promise<void>`
+### `async defineEndpoint<TData>(endpointKey: string, fetcher: () => Promise<TData>, options?: EndpointOptions): Promise<void>`
 
-Defines a new data endpoint or redefines an existing one. This method is asynchronous due to potential cache interactions (reading initial state).
+Defines or redefines a data endpoint and initializes cached state. This call is async because cache providers may hydrate storage.
 
-- `endpointKey` (string): A unique key to identify the endpoint (e.g., 'posts', 'user/1').
-- `fetcher` (`() => Promise&lt;TData&gt;`): An asynchronous function that returns a Promise resolving to the data.
-- `options?` (EndpointOptions): Optional configuration for this specific endpoint.
+- `endpointKey`: Unique key such as `'posts'` or `'user/123'`.
+- `fetcher`: Async function that returns the required data.
+- `options`: Overrides for `refetchAfter` or cache provider.
 
 ```typescript
-async function fetchPosts() {
+await queryCore.defineEndpoint('allPosts', async () => {
   const response = await fetch('https://api.example.com/posts');
-  if (!response.ok) {
-    throw new Error('Failed to fetch posts');
-  }
+  if (!response.ok) throw new Error('Failed to fetch posts');
   return response.json();
-}
-
-await queryCore.defineEndpoint('allPosts', fetchPosts, {
-  refetchAfter: 10 * 60 * 1000, // 10 minutes
+}, {
+  refetchAfter: 10 * 60 * 1000,
+  cacheProvider: 'localStorage',
 });
 ```
 
-### `subscribe&lt;TData&gt;(endpointKey: string, callback: (state: EndpointState&lt;TData&gt;) => void): () => void`
+**Behavior**
 
-Subscribes a callback function to state changes for a specific endpoint. The callback is immediately invoked with the current state. Returns an unsubscribe function.
+- Replaces the existing fetcher and configuration if the endpoint already exists.
+- Loads cached state immediately, but does not fetch until you subscribe or refetch.
+- Marks the endpoint as observed for automatic behaviors.
 
-- `endpointKey` (string): The key of the endpoint to subscribe to.
-- `callback` (`(state: EndpointState&lt;TData&gt;) => void`): Function to be called with the endpoint's state whenever it changes.
+**Best Practice**
+
+- Register endpoints during app bootstrap.
+- Use descriptive keys.
+- Surface meaningful error messages inside the fetcher.
+
+### `subscribe<TData>(endpointKey: string, callback: (state: EndpointState<TData>) => void): () => void`
+
+Subscribes to state updates for the endpoint; the callback runs immediately and on every state change.
+
+- `endpointKey`: The endpoint identifier.
+- `callback`: Receives `EndpointState<TData>` with `data`, `isLoading`, `isError`, `error`, and `lastUpdated`.
+- Returns: Unsubscribe function.
 
 ```typescript
-const unsubscribeFromPosts = queryCore.subscribe('allPosts', (postsState) => {
-  if (postsState.isLoading) {
-    console.log('Loading posts...');
-  } else if (postsState.isError) {
-    console.error('Error fetching posts:', postsState.error);
-  } else if (postsState.data) {
-    console.log('Posts data:', postsState.data);
+const unsubscribe = queryCore.subscribe('users', (state) => {
+  if (state.isLoading) {
+    console.log('Loading users...');
+  } else if (state.isError) {
+    console.error('Error:', state.error);
+  } else if (state.data) {
+    console.log('Users:', state.data);
   }
-  console.log('Last updated:', postsState.lastUpdated);
+  console.log('Last updated:', new Date(state.lastUpdated));
 });
 
-// To stop listening:
-// unsubscribeFromPosts();
+unsubscribe();
 ```
 
-### `async refetch&lt;TData&gt;(endpointKey: string, forceRefetch: boolean = false): Promise<void>`
+**Behavior**
 
-Manually triggers a data refetch for an endpoint.
+- Immediately emits the current state (possibly stale).
+- Automatically refetches when stale or missing.
+- Adds the endpoint to the observed set.
 
-- `endpointKey` (string): The key of the endpoint to refetch.
-- `forceRefetch` (boolean, optional, default: `false`):
-  - If `true`, the refetch will occur regardless of whether the data is considered stale (based on `refetchAfter`).
-  - If `false`, the refetch will only occur if the data is stale or has never been fetched.
+**Best Practices**
+
+- Always unsubscribe on cleanup.
+- Handle `isLoading`, `isError`, and success paths.
+- Keep callbacks lightweight.
+
+### `async refetch<TData>(endpointKey: string, forceRefetch = false): Promise<void>`
+
+Manually refetches data for the endpoint.
+
+- `forceRefetch`: `true` ignores staleness; `false` respects `refetchAfter`.
+- Concurrent refetches for the same endpoint are deduplicated.
 
 ```typescript
-// Refetch posts only if stale or never fetched
-await queryCore.refetch('allPosts');
-
-// Force a refetch, even if data is considered fresh
-await queryCore.refetch('allPosts', true);
+await queryCore.refetch('users');
+await queryCore.refetch('users', true);
 ```
 
-If a fetch is already in progress for the endpoint, subsequent `refetch` calls (for the same endpoint) will be ignored until the current fetch completes.
+**Use Cases**
+
+- Refresh buttons, pull-to-refresh gestures, after mutations, periodic polling.
+
+**Error Handling**
+
+Wrap in `try/catch`; failures update `isError` and `error`.
 
 ### `async invalidate(endpointKey: string): Promise<void>`
 
-Invalidates the cached data for an endpoint, clearing it from both the cache provider and the in-memory state. Future subscriptions or `getState` calls might trigger a new fetch. This method is asynchronous due to cache interactions.
+Clears cached data for an endpoint from every layer.
 
-- `endpointKey` (string): The key of the endpoint to invalidate.
+- Useful after logout, deletes, or when you want a clean state.
+- Finish with `refetch` if you need immediate data.
 
 ```typescript
-await queryCore.invalidate('allPosts');
-console.log('Cache for allPosts has been cleared.');
+await queryCore.invalidate('users');
+await queryCore.refetch('users', true);
 ```
 
-### `getState&lt;TData&gt;(endpointKey: string): EndpointState&lt;TData&gt;`
+### `getState<TData>(endpointKey: string): EndpointState<TData>`
 
-Retrieves the current state of an endpoint without subscribing. Returns a copy of the state. If the endpoint is not defined, it returns a default initial state.
-
-- `endpointKey` (string): The key of the endpoint.
+Returns the current snapshot without subscribing or refetching.
 
 ```typescript
-const currentState = queryCore.getState('allPosts');
-if (currentState.data) {
-  // Use currentState.data
+const state = queryCore.getState<User[]>('users');
+if (state.data) {
+  console.log('Current count:', state.data.length);
 }
 ```
+
+**Default state** (when undefined):
+
+```
+{
+  data: undefined,
+  isLoading: false,
+  isError: false,
+  error: undefined,
+  lastUpdated: undefined,
+}
+```
+
+**Use Cases**
+
+- Server-side rendering checks or logging.
+- Conditional UI logic that needs instant access to cached values.
 
 ## Usage Example
 
@@ -240,46 +281,177 @@ document.getElementById('logout-button').onclick = async () => {
 
 ## Cache Providers
 
-QueryCore supports three built-in cache providers:
+QueryCore ships with three built-in cache providers and a small interface for custom storage.
 
-- `InMemoryCacheProvider`: (Default) Uses an in-memory JavaScript `Map`. Data is lost when the page is refreshed or closed. Ideal for short-lived data or testing.
-- `LocalStorageCacheProvider`: Uses browser `localStorage`. Data is stored as JSON strings and persists across sessions.
-- `IndexedDBCacheProvider`: Uses browser `IndexedDB`. Offers more robust client-side storage and persists across sessions.
+### `InMemoryCacheProvider`
 
-You can specify the cache provider globally when creating the `QueryCore` instance, or per-endpoint.
-
-You can also implement your own custom cache provider by adhering to the `CacheProvider` interface:
+- Fast, volatile cache stored in memory (default behavior).
+- Zero persistence—data disappears on refresh.
+- No size limits beyond available memory.
 
 ```typescript
-export interface CacheItem<TData> {
+import { InMemoryCacheProvider } from '@web-loom/query-core';
+
+const cache = new InMemoryCacheProvider();
+const queryCore = new QueryCore({ cacheProvider: cache });
+```
+
+Ideal for short-lived data, testing, or server-side rendering.
+
+### `LocalStorageCacheProvider`
+
+- Persists data in browser `localStorage` using JSON serialization.
+- ~5–10MB quota per origin depending on the browser.
+- Synchronous API: easy to reason about but susceptible to quota errors.
+- Storage key: `querycore:${endpointKey}`.
+
+```typescript
+import { LocalStorageCacheProvider } from '@web-loom/query-core';
+
+const cache = new LocalStorageCacheProvider();
+const queryCore = new QueryCore({ cacheProvider: cache });
+```
+
+Also available per-endpoint via `defineEndpoint({ cacheProvider: 'localStorage' })`.
+
+Use cases: user preferences, small datasets, tokens, or cross-tab syncing.
+
+### `IndexedDBCacheProvider`
+
+- Large, asynchronous persistence layer (~50MB+ quotas).
+- Supports complex objects without blocking the main thread.
+- Great for offline-first or data-heavy applications.
+
+```typescript
+import { IndexedDBCacheProvider } from '@web-loom/query-core';
+
+const cache = new IndexedDBCacheProvider('my-app-db');
+const queryCore = new QueryCore({ cacheProvider: cache });
+```
+
+Tips: give each app a unique database name, handle quota rejections, and clean stale entries periodically.
+
+### Custom Cache Providers
+
+Implement the `CacheProvider` interface to plug in any storage backend (Redis, compression, etc.).
+
+```typescript
+interface CachedItem<TData> {
   data: TData;
   lastUpdated: number;
 }
 
-export interface CacheProvider {
+interface CacheProvider {
   get<TData>(key: string): Promise<CachedItem<TData> | undefined>;
   set<TData>(key: string, item: CachedItem<TData>): Promise<void>;
   remove(key: string): Promise<void>;
-  clearAll?(): Promise<void>; // Optional: for clearing all items managed by this provider
+  clearAll?(): Promise<void>;
 }
 ```
-
-Then, pass an instance of your custom provider:
 
 ```typescript
 const myCustomCache = new MyCustomCacheProvider();
 const queryCore = new QueryCore({ cacheProvider: myCustomCache });
-// or for a specific endpoint:
-// await queryCore.defineEndpoint('myEndpoint', fetchFn, { cacheProvider: myCustomCache });
 ```
+
+This interface is intentionally small so you can wrap Redis, compression layers, or any storage you need.
 
 ## Automatic Behaviors
 
-- **Stale-while-revalidate on subscribe:** If a component subscribes to an endpoint and its data is considered stale (based on `refetchAfter` and `lastUpdated`), QueryCore will automatically trigger a background refetch. The component will initially receive the stale data (if any) and then an update once the refetch completes.
-- **Refetch on window focus:** If the browser window/tab loses and then regains focus, QueryCore will refetch all currently observed (subscribed to) endpoints whose data is considered stale.
-- **Refetch on network reconnect:** If the browser goes offline and then comes back online, QueryCore will attempt to refetch all currently observed endpoints, assuming the data might be outdated.
+These behaviors trigger automatically for every observed endpoint.
 
-These automatic behaviors help keep application data fresh with minimal manual intervention.
+### Stale-While-Revalidate
+
+1. Emit cached data immediately (if available).
+2. Compare `lastUpdated` with `refetchAfter`.
+3. Refetch in the background if stale.
+4. Push fresh data to subscribers.
+
+Benefit: instant hydration plus silent refreshes.
+
+### Window Focus Refetch
+
+1. Listen for browser `focus`.
+2. Refetch observed endpoints whose data is stale.
+3. Update subscribers with the latest values.
+
+Disable per endpoint with `refetchAfter: Infinity` if you need manual control.
+
+### Network Reconnect Refetch
+
+1. Detect the network coming online.
+2. Refetch all observed endpoints.
+3. Refresh the cache and UI.
+
+Great for mobile/offline apps recovering from dropped connections.
+
+## Usage Examples
+
+### React `useQuery` hook
+
+```typescript
+import { useState, useEffect, useCallback } from 'react';
+import QueryCore, { EndpointState } from '@web-loom/query-core';
+
+function useQuery<TData>(queryCore: QueryCore, endpointKey: string) {
+  const [state, setState] = useState<EndpointState<TData>>(
+    () => queryCore.getState<TData>(endpointKey)
+  );
+
+  useEffect(() => {
+    const unsubscribe = queryCore.subscribe<TData>(endpointKey, setState);
+    return unsubscribe;
+  }, [queryCore, endpointKey]);
+
+  const refetch = useCallback(
+    (force = false) => queryCore.refetch(endpointKey, force),
+    [queryCore, endpointKey]
+  );
+
+  const invalidate = useCallback(
+    () => queryCore.invalidate(endpointKey),
+    [queryCore, endpointKey]
+  );
+
+  return { ...state, refetch, invalidate };
+}
+```
+
+```tsx
+import { FC } from 'react';
+import useQuery from './hooks/useQuery';
+import { queryCore } from './queryCore';
+
+const UserList: FC = () => {
+  const { data, isLoading, isError, error, refetch, invalidate } =
+    useQuery<User[]>(queryCore, 'users');
+
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error: {error?.message}</div>;
+
+  return (
+    <>
+      <button onClick={() => refetch(true)}>Refresh</button>
+      <button onClick={invalidate}>Clear Cache</button>
+      <ul>
+        {data?.map((user) => (
+          <li key={user.id}>{user.name}</li>
+        ))}
+      </ul>
+    </>
+  );
+};
+```
+
+## Best Practices
+
+- Define endpoints early, keep keys descriptive, and centralize fetchers.
+- Combine `defineEndpoint` with `subscribe` (or helper hooks) instead of ad-hoc logic.
+- Handle `isLoading`, `isError`, and success states in every subscriber.
+- Unsubscribe/cleanup when components unmount.
+- Set `refetchAfter` based on data volatility.
+- Invalidate after destructive actions before refetching to avoid stale data.
+- Wrap refetches in `try/catch` and rely on endpoint state for error display.
 
 ## MVVM Core integration
 
