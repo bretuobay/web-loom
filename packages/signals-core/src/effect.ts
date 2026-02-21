@@ -1,18 +1,22 @@
-import { Signal } from './signal.js';
-import { Computed } from './computed.js';
-import { getCurrentEffect, setCurrentEffect } from './effect-context.js';
+import { type Trackable, getCurrentEffect, setCurrentEffect } from './effect-context.js';
+
+export interface EffectOptions {
+  debugName?: string;
+}
+
+export interface EffectHandle {
+  /** Stop the effect: run final cleanup and release all dependencies. */
+  dispose(): void;
+}
 
 export type CleanupFn = () => void;
 export type EffectFn = () => void | CleanupFn;
 
-type Dep = Signal<unknown> | Computed<unknown>;
-
-export class Effect {
-  private _deps = new Set<Dep>();
+class EffectImpl {
+  private _deps = new Set<Trackable>();
   private _cleanup: CleanupFn | void = undefined;
   private _disposed = false;
-  // Stored as a property so deps can hold a stable reference
-  readonly _boundRun: (value?: unknown) => void;
+  readonly _boundRun: () => void;
 
   constructor(private readonly _fn: EffectFn) {
     this._boundRun = () => this._run();
@@ -34,33 +38,28 @@ export class Effect {
     this._cleanup = undefined;
     this._unsubscribeAll();
 
-    const savedEffect = getCurrentEffect();
-
+    const saved = getCurrentEffect();
     setCurrentEffect({
-      addDependency: (dep: unknown) => {
-        const d = dep as Dep;
-        this._deps.add(d);
-        d._addSub(this._boundRun);
+      addDependency: (dep: Trackable) => {
+        this._deps.add(dep);
+        dep._addSub(this._boundRun);
       },
-      invalidate: () => this._run(),
     });
 
     try {
       this._cleanup = this._fn();
     } finally {
-      setCurrentEffect(savedEffect);
+      setCurrentEffect(saved);
     }
   }
 
   private _unsubscribeAll(): void {
-    for (const dep of this._deps) {
-      dep._removeSub(this._boundRun);
-    }
+    for (const dep of this._deps) dep._removeSub(this._boundRun);
     this._deps.clear();
   }
 }
 
-export function effect(fn: EffectFn): () => void {
-  const e = new Effect(fn);
-  return () => e.dispose();
+export function effect(fn: EffectFn, _options?: EffectOptions): EffectHandle {
+  const impl = new EffectImpl(fn);
+  return { dispose: () => impl.dispose() };
 }

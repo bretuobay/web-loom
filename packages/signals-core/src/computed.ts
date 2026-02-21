@@ -1,98 +1,101 @@
-import { Signal } from './signal.js';
-import { getCurrentEffect, setCurrentEffect, trackDep } from './effect-context.js';
+import { type Trackable, trackDep, getCurrentEffect, setCurrentEffect } from './effect-context.js';
+import { type Equals, type ReadonlySignal } from './signal.js';
 
-type Sub<T> = (value: T) => void;
+export interface ComputedOptions<T> {
+  /** Custom equality check for the derived value. Defaults to Object.is. */
+  equals?: Equals<T>;
+  debugName?: string;
+}
 
-export class Computed<T> {
+/** Type alias for a derived, read-only signal returned by computed(). */
+export type Computed<T> = ReadonlySignal<T>;
+
+class ComputedImpl<T> implements ReadonlySignal<T>, Trackable {
   private _value!: T;
   private _dirty = true;
-  private _deps = new Set<Signal<unknown>>();
-  private _subscribers = new Set<Sub<T>>();
-  // Stored as a property so Signal can hold a reference to it without capturing `this`
+  private _initialized = false;
+  private _deps = new Set<Trackable>();
+  private _subs = new Set<() => void>();
+  private readonly _equals: Equals<T>;
   private readonly _boundInvalidate: () => void;
 
-  constructor(private readonly _compute: () => T) {
+  constructor(
+    private readonly _compute: () => T,
+    options?: ComputedOptions<T>,
+  ) {
+    this._equals = options?.equals ?? Object.is;
     this._boundInvalidate = () => this._invalidate();
   }
 
-  get value(): T {
-    // Register this computed as a dependency of the outer consumer (effect / computed)
+  get(): T {
     trackDep(this);
-    if (this._dirty) {
-      this._recompute();
-    }
+    if (this._dirty) this._recompute();
     return this._value;
   }
 
   peek(): T {
-    if (this._dirty) {
-      this._recompute();
-    }
+    if (this._dirty) this._recompute();
     return this._value;
   }
 
-  subscribe(subscriber: Sub<T>): () => void {
-    // Eagerly compute so we subscribe to our signal deps before any change arrives
-    if (this._dirty) {
-      this._recompute();
-    }
-    this._subscribers.add(subscriber);
-    return () => this._subscribers.delete(subscriber);
-  }
-
-  /** @internal – used by Effect when it tracks this computed as a dependency */
-  _addSub(sub: (value: unknown) => void): void {
-    if (this._dirty) {
-      this._recompute();
-    }
-    this._subscribers.add(sub as Sub<T>);
+  subscribe(fn: () => void): () => void {
+    // Eagerly compute so we're subscribed to deps before any change arrives.
+    if (this._dirty) this._recompute();
+    this._subs.add(fn);
+    return () => this._subs.delete(fn);
   }
 
   /** @internal */
-  _removeSub(sub: (value: unknown) => void): void {
-    this._subscribers.delete(sub as Sub<T>);
+  _addSub(fn: () => void): void {
+    if (this._dirty) this._recompute();
+    this._subs.add(fn);
+  }
+
+  /** @internal */
+  _removeSub(fn: () => void): void {
+    this._subs.delete(fn);
   }
 
   private _recompute(): void {
-    // Unsubscribe from stale deps
-    for (const dep of this._deps) {
-      dep._removeSub(this._boundInvalidate as (value: unknown) => void);
-    }
+    // Unsubscribe from all stale deps — will re-collect dynamically.
+    for (const dep of this._deps) dep._removeSub(this._boundInvalidate);
     this._deps.clear();
 
-    // Save and replace active effect so nested computeds / effects are not confused
-    const savedEffect = getCurrentEffect();
-
+    const saved = getCurrentEffect();
     setCurrentEffect({
-      addDependency: (dep: unknown) => {
-        const sig = dep as Signal<unknown>;
-        this._deps.add(sig);
-        sig._addSub(this._boundInvalidate as (value: unknown) => void);
+      addDependency: (dep: Trackable) => {
+        this._deps.add(dep);
+        dep._addSub(this._boundInvalidate);
       },
-      invalidate: () => this._invalidate(),
     });
 
+    let newValue: T;
     try {
-      this._value = this._compute();
+      newValue = this._compute();
     } finally {
-      setCurrentEffect(savedEffect);
+      setCurrentEffect(saved);
     }
 
     this._dirty = false;
+
+    // On first compute, always store. After that, apply equals check:
+    // if the derived value hasn't changed, keep the old reference — this
+    // prevents further propagation in chained computed chains.
+    if (!this._initialized || !this._equals(this._value, newValue!)) {
+      this._value = newValue!;
+      this._initialized = true;
+    }
   }
 
   private _invalidate(): void {
     if (this._dirty) return;
     this._dirty = true;
-    // Eagerly recompute so subscribers receive the new value immediately
-    const next = this.peek();
-    // Snapshot to avoid issues if a subscriber mutates the subscriber set
-    for (const sub of [...this._subscribers]) {
-      sub(next);
-    }
+    // Stay lazy: don't recompute here. Notify subscribers that we're dirty
+    // so effects can schedule a rerun; they'll pull the value on next get().
+    for (const sub of [...this._subs]) sub();
   }
 }
 
-export function computed<T>(fn: () => T): Computed<T> {
-  return new Computed(fn);
+export function computed<T>(derive: () => T, options?: ComputedOptions<T>): Computed<T> {
+  return new ComputedImpl(derive, options);
 }

@@ -1,9 +1,14 @@
-export { Signal, signal } from './signal.js';
-export type { SignalSubscriber } from './signal.js';
+// Types & interfaces
+export type { ReadonlySignal, WritableSignal, SignalOptions, Equals } from './signal.js';
+export type { Computed, ComputedOptions } from './computed.js';
+export type { EffectHandle, EffectFn, CleanupFn, EffectOptions } from './effect.js';
 
-export { Computed, computed } from './computed.js';
+// Factories
+export { signal } from './signal.js';
+export { computed } from './computed.js';
+export { effect } from './effect.js';
 
-export { Effect, effect } from './effect.js';
-export type { EffectFn, CleanupFn } from './effect.js';
-
-export { batch } from './batch.js';
+// Utilities
+export { batch, flush } from './batch.js';
+export { untracked } from './untracked.js';
+export { isSignal, isWritableSignal } from './guards.js';

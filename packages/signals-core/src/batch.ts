@@ -1,29 +1,31 @@
-type AnyFn = (value: unknown) => void;
+type PendingFn = () => void;
 
 let batchDepth = 0;
-// Map preserves insertion order and deduplicates by fn reference (last value wins)
-const pendingCalls = new Map<AnyFn, unknown>();
+// Set deduplicates by reference — same effect scheduled twice only runs once.
+const pendingCalls = new Set<PendingFn>();
 
-export function batch(fn: () => void): void {
+export function batch<T>(fn: () => T): T {
   batchDepth++;
   try {
-    fn();
+    return fn();
   } finally {
     batchDepth--;
-    if (batchDepth === 0) {
-      const calls = [...pendingCalls];
-      pendingCalls.clear();
-      for (const [call, value] of calls) {
-        call(value);
-      }
-    }
+    if (batchDepth === 0) flush();
   }
+}
+
+/** Force-flush all pending scheduled calls. Useful in adapters and tests. */
+export function flush(): void {
+  if (pendingCalls.size === 0) return;
+  const calls = [...pendingCalls];
+  pendingCalls.clear();
+  for (const call of calls) call();
 }
 
 export function isBatching(): boolean {
   return batchDepth > 0;
 }
 
-export function scheduleBatchedCall(fn: AnyFn, value: unknown): void {
-  pendingCalls.set(fn, value);
+export function scheduleBatchedCall(fn: PendingFn): void {
+  pendingCalls.add(fn);
 }
