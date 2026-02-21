@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { createAliases } from '../../scripts/vite-alias';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,15 +9,7 @@ export default defineConfig({
     strictPort: true,
   },
   resolve: {
-    alias: {
-      '@': resolve(__dirname, './src'),
-      '@repo/models': resolve(__dirname, '../../packages/models/src'),
-      '@repo/view-models': resolve(__dirname, '../../packages/view-models/src'),
-      '@repo/shared': resolve(__dirname, '../../packages/shared/src'),
-      '@web-loom/mvvm-core': resolve(__dirname, '../../packages/mvvm-core/src'),
-      '@web-loom/ui-core': resolve(__dirname, '../../packages/ui-core/src'),
-      '@web-loom/ui-patterns': resolve(__dirname, '../../packages/ui-patterns/src'),
-    },
+    alias: createAliases(__dirname),
   },
   build: {
     target: 'esnext',

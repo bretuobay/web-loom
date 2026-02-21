@@ -11,6 +11,9 @@
     "skipLibCheck": true,
     /* Bundler mode */
     "moduleResolution": "bundler",
+    "paths": {
+      "@web-loom/event-emitter-core": ["../event-emitter-core/src/index.ts"]
+    },
     // "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
