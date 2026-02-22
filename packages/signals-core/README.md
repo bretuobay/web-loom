@@ -41,7 +41,7 @@ handle.dispose();
 
 ## API
 
-### `signal<T>(initial, options?)`
+### `signal<T>(initial: T, options?: SignalOptions<T>): WritableSignal<T>`
 
 Creates a writable reactive value.
 
@@ -56,7 +56,38 @@ name.asReadonly();       // returns a ReadonlySignal view (hides set/update)
 name.subscribe(fn);      // low-level subscription — returns unsubscribe fn
 ```
 
-**Options:**
+#### `WritableSignal<T>` interface
+
+```ts
+interface WritableSignal<T> {
+  get(): T;
+  peek(): T;
+  set(next: T): void;
+  update(fn: (prev: T) => T): void;
+  asReadonly(): ReadonlySignal<T>;
+  subscribe(fn: () => void): () => void;
+}
+```
+
+#### `ReadonlySignal<T>` interface
+
+```ts
+interface ReadonlySignal<T> {
+  get(): T;
+  peek(): T;
+  subscribe(fn: () => void): () => void;
+}
+```
+
+#### `SignalOptions<T>`
+
+```ts
+interface SignalOptions<T> {
+  /** Custom equality check. Defaults to Object.is. */
+  equals?: (a: T, b: T) => boolean;
+  debugName?: string;
+}
+```
 
 ```ts
 signal(value, {
@@ -67,9 +98,9 @@ signal(value, {
 
 ---
 
-### `computed<T>(derive, options?)`
+### `computed<T>(derive: () => T, options?: ComputedOptions<T>): Computed<T>`
 
-Creates a lazy, memoized derived value. Recomputes only when a dependency changes and `get()` is called.
+Creates a lazy, memoized derived value. Recomputes only when a dependency changes and `get()` is called. `Computed<T>` is an alias for `ReadonlySignal<T>`.
 
 ```ts
 const greeting = computed(() => `Hello, ${name.get()}!`);
@@ -79,7 +110,15 @@ greeting.peek();      // read without tracking
 greeting.subscribe(fn); // subscribe — returns unsubscribe fn
 ```
 
-**Options:**
+#### `ComputedOptions<T>`
+
+```ts
+interface ComputedOptions<T> {
+  /** Custom equality check for the derived value. Defaults to Object.is. */
+  equals?: (a: T, b: T) => boolean;
+  debugName?: string;
+}
+```
 
 ```ts
 computed(() => expensiveDerive(), {
@@ -90,7 +129,7 @@ computed(() => expensiveDerive(), {
 
 ---
 
-### `effect(fn, options?)`
+### `effect(fn: EffectFn, options?: EffectOptions): EffectHandle`
 
 Runs `fn` immediately and reruns whenever any signal read inside `fn` changes. Returns an `EffectHandle` with a `dispose()` method.
 
@@ -105,15 +144,36 @@ const handle = effect(() => {
 handle.dispose(); // stop the effect, run final cleanup
 ```
 
-**Options:**
-
 ```ts
 effect(fn, { debugName: 'titleEffect' });
 ```
 
+#### `EffectHandle`
+
+```ts
+interface EffectHandle {
+  dispose(): void;
+}
+```
+
+#### `EffectFn` / `CleanupFn`
+
+```ts
+type CleanupFn = () => void;
+type EffectFn  = () => void | CleanupFn;
+```
+
+#### `EffectOptions`
+
+```ts
+interface EffectOptions {
+  debugName?: string;
+}
+```
+
 ---
 
-### `batch<T>(fn)`
+### `batch<T>(fn: () => T): T`
 
 Defers all signal notifications until `fn` completes, coalescing multiple writes into a single flush. Returns the value returned by `fn`. Nested batches are supported.
 
@@ -128,7 +188,7 @@ const result = batch(() => {
 
 ---
 
-### `untracked<T>(fn)`
+### `untracked<T>(fn: () => T): T`
 
 Executes `fn` without registering any signal reads as dependencies. Use this inside `computed` or `effect` to read a signal without tracking it.
 
@@ -145,7 +205,7 @@ effect(() => {
 
 ---
 
-### `flush()`
+### `flush(): void`
 
 Force-processes any pending batched notifications synchronously. Useful in adapters and tests.
 
@@ -155,7 +215,9 @@ flush();
 
 ---
 
-### `isSignal(value)` / `isWritableSignal(value)`
+### `isSignal(value: unknown): value is ReadonlySignal<unknown>`
+
+### `isWritableSignal(value: unknown): value is WritableSignal<unknown>`
 
 Type guards for duck-typing signal instances.
 
@@ -166,9 +228,9 @@ isSignal(signal(0));           // true
 isSignal(computed(() => 1));   // true
 isSignal(42);                  // false
 
-isWritableSignal(signal(0));           // true
+isWritableSignal(signal(0));              // true
 isWritableSignal(signal(0).asReadonly()); // false
-isWritableSignal(computed(() => 1));   // false
+isWritableSignal(computed(() => 1));      // false
 ```
 
 ---
@@ -188,6 +250,27 @@ class CounterViewModel {
     this._count.update((v) => v + 1);
   }
 }
+```
+
+---
+
+## TypeScript types
+
+All types are exported from the package root:
+
+```ts
+import type {
+  ReadonlySignal,
+  WritableSignal,
+  SignalOptions,
+  Equals,
+  Computed,
+  ComputedOptions,
+  EffectHandle,
+  EffectFn,
+  CleanupFn,
+  EffectOptions,
+} from '@web-loom/signals-core';
 ```
 
 ---

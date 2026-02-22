@@ -59,6 +59,7 @@ We are excited to have you on this journey with us. Welcome to the future of UI 
 | `@web-loom/ui-patterns`        | Composed UI patterns                             |
 | `@web-loom/store-core`         | Reactive state management                        |
 | `@web-loom/query-core`         | Data fetching & caching                          |
+| `@web-loom/signals-core`       | Framework-agnostic reactive signals with computed values and effects |
 | `@web-loom/event-bus-core`     | Event bus for cross-component communication      |
 | `@web-loom/plugin-core`        | Plugin architecture                              |
 | `@web-loom/typography-core`    | Typography and coloring utilities                |
