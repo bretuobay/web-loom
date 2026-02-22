@@ -42,5 +42,5 @@
 }
 
 [data-scrollspy-link].scrollspy-active {
-    @apply font-medium text-blue-600 before:bg-blue-400;
+    @apply font-medium text-blue-600 dark:text-blue-400 before:bg-blue-400;
 }

@@ -13,6 +13,48 @@ Web Loom is built on a single conviction: **business logic should survive framew
 
 ---
 
+## MVVM Has Been Around Forever — For Good Reason
+
+MVVM is not a new idea. John Gossman invented it at Microsoft in 2005, specifically for WPF (Windows Presentation Foundation). The insight was simple and profound: the part of your UI logic that formats data, tracks loading state, and responds to user actions has nothing inherently to do with the rendering layer. Separate them, and you get code that is testable, portable, and long-lived.
+
+The pattern spread immediately. **Xamarin** built entire mobile app architectures on it. **Silverlight** standardized around it. When **Knockout.js** launched in 2010 — years before React existed — it brought MVVM directly to the browser. Developers building data-heavy web apps in that era had clean, well-structured codebases with observable ViewModels and declarative bindings. It worked.
+
+Today, **MVVM remains the dominant architecture in every major non-web UI platform:**
+
+- **Android** — Jetpack's `ViewModel` + `LiveData` / `StateFlow` is MVVM. Google made it the official architecture guide.
+- **WPF / .NET MAUI** — MVVM is still the standard. The community toolkit ships `ObservableObject`, `RelayCommand`, and `INotifyPropertyChanged` as first-class abstractions.
+- **SwiftUI** — Apple's `ObservableObject` + `@Published` is MVVM with Swift syntax.
+- **Avalonia UI** — the cross-platform .NET UI framework documents MVVM as the recommended pattern.
+- **Flutter** — Provider, Riverpod, and the BLoC pattern are all MVVM by another name.
+
+These platforms chose MVVM because it solves a real, hard problem: **separating what your app knows from how it looks**. The solution is good enough that it has survived multiple technology generations without needing replacement.
+
+### Web Development's Pattern Amnesia
+
+Then there is the web.
+
+React arrived in 2013 and the frontend community largely abandoned everything that came before it. What followed was over a decade of constant pattern reinvention. Flux was created to manage state in React apps. Then Redux. Then MobX. Then the Context API, useReducer, Zustand, Jotai, Recoil, Valtio, XState, TanStack Query, SWR, Nanostores — the list is effectively endless, and it keeps growing.
+
+Most of these libraries solve the same underlying problems MVVM solved in 2005: where does async state live, how do components know when data changes, how do you separate side effects from rendering? They are not new ideas. They are variations on the same theme, wearing different hats.
+
+The result for the average web codebase is genuinely messy. Business logic is scattered across components, custom hooks, global stores, server functions, and context providers. A developer joining a project has to understand not just the product, but the specific combination of patterns the team invented or assembled over the years. When the next framework wave arrives — and it always does — there is nothing portable to carry forward.
+
+**The reason web developers keep reinventing these patterns is not that the old patterns are bad. It is that they never stopped to use a good one.**
+
+### Why This Matters More in the Age of LLMs
+
+AI-assisted development has made it faster than ever to write code. With LLMs and agentic code generation, a developer can produce a working feature in a fraction of the time it used to take. This is genuinely useful.
+
+But it compounds the architecture problem. An LLM will generate code that fits the context you give it. If your codebase has no clear structure — if business logic leaks into components, if state management is ad hoc, if there is no consistent pattern for async operations — the generated code will follow that same lack of structure. It accelerates the mess.
+
+A well-defined architecture is the opposite. When your codebase has clear layers with strict responsibilities, AI-generated code slots into the right place naturally. The ViewModel is where async operations and derived state go. The Model is where API calls and data ownership go. The View is thin and renders what the ViewModel exposes. An LLM generating code for a well-structured MVVM project produces additions that are coherent with everything that already exists.
+
+**Good patterns do not slow you down. They are what allow you to move fast sustainably — whether you are writing the code or an AI is generating it.**
+
+Web Loom is a bet that the frontend community can borrow the forty years of desktop and mobile architecture wisdom that other platforms have been quietly using all along, apply it to the browser, and stop reinventing the wheel with every new framework cycle.
+
+---
+
 ## The MVVM Pattern
 
 Web Loom follows the **Model–View–ViewModel** (MVVM) pattern, a separation of concerns that decouples data, presentation logic, and UI rendering.

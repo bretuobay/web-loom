@@ -16,6 +16,19 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  /* Brand primary color scale — Deep Sky Blue #00BFFF */
+  --color-blue-50: #e6f7ff;
+  --color-blue-100: #b3e5ff;
+  --color-blue-200: #86dcff;
+  --color-blue-300: #5ad2ff;
+  --color-blue-400: #2dc8ff;
+  --color-blue-500: #00bfff;
+  --color-blue-600: #006fa3;
+  --color-blue-700: #005e8c;
+  --color-blue-800: #0075a2;
+  --color-blue-900: #005c80;
+  --color-blue-950: #00506f;
+
   --font-aspekta: Aspekta, sans-serif;
   --font-nycd: Nothing You Could Do, cursive;
   --font-pt-mono: PT Mono, monospace;

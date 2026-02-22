@@ -6,7 +6,7 @@ export default function Logo() {
     <Link className="inline-flex items-center gap-2.5 mb-2 md:mb-0" href="/" aria-label="Web Loom">
       <Image src="/images/webloom.png" width={36} height={36} alt="Web Loom logo" />
       <span className="text-base font-semibold text-slate-800 dark:text-slate-100">
-        Web<span className="text-blue-500">.loom</span>
+        Web<span className="text-blue-600 dark:text-blue-400">.loom</span>
       </span>
     </Link>
   );
