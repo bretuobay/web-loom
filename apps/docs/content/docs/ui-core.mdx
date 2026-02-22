@@ -1,23 +1,21 @@
 ---
-title: 'UI Core'
-summary: 'Framework-agnostic headless UI behaviors for modern web applications.'
+title: 'UI Core Behaviors'
+summary: 'Eight framework-agnostic headless UI behaviors — Dialog, Disclosure, Form, List Selection, Roving Focus, Keyboard Shortcuts, Undo/Redo, and Drag-and-Drop.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
+prevTitle: 'Query Core'
+prevSlug: '/docs/query-core'
+nextTitle: 'UI Patterns'
+nextSlug: '/docs/ui-patterns'
 ---
 
-# UI Core
+# UI Core Behaviors
 
-`@web-loom/ui-core` provides atomic UI interaction behaviors that work across different frameworks (React, Vue, Angular) or with vanilla JavaScript. All behaviors are built on top of `@web-loom/store-core` for reactive state management and are completely headless - providing logic without assumptions about styling or DOM structure.
+`@web-loom/ui-core` provides eight atomic, headless UI interaction behaviors. Each behavior manages interaction logic — state, validation, keyboard navigation, history — with no assumptions about styling, DOM structure, or rendering framework. They are the building blocks that `@web-loom/ui-patterns` composes into higher-level patterns like wizards, modals, and command palettes.
 
-## Features
+**8 behaviors available:** Dialog, Disclosure, Form, List Selection, Roving Focus, Keyboard Shortcuts, Undo/Redo Stack, Drag-and-Drop.
 
-- **Framework-agnostic**: Works with React, Vue, Angular, or vanilla JS
-- **Lightweight**: Each behavior is &lt;2KB gzipped with tree-shaking support
-- **Type-safe**: Full TypeScript support with comprehensive type definitions
-- **Headless**: Pure logic, no styling or DOM assumptions
-- **Composable**: Behaviors can be combined to create complex patterns
-- **Batteries included**: Framework adapters for React, Vue, and Angular
-- **Reactive**: Built on observable patterns for automatic UI updates
+---
 
 ## Installation
 
@@ -25,196 +23,920 @@ topicSlug: 'packages'
 npm install @web-loom/ui-core
 ```
 
-## Available Behaviors
+---
 
-### Dialog Behavior
+## The Common Behavior Interface
 
-Manages modal dialog state with open/close/toggle actions.
+Every behavior follows the same contract, making them interchangeable and easy to integrate uniformly.
+
+```typescript
+interface Behavior<TState, TActions> {
+  getState(): TState;
+  subscribe(listener: (state: TState) => void): () => void;
+  actions: TActions;
+  destroy(): void;
+}
+```
+
+- **`getState()`** — synchronous snapshot of current state. Safe to call anytime.
+- **`subscribe(fn)`** — called on every state change. Returns an unsubscribe function — always call it on teardown.
+- **`actions`** — the only way to mutate state. Never modify `getState()` directly.
+- **`destroy()`** — cleans up internal store subscriptions, event listeners, and timers. Always call this when the enclosing component unmounts.
+
+```typescript
+const behavior = createSomeBehavior({ ... });
+
+const unsubscribe = behavior.subscribe((state) => render(state));
+
+behavior.actions.doSomething();
+
+// Teardown
+unsubscribe();
+behavior.destroy();
+```
+
+---
+
+## Dialog Behavior
+
+Manages open/close state and content payload for modal dialogs, drawers, popovers, or any toggled overlay.
 
 ```typescript
 import { createDialogBehavior } from '@web-loom/ui-core';
 
 const dialog = createDialogBehavior({
   id: 'settings-dialog',
-  onOpen: (content) => console.log('Dialog opened with:', content),
-  onClose: () => console.log('Dialog closed'),
+  onOpen:  (content) => console.log('opened with', content),
+  onClose: ()        => console.log('closed'),
 });
 
-// Open the dialog
-dialog.actions.open({ title: 'Settings', tab: 'general' });
+dialog.actions.open({ tab: 'notifications' });
+console.log(dialog.getState().isOpen);    // true
+console.log(dialog.getState().content);   // { tab: 'notifications' }
 
-// Subscribe to changes
-const unsubscribe = dialog.subscribe((state) => {
-  console.log('Dialog state:', state);
-});
-
-// Clean up
-unsubscribe();
-dialog.destroy();
+dialog.actions.close();
+dialog.actions.toggle({ tab: 'profile' }); // opens with content
 ```
 
-### Disclosure Behavior
+### Options
 
-Controls expandable/collapsible content sections (accordions, dropdowns).
+- `id?: string` — optional identifier, stored in state
+- `onOpen?: (content: any) => void` — fired each time the dialog opens
+- `onClose?: () => void` — fired each time the dialog closes
+
+### State
+
+- `isOpen: boolean`
+- `content: any` — the value passed to the last `open()` call
+- `id: string | null`
+
+### Actions
+
+- `open(content?: any)` — open the dialog, optionally passing content
+- `close()` — close the dialog
+- `toggle(content?: any)` — if closed, opens with content; if open, closes
+
+### React Example
+
+```tsx
+import { createDialogBehavior } from '@web-loom/ui-core';
+import { useState, useEffect, useMemo } from 'react';
+
+function useBehavior<S>(b: { getState(): S; subscribe(fn: (s: S) => void): () => void }) {
+  const [state, setState] = useState(() => b.getState());
+  useEffect(() => b.subscribe(setState), [b]);
+  return state;
+}
+
+const settingsDialog = createDialogBehavior({ id: 'settings' });
+
+export function SettingsButton() {
+  const { isOpen, content } = useBehavior(settingsDialog);
+
+  return (
+    <>
+      <button onClick={() => settingsDialog.actions.open({ tab: 'general' })}>
+        Settings
+      </button>
+
+      {isOpen && (
+        <div role="dialog" aria-modal="true">
+          <SettingsPanel initialTab={content?.tab} />
+          <button onClick={() => settingsDialog.actions.close()}>Close</button>
+        </div>
+      )}
+    </>
+  );
+}
+```
+
+---
+
+## Disclosure Behavior
+
+Controls expandable/collapsible sections — accordions, dropdowns, detail panels, or any show/hide toggle.
 
 ```typescript
 import { createDisclosureBehavior } from '@web-loom/ui-core';
 
-const disclosure = createDisclosureBehavior({
-  id: 'faq-item',
+const faqItem = createDisclosureBehavior({
+  id: 'faq-1',
   initialExpanded: false,
-  onToggle: (isExpanded) => console.log('Expanded:', isExpanded),
+  onExpand:  () => analytics.track('faq_expanded'),
+  onCollapse: () => {},
 });
 
-disclosure.actions.toggle();
-console.log(disclosure.getState().isExpanded); // true
+faqItem.actions.toggle();
+console.log(faqItem.getState().isExpanded); // true
+
+faqItem.actions.collapse();
+faqItem.actions.expand();
 ```
 
-### Form Behavior
+### Options
 
-Manages form state with validation, dirty tracking, and submission handling.
+- `id?: string` — optional identifier
+- `initialExpanded?: boolean` (default: `false`)
+- `onExpand?: () => void` — fired when transitioning to expanded
+- `onCollapse?: () => void` — fired when transitioning to collapsed
+
+### State
+
+- `isExpanded: boolean`
+- `id: string | null`
+
+### Actions
+
+- `expand()` — set `isExpanded` to `true`
+- `collapse()` — set `isExpanded` to `false`
+- `toggle()` — flip the expanded state
+
+### Accordion Example
+
+```typescript
+// Create one disclosure per FAQ item
+const faqs = faqData.map((item) =>
+  createDisclosureBehavior({ id: item.id }),
+);
+
+// Optionally enforce single-open (accordion behavior)
+faqs.forEach((faq, i) => {
+  faqs[i] = createDisclosureBehavior({
+    id: faqData[i].id,
+    onExpand: () => {
+      // Collapse all others when one opens
+      faqs.forEach((other, j) => {
+        if (j !== i) other.actions.collapse();
+      });
+    },
+  });
+});
+```
+
+---
+
+## Form Behavior
+
+Manages form field values, validation (sync and async), touched/dirty tracking, and submission lifecycle.
 
 ```typescript
 import { createFormBehavior } from '@web-loom/ui-core';
 
-const form = createFormBehavior({
+const loginForm = createFormBehavior({
   initialValues: { email: '', password: '' },
-  validateOnChange: true,
+  validateOnChange: false,
   validateOnBlur: true,
+  fields: {
+    email: {
+      validators: [
+        (v) => (!v ? 'Required' : null),
+        (v) => (!/^[^\s@]+@[^\s@]+$/.test(v) ? 'Invalid email' : null),
+      ],
+    },
+    password: {
+      validators: [(v) => (v.length < 8 ? 'Min 8 characters' : null)],
+    },
+  },
   onSubmit: async (values) => {
-    console.log('Submitting:', values);
+    await api.login(values);
   },
 });
-
-// Set field value
-form.actions.setFieldValue('email', 'user@example.com');
-
-// Set field error
-form.actions.setFieldError('email', 'Invalid email format');
-
-// Submit form
-await form.actions.submitForm();
 ```
 
-### List Selection Behavior
+### Options
 
-Manages single or multi-select list interactions with keyboard navigation support.
+- `initialValues: T` — **required** — field values at mount
+- `fields?: Partial<Record<keyof T, FieldConfig>>` — per-field validator arrays
+- `validateOnChange?: boolean` (default: `false`) — validate every keystroke
+- `validateOnBlur?: boolean` (default: `true`) — validate when a field loses focus
+- `onSubmit?: (values: T) => void | Promise<void>` — called after successful validation
+- `onValuesChange?: (values: T) => void` — fires on every value change
+
+### FieldConfig
+
+```typescript
+interface FieldConfig {
+  validators?: Array<(value: any) => string | null | undefined | Promise<string | null | undefined>>;
+}
+```
+
+Validators receive the field's current value and return an error string, or `null`/`undefined` if valid. Both sync and `async` validators are supported.
+
+### State
+
+- `values: T` — live field values
+- `errors: Partial<Record<keyof T, string>>` — all active errors (merged from validators + manual)
+- `manualErrors: Partial<Record<keyof T, string>>` — errors set via `setFieldError` (e.g. from server responses)
+- `touched: Partial<Record<keyof T, boolean>>` — fields the user has focused and left
+- `dirty: Partial<Record<keyof T, boolean>>` — fields changed from `initialValues`
+- `isValid: boolean` — `true` when `errors` is empty
+- `isValidating: boolean` — `true` while async validators are running
+- `isSubmitting: boolean` — `true` between `submitForm()` call and `onSubmit` resolution
+- `submitCount: number` — increments on every submit attempt
+
+### Actions
+
+- `setFieldValue(field, value)` — update a field's value; marks it dirty; triggers validation if `validateOnChange` is set
+- `setFieldTouched(field, touched)` — mark a field as touched/untouched; triggers validation if `validateOnBlur` is set
+- `setFieldError(field, error)` — inject a manual error (e.g. `'Email already taken'` from the server)
+- `validateField(field): Promise<void>` — run validators for a single field
+- `validateForm(): Promise<boolean>` — run all validators; returns `true` if valid
+- `resetForm()` — restore `initialValues`, clear all errors, dirty, touched, and submitCount
+- `submitForm(): Promise<void>` — validate the entire form, then call `onSubmit` if valid
+
+### React Example
+
+```tsx
+const form = createFormBehavior({
+  initialValues: { email: '', password: '' },
+  validateOnBlur: true,
+  fields: {
+    email:    { validators: [(v) => (!v ? 'Required' : null)] },
+    password: { validators: [(v) => (v.length < 8 ? 'Too short' : null)] },
+  },
+  onSubmit: async (values) => api.login(values),
+});
+
+export function LoginForm() {
+  const { values, errors, touched, isSubmitting } = useBehavior(form);
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); form.actions.submitForm(); }}>
+      <input
+        value={values.email}
+        onChange={(e) => form.actions.setFieldValue('email', e.target.value)}
+        onBlur={() => form.actions.setFieldTouched('email', true)}
+      />
+      {touched.email && errors.email && <span>{errors.email}</span>}
+
+      <input
+        type="password"
+        value={values.password}
+        onChange={(e) => form.actions.setFieldValue('password', e.target.value)}
+        onBlur={() => form.actions.setFieldTouched('password', true)}
+      />
+      {touched.password && errors.password && <span>{errors.password}</span>}
+
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Signing in…' : 'Sign in'}
+      </button>
+    </form>
+  );
+}
+```
+
+### Handling Server Errors
+
+```typescript
+try {
+  await form.actions.submitForm();
+} catch (err) {
+  // Inject server-side validation errors back into the form
+  form.actions.setFieldError('email', 'This email is already registered');
+}
+```
+
+---
+
+## List Selection Behavior
+
+Manages single, multi, or range selection over an array of item IDs, with shift-click range support.
 
 ```typescript
 import { createListSelection } from '@web-loom/ui-core';
 
 const selection = createListSelection({
-  items: ['item-1', 'item-2', 'item-3'],
+  items: ['a', 'b', 'c', 'd', 'e'],
   mode: 'multi',
-  onSelectionChange: (selected) => console.log('Selected:', selected),
+  initialSelectedIds: ['a'],
+  onSelectionChange: (ids) => console.log('selected:', ids),
 });
 
-// Select items
-selection.actions.select('item-1');
-selection.actions.toggleSelection('item-2');
+selection.actions.select('b');
+selection.actions.toggleSelection('c'); // selects
+selection.actions.toggleSelection('c'); // deselects
+selection.actions.selectRange('b', 'd'); // selects b, c, d
+selection.actions.clearSelection();
+selection.actions.selectAll();
 ```
 
-### Roving Focus Behavior
+### Options
 
-Implements keyboard navigation for composite widgets (toolbars, menus, grids).
+- `items?: string[]` — the full list of available item IDs (default: `[]`)
+- `initialSelectedIds?: string[]` — pre-selected IDs (default: `[]`)
+- `mode?: 'single' | 'multi' | 'range'` (default: `'single'`)
+- `onSelectionChange?: (selectedIds: string[]) => void`
+
+### Selection Modes
+
+- **`'single'`** — calling `select()` replaces any existing selection
+- **`'multi'`** — each `select()` adds to the selection independently
+- **`'range'`** — `selectRange()` selects all items between two IDs inclusive; also supports multi-select
+
+### State
+
+- `selectedIds: string[]` — currently selected item IDs
+- `lastSelectedId: string | null` — most recently selected ID (useful for range anchoring)
+- `mode: SelectionMode`
+- `items: string[]`
+
+### Actions
+
+- `select(id: string)` — select an item (replaces in single mode, adds in multi/range)
+- `deselect(id: string)` — remove an item from selection
+- `toggleSelection(id: string)` — select if not selected, deselect if already selected
+- `selectRange(startId, endId)` — select all items between two IDs by their position in `items`
+- `clearSelection()` — deselect all
+- `selectAll()` — select all items in `items`
+
+### Example — File Browser
+
+```typescript
+const filePicker = createListSelection({
+  items: files.map((f) => f.id),
+  mode: 'range',
+  onSelectionChange: (ids) => setSelectedFiles(ids),
+});
+
+// Single click: select
+fileEl.addEventListener('click', () =>
+  filePicker.actions.select(file.id),
+);
+
+// Shift+click: extend range
+fileEl.addEventListener('click', (e) => {
+  if (e.shiftKey && filePicker.getState().lastSelectedId) {
+    filePicker.actions.selectRange(filePicker.getState().lastSelectedId!, file.id);
+  } else {
+    filePicker.actions.select(file.id);
+  }
+});
+
+// Ctrl/Cmd+click: toggle
+fileEl.addEventListener('click', (e) => {
+  if (e.ctrlKey || e.metaKey) filePicker.actions.toggleSelection(file.id);
+});
+```
+
+---
+
+## Roving Focus Behavior
+
+Implements the [roving tabindex](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/#kbd_roving_tabindex) pattern for ARIA-compliant keyboard navigation in composite widgets — menus, toolbars, tab lists, radio groups, grids.
 
 ```typescript
 import { createRovingFocus } from '@web-loom/ui-core';
 
-const rovingFocus = createRovingFocus({
-  items: ['button-1', 'button-2', 'button-3'],
+const toolbar = createRovingFocus({
+  items: ['bold', 'italic', 'underline', 'link'],
   orientation: 'horizontal',
-  loop: true,
-  onFocusChange: (focusedId) => console.log('Focused:', focusedId),
+  wrap: true,
+  onFocusChange: (index, itemId, previousIndex) => {
+    document.getElementById(itemId)?.focus();
+  },
 });
 
-// Move focus
-rovingFocus.actions.moveNext();
-rovingFocus.actions.movePrevious();
+// Move with arrow keys
+toolbar.actions.moveNext();
+toolbar.actions.movePrevious();
+toolbar.actions.moveFirst();
+toolbar.actions.moveLast();
+toolbar.actions.moveTo(2);
 ```
 
-### Keyboard Shortcuts Behavior
+### Options
 
-Manages keyboard shortcut registration and execution with platform normalization.
+- `items?: string[]` — item IDs in DOM order (default: `[]`)
+- `initialIndex?: number` — initially focused index (default: `0`)
+- `orientation?: 'horizontal' | 'vertical'` (default: `'vertical'`)
+- `wrap?: boolean` — wrap at first/last item (default: `true`)
+- `onFocusChange?: (index: number, itemId: string, previousIndex: number) => void`
+
+### State
+
+- `currentIndex: number` — focused item index
+- `previousIndex: number` — last focused index
+- `items: string[]`
+- `orientation: 'horizontal' | 'vertical'`
+- `wrap: boolean`
+
+### Actions
+
+- `moveNext()` — advance focus by one (wraps if `wrap` is true)
+- `movePrevious()` — retreat focus by one (wraps if `wrap` is true)
+- `moveFirst()` — jump to index `0`
+- `moveLast()` — jump to the last index
+- `moveTo(index: number)` — jump to a specific index
+- `setItems(items: string[])` — replace the item list (resets `currentIndex` to `0`)
+
+### ARIA Toolbar Example
+
+```tsx
+const toolbar = createRovingFocus({
+  items: buttonIds,
+  orientation: 'horizontal',
+  onFocusChange: (_, id) => document.getElementById(id)?.focus(),
+});
+
+export function Toolbar({ buttons }: { buttons: ToolbarButton[] }) {
+  const { currentIndex } = useBehavior(toolbar);
+
+  return (
+    <div
+      role="toolbar"
+      aria-orientation="horizontal"
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowRight') { e.preventDefault(); toolbar.actions.moveNext(); }
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); toolbar.actions.movePrevious(); }
+        if (e.key === 'Home')       { e.preventDefault(); toolbar.actions.moveFirst(); }
+        if (e.key === 'End')        { e.preventDefault(); toolbar.actions.moveLast(); }
+      }}
+    >
+      {buttons.map((btn, i) => (
+        <button
+          key={btn.id}
+          id={btn.id}
+          tabIndex={i === currentIndex ? 0 : -1}
+          onClick={() => toolbar.actions.moveTo(i)}
+        >
+          {btn.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## Keyboard Shortcuts Behavior
+
+Registers and dispatches keyboard shortcuts with platform normalization (`Cmd` on macOS, `Ctrl` on Windows/Linux) and scope management.
 
 ```typescript
 import { createKeyboardShortcuts } from '@web-loom/ui-core';
 
 const shortcuts = createKeyboardShortcuts({
   scope: 'global',
-  onShortcutExecuted: (key) => console.log(`Executed: ${key}`),
+  onShortcutExecuted: (key) => console.log('executed:', key),
 });
 
-// Register shortcuts
 shortcuts.actions.registerShortcut({
   key: 'Ctrl+K',
-  handler: () => console.log('Command palette opened'),
+  description: 'Open command palette',
+  handler: () => commandPalette.actions.open(),
+  preventDefault: true,
+});
+
+shortcuts.actions.registerShortcut({
+  key: 'Ctrl+Z',
+  description: 'Undo',
+  handler: () => editor.actions.undo(),
+  preventDefault: true,
+});
+
+shortcuts.actions.registerShortcut({
+  key: 'Ctrl+Shift+Z',
+  description: 'Redo',
+  handler: () => editor.actions.redo(),
+  preventDefault: true,
 });
 ```
 
-### Undo/Redo Stack Behavior
+### KeyboardShortcut Object
 
-Maintains an immutable history of states with undo/redo operations.
+- `key: string` — combo string e.g. `'Ctrl+K'`, `'Cmd+Shift+P'`, `'Alt+F4'`
+- `handler: () => void` — action to execute
+- `description?: string` — human-readable description (useful for a shortcut cheat sheet)
+- `preventDefault?: boolean` — call `event.preventDefault()` (default: `false`)
+- `scope?: 'global' | 'scoped'` — whether to respond when a focused input is active (default: `'global'`)
+
+### Options
+
+- `scope?: 'global' | 'scoped'` — default scope for new shortcuts
+- `onShortcutExecuted?: (key: string) => void` — fires after each handler runs
+
+### State
+
+- `shortcuts: Map<string, KeyboardShortcut>` — registered shortcuts keyed by combo string
+- `activeShortcuts: string[]` — array of registered combo strings
+- `scope: 'global' | 'scoped'`
+- `enabled: boolean` — master switch
+
+### Actions
+
+- `registerShortcut(shortcut: KeyboardShortcut)` — add or replace a shortcut
+- `unregisterShortcut(key: string)` — remove a shortcut
+- `setScope(scope)` — change the default scope
+- `enable()` / `disable()` — master on/off toggle (e.g. disable during modal presentation)
+- `clearAllShortcuts()` — remove all registered shortcuts
+
+### Platform Normalization
+
+`Ctrl+K` and `Cmd+K` both resolve to the same shortcut — the behavior normalises `Meta` (macOS) and `Control` (Windows/Linux) so a single registration works cross-platform.
+
+### Displaying a Shortcut Reference
+
+```typescript
+const { activeShortcuts, shortcuts } = shortcutsBehavior.getState();
+
+const cheatSheet = activeShortcuts
+  .map((key) => shortcuts.get(key)!)
+  .filter((s) => s.description)
+  .map((s) => ({ key: s.key, description: s.description }));
+```
+
+---
+
+## Undo/Redo Stack Behavior
+
+Maintains a bounded history of arbitrary state snapshots with undo, redo, and history-jump operations.
 
 ```typescript
 import { createUndoRedoStack } from '@web-loom/ui-core';
 
-const undoRedo = createUndoRedoStack<EditorState>({
+const history = createUndoRedoStack<EditorState>({
   initialState: { content: '', cursor: 0 },
   maxLength: 100,
+  onStateChange: (state) => applyEditorState(state),
 });
 
-// Push new states
-undoRedo.actions.pushState({ content: 'Hello', cursor: 5 });
-undoRedo.actions.pushState({ content: 'Hello World', cursor: 11 });
+// Every edit pushes a new snapshot
+history.actions.pushState({ content: 'Hello', cursor: 5 });
+history.actions.pushState({ content: 'Hello World', cursor: 11 });
 
-// Undo
-undoRedo.actions.undo();
+console.log(history.getState().canUndo); // true
+history.actions.undo();                  // back to { content: 'Hello', cursor: 5 }
 
-// Redo
-undoRedo.actions.redo();
+console.log(history.getState().canRedo); // true
+history.actions.redo();                  // forward to { content: 'Hello World', cursor: 11 }
+
+history.actions.clearHistory();          // wipe history, keep present
 ```
 
-### Drag-and-Drop Behavior
+### Options
 
-Manages drag-and-drop interaction state with validation and callbacks.
+- `initialState: T` — **required** — the starting value of `present`
+- `maxLength?: number` — max number of past states to retain (default: `50`)
+- `onStateChange?: (state: T) => void` — fires after every undo, redo, or push
+
+### State
+
+- `present: T` — current state value
+- `past: T[]` — past states, oldest first; length ≤ `maxLength`
+- `future: T[]` — states available for redo
+- `canUndo: boolean` — `past.length > 0`
+- `canRedo: boolean` — `future.length > 0`
+- `maxLength: number`
+
+### Actions
+
+- `pushState(state: T)` — push a new present; clears `future`; trims `past` when over `maxLength`
+- `undo()` — move `present` → `future`, top of `past` → `present`
+- `redo()` — move `present` → `past`, top of `future` → `present`
+- `jumpToState(index: number)` — jump to a specific position in the combined history array
+- `setMaxLength(length: number)` — change limit, trimming oldest entries if needed
+- `clearHistory()` — empty `past` and `future`, keep `present`
+
+### Text Editor Integration
+
+```typescript
+const editorHistory = createUndoRedoStack({
+  initialState: { content: '', selectionStart: 0, selectionEnd: 0 },
+  maxLength: 200,
+  onStateChange: ({ content, selectionStart, selectionEnd }) => {
+    textarea.value = content;
+    textarea.setSelectionRange(selectionStart, selectionEnd);
+  },
+});
+
+// Push snapshot on every meaningful edit (debounced)
+let debounce: ReturnType<typeof setTimeout>;
+textarea.addEventListener('input', () => {
+  clearTimeout(debounce);
+  debounce = setTimeout(() => {
+    editorHistory.actions.pushState({
+      content: textarea.value,
+      selectionStart: textarea.selectionStart,
+      selectionEnd: textarea.selectionEnd,
+    });
+  }, 300);
+});
+
+// Ctrl+Z / Ctrl+Y
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    e.preventDefault();
+    if (e.shiftKey) editorHistory.actions.redo();
+    else            editorHistory.actions.undo();
+  }
+});
+```
+
+---
+
+## Drag-and-Drop Behavior
+
+Manages drag-and-drop interaction state — what is being dragged, where it can be dropped, and optional validation — without relying on native `DragEvent` APIs. Works equally with pointer events, touch events, or native drag-and-drop.
 
 ```typescript
 import { createDragDropBehavior } from '@web-loom/ui-core';
 
-const dragDrop = createDragDropBehavior({
-  onDrop: (draggedItem, dropTarget, data) => {
-    console.log('Dropped', draggedItem, 'on', dropTarget);
+const dnd = createDragDropBehavior({
+  onDragStart: (itemId, data) => console.log('dragging', itemId, data),
+  onDragEnd:   (itemId)       => console.log('drag ended for', itemId),
+  onDrop:      (draggedItem, dropTarget, data) => {
+    moveItemToZone(draggedItem, dropTarget, data);
   },
   validateDrop: (draggedItem, dropTarget) => {
-    return dropTarget !== 'restricted-zone';
+    // Prevent dropping items on themselves
+    return draggedItem !== dropTarget;
   },
 });
 
-// Register drop zones
-dragDrop.actions.registerDropZone('zone-1');
+// Register valid drop zones
+dnd.actions.registerDropZone('zone-a');
+dnd.actions.registerDropZone('zone-b');
 
-// Start dragging
-dragDrop.actions.startDrag('item-1', { type: 'card' });
+// Begin drag
+dnd.actions.startDrag('card-1', { priority: 'high' });
 
-// Perform drop
-dragDrop.actions.drop('zone-1');
+// Update hover target while dragging
+dnd.actions.setDragOver('zone-a');
+
+// Complete drop
+dnd.actions.drop('zone-a');
+
+// Or cancel
+dnd.actions.endDrag();
 ```
 
-## Theme integration
+### Options
 
-UI Core tokens assume a theming system on top of `@web-loom/design-core`. That package provides `createTheme`, `applyTheme`, and `setTheme` to compile token overrides into CSS variables scoped by `[data-theme="name"]` selectors.
+- `onDragStart?: (itemId: string, data: any) => void`
+- `onDragEnd?: (itemId: string) => void` — called on both successful drop and cancelled drag
+- `onDrop?: (draggedItem: string, dropTarget: string, data: any) => void`
+- `validateDrop?: (draggedItem: string, dropTarget: string) => boolean` — return `false` to reject the drop
 
-```ts
-import { createTheme, applyTheme, setTheme } from '@web-loom/design-core/utils';
+### State
 
-const darkTheme = createTheme('dark', {
-  colors: {
-    background: { page: '#050609', surface: '#0d0f14' },
-    text: { primary: '#f3f4f6' },
+- `draggedItem: string | null` — ID of the item currently being dragged
+- `dragData: any` — arbitrary data payload from `startDrag`
+- `isDragging: boolean`
+- `dropTarget: string | null` — last confirmed valid drop target
+- `dragOverZone: string | null` — drop zone currently being hovered
+- `dropZones: string[]` — all registered zone IDs
+
+### Actions
+
+- `startDrag(itemId, data?)` — begin a drag; sets `draggedItem` and `dragData`
+- `endDrag()` — cancel or finish a drag without dropping
+- `setDropTarget(targetId: string | null)` — set the confirmed drop target
+- `setDragOver(zoneId: string | null)` — update the hovered zone (for hover highlighting)
+- `drop(targetId: string)` — run `validateDrop`, call `onDrop` if valid, then reset state
+- `registerDropZone(zoneId: string)` — add a zone to the valid zone list
+- `unregisterDropZone(zoneId: string)` — remove a zone
+
+### Kanban Board Example
+
+```typescript
+const kanbanDnd = createDragDropBehavior({
+  onDrop: (cardId, columnId) => {
+    viewModel.moveCardCommand.execute({ cardId, columnId });
+  },
+  validateDrop: (cardId, columnId) => {
+    const card = viewModel.getCard(cardId);
+    return card.status !== columnId; // don't drop in current column
   },
 });
 
-await applyTheme(darkTheme);
-setTheme('dark'); // toggles the data-theme attribute
+// Register columns as drop zones
+['todo', 'in-progress', 'done'].forEach((col) =>
+  kanbanDnd.actions.registerDropZone(col),
+);
+
+// Subscribe to highlight the active zone
+kanbanDnd.subscribe(({ dragOverZone, isDragging }) => {
+  columns.forEach((col) => {
+    col.el.classList.toggle('drag-over', isDragging && col.id === dragOverZone);
+  });
+});
 ```
+
+---
+
+## Composition
+
+Behaviors compose naturally — `@web-loom/ui-patterns` is built entirely from these atoms. You can do the same.
+
+```typescript
+import {
+  createDialogBehavior,
+  createFormBehavior,
+  createListSelection,
+} from '@web-loom/ui-core';
+
+// A "command editor" that is: a dialog + a form + a list picker
+function createCommandEditor() {
+  const dialog     = createDialogBehavior({ id: 'command-editor' });
+  const form       = createFormBehavior({ initialValues: { name: '', type: '' } });
+  const typePicker = createListSelection({ items: ['action', 'query', 'event'], mode: 'single' });
+
+  // Sync picker selection into form field
+  typePicker.subscribe(({ selectedIds }) => {
+    form.actions.setFieldValue('type', selectedIds[0] ?? '');
+  });
+
+  return {
+    open:    (cmd: Command) => { form.actions.resetForm(); dialog.actions.open(cmd); },
+    close:   ()             => dialog.actions.close(),
+    submit:  ()             => form.actions.submitForm(),
+    dialog,
+    form,
+    typePicker,
+    destroy() {
+      dialog.destroy();
+      form.destroy();
+      typePicker.destroy();
+    },
+  };
+}
+```
+
+---
+
+## Framework Integration
+
+The same `subscribe` / `getState` contract works in any framework. Use a single adapter hook per project.
+
+### React
+
+```tsx
+import { useState, useEffect } from 'react';
+
+function useBehavior<S>(b: { getState(): S; subscribe(fn: (s: S) => void): () => void }): S {
+  const [state, setState] = useState(() => b.getState());
+  useEffect(() => b.subscribe(setState), [b]);
+  return state;
+}
+
+// Usage
+const { isOpen, content } = useBehavior(dialog);
+const { values, errors, isSubmitting } = useBehavior(form);
+```
+
+### Vue 3
+
+```typescript
+import { ref, onMounted, onUnmounted, readonly } from 'vue';
+
+function useBehavior<S>(b: { getState(): S; subscribe(fn: (s: S) => void): () => void }) {
+  const state = ref<S>(b.getState());
+  let unsub: (() => void) | null = null;
+  onMounted(() => { unsub = b.subscribe((s) => { state.value = s as S; }); });
+  onUnmounted(() => { unsub?.(); b.destroy?.(); });
+  return readonly(state);
+}
+```
+
+### Angular
+
+```typescript
+import { Injectable, OnDestroy } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+import { createDialogBehavior, type DialogState } from '@web-loom/ui-core';
+
+@Injectable({ providedIn: 'root' })
+export class SettingsDialogService implements OnDestroy {
+  private behavior = createDialogBehavior({ id: 'settings' });
+  private _state$ = new BehaviorSubject<DialogState>(this.behavior.getState());
+
+  constructor() {
+    this.behavior.subscribe((s) => this._state$.next(s));
+  }
+
+  get state$() { return this._state$.asObservable(); }
+  get actions() { return this.behavior.actions; }
+
+  ngOnDestroy() { this.behavior.destroy(); }
+}
+```
+
+---
+
+## Testing
+
+Behaviors have no framework dependencies and are fully synchronous (except async form validators), making them easy to test with plain Vitest.
+
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+import { createFormBehavior } from '@web-loom/ui-core';
+
+describe('createFormBehavior', () => {
+  it('marks field as dirty on change', () => {
+    const form = createFormBehavior({
+      initialValues: { name: '' },
+    });
+
+    form.actions.setFieldValue('name', 'Alice');
+    expect(form.getState().dirty.name).toBe(true);
+    expect(form.getState().values.name).toBe('Alice');
+    form.destroy();
+  });
+
+  it('blocks submit when validation fails', async () => {
+    const onSubmit = vi.fn();
+    const form = createFormBehavior({
+      initialValues: { email: '' },
+      fields: { email: { validators: [(v) => (!v ? 'Required' : null)] } },
+      onSubmit,
+    });
+
+    await form.actions.submitForm();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(form.getState().errors.email).toBe('Required');
+    form.destroy();
+  });
+
+  it('calls onSubmit when valid', async () => {
+    const onSubmit = vi.fn();
+    const form = createFormBehavior({
+      initialValues: { email: 'alice@example.com' },
+      onSubmit,
+    });
+
+    await form.actions.submitForm();
+    expect(onSubmit).toHaveBeenCalledWith({ email: 'alice@example.com' });
+    form.destroy();
+  });
+});
+```
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { createUndoRedoStack } from '@web-loom/ui-core';
+
+describe('createUndoRedoStack', () => {
+  it('supports undo and redo', () => {
+    const h = createUndoRedoStack({ initialState: 0 });
+
+    h.actions.pushState(1);
+    h.actions.pushState(2);
+    expect(h.getState().present).toBe(2);
+
+    h.actions.undo();
+    expect(h.getState().present).toBe(1);
+    expect(h.getState().canRedo).toBe(true);
+
+    h.actions.redo();
+    expect(h.getState().present).toBe(2);
+    h.destroy();
+  });
+
+  it('respects maxLength', () => {
+    const h = createUndoRedoStack({ initialState: 0, maxLength: 3 });
+    [1, 2, 3, 4].forEach((n) => h.actions.pushState(n));
+    expect(h.getState().past.length).toBe(3); // oldest entry trimmed
+    h.destroy();
+  });
+});
+```
+
+---
+
+## Best Practices
+
+- **Always call `destroy()`** — every behavior registers event listeners (`KeyboardShortcuts`), `setTimeout` timers (none by default, but subclasses may add them), or store subscriptions. Failing to destroy causes memory leaks.
+- **One behavior per concern** — don't put form logic in a disclosure or selection logic in a dialog. Compose multiple small behaviors instead.
+- **Expose behaviors through ViewModels** — don't create behaviors directly inside render functions. Create them once (in a ViewModel, a service, or a module singleton) and pass them down.
+- **Use `setFieldError` for server errors** — never validate server responses inside `validators`. Call `setFieldError` after the API response so the error appears in the same `errors` map as client-side errors.
+- **`validateOnChange` is expensive for async validators** — prefer `validateOnBlur` unless the field genuinely needs immediate feedback (e.g. a password strength meter).
+- **Roving focus needs DOM focus** — the behavior only updates state; you must call `.focus()` on the actual DOM element inside `onFocusChange`.
+
+---
+
+## See Also
+
+- [UI Patterns](/docs/ui-patterns) — higher-level composed patterns built on these behaviors
+- [Store Core](/docs/store-core) — reactive state layer used internally by every behavior
+- [Event Bus Core](/docs/event-bus-core) — event system for cross-behavior communication

@@ -5,6 +5,8 @@ topicTitle: 'MVVM Core'
 topicSlug: 'mvvm-core'
 prevTitle: 'MVVM in Vue'
 prevSlug: '/docs/mvvm-vue-use-case'
+nextTitle: 'MVVM in Vanilla TS'
+nextSlug: '/docs/mvvm-vanilla-use-case'
 ---
 
 # MVVM in Angular
@@ -202,12 +204,10 @@ For the Web Loom Greenhouse app, ViewModels are module-level singletons (created
 
 Angular's lifecycle hooks map directly onto the MVVM lifecycle:
 
-| Angular hook       | MVVM role                                        |
-|--------------------|--------------------------------------------------|
-| `constructor`      | Inject ViewModel, set up `FormGroup`             |
-| `ngOnInit`         | Assign observables, trigger `fetchCommand`       |
-| `ngAfterViewInit`  | Access DOM refs (`@ViewChild`), initialize charts|
-| `ngOnDestroy`      | Unsubscribe manual subscriptions                 |
+- **`constructor`** — inject ViewModel, set up `FormGroup`
+- **`ngOnInit`** — assign observables, trigger `fetchCommand`
+- **`ngAfterViewInit`** — access DOM refs (`@ViewChild`), initialize charts
+- **`ngOnDestroy`** — unsubscribe manual subscriptions
 
 ### ngOnInit — start reactive state
 
@@ -467,15 +467,13 @@ Angular's `ReactiveFormsModule` complements the MVVM pattern well. The form stat
 
 ### Key bindings
 
-| Template syntax               | Purpose                                      |
-|-------------------------------|----------------------------------------------|
-| `[formGroup]="form"`          | Bind the component's `FormGroup` to a `<form>` |
-| `formControlName="name"`      | Bind a specific control to an input          |
-| `(ngSubmit)="handleSubmit()"` | Call a method on form submission             |
-| `[disabled]="form.invalid"`   | Disable a button based on validation state   |
-| `form.get('name')?.invalid`   | Read per-field validation state              |
-| `form.patchValue({...})`      | Populate form for editing without resetting other fields |
-| `form.reset()`                | Clear all values and reset touched/dirty state |
+- **`[formGroup]="form"`** — bind the component's `FormGroup` to a `<form>` element
+- **`formControlName="name"`** — bind a specific control to an input
+- **`(ngSubmit)="handleSubmit()"`** — call a method on form submission
+- **`[disabled]="form.invalid"`** — disable a button based on validation state
+- **`form.get('name')?.invalid`** — read per-field validation state
+- **`form.patchValue({...})`** — populate form for editing without resetting other fields
+- **`form.reset()`** — clear all values and reset touched/dirty state
 
 ### Where form state belongs
 
@@ -678,6 +676,396 @@ export class GreenhouseListComponent implements OnInit, OnDestroy {
 ```
 
 `OnPush` is the recommended strategy for components consuming ViewModel observables. It avoids unnecessary checks and makes the component's update triggers explicit.
+
+---
+
+## Angular Signals with Web Loom ViewModels
+
+Angular Signals (introduced in Angular 16, stable and recommended in Angular 19) are a synchronous, push-based reactive primitive built directly into the framework. They complement Web Loom's architecture particularly well because:
+
+- The ViewModel stays **completely unchanged** — it still exposes `BehaviorSubject` streams
+- The `@angular/core/rxjs-interop` package provides `toSignal()`, a one-line bridge from any Observable to a Signal
+- Signal-based components can drop Zone.js entirely, reducing bundle size and improving performance
+- The new `@if` / `@for` template control flow (Angular 17+) reads signals without pipes
+
+```
+BehaviorSubject (ViewModel)
+      ↓
+  toSignal()           ← one-time bridge in the component
+      ↓
+Angular Signal         ← component reads it like a plain function call
+      ↓
+Template @if / @for    ← no async pipe, no structural directive noise
+```
+
+### toSignal() — the Observable-to-Signal bridge
+
+`toSignal()` from `@angular/core/rxjs-interop` subscribes to an Observable and returns a read-only Signal that always holds the latest emitted value. It automatically unsubscribes when the component is destroyed (tied to the injection context).
+
+```typescript
+import { toSignal } from '@angular/core/rxjs-interop';
+
+@Component({ standalone: true })
+export class GreenhouseListComponent implements OnInit {
+  private vm = inject_vm_here; // via @Inject or inject()
+
+  // Convert ViewModel observables to signals — one line each
+  readonly greenhouses = toSignal(this.vm.data$,    { initialValue: null });
+  readonly loading     = toSignal(this.vm.isLoading$, { initialValue: false });
+  readonly error       = toSignal(this.vm.error$,    { initialValue: null });
+}
+```
+
+The `initialValue` option sets the signal's value before the first emission — important when the observable is a cold one. For `BehaviorSubject`, you can omit it and Angular will use the current value synchronously:
+
+```typescript
+// BehaviorSubject emits synchronously — no initialValue needed
+readonly greenhouses = toSignal(this.vm.data$);
+readonly loading     = toSignal(this.vm.isLoading$);
+```
+
+### Signal-based template control flow
+
+With signals, the template uses Angular's new built-in control flow blocks (`@if`, `@for`, `@switch`) instead of `*ngIf` / `*ngFor` structural directives. No `async` pipe — signals are read by calling them like functions:
+
+```html
+<!-- Signals-based template — no async pipe, no CommonModule needed -->
+@if (loading()) {
+  <div>Loading…</div>
+}
+
+@if (greenhouses(); as list) {
+  @if (list && list.length > 0) {
+    <ul>
+      @for (gh of list; track gh.id) {
+        <li>
+          <span>{{ gh.name }}</span>
+          <button (click)="handleDelete(gh.id)">Delete</button>
+          <button (click)="handleUpdateForm(gh.id)">Edit</button>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p>No greenhouses found.</p>
+  }
+}
+
+@if (error(); as err) {
+  <p class="error">{{ err.message }}</p>
+}
+```
+
+Because `greenhouses()` is a plain function call, Angular's template compiler knows exactly which signals a template reads. When a signal changes, only the components that read it are re-rendered — no zone patching required.
+
+### computed() — derived signal state
+
+Use Angular's `computed()` to derive display state from ViewModel signals without extra subscriptions. Computed signals are lazy (only evaluated when read) and memoized (only re-evaluated when a dependency changes):
+
+```typescript
+import { computed } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+
+@Component({ standalone: true })
+export class GreenhouseListComponent {
+  readonly greenhouses = toSignal(this.vm.data$, { initialValue: [] as GreenhouseData[] });
+  readonly loading     = toSignal(this.vm.isLoading$, { initialValue: false });
+
+  // Derived from the greenhouses signal — no extra subscription
+  readonly count        = computed(() => this.greenhouses()?.length ?? 0);
+  readonly hasData      = computed(() => (this.greenhouses()?.length ?? 0) > 0);
+  readonly isIdle       = computed(() => !this.loading() && this.hasData());
+  readonly sortedByName = computed(() =>
+    [...(this.greenhouses() ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
+  );
+}
+```
+
+In the template:
+
+```html
+<h2>Greenhouses ({{ count() }})</h2>
+
+@for (gh of sortedByName(); track gh.id) {
+  <li>{{ gh.name }}</li>
+}
+```
+
+### effect() — side effects without subscriptions
+
+`effect()` runs a function whenever any signal it reads changes. Use it for imperative side effects (logging, chart updates, notifications) that would previously require a manual `.subscribe()`:
+
+```typescript
+import { effect } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+
+@Component({ standalone: true })
+export class SensorReadingCardComponent implements AfterViewInit {
+  @ViewChild('readingsChart') chartRef?: ElementRef<HTMLCanvasElement>;
+
+  readonly readings = toSignal(this.vm.data$, { initialValue: null });
+
+  constructor() {
+    // effect() runs whenever readings() changes — replaces subscribe in ngAfterViewInit
+    effect(() => {
+      const data = this.readings();
+      if (data && this.chartRef) {
+        this.initChart(data);
+      }
+    });
+  }
+
+  private initChart(data: SensorReadingListData): void {
+    // ... Chart.js initialization
+  }
+}
+```
+
+`effect()` must be called in an injection context (constructor or field initializer). It cleans up automatically when the component is destroyed.
+
+### Full Greenhouse component — signals version
+
+Here is the complete Greenhouse CRUD component rewritten to use Signals and the new template control flow. The ViewModel is untouched.
+
+```typescript
+import {
+  Component, OnInit, OnDestroy, Inject, InjectionToken,
+  computed, effect, signal,
+} from '@angular/core';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { GreenhouseData, greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { RouterLink } from '@angular/router';
+
+export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>(
+  'GREENHOUSE_VIEW_MODEL',
+);
+
+@Component({
+  selector: 'app-greenhouse-list',
+  standalone: true,
+  // CommonModule not needed — @if / @for are built-in, no async pipe required
+  imports: [ReactiveFormsModule, RouterLink],
+  providers: [{ provide: GREENHOUSE_VIEW_MODEL, useValue: greenHouseViewModel }],
+  template: `
+    <section class="flex-container flex-row">
+
+      <form [formGroup]="greenhouseForm" (ngSubmit)="handleSubmit()" class="form-container">
+        <div class="form-group">
+          <label for="name">Greenhouse Name:</label>
+          <input id="name" formControlName="name" class="input-field" />
+          @if (nameInvalid()) {
+            <div class="error-message">Name is required.</div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="location">Location:</label>
+          <textarea id="location" formControlName="location" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="size">Size:</label>
+          <select id="size" formControlName="size">
+            <option value="">Select size</option>
+            @for (s of sizeOptions; track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </div>
+
+        <button type="submit" [disabled]="greenhouseForm.invalid">
+          {{ editingId() ? 'Update' : 'Create' }}
+        </button>
+      </form>
+
+      <div class="card">
+        <h1>Greenhouses ({{ count() }})</h1>
+
+        @if (loading()) {
+          <p>Loading…</p>
+        }
+
+        @if (hasData()) {
+          <ul class="list">
+            @for (gh of greenhouses()!; track gh.id) {
+              <li class="list-item">
+                <span>{{ gh.name }}</span>
+                <div>
+                  <button (click)="handleDelete(gh.id)" class="button-tiny">Delete</button>
+                  <button (click)="handleUpdateForm(gh.id)" class="button-tiny">Edit</button>
+                </div>
+              </li>
+            }
+          </ul>
+        } @else if (!loading()) {
+          <p>No greenhouses found.</p>
+        }
+
+        @if (error(); as err) {
+          <p class="error">{{ err.message }}</p>
+        }
+      </div>
+
+    </section>
+  `,
+})
+export class GreenhouseListSignalsComponent implements OnInit {
+  public vm: typeof greenHouseViewModel;
+
+  // ViewModel observables → Angular Signals (one line each)
+  readonly greenhouses = toSignal(this.vm.data$,     { initialValue: null });
+  readonly loading     = toSignal(this.vm.isLoading$, { initialValue: false });
+  readonly error       = toSignal(this.vm.error$,    { initialValue: null });
+
+  // Derived display state
+  readonly count   = computed(() => this.greenhouses()?.length ?? 0);
+  readonly hasData = computed(() => (this.greenhouses()?.length ?? 0) > 0);
+
+  // Local component UI state as signals
+  readonly editingId = signal<string | null>(null);
+
+  // Reactive form
+  greenhouseForm: FormGroup;
+  readonly sizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
+
+  // Derived form validation signal
+  readonly nameInvalid = computed(() => {
+    const ctrl = this.greenhouseForm.get('name');
+    return ctrl?.invalid && (ctrl?.dirty || ctrl?.touched);
+  });
+
+  constructor(
+    private fb: FormBuilder,
+    @Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel,
+  ) {
+    this.vm = vm;
+    this.greenhouseForm = this.fb.group({
+      name:     ['', Validators.required],
+      location: ['', Validators.required],
+      size:     ['', Validators.required],
+      cropType: [''],
+    });
+  }
+
+  ngOnInit(): void {
+    this.vm.fetchCommand.execute();
+  }
+
+  handleSubmit(): void {
+    if (this.greenhouseForm.invalid) return;
+
+    const value = this.greenhouseForm.value;
+    const id = this.editingId();
+
+    if (id) {
+      const existing = this.greenhouses()?.find((gh) => gh.id === id);
+      if (existing) {
+        this.vm.updateCommand.execute({ id, payload: { ...existing, ...value } });
+      }
+    } else {
+      this.vm.createCommand.execute(value);
+    }
+
+    this.greenhouseForm.reset();
+    this.editingId.set(null);
+  }
+
+  handleUpdateForm(id?: string): void {
+    const gh = this.greenhouses()?.find((g) => g.id === id);
+    if (!gh) return;
+    this.editingId.set(gh.id ?? null);
+    this.greenhouseForm.patchValue({
+      name: gh.name, location: gh.location,
+      size: gh.size, cropType: gh.cropType ?? '',
+    });
+  }
+
+  handleDelete(id?: string): void {
+    if (!id) return;
+    this.vm.deleteCommand.execute(id);
+    if (this.editingId() === id) {
+      this.greenhouseForm.reset();
+      this.editingId.set(null);
+    }
+  }
+}
+```
+
+What changed compared to the classic version:
+
+- `import CommonModule` → not needed — `@if` / `@for` are built-in
+- `greenhouses$ | async as list` → `greenhouses()` — plain function call
+- `*ngIf` / `*ngFor` structural directives → `@if` / `@for` built-in blocks
+- `editingGreenhouseId: string | null` → `editingId = signal<string | null>(null)`
+- Manual `Subscription` + `ngOnDestroy` → `toSignal()` manages lifecycle automatically
+- Snapshot array for imperative reads → read `greenhouses()` directly in handlers
+
+The ViewModel (`greenHouseViewModel`) is identical in both versions.
+
+### Zoneless Angular (Angular 19+)
+
+Signals enable **zoneless** change detection — Angular updates the DOM only when a signal value changes, rather than after every async operation. To opt in, replace `provideZoneChangeDetection` in `app.config.ts`:
+
+```typescript
+import { provideExperimentalZonelessChangeDetection } from '@angular/core';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideExperimentalZonelessChangeDetection(), // replaces provideZoneChangeDetection
+    provideRouter(routes),
+  ],
+};
+```
+
+And remove `zone.js` from `angular.json` polyfills:
+
+```json
+"polyfills": []
+```
+
+With zoneless enabled, Zone.js is gone from the bundle. Angular only re-renders when a Signal (or `async` pipe) notifies it. For ViewModel-based components using `toSignal()`, this works with zero further changes.
+
+> `provideExperimentalZonelessChangeDetection` is available in Angular 18+ and stable for production use in Angular 19+. The `Experimental` prefix is a naming artifact and does not indicate instability.
+
+### toObservable() — going the other direction
+
+If you need to pass an Angular Signal back into a ViewModel (for example, a route param or an `@Input()` that the ViewModel should react to), use `toObservable()`:
+
+```typescript
+import { input } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { switchMap } from 'rxjs';
+
+@Component({ standalone: true })
+export class SensorDetailComponent implements OnInit {
+  // Angular 17+ signal input
+  readonly sensorId = input.required<string>();
+
+  // Bridge signal → Observable → ViewModel
+  private readonly sensorId$ = toObservable(this.sensorId);
+
+  ngOnInit(): void {
+    // Re-fetch whenever the route param changes
+    this.sensorId$.pipe(
+      switchMap((id) => {
+        this.vm.setFilter(id);
+        return this.vm.fetchCommand.execute();
+      }),
+    ).subscribe();
+  }
+}
+```
+
+### When to use Signals vs the async pipe
+
+- **New component in Angular 17+** — use Signals + `toSignal()` + `@if` / `@for`
+- **Existing component with `*ngIf` / `async` pipe** — leave it; both approaches work side by side
+- **Zoneless app target** — Signals are required for change detection; `async` pipe still works as a fallback
+- **Complex RxJS pipeline** (debounce, switchMap, retry) — keep as Observable; bridge to a Signal only at the template edge
+- **Local UI state** (editing ID, expanded row, active tab) — use `signal()`, it's simpler than a `BehaviorSubject`
+- **Side effects on data change** (chart updates, notifications) — prefer `effect()` over a manual `.subscribe()`
+
+The key rule: **the bridge lives in the component, not the ViewModel**. Call `toSignal()` in the component when you want Signals syntax. The ViewModel exposes `BehaviorSubject` streams regardless of which Angular style the consumer uses.
 
 ---
 

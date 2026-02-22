@@ -1,0 +1,803 @@
+---
+title: 'MVVM in Vanilla TypeScript'
+summary: "How to wire Web Loom ViewModels into a framework-free TypeScript app — manual DOM rendering, RxJS subscriptions as the only reactive layer, EJS templates, a client-side router, and imperative event listeners."
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+prevTitle: 'MVVM in Angular'
+prevSlug: '/docs/mvvm-angular-use-case'
+---
+
+# MVVM in Vanilla TypeScript
+
+Without a framework there is no component lifecycle, no virtual DOM, no reactivity system, no dependency injection container. The browser gives you a DOM, event listeners, and `fetch`. Everything else — rendering, routing, subscriptions, state snapshots — you wire up yourself.
+
+This makes the vanilla case the most explicit illustration of how Web Loom's architecture actually works. The ViewModel is a plain TypeScript object with RxJS `BehaviorSubject` streams and Commands. Your code subscribes to those streams, turns the emitted data into HTML strings, and injects them into the DOM. There is no magic in between.
+
+---
+
+## The Rendering Model
+
+In a framework app, the framework owns the DOM update loop — you declare what the UI should look like and the framework diffs and patches. In vanilla TypeScript, you own that loop directly.
+
+Web Loom's vanilla app uses a two-step approach:
+
+```
+ViewModel data$ emits new value
+        ↓
+subscriptions.ts receives value, updates state snapshot
+        ↓
+renderTemplate(path, data) — fetches .ejs template, renders to HTML string
+        ↓
+container.innerHTML = html  — replaces DOM content
+        ↓
+(if needed) attachEventListeners() — re-attach imperative handlers
+```
+
+Because `innerHTML` replaces the entire subtree, any event listeners attached to old elements are gone. Listeners must be re-attached after every render that touches their container.
+
+---
+
+## Application Architecture
+
+The vanilla app splits concerns across five small modules:
+
+- **`state.ts`** — a plain mutable object holding the latest snapshot of each ViewModel's data
+- **`subscriptions.ts`** — subscribes to ViewModel observables; updates state and re-renders on change
+- **`ui.ts`** — template rendering helpers (`renderTemplate`, `renderCard`, `renderLayout`)
+- **`router.ts`** — client-side routing using `@web-loom/router-core`; maps routes to view renderers
+- **`listeners.ts`** — imperative event handlers attached after each render
+
+### State snapshot
+
+```typescript
+// src/app/state.ts
+import type { GreenhouseListData } from '@repo/view-models/GreenHouseViewModel';
+import type { SensorListData }      from '@repo/view-models/SensorViewModel';
+import type { SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
+import type { ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
+
+export const state = {
+  greenHouses:    [] as GreenhouseListData,
+  sensors:        [] as SensorListData,
+  sensorReadings: [] as SensorReadingListData,
+  thresholdAlerts: [] as ThresholdAlertListData,
+  navigation:     [] as any[],
+};
+```
+
+`state` is a module-level singleton. Subscriptions write to it; renderers and event listeners read from it. It fills the role that a reactive store or component local state plays in framework apps — but it is deliberately simple and non-reactive. It is a snapshot, not a signal.
+
+---
+
+## The Entry Point
+
+`main.ts` orchestrates the startup sequence:
+
+```typescript
+// src/main.ts
+import { greenHouseViewModel }    from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel }        from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+
+import { initRouter }        from './app/router';
+import { subscribeToUpdates } from './app/subscriptions';
+import { renderLayout }      from './app/ui';
+
+async function init() {
+  // 1. Set up reactive subscriptions before any data arrives
+  subscribeToUpdates();
+
+  // 2. Render the chrome (header, footer) with empty navigation
+  await renderLayout();
+
+  // 3. Trigger all initial fetches in parallel
+  await Promise.all([
+    greenHouseViewModel.fetchCommand.execute(),
+    sensorViewModel.fetchCommand.execute(),
+    sensorReadingViewModel.fetchCommand.execute(),
+    thresholdAlertViewModel.fetchCommand.execute(),
+  ]);
+
+  // 4. Start the router — renders the initial route
+  initRouter();
+}
+
+init();
+```
+
+The order matters:
+
+- **Subscribe first** — subscriptions must be in place before `fetchCommand.execute()` fires, otherwise the first emission is missed
+- **Fetch in parallel** — `Promise.all` fires all four requests concurrently
+- **Router last** — the router reads `state` to render the current route; state must be primed before the initial route render
+
+---
+
+## Template Rendering
+
+Views are EJS templates fetched at runtime and rendered to HTML strings using the `ejs` library.
+
+```typescript
+// src/app/ui.ts
+import ejs from 'ejs';
+import { state } from './state';
+
+const header = document.getElementById('header')!;
+const footer = document.getElementById('footer')!;
+
+// Fetch a template file and render it with data
+export async function renderTemplate(templatePath: string, data: object): Promise<string> {
+  const template = await fetch(templatePath).then((res) => res.text());
+  return ejs.render(template, data);
+}
+
+// Render a template into a specific DOM container by ID
+export async function renderCard(containerId: string, templatePath: string, data: object) {
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.innerHTML = await renderTemplate(templatePath, data);
+  }
+}
+
+// Re-render the page chrome (header + footer) with current navigation state
+export async function renderLayout() {
+  header.innerHTML = await renderTemplate('/src/views/layout/Header.ejs', { navigation: state.navigation });
+  footer.innerHTML = await renderTemplate('/src/views/layout/Footer.ejs', {});
+}
+```
+
+### EJS template example
+
+EJS is a minimal templating language. It embeds JavaScript directly in HTML using `<% %>` tags:
+
+```html
+<!-- src/views/GreenhouseList.ejs -->
+<section class="flex-container flex-row">
+
+  <form class="form-container" id="greenhouse-form">
+    <div class="form-group">
+      <label for="name">Greenhouse Name:</label>
+      <input type="text" id="name" name="name" required class="input-field" />
+    </div>
+    <div class="form-group">
+      <label for="location">Location:</label>
+      <textarea id="location" name="location" rows="3" class="textarea-field"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="size">Size:</label>
+      <select id="size" name="size" required class="select-field">
+        <option value="">Select size</option>
+        <option value="25sqm">25sqm / Small</option>
+        <option value="50sqm">50sqm / Medium</option>
+        <option value="100sqm">100sqm / Large</option>
+      </select>
+    </div>
+    <button type="submit" class="button">Submit</button>
+  </form>
+
+  <div class="card">
+    <h1 class="card-title">Greenhouses</h1>
+    <% if (greenHouses && greenHouses.length > 0) { %>
+      <ul class="list">
+        <% greenHouses.forEach(function(gh) { %>
+          <li class="list-item">
+            <span><%= gh.name %></span>
+            <div class="button-group">
+              <button class="button-tiny button-tiny-delete" data-id="<%= gh.id %>">Delete</button>
+              <button class="button-tiny button-tiny-edit"   data-id="<%= gh.id %>">Edit</button>
+            </div>
+          </li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p>No greenhouses found.</p>
+    <% } %>
+  </div>
+
+</section>
+```
+
+Data (`greenHouses`) is passed as a plain object at render time. The template has no reactivity — it is a pure function from data to HTML string.
+
+---
+
+## Subscriptions — The Reactive Layer
+
+`subscriptions.ts` is the only place where ViewModel observables are consumed. It connects the reactive ViewModel layer to the imperative DOM layer:
+
+```typescript
+// src/app/subscriptions.ts
+import { greenHouseViewModel }    from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel }        from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+import { navigationViewModel }    from '@repo/shared/view-models/NavigationViewModel';
+
+import { state }                       from './state';
+import { renderLayout, renderCard, renderTemplate } from './ui';
+import { renderSensorReadingsChart }   from './chart';
+import { attachGreenhouseFormListeners } from './listeners';
+import { router }                      from './router';
+
+const app = document.getElementById('app')!;
+
+function getActiveView() {
+  return (router.currentRoute.meta?.view as string | undefined) ?? router.currentRoute.path;
+}
+
+export function subscribeToUpdates() {
+  // Navigation
+  navigationViewModel.navigationList.items$.subscribe((navigation) => {
+    state.navigation = navigation ?? [];
+    renderLayout();
+  });
+
+  // Greenhouses
+  greenHouseViewModel.data$.subscribe((greenHouses) => {
+    state.greenHouses = greenHouses ?? [];
+    const view = getActiveView();
+
+    if (view === 'dashboard') {
+      renderCard('greenhouse-card-container', '/src/views/GreenhouseCard.ejs', { greenHouses });
+    } else if (view === 'greenhouses') {
+      renderTemplate('/src/views/GreenhouseList.ejs', { greenHouses }).then((html) => {
+        app.innerHTML = html;
+        attachGreenhouseFormListeners(); // re-attach after innerHTML replace
+      });
+    }
+  });
+
+  // Sensor readings (includes chart)
+  sensorReadingViewModel.data$.subscribe((sensorReadings) => {
+    state.sensorReadings = sensorReadings ?? [];
+    const view = getActiveView();
+
+    if (view === 'dashboard') {
+      renderCard('sensor-reading-card-container', '/src/views/SensorReadingCard.ejs', { sensorReadings })
+        .then(() => renderSensorReadingsChart(sensorReadings ?? []));
+    } else if (view === 'sensor-readings') {
+      renderTemplate('/src/views/SensorReadingList.ejs', { sensorReadings })
+        .then((html) => (app.innerHTML = html));
+    }
+  });
+
+  // ... (sensors and threshold alerts follow the same pattern)
+}
+```
+
+Each subscription does the same three things:
+1. Update the `state` snapshot
+2. Check which view is currently active
+3. Re-render only the relevant portion of the DOM
+
+There is no diffing. A new emission replaces the entire container's `innerHTML`. This is intentionally simple — in a small app the cost is negligible.
+
+---
+
+## Client-Side Routing
+
+The app uses `@web-loom/router-core` for SPA-style navigation without page reloads:
+
+```typescript
+// src/app/router.ts
+import { createRouter, type RouteDefinition, type RouteMatch } from '@web-loom/router-core';
+
+type ViewKey = 'dashboard' | 'greenhouses' | 'sensors' | 'sensor-readings' | 'threshold-alerts' | 'not-found';
+
+const routes: RouteDefinition[] = [
+  { path: '/',                name: 'home',             meta: { view: 'dashboard' as ViewKey } },
+  { path: '/dashboard',      name: 'dashboard',         meta: { view: 'dashboard' as ViewKey } },
+  { path: '/greenhouses',    name: 'greenhouses',       meta: { view: 'greenhouses' as ViewKey } },
+  { path: '/sensors',        name: 'sensors',           meta: { view: 'sensors' as ViewKey } },
+  { path: '/sensor-readings',name: 'sensor-readings',   meta: { view: 'sensor-readings' as ViewKey } },
+  { path: '/threshold-alerts',name:'threshold-alerts',  meta: { view: 'threshold-alerts' as ViewKey } },
+  { path: '/:pathMatch(.*)', name: 'not-found', matchStrategy: 'prefix', meta: { view: 'not-found' as ViewKey } },
+];
+
+export const router = createRouter({ mode: 'history', routes });
+```
+
+### Route-to-renderer mapping
+
+Each route maps to a dedicated async renderer that reads from `state` and writes to `app.innerHTML`:
+
+```typescript
+const viewRenderers: Record<ViewKey, (route: RouteMatch) => Promise<void>> = {
+  dashboard:         renderDashboard,
+  greenhouses:       renderGreenhouseList,
+  sensors:           renderSensorList,
+  'sensor-readings': renderSensorReadingList,
+  'threshold-alerts': renderThresholdAlertList,
+  'not-found':       renderNotFound,
+};
+
+async function renderGreenhouseList(_route: RouteMatch) {
+  app.innerHTML = await renderTemplate('/src/views/GreenhouseList.ejs', {
+    greenHouses: state.greenHouses,
+  });
+  attachGreenhouseFormListeners();
+}
+
+async function renderDashboard(_route: RouteMatch) {
+  app.innerHTML = await renderTemplate('/src/views/Dashboard.ejs', {});
+  // Render each card slot with its own template
+  renderCard('greenhouse-card-container',    '/src/views/GreenhouseCard.ejs',    { greenHouses:    state.greenHouses });
+  renderCard('sensor-card-container',        '/src/views/SensorCard.ejs',        { sensors:        state.sensors });
+  renderCard('threshold-alert-card-container','/src/views/ThresholdAlertCard.ejs',{ thresholdAlerts: state.thresholdAlerts });
+  renderCard('sensor-reading-card-container','/src/views/SensorReadingCard.ejs', { sensorReadings: state.sensorReadings })
+    .then(() => renderSensorReadingsChart(state.sensorReadings));
+}
+```
+
+### Link interception
+
+The router intercepts all `<a>` clicks and converts them to `router.push()` calls, keeping navigation inside the SPA without full page reloads:
+
+```typescript
+function setupLinkInterception() {
+  document.body.addEventListener('click', (event) => {
+    if (isModifiedClick(event)) return;
+
+    const anchor = (event.target as HTMLElement).closest('a');
+    if (!anchor) return;
+
+    const href = anchor.getAttribute('href');
+    if (!href || href.startsWith('#') || anchor.target === '_blank') return;
+
+    const url = new URL(anchor.href, window.location.origin);
+    if (url.origin !== window.location.origin) return;
+
+    event.preventDefault();
+    router.push(`${url.pathname}${url.search}`);
+  });
+}
+```
+
+Modifier keys (`Cmd`, `Ctrl`, `Shift`, `Alt`) and right-clicks are passed through so browser-native behaviours (open in new tab) still work.
+
+### Router subscription
+
+```typescript
+export function initRouter() {
+  const unsubscribe = router.subscribe((route) => {
+    renderRoute(route).catch(console.error);
+  });
+
+  setupLinkInterception();
+
+  router.onError(console.error);
+}
+```
+
+`router.subscribe()` fires once immediately with the current route (rendering the initial view), then fires again on every subsequent navigation.
+
+---
+
+## Imperative Event Listeners
+
+Because `innerHTML` replaces the DOM, event listeners must be re-attached after every render. The vanilla app does this in `listeners.ts`:
+
+```typescript
+// src/app/listeners.ts
+export function attachGreenhouseFormListeners() {
+  const form = document.getElementById('greenhouse-form') as HTMLFormElement | null;
+  if (!form) return;
+
+  const nameInput     = form.querySelector<HTMLInputElement>('#name')!;
+  const locationInput = form.querySelector<HTMLTextAreaElement>('#location')!;
+  const sizeSelect    = form.querySelector<HTMLSelectElement>('#size')!;
+  const cropTypeInput = form.querySelector<HTMLInputElement>('#cropType')!;
+
+  // form.dataset.editId stores the ID of the greenhouse being edited
+  const resetFormState = () => {
+    form.reset();
+    delete form.dataset.editId;
+  };
+
+  // Submit — create or update depending on editId
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = {
+      name:     formData.get('name') as string,
+      location: formData.get('location') as string,
+      size:     formData.get('size') as string,
+      cropType: formData.get('cropType') as string,
+    };
+    const editId = form.dataset.editId;
+
+    if (editId) {
+      const existing = state.greenHouses.find((gh) => (gh.id ?? '').toString() === editId);
+      greenHouseViewModel.updateCommand.execute({
+        id: editId,
+        payload: { ...(existing ?? { id: editId }), ...payload },
+      });
+    } else {
+      greenHouseViewModel.createCommand.execute(payload);
+    }
+
+    resetFormState();
+  });
+
+  // Delete buttons — each carries a data-id attribute
+  document.querySelectorAll<HTMLButtonElement>('.button-tiny-delete').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      const id = button.dataset.id;
+      if (!id) return;
+      greenHouseViewModel.deleteCommand.execute(id);
+      if (form.dataset.editId === id) resetFormState();
+    });
+  });
+
+  // Edit buttons — populate the form and set editId
+  document.querySelectorAll<HTMLButtonElement>('.button-tiny-edit').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      const id = button.dataset.id;
+      if (!id) return;
+      const gh = state.greenHouses.find((g) => (g.id ?? '').toString() === id);
+      if (!gh) return;
+
+      nameInput.value     = gh.name;
+      locationInput.value = gh.location;
+      sizeSelect.value    = gh.size ?? '100sqm';
+      cropTypeInput.value = gh.cropType ?? '';
+      form.dataset.editId = id;
+      nameInput.focus();
+    });
+  });
+}
+```
+
+Key points:
+
+- `form.dataset.editId` is used as lightweight form state — no React `useState`, no Vue `ref`. The DOM element itself carries the editing context.
+- `state.greenHouses` is read at click time to retrieve the full existing record for spread-merge updates.
+- Button listeners use `querySelectorAll` + `forEach` — they are registered after each render, so there is no risk of double-binding.
+
+---
+
+## Chart Rendering
+
+Charts sit outside the ViewModel — they are a DOM concern, not a data concern. The chart module reads data passed to it and writes to a `<canvas>` element:
+
+```typescript
+// src/app/chart.ts
+import { Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend } from 'chart.js';
+
+Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
+
+let chartInstance: Chart | null = null;
+
+export function renderSensorReadingsChart(sensorReadings: any[]) {
+  const canvas = document.getElementById('sensorReadingsChart') as HTMLCanvasElement | null;
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Destroy previous instance before creating a new one
+  chartInstance?.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: sensorReadings.map((r) => new Date(r.timestamp).toLocaleTimeString()),
+      datasets: [{
+        label: 'Sensor Value',
+        data:  sensorReadings.map((r) => r.value),
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1,
+      }],
+    },
+  });
+}
+```
+
+`renderSensorReadingsChart` is called from `subscriptions.ts` after the sensor-reading card template has been injected into the DOM (so the `<canvas>` element exists before Chart.js tries to find it).
+
+The module-level `chartInstance` variable allows the previous chart to be destroyed before creating a new one, preventing canvas context leaks.
+
+---
+
+## The Full Data Flow
+
+Tracing one complete cycle — a user creates a new greenhouse:
+
+```
+1. User fills the form and clicks Submit
+         ↓
+2. attachGreenhouseFormListeners — form 'submit' handler fires
+         ↓
+3. greenHouseViewModel.createCommand.execute(payload)
+         ↓
+4. Command sets isExecuting$ = true, calls the API via the Model
+         ↓
+5. API responds — Model updates its BehaviorSubject with new list
+         ↓
+6. greenHouseViewModel.data$ emits the updated list
+         ↓
+7. subscriptions.ts subscriber fires:
+     state.greenHouses = updatedList
+     renderTemplate('/src/views/GreenhouseList.ejs', { greenHouses: updatedList })
+       .then(html => {
+         app.innerHTML = html
+         attachGreenhouseFormListeners()  // listeners re-attached to new DOM
+       })
+         ↓
+8. User sees the new greenhouse in the list
+```
+
+The ViewModel and Model are unchanged from what React or Angular apps use. Only steps 7–8 are vanilla-specific.
+
+---
+
+## Cleanup and Memory Management
+
+The vanilla app does not have a component lifecycle to rely on for cleanup. There are two types of subscriptions to manage:
+
+### Router subscription
+
+`initRouter()` stores the `unsubscribe` function returned by `router.subscribe()`. If the app needs to tear down (e.g. for testing), call it:
+
+```typescript
+let unsubscribe: (() => void) | null = null;
+
+export function initRouter() {
+  unsubscribe = router.subscribe((route) => {
+    renderRoute(route).catch(console.error);
+  });
+  setupLinkInterception();
+}
+
+export function destroyRouter() {
+  unsubscribe?.();
+  unsubscribe = null;
+}
+```
+
+### ViewModel subscriptions
+
+Subscriptions in `subscriptions.ts` run for the lifetime of the page and are intentionally never unsubscribed in the Greenhouse app — the page has no teardown. In a more complex app, or for testing, collect and dispose them:
+
+```typescript
+const subscriptions: Array<{ unsubscribe: () => void }> = [];
+
+export function subscribeToUpdates() {
+  subscriptions.push(
+    greenHouseViewModel.data$.subscribe((greenHouses) => {
+      state.greenHouses = greenHouses ?? [];
+      // ... render
+    }),
+  );
+}
+
+export function unsubscribeAll() {
+  subscriptions.forEach((s) => s.unsubscribe());
+  subscriptions.length = 0;
+}
+```
+
+### Chart instance
+
+`chart.ts` stores `chartInstance` and calls `.destroy()` before each re-render. This prevents the previous Chart.js canvas context from leaking into the new instance.
+
+---
+
+## Testing
+
+Because the ViewModel is plain TypeScript with no DOM or browser dependencies, it can be tested with pure Vitest:
+
+```typescript
+// Test the ViewModel in isolation
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { firstValueFrom } from 'rxjs';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+describe('GreenHouseViewModel', () => {
+  it('starts with null data', async () => {
+    const data = await firstValueFrom(greenHouseViewModel.data$);
+    expect(data).toBeNull();
+  });
+
+  it('exposes fetchCommand, createCommand, updateCommand, deleteCommand', () => {
+    expect(typeof greenHouseViewModel.fetchCommand.execute).toBe('function');
+    expect(typeof greenHouseViewModel.createCommand.execute).toBe('function');
+  });
+});
+```
+
+Testing the subscription and rendering layer requires a DOM environment. Use `vitest` with `jsdom`:
+
+```typescript
+// vitest.config.ts
+export default { test: { environment: 'jsdom' } };
+```
+
+```typescript
+// subscriptions.test.ts
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { BehaviorSubject } from 'rxjs';
+
+// Mock the ViewModel module
+vi.mock('@repo/view-models/GreenHouseViewModel', () => ({
+  greenHouseViewModel: {
+    data$: new BehaviorSubject(null),
+    isLoading$: new BehaviorSubject(false),
+    fetchCommand: { execute: vi.fn() },
+    createCommand: { execute: vi.fn() },
+  },
+}));
+
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { state } from '../src/app/state';
+import { subscribeToUpdates } from '../src/app/subscriptions';
+
+describe('subscribeToUpdates', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `<div id="app"></div><div id="header"></div><div id="footer"></div>`;
+    subscribeToUpdates();
+  });
+
+  it('updates state.greenHouses when data$ emits', () => {
+    const data = [{ id: '1', name: 'Alpine House', location: 'Zone A', size: '50sqm' }];
+    (greenHouseViewModel.data$ as BehaviorSubject<any>).next(data);
+    expect(state.greenHouses).toEqual(data);
+  });
+});
+```
+
+Testing `attachGreenhouseFormListeners` is an integration test — render the form template into `document.body`, attach listeners, then dispatch a `submit` event and assert the command was called:
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { attachGreenhouseFormListeners } from '../src/app/listeners';
+
+vi.mock('@repo/view-models/GreenHouseViewModel', () => ({
+  greenHouseViewModel: {
+    data$: { subscribe: vi.fn() },
+    createCommand: { execute: vi.fn() },
+    updateCommand: { execute: vi.fn() },
+    deleteCommand: { execute: vi.fn() },
+  },
+}));
+
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+describe('attachGreenhouseFormListeners', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <form id="greenhouse-form">
+        <input id="name"     name="name"     value="Test House" />
+        <textarea id="location" name="location">Zone A</textarea>
+        <select   id="size"     name="size">
+          <option value="50sqm" selected>50sqm</option>
+        </select>
+        <input id="cropType" name="cropType" value="" />
+        <button type="submit">Submit</button>
+      </form>
+    `;
+    attachGreenhouseFormListeners();
+  });
+
+  it('calls createCommand when form is submitted without an editId', () => {
+    const form = document.getElementById('greenhouse-form') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+    expect(greenHouseViewModel.createCommand.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Test House', location: 'Zone A', size: '50sqm' }),
+    );
+  });
+});
+```
+
+---
+
+## Dos and Don'ts
+
+**Do** subscribe to ViewModel observables before calling `fetchCommand.execute()`. If you subscribe after the first emission, you miss it.
+
+```typescript
+// Correct order
+subscribeToUpdates();       // subscriptions registered
+await fetchCommand.execute(); // first emission received by subscriber
+
+// Wrong order
+await fetchCommand.execute(); // emits — nobody listening yet
+subscribeToUpdates();       // subscriber registered too late
+```
+
+---
+
+**Do** re-attach event listeners after every `innerHTML` replacement. Old listeners are discarded with the old DOM nodes.
+
+```typescript
+renderTemplate(path, data).then((html) => {
+  app.innerHTML = html;
+  attachGreenhouseFormListeners(); // always after innerHTML
+});
+```
+
+---
+
+**Do** destroy chart instances before creating new ones. Failing to call `chartInstance.destroy()` leaves the previous canvas context active and produces rendering artefacts.
+
+```typescript
+chartInstance?.destroy();
+chartInstance = new Chart(ctx, config);
+```
+
+---
+
+**Do** use `data-id` attributes on buttons to pass identifiers through the template. Avoid global variables or closure state for button identity.
+
+```html
+<!-- EJS template -->
+<button class="button-tiny-delete" data-id="<%= gh.id %>">Delete</button>
+```
+
+```typescript
+// Listener
+const id = button.dataset.id;
+greenHouseViewModel.deleteCommand.execute(id);
+```
+
+---
+
+**Don't** put business logic in templates. EJS templates should only contain simple conditionals and loops for rendering — no API calls, no ViewModel commands.
+
+```html
+<!-- Wrong — business logic in template -->
+<% if (!greenHouses.length) { fetch('/api/greenhouses').then(...) } %>
+
+<!-- Correct — template only renders what it receives -->
+<% if (greenHouses && greenHouses.length > 0) { %>
+  <ul>...</ul>
+<% } %>
+```
+
+---
+
+**Don't** subscribe to the same observable multiple times. `subscribeToUpdates()` is called once in `main.ts`. Calling it again creates duplicate subscriptions that fire the same handlers twice.
+
+```typescript
+// Wrong — called twice means double renders
+subscribeToUpdates();
+subscribeToUpdates();
+
+// Correct — guard against re-initialisation if needed
+let subscribed = false;
+export function subscribeToUpdates() {
+  if (subscribed) return;
+  subscribed = true;
+  // ... subscriptions
+}
+```
+
+---
+
+**Don't** read from ViewModel observables imperatively with `.getValue()` for rendering. Subscribe so the UI automatically updates when data changes.
+
+```typescript
+// Wrong — stale snapshot, won't update when data changes
+const greenHouses = greenHouseViewModel.data$.getValue();
+app.innerHTML = renderGreenhouseList(greenHouses);
+
+// Correct — subscribe and re-render on change
+greenHouseViewModel.data$.subscribe((greenHouses) => {
+  state.greenHouses = greenHouses ?? [];
+  renderTemplate(path, { greenHouses }).then((html) => (app.innerHTML = html));
+});
+```
+
+---
+
+## Where to Go Next
+
+- [ViewModels](/docs/viewmodels) — the full ViewModel API: Commands, RestfulApiViewModel, lifecycle
+- [Models](/docs/models) — how Models fetch, cache, and own reactive data
+- [MVVM in React](/docs/mvvm-react-use-case) — React integration with `useObservable` and `useSyncExternalStore`
+- [MVVM in Vue](/docs/mvvm-vue-use-case) — Vue 3 composable-based integration
+- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular async pipe and Signals integration

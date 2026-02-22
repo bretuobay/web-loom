@@ -14,6 +14,11 @@ const nextConfig = {
         destination: "/docs/models",
         permanent: true,
       },
+      {
+        source: "/docs/fundamentals",
+        destination: "/docs/getting-started",
+        permanent: true,
+      },
     ];
   },
   webpack: (config) => {

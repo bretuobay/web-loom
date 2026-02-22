@@ -56,9 +56,6 @@ export default function SupportSidebar() {
             <nav className="md:block">
               <ul className="text-sm space-y-2">
                 <li>
-                  <SidebarLink href="/docs/fundamentals">Architecture Fundamentals</SidebarLink>
-                </li>
-                <li>
                   <SidebarLink href="/docs/getting-started">Getting Started</SidebarLink>
                 </li>
                 <li>
@@ -78,6 +75,9 @@ export default function SupportSidebar() {
                 </li>
                 <li>
                   <SidebarLink href="/docs/mvvm-angular-use-case">MVVM in Angular</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/mvvm-vanilla-use-case">MVVM in Vanilla TS</SidebarLink>
                 </li>
                 <li className="pt-4">
                   <SidebarLink href="/docs/store-core">Store Core</SidebarLink>

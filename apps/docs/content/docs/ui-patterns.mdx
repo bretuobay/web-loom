@@ -1,13 +1,21 @@
 ---
 title: 'UI Patterns'
-summary: 'Composed UI patterns built on Web Loom UI Core behaviors.'
+summary: 'Composed UI patterns built on Web Loom UI Core behaviors — Master-Detail, Wizard, Modal, Tabs, Sidebar, Toast, Command Palette, Hub-and-Spoke, Grid Layout, and FAB.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
+prevTitle: 'UI Core Behaviors'
+prevSlug: '/docs/ui-core'
+nextTitle: 'Design Core'
+nextSlug: '/docs/design-core'
 ---
 
 # UI Patterns
 
-`@web-loom/ui-patterns` provides higher-level UI patterns that compose atomic behaviors from `@web-loom/ui-core` into complete interaction patterns. These patterns handle common UI workflows like master-detail views, wizards, modals, command palettes, and more. All patterns are framework-agnostic and work with React, Vue, Angular, or vanilla JavaScript.
+`@web-loom/ui-patterns` composes atomic behaviors from `@web-loom/ui-core` into complete, production-ready UI interaction patterns. Each pattern manages its own reactive state, exposes typed actions, and emits events — with no dependency on any UI framework.
+
+**10 patterns available:** Master-Detail, Wizard, Modal, Tabbed Interface, Sidebar Shell, Toast Queue, Command Palette, Hub-and-Spoke, Grid Layout, Floating Action Button.
+
+---
 
 ## Installation
 
@@ -15,100 +23,479 @@ topicSlug: 'packages'
 npm install @web-loom/ui-patterns
 ```
 
-## Available Patterns
+---
 
-### Master-Detail Pattern
+## The Common Pattern Interface
 
-Split-view interfaces with synchronized list selection and detail view.
+Every pattern follows the same contract so you can integrate them consistently regardless of which pattern you're using.
+
+```typescript
+interface PatternBehavior<State, Actions> {
+  getState(): State;                              // synchronous snapshot
+  subscribe(listener: (state: State) => void): () => void; // returns unsubscribe fn
+  actions: Actions;                               // all available mutations
+  eventBus?: EventBus;                            // pattern-specific events
+  destroy(): void;                                // cleanup: subscriptions, timers, listeners
+}
+```
+
+- **`getState()`** — returns the current state synchronously. Safe to call outside a subscription.
+- **`subscribe(fn)`** — called on every state change. Returns an unsubscribe function — always call it on teardown.
+- **`actions`** — the only way to mutate state. Mirrors the Command pattern from MVVM Core.
+- **`eventBus`** — optional pub-sub bus for side-channel events (selection, navigation) that are not reflected in state.
+- **`destroy()`** — clears all internal subscriptions, `setTimeout` handles, and event listeners. Call this when the containing component unmounts.
+
+```typescript
+const pattern = createSomePattern({ ... });
+
+// Subscribe to state changes
+const unsubscribe = pattern.subscribe((state) => {
+  render(state);
+});
+
+// Trigger actions
+pattern.actions.doSomething();
+
+// Teardown
+pattern.destroy();
+unsubscribe();
+```
+
+---
+
+## Master-Detail Pattern
+
+Split-view interface with synchronized list selection and an independent detail panel.
 
 ```typescript
 import { createMasterDetail } from '@web-loom/ui-patterns';
 
-const masterDetail = createMasterDetail({
-  items,
+const masterDetail = createMasterDetail<Item>({
+  items: initialItems,
   getId: (item) => item.id,
+  initialDetailView: 'overview',
+  onSelectionChange: (item) => console.log('Selected:', item),
 });
 ```
 
-### Wizard Pattern
+### Options
 
-Multi-step flows with validation and optional branching logic.
+- `items: T[]` — initial item array
+- `getId: (item: T) => string` — extract a stable ID (required)
+- `initialDetailView?: string` — starting detail view name (default: `'default'`)
+- `onSelectionChange?: (item: T | null) => void` — callback on every selection change
+
+### State
+
+- `items: T[]` — full list of items
+- `selectedItem: T | null` — currently selected item (`null` if nothing is selected)
+- `detailView: string` — active detail view identifier
+
+### Actions
+
+- `selectItem(item: T)` — set selection
+- `clearSelection()` — deselect
+- `setDetailView(view: string)` — switch the detail panel's view
+
+### Events
+
+- `'item:selected'` — fires with the selected item
+- `'selection:cleared'` — fires when selection is cleared
+
+### Example — React
+
+```tsx
+import { createMasterDetail } from '@web-loom/ui-patterns';
+import { useState, useEffect, useMemo } from 'react';
+
+function usePattern<S>(pattern: { getState(): S; subscribe(fn: (s: S) => void): () => void }) {
+  const [state, setState] = useState(() => pattern.getState());
+  useEffect(() => pattern.subscribe(setState), [pattern]);
+  return state;
+}
+
+export function GreenhouseExplorer({ greenhouses }: { greenhouses: Greenhouse[] }) {
+  const md = useMemo(
+    () => createMasterDetail({ items: greenhouses, getId: (g) => g.id }),
+    [greenhouses],
+  );
+  useEffect(() => () => md.destroy(), [md]);
+
+  const { items, selectedItem } = usePattern(md);
+
+  return (
+    <div className="flex">
+      <ul className="w-64 border-r">
+        {items.map((g) => (
+          <li
+            key={g.id}
+            className={g.id === selectedItem?.id ? 'bg-blue-50' : ''}
+            onClick={() => md.actions.selectItem(g)}
+          >
+            {g.name}
+          </li>
+        ))}
+      </ul>
+      <div className="flex-1 p-6">
+        {selectedItem ? <GreenhouseDetail item={selectedItem} /> : <p>Select a greenhouse</p>}
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## Wizard Pattern
+
+Multi-step flows with per-step validation, data accumulation, and optional conditional branching between steps.
 
 ```typescript
 import { createWizard } from '@web-loom/ui-patterns';
 
-const wizard = createWizard<WizardData>({
+const wizard = createWizard<OnboardingData>({
   steps: [
     {
       id: 'account-type',
       label: 'Account Type',
-      validate: (data) => !data.accountType ? 'Required' : null,
-      getNextStep: (data) => data.accountType === 'business' ? 'company-info' : 'personal-info',
+      validate: (data) => (!data.accountType ? 'Select an account type' : null),
+      getNextStep: (data) => (data.accountType === 'business' ? 'company-info' : 'personal-info'),
     },
-    // ... other steps
+    { id: 'personal-info', label: 'Personal Info' },
+    { id: 'company-info',  label: 'Company Info' },
+    {
+      id: 'confirm',
+      label: 'Confirm',
+      validate: (data) => (!data.agreed ? 'You must agree to continue' : null),
+    },
   ],
-  onComplete: async (data) => console.log('Wizard completed:', data),
+  onComplete: async (data) => {
+    await api.createAccount(data);
+  },
+  onStepChange: (index, step) => analytics.track('wizard_step', { step: step.id }),
 });
 ```
 
-### Modal Pattern
+### Options
 
-Modal dialog management with stacking support.
+- `steps: WizardStep[]` — ordered step definitions (required)
+- `onComplete?: (data: T) => void | Promise<void>` — called when the last step passes validation
+- `onStepChange?: (index: number, step: WizardStep) => void`
+- `onDataChange?: (data: T) => void`
+
+### WizardStep
+
+- `id: string` — unique identifier
+- `label: string` — display label (used in breadcrumbs and step indicators)
+- `validate?: (data: T) => string | null` — return an error message string, or `null` to proceed
+- `getNextStep?: (data: T) => string | null` — return a step `id` to branch, or `null` for linear flow
+
+### State
+
+- `steps: WizardStep[]` — all step definitions
+- `currentStepIndex: number` — zero-based index of the active step
+- `completedSteps: number[]` — indices of steps that have passed validation
+- `canProceed: boolean` — whether the current step allows moving forward
+- `data: T` — accumulated form data across all steps
+
+### Actions
+
+- `goToNextStep(): Promise<boolean>` — runs validation; advances if valid; returns `false` if blocked
+- `goToPreviousStep()` — go back one step (no validation)
+- `goToStep(index: number)` — jump to any step (for non-linear navigation)
+- `setStepData(data: Partial<T>)` — merge partial data into the accumulator
+- `completeWizard(): Promise<void>` — validate the last step and call `onComplete`
+
+### Usage Pattern
+
+```typescript
+// Move forward (with validation)
+const advanced = await wizard.actions.goToNextStep();
+if (!advanced) {
+  // show wizard.getState().steps[currentIndex] validation error
+}
+
+// Save partial data from a step form
+wizard.actions.setStepData({ email: 'alice@example.com' });
+
+// Finish
+await wizard.actions.completeWizard();
+```
+
+---
+
+## Modal Pattern
+
+Modal dialog stack with priority ordering, ESC handling, and backdrop click support.
 
 ```typescript
 import { createModal } from '@web-loom/ui-patterns';
 
 const modal = createModal({
-  id: 'confirmation-modal',
-  closeOnEscape: true,
-  closeOnBackdropClick: true,
+  onModalOpened: (m)  => console.log('opened', m.id),
+  onModalClosed: (id) => console.log('closed', id),
+  onStackChange: (stack) => updateBackdrop(stack.length > 0),
 });
 ```
 
-### Tabbed Interface Pattern
+### Options
 
-Tab-based navigation with keyboard support.
+- `onModalOpened?: (modal: Modal) => void`
+- `onModalClosed?: (modalId: string) => void`
+- `onStackChange?: (stack: Modal[]) => void`
+
+### State
+
+- `stack: Modal[]` — open modals sorted by priority (highest on top)
+- `topModalId: string | null` — ID of the frontmost modal
+
+### Modal Object
+
+- `id: string`
+- `content: any` — arbitrary payload (component name, props, etc.)
+- `priority: number` — stack order (default: `0`; higher values appear on top)
+- `closeOnEscape?: boolean`
+- `closeOnBackdropClick?: boolean`
+
+### Actions
+
+- `openModal(id, content, priority?)` — push a modal onto the stack
+- `openModalWithConfig(config: OpenModalConfig)` — open with full options
+- `closeModal(id)` — remove a specific modal
+- `closeTopModal()` — remove the frontmost modal
+- `closeAllModals()` — clear the entire stack
+- `handleEscapeKey()` — call this on `keydown` ESC to close the top modal (if `closeOnEscape` is set)
+- `handleBackdropClick(id)` — call this on backdrop click (if `closeOnBackdropClick` is set)
+
+### Events
+
+- `'modal:opened'`, `'modal:closed'`, `'modal:stacked'`
+- `'modal:escape-pressed'`, `'modal:backdrop-clicked'`
+
+### Example
+
+```typescript
+// Open a confirmation dialog
+modal.actions.openModal('confirm-delete', { item: selectedItem });
+
+// In a React modal renderer
+const { stack } = modal.getState();
+return stack.map((m) => (
+  <Dialog key={m.id} onClose={() => modal.actions.closeModal(m.id)}>
+    <ConfirmDeleteDialog item={m.content.item} />
+  </Dialog>
+));
+```
+
+---
+
+## Tabbed Interface Pattern
+
+Tab navigation with keyboard arrow-key support and optional drag-to-reorder.
 
 ```typescript
 import { createTabbedInterface } from '@web-loom/ui-patterns';
 
 const tabs = createTabbedInterface({
   tabs: [
-    { id: 'tab1', label: 'Profile' },
-    { id: 'tab2', label: 'Settings' },
+    { id: 'overview',  label: 'Overview' },
+    { id: 'sensors',   label: 'Sensors' },
+    { id: 'settings',  label: 'Settings', disabled: false },
   ],
-  initialActiveTabId: 'tab1',
+  initialActiveTabId: 'overview',
+  orientation: 'horizontal',
+  wrap: true,
+  onTabChange: (tabId) => router.navigate(`#${tabId}`),
 });
 ```
 
-### Sidebar Shell Pattern
+### Options
 
-Collapsible navigation sidebar with responsive behavior.
+- `tabs?: Tab[]` — initial tab definitions
+- `initialActiveTabId?: string` — active tab on mount
+- `orientation?: 'horizontal' | 'vertical'` (default: `'horizontal'`)
+- `wrap?: boolean` — keyboard navigation wraps at ends (default: `true`)
+- `onTabChange?: (tabId: string) => void`
+
+### Tab Object
+
+- `id: string`
+- `label: string`
+- `disabled?: boolean` (default: `false`)
+
+### State
+
+- `tabs: Tab[]`
+- `activeTabId: string`
+- `panels: Map<string, any>`
+
+### Actions
+
+- `activateTab(tabId: string)` — switch the active tab
+- `addTab(tab: Tab)` — append a new tab at runtime
+- `removeTab(tabId: string)` — remove a tab (activates the nearest remaining tab)
+- `moveTab(fromIndex, toIndex)` — reorder tabs
+- `focusNextTab()` — keyboard: advance (used in `keydown` handler)
+- `focusPreviousTab()` — keyboard: retreat
+
+### Keyboard Wiring
+
+```typescript
+// Wire arrow keys in a React component
+<TabList role="tablist" onKeyDown={(e) => {
+  if (e.key === 'ArrowRight') tabs.actions.focusNextTab();
+  if (e.key === 'ArrowLeft')  tabs.actions.focusPreviousTab();
+}}>
+  {state.tabs.map((tab) => (
+    <Tab
+      key={tab.id}
+      role="tab"
+      aria-selected={tab.id === state.activeTabId}
+      onClick={() => tabs.actions.activateTab(tab.id)}
+    >
+      {tab.label}
+    </Tab>
+  ))}
+</TabList>
+```
+
+---
+
+## Sidebar Shell Pattern
+
+Collapsible navigation sidebar with pinning, responsive mobile mode, and active section tracking.
 
 ```typescript
 import { createSidebarShell } from '@web-loom/ui-patterns';
 
 const sidebar = createSidebarShell({
-  initialCollapsed: false,
+  initialExpanded: true,
+  initialActiveSection: 'dashboard',
+  initialPinned: false,
+  initialWidth: 260,
+  onExpand:  ()  => savePreference('sidebar', 'expanded'),
+  onCollapse: () => savePreference('sidebar', 'collapsed'),
+  onSectionChange: (s) => router.navigate(`/${s}`),
 });
 ```
 
-### Toast Queue Pattern
+### Options
 
-Notification queue with auto-dismiss and priority support.
+- `initialExpanded?: boolean` (default: `false`)
+- `initialActiveSection?: string | null` (default: `null`)
+- `initialPinned?: boolean` (default: `false`)
+- `initialWidth?: number` — pixels (default: `250`)
+- `initialMobile?: boolean` (default: `false`)
+- `onExpand?`, `onCollapse?`, `onSectionChange?`, `onMobileChange?`
+
+### State
+
+- `isExpanded: boolean`
+- `activeSection: string | null`
+- `isPinned: boolean`
+- `width: number`
+- `isMobile: boolean`
+
+### Actions
+
+- `expand()`, `collapse()`, `toggle()`
+- `setActiveSection(section: string)` — in mobile mode, auto-collapses after navigation
+- `togglePin()` — pin sidebar open (prevents auto-collapse)
+- `setWidth(width: number)`
+- `setMobileMode(isMobile: boolean)`, `toggleMobile()`
+
+### Events
+
+`'sidebar:expanded'`, `'sidebar:collapsed'`, `'sidebar:pinned'`, `'sidebar:unpinned'`, `'section:changed'`, `'width:changed'`, `'sidebar:mobile-toggled'`
+
+### Responsive Integration
+
+```typescript
+// Drive mobile mode from a resize observer
+const resizeObserver = new ResizeObserver(([entry]) => {
+  const isMobile = entry.contentRect.width < 768;
+  sidebar.actions.setMobileMode(isMobile);
+});
+resizeObserver.observe(document.body);
+```
+
+---
+
+## Toast Queue Pattern
+
+Auto-dismissing notification queue with configurable position and type-based styling.
 
 ```typescript
 import { createToastQueue } from '@web-loom/ui-patterns';
 
 const toasts = createToastQueue({
-  maxVisible: 3,
-  defaultDuration: 5000,
+  maxVisible: 4,
+  defaultDuration: 4000,
+  position: 'bottom-right',
+  onToastAdded:   (t)  => console.log('added', t.id),
+  onToastRemoved: (id) => console.log('removed', id),
+});
+
+// Show a toast
+const id = toasts.actions.addToast({
+  message: 'Greenhouse saved successfully',
+  type: 'success',
+  duration: 3000,
 });
 ```
 
-### Command Palette Pattern
+### Options
 
-Keyboard-driven command interface with fuzzy search.
+- `maxVisible?: number` (default: `3`)
+- `defaultDuration?: number` — ms before auto-dismiss (default: `5000`)
+- `position?: ToastPosition` (default: `'top-right'`)
+- `onToastAdded?`, `onToastRemoved?`, `onPositionChanged?`
+
+### Toast Object
+
+- `id: string` — auto-generated UUID
+- `message: string`
+- `type: 'info' | 'success' | 'warning' | 'error'`
+- `duration: number`
+- `createdAt: number` — `Date.now()` timestamp
+
+### ToastPosition Values
+
+`'top-left'`, `'top-center'`, `'top-right'`, `'bottom-left'`, `'bottom-center'`, `'bottom-right'`
+
+### State
+
+- `toasts: Toast[]` — currently visible toasts (at most `maxVisible`)
+- `maxVisible: number`
+- `defaultDuration: number`
+- `position: ToastPosition`
+
+### Actions
+
+- `addToast(toast): string` — enqueue a toast, returns its `id`
+- `removeToast(id: string)` — dismiss immediately
+- `clearAllToasts()` — dismiss all
+- `setPosition(pos: ToastPosition)` — reposition the queue
+
+### MVVM Integration
+
+```typescript
+// In a ViewModel, inject the toast queue
+class GreenhouseViewModel extends BaseViewModel {
+  constructor(private toasts: ToastQueueBehavior) { super(); }
+
+  readonly saveCommand = new Command(async () => {
+    await this.model.save();
+    this.toasts.actions.addToast({ message: 'Saved', type: 'success' });
+  });
+}
+```
+
+---
+
+## Command Palette Pattern
+
+Keyboard-driven command interface with fuzzy search filtering over registered commands.
 
 ```typescript
 import { createCommandPalette } from '@web-loom/ui-patterns';
@@ -116,32 +503,519 @@ import { createCommandPalette } from '@web-loom/ui-patterns';
 const palette = createCommandPalette({
   commands: [
     {
-      id: 'new-file',
-      label: 'Create New File',
-      handler: () => console.log('Creating file...'),
+      id: 'new-greenhouse',
+      label: 'New Greenhouse',
+      category: 'Actions',
+      keywords: ['create', 'add'],
+      shortcut: 'Ctrl+N',
+      action: () => modal.actions.openModal('new-greenhouse', {}),
     },
-    // ... other commands
+    {
+      id: 'toggle-theme',
+      label: 'Toggle Dark Mode',
+      category: 'Appearance',
+      action: () => themeStore.actions.toggle(),
+    },
   ],
+  onOpen:           () => analytics.track('palette_opened'),
+  onClose:          () => {},
+  onCommandExecute: (cmd) => analytics.track('command', { id: cmd.id }),
 });
 ```
+
+### Options
+
+- `commands?: Command[]` — initial command registry
+- `onOpen?`, `onClose?`, `onCommandExecute?`
+
+### Command Object
+
+- `id: string`
+- `label: string` — primary search target
+- `category?: string` — group label
+- `keywords?: string[]` — additional search terms
+- `shortcut?: string` — display hint (e.g. `'⌘K'`)
+- `action: () => void | Promise<void>`
+
+### State
+
+- `isOpen: boolean`
+- `query: string` — live search input
+- `commands: Command[]` — full registry
+- `filteredCommands: Command[]` — commands matching the current query
+- `selectedIndex: number` — keyboard-focused position in filtered list
+
+### Actions
+
+- `open()` — show palette (resets query and selection)
+- `close()` — hide palette
+- `setQuery(query: string)` — update search; `filteredCommands` updates automatically
+- `registerCommand(cmd)` — add/update a command at runtime
+- `unregisterCommand(id)` — remove a command
+- `selectNext()`, `selectPrevious()` — keyboard up/down navigation
+- `executeSelected(): Promise<void>` — run the currently highlighted command
+- `executeCommand(id): Promise<void>` — run by ID
+
+### Fuzzy Search
+
+The built-in fuzzy match algorithm scores by:
+
+- Consecutive character runs (+5 per run)
+- Word boundary matches (+10)
+- Start-of-string matches (+10)
+- Matches in `category` and `keywords` in addition to `label`
+
+### Full Example — React
+
+```tsx
+export function CommandPaletteShell() {
+  const [state, setState] = useState(() => palette.getState());
+  useEffect(() => palette.subscribe(setState), []);
+
+  // Open with ⌘K / Ctrl+K
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        palette.actions.open();
+      }
+      if (e.key === 'Escape') palette.actions.close();
+      if (e.key === 'ArrowDown') palette.actions.selectNext();
+      if (e.key === 'ArrowUp')   palette.actions.selectPrevious();
+      if (e.key === 'Enter')     palette.actions.executeSelected();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  if (!state.isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/40">
+      <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl">
+        <input
+          autoFocus
+          value={state.query}
+          onChange={(e) => palette.actions.setQuery(e.target.value)}
+          placeholder="Type a command…"
+          className="w-full px-4 py-3 text-lg border-b"
+        />
+        <ul>
+          {state.filteredCommands.map((cmd, i) => (
+            <li
+              key={cmd.id}
+              className={i === state.selectedIndex ? 'bg-blue-50 dark:bg-slate-700' : ''}
+              onClick={() => palette.actions.executeCommand(cmd.id)}
+            >
+              <span>{cmd.label}</span>
+              {cmd.shortcut && <kbd>{cmd.shortcut}</kbd>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## Hub-and-Spoke Navigation Pattern
+
+Central hub page with independent spoke sections, breadcrumb trail, and optional browser history integration.
+
+```typescript
+import { createHubAndSpoke } from '@web-loom/ui-patterns';
+
+const nav = createHubAndSpoke({
+  spokes: [
+    { id: 'analytics',  label: 'Analytics', icon: 'chart' },
+    { id: 'settings',   label: 'Settings',  icon: 'gear' },
+    {
+      id: 'greenhouses',
+      label: 'Greenhouses',
+      subSpokes: [
+        { id: 'greenhouse-list',   label: 'All Greenhouses' },
+        { id: 'greenhouse-create', label: 'Add Greenhouse'  },
+      ],
+    },
+  ],
+  enableBrowserHistory: true,
+  onSpokeActivate: (id) => console.log('navigated to', id),
+  onReturnToHub:   ()   => console.log('back to home'),
+});
+```
+
+### Options
+
+- `spokes: Spoke[]` — required; top-level navigation sections
+- `enableBrowserHistory?: boolean` (default: `false`) — push/pop history states
+- `onSpokeActivate?: (spokeId: string) => void`
+- `onReturnToHub?: () => void`
+
+### Spoke Object
+
+- `id: string`
+- `label: string`
+- `icon?: string`
+- `subSpokes?: Spoke[]` — optional nesting for hierarchical navigation
+
+### State
+
+- `isOnHub: boolean` — whether the hub page is active
+- `activeSpoke: string | null`
+- `spokes: Spoke[]`
+- `breadcrumbs: string[]` — e.g. `['Greenhouses', 'All Greenhouses']`
+- `navigationHistory: string[]`
+
+### Actions
+
+- `activateSpoke(spokeId: string)` — navigate to a section
+- `returnToHub()` — go back to the hub
+- `goBack()` — navigate back one step in history
+- `updateBreadcrumbs(crumbs: string[])` — manually update the breadcrumb trail
+- `addSpoke(spoke: Spoke)` — register a new spoke at runtime
+- `removeSpoke(spokeId: string)` — unregister; returns to hub if it was active
+
+### Events
+
+`'spoke:activated'`, `'hub:returned'`, `'navigation:changed'`
+
+---
+
+## Grid Layout Pattern
+
+Responsive grid with configurable breakpoints, 2D keyboard navigation (arrow keys), and flexible selection modes.
+
+```typescript
+import { createGridLayout } from '@web-loom/ui-patterns';
+
+const grid = createGridLayout<Product>({
+  items: products,
+  getId: (p) => p.id,
+  breakpoints: [
+    { minWidth: 0,    columns: 2 },
+    { minWidth: 640,  columns: 3 },
+    { minWidth: 1024, columns: 4 },
+    { minWidth: 1280, columns: 5 },
+  ],
+  selectionMode: 'multi',
+  wrap: true,
+  initialViewportWidth: window.innerWidth,
+  onSelectionChange: (selected) => setCart(selected),
+});
+
+// Update columns when the viewport resizes
+window.addEventListener('resize', () => {
+  grid.actions.updateViewportWidth(window.innerWidth);
+});
+```
+
+### Options
+
+- `items: T[]` — required
+- `getId: (item: T) => string` — required
+- `breakpoints: Breakpoint[]` — required; sorted by `minWidth` ascending
+- `selectionMode?: 'single' | 'multi'` (default: `'single'`)
+- `wrap?: boolean` (default: `true`)
+- `initialViewportWidth?: number` (default: `1024`)
+- `initialFocusedIndex?: number` (default: `0`)
+- `onSelectionChange?: (selected: T[]) => void`
+
+### Breakpoint Object
+
+- `minWidth: number` — viewport width threshold in pixels
+- `columns: number` — number of grid columns at this breakpoint
+
+### State
+
+- `items: T[]`
+- `columns: number` — currently active column count
+- `selectedItems: string[]` — IDs of selected items
+- `focusedIndex: number`
+- `breakpoint: Breakpoint` — active responsive breakpoint
+- `viewportWidth: number`
+- `selectionMode: GridSelectionMode`
+- `wrap: boolean`
+
+### Actions
+
+- `selectItem(itemId: string)` — select an item (clears others in `single` mode)
+- `navigateUp()`, `navigateDown()`, `navigateLeft()`, `navigateRight()` — arrow key navigation across rows and columns
+- `setBreakpoints(breakpoints: Breakpoint[])` — replace responsive config
+- `updateViewportWidth(width: number)` — recalculate active breakpoint and column count
+- `setItems(items: T[])` — replace the full item array
+- `setFocusedIndex(index: number)` — programmatically move focus
+
+### Events
+
+- `'item:focused'` — emits `{ index, itemId }`
+- `'item:selected'` — emits `{ itemId, selectedIds }`
+- `'breakpoint:changed'` — emits the new `Breakpoint`
+
+### Keyboard Wiring
+
+```typescript
+// Wire arrow keys in a React grid
+<div
+  role="grid"
+  onKeyDown={(e) => {
+    const map: Record<string, () => void> = {
+      ArrowUp:    () => grid.actions.navigateUp(),
+      ArrowDown:  () => grid.actions.navigateDown(),
+      ArrowLeft:  () => grid.actions.navigateLeft(),
+      ArrowRight: () => grid.actions.navigateRight(),
+    };
+    map[e.key]?.();
+  }}
+>
+  {state.items.map((item, i) => (
+    <div
+      key={item.id}
+      role="gridcell"
+      tabIndex={i === state.focusedIndex ? 0 : -1}
+      aria-selected={state.selectedItems.includes(item.id)}
+      onClick={() => grid.actions.selectItem(item.id)}
+    >
+      {item.name}
+    </div>
+  ))}
+</div>
+```
+
+---
+
+## Floating Action Button (FAB) Pattern
+
+Scroll-aware primary action button that appears after the user has scrolled a configurable threshold, with optional auto-hide on scroll-down.
+
+```typescript
+import { createFloatingActionButton } from '@web-loom/ui-patterns';
+
+const fab = createFloatingActionButton({
+  scrollThreshold: 200,    // show after scrolling 200 px
+  hideOnScrollDown: true,  // hide when scrolling down (show only when scrolling up)
+  onVisibilityChange: (visible) => {
+    document.getElementById('fab')!.style.display = visible ? 'flex' : 'none';
+  },
+});
+
+// Feed scroll position from a scroll listener
+window.addEventListener('scroll', () => {
+  fab.actions.setScrollPosition(window.scrollY);
+});
+```
+
+### Options
+
+- `scrollThreshold?: number` (default: `100`) — pixels scrolled before FAB appears
+- `hideOnScrollDown?: boolean` (default: `false`) — hide FAB while scrolling down, re-show on scroll-up
+- `onVisibilityChange?: (visible: boolean) => void`
+
+### State
+
+- `isVisible: boolean`
+- `scrollPosition: number` — current scroll offset in pixels
+- `scrollDirection: 'up' | 'down' | null`
+- `scrollThreshold: number`
+- `hideOnScrollDown: boolean`
+
+### Actions
+
+- `show()`, `hide()`, `toggle()` — manual visibility control
+- `setScrollPosition(position: number)` — drives automatic show/hide logic
+- `setScrollThreshold(threshold: number)` — adjust the scroll threshold at runtime
+- `setHideOnScrollDown(hide: boolean)` — toggle direction-sensitive hiding
+
+### Events
+
+`'fab:shown'`, `'fab:hidden'`, `'fab:visibility-changed'` (emits `boolean`), `'fab:scroll-direction-changed'` (emits direction)
+
+### "Back to Top" Example
+
+```typescript
+const backToTop = createFloatingActionButton({ scrollThreshold: 300 });
+
+window.addEventListener('scroll', () =>
+  backToTop.actions.setScrollPosition(window.scrollY),
+);
+
+document.getElementById('back-to-top')!.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+backToTop.subscribe(({ isVisible }) => {
+  document.getElementById('back-to-top')!.style.opacity = isVisible ? '1' : '0';
+});
+```
+
+---
 
 ## Event Bus Integration
 
-All patterns include an event bus for listening to pattern-specific events:
+Patterns that emit side-channel events expose an `eventBus` property. Listener cleanup is handled automatically by `destroy()`, but you can also unsubscribe manually using the function returned by `on()`.
 
 ```typescript
-const masterDetail = createMasterDetail({ ... });
+const md = createMasterDetail({ items, getId });
 
-masterDetail.eventBus.on('item:selected', (item) => {
-  console.log('Item selected:', item);
+// Listen to side-channel events
+const off = md.eventBus.on('item:selected', (item) => {
+  detailPane.load(item.id);
+});
+
+// Later
+off();          // unsubscribe just this listener
+md.destroy();   // unsubscribes all listeners + cleans up state
+```
+
+---
+
+## MVVM Integration
+
+Patterns are stateful objects, not ViewModels — but they compose cleanly with ViewModels. The recommended pattern is to pass a pattern instance into a ViewModel constructor or as a property.
+
+```typescript
+import { createToastQueue, createModal, type ToastQueueBehavior, type ModalBehavior } from '@web-loom/ui-patterns';
+import { BaseViewModel, Command } from '@web-loom/mvvm-core';
+
+class GreenhouseViewModel extends BaseViewModel {
+  constructor(
+    private model: GreenhouseModel,
+    private toasts: ToastQueueBehavior,
+    private modal: ModalBehavior,
+  ) {
+    super();
+  }
+
+  readonly deleteCommand = new Command(async (id: string) => {
+    await this.model.delete(id);
+    this.toasts.actions.addToast({ message: 'Deleted', type: 'success' });
+  });
+
+  readonly confirmDelete = (id: string) => {
+    this.modal.actions.openModal('confirm-delete', { id });
+  };
+}
+
+// Singletons shared across the app
+export const toastQueue = createToastQueue({ maxVisible: 3 });
+export const globalModal = createModal();
+export const greenhouseVM = new GreenhouseViewModel(
+  new GreenhouseModel(),
+  toastQueue,
+  globalModal,
+);
+```
+
+---
+
+## Framework Integration
+
+Because patterns follow the `subscribe()` / `getState()` contract, the same adapter hook works for any pattern.
+
+### React
+
+```tsx
+function usePattern<S>(p: { getState(): S; subscribe(fn: (s: S) => void): () => void }): S {
+  const [state, setState] = useState(() => p.getState());
+  useEffect(() => p.subscribe(setState), [p]);
+  return state;
+}
+```
+
+### Vue 3
+
+```typescript
+function usePattern<S>(p: { getState(): S; subscribe(fn: (s: S) => void): () => void }) {
+  const state = ref<S>(p.getState());
+  let unsub: (() => void) | null = null;
+  onMounted(() => { unsub = p.subscribe((s) => { state.value = s; }); });
+  onUnmounted(() => { unsub?.(); p.destroy(); });
+  return readonly(state);
+}
+```
+
+### Angular
+
+```typescript
+@Injectable({ providedIn: 'root' })
+export class ToastService implements OnDestroy {
+  private queue = createToastQueue({ maxVisible: 4 });
+  private _state$ = new BehaviorSubject(this.queue.getState());
+
+  constructor() {
+    this.queue.subscribe((s) => this._state$.next(s));
+  }
+
+  get state$() { return this._state$.asObservable(); }
+  get actions()  { return this.queue.actions; }
+
+  ngOnDestroy() { this.queue.destroy(); }
+}
+```
+
+---
+
+## Testing
+
+Because patterns have no framework dependencies, they can be tested with plain Vitest.
+
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+import { createWizard } from '@web-loom/ui-patterns';
+
+describe('createWizard', () => {
+  it('validates before advancing', async () => {
+    const onComplete = vi.fn();
+    const wizard = createWizard({
+      steps: [
+        { id: 'step1', label: 'Step 1', validate: (d) => (!d.name ? 'Required' : null) },
+        { id: 'step2', label: 'Step 2' },
+      ],
+      onComplete,
+    });
+
+    const advanced = await wizard.actions.goToNextStep();
+    expect(advanced).toBe(false); // blocked by validation
+
+    wizard.actions.setStepData({ name: 'Alice' });
+    const advanced2 = await wizard.actions.goToNextStep();
+    expect(advanced2).toBe(true);
+    expect(wizard.getState().currentStepIndex).toBe(1);
+
+    wizard.destroy();
+  });
+
+  it('calls onComplete when wizard finishes', async () => {
+    const onComplete = vi.fn();
+    const wizard = createWizard({
+      steps: [{ id: 'only', label: 'Only Step' }],
+      onComplete,
+    });
+
+    await wizard.actions.completeWizard();
+    expect(onComplete).toHaveBeenCalledOnce();
+    wizard.destroy();
+  });
 });
 ```
 
-## Theming and styling
+---
 
-UI Patterns rely on `@web-loom/ui-core` behaviors, so they automatically pick up CSS custom properties injected via `@web-loom/design-core` themes (`createTheme`, `applyTheme`, `setTheme`). Apply your light/dark themes early, then instantiate patterns inside theme-aware providers to ensure layout tokens (colors, surfaces, shadows) respond to theme changes.
+## Best Practices
 
-## Real-world usage
+- **Always call `destroy()`** in component teardown — patterns set `setTimeout` timers (Toast), add `keydown` listeners (Modal), and subscribe to stores internally.
+- **One pattern instance per feature scope** — create modal or toast singletons at the app level and inject them into ViewModels. Don't create new instances per render.
+- **Use `eventBus` for cross-concern side effects** — subscribe to `'item:selected'` in a ViewModel, not in a render function.
+- **Combine patterns** — a typical dashboard composes Sidebar Shell + Tabbed Interface + Master-Detail + Toast Queue + Command Palette. Each is independent; they communicate through shared ViewModels or event bus listeners.
+- **Feed responsive data from outside** — `GridLayout` and `SidebarShell` don't attach resize listeners themselves. Drive them from a single ResizeObserver or media query hook to keep observation centralised.
+- **Register commands at boot** — for `CommandPalette`, register all commands once at app initialisation. Use `registerCommand` at runtime only for context-sensitive commands (e.g. editing mode).
 
-- `apps/task-flow-ui` and `apps/mvvm-react-integrated` compose several UI Patterns to build dashboards, modals, and toast notifications while MVVM viewmodels supply the data.
-- `apps/ui-patterns-playground` demonstrates each pattern with story-like examples.
+---
+
+## See Also
+
+- [UI Core Behaviors](/docs/ui-core) — the atomic behaviors (`createListSelection`, `createRovingFocus`, `createDialogBehavior`, `createDisclosureBehavior`) that patterns build on
+- [Store Core](/docs/store-core) — reactive store used internally by all patterns
+- [Event Bus Core](/docs/event-bus-core) — the event bus used by pattern `eventBus` properties
+- [Design Core](/docs/design-core) — design tokens and theming that styles pattern UI

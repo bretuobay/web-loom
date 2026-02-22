@@ -31,7 +31,7 @@ npm install @web-loom/query-core
 
 ## Core Concepts
 
-### `QueryCore` Instance
+### QueryCore Instance
 
 The main class you interact with. It manages all defined endpoints and global configurations.
 
@@ -96,7 +96,7 @@ export interface EndpointState<TData> {
 
 ## API Reference
 
-### `constructor(options?: QueryCoreOptions)`
+### constructor(options?)
 
 Creates a new `QueryCore` instance and seeds the default cache provider plus refetch policy.
 
@@ -107,7 +107,7 @@ const queryCore = new QueryCore({
 });
 ```
 
-### `async defineEndpoint<TData>(endpointKey: string, fetcher: () => Promise<TData>, options?: EndpointOptions): Promise<void>`
+### defineEndpoint&lt;TData&gt;(endpointKey, fetcher, options?)
 
 Defines or redefines a data endpoint and initializes cached state. This call is async because cache providers may hydrate storage.
 
@@ -138,7 +138,7 @@ await queryCore.defineEndpoint('allPosts', async () => {
 - Use descriptive keys.
 - Surface meaningful error messages inside the fetcher.
 
-### `subscribe<TData>(endpointKey: string, callback: (state: EndpointState<TData>) => void): () => void`
+### subscribe&lt;TData&gt;(endpointKey, callback)
 
 Subscribes to state updates for the endpoint; the callback runs immediately and on every state change.
 
@@ -173,7 +173,7 @@ unsubscribe();
 - Handle `isLoading`, `isError`, and success paths.
 - Keep callbacks lightweight.
 
-### `async refetch<TData>(endpointKey: string, forceRefetch = false): Promise<void>`
+### refetch&lt;TData&gt;(endpointKey, forceRefetch?)
 
 Manually refetches data for the endpoint.
 
@@ -193,7 +193,7 @@ await queryCore.refetch('users', true);
 
 Wrap in `try/catch`; failures update `isError` and `error`.
 
-### `async invalidate(endpointKey: string): Promise<void>`
+### invalidate(endpointKey)
 
 Clears cached data for an endpoint from every layer.
 
@@ -205,7 +205,7 @@ await queryCore.invalidate('users');
 await queryCore.refetch('users', true);
 ```
 
-### `getState<TData>(endpointKey: string): EndpointState<TData>`
+### getState&lt;TData&gt;(endpointKey)
 
 Returns the current snapshot without subscribing or refetching.
 
@@ -283,7 +283,7 @@ document.getElementById('logout-button').onclick = async () => {
 
 QueryCore ships with three built-in cache providers and a small interface for custom storage.
 
-### `InMemoryCacheProvider`
+### InMemoryCacheProvider
 
 - Fast, volatile cache stored in memory (default behavior).
 - Zero persistence—data disappears on refresh.
@@ -298,7 +298,7 @@ const queryCore = new QueryCore({ cacheProvider: cache });
 
 Ideal for short-lived data, testing, or server-side rendering.
 
-### `LocalStorageCacheProvider`
+### LocalStorageCacheProvider
 
 - Persists data in browser `localStorage` using JSON serialization.
 - ~5–10MB quota per origin depending on the browser.
@@ -316,7 +316,7 @@ Also available per-endpoint via `defineEndpoint({ cacheProvider: 'localStorage' 
 
 Use cases: user preferences, small datasets, tokens, or cross-tab syncing.
 
-### `IndexedDBCacheProvider`
+### IndexedDBCacheProvider
 
 - Large, asynchronous persistence layer (~50MB+ quotas).
 - Supports complex objects without blocking the main thread.
@@ -387,7 +387,7 @@ Great for mobile/offline apps recovering from dropped connections.
 
 ## Usage Examples
 
-### React `useQuery` hook
+### React useQuery hook
 
 ```typescript
 import { useState, useEffect, useCallback } from 'react';

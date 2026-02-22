@@ -90,7 +90,7 @@ store.destroy();
 
 ## API
 
-### `createStore<S, A>(initialState, createActions)`
+### createStore&lt;S, A&gt;(initialState, createActions)
 
 - `initialState: S`: The initial state object.
 - `createActions: (set, get, actions) => A`: A function that receives:
@@ -101,7 +101,7 @@ store.destroy();
 
 Returns a `Store` instance.
 
-### `Store<S, A>` instance
+### Store&lt;S, A&gt; instance
 
 - `getState(): S`: Returns the current state.
 - `setState(updater: (state: S) => S): void`: Updates the state. Primarily for internal use by actions.
