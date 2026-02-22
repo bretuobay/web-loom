@@ -83,6 +83,9 @@ export default function SupportSidebar() {
                   <SidebarLink href="/docs/store-core">Store Core</SidebarLink>
                 </li>
                 <li>
+                  <SidebarLink href="/docs/signals-core">Signals Core</SidebarLink>
+                </li>
+                <li>
                   <SidebarLink href="/docs/event-bus-core">Event Bus Core</SidebarLink>
                 </li>
                 <li>
