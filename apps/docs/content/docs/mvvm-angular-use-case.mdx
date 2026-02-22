@@ -1,63 +1,276 @@
 ---
-title: 'Using MVVM in Angular: Greenhouse Example'
-summary: 'A practical guide to implementing the MVVM pattern in an Angular app using MVVM Core, with a Greenhouse management use case.'
+title: 'MVVM in Angular'
+summary: "How Angular's Zone.js change detection works, why the async pipe is the natural bridge to RxJS observables, and practical patterns for wiring ViewModels into Angular components — with real examples from the Web Loom Greenhouse app."
 topicTitle: 'MVVM Core'
 topicSlug: 'mvvm-core'
+prevTitle: 'MVVM in Vue'
+prevSlug: '/docs/mvvm-vue-use-case'
 ---
 
-# Using MVVM in Angular: Greenhouse Example
+# MVVM in Angular
 
-This guide demonstrates how to use the MVVM (Model-View-ViewModel) pattern in an Angular application with MVVM Core, focusing on a Greenhouse management use case.
+Angular and `@web-loom/mvvm-core` are a natural pairing — both lean on RxJS observables as their primary reactive primitive. The integration is lighter than React or Vue because Angular already understands observables. You don't need a custom bridge hook. You do need to understand *when* Angular checks for changes, how to feed observables into that cycle cleanly, and how to avoid the most common pitfalls around subscriptions and memory leaks. This page covers all of it.
 
-## Overview
+---
 
-- **Model:** Encapsulates data and API logic (GreenHouseModel)
-- **ViewModel:** Manages state, commands, and validation (GreenHouseViewModel)
-- **View:** Angular component (`GreenhouseListComponent`)
+## How Angular's Change Detection Works
 
-## 1. Define the Model
+Angular uses a **zone-based change detection** model. The key mechanism is `Zone.js`, a library that patches every async browser API — `setTimeout`, `setInterval`, `fetch`, `XMLHttpRequest`, `Promise`, event listeners — so it can intercept when async operations complete and notify Angular to check the component tree.
 
-The model handles API requests and data validation:
+```
+User event / async operation completes
+         ↓
+   Zone.js intercepts
+         ↓
+Angular schedules a change detection cycle
+         ↓
+Angular walks the component tree top-down
+         ↓
+Compares current property values to previous
+         ↓
+Updates the DOM where values have changed
+```
+
+This is **pull-based**: Angular proactively checks what changed, rather than components pushing updates when data changes.
+
+### NgZone and Event Coalescing
+
+In the Web Loom Angular app, the zone is configured with event coalescing:
 
 ```typescript
-// packages/models/src/GreenHouseModel.ts
-import { RestfulApiModel } from '@web-loom/mvvm-core';
-import { GreenhouseListSchema, type GreenhouseListData } from './schemas';
-import { nativeFetcher } from './utils/fetcher';
-import { apiRegistry } from './services/services';
-import { API_BASE_URL } from './config';
-
-const { path } = apiRegistry.greenhouse.list;
-
-export const greenHouseConfig = {
-  baseUrl: API_BASE_URL,
-  endpoint: path,
-  fetcher: nativeFetcher,
-  schema: GreenhouseListSchema,
-  initialData: [],
-  validateSchema: false,
+// apps/mvvm-angular/src/app/app.config.ts
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+  ],
 };
+```
 
-export class GreenHouseModel extends RestfulApiModel<GreenhouseListData, typeof GreenhouseListSchema> {
-  constructor() {
-    super(greenHouseConfig);
+`eventCoalescing: true` batches multiple DOM events that fire in the same microtask into a single change detection pass, reducing unnecessary re-checks and improving performance.
+
+### Why RxJS Fits Naturally
+
+RxJS `BehaviorSubject` streams live outside Angular's zone — emitting values doesn't automatically trigger change detection. Angular solves this with the **`async` pipe**, which:
+
+1. Subscribes to an `Observable` or `Promise`
+2. Calls `markForCheck()` whenever a new value arrives (triggering change detection for that subtree)
+3. Automatically **unsubscribes** when the component is destroyed
+
+This makes the `async` pipe the cleanest, safest way to consume observables in templates — no manual subscription management, no memory leaks.
+
+---
+
+## The `async` Pipe — Angular's Observable Bridge
+
+The `async` pipe is the primary mechanism for rendering observable values in Angular templates. It handles the full subscription lifecycle for you.
+
+### Basic pattern
+
+```typescript
+@Component({
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div *ngIf="loading$ | async">Loading…</div>
+    <ul *ngIf="items$ | async as items">
+      <li *ngFor="let item of items">{{ item.name }}</li>
+    </ul>
+    <p *ngIf="error$ | async as err" class="error">{{ err.message }}</p>
+  `,
+})
+export class ItemListComponent implements OnInit {
+  data$!: Observable<Item[]>;
+  loading$!: Observable<boolean>;
+  error$!: Observable<any>;
+
+  ngOnInit(): void {
+    this.data$ = this.vm.data$;
+    this.loading$ = this.vm.isLoading$;
+    this.error$ = this.vm.error$;
   }
 }
 ```
 
-## 2. Create the ViewModel
+### The `as` alias syntax
 
-The ViewModel exposes observables and commands for the UI:
+`*ngIf="items$ | async as items"` subscribes to `items$` and assigns the unwrapped value to the local template variable `items`. This avoids multiple subscriptions when the same stream is referenced in different parts of the template.
+
+```html
+<ng-container *ngIf="greenhouses$ | async as greenhouseList">
+  <div *ngIf="greenhouseList.length > 0; else noGreenhouses">
+    <ul>
+      <li *ngFor="let gh of greenhouseList">{{ gh.name }}</li>
+    </ul>
+  </div>
+</ng-container>
+
+<ng-template #noGreenhouses>
+  <p>No greenhouses found.</p>
+</ng-template>
+```
+
+### When you must subscribe manually
+
+The `async` pipe only works in templates. When you need the latest value from an observable in a method (for example, to read the current list before a CRUD operation), you must maintain a manual subscription and store a snapshot:
+
+```typescript
+private subscription: Subscription | undefined;
+greenhouses: Greenhouse[] = [];
+
+ngOnInit(): void {
+  this.greenhouses$ = this.vm.data$.pipe(
+    tap((ghs) => (this.greenhouses = ghs ?? [])),
+  );
+  this.subscription = this.greenhouses$.subscribe(); // keep snapshot in sync
+}
+
+ngOnDestroy(): void {
+  this.subscription?.unsubscribe();
+}
+
+handleDelete(id: string): void {
+  this.vm.deleteCommand.execute(id); // greenhouses snapshot was needed for guards
+}
+```
+
+---
+
+## Providing ViewModels via Dependency Injection
+
+Angular's DI system is the right place to scope ViewModels. Web Loom uses `InjectionToken` to provide typed ViewModel instances, keeping components decoupled from the specific ViewModel implementation.
+
+### Creating an InjectionToken
+
+```typescript
+import { InjectionToken } from '@angular/core';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>(
+  'GREENHOUSE_VIEW_MODEL',
+);
+```
+
+The token is typed to the ViewModel's shape (`typeof greenHouseViewModel`), giving you full type safety when injecting it.
+
+### Providing and injecting
+
+```typescript
+@Component({
+  standalone: true,
+  providers: [
+    {
+      provide: GREENHOUSE_VIEW_MODEL,
+      useValue: greenHouseViewModel, // singleton ViewModel instance
+    },
+  ],
+})
+export class GreenhouseListComponent {
+  constructor(@Inject(GREENHOUSE_VIEW_MODEL) public vm: typeof greenHouseViewModel) {}
+}
+```
+
+### Why not inject the ViewModel directly?
+
+Using a token instead of a concrete class allows you to:
+
+- Swap the ViewModel for a mock in tests without changing the component
+- Provide different ViewModel instances at different DI scopes (module, component, route)
+- Keep the component agnostic about where the ViewModel instance comes from
+
+### Per-component vs module-level providers
+
+```typescript
+// Component-level: each instance gets the ViewModel in its providers array
+@Component({
+  providers: [{ provide: GREENHOUSE_VIEW_MODEL, useValue: greenHouseViewModel }],
+})
+
+// Module/route-level: provide in a route config to scope to a route subtree
+{
+  path: 'greenhouses',
+  component: GreenhouseListComponent,
+  providers: [{ provide: GREENHOUSE_VIEW_MODEL, useValue: greenHouseViewModel }],
+}
+```
+
+For the Web Loom Greenhouse app, ViewModels are module-level singletons (created once, shared across routes). Providing at the component level is correct for feature-scoped ViewModels that should be destroyed when the component is destroyed.
+
+---
+
+## Lifecycle Hooks
+
+Angular's lifecycle hooks map directly onto the MVVM lifecycle:
+
+| Angular hook       | MVVM role                                        |
+|--------------------|--------------------------------------------------|
+| `constructor`      | Inject ViewModel, set up `FormGroup`             |
+| `ngOnInit`         | Assign observables, trigger `fetchCommand`       |
+| `ngAfterViewInit`  | Access DOM refs (`@ViewChild`), initialize charts|
+| `ngOnDestroy`      | Unsubscribe manual subscriptions                 |
+
+### ngOnInit — start reactive state
+
+Always assign observable properties and execute initial commands in `ngOnInit`, not the constructor. The constructor runs before inputs are resolved and before the component tree is established.
+
+```typescript
+ngOnInit(): void {
+  // Assign ViewModel observables to component properties
+  this.data$ = this.vm.data$;
+  this.loading$ = this.vm.isLoading$;
+  this.error$ = this.vm.error$;
+
+  // Trigger initial fetch
+  this.vm.fetchCommand.execute();
+}
+```
+
+### ngOnDestroy — clean up manual subscriptions
+
+The `async` pipe manages its own subscription. Only call `unsubscribe()` on subscriptions you created explicitly:
+
+```typescript
+ngOnDestroy(): void {
+  this.greenhousesSubscription?.unsubscribe();
+}
+```
+
+### Modern alternative: DestroyRef + takeUntilDestroyed
+
+Angular 16+ provides `DestroyRef` and the `takeUntilDestroyed` operator as a cleaner alternative to the `ngOnDestroy` + `Subscription` pattern:
+
+```typescript
+import { DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+@Component({ standalone: true })
+export class SensorListComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
+
+  ngOnInit(): void {
+    this.vm.data$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((data) => (this.snapshot = data ?? []));
+  }
+  // No ngOnDestroy needed — takeUntilDestroyed handles it
+}
+```
+
+---
+
+## The Full Greenhouse Example
+
+The Greenhouse app demonstrates a complete CRUD flow in an Angular standalone component.
+
+### The ViewModel (framework-agnostic)
 
 ```typescript
 // packages/view-models/src/GreenHouseViewModel.ts
 import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
 import { greenHouseConfig } from '@repo/models';
-import { type GreenhouseListData, GreenhouseListSchema, type GreenhouseData } from '@repo/models';
+import { type GreenhouseListData, GreenhouseListSchema } from '@repo/models';
 
-type TConfig = ViewModelFactoryConfig<GreenhouseListData, typeof GreenhouseListSchema>;
-
-const config: TConfig = {
+const config: ViewModelFactoryConfig<GreenhouseListData, typeof GreenhouseListSchema> = {
   modelConfig: greenHouseConfig,
   schema: GreenhouseListSchema,
 };
@@ -66,39 +279,48 @@ export const greenHouseViewModel = createReactiveViewModel(config);
 export type { GreenhouseListData, GreenhouseData };
 ```
 
-## 3. Use the ViewModel in an Angular Component
+The ViewModel exposes:
+- `data$` — `BehaviorSubject<GreenhouseData[] | null>`
+- `isLoading$` — `BehaviorSubject<boolean>`
+- `error$` — `BehaviorSubject<any>`
+- `fetchCommand`, `createCommand`, `updateCommand`, `deleteCommand` — typed Commands
 
-The component subscribes to observables and triggers commands:
+No Angular imports. The ViewModel works identically in React, Vue, and Angular.
+
+### The component
 
 ```typescript
 // apps/mvvm-angular/src/app/components/greenhouse-list/greenhouse-list.component.ts
 import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { GreenhouseData, greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { Observable, Subscription, tap } from 'rxjs';
+import { RouterLink } from '@angular/router';
 
-export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>('GREENHOUSE_VIEW_MODEL');
+export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>(
+  'GREENHOUSE_VIEW_MODEL',
+);
 
 @Component({
   selector: 'app-greenhouse-list',
-  // ...template and styles omitted for brevity...
-  providers: [
-    {
-      provide: GREENHOUSE_VIEW_MODEL,
-      useValue: greenHouseViewModel,
-    },
-  ],
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  templateUrl: './greenhouse-list.component.html',
+  providers: [{ provide: GREENHOUSE_VIEW_MODEL, useValue: greenHouseViewModel }],
 })
 export class GreenhouseListComponent implements OnInit, OnDestroy {
   public vm: typeof greenHouseViewModel;
   public greenhouses$!: Observable<GreenhouseData[] | null>;
   public loading$!: Observable<boolean>;
   public error$!: Observable<any>;
+
   greenhouseForm: FormGroup;
   editingGreenhouseId: string | null | undefined = null;
-  greenhouses: GreenhouseData[] = [];
+  greenhouses: GreenhouseData[] = []; // snapshot for imperative reads
   private greenhousesSubscription: Subscription | undefined;
-  greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
+
+  readonly sizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
 
   constructor(
     private fb: FormBuilder,
@@ -106,51 +328,587 @@ export class GreenhouseListComponent implements OnInit, OnDestroy {
   ) {
     this.vm = vm;
     this.greenhouseForm = this.fb.group({
-      name: ['', Validators.required],
+      name:     ['', Validators.required],
       location: ['', Validators.required],
-      size: ['', Validators.required],
+      size:     ['', Validators.required],
       cropType: [''],
-      id: [''],
+      id:       [''],
     });
   }
 
   ngOnInit(): void {
-    this.greenhouses$ = this.vm.data$.pipe(tap((ghs) => (this.greenhouses = ghs || [])));
+    this.greenhouses$ = this.vm.data$.pipe(
+      tap((ghs) => (this.greenhouses = ghs ?? [])),
+    );
     this.loading$ = this.vm.isLoading$;
     this.error$ = this.vm.error$;
+
     this.vm.fetchCommand.execute();
     this.greenhousesSubscription = this.greenhouses$.subscribe();
   }
 
   ngOnDestroy(): void {
-    if (this.greenhousesSubscription) {
-      this.greenhousesSubscription.unsubscribe();
-    }
+    this.greenhousesSubscription?.unsubscribe();
   }
 
   handleSubmit(): void {
     if (this.greenhouseForm.invalid) return;
-    const formDataValue = this.greenhouseForm.value;
-    // ...create or update logic...
-    this.vm.createCommand.execute(formDataValue);
+
+    const value = this.greenhouseForm.value;
+
+    if (this.editingGreenhouseId) {
+      const existing = this.greenhouses.find((gh) => gh.id === this.editingGreenhouseId);
+      if (existing) {
+        this.vm.updateCommand.execute({
+          id: this.editingGreenhouseId,
+          payload: { ...existing, name: value.name, location: value.location, size: value.size },
+        });
+      }
+    } else {
+      this.vm.createCommand.execute(value);
+    }
+
     this.greenhouseForm.reset();
     this.editingGreenhouseId = null;
+  }
+
+  handleUpdateForm(id?: string): void {
+    const gh = this.greenhouses.find((g) => g.id === id);
+    if (!gh) return;
+    this.editingGreenhouseId = gh.id;
+    this.greenhouseForm.patchValue({
+      name: gh.name,
+      location: gh.location,
+      size: gh.size,
+      cropType: gh.cropType ?? '',
+    });
+  }
+
+  handleDelete(id?: string): void {
+    if (!id) return;
+    this.vm.deleteCommand.execute(id);
+    if (this.editingGreenhouseId === id) {
+      this.greenhouseForm.reset();
+      this.editingGreenhouseId = null;
+    }
   }
 }
 ```
 
-## 4. Key Concepts
+### The template
 
-- **Observables:** Subscribe to data, loading, and error states from the ViewModel using RxJS.
-- **Commands:** Trigger CRUD operations via the ViewModel (e.g., `fetchCommand`, `createCommand`).
-- **Validation:** Schemas ensure data integrity.
+```html
+<!-- greenhouse-list.component.html -->
+<section class="flex-container flex-row">
 
-## 5. Benefits of MVVM in Angular
+  <!-- Reactive form -->
+  <form [formGroup]="greenhouseForm" (ngSubmit)="handleSubmit()" class="form-container">
+    <div class="form-group">
+      <label for="name">Greenhouse Name:</label>
+      <input id="name" formControlName="name" class="input-field" placeholder="Enter name" />
+      <div
+        *ngIf="greenhouseForm.get('name')?.invalid &&
+               (greenhouseForm.get('name')?.dirty || greenhouseForm.get('name')?.touched)"
+        class="error-message"
+      >
+        Name is required.
+      </div>
+    </div>
 
-- Separation of concerns: UI logic is decoupled from data and API logic.
-- Reactive updates: UI automatically updates when data changes.
-- Testability: Models and ViewModels can be tested independently.
+    <div class="form-group">
+      <label for="location">Location:</label>
+      <textarea id="location" formControlName="location" rows="3" class="textarea-field"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="size">Size:</label>
+      <select id="size" formControlName="size" class="select-field">
+        <option value="">Select size</option>
+        <option *ngFor="let s of sizeOptions" [value]="s">{{ s }}</option>
+      </select>
+    </div>
+
+    <button type="submit" [disabled]="greenhouseForm.invalid" class="button">
+      {{ editingGreenhouseId ? 'Update' : 'Create' }}
+    </button>
+  </form>
+
+  <!-- List -->
+  <div class="card">
+    <h1>Greenhouses</h1>
+
+    <div *ngIf="loading$ | async">Loading…</div>
+
+    <ng-container *ngIf="greenhouses$ | async as list">
+      <ul *ngIf="list.length > 0; else empty" class="list">
+        <li *ngFor="let gh of list" class="list-item">
+          <span>{{ gh.name }}</span>
+          <div>
+            <button (click)="handleDelete(gh.id)" class="button-tiny">Delete</button>
+            <button (click)="handleUpdateForm(gh.id)" class="button-tiny">Edit</button>
+          </div>
+        </li>
+      </ul>
+    </ng-container>
+
+    <ng-template #empty>
+      <p *ngIf="!(loading$ | async)">No greenhouses found.</p>
+    </ng-template>
+  </div>
+
+</section>
+```
 
 ---
 
-For more details, see the source files in `packages/models` and `packages/view-models`, and explore the MVVM Core documentation.
+## Reactive Forms with MVVM
+
+Angular's `ReactiveFormsModule` complements the MVVM pattern well. The form state (touched, dirty, invalid) lives in `FormGroup` — Angular's own reactive system — while domain mutations live in ViewModel Commands. They stay separate by design.
+
+### Key bindings
+
+| Template syntax               | Purpose                                      |
+|-------------------------------|----------------------------------------------|
+| `[formGroup]="form"`          | Bind the component's `FormGroup` to a `<form>` |
+| `formControlName="name"`      | Bind a specific control to an input          |
+| `(ngSubmit)="handleSubmit()"` | Call a method on form submission             |
+| `[disabled]="form.invalid"`   | Disable a button based on validation state   |
+| `form.get('name')?.invalid`   | Read per-field validation state              |
+| `form.patchValue({...})`      | Populate form for editing without resetting other fields |
+| `form.reset()`                | Clear all values and reset touched/dirty state |
+
+### Where form state belongs
+
+Keep `FormGroup` values in the component — not in the ViewModel. The ViewModel should receive a clean payload when a command is executed, not subscribe to `FormGroup.valueChanges`:
+
+```typescript
+// Good — ViewModel receives final payload
+handleSubmit(): void {
+  if (this.form.invalid) return;
+  this.vm.createCommand.execute(this.form.value);
+  this.form.reset();
+}
+
+// Avoid — ViewModel should not subscribe to form internals
+ngOnInit(): void {
+  this.form.valueChanges.subscribe((v) => this.vm.setDraft(v)); // unnecessary coupling
+}
+```
+
+---
+
+## Command Binding in Templates
+
+Commands expose observable flags directly on the instance. Bind them with the `async` pipe:
+
+```html
+<!-- Loading spinner from command state -->
+<button
+  (click)="vm.fetchCommand.execute()"
+  [disabled]="(vm.fetchCommand.isExecuting$ | async) === true"
+>
+  <span *ngIf="vm.fetchCommand.isExecuting$ | async; else label">Loading…</span>
+  <ng-template #label>Refresh</ng-template>
+</button>
+
+<!-- Error from command -->
+<p *ngIf="vm.fetchCommand.executeError$ | async as err" class="error">
+  Failed: {{ err.message }}
+</p>
+```
+
+Or assign command observables to component properties in `ngOnInit` to keep templates clean:
+
+```typescript
+ngOnInit(): void {
+  this.isSaving$ = this.vm.createCommand.isExecuting$;
+  this.canSave$ = this.vm.createCommand.canExecute$;
+}
+```
+
+```html
+<button [disabled]="!(canSave$ | async)" (click)="vm.createCommand.execute(form.value)">
+  <ng-container *ngIf="isSaving$ | async; else saveLabel">Saving…</ng-container>
+  <ng-template #saveLabel>Save</ng-template>
+</button>
+```
+
+---
+
+## @ViewChild and AfterViewInit
+
+When a component needs to access a DOM element after Angular has rendered the template (for example, to initialize a canvas-based chart), use `@ViewChild` in conjunction with the `AfterViewInit` lifecycle hook.
+
+### SensorReadingCardComponent example
+
+```typescript
+import { Component, AfterViewInit, ElementRef, ViewChild, OnInit, Inject, InjectionToken } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { sensorReadingViewModel, SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
+import { Observable } from 'rxjs';
+import { Chart } from 'chart.js/auto';
+
+export const SENSOR_READING_VIEW_MODEL = new InjectionToken<typeof sensorReadingViewModel>(
+  'SENSOR_READING_VIEW_MODEL',
+);
+
+@Component({
+  selector: 'app-sensor-reading-card',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <canvas #readingsChart></canvas>
+    <div *ngIf="loading$ | async">Loading readings…</div>
+  `,
+  providers: [{ provide: SENSOR_READING_VIEW_MODEL, useValue: sensorReadingViewModel }],
+})
+export class SensorReadingCardComponent implements OnInit, AfterViewInit {
+  public vm: typeof sensorReadingViewModel;
+  public data$!: Observable<SensorReadingListData | null>;
+  public loading$!: Observable<boolean>;
+
+  @ViewChild('readingsChart') readingsChartRef?: ElementRef<HTMLCanvasElement>;
+  private chartInstance?: Chart;
+
+  constructor(@Inject(SENSOR_READING_VIEW_MODEL) vm: typeof sensorReadingViewModel) {
+    this.vm = vm;
+  }
+
+  ngOnInit(): void {
+    this.data$ = this.vm.data$;
+    this.loading$ = this.vm.isLoading$;
+    this.vm.fetchCommand.execute();
+  }
+
+  ngAfterViewInit(): void {
+    // Canvas is now in the DOM — safe to initialize the chart
+    this.data$.subscribe((data) => {
+      if (data && data.length > 0 && this.readingsChartRef) {
+        this.initChart(data);
+      }
+    });
+  }
+
+  private initChart(data: SensorReadingListData): void {
+    const canvas = this.readingsChartRef!.nativeElement;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    this.chartInstance?.destroy();
+    this.chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map((r) => new Date(r.timestamp).toLocaleTimeString()),
+        datasets: [{
+          label: 'Readings',
+          data: data.map((r) => r.value),
+          borderColor: 'rgba(75, 192, 192, 1)',
+          tension: 0.1,
+        }],
+      },
+    });
+  }
+}
+```
+
+Key points:
+
+- `@ViewChild('readingsChart')` locates the `<canvas #readingsChart>` element
+- `ngAfterViewInit` is called after the first render — the canvas is in the DOM
+- The chart is destroyed and recreated on each data emission to avoid duplicate series
+- This chart initialization logic belongs in the component, not the ViewModel — it's a DOM concern
+
+---
+
+## Simplified Read-Only Components
+
+When a component only needs to display data (no forms, no mutations), the setup is minimal — just assign observables in `ngOnInit` and let the `async` pipe do the rest:
+
+```typescript
+// apps/mvvm-angular/src/app/layout/header/header.component.ts
+import { Component } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { navigationViewModel } from '@repo/shared/view-models/NavigationViewModel';
+
+@Component({
+  selector: 'app-header',
+  standalone: true,
+  imports: [RouterModule, CommonModule],
+  template: `
+    <nav *ngIf="navigationList$ | async as navItems">
+      <a
+        *ngFor="let item of navItems"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+      >{{ item.label }}</a>
+    </nav>
+  `,
+})
+export class HeaderComponent {
+  public navigationList$ = navigationViewModel.navigationList.items$;
+}
+```
+
+No `ngOnInit`, no `ngOnDestroy`, no subscriptions. The `async` pipe handles everything.
+
+---
+
+## ChangeDetectionStrategy.OnPush
+
+By default, Angular checks every component in the tree on every change detection pass. `ChangeDetectionStrategy.OnPush` narrows this: Angular only re-checks a component when:
+
+1. An `@Input()` reference changes
+2. An event fires from inside the component
+3. An `Observable` piped through `async` emits a new value
+4. `markForCheck()` is called manually
+
+Because all ViewModel state is consumed through the `async` pipe, switching to `OnPush` works seamlessly with the MVVM pattern:
+
+```typescript
+import { ChangeDetectionStrategy } from '@angular/core';
+
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  // ... rest of decorator
+})
+export class GreenhouseListComponent implements OnInit, OnDestroy {
+  // No changes required — async pipe triggers markForCheck() automatically
+}
+```
+
+`OnPush` is the recommended strategy for components consuming ViewModel observables. It avoids unnecessary checks and makes the component's update triggers explicit.
+
+---
+
+## Testing Angular Components with ViewModels
+
+Because the ViewModel is provided via `InjectionToken`, tests can swap it for a mock without touching the component logic.
+
+### Testing with a mock ViewModel
+
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
+import { BehaviorSubject } from 'rxjs';
+import { GreenhouseListComponent, GREENHOUSE_VIEW_MODEL } from './greenhouse-list.component';
+
+describe('GreenhouseListComponent', () => {
+  let fixture: ComponentFixture<GreenhouseListComponent>;
+  let component: GreenhouseListComponent;
+
+  const data$ = new BehaviorSubject<any[]>([]);
+  const isLoading$ = new BehaviorSubject(false);
+  const error$ = new BehaviorSubject<any>(null);
+
+  const mockFetchCommand = { execute: jasmine.createSpy('execute'), isExecuting$: isLoading$ };
+  const mockCreateCommand = { execute: jasmine.createSpy('execute'), isExecuting$: new BehaviorSubject(false) };
+  const mockDeleteCommand = { execute: jasmine.createSpy('execute') };
+
+  const mockVm = { data$, isLoading$, error$, fetchCommand: mockFetchCommand, createCommand: mockCreateCommand, deleteCommand: mockDeleteCommand };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [GreenhouseListComponent, CommonModule, ReactiveFormsModule],
+      providers: [
+        { provide: GREENHOUSE_VIEW_MODEL, useValue: mockVm },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(GreenhouseListComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges(); // triggers ngOnInit
+  });
+
+  it('calls fetchCommand on init', () => {
+    expect(mockFetchCommand.execute).toHaveBeenCalledOnce();
+  });
+
+  it('renders greenhouse names', async () => {
+    data$.next([{ id: '1', name: 'Alpine House', location: 'Zone A' }]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const items = fixture.nativeElement.querySelectorAll('.list-item');
+    expect(items.length).toBe(1);
+    expect(items[0].textContent).toContain('Alpine House');
+  });
+
+  it('disables submit when form is invalid', () => {
+    const button = fixture.nativeElement.querySelector('button[type="submit"]');
+    expect(button.disabled).toBeTrue();
+  });
+
+  it('calls createCommand when form is submitted with valid data', () => {
+    component.greenhouseForm.patchValue({
+      name: 'Tropical House',
+      location: 'Zone B',
+      size: '50sqm',
+    });
+    fixture.detectChanges();
+
+    component.handleSubmit();
+    expect(mockCreateCommand.execute).toHaveBeenCalledWith(
+      jasmine.objectContaining({ name: 'Tropical House' }),
+    );
+  });
+});
+```
+
+### Testing the ViewModel independently
+
+Because ViewModels have no Angular imports, they can be tested with plain Vitest — no `TestBed`, no fixtures:
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+import { firstValueFrom } from 'rxjs';
+import { greenHouseViewModel } from './GreenHouseViewModel';
+
+describe('GreenHouseViewModel', () => {
+  it('starts with null data and not loading', async () => {
+    const data = await firstValueFrom(greenHouseViewModel.data$);
+    const loading = await firstValueFrom(greenHouseViewModel.isLoading$);
+    expect(data).toBeNull();
+    expect(loading).toBe(false);
+  });
+
+  it('sets isLoading$ to true while fetch is in progress', () => {
+    const states: boolean[] = [];
+    const sub = greenHouseViewModel.isLoading$.subscribe((v) => states.push(v));
+
+    greenHouseViewModel.fetchCommand.execute();
+    expect(states).toContain(true);
+
+    sub.unsubscribe();
+  });
+});
+```
+
+---
+
+## Dos and Don'ts
+
+**Do** assign ViewModel observables in `ngOnInit`, not the constructor.
+
+```typescript
+// Good
+ngOnInit(): void {
+  this.data$ = this.vm.data$;
+  this.vm.fetchCommand.execute();
+}
+
+// Avoid — inputs aren't resolved yet in the constructor
+constructor(@Inject(VM_TOKEN) private vm: GreenhouseVM) {
+  this.data$ = this.vm.data$; // could work, but ngOnInit is the right place
+}
+```
+
+---
+
+**Do** use the `async` pipe for all observable rendering. It unsubscribes automatically.
+
+```html
+<!-- Good -->
+<ul *ngIf="items$ | async as items">
+  <li *ngFor="let i of items">{{ i.name }}</li>
+</ul>
+
+<!-- Avoid — manual subscription in the component for display-only data -->
+ngOnInit(): void {
+  this.sub = this.vm.data$.subscribe((d) => (this.items = d));
+}
+```
+
+---
+
+**Do** use `InjectionToken` to provide ViewModels so tests can substitute a mock.
+
+```typescript
+// Good — swappable via DI
+export const VM_TOKEN = new InjectionToken<GreenhouseVM>('GreenhouseVM');
+providers: [{ provide: VM_TOKEN, useValue: greenHouseViewModel }]
+
+// Avoid — hard-wired, impossible to swap in tests
+constructor(private vm: GreenHouseViewModelClass) {}
+```
+
+---
+
+**Do** unsubscribe from every manual subscription in `ngOnDestroy`.
+
+```typescript
+// Good
+ngOnDestroy(): void {
+  this.subscription?.unsubscribe();
+}
+
+// Better (Angular 16+) — no ngOnDestroy needed
+private destroyRef = inject(DestroyRef);
+this.vm.data$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(...);
+```
+
+---
+
+**Do** use `ChangeDetectionStrategy.OnPush` for components that consume ViewModel observables via the `async` pipe.
+
+```typescript
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  // All updates arrive through async pipe — OnPush is safe
+})
+```
+
+---
+
+**Don't** import Angular modules inside a ViewModel.
+
+```typescript
+// Wrong — ViewModels are framework-agnostic
+import { Injectable } from '@angular/core'; // ← breaks portability
+
+// Correct — plain TypeScript class
+export class GreenhouseViewModel extends RestfulApiViewModel<...> { ... }
+```
+
+---
+
+**Don't** subscribe to `formGroup.valueChanges` in the ViewModel. Let the component call a command with the final value on submit.
+
+```typescript
+// Wrong — couples the ViewModel to form lifecycle
+ngOnInit(): void {
+  this.form.valueChanges.subscribe((v) => this.vm.setDraft(v));
+}
+
+// Correct — ViewModel receives clean payload on submit
+handleSubmit(): void {
+  if (this.form.invalid) return;
+  this.vm.createCommand.execute(this.form.value);
+}
+```
+
+---
+
+**Don't** put DOM logic (chart initialization, focus management, scroll) in the ViewModel.
+
+```typescript
+// Wrong — ViewModel should not touch the DOM
+class SensorViewModel {
+  initChart(canvas: HTMLCanvasElement) { ... }
+}
+
+// Correct — DOM work belongs in the component's AfterViewInit hook
+ngAfterViewInit(): void {
+  this.data$.subscribe((data) => this.initChart(data));
+}
+```
+
+---
+
+## Where to Go Next
+
+- [ViewModels](/docs/viewmodels) — the full API for Commands, RestfulApiViewModel, and lifecycle
+- [Models](/docs/models) — how Models fetch, cache, and own reactive data
+- [MVVM in React](/docs/mvvm-react-use-case) — the React integration with `useObservable` and `useSyncExternalStore`
+- [MVVM in Vue](/docs/mvvm-vue-use-case) — the Vue 3 integration with composables and provide/inject

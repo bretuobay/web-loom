@@ -1,79 +1,210 @@
 ---
-title: "Basics & Fundamentals"
-summary: "This guide will give you everything you need to start using the Docs Marketing API to manage audiences, control automation workflows, sync email activity with your database, and more."
-topicTitle: "Documentation"
-topicSlug: "documentation"
-nextTitle: "Methods and Parameters"
-nextSlug: "/documentation/methods-and-parameters"   
+title: 'Architecture Fundamentals'
+summary: 'The core ideas behind Web Loom — why framework-agnostic architecture matters and how the MVVM pattern keeps business logic independent of the UI layer.'
+topicTitle: 'Published Packages'
+topicSlug: 'packages'
+nextTitle: 'Getting Started'
+nextSlug: '/docs/getting-started'
 ---
 
-## The basics
+# Architecture Fundamentals
 
-The Docs Marketing API provides programmatic access to Docs data and functionality, allowing developers to build custom features to do things like sync email activity and campaign analytics with their database, manage audiences and campaigns, and more.
+Web Loom is built on a single conviction: **business logic should survive framework changes**. When you migrate from React to Vue, or add a React Native mobile app alongside your web app, only the View layer — roughly 20% of your codebase — should need rewriting. The remaining 80% (Models, ViewModels, services, and behaviors) lives in framework-agnostic packages and travels unchanged.
 
-To use the Docs API, you need a Docs account. What you can do with the API depends on what level of Docs plan you have. Once you have an account and are logged in, you can get an API key and begin making calls to the API.
+This page explains the architectural principles that make that possible.
 
-### Using Docs
+---
 
-Whether you're managing your own campaigns, providing Docs services to your customers or clients, or writing a mobile app, the Docs Marketing API has features to manage and sync your contact data.
+## The MVVM Pattern
 
-You can also use the Docs API to handle data in different ways for different purposes. If you are syncing a large amount of data with Docs, you can use batches to avoid hitting the API request limits. For building integrations that let other users access data from their own [Docs accounts](#0), you should [authenticate with OAuth 2](#0). And if you're developing an app for iOS or Android, the Mobile SDK provides an easy way to work with a mobile-focused subset of the Docs API's functionality.
+Web Loom follows the **Model–View–ViewModel** (MVVM) pattern, a well-established separation of concerns that decouples data, presentation logic, and UI rendering.
 
-## API structure
-
-The Marketing API generally follows REST conventions, with some deviations.
-
-* Resources are typically nouns like subscribers or campaigns.
-* Subresources can be multiply nested under resources.
-* Actions are usually represented by HTTP methods.
-* Responses use the generic JSON content type.
-
-We use the API Specification to describe each endpoint. The API self-description also contains type information to help you error-check your requests.
-
-The root url for the API is `https://dc.api.docs.com/3.0/`. The dc part of the URL corresponds to the data center for your account. For example, if the data center for your account is us6, all API endpoints for your account are available relative to `https://us6.api.docs.com/3.0/`.
-
-There are a few ways to find your data center. It's the first part of the URL you see in the API keys section of your account; if the URL is `https://us6.docs.com/account/api/`, then the data center subdomain is us6. It's also appended to your API key in the form key-dc; if your API key is 0123456789abcdef0123456789abcde-us6, then the data center subdomain is us6. And finally, if you're connecting via OAuth 2, you can find the data center associated with the token via the OAuth Metadata endpoint; for more information, see the OAuth guide.
-
-<Banner type="important">Note: You will see the dc placeholder or an actual data center subdomain in examples throughout this documentation. Either way, make sure to replace it in your code with the data center subdomain for your account, or your request may generate an error.</Banner>
-
-## Connecting to the API
-
-You can authenticate requests using either your API key or an OAuth access token, depending on your use case. You should use an API key if you're writing code that tightly couples your application data to your Docs account data; if you ever need to access someone else's Docs account data, you should use OAuth 2.
-
-For more information on the Docs OAuth 2 flow, see Access Data on Behalf of Other Users with OAuth 2.
-
-If you're integrating with the Docs API using one of the [official client libraries](#0), you won't need to worry about the implementation details for authentication.
-
-### Authenticate with an API key or OAuth 2 token
-
-API keys and OAuth 2 tokens can be used to make authenticated requests the same way. We'll refer to both as tokens.
-
-You can either use HTTP Basic Authentication or Bearer Authentication.
-
-```bash
-HTTP Basic Authentication:
-
-  curl --request GET \
-  
-  --url 'https://dc.api.docs.com/3.0/' \
-  
-  --user 'anystring:TOKEN
+```
+Model          →   owns data, talks to APIs, holds reactive state
+  ↓
+ViewModel      →   derives presentation state, exposes commands
+  ↓
+View           →   framework-specific rendering and subscriptions
 ```
 
-## API limits
+Each layer has a strict responsibility:
 
-To improve the experience for all our users, we impose some limits on API requests. These limits prevent a single user from making too many expensive calls at once. Exceeding the limits can result in your API access being disabled, so be cognizant of the quantity and complexity of your requests. Currently there are no options to raise the limit on a per-customer basis.
+- **Model** — fetches, persists, and owns raw data. Exposes it through reactive observables or signals. Never knows the UI exists.
+- **ViewModel** — computes what the View needs (formatted values, loading flags, derived lists) and exposes commands for actions. Orchestrates one or more Models. No framework imports.
+- **View** — subscribes to ViewModel state, renders it, and calls ViewModel commands on user interaction. The only framework-specific code.
 
-### Throttling
+---
 
-The Marketing API has a limit of 10 simultaneous connections. You'll receive a 429 error if you reach the limit. At exceptionally high volumes, you may receive an HTTP 429 or 403 without a JSON body.
+## Why Framework-Agnostic
 
-We recommend that you cache frequently accessed values that do not change often in your application's data store. This will prevent your application from bumping up against the throttling limitations and will likely provide faster access to that data.
+Frameworks have lifecycles. React 16 → 18, Angular upgrades, Vue 2 → 3 — each migration forces rewrites. When business logic is entangled with framework code, every migration touches the whole codebase.
 
-### Stream timeouts
+Web Loom separates concerns at a package boundary:
 
-The Marketing API has a 120-second timeout on API calls. You may see this type of timeout after you've made a network socket connection and are already sending and receiving data.
+- `@web-loom/mvvm-core`, `@web-loom/signals-core`, `@web-loom/query-core` — plain TypeScript, zero framework imports
+- `@web-loom/ui-core`, `@web-loom/forms-core` — headless behaviors, framework-agnostic
+- Framework adapters (`@web-loom/forms-react`, `@web-loom/media-vue`, …) — thin wrappers, typically under 200 lines
 
-Response times are dependent on the complexity of your request and the general load across Docs. Some endpoints in the Marketing API return values that are large and slow to calculate. Once you know what data you need, use the [pagination and partial response](#0) capabilities to request only what is essential to you.
+When a new framework emerges, you write a new adapter. The Models and ViewModels underneath stay untouched.
 
-<Banner>Note: You will see the dc placeholder or an actual data center subdomain in examples throughout this documentation. Either way, make sure to replace it in your code with the data center subdomain for your account, or your request may generate an error.</Banner>
+---
+
+## The Layered Architecture
+
+```
+┌─────────────────────────────────┐
+│  View (framework-specific)      │  React / Vue / Angular / Lit / Vanilla
+│  subscribes to observables      │
+├─────────────────────────────────┤
+│  ViewModel (framework-agnostic) │  Commands, derived state, orchestration
+│  uses Models, exposes state     │
+├─────────────────────────────────┤
+│  Model (framework-agnostic)     │  Data, API calls, reactive streams
+│  calls infrastructure           │
+├─────────────────────────────────┤
+│  Infrastructure                 │  HTTP, Storage, i18n, Router, EventBus
+└─────────────────────────────────┘
+```
+
+**Cross-cutting concerns** used across all layers:
+
+- **Event Bus** — typed pub/sub for cross-feature communication without coupling
+- **Store** — UI-only ephemeral state (sidebar open, active tab, theme)
+- **Signals / Observables** — reactive primitives that propagate changes through the graph
+- **Notifications** — user-facing feedback (toasts, alerts)
+
+---
+
+## Reactive State
+
+Web Loom supports two reactive primitives, which can be used together or independently:
+
+### RxJS Observables (mvvm-core)
+
+`@web-loom/mvvm-core` is built on RxJS. Models expose `BehaviorSubject` streams; ViewModels compose them with operators. Best for complex async pipelines, multicasting, and integration with Angular.
+
+```ts
+class TaskModel extends BaseModel {
+  readonly tasks$ = new BehaviorSubject<Task[]>([]);
+  readonly isLoading$ = new BehaviorSubject(false);
+
+  async fetchAll() {
+    this.isLoading$.next(true);
+    this.tasks$.next(await api.getTasks());
+    this.isLoading$.next(false);
+  }
+}
+```
+
+### Signals (signals-core)
+
+`@web-loom/signals-core` provides synchronous, pull-based reactive values with automatic dependency tracking. Zero dependencies, no scheduler — perfect for ViewModels that don't need RxJS.
+
+```ts
+class CounterViewModel {
+  private _count = signal(0);
+  readonly count   = this._count.asReadonly();
+  readonly doubled = computed(() => this._count.get() * 2);
+
+  increment() { this._count.update(v => v + 1); }
+}
+```
+
+Both work with any framework adapter. Choose based on complexity: Signals for straightforward reactive state, Observables for advanced stream composition.
+
+---
+
+## The Command Pattern
+
+Commands are the primary mechanism for user actions in Web Loom. A Command wraps an async operation and exposes:
+
+- `execute()` — trigger the action
+- `isExecuting$` / `isExecuting` — loading state for spinner binding
+- `canExecute$` / `canRun` — guards (e.g. disable submit while loading)
+- `error$` / `error` — last error, if any
+
+```ts
+// In a ViewModel
+readonly saveCommand = new Command(async () => {
+  await this.model.save(this.form.values);
+});
+
+// In the View (React)
+<button
+  onClick={() => vm.saveCommand.execute()}
+  disabled={!vm.saveCommand.canExecute}
+>
+  {vm.saveCommand.isExecuting ? 'Saving…' : 'Save'}
+</button>
+```
+
+Commands keep the View dumb — it never contains `try/catch`, loading flags, or validation logic.
+
+---
+
+## Package Ecosystem
+
+Web Loom ships 34 packages across several categories:
+
+### Core architecture
+- [`@web-loom/mvvm-core`](/docs/models) — BaseModel, BaseViewModel, Commands, RxJS integration
+- [`@web-loom/signals-core`](/docs/signals-core) — Lightweight reactive signals and computed values
+- [`@web-loom/store-core`](/docs/store-core) — Minimal UI-state store with persistence adapters
+
+### Data & communication
+- [`@web-loom/query-core`](/docs/query-core) — Data fetching with caching and stale-while-revalidate
+- [`@web-loom/event-bus-core`](/docs/event-bus-core) — Typed event aggregation for cross-feature messaging
+- `@web-loom/http-core` — HTTP client abstraction
+
+### UI behaviors
+- [`@web-loom/ui-core`](/docs/ui-core) — Headless dialog, list, form, roving-focus behaviors
+- [`@web-loom/ui-patterns`](/docs/ui-patterns) — Wizard, MasterDetail, CommandPalette shells
+- `@web-loom/forms-core` — Framework-agnostic form logic and validation
+
+### Design & theming
+- [`@web-loom/design-core`](/docs/design-core) — Design tokens, CSS custom properties, theming, component library
+
+### Infrastructure
+- `@web-loom/router-core` — Routing state abstraction
+- `@web-loom/storage-core` — localStorage / sessionStorage abstraction
+- `@web-loom/i18n-core` — Internationalization
+- `@web-loom/plugin-core` — Plugin architecture for extensible applications
+
+---
+
+## Key Principles
+
+**Unidirectional data flow** — state flows down (Model → ViewModel → View), actions flow up (View calls ViewModel commands). No two-way data binding at the architecture level.
+
+**Always dispose** — ViewModels subscribe to observables and effects. Call `vm.dispose()` in the component teardown hook to prevent memory leaks.
+
+```ts
+// React
+useEffect(() => {
+  vm.fetchCommand.execute();
+  return () => vm.dispose();
+}, []);
+```
+
+**Business data in Models, UI state in Store** — a filter value that affects API results belongs in the Model. Whether a drawer is open belongs in the Store.
+
+**Test ViewModels independently** — because ViewModels have no framework imports, they can be unit tested with plain Vitest, no DOM or component setup required.
+
+```ts
+it('filters tasks correctly', () => {
+  const vm = new TaskListViewModel(mockModel);
+  vm.setFilter('done');
+  expect(vm.visibleTasks.get().every(t => t.done)).toBe(true);
+  vm.dispose();
+});
+```
+
+---
+
+## Where to Go Next
+
+- [Getting Started](/docs/getting-started) — install the packages and build your first ViewModel
+- [Models](/docs/models) — deep dive into the Model layer
+- [ViewModels](/docs/viewmodels) — commands, derived state, and lifecycle
+- [Models](/docs/models) — full documentation for the Model and ViewModel layers
+- [Signals Core](/docs/signals-core) — reactive signals as an alternative to RxJS
