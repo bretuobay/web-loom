@@ -12,7 +12,10 @@ import SecondaryNav from '@/components/ui/secondary-nav';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
 
 export async function generateStaticParams() {
-  return getDocPages().map((post) => ({ slug: post.slug }));
+  return getDocPages().map((post) => ({
+    topic: 'docs',
+    slug: post.slug,
+  }));
 }
 
 export async function generateMetadata(

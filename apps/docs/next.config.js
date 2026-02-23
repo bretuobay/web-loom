@@ -5,50 +5,12 @@ const withMDX = require("@next/mdx")();
 const nextConfig = {
   // Configure `pageExtensions` to include MDX files
   pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
-  // Ensure packages hoisted to monorepo root are resolved by Turbopack/webpack
+  // Static export for Cloudflare Pages
+  output: "export",
+  // next/image requires unoptimized: true when using output: export
+  images: { unoptimized: true },
+  // Ensure packages hoisted to monorepo root are resolved by webpack
   transpilePackages: ["next-themes"],
-  async headers() {
-    return [
-      {
-        // Security + cache headers for all routes
-        source: "/(.*)",
-        headers: [
-          { key: "X-Content-Type-Options",    value: "nosniff" },
-          { key: "X-Frame-Options",           value: "DENY" },
-          { key: "X-XSS-Protection",          value: "1; mode=block" },
-          { key: "Referrer-Policy",           value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy",        value: "camera=(), microphone=(), geolocation=()" },
-        ],
-      },
-      {
-        // Long-lived cache for fonts and static assets
-        source: "/fonts/(.*)",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-        ],
-      },
-      {
-        source: "/images/(.*)",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" },
-        ],
-      },
-    ];
-  },
-  async redirects() {
-    return [
-      {
-        source: "/docs/mvvm-core",
-        destination: "/docs/models",
-        permanent: true,
-      },
-      {
-        source: "/docs/fundamentals",
-        destination: "/docs/getting-started",
-        permanent: true,
-      },
-    ];
-  },
   webpack: (config) => {
     config.resolve.modules.push(path.resolve(__dirname, "../../node_modules"));
     return config;
