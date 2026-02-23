@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getDocPages } from '@/components/mdx/utils';
 import { getBlogPages } from '@/components/mdx/utils';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloom.dev';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

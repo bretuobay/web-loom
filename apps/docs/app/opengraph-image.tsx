@@ -120,7 +120,7 @@ export default function OGImage() {
             letterSpacing: '0.5px',
           }}
         >
-          webloom.dev
+          webloomframework.com
         </div>
       </div>
     ),

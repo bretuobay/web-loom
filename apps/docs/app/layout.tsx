@@ -5,7 +5,7 @@ import { Nothing_You_Could_Do } from 'next/font/google';
 import localFont from 'next/font/local';
 import Theme from './theme-provider';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloom.dev';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
 
 const nycd = Nothing_You_Could_Do({
   subsets: ['latin'],

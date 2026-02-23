@@ -6,7 +6,7 @@ import AnimatedFrameworks from '@/components/ui/animated-frameworks';
 import type { Metadata } from 'next';
 
 const GITHUB_URL = 'https://github.com/bretuobay/web-loom';
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloom.dev';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
 
 export const metadata: Metadata = {
   title: {

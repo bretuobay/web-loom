@@ -9,7 +9,7 @@ import PageNavigation from '@/components/ui/page-navigation';
 import Footer from '@/components/ui/footer';
 import SecondaryNav from '@/components/ui/secondary-nav';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloom.dev';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
 
 export async function generateStaticParams() {
   return getDocPages().map((post) => ({ slug: post.slug }));

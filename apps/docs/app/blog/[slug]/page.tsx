@@ -5,7 +5,7 @@ import { getBlogPages } from '@/components/mdx/utils';
 import { CustomMDX } from '@/components/mdx/mdx';
 import Footer from '@/components/ui/footer';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloom.dev';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
 
 export async function generateStaticParams() {
   return getBlogPages().map((post) => ({ slug: post.slug }));
