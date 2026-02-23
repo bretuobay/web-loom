@@ -13,7 +13,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.c
 
 export async function generateStaticParams() {
   return getDocPages().map((post) => ({
-    topic: post.metadata.topicSlug ?? 'docs',
+    topic: 'docs',
     slug: post.slug,
   }));
 }
