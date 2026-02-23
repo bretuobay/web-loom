@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import Logo from '@/components/ui/logo';
 import ThemeToggle from './theme-toggle';
 import Search from './search';
@@ -22,8 +23,24 @@ export default function Header() {
           {/* Desktop navigation */}
           <nav className="flex">
             {/* Right side elements links */}
-            <ul className="flex grow justify-end flex-wrap items-center">
-              <li className="ml-4">
+            <ul className="flex grow justify-end flex-wrap items-center gap-1">
+              <li>
+                <Link
+                  href="/docs/getting-started"
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Docs
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/blog"
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Blog
+                </Link>
+              </li>
+              <li className="ml-2">
                 <a
                   className="btn-sm inline-flex items-center gap-1.5 text-slate-100 bg-blue-600 hover:bg-blue-700 shadow-xs"
                   href="https://github.com/bretuobay/web-loom"
