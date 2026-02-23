@@ -1,0 +1,185 @@
+---
+title: 'MVVM in Solid'
+summary: 'How Web Loom ViewModels connect to SolidJS using createSignal and createEffect for RxJS subscriptions, or the from() helper for direct observable-to-signal conversion.'
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+prevTitle: 'MVVM in Svelte'
+prevSlug: '/docs/mvvm-svelte-use-case'
+nextTitle: 'MVVM in Qwik'
+nextSlug: '/docs/mvvm-qwik-use-case'
+---
+
+# MVVM in Solid
+
+> **Status**: No demo app exists yet. This page documents the integration pattern for teams adopting Solid.
+
+SolidJS uses **fine-grained reactivity**. Unlike React, Solid does not diff a virtual DOM or re-run component functions on state change. Instead, it creates reactive computation graphs at compile time — when a signal's value changes, only the specific DOM nodes reading that signal update. This makes Solid exceptionally fast.
+
+Web Loom ViewModels integrate well with Solid because both systems share a similar philosophy: reactive primitives that push updates to dependents. The bridge is explicit and lightweight.
+
+---
+
+## Solid's Reactivity Primitives
+
+```typescript
+import { createSignal, createEffect, createMemo, onCleanup } from 'solid-js';
+
+const [count, setCount] = createSignal(0);          // reactive value
+const doubled = createMemo(() => count() * 2);       // derived value
+
+createEffect(() => {
+  console.log('count changed:', count());            // re-runs when count changes
+});
+```
+
+Signals are synchronous and pull-based — you call `count()` to read the value. This is similar in spirit to `@web-loom/signals-core`, though different in API.
+
+---
+
+## Option 1: createSignal + createEffect
+
+The explicit subscription pattern mirrors the React `useState + useEffect` bridge:
+
+```tsx
+// GreenhouseList.tsx
+import { createSignal, createEffect, onCleanup, For, Show } from 'solid-js';
+import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
+
+export function GreenhouseList() {
+  const [greenhouses, setGreenhouses] = createSignal<GreenhouseData[]>([]);
+  const [isLoading, setIsLoading]     = createSignal(true);
+
+  createEffect(() => {
+    const subs = [
+      greenHouseViewModel.data$.subscribe(data => setGreenhouses(data ?? [])),
+      greenHouseViewModel.isLoading$.subscribe(setIsLoading),
+    ];
+
+    greenHouseViewModel.fetchCommand.execute();
+
+    onCleanup(() => {
+      subs.forEach(s => s.unsubscribe());
+      greenHouseViewModel.dispose();
+    });
+  });
+
+  return (
+    <div>
+      <Show when={!isLoading()} fallback={<p>Loading…</p>}>
+        <ul>
+          <For each={greenhouses()}>
+            {(gh) => (
+              <li>
+                {gh.name}
+                <button onClick={() => greenHouseViewModel.deleteCommand.execute(gh.id!)}>
+                  Delete
+                </button>
+              </li>
+            )}
+          </For>
+        </ul>
+      </Show>
+    </div>
+  );
+}
+```
+
+`onCleanup` registers a function that Solid calls when the effect or component is disposed — the equivalent of React's `useEffect` cleanup return or Vue's `onUnmounted`.
+
+---
+
+## Option 2: from() — Direct Observable to Signal Conversion
+
+Solid provides a `from()` helper that converts any subscribable (including RxJS observables) into a Solid signal. This is the most concise integration:
+
+```typescript
+import { from } from 'solid-js';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+// Convert observables to Solid signals
+const greenhouses = from(greenHouseViewModel.data$);
+const isLoading   = from(greenHouseViewModel.isLoading$);
+```
+
+`from()` works because RxJS `Observable` implements the generic subscribable protocol: `subscribe(next: (value: T) => void)`. Solid calls `subscribe` internally and manages the cleanup automatically within the component's reactive scope.
+
+```tsx
+export function GreenhouseList() {
+  const greenhouses = from(greenHouseViewModel.data$);
+  const isLoading   = from(greenHouseViewModel.isLoading$);
+
+  // Run fetch once when component mounts
+  greenHouseViewModel.fetchCommand.execute();
+
+  return (
+    <Show when={!isLoading()} fallback={<p>Loading…</p>}>
+      <For each={greenhouses() ?? []}>
+        {(gh) => <li>{gh.name}</li>}
+      </For>
+    </Show>
+  );
+}
+```
+
+This is the preferred approach when you only need to read observable values without additional transformation.
+
+---
+
+## Commands
+
+Commands are plain async calls. Bind `isExecuting$` using `from()`:
+
+```tsx
+import { from } from 'solid-js';
+
+export function RefreshButton() {
+  const isExecuting = from(greenHouseViewModel.fetchCommand.isExecuting$);
+
+  return (
+    <button
+      onClick={() => greenHouseViewModel.fetchCommand.execute()}
+      disabled={isExecuting()}
+    >
+      {isExecuting() ? 'Loading…' : 'Refresh'}
+    </button>
+  );
+}
+```
+
+---
+
+## Signals Core Compatibility
+
+`@web-loom/signals-core` and SolidJS signals share the same conceptual model: synchronous, fine-grained reactive values. If a ViewModel uses `@web-loom/signals-core` instead of RxJS `BehaviorSubject`, you can read its values directly in Solid's reactive contexts — though the write API differs and you'll still need an effect to bridge the two systems.
+
+For ViewModels built on RxJS, stick with `from()` or the `createSignal + createEffect` pattern above.
+
+---
+
+## SolidStart Considerations
+
+SolidStart is Solid's meta-framework for SSR and full-stack apps. ViewModel HTTP calls should be client-only — wrap the subscription setup in `onMount` or inside a client-side `createEffect` guarded by `isServer`:
+
+```typescript
+import { isServer } from 'solid-js/web';
+
+if (!isServer) {
+  greenHouseViewModel.fetchCommand.execute();
+}
+```
+
+For server-loaded initial data, use SolidStart's `createAsync` / `query` patterns for the initial load and hand the result to the ViewModel's initial state.
+
+---
+
+## Summary
+
+- **Reactive state** — `createSignal()`
+- **Subscribe to ViewModel** — `createEffect()` + `onCleanup()`
+- **Convert observable to signal** — `from(observable)`
+- **Cleanup on unmount** — `onCleanup()` inside the effect
+- **Render list** — `<For each={items()}>`
+- **Conditional render** — `<Show when={condition}>`
+- **Commands** — `vm.someCommand.execute(payload)`
+
+The `from()` approach is concise and idiomatic for read-only observable binding. For more complex scenarios — derived state, combined observables, conditional subscriptions — use `createEffect` + `onCleanup` for full control.

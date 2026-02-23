@@ -1,0 +1,207 @@
+---
+title: 'MVVM in Svelte'
+summary: 'How to wire Web Loom ViewModels into Svelte 5 components using reactive state and onMount/onDestroy lifecycle hooks. RxJS observables subscribe directly in Svelte lifecycle functions.'
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+prevTitle: 'MVVM in Marko'
+prevSlug: '/docs/mvvm-marko-use-case'
+nextTitle: 'MVVM in Solid'
+nextSlug: '/docs/mvvm-solid-use-case'
+---
+
+# MVVM in Svelte
+
+> **Status**: No demo app exists yet. This page documents the integration pattern for teams adopting Svelte.
+
+Svelte compiles components to vanilla JavaScript at build time — there is no runtime framework, no virtual DOM, and no component class. The compiler instruments reactive assignments directly in the generated output.
+
+Web Loom ViewModels integrate cleanly with Svelte because the subscription mechanism is straightforward: subscribe in `onMount`, assign emitted values to Svelte reactive variables, unsubscribe in `onDestroy`.
+
+---
+
+## Svelte's Reactivity Model
+
+Svelte 5 uses **runes** — a set of compiler-understood primitives — for reactivity:
+
+```svelte
+<script lang="ts">
+  let count = $state(0);               // reactive variable
+  let doubled = $derived(count * 2);   // computed value
+</script>
+
+<p>{count} × 2 = {doubled}</p>
+<button onclick={() => count++}>Increment</button>
+```
+
+When `count` is assigned, Svelte surgically updates the DOM nodes that read it. Assignments trigger DOM updates; reads during rendering track dependencies.
+
+---
+
+## Connecting a ViewModel
+
+Subscribe to ViewModel observables in `onMount` and clean up in `onDestroy`:
+
+```svelte
+<!-- GreenhouseList.svelte -->
+<script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
+  import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
+  import type { Subscription } from 'rxjs';
+
+  let greenhouses = $state<GreenhouseData[]>([]);
+  let isLoading   = $state(true);
+
+  const subscriptions: Subscription[] = [];
+
+  onMount(() => {
+    subscriptions.push(
+      greenHouseViewModel.data$.subscribe(data => { greenhouses = data ?? []; }),
+      greenHouseViewModel.isLoading$.subscribe(v   => { isLoading = v; }),
+    );
+    greenHouseViewModel.fetchCommand.execute();
+  });
+
+  onDestroy(() => {
+    subscriptions.forEach(s => s.unsubscribe());
+    greenHouseViewModel.dispose();
+  });
+
+  function handleDelete(id: string) {
+    greenHouseViewModel.deleteCommand.execute(id);
+  }
+</script>
+
+{#if isLoading}
+  <p>Loading…</p>
+{:else}
+  <ul>
+    {#each greenhouses as gh (gh.id)}
+      <li>
+        {gh.name}
+        <button onclick={() => handleDelete(gh.id!)}>Delete</button>
+      </li>
+    {/each}
+  </ul>
+{/if}
+```
+
+The ViewModel interaction — `fetchCommand.execute()`, `deleteCommand.execute(id)` — is identical to React, Vue, Angular, and Lit.
+
+---
+
+## Svelte's Built-in Store Protocol (Alternative)
+
+Svelte has a lightweight store protocol: any object implementing `{ subscribe(fn: (value: T) => void): () => void }` can be auto-subscribed with the `$` prefix. RxJS `Observable` matches this protocol because its `subscribe` method accepts a next callback and returns an object with `unsubscribe`.
+
+You can wrap a ViewModel observable in a Svelte-compatible store adapter:
+
+```typescript
+// lib/toStore.ts
+import type { Observable } from 'rxjs';
+import type { Readable } from 'svelte/store';
+
+export function toStore<T>(observable: Observable<T>, initialValue: T): Readable<T> {
+  return {
+    subscribe(run) {
+      run(initialValue);
+      const sub = observable.subscribe(run);
+      return () => sub.unsubscribe();
+    },
+  };
+}
+```
+
+```svelte
+<script lang="ts">
+  import { toStore } from '$lib/toStore';
+  import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+  // Auto-subscribe with $ prefix — Svelte handles cleanup
+  const greenhouses = toStore(greenHouseViewModel.data$, []);
+</script>
+
+<ul>
+  {#each $greenhouses ?? [] as gh (gh.id)}
+    <li>{gh.name}</li>
+  {/each}
+</ul>
+```
+
+The `$greenhouses` syntax auto-subscribes when the component mounts and unsubscribes when it destroys. No manual `onMount`/`onDestroy` needed.
+
+---
+
+## Commands
+
+Commands work as regular async function calls. For binding `isExecuting$` to the UI, use the store adapter or subscribe manually:
+
+```svelte
+<script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
+
+  let isExecuting = $state(false);
+  let sub: any;
+
+  onMount(() => {
+    sub = greenHouseViewModel.fetchCommand.isExecuting$.subscribe(v => { isExecuting = v; });
+    greenHouseViewModel.fetchCommand.execute();
+  });
+  onDestroy(() => sub?.unsubscribe());
+</script>
+
+<button onclick={() => greenHouseViewModel.fetchCommand.execute()} disabled={isExecuting}>
+  {isExecuting ? 'Loading…' : 'Refresh'}
+</button>
+```
+
+Or with the `toStore` adapter:
+
+```svelte
+<script lang="ts">
+  const isExecuting = toStore(greenHouseViewModel.fetchCommand.isExecuting$, false);
+</script>
+
+<button disabled={$isExecuting}>
+  {$isExecuting ? 'Loading…' : 'Refresh'}
+</button>
+```
+
+---
+
+## SvelteKit Considerations
+
+In SvelteKit, load functions run on the server. ViewModels that make HTTP calls should only run on the client — use `onMount` (which is client-only) rather than top-level module code.
+
+For server-loaded initial data, fetch in `+page.server.ts` and pass as props. The ViewModel can then receive this data as the initial state, avoiding a client-side fetch on first load:
+
+```typescript
+// +page.server.ts
+export async function load() {
+  const res = await fetch('http://api/greenhouses');
+  return { initialGreenhouses: await res.json() };
+}
+```
+
+```svelte
+<!-- +page.svelte -->
+<script lang="ts">
+  const { data } = $props();
+  let greenhouses = $state(data.initialGreenhouses);
+
+  onMount(() => {
+    greenHouseViewModel.data$.subscribe(v => { greenhouses = v ?? greenhouses; });
+  });
+</script>
+```
+
+---
+
+## Summary
+
+- **Reactive state** — `$state()` rune
+- **Subscribe to ViewModel** — `onMount(() => vm.data$.subscribe(...))`
+- **Unsubscribe** — `onDestroy(() => sub.unsubscribe())`
+- **Auto-subscribe shorthand** — `toStore` adapter + `$storeName` prefix
+- **Render list** — `{#each items as item}`
+- **Conditional render** — `{#if condition}`
+- **Commands** — `vm.someCommand.execute(payload)`

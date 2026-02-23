@@ -82,6 +82,24 @@ export default function SupportSidebar() {
                 <li>
                   <SidebarLink href="/docs/mvvm-vanilla-use-case">MVVM in Vanilla TS</SidebarLink>
                 </li>
+                <li>
+                  <SidebarLink href="/docs/mvvm-react-native-use-case">MVVM in React Native</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/mvvm-lit-use-case">MVVM in Lit</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/mvvm-marko-use-case">MVVM in Marko</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/mvvm-svelte-use-case">MVVM in Svelte</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/mvvm-solid-use-case">MVVM in Solid</SidebarLink>
+                </li>
+                <li>
+                  <SidebarLink href="/docs/mvvm-qwik-use-case">MVVM in Qwik</SidebarLink>
+                </li>
                 <li className="pt-4">
                   <SidebarLink href="/docs/store-core">Store Core</SidebarLink>
                 </li>
