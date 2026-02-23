@@ -144,6 +144,12 @@ export default function HomePage() {
             >
               Docs
             </Link>
+            <Link
+              href="/blog"
+              className="px-3 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors"
+            >
+              Blog
+            </Link>
             <a
               href={GITHUB_URL}
               target="_blank"
@@ -575,6 +581,9 @@ export class TaskListViewModel
           <nav className="flex items-center gap-6 text-sm text-slate-500" aria-label="Footer navigation">
             <Link href="/docs/getting-started" className="hover:text-slate-300 transition-colors">
               Docs
+            </Link>
+            <Link href="/blog" className="hover:text-slate-300 transition-colors">
+              Blog
             </Link>
             <Link href="/docs/packages-roadmap" className="hover:text-slate-300 transition-colors">
               Roadmap
