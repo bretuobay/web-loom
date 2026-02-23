@@ -5,6 +5,8 @@ import { getBlogPages } from '@/components/mdx/utils';
 import { CustomMDX } from '@/components/mdx/mdx';
 import Footer from '@/components/ui/footer';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloom.dev';
+
 export async function generateStaticParams() {
   return getBlogPages().map((post) => ({ slug: post.slug }));
 }
@@ -15,25 +17,82 @@ export async function generateMetadata(
   const { slug } = await props.params;
   const post = getBlogPages().find((p) => p.slug === slug);
   if (!post) return;
+
+  const canonical = `${SITE_URL}/blog/${slug}`;
+
   return {
-    title: `${post.title} — Web Loom Blog`,
+    // Use absolute to avoid double-appending "— Web Loom" from the template
+    title: { absolute: `${post.title} — Web Loom Blog` },
     description: post.summary,
+    alternates: { canonical },
+    openGraph: {
+      type: 'article',
+      url: canonical,
+      title: post.title,
+      description: post.summary,
+      siteName: 'Web Loom',
+      section: post.packageName ?? 'Web Loom Blog',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.summary,
+    },
   };
 }
 
 export default async function BlogPost(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
   const posts = getBlogPages();
-  const index  = posts.findIndex((p) => p.slug === slug);
+  const index = posts.findIndex((p) => p.slug === slug);
 
   if (index === -1) notFound();
 
   const post = posts[index];
   const prev = index > 0 ? posts[index - 1] : null;
   const next = index < posts.length - 1 ? posts[index + 1] : null;
+  const canonical = `${SITE_URL}/blog/${slug}`;
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Web Loom', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+      { '@type': 'ListItem', position: 3, name: post.title, item: canonical },
+    ],
+  };
+
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.summary,
+    url: canonical,
+    author: { '@type': 'Person', name: 'Festus Yeboah' },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Web Loom',
+      url: SITE_URL,
+    },
+    isPartOf: {
+      '@type': 'Blog',
+      '@id': `${SITE_URL}/blog`,
+      name: 'Web Loom Blog',
+    },
+  };
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 mb-8 text-sm">
         <Link

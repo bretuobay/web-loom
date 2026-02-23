@@ -3,10 +3,27 @@ import Link from 'next/link';
 import { getBlogPages } from '@/components/mdx/utils';
 import Footer from '@/components/ui/footer';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloom.dev';
+
 export const metadata: Metadata = {
-  title: 'Blog — Web Loom',
+  title: 'Blog',
   description:
     'Deep-dives, tutorials and architectural thinking on building framework-agnostic TypeScript applications with Web Loom.',
+  alternates: { canonical: `${SITE_URL}/blog` },
+  openGraph: {
+    type: 'website',
+    url: `${SITE_URL}/blog`,
+    title: 'Web Loom Blog',
+    description:
+      'Deep-dives, tutorials and architectural thinking on building framework-agnostic TypeScript applications with Web Loom.',
+    siteName: 'Web Loom',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Web Loom Blog',
+    description:
+      'Deep-dives, tutorials and architectural thinking on building framework-agnostic TypeScript applications with Web Loom.',
+  },
 };
 
 // Category tag styles — cycle through a small palette by article number
