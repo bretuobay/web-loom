@@ -1,8 +1,11 @@
 import './css/style.css';
 
+import type { Metadata } from 'next';
 import { Nothing_You_Could_Do } from 'next/font/google';
 import localFont from 'next/font/local';
 import Theme from './theme-provider';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
 
 const nycd = Nothing_You_Could_Do({
   subsets: ['latin'],
@@ -22,9 +25,74 @@ const aspekta = localFont({
   display: 'swap',
 });
 
-export const metadata = {
-  title: 'Web Loom',
-  description: 'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'Web Loom — Framework-Agnostic MVVM Architecture',
+    template: '%s — Web Loom',
+  },
+  description:
+    'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
+  keywords: [
+    'MVVM',
+    'TypeScript',
+    'React',
+    'Vue',
+    'Angular',
+    'framework-agnostic',
+    'architecture',
+    'ViewModel',
+    'BaseModel',
+    'signals',
+    'reactive state',
+    'design tokens',
+    'headless UI',
+    'Web Loom',
+  ],
+  authors: [{ name: 'Festus Yeboah' }],
+  creator: 'Festus Yeboah',
+  publisher: 'Web Loom',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: SITE_URL,
+    siteName: 'Web Loom',
+    title: 'Web Loom — Framework-Agnostic MVVM Architecture',
+    description:
+      'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'Web Loom — Framework-Agnostic MVVM Architecture',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Web Loom — Framework-Agnostic MVVM Architecture',
+    description:
+      'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
+    images: ['/opengraph-image'],
+  },
+  alternates: {
+    canonical: SITE_URL,
+  },
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

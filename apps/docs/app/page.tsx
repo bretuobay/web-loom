@@ -3,7 +3,25 @@ import Link from 'next/link';
 import ThemeToggle from '@/components/ui/theme-toggle';
 import AnimatedFrameworks from '@/components/ui/animated-frameworks';
 
+import type { Metadata } from 'next';
+
 const GITHUB_URL = 'https://github.com/bretuobay/web-loom';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
+
+export const metadata: Metadata = {
+  title: {
+    absolute: 'Web Loom — Framework-Agnostic MVVM Architecture',
+  },
+  description:
+    'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
+  alternates: { canonical: SITE_URL },
+  openGraph: {
+    url: SITE_URL,
+    title: 'Web Loom — Framework-Agnostic MVVM Architecture',
+    description:
+      'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
+  },
+};
 
 // ─── Spoke navigation cards ───────────────────────────────────────────────────
 
@@ -119,9 +137,34 @@ const frameworks = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: 'Web Loom',
+      description:
+        'Framework-agnostic MVVM architecture for the modern web.',
+    },
+    {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
+      name: 'Web Loom',
+      url: SITE_URL,
+      sameAs: ['https://github.com/bretuobay/web-loom'],
+    },
+  ],
+};
+
 export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
       {/* ── Navbar ──────────────────────────────────────────────────────── */}
       <header className="fixed top-0 inset-x-0 z-30">
