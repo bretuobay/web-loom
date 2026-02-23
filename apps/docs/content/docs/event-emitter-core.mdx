@@ -1,0 +1,285 @@
+---
+title: 'Event Emitter Core'
+summary: 'A tiny, type-safe synchronous event emitter shared across Web Loom packages. The internal primitive behind Event Bus Core, Forms Core, Media Core, and more.'
+topicTitle: 'Published Packages'
+topicSlug: 'packages'
+---
+
+# Event Emitter Core
+
+`@web-loom/event-emitter-core` is a tiny, zero-dependency, type-safe synchronous event emitter. It is the internal primitive that powers the listener bookkeeping in `@web-loom/event-bus-core`, `@web-loom/forms-core`, `@web-loom/media-core`, `@web-loom/storage-core`, and `@web-loom/notifications-core`. It can also be used directly when you need a lightweight emitter without the pub-sub semantics of the Event Bus.
+
+## Features
+
+- **Type-safe events** — define an event map and get full autocomplete on event names, payload shapes, and listener signatures.
+- **Synchronous fan-out** — all listeners for an event are called in registration order before `emit` returns.
+- **Listener lifecycle** — `on`, `once`, `off`, and cleanup aliases cover every common pattern.
+- **Error isolation** — listener errors are caught and forwarded to a configurable `onError` handler; they never crash other listeners.
+- **Runtime inspection** — `listenerCount`, `hasListeners`, and `eventNames` for debugging and testing.
+- **Zero dependencies** — pure TypeScript, no runtime imports.
+
+## Installation
+
+```bash
+npm install @web-loom/event-emitter-core
+```
+
+## Core Concepts
+
+### Event Maps
+
+An event map is a plain TypeScript type whose keys are event names and values describe the payload:
+
+```typescript
+type MediaEvents = {
+  play:     void;                              // no payload
+  progress: [currentTime: number, duration: number]; // tuple payload
+  error:    Error;                             // single value payload
+};
+```
+
+- `void` — listener takes no arguments.
+- A plain type like `Error` — listener receives one argument of that type.
+- A tuple — listener receives the tuple spread as individual arguments.
+
+### EventEmitter class
+
+```typescript
+import { EventEmitter } from '@web-loom/event-emitter-core';
+
+const emitter = new EventEmitter<MediaEvents>();
+```
+
+Pass an optional `EventEmitterOptions` object to override the default error handler:
+
+```typescript
+const emitter = new EventEmitter<MediaEvents>({
+  onError: (error, eventName) => {
+    logger.error(`Listener for "${String(eventName)}" threw`, error);
+  },
+});
+```
+
+---
+
+## API Reference
+
+### on(event, listener)
+
+Registers a listener and returns an unsubscribe callback.
+
+```typescript
+const unsubscribe = emitter.on('progress', (current, total) => {
+  console.log(`${current} / ${total}`);
+});
+
+// Later
+unsubscribe();
+```
+
+### once(event, listener)
+
+Same as `on` but automatically unregisters after the first emission.
+
+```typescript
+emitter.once('play', () => {
+  console.log('First play event');
+});
+```
+
+### emit(event, ...payload)
+
+Synchronously calls all registered listeners for the event in registration order.
+
+```typescript
+emitter.emit('progress', 16, 100); // calls all 'progress' listeners
+emitter.emit('play');              // no payload required
+emitter.emit('error', new Error('stream failed'));
+```
+
+### off(event?, listener?)
+
+Removes a specific listener, all listeners for an event, or all listeners entirely.
+
+```typescript
+emitter.off('progress', myListener); // remove one listener
+emitter.off('progress');             // remove all listeners for 'progress'
+emitter.off();                       // remove all listeners
+```
+
+### Cleanup aliases
+
+All of the following are equivalent ways to remove all listeners for an event or globally:
+
+```typescript
+emitter.removeAllListeners('progress'); // by event
+emitter.removeAllListeners();           // all
+
+emitter.unsubscribeAll();               // alias
+emitter.removeAll();                    // alias
+emitter.clear();                        // alias
+```
+
+`unsubscribe(event, listener?)` is also available as an alias for `off`.
+
+### Runtime inspection
+
+```typescript
+emitter.listenerCount('progress'); // → number of registered listeners
+emitter.hasListeners('progress');  // → true / false
+emitter.eventNames();              // → array of events with at least one listener
+```
+
+---
+
+## TypeScript Exports
+
+```typescript
+import type {
+  EventRecord,         // base constraint for event maps: Record<PropertyKey, unknown>
+  EventArgs,           // derives the listener argument tuple from an event map key
+  EventListener,       // typed listener function
+  EventEmitterOptions, // constructor options
+  EventSubscription,   // unsubscribe callback: () => void
+} from '@web-loom/event-emitter-core';
+```
+
+### EventArgs utility type
+
+`EventArgs<TEvents, TKey>` resolves to the spread argument list a listener for that event should accept:
+
+```typescript
+type Args = EventArgs<MediaEvents, 'progress'>; // → [currentTime: number, duration: number]
+type Args = EventArgs<MediaEvents, 'play'>;     // → []
+type Args = EventArgs<MediaEvents, 'error'>;    // → [Error]
+```
+
+---
+
+## Usage Examples
+
+### Media player events
+
+```typescript
+import { EventEmitter } from '@web-loom/event-emitter-core';
+
+type PlayerEvents = {
+  play:   void;
+  pause:  void;
+  seek:   [position: number];
+  ended:  void;
+  error:  Error;
+  timeupdate: [currentTime: number, duration: number];
+};
+
+export class MediaPlayerCore {
+  private emitter = new EventEmitter<PlayerEvents>();
+
+  on = this.emitter.on.bind(this.emitter);
+  off = this.emitter.off.bind(this.emitter);
+
+  play() {
+    // ... audio/video logic
+    this.emitter.emit('play');
+  }
+
+  seek(position: number) {
+    // ... seek logic
+    this.emitter.emit('seek', position);
+  }
+
+  dispose() {
+    this.emitter.clear();
+  }
+}
+
+const player = new MediaPlayerCore();
+
+const unsubPlay  = player.on('play',  () => console.log('playing'));
+const unsubSeek  = player.on('seek',  (pos) => console.log(`seeked to ${pos}s`));
+
+player.play();   // → "playing"
+player.seek(42); // → "seeked to 42s"
+
+unsubPlay();
+unsubSeek();
+```
+
+### Form lifecycle events
+
+```typescript
+type FormEvents = {
+  change:  [field: string, value: unknown];
+  submit:  void;
+  reset:   void;
+  validate:[errors: Record<string, string>];
+};
+
+const formEmitter = new EventEmitter<FormEvents>();
+
+formEmitter.on('change', (field, value) => {
+  console.log(`${field} changed to`, value);
+});
+
+formEmitter.once('submit', () => {
+  // fires only on the first submit
+  analytics.track('form_submitted');
+});
+
+formEmitter.emit('change', 'email', 'user@example.com');
+formEmitter.emit('submit');
+```
+
+### Using `once` for one-time initialization
+
+```typescript
+const bootEmitter = new EventEmitter<{ ready: void; error: Error }>();
+
+bootEmitter.once('ready', () => {
+  console.log('App ready — this fires exactly once');
+});
+
+bootEmitter.emit('ready'); // fires the listener
+bootEmitter.emit('ready'); // no-op — listener was removed
+```
+
+### Custom error handler
+
+```typescript
+const safeEmitter = new EventEmitter<{ data: string[] }>({
+  onError: (err, name) => {
+    errorReporter.capture(err, { event: String(name) });
+  },
+});
+
+safeEmitter.on('data', (items) => {
+  throw new Error('listener bug'); // caught, reported, does not propagate
+});
+
+safeEmitter.emit('data', ['a', 'b']); // error is captured, not thrown
+```
+
+---
+
+## Relationship with Event Bus Core
+
+`@web-loom/event-bus-core` is the **application-level pub-sub bus** — typed topic channels, cross-feature messaging, and a global singleton. `@web-loom/event-emitter-core` is the **low-level primitive** used internally for listener bookkeeping.
+
+Use `EventEmitter` directly when:
+- You own both the emitter and the consumers (e.g., inside a class like `MediaPlayerCore`).
+- You need a per-instance emitter rather than a shared global bus.
+- You want zero overhead and no bus abstraction.
+
+Use `EventBus` when:
+- Multiple unrelated features need to communicate without direct coupling.
+- You want a typed channel registry that spans the whole application.
+
+---
+
+## Best Practices
+
+- Define event maps as `type` aliases to keep them reusable.
+- Always store the unsubscribe callback from `on` and call it in cleanup (component unmount, class `dispose`, etc.).
+- Use `once` for events that should only trigger initialization logic.
+- Prefer `clear()` in a class `dispose()` method over tracking individual unsubscribes.
+- Do not emit events from inside a listener for the same event — this causes re-entrant calls and is rarely intentional.

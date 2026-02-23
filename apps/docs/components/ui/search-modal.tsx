@@ -114,6 +114,24 @@ const ALL_DOCS: DocPage[] = [
     slug: 'design-core',
     topic: 'Published Packages',
   },
+  {
+    title: 'Package Roadmap',
+    summary: 'All Web Loom packages that are implemented and used in the demo apps but not yet published to npm — Forms, Media, HTTP, Storage, Router, i18n, Notifications, Error, Platform, Typography, and Charts.',
+    slug: 'packages-roadmap',
+    topic: 'Published Packages',
+  },
+  {
+    title: 'Event Emitter Core',
+    summary: 'A tiny, type-safe synchronous event emitter — the internal primitive behind Event Bus Core, Forms Core, Media Core, and Storage Core.',
+    slug: 'event-emitter-core',
+    topic: 'Published Packages',
+  },
+  {
+    title: 'MVVM Patterns',
+    summary: 'Advanced ViewModel patterns — InteractionRequest for ViewModel-driven dialogs and notifications, and ActiveAwareViewModel for lifecycle-aware ViewModels.',
+    slug: 'mvvm-patterns',
+    topic: 'MVVM Core',
+  },
 ];
 
 const FEATURED_SLUGS = ['getting-started', 'core-concepts', 'mvvm-core', 'signals-core', 'query-core', 'ui-core'];
