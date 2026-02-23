@@ -1,21 +1,24 @@
 ---
 title: 'Design Core'
-summary: 'A minimal design system library for building reactive web applications.'
+summary: 'Framework-agnostic design tokens, CSS custom properties, dynamic theming, and a pre-built component library.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
+prevTitle: 'UI Patterns'
+prevSlug: '/docs/ui-patterns'
 ---
 
 # Design Core
 
-`@web-loom/design-core` is a comprehensive, framework-agnostic design token system with built-in theming, CSS variable utilities, and a lightweight design system. It's perfect for building scalable, maintainable design systems across React, Vue, Angular, and vanilla JavaScript applications.
+`@web-loom/design-core` is a zero-dependency, framework-agnostic design token system. It provides a single source of truth for every visual decision in your application — colors, typography, spacing, shadows, motion, and more — with automatic CSS custom property generation, runtime theming, and an optional pre-built component library.
 
-## Features
+## Overview
 
-- **Design Tokens**: Single source of truth for colors, typography, spacing, shadows, and more.
-- **CSS Custom Properties**: Automatic CSS variable generation from design tokens.
-- **Dynamic Theming**: Runtime theme switching with light/dark mode support.
-- **Framework Agnostic**: Works with any JavaScript framework.
-- **TypeScript Support**: Fully typed APIs with excellent IDE autocomplete.
+- **Design tokens** — 15 categories of tokens following the Design Token Community Group format
+- **CSS custom properties** — all tokens are pre-generated as CSS variables, ready to import
+- **Dynamic theming** — runtime light / dark / high-contrast switching via `data-theme`
+- **Pre-built component library** — 20+ headless CSS components (button, input, modal, card, …)
+- **TypeScript** — every category is fully typed with generated type definitions
+- **Zero dependencies** — no runtime dependencies; pure CSS + async utilities
 
 ## Installation
 
@@ -23,70 +26,821 @@ topicSlug: 'packages'
 npm install @web-loom/design-core
 ```
 
+---
+
 ## Quick Start
 
-### Import Pre-built CSS
+### Import the full design system
 
-For the quickest setup, import the pre-generated CSS files:
+The fastest path: import a single CSS file that includes all token variables and base resets.
 
-```javascript
-// Import all token CSS variables
-import '@web-loom/design-core/design-system';
-
-// Or import specific token categories
-import '@web-loom/design-core/css/colors.css';
-import '@web-loom/design-core/css/spacing.css';
+```css
+/* In your global CSS entry point */
+@import '@web-loom/design-core/design-system';
 ```
 
-### Basic Usage with Utilities
+Or in JavaScript:
 
-```typescript
-import { getTokenValue, generateCssVariablesString } from '@web-loom/design-core/utils';
+```ts
+import '@web-loom/design-core/design-system';
+```
 
-// Get a specific token value
-const primaryColor = await getTokenValue('colors.brand.primary');
+### Import individual token categories
 
-// Generate and inject CSS variables
-const cssVars = await generateCssVariablesString(':root');
+Import only what you need to keep bundle sizes small:
+
+```ts
+import '@web-loom/design-core/css/colors.css';
+import '@web-loom/design-core/css/spacing.css';
+import '@web-loom/design-core/css/typography.css';
+```
+
+Available categories: `borders`, `breakpoints`, `colors`, `cursor-styles`, `focus-rings`, `gradients`, `opacity`, `radii`, `shadows`, `sizing`, `spacing`, `timing`, `transitions`, `typography`, `z-index`.
+
+### Use tokens in CSS
+
+Once imported, every token is available as a CSS custom property:
+
+```css
+.card {
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-gray-900);
+  padding: var(--spacing-6);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--transition-duration-medium)
+    var(--transition-timing-function-ease-out);
+}
+
+[data-theme='dark'] .card {
+  background: var(--color-themed-dark-background);
+  color: var(--color-themed-dark-text);
+}
+```
+
+---
+
+## Design Token Reference
+
+All tokens follow the Design Token Community Group format: `{ value, type, description? }`. References like `{color.neutral.white.value}` are resolved automatically at build time.
+
+### Colors
+
+CSS variable prefix: `--color-*`
+
+#### Base palette
+
+- **primary** — `--color-base-primary` — `#1E40AF`
+- **secondary** — `--color-base-secondary` — `#64748B`
+- **success** — `--color-base-success` — `#10B981`
+- **warning** — `--color-base-warning` — `#F59E0B`
+- **danger** — `--color-base-danger` — `#EF4444`
+- **accent1** — `--color-base-accent1` — `#0CD4F3`
+- **accent2** — `--color-base-accent2` — `#F32B0C`
+
+#### Neutral scale
+
+- **white** — `--color-neutral-white` — `#FFFFFF`
+- **gray-50** — `--color-neutral-gray-50` — `#F9FAFB`
+- **gray-100** — `--color-neutral-gray-100` — `#F3F4F6`
+- **gray-200** — `--color-neutral-gray-200` — `#E5E7EB`
+- **gray-300** — `--color-neutral-gray-300` — `#D1D5DB`
+- **gray-400** — `--color-neutral-gray-400` — `#9CA3AF`
+- **gray-500** — `--color-neutral-gray-500` — `#6B7280`
+- **gray-600** — `--color-neutral-gray-600` — `#4B5563`
+- **gray-700** — `--color-neutral-gray-700` — `#374151`
+- **gray-800** — `--color-neutral-gray-800` — `#1F2937`
+- **gray-900** — `--color-neutral-gray-900` — `#111827`
+- **black** — `--color-neutral-black` — `#000000`
+
+#### Themed (semantic) colors
+
+These tokens carry a light / dark / high-contrast variant and respond to the `data-theme` attribute automatically.
+
+- `--color-themed-light-background` — `#FFFFFF`
+- `--color-themed-light-text` — `#000000`
+- `--color-themed-dark-background` — `#111827`
+- `--color-themed-dark-text` — `#FFFFFF`
+- `--color-themed-high-contrast-background` — `#000000`
+- `--color-themed-high-contrast-text` — `#FFFFFF`
+
+#### Alpha colors
+
+- `--color-alpha-primary-50` — `rgba(30, 64, 175, 0.5)`
+- `--color-alpha-primary-100` — `rgba(30, 64, 175, 1)`
+- `--color-alpha-black-50` — `rgba(0, 0, 0, 0.5)`
+
+---
+
+### Spacing
+
+CSS variable prefix: `--spacing-*`
+
+A 4-point grid scale (4 px base unit) plus semantic aliases:
+
+- `--spacing-0` — `0px`
+- `--spacing-1` — `4px`
+- `--spacing-2` — `8px`
+- `--spacing-3` — `12px`
+- `--spacing-4` — `16px`
+- `--spacing-5` — `20px`
+- `--spacing-6` — `24px`
+- `--spacing-7` — `28px`
+- `--spacing-8` — `32px`
+- `--spacing-9` — `36px`
+- `--spacing-10` — `40px`
+
+Semantic aliases (resolve to the scale above):
+
+- `--spacing-gutter` — `16px` (→ spacing.4)
+- `--spacing-padding-sm` — `8px` / `--spacing-padding-md` — `16px` / `--spacing-padding-lg` — `24px`
+- `--spacing-margin-sm` — `8px` / `--spacing-margin-md` — `16px` / `--spacing-margin-lg` — `24px`
+
+---
+
+### Typography
+
+CSS variable prefix: `--typography-*`
+
+#### Font families
+
+- `--typography-font-family-base` — `'Inter', sans-serif`
+- `--typography-font-family-heading` — `'Poppins', sans-serif`
+
+#### Font sizes
+
+- `--typography-font-size-xs` — `12px`
+- `--typography-font-size-sm` — `14px`
+- `--typography-font-size-md` — `16px`
+- `--typography-font-size-lg` — `18px`
+- `--typography-font-size-xl` — `20px`
+- `--typography-font-size-2xl` — `24px`
+- `--typography-font-size-3xl` — `30px`
+
+#### Font weights
+
+- `--typography-font-weight-light` — `300`
+- `--typography-font-weight-regular` — `400`
+- `--typography-font-weight-medium` — `500`
+- `--typography-font-weight-bold` — `700`
+- `--typography-font-weight-extrabold` — `800`
+
+#### Line heights
+
+- `--typography-line-height-tight` — `1.25`
+- `--typography-line-height-normal` — `1.5`
+- `--typography-line-height-loose` — `2`
+
+#### Letter spacing
+
+- `--typography-letter-spacing-tight` — `-0.05em`
+- `--typography-letter-spacing-normal` — `normal`
+- `--typography-letter-spacing-wide` — `0.05em`
+
+#### Text transform
+
+- `--typography-text-case-uppercase` — `uppercase`
+- `--typography-text-case-lowercase` — `lowercase`
+- `--typography-text-case-capitalize` — `capitalize`
+
+---
+
+### Shadows
+
+CSS variable prefix: `--shadow-*`
+
+- `--shadow-xs` — `0 1px 2px 0 rgba(0,0,0,0.05)` — subtle card lift
+- `--shadow-sm` — dual-layer small shadow — default card
+- `--shadow-md` — `0 4px 6px -1px rgba(0,0,0,0.1), …` — elevated panel
+- `--shadow-lg` — `0 10px 15px -3px rgba(0,0,0,0.1), …` — floating element
+- `--shadow-xl` — `0 20px 25px -5px rgba(0,0,0,0.1), …` — modal / dialog
+- `--shadow-inner` — `inset 0 2px 4px 0 rgba(0,0,0,0.06)` — pressed / well state
+- `--shadow-focus` — `0 0 0 3px rgba(59,130,246,0.5)` — focus ring
+- `--shadow-md-top` — upward-facing medium shadow — bottom sheets
+
+---
+
+### Border Radius
+
+CSS variable prefix: `--radius-*`
+
+- `--radius-sm` — `4px`
+- `--radius-md` — `8px`
+- `--radius-lg` — `16px`
+- `--radius-full` — `9999px` (pill shape)
+
+---
+
+### Z-Index
+
+CSS variable prefix: `--z-index-*`
+
+- `--z-index-auto` — `auto` — browser default
+- `--z-index-0` — `0` — reset stacking context
+- `--z-index-10` — `10` — base elements
+- `--z-index-20` — `20` — dropdowns
+- `--z-index-30` — `30` — fixed / sticky headers
+- `--z-index-40` — `40` — modals
+- `--z-index-50` — `50` — tooltips / popovers
+- `--z-index-max` — `9999` — highest layer (overlays, toasts)
+
+---
+
+### Breakpoints
+
+CSS variable prefix: `--breakpoint-*`
+
+Mobile-first breakpoints matching common device widths:
+
+- `--breakpoint-xs` — `0px`
+- `--breakpoint-sm` — `640px` — tablets
+- `--breakpoint-md` — `768px` — small laptops
+- `--breakpoint-lg` — `1024px` — desktops
+- `--breakpoint-xl` — `1280px` — large desktops
+- `--breakpoint-2xl` — `1536px` — wide screens
+
+Media query helpers available as token values:
+
+```css
+@media (min-width: 768px) { /* breakpoint.md */ }
+@media (orientation: portrait) { /* breakpoint.orientation.portrait */ }
+@media (prefers-reduced-motion: reduce) { /* transition.motion.prefersReducedMotion */ }
+```
+
+---
+
+### Transitions
+
+CSS variable prefix: `--transition-*`
+
+**Durations:**
+
+- `--transition-duration-fast` — `150ms`
+- `--transition-duration-medium` — `300ms`
+- `--transition-duration-slow` — `500ms`
+
+**Timing functions:**
+
+- `--transition-timing-function-linear` — `linear`
+- `--transition-timing-function-ease-in` — `cubic-bezier(0.4, 0, 1, 1)`
+- `--transition-timing-function-ease-out` — `cubic-bezier(0, 0, 0.2, 1)`
+- `--transition-timing-function-ease-in-out` — `cubic-bezier(0.4, 0, 0.2, 1)`
+
+**Delays:**
+
+- `--transition-delay-none` — `0ms`
+- `--transition-delay-short` — `100ms`
+- `--transition-delay-long` — `200ms`
+
+Always respect `prefers-reduced-motion`:
+
+```css
+.animated {
+  transition: transform var(--transition-duration-medium)
+    var(--transition-timing-function-ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated {
+    transition: none;
+  }
+}
+```
+
+---
+
+### Opacity
+
+CSS variable prefix: `--opacity-*`
+
+- `--opacity-0` — `0`
+- `--opacity-25` — `0.25`
+- `--opacity-50` — `0.5`
+- `--opacity-75` — `0.75`
+- `--opacity-100` — `1`
+- `--opacity-disabled` — `0.5` — use on disabled UI elements
+- `--opacity-muted` — `0.75` — use on muted / secondary text
+
+```css
+button:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+```
+
+---
+
+## CSS Custom Properties API
+
+The utility functions let you work with tokens programmatically when CSS alone isn't enough.
+
+### `pathToCssVar(path)`
+
+Converts a dot-path token name to a CSS custom property name.
+
+```ts
+import { pathToCssVar } from '@web-loom/design-core/utils';
+
+pathToCssVar('color.base.primary');       // '--color-base-primary'
+pathToCssVar('spacing.4');                // '--spacing-4'
+pathToCssVar('typography.font.size.lg');  // '--typography-font-size-lg'
+```
+
+### `getTokenVar(path)`
+
+Returns the full `var(--...)` reference string, ready to use in inline styles or JS-driven CSS.
+
+```ts
+import { getTokenVar } from '@web-loom/design-core/utils';
+
+getTokenVar('color.base.primary'); // 'var(--color-base-primary)'
+getTokenVar('shadow.md');          // 'var(--shadow-md)'
+```
+
+### `getSafeTokenVar(path)`
+
+Async version of `getTokenVar` — validates that the token exists before returning the reference. Returns `undefined` if the path is invalid.
+
+```ts
+import { getSafeTokenVar } from '@web-loom/design-core/utils';
+
+const ref = await getSafeTokenVar('color.base.primary'); // 'var(--color-base-primary)'
+const bad = await getSafeTokenVar('color.does.not.exist'); // undefined
+```
+
+### `getTokenValue(path)`
+
+Resolves a token to its raw value (async, cached after first call).
+
+```ts
+import { getTokenValue } from '@web-loom/design-core/utils';
+
+const primary = await getTokenValue('color.base.primary'); // '#1E40AF'
+const padding = await getTokenValue('spacing.4');          // '16px'
+const shadow  = await getTokenValue('shadow.md');          // '0 4px 6px -1px ...'
+```
+
+### `generateCssVariablesMap()`
+
+Returns a flat `Record<string, TokenValue>` of every CSS variable and its resolved value. Useful for server-side rendering or generating custom stylesheets.
+
+```ts
+import { generateCssVariablesMap } from '@web-loom/design-core/utils';
+
+const map = await generateCssVariablesMap();
+// {
+//   '--color-base-primary': '#1E40AF',
+//   '--spacing-4': '16px',
+//   ... 200+ entries
+// }
+```
+
+### `generateCssVariablesString(selector?)`
+
+Generates a complete CSS rule string. Defaults to `:root`.
+
+```ts
+import { generateCssVariablesString } from '@web-loom/design-core/utils';
+
+const css = await generateCssVariablesString(':root');
+// ':root { --color-base-primary: #1E40AF; --spacing-4: 16px; ... }'
+
+// Inject into the document
 const style = document.createElement('style');
-style.textContent = cssVars;
+style.textContent = css;
 document.head.appendChild(style);
 ```
 
+### `getAllTokens()`
+
+Returns the full resolved token tree (all 15 categories, deeply nested).
+
+```ts
+import { getAllTokens } from '@web-loom/design-core/utils';
+
+const tokens = await getAllTokens();
+console.log(tokens.color.base.primary); // '#1E40AF'
+```
+
+---
+
 ## Theming
 
-The `@design-core` utilities provide a robust way to define and switch between different themes.
+### Built-in themes
 
-### Defining a Theme
+The base CSS ships with three themes controlled by `data-theme` on the `<html>` element. Themed tokens (`--color-themed-*-background`, `--color-themed-*-text`) switch values automatically via CSS — no JavaScript required.
 
-```typescript
+```html
+<html data-theme="light">          <!-- default -->
+<html data-theme="dark">
+<html data-theme="high-contrast">
+```
+
+### `createTheme(name, overrides)`
+
+Creates a theme object by merging token overrides onto the base set.
+
+```ts
 import { createTheme } from '@web-loom/design-core/utils';
 
-const darkTheme = createTheme('dark', {
-  colors: {
-    background: {
-      page: '#121212',
-    },
-    text: {
-      primary: '#E0E0E0',
+const brandTheme = createTheme('brand', {
+  color: {
+    base: {
+      primary:   { value: '#7C3AED' },
+      secondary: { value: '#A78BFA' },
     },
   },
 });
 ```
 
-### Applying and Switching Themes
+### `applyTheme(theme, applyToRoot?)`
 
-```typescript
-import { applyTheme, setTheme } from '@web-loom/design-core/utils';
+Generates and injects a `<style>` element containing the theme's CSS variables. By default the styles are scoped to `[data-theme="<name>"]`; pass `true` to override `:root` instead.
 
-// Apply the theme styles
-await applyTheme(darkTheme);
+```ts
+import { applyTheme } from '@web-loom/design-core/utils';
 
-// Activate the theme
-setTheme('dark');
+await applyTheme(brandTheme);        // scoped to [data-theme="brand"]
+await applyTheme(brandTheme, true);  // overrides :root
 ```
 
-## Interop with UI packages
+### `setTheme(themeName)`
 
-- UI Core and UI Patterns already read CSS custom properties introduced by Design Core. Theme toggles simply call `setTheme` while relying on CSS to update component palettes.
-- For documentation or marketing sites, load `@web-loom/design-core/design-system` once per app and call `applyTheme` inside the provider so `setTheme` can freely switch between `[data-theme="light"]` and `[data-theme="dark"]` variants.
+Activates a theme by setting `data-theme` on `<html>`. The pre-injected CSS takes effect immediately — no re-render required.
+
+```ts
+import { setTheme } from '@web-loom/design-core/utils';
+
+setTheme('dark');
+setTheme('brand');
+setTheme('light');
+```
+
+### `getCurrentTheme()`
+
+Returns the currently active theme name, or `null` if no `data-theme` attribute is set.
+
+```ts
+import { getCurrentTheme } from '@web-loom/design-core/utils';
+
+getCurrentTheme(); // 'dark' | 'light' | 'brand' | null
+```
+
+### Full theming workflow
+
+```ts
+import { createTheme, applyTheme, setTheme } from '@web-loom/design-core/utils';
+
+// 1. Define custom themes at app startup
+const darkTheme = createTheme('dark', {
+  color: {
+    themed: {
+      dark: {
+        background: { value: '#0a0a0a' },
+        text:       { value: '#f5f5f5' },
+      },
+    },
+  },
+});
+
+// 2. Inject their CSS once, early in the app lifecycle
+await applyTheme(darkTheme);
+
+// 3. Switch at runtime — instant, CSS-only
+setTheme('dark');
+setTheme('light');
+```
+
+---
+
+## Pre-built Component Library
+
+Import `@web-loom/design-core/design-system` to get a lightweight CSS component library built entirely on top of the design tokens. All components use `var(--...)` references, so they automatically respond to theme changes.
+
+```css
+@import '@web-loom/design-core/design-system';
+```
+
+### Components
+
+**Forms** — `button`, `checkbox`, `input`, `radio-group`, `select`, `switch`, `textarea`
+
+**Display** — `avatar`, `badge`, `card`, `list`, `table`
+
+**Layout** — `container`, `footer`, `page-content`, `page-header`
+
+**Navigation** — `navigation-bar`, `sidebar`, `tabs`
+
+**Overlays** — `modal`, `toast`, `tooltip`
+
+**Utility** — `loader` (spinner)
+
+### Usage examples
+
+```html
+<!-- Buttons -->
+<button class="btn btn-primary">Save</button>
+<button class="btn btn-secondary">Cancel</button>
+<button class="btn btn-danger">Delete</button>
+<button class="btn btn-primary" disabled>Disabled</button>
+
+<!-- Card -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Task Details</h3>
+  </div>
+  <div class="card-body">
+    <p>Card content here.</p>
+  </div>
+</div>
+
+<!-- Badges -->
+<span class="badge badge-success">Active</span>
+<span class="badge badge-warning">Pending</span>
+<span class="badge badge-danger">Failed</span>
+
+<!-- Input -->
+<div class="input-group">
+  <label class="label" for="name">Full name</label>
+  <input class="input" id="name" type="text" placeholder="Alice Smith" />
+</div>
+
+<!-- Loader -->
+<div class="loader loader-md"></div>
+```
+
+Dark mode works automatically — just set `data-theme="dark"` on `<html>` and all component classes switch palettes with no extra class names needed.
+
+---
+
+## Framework Integration
+
+### React
+
+A minimal hook to read the current theme and expose a toggle:
+
+```tsx
+import { useEffect, useState, useCallback } from 'react';
+import {
+  setTheme,
+  getCurrentTheme,
+  applyTheme,
+  createTheme,
+} from '@web-loom/design-core/utils';
+
+const darkTheme = createTheme('dark', {});
+
+export function useTheme() {
+  const [theme, setThemeState] = useState<string>(
+    () => getCurrentTheme() ?? 'light',
+  );
+
+  useEffect(() => {
+    applyTheme(darkTheme);
+  }, []);
+
+  const toggle = useCallback(() => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    setThemeState(next);
+  }, [theme]);
+
+  return { theme, toggle };
+}
+```
+
+Pairing with inline styles using token variables:
+
+```tsx
+import { getTokenVar } from '@web-loom/design-core/utils';
+
+function HighlightBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        background:   getTokenVar('color.base.primary'),
+        color:        getTokenVar('color.neutral.white'),
+        padding:      getTokenVar('spacing.4'),
+        borderRadius: getTokenVar('radius.md'),
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+### Vue 3
+
+```ts
+// composables/useTheme.ts
+import { ref, onMounted } from 'vue';
+import {
+  setTheme,
+  getCurrentTheme,
+  applyTheme,
+  createTheme,
+} from '@web-loom/design-core/utils';
+
+const darkTheme = createTheme('dark', {});
+
+export function useTheme() {
+  const theme = ref(getCurrentTheme() ?? 'light');
+
+  onMounted(async () => {
+    await applyTheme(darkTheme);
+  });
+
+  function toggle() {
+    const next = theme.value === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    theme.value = next;
+  }
+
+  return { theme, toggle };
+}
+```
+
+### Angular
+
+```ts
+import { Injectable, signal, effect } from '@angular/core';
+import {
+  setTheme,
+  getCurrentTheme,
+  applyTheme,
+  createTheme,
+} from '@web-loom/design-core/utils';
+
+const darkTheme = createTheme('dark', {});
+
+@Injectable({ providedIn: 'root' })
+export class ThemeService {
+  readonly theme = signal<string>(getCurrentTheme() ?? 'light');
+
+  constructor() {
+    applyTheme(darkTheme);
+    effect(() => setTheme(this.theme()));
+  }
+
+  toggle() {
+    this.theme.set(this.theme() === 'light' ? 'dark' : 'light');
+  }
+}
+```
+
+### Vanilla JavaScript
+
+```js
+import '@web-loom/design-core/design-system';
+import { applyTheme, createTheme, setTheme } from '@web-loom/design-core/utils';
+
+const darkTheme = createTheme('dark', {});
+await applyTheme(darkTheme);
+
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  setTheme(current === 'dark' ? 'light' : 'dark');
+});
+```
+
+---
+
+## Pairing with MVVM Core
+
+### ViewModel-driven theming
+
+Keep theme state in a ViewModel rather than scattered across components:
+
+```ts
+import { signal, computed, effect } from '@web-loom/signals-core';
+import {
+  setTheme,
+  getCurrentTheme,
+  applyTheme,
+  createTheme,
+} from '@web-loom/design-core/utils';
+
+const themes = {
+  dark:  createTheme('dark', {}),
+  light: createTheme('light', {}),
+};
+
+export class ThemeViewModel {
+  private _theme = signal<'light' | 'dark'>(
+    (getCurrentTheme() as 'light' | 'dark') ?? 'light',
+  );
+
+  readonly theme  = this._theme.asReadonly();
+  readonly isDark = computed(() => this._theme.get() === 'dark');
+
+  private _effectHandle = effect(() => setTheme(this._theme.get()));
+
+  constructor() {
+    Promise.all([applyTheme(themes.light), applyTheme(themes.dark)]);
+  }
+
+  setTheme(theme: 'light' | 'dark') {
+    this._theme.set(theme);
+  }
+
+  toggle() {
+    this._theme.update((t) => (t === 'light' ? 'dark' : 'light'));
+  }
+
+  dispose() {
+    this._effectHandle.dispose();
+  }
+}
+```
+
+### Model-layer token access
+
+When building user-customizable branding, resolve tokens in the Model and expose them as readonly signals:
+
+```ts
+import { signal } from '@web-loom/signals-core';
+import { getTokenValue } from '@web-loom/design-core/utils';
+
+export class BrandingModel {
+  private _primaryColor = signal('#1E40AF');
+  readonly primaryColor = this._primaryColor.asReadonly();
+
+  async loadDefaults() {
+    const value = await getTokenValue('color.base.primary');
+    if (value) this._primaryColor.set(String(value));
+  }
+
+  setPrimaryColor(hex: string) {
+    this._primaryColor.set(hex);
+  }
+}
+```
+
+---
+
+## TypeScript
+
+All token category types are exported from `@web-loom/design-core/types`:
+
+```ts
+import type {
+  DesignTokenValue,
+  ColorToken,
+  SpacingToken,
+  TypographyToken,
+  ShadowToken,
+  RadiusToken,
+  BorderToken,
+  BreakpointToken,
+  ZIndexToken,
+  OpacityToken,
+  TimingToken,
+  TransitionToken,
+  GradientToken,
+  FocusRingToken,
+  CursorToken,
+  SizingToken,
+} from '@web-loom/design-core/types';
+```
+
+The root interface that every token follows:
+
+```ts
+interface DesignTokenValue<T = string> {
+  value: T;
+  type: string;
+  description?: string;
+}
+```
+
+Utility types from `@web-loom/design-core/utils`:
+
+```ts
+import type {
+  TokenValue,
+  TokenGroup,
+  DesignTokens,
+  Theme,
+} from '@web-loom/design-core/utils';
+```
+
+---
+
+## Best Practices
+
+- **Import once.** Load `@web-loom/design-core/design-system` (or individual CSS files) at the application entry point — never inside components.
+- **Prefer CSS variables over utility functions in CSS.** `var(--spacing-4)` in a stylesheet is zero runtime cost. Only reach for `getTokenVar` / `getTokenValue` when you need token values in JavaScript logic.
+- **Use semantic tokens for themed values.** Prefer `--color-themed-light-background` over hardcoded hex values so theme switching works automatically without extra CSS.
+- **Call `applyTheme` once on startup.** Injecting the same theme multiple times creates duplicate `<style>` tags; call it during app initialization only.
+- **Scope custom themes.** When `applyToRoot` is `false` (the default) each theme only activates when `data-theme="<name>"` is set, so multiple themes can coexist in the stylesheet without conflict.
+- **Respect motion preferences.** Use a `@media (prefers-reduced-motion: reduce)` block to disable animations for users who prefer reduced motion.
+- **Pair with Signals Core for reactive theming.** Drive `setTheme` from a signal so the DOM, derived computed values, and framework views all stay in sync automatically.
+
+## See Also
+
+- [@web-loom/signals-core](/docs/signals-core)
+- [@web-loom/store-core](/docs/store-core)
+- [Models](/docs/models)
+- [UI Core Behaviors](/docs/ui-core)
+- [UI Patterns](/docs/ui-patterns)

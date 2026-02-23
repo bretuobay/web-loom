@@ -1,0 +1,501 @@
+---
+title: 'Package Roadmap'
+summary: 'The full Web Loom package ecosystem — packages that are implemented and used across the demo apps but not yet published to npm. Forms, Media, HTTP, Storage, Router, i18n, Notifications, Error handling, Platform detection, Typography, and Charts.'
+topicTitle: 'Published Packages'
+topicSlug: 'packages'
+---
+
+# Package Roadmap
+
+Web Loom is a larger ecosystem than what is currently on npm. The packages below are fully implemented — they power the demo applications in this monorepo — but have not yet been published to the npm registry. They follow the same architecture principles as the published packages: framework-agnostic cores, thin framework adapters, and zero coupling between layers.
+
+This page documents what each package does, its key features, and what the API looks like so you can understand the intended design before the packages land on npm.
+
+---
+
+## Forms
+
+### @web-loom/forms-core
+
+Framework-agnostic form state management built on Zod. Manages field values, validation errors, dirty/touched tracking, field arrays, and submission state — without importing anything from a UI framework.
+
+**Key features**
+
+- Type-safe form state derived from a Zod schema
+- Field-level and form-level validation on change, blur, or submit
+- Nested objects and field arrays (add, remove, move, swap)
+- Subscription model — subscribe to any field or the whole form
+- Lightweight and tree-shakeable; no runtime outside of Zod
+
+**Planned API sketch**
+
+```typescript
+import { createForm } from '@web-loom/forms-core';
+import { z } from 'zod';
+
+const schema = z.object({
+  email:    z.string().email(),
+  password: z.string().min(8),
+});
+
+const form = createForm({ schema });
+
+form.setValue('email', 'user@example.com');
+form.subscribe('email', (field) => {
+  console.log(field.value, field.error, field.touched);
+});
+
+const result = await form.submit();
+if (result.success) {
+  api.login(result.data);
+}
+```
+
+### @web-loom/forms-react
+
+React adapter for `forms-core`. Provides hooks that connect form state to React's render cycle.
+
+```typescript
+import { useForm, useField } from '@web-loom/forms-react';
+
+function LoginForm() {
+  const form   = useForm({ schema });
+  const email  = useField(form, 'email');
+  const password = useField(form, 'password');
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)}>
+      <input {...email.inputProps} />
+      {email.error && <span>{email.error}</span>}
+      <input {...password.inputProps} type="password" />
+      <button disabled={form.isSubmitting}>Login</button>
+    </form>
+  );
+}
+```
+
+### @web-loom/forms-vue
+
+Vue 3 adapter for `forms-core`. Provides composables that bridge form state to Vue's reactivity system.
+
+```typescript
+import { useForm, useField } from '@web-loom/forms-vue';
+
+const form  = useForm({ schema });
+const email = useField(form, 'email');
+// email.value, email.error, email.touched are Vue refs
+```
+
+### @web-loom/forms-vanilla
+
+Vanilla TypeScript adapter for `forms-core`. Binds form state directly to DOM input elements and wires submit and reset events.
+
+```typescript
+import { bindForm } from '@web-loom/forms-vanilla';
+
+bindForm(document.querySelector('form')!, { schema, onSubmit });
+```
+
+---
+
+## Media
+
+### @web-loom/media-core
+
+Framework-agnostic media player engine. Mounts native `<video>`, `<audio>`, or `<img>` elements, manages playback state, and exposes a typed plugin and event system for extending behaviour.
+
+**Key features**
+
+- Controls native media elements without replacing them
+- Typed event system (play, pause, seek, ended, error, progress, timeupdate)
+- Plugin API — install/uninstall plugins at runtime
+- Lazy-load and preload strategies
+- No framework imports; works anywhere a DOM is available
+
+**Planned API sketch**
+
+```typescript
+import { MediaCore } from '@web-loom/media-core';
+
+const player = new MediaCore({
+  src:      'https://example.com/video.mp4',
+  autoPlay: false,
+  muted:    true,
+});
+
+player.mount(document.getElementById('video-container')!);
+
+const cleanup = player.on('timeupdate', (currentTime, duration) => {
+  progressBar.style.width = `${(currentTime / duration) * 100}%`;
+});
+
+player.play();
+
+// Cleanup
+cleanup();
+player.destroy();
+```
+
+### @web-loom/media-react
+
+React adapter. Provides a `useMediaPlayer` hook and an optional `<MediaPlayer>` component.
+
+```typescript
+import { useMediaPlayer } from '@web-loom/media-react';
+
+function VideoPlayer({ src }: { src: string }) {
+  const { ref, state, controls } = useMediaPlayer({ src });
+
+  return (
+    <div>
+      <video ref={ref} />
+      <button onClick={controls.togglePlay}>
+        {state.isPlaying ? 'Pause' : 'Play'}
+      </button>
+      <progress value={state.currentTime} max={state.duration} />
+    </div>
+  );
+}
+```
+
+### @web-loom/media-vue
+
+Vue 3 adapter. Provides a `useMediaPlayer` composable and a `<MediaPlayer>` component.
+
+```typescript
+const { videoRef, state, controls } = useMediaPlayer({ src });
+// state.isPlaying, state.currentTime, state.duration are Vue refs
+```
+
+---
+
+## Infrastructure
+
+### @web-loom/http-core
+
+TypeScript-first HTTP client under 10 KB (gzipped) with zero dependencies outside of RxJS. Designed to be the HTTP layer across all Web Loom apps.
+
+**Key features**
+
+- Fluent builder API for request configuration
+- Request/response/error interceptor pipeline
+- Automatic retries with configurable exponential backoff
+- Request deduplication — concurrent identical requests are collapsed into one
+- Cancellation support via `AbortController`
+- Mock adapter for unit testing without a real server
+- Full generic typings on request and response bodies
+
+**Planned API sketch**
+
+```typescript
+import { HttpClient } from '@web-loom/http-core';
+
+const http = new HttpClient({
+  baseUrl: 'https://api.example.com',
+  timeout: 10_000,
+});
+
+// Interceptors
+http.interceptors.request.add((config) => ({
+  ...config,
+  headers: { ...config.headers, Authorization: `Bearer ${getToken()}` },
+}));
+
+// Typed request
+const users = await http.get<User[]>('/users');
+const user  = await http.post<User>('/users', { body: newUser });
+
+// Retry
+const data = await http.get<Stats>('/stats', { retry: { attempts: 3, backoff: 'exponential' } });
+```
+
+### @web-loom/storage-core
+
+Unified storage abstraction over IndexedDB, localStorage/sessionStorage, and in-memory backends. All backends share the same async API, so you can swap storage strategies without changing application code.
+
+**Key features**
+
+- Three built-in backends: `IndexedDB`, `WebStorage`, `InMemory`
+- Storage migrations for schema evolution between releases
+- Event system — subscribe to key changes, including cross-tab updates from `localStorage`
+- Structured serialization (JSON by default, pluggable)
+- Namespace isolation to prevent key collisions between features
+
+**Planned API sketch**
+
+```typescript
+import { createStorage, IndexedDBBackend } from '@web-loom/storage-core';
+
+const storage = createStorage({
+  backend: new IndexedDBBackend({ name: 'my-app', version: 1 }),
+  namespace: 'user-prefs',
+});
+
+await storage.set('theme', 'dark');
+const theme = await storage.get<string>('theme'); // → 'dark'
+
+const unsubscribe = storage.onChange('theme', (value) => {
+  applyTheme(value);
+});
+```
+
+### @web-loom/router-core
+
+Framework-agnostic routing with declarative route definitions, nested routes, dynamic segments, and a full navigation guard lifecycle.
+
+**Key features**
+
+- History mode and hash mode behind a unified interface
+- Nested route hierarchies
+- Dynamic segments (`:id`) and wildcard routes
+- Navigation guards: `beforeEach`, `afterEach`, `canActivate`, `onError`
+- Query string utilities
+- RxJS `currentRoute$` observable for reactive navigation state
+
+**Planned API sketch**
+
+```typescript
+import { createRouter } from '@web-loom/router-core';
+
+const router = createRouter({
+  mode: 'history',
+  routes: [
+    { path: '/',          component: HomePage },
+    { path: '/users',     component: UserListPage },
+    { path: '/users/:id', component: UserDetailPage },
+  ],
+});
+
+router.beforeEach((to, from, next) => {
+  if (to.path.startsWith('/admin') && !auth.isAuthenticated) {
+    next('/login');
+  } else {
+    next();
+  }
+});
+
+// Reactive navigation state
+router.currentRoute$.subscribe((route) => {
+  analytics.page(route.path);
+});
+
+router.navigate('/users/42');
+```
+
+### @web-loom/notifications-core
+
+Browser notification management: system notifications, toast/snackbar integration, permission tracking with cross-tab events, and push subscription management.
+
+**Key features**
+
+- Request and track `Notification` permission state reactively
+- Send system notifications with grouping, actions, and silent mode
+- Toast adapter interface — plug in any toast library
+- Cross-tab permission sync via `localStorage` events
+- Push subscription management and service worker integration
+
+**Planned API sketch**
+
+```typescript
+import { NotificationsManager } from '@web-loom/notifications-core';
+
+const notifications = new NotificationsManager();
+
+// Request permission
+await notifications.requestPermission();
+
+// System notification
+notifications.send({
+  title:   'New message',
+  body:    'You have 3 unread messages.',
+  icon:    '/icon.png',
+  tag:     'messages',      // groups updates
+  silent:  false,
+});
+
+// Toast adapter
+notifications.toast.show({ message: 'File saved', duration: 3000 });
+
+// Reactive permission state
+notifications.permission$.subscribe((state) => {
+  showNotificationButton.hidden = state === 'denied';
+});
+```
+
+### @web-loom/i18n-core
+
+Type-safe internationalization without external dependencies. Supports locale detection, lazy-loaded translation bundles, pluralisation, and all standard `Intl` formatters.
+
+**Key features**
+
+- Type-safe translation keys — TypeScript errors on missing or misspelt keys
+- Locale detection from browser, URL, or a custom resolver
+- Lazy loading and caching of translation JSON files
+- RTL detection per locale
+- Number, date, list, and plural formatters via the native `Intl` API
+- Interpolation and nested key support
+
+**Planned API sketch**
+
+```typescript
+import { createI18n } from '@web-loom/i18n-core';
+
+const i18n = createI18n({
+  locale:   'en-US',
+  fallback: 'en-US',
+  load:     (locale) => import(`./locales/${locale}.json`),
+});
+
+await i18n.setLocale('fr-FR');
+
+// Type-safe key lookup
+i18n.t('user.greeting', { name: 'Alice' }); // → "Bonjour, Alice"
+i18n.t('cart.items', { count: 3 });          // → "3 articles"
+
+// Intl formatters
+i18n.formatNumber(12345.67, { style: 'currency', currency: 'EUR' }); // → "12 345,67 €"
+i18n.formatDate(new Date(), { dateStyle: 'long' });                    // → "12 janvier 2025"
+```
+
+### @web-loom/error-core
+
+Centralised error handling, structured logging, and resilience patterns. Zero dependencies.
+
+**Key features**
+
+- Domain-specific error classes: `NetworkError`, `ValidationError`, `BusinessError`, `CompositeError`
+- `ErrorHandler` — central registry for routing errors to the right handlers
+- Structured logging with pluggable transports (console, remote, silent)
+- Retry strategies: fixed delay, exponential backoff, jitter
+- Circuit Breaker pattern — open after N failures, half-open after a cooldown
+- Fallback Manager — define fallback values or functions for failed operations
+- Context management for attaching request IDs, user IDs, etc. to error reports
+
+**Planned API sketch**
+
+```typescript
+import {
+  ErrorHandler,
+  NetworkError,
+  CircuitBreaker,
+} from '@web-loom/error-core';
+
+const handler = new ErrorHandler();
+
+handler.on(NetworkError, (err) => {
+  toast.show(`Network error: ${err.message}`);
+});
+
+// Circuit breaker around an unstable API
+const breaker = new CircuitBreaker({
+  threshold:  5,       // open after 5 consecutive failures
+  timeout:    30_000,  // try half-open after 30s
+});
+
+const data = await breaker.execute(() => fetch('/api/data'));
+```
+
+### @web-loom/platform-core
+
+Device, operating system, browser, and feature detection backed by RxJS observables for dynamic state like network status, battery, and viewport changes.
+
+**Key features**
+
+- Device type: mobile, tablet, desktop
+- Platform/OS: iOS, Android, Windows, macOS, Linux
+- Browser: Chrome, Firefox, Safari, Edge
+- Feature detection: touch, WebGL, geolocation, notifications, service workers
+- Reactive: `networkStatus$`, `batteryLevel$`, `viewport$`, `prefersColorScheme$`
+- Media query helpers
+
+**Planned API sketch**
+
+```typescript
+import { PlatformCore } from '@web-loom/platform-core';
+
+const platform = new PlatformCore();
+
+// Static detection
+console.log(platform.device.type);      // 'mobile' | 'tablet' | 'desktop'
+console.log(platform.os.name);          // 'iOS' | 'Android' | 'Windows' | 'macOS' | 'Linux'
+console.log(platform.features.webgl);   // true | false
+
+// Reactive
+platform.networkStatus$.subscribe((status) => {
+  offlineBanner.hidden = status === 'online';
+});
+
+platform.viewport$.subscribe(({ width, height }) => {
+  console.log(`Viewport: ${width}×${height}`);
+});
+```
+
+---
+
+## UI & Visualisation
+
+### @web-loom/typography-core
+
+Typography calculations, color manipulation, web font management, accessibility presets, and advanced text animation utilities.
+
+**Key features**
+
+- Modular type scales (Major Third, Perfect Fourth, Golden Ratio, etc.)
+- Fluid typography — CSS `clamp()` values from viewport range and scale
+- Vertical rhythm utilities
+- Color manipulation: LAB, HSL, RGB color spaces; contrast ratio calculation (WCAG AA/AAA)
+- Web font manager with performance helpers (preconnect, preload, display strategies)
+- Accessibility presets: dyslexia-friendly, low-vision, motion-safe
+- Readability analytics and estimated reading time
+- Text animations: typewriter, fade-in by word/character, 3D reveal effects
+- RTL support and multilingual helpers
+
+**Planned API sketch**
+
+```typescript
+import { TypeScale, fluidType, contrastRatio } from '@web-loom/typography-core';
+
+// Modular scale
+const scale = new TypeScale({ base: 16, ratio: 1.25 });
+scale.step(2); // → 25px (two steps above base)
+
+// Fluid type
+const fluid = fluidType({ minPx: 16, maxPx: 20, minVw: 375, maxVw: 1440 });
+// → "clamp(1rem, 0.913rem + 0.375vw, 1.25rem)"
+
+// WCAG contrast
+contrastRatio('#006fa3', '#ffffff'); // → 5.52 (AA pass)
+```
+
+### @web-loom/charts-core
+
+A D3-based, configuration-driven charting toolkit. Currently **under active development**. Supports line, area, and scatter series with interactive legends, crosshair overlays, tooltip management, a zoom/pan plugin, and a deep-mergeable theme system.
+
+This package is functional and used in the demo applications but is not yet stable enough for an npm release. The API may change between monorepo commits.
+
+**Expected features at release**
+
+- Line, area, and scatter series with marker and curve customisation
+- Time and linear D3 scales via `ScaleRegistry`
+- Configurable axes (top/bottom/left/right) and annotation layers
+- Shared and per-point tooltips with follow/fixed strategies
+- Interactive legend with toggle and hover
+- Crosshair overlay
+- Built-in light theme with deep-merge `ChartTheme` overrides
+- `AdaptiveRenderStrategy` switching to Canvas above 10 000 data points
+- `ChartPlugin` interface with built-in `ZoomPanPlugin`
+- Config validation via `validateChartConfig`
+
+---
+
+## When Will These Be Published?
+
+There is no fixed release schedule. Packages are published when:
+
+1. The public API is considered stable.
+2. Test coverage is sufficient.
+3. The package has been exercised in at least one real demo application.
+
+Watch the [GitHub repository](https://github.com/bretuobay/web-loom) and the npm `@web-loom` scope for new releases.
+
+If you need one of these packages before it ships, the source is available in the monorepo and can be used directly via the workspace protocol.

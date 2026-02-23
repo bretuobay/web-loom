@@ -1,111 +1,882 @@
 ---
-title: 'Using MVVM in Vue: Greenhouse Example'
-summary: 'A practical guide to implementing the MVVM pattern in a Vue app using MVVM Core, with a Greenhouse management use case.'
+title: 'MVVM in Vue'
+summary: "How Vue 3's Proxy-based reactivity system works, why RxJS observables need a composable bridge, and practical patterns for wiring ViewModels into Vue components — with real examples from the Web Loom Greenhouse app."
 topicTitle: 'MVVM Core'
 topicSlug: 'mvvm-core'
+prevTitle: 'MVVM in React'
+prevSlug: '/docs/mvvm-react-use-case'
+nextTitle: 'MVVM in Angular'
+nextSlug: '/docs/mvvm-angular-use-case'
 ---
 
-# Using MVVM in Vue: Greenhouse Example
+# MVVM in Vue
 
-This guide demonstrates how to use the MVVM (Model-View-ViewModel) pattern in a Vue 3 application with MVVM Core, focusing on a Greenhouse management use case.
+Vue 3 and RxJS are both reactive, but they track and propagate changes in completely different ways. Understanding that difference is what makes the integration feel intentional rather than patched together. This page explains Vue's reactivity system, why observable subscriptions need a composable bridge, and the concrete patterns Web Loom uses throughout the Greenhouse app.
 
-## Overview
+---
 
-- **Model:** Encapsulates data and API logic (GreenHouseModel)
-- **ViewModel:** Manages state, commands, and validation (GreenHouseViewModel)
-- **View:** Vue component (`GreenhouseList.vue`)
+## How Vue 3's Reactivity System Works
 
-## 1. Define the Model
+Vue 3's reactivity is built on **JavaScript Proxies**. When you wrap a value in `ref()` or `reactive()`, Vue creates a Proxy around it. Any time a piece of code _reads_ from that Proxy during a tracked context (a template render, a `computed()` getter, or `watchEffect()`), Vue records that read as a **dependency**. When the Proxy's value later _changes_, Vue notifies every dependent and schedules a re-render or re-computation.
 
-The model handles API requests and data validation:
+```
+ref(0)          ← Proxy wrapping a primitive via { value: ... }
+reactive({})    ← Proxy wrapping an object directly
+computed(fn)    ← runs fn, records dependencies, re-runs on change
+watch(source)   ← watches source, runs callback when it changes
+watchEffect(fn) ← runs fn immediately, re-runs whenever any dependency changes
+```
+
+### ref() and .value
+
+`ref()` wraps a value in a reactive container:
 
 ```typescript
-// packages/models/src/GreenHouseModel.ts
-import { RestfulApiModel } from '@web-loom/mvvm-core';
-import { GreenhouseListSchema, type GreenhouseListData } from './schemas';
-import { nativeFetcher } from './utils/fetcher';
-import { apiRegistry } from './services/services';
-import { API_BASE_URL } from './config';
+import { ref, computed, watch } from 'vue';
 
-const { path } = apiRegistry.greenhouse.list;
+const count = ref(0);
 
-export const greenHouseConfig = {
-  baseUrl: API_BASE_URL,
-  endpoint: path,
-  fetcher: nativeFetcher,
-  schema: GreenhouseListSchema,
-  initialData: [],
-  validateSchema: false,
-};
+count.value++;           // triggers reactivity
+console.log(count.value); // 1
 
-export class GreenHouseModel extends RestfulApiModel<GreenhouseListData, typeof GreenhouseListSchema> {
-  constructor() {
-    super(greenHouseConfig);
-  }
+// In templates, .value is unwrapped automatically:
+// <span>{{ count }}</span>  ← no .value needed
+```
+
+### reactive()
+
+`reactive()` makes a plain object deeply reactive:
+
+```typescript
+const form = reactive({ name: '', location: '', size: '' });
+
+form.name = 'Alpha House'; // triggers reactivity — no .value needed
+```
+
+Use `ref()` for primitives and single values; use `reactive()` for objects that you mutate in place, like form state.
+
+### computed()
+
+`computed()` derives a value from reactive state and caches it until its dependencies change:
+
+```typescript
+const isLoading    = ref(true);
+const hasData      = ref(false);
+const isReady      = computed(() => !isLoading.value && hasData.value);
+// isReady updates automatically when isLoading or hasData change
+```
+
+### watch() and watchEffect()
+
+`watch()` runs a callback when a specific source changes. `watchEffect()` runs immediately and tracks whichever reactive values it reads:
+
+```typescript
+// watch: explicit source, runs on change
+watch(count, (newVal, oldVal) => {
+  console.log('count changed from', oldVal, 'to', newVal);
+});
+
+// watchEffect: runs immediately, auto-tracks dependencies
+watchEffect(() => {
+  console.log('count is now', count.value);
+});
+```
+
+### Lifecycle Hooks
+
+In the Composition API, lifecycle hooks are plain functions you call inside `<script setup>`:
+
+- **`onMounted(fn)`** — runs after the component is inserted into the DOM
+- **`onUnmounted(fn)`** — runs just before the component is removed
+- **`onBeforeUnmount(fn)`** — runs just before unmount (useful for sync cleanup)
+
+---
+
+## The Mismatch with RxJS
+
+Vue's reactivity works by **intercepting reads and writes** through Proxies. RxJS observables and `BehaviorSubject`s are plain JavaScript objects — Vue's Proxy has no way to intercept a `.subscribe()` callback or track when `.next()` is called.
+
+If you read a BehaviorSubject's current value directly in a template, Vue records no dependency on it:
+
+```typescript
+// ❌ Vue tracks nothing here — template never re-renders on emissions
+const vm = greenHouseViewModel;
+// In template: {{ vm.data$.getValue() }}  ← stale forever
+```
+
+The fix is to convert observable emissions into Vue `ref` updates — values that Vue *does* track. The bridge is a `useObservable` composable.
+
+---
+
+## The useObservable Composable
+
+From `apps/mvvm-vue/src/hooks/useObservable.ts` — the single pattern used throughout the Web Loom Vue app:
+
+```typescript
+import { ref, onUnmounted } from 'vue';
+import type { Observable } from 'rxjs';
+
+export function useObservable<T>(observable: Observable<T>, initialValue: T) {
+  const value = ref<T>(initialValue);
+
+  const subscription = observable.subscribe({
+    next: (val) => {
+      value.value = val;   // writing to ref.value → Vue reactivity kicks in
+    },
+  });
+
+  onUnmounted(() => {
+    subscription.unsubscribe(); // close the subscription when component is destroyed
+  });
+
+  return value;
 }
 ```
 
-## 2. Create the ViewModel
+How it works step by step:
 
-The ViewModel exposes observables and commands for the UI:
+- `ref(initialValue)` creates a reactive container. Vue tracks every template expression that reads `.value` on it.
+- `observable.subscribe()` is called **immediately** when the composable runs (inside `<script setup>`). There is no `onMounted` guard — the subscription starts before the component renders, which means the initial value from a `BehaviorSubject` arrives before the first paint.
+- Each `next` emission writes to `value.value`. Writing to a `ref` triggers Vue's reactivity system, scheduling a re-render for any template or `computed` that depends on it.
+- `onUnmounted(() => subscription.unsubscribe())` ensures the subscription is cleaned up when the component leaves the DOM, preventing memory leaks.
+
+Usage is one line per observable:
+
+```typescript
+const greenhouses = useObservable(greenHouseViewModel.data$, []);
+const isLoading   = useObservable(greenHouseViewModel.isLoading$, true);
+const error       = useObservable(greenHouseViewModel.error$, null);
+```
+
+`greenhouses`, `isLoading`, and `error` are now plain Vue refs. Use them in templates without `.value`, and in `<script setup>` with `.value`.
+
+---
+
+## Setting Up a ViewModel
+
+### Option 1: Module-Level Singleton
+
+The pattern used throughout the Web Loom Vue app — create the ViewModel once at module scope, import it wherever needed:
 
 ```typescript
 // packages/view-models/src/GreenHouseViewModel.ts
-import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
-import { greenHouseConfig } from '@repo/models';
-import { type GreenhouseListData, GreenhouseListSchema, type GreenhouseData } from '@repo/models';
+import { createReactiveViewModel } from '@web-loom/mvvm-core';
+import { greenHouseConfig, GreenhouseListSchema } from '@repo/models';
 
-type TConfig = ViewModelFactoryConfig<GreenhouseListData, typeof GreenhouseListSchema>;
-
-const config: TConfig = {
+export const greenHouseViewModel = createReactiveViewModel({
   modelConfig: greenHouseConfig,
   schema: GreenhouseListSchema,
-};
-
-export const greenHouseViewModel = createReactiveViewModel(config);
-export type { GreenhouseListData, GreenhouseData };
+});
 ```
 
-## 3. Use the ViewModel in a Vue Component
-
-The component subscribes to observables and triggers commands:
-
 ```vue
-<!-- apps/mvvm-vue/src/components/GreenhouseList.vue -->
-<template>
-  <!-- ...form and greenhouse list UI... -->
-</template>
 <script setup lang="ts">
-import { onMounted, ref, reactive } from 'vue';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { useObservable } from '../hooks/useObservable';
 
-const isLoading = useObservable(greenHouseViewModel.isLoading$, true);
 const greenhouses = useObservable(greenHouseViewModel.data$, []);
+const isLoading   = useObservable(greenHouseViewModel.isLoading$, true);
+</script>
+```
+
+**When to use:** App-wide shared data (lists, auth state, navigation) that multiple components consume. The ViewModel is a shared reactive store — any component that subscribes sees the same data, and mutations in one component propagate to all.
+
+### Option 2: Per-Component Composable
+
+Create and dispose a ViewModel per component instance:
+
+```typescript
+// composables/useTaskViewModel.ts
+import { onUnmounted } from 'vue';
+import { TaskViewModel } from './TaskViewModel';
+import { TaskModel } from '@repo/models';
+
+export function useTaskViewModel(taskId: string) {
+  const vm = new TaskViewModel(new TaskModel(taskId));
+
+  onUnmounted(() => vm.dispose());
+
+  return vm;
+}
+```
+
+```vue
+<script setup lang="ts">
+import { useTaskViewModel } from '../composables/useTaskViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+const props = defineProps<{ taskId: string }>();
+const vm    = useTaskViewModel(props.taskId);
+
+const task      = useObservable(vm.data$, null);
+const isLoading = useObservable(vm.isLoading$, true);
+
+onMounted(() => vm.fetchCommand.execute());
+</script>
+```
+
+**When to use:** Detail pages or list items that need isolated, independent state per component. `onUnmounted` disposes the ViewModel cleanly.
+
+### Option 3: provide / inject
+
+Share a ViewModel across a component subtree without prop-drilling:
+
+```typescript
+// Parent component or plugin
+import { provide } from 'vue';
+import { authViewModel } from '@repo/view-models/AuthViewModel';
+
+// In a parent component's setup()
+provide('authViewModel', authViewModel);
+```
+
+```typescript
+// Child component, any depth
+import { inject } from 'vue';
+
+const authVm = inject('authViewModel');
+const isAuthenticated = useObservable(authVm.isAuthenticated$, false);
+```
+
+For type safety, use an `InjectionKey`:
+
+```typescript
+// auth-key.ts
+import { type InjectionKey } from 'vue';
+import type { AuthViewModel } from '@repo/view-models/AuthViewModel';
+
+export const AuthViewModelKey: InjectionKey<AuthViewModel> = Symbol('AuthViewModel');
+```
+
+```typescript
+// Parent
+provide(AuthViewModelKey, authViewModel);
+
+// Child
+const authVm = inject(AuthViewModelKey)!;
+```
+
+**When to use:** Cross-cutting concerns shared within a feature subtree (e.g. a wizard, a dashboard section) where you want to avoid direct module imports but don't need global singleton behaviour.
+
+---
+
+## Triggering Fetches with onMounted
+
+Call ViewModel commands in `onMounted` to fire after the component is inserted into the DOM:
+
+```vue
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 
 onMounted(() => {
   greenHouseViewModel.fetchCommand.execute();
 });
-
-const handleSubmit = (event: Event) => {
-  // ...collect form data...
-  greenHouseViewModel.createCommand.execute(data);
-};
 </script>
 ```
 
-## 4. Key Concepts
+For multiple parallel fetches on a dashboard — from `apps/mvvm-vue/src/components/Dashboard.vue`:
 
-- **Observables:** Subscribe to data, loading, and error states from the ViewModel using composables.
-- **Commands:** Trigger CRUD operations via the ViewModel (e.g., `fetchCommand`, `createCommand`).
-- **Validation:** Schemas ensure data integrity.
+```vue
+<script setup lang="ts">
+import { onMounted, computed } from 'vue';
+import { useObservable } from '../hooks/useObservable';
+import { greenHouseViewModel }    from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel }        from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
 
-## 5. Benefits of MVVM in Vue
+const greenHouses    = useObservable(greenHouseViewModel.data$, []);
+const sensors        = useObservable(sensorViewModel.data$, []);
+const sensorReadings = useObservable(sensorReadingViewModel.data$, []);
+const thresholdAlerts = useObservable(thresholdAlertViewModel.data$, []);
 
-- Separation of concerns: UI logic is decoupled from data and API logic.
-- Reactive updates: UI automatically updates when data changes.
-- Testability: Models and ViewModels can be tested independently.
+const isLoadingGreenHouses    = useObservable(greenHouseViewModel.isLoading$, true);
+const isLoadingSensors        = useObservable(sensorViewModel.isLoading$, true);
+const isLoadingSensorReadings = useObservable(sensorReadingViewModel.isLoading$, true);
+const isLoadingAlerts         = useObservable(thresholdAlertViewModel.isLoading$, true);
+
+// computed() derives a combined loading flag from four reactive refs
+const isLoading = computed(
+  () => isLoadingGreenHouses.value
+     || isLoadingSensors.value
+     || isLoadingSensorReadings.value
+     || isLoadingAlerts.value
+);
+
+onMounted(async () => {
+  await Promise.all([
+    greenHouseViewModel.fetchCommand.execute(),
+    sensorViewModel.fetchCommand.execute(),
+    sensorReadingViewModel.fetchCommand.execute(),
+    thresholdAlertViewModel.fetchCommand.execute(),
+  ]);
+});
+</script>
+```
+
+`computed(() => ...)` automatically re-evaluates whenever any of the loading refs changes — no manual watcher needed.
 
 ---
 
-For more details, see the source files in `packages/models` and `packages/view-models`, and explore the MVVM Core documentation.
+## computed() for Derived State
+
+`computed()` is the natural fit for transforming or filtering observable-sourced refs. From `apps/mvvm-vue/src/components/SensorList.vue`:
+
+```vue
+<script setup lang="ts">
+import { onMounted, computed } from 'vue';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+const props = defineProps<{ greenhouseId?: string }>();
+
+const allSensors = useObservable(sensorViewModel.data$, []);
+
+// Filter client-side based on a prop — recomputes whenever allSensors or greenhouseId changes
+const filteredSensors = computed(() => {
+  if (!allSensors.value) return [];
+  if (!props.greenhouseId) return allSensors.value;
+  return allSensors.value.filter(
+    s => s.greenhouseId === props.greenhouseId
+      || s.greenhouse?.id === props.greenhouseId
+  );
+});
+
+onMounted(() => sensorViewModel.fetchCommand.execute());
+</script>
+
+<template>
+  <ul>
+    <li v-for="sensor in filteredSensors" :key="sensor.id">
+      {{ sensor.type }} — {{ sensor.status }}
+    </li>
+  </ul>
+</template>
+```
+
+`filteredSensors` recomputes automatically when either `allSensors.value` (driven by the ViewModel) or `props.greenhouseId` changes. No `watch()` needed for this pattern.
+
+---
+
+## watch() for Prop-Driven Refetches
+
+When a prop change should trigger a new API call, use `watch()`:
+
+```vue
+<script setup lang="ts">
+import { onMounted, watch } from 'vue';
+
+const props = defineProps<{ sensorId?: string }>();
+
+onMounted(() => sensorReadingViewModel.fetchCommand.execute());
+
+// Refetch when the route changes to a different sensorId
+watch(
+  () => props.sensorId,
+  (newId, oldId) => {
+    if (newId !== oldId) {
+      sensorReadingViewModel.fetchCommand.execute();
+    }
+  }
+);
+</script>
+```
+
+For watching deeply nested objects use `{ deep: true }`. For running the callback immediately on mount use `{ immediate: true }` instead of a separate `onMounted`.
+
+---
+
+## Full Example: Greenhouse CRUD
+
+From `apps/mvvm-vue/src/components/GreenhouseList.vue` — a complete CRUD form with v-model form binding and ViewModel commands:
+
+```vue
+<template>
+  <section class="flex-container flex-row">
+
+    <!-- Form: v-model binds to reactive() form state -->
+    <form class="form-container" @submit.prevent="handleSubmit">
+      <div class="form-group">
+        <label for="name">Greenhouse Name</label>
+        <input id="name" v-model="formData.name" required placeholder="e.g. Alpha House" />
+      </div>
+      <div class="form-group">
+        <label for="location">Location</label>
+        <textarea id="location" v-model="formData.location" required />
+      </div>
+      <div class="form-group">
+        <label for="size">Size</label>
+        <select id="size" v-model="formData.size" required>
+          <option value="25sqm">25 sqm — Small</option>
+          <option value="50sqm">50 sqm — Medium</option>
+          <option value="100sqm">100 sqm — Large</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="cropType">Crop Type</label>
+        <input id="cropType" v-model="formData.cropType" placeholder="e.g. Tomatoes" />
+      </div>
+      <button type="submit">{{ editingId ? 'Update' : 'Create' }}</button>
+    </form>
+
+    <!-- List: renders from ViewModel observable -->
+    <div class="card">
+      <h1>Greenhouses</h1>
+      <p v-if="isLoading">Loading…</p>
+      <ul v-else-if="greenhouses && greenhouses.length">
+        <li v-for="gh in greenhouses" :key="gh.id">
+          <span>{{ gh.name }}</span>
+          <button @click="handleEdit(gh.id)">Edit</button>
+          <button @click="handleDelete(gh.id)">Delete</button>
+        </li>
+      </ul>
+      <p v-else>No greenhouses yet.</p>
+    </div>
+
+  </section>
+</template>
+
+<script setup lang="ts">
+import { onMounted, reactive, ref } from 'vue';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+// Subscribe to ViewModel observables → reactive Vue refs
+const greenhouses = useObservable(greenHouseViewModel.data$, []);
+const isLoading   = useObservable(greenHouseViewModel.isLoading$, true);
+
+// Local form state — reactive() suits objects mutated in-place
+const formData = reactive({ name: '', location: '', size: '', cropType: '' });
+const editingId = ref<string | null>(null);
+
+onMounted(() => greenHouseViewModel.fetchCommand.execute());
+
+function resetForm() {
+  Object.assign(formData, { name: '', location: '', size: '', cropType: '' });
+  editingId.value = null;
+}
+
+function handleSubmit() {
+  const payload = { ...formData };
+
+  if (editingId.value) {
+    greenHouseViewModel.updateCommand.execute({ id: editingId.value, payload });
+  } else {
+    greenHouseViewModel.createCommand.execute(payload);
+  }
+  resetForm();
+}
+
+function handleEdit(id?: string) {
+  const gh = greenhouses.value?.find(g => g.id === id);
+  if (!gh) return;
+  Object.assign(formData, {
+    name: gh.name,
+    location: gh.location,
+    size: gh.size,
+    cropType: gh.cropType ?? '',
+  });
+  editingId.value = id ?? null;
+}
+
+function handleDelete(id?: string) {
+  if (!id) return;
+  greenHouseViewModel.deleteCommand.execute(id);
+}
+</script>
+```
+
+Notice what the component does **not** contain:
+- No `fetch()` or `axios` calls
+- No `try/catch` around mutations
+- No manual loading state variables
+- No optimistic update logic
+
+All of that lives in `RestfulApiViewModel` and `RestfulApiModel`. The template is purely declarative.
+
+---
+
+## Binding Command State to the Template
+
+Commands expose `isExecuting$` and `canExecute$` observables. Subscribe to them with `useObservable` and bind to the template:
+
+```vue
+<script setup lang="ts">
+import { useObservable } from '../hooks/useObservable';
+
+const isSaving  = useObservable(vm.saveCommand.isExecuting$, false);
+const canSave   = useObservable(vm.saveCommand.canExecute$, false);
+const saveError = useObservable(vm.saveCommand.executeError$, null);
+</script>
+
+<template>
+  <button @click="vm.saveCommand.execute()" :disabled="!canSave || isSaving">
+    {{ isSaving ? 'Saving…' : 'Save' }}
+  </button>
+  <p v-if="saveError" class="error">{{ saveError.message }}</p>
+</template>
+```
+
+The template remains declarative. No `v-on:click` handler contains any async logic — that lives in the Command.
+
+---
+
+## reactive() vs ref() for Local State
+
+The Web Loom Vue app uses both consistently:
+
+- **`reactive()`** for form objects — you mutate fields in place and `v-model` binds to them naturally
+- **`ref()`** for single control values — a selected ID, a boolean flag, a string filter
+
+```typescript
+// Form state — reactive() because you mutate many fields in-place
+const formData = reactive({ name: '', location: '', size: '' });
+Object.assign(formData, { name: 'Beta', location: 'Zone B', size: '50sqm' });
+
+// Control state — ref() because it's a single value
+const editingId    = ref<string | null>(null);
+const showDialog   = ref(false);
+const searchFilter = ref('');
+```
+
+Do not put reactive objects inside `ref()` — Vue's reactivity handles the nesting automatically with `reactive()`, and double-wrapping adds confusion.
+
+---
+
+## The MaybeRef Pattern (Advanced Composables)
+
+The `packages/media-vue` package shows a more advanced composable convention — accepting either a raw value or a `Ref<T>` as input:
+
+```typescript
+// packages/media-vue/src/internal.ts
+import { isRef, ref, type Ref } from 'vue';
+
+export type MaybeRef<T> = T | Ref<T>;
+
+export function toReactiveRef<T>(value?: MaybeRef<T>): Ref<T> {
+  return isRef(value) ? value : ref(value as T);
+}
+```
+
+This lets composable callers pass either:
+
+```typescript
+// Raw value — composable wraps it in a ref internally
+useMediaPlayer({ kind: 'video', sources: [...] });
+
+// Already a ref — composable uses it directly, stays reactive to upstream changes
+const config = ref({ kind: 'video', sources: [...] });
+useMediaPlayer(config);
+```
+
+Use this pattern when writing composables that need to accept config that might change reactively.
+
+---
+
+## watch() with onCleanup (Advanced)
+
+In `packages/media-vue/src/useMediaState.ts`, the `watch()` callback receives an `onCleanup` argument — a function to register cleanup logic that runs before the next invocation or on unmount:
+
+```typescript
+import { watch, ref } from 'vue';
+
+export function useMediaState(playerRef: MaybeRef<MediaCorePlayer | null>) {
+  const snapshot = ref<PlaybackSnapshot | null>(null);
+  const source   = toReactiveRef(playerRef);
+
+  watch(source, (player, _prev, onCleanup) => {
+    if (!player) {
+      snapshot.value = null;
+      return;
+    }
+
+    snapshot.value = player.getState();
+
+    // Subscribe to player events
+    const disposers = SNAPSHOT_EVENTS.map(event =>
+      player.on(event, nextState => { snapshot.value = nextState; })
+    );
+
+    // Runs before next watch invocation or on unmount
+    onCleanup(() => disposers.forEach(dispose => dispose()));
+
+  }, { immediate: true });
+
+  return snapshot;
+}
+```
+
+This is the Vue equivalent of React's `useEffect` cleanup function. Use it whenever a `watch` callback opens a subscription or attaches a listener.
+
+---
+
+## Template Directives and the MVVM Pattern
+
+Vue's template directives map cleanly to ViewModel observables:
+
+- **`v-if="isLoading"`** — conditional on a ref from `useObservable(vm.isLoading$, true)`
+- **`v-else-if="error"`** — conditional on a ref from `useObservable(vm.error$, null)`
+- **`v-for="item in items"`** — iterates a ref from `useObservable(vm.data$, [])`
+- **`@click="vm.deleteCommand.execute(item.id)"`** — calls a ViewModel command
+- **`@submit.prevent="handleSubmit"`** — calls a function that delegates to ViewModel commands
+- **`:disabled="!canExecute || isExecuting"`** — binds command state refs to button attributes
+- **`v-model="formData.name"`** — binds to local `reactive()` form state
+
+```vue
+<template>
+  <div v-if="isLoading">Loading…</div>
+  <div v-else-if="error">{{ error.message }}</div>
+  <ul v-else>
+    <li v-for="item in items" :key="item.id">
+      {{ item.name }}
+      <button
+        @click="vm.deleteCommand.execute(item.id)"
+        :disabled="!canDelete || isDeleting"
+      >
+        {{ isDeleting ? 'Deleting…' : 'Delete' }}
+      </button>
+    </li>
+  </ul>
+</template>
+```
+
+The template does no logic — it only reflects reactive state. All decisions live in the ViewModel.
+
+---
+
+## Testing Vue + MVVM Components
+
+### Testing a Component with a Mocked ViewModel
+
+```typescript
+import { mount } from '@vue/test-utils';
+import { BehaviorSubject } from 'rxjs';
+import { describe, it, expect, vi } from 'vitest';
+import GreenhouseCard from './GreenhouseCard.vue';
+
+const mockVm = {
+  data$:      new BehaviorSubject([{ id: '1', name: 'Alpha', location: 'Zone A' }]),
+  isLoading$: new BehaviorSubject(false),
+  error$:     new BehaviorSubject(null),
+  fetchCommand: { execute: vi.fn().mockResolvedValue(undefined) },
+};
+
+it('renders greenhouse names from ViewModel data', async () => {
+  const wrapper = mount(GreenhouseCard, {
+    props: { vm: mockVm },
+  });
+  expect(wrapper.text()).toContain('Alpha');
+});
+
+it('shows loading state when isLoading$ emits true', async () => {
+  mockVm.isLoading$.next(true);
+  const wrapper = mount(GreenhouseCard, { props: { vm: mockVm } });
+  await wrapper.vm.$nextTick();
+  expect(wrapper.text()).toContain('Loading');
+});
+
+it('updates when data$ emits new value', async () => {
+  const wrapper = mount(GreenhouseCard, { props: { vm: mockVm } });
+
+  mockVm.data$.next([
+    { id: '1', name: 'Alpha', location: 'Zone A' },
+    { id: '2', name: 'Beta',  location: 'Zone B' },
+  ]);
+
+  await wrapper.vm.$nextTick();
+  expect(wrapper.text()).toContain('Beta');
+});
+```
+
+`$nextTick()` waits for Vue to flush DOM updates after a reactive change — equivalent to React's `act()`.
+
+### Testing Command Execution
+
+```typescript
+it('calls fetchCommand.execute on mount', () => {
+  mount(GreenhouseList, { props: { vm: mockVm } });
+  expect(mockVm.fetchCommand.execute).toHaveBeenCalledOnce();
+});
+
+it('calls deleteCommand when Delete clicked', async () => {
+  mockVm.deleteCommand = { execute: vi.fn().mockResolvedValue(undefined) };
+  const wrapper = mount(GreenhouseList, { props: { vm: mockVm } });
+
+  await wrapper.find('button.delete').trigger('click');
+  await wrapper.vm.$nextTick();
+
+  expect(mockVm.deleteCommand.execute).toHaveBeenCalledWith('1');
+});
+```
+
+### Testing Composables Directly
+
+Test `useObservable` independently of any component:
+
+```typescript
+import { mount } from '@vue/test-utils';
+import { defineComponent, ref } from 'vue';
+import { BehaviorSubject } from 'rxjs';
+import { useObservable } from './useObservable';
+
+it('useObservable returns initial value synchronously', () => {
+  const subject = new BehaviorSubject('hello');
+  const TestComponent = defineComponent({
+    setup() {
+      const value = useObservable(subject, 'default');
+      return { value };
+    },
+    template: '<span>{{ value }}</span>',
+  });
+
+  const wrapper = mount(TestComponent);
+  expect(wrapper.text()).toBe('hello'); // BehaviorSubject emits immediately
+});
+
+it('useObservable updates on new emission', async () => {
+  const subject = new BehaviorSubject('hello');
+  const TestComponent = defineComponent({
+    setup() { return { value: useObservable(subject, '') }; },
+    template: '<span>{{ value }}</span>',
+  });
+
+  const wrapper = mount(TestComponent);
+  subject.next('world');
+  await wrapper.vm.$nextTick();
+  expect(wrapper.text()).toBe('world');
+});
+
+it('useObservable unsubscribes on unmount', async () => {
+  const subject = new BehaviorSubject(0);
+  const wrapper = mount(/* TestComponent */);
+  wrapper.unmount();
+
+  // Should not throw; subscription should be cleaned up
+  expect(() => subject.next(1)).not.toThrow();
+});
+```
+
+---
+
+## Dos and Don'ts
+
+### Do: Use useObservable to Read Every Observable
+
+```vue
+<!-- ✅ Good — Vue reactivity tracks the ref -->
+<script setup>
+const items = useObservable(vm.data$, []);
+</script>
+<template>
+  <li v-for="item in items" :key="item.id">{{ item.name }}</li>
+</template>
+```
+
+```vue
+<!-- ❌ Bad — Vue tracks nothing, template never updates -->
+<script setup>
+const items = vm.data$.getValue();
+</script>
+```
+
+### Do: Use computed() for Derived State — Not watch()
+
+```typescript
+// ✅ Good — computed caches and updates automatically
+const activeSensors = computed(() =>
+  allSensors.value?.filter(s => s.status === 'active') ?? []
+);
+```
+
+```typescript
+// ❌ Unnecessary — watch + ref for something computed can do
+const activeSensors = ref([]);
+watch(allSensors, val => {
+  activeSensors.value = val?.filter(s => s.status === 'active') ?? [];
+});
+```
+
+### Do: Use reactive() for Form Objects, ref() for Single Values
+
+```typescript
+// ✅ Good
+const formData  = reactive({ name: '', location: '' });   // form object
+const editingId = ref<string | null>(null);                // single value
+```
+
+```typescript
+// ❌ Confusing — don't wrap reactive objects in ref
+const formData = ref(reactive({ name: '', location: '' }));
+```
+
+### Do: Dispose Per-Component ViewModels in onUnmounted
+
+```typescript
+// ✅ Good
+const vm = new TaskViewModel(new TaskModel(props.id));
+onUnmounted(() => vm.dispose());
+```
+
+```typescript
+// ❌ Memory leak — ViewModel BehaviorSubjects never close
+const vm = new TaskViewModel(new TaskModel(props.id));
+// nothing disposes it
+```
+
+### Do: Use onCleanup in watch() When Subscribing Inside It
+
+```typescript
+// ✅ Good — listeners cleaned up before next invocation
+watch(playerRef, (player, _prev, onCleanup) => {
+  const disposer = player?.on('play', handler);
+  onCleanup(() => disposer?.());
+});
+```
+
+```typescript
+// ❌ Bad — listeners accumulate on every player change
+watch(playerRef, (player) => {
+  player?.on('play', handler); // never removed
+});
+```
+
+### Don't: Call execute() at the Top Level of setup()
+
+```typescript
+// ❌ Bad — runs during SSR, before mount, and on every HMR reload
+const { setup } = defineComponent({
+  setup() {
+    vm.fetchCommand.execute(); // fires at wrong time
+  }
+});
+```
+
+```typescript
+// ✅ Good
+onMounted(() => vm.fetchCommand.execute());
+```
+
+### Don't: Mutate Observable-Sourced Refs Directly
+
+```typescript
+// ❌ Bad — next emission from the ViewModel overwrites your mutation
+const greenhouses = useObservable(vm.data$, []);
+greenhouses.value.push(newItem); // ← don't mutate the ref directly
+```
+
+```typescript
+// ✅ Good — let the ViewModel command handle mutation; ref updates via observable
+await vm.createCommand.execute(newItem);
+// ViewModel updates data$ → useObservable updates the ref automatically
+```
+
+---
+
+## Where to Go Next
+
+- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular services, async pipe, and the `OnPush` change detection strategy
+- [MVVM in React](/docs/mvvm-react-use-case) — React's virtual DOM model and useSyncExternalStore integration
+- [ViewModels](/docs/viewmodels) — Commands, derived observables, and disposal patterns
+- [Models](/docs/models) — The data layer that ViewModels subscribe to
+- [Signals Core](/docs/signals-core) — A lighter alternative to RxJS for simple reactive state in Vue

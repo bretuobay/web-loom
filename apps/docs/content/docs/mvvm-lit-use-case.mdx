@@ -1,0 +1,325 @@
+---
+title: 'MVVM in Lit'
+summary: 'How Lit web components connect to Web Loom ViewModels using connectedCallback/disconnectedCallback for subscription lifecycle, @state for reactive re-renders, and the same Command pattern as every other framework.'
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+prevTitle: 'MVVM in React Native'
+prevSlug: '/docs/mvvm-react-native-use-case'
+nextTitle: 'MVVM in Marko'
+nextSlug: '/docs/mvvm-marko-use-case'
+---
+
+# MVVM in Lit
+
+Lit builds UI from **web components** — standard custom elements that the browser natively understands. Where React has a virtual DOM and Angular has zone-based change detection, Lit has `LitElement`: a thin base class that adds property change observation and efficient template re-rendering on top of the native Custom Elements API.
+
+The MVVM bridge in Lit maps cleanly onto two standard lifecycle callbacks: `connectedCallback` for subscribing, and `disconnectedCallback` for cleanup.
+
+---
+
+## How Lit's Rendering Works
+
+A `LitElement` subclass defines its output via a `render()` method that returns an `html` tagged template literal. Lit renders the initial output when the element connects to the DOM. After that, it only re-renders when a **reactive property** changes.
+
+Reactive properties are declared with `@property()` (public, attribute-reflected) or `@state()` (private, internal only). When either changes, Lit schedules an efficient re-render of just the affected parts of the template.
+
+```
+element connects to DOM
+    ↓
+Lit calls render() → produces a TemplateResult
+    ↓
+Lit patches only the changed parts of the DOM
+    ↓
+@state() or @property() value changes
+    ↓
+Lit schedules and runs a minimal re-render
+```
+
+RxJS observables are invisible to this system until you connect them to a `@state()` field — exactly as you would connect them to `useState` in React or `ref()` in Vue.
+
+---
+
+## The Subscription Bridge
+
+The pattern in every Lit component in the Web Loom app is:
+
+1. Declare `@state()` private fields for every value rendered from the ViewModel
+2. Subscribe to ViewModel observables in `connectedCallback`, storing the `Subscription` references
+3. In each subscription callback, assign the emitted value to the corresponding `@state()` field
+4. Unsubscribe all stored subscriptions in `disconnectedCallback`
+
+```typescript
+import { LitElement, html } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { Subscription } from 'rxjs';
+import { myViewModel } from './MyViewModel';
+
+@customElement('my-component')
+export class MyComponent extends LitElement {
+  @state() private items: Item[] = [];
+  @state() private isLoading = false;
+
+  private subscriptions: Subscription[] = [];
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    this.subscriptions.push(
+      myViewModel.data$.subscribe(data => { this.items = data ?? []; }),
+      myViewModel.isLoading$.subscribe(v  => { this.isLoading = v; }),
+    );
+
+    myViewModel.fetchCommand.execute();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.subscriptions.forEach(s => s.unsubscribe());
+  }
+
+  render() {
+    return html`
+      ${this.isLoading ? html`<p>Loading…</p>` : ''}
+      <ul>
+        ${this.items.map(item => html`<li>${item.name}</li>`)}
+      </ul>
+    `;
+  }
+}
+```
+
+When `this.items` is assigned inside the subscription callback, Lit detects the `@state()` change and schedules a re-render. The ViewModel never knows it's driving a web component.
+
+---
+
+## Greenhouse List — Real Example
+
+This is the actual `greenhouse-list` component from the Web Loom Lit app:
+
+```typescript
+// apps/mvvm-lit/src/components/greenhouse-list.ts
+import { LitElement, html } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
+import { Subscription } from 'rxjs';
+
+@customElement('greenhouse-list')
+export class GreenhouseList extends LitElement {
+  createRenderRoot() { return this; }  // use light DOM (no shadow root)
+
+  @state() private greenhouses: GreenhouseData[] = [];
+  private dataSubscription: Subscription | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.dataSubscription = greenHouseViewModel.data$.subscribe((data: any) => {
+      this.greenhouses = data;
+    });
+    greenHouseViewModel.fetchCommand.execute();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.dataSubscription?.unsubscribe();
+  }
+
+  private handleSubmit(event: SubmitEvent) {
+    event.preventDefault();
+    const form = event.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const name = formData.get('name') as string;
+    const existing = this.greenhouses.find(gh => gh.name === name);
+
+    if (existing) {
+      greenHouseViewModel.updateCommand.execute({
+        id: existing.id ?? '',
+        payload: { ...existing, name, location: formData.get('location') as string },
+      });
+    } else {
+      greenHouseViewModel.createCommand.execute({
+        name,
+        location: formData.get('location') as string,
+        size: formData.get('size') as string,
+        cropType: formData.get('cropType') as string,
+      });
+    }
+    form.reset();
+  }
+
+  private handleDelete(id?: string) {
+    if (id) greenHouseViewModel.deleteCommand.execute(id);
+  }
+
+  render() {
+    return html`
+      <section class="flex-container flex-row">
+        <form class="form-container" @submit=${this.handleSubmit}>
+          <input type="text" name="name" required placeholder="Greenhouse name" />
+          <input type="text" name="location" required placeholder="Location" />
+          <select name="size" required>
+            <option value="25sqm">25sqm / Small</option>
+            <option value="50sqm">50sqm / Medium</option>
+            <option value="100sqm">100sqm / Large</option>
+          </select>
+          <input type="text" name="cropType" placeholder="Crop type" />
+          <button type="submit">Submit</button>
+        </form>
+
+        <div class="card">
+          <h1>Greenhouses</h1>
+          ${this.greenhouses.length > 0
+            ? html`<ul class="list">
+                ${this.greenhouses.map(gh => html`
+                  <li class="list-item">
+                    <span>${gh.name}</span>
+                    <button @click=${() => this.handleDelete(gh.id)}>Delete</button>
+                  </li>
+                `)}
+              </ul>`
+            : html`<p>No greenhouses found.</p>`}
+        </div>
+      </section>
+    `;
+  }
+}
+```
+
+Several things to note:
+
+**`createRenderRoot()`** returns `this` instead of a shadow root. This opts out of shadow DOM so the component inherits the app's global CSS. Use shadow DOM (the default) if you want full style encapsulation.
+
+**`@submit=${this.handleSubmit}`** is Lit's event binding syntax — equivalent to React's `onClick={handler}` or Vue's `@click="handler"`. Event listeners are scoped to the element and removed automatically when Lit updates the template.
+
+**The ViewModel interaction** — `greenHouseViewModel.createCommand.execute(...)`, `greenHouseViewModel.deleteCommand.execute(...)` — is unchanged from the React or Vue versions.
+
+---
+
+## Dashboard: Combining Multiple Streams
+
+When a component needs to coordinate loading state across multiple ViewModels, use RxJS `combineLatest`. The result feeds into a single `@state()` field:
+
+```typescript
+import { combineLatest, Subscription } from 'rxjs';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel }      from '@repo/view-models/SensorViewModel';
+
+@customElement('dashboard-view')
+export class DashboardView extends LitElement {
+  @state() private isLoading = true;
+  private subscriptions: Subscription[] = [];
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    this.subscriptions.push(
+      combineLatest([
+        greenHouseViewModel.isLoading$,
+        sensorViewModel.isLoading$,
+      ]).subscribe(([gh, s]) => {
+        this.isLoading = gh || s;
+      }),
+    );
+
+    Promise.all([
+      greenHouseViewModel.fetchCommand.execute(),
+      sensorViewModel.fetchCommand.execute(),
+    ]);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.subscriptions.forEach(s => s.unsubscribe());
+  }
+
+  render() {
+    return html`
+      ${this.isLoading
+        ? html`<p>Loading dashboard data…</p>`
+        : html`<dashboard-content></dashboard-content>`}
+    `;
+  }
+}
+```
+
+The `combineLatest` composition is RxJS — it works identically in React, Vue, Angular, and Lit. Only the assignment target (`this.isLoading` vs `setValue` vs `loading.value`) differs.
+
+---
+
+## Shadow DOM vs Light DOM
+
+By default, `LitElement.createRenderRoot()` creates a shadow root, giving the component full CSS isolation. The Web Loom app overrides this to use light DOM:
+
+```typescript
+createRenderRoot() {
+  return this;  // light DOM — inherits global styles
+}
+```
+
+Use the default (shadow DOM) when the component needs to be self-contained with its own scoped styles. Use light DOM when the component should inherit the application's design system.
+
+For connecting to `@web-loom/design-core` CSS variables, light DOM is simpler — custom properties do pierce shadow DOM boundaries, but other selectors do not.
+
+---
+
+## Commands in Event Handlers
+
+Lit's event binding syntax delegates to the class method:
+
+```typescript
+@customElement('delete-button')
+export class DeleteButton extends LitElement {
+  private handleClick() {
+    greenHouseViewModel.deleteCommand.execute(this.itemId);
+  }
+
+  render() {
+    return html`
+      <button @click=${this.handleClick}>Delete</button>
+    `;
+  }
+}
+```
+
+For inline handlers in lists, use an arrow function to close over the item:
+
+```typescript
+${this.items.map(item => html`
+  <li>
+    ${item.name}
+    <button @click=${() => vm.deleteCommand.execute(item.id)}>Delete</button>
+  </li>
+`)}
+```
+
+---
+
+## Testing
+
+LitElement components can be tested with `@web/test-runner` or `@open-wc/testing`. But because the ViewModel has no Lit imports, ViewModel logic is tested independently with plain Vitest — no element registration, no DOM:
+
+```typescript
+it('filters greenhouses correctly', async () => {
+  const vm = new GreenHouseViewModel(mockModel);
+  (mockModel.data$ as BehaviorSubject<any>).next([
+    { id: '1', name: 'Ventura North', size: '25sqm' },
+    { id: '2', name: 'Eastfield', size: '100sqm' },
+  ]);
+  const data = await firstValueFrom(vm.data$);
+  expect(data).toHaveLength(2);
+  vm.dispose();
+});
+```
+
+---
+
+## Summary
+
+The Lit integration maps directly onto the web component lifecycle:
+
+- **Subscribe to observables** — `connectedCallback`
+- **Trigger re-render on data change** — assign to `@state()` field
+- **Unsubscribe and clean up** — `disconnectedCallback`
+- **Call ViewModel Commands** — `@event=${this.handler}` or inline arrow function
+- **Render template** — `html\`` tagged template literal in `render()`
+
+The ViewModel is unchanged. Lit components are thin, reusable, and composable as standard custom elements — they work in any HTML page, regardless of what other framework is on the page.

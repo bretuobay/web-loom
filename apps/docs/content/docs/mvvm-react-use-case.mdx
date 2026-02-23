@@ -1,110 +1,861 @@
 ---
-title: 'Using MVVM in React: Greenhouse Example'
-summary: 'A practical guide to implementing the MVVM pattern in a React app using MVVM Core, with a Greenhouse management use case.'
+title: 'MVVM in React'
+summary: 'How React's rendering model works, why RxJS observables need a bridge, and practical patterns for wiring ViewModels into React 19 components — with real examples from the Web Loom Greenhouse app.'
 topicTitle: 'MVVM Core'
 topicSlug: 'mvvm-core'
+prevTitle: 'ViewModels'
+prevSlug: '/docs/viewmodels'
+nextTitle: 'MVVM in Vue'
+nextSlug: '/docs/mvvm-vue-use-case'
 ---
 
-# Using MVVM in React: Greenhouse Example
+# MVVM in React
 
-This guide demonstrates how to use the MVVM (Model-View-ViewModel) pattern in a React application with MVVM Core, focusing on a Greenhouse management use case.
+React and RxJS operate on fundamentally different mental models. Understanding that gap is what makes MVVM feel natural in React rather than awkward. This page explains React's rendering system, why observables don't plug straight in, and the concrete patterns Web Loom uses to bridge them.
 
-## Overview
+---
 
-- **Model:** Encapsulates data and API logic (GreenHouseModel)
-- **ViewModel:** Manages state, commands, and validation (GreenHouseViewModel)
-- **View:** React component (`GreenhouseList`)
+## How React's Rendering Model Works
 
-## 1. Define the Model
+React components are **pure functions of state**. Given the same state, a component always renders the same output. React controls _when_ components re-render:
 
-The model handles API requests and data validation:
+- When `useState` or `useReducer` state changes
+- When props from the parent change
+- When context value changes
+
+### The Virtual DOM and Reconciliation
+
+When state changes, React calls your component function again, producing a new **virtual DOM tree** — a lightweight JavaScript description of what the UI should look like. React then **diffs** the new tree against the previous one (reconciliation) and applies only the changed parts to the real DOM.
+
+```
+State change
+    ↓
+Component function runs → new virtual DOM tree
+    ↓
+React diffs old tree vs new tree
+    ↓
+Minimal DOM patch applied
+```
+
+This is efficient, but it has an important implication: **React only re-renders when React knows state has changed**. External values — like an RxJS `BehaviorSubject`, a WebSocket, or any value outside React's state system — are invisible to React unless you explicitly tell it about them.
+
+### The External Store Problem
+
+A `BehaviorSubject` from `@web-loom/mvvm-core` holds a value and pushes updates to subscribers. React has no idea this value exists:
 
 ```typescript
-// packages/models/src/GreenHouseModel.ts
-import { RestfulApiModel } from '@web-loom/mvvm-core';
-import { GreenhouseListSchema, type GreenhouseListData } from './schemas';
-import { nativeFetcher } from './utils/fetcher';
-import { apiRegistry } from './services/services';
-import { API_BASE_URL } from './config';
+// React is completely unaware of this update
+const subject = new BehaviorSubject(0);
+subject.next(1); // pushes to RxJS subscribers, NOT to React
+```
 
-const { path } = apiRegistry.greenhouse.list;
+If a component reads `subject.getValue()` directly, it will show the initial value forever — React never knows it needs to re-render.
 
-export const greenHouseConfig = {
-  baseUrl: API_BASE_URL,
-  endpoint: path,
-  fetcher: nativeFetcher,
-  schema: GreenhouseListSchema,
-  initialData: [],
-  validateSchema: false,
-};
+---
 
-export class GreenHouseModel extends RestfulApiModel<GreenhouseListData, typeof GreenhouseListSchema> {
-  constructor() {
-    super(greenHouseConfig);
-  }
+## Bridging Observables to React
+
+The fix is to connect observable emissions to React state. There are two approaches.
+
+### Approach 1: useObservable (useState + useEffect)
+
+The pattern used throughout the Web Loom React apps:
+
+```typescript
+// apps/mvvm-react/src/hooks/useObservable.ts
+import { useState, useEffect } from 'react';
+import { Observable } from 'rxjs';
+
+export function useObservable<T>(observable: Observable<T>, initialValue: T): T {
+  const [value, setValue] = useState<T>(initialValue);
+
+  useEffect(() => {
+    const subscription = observable.subscribe(setValue);
+    return () => subscription.unsubscribe();
+  }, [observable]);
+
+  return value;
 }
 ```
 
-## 2. Create the ViewModel
+How it works:
 
-The ViewModel exposes observables and commands for the UI:
+- `useState` holds the latest emitted value as React state
+- `useEffect` subscribes to the observable when the component mounts
+- The subscription calls `setValue` on every emission — this triggers a React re-render
+- The cleanup function (`unsubscribe`) runs when the component unmounts or the observable reference changes
+- `initialValue` is returned immediately on the first render before the first emission
+
+Usage:
+
+```tsx
+function GreenhouseList() {
+  const greenHouses = useObservable(vm.data$, []);
+  const isLoading = useObservable(vm.isLoading$, true);
+  const error = useObservable(vm.error$, null);
+
+  // greenHouses, isLoading, error are now plain React state —
+  // they trigger re-renders automatically when the ViewModel updates them.
+}
+```
+
+### Approach 2: useSyncExternalStore (React 18+ Concurrent Mode)
+
+React 18 introduced `useSyncExternalStore` specifically for subscribing to external data sources. It is safer in concurrent mode because it prevents **tearing** — a scenario where different parts of the UI read different snapshots of the same store during a single render pass.
+
+```typescript
+import { useSyncExternalStore } from 'react';
+import { Observable, BehaviorSubject } from 'rxjs';
+
+export function useObservableSync<T>(subject: BehaviorSubject<T>): T {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const sub = subject.subscribe(onStoreChange);
+      return () => sub.unsubscribe();
+    },
+    () => subject.getValue(),    // read current value (client)
+    () => subject.getValue(),    // read current value (server)
+  );
+}
+```
+
+- The first argument is a `subscribe` function — React calls it to get notified when the store changes
+- The second argument is a `getSnapshot` function — React calls it synchronously to read the current value
+- React guarantees that all components reading the same store see a consistent snapshot within a single render
+
+`useSyncExternalStore` is the officially recommended approach for external stores in React 18+. The `useObservable` pattern with `useState + useEffect` works well in practice but can theoretically produce inconsistent reads during concurrent rendering. For `BehaviorSubjects` (which hold a value synchronously accessible via `.getValue()`), `useSyncExternalStore` is a clean fit.
+
+Both approaches are valid. Web Loom's apps use `useObservable` (simpler, works for `Observable` not just `BehaviorSubject`). For new projects targeting React 18+ concurrent features, prefer `useSyncExternalStore`.
+
+---
+
+## Setting Up a ViewModel
+
+### Option 1: Module-Level Singleton
+
+The simplest pattern — create the ViewModel once at the module level, shared across all components that import it:
 
 ```typescript
 // packages/view-models/src/GreenHouseViewModel.ts
-import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
-import { greenHouseConfig } from '@repo/models';
-import { type GreenhouseListData, GreenhouseListSchema, type GreenhouseData } from '@repo/models';
+import { createReactiveViewModel } from '@web-loom/mvvm-core';
+import { greenHouseConfig, GreenhouseListSchema, type GreenhouseListData } from '@repo/models';
 
-type TConfig = ViewModelFactoryConfig<GreenhouseListData, typeof GreenhouseListSchema>;
-
-const config: TConfig = {
+export const greenHouseViewModel = createReactiveViewModel({
   modelConfig: greenHouseConfig,
   schema: GreenhouseListSchema,
-};
-
-export const greenHouseViewModel = createReactiveViewModel(config);
-export type { GreenhouseListData, GreenhouseData };
+});
 ```
 
-## 3. Use the ViewModel in a React Component
+```tsx
+// Any component can import and use it directly
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 
-The component subscribes to observables and triggers commands:
+function GreenhouseSummary() {
+  const count = useObservable(
+    greenHouseViewModel.data$.pipe(map(list => list?.length ?? 0)),
+    0
+  );
+  return <span>{count} greenhouses</span>;
+}
+```
+
+**When to use:** App-wide data (auth state, navigation, global lists) that multiple components consume. The ViewModel acts as a shared reactive store — no prop-drilling required.
+
+### Option 2: Per-Component Instance (useMemo)
+
+Create a fresh ViewModel per component mount using `useMemo`:
 
 ```tsx
-// apps/mvvm-react/src/components/GreenhouseList.tsx
+import { useMemo, useEffect } from 'react';
+import { TaskViewModel } from './TaskViewModel';
+import { TaskModel } from '@repo/models';
+
+function TaskDetail({ taskId }: { taskId: string }) {
+  const vm = useMemo(() => new TaskViewModel(new TaskModel(taskId)), [taskId]);
+
+  useEffect(() => {
+    vm.fetchCommand.execute();
+    return () => vm.dispose(); // clean up on unmount or taskId change
+  }, [vm]);
+
+  const task = useObservable(vm.data$, null);
+  const isLoading = useObservable(vm.isLoading$, true);
+
+  if (isLoading) return <Spinner />;
+  return <div>{task?.title}</div>;
+}
+```
+
+**When to use:** Detail pages or list items where each instance needs its own independent state. `useMemo` ensures the ViewModel is only created once per mount (not on every render), and `useEffect` disposes it when the component unmounts.
+
+### Option 3: Context + Provider
+
+Bridge a ViewModel's observable state into React Context so any descendant can access it without prop-drilling:
+
+```tsx
+// providers/AuthProvider.tsx
+import { createContext, useContext } from 'react';
+import { authViewModel } from '@repo/view-models/AuthViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+interface AuthContextValue {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // Subscribe once at the provider level — all consumers share this subscription
+  const isAuthenticated = useObservable(authViewModel.isAuthenticated$, false);
+  const isLoading = useObservable(authViewModel.isLoading$, false);
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, isLoading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
+}
+```
+
+```tsx
+// App.tsx — wrap the tree
+<ThemeProvider>
+  <AppProvider>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>...</Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  </AppProvider>
+</ThemeProvider>
+```
+
+```tsx
+// Any component in the tree
+function Header() {
+  const { isAuthenticated } = useAuth(); // no direct ViewModel import needed
+  return isAuthenticated ? <UserMenu /> : <SignInButton />;
+}
+```
+
+**When to use:** Cross-cutting concerns like authentication, theme, or permissions. The ViewModel subscription lives in the provider, and all consumers read plain values from context.
+
+---
+
+## Triggering Fetches on Mount
+
+Use `useEffect` with an empty dependency array to fire a command once when the component mounts:
+
+```tsx
+useEffect(() => {
+  greenHouseViewModel.fetchCommand.execute();
+}, []);
+```
+
+For per-component ViewModels (Option 2), include the `vm` in the dependency array and return `dispose()` in the cleanup:
+
+```tsx
+useEffect(() => {
+  vm.fetchCommand.execute();
+  return () => vm.dispose();
+}, [vm]);
+```
+
+For multiple parallel fetches on a dashboard:
+
+```tsx
+useEffect(() => {
+  const fetchAll = async () => {
+    await Promise.all([
+      greenHouseViewModel.fetchCommand.execute(),
+      sensorViewModel.fetchCommand.execute(),
+      sensorReadingViewModel.fetchCommand.execute(),
+      thresholdAlertViewModel.fetchCommand.execute(),
+    ]);
+  };
+  fetchAll();
+}, []);
+```
+
+---
+
+## Binding Commands to the UI
+
+Commands expose three observables that map directly to common UI states:
+
+- **`isExecuting$`** → loading spinner / button text
+- **`canExecute$`** → button `disabled` prop
+- **`executeError$`** → error message display
+
+```tsx
+function SaveButton({ vm }: { vm: DocumentViewModel }) {
+  const canSave = useObservable(vm.saveCommand.canExecute$, false);
+  const isSaving = useObservable(vm.saveCommand.isExecuting$, false);
+  const saveError = useObservable(vm.saveCommand.executeError$, null);
+
+  return (
+    <>
+      <button
+        onClick={() => vm.saveCommand.execute()}
+        disabled={!canSave || isSaving}
+      >
+        {isSaving ? 'Saving…' : 'Save'}
+      </button>
+      {saveError && <p className="error">{saveError.message}</p>}
+    </>
+  );
+}
+```
+
+The View has no `try/catch`, no manual `isLoading` state, and no error tracking — the Command owns all of it.
+
+---
+
+## Full Example: Greenhouse CRUD
+
+From `apps/mvvm-react/src/components/GreenhouseList.tsx` — a full CRUD component using a module-level ViewModel:
+
+```tsx
 import { useEffect } from 'react';
 import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
 import { useObservable } from '../hooks/useObservable';
 
 export function GreenhouseList() {
+  // Subscribe to ViewModel observables
   const greenHouses = useObservable(greenHouseViewModel.data$, [] as GreenhouseData[]);
+  const isLoading = useObservable(greenHouseViewModel.isLoading$, false);
 
+  // Fetch on mount
   useEffect(() => {
     greenHouseViewModel.fetchCommand.execute();
   }, []);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    // ...collect form data...
-    greenHouseViewModel.createCommand.execute(data);
+    const formData = new FormData(event.target as HTMLFormElement);
+    const payload = {
+      name: formData.get('name') as string,
+      location: formData.get('location') as string,
+      size: formData.get('size') as string,
+      cropType: formData.get('cropType') as string,
+    };
+
+    // Check if greenhouse already exists → update instead of create
+    const existing = greenHouses?.find(gh => gh.name === payload.name);
+    if (existing) {
+      greenHouseViewModel.updateCommand.execute({ id: existing.id!, payload });
+      return;
+    }
+    greenHouseViewModel.createCommand.execute(payload);
   };
 
-  return <div>{/* Render form and greenhouse list */}</div>;
+  const handleDelete = (id?: string) => {
+    if (!id) return;
+    greenHouseViewModel.deleteCommand.execute(id);
+  };
+
+  if (isLoading) return <p>Loading…</p>;
+
+  return (
+    <section>
+      <form onSubmit={handleSubmit}>
+        <input name="name" placeholder="Greenhouse name" required />
+        <textarea name="location" placeholder="Location" required />
+        <select name="size" required>
+          <option value="25sqm">25 sqm — Small</option>
+          <option value="50sqm">50 sqm — Medium</option>
+          <option value="100sqm">100 sqm — Large</option>
+        </select>
+        <input name="cropType" placeholder="Crop type" />
+        <button type="submit">Save</button>
+      </form>
+
+      <ul>
+        {greenHouses?.map(gh => (
+          <li key={gh.id}>
+            <span>{gh.name}</span>
+            <button onClick={() => handleDelete(gh.id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 ```
 
-## 4. Key Concepts
+Notice what the component does **not** contain:
+- No `try/catch` around API calls
+- No manual `isLoading` state management
+- No error tracking variables
+- No axios or fetch calls
 
-- **Observables:** Subscribe to data, loading, and error states from the ViewModel.
-- **Commands:** Trigger CRUD operations via the ViewModel (e.g., `fetchCommand`, `createCommand`).
-- **Validation:** Schemas ensure data integrity.
-
-## 5. Benefits of MVVM in React
-
-- Separation of concerns: UI logic is decoupled from data and API logic.
-- Reactive updates: UI automatically updates when data changes.
-- Testability: Models and ViewModels can be tested independently.
+All of that lives in `RestfulApiViewModel` and `RestfulApiModel`.
 
 ---
 
-For more details, see the source files in `packages/models` and `packages/view-models`, and explore the MVVM Core documentation.
+## Dashboard: Multiple ViewModels, One Component
+
+From `apps/mvvm-react/src/components/Dashboard.tsx`:
+
+```tsx
+import { useEffect } from 'react';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+const Dashboard = () => {
+  const greenHouses    = useObservable(greenHouseViewModel.data$,    []);
+  const sensors        = useObservable(sensorViewModel.data$,        []);
+  const sensorReadings = useObservable(sensorReadingViewModel.data$, []);
+  const alerts         = useObservable(thresholdAlertViewModel.data$, []);
+
+  const isLoading =
+    useObservable(greenHouseViewModel.isLoading$,    true) ||
+    useObservable(sensorViewModel.isLoading$,        true) ||
+    useObservable(sensorReadingViewModel.isLoading$, true) ||
+    useObservable(thresholdAlertViewModel.isLoading$, true);
+
+  useEffect(() => {
+    Promise.all([
+      greenHouseViewModel.fetchCommand.execute(),
+      sensorViewModel.fetchCommand.execute(),
+      sensorReadingViewModel.fetchCommand.execute(),
+      thresholdAlertViewModel.fetchCommand.execute(),
+    ]);
+  }, []);
+
+  if (isLoading) return <p>Loading dashboard…</p>;
+
+  return (
+    <div className="dashboard-grid">
+      <GreenhouseCard greenHouses={greenHouses} />
+      <SensorCard sensors={sensors} />
+      <AlertCard alerts={alerts} />
+      <ReadingCard readings={sensorReadings} />
+    </div>
+  );
+};
+```
+
+Each ViewModel is independent. The Dashboard just subscribes to their data streams and delegates rendering to child components — none of which know anything about the data source.
+
+---
+
+## Auth Gate: Commands in a Form
+
+From `apps/mvvm-react-integrated/src/components/AuthGate.tsx` — a sign-in / sign-up form wired entirely to ViewModel commands:
+
+```tsx
+import { useState, type FormEvent } from 'react';
+import { authViewModel } from '@repo/view-models/AuthViewModel';
+import { useAuth } from '../providers/AuthProvider';
+
+export function AuthGate() {
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Read loading state from context (which reads from authViewModel.isLoading$)
+  const { isLoading } = useAuth();
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setErrorMessage(null);
+    try {
+      if (mode === 'signin') {
+        await authViewModel.signInCommand.execute({ email, password });
+      } else {
+        await authViewModel.signUpCommand.execute({ email, password });
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Authentication failed');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+      <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+      {errorMessage && <p className="error">{errorMessage}</p>}
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Processing…' : mode === 'signin' ? 'Sign in' : 'Sign up'}
+      </button>
+    </form>
+  );
+}
+```
+
+Local React state (`email`, `password`, `errorMessage`) manages the form inputs — that's correct, it's transient UI state. The ViewModel command handles the async work and updates the shared `isAuthenticated$` / `isLoading$` observables that flow through `AuthProvider` to any component in the tree.
+
+---
+
+## CompositeCommand: Orchestrating Multiple Operations
+
+`CompositeCommand` groups several Commands and executes them in parallel or sequentially. From `apps/mvvm-react-integrated/src/components/CompositeCommandPanel.tsx`:
+
+```tsx
+import { useMemo, useEffect } from 'react';
+import { CompositeCommand } from '@web-loom/mvvm-core';
+import { useObservable } from '../hooks/useObservable';
+
+function CompositeCommandPanel() {
+  // Parallel: all four fetches fire at once
+  const parallelRefresh = useMemo(() => {
+    const cmd = new CompositeCommand<void, void[]>({ executionMode: 'parallel' });
+    cmd.register(greenHouseViewModel.fetchCommand);
+    cmd.register(sensorViewModel.fetchCommand);
+    cmd.register(sensorReadingViewModel.fetchCommand);
+    cmd.register(thresholdAlertViewModel.fetchCommand);
+    return cmd;
+  }, []);
+
+  // Sequential: each step completes before the next starts
+  const diagnosticSequence = useMemo(() => {
+    const cmd = new CompositeCommand<void, void[]>({ executionMode: 'sequential' });
+    cmd.register(sensorReadingViewModel.fetchCommand);
+    cmd.register(thresholdAlertViewModel.fetchCommand);
+    return cmd;
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      parallelRefresh.dispose();
+      diagnosticSequence.dispose();
+    };
+  }, [parallelRefresh, diagnosticSequence]);
+
+  const parallelRunning  = useObservable(parallelRefresh.isExecuting$, false);
+  const parallelCanRun   = useObservable(parallelRefresh.canExecute$, true);
+  const sequenceRunning  = useObservable(diagnosticSequence.isExecuting$, false);
+  const sequenceCanRun   = useObservable(diagnosticSequence.canExecute$, true);
+
+  return (
+    <div>
+      <button
+        onClick={() => parallelRefresh.execute()}
+        disabled={!parallelCanRun || parallelRunning}
+      >
+        {parallelRunning ? 'Refreshing…' : 'Refresh all streams'}
+      </button>
+
+      <button
+        onClick={() => diagnosticSequence.execute()}
+        disabled={!sequenceCanRun || sequenceRunning}
+      >
+        {sequenceRunning ? 'Running…' : 'Run diagnostics'}
+      </button>
+    </div>
+  );
+}
+```
+
+`useMemo` ensures CompositeCommand instances are created once. The `useEffect` cleanup disposes them when the component unmounts.
+
+---
+
+## Fluent Command: Observable canExecute Guards
+
+From `apps/mvvm-react-integrated/src/components/FluentCommandShowcase.tsx` — a registration form where the submit button only enables when every field rule passes:
+
+```tsx
+import { useMemo, useEffect, useState } from 'react';
+import { Command } from '@web-loom/mvvm-core';
+import { BehaviorSubject } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { useObservable } from '../hooks/useObservable';
+
+function RegistrationForm() {
+  // Local BehaviorSubjects for form field values
+  const username$ = useMemo(() => new BehaviorSubject(''), []);
+  const email$    = useMemo(() => new BehaviorSubject(''), []);
+  const password$ = useMemo(() => new BehaviorSubject(''), []);
+  const policy$   = useMemo(() => new BehaviorSubject(false), []);
+
+  // Derived: email must match basic format
+  const emailValid$ = useMemo(
+    () => email$.pipe(map(v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))),
+    [email$]
+  );
+
+  // Command with multiple observable guards — all must be truthy to enable
+  const registerCommand = useMemo(() => {
+    return new Command(async () => {
+      await api.register({ email: email$.getValue(), password: password$.getValue() });
+    })
+      .observesProperty(username$)   // username must be non-empty
+      .observesProperty(password$)   // password must be non-empty
+      .observesCanExecute(emailValid$) // email must be valid format
+      .observesCanExecute(policy$);   // policy checkbox must be checked
+  }, [username$, email$, password$, policy$, emailValid$]);
+
+  // Dispose everything on unmount
+  useEffect(() => {
+    return () => {
+      registerCommand.dispose();
+      username$.complete();
+      email$.complete();
+      password$.complete();
+      policy$.complete();
+    };
+  }, [registerCommand, username$, email$, password$, policy$]);
+
+  const canSubmit    = useObservable(registerCommand.canExecute$, false);
+  const isSubmitting = useObservable(registerCommand.isExecuting$, false);
+
+  return (
+    <form>
+      <input
+        placeholder="Username"
+        onChange={e => { username$.next(e.target.value); registerCommand.raiseCanExecuteChanged(); }}
+      />
+      <input
+        type="email"
+        placeholder="Email"
+        onChange={e => { email$.next(e.target.value); registerCommand.raiseCanExecuteChanged(); }}
+      />
+      <input
+        type="password"
+        onChange={e => { password$.next(e.target.value); registerCommand.raiseCanExecuteChanged(); }}
+      />
+      <label>
+        <input type="checkbox" onChange={e => { policy$.next(e.target.checked); registerCommand.raiseCanExecuteChanged(); }} />
+        Accept policy
+      </label>
+      <button
+        type="button"
+        onClick={() => registerCommand.execute()}
+        disabled={!canSubmit || isSubmitting}
+      >
+        {isSubmitting ? 'Submitting…' : 'Register'}
+      </button>
+    </form>
+  );
+}
+```
+
+The button `disabled` prop is purely reactive — it reads `canExecute$` without any manual validation checks in the component.
+
+---
+
+## ViewModel Disposal and React Lifecycle
+
+The ViewModel lifecycle maps directly to the React component lifecycle:
+
+```
+Component mounts
+    → useMemo creates ViewModel
+    → useEffect subscribes / fetches
+
+Component updates (props change)
+    → useMemo with deps re-creates ViewModel if deps changed
+    → useEffect cleanup disposes old ViewModel
+    → useEffect re-creates subscription / re-fetches
+
+Component unmounts
+    → useEffect cleanup fires
+    → vm.dispose() completes all BehaviorSubjects
+    → All subscriptions closed → no memory leak
+```
+
+The critical rule: **every ViewModel created inside a component must be disposed in a `useEffect` cleanup**. Failure to do this leaves BehaviorSubjects open, subscriptions dangling, and memory growing.
+
+```tsx
+// ✅ Correct
+useEffect(() => {
+  return () => vm.dispose(); // called on unmount or vm change
+}, [vm]);
+
+// ❌ Wrong — no cleanup, memory leak
+useEffect(() => {
+  vm.fetchCommand.execute();
+}, []);
+```
+
+---
+
+## Testing React + MVVM Components
+
+With ViewModels injected (not constructed inside components), testing is straightforward.
+
+### Testing a Component with a Mocked ViewModel
+
+```tsx
+import { render, screen, act } from '@testing-library/react';
+import { BehaviorSubject } from 'rxjs';
+import { GreenhouseSummary } from './GreenhouseSummary';
+
+// Create a minimal mock ViewModel
+const mockVm = {
+  data$: new BehaviorSubject([{ id: '1', name: 'Alpha', location: 'Zone A' }]),
+  isLoading$: new BehaviorSubject(false),
+  error$: new BehaviorSubject(null),
+  fetchCommand: { execute: vi.fn().mockResolvedValue(undefined), canExecute$: new BehaviorSubject(true) },
+};
+
+it('renders greenhouse names from ViewModel', async () => {
+  render(<GreenhouseSummary vm={mockVm} />);
+  expect(screen.getByText('Alpha')).toBeInTheDocument();
+});
+
+it('shows loading state', async () => {
+  mockVm.isLoading$.next(true);
+  render(<GreenhouseSummary vm={mockVm} />);
+  expect(screen.getByText(/loading/i)).toBeInTheDocument();
+});
+
+it('updates when data changes', async () => {
+  render(<GreenhouseSummary vm={mockVm} />);
+
+  act(() => {
+    mockVm.data$.next([
+      { id: '1', name: 'Alpha', location: 'Zone A' },
+      { id: '2', name: 'Beta',  location: 'Zone B' },
+    ]);
+  });
+
+  expect(screen.getByText('Beta')).toBeInTheDocument();
+});
+```
+
+`act()` ensures React flushes the state update triggered by `.next()` before asserting.
+
+### Testing Command Execution
+
+```tsx
+it('calls fetchCommand.execute on mount', () => {
+  render(<GreenhouseList vm={mockVm} />);
+  expect(mockVm.fetchCommand.execute).toHaveBeenCalledOnce();
+});
+
+it('calls deleteCommand when delete button clicked', async () => {
+  mockVm.deleteCommand = { execute: vi.fn().mockResolvedValue(undefined) };
+  render(<GreenhouseList vm={mockVm} />);
+
+  await userEvent.click(screen.getByRole('button', { name: /delete/i }));
+
+  expect(mockVm.deleteCommand.execute).toHaveBeenCalledWith('1');
+});
+```
+
+---
+
+## Dos and Don'ts
+
+### Do: Use useObservable for Every Observable Subscription
+
+```tsx
+// ✅ Good — React re-renders when data changes
+const items = useObservable(vm.data$, []);
+```
+
+```tsx
+// ❌ Bad — React never re-renders
+const items = vm.data$.getValue(); // bypasses React state entirely
+```
+
+### Do: Dispose Per-Component ViewModels in useEffect
+
+```tsx
+// ✅ Good
+useEffect(() => {
+  vm.fetchCommand.execute();
+  return () => vm.dispose();
+}, [vm]);
+```
+
+```tsx
+// ❌ Bad — ViewModel leaks after unmount
+useEffect(() => {
+  vm.fetchCommand.execute();
+}, []);
+```
+
+### Do: Create Per-Component ViewModels with useMemo
+
+```tsx
+// ✅ Good — created once per mount, not on every render
+const vm = useMemo(() => new TaskViewModel(new TaskModel(id)), [id]);
+```
+
+```tsx
+// ❌ Bad — new ViewModel on every render, all subscriptions reset
+function TaskDetail() {
+  const vm = new TaskViewModel(new TaskModel(id)); // runs every render
+}
+```
+
+### Do: Pass ViewModels as Props for Testability
+
+```tsx
+// ✅ Good — easy to inject mock in tests
+function GreenhouseCard({ vm }: { vm: GreenHouseViewModel }) {
+  const data = useObservable(vm.data$, []);
+  return <div>{data.length} greenhouses</div>;
+}
+```
+
+```tsx
+// ❌ Bad — impossible to test without the real module
+function GreenhouseCard() {
+  const data = useObservable(greenHouseViewModel.data$, []); // hardcoded singleton
+}
+```
+
+### Don't: Call execute() Inside the Render Function
+
+```tsx
+// ❌ Bad — fires on every render
+function BadComponent() {
+  vm.fetchCommand.execute(); // called during every render pass
+  return <div>...</div>;
+}
+```
+
+```tsx
+// ✅ Good — fires once on mount
+useEffect(() => {
+  vm.fetchCommand.execute();
+}, []);
+```
+
+### Don't: Store Observable Data in Both React State and ViewModel
+
+```tsx
+// ❌ Bad — two sources of truth that can diverge
+const [items, setItems] = useState([]);
+useEffect(() => {
+  vm.data$.subscribe(data => {
+    setItems(data); // duplicates state that already lives in vm.data$
+    doSomethingWith(data);
+  });
+}, []);
+```
+
+```tsx
+// ✅ Good — single source via useObservable
+const items = useObservable(vm.data$, []);
+useEffect(() => {
+  if (items.length > 0) doSomethingWith(items);
+}, [items]);
+```
+
+---
+
+## Where to Go Next
+
+- [MVVM in Vue](/docs/mvvm-vue-use-case) — Vue 3 Composition API integration patterns
+- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular services and async pipe integration
+- [Models](/docs/models) — the data layer that ViewModels subscribe to
+- [ViewModels](/docs/viewmodels) — Commands, derived observables, and disposal patterns
+- [Signals Core](/docs/signals-core) — an alternative to RxJS for simpler reactive state

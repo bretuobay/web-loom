@@ -70,7 +70,7 @@ eventBus.emit('user:login', { userId: '123', username: 'Alice' });
 
 ## API Reference
 
-### `createEventBus<M>()`
+### createEventBus&lt;M&gt;()
 
 Creates a new event bus instance.
 
@@ -78,7 +78,7 @@ Creates a new event bus instance.
 const eventBus = createEventBus<MyEventMap>();
 ```
 
-### `on(event, listener)`
+### on(event, listener)
 
 Registers a listener function for one or more events.
 
@@ -94,7 +94,7 @@ eventBus.on(['user:login', 'user:register'], (user) => {
 });
 ```
 
-### `once(event, listener)`
+### once(event, listener)
 
 Registers a listener that executes only once, then automatically unsubscribes.
 
@@ -107,7 +107,7 @@ eventBus.emit('app:ready');
 eventBus.emit('app:ready'); // Listener won't fire again
 ```
 
-### `emit(event, ...args)`
+### emit(event, ...args)
 
 Emits an event, calling all registered listeners with the provided arguments.
 
@@ -118,7 +118,7 @@ eventBus.emit('notification:show', {
 });
 ```
 
-### `off(event?, listener?)`
+### off(event?, listener?)
 
 Unregisters listeners. Three usage patterns:
 

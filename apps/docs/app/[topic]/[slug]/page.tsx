@@ -48,7 +48,7 @@ export default async function SinglePost(props: {
     <>
       {/* Page header */}
       {post.metadata.topicTitle && post.metadata.topicSlug && (
-        <div className="h-16 flex items-center mb-6">
+        <div className="h-8 flex items-center mb-3">
           <TopicTitle name={post.metadata.topicTitle} segment={post.metadata.topicSlug} />
         </div>
       )}
@@ -80,10 +80,10 @@ export default async function SinglePost(props: {
           {/* Article content */}
           <div>
             <header className="mb-6">
-              <h1 className="h2 text-slate-800 mb-4 dark:text-slate-200">{post.metadata.title}</h1>
-              <p className="text-lg text-slate-600 dark:text-slate-400">{post.metadata.summary}</p>
+              <h1 className="text-2xl font-[650] text-slate-800 mb-2 dark:text-slate-200">{post.metadata.title}</h1>
+              <p className="text-base text-slate-600 dark:text-slate-400">{post.metadata.summary}</p>
             </header>
-            <article className="prose text-slate-600 dark:text-slate-400 max-w-none prose-p:leading-normal prose-headings:text-slate-800 dark:prose-headings:text-slate-200 prose-a:font-medium prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-800 dark:prose-strong:text-slate-100 prose-code:text-slate-800 prose-code:bg-transparent dark:prose-code:bg-slate-800 dark:prose-code:text-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-[''] prose-code:after:content-[''] prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-700 prose-headings:scroll-mt-24">
+            <article className="prose text-slate-600 dark:text-slate-400 max-w-none prose-p:leading-normal prose-headings:font-[650] prose-headings:text-slate-800 dark:prose-headings:text-slate-200 prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-h4:text-sm prose-a:font-medium prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-800 dark:prose-strong:text-slate-100 prose-code:text-slate-800 prose-code:bg-transparent dark:prose-code:bg-slate-800 dark:prose-code:text-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-[''] prose-code:after:content-[''] prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-700 prose-headings:scroll-mt-24">
               <CustomMDX source={post.content} />
             </article>
           </div>

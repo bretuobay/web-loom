@@ -1,0 +1,290 @@
+---
+title: 'MVVM in Marko'
+summary: 'How Marko combines server-streaming HTML with client-side reactivity, and how Web Loom ViewModels integrate via reactive let variables and a lightweight subscribeToObservable utility.'
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+prevTitle: 'MVVM in Lit'
+prevSlug: '/docs/mvvm-lit-use-case'
+nextTitle: 'MVVM in Svelte'
+nextSlug: '/docs/mvvm-svelte-use-case'
+---
+
+# MVVM in Marko
+
+Marko is a server-first, streaming UI framework developed at eBay. It compiles components to highly optimised streaming HTML for the initial render, then hydrates just the interactive parts on the client. It is one of the few frameworks designed from the ground up for partial hydration and fine-grained reactivity without a virtual DOM.
+
+The Web Loom Marko app uses the same ViewModels as every other framework demo — the integration requires only a thin utility to bridge RxJS subscriptions to Marko's reactive state variables.
+
+---
+
+## How Marko's Reactivity Works
+
+Marko uses a file-based component model. A `.marko` file contains TypeScript logic and HTML markup in one file, similar to Vue Single-File Components. State is declared with `<let/>` tags — when a `let` variable is reassigned, Marko surgically updates the affected parts of the DOM without re-running the whole component.
+
+```marko
+<!-- Declare reactive state -->
+<let/count=0>
+<let/items=[] as Item[]>
+
+<!-- Bind to state in the template -->
+<p>${count}</p>
+<for|item| of=items>
+  <li>${item.name}</li>
+</for>
+
+<!-- Inline event handlers -->
+<button onClick=() => { count++; }>Increment</button>
+```
+
+Marko's `<script>` block runs on mount (after the component connects to the client). Returning a function from `<script>` registers a cleanup callback — the equivalent of React's `useEffect` cleanup or Vue's `onUnmounted`.
+
+---
+
+## The Observable Bridge Utility
+
+The Marko app includes a small utility that translates RxJS subscriptions into Marko-compatible state updates:
+
+```typescript
+// apps/mvvm-marko/src/utils/marko-observable.ts
+import { type Observable, skip } from 'rxjs';
+
+export function subscribeToObservable<T>(
+  observable: Observable<T>,
+  updateFn: (value: T) => void,
+  skipFirst = false,
+) {
+  const source = skipFirst ? observable.pipe(skip(1)) : observable;
+  const subscription = source.subscribe({
+    next: updateFn,
+    error: (err) => console.error('Observable error:', err),
+  });
+  return () => subscription.unsubscribe();
+}
+```
+
+`subscribeToObservable` returns an unsubscribe function, which integrates naturally with the `<script>` cleanup pattern.
+
+The `skipFirst` option skips the initial emission from `BehaviorSubject`. This is useful when the server has already rendered the initial state from a promise-based fetch and you only want to react to subsequent client-side updates.
+
+---
+
+## Greenhouse Page — Real Example
+
+This is the actual greenhouse page from the Marko app:
+
+```marko
+<!-- apps/mvvm-marko/src/routes/greenhouses/+page.marko -->
+import { greenHouseViewModel, type GreenhouseListData }
+  from '@repo/view-models/GreenHouseViewModel';
+import { subscribeToObservable } from '../../utils/marko-observable';
+
+<!-- Reactive state variables -->
+<let/greenhouses=[] as GreenhouseListData>
+<let/formData={ name: '', location: '', size: '', cropType: '' }>
+<let/editingId=null as string | null>
+<let/statusMessage=''>
+<let/isLoading=true>
+
+<!-- Event handlers -->
+<const/handleSubmit=async (event: Event) => {
+  event.preventDefault();
+  const payload = {
+    name: formData.name.trim(),
+    location: formData.location.trim(),
+    size: formData.size.trim(),
+    cropType: formData.cropType.trim(),
+  };
+  if (editingId) {
+    await greenHouseViewModel.updateCommand.execute({ id: editingId, payload });
+    editingId = null;
+    statusMessage = 'Greenhouse updated.';
+  } else {
+    await greenHouseViewModel.createCommand.execute(payload);
+    statusMessage = 'Greenhouse created.';
+  }
+  formData = { name: '', location: '', size: '', cropType: '' };
+}>
+
+<const/handleDeleteClick=async (event: Event) => {
+  const id = (event.currentTarget as HTMLButtonElement).dataset.id;
+  if (id) {
+    await greenHouseViewModel.deleteCommand.execute(id);
+    statusMessage = 'Greenhouse deleted.';
+  }
+}>
+
+<!-- Mount: subscribe to observables, return cleanup -->
+<script>
+  greenHouseViewModel.fetchCommand.execute();
+
+  const unsubData = subscribeToObservable(
+    greenHouseViewModel.data$,
+    (value: GreenhouseListData | null) => { greenhouses = value ?? []; },
+  );
+  const unsubLoading = subscribeToObservable(
+    greenHouseViewModel.isLoading$,
+    (value: boolean) => { isLoading = value; },
+  );
+
+  return () => {
+    unsubData();
+    unsubLoading();
+  };
+</script>
+
+<!-- Template -->
+<section>
+  <form onSubmit=handleSubmit>
+    <input name="name" value=formData.name onInput=(e) => { formData = { ...formData, name: e.target.value }; } required>
+    <textarea name="location" onInput=(e) => { formData = { ...formData, location: e.target.value }; } required></textarea>
+    <select name="size" value=formData.size onInput=(e) => { formData = { ...formData, size: e.target.value }; } required>
+      <option value="25sqm">25sqm / Small</option>
+      <option value="50sqm">50sqm / Medium</option>
+      <option value="100sqm">100sqm / Large</option>
+    </select>
+    <button type="submit">
+      ${editingId ? 'Update greenhouse' : 'Save greenhouse'}
+    </button>
+  </form>
+
+  <if=isLoading>
+    <p>Loading greenhouse data…</p>
+  </if>
+  <else>
+    <ul>
+      <for|gh| of=greenhouses>
+        <li>
+          <strong>${gh.name}</strong>
+          <span>${gh.location}</span>
+          <button data-id=gh.id onClick=handleDeleteClick>Delete</button>
+        </li>
+      </for>
+    </ul>
+  </else>
+
+  <if=statusMessage>
+    <p>${statusMessage}</p>
+  </if>
+</section>
+```
+
+The ViewModel calls are identical to every other framework: `fetchCommand.execute()`, `updateCommand.execute(...)`, `deleteCommand.execute(...)`. The only Marko-specific parts are `<let/>`, `<const/>`, `<script>`, `<if>`, `<for>`.
+
+---
+
+## The Script Block Lifecycle
+
+Marko's `<script>` block is the mount hook. Code runs after the component connects to the client DOM. Return a function to run cleanup on unmount:
+
+```marko
+<script>
+  // runs on mount
+  const unsub = subscribeToObservable(vm.data$, value => { items = value; });
+
+  // returned function runs on unmount
+  return () => unsub();
+</script>
+```
+
+This is conceptually identical to React's:
+```typescript
+useEffect(() => {
+  const sub = vm.data$.subscribe(setValue);
+  return () => sub.unsubscribe();
+}, []);
+```
+
+Or Vue's:
+```typescript
+const sub = vm.data$.subscribe(v => (ref.value = v));
+onUnmounted(() => sub.unsubscribe());
+```
+
+The pattern is universal. Only the syntax differs.
+
+---
+
+## Marko Tags Reference
+
+- **`<let/x=value>`** — reactive state variable (equivalent to `useState` / `ref()`)
+- **`<const/fn=...>`** — stable event handler (equivalent to `useCallback` / `const fn =`)
+- **`<script>`** — mount lifecycle hook (equivalent to `useEffect` / `onMounted`)
+- **`<if=condition>`** — conditional render (equivalent to `{condition && ...}` / `v-if`)
+- **`<else>`** — else branch (equivalent to `v-else`)
+- **`<for|item| of=list>`** — list render (equivalent to `.map()` / `v-for`)
+- **`<await=promise>`** — progressive / streaming async render (equivalent to `Suspense` / `<Await>`)
+
+---
+
+## SSR and Progressive Rendering
+
+Marko's primary advantage over purely client-side frameworks is streaming HTML to the browser before JavaScript loads. You can use `<await>` to progressively render async data:
+
+```marko
+<!-- Convert the initial BehaviorSubject value to a Promise for SSR -->
+import { observableToPromise } from '../../utils/marko-observable';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+<await=observableToPromise(greenHouseViewModel.data$)>
+  <@then|greenhouses|>
+    <ul>
+      <for|gh| of=greenhouses>
+        <li>${gh.name}</li>
+      </for>
+    </ul>
+  </@then>
+  <@catch|err|>
+    <p>Failed to load: ${err.message}</p>
+  </@catch>
+</await>
+```
+
+The `observableToPromise` utility uses `firstValueFrom` to resolve the current BehaviorSubject value as a Promise, which Marko's `<await>` tag can stream to the client progressively.
+
+```typescript
+// apps/mvvm-marko/src/utils/marko-observable.ts
+import { firstValueFrom, type Observable } from 'rxjs';
+
+export function observableToPromise<T>(observable: Observable<T>): Promise<T> {
+  return firstValueFrom(observable);
+}
+```
+
+This is one of the places where Marko's architecture is genuinely different from the SPA frameworks — the server renders real HTML that the browser can paint before any JavaScript executes. The ViewModel's `BehaviorSubject` provides the initial value synchronously (since `BehaviorSubject` always holds a current value), making it compatible with this pattern.
+
+---
+
+## Testing
+
+ViewModels have no Marko imports and test identically to every other framework integration:
+
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+import { firstValueFrom } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
+import { GreenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+it('data$ emits the fetched list', async () => {
+  const vm = new GreenHouseViewModel(mockModel);
+  (mockModel.data$ as BehaviorSubject<any>).next([
+    { id: '1', name: 'Ventura North', location: 'CA', size: '25sqm', cropType: 'Lettuce' },
+  ]);
+  const data = await firstValueFrom(vm.data$);
+  expect(data).toHaveLength(1);
+  vm.dispose();
+});
+```
+
+---
+
+## Summary
+
+- **Declare reactive state** — `<let/name=initialValue>`
+- **Subscribe to observables** — `<script>` block (mount hook)
+- **Update state from subscription** — reassign the `<let>` variable inside the callback
+- **Unsubscribe** — return a cleanup function from `<script>`
+- **Render template** — Marko HTML with `<if>`, `<for>`, `${expr}`
+- **Call ViewModel Commands** — `vm.someCommand.execute(payload)` in event handlers
+- **SSR initial data** — `observableToPromise` + `<await>` tag
+
+The ViewModel is shared with every other platform. The Marko-specific surface area is limited to state declaration syntax (`<let/>`) and the mount hook (`<script>`) — the rest is plain TypeScript and HTML.

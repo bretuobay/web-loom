@@ -1,0 +1,252 @@
+---
+title: 'MVVM in React Native'
+summary: 'How React Native components consume the same ViewModels as the web — the only change is swapping HTML elements for native primitives. The useObservable hook and the Command pattern are identical.'
+topicTitle: 'MVVM Core'
+topicSlug: 'mvvm-core'
+prevTitle: 'MVVM in Vanilla TS'
+prevSlug: '/docs/mvvm-vanilla-use-case'
+nextTitle: 'MVVM in Lit'
+nextSlug: '/docs/mvvm-lit-use-case'
+---
+
+# MVVM in React Native
+
+React Native is the most direct demonstration of what framework-agnostic architecture actually means in practice. The ViewModels used in the Web Loom Greenhouse web app are imported **unchanged** into the React Native mobile app. No adapters, no wrappers, no port. The same `GreenHouseViewModel`, `SensorViewModel`, and `ThresholdAlertViewModel` instances that drive the React web components also drive the React Native screens.
+
+The only things that change are the rendering primitives — `View` instead of `div`, `Text` instead of `p`, `FlatList` instead of `ul` — and the subscription hook, which is identical in structure to the web version.
+
+---
+
+## Why It Works Without Modification
+
+ViewModels in `@web-loom/mvvm-core` are plain TypeScript classes with no DOM or browser imports. They depend on RxJS and nothing else. React Native runs a full Node.js-compatible environment with RxJS support, so the ViewModels simply work.
+
+```
+packages/view-models/        ← framework-agnostic TypeScript
+    GreenHouseViewModel.ts   ← imported by both web React and React Native
+    SensorViewModel.ts
+    ...
+
+apps/mvvm-react/             ← React web: uses HTML elements
+apps/mvvm-react-native/      ← React Native: uses native primitives
+```
+
+Both apps share the same ViewModel singletons from `@repo/view-models`. State fetched in the mobile app reflects the same data the web app would show.
+
+---
+
+## The useObservable Hook
+
+The bridge between RxJS observables and React Native components is the same `useObservable` hook used on the web — `useState` + `useEffect`:
+
+```typescript
+// apps/mvvm-react-native/src/hooks/useObservable.ts
+import { useState, useEffect } from 'react';
+import { Observable } from 'rxjs';
+
+export function useObservable<T>(observable: Observable<T>): T | undefined {
+  const [value, setValue] = useState<T>();
+
+  useEffect(() => {
+    const subscription = observable.subscribe(setValue);
+    return () => subscription.unsubscribe();
+  }, [observable]);
+
+  return value;
+}
+```
+
+The hook is structurally identical to any `useObservable` you would write for React web. React Native's `useState` and `useEffect` behave the same as React DOM's — the rendering target is different, but the hooks API is the same.
+
+---
+
+## A Native Component Consuming a ViewModel
+
+Here is the greenhouse list screen from the React Native app. Compare it line for line with the React web version and the only differences are the native import names:
+
+```tsx
+// apps/mvvm-react-native/src/components/GreenhouseList.tsx
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, FlatList, TextInput,
+  TouchableOpacity, ScrollView, StyleSheet,
+} from 'react-native';                              // ← native primitives
+import { useObservable } from '../hooks/useObservable';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+export const GreenhouseList = () => {
+  const greenHouses = useObservable(greenHouseViewModel.data$);
+  const [name, setName] = useState('');
+  const [editingGreenhouseId, setEditingGreenhouseId] = useState<string | null>(null);
+
+  useEffect(() => {
+    greenHouseViewModel.fetchCommand.execute();
+  }, []);
+
+  const handleSubmit = () => {
+    if (editingGreenhouseId) {
+      greenHouseViewModel.updateCommand.execute({
+        id: editingGreenhouseId,
+        payload: { id: editingGreenhouseId, name, location: '', size: '', cropType: '' },
+      });
+      setEditingGreenhouseId(null);
+    } else {
+      greenHouseViewModel.createCommand.execute({ name, location: '', size: '', cropType: '' });
+    }
+    setName('');
+  };
+
+  return (
+    <ScrollView style={{ flex: 1 }}>
+      <TextInput value={name} onChangeText={setName} placeholder="Greenhouse name" />
+      <TouchableOpacity onPress={handleSubmit}>
+        <Text>{editingGreenhouseId ? 'Update' : 'Submit'}</Text>
+      </TouchableOpacity>
+
+      <FlatList
+        data={greenHouses}
+        keyExtractor={(item) => item.id ?? ''}
+        renderItem={({ item }) => (
+          <View>
+            <Text>{item.name}</Text>
+            <TouchableOpacity onPress={() => greenHouseViewModel.deleteCommand.execute(item.id!)}>
+              <Text>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      />
+    </ScrollView>
+  );
+};
+```
+
+The ViewModel calls — `greenHouseViewModel.fetchCommand.execute()`, `greenHouseViewModel.createCommand.execute(...)`, `greenHouseViewModel.deleteCommand.execute(...)` — are byte-for-byte the same as the web components. The Command pattern doesn't know or care what framework is calling it.
+
+---
+
+## Commands with Native UI
+
+Binding Command state to native loading indicators follows the same pattern as the web:
+
+```tsx
+// Read command state via useObservable
+const isExecuting = useObservable(greenHouseViewModel.fetchCommand.isExecuting$);
+const canExecute  = useObservable(greenHouseViewModel.fetchCommand.canExecute$);
+
+// Bind to native components
+<TouchableOpacity
+  onPress={() => greenHouseViewModel.fetchCommand.execute()}
+  disabled={!canExecute}
+>
+  <Text>{isExecuting ? 'Loading…' : 'Refresh'}</Text>
+</TouchableOpacity>
+
+{isExecuting && <ActivityIndicator />}
+```
+
+No loading flags in component state. The Command owns that state; the component subscribes to it.
+
+---
+
+## Dashboard: Combining Multiple ViewModels
+
+The dashboard screen demonstrates combining multiple ViewModel streams using `combineLatest` — the RxJS operator, not anything React-Native-specific:
+
+```tsx
+import { useState, useEffect } from 'react';
+import { combineLatest } from 'rxjs';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel }      from '@repo/view-models/SensorViewModel';
+
+export function Dashboard() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const sub = combineLatest([
+      greenHouseViewModel.isLoading$,
+      sensorViewModel.isLoading$,
+    ]).subscribe(([gh, s]) => setIsLoading(gh || s));
+
+    greenHouseViewModel.fetchCommand.execute();
+    sensorViewModel.fetchCommand.execute();
+
+    return () => sub.unsubscribe();
+  }, []);
+
+  if (isLoading) return <ActivityIndicator />;
+  // ...
+}
+```
+
+The `combineLatest` composition happens at the ViewModel/RxJS level, not at the React Native level. If you later add a web version of this dashboard, the same composition logic moves over unchanged.
+
+---
+
+## Disposal
+
+React Native components unmount the same way React web components do. Dispose the ViewModel in the `useEffect` cleanup:
+
+```tsx
+useEffect(() => {
+  const sub = vm.data$.subscribe(setData);
+  vm.fetchCommand.execute();
+
+  return () => {
+    sub.unsubscribe();
+    vm.dispose();   // cleans up all ViewModel subscriptions
+  };
+}, []);
+```
+
+If the ViewModel is a shared singleton (as in the Greenhouse app where all screens share one instance), skip `vm.dispose()` on individual screen unmount — only dispose when the app fully tears down. For screen-scoped ViewModels, always dispose in the cleanup.
+
+---
+
+## What Changes vs Web React
+
+- **Rendering** — Web React uses `div`, `span`, `ul`, `button`; React Native uses `View`, `Text`, `FlatList`, `TouchableOpacity`
+- **Styling** — Web React uses CSS classes or CSS-in-JS; React Native uses `StyleSheet.create()`
+- **Subscription hook** — `useObservable` (useState + useEffect) — identical in both
+- **ViewModel** — same class, same import in both
+- **Commands** — `.execute()`, `isExecuting$` — identical in both
+- **Disposal** — `useEffect` cleanup — identical in both
+
+The ViewModel layer — the 80% — is genuinely shared. Only the thin View layer differs.
+
+---
+
+## Testing
+
+ViewModels have no React Native imports, so the test approach is identical to the web:
+
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+import { TaskListViewModel } from '../TaskListViewModel';
+
+it('pendingCount$ reflects undone tasks', async () => {
+  const vm = new TaskListViewModel(mockModel);
+  (mockModel.data$ as BehaviorSubject<any>).next([
+    { id: '1', done: false },
+    { id: '2', done: true },
+  ]);
+  const count = await firstValueFrom(vm.pendingCount$);
+  expect(count).toBe(1);
+  vm.dispose();
+});
+```
+
+No Expo test environment, no React Native test renderer, no platform mocking. The ViewModel is a plain TypeScript class.
+
+---
+
+## Summary
+
+React Native integration requires no special adapter layer. The pattern is:
+
+1. **Import** the same ViewModel instance used by the web app
+2. **Subscribe** using `useObservable` (useState + useEffect) — identical to the web hook
+3. **Render** with native primitives (`View`, `Text`, `FlatList`) instead of HTML elements
+4. **Call** Commands on user interaction — `vm.fetchCommand.execute()`, `vm.createCommand.execute(payload)`
+5. **Dispose** in `useEffect` cleanup (or on app teardown for singletons)
+
+The ViewModel doesn't know it's being consumed by a mobile app. That's the point.

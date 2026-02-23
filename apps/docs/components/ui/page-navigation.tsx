@@ -13,7 +13,7 @@ export default function PageNavigation({
       {prevArticle && prevArticle[1] && (
         <div className="sm:w-1/2 sm:flex flex-col items-start">
           <div>
-            <div className="text-xs font-[650] text-blue-600 uppercase mb-1">Prev</div>
+            <div className="text-xs font-[650] text-blue-600 dark:text-blue-400 uppercase mb-1">Prev</div>
             <div>
               <Link className="text-slate-800 font-[650] flex items-center dark:text-slate-200" href={prevArticle[1]}>
                 <svg
@@ -34,7 +34,7 @@ export default function PageNavigation({
       {nextArticle && nextArticle[1] && (
         <div className="sm:w-1/2 sm:flex flex-col items-end ml-auto">
           <div>
-            <div className="text-xs font-[650] text-blue-600 uppercase mb-1">Next</div>
+            <div className="text-xs font-[650] text-blue-600 dark:text-blue-400 uppercase mb-1">Next</div>
             <div>
               <Link className="text-slate-800 font-[650] flex items-center dark:text-slate-200" href={nextArticle[1]}>
                 <span>{nextArticle[0]}</span>

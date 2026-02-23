@@ -1,111 +1,809 @@
 ---
-title: 'Available Models in MVVM Core'
-summary: 'Overview of the core model classes provided by the MVVM Core library, including their purpose and usage.'
+title: 'Models'
+summary: 'Deep dive into the Model layer — BaseModel, RestfulApiModel, QueryStateModel, and real-world implementations from the Web Loom example apps.'
 topicTitle: 'MVVM Core'
 topicSlug: 'mvvm-core'
+prevTitle: 'Core Concepts'
+prevSlug: '/docs/core-concepts'
 nextTitle: 'ViewModels'
-nextSlug: '/mvvm-core/viewmodels'
+nextSlug: '/docs/viewmodels'
 ---
 
-# Available Models in MVVM Core
+# Models
 
-MVVM Core provides several foundational model classes to help you manage data, state, and API interactions in a reactive, type-safe way. Here are the main models available:
+The Model is the data layer of the MVVM pattern. It owns raw data, communicates with APIs, and exposes reactive streams that ViewModels subscribe to. A well-designed Model has no knowledge of the UI — no framework imports, no presentation logic.
 
-## 1. BaseModel
+`@web-loom/mvvm-core` ships three model base classes that cover the most common data patterns.
 
-**File:** `BaseModel.ts`
+---
 
-The `BaseModel` is the foundation for all models in MVVM Core. It provides:
+## Class Hierarchy
 
-- Reactive observables for data, loading, and error states
-- Zod schema validation
-- Resource cleanup via `IDisposable`
-- Methods for updating data, loading, and error states
+```
+BaseModel<TData, TSchema>
+  ├── RestfulApiModel<TData, TSchema>   — fetch + CRUD via HTTP
+  └── QueryStateModel<TData, TSchema>  — read via QueryCore cache
+```
 
-**Usage:**
+All three expose the same reactive observables and implement `IDisposable`.
+
+---
+
+## BaseModel
+
+`BaseModel` is the foundation for every model in the system. It wraps three `BehaviorSubject` streams and provides methods to update them safely.
+
+### Constructor
 
 ```typescript
 import { BaseModel } from '@web-loom/mvvm-core';
 import { z } from 'zod';
 
-const UserSchema = z.object({ id: z.string(), name: z.string() });
-class UserModel extends BaseModel<typeof UserSchema> {
-  constructor(initialData) {
-    super({ initialData, schema: UserSchema });
+const UserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+});
+
+class UserModel extends BaseModel<z.infer<typeof UserSchema>, typeof UserSchema> {
+  constructor() {
+    super({
+      initialData: null,
+      schema: UserSchema,
+    });
   }
 }
 ```
 
-## 2. RestfulApiModel
+Constructor options:
 
-**File:** `RestfulApiModel.ts`
+- **`initialData`** — the starting value for `data$`. Use `null` for a single resource that hasn't loaded yet, or `[]` for an empty list.
+- **`schema`** — a Zod schema used by `validate()` to check incoming data at runtime. Pass `undefined` to skip validation entirely.
 
-Extends `BaseModel` to provide RESTful API interaction:
+### Reactive Observables
 
-- Manages CRUD operations for single resources or arrays
-- Handles optimistic updates, loading, and error states
-- Accepts a fetcher function for API calls
+Every `BaseModel` exposes three public observables:
 
-**Usage:**
+- **`data$`** — `BehaviorSubject<TData | null>` holding the current value
+- **`isLoading$`** — `BehaviorSubject<boolean>` for loading state
+- **`error$`** — `BehaviorSubject<Error | null>` for the last error
+
+These are `BehaviorSubject`s, meaning subscribers receive the current value immediately on subscription — no need to wait for the next emission.
+
+### Protected Methods
+
+Subclasses (and ViewModels, rarely) call these methods to update state:
+
+- **`setData(data)`** — update `data$` with a new value
+- **`setLoading(isLoading)`** — toggle the loading flag
+- **`setError(error)`** — store a caught error in `error$`
+- **`clearError()`** — reset `error$` to `null`
+- **`validate(data)`** — run the Zod schema; throws `ZodError` on invalid shape
+
+### Snapshot Getters
+
+For non-reactive reads (e.g. inside imperative methods):
+
+- **`getCurrentData()`** — synchronous current value of `data$`
+- **`getCurrentLoadingStatus()`** — synchronous current value of `isLoading$`
+- **`getCurrentError()`** — synchronous current value of `error$`
+
+### Disposal
+
+```typescript
+model.dispose();
+```
+
+Calls `.complete()` on all three BehaviorSubjects, closing all subscriptions and preventing memory leaks. Always call this when the model is no longer needed — typically in the ViewModel's `dispose()` method.
+
+### Manual Model Example
+
+Use `BaseModel` directly when your data doesn't come from a REST API — for example, local-only state, WebSocket feeds, or computed aggregates:
+
+```typescript
+class LocalCartModel extends BaseModel<CartItem[], typeof CartItemListSchema> {
+  constructor() {
+    super({ initialData: [], schema: CartItemListSchema });
+  }
+
+  addItem(item: CartItem) {
+    const current = this.getCurrentData() ?? [];
+    this.setData([...current, item]);
+  }
+
+  removeItem(id: string) {
+    const current = this.getCurrentData() ?? [];
+    this.setData(current.filter(i => i.id !== id));
+  }
+
+  clearCart() {
+    this.setData([]);
+  }
+}
+```
+
+---
+
+## RestfulApiModel
+
+`RestfulApiModel` extends `BaseModel` to add full CRUD operations against an HTTP endpoint. It handles loading states, error capture, schema validation, and **optimistic updates** automatically.
+
+### Constructor
+
+```typescript
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+
+export type TConstructorInput<TData, TSchema> = {
+  baseUrl: string | null;
+  endpoint: string | null;
+  fetcher: Fetcher | null;
+  schema: TSchema;
+  initialData: TData | null;
+  validateSchema?: boolean;
+};
+```
+
+- **`baseUrl`** — root URL, e.g. `'https://api.example.com'`
+- **`endpoint`** — path segment, e.g. `'/users'`
+- **`fetcher`** — a function `(url, options?) => Promise<unknown>`. Use your project's HTTP abstraction here.
+- **`validateSchema`** — set to `false` to skip Zod validation on API responses (useful in development or for untrusted schemas)
+
+### CRUD Methods
+
+#### `fetch(id?)`
+
+```typescript
+await model.fetch();      // GET /users
+await model.fetch('42');  // GET /users/42
+```
+
+Sets `isLoading$` to `true`, calls the fetcher, validates via Zod (if enabled), updates `data$`, then resets loading. On error, stores in `error$`.
+
+#### `create(payload)`
+
+```typescript
+const newUser = await model.create({ name: 'Alice', email: 'alice@example.com' });
+```
+
+**Optimistic update**: immediately appends the new item to `data$` with a temporary `id` prefix. Confirms the real record from the server response. Rolls back to the previous state if the request fails.
+
+#### `update(id, payload)`
+
+```typescript
+await model.update('42', { name: 'Alice Smith' });
+```
+
+**Optimistic update**: immediately applies the patch to the matching item in `data$`. On failure, reverts to the pre-update state.
+
+#### `delete(id)`
+
+```typescript
+await model.delete('42');
+```
+
+**Optimistic update**: immediately removes the item from `data$`. Restores it if the server returns an error.
+
+### Optimistic Update Flow
+
+```
+User action
+    ↓
+Snapshot current data$            ← saved for rollback
+    ↓
+Apply change to data$ immediately ← UI responds instantly
+    ↓
+Call HTTP endpoint
+    ├── Success → confirm change (no-op, already applied)
+    └── Failure → restore snapshot, set error$
+```
+
+This pattern keeps the UI feeling fast without requiring the ViewModel to manage rollback logic.
+
+### Concrete Example: GreenHouseModel
+
+From `packages/models/src/GreenHouseModel.ts` — a minimal model managing a list of greenhouses:
 
 ```typescript
 import { RestfulApiModel } from '@web-loom/mvvm-core';
 import { z } from 'zod';
+import { nativeFetcher } from '@repo/http';
+import { apiRegistry } from '@repo/api-registry';
 
-const UserSchema = z.object({ id: z.string(), name: z.string() });
-const fetcher = (url, options) => fetch(url, options).then((res) => res.json());
-
-const userApiModel = new RestfulApiModel({
-  baseUrl: 'https://api.example.com',
-  endpoint: '/users',
-  fetcher,
-  schema: UserSchema,
-  initialData: null,
+const CreateGreenhouseSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1),
+  location: z.string().min(1),
+  size: z.string().min(1),
+  cropType: z.string().optional(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
 });
+
+const GreenhouseListSchema = z.array(CreateGreenhouseSchema);
+type GreenhouseListData = z.infer<typeof GreenhouseListSchema>;
+
+export class GreenHouseModel extends RestfulApiModel<
+  GreenhouseListData,
+  typeof GreenhouseListSchema
+> {
+  constructor() {
+    super({
+      baseUrl: API_BASE_URL,
+      endpoint: apiRegistry.greenhouses.path,
+      fetcher: nativeFetcher,
+      schema: GreenhouseListSchema,
+      initialData: [],
+      validateSchema: false,
+    });
+  }
+}
 ```
 
-## 3. QueryStateModel
+Key decisions here:
+- `initialData: []` — list models start empty, not null
+- `validateSchema: false` — skips Zod validation for performance in this case
+- The model itself has no methods beyond what `RestfulApiModel` provides
 
-**File:** `QueryStateModel.ts`
+### Concrete Example: SensorModel
 
-Integrates with QueryCore for advanced query and state management:
+From `packages/models/src/SensorModel.ts` — demonstrates a custom fetcher for caching:
 
-- Reactive state for queries and endpoints
-- Methods for refetching and invalidating data
-- Optional integration with a generic store
+```typescript
+import { SensorTypeEnum, SensorStatusEnum } from './schemas';
 
-**Usage:**
+const CreateSensorSchema = z.object({
+  id: z.string().uuid().optional(),
+  type: SensorTypeEnum,           // z.enum(['temperature', 'humidity', 'soilMoisture', 'lightIntensity'])
+  status: SensorStatusEnum,       // z.enum(['active', 'inactive'])
+  greenhouseId: z.number().int().positive(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+  greenhouse: CreateGreenhouseSchema,
+});
+
+const SensorListSchema = z.array(CreateSensorSchema);
+type SensorListData = z.infer<typeof SensorListSchema>;
+
+export class SensorModel extends RestfulApiModel<SensorListData, typeof SensorListSchema> {
+  constructor() {
+    super({
+      baseUrl: API_BASE_URL,
+      endpoint: apiRegistry.sensors.path,
+      fetcher: fetchWithCache,   // custom fetcher with in-memory cache
+      schema: SensorListSchema,
+      initialData: [] as SensorListData,
+      validateSchema: false,
+    });
+  }
+}
+```
+
+### Concrete Example: AuthModel
+
+From `packages/models/src/AuthModel.ts` — a model with authentication-specific state and custom methods:
+
+```typescript
+const UserSchema = z.object({
+  id: z.number().int().positive(),
+  email: z.string().email(),
+  firstName: z.string().optional().nullable(),
+  lastName: z.string().optional().nullable(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+
+export class AuthModel extends RestfulApiModel<UserData, typeof UserSchema> {
+  private readonly _token = new BehaviorSubject<string | null>(null);
+  public readonly token$ = this._token.asObservable();
+
+  constructor() {
+    const storedToken = readTokenFromStorage();  // restore session from localStorage
+    const authFetcher = createAuthFetcher(storedToken);
+
+    super({
+      baseUrl: API_BASE_URL,
+      endpoint: apiRegistry.auth.me.path,
+      fetcher: authFetcher.fetcher,
+      schema: UserSchema,
+      initialData: null,
+      validateSchema: true,
+    });
+  }
+
+  async signIn(payload: SignInPayload) {
+    this.setLoading(true);
+    try {
+      const response = await callSignIn(payload);
+      this._token.next(response.token);
+      persistToken(response.token);
+      await this.fetch();  // load the user profile after sign in
+    } catch (err) {
+      this.setError(err as Error);
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  async signOut() {
+    this._token.next(null);
+    clearToken();
+    this.setData(null);
+  }
+
+  get isAuthenticated(): boolean {
+    return this._token.getValue() !== null;
+  }
+
+  get token(): string | null {
+    return this._token.getValue();
+  }
+}
+```
+
+`AuthModel` shows the pattern for adding model-specific observables (`token$`) and custom imperative methods (`signIn`, `signOut`) on top of `RestfulApiModel`.
+
+---
+
+## QueryStateModel
+
+`QueryStateModel` extends `BaseModel` to integrate with `@web-loom/query-core` for caching and stale-while-revalidate patterns. Instead of managing its own HTTP calls, it subscribes to QueryCore's endpoint state.
+
+### Constructor
 
 ```typescript
 import { QueryStateModel } from '@web-loom/mvvm-core';
-// ...setup QueryCore and schema
+
 const queryStateModel = new QueryStateModel({
-  queryCore,
+  queryCore,          // QueryCore instance
   endpointKey: 'users',
   schema: UserSchema,
+  initialData: null,
+  // fetcher is optional — if provided, QueryCore registers the endpoint
+  fetcher: async () => api.getUsers(),
 });
 ```
 
-## 4. Store
+### Methods
 
-**File:** `Store.ts`
+- **`refetch(force?)`** — trigger a QueryCore refetch. Pass `true` to bypass cache.
+- **`invalidate()`** — mark the cached data as stale so the next consumer triggers a fresh fetch.
 
-A minimal, generic state store:
+### When to Use QueryStateModel
 
-- Holds state as a plain object
-- Allows subscribing to state changes
-- Used internally by QueryStateModel and other advanced features
+Use `QueryStateModel` when:
+- Multiple ViewModels need the same data and should share a cache
+- You want stale-while-revalidate behavior without manual coordination
+- You're coordinating with `@web-loom/query-core` for background refetching
 
-**Usage:**
+For mutations (create/update/delete), call the underlying HTTP client directly in the ViewModel, then call `refetch()` or `invalidate()` to keep the cache in sync.
 
 ```typescript
-import { Store } from '@web-loom/mvvm-core';
-const store = new Store({ user: null });
-store.subscribe((newState, oldState) => {
-  // React to state changes
+class UserViewModel extends BaseViewModel {
+  readonly model = new QueryStateModel({ queryCore, endpointKey: 'users', schema: UserListSchema });
+
+  readonly deleteUserCommand = new Command(async (id: string) => {
+    await api.deleteUser(id);
+    await this.model.invalidate(); // bust cache, triggers background refetch
+  });
+}
+```
+
+---
+
+## TodoItem — Local State Model
+
+For state that never leaves the browser, extend `BaseModel` directly without HTTP concerns:
+
+```typescript
+// From packages/mvvm-core/src/examples/
+const TodoSchema = z.object({
+  id: z.string().uuid(),
+  text: z.string().min(1),
+  isCompleted: z.boolean(),
+  createdAt: z.string().datetime().optional(),
+});
+
+type TodoData = z.infer<typeof TodoSchema>;
+
+class TodoListModel extends BaseModel<TodoData[], typeof z.array(TodoSchema)> {
+  constructor() {
+    super({ initialData: [], schema: z.array(TodoSchema) });
+  }
+
+  addTodo(text: string) {
+    const todo: TodoData = {
+      id: crypto.randomUUID(),
+      text,
+      isCompleted: false,
+      createdAt: new Date().toISOString(),
+    };
+    this.setData([...(this.getCurrentData() ?? []), todo]);
+  }
+
+  toggleTodo(id: string) {
+    const current = this.getCurrentData() ?? [];
+    this.setData(current.map(t => t.id === id ? { ...t, isCompleted: !t.isCompleted } : t));
+  }
+
+  removeTodo(id: string) {
+    this.setData((this.getCurrentData() ?? []).filter(t => t.id !== id));
+  }
+}
+```
+
+---
+
+## Zod Schema Patterns
+
+Every model should define its schema in a separate file alongside the model:
+
+```typescript
+// schemas/greenhouse.schema.ts
+import { z } from 'zod';
+
+// Enum values as Zod enums — not TypeScript enums
+export const SensorTypeSchema = z.enum(['temperature', 'humidity', 'soilMoisture', 'lightIntensity']);
+export const SensorStatusSchema = z.enum(['active', 'inactive']);
+
+// Optional timestamps — these come from the server, not the client
+export const GreenhouseSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  location: z.string().min(1),
+  cropType: z.string().optional(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+
+// Derive types from schemas — don't write them twice
+export type Greenhouse = z.infer<typeof GreenhouseSchema>;
+export const GreenhouseListSchema = z.array(GreenhouseSchema);
+export type GreenhouseList = z.infer<typeof GreenhouseListSchema>;
+```
+
+Schema patterns used consistently across Web Loom:
+
+- `.uuid()` for server-generated IDs; use `.uuid().or(z.string().startsWith('temp_'))` when supporting optimistic creates that haven't been confirmed yet
+- `.string().datetime().optional()` for timestamps that the server owns
+- `.min(1)` on required strings to catch empty inputs early
+- Schema → array schema pattern: define `ItemSchema`, derive `ItemListSchema = z.array(ItemSchema)`, derive types from both
+
+---
+
+## Model Lifecycle
+
+```
+Constructor called
+  ↓
+Observables initialized with initialData
+  ↓
+ViewModel calls fetch() / refetch()
+  ↓
+Model sets isLoading$ = true
+  ↓
+HTTP request completes
+  ↓
+Model validates response, updates data$
+  ↓
+Model sets isLoading$ = false
+  ↓
+ViewModel subscribes, derives state, renders
+  ↓
+Component unmounts → ViewModel.dispose() called
+  ↓
+ViewModel calls model.dispose()
+  ↓
+All BehaviorSubjects completed → subscriptions close
+```
+
+Always dispose in the ViewModel's `dispose()` method:
+
+```typescript
+class UserListViewModel extends BaseViewModel {
+  private readonly model = new GreenHouseModel();
+
+  constructor() {
+    super();
+    this.addDisposable(this.model); // BaseViewModel calls model.dispose() for you
+  }
+}
+```
+
+`addDisposable()` registers any `IDisposable` (including models) to be cleaned up when `vm.dispose()` is called.
+
+---
+
+## Testing Models
+
+Models are plain TypeScript — test them with Vitest directly, no DOM setup needed.
+
+### Testing BaseModel
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { firstValueFrom } from 'rxjs';
+import { z } from 'zod';
+import { BaseModel } from '@web-loom/mvvm-core';
+
+const Schema = z.object({ id: z.string(), value: z.number() });
+class TestModel extends BaseModel<z.infer<typeof Schema>, typeof Schema> {
+  constructor(initial = null) {
+    super({ initialData: initial, schema: Schema });
+  }
+  updateValue(data: z.infer<typeof Schema>) { this.setData(data); }
+}
+
+describe('TestModel', () => {
+  it('starts with null data and false loading', async () => {
+    const model = new TestModel();
+    expect(await firstValueFrom(model.data$)).toBeNull();
+    expect(await firstValueFrom(model.isLoading$)).toBe(false);
+    model.dispose();
+  });
+
+  it('validates incoming data against schema', () => {
+    const model = new TestModel();
+    expect(() => model.updateValue({ id: 'x', value: 42 })).not.toThrow();
+    // @ts-expect-error — invalid shape
+    expect(() => model['validate']({ id: 123 })).toThrow();
+    model.dispose();
+  });
+});
+```
+
+### Testing RestfulApiModel
+
+Mock the fetcher to avoid real HTTP calls:
+
+```typescript
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { firstValueFrom } from 'rxjs';
+import { RestfulTodoListModel } from '@web-loom/mvvm-core/examples';
+
+const mockFetcher = vi.fn();
+
+const createModel = () =>
+  new RestfulTodoListModel({
+    baseUrl: 'https://api.test.com',
+    endpoint: '/todos',
+    fetcher: mockFetcher,
+    initialData: [],
+  });
+
+describe('RestfulTodoListModel', () => {
+  beforeEach(() => mockFetcher.mockReset());
+
+  it('fetches and populates data$', async () => {
+    const items = [{ id: '1', text: 'Buy milk', isCompleted: false }];
+    mockFetcher.mockResolvedValue(items);
+
+    const model = createModel();
+    await model.fetch();
+
+    expect(await firstValueFrom(model.data$)).toEqual(items);
+    expect(await firstValueFrom(model.isLoading$)).toBe(false);
+    model.dispose();
+  });
+
+  it('sets error$ on fetch failure', async () => {
+    mockFetcher.mockRejectedValue(new Error('Network error'));
+
+    const model = createModel();
+    await model.fetch();
+
+    expect(await firstValueFrom(model.error$)).toBeInstanceOf(Error);
+    model.dispose();
+  });
+
+  it('rolls back optimistic create on failure', async () => {
+    mockFetcher.mockRejectedValue(new Error('Server error'));
+
+    const model = createModel();
+    // Pre-populate
+    model['setData']([{ id: '1', text: 'Existing', isCompleted: false }]);
+
+    await model.create({ text: 'New todo', isCompleted: false });
+
+    // Should be rolled back to before the create
+    const data = await firstValueFrom(model.data$);
+    expect(data).toHaveLength(1);
+    expect(data?.[0].text).toBe('Existing');
+    model.dispose();
+  });
+});
+```
+
+### Testing State Transitions
+
+Use `.subscribe()` to capture intermediate states:
+
+```typescript
+it('emits loading=true then loading=false during fetch', async () => {
+  const loadingStates: boolean[] = [];
+  mockFetcher.mockResolvedValue([]);
+
+  const model = createModel();
+  const sub = model.isLoading$.subscribe(v => loadingStates.push(v));
+  await model.fetch();
+  sub.unsubscribe();
+
+  expect(loadingStates).toEqual([false, true, false]); // initial, during, after
+  model.dispose();
 });
 ```
 
 ---
 
-For more details, see the source files in `packages/mvvm-core/src/models` and the [MVVM Core README](https://github.com/bretuobay/web-loom.git/mvvm-core).
+## Dos and Don'ts
+
+### Do: Keep Models Free of UI Concerns
+
+```typescript
+// ✅ Good — model owns data, ViewModel derives display state
+class TaskModel extends RestfulApiModel<Task[], typeof TaskListSchema> {
+  constructor() { super({ ...config }); }
+}
+
+class TaskListViewModel extends BaseViewModel {
+  readonly incompleteTasks$ = this.model.data$.pipe(
+    map(tasks => tasks?.filter(t => !t.done) ?? [])
+  );
+}
+```
+
+```typescript
+// ❌ Bad — model knows about UI concern (filter mode)
+class TaskModel extends RestfulApiModel<Task[], typeof TaskListSchema> {
+  filterMode = 'all'; // ← belongs in ViewModel or Store
+
+  get visibleTasks() { ... }  // ← belongs in ViewModel
+}
+```
+
+### Do: Use a Single Source of Truth Per Domain
+
+```typescript
+// ✅ Good — one AuthModel shared across ViewModels
+class AppViewModel extends BaseViewModel {
+  readonly auth = container.get(AuthModel); // singleton from DI container
+}
+
+class ProfileViewModel extends BaseViewModel {
+  readonly auth = container.get(AuthModel); // same instance
+}
+```
+
+```typescript
+// ❌ Bad — each ViewModel creates its own model instance
+class AppViewModel { auth = new AuthModel(); }
+class ProfileViewModel { auth = new AuthModel(); } // different instances, no shared state
+```
+
+### Do: Put Business Data in Models, UI State in Store
+
+```typescript
+// ✅ Good
+class TaskModel extends BaseModel<Task[], ...> { /* owns task list */ }
+const uiStore = createStore({ sidebarOpen: false, activeTab: 'all' }); // UI only
+```
+
+```typescript
+// ❌ Bad
+const store = createStore({
+  tasks: [],         // ← business data, not UI state
+  sidebarOpen: false
+});
+```
+
+### Do: Always Validate API Responses
+
+```typescript
+// ✅ Good — schema catches silent API contract breaks early
+const model = new RestfulApiModel({
+  ...config,
+  schema: UserListSchema,
+  validateSchema: true,
+});
+```
+
+```typescript
+// ❌ Bad — without schema, a changed API field silently corrupts your data
+const model = new RestfulApiModel({ ...config, schema: UserSchema, validateSchema: false });
+```
+
+### Do: Dispose Models in ViewModel Teardown
+
+```typescript
+// ✅ Good
+class UserViewModel extends BaseViewModel {
+  private readonly model = new UserModel();
+
+  constructor() {
+    super();
+    this.addDisposable(this.model);
+  }
+}
+
+// In the View (React)
+useEffect(() => {
+  vm.fetchCommand.execute();
+  return () => vm.dispose(); // closes model subscriptions too
+}, []);
+```
+
+```typescript
+// ❌ Bad — memory leak, BehaviorSubjects never complete
+class UserViewModel {
+  readonly model = new UserModel();
+  // no dispose()
+}
+```
+
+### Don't: Call setData/setLoading/setError from the ViewModel
+
+These are protected methods for the Model to manage its own internals. ViewModels should only read observables and call model methods.
+
+```typescript
+// ❌ Bad
+class UserViewModel extends BaseViewModel {
+  constructor(private model: UserModel) { super(); }
+
+  loadUser() {
+    this.model.setLoading(true);  // ← Model should manage its own loading
+    this.model.setData(user);     // ← Model should control its own data
+  }
+}
+```
+
+```typescript
+// ✅ Good
+class UserViewModel extends BaseViewModel {
+  constructor(private model: UserModel) { super(); }
+
+  readonly loadCommand = new Command(async () => {
+    await this.model.fetch(); // model handles loading + error internally
+  });
+}
+```
+
+### Don't: Derive Computed State in the Model
+
+```typescript
+// ❌ Bad — formatting and filtering belong in the ViewModel
+class TaskModel extends RestfulApiModel<Task[], ...> {
+  get formattedTasks() {
+    return this.getCurrentData()?.map(t => ({
+      ...t,
+      label: `${t.title} (${t.done ? 'done' : 'pending'})`,
+    }));
+  }
+}
+```
+
+```typescript
+// ✅ Good — ViewModel computes derived/formatted values
+class TaskViewModel extends BaseViewModel {
+  readonly formattedTasks$ = this.model.data$.pipe(
+    map(tasks => tasks?.map(t => ({
+      ...t,
+      label: `${t.title} (${t.done ? 'done' : 'pending'})`,
+    })) ?? [])
+  );
+}
+```
+
+---
+
+## Choosing the Right Model
+
+- **`BaseModel`** — local-only state, WebSocket feeds, in-memory collections, anything that isn't REST
+- **`RestfulApiModel`** — standard CRUD resources where you want optimistic updates out of the box
+- **`QueryStateModel`** — read-heavy data shared across multiple ViewModels; mutations handled separately
+
+---
+
+## Where to Go Next
+
+- [ViewModels](/docs/viewmodels) — how ViewModels consume Model observables and expose commands
+- [ViewModels](/docs/viewmodels) — Commands, derived state, and lifecycle patterns
+- [Query Core](/docs/query-core) — caching and stale-while-revalidate with `@web-loom/query-core`

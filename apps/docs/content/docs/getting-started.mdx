@@ -1,83 +1,474 @@
 ---
-title: 'Getting Started with Web Loom'
-summary: 'Explore the Web Loom philosophy, understand the key packages, and launch your first framework-agnostic UI project.'
+title: 'Getting Started'
+summary: 'What Web Loom is, why framework-agnostic architecture matters, and how to install the packages and build your first ViewModel in minutes.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
-nextTitle: 'Core Libraries'
-nextSlug: '/packages'
+nextTitle: 'Core Concepts'
+nextSlug: '/docs/core-concepts'
 ---
 
-# Getting Started with Web Loom
+# Getting Started
 
-Web Loom is a production-ready, framework-agnostic UI architecture toolkit inspired by the battle-tested concepts of Prism. Instead of coupling your business logic to React, Angular, or any other framework, Web Loom keeps the MVVM pattern, headless UI behaviors, and plugin architecture in reusable packages under the `@web-loom` scope. This guide distills the mission from the root README, points into the API docs, and helps you launch your first reactive application.
+Web Loom is built on a single conviction: **business logic should survive framework changes**. When you migrate from React to Vue, or add a React Native mobile app alongside your web app, only the View layer — roughly 20% of your codebase — should need rewriting. The remaining 80% (Models, ViewModels, services, and behaviors) lives in framework-agnostic packages and travels unchanged.
 
-## Philosophy Snapshot
+---
 
-- **Framework-Agnostic First** – Every package works with React, Vue, Angular, Svelte, or vanilla JavaScript; the UI glue is entirely optional.
-- **MVVM + Prism Heritage** – `mvvm-core` brings Commands, CompositeCommands, and observable ViewModels. It mirrors Prism’s DelegateCommand semantics while exposing RxJS `isExecuting$`, `canExecute$`, and `executeError$` streams.
-- **Headless Behavior Stack** – `ui-core` offers atomic behaviors (dialogs, lists, forms), `ui-patterns` composes them into higher-level modules, and `design-core` supplies typography and theming.
-- **Reactive State & Data** – `store-core` handles local UI state (filters, drawers, toggles), `query-core` manages server-side data with caching and automatic refetch, and `event-bus-core` fills the EventAggregator role for cross-component messaging.
-- **Plugin Architecture** – Build extensible apps by registering plugin modules, routes, and adapters without rewiring your core logic.
+## MVVM Has Been Around Forever — For Good Reason
 
-For a detailed 1:1 comparison with Prism, see the [Prism to Web Loom feature mapping](../../docs/PRISM-WEBLOOM-COMPARISON.md).
+MVVM is not a new idea. John Gossman invented it at Microsoft in 2005, specifically for WPF (Windows Presentation Foundation). The insight was simple and profound: the part of your UI logic that formats data, tracks loading state, and responds to user actions has nothing inherently to do with the rendering layer. Separate them, and you get code that is testable, portable, and long-lived.
 
-## Quick Start Checklist
+The pattern spread immediately. **Xamarin** built entire mobile app architectures on it. **Silverlight** standardized around it. When **Knockout.js** launched in 2010 — years before React existed — it brought MVVM directly to the browser. Developers building data-heavy web apps in that era had clean, well-structured codebases with observable ViewModels and declarative bindings. It worked.
 
-1. **Install the packages you need**
+Today, **MVVM remains the dominant architecture in every major non-web UI platform:**
 
-   ```bash
-   npm install @web-loom/mvvm-core @web-loom/query-core @web-loom/store-core @web-loom/ui-core @web-loom/ui-patterns @web-loom/event-bus-core @web-loom/design-core rxjs zod
-   ```
+- **Android** — Jetpack's `ViewModel` + `LiveData` / `StateFlow` is MVVM. Google made it the official architecture guide.
+- **WPF / .NET MAUI** — MVVM is still the standard. The community toolkit ships `ObservableObject`, `RelayCommand`, and `INotifyPropertyChanged` as first-class abstractions.
+- **SwiftUI** — Apple's `ObservableObject` + `@Published` is MVVM with Swift syntax.
+- **Avalonia UI** — the cross-platform .NET UI framework documents MVVM as the recommended pattern.
+- **Flutter** — Provider, Riverpod, and the BLoC pattern are all MVVM by another name.
 
-2. **Create a reactive UI store**
+These platforms chose MVVM because it solves a real, hard problem: **separating what your app knows from how it looks**. The solution is good enough that it has survived multiple technology generations without needing replacement.
 
-   ```ts
-   import { createStore } from '@web-loom/store-core';
+### Web Development's Pattern Amnesia
 
-   const uiStore = createStore(
-     { drawerOpen: false },
-     (set) => ({
-       toggleDrawer: () => set((state) => ({ ...state, drawerOpen: !state.drawerOpen })),
-     }),
-   );
-   ```
+Then there is the web.
 
-3. **Wrap your domain logic with MVVM**
+React arrived in 2013 and the frontend community largely abandoned everything that came before it. What followed was over a decade of constant pattern reinvention. Flux was created to manage state in React apps. Then Redux. Then MobX. Then the Context API, useReducer, Zustand, Jotai, Recoil, Valtio, XState, TanStack Query, SWR, Nanostores — the list is effectively endless, and it keeps growing.
 
-   Build `BaseModel` + `BaseViewModel` pairs, expose commands, and rely on Zod schemas for validation. MVVM Core wires RxJS for subscriptions and commands so your ViewModels stay testable and framework-agnostic.
+Most of these libraries solve the same underlying problems MVVM solved in 2005: where does async state live, how do components know when data changes, how do you separate side effects from rendering? They are not new ideas. They are variations on the same theme, wearing different hats.
 
-4. **Connect to data sources**
+The result for the average web codebase is genuinely messy. Business logic is scattered across components, custom hooks, global stores, server functions, and context providers. A developer joining a project has to understand not just the product, but the specific combination of patterns the team invented or assembled over the years. When the next framework wave arrives — and it always does — there is nothing portable to carry forward.
 
-   Register endpoints (`defineEndpoint`), subscribe to their state, and let `query-core` refresh stale data on focus/reconnect while deduplicating concurrent fetches.
+**The reason web developers keep reinventing these patterns is not that the old patterns are bad. It is that they never stopped to use a good one.**
 
-5. **Compose headless UI behaviors**
+### Why This Matters More in the Age of LLMs
 
-   Use `ui-core` behaviors to encapsulate dialogs/forms/lists, stitch them together with `ui-patterns`, and layer in `store-core` state so UI preferences travel with your app.
+AI-assisted development has made it faster than ever to write code. With LLMs and agentic code generation, a developer can produce a working feature in a fraction of the time it used to take. This is genuinely useful.
 
-## Package Highlights
+But it compounds the architecture problem. An LLM will generate code that fits the context you give it. If your codebase has no clear structure — if business logic leaks into components, if state management is ad hoc, if there is no consistent pattern for async operations — the generated code will follow that same lack of structure. It accelerates the mess.
 
-- `@web-loom/mvvm-core` – Models, ViewModels, commands, validation, and Prism-inspired utilities for pure presentation logic.
-- `@web-loom/query-core` – Server data fetching with caching, automatic stale-while-revalidate refetches, and manual `refetch`/`invalidate`.
-- `@web-loom/store-core` – Tiny, persistence-friendly store for UI parameters and filters; includes LocalStorage and IndexedDB adapters.
-- `@web-loom/ui-core` – Atomic, headless behaviors (dialogs, lists, forms) that stay styling-agnostic.
-- `@web-loom/ui-patterns` – Composed shell/module UI patterns built on `@web-loom/ui-core` behaviors.
-- `@web-loom/event-bus-core` – Typed event aggregation for cross-component coordination, Web Loom’s take on Prism’s EventAggregator.
-- `@web-loom/design-core` – Design tokens, typography utilities, and theme management helpers.
+A well-defined architecture is the opposite. When your codebase has clear layers with strict responsibilities, AI-generated code slots into the right place naturally. The ViewModel is where async operations and derived state go. The Model is where API calls and data ownership go. The View is thin and renders what the ViewModel exposes. An LLM generating code for a well-structured MVVM project produces additions that are coherent with everything that already exists.
 
-Each package ships with detailed API documentation. Start by browsing the [published packages API index](../../docs/api-docs/README.md) for versions, install guidance, and code samples.
+**Good patterns do not slow you down. They are what allow you to move fast sustainably — whether you are writing the code or an AI is generating it.**
 
-## Prism Concepts in a Modern Tooling Stack
+Web Loom is a bet that the frontend community can borrow the forty years of desktop and mobile architecture wisdom that other platforms have been quietly using all along, apply it to the browser, and stop reinventing the wheel with every new framework cycle.
 
-Web Loom keeps the intent of Prism alive:
+---
 
-- **Commands** – `mvvm-core`’s `Command`/`CompositeCommand` expose observables and async safety, echoing Prism’s DelegateCommand.
-- **Event Bus** – `event-bus-core` replaces Prism’s EventAggregator with typed, observable-friendly APIs, plus an optional lightweight emitter for component-level events.
-- **Modules & Plugins** – The plugin core lets you register routes, behaviors, and UI modules just like Prism modules.
+## The MVVM Pattern
+
+Web Loom follows the **Model–View–ViewModel** (MVVM) pattern, a separation of concerns that decouples data, presentation logic, and UI rendering.
+
+```
+Model          →   owns data, talks to APIs, holds reactive state
+  ↓
+ViewModel      →   derives presentation state, exposes commands
+  ↓
+View           →   framework-specific rendering and subscriptions
+```
+
+Each layer has a strict responsibility:
+
+- **Model** — fetches, persists, and owns raw data. Exposes it through reactive observables or signals. Never knows the UI exists.
+- **ViewModel** — computes what the View needs (formatted values, loading flags, derived lists) and exposes commands for actions. Orchestrates one or more Models. No framework imports.
+- **View** — subscribes to ViewModel state, renders it, and calls ViewModel commands on user interaction. The only framework-specific code.
+
+---
+
+## The Layered Architecture
+
+```
+┌─────────────────────────────────┐
+│  View (framework-specific)      │  React / Vue / Angular / Lit / Vanilla
+│  subscribes to observables      │
+├─────────────────────────────────┤
+│  ViewModel (framework-agnostic) │  Commands, derived state, orchestration
+│  uses Models, exposes state     │
+├─────────────────────────────────┤
+│  Model (framework-agnostic)     │  Data, API calls, reactive streams
+│  calls infrastructure           │
+├─────────────────────────────────┤
+│  Infrastructure                 │  HTTP, Storage, i18n, Router, EventBus
+└─────────────────────────────────┘
+```
+
+**Cross-cutting concerns** used across all layers:
+
+- **Event Bus** — typed pub/sub for cross-feature communication without coupling
+- **Store** — UI-only ephemeral state (sidebar open, active tab, theme)
+- **Signals / Observables** — reactive primitives that propagate changes through the graph
+- **Notifications** — user-facing feedback (toasts, alerts)
+
+---
+
+## Why Framework-Agnostic
+
+Frameworks have lifecycles. React 16 → 18, Angular upgrades, Vue 2 → 3 — each migration forces rewrites. When business logic is entangled with framework code, every migration touches the whole codebase.
+
+Web Loom separates concerns at a package boundary:
+
+- `@web-loom/mvvm-core`, `@web-loom/signals-core`, `@web-loom/query-core` — plain TypeScript, zero framework imports
+- `@web-loom/ui-core`, `@web-loom/forms-core` — headless behaviors, framework-agnostic
+- Framework adapters (`@web-loom/forms-react`, `@web-loom/media-vue`, …) — thin wrappers, typically under 200 lines
+
+When a new framework emerges, you write a new adapter. The Models and ViewModels underneath stay untouched.
+
+---
+
+## Installation
+
+Install the packages you need. At minimum, `mvvm-core` and `rxjs`:
+
+```bash
+npm install @web-loom/mvvm-core rxjs
+```
+
+For data fetching, UI state, and headless behaviors, add the rest:
+
+```bash
+npm install @web-loom/query-core @web-loom/store-core @web-loom/ui-core @web-loom/event-bus-core @web-loom/signals-core zod
+```
+
+---
+
+## Your First ViewModel
+
+This example wires up a complete Model → ViewModel → View flow using `@web-loom/mvvm-core`.
+
+### 1. Define the Model
+
+The Model owns data and API calls. It exposes reactive streams but never imports anything from a UI framework.
+
+```typescript
+import { BaseModel } from '@web-loom/mvvm-core';
+import { BehaviorSubject } from 'rxjs';
+
+interface Task {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
+export class TaskModel extends BaseModel {
+  readonly tasks$      = new BehaviorSubject<Task[]>([]);
+  readonly isLoading$  = new BehaviorSubject(false);
+  readonly error$      = new BehaviorSubject<Error | null>(null);
+
+  async fetchAll() {
+    this.isLoading$.next(true);
+    this.error$.next(null);
+    try {
+      const res  = await fetch('/api/tasks');
+      const data = await res.json();
+      this.tasks$.next(data);
+    } catch (err) {
+      this.error$.next(err as Error);
+    } finally {
+      this.isLoading$.next(false);
+    }
+  }
+
+  async create(title: string) {
+    const res  = await fetch('/api/tasks', { method: 'POST', body: JSON.stringify({ title }) });
+    const task = await res.json();
+    this.tasks$.next([...this.tasks$.getValue(), task]);
+  }
+}
+```
+
+### 2. Create the ViewModel
+
+The ViewModel derives what the View needs from the Model and exposes Commands for user actions. No framework imports.
+
+```typescript
+import { BaseViewModel, Command } from '@web-loom/mvvm-core';
+import { map } from 'rxjs/operators';
+import { TaskModel } from './TaskModel';
+
+export class TaskListViewModel extends BaseViewModel {
+  private model = new TaskModel();
+
+  // Expose model streams directly
+  readonly tasks$     = this.model.tasks$;
+  readonly isLoading$ = this.model.isLoading$;
+  readonly error$     = this.model.error$;
+
+  // Derived state — count of incomplete tasks
+  readonly pendingCount$ = this.model.tasks$.pipe(
+    map((tasks) => tasks.filter((t) => !t.done).length),
+  );
+
+  // Commands — wrap async operations, expose isExecuting$ and error$
+  readonly fetchCommand = new Command(async () => {
+    await this.model.fetchAll();
+  });
+
+  readonly addCommand = new Command(async (title: string) => {
+    await this.model.create(title);
+  });
+
+  override dispose() {
+    super.dispose();
+  }
+}
+
+export const taskListViewModel = new TaskListViewModel();
+```
+
+### 3. Connect to a View
+
+The View subscribes to ViewModel observables and calls Commands. This is the only framework-specific code.
+
+**React**
+
+```tsx
+import { useEffect, useState } from 'react';
+import { taskListViewModel } from './TaskListViewModel';
+
+function useObservable<T>(obs: import('rxjs').Observable<T>, initial: T) {
+  const [value, setValue] = useState(initial);
+  useEffect(() => {
+    const sub = obs.subscribe(setValue);
+    return () => sub.unsubscribe();
+  }, [obs]);
+  return value;
+}
+
+export function TaskList() {
+  const vm       = taskListViewModel;
+  const tasks    = useObservable(vm.tasks$, []);
+  const loading  = useObservable(vm.isLoading$, false);
+  const pending  = useObservable(vm.pendingCount$, 0);
+
+  useEffect(() => {
+    vm.fetchCommand.execute();
+    return () => vm.dispose();
+  }, []);
+
+  return (
+    <div>
+      <h1>Tasks ({pending} pending)</h1>
+      {loading && <p>Loading…</p>}
+      <ul>
+        {tasks.map((t) => <li key={t.id}>{t.title}</li>)}
+      </ul>
+      <button onClick={() => vm.addCommand.execute('New task')}>Add</button>
+    </div>
+  );
+}
+```
+
+**Vue 3**
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { taskListViewModel } from './TaskListViewModel';
+
+const vm = taskListViewModel;
+const tasks   = ref([] as any[]);
+const loading = ref(false);
+
+const subscriptions = [
+  vm.tasks$.subscribe((v)    => (tasks.value = v)),
+  vm.isLoading$.subscribe((v) => (loading.value = v)),
+];
+
+const pending = computed(() => tasks.value.filter((t) => !t.done).length);
+
+onMounted(() => vm.fetchCommand.execute());
+onUnmounted(() => {
+  subscriptions.forEach((s) => s.unsubscribe());
+  vm.dispose();
+});
+</script>
+
+<template>
+  <div>
+    <h1>Tasks ({{ pending }} pending)</h1>
+    <p v-if="loading">Loading…</p>
+    <ul>
+      <li v-for="t in tasks" :key="t.id">{{ t.title }}</li>
+    </ul>
+    <button @click="vm.addCommand.execute('New task')">Add</button>
+  </div>
+</template>
+```
+
+**Angular**
+
+```typescript
+import { Component, OnInit, OnDestroy, InjectionToken, Inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { taskListViewModel } from './TaskListViewModel';
+
+export const TASK_VM = new InjectionToken('TASK_VM');
+
+@Component({
+  standalone: true,
+  imports: [CommonModule],
+  providers: [{ provide: TASK_VM, useValue: taskListViewModel }],
+  template: `
+    <div *ngIf="loading$ | async">Loading…</div>
+    <ul>
+      <li *ngFor="let t of tasks$ | async">{{ t.title }}</li>
+    </ul>
+    <button (click)="vm.addCommand.execute('New task')">Add</button>
+  `,
+})
+export class TaskListComponent implements OnInit, OnDestroy {
+  constructor(@Inject(TASK_VM) public vm: typeof taskListViewModel) {}
+
+  tasks$   = this.vm.tasks$;
+  loading$ = this.vm.isLoading$;
+
+  ngOnInit()    { this.vm.fetchCommand.execute(); }
+  ngOnDestroy() { this.vm.dispose(); }
+}
+```
+
+The ViewModel class is the same in all three cases. Only the subscription syntax differs.
+
+---
+
+## Reactive State
+
+Web Loom supports two reactive primitives that can be used together or independently.
+
+### RxJS Observables
+
+`@web-loom/mvvm-core` is built on RxJS. Models expose `BehaviorSubject` streams; ViewModels compose them with operators. Best for complex async pipelines, multicasting, and integration with Angular.
+
+```typescript
+class TaskModel extends BaseModel {
+  readonly tasks$     = new BehaviorSubject<Task[]>([]);
+  readonly isLoading$ = new BehaviorSubject(false);
+
+  async fetchAll() {
+    this.isLoading$.next(true);
+    this.tasks$.next(await api.getTasks());
+    this.isLoading$.next(false);
+  }
+}
+```
+
+### Signals
+
+`@web-loom/signals-core` provides synchronous, pull-based reactive values with automatic dependency tracking. Zero dependencies, no scheduler — perfect for ViewModels that don't need RxJS.
+
+```typescript
+import { signal, computed } from '@web-loom/signals-core';
+
+class CounterViewModel {
+  private _count = signal(0);
+  readonly count   = this._count.asReadonly();
+  readonly doubled = computed(() => this._count.get() * 2);
+
+  increment() { this._count.update((v) => v + 1); }
+}
+```
+
+Both work with any framework adapter. Use Signals for straightforward reactive state, Observables for advanced stream composition or when integrating with Angular's async pipe.
+
+---
+
+## The Command Pattern
+
+Commands are the primary mechanism for user actions. A Command wraps an async operation and exposes:
+
+- `execute()` — trigger the action
+- `isExecuting$` / `isExecuting` — loading state for spinner binding
+- `canExecute$` / `canRun` — guards (e.g. disable submit while loading)
+- `error$` / `error` — last error, if any
+
+```typescript
+// In a ViewModel
+readonly saveCommand = new Command(async () => {
+  await this.model.save(this.form.values);
+});
+
+// In the View (React)
+<button
+  onClick={() => vm.saveCommand.execute()}
+  disabled={!vm.saveCommand.canExecute}
+>
+  {vm.saveCommand.isExecuting ? 'Saving…' : 'Save'}
+</button>
+```
+
+Commands keep the View dumb — it never contains `try/catch`, loading flags, or validation logic.
+
+---
+
+## Key Principles
+
+**Unidirectional data flow** — state flows down (Model → ViewModel → View), actions flow up (View calls ViewModel commands). No two-way data binding at the architecture level.
+
+**Always dispose** — ViewModels subscribe to observables and effects. Call `vm.dispose()` in the component teardown hook to prevent memory leaks.
+
+```typescript
+// React
+useEffect(() => {
+  vm.fetchCommand.execute();
+  return () => vm.dispose();
+}, []);
+```
+
+**Business data in Models, UI state in Store** — a filter value that affects API results belongs in the Model. Whether a drawer is open belongs in the Store.
+
+**Test ViewModels independently** — because ViewModels have no framework imports, they can be unit tested with plain Vitest, no DOM or component setup required.
+
+```typescript
+it('counts pending tasks correctly', () => {
+  const vm = new TaskListViewModel();
+  vm['model'].tasks$.next([
+    { id: '1', title: 'Buy milk', done: false },
+    { id: '2', title: 'Write tests', done: true },
+  ]);
+  expect(vm['pendingCount$'].getValue?.() ?? 0).toBe(1);
+  vm.dispose();
+});
+```
+
+---
+
+## Package Ecosystem
+
+Web Loom ships packages across several categories:
+
+### Core architecture
+- [`@web-loom/mvvm-core`](/docs/models) — BaseModel, BaseViewModel, Commands, RxJS integration
+- [`@web-loom/signals-core`](/docs/signals-core) — Lightweight reactive signals and computed values
+- [`@web-loom/store-core`](/docs/store-core) — Minimal UI-state store with persistence adapters
+
+### Data & communication
+- [`@web-loom/query-core`](/docs/query-core) — Data fetching with caching and stale-while-revalidate
+- [`@web-loom/event-bus-core`](/docs/event-bus-core) — Typed event aggregation for cross-feature messaging
+- `@web-loom/http-core` — HTTP client abstraction
+
+### UI behaviors
+- [`@web-loom/ui-core`](/docs/ui-core) — Headless dialog, list, form, roving-focus behaviors
+- [`@web-loom/ui-patterns`](/docs/ui-patterns) — Wizard, MasterDetail, CommandPalette shells
+- `@web-loom/forms-core` — Framework-agnostic form logic and validation
+
+### Design & theming
+- [`@web-loom/design-core`](/docs/design-core) — Design tokens, CSS custom properties, theming, component library
+
+### Infrastructure
+- `@web-loom/router-core` — Routing state abstraction
+- `@web-loom/storage-core` — localStorage / sessionStorage abstraction
+- `@web-loom/i18n-core` — Internationalization
+- `@web-loom/plugin-core` — Plugin architecture for extensible applications
+
+---
 
 ## Where to Go Next
 
-- Browse the [Published Packages API Index](../../docs/api-docs/README.md) to dive deeper into each package.
-- Explore `mvvm-core` next (Models & ViewModels, API Management, Observable Collections) once you understand the broader ecosystem.
-- Check out the package-specific docs for store-core, query-core, ui-core, plugin-core, and others to see advanced patterns, persistence adapters, and framework integration tips.
-
-Welcome to Web Loom—build resilient, framework-agnostic applications with a toolkit that evolves with you.
+- [Core Concepts](/docs/core-concepts) — deeper dive into architecture patterns and how packages relate
+- [Models](/docs/models) — the Model layer in detail: RestfulApiModel, schemas, reactive streams
+- [ViewModels](/docs/viewmodels) — Commands, RestfulApiViewModel, FormViewModel, lifecycle
+- [Signals Core](/docs/signals-core) — reactive signals as an alternative to RxJS
+- [MVVM in React](/docs/mvvm-react-use-case) — React-specific integration patterns
+- [MVVM in Vue](/docs/mvvm-vue-use-case) — Vue 3 composable-based integration
+- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular async pipe and Signals integration
+- [MVVM in Vanilla TS](/docs/mvvm-vanilla-use-case) — framework-free integration with manual DOM rendering

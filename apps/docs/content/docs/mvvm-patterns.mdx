@@ -1,0 +1,524 @@
+---
+title: 'MVVM Patterns'
+summary: 'Advanced ViewModel patterns inspired by Prism — InteractionRequest for ViewModel-driven UI dialogs, and ActiveAwareViewModel for lifecycle-aware ViewModels that pause when off-screen.'
+topicTitle: 'Published Packages'
+topicSlug: 'packages'
+---
+
+# MVVM Patterns
+
+`@web-loom/mvvm-patterns` provides two advanced patterns that extend the core MVVM architecture for real-world application needs:
+
+- **Interaction Request** — lets a ViewModel request a UI interaction (confirm dialog, input prompt, toast notification) without importing any UI framework code, keeping the ViewModel fully testable and framework-agnostic.
+- **ActiveAwareViewModel** — a ViewModel base class that knows whether its associated view is currently active (visible, focused), so it can pause polling, suspend animations, or defer updates when off-screen.
+
+## Installation
+
+```bash
+npm install @web-loom/mvvm-patterns @web-loom/mvvm-core rxjs
+```
+
+---
+
+## Interaction Request Pattern
+
+### The Problem
+
+ViewModels should not know about dialogs, toasts, or any UI chrome. But sometimes a ViewModel needs to ask the user a question — "Are you sure you want to delete this?" — before proceeding. The naive solution is to call a UI component method directly, which creates a coupling that breaks testability.
+
+The Interaction Request pattern solves this by inverting control: the ViewModel raises a request through an observable, and the View subscribes to that observable and handles it using whatever UI components it chooses.
+
+```
+ViewModel  →  raises InteractionRequest
+                ↓
+View       →  subscribes, shows dialog
+                ↓
+View       →  calls callback with response
+                ↓
+ViewModel  →  continues with result
+```
+
+The ViewModel never imports a component. The View never contains business logic.
+
+### InteractionRequest
+
+The base class for all interaction requests. Wrap one inside a ViewModel and call `raiseAsync` to trigger it.
+
+```typescript
+import { InteractionRequest } from '@web-loom/mvvm-patterns';
+
+interface DeleteContext {
+  itemName: string;
+  confirmed?: boolean;
+}
+
+class ItemViewModel extends BaseViewModel<ItemModel> {
+  // Declare one request per interaction type
+  readonly deleteRequest = new InteractionRequest<DeleteContext>();
+
+  readonly deleteCommand = new Command(async (itemName: string) => {
+    const context = await this.deleteRequest.raiseAsync({ itemName });
+    if (context.confirmed) {
+      await this.model.delete(itemName);
+    }
+  });
+}
+```
+
+`raiseAsync` emits the context on `requested$`, waits for the View to call the callback, then resolves with the (possibly mutated) context.
+
+### Connecting the View (React)
+
+```tsx
+import { useEffect } from 'react';
+import { itemViewModel } from './ItemViewModel';
+
+export function ItemView() {
+  const vm = itemViewModel;
+
+  useEffect(() => {
+    const sub = vm.deleteRequest.requested$.subscribe(({ context, callback }) => {
+      const confirmed = window.confirm(`Delete "${context.itemName}"?`);
+      callback({ ...context, confirmed });
+    });
+
+    return () => sub.unsubscribe();
+  }, []);
+
+  return (
+    <button onClick={() => vm.deleteCommand.execute('my-item')}>
+      Delete
+    </button>
+  );
+}
+```
+
+### Connecting the View (Vue 3)
+
+```vue
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue';
+import { itemViewModel } from './ItemViewModel';
+
+const vm = itemViewModel;
+let sub: any;
+
+onMounted(() => {
+  sub = vm.deleteRequest.requested$.subscribe(({ context, callback }) => {
+    const confirmed = window.confirm(`Delete "${context.itemName}"?`);
+    callback({ ...context, confirmed });
+  });
+});
+
+onUnmounted(() => sub?.unsubscribe());
+</script>
+```
+
+### Connecting the View (Angular)
+
+```typescript
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { itemViewModel } from './ItemViewModel';
+
+@Component({ selector: 'app-item', template: `<button (click)="vm.deleteCommand.execute('my-item')">Delete</button>` })
+export class ItemComponent implements OnInit, OnDestroy {
+  vm = itemViewModel;
+  private sub?: Subscription;
+
+  ngOnInit() {
+    this.sub = this.vm.deleteRequest.requested$.subscribe(({ context, callback }) => {
+      const confirmed = confirm(`Delete "${context.itemName}"?`);
+      callback({ ...context, confirmed });
+    });
+  }
+
+  ngOnDestroy() { this.sub?.unsubscribe(); }
+}
+```
+
+---
+
+## Built-in Request Types
+
+The package ships four ready-made request classes covering the most common interaction patterns. All extend `InteractionRequest` and use typed context interfaces.
+
+### ConfirmationRequest
+
+Yes/No or OK/Cancel dialogs. The `confirmed` field on `IConfirmation` is set by the View before calling the callback.
+
+```typescript
+import { ConfirmationRequest } from '@web-loom/mvvm-patterns';
+
+class DocumentViewModel extends BaseViewModel<DocumentModel> {
+  readonly discardRequest = new ConfirmationRequest();
+
+  readonly discardCommand = new Command(async () => {
+    const result = await this.discardRequest.raiseAsync({
+      content: 'Discard unsaved changes?',
+      confirmText: 'Discard',
+      cancelText: 'Keep editing',
+    });
+
+    if (result.confirmed) {
+      this.model.reset();
+    }
+  });
+}
+```
+
+**`IConfirmation` interface:**
+
+```typescript
+interface IConfirmation {
+  title?: string;
+  content: string;
+  confirmed?: boolean;   // set by View before calling callback
+  confirmText?: string;  // e.g. "Delete", "Discard", "OK"
+  cancelText?: string;   // e.g. "Cancel", "Keep editing"
+}
+```
+
+### NotificationRequest
+
+Fire-and-forget notifications — toasts, snackbars, alerts. The ViewModel does not need a response.
+
+```typescript
+import { NotificationRequest } from '@web-loom/mvvm-patterns';
+
+class CheckoutViewModel extends BaseViewModel<CartModel> {
+  readonly toastRequest = new NotificationRequest();
+
+  readonly submitCommand = new Command(async () => {
+    await this.model.checkout();
+    await this.toastRequest.raiseAsync({
+      title: 'Order placed',
+      content: 'Your order has been confirmed.',
+    });
+  });
+}
+```
+
+**`INotification` interface:**
+
+```typescript
+interface INotification {
+  title?: string;
+  content: string;
+}
+```
+
+### InputRequest
+
+Prompt dialogs that collect text from the user.
+
+```typescript
+import { InputRequest } from '@web-loom/mvvm-patterns';
+
+class BoardViewModel extends BaseViewModel<BoardModel> {
+  readonly renameRequest = new InputRequest();
+
+  readonly renameCommand = new Command(async (currentName: string) => {
+    const result = await this.renameRequest.raiseAsync({
+      content: 'Enter a new name',
+      defaultValue: currentName,
+      placeholder: 'Board name…',
+      inputType: 'text',
+    });
+
+    if (result.inputValue) {
+      await this.model.rename(result.inputValue);
+    }
+  });
+}
+```
+
+**`IInputRequest` interface:**
+
+```typescript
+interface IInputRequest {
+  title?: string;
+  content: string;
+  inputValue?: string;     // set by View with the user's input
+  placeholder?: string;
+  inputType?: 'text' | 'number' | 'email' | 'password';
+  defaultValue?: string;
+}
+```
+
+### SelectionRequest
+
+Lets the user pick from a typed list of options.
+
+```typescript
+import { SelectionRequest } from '@web-loom/mvvm-patterns';
+
+interface Workspace { id: string; name: string; }
+
+class MoveItemViewModel extends BaseViewModel<ItemModel> {
+  readonly workspaceRequest = new SelectionRequest<Workspace>();
+
+  readonly moveCommand = new Command(async () => {
+    const workspaces = await this.model.getWorkspaces();
+    const result = await this.workspaceRequest.raiseAsync({
+      content: 'Select destination workspace',
+      options: workspaces.map((w) => ({ label: w.name, value: w })),
+    });
+
+    if (result.selectedValue) {
+      await this.model.moveTo(result.selectedValue.id);
+    }
+  });
+}
+```
+
+**`ISelectionRequest<T>` interface:**
+
+```typescript
+interface ISelectionRequest<T = string> {
+  title?: string;
+  content: string;
+  options: Array<{ label: string; value: T }>;
+  selectedValue?: T;     // set by View with the user's selection
+  allowMultiple?: boolean;
+}
+```
+
+---
+
+## Custom Interaction Requests
+
+Extend `InteractionRequest<T>` with any context type to create domain-specific interactions.
+
+```typescript
+import { InteractionRequest } from '@web-loom/mvvm-patterns';
+
+interface ColorPickerContext {
+  initialColor: string;
+  selectedColor?: string;
+}
+
+class ColorPickerRequest extends InteractionRequest<ColorPickerContext> {}
+
+class ThemeViewModel extends BaseViewModel<ThemeModel> {
+  readonly colorPickerRequest = new ColorPickerRequest();
+
+  readonly changeAccentCommand = new Command(async () => {
+    const result = await this.colorPickerRequest.raiseAsync({
+      initialColor: this.model.accentColor,
+    });
+
+    if (result.selectedColor) {
+      this.model.setAccentColor(result.selectedColor);
+    }
+  });
+}
+```
+
+---
+
+## ActiveAwareViewModel
+
+### The Problem
+
+Some ViewModels should behave differently when their view is not visible. A ViewModel that polls an API every 30 seconds should pause when the user switches to another tab. A ViewModel driving an animation should stop when its view is hidden. Without a lifecycle hook, these ViewModels keep running and wasting resources.
+
+`ActiveAwareViewModel` extends `BaseViewModel` with an `isActive` property and an `isActive$` observable, plus an `onIsActiveChanged` lifecycle hook you can override.
+
+### Usage
+
+```typescript
+import { ActiveAwareViewModel } from '@web-loom/mvvm-patterns';
+import { Subscription, interval } from 'rxjs';
+import { switchMap, EMPTY } from 'rxjs';
+import { DashboardModel } from './DashboardModel';
+
+export class DashboardViewModel extends ActiveAwareViewModel<DashboardModel> {
+  private pollingSub?: Subscription;
+
+  constructor() {
+    super(new DashboardModel());
+    // Subscribe to active state changes
+    this.pollingSub = this.isActive$
+      .pipe(switchMap((active) => (active ? interval(30_000) : EMPTY)))
+      .subscribe(() => this.model.refresh());
+  }
+
+  protected override onIsActiveChanged(isActive: boolean): void {
+    if (isActive) {
+      // Immediately refresh when becoming active
+      this.model.refresh();
+    }
+  }
+
+  override dispose() {
+    this.pollingSub?.unsubscribe();
+    super.dispose();
+  }
+}
+```
+
+### Activating from the View
+
+```tsx
+// React
+useEffect(() => {
+  vm.activate();
+  return () => vm.deactivate();
+}, []);
+```
+
+```vue
+<!-- Vue 3 -->
+<script setup>
+onMounted(() => vm.activate());
+onUnmounted(() => vm.deactivate());
+</script>
+```
+
+```typescript
+// Angular
+ngOnInit()    { this.vm.activate(); }
+ngOnDestroy() { this.vm.deactivate(); }
+```
+
+### IActiveAware interface
+
+Any class can implement `IActiveAware` directly if it should not extend `ActiveAwareViewModel`:
+
+```typescript
+import type { IActiveAware } from '@web-loom/mvvm-patterns';
+import { isActiveAware } from '@web-loom/mvvm-patterns';
+
+// Type guard to check at runtime
+if (isActiveAware(someViewModel)) {
+  someViewModel.activate();
+}
+```
+
+```typescript
+interface IActiveAware {
+  isActive: boolean;
+  readonly isActive$: Observable<boolean>;
+}
+```
+
+### Pausing animations
+
+```typescript
+class AnimatedViewModel extends ActiveAwareViewModel<ChartModel> {
+  private animationFrame?: number;
+
+  protected override onIsActiveChanged(isActive: boolean): void {
+    if (isActive) {
+      this.startAnimation();
+    } else {
+      if (this.animationFrame) {
+        cancelAnimationFrame(this.animationFrame);
+        this.animationFrame = undefined;
+      }
+    }
+  }
+
+  private startAnimation() {
+    const tick = () => {
+      this.model.tick();
+      this.animationFrame = requestAnimationFrame(tick);
+    };
+    this.animationFrame = requestAnimationFrame(tick);
+  }
+}
+```
+
+### Tab-based active awareness
+
+Pair `ActiveAwareViewModel` with a tab shell to automatically activate/deactivate ViewModels as the user switches tabs.
+
+```typescript
+class TabShellViewModel extends BaseViewModel<TabModel> {
+  private viewModels = new Map<string, IActiveAware>();
+
+  registerTab(tabId: string, vm: IActiveAware) {
+    this.viewModels.set(tabId, vm);
+  }
+
+  activateTab(tabId: string) {
+    this.viewModels.forEach((vm, id) => {
+      vm.isActive = id === tabId;
+    });
+  }
+}
+```
+
+---
+
+## API Reference
+
+### InteractionRequest
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `requested$` | `Observable<InteractionRequestedEvent<T>>` | Emits when `raiseAsync` is called. Subscribe in the View. |
+| `raiseAsync(context)` | `Promise<T>` | Emits a request event and awaits the View callback. Resolves with the (mutated) context. |
+
+### ActiveAwareViewModel
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `isActive` | `boolean` | Gets or sets the current active state. |
+| `isActive$` | `Observable<boolean>` | Emits on active state changes (distinct until changed). |
+| `activate()` | `void` | Convenience method — sets `isActive = true`. |
+| `deactivate()` | `void` | Convenience method — sets `isActive = false`. |
+| `onIsActiveChanged(isActive, wasActive)` | `void` | Override this to react to state transitions. |
+| `dispose()` | `void` | Completes `isActive$` and calls `super.dispose()`. |
+
+---
+
+## Testing
+
+Because ViewModels never import UI components, interaction requests are straightforward to test:
+
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+import { DocumentViewModel } from './DocumentViewModel';
+import { firstValueFrom } from 'rxjs';
+
+describe('DocumentViewModel', () => {
+  it('does not discard when confirmation is rejected', async () => {
+    const vm = new DocumentViewModel();
+    const resetSpy = vi.spyOn(vm['model'], 'reset');
+
+    // Simulate a View that always cancels
+    vm.discardRequest.requested$.subscribe(({ context, callback }) => {
+      callback({ ...context, confirmed: false });
+    });
+
+    await vm.discardCommand.execute();
+    expect(resetSpy).not.toHaveBeenCalled();
+    vm.dispose();
+  });
+
+  it('discards when confirmation is accepted', async () => {
+    const vm = new DocumentViewModel();
+    const resetSpy = vi.spyOn(vm['model'], 'reset');
+
+    vm.discardRequest.requested$.subscribe(({ context, callback }) => {
+      callback({ ...context, confirmed: true });
+    });
+
+    await vm.discardCommand.execute();
+    expect(resetSpy).toHaveBeenCalledOnce();
+    vm.dispose();
+  });
+});
+```
+
+---
+
+## Best Practices
+
+- Declare one `InteractionRequest` field per distinct interaction type in the ViewModel, not one per usage.
+- Keep the View's subscription handler thin — it should only translate the context into a UI interaction and call the callback with the result. No business logic.
+- Always unsubscribe from `requested$` when the View unmounts to prevent memory leaks and ghost dialogs.
+- For `ActiveAwareViewModel`, pair `activate()` with the View's mount lifecycle and `deactivate()` with unmount. This prevents the ViewModel from running when the View is not on screen.
+- Prefer `isActive$` with RxJS operators (e.g., `switchMap` to `EMPTY`) for reactive pause/resume over imperative checks in `onIsActiveChanged`.
