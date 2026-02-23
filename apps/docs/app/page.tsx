@@ -126,21 +126,21 @@ export default function HomePage() {
       {/* ── Navbar ──────────────────────────────────────────────────────── */}
       <header className="fixed top-0 inset-x-0 z-30">
         <div
-          className="absolute inset-0 bg-slate-950/80 border-b border-slate-800 backdrop-blur-md -z-10"
+          className="absolute inset-0 bg-white/90 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 backdrop-blur-md -z-10"
           aria-hidden="true"
         />
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <Image src="/images/webloom.png" width={30} height={30} alt="Web Loom" className="rounded" />
-            <span className="text-sm font-[500] text-slate-100">
-              Web<span className="text-blue-400">.loom</span>
+            <span className="text-sm font-[500] text-slate-800 dark:text-slate-100">
+              Web<span className="text-blue-500 dark:text-blue-400">.loom</span>
             </span>
           </Link>
 
           <nav className="flex items-center gap-1">
             <Link
               href="/docs/getting-started"
-              className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-100 transition-colors"
+              className="px-3 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors"
             >
               Docs
             </Link>
@@ -148,7 +148,7 @@ export default function HomePage() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-slate-100 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors"
             >
               <svg className="w-4 h-4 fill-current" viewBox="0 0 32 32" aria-hidden="true">
                 <path d="M16 8.2c-4.4 0-8 3.6-8 8 0 3.5 2.3 6.5 5.5 7.6.4.1.5-.2.5-.4V22c-2.2.5-2.7-1-2.7-1-.4-.9-.9-1.2-.9-1.2-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.3 1.9.9 2.3.7.1-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.2.8.6-.2 1.3-.3 2-.3s1.4.1 2 .3c1.5-1 2.2-.8 2.2-.8.4 1.1.2 1.9.1 2.1.5.6.8 1.3.8 2.1 0 3.1-1.9 3.7-3.7 3.9.3.4.6.9.6 1.6v2.2c0 .2.1.5.6.4 3.2-1.1 5.5-4.1 5.5-7.6-.1-4.4-3.7-8-8.1-8z" />
@@ -243,18 +243,18 @@ export default function HomePage() {
         </section>
 
         {/* ── Code showcase ───────────────────────────────────────────────── */}
-        <section className="bg-slate-900 border-b border-slate-800 py-20">
+        <section className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 py-20">
           <div className="max-w-5xl mx-auto px-6">
             <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
               {/* Copy */}
               <div>
-                <p className="text-xs font-[500] uppercase tracking-widest text-blue-400 mb-3">
+                <p className="text-xs font-[500] uppercase tracking-widest text-blue-500 dark:text-blue-400 mb-3">
                   The pattern
                 </p>
-                <h2 className="text-2xl sm:text-3xl font-[650] text-slate-100 mb-4 leading-tight">
+                <h2 className="text-2xl sm:text-3xl font-[650] text-slate-800 dark:text-slate-100 mb-4 leading-tight">
                   One ViewModel.<br />Every framework.
                 </h2>
-                <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
                   The ViewModel is plain TypeScript — no framework imports, no heavy runtime.
                   Infrastructure packages sit directly on mature browser APIs: <code className="text-blue-400 text-[11px]">fetch</code> for
                   HTTP, <code className="text-blue-400 text-[11px]">localStorage</code> for
@@ -270,15 +270,15 @@ export default function HomePage() {
                     <li key={label} className="flex gap-3 text-sm">
                       <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-400 mt-[7px]" aria-hidden="true" />
                       <span>
-                        <span className="text-slate-200 font-[500]">{label}</span>
-                        <span className="text-slate-500"> — {desc}</span>
+                        <span className="text-slate-700 dark:text-slate-200 font-[500]">{label}</span>
+                        <span className="text-slate-500 dark:text-slate-500"> — {desc}</span>
                       </span>
                     </li>
                   ))}
                 </ul>
                 <Link
                   href="/docs/core-concepts"
-                  className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
                 >
                   Deep dive into core concepts
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -327,18 +327,18 @@ export class TaskListViewModel
         </section>
 
         {/* ── Platform-first ──────────────────────────────────────────────── */}
-        <section className="py-20 bg-slate-950 border-b border-slate-800">
+        <section className="py-20 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
           <div className="max-w-5xl mx-auto px-6">
             <div className="text-center mb-12">
-              <p className="text-xs font-[500] uppercase tracking-widest text-blue-400 mb-3">
+              <p className="text-xs font-[500] uppercase tracking-widest text-blue-500 dark:text-blue-400 mb-3">
                 Platform-first
               </p>
-              <h2 className="text-2xl sm:text-3xl font-[650] text-slate-100 mb-4 leading-tight">
+              <h2 className="text-2xl sm:text-3xl font-[650] text-slate-800 dark:text-slate-100 mb-4 leading-tight">
                 The browser has matured.
                 <br />
-                <span className="text-slate-400 font-[400]">Web Loom works with it, not around it.</span>
+                <span className="text-slate-500 dark:text-slate-400 font-[400]">Web Loom works with it, not around it.</span>
               </h2>
-              <p className="text-slate-400 text-sm max-w-xl mx-auto leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-400 text-sm max-w-xl mx-auto leading-relaxed">
                 Every infrastructure package is a thin, typed wrapper over a stable browser primitive.
                 No proprietary runtimes. No invented protocols. Full tree-shaking.
               </p>
@@ -369,18 +369,18 @@ export class TaskListViewModel
               ].map(({ api, pkg, desc }) => (
                 <div
                   key={pkg}
-                  className="rounded-xl border border-slate-700/60 bg-slate-900/60 p-5 flex flex-col gap-3"
+                  className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-900/60 p-5 flex flex-col gap-3"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[11px] font-mono text-slate-300">
+                    <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[11px] font-mono text-slate-700 dark:text-slate-300">
                       {api}
                     </span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-slate-600 shrink-0" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-slate-400 dark:text-slate-600 shrink-0" aria-hidden="true">
                       <path d="M2 6h8M6.5 3.5l3 2.5-3 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    <span className="text-[11px] font-mono text-blue-400 truncate">{pkg.replace('@web-loom/', '')}</span>
+                    <span className="text-[11px] font-mono text-blue-500 dark:text-blue-400 truncate">{pkg.replace('@web-loom/', '')}</span>
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500 leading-relaxed">{desc}</p>
                 </div>
               ))}
             </div>
