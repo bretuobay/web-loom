@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": false,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@web-loom/design-core": ["../../packages/design-core/src"],
+      "@web-loom/design-core/*": ["../../packages/design-core/src/*"],
+      "@web-loom/event-bus-core": ["../../packages/event-bus-core/src"],
+      "@web-loom/event-bus-core/*": ["../../packages/event-bus-core/src/*"],
+      "@web-loom/mvvm-core": ["../../packages/mvvm-core/src"],
+      "@web-loom/mvvm-core/*": ["../../packages/mvvm-core/src/*"],
+      "@web-loom/mvvm-patterns": ["../../packages/mvvm-patterns/src"],
+      "@web-loom/mvvm-patterns/*": ["../../packages/mvvm-patterns/src/*"],
+      "@web-loom/query-core": ["../../packages/query-core/src"],
+      "@web-loom/query-core/*": ["../../packages/query-core/src/*"],
+      "@web-loom/signals-core": ["../../packages/signals-core/src"],
+      "@web-loom/signals-core/*": ["../../packages/signals-core/src/*"],
+      "@web-loom/store-core": ["../../packages/store-core/src"],
+      "@web-loom/store-core/*": ["../../packages/store-core/src/*"],
+      "@web-loom/ui-core": ["../../packages/ui-core/src"],
+      "@web-loom/ui-core/*": ["../../packages/ui-core/src/*"],
+      "@web-loom/ui-patterns": ["../../packages/ui-patterns/src"],
+      "@web-loom/ui-patterns/*": ["../../packages/ui-patterns/src/*"]
+    },
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "types": ["vitest/globals", "vite/client"]
+  },
+  "include": ["src"]
+}
