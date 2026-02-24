@@ -264,6 +264,28 @@ describe('QueryCore', () => {
       expect(mockFetcher).toHaveBeenCalledTimes(1);
     });
 
+    it('should queue a forced refetch requested during an in-flight fetch', async () => {
+      const firstData = { message: 'first fetch result' };
+      const forcedData = { message: 'forced follow-up result' };
+
+      mockFetcher
+        .mockImplementationOnce(async () => {
+          await new Promise((r) => setTimeout(r, 100));
+          return firstData;
+        })
+        .mockResolvedValueOnce(forcedData);
+
+      const first = qc.refetch(endpointKey, true);
+      const forcedWhileLoading = qc.refetch(endpointKey, true);
+
+      await vi.runAllTimersAsync();
+      await first;
+      await forcedWhileLoading;
+
+      expect(mockFetcher).toHaveBeenCalledTimes(2);
+      expect(qc.getState(endpointKey).data).toEqual(forcedData);
+    });
+
     describe('refetchAfter logic', () => {
       beforeEach(() => {
         cache = new MockSimpleCacheProvider();
@@ -685,6 +707,32 @@ describe('QueryCore', () => {
       const state = qc.getState(endpointKey);
       expect(state.data).toEqual(newData);
       expect(state.lastUpdated).toBeDefined();
+    });
+
+    it('should recover with a queued forced refetch when invalidate+refetch happens mid-flight', async () => {
+      const midFlightKey = 'invalidateMidFlightEp';
+      const firstData = { message: 'first in-flight result' };
+      const secondData = { message: 'post-invalidate forced result' };
+
+      const midFlightFetcher = vi
+        .fn()
+        .mockImplementationOnce(async () => {
+          await new Promise((r) => setTimeout(r, 100));
+          return firstData;
+        })
+        .mockResolvedValueOnce(secondData);
+
+      await qc.defineEndpoint(midFlightKey, midFlightFetcher);
+      qc.subscribe(midFlightKey, vi.fn());
+
+      await qc.invalidate(midFlightKey);
+      const forced = qc.refetch(midFlightKey, true);
+
+      await vi.runAllTimersAsync();
+      await forced;
+
+      expect(midFlightFetcher).toHaveBeenCalledTimes(2);
+      expect(qc.getState(midFlightKey).data).toEqual(secondData);
     });
   });
 });
