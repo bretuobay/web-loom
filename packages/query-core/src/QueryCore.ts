@@ -30,6 +30,7 @@ interface Endpoint<TData = any> {
   state: EndpointState<TData>;
   subscribers: Set<(state: EndpointState<TData>) => void>;
   cache: CacheProvider; // Cache provider instance for this endpoint
+  pendingForceRefetch: boolean;
 }
 
 class QueryCore {
@@ -146,6 +147,7 @@ class QueryCore {
       state: initialEndpointState,
       subscribers: new Set(),
       cache: cache,
+      pendingForceRefetch: false,
     });
     console.log(
       `QueryCore: Endpoint "${endpointKey}" defined. Initial state loaded from cache (if available). Options:`,
@@ -251,7 +253,14 @@ class QueryCore {
     }
 
     if (endpoint.state.isLoading) {
-      console.warn(`QueryCore: Refetch for "${endpointKey}" aborted, a fetch is already in progress.`);
+      if (forceRefetch) {
+        endpoint.pendingForceRefetch = true;
+        console.warn(
+          `QueryCore: Refetch for "${endpointKey}" queued (force=true), a fetch is already in progress.`,
+        );
+      } else {
+        console.warn(`QueryCore: Refetch for "${endpointKey}" aborted, a fetch is already in progress.`);
+      }
       return Promise.resolve();
     }
 
@@ -293,6 +302,12 @@ class QueryCore {
       });
       console.error(`QueryCore: Error refetching endpoint "${endpointKey}":`, error);
       // Do not throw here; the error is part of the state.
+    }
+
+    // If a force refetch was requested while this fetch was in-flight, run it now.
+    if (endpoint.pendingForceRefetch) {
+      endpoint.pendingForceRefetch = false;
+      await this.refetch(endpointKey, true);
     }
   }
 

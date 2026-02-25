@@ -22,9 +22,25 @@ const transformToSlug = (input: string) => {
     .replace(/--+/g, '-');
 };
 
+const extractTextContent = (node: React.ReactNode): string => {
+  if (typeof node === 'string' || typeof node === 'number') {
+    return String(node);
+  }
+
+  if (Array.isArray(node)) {
+    return node.map(extractTextContent).join('');
+  }
+
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return extractTextContent(node.props.children);
+  }
+
+  return '';
+};
+
 const generateHeading = (headingLevel: number) => {
   return ({ children }: { children: React.ReactNode }) => {
-    const textContent = React.Children.toArray(children).join('');
+    const textContent = extractTextContent(children);
     const slug = transformToSlug(textContent);
     return React.createElement(`h${headingLevel}`, { id: slug }, [
       React.createElement('a', {
@@ -32,7 +48,7 @@ const generateHeading = (headingLevel: number) => {
         key: `link-${slug}`,
         className: 'anchor-link',
       }),
-      textContent,
+      React.createElement(React.Fragment, { key: `content-${slug}` }, children),
     ]);
   };
 };
