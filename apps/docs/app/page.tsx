@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import ThemeToggle from '@/components/ui/theme-toggle';
 import AnimatedFrameworks from '@/components/ui/animated-frameworks';
+import MVVMLayerShowcase from '@/components/ui/mvvm-layer-showcase';
 
 import type { Metadata } from 'next';
 
@@ -293,8 +294,8 @@ export default function HomePage() {
 
         {/* ── Code showcase ───────────────────────────────────────────────── */}
         <section className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 py-20">
-          <div className="max-w-5xl mx-auto px-6">
-            <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="grid md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-10 lg:gap-14 items-center">
               {/* Copy */}
               <div>
                 <p className="text-xs font-[500] uppercase tracking-widest text-blue-500 dark:text-blue-400 mb-3">
@@ -336,40 +337,8 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              {/* Code block */}
-              <div className="rounded-xl border border-slate-700/60 bg-slate-950 overflow-hidden font-mono text-[12.5px] leading-relaxed">
-                {/* Window chrome */}
-                <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-slate-800">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-700" aria-hidden="true" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-700" aria-hidden="true" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-700" aria-hidden="true" />
-                  <span className="ml-2 text-xs text-slate-500">TaskListViewModel.ts</span>
-                </div>
-                <pre className="p-5 overflow-x-auto text-slate-300 whitespace-pre">
-{`import { BaseViewModel, Command }
-  from '@web-loom/mvvm-core';
-import { map } from 'rxjs/operators';
-
-export class TaskListViewModel
-  extends BaseViewModel<TaskModel> {
-
-  readonly fetchCommand =
-    this.registerCommand(
-      new Command(() => this.model.fetchAll())
-    );
-
-  readonly pendingCount$ =
-    this.data$.pipe(
-      map(tasks =>
-        (tasks ?? []).filter(t => !t.done).length
-      )
-    );
-}`}
-                </pre>
-                <div className="border-t border-slate-800 px-5 py-2.5 flex items-center gap-2 text-xs text-slate-500">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" aria-hidden="true" />
-                  Identical class in React, Vue, Angular, React Native
-                </div>
+              <div className="md:w-[calc(100%+30px)] md:max-w-none md:justify-self-end">
+                <MVVMLayerShowcase />
               </div>
             </div>
           </div>
