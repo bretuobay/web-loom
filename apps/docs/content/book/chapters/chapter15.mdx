@@ -1,0 +1,1606 @@
+---
+id: "greenwatch-architecture-and-bounded-contexts"
+title: GreenWatch Architecture and Bounded Contexts
+section: The GreenWatch Case Study
+---
+# Chapter 15: Domain-Driven Design for Frontend
+
+We've spent the last several chapters building ViewModels, managing state, and orchestrating communication between components. But here's the uncomfortable truth: **most frontend applications are still organized by technical concerns, not by the business domains they're supposed to serve.** You'll find folders called `components`, `hooks`, `utils`, and `services`—but good luck finding the actual business logic.
+
+Domain-Driven Design (DDD) offers us a better way. Originally conceived for backend systems, DDD's principles are **equally valuable for frontend development**—perhaps even more so, given how quickly UI requirements change and how often we're forced to port applications between frameworks.
+
+This chapter isn't about blindly applying backend patterns to the frontend. Instead, we're going to explore how DDD's core concepts—**Bounded Contexts, Ubiquitous Language, Aggregates, Domain Events, and Value Objects**—can transform how we structure frontend applications, making them more maintainable, testable, and resilient to change.
+
+## 15.1 The Case for Domain-Driven Frontend Architecture
+
+Let's start with a scenario you've probably encountered: You're building a greenhouse monitoring system (our GreenWatch application), and you need to display environmental data—temperature, humidity, soil moisture. The "standard" approach looks something like this:
+
+```typescript
+// ❌ Component-centric, technical organization
+src/
+  components/
+    TemperatureChart.tsx
+    HumidityDisplay.tsx
+    SensorList.tsx
+  hooks/
+    useSensorData.ts
+    useEnvironmentalData.ts
+  services/
+    api.ts
+  utils/
+    formatters.ts
+```
+
+This structure **tells us nothing about the business domain.** What problems does this application solve? What are the core concepts? How do different parts of the system relate to each other? The architecture is organized around React concepts (components, hooks), not around the greenhouse monitoring domain.
+
+Now consider this alternative:
+
+```typescript
+// ✅ Domain-centric organization
+src/
+  environmental-monitoring/
+    domain/
+      models/
+      value-objects/
+      events/
+    application/
+      viewmodels/
+      services/
+    infrastructure/
+      repositories/
+  device-management/
+    domain/
+    application/
+    infrastructure/
+  alerts/
+    domain/
+    application/
+    infrastructure/
+```
+
+**This structure reveals the business.** Even without opening files, we know this application deals with environmental monitoring, device management, and alerts. Each domain area is self-contained with its own models, services, and infrastructure concerns.
+
+### Why This Matters
+
+The technical organization might seem simpler at first, but it **fails catastrophically as applications grow.** Here's what happens:
+
+**Coupling increases exponentially.** When your `TemperatureChart` component needs data, where does it get it from? The `useSensorData` hook? The `useEnvironmentalData` hook? Both? What happens when another team creates a third hook because they didn't know about the first two?
+
+**Business logic scatters.** Temperature thresholds for alerts might live in one component, validation rules in a hook, formatting logic in a utility function, and actual data fetching in a service. Good luck maintaining consistency across all those locations.
+
+**Change becomes expensive.** Want to add a new sensor type? You'll need to touch components, hooks, services, utilities—and you'll probably miss a few spots, leading to bugs that only surface in production.
+
+**Domain-centric architecture solves these problems** by organizing code around business capabilities, not technical patterns. Let's see how.
+
+## 15.2 Bounded Contexts in Frontend Applications
+
+A **Bounded Context** is a boundary within which a particular domain model is defined and applicable [REFERENCE: Eric Evans, Domain-Driven Design]. In simpler terms: it's a specific area of your application where certain concepts and rules apply.
+
+For GreenWatch, we can identify several natural bounded contexts:
+
+1. **Environmental Monitoring**: Tracks temperature, humidity, soil conditions
+2. **Device Management**: Handles sensors, controllers, connectivity
+3. **Alerts & Notifications**: Manages threshold rules and user notifications
+4. **Analytics**: Processes historical data for insights
+5. **Identity & Access**: Manages users and permissions
+
+Each context has its own **Ubiquitous Language**—the terms and concepts that domain experts use. Here's the critical insight: **the same real-world entity might appear in multiple contexts with different meanings and responsibilities.**
+
+### Example: The "Sensor" Concept
+
+In **Device Management**, a sensor is primarily about:
+- Physical hardware specifications
+- Network connectivity status  
+- Firmware versions
+- Installation location
+
+```typescript
+// Device Management context
+interface Sensor {
+  readonly id: SensorId;
+  readonly type: SensorType;
+  readonly firmwareVersion: string;
+  readonly connectivity: ConnectivityStatus;
+  readonly installLocation: PhysicalLocation;
+  
+  updateFirmware(version: string): Result<void, FirmwareError>;
+  checkConnectivity(): Promise<ConnectivityStatus>;
+}
+```
+
+In **Environmental Monitoring**, the same physical sensor is viewed through a different lens:
+- Current readings
+- Measurement accuracy
+- Calibration status
+- Reading frequency
+
+```typescript
+// Environmental Monitoring context
+interface DataSource {
+  readonly id: DataSourceId;
+  readonly readings$: Observable<SensorReading>;
+  readonly calibration: CalibrationState;
+  readonly measurementAccuracy: AccuracyLevel;
+  
+  getLatestReading(): SensorReading;
+  getHistoricalData(range: TimeRange): Promise<SensorReading[]>;
+}
+```
+
+**Notice what we've done here:** We've used completely different interfaces—even different names—for the same physical entity. This isn't duplication; **it's intentional separation of concerns.** The Device Management context doesn't care about calibration, and Environmental Monitoring doesn't care about firmware versions.
+
+### Implementing Bounded Contexts
+
+Let's implement a complete bounded context for Environmental Monitoring. We'll start with the domain layer—the heart of the business logic:
+
+```typescript
+// environmental-monitoring/domain/value-objects/Temperature.ts
+export class Temperature {
+  private constructor(
+    private readonly celsius: number
+  ) {
+    if (celsius < -273.15) {
+      throw new Error('Temperature cannot be below absolute zero');
+    }
+  }
+  
+  static fromCelsius(value: number): Temperature {
+    return new Temperature(value);
+  }
+  
+  static fromFahrenheit(value: number): Temperature {
+    return new Temperature((value - 32) * 5 / 9);
+  }
+  
+  toCelsius(): number {
+    return this.celsius;
+  }
+  
+  toFahrenheit(): number {
+    return (this.celsius * 9 / 5) + 32;
+  }
+  
+  isAboveThreshold(threshold: Temperature): boolean {
+    return this.celsius > threshold.celsius;
+  }
+  
+  equals(other: Temperature): boolean {
+    return this.celsius === other.celsius;
+  }
+}
+```
+
+This **Value Object** encapsulates everything about temperature as a domain concept. It's **immutable**, it enforces **domain rules** (can't go below absolute zero), and it provides **domain operations** (threshold comparisons). This isn't just a number—it's a first-class domain concept.
+
+Now let's build an Aggregate for environmental readings:
+
+```typescript
+// environmental-monitoring/domain/aggregates/EnvironmentalSnapshot.ts
+export class EnvironmentalSnapshot {
+  private constructor(
+    private readonly id: SnapshotId,
+    private readonly timestamp: Date,
+    private readonly temperature: Temperature,
+    private readonly humidity: Humidity,
+    private readonly soilMoisture: SoilMoisture,
+    private readonly conditions: EnvironmentalConditions
+  ) {}
+  
+  static create(params: {
+    timestamp: Date;
+    temperature: Temperature;
+    humidity: Humidity;
+    soilMoisture: SoilMoisture;
+  }): EnvironmentalSnapshot {
+    const conditions = this.assessConditions(
+      params.temperature,
+      params.humidity,
+      params.soilMoisture
+    );
+    
+    return new EnvironmentalSnapshot(
+      SnapshotId.generate(),
+      params.timestamp,
+      params.temperature,
+      params.humidity,
+      params.soilMoisture,
+      conditions
+    );
+  }
+  
+  private static assessConditions(
+    temp: Temperature,
+    humidity: Humidity,
+    moisture: SoilMoisture
+  ): EnvironmentalConditions {
+    // Domain logic for assessing overall conditions
+    if (temp.toCelsius() > 35 && humidity.toPercentage() > 80) {
+      return EnvironmentalConditions.Critical;
+    }
+    
+    if (moisture.isBelow(SoilMoisture.MINIMUM_THRESHOLD)) {
+      return EnvironmentalConditions.NeedsAttention;
+    }
+    
+    return EnvironmentalConditions.Optimal;
+  }
+  
+  getTemperature(): Temperature {
+    return this.temperature;
+  }
+  
+  getConditions(): EnvironmentalConditions {
+    return this.conditions;
+  }
+  
+  isStale(now: Date): boolean {
+    const ageMinutes = (now.getTime() - this.timestamp.getTime()) / 60000;
+    return ageMinutes > 5; // Snapshots older than 5 minutes are stale
+  }
+}
+```
+
+**This Aggregate encapsulates domain invariants.** The `assessConditions` method contains business rules that would otherwise scatter across components. The `isStale` method defines what "fresh data" means in this domain. These rules live in one place, making them easy to test and maintain.
+
+### Context Boundaries and Communication
+
+Bounded Contexts need to communicate, but they **must not share domain models directly.** Here's the wrong way:
+
+```typescript
+// ❌ Leaking domain models between contexts
+// alerts/application/AlertService.ts
+import { EnvironmentalSnapshot } from '@/environmental-monitoring/domain';
+
+class AlertService {
+  checkThresholds(snapshot: EnvironmentalSnapshot): void {
+    // Alerts context now depends on Environmental Monitoring's domain model
+    if (snapshot.getTemperature().toCelsius() > this.threshold) {
+      this.triggerAlert();
+    }
+  }
+}
+```
+
+**This creates tight coupling between contexts.** If Environmental Monitoring changes how `EnvironmentalSnapshot` works, the Alerts context breaks. Instead, use **Domain Events** for communication:
+
+```typescript
+// environmental-monitoring/domain/events/EnvironmentalSnapshotRecorded.ts
+export class EnvironmentalSnapshotRecorded {
+  constructor(
+    public readonly snapshotId: string,
+    public readonly timestamp: Date,
+    public readonly temperatureCelsius: number,
+    public readonly humidityPercentage: number,
+    public readonly conditions: string
+  ) {}
+}
+
+// environmental-monitoring/application/EnvironmentalMonitoringService.ts
+export class EnvironmentalMonitoringService {
+  constructor(
+    private readonly eventBus: EventBus
+  ) {}
+  
+  recordSnapshot(snapshot: EnvironmentalSnapshot): void {
+    // Store the snapshot...
+    
+    // Publish event with primitive data
+    this.eventBus.publish(
+      new EnvironmentalSnapshotRecorded(
+        snapshot.getId().toString(),
+        snapshot.getTimestamp(),
+        snapshot.getTemperature().toCelsius(),
+        snapshot.getHumidity().toPercentage(),
+        snapshot.getConditions().toString()
+      )
+    );
+  }
+}
+
+// alerts/application/AlertService.ts
+export class AlertService {
+  constructor(eventBus: EventBus) {
+    eventBus.subscribe(EnvironmentalSnapshotRecorded, (event) => {
+      this.handleEnvironmentalData(event);
+    });
+  }
+  
+  private handleEnvironmentalData(event: EnvironmentalSnapshotRecorded): void {
+    // Alerts context works with primitive data, not domain objects
+    if (event.temperatureCelsius > this.threshold) {
+      this.triggerAlert();
+    }
+  }
+}
+```
+
+**This is loose coupling done right.** The Alerts context subscribes to events but doesn't depend on Environmental Monitoring's domain models. Each context remains independent and can evolve separately.
+
+## 15.3 Aggregates and Consistency Boundaries
+
+An **Aggregate** is a cluster of domain objects treated as a single unit for data changes [REFERENCE: Eric Evans, DDD]. The key insight: **aggregates define consistency boundaries—the scope within which invariants must be maintained.**
+
+In frontend applications, this concept is powerful but often misunderstood. Let's clarify with GreenWatch examples.
+
+### Identifying Aggregates
+
+Consider our greenhouse configuration:
+
+```typescript
+// ❌ No clear aggregate boundary
+interface Greenhouse {
+  id: string;
+  name: string;
+  zones: Zone[];
+}
+
+interface Zone {
+  id: string;
+  name: string;
+  sensors: Sensor[];
+  targetConditions: TargetConditions;
+}
+
+interface Sensor {
+  id: string;
+  type: string;
+  location: string;
+}
+```
+
+**What's the consistency boundary here?** Can we modify a sensor without considering its zone? Can we delete a zone without handling its sensors? The structure doesn't tell us.
+
+Now consider this:
+
+```typescript
+// ✅ Clear aggregate with enforced invariants
+export class Greenhouse {
+  private constructor(
+    private readonly id: GreenhouseId,
+    private name: string,
+    private zones: Map<ZoneId, Zone>
+  ) {}
+  
+  static create(name: string): Greenhouse {
+    return new Greenhouse(
+      GreenhouseId.generate(),
+      name,
+      new Map()
+    );
+  }
+  
+  addZone(name: string, targetConditions: TargetConditions): Result<ZoneId, DomainError> {
+    // Enforce business rule: maximum 10 zones per greenhouse
+    if (this.zones.size >= 10) {
+      return Result.failure(
+        new DomainError('Cannot exceed maximum of 10 zones per greenhouse')
+      );
+    }
+    
+    // Enforce uniqueness
+    const existingNames = Array.from(this.zones.values())
+      .map(z => z.getName().toLowerCase());
+    
+    if (existingNames.includes(name.toLowerCase())) {
+      return Result.failure(
+        new DomainError(`Zone named '${name}' already exists`)
+      );
+    }
+    
+    const zone = Zone.create(name, targetConditions);
+    this.zones.set(zone.getId(), zone);
+    
+    return Result.success(zone.getId());
+  }
+  
+  assignSensorToZone(
+    zoneId: ZoneId,
+    sensorId: SensorId,
+    sensorType: SensorType
+  ): Result<void, DomainError> {
+    const zone = this.zones.get(zoneId);
+    if (!zone) {
+      return Result.failure(new DomainError('Zone not found'));
+    }
+    
+    // Enforce business rule: each zone needs exactly one temperature sensor
+    if (sensorType === SensorType.Temperature) {
+      const hasTemperatureSensor = Array.from(this.zones.values())
+        .some(z => z.hasTemperatureSensor() && z.getId().equals(zoneId));
+      
+      if (hasTemperatureSensor) {
+        return Result.failure(
+          new DomainError('Zone already has a temperature sensor')
+        );
+      }
+    }
+    
+    return zone.assignSensor(sensorId, sensorType);
+  }
+  
+  removeZone(zoneId: ZoneId): Result<void, DomainError> {
+    const zone = this.zones.get(zoneId);
+    if (!zone) {
+      return Result.failure(new DomainError('Zone not found'));
+    }
+    
+    // Enforce business rule: cannot remove zone with active sensors
+    if (zone.hasActiveSensors()) {
+      return Result.failure(
+        new DomainError('Cannot remove zone with active sensors. Unassign sensors first.')
+      );
+    }
+    
+    this.zones.delete(zoneId);
+    return Result.success(undefined);
+  }
+  
+  getZones(): ReadonlyArray<Zone> {
+    return Array.from(this.zones.values());
+  }
+}
+```
+
+**This aggregate enforces consistency.** You can't create invalid states—no zone with duplicate names, no more than 10 zones, no removing zones with active sensors. All modifications go through the aggregate root (`Greenhouse`), which maintains invariants.
+
+### Aggregate Design Principles
+
+**Keep aggregates small.** The smaller the aggregate, the less chance of concurrency conflicts and the easier it is to reason about. Here's a common mistake:
+
+```typescript
+// ❌ Aggregate too large
+class GreenhouseSystem {
+  constructor(
+    private greenhouses: Map<GreenhouseId, Greenhouse>,
+    private allSensors: Map<SensorId, Sensor>,
+    private allUsers: Map<UserId, User>,
+    private allAlerts: Map<AlertId, Alert>
+  ) {}
+  
+  // Managing too much - consistency boundary is too broad
+}
+```
+
+This aggregate tries to maintain consistency across **the entire system.** That's not practical. Instead, break it down:
+
+```typescript
+// ✅ Smaller, focused aggregates
+class Greenhouse { /* manages zones and their sensors */ }
+class UserAccount { /* manages user profile and preferences */ }
+class AlertConfiguration { /* manages alert rules for a specific greenhouse */ }
+```
+
+**Each aggregate has a single root.** External code must access the aggregate only through its root. This enforces the consistency boundary:
+
+```typescript
+// ❌ Bypassing the aggregate root
+const zone = greenhouse.getZones()[0];
+zone.assignSensor(sensorId, SensorType.Temperature); // Breaks invariants!
+
+// ✅ Going through the root
+greenhouse.assignSensorToZone(zoneId, sensorId, SensorType.Temperature);
+```
+
+### Aggregates in ViewModels
+
+How do aggregates relate to ViewModels? **ViewModels coordinate aggregates but don't replace them.** Here's the pattern:
+
+```typescript
+// environmental-monitoring/application/viewmodels/GreenhouseConfigViewModel.ts
+export class GreenhouseConfigViewModel {
+  private readonly greenhouseSubject = new BehaviorSubject<Greenhouse | null>(null);
+  private readonly errorSubject = new Subject<string>();
+  
+  readonly greenhouse$ = this.greenhouseSubject.asObservable();
+  readonly error$ = this.errorSubject.asObservable();
+  
+  // Computed state derived from aggregate
+  readonly zonesCount$ = this.greenhouse$.pipe(
+    map(gh => gh?.getZones().length ?? 0)
+  );
+  
+  readonly canAddZone$ = this.greenhouse$.pipe(
+    map(gh => gh?.getZones().length < 10)
+  );
+  
+  constructor(
+    private readonly repository: GreenhouseRepository
+  ) {}
+  
+  async load(greenhouseId: GreenhouseId): Promise<void> {
+    const greenhouse = await this.repository.findById(greenhouseId);
+    this.greenhouseSubject.next(greenhouse);
+  }
+  
+  async addZone(name: string, conditions: TargetConditions): Promise<void> {
+    const greenhouse = this.greenhouseSubject.value;
+    if (!greenhouse) return;
+    
+    // Let the aggregate enforce business rules
+    const result = greenhouse.addZone(name, conditions);
+    
+    if (result.isFailure()) {
+      this.errorSubject.next(result.error.message);
+      return;
+    }
+    
+    // Persist and update state
+    await this.repository.save(greenhouse);
+    this.greenhouseSubject.next(greenhouse);
+  }
+  
+  async removeZone(zoneId: ZoneId): Promise<void> {
+    const greenhouse = this.greenhouseSubject.value;
+    if (!greenhouse) return;
+    
+    const result = greenhouse.removeZone(zoneId);
+    
+    if (result.isFailure()) {
+      this.errorSubject.next(result.error.message);
+      return;
+    }
+    
+    await this.repository.save(greenhouse);
+    this.greenhouseSubject.next(greenhouse);
+  }
+}
+```
+
+**The ViewModel delegates to the aggregate** for business logic, then handles the application concerns—state management, persistence, error handling. This separation is crucial. The `Greenhouse` aggregate doesn't know about RxJS or repositories; it just enforces domain rules. The ViewModel handles everything else.
+
+## 15.4 Value Objects and Domain Primitives
+
+Let's talk about a pattern that **radically improves code quality with minimal effort**: replacing primitive types with Value Objects.
+
+Consider this code:
+
+```typescript
+// ❌ Primitive obsession
+function checkTemperature(temperature: number, unit: string): boolean {
+  if (unit === 'F') {
+    temperature = (temperature - 32) * 5 / 9;
+  }
+  return temperature > 30;
+}
+
+// What happens here?
+checkTemperature(85, 'f'); // Bug: 'f' !== 'F'
+checkTemperature(-300, 'C'); // Bug: Invalid temperature accepted
+```
+
+**Every function that handles temperature must validate units and ranges.** This validation logic duplicates across your codebase, bugs multiply, and maintenance becomes a nightmare.
+
+Now with Value Objects:
+
+```typescript
+// ✅ Value Object encapsulates domain concept
+export class Temperature {
+  private constructor(private readonly celsius: number) {
+    if (celsius < -273.15 || celsius > 100) {
+      throw new DomainError('Invalid temperature range');
+    }
+  }
+  
+  static fromCelsius(value: number): Temperature {
+    return new Temperature(value);
+  }
+  
+  static fromFahrenheit(value: number): Temperature {
+    return new Temperature((value - 32) * 5 / 9);
+  }
+  
+  isAboveThreshold(threshold: number): boolean {
+    return this.celsius > threshold;
+  }
+  
+  equals(other: Temperature): boolean {
+    return this.celsius === other.celsius;
+  }
+}
+
+// Usage is now type-safe and self-documenting
+function checkTemperature(temp: Temperature): boolean {
+  return temp.isAboveThreshold(30);
+}
+
+checkTemperature(Temperature.fromFahrenheit(85)); // ✅ Explicit and correct
+```
+
+**The benefits are immediate:**
+- **Type safety**: Can't pass a string where Temperature is expected
+- **Validation happens once**: In the constructor, not scattered everywhere
+- **Self-documenting**: `Temperature.fromFahrenheit()` is clearer than `convertTemp(85, 'F')`
+- **Domain operations**: `isAboveThreshold()` expresses business logic clearly
+
+### When to Create Value Objects
+
+Create a Value Object when a primitive type has:
+
+1. **Validation rules**: Email addresses, sensor IDs, temperature ranges
+2. **Domain operations**: Comparing temperatures, calculating distances, formatting currencies
+3. **Multiple representations**: Celsius/Fahrenheit, meters/feet, UTC/local time
+4. **Invariants that must be maintained**: Positive-only quantities, bounded ranges
+
+Here's a more complex example from GreenWatch:
+
+```typescript
+// environmental-monitoring/domain/value-objects/SensorReading.ts
+export class SensorReading {
+  private constructor(
+    private readonly value: number,
+    private readonly unit: MeasurementUnit,
+    private readonly timestamp: Date,
+    private readonly quality: ReadingQuality
+  ) {}
+  
+  static create(
+    value: number,
+    unit: MeasurementUnit,
+    timestamp: Date
+  ): Result<SensorReading, DomainError> {
+    // Validate based on measurement type
+    const validation = this.validateValue(value, unit);
+    if (validation.isFailure()) {
+      return Result.failure(validation.error);
+    }
+    
+    // Assess quality based on recency
+    const quality = this.assessQuality(timestamp);
+    
+    return Result.success(
+      new SensorReading(value, unit, timestamp, quality)
+    );
+  }
+  
+  private static validateValue(
+    value: number,
+    unit: MeasurementUnit
+  ): Result<void, DomainError> {
+    switch (unit) {
+      case MeasurementUnit.Celsius:
+        if (value < -50 || value > 60) {
+          return Result.failure(
+            new DomainError('Temperature reading out of valid range')
+          );
+        }
+        break;
+      
+      case MeasurementUnit.Percentage:
+        if (value < 0 || value > 100) {
+          return Result.failure(
+            new DomainError('Percentage must be between 0 and 100')
+          );
+        }
+        break;
+    }
+    
+    return Result.success(undefined);
+  }
+  
+  private static assessQuality(timestamp: Date): ReadingQuality {
+    const ageSeconds = (Date.now() - timestamp.getTime()) / 1000;
+    
+    if (ageSeconds < 60) return ReadingQuality.Excellent;
+    if (ageSeconds < 300) return ReadingQuality.Good;
+    if (ageSeconds < 600) return ReadingQuality.Fair;
+    return ReadingQuality.Poor;
+  }
+  
+  getValue(): number {
+    return this.value;
+  }
+  
+  getQuality(): ReadingQuality {
+    return this.quality;
+  }
+  
+  isReliable(): boolean {
+    return this.quality === ReadingQuality.Excellent || 
+           this.quality === ReadingQuality.Good;
+  }
+  
+  isStale(): boolean {
+    const ageSeconds = (Date.now() - this.timestamp.getTime()) / 1000;
+    return ageSeconds > 600; // 10 minutes
+  }
+}
+```
+
+**This Value Object encapsulates significant domain knowledge.** It knows what constitutes valid readings for different measurement types, how to assess data quality, and what "stale" means in this domain. Without it, this logic would scatter across components and services.
+
+### Identity Value Objects
+
+Some Value Objects represent identity—they're how we identify entities:
+
+```typescript
+// environmental-monitoring/domain/value-objects/SensorId.ts
+export class SensorId {
+  private constructor(private readonly value: string) {
+    if (!this.isValidFormat(value)) {
+      throw new DomainError('Invalid sensor ID format');
+    }
+  }
+  
+  static fromString(value: string): SensorId {
+    return new SensorId(value);
+  }
+  
+  static generate(): SensorId {
+    return new SensorId(`SENSOR-${crypto.randomUUID()}`);
+  }
+  
+  private isValidFormat(value: string): boolean {
+    return /^SENSOR-[a-f0-9-]{36}$/.test(value);
+  }
+  
+  toString(): string {
+    return this.value;
+  }
+  
+  equals(other: SensorId): boolean {
+    return this.value === other.value;
+  }
+}
+```
+
+**Why wrap a string in a class?** Type safety. With plain strings, this compiles fine but is wrong:
+
+```typescript
+// ❌ With primitives
+function getSensorData(sensorId: string): void { /* ... */ }
+const userId = "USER-123";
+getSensorData(userId); // Compiles but is completely wrong!
+```
+
+With Value Objects:
+
+```typescript
+// ✅ With typed IDs
+function getSensorData(sensorId: SensorId): void { /* ... */ }
+const userId = UserId.fromString("USER-123");
+getSensorData(userId); // Compile error! Type safety saves us.
+```
+
+### Value Objects in Practice
+
+Here's how Value Objects integrate with the rest of your domain layer:
+
+```typescript
+// environmental-monitoring/domain/aggregates/EnvironmentalZone.ts
+export class EnvironmentalZone {
+  private constructor(
+    private readonly id: ZoneId,
+    private name: ZoneName,
+    private readings: Map<SensorId, SensorReading>,
+    private targetConditions: TargetConditions
+  ) {}
+  
+  recordReading(
+    sensorId: SensorId,
+    reading: SensorReading
+  ): Result<void, DomainError> {
+    // Only accept reliable readings
+    if (!reading.isReliable()) {
+      return Result.failure(
+        new DomainError('Cannot record unreliable sensor reading')
+      );
+    }
+    
+    this.readings.set(sensorId, reading);
+    return Result.success(undefined);
+  }
+  
+  getCurrentConditions(): EnvironmentalConditions {
+    const temperature = this.getLatestReading(SensorType.Temperature);
+    const humidity = this.getLatestReading(SensorType.Humidity);
+    
+    // Compare actual readings with target conditions
+    if (temperature && humidity) {
+      return EnvironmentalConditions.assess(
+        temperature,
+        humidity,
+        this.targetConditions
+      );
+    }
+    
+    return EnvironmentalConditions.Unknown;
+  }
+  
+  private getLatestReading(type: SensorType): SensorReading | null {
+    // Find most recent non-stale reading of given type
+    const readings = Array.from(this.readings.values())
+      .filter(r => r.getSensorType() === type)
+      .filter(r => !r.isStale());
+    
+    return readings.length > 0 ? readings[0] : null;
+  }
+}
+```
+
+**Notice how Value Objects compose.** The `EnvironmentalZone` aggregate works with `SensorId`, `SensorReading`, `TargetConditions`, and `EnvironmentalConditions` Value Objects. Each encapsulates its own domain logic, and the aggregate coordinates them to enforce higher-level invariants.
+
+## 15.5 Repositories and Data Access Boundaries
+
+A **Repository** mediates between the domain and data mapping layers, acting like an in-memory collection of aggregates [REFERENCE: Martin Fowler, Patterns of Enterprise Application Architecture]. **In frontend applications, repositories abstract away data sources**—whether that's REST APIs, GraphQL, local storage, or IndexedDB.
+
+### The Repository Pattern
+
+Here's what **not** to do:
+
+```typescript
+// ❌ Direct API calls from ViewModel
+export class GreenhouseListViewModel {
+  async loadGreenhouses(): Promise<void> {
+    try {
+      const response = await fetch('/api/greenhouses');
+      const json = await response.json();
+      const greenhouses = json.map(dto => ({
+        id: dto.id,
+        name: dto.name,
+        zones: dto.zones.map(z => ({
+          id: z.id,
+          name: z.name
+        }))
+      }));
+      this.greenhousesSubject.next(greenhouses);
+    } catch (error) {
+      this.errorSubject.next('Failed to load');
+    }
+  }
+}
+```
+
+**ThisViewModel is now coupled to:**
+- HTTP as the transport mechanism
+- The specific JSON structure from the API
+- The `/api/greenhouses` endpoint
+- Error handling for network requests
+
+What happens when you need to add caching? Or switch to GraphQL? Or test without hitting the API? You're forced to modify the ViewModel.
+
+Here's the repository pattern:
+
+```typescript
+// environmental-monitoring/domain/repositories/GreenhouseRepository.ts
+export interface GreenhouseRepository {
+  findById(id: GreenhouseId): Promise<Greenhouse | null>;
+  findAll(): Promise<Greenhouse[]>;
+  save(greenhouse: Greenhouse): Promise<void>;
+  delete(id: GreenhouseId): Promise<void>;
+}
+
+// environmental-monitoring/infrastructure/repositories/HttpGreenhouseRepository.ts
+export class HttpGreenhouseRepository implements GreenhouseRepository {
+  constructor(
+    private readonly httpClient: HttpClient,
+    private readonly mapper: GreenhouseMapper
+  ) {}
+  
+  async findById(id: GreenhouseId): Promise<Greenhouse | null> {
+    const response = await this.httpClient.get<GreenhouseDto>(
+      `/api/greenhouses/${id.toString()}`
+    );
+    
+    if (!response.data) {
+      return null;
+    }
+    
+    return this.mapper.toDomain(response.data);
+  }
+  
+  async findAll(): Promise<Greenhouse[]> {
+    const response = await this.httpClient.get<GreenhouseDto[]>(
+      '/api/greenhouses'
+    );
+    
+    return response.data.map(dto => this.mapper.toDomain(dto));
+  }
+  
+  async save(greenhouse: Greenhouse): Promise<void> {
+    const dto = this.mapper.toDto(greenhouse);
+    
+    await this.httpClient.put(
+      `/api/greenhouses/${greenhouse.getId().toString()}`,
+      dto
+    );
+  }
+  
+  async delete(id: GreenhouseId): Promise<void> {
+    await this.httpClient.delete(`/api/greenhouses/${id.toString()}`);
+  }
+}
+```
+
+**Now the ViewModel depends only on the repository interface:**
+
+```typescript
+export class GreenhouseListViewModel {
+  constructor(
+    private readonly repository: GreenhouseRepository
+  ) {}
+  
+  async loadGreenhouses(): Promise<void> {
+    try {
+      const greenhouses = await this.repository.findAll();
+      this.greenhousesSubject.next(greenhouses);
+    } catch (error) {
+      this.errorSubject.next('Failed to load greenhouses');
+    }
+  }
+}
+```
+
+**The benefits are substantial:**
+
+**Testing becomes trivial.** Create an in-memory fake repository:
+
+```typescript
+class FakeGreenhouseRepository implements GreenhouseRepository {
+  private greenhouses = new Map<string, Greenhouse>();
+  
+  async findAll(): Promise<Greenhouse[]> {
+    return Array.from(this.greenhouses.values());
+  }
+  
+  async save(greenhouse: Greenhouse): Promise<void> {
+    this.greenhouses.set(greenhouse.getId().toString(), greenhouse);
+  }
+  
+  // ... other methods
+}
+
+// Test runs in milliseconds, no HTTP calls
+describe('GreenhouseListViewModel', () => {
+  it('loads greenhouses', async () => {
+    const repository = new FakeGreenhouseRepository();
+    const viewModel = new GreenhouseListViewModel(repository);
+    
+    await viewModel.loadGreenhouses();
+    
+    // Assert on results
+  });
+});
+```
+
+**Switching data sources is straightforward.** Need offline support? Create a `LocalStorageGreenhouseRepository`. Want to add caching? Create a `CachedGreenhouseRepository` that decorates the HTTP repository:
+
+```typescript
+export class CachedGreenhouseRepository implements GreenhouseRepository {
+  private cache = new Map<string, { data: Greenhouse; timestamp: number }>();
+  private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+  
+  constructor(
+    private readonly innerRepository: GreenhouseRepository
+  ) {}
+  
+  async findById(id: GreenhouseId): Promise<Greenhouse | null> {
+    const cached = this.cache.get(id.toString());
+    
+    if (cached && this.isFresh(cached.timestamp)) {
+      return cached.data;
+    }
+    
+    const greenhouse = await this.innerRepository.findById(id);
+    
+    if (greenhouse) {
+      this.cache.set(id.toString(), {
+        data: greenhouse,
+        timestamp: Date.now()
+      });
+    }
+    
+    return greenhouse;
+  }
+  
+  private isFresh(timestamp: number): boolean {
+    return (Date.now() - timestamp) < this.CACHE_DURATION_MS;
+  }
+  
+  // ... delegate other methods to innerRepository
+}
+```
+
+**No changes to the ViewModel.** The repository interface stays the same; we've just added caching behavior by wrapping the HTTP implementation.
+
+### Mapping Between Domain and Data Transfer Objects
+
+Repositories need **mappers** to convert between domain objects and DTOs (Data Transfer Objects). This separation is crucial:
+
+```typescript
+// environmental-monitoring/infrastructure/mappers/GreenhouseMapper.ts
+export class GreenhouseMapper {
+  toDomain(dto: GreenhouseDto): Greenhouse {
+    const greenhouse = Greenhouse.create(dto.name);
+    
+    // Reconstruct zones
+    dto.zones.forEach(zoneDto => {
+      const targetConditions = TargetConditions.create({
+        temperature: Temperature.fromCelsius(zoneDto.targetTemp),
+        humidity: Humidity.fromPercentage(zoneDto.targetHumidity),
+        soilMoisture: SoilMoisture.fromPercentage(zoneDto.targetMoisture)
+      });
+      
+      greenhouse.addZone(zoneDto.name, targetConditions);
+      
+      // Assign sensors to zone
+      zoneDto.sensorIds.forEach(sensorId => {
+        greenhouse.assignSensorToZone(
+          ZoneId.fromString(zoneDto.id),
+          SensorId.fromString(sensorId),
+          this.mapSensorType(sensorId) // Infer type from ID format
+        );
+      });
+    });
+    
+    return greenhouse;
+  }
+  
+  toDto(greenhouse: Greenhouse): GreenhouseDto {
+    return {
+      id: greenhouse.getId().toString(),
+      name: greenhouse.getName(),
+      zones: greenhouse.getZones().map(zone => ({
+        id: zone.getId().toString(),
+        name: zone.getName(),
+        targetTemp: zone.getTargetConditions().getTemperature().toCelsius(),
+        targetHumidity: zone.getTargetConditions().getHumidity().toPercentage(),
+        targetMoisture: zone.getTargetConditions().getSoilMoisture().toPercentage(),
+        sensorIds: zone.getSensors().map(s => s.toString())
+      }))
+    };
+  }
+}
+```
+
+**The mapper handles impedance mismatch** between your domain model and the API's data structure. Your domain model uses Value Objects, enforces invariants, and has rich behavior. The DTO is just data—strings, numbers, arrays.
+
+### Repository Patterns for Real-Time Data
+
+GreenWatch deals with real-time sensor data. How do repositories handle streams? Here's one approach:
+
+```typescript
+// environmental-monitoring/domain/repositories/SensorDataRepository.ts
+export interface SensorDataRepository {
+  getLatestReading(sensorId: SensorId): Promise<SensorReading | null>;
+  getHistoricalReadings(
+    sensorId: SensorId,
+    range: TimeRange
+  ): Promise<SensorReading[]>;
+  subscribeToSensor(sensorId: SensorId): Observable<SensorReading>;
+}
+
+// environmental-monitoring/infrastructure/repositories/WebSocketSensorDataRepository.ts
+export class WebSocketSensorDataRepository implements SensorDataRepository {
+  private connections = new Map<string, Observable<SensorReading>>();
+  
+  constructor(
+    private readonly wsClient: WebSocketClient,
+    private readonly mapper: SensorReadingMapper
+  ) {}
+  
+  subscribeToSensor(sensorId: SensorId): Observable<SensorReading> {
+    const key = sensorId.toString();
+    
+    // Reuse existing connection
+    if (this.connections.has(key)) {
+      return this.connections.get(key)!;
+    }
+    
+    // Create new WebSocket connection
+    const stream$ = this.wsClient
+      .connect(`/sensors/${key}/stream`)
+      .pipe(
+        map(message => this.mapper.toDomain(message)),
+        // Handle errors gracefully
+        catchError(error => {
+          console.error('Sensor stream error:', error);
+          return EMPTY;
+        }),
+        // Clean up on disconnect
+        finalize(() => {
+          this.connections.delete(key);
+        }),
+        // Share connection among subscribers
+        shareReplay({ bufferSize: 1, refCount: true })
+      );
+    
+    this.connections.set(key, stream$);
+    return stream$;
+  }
+  
+  async getLatestReading(sensorId: SensorId): Promise<SensorReading | null> {
+    const response = await this.httpClient.get<SensorReadingDto>(
+      `/api/sensors/${sensorId.toString()}/latest`
+    );
+    
+    return response.data 
+      ? this.mapper.toDomain(response.data)
+      : null;
+  }
+  
+  async getHistoricalReadings(
+    sensorId: SensorId,
+    range: TimeRange
+  ): Promise<SensorReading[]> {
+    const response = await this.httpClient.get<SensorReadingDto[]>(
+      `/api/sensors/${sensorId.toString()}/history`,
+      {
+        params: {
+          start: range.start.toISOString(),
+          end: range.end.toISOString()
+        }
+      }
+    );
+    
+    return response.data.map(dto => this.mapper.toDomain(dto));
+  }
+}
+```
+
+**The repository abstracts WebSocket complexity.** ViewModels just subscribe to observables—they don't know about WebSocket connections, reconnection logic, or message parsing.
+
+## 15.6 Organizing Code by Domain
+
+We've covered domain concepts—now let's talk about **physical organization.** How do you structure files and folders to reflect your domain?
+
+### The Traditional Approach (Don't Do This)
+
+Here's how most React applications are organized:
+
+```typescript
+src/
+  components/
+    TemperatureDisplay.tsx
+    SensorList.tsx
+    GreenhouseCard.tsx
+    AlertBanner.tsx
+    UserProfile.tsx
+  hooks/
+    useSensorData.ts
+    useGreenhouseConfig.ts
+    useAlerts.ts
+  services/
+    api.ts
+    websocket.ts
+  utils/
+    formatters.ts
+    validators.ts
+  types/
+    sensor.ts
+    greenhouse.ts
+```
+
+**This structure optimizes for technology, not domain understanding.** You can see React patterns (components, hooks) but **you can't see what the application does.** Where's the business logic? Scattered across components and hooks. Where are the domain boundaries? Nowhere to be found.
+
+### Domain-Centric Organization
+
+Here's the alternative—organizing by bounded context:
+
+```typescript
+src/
+  environmental-monitoring/
+    domain/
+      models/
+        EnvironmentalSnapshot.ts
+        EnvironmentalZone.ts
+      value-objects/
+        Temperature.ts
+        Humidity.ts
+        SoilMoisture.ts
+        SensorReading.ts
+      events/
+        EnvironmentalSnapshotRecorded.ts
+        ThresholdExceeded.ts
+      repositories/
+        SensorDataRepository.ts
+        EnvironmentalZoneRepository.ts
+    application/
+      viewmodels/
+        EnvironmentalDashboardViewModel.ts
+        ZoneMonitoringViewModel.ts
+      services/
+        EnvironmentalMonitoringService.ts
+    infrastructure/
+      repositories/
+        HttpSensorDataRepository.ts
+        WebSocketSensorDataRepository.ts
+      mappers/
+        SensorReadingMapper.ts
+    presentation/
+      react/
+        EnvironmentalDashboard.tsx
+        ZoneMonitoringPanel.tsx
+  
+  device-management/
+    domain/
+      models/
+        Device.ts
+        Sensor.ts
+      value-objects/
+        SensorId.ts
+        ConnectivityStatus.ts
+      repositories/
+        DeviceRepository.ts
+    application/
+      viewmodels/
+        DeviceListViewModel.ts
+        DeviceConfigViewModel.ts
+    infrastructure/
+      repositories/
+        HttpDeviceRepository.ts
+    presentation/
+      react/
+        DeviceList.tsx
+        DeviceConfig.tsx
+  
+  alerts/
+    domain/
+      models/
+        Alert.ts
+        AlertRule.ts
+      value-objects/
+        AlertThreshold.ts
+      events/
+        AlertTriggered.ts
+      repositories/
+        AlertRepository.ts
+    application/
+      viewmodels/
+        AlertListViewModel.ts
+        AlertConfigViewModel.ts
+      services/
+        AlertService.ts
+    infrastructure/
+      repositories/
+        HttpAlertRepository.ts
+    presentation/
+      react/
+        AlertList.tsx
+        AlertConfig.tsx
+  
+  shared/
+    domain/
+      Result.ts
+      DomainError.ts
+      DomainEvent.ts
+    infrastructure/
+      HttpClient.ts
+      EventBus.ts
+```
+
+**This structure reveals the business.** Even without reading code, you know this application handles environmental monitoring, device management, and alerts. Each bounded context is self-contained with clear layers:
+
+- **domain/**: Core business logic, completely framework-agnostic
+- **application/**: Orchestration layer with ViewModels and services
+- **infrastructure/**: Technical implementation details (HTTP, WebSocket, mappers)
+- **presentation/**: Framework-specific UI code
+
+### Layer Dependencies
+
+**Dependencies flow inward.** The domain layer has zero dependencies on anything else. Application layer depends only on domain. Infrastructure and presentation depend on everything:
+
+```
+Presentation ──→ Application ──→ Domain
+     ↓              ↑
+Infrastructure ────┘
+```
+
+This is **Dependency Inversion** in action. The domain doesn't know about HTTP clients, React components, or RxJS observables. It just defines interfaces (like repositories), and outer layers provide implementations.
+
+Let's see how this plays out:
+
+```typescript
+// ✅ Domain layer: pure TypeScript, no framework dependencies
+// environmental-monitoring/domain/models/EnvironmentalZone.ts
+export class EnvironmentalZone {
+  recordReading(sensorId: SensorId, reading: SensorReading): Result<void, DomainError> {
+    // Pure business logic
+  }
+}
+
+// ✅ Application layer: depends on domain, uses RxJS for state
+// environmental-monitoring/application/viewmodels/ZoneMonitoringViewModel.ts
+export class ZoneMonitoringViewModel {
+  constructor(
+    private readonly repository: EnvironmentalZoneRepository // Domain interface
+  ) {}
+}
+
+// ✅ Infrastructure layer: implements domain interfaces
+// environmental-monitoring/infrastructure/repositories/HttpEnvironmentalZoneRepository.ts
+export class HttpEnvironmentalZoneRepository implements EnvironmentalZoneRepository {
+  constructor(private readonly httpClient: HttpClient) {}
+}
+
+// ✅ Presentation layer: depends on application (ViewModels)
+// environmental-monitoring/presentation/react/ZoneMonitoringPanel.tsx
+export function ZoneMonitoringPanel({ 
+  viewModel 
+}: { viewModel: ZoneMonitoringViewModel }) {
+  // React component uses ViewModel
+}
+```
+
+**Each layer has a clear purpose** and depends only on inner layers. The domain can be tested in complete isolation. The application layer can be tested with fake repositories. Only the outermost layers deal with frameworks and external dependencies.
+
+### Shared Kernel
+
+The `shared/` directory contains code used across multiple bounded contexts. Keep this **minimal.** Shared code creates coupling, so include only:
+
+- **Base types**: `Result`, `DomainError`, base classes
+- **Infrastructure utilities**: HTTP client, event bus
+- **Common Value Objects**: `Money`, `EmailAddress` (if genuinely shared)
+
+**Don't put domain logic in shared.** If something applies to Environmental Monitoring but not Device Management, it belongs in the Environmental Monitoring context, not shared.
+
+## 15.7 Practical Guidelines for Frontend DDD
+
+Let's consolidate what we've covered into actionable guidelines you can apply immediately.
+
+### Start with the Domain, Not the UI
+
+When building a new feature, **resist the urge to start with components.** Instead:
+
+1. **Identify the domain concepts**: What entities, value objects, and aggregates are involved?
+2. **Define domain operations**: What business rules and invariants must be enforced?
+3. **Model the domain in code**: Create classes with behavior, not just data structures
+4. **Then** build the application layer (ViewModels, services)
+5. **Finally** create the UI components
+
+This order ensures your domain logic stays framework-agnostic and your business rules live in one place.
+
+### Use Ubiquitous Language Consistently
+
+The terms in your code should **exactly match** the terms domain experts use. If greenhouse operators talk about "zones," your code should have a `Zone` class, not `GreenhouseSection` or `Area`. If they say "sensor readings," don't call them "measurements" or "data points."
+
+This consistency extends to:
+- Class and interface names
+- Method names
+- Variable names
+- Comments and documentation
+- Event names
+
+When the code speaks the same language as the business, communication between developers and domain experts becomes effortless.
+
+### Keep Bounded Contexts Loosely Coupled
+
+**Contexts should communicate through domain events, not direct dependencies.** If the Alerts context needs to know about environmental conditions, it subscribes to `EnvironmentalSnapshotRecorded` events—it doesn't import the `EnvironmentalSnapshot` aggregate.
+
+This loose coupling allows contexts to evolve independently. Environmental Monitoring can change how it models snapshots without breaking Alerts.
+
+### Test Domain Logic Thoroughly
+
+Your domain layer—aggregates, value objects, domain services—should have **comprehensive unit tests.** These tests run in milliseconds because they have no dependencies on frameworks, databases, or HTTP clients.
+
+```typescript
+describe('EnvironmentalZone', () => {
+  describe('recordReading', () => {
+    it('accepts reliable readings', () => {
+      const zone = createTestZone();
+      const reading = SensorReading.create(
+        22.5,
+        MeasurementUnit.Celsius,
+        new Date()
+      ).getValue();
+      
+      const result = zone.recordReading(testSensorId, reading);
+      
+      expect(result.isSuccess()).toBe(true);
+    });
+    
+    it('rejects unreliable readings', () => {
+      const zone = createTestZone();
+      const staleReading = SensorReading.create(
+        22.5,
+        MeasurementUnit.Celsius,
+        new Date(Date.now() - 20 * 60 * 1000) // 20 minutes ago
+      ).getValue();
+      
+      const result = zone.recordReading(testSensorId, staleReading);
+      
+      expect(result.isFailure()).toBe(true);
+      expect(result.error.message).toContain('unreliable');
+    });
+    
+    it('enforces maximum reading age', () => {
+      // Test domain rule about stale data
+    });
+  });
+});
+```
+
+**These tests document your domain rules.** Anyone can read them and understand what constitutes a valid reading, how zones manage sensors, and what business rules apply.
+
+### Evolve Your Domain Model
+
+Your domain model **will change** as you learn more about the business. That's expected. The key is making changes safely:
+
+**Add new concepts carefully.** Before adding a new aggregate or value object, consider: Does this represent a distinct business concept? Or is it just a new way of viewing existing data?
+
+**Refactor when you spot duplication.** If the same validation logic appears in multiple aggregates, extract it into a domain service or shared value object.
+
+**Deprecate, don't delete.** If a domain concept becomes obsolete, mark it deprecated first. Give consumers time to migrate before removing it.
+
+## 15.8 Common Pitfalls and How to Avoid Them
+
+Let's address the mistakes developers commonly make when applying DDD to frontend applications.
+
+### Pitfall #1: Anemic Domain Models
+
+The most common mistake is creating "domain objects" that are just data containers:
+
+```typescript
+// ❌ Anemic domain model - just data, no behavior
+interface Greenhouse {
+  id: string;
+  name: string;
+  zones: Zone[];
+}
+
+interface Zone {
+  id: string;
+  name: string;
+  sensors: string[];
+}
+
+// Business logic lives in services, not domain
+class GreenhouseService {
+  addZone(greenhouse: Greenhouse, zoneName: string): void {
+    if (greenhouse.zones.length >= 10) {
+      throw new Error('Too many zones');
+    }
+    // Manipulating the data structure directly
+    greenhouse.zones.push({ id: generateId(), name: zoneName, sensors: [] });
+  }
+}
+```
+
+**This isn't domain-driven design—it's just service-oriented programming with fancy names.** The domain objects have no behavior; all logic lives in services.
+
+The fix: **Put behavior in your domain objects:**
+
+```typescript
+// ✅ Rich domain model
+export class Greenhouse {
+  addZone(name: string, conditions: TargetConditions): Result<ZoneId, DomainError> {
+    // Business rules enforced by the aggregate
+    if (this.zones.size >= 10) {
+      return Result.failure(new DomainError('Cannot exceed 10 zones'));
+    }
+    
+    const zone = Zone.create(name, conditions);
+    this.zones.set(zone.getId(), zone);
+    return Result.success(zone.getId());
+  }
+}
+```
+
+**The aggregate enforces rules.** Services coordinate aggregates, but they don't contain business logic.
+
+### Pitfall #2: Over-Engineering Simple Features
+
+Not every feature needs the full DDD treatment. If you're building a simple settings page with three checkboxes, you probably don't need aggregates, value objects, and repositories.
+
+**Apply DDD where complexity justifies it:**
+- Complex business rules? Use aggregates
+- Data with validation and domain operations? Use value objects
+- Multiple data sources or need testability? Use repositories
+
+For simple CRUD features, a straightforward ViewModel with minimal domain modeling might be sufficient.
+
+### Pitfall #3: Incorrect Aggregate Boundaries
+
+Developers often make aggregates too large (trying to enforce consistency across too much) or too small (creating chatty, inefficient systems).
+
+**Wrong: Aggregate too large**
+
+```typescript
+class GreenhouseSystem {
+  constructor(
+    private greenhouses: Map<string, Greenhouse>,
+    private users: Map<string, User>,
+    private alerts: Map<string, Alert>
+  ) {}
+  
+  // Trying to maintain consistency across the entire system
+}
+```
+
+**Wrong: Aggregate too small**
+
+```typescript
+class Zone {
+  addSensor(sensor: Sensor): void { }
+}
+
+class Sensor {
+  recordReading(reading: number): void { }
+}
+
+// Now adding a sensor requires multiple operations across aggregates
+```
+
+**Right: Aggregate boundary matches consistency needs**
+
+```typescript
+class Greenhouse {
+  // Manages zones and their sensors as a unit
+  // Consistency maintained within greenhouse boundaries
+}
+```
+
+**The rule:** An aggregate should be the **smallest unit where consistency matters.** If operations must succeed or fail together, they belong in the same aggregate.
+
+### Pitfall #4: Leaking Domain Models to the UI
+
+Don't pass domain aggregates directly to React components:
+
+```typescript
+// ❌ Domain model exposed to view
+function GreenhouseCard({ greenhouse }: { greenhouse: Greenhouse }) {
+  return (
+    <div>
+      <h3>{greenhouse.getName()}</h3>
+      {/* UI directly depends on domain aggregate */}
+    </div>
+  );
+}
+```
+
+**Why is this wrong?** The UI is now coupled to the domain model's API. If you change how `Greenhouse` works, you break components.
+
+**Use ViewModels as an adapter layer:**
+
+```typescript
+// ✅ ViewModel provides stable interface for UI
+class GreenhouseCardViewModel {
+  constructor(private readonly greenhouse: Greenhouse) {}
+  
+  get displayName(): string {
+    return this.greenhouse.getName();
+  }
+  
+  get zoneCount(): number {
+    return this.greenhouse.getZones().length;
+  }
+  
+  get status(): string {
+    return this.greenhouse.isOperational() ? 'Active' : 'Inactive';
+  }
+}
+
+function GreenhouseCard({ viewModel }: { viewModel: GreenhouseCardViewModel }) {
+  return (
+    <div>
+      <h3>{viewModel.displayName}</h3>
+      <span>{viewModel.status}</span>
+    </div>
+  );
+}
+```
+
+**The ViewModel adapts the domain model to UI needs.** The component depends on a stable ViewModel interface, not on domain aggregate internals.
+
+## Conclusion
+
+Domain-Driven Design transforms how we build frontend applications. By organizing code around business domains rather than technical patterns, we create systems that are:
+
+- **Maintainable**: Business logic lives in one place—domain aggregates—not scattered across components
+- **Testable**: Domain logic is pure TypeScript, tested in milliseconds without frameworks
+- **Flexible**: Bounded contexts can evolve independently; framework changes don't require rewriting domain logic
+- **Understandable**: Code structure reflects business structure, making onboarding easier
+
+The patterns we've covered—**Bounded Contexts, Aggregates, Value Objects, Repositories, and Domain Events**—aren't academic exercises. They're practical tools for managing complexity in real applications.
+
+In the next chapter, we'll explore how domain events enable cross-context communication, allowing bounded contexts to collaborate without tight coupling. We'll build a complete event-driven notification system for GreenWatch, showing how Environmental Monitoring, Alerts, and User Preferences contexts work together through events rather than direct dependencies.
+
+---
+
+**Key Takeaways:**
+
+- Organize code by domain (business capabilities), not by technical patterns
+- Use bounded contexts to define clear boundaries with their own ubiquitous language
+- Aggregates enforce consistency and encapsulate business rules
+- Value objects eliminate primitive obsession and centralize validation
+- Repositories abstract data access, enabling easy testing and flexibility
+- Keep domain logic framework-agnostic—it should be pure TypeScript with no UI dependencies

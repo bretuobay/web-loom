@@ -1,0 +1,1500 @@
+# Chapter 14: Cross-Platform — Ionic, React Native, and Electron with Shared ViewModels
+
+## Introduction: The Promise and the Reality
+
+When we talk about "write once, run anywhere," we're usually met with skepticism—and rightfully so. The graveyard of cross-platform solutions is littered with frameworks that promised universal code but delivered universal mediocrity. Java applets, Flash, early PhoneGap implementations—each generation has learned that abstraction has a cost.
+
+But here's the thing: **we're not proposing to abstract away platform differences**. We're proposing something more pragmatic and, frankly, more honest. We'll write our business logic once, in framework-agnostic ViewModels, and then implement platform-specific views that feel native to their environment. The ViewModel doesn't care if it's driving a React Native mobile app, an Electron desktop application, or an Ionic web-based interface—it just exposes observables and accepts commands.
+
+This chapter proves that architectural separation isn't just about maintainability within a single platform—it's about **true portability across platforms**. We'll take the same `GreenhouseDetailViewModel` we've been using throughout this book and run it in three radically different environments, writing only view-layer code for each platform.
+
+Let's see how this actually works.
+
+## Why This Matters: Beyond Theoretical Portability
+
+Before we dive into the technical implementation, we need to understand what we're really achieving here. This isn't about reducing code duplication for its own sake—though we'll certainly achieve that. This is about **architectural honesty**.
+
+Consider the typical cross-platform development story: A team starts with a web application. Business is good, and stakeholders want a mobile app. The team faces a choice:
+
+1. **Rewrite everything natively** (iOS Swift, Android Kotlin)—expensive, but each platform gets exactly what it needs.
+2. **Use a cross-platform framework** (React Native, Flutter)—cheaper upfront, but now you're maintaining a different codebase from your web app.
+3. **Wrap the web app** (Ionic, Capacitor)—fastest, but often delivers a subpar mobile experience.
+
+Each approach has merit, but they all share a fundamental problem: **your business logic is coupled to your platform choice**. If you wrote your greenhouse monitoring logic inside React components, you can't reuse it in React Native without modification. If your temperature validation lives in a Vue component, good luck using it in Electron.
+
+Our approach is different. The business logic—all those rules about temperature thresholds, irrigation schedules, and alert generation—lives in ViewModels that don't import a single line of React, Vue, or Angular code. This means:
+
+- **Platform flexibility:** Start with web, add mobile later, maybe build a desktop app for power users—the core logic doesn't change.
+- **Team specialization:** Your iOS developer can work on the native view layer while your backend engineer refines the domain logic, without stepping on each other's toes.
+- **Incremental migration:** Moving from one framework to another becomes a view-layer exercise, not a complete rewrite.
+- **Testing sanity:** You test your business logic once, in plain TypeScript with no framework overhead. Platform-specific view tests focus on rendering and user interaction, not business rules.
+
+This isn't theoretical. We've seen production codebases where the same ViewModel drives a React web app, a React Native mobile app, and an Electron desktop client, with the only differences being the view implementations. Let's build exactly that.
+
+## The Shared Foundation: What Stays Constant
+
+Before we implement platform-specific views, let's establish what remains unchanged across all platforms. This is the architecture's payoff—the code we'll never have to rewrite.
+
+### The ViewModel: Truly Platform-Agnostic
+
+Here's our `GreenhouseDetailViewModel` again, unchanged from previous chapters:
+
+```typescript
+// src/viewmodels/GreenhouseDetailViewModel.ts
+import { BehaviorSubject, Observable, Subject, combineLatest } from 'rxjs';
+import { map, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+import { GreenhouseService } from '../domain/services/GreenhouseService';
+import { IrrigationService } from '../domain/services/IrrigationService';
+import { Greenhouse, IrrigationStatus } from '../domain/models';
+
+export interface GreenhouseDetailState {
+  greenhouse: Greenhouse | null;
+  irrigationStatus: IrrigationStatus | null;
+  isLoading: boolean;
+  error: string | null;
+  lastUpdated: Date | null;
+}
+
+export class GreenhouseDetailViewModel {
+  private readonly state$ = new BehaviorSubject<GreenhouseDetailState>({
+    greenhouse: null,
+    irrigationStatus: null,
+    isLoading: false,
+    error: null,
+    lastUpdated: null,
+  });
+
+  private readonly destroy$ = new Subject<void>();
+
+  // Public observables
+  readonly greenhouse$: Observable<Greenhouse | null>;
+  readonly temperature$: Observable<number | null>;
+  readonly humidity$: Observable<number | null>;
+  readonly isIrrigationActive$: Observable<boolean>;
+  readonly isLoading$: Observable<boolean>;
+  readonly error$: Observable<string | null>;
+
+  constructor(
+    private readonly greenhouseId: string,
+    private readonly greenhouseService: GreenhouseService,
+    private readonly irrigationService: IrrigationService,
+  ) {
+    // Derive specific observables from state
+    this.greenhouse$ = this.state$.pipe(
+      map((state) => state.greenhouse),
+      distinctUntilChanged(),
+    );
+
+    this.temperature$ = this.greenhouse$.pipe(map((gh) => gh?.currentTemperature ?? null));
+
+    this.humidity$ = this.greenhouse$.pipe(map((gh) => gh?.currentHumidity ?? null));
+
+    this.isIrrigationActive$ = this.state$.pipe(
+      map((state) => state.irrigationStatus?.isActive ?? false),
+      distinctUntilChanged(),
+    );
+
+    this.isLoading$ = this.state$.pipe(
+      map((state) => state.isLoading),
+      distinctUntilChanged(),
+    );
+
+    this.error$ = this.state$.pipe(
+      map((state) => state.error),
+      distinctUntilChanged(),
+    );
+  }
+
+  async initialize(): Promise<void> {
+    this.updateState({ isLoading: true, error: null });
+
+    try {
+      const [greenhouse, irrigationStatus] = await Promise.all([
+        this.greenhouseService.getById(this.greenhouseId),
+        this.irrigationService.getStatus(this.greenhouseId),
+      ]);
+
+      this.updateState({
+        greenhouse,
+        irrigationStatus,
+        isLoading: false,
+        lastUpdated: new Date(),
+      });
+
+      // Subscribe to real-time updates
+      this.subscribeToUpdates();
+    } catch (error) {
+      this.updateState({
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to load greenhouse data',
+      });
+    }
+  }
+
+  async toggleIrrigation(): Promise<void> {
+    const currentStatus = this.state$.value.irrigationStatus;
+    if (!currentStatus) return;
+
+    try {
+      const newStatus = currentStatus.isActive
+        ? await this.irrigationService.stop(this.greenhouseId)
+        : await this.irrigationService.start(this.greenhouseId);
+
+      this.updateState({ irrigationStatus: newStatus });
+    } catch (error) {
+      this.updateState({
+        error: error instanceof Error ? error.message : 'Failed to toggle irrigation',
+      });
+    }
+  }
+
+  private subscribeToUpdates(): void {
+    // Subscribe to real-time sensor updates
+    this.greenhouseService
+      .subscribeToUpdates(this.greenhouseId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((greenhouse) => {
+        this.updateState({ greenhouse, lastUpdated: new Date() });
+      });
+
+    // Subscribe to irrigation status changes
+    this.irrigationService
+      .subscribeToStatus(this.greenhouseId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((irrigationStatus) => {
+        this.updateState({ irrigationStatus });
+      });
+  }
+
+  private updateState(partial: Partial<GreenhouseDetailState>): void {
+    this.state$.next({ ...this.state$.value, ...partial });
+  }
+
+  dispose(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.state$.complete();
+  }
+}
+```
+
+**Why this ViewModel is platform-agnostic:**
+
+- **No framework imports:** Not a single line of React, React Native, Angular, or Electron-specific code.
+- **RxJS observables:** The universal reactive primitive. Every major framework can consume observables.
+- **Pure TypeScript:** Runs in any JavaScript environment—browser, Node.js, React Native's JavaScript Core, Electron's main or renderer process.
+- **Dependency injection:** Services are injected, making the ViewModel testable and framework-independent.
+
+This is the code we'll never rewrite. Whether we're building for web, mobile, or desktop, this ViewModel works identically.
+
+### The Domain Layer: Also Unchanged
+
+Similarly, our domain services remain platform-agnostic:
+
+```typescript
+// src/domain/services/GreenhouseService.ts
+import { Observable } from 'rxjs';
+import { Greenhouse } from '../models/Greenhouse';
+import { IGreenhouseRepository } from '../repositories/IGreenhouseRepository';
+
+export class GreenhouseService {
+  constructor(private readonly repository: IGreenhouseRepository) {}
+
+  async getById(id: string): Promise<Greenhouse> {
+    return this.repository.findById(id);
+  }
+
+  subscribeToUpdates(id: string): Observable<Greenhouse> {
+    return this.repository.subscribeToUpdates(id);
+  }
+
+  async updateConfiguration(id: string, config: Partial<Greenhouse>): Promise<void> {
+    await this.repository.update(id, config);
+  }
+}
+```
+
+The only thing that changes across platforms is the **repository implementation**. On web, we might use `fetch`. On React Native, we'd use the same `fetch` API or a library like Axios. On Electron, we might access a local SQLite database in the main process. But the service? Unchanged.
+
+This layered architecture means **platform-specific code lives only where it must**—in the view layer and in infrastructure adapters (repositories, API clients). Everything else is shared.
+
+## Platform 1: Ionic with React
+
+Ionic represents the "web-first" approach to cross-platform development. It's essentially a web application packaged with Capacitor (or Cordova) to access native device features. The advantage? You're writing web code—HTML, CSS, JavaScript—and deploying to iOS, Android, and web from a single codebase.
+
+For our purposes, Ionic with React is nearly identical to pure React web development, with a few key differences:
+
+- **Ionic components:** Provides mobile-optimized UI components (`IonButton`, `IonCard`, `IonHeader`)
+- **Capacitor plugins:** Native device access (camera, geolocation, push notifications)
+- **Mobile navigation:** Uses `IonPage`, `IonRouterOutlet` for mobile navigation patterns
+
+Let's implement our greenhouse detail view for Ionic.
+
+### Project Setup
+
+```bash
+npm install @ionic/react @ionic/react-router @capacitor/core @capacitor/cli
+npm install --save-dev @capacitor/android @capacitor/ios
+
+# Initialize Capacitor
+npx cap init
+```
+
+### The Ionic View Component
+
+```typescript
+// src/views/ionic/GreenhouseDetailPage.tsx
+import React, { useEffect, useMemo } from 'react';
+import {
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+  IonButton,
+  IonSpinner,
+  IonIcon,
+  IonRefresher,
+  IonRefresherContent,
+  RefresherEventDetail
+} from '@ionic/react';
+import { waterOutline, thermometerOutline } from 'ionicons/icons';
+import { useParams } from 'react-router-dom';
+import { useObservable } from '../../hooks/useObservable';
+import { GreenhouseDetailViewModel } from '../../viewmodels/GreenhouseDetailViewModel';
+import { createGreenhouseDetailViewModel } from '../../composition/ViewModelFactory';
+
+export const GreenhouseDetailPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+
+  // Create ViewModel (memoized to prevent recreation on re-renders)
+  const viewModel = useMemo(
+    () => createGreenhouseDetailViewModel(id),
+    [id]
+  );
+
+  // Subscribe to ViewModel observables
+  const greenhouse = useObservable(viewModel.greenhouse$);
+  const temperature = useObservable(viewModel.temperature$);
+  const humidity = useObservable(viewModel.humidity$);
+  const isIrrigationActive = useObservable(viewModel.isIrrigationActive$);
+  const isLoading = useObservable(viewModel.isLoading$);
+  const error = useObservable(viewModel.error$);
+
+  // Initialize ViewModel on mount
+  useEffect(() => {
+    viewModel.initialize();
+    return () => viewModel.dispose();
+  }, [viewModel]);
+
+  const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
+    await viewModel.initialize();
+    event.detail.complete();
+  };
+
+  const handleToggleIrrigation = async () => {
+    await viewModel.toggleIrrigation();
+  };
+
+  if (isLoading && !greenhouse) {
+    return (
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Loading...</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ion-padding ion-text-center">
+          <IonSpinner name="crescent" />
+        </IonContent>
+      </IonPage>
+    );
+  }
+
+  if (error) {
+    return (
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Error</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ion-padding">
+          <p>{error}</p>
+          <IonButton onClick={() => viewModel.initialize()}>
+            Retry
+          </IonButton>
+        </IonContent>
+      </IonPage>
+    );
+  }
+
+  return (
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>{greenhouse?.name ?? 'Greenhouse'}</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+
+      <IonContent>
+        <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
+          <IonRefresherContent />
+        </IonRefresher>
+
+        {/* Environmental Data Card */}
+        <IonCard>
+          <IonCardHeader>
+            <IonCardTitle>Environmental Data</IonCardTitle>
+          </IonCardHeader>
+          <IonCardContent>
+            <div className="environmental-metrics">
+              <div className="metric">
+                <IonIcon icon={thermometerOutline} />
+                <span className="value">{temperature?.toFixed(1) ?? '--'}°C</span>
+                <span className="label">Temperature</span>
+              </div>
+              <div className="metric">
+                <IonIcon icon={waterOutline} />
+                <span className="value">{humidity?.toFixed(0) ?? '--'}%</span>
+                <span className="label">Humidity</span>
+              </div>
+            </div>
+          </IonCardContent>
+        </IonCard>
+
+        {/* Irrigation Control Card */}
+        <IonCard>
+          <IonCardHeader>
+            <IonCardTitle>Irrigation Control</IonCardTitle>
+          </IonCardHeader>
+          <IonCardContent>
+            <p>
+              Status: {isIrrigationActive ? 'Active' : 'Inactive'}
+            </p>
+            <IonButton
+              expand="block"
+              color={isIrrigationActive ? 'danger' : 'primary'}
+              onClick={handleToggleIrrigation}
+              disabled={isLoading}
+            >
+              {isIrrigationActive ? 'Stop Irrigation' : 'Start Irrigation'}
+            </IonButton>
+          </IonCardContent>
+        </IonCard>
+      </IonContent>
+    </IonPage>
+  );
+};
+```
+
+**Key observations:**
+
+- **Ionic-specific components:** We're using `IonPage`, `IonCard`, `IonButton`—these provide mobile-optimized styling and behavior.
+- **Pull-to-refresh:** The `IonRefresher` gives us native pull-to-refresh behavior with zero additional logic—we just call `viewModel.initialize()`.
+- **Same ViewModel, different view:** Notice that the ViewModel interaction is identical to our web React implementation. We subscribe to observables, call commands, and let the ViewModel handle all business logic.
+- **Mobile navigation patterns:** Ionic handles navigation through `IonRouterOutlet`, but our ViewModel doesn't care—it receives an ID and does its job.
+
+### Accessing Native Features with Capacitor
+
+One advantage of Ionic is easy access to native device features. Let's add camera functionality to capture photos of greenhouse conditions:
+
+```typescript
+// src/views/ionic/GreenhouseDetailPage.tsx (extended)
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+
+export const GreenhouseDetailPage: React.FC = () => {
+  // ... existing code ...
+
+  const handleTakePhoto = async () => {
+    try {
+      const photo = await Camera.getPhoto({
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Camera,
+        quality: 90
+      });
+
+      // Pass the photo URI to a ViewModel command
+      // (You'd extend GreenhouseDetailViewModel with an `attachPhoto` method)
+      await viewModel.attachPhoto(photo.webPath!);
+    } catch (error) {
+      console.error('Failed to capture photo:', error);
+    }
+  };
+
+  return (
+    <IonPage>
+      {/* ... existing JSX ... */}
+      <IonButton onClick={handleTakePhoto}>
+        Take Photo
+      </IonButton>
+    </IonPage>
+  );
+};
+```
+
+**The ViewModel doesn't know about Capacitor.** It receives a photo URI (a string) and handles the upload through a domain service. The view layer's job is to bridge the native API (Capacitor Camera) with the ViewModel's abstract interface.
+
+### Ionic: The Tradeoffs
+
+**Advantages:**
+
+- **Web skills transfer directly:** If you know React, you know Ionic React.
+- **Single codebase for web, iOS, Android:** Deploy everywhere with minimal platform-specific code.
+- **Rapid prototyping:** Ionic's components look good out of the box and work across platforms.
+
+**Disadvantages:**
+
+- **Not truly native:** It's still a web view. Performance-intensive UIs (complex animations, heavy lists) can struggle.
+- **"Uncanny valley" on iOS:** Ionic apps can feel slightly "off" to iOS users who expect native interactions.
+- **Plugin dependence:** For advanced native features, you're reliant on Capacitor plugins or writing your own.
+
+**When to use Ionic:**
+
+- You're building a content-heavy or form-heavy application where native UI performance isn't critical.
+- Your team is already proficient in web development and you need to ship quickly.
+- You want maximum code reuse between web and mobile.
+
+For GreenWatch, Ionic is a solid choice for internal dashboards or monitoring interfaces where performance is less critical than rapid development.
+
+## Platform 2: React Native
+
+React Native is a different beast. It's not a web view—it renders actual native UI components. When you write `<View>` in React Native, you get a `UIView` on iOS and an `android.view.View` on Android. This gives you true native performance and feel, at the cost of additional platform-specific considerations.
+
+The good news? **Our ViewModel still doesn't care.** React Native runs JavaScript, supports RxJS, and can consume observables just like React web. The view layer changes completely, but the business logic remains untouched.
+
+### Project Setup
+
+```bash
+npx react-native init GreenWatchMobile --template react-native-template-typescript
+cd GreenWatchMobile
+npm install rxjs
+
+# Copy your shared code
+cp -r ../shared/src/viewmodels ./src/
+cp -r ../shared/src/domain ./src/
+```
+
+### The React Native View Component
+
+```typescript
+// src/screens/GreenhouseDetailScreen.tsx
+import React, { useEffect, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  ScrollView,
+  RefreshControl
+} from 'react-native';
+import { useRoute, RouteProp } from '@react-navigation/native';
+import { useObservable } from '../hooks/useObservable';
+import { GreenhouseDetailViewModel } from '../viewmodels/GreenhouseDetailViewModel';
+import { createGreenhouseDetailViewModel } from '../composition/ViewModelFactory';
+
+type RouteParams = {
+  GreenhouseDetail: { id: string };
+};
+
+export const GreenhouseDetailScreen: React.FC = () => {
+  const route = useRoute<RouteProp<RouteParams, 'GreenhouseDetail'>>();
+  const { id } = route.params;
+
+  const viewModel = useMemo(
+    () => createGreenhouseDetailViewModel(id),
+    [id]
+  );
+
+  const greenhouse = useObservable(viewModel.greenhouse$);
+  const temperature = useObservable(viewModel.temperature$);
+  const humidity = useObservable(viewModel.humidity$);
+  const isIrrigationActive = useObservable(viewModel.isIrrigationActive$);
+  const isLoading = useObservable(viewModel.isLoading$);
+  const error = useObservable(viewModel.error$);
+
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  useEffect(() => {
+    viewModel.initialize();
+    return () => viewModel.dispose();
+  }, [viewModel]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await viewModel.initialize();
+    setRefreshing(false);
+  };
+
+  const handleToggleIrrigation = async () => {
+    await viewModel.toggleIrrigation();
+  };
+
+  if (isLoading && !greenhouse) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => viewModel.initialize()}
+        >
+          <Text style={styles.buttonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
+    >
+      {/* Environmental Data Card */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Environmental Data</Text>
+        <View style={styles.metricsRow}>
+          <View style={styles.metric}>
+            <Text style={styles.metricValue}>
+              {temperature?.toFixed(1) ?? '--'}°C
+            </Text>
+            <Text style={styles.metricLabel}>Temperature</Text>
+          </View>
+          <View style={styles.metric}>
+            <Text style={styles.metricValue}>
+              {humidity?.toFixed(0) ?? '--'}%
+            </Text>
+            <Text style={styles.metricLabel}>Humidity</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Irrigation Control Card */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Irrigation Control</Text>
+        <Text style={styles.statusText}>
+          Status: {isIrrigationActive ? 'Active' : 'Inactive'}
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.button,
+            isIrrigationActive ? styles.dangerButton : styles.primaryButton
+          ]}
+          onPress={handleToggleIrrigation}
+          disabled={isLoading}
+        >
+          <Text style={styles.buttonText}>
+            {isIrrigationActive ? 'Stop Irrigation' : 'Start Irrigation'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5'
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
+  },
+  card: {
+    backgroundColor: 'white',
+    margin: 16,
+    padding: 16,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around'
+  },
+  metric: {
+    alignItems: 'center'
+  },
+  metricValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#007AFF'
+  },
+  metricLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4
+  },
+  statusText: {
+    fontSize: 16,
+    marginBottom: 12,
+    color: '#333'
+  },
+  button: {
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center'
+  },
+  primaryButton: {
+    backgroundColor: '#007AFF'
+  },
+  dangerButton: {
+    backgroundColor: '#FF3B30'
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600'
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF3B30',
+    textAlign: 'center',
+    marginBottom: 20
+  }
+});
+```
+
+**Key differences from Ionic:**
+
+- **Native components:** `View`, `Text`, `TouchableOpacity`—these are real native UI elements.
+- **StyleSheet:** React Native's styling is CSS-like but uses JavaScript objects. No CSS files.
+- **Platform-specific behaviors:** `RefreshControl` handles pull-to-refresh differently on iOS vs. Android, but React Native abstracts that for us.
+- **Same ViewModel:** Notice the ViewModel interaction is **identical** to both the web React and Ionic implementations. Same observables, same commands, same business logic.
+
+### Handling Platform-Specific Code
+
+Sometimes you need platform-specific behavior. React Native provides the `Platform` module:
+
+```typescript
+import { Platform } from 'react-native';
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: 'white',
+    margin: 16,
+    padding: 16,
+    borderRadius: 8,
+    // Shadow for iOS
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+});
+```
+
+**The ViewModel is completely unaware of these platform differences.** The view layer handles them. This is exactly the separation we want—platform-specific rendering code lives in the view, business logic in the ViewModel.
+
+### React Native: The Tradeoffs
+
+**Advantages:**
+
+- **True native performance:** Smooth animations, fast lists, native feel.
+- **Native UI components:** Apps feel "at home" on iOS and Android.
+- **Direct native module access:** Can write custom native code when needed.
+- **Strong ecosystem:** Mature tooling, extensive third-party libraries.
+
+**Disadvantages:**
+
+- **Separate codebase from web:** Can't reuse view code between web and mobile (though you reuse ViewModels and domain logic).
+- **Platform-specific quirks:** iOS and Android sometimes behave differently, requiring conditional code.
+- **Native dependencies:** Some libraries require linking native modules, adding build complexity.
+
+**When to use React Native:**
+
+- You need a mobile app with native performance and feel.
+- Your application has complex UI interactions or animations.
+- You're willing to maintain separate view codebases for web and mobile to get optimal user experience on each platform.
+
+For GreenWatch, React Native is the right choice for a customer-facing mobile app where performance and native feel matter. The shared ViewModel means we're not duplicating business logic, just writing the best possible UI for mobile.
+
+## Platform 3: Electron
+
+Electron brings us full circle—it's essentially a web application running in a Chromium browser bundled with Node.js. But unlike Ionic (which targets mobile), Electron targets desktop. This gives us access to filesystem APIs, native menus, system tray integration, and more.
+
+For GreenWatch, an Electron desktop app might serve power users who need advanced analytics, offline data access, or integration with local tools.
+
+### Project Setup
+
+```bash
+npm install electron electron-builder
+npm install --save-dev @types/electron
+
+# Create Electron entry point
+```
+
+### Electron Architecture: Main and Renderer Processes
+
+Electron has a unique architecture with two process types:
+
+- **Main process:** Runs Node.js, manages application lifecycle, creates windows, accesses native APIs.
+- **Renderer process:** Each window runs a separate Chromium instance. This is where your React/Vue/Angular app lives.
+
+Our ViewModel runs in the **renderer process**, just like a normal web application. The main process handles desktop-specific concerns like window management and native menus.
+
+### The Main Process
+
+```typescript
+// electron/main.ts
+import { app, BrowserWindow, Menu, shell } from 'electron';
+import * as path from 'path';
+
+let mainWindow: BrowserWindow | null = null;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
+    },
+  });
+
+  // In development, load from webpack dev server
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.loadURL('http://localhost:3000');
+    mainWindow.webContents.openDevTools();
+  } else {
+    // In production, load the built files
+    mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
+  }
+
+  // Create custom menu
+  const menu = Menu.buildFromTemplate([
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Export Data',
+          click: async () => {
+            // Communicate with renderer process to trigger export
+            mainWindow?.webContents.send('export-data');
+          },
+        },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [{ role: 'reload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { role: 'togglefullscreen' }],
+    },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'Documentation',
+          click: async () => {
+            await shell.openExternal('https://greenwatch.example.com/docs');
+          },
+        },
+      ],
+    },
+  ]);
+
+  Menu.setApplicationMenu(menu);
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+app.on('ready', createWindow);
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  if (mainWindow === null) {
+    createWindow();
+  }
+});
+```
+
+**What's happening here:**
+
+- **Window creation:** We're creating a 1200x800 window that loads our React application.
+- **Security:** `nodeIntegration: false` and `contextIsolation: true` are modern Electron security best practices. The renderer process doesn't have direct access to Node.js APIs.
+- **Custom menu:** We're creating a native menu bar with Export Data, Developer Tools, and Help options.
+- **Inter-process communication:** The main process can send messages to the renderer process (and vice versa) for coordination.
+
+### The Renderer Process: React Application
+
+In the renderer process, we're just writing a normal React application. The only difference is we can communicate with the main process through Electron's IPC (Inter-Process Communication):
+
+```typescript
+// src/views/electron/GreenhouseDetailView.tsx
+import React, { useEffect, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
+import { useObservable } from '../../hooks/useObservable';
+import { GreenhouseDetailViewModel } from '../../viewmodels/GreenhouseDetailViewModel';
+import { createGreenhouseDetailViewModel } from '../../composition/ViewModelFactory';
+
+export const GreenhouseDetailView: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+
+  const viewModel = useMemo(
+    () => createGreenhouseDetailViewModel(id),
+    [id]
+  );
+
+  const greenhouse = useObservable(viewModel.greenhouse$);
+  const temperature = useObservable(viewModel.temperature$);
+  const humidity = useObservable(viewModel.humidity$);
+  const isIrrigationActive = useObservable(viewModel.isIrrigationActive$);
+  const isLoading = useObservable(viewModel.isLoading$);
+  const error = useObservable(viewModel.error$);
+
+  useEffect(() => {
+    viewModel.initialize();
+
+    // Listen for export command from main process
+    const handleExport = () => {
+      exportGreenhouseData(greenhouse);
+    };
+
+    window.electron.on('export-data', handleExport);
+
+    return () => {
+      window.electron.off('export-data', handleExport);
+      viewModel.dispose();
+    };
+  }, [viewModel, greenhouse]);
+
+  const exportGreenhouseData = async (data: any) => {
+    // Use Electron's dialog to choose save location
+    const filePath = await window.electron.showSaveDialog({
+      title: 'Export Greenhouse Data',
+      defaultPath: `greenhouse-${id}-data.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    });
+
+    if (filePath) {
+      await window.electron.writeFile(
+        filePath,
+        JSON.stringify(data, null, 2)
+      );
+    }
+  };
+
+  // Render code identical to web React implementation
+  return (
+    <div className="greenhouse-detail">
+      {/* Same JSX as web React version */}
+      <div className="environmental-data">
+        <div className="metric">
+          <span className="value">{temperature?.toFixed(1) ?? '--'}°C</span>
+          <span className="label">Temperature</span>
+        </div>
+        <div className="metric">
+          <span className="value">{humidity?.toFixed(0) ?? '--'}%</span>
+          <span className="label">Humidity</span>
+        </div>
+      </div>
+
+      <button
+        onClick={() => viewModel.toggleIrrigation()}
+        disabled={isLoading}
+      >
+        {isIrrigationActive ? 'Stop' : 'Start'} Irrigation
+      </button>
+    </div>
+  );
+};
+```
+
+### Bridging Main and Renderer: The Preload Script
+
+For security reasons, the renderer process can't directly access Node.js or Electron APIs. Instead, we use a **preload script** to expose specific, safe APIs:
+
+```typescript
+// electron/preload.ts
+import { contextBridge, ipcRenderer } from 'electron';
+
+// Expose protected methods to renderer process
+contextBridge.exposeInMainWorld('electron', {
+  // Listen for events from main process
+  on: (channel: string, callback: Function) => {
+    ipcRenderer.on(channel, (_, ...args) => callback(...args));
+  },
+
+  // Remove event listeners
+  off: (channel: string, callback: Function) => {
+    ipcRenderer.removeListener(channel, callback as any);
+  },
+
+  // Show save dialog
+  showSaveDialog: (options: any) => {
+    return ipcRenderer.invoke('show-save-dialog', options);
+  },
+
+  // Write file
+  writeFile: (path: string, content: string) => {
+    return ipcRenderer.invoke('write-file', path, content);
+  },
+});
+```
+
+Now, in the renderer process, TypeScript knows about `window.electron`:
+
+```typescript
+// src/types/electron.d.ts
+interface Window {
+  electron: {
+    on: (channel: string, callback: Function) => void;
+    off: (channel: string, callback: Function) => void;
+    showSaveDialog: (options: any) => Promise<string | null>;
+    writeFile: (path: string, content: string) => Promise<void>;
+  };
+}
+```
+
+**The key insight:** Even with Electron's dual-process architecture and IPC complexity, **the ViewModel remains unchanged**. It doesn't know about main processes, renderer processes, or IPC. It exposes observables and commands, and the view layer (in this case, React components) handles all platform-specific concerns.
+
+### Electron: The Tradeoffs
+
+**Advantages:**
+
+- **Desktop-class applications:** Native menus, system tray, file system access, background processing.
+- **Web technologies:** Build with HTML/CSS/JavaScript—no need to learn native desktop development.
+- **Cross-platform:** Windows, macOS, Linux from a single codebase.
+- **Same codebase as web:** Your React web app can become an Electron app with minimal changes.
+
+**Disadvantages:**
+
+- **Bundle size:** Chromium + Node.js = large install size (100+ MB even for simple apps).
+- **Memory footprint:** Electron apps are notorious for high memory usage.
+- **Not "native":** Doesn't integrate as seamlessly as truly native desktop apps.
+
+**When to use Electron:**
+
+- You need a desktop application but your team specializes in web development.
+- You want offline capabilities, file system access, or system-level integrations.
+- You already have a web app and want to offer a desktop version without rewriting everything.
+
+For GreenWatch, Electron is perfect for an admin dashboard where operators need advanced analytics, offline data export, and integration with local tools—all while reusing the same ViewModels that power the web and mobile apps.
+
+## Code Sharing Strategy: The Practical Reality
+
+Now that we've seen three different platforms, let's talk about the practical reality of sharing code. You're not going to have a single project that builds for web, mobile, and desktop simultaneously—that's a build system nightmare. Instead, you'll structure your codebase to maximize reuse while keeping platform-specific concerns separate.
+
+### Monorepo Structure
+
+Here's a realistic monorepo structure for GreenWatch:
+
+```
+greenwatch/
+├── packages/
+│   ├── core/                          # Shared business logic
+│   │   ├── src/
+│   │   │   ├── domain/                # Domain models and services
+│   │   │   │   ├── models/
+│   │   │   │   ├── services/
+│   │   │   │   └── repositories/
+│   │   │   ├── viewmodels/            # Framework-agnostic ViewModels
+│   │   │   └── utils/
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   ├── web/                           # Web application (React)
+│   │   ├── src/
+│   │   │   ├── views/                 # React components
+│   │   │   ├── hooks/
+│   │   │   ├── composition/           # DI setup
+│   │   │   └── infrastructure/        # Web-specific implementations
+│   │   ├── public/
+│   │   ├── package.json               # Depends on @greenwatch/core
+│   │   └── tsconfig.json
+│   │
+│   ├── mobile-ionic/                  # Ionic mobile app
+│   │   ├── src/
+│   │   │   ├── views/                 # Ionic React components
+│   │   │   ├── hooks/
+│   │   │   └── composition/
+│   │   ├── capacitor.config.ts
+│   │   ├── package.json               # Depends on @greenwatch/core
+│   │   └── tsconfig.json
+│   │
+│   ├── mobile-native/                 # React Native app
+│   │   ├── src/
+│   │   │   ├── screens/               # React Native components
+│   │   │   ├── hooks/
+│   │   │   ├── navigation/
+│   │   │   └── composition/
+│   │   ├── ios/
+│   │   ├── android/
+│   │   ├── package.json               # Depends on @greenwatch/core
+│   │   └── tsconfig.json
+│   │
+│   └── desktop/                       # Electron desktop app
+│       ├── electron/                  # Main process code
+│       │   ├── main.ts
+│       │   └── preload.ts
+│       ├── src/                       # Renderer process (React)
+│       │   ├── views/
+│       │   ├── hooks/
+│       │   └── composition/
+│       ├── package.json               # Depends on @greenwatch/core
+│       └── tsconfig.json
+│
+├── package.json                       # Root workspace config
+└── pnpm-workspace.yaml               # Or npm/yarn workspaces
+```
+
+### The `@greenwatch/core` Package
+
+This is the heart of code reuse. It contains **everything that's platform-agnostic:**
+
+```json
+// packages/core/package.json
+{
+  "name": "@greenwatch/core",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "dependencies": {
+    "rxjs": "^7.8.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "jest": "^29.5.0",
+    "typescript": "^5.0.0"
+  }
+}
+```
+
+**Notice what's NOT in the dependencies:** No React, no React Native, no Angular, no Vue, no Electron. This package is **pure TypeScript and RxJS**. It's testable without any framework overhead.
+
+Each platform-specific package depends on `@greenwatch/core`:
+
+```json
+// packages/web/package.json
+{
+  "name": "@greenwatch/web",
+  "dependencies": {
+    "@greenwatch/core": "workspace:*",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "rxjs": "^7.8.0"
+  }
+}
+```
+
+### What Gets Shared vs. What Doesn't
+
+Let's be explicit about this:
+
+**Always shared (in `@greenwatch/core`):**
+
+- **Domain models:** `Greenhouse`, `Sensor`, `IrrigationStatus`
+- **ViewModels:** `GreenhouseDetailViewModel`, `GreenhouseListViewModel`
+- **Domain services:** `GreenhouseService`, `IrrigationService`
+- **Repository interfaces:** `IGreenhouseRepository`, `ISensorRepository`
+- **Domain events:** `TemperatureAlertEvent`, `IrrigationStartedEvent`
+- **Utility functions:** Date formatting, validation, calculations
+
+**Never shared (platform-specific):**
+
+- **View components:** React components, Vue components, React Native screens
+- **Navigation:** React Router, React Navigation, Ionic Router
+- **Styling:** CSS, StyleSheet, Ionic themes
+- **Repository implementations:** Fetch-based, Axios-based, SQLite-based
+- **Platform APIs:** Capacitor plugins, React Native modules, Electron IPC
+
+**Sometimes shared (depends on context):**
+
+- **React hooks:** `useObservable` can be shared between React web, Ionic, and Electron (all use React), but not with React Native (slightly different implementation)
+- **Composition root:** DI setup is conceptually the same but often requires platform-specific tweaks (e.g., different repository implementations)
+
+The rule of thumb: **If it imports from a framework, it's platform-specific. If it's plain TypeScript and RxJS, it's shared.**
+
+## Testing: The Ultimate Validation
+
+The proof that our architecture works is in the testing. If we've truly separated concerns, we should be able to test our business logic once—in the `@greenwatch/core` package—without any framework dependencies.
+
+### Testing the ViewModel (Again, to Prove a Point)
+
+This test runs identically whether you're building for web, mobile, or desktop:
+
+```typescript
+// packages/core/src/viewmodels/__tests__/GreenhouseDetailViewModel.test.ts
+import { TestScheduler } from 'rxjs/testing';
+import { GreenhouseDetailViewModel } from '../GreenhouseDetailViewModel';
+import { MockGreenhouseService } from '../../domain/services/__mocks__/MockGreenhouseService';
+import { MockIrrigationService } from '../../domain/services/__mocks__/MockIrrigationService';
+
+describe('GreenhouseDetailViewModel', () => {
+  let testScheduler: TestScheduler;
+  let mockGreenhouseService: MockGreenhouseService;
+  let mockIrrigationService: MockIrrigationService;
+
+  beforeEach(() => {
+    testScheduler = new TestScheduler((actual, expected) => {
+      expect(actual).toEqual(expected);
+    });
+    mockGreenhouseService = new MockGreenhouseService();
+    mockIrrigationService = new MockIrrigationService();
+  });
+
+  it('should load greenhouse data on initialization', async () => {
+    const greenhouse = {
+      id: 'gh-1',
+      name: 'Greenhouse Alpha',
+      currentTemperature: 23.5,
+      currentHumidity: 65,
+    };
+    mockGreenhouseService.setGreenhouse(greenhouse);
+
+    const viewModel = new GreenhouseDetailViewModel('gh-1', mockGreenhouseService, mockIrrigationService);
+
+    await viewModel.initialize();
+
+    testScheduler.run(({ expectObservable }) => {
+      expectObservable(viewModel.temperature$).toBe('a', { a: 23.5 });
+      expectObservable(viewModel.humidity$).toBe('a', { a: 65 });
+    });
+
+    viewModel.dispose();
+  });
+
+  it('should toggle irrigation status', async () => {
+    mockIrrigationService.setStatus({ isActive: false });
+
+    const viewModel = new GreenhouseDetailViewModel('gh-1', mockGreenhouseService, mockIrrigationService);
+
+    await viewModel.initialize();
+    await viewModel.toggleIrrigation();
+
+    testScheduler.run(({ expectObservable }) => {
+      expectObservable(viewModel.isIrrigationActive$).toBe('a', { a: true });
+    });
+
+    viewModel.dispose();
+  });
+});
+```
+
+**This test runs in milliseconds, with no framework overhead, and validates business logic across all platforms.** When you make a change to `GreenhouseDetailViewModel`, you run this test once, and you've verified the behavior for web, Ionic, React Native, and Electron.
+
+### Platform-Specific View Tests
+
+Platform-specific view tests are much simpler because they're not testing business logic—just rendering and interaction:
+
+```typescript
+// packages/web/src/views/__tests__/GreenhouseDetailView.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { GreenhouseDetailView } from '../GreenhouseDetailView';
+import { createGreenhouseDetailViewModel } from '../../composition/ViewModelFactory';
+
+// Mock the ViewModel factory to return a mock ViewModel
+jest.mock('../../composition/ViewModelFactory');
+
+describe('GreenhouseDetailView', () => {
+  it('should display temperature from ViewModel', () => {
+    const mockViewModel = {
+      temperature$: of(23.5),
+      humidity$: of(65),
+      isLoading$: of(false),
+      error$: of(null),
+      initialize: jest.fn(),
+      dispose: jest.fn()
+    };
+
+    (createGreenhouseDetailViewModel as jest.Mock).mockReturnValue(mockViewModel);
+
+    render(<GreenhouseDetailView />);
+
+    expect(screen.getByText(/23.5°C/)).toBeInTheDocument();
+  });
+
+  it('should call toggleIrrigation when button clicked', () => {
+    const mockViewModel = {
+      temperature$: of(23.5),
+      isIrrigationActive$: of(false),
+      isLoading$: of(false),
+      toggleIrrigation: jest.fn(),
+      initialize: jest.fn(),
+      dispose: jest.fn()
+    };
+
+    (createGreenhouseDetailViewModel as jest.Mock).mockReturnValue(mockViewModel);
+
+    render(<GreenhouseDetailView />);
+
+    fireEvent.click(screen.getByText(/Start Irrigation/));
+
+    expect(mockViewModel.toggleIrrigation).toHaveBeenCalled();
+  });
+});
+```
+
+**This test verifies that:**
+
+1. The view correctly subscribes to ViewModel observables
+2. The view correctly calls ViewModel commands
+
+It doesn't test business logic—that's already covered in the ViewModel tests. This separation dramatically reduces test complexity and execution time.
+
+## Real-World Considerations
+
+Before you rush off to build your cross-platform empire, let's address some practical realities.
+
+### "Do I Really Need All Three Platforms?"
+
+Probably not. Most teams should start with **one platform** and validate the product before investing in others. The beauty of our architecture is that you can start with web, prove the concept, and then add mobile or desktop later without rewriting business logic.
+
+**Start with web if:**
+
+- Your users primarily access the app from desktops
+- You want fastest time-to-market
+- Your team is strongest in web development
+
+**Start with React Native if:**
+
+- Mobile is your primary platform
+- You need native performance and feel
+- You're willing to invest in mobile-specific tooling
+
+**Add Ionic later if:**
+
+- You need mobile but don't need peak performance
+- You want to maximize code reuse with your web app
+- You're targeting multiple mobile platforms quickly
+
+**Add Electron later if:**
+
+- Power users need desktop-specific features
+- Offline capabilities are critical
+- You need system-level integrations
+
+### Platform-Specific Features: When Abstraction Breaks Down
+
+Sometimes you need platform-specific features that don't abstract well. Camera access, push notifications, file system operations—these vary significantly across platforms.
+
+**Strategy 1: Platform-Specific Commands**
+
+Add optional methods to your ViewModel that only make sense on certain platforms:
+
+```typescript
+export class GreenhouseDetailViewModel {
+  // Core methods (all platforms)
+  async initialize(): Promise<void> {}
+  async toggleIrrigation(): Promise<void> {}
+
+  // Mobile-specific (Ionic, React Native)
+  async capturePhoto?(): Promise<void> {
+    // Only implemented when running on mobile
+    // Desktop/web views can check if this method exists
+  }
+
+  // Desktop-specific (Electron)
+  async exportToCSV?(filePath: string): Promise<void> {
+    // Only implemented in Electron build
+  }
+}
+```
+
+**Strategy 2: Platform-Specific ViewModels**
+
+For features that differ substantially, create platform-specific ViewModels that extend the base:
+
+```typescript
+// Base ViewModel (all platforms)
+export class GreenhouseDetailViewModel {}
+
+// Mobile-specific extension
+export class MobileGreenhouseDetailViewModel extends GreenhouseDetailViewModel {
+  async capturePhoto(): Promise<void> {
+    // Mobile-specific implementation using domain service
+  }
+
+  async enablePushNotifications(): Promise<void> {
+    // Register for push notifications
+  }
+}
+```
+
+This keeps the core ViewModel clean while allowing platform-specific extensions.
+
+### Deployment and Build Complexity
+
+Managing builds for multiple platforms is non-trivial. Here's the reality:
+
+**Web:** Straightforward. Run `npm run build`, deploy to CDN or static host.
+
+**Ionic:**
+
+```bash
+# Build for web
+npm run build
+
+# Build for iOS
+npx cap sync ios
+npx cap open ios  # Open Xcode, build & sign
+
+# Build for Android
+npx cap sync android
+npx cap open android  # Open Android Studio, build & sign
+```
+
+**React Native:**
+
+```bash
+# iOS (requires Mac)
+npx react-native run-ios
+# Or open Xcode for release builds
+
+# Android
+npx react-native run-android
+# Or use Android Studio for release builds
+```
+
+**Electron:**
+
+```bash
+# Build for all platforms
+npm run build
+electron-builder --mac --windows --linux
+```
+
+You'll want CI/CD pipelines for each platform. GitHub Actions, Bitrise, or Fastlane can automate this, but expect to invest time in build infrastructure.
+
+### Keeping Dependencies in Sync
+
+A practical challenge: different platforms may require different versions of shared dependencies. For example:
+
+- React 18 on web
+- React 18 on Ionic (should match web)
+- React 18 on Electron (should match web)
+- React 18 on React Native (but React Native may lag behind web React versions)
+
+**Solution:** Use peer dependencies in `@greenwatch/core` to let each platform choose its React version, while enforcing compatible RxJS versions:
+
+```json
+// packages/core/package.json
+{
+  "peerDependencies": {
+    "rxjs": "^7.8.0"
+  }
+}
+```
+
+Each platform package pins its exact versions:
+
+```json
+// packages/web/package.json
+{
+  "dependencies": {
+    "rxjs": "7.8.1",
+    "react": "18.2.0"
+  }
+}
+
+// packages/mobile-native/package.json
+{
+  "dependencies": {
+    "rxjs": "7.8.1",
+    "react": "18.2.0",  // Might be different from web in reality
+    "react-native": "0.72.0"
+  }
+}
+```
+
+Test the `@greenwatch/core` package against the **lowest** version of RxJS you support to ensure compatibility.
+
+## When This Approach Shines (And When It Doesn't)
+
+Let's be honest about when this architecture makes sense and when it's overkill.
+
+### ✅ **This Approach Excels When:**
+
+- **You're building for multiple platforms** (or plan to). If you know you'll need web + mobile, or web + desktop, this architecture pays for itself immediately.
+- **Your business logic is complex.** The more rules, calculations, and workflows you have, the more value you get from centralizing them in ViewModels.
+- **Your team has diverse specializations.** Backend engineers can work on domain services, iOS developers on native views, React developers on web UI—without stepping on each other.
+- **You need high test coverage.** Testing ViewModels independently of frameworks is dramatically faster and simpler than full integration tests.
+- **The application will evolve.** When requirements change, you modify the ViewModel once, not in every platform-specific component.
+
+### ❌ **This Approach Is Overkill When:**
+
+- **You're only building for one platform with no plans to expand.** If you're only ever building a web app, the overhead of separating ViewModels might not be worth it. (Though you still gain testability benefits.)
+- **Your application is extremely simple.** A basic CRUD app with minimal logic doesn't benefit much from MVVM. Just build it in React or Vue directly.
+- **You're prototyping rapidly.** In the early stages, velocity matters more than architecture. Build scrappy, refactor later if the product succeeds.
+- **Your team is small and everyone wears all hats.** If it's just you, or a two-person team, the benefits of separation may not outweigh the mental overhead of managing more files.
+
+The key question: **Are you solving a problem that will recur across platforms or over time?** If yes, invest in architecture. If no, don't over-engineer.
+
+## Conclusion: Portability Through Discipline
+
+We started this chapter by acknowledging the graveyard of "write once, run anywhere" solutions. The reason so many have failed is that they tried to abstract away platform differences entirely—to pretend that iOS and web and desktop are all the same.
+
+They're not. And that's okay.
+
+Our approach doesn't deny platform differences—it **embraces them at the right layer**. Business logic lives in framework-agnostic ViewModels. Platform-specific concerns live in platform-specific views. This separation gives us genuine portability where it matters (the expensive, complex business logic) while allowing us to optimize for each platform where it matters (the user experience).
+
+We've seen the same `GreenhouseDetailViewModel` drive three radically different interfaces:
+
+- **Ionic:** Web-based, mobile-optimized, rapid to develop
+- **React Native:** Truly native, smooth performance, platform-appropriate feel
+- **Electron:** Desktop-class, powerful integrations, offline-capable
+
+In each case, the ViewModel was unchanged. We wrote it once, tested it once, and deployed it everywhere. The view layer adapted to each platform's strengths and conventions.
+
+This is the promise of MVVM for cross-platform development—not "write once, run anywhere" (which inevitably means "run poorly everywhere"), but **"write your business logic once, then write the best possible UI for each platform."**
+
+That's a promise we can keep.
+
+---
+
+## Summary
+
+**Key Takeaways:**
+
+- **ViewModels are genuinely platform-agnostic** when you avoid framework imports and use RxJS observables for state management.
+- **Ionic** offers maximum code reuse (web + mobile) at the cost of native feel; best for content-heavy apps where web performance is sufficient.
+- **React Native** provides true native performance and UI, requiring separate view code but reusing all business logic; best for customer-facing mobile apps.
+- **Electron** brings desktop capabilities (file system, native menus, offline) using web technologies; best for power-user tools and admin dashboards.
+- **Monorepo structure** with a shared `@greenwatch/core` package enables code reuse while keeping platform-specific concerns isolated.
+- **Testing strategy** validates business logic once in the core package, then focuses platform-specific tests on rendering and interaction, not logic.
+- **This approach shines** for multi-platform applications with complex business logic and teams with diverse specializations; it's overkill for simple, single-platform projects.

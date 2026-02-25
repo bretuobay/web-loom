@@ -1,0 +1,898 @@
+---
+id: 'multi-framework-implementation-showcase'
+title: Multi-Framework Implementation Showcase
+section: The GreenWatch Case Study
+---
+
+# Multi-Framework Implementation Showcase
+
+# Chapter 17: The Scalable Monolith: Modular Patterns & Integration
+
+We've spent considerable time building our ViewModels, domain logic, and testing strategies. Now it's time to address a critical question that haunts every growing application: how do we organize all this code so it doesn't turn into an unmaintainable mess?
+
+The answer isn't "split everything into microservices" or "throw it all in a single folder and hope for the best." Instead, we're going to build what I call a **scalable monolith**—a single deployable application with clear internal boundaries that behave like separate services. This architectural pattern gives you the deployment simplicity of a monolith with the organizational clarity of distributed systems, without the operational complexity.
+
+In this chapter, we'll transform our GreenWatch application from a collection of loosely organized code into a **modular monolith** with well-defined boundaries, explicit integration points, and a structure that scales with your team. We'll explore how to organize modules, establish communication patterns that prevent tight coupling, and implement an event bus that lets modules collaborate without creating dependency nightmares.
+
+Let's be clear about what we're building: this isn't just folder organization. We're establishing **architectural boundaries** that make it possible for different teams to work on different modules simultaneously without stepping on each other's toes. We're creating a structure where you can understand, test, and potentially extract any module without untangling a web of interdependencies.
+
+## Why the Modular Monolith?
+
+Before diving into implementation, we need to understand _why_ this pattern exists and when it's appropriate.
+
+I've seen too many teams jump straight to microservices because "that's what Netflix does" or "monoliths don't scale." This is cargo cult engineering at its worst. Netflix operates at a scale you probably don't have, with engineering resources you definitely don't have. Meanwhile, companies like Shopify and GitHub run massive businesses on well-structured monoliths that serve billions of requests.
+
+The modular monolith gives you:
+
+**Organizational Clarity**: Each module has clear ownership, responsibilities, and boundaries. Your device management team works in `/device-management`, your monitoring team works in `/monitoring`, and they communicate through well-defined contracts.
+
+**Deployment Simplicity**: You deploy one application. No orchestrating service meshes, no distributed transactions, no network partitions to debug at 3 AM. When something breaks, you look at one log file, not seventeen.
+
+**Refactoring Safety**: When everything shares a process, your compiler becomes your best friend. Rename an interface? The TypeScript compiler tells you every place that needs updating. Try that across microservices with schemaless message queues.
+
+**Team Scalability**: This is the real benefit. You can grow your team by assigning different modules to different groups. They work in parallel, using domain events to integrate, without constant merge conflicts or architectural meetings.
+
+Here's the critical insight: **the modular monolith is not a stepping stone to microservices**. It's a destination. Some teams will eventually need to extract certain modules into separate services, but most won't. And if you do need to, the clear boundaries you've established make that extraction straightforward.
+
+Let's build this properly.
+
+## GreenWatch Module Structure: Establishing Boundaries
+
+We're going to organize GreenWatch into four primary modules, each representing a distinct **bounded context** from our domain model:
+
+```
+/src
+  /modules
+    /device-management     # Device lifecycle, provisioning, health
+    /monitoring           # Real-time sensor data, environmental tracking
+    /alerts               # Notification rules, alert history
+    /analytics            # Historical analysis, trends, insights
+  /shared-kernel          # Common types, utilities
+  /infrastructure         # Cross-cutting technical concerns
+```
+
+Each module is a **mini-application** with its own:
+
+- Domain models
+- ViewModels
+- Services
+- State management
+- Tests
+
+The structure within each module follows a consistent pattern:
+
+```typescript
+/device-management
+  /domain
+    Device.ts              # Domain entities
+    DeviceRepository.ts    # Repository interface
+    DeviceService.ts       # Domain operations
+  /application
+    DeviceViewModel.ts     # Presentation logic
+    DeviceListViewModel.ts
+  /infrastructure
+    ApiDeviceRepository.ts # Repository implementation
+  /events
+    DeviceRegistered.ts    # Domain events this module emits
+    DeviceOffline.ts
+  index.ts                 # Public API - what this module exports
+```
+
+Notice that **`index.ts`**. This is crucial. Each module exports only what other modules need to know about. Everything else is internal implementation detail.
+
+Here's what the Device Management module exposes:
+
+```typescript
+// /modules/device-management/index.ts
+
+// ✅ Export ViewModels for the view layer
+export { DeviceViewModel } from './application/DeviceViewModel';
+export { DeviceListViewModel } from './application/DeviceListViewModel';
+
+// ✅ Export domain services for other modules
+export { DeviceService } from './domain/DeviceService';
+
+// ✅ Export domain events as integration contracts
+export { DeviceRegistered } from './events/DeviceRegistered';
+export { DeviceOffline } from './events/DeviceOffline';
+export { DeviceOnline } from './events/DeviceOnline';
+
+// ✅ Export types that form the integration contract
+export type { Device, DeviceId, DeviceStatus } from './domain/Device';
+
+// ❌ DO NOT export repositories - they're internal
+// ❌ DO NOT export internal state management
+// ❌ DO NOT export implementation details
+```
+
+This explicit export list creates a **architectural firewall**. Other modules can only depend on what you've deliberately exposed. If someone tries to import `ApiDeviceRepository` from another module, TypeScript won't let them—it's not in the public API.
+
+Let's look at a complete module structure:
+
+```typescript
+// /modules/device-management/domain/Device.ts
+
+export type DeviceId = string & { readonly __brand: 'DeviceId' };
+export type GreenhouseId = string & { readonly __brand: 'GreenhouseId' };
+
+export interface Device {
+  readonly id: DeviceId;
+  readonly greenhouseId: GreenhouseId;
+  readonly name: string;
+  readonly type: 'temperature' | 'humidity' | 'soil_moisture' | 'light';
+  readonly status: DeviceStatus;
+  readonly lastSeen: Date;
+}
+
+export type DeviceStatus =
+  | { type: 'online'; since: Date }
+  | { type: 'offline'; since: Date }
+  | { type: 'maintenance'; scheduledUntil: Date };
+
+export interface DeviceRepository {
+  findById(id: DeviceId): Observable<Device | null>;
+  findByGreenhouse(greenhouseId: GreenhouseId): Observable<Device[]>;
+  save(device: Device): Observable<void>;
+}
+```
+
+```typescript
+// /modules/device-management/domain/DeviceService.ts
+
+import { Observable } from 'rxjs';
+import { Device, DeviceId, DeviceRepository } from './Device';
+import { DomainEventBus } from '@/infrastructure/events/DomainEventBus';
+import { DeviceOffline, DeviceOnline } from '../events';
+
+export class DeviceService {
+  constructor(
+    private readonly repository: DeviceRepository,
+    private readonly eventBus: DomainEventBus,
+  ) {}
+
+  markOffline(deviceId: DeviceId): Observable<void> {
+    return this.repository.findById(deviceId).pipe(
+      switchMap((device) => {
+        if (!device) {
+          throw new Error(`Device ${deviceId} not found`);
+        }
+
+        const updatedDevice: Device = {
+          ...device,
+          status: { type: 'offline', since: new Date() },
+        };
+
+        return this.repository.save(updatedDevice).pipe(
+          tap(() => {
+            // ✅ Publish domain event for other modules
+            this.eventBus.publish(
+              new DeviceOffline({
+                deviceId: device.id,
+                greenhouseId: device.greenhouseId,
+                offlineSince: new Date(),
+              }),
+            );
+          }),
+        );
+      }),
+    );
+  }
+
+  markOnline(deviceId: DeviceId): Observable<void> {
+    // Similar pattern - update state, publish event
+  }
+}
+```
+
+The key insight here: **DeviceService** doesn't know or care who listens to these events. It publishes `DeviceOffline` and moves on. The Alerts module might listen to trigger notifications. The Analytics module might listen to track uptime. The Monitoring module might listen to update dashboards. DeviceService doesn't need to know about any of them.
+
+This is **loose coupling** in practice. Modules collaborate through events without creating dependencies.
+
+## The Shared Kernel: What to Share, What to Duplicate
+
+Every modular system needs to answer a critical question: what do we share across modules, and what do we duplicate?
+
+The **shared kernel** is DDD terminology for the small set of domain concepts that multiple bounded contexts need to agree on. In GreenWatch, this includes:
+
+```typescript
+// /shared-kernel/types.ts
+
+// ✅ Core domain types that appear everywhere
+export type TimeRange = {
+  readonly start: Date;
+  readonly end: Date;
+};
+
+// ✅ Environmental reading structure - every module uses this
+export type Reading = {
+  readonly value: number;
+  readonly unit: string;
+  readonly timestamp: Date;
+};
+
+// ✅ Common identification types
+export type GreenhouseId = string & { readonly __brand: 'GreenhouseId' };
+export type UserId = string & { readonly __brand: 'UserId' };
+
+// ✅ Shared utilities that have no domain logic
+export function isWithinRange(date: Date, range: TimeRange): boolean {
+  return date >= range.start && date <= range.end;
+}
+```
+
+Notice what's **not** in the shared kernel:
+
+- No business logic
+- No ViewModels
+- No services
+- No repositories
+
+The shared kernel contains only **types and pure functions** that represent fundamental domain concepts. If something has behavior or state, it belongs in a module.
+
+Here's the principle: **prefer duplication over coupling**. If two modules need similar functionality but might evolve differently, duplicate the code. Copy/paste is not always evil—premature abstraction is worse.
+
+For example, both the Monitoring and Analytics modules work with time series data. But they have different requirements:
+
+```typescript
+// /modules/monitoring/domain/TimeSeriesData.ts
+// Real-time monitoring needs optimized for latest values
+export class MonitoringTimeSeries {
+  // Keeps only last 1000 points in memory
+  // Optimized for append-only writes
+  // No historical queries
+}
+
+// /modules/analytics/domain/TimeSeriesData.ts
+// Analytics needs optimized for range queries
+export class AnalyticsTimeSeries {
+  // Queries historical database
+  // Aggregates by hour/day/week
+  // Complex filtering capabilities
+}
+```
+
+These look similar superficially, but they serve different purposes and will evolve separately. Trying to create a shared `TimeSeries` class would either be too generic (doing nothing well) or too complex (with flags for every use case).
+
+**Duplicate the concept, share the contract**:
+
+```typescript
+// /shared-kernel/types.ts
+export type TimeSeriesPoint = Reading & {
+  readonly deviceId: DeviceId;
+};
+
+// Both modules use this type, but implement storage differently
+```
+
+The shared kernel should be **stable**. Changes here affect every module, so they require team-wide coordination. If you're constantly changing shared kernel types, they don't belong there—move them into a specific module.
+
+## Integration Patterns: The Event Bus
+
+Modules need to communicate. The question is _how_ without creating a tangled web of dependencies.
+
+The answer: **domain events** flowing through an **event bus**. This is the backbone of modular integration.
+
+Here's the core abstraction:
+
+```typescript
+// /infrastructure/events/DomainEvent.ts
+
+export abstract class DomainEvent {
+  readonly occurredAt: Date;
+  readonly eventId: string;
+
+  constructor() {
+    this.occurredAt = new Date();
+    this.eventId = crypto.randomUUID();
+  }
+
+  // Each event must identify its type
+  abstract readonly eventType: string;
+}
+```
+
+```typescript
+// /infrastructure/events/DomainEventBus.ts
+
+import { Observable, Subject, filter } from 'rxjs';
+import { DomainEvent } from './DomainEvent';
+
+export class DomainEventBus {
+  private readonly events$ = new Subject<DomainEvent>();
+
+  // ✅ Publish an event - any module can do this
+  publish(event: DomainEvent): void {
+    this.events$.next(event);
+  }
+
+  // ✅ Subscribe to specific event types
+  ofType<T extends DomainEvent>(eventType: string): Observable<T> {
+    return this.events$.pipe(filter((event) => event.eventType === eventType)) as Observable<T>;
+  }
+
+  // ✅ Subscribe to all events (useful for logging, audit)
+  all(): Observable<DomainEvent> {
+    return this.events$.asObservable();
+  }
+}
+```
+
+This is deliberately simple. The event bus is just a **typed message broker** using RxJS. No complex routing, no retry logic, no message persistence. Those concerns can be added later if needed, but start simple.
+
+Now let's see how modules use this. The Device Management module publishes events:
+
+```typescript
+// /modules/device-management/events/DeviceOffline.ts
+
+import { DomainEvent } from '@/infrastructure/events/DomainEvent';
+import { DeviceId, GreenhouseId } from '@/shared-kernel/types';
+
+export class DeviceOffline extends DomainEvent {
+  readonly eventType = 'device.offline' as const;
+
+  constructor(
+    public readonly payload: {
+      deviceId: DeviceId;
+      greenhouseId: GreenhouseId;
+      offlineSince: Date;
+    },
+  ) {
+    super();
+  }
+}
+```
+
+The Alerts module listens and reacts:
+
+```typescript
+// /modules/alerts/application/AlertService.ts
+
+import { DomainEventBus } from '@/infrastructure/events/DomainEventBus';
+import { DeviceOffline } from '@/modules/device-management';
+import { takeUntil } from 'rxjs/operators';
+
+export class AlertService {
+  constructor(
+    private readonly eventBus: DomainEventBus,
+    private readonly notificationService: NotificationService,
+  ) {
+    this.subscribeToDeviceEvents();
+  }
+
+  private subscribeToDeviceEvents(): void {
+    // ✅ Listen for device offline events
+    this.eventBus
+      .ofType<DeviceOffline>('device.offline')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((event) => {
+        this.handleDeviceOffline(event);
+      });
+  }
+
+  private handleDeviceOffline(event: DeviceOffline): void {
+    // Check if there's an active alert rule for this greenhouse
+    // Send notification if needed
+    // Create alert record
+  }
+}
+```
+
+Notice the pattern: **publish and forget**. DeviceService doesn't wait for AlertService to process the event. It doesn't know AlertService exists. This is **temporal decoupling**—the modules don't need to be available at the same time.
+
+Let's look at a more complex integration scenario. When a device goes offline, multiple modules need to know:
+
+```typescript
+// Device Management: publishes the event
+this.eventBus.publish(
+  new DeviceOffline({
+    deviceId: device.id,
+    greenhouseId: device.greenhouseId,
+    offlineSince: new Date(),
+  }),
+);
+
+// Alerts: creates notification
+this.eventBus.ofType<DeviceOffline>('device.offline').subscribe((event) => {
+  this.createAlert(event.payload);
+});
+
+// Analytics: records downtime metrics
+this.eventBus.ofType<DeviceOffline>('device.offline').subscribe((event) => {
+  this.recordDowntime(event.payload.deviceId, event.payload.offlineSince);
+});
+
+// Monitoring: updates dashboard status
+this.eventBus.ofType<DeviceOffline>('device.offline').subscribe((event) => {
+  this.updateDeviceStatus(event.payload.deviceId, 'offline');
+});
+```
+
+Four modules reacting to a single event, each doing what makes sense in their context, without any of them knowing about the others. This is the power of event-driven integration.
+
+## Event Contracts: The Integration API
+
+Domain events are **contracts**. Once you publish an event structure, other modules depend on it. Changing event fields is like changing a REST API—you need versioning or backward compatibility.
+
+Treat your events like a public API:
+
+```typescript
+// ✅ GOOD: Clear, stable contract
+export class GreenhouseEnvironmentChanged extends DomainEvent {
+  readonly eventType = 'greenhouse.environment.changed' as const;
+
+  constructor(
+    public readonly payload: {
+      readonly greenhouseId: GreenhouseId;
+      readonly temperature: Reading;
+      readonly humidity: Reading;
+      readonly timestamp: Date;
+    },
+  ) {
+    super();
+  }
+}
+
+// ❌ BAD: Vague, likely to change
+export class ThingHappened extends DomainEvent {
+  constructor(public data: any) {
+    super();
+  }
+}
+```
+
+When you need to evolve an event, you have options:
+
+**Option 1: Add optional fields** (backward compatible)
+
+```typescript
+export class DeviceOffline extends DomainEvent {
+  constructor(
+    public readonly payload: {
+      deviceId: DeviceId;
+      greenhouseId: GreenhouseId;
+      offlineSince: Date;
+      // ✅ New field, optional - existing listeners still work
+      reason?: 'timeout' | 'manual' | 'maintenance';
+    },
+  ) {
+    super();
+  }
+}
+```
+
+**Option 2: Version the event** (breaking change)
+
+```typescript
+export class DeviceOfflineV2 extends DomainEvent {
+  readonly eventType = 'device.offline.v2' as const;
+
+  constructor(
+    public readonly payload: {
+      // New structure
+    },
+  ) {
+    super();
+  }
+}
+
+// Keep publishing both versions during migration period
+this.eventBus.publish(new DeviceOffline(oldPayload));
+this.eventBus.publish(new DeviceOfflineV2(newPayload));
+```
+
+**Option 3: Create a new event** (semantic change)
+
+```typescript
+// Old event for connectivity issues
+export class DeviceOffline extends DomainEvent {}
+
+// New event for planned maintenance
+export class DeviceMaintenanceScheduled extends DomainEvent {}
+```
+
+The key principle: **events represent facts about what happened**. Don't name them for what you _want_ to happen (`SendAlertForDevice`) but for what _did_ happen (`DeviceWentOffline`). This keeps the event publisher decoupled from event consumers.
+
+## Avoiding Circular Dependencies
+
+Here's where things get tricky. As your application grows, you'll be tempted to have modules reference each other directly:
+
+```typescript
+// ❌ BAD: Circular dependency waiting to happen
+// /modules/alerts/AlertService.ts
+import { DeviceService } from '@/modules/device-management';
+
+export class AlertService {
+  constructor(private deviceService: DeviceService) {}
+
+  async checkDeviceStatus(deviceId: DeviceId) {
+    // Now Alerts depends on Device Management
+    const device = await this.deviceService.getDevice(deviceId);
+  }
+}
+
+// Meanwhile in device-management...
+// /modules/device-management/DeviceService.ts
+import { AlertService } from '@/modules/alerts';
+
+export class DeviceService {
+  constructor(private alertService: AlertService) {}
+
+  async markOffline(deviceId: DeviceId) {
+    // And Device Management depends on Alerts
+    await this.alertService.createAlert(deviceId);
+  }
+}
+```
+
+Congratulations, you've created a circular dependency. TypeScript will compile this (maybe), but you've destroyed your module boundaries. These modules can no longer be understood, tested, or extracted independently.
+
+**Solution 1: Events for cross-module communication**
+
+```typescript
+// ✅ GOOD: Device Management publishes event
+export class DeviceService {
+  markOffline(deviceId: DeviceId): Observable<void> {
+    return this.repository.save(updatedDevice).pipe(
+      tap(() => {
+        this.eventBus.publish(new DeviceOffline({ deviceId }));
+      }),
+    );
+  }
+}
+
+// ✅ GOOD: Alerts listens to event
+export class AlertService {
+  constructor(eventBus: DomainEventBus) {
+    eventBus.ofType<DeviceOffline>('device.offline').subscribe((event) => this.createAlert(event.payload));
+  }
+}
+```
+
+No direct dependency. Alerts doesn't import anything from Device Management except the event type (which is part of the public API).
+
+**Solution 2: Dependency inversion for queries**
+
+Sometimes one module legitimately needs to query another. Use **interfaces** to invert the dependency:
+
+```typescript
+// ✅ Alerts defines what it needs (in its own module)
+// /modules/alerts/domain/DeviceStatusProvider.ts
+export interface DeviceStatusProvider {
+  getDeviceStatus(deviceId: DeviceId): Observable<DeviceStatus>;
+}
+
+export class AlertService {
+  constructor(
+    // ✅ Depends on interface, not concrete implementation
+    private readonly deviceStatus: DeviceStatusProvider,
+  ) {}
+
+  checkAlert(deviceId: DeviceId): Observable<boolean> {
+    return this.deviceStatus.getDeviceStatus(deviceId).pipe(map((status) => status.type === 'offline'));
+  }
+}
+
+// Device Management implements the interface
+// /modules/device-management/integration/DeviceStatusAdapter.ts
+export class DeviceStatusAdapter implements DeviceStatusProvider {
+  constructor(private readonly deviceService: DeviceService) {}
+
+  getDeviceStatus(deviceId: DeviceId): Observable<DeviceStatus> {
+    return this.deviceService.getDevice(deviceId).pipe(map((device) => device.status));
+  }
+}
+
+// Wire them up at the application boundary
+const deviceService = new DeviceService(repository, eventBus);
+const deviceStatusAdapter = new DeviceStatusAdapter(deviceService);
+const alertService = new AlertService(deviceStatusAdapter);
+```
+
+Now Alerts doesn't depend on Device Management—it depends on an interface it owns. Device Management provides an adapter. The dependency points **inward** from Device Management to Alerts, not the other way around.
+
+This is the **Dependency Inversion Principle** in action. High-level modules (Alerts, which contains business logic) don't depend on low-level modules (Device Management, which provides data). Both depend on abstractions (the `DeviceStatusProvider` interface).
+
+**Solution 3: Shared services in infrastructure**
+
+For truly cross-cutting concerns that every module needs (logging, authentication, caching), put them in the infrastructure layer:
+
+```typescript
+// /infrastructure/logging/Logger.ts
+export interface Logger {
+  info(message: string, context?: Record<string, unknown>): void;
+  error(error: Error, context?: Record<string, unknown>): void;
+}
+
+// Every module can depend on infrastructure
+// This is an acceptable dependency direction: module → infrastructure
+```
+
+The rule: **dependencies flow in one direction**. Modules can depend on infrastructure and shared kernel, but never on other modules directly. Integration happens through events or dependency-inverted interfaces.
+
+## Module Composition: Wiring It All Together
+
+Individual modules are great, but someone needs to wire them together into a working application. This happens at the **composition root**—typically your application's entry point.
+
+```typescript
+// /main.ts - Application composition root
+
+import { DomainEventBus } from '@/infrastructure/events';
+import { DeviceService } from '@/modules/device-management';
+import { MonitoringService } from '@/modules/monitoring';
+import { AlertService } from '@/modules/alerts';
+import { AnalyticsService } from '@/modules/analytics';
+
+// ✅ Create shared infrastructure
+const eventBus = new DomainEventBus();
+const httpClient = new HttpClient();
+
+// ✅ Initialize each module with its dependencies
+const deviceModule = initializeDeviceManagement(httpClient, eventBus);
+const monitoringModule = initializeMonitoring(httpClient, eventBus);
+const alertsModule = initializeAlerts(httpClient, eventBus, deviceModule.statusProvider);
+const analyticsModule = initializeAnalytics(httpClient, eventBus);
+
+// ✅ Export composed application
+export const app = {
+  devices: deviceModule,
+  monitoring: monitoringModule,
+  alerts: alertsModule,
+  analytics: analyticsModule,
+};
+
+// Each initialization function is simple:
+function initializeDeviceManagement(http: HttpClient, eventBus: DomainEventBus) {
+  const repository = new ApiDeviceRepository(http);
+  const service = new DeviceService(repository, eventBus);
+  const listViewModel = new DeviceListViewModel(service);
+
+  // Create adapter for other modules to use
+  const statusProvider = new DeviceStatusAdapter(service);
+
+  return { service, listViewModel, statusProvider };
+}
+```
+
+This is the **only place** where we explicitly wire modules together. ViewModels never do this. Domain services never do this. Only the composition root knows the full application structure.
+
+In a real application, you'd use a **dependency injection container** to manage this:
+
+```typescript
+// Using a DI container (pseudocode - adapt to your container of choice)
+const container = new Container();
+
+// Register infrastructure
+container.register(DomainEventBus).asSingleton();
+container.register(HttpClient).asSingleton();
+
+// Register module services
+container.register(DeviceService).withDependencies([ApiDeviceRepository, DomainEventBus]);
+
+container.register(AlertService).withDependencies([AlertRepository, DomainEventBus, DeviceStatusProvider]);
+
+// When you need a ViewModel:
+const viewModel = container.resolve(DeviceListViewModel);
+```
+
+The container handles dependency resolution, lifecycle management, and wiring. But the principle remains: **explicit composition at the application boundary**.
+
+## Testing Modular Boundaries
+
+One huge advantage of modular architecture: you can test each module in isolation.
+
+```typescript
+// Testing Device Management without loading other modules
+describe('DeviceService', () => {
+  let service: DeviceService;
+  let mockRepository: MockDeviceRepository;
+  let mockEventBus: MockEventBus;
+
+  beforeEach(() => {
+    mockRepository = new MockDeviceRepository();
+    mockEventBus = new MockEventBus();
+    service = new DeviceService(mockRepository, mockEventBus);
+  });
+
+  it('publishes DeviceOffline event when marking device offline', async () => {
+    const deviceId = 'device-1' as DeviceId;
+    mockRepository.setDevice({
+      id: deviceId,
+      status: { type: 'online', since: new Date() },
+    });
+
+    await lastValueFrom(service.markOffline(deviceId));
+
+    // ✅ Verify event was published
+    expect(mockEventBus.publishedEvents).toHaveLength(1);
+    expect(mockEventBus.publishedEvents[0]).toBeInstanceOf(DeviceOffline);
+  });
+});
+```
+
+Notice we don't need to load the Alerts module, the Monitoring module, or any other module. We test DeviceService with test doubles, verifying it publishes the right events. That's all we care about.
+
+Then we test the Alerts module separately:
+
+```typescript
+describe('AlertService', () => {
+  let service: AlertService;
+  let mockEventBus: MockEventBus;
+
+  beforeEach(() => {
+    mockEventBus = new MockEventBus();
+    service = new AlertService(mockEventBus, mockNotificationService);
+  });
+
+  it('creates alert when DeviceOffline event occurs', () => {
+    const event = new DeviceOffline({
+      deviceId: 'device-1' as DeviceId,
+      greenhouseId: 'gh-1' as GreenhouseId,
+      offlineSince: new Date(),
+    });
+
+    // ✅ Simulate event from event bus
+    mockEventBus.emit(event);
+
+    // Verify alert was created
+    expect(mockNotificationService.sentNotifications).toHaveLength(1);
+  });
+});
+```
+
+We test that AlertService correctly _handles_ DeviceOffline events. We don't test that DeviceService _publishes_ them—that's DeviceService's responsibility, tested in its own suite.
+
+This is **contract testing**. Each module tests its side of the contract (events). As long as both sides honor the contract, integration works.
+
+For integration tests, you can test event flow without UI:
+
+```typescript
+describe('Device offline integration', () => {
+  it('triggers alert when device goes offline', async () => {
+    const eventBus = new DomainEventBus();
+
+    const deviceService = new DeviceService(new InMemoryDeviceRepository(), eventBus);
+
+    const alertService = new AlertService(new InMemoryAlertRepository(), eventBus);
+
+    // Register a device
+    const deviceId = await deviceService.registerDevice({
+      name: 'Temp Sensor 1',
+      type: 'temperature',
+    });
+
+    // Mark it offline
+    await lastValueFrom(deviceService.markOffline(deviceId));
+
+    // Give event time to propagate
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    // Verify alert was created
+    const alerts = await lastValueFrom(alertService.getAlerts());
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].deviceId).toBe(deviceId);
+  });
+});
+```
+
+This tests the full integration path: DeviceService → Event Bus → AlertService, without any UI components or HTTP requests. It's fast, deterministic, and proves the modules integrate correctly.
+
+## Evolution Strategy: When to Extract a Module
+
+The modular monolith isn't static. As your application grows, you might need to extract a module into a separate service. The good news: you've already done most of the work.
+
+Consider extracting a module when:
+
+**Different scaling characteristics**: Your Analytics module needs 10x the compute resources of everything else. It processes historical data differently than real-time monitoring.
+
+**Team independence**: You have a dedicated analytics team that wants to deploy on their own schedule, use different tools, or work in a different tech stack.
+
+**Security boundaries**: Device Management handles sensitive provisioning keys and needs stricter access controls than the rest of the system.
+
+**External integration**: You want to expose Alerts as a service that other applications can use, with its own API and SLA.
+
+When you extract a module, the event-based integration makes it straightforward:
+
+```typescript
+// Before: In-process event bus
+const eventBus = new DomainEventBus(); // RxJS Subject
+
+// After: Message queue
+const eventBus = new RabbitMQEventBus(); // Same interface, different transport
+```
+
+The event contracts stay the same. The business logic stays the same. You've just changed the transport mechanism. Your modules don't know or care—they still publish and subscribe through the same interface.
+
+This is the power of the modular monolith: **defer the expensive decision of distributed systems until you have evidence it's necessary**. Most teams never need it. But if you do, the migration path is clear because you've maintained proper boundaries all along.
+
+## Putting It All Together: GreenWatch Module Integration
+
+Let's see how all these patterns work together in a real scenario. A user adjusts the optimal temperature range for a greenhouse:
+
+```typescript
+// 1. Monitoring module handles the configuration change
+export class GreenhouseConfigurationService {
+  updateOptimalRange(greenhouseId: GreenhouseId, range: TemperatureRange): Observable<void> {
+    return this.repository.saveConfiguration(greenhouseId, range).pipe(
+      tap(() => {
+        // ✅ Publish domain event
+        this.eventBus.publish(
+          new OptimalRangeChanged({
+            greenhouseId,
+            temperatureRange: range,
+            changedAt: new Date(),
+          }),
+        );
+      }),
+    );
+  }
+}
+
+// 2. Alerts module listens and updates notification rules
+export class AlertRuleService {
+  constructor(private eventBus: DomainEventBus) {
+    this.eventBus.ofType<OptimalRangeChanged>('greenhouse.range.changed').subscribe((event) => {
+      this.updateThresholds(event.payload.greenhouseId, event.payload.temperatureRange);
+    });
+  }
+
+  private updateThresholds(greenhouseId: GreenhouseId, range: TemperatureRange): void {
+    // Adjust alert thresholds based on new optimal range
+    // e.g., alert if temp is 5° outside optimal
+  }
+}
+
+// 3. Analytics module listens and invalidates cached reports
+export class AnalyticsService {
+  constructor(private eventBus: DomainEventBus) {
+    this.eventBus.ofType<OptimalRangeChanged>('greenhouse.range.changed').subscribe((event) => {
+      this.invalidateGreenhouseCache(event.payload.greenhouseId);
+    });
+  }
+}
+
+// 4. Monitoring dashboard ViewModel subscribes for real-time UI updates
+export class GreenhouseDashboardViewModel {
+  readonly configuration$: Observable<GreenhouseConfiguration>;
+
+  constructor(
+    private configService: GreenhouseConfigurationService,
+    private eventBus: DomainEventBus,
+  ) {
+    // Initial load
+    this.configuration$ = this.configService.getConfiguration(this.greenhouseId);
+
+    // ✅ Listen for changes from any source
+    this.eventBus
+      .ofType<OptimalRangeChanged>('greenhouse.range.changed')
+      .pipe(
+        filter((e) => e.payload.greenhouseId === this.greenhouseId),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(() => {
+        // Refresh configuration to reflect changes
+        this.refreshConfiguration();
+      });
+  }
+}
+```
+
+Four modules collaborating seamlessly:
+
+- **Monitoring**: Owns the configuration, publishes the change
+- **Alerts**: Updates thresholds without being told to
+- **Analytics**: Invalidates cache without being told to
+- **ViewModel**: Refreshes UI without being told to
+
+No module directly calls another. No circular dependencies. No tight coupling. Just events flowing through the system, each module reacting to what matters to it.
+
+This is the modular monolith in action. Clear boundaries, loose coupling, testable in isolation, but composed into a cohesive system.
+
+---
+
+**What we've built**
+
+We've transformed GreenWatch from a loose collection of code into a structured, modular application with clear architectural boundaries. Each module owns its domain, exposes a minimal public API, and integrates through domain events. We can test modules independently, evolve them separately, and potentially extract them into services if needed—all without the operational complexity of distributed systems from day one.
+
+The modular monolith isn't a compromise or a stepping stone. It's a proven architectural pattern that gives you organizational clarity, team scalability, and deployment simplicity. Most importantly, it keeps your options open. Start here, and extract services only when you have concrete evidence it's necessary.
+
+In the next chapter, we'll explore how to handle the view layer in this modular architecture, showing how ViewModels integrate with modules and how to structure your React, Vue, or Angular components to respect these boundaries.

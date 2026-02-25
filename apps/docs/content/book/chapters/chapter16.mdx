@@ -1,0 +1,695 @@
+# Chapter 16: Pragmatic Architecture in the Real World
+
+We need to have an honest conversation about architectural theory versus practice.
+
+In Chapter 15, we explored Domain-Driven Design principles for frontend applications—establishing bounded contexts, creating ubiquitous language, and organizing code around business capabilities rather than technical concerns. We presented GreenWatch's architecture with clean separations between Device Management, Environmental Monitoring, and Alert systems. It was beautiful, theoretically sound architecture.
+
+Now let's talk about reality.
+
+## The Architecture Gap
+
+If you've worked in industry for any length of time, you've likely encountered this pattern: You read about clean architecture, get excited about the principles, attempt to implement them on your team, and then... well, things get complicated.
+
+Your team pushes back. The React developers insist on keeping everything in components. The Product Manager questions why you're "over-engineering" a simple feature. The deadline looms, and suddenly that pristine domain model you designed looks like an expensive luxury rather than a practical necessity.
+
+Here's what actually happens in most codebases:
+
+```typescript
+// What we often see in production
+src / components / EnvironmentalDashboard / EnvironmentalDashboard.tsx; // 800+ lines
+useEnvironmentalData.ts; // Business logic mixed in
+EnvironmentalChart.tsx;
+utils.ts; // Domain logic hiding here
+DeviceManagement / DeviceList.tsx; // Talks directly to API
+DeviceCard.tsx;
+deviceHelpers.ts; // More hidden domain logic
+api / environmentalApi.ts;
+deviceApi.ts;
+hooks / useDevices.ts;
+useEnvironmentalData.ts;
+utils / // The junk drawer
+  calculations.ts;
+formatters.ts;
+```
+
+We've abandoned DDD not because it's wrong, but because it _feels_ incompatible with how modern frameworks want us to write code. React's component model, Vue's composition API, Angular's services—they all push us toward patterns that don't obviously map to domain-driven design.
+
+But here's the thing: **The frontend community hasn't abandoned architectural thinking. We've just renamed it.**
+
+## The Hidden Architecture: What We're Actually Doing
+
+Look closely at what the React community has converged on over the past few years. Pattern names like **Bulletproof React**, **Feature-Sliced Design**, and **Domain-Driven Folders** have emerged as best practices. Let's examine what these patterns actually represent.
+
+### Feature-Sliced Design: DDD in Disguise
+
+Consider the Feature-Sliced Design (FSD) architecture that's gained significant traction in the React community:
+
+```typescript
+// Feature-Sliced Design structure
+src/
+  features/
+    environmental-monitoring/
+      model/                    // Domain logic
+        environmentalStore.ts
+        calculations.ts
+      ui/                       // Presentation
+        Dashboard.tsx
+        Chart.tsx
+      api/                      // Infrastructure
+        environmentalApi.ts
+    device-management/
+      model/
+        deviceStore.ts
+      ui/
+        DeviceList.tsx
+      api/
+        deviceApi.ts
+  shared/
+    ui/
+    lib/
+```
+
+What is this? It's bounded contexts with a different vocabulary. Each "feature" is a bounded context with clear ownership boundaries. The `model/` folder contains domain logic. The `ui/` folder is your View layer. The `api/` folder handles infrastructure concerns.
+
+**This is MVVM organized by domain capability.**
+
+### Bulletproof React: The Repository Pattern Reborn
+
+The Bulletproof React pattern advocates for this structure:
+
+```typescript
+// Bulletproof React approach
+src / features / environmental - monitoring / api / getEnvironmentalData.ts;
+updateThresholds.ts;
+components / Dashboard.tsx;
+hooks / useEnvironmentalData.ts;
+stores / environmentalStore.ts;
+types / environmental.types.ts;
+```
+
+Let's be honest about what this really is:
+
+- **`api/`** — These are Repository implementations
+- **`stores/`** — This is your Domain Model with state
+- **`hooks/`** — These are ViewModel factories that connect domain logic to React components
+- **`components/`** — The View layer
+
+**This is also MVVM.** It's the Repository Pattern. It's Dependency Injection. We've just adapted the terminology to feel more "React-native."
+
+## The Realization: We're Reinventing Architecture
+
+The frontend community didn't reject architectural patterns. We rejected the _vocabulary_ that came from backend development. Terms like "ViewModel," "Repository," and "Domain Service" felt foreign in a world of hooks, components, and reactive state.
+
+So we invented new names. We created patterns that _felt_ like React patterns or Vue patterns, but underneath, we were solving the exact same architectural problems that MVVM and DDD have always addressed:
+
+- **How do we separate business logic from presentation?**
+- **How do we organize code around business capabilities?**
+- **How do we make our application testable without spinning up a browser?**
+- **How do we prevent different parts of the application from becoming entangled?**
+
+Consider these conceptual mappings:
+
+| Traditional DDD/MVVM Term | Modern Frontend Pattern        |
+| ------------------------- | ------------------------------ |
+| Bounded Context           | Feature Slice / Feature Module |
+| Domain Model              | Store / State Manager          |
+| Repository                | API Layer / Data Fetching Hook |
+| ViewModel                 | Custom Hook / Composable       |
+| Domain Service            | Business Logic Module          |
+| View                      | Component / Template           |
+
+The names changed. The problems didn't.
+
+## Enforcing Architecture in Practice
+
+Understanding that modern patterns are architectural patterns in disguise is only half the battle. The real challenge is _enforcing_ those boundaries so they don't erode over time.
+
+We've all seen it happen. The project starts with beautiful feature separation. Then someone adds "just one import" from a different feature. Then another. Within months, you have spaghetti code where the device management feature is directly calling functions from the environmental monitoring feature, creating hidden coupling.
+
+**The solution isn't more documentation or stronger code review guidelines. It's tooling.**
+
+### Enforcing Boundaries with ESLint
+
+Modern JavaScript tooling gives us powerful ways to enforce architectural boundaries. Let's implement them.
+
+First, we establish clear rules using ESLint's `no-restricted-imports` plugin:
+
+```javascript
+// .eslintrc.js
+module.exports = {
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['@/features/*/model/*', '@/features/*/api/*'],
+            message: "Don't import domain logic from other features directly. Use the public API instead.",
+          },
+          {
+            group: ['@/features/environmental-monitoring/*'],
+            message: 'Environmental Monitoring is a separate bounded context. Use domain events or shared interfaces.',
+            // Allow only public exports
+            except: ['@/features/environmental-monitoring/index.ts'],
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+This enforces a critical architectural principle: **Features can only communicate through their public interfaces.** You cannot reach into another feature's internals.
+
+For more sophisticated boundary enforcement, we can use `eslint-plugin-boundaries`:
+
+```javascript
+// .eslintrc.js with boundaries plugin
+module.exports = {
+  extends: ['plugin:boundaries/recommended'],
+  settings: {
+    'boundaries/elements': [
+      {
+        type: 'feature',
+        pattern: 'src/features/*',
+        mode: 'folder',
+        capture: ['featureName'],
+      },
+      {
+        type: 'shared',
+        pattern: 'src/shared/*',
+        mode: 'folder',
+      },
+    ],
+    'boundaries/rules': [
+      {
+        from: ['feature'],
+        allow: ['shared', ['feature', { featureName: '${from.featureName}' }]],
+        message: 'Features cannot depend on other features directly',
+      },
+    ],
+  },
+};
+```
+
+**This is compiler-enforced architecture.** Your CI pipeline will fail if someone violates bounded context boundaries. No code review needed—the tooling catches it automatically.
+
+### Monorepo Architecture for Strict Boundaries
+
+For larger applications, monorepo structures provide even stronger guarantees. Tools like Nx, Turborepo, or pnpm workspaces let you define explicit dependency graphs:
+
+```json
+// packages/environmental-monitoring/package.json
+{
+  "name": "@greenwatch/environmental-monitoring",
+  "dependencies": {
+    "@greenwatch/shared-types": "workspace:*",
+    "@greenwatch/domain-events": "workspace:*"
+    // Notice: NO dependency on @greenwatch/device-management
+  }
+}
+```
+
+With this structure, it's _physically impossible_ for the environmental monitoring context to import code from device management. The TypeScript compiler won't even resolve the imports. Your IDE won't offer autocomplete suggestions. The dependency simply doesn't exist.
+
+This is the strongest form of boundary enforcement. If two features need to communicate, they must do so through:
+
+1. **Shared contracts** defined in a separate package (`@greenwatch/shared-types`)
+2. **Domain events** published through an event bus (`@greenwatch/domain-events`)
+3. **Public APIs** explicitly exported from feature packages
+
+Let's see how this works in practice:
+
+```typescript
+// packages/environmental-monitoring/src/index.ts
+// This is the ONLY file other packages can import from
+
+export type { EnvironmentalData, ThresholdConfig } from './model/types';
+
+export { useEnvironmentalData } from './hooks/useEnvironmentalData';
+
+// Internal implementation details are NOT exported
+// Other features cannot access:
+// - ./model/environmentalStore.ts
+// - ./api/environmentalApi.ts
+// - ./utils/calculations.ts
+```
+
+```typescript
+// packages/device-management/src/SensorCard.tsx
+// ✅ Allowed - using public API
+import { useEnvironmentalData } from '@greenwatch/environmental-monitoring';
+
+// ❌ Not possible - TypeScript compilation error
+import { environmentalStore } from '@greenwatch/environmental-monitoring/model/environmentalStore';
+```
+
+The monorepo structure gives you architectural boundaries that are _enforced by the build system itself._ This is far more reliable than documentation or code review.
+
+## The Object-Oriented Elephant in the Room
+
+We need to address another point of tension in modern frontend development: the community's complicated relationship with Object-Oriented Programming.
+
+React's documentation actively discourages OOP patterns. Vue's Composition API moved away from class-based components. The entire frontend ecosystem has embraced functional programming, immutability, and pure functions. We use TypeScript primarily for its type system, not its classes.
+
+**And yet...**
+
+When we write real applications, we keep reaching for object-oriented patterns because they solve specific problems that functional programming makes awkward:
+
+- **Encapsulation** — Keeping related state and behavior together
+- **Abstraction** — Hiding implementation details behind interfaces
+- **Polymorphism** — Multiple implementations of the same contract
+- **Lifecycle Management** — Initialization and cleanup logic
+
+The frontend community's rejection of OOP isn't based on its technical inadequacy. It's a cultural reaction to years of over-engineered Java-style abstractions, seven-layer dependency injection containers, and interface-everything architectures that made simple things complicated.
+
+**But here's my argument: We threw out the baby with the bathwater.**
+
+### Where OOP Actually Helps
+
+Let me show you where object-oriented thinking clarifies rather than obscures. Consider a repository implementation:
+
+```typescript
+// ❌ Functional approach - okay for simple cases
+export const environmentalApi = {
+  async getData(deviceId: string): Promise<EnvironmentalData> {
+    const response = await fetch(`/api/devices/${deviceId}/environmental`);
+    if (!response.ok) throw new Error('Failed to fetch data');
+    return response.json();
+  },
+
+  async updateThresholds(deviceId: string, thresholds: ThresholdConfig): Promise<void> {
+    await fetch(`/api/devices/${deviceId}/thresholds`, {
+      method: 'PUT',
+      body: JSON.stringify(thresholds),
+    });
+  },
+};
+```
+
+This functional approach works until you need:
+
+- **Error handling strategy** that's consistent across all API calls
+- **Retry logic** with exponential backoff
+- **Authentication token management**
+- **Request cancellation** for cleanup
+- **Caching** to avoid redundant network requests
+- **Testing** with different implementations
+
+Now the functional approach starts to crack:
+
+```typescript
+// Functional approach getting messy
+export const environmentalApi = {
+  async getData(
+    deviceId: string,
+    options: {
+      retry?: boolean;
+      cache?: boolean;
+      signal?: AbortSignal;
+    } = {},
+  ): Promise<EnvironmentalData> {
+    const cacheKey = `env-${deviceId}`;
+    if (options.cache && cache.has(cacheKey)) {
+      return cache.get(cacheKey);
+    }
+
+    let attempt = 0;
+    const maxAttempts = options.retry ? 3 : 1;
+
+    while (attempt < maxAttempts) {
+      try {
+        const token = await getAuthToken();
+        const response = await fetch(`/api/devices/${deviceId}/environmental`, {
+          signal: options.signal,
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch data');
+        const data = await response.json();
+
+        if (options.cache) cache.set(cacheKey, data);
+        return data;
+      } catch (error) {
+        attempt++;
+        if (attempt >= maxAttempts) throw error;
+        await sleep(Math.pow(2, attempt) * 1000);
+      }
+    }
+  },
+  // ... and we haven't even handled updateThresholds yet
+};
+```
+
+Compare this to an object-oriented repository:
+
+```typescript
+// ✅ OOP approach - clear separation of concerns
+interface IEnvironmentalRepository {
+  getData(deviceId: string): Promise<EnvironmentalData>;
+  updateThresholds(deviceId: string, config: ThresholdConfig): Promise<void>;
+}
+
+class EnvironmentalRepository implements IEnvironmentalRepository {
+  constructor(
+    private readonly httpClient: HttpClient,
+    private readonly cache: Cache,
+    private readonly authService: AuthService,
+  ) {}
+
+  async getData(deviceId: string): Promise<EnvironmentalData> {
+    const cacheKey = `env-${deviceId}`;
+
+    return this.cache.getOrFetch(cacheKey, async () => {
+      return this.httpClient.get<EnvironmentalData>(`/api/devices/${deviceId}/environmental`);
+    });
+  }
+
+  async updateThresholds(deviceId: string, config: ThresholdConfig): Promise<void> {
+    await this.httpClient.put(`/api/devices/${deviceId}/thresholds`, config);
+
+    // Invalidate cache
+    this.cache.remove(`env-${deviceId}`);
+  }
+}
+```
+
+The OOP version:
+
+- **Encapsulates** cross-cutting concerns (caching, auth, retry) in the `HttpClient` class
+- **Abstracts** implementation details behind an interface
+- **Manages** dependencies explicitly through constructor injection
+- **Simplifies** testing by allowing mock implementations of dependencies
+
+More importantly, the repository's public interface remains clean and focused on domain operations. The complexity is _contained_ rather than _scattered_ across every function.
+
+### Service Layer Objects
+
+The same principle applies to domain services. Consider alert threshold validation logic:
+
+```typescript
+// ❌ Functional approach - okay initially
+export function validateThresholds(config: ThresholdConfig, sensorType: SensorType): ValidationResult {
+  const errors: string[] = [];
+
+  if (config.min >= config.max) {
+    errors.push('Minimum threshold must be less than maximum');
+  }
+
+  const limits = getSensorLimits(sensorType);
+  if (config.min < limits.min || config.max > limits.max) {
+    errors.push(`Thresholds must be within ${limits.min}-${limits.max}`);
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateAlertConfig(config: AlertConfig): ValidationResult {
+  // More validation logic...
+}
+```
+
+This works until you realize you need:
+
+- **Consistent validation behavior** across different threshold types
+- **Historical threshold comparison** to prevent frequent changes
+- **User permission checking** before allowing threshold updates
+- **Different validation rules** for different greenhouse types
+
+The functional approach leads to an explosion of utility functions, each taking multiple parameters, with unclear relationships between them.
+
+An object-oriented service clarifies these relationships:
+
+```typescript
+// ✅ OOP approach - encapsulates validation rules
+class ThresholdValidator {
+  constructor(
+    private readonly sensorLimits: SensorLimitsProvider,
+    private readonly thresholdHistory: ThresholdHistoryRepository,
+    private readonly permissionChecker: PermissionChecker,
+  ) {}
+
+  async validate(config: ThresholdConfig, context: ValidationContext): Promise<ValidationResult> {
+    const errors: string[] = [];
+
+    // Basic range validation
+    errors.push(...this.validateRange(config));
+
+    // Sensor-specific validation
+    errors.push(...(await this.validateSensorLimits(config, context.sensorType)));
+
+    // Historical validation
+    if (await this.hasRecentChanges(context.deviceId)) {
+      errors.push('Thresholds were recently modified. Please wait before updating again.');
+    }
+
+    // Permission validation
+    if (!(await this.permissionChecker.canUpdateThresholds(context.userId))) {
+      errors.push('Insufficient permissions to update thresholds');
+    }
+
+    return { valid: errors.length === 0, errors };
+  }
+
+  private validateRange(config: ThresholdConfig): string[] {
+    if (config.min >= config.max) {
+      return ['Minimum threshold must be less than maximum'];
+    }
+    return [];
+  }
+
+  private async validateSensorLimits(config: ThresholdConfig, sensorType: SensorType): Promise<string[]> {
+    const limits = await this.sensorLimits.getLimits(sensorType);
+    if (config.min < limits.min || config.max > limits.max) {
+      return [`Thresholds must be within ${limits.min}-${limits.max}`];
+    }
+    return [];
+  }
+
+  private async hasRecentChanges(deviceId: string): Promise<boolean> {
+    const history = await this.thresholdHistory.getRecent(deviceId, 24); // 24 hours
+    return history.length > 0;
+  }
+}
+```
+
+The service object:
+
+- **Coordinates** multiple validation concerns
+- **Encapsulates** validation logic with clear method names
+- **Manages** dependencies on other services
+- **Allows** easy testing of individual validation rules
+- **Provides** a single point of change when validation rules evolve
+
+### Utility Classes vs. Utility Functions
+
+Even for pure utilities, object-oriented thinking can help. Consider date formatting:
+
+```typescript
+// Functional utilities
+export function formatTimestamp(timestamp: number): string {
+  return new Date(timestamp).toLocaleString();
+}
+
+export function formatRelativeTime(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp;
+
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+  return `${Math.floor(diff / 86400000)} days ago`;
+}
+
+export function formatDuration(milliseconds: number): string {
+  const seconds = Math.floor(milliseconds / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+}
+```
+
+These functions work, but they lack cohesion. They're related but disconnected. Testing them requires importing each individually. Configuring them (e.g., for internationalization) means passing additional parameters to every function.
+
+A utility class provides structure:
+
+```typescript
+class TimeFormatter {
+  constructor(private readonly locale: string = 'en-US') {}
+
+  formatTimestamp(timestamp: number): string {
+    return new Date(timestamp).toLocaleString(this.locale);
+  }
+
+  formatRelativeTime(timestamp: number, now: number = Date.now()): string {
+    const diff = now - timestamp;
+
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+    return `${Math.floor(diff / 86400000)} days ago`;
+  }
+
+  formatDuration(milliseconds: number): string {
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+  }
+}
+
+// Usage with dependency injection
+const timeFormatter = new TimeFormatter('en-US');
+```
+
+The class:
+
+- **Groups** related functionality
+- **Encapsulates** configuration (locale)
+- **Simplifies** testing (mock the entire formatter)
+- **Enables** method chaining or composition if needed
+
+### The Balance: OOP Where It Helps, Functional Where It Fits
+
+I'm not advocating for OOP everywhere. React components should remain functional. Domain events work beautifully with immutable data structures. Pure calculation functions don't need classes.
+
+**But when you're building:**
+
+- **Repositories** that manage data access
+- **Services** that coordinate business logic
+- **Validators** that encapsulate complex rules
+- **Utilities** with shared configuration or state
+
+**Consider object-oriented patterns.** They provide structure, testability, and maintainability that functional approaches struggle to match at this level of abstraction.
+
+The key is recognizing that OOP and functional programming aren't opposing philosophies—they're tools for different problems. Modern TypeScript gives you both. Use the right tool for each job.
+
+## Bringing It Together: Pragmatic Architecture
+
+Let's synthesize everything we've discussed into a practical architectural approach that works in real-world teams.
+
+### 1. Recognize That You're Already Doing Architecture
+
+Stop thinking of architectural patterns as optional "nice-to-haves" or academic exercises. If you're organizing code into folders, you're making architectural decisions. If you're deciding where to put business logic, you're doing architecture.
+
+The question isn't "Should we do architecture?" It's "Are we doing architecture _intentionally_ or _accidentally_?"
+
+### 2. Embrace Modern Patterns as Architecture
+
+Feature-Sliced Design, Bulletproof React, and similar patterns are valid architectural approaches. They're not "React patterns" separate from "real architecture"—they're DDD and MVVM adapted to modern frameworks.
+
+When you structure code like this:
+
+```typescript
+src/
+  features/
+    environmental-monitoring/
+      model/           // Domain layer
+      ui/              // View layer
+      api/             // Repository layer
+```
+
+You're implementing bounded contexts and layered architecture. Call it what you want, but recognize it for what it is.
+
+### 3. Enforce Boundaries with Tooling
+
+Good intentions and documentation don't maintain architectural boundaries. Tooling does.
+
+Implement ESLint rules:
+
+```javascript
+'no-restricted-imports': ['error', {
+  patterns: ['@/features/*/model/*'],
+  message: 'Import from feature public APIs only'
+}]
+```
+
+Or use monorepo packages:
+
+```json
+{
+  "name": "@greenwatch/environmental-monitoring",
+  "dependencies": {
+    "@greenwatch/shared-types": "workspace:*"
+    // No dependency on other features
+  }
+}
+```
+
+Make it _impossible_ to violate boundaries, not just discouraged.
+
+### 4. Use OOP Strategically
+
+Don't write class-based React components. Don't create unnecessary abstraction layers. But _do_ use classes and interfaces for:
+
+- **Repositories** — Encapsulate data access, caching, error handling
+- **Domain Services** — Coordinate complex business logic
+- **Validators** — Encapsulate validation rules
+- **Utilities** — Group related functions with shared configuration
+
+```typescript
+// Yes to this
+class EnvironmentalRepository implements IEnvironmentalRepository {
+  constructor(
+    private readonly httpClient: HttpClient,
+    private readonly cache: Cache,
+  ) {}
+
+  async getData(deviceId: string): Promise<EnvironmentalData> {
+    return this.cache.getOrFetch(`env-${deviceId}`, () =>
+      this.httpClient.get(`/api/devices/${deviceId}/environmental`),
+    );
+  }
+}
+
+// No to this
+class EnvironmentalDashboard extends React.Component {
+  // Don't do this anymore
+}
+```
+
+### 5. Keep It Testable
+
+The ultimate test of architecture is testability. Can you test your business logic without spinning up a browser? Can you test a feature without mocking the entire application?
+
+If your tests look like this:
+
+```typescript
+describe('Environmental Monitoring', () => {
+  it('calculates threshold violations', () => {
+    const service = new ThresholdService();
+    const violation = service.checkViolation({ temperature: 28 }, { min: 18, max: 25 });
+
+    expect(violation.isViolated).toBe(true);
+    expect(violation.type).toBe('temperature-high');
+  });
+});
+```
+
+You have good architecture. If your tests require `render()`, `fireEvent()`, and fifteen lines of setup just to test a calculation, something's wrong.
+
+## The Path Forward
+
+We started this chapter by acknowledging the gap between architectural theory and practice. We've explored how the frontend community has invented patterns that reinvent established architectural principles with framework-specific vocabulary.
+
+Here's what you should take away:
+
+**Architecture isn't optional.** You're doing it whether you call it that or not. The question is whether you're doing it intentionally.
+
+**Modern patterns are architectural patterns.** Feature-Sliced Design is bounded contexts. Bulletproof React is repository pattern. The names changed; the problems didn't.
+
+**Enforce boundaries with tooling.** ESLint rules and monorepo structures prevent architectural decay better than documentation ever will.
+
+**Use OOP strategically.** Classes and interfaces clarify complex business logic, repositories, and services even if you're writing functional React components.
+
+**Keep it pragmatic.** Don't impose seven-layer abstractions on a simple CRUD app. But don't abandon architectural thinking just because it feels like "over-engineering."
+
+In the next chapter, we'll implement these principles in a real-world scenario. We'll take a typical React application structured with component-centric thinking and progressively refactor it toward a feature-sliced, MVVM architecture—with enforced boundaries and strategic use of object-oriented patterns.
+
+You'll see exactly how theory becomes practice.
+
+---
+
+**Next:** Chapter 17 — Refactoring to Clean Architecture: A Step-by-Step Guide
