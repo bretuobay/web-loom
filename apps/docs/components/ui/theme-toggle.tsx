@@ -1,16 +1,22 @@
 'use client';
 
+import { useId } from 'react';
 import { useTheme } from 'next-themes';
 
-export default function ThemeToggle() {
+type ThemeToggleProps = {
+  className?: string;
+};
+
+export default function ThemeToggle({ className = '' }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
+  const switchId = useId();
 
   return (
-    <div className="flex flex-col justify-center ml-3">
+    <div className={`flex flex-col justify-center ${className}`}>
       <input
         type="checkbox"
         name="light-switch"
-        id="light-switch"
+        id={switchId}
         className="light-switch sr-only"
         checked={theme === 'light'}
         onChange={() => {
@@ -20,7 +26,7 @@ export default function ThemeToggle() {
           return setTheme('dark');
         }}
       />
-      <label className="relative cursor-pointer p-2" htmlFor="light-switch">
+      <label className="relative cursor-pointer p-2" htmlFor={switchId}>
         <svg className="dark:hidden" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
           <path
             className="fill-blue-400"

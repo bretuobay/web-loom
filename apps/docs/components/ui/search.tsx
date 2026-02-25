@@ -3,13 +3,18 @@
 import { useState, useEffect } from 'react';
 import SearchModal from './search-modal';
 
-export default function Search() {
+type SearchProps = {
+  compact?: boolean;
+  className?: string;
+};
+
+export default function Search({ compact = false, className = '' }: SearchProps) {
   const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      !searchModalOpen && event.preventDefault();
-      if (event.key === '/') {
+      if (event.key === '/' && !searchModalOpen) {
+        event.preventDefault();
         setSearchModalOpen(true);
       }
     };
@@ -17,9 +22,30 @@ export default function Search() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [searchModalOpen]);
 
+  if (compact) {
+    return (
+      <div className={className}>
+        <button
+          type="button"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-xs transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-100"
+          onClick={() => {
+            setSearchModalOpen(true);
+          }}
+          aria-label="Open search"
+        >
+          <svg className="h-4 w-4 fill-current" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="m14.707 13.293-1.414 1.414-2.4-2.4 1.414-1.414 2.4 2.4ZM6.8 12.6A5.8 5.8 0 1 1 6.8 1a5.8 5.8 0 0 1 0 11.6Zm0-2a3.8 3.8 0 1 0 0-7.6 3.8 3.8 0 0 0 0 7.6Z" />
+          </svg>
+        </button>
+        <SearchModal isOpen={searchModalOpen} setIsOpen={setSearchModalOpen} />
+      </div>
+    );
+  }
+
   return (
-    <div className="grow ml-4 md:ml-8">
+    <div className={`grow ml-4 md:ml-8 ${className}`}>
       <button
+        type="button"
         className="w-full sm:w-[380px] text-[15px] bg-white text-slate-400 inline-flex items-center justify-between leading-5 pl-3 pr-2 py-[7px] rounded-sm border border-slate-200 hover:border-slate-300 shadow-xs whitespace-nowrap dark:text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600"
         onClick={() => {
           setSearchModalOpen(true);
