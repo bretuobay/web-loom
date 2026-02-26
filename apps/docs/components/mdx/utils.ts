@@ -114,6 +114,68 @@ function parseBlogContent(rawContent: string, filename: string) {
 
 export type BlogPage = ReturnType<typeof getBlogPages>[number];
 
+// ─── Book helpers ──────────────────────────────────────────────────────────────
+
+const BOOK_SECTION_FALLBACKS: Record<string, string> = {
+  chapter11: 'View Layer Implementations',
+  chapter13: 'The GreenWatch Case Study',
+  chapter14: 'The GreenWatch Case Study',
+  chapter16: 'The GreenWatch Case Study',
+  chapter21: 'Enterprise Scale',
+};
+
+function parseBookChapterFrontmatter(raw: string): { title?: string; section?: string; content: string } {
+  const trimmed = raw.trimStart();
+  if (!trimmed.startsWith('---')) return { content: raw };
+  const match = /---\s*([\s\S]*?)\s*---/.exec(trimmed);
+  if (!match) return { content: raw };
+  const block = match[1];
+  const content = trimmed.slice(match[0].length).trim();
+  const title = block.match(/^title:\s*(.+)$/m)?.[1]?.trim().replace(/^['"]|['"]$/g, '');
+  const section = block.match(/^section:\s*(.+)$/m)?.[1]?.trim().replace(/^['"]|['"]$/g, '');
+  return { title, section, content };
+}
+
+export type BookPage = {
+  slug: string;
+  number: number;
+  title: string;
+  section: string;
+  content: string;
+};
+
+export function getBookPages(): BookPage[] {
+  const dir = path.join(process.cwd(), 'content/book/chapters');
+  return fs
+    .readdirSync(dir)
+    .filter((f) => path.extname(f) === '.mdx')
+    .sort((a, b) => {
+      const na = parseInt(a.match(/\d+/)?.[0] ?? '0', 10);
+      const nb = parseInt(b.match(/\d+/)?.[0] ?? '0', 10);
+      return na - nb;
+    })
+    .map((file) => {
+      const slug = path.basename(file, '.mdx');
+      const number = parseInt(slug.match(/\d+/)?.[0] ?? '0', 10);
+      const raw = fs.readFileSync(path.join(dir, file), 'utf-8');
+      const { title: fmTitle, section: fmSection, content } = parseBookChapterFrontmatter(raw);
+
+      let title: string;
+      if (fmTitle) {
+        title = fmTitle;
+      } else {
+        const headingLine = raw.split('\n').find((l) => /^#{1,2}\s/.test(l));
+        const rawTitle = headingLine ? headingLine.replace(/^#{1,2}\s+/, '') : `Chapter ${number}`;
+        title = rawTitle.replace(/^(Chapter\s+\d+[:.]\s*|Conclusion[:.]\s*)/i, '').trim();
+      }
+
+      const section = fmSection ?? BOOK_SECTION_FALLBACKS[slug] ?? 'Uncategorized';
+      return { slug, number, title, section, content };
+    });
+}
+
+// ─── Blog helpers ─────────────────────────────────────────────────────────────
+
 export function getBlogPages() {
   const dir = path.join(process.cwd(), 'content/blog');
   return getMarkdownFiles(dir)

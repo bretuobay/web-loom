@@ -77,6 +77,11 @@ export default function Header() {
                   Blog
                 </Link>
               </li>
+              <li>
+                <Link href="/book" className={navLinkClassName}>
+                  Book
+                </Link>
+              </li>
               <li className="ml-2">
                 <a
                   className="btn-sm inline-flex items-center gap-1.5 bg-blue-600 text-slate-100 shadow-xs hover:bg-blue-700"
@@ -114,6 +119,11 @@ export default function Header() {
               <li>
                 <Link href="/blog" className={`block ${navLinkClassName}`} onClick={() => setMobileMenuOpen(false)}>
                   Blog
+                </Link>
+              </li>
+              <li>
+                <Link href="/book" className={`block ${navLinkClassName}`} onClick={() => setMobileMenuOpen(false)}>
+                  Book
                 </Link>
               </li>
               <li>
