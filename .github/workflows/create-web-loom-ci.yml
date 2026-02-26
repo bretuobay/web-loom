@@ -1,0 +1,37 @@
+name: CI - create-web-loom
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/create-web-loom/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Clean install
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm i
+
+      - name: Build create-web-loom
+        run: npm run build --workspace=create-web-loom
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: create-web-loom-dist-build-artifacts
+          path: packages/create-web-loom/dist/

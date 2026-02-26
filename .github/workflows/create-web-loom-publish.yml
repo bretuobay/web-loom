@@ -1,0 +1,63 @@
+name: Publish - create-web-loom
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/create-web-loom/**'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Clean install
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm i
+
+      - name: Build create-web-loom
+        run: npm run build --workspace=create-web-loom
+
+      - name: Publish create-web-loom to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          cd packages/create-web-loom
+
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+
+          echo "--- Package Information ---"
+          echo "Package Name: $PACKAGE_NAME"
+          echo "Package Version: $PACKAGE_VERSION"
+          echo "--------------------------"
+
+          set +e
+          npm view "$PACKAGE_NAME@$PACKAGE_VERSION" > /dev/null 2>&1
+          NPM_VIEW_EXIT_CODE=$?
+          set -e
+
+          if [ "$NPM_VIEW_EXIT_CODE" -eq 0 ]; then
+            echo "✅ Package version $PACKAGE_VERSION already exists on npm. Skipping publish for $PACKAGE_NAME."
+            exit 0
+          else
+            echo "🚀 Package version $PACKAGE_VERSION is new. Attempting to publish $PACKAGE_NAME."
+            npm publish --access public --verbose
+          fi
+
+          echo "--- Publish process completed for $PACKAGE_NAME ---"
