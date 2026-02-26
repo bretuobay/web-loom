@@ -9,7 +9,6 @@ export const CORE_PACKAGES = [
   '@web-loom/design-core',
   '@web-loom/ui-core',
   '@web-loom/ui-patterns',
-  '@web-loom/charts-core',
 ];
 
 export const FRAMEWORK_PACKAGES: Record<string, string[]> = {
