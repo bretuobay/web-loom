@@ -1,0 +1,766 @@
+{
+  "metadata": {
+    "generatedAt": "2025-01-10",
+    "description": "Domain entities identified across the Web Loom monorepo for use in the MVVM book rewrite",
+    "categories": [
+      "greenwatch",
+      "ecommerce",
+      "plugin-architecture",
+      "mvvm-core"
+    ]
+  },
+  "greenwatch": {
+    "description": "Greenhouse monitoring system entities - the primary case study for the MVVM book",
+    "entities": [
+      {
+        "name": "Greenhouse",
+        "type": "domain-entity",
+        "file": "packages/models/src/schemas/greenhouse.schema.ts",
+        "schema": "CreateGreenhouseSchema",
+        "typeExport": "GreenhouseData",
+        "listTypeExport": "GreenhouseListData",
+        "properties": [
+          {
+            "name": "id",
+            "type": "string (UUID)",
+            "optional": true,
+            "description": "Unique identifier for the greenhouse"
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "description": "Name of the greenhouse"
+          },
+          {
+            "name": "location",
+            "type": "string",
+            "required": true,
+            "description": "Physical location of the greenhouse"
+          },
+          {
+            "name": "size",
+            "type": "string",
+            "required": true,
+            "description": "Size of the greenhouse"
+          },
+          {
+            "name": "cropType",
+            "type": "string",
+            "optional": true,
+            "description": "Type of crop grown in the greenhouse"
+          },
+          {
+            "name": "createdAt",
+            "type": "string (datetime)",
+            "optional": true,
+            "description": "Timestamp when the greenhouse was created"
+          },
+          {
+            "name": "updatedAt",
+            "type": "string (datetime)",
+            "optional": true,
+            "description": "Timestamp when the greenhouse was last updated"
+          }
+        ],
+        "model": "packages/models/src/GreenHouseModel.ts",
+        "viewModel": "packages/view-models/src/GreenHouseViewModel.ts",
+        "usedInFrameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS"],
+        "purpose": "Represents a greenhouse container with environmental zones for growing crops"
+      },
+      {
+        "name": "Sensor",
+        "type": "domain-entity",
+        "file": "packages/models/src/schemas/sensor.schema.ts",
+        "schema": "CreateSensorSchema",
+        "typeExport": "SensorData",
+        "listTypeExport": "SensorListData",
+        "properties": [
+          {
+            "name": "id",
+            "type": "string (UUID)",
+            "optional": true,
+            "description": "Unique identifier for the sensor"
+          },
+          {
+            "name": "type",
+            "type": "SensorTypeEnum",
+            "required": true,
+            "enumValues": ["temperature", "humidity", "soilMoisture", "lightIntensity"],
+            "description": "Type of sensor measuring environmental conditions"
+          },
+          {
+            "name": "status",
+            "type": "SensorStatusEnum",
+            "required": true,
+            "enumValues": ["active", "inactive"],
+            "description": "Current operational status of the sensor"
+          },
+          {
+            "name": "greenhouseId",
+            "type": "number (positive integer)",
+            "required": true,
+            "description": "Foreign key reference to the greenhouse"
+          },
+          {
+            "name": "greenhouse",
+            "type": "CreateGreenhouseSchema",
+            "required": true,
+            "description": "Associated greenhouse entity"
+          },
+          {
+            "name": "createdAt",
+            "type": "string (datetime)",
+            "optional": true,
+            "description": "Timestamp when the sensor was created"
+          },
+          {
+            "name": "updatedAt",
+            "type": "string (datetime)",
+            "optional": true,
+            "description": "Timestamp when the sensor was last updated"
+          }
+        ],
+        "model": "packages/models/src/SensorModel.ts",
+        "viewModel": "packages/view-models/src/SensorViewModel.ts",
+        "usedInFrameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS"],
+        "purpose": "Represents a device that measures environmental conditions in a greenhouse"
+      },
+      {
+        "name": "SensorReading",
+        "type": "domain-entity",
+        "file": "packages/models/src/schemas/sensor-reading.schema.ts",
+        "schema": "CreateSensorReadingSchema",
+        "typeExport": "SensorReadingData",
+        "listTypeExport": "SensorReadingListData",
+        "properties": [
+          {
+            "name": "id",
+            "type": "string (UUID)",
+            "optional": true,
+            "description": "Unique identifier for the sensor reading"
+          },
+          {
+            "name": "sensorId",
+            "type": "number (positive integer)",
+            "required": true,
+            "description": "Foreign key reference to the sensor"
+          },
+          {
+            "name": "timestamp",
+            "type": "string (ISO date)",
+            "required": true,
+            "description": "Time when the reading was taken"
+          },
+          {
+            "name": "value",
+            "type": "number",
+            "required": true,
+            "description": "Measured value from the sensor"
+          }
+        ],
+        "model": "packages/models/src/schemas/sensor-reading.schema.ts",
+        "viewModel": "packages/view-models/src/SensorReadingViewModel.ts",
+        "usedInFrameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS"],
+        "purpose": "Represents a time-series data point from a sensor measurement"
+      },
+      {
+        "name": "ThresholdAlert",
+        "type": "domain-entity",
+        "file": "packages/models/src/schemas/alert.schema.ts",
+        "schema": "CreateThresholdAlertSchema",
+        "typeExport": "ThresholdAlertData",
+        "listTypeExport": "ThresholdAlertListData",
+        "properties": [
+          {
+            "name": "id",
+            "type": "string (UUID)",
+            "optional": true,
+            "description": "Unique identifier for the threshold alert"
+          },
+          {
+            "name": "sensorType",
+            "type": "SensorTypeEnum",
+            "required": true,
+            "enumValues": ["temperature", "humidity", "soilMoisture", "lightIntensity"],
+            "description": "Type of sensor this alert applies to"
+          },
+          {
+            "name": "minValue",
+            "type": "number",
+            "required": true,
+            "description": "Minimum threshold value that triggers an alert"
+          },
+          {
+            "name": "maxValue",
+            "type": "number",
+            "required": true,
+            "description": "Maximum threshold value that triggers an alert"
+          },
+          {
+            "name": "greenhouseId",
+            "type": "number (positive integer)",
+            "required": true,
+            "description": "Foreign key reference to the greenhouse"
+          }
+        ],
+        "model": "packages/models/src/ThresholdAlertModel.ts",
+        "viewModel": "packages/view-models/src/ThresholdAlertViewModel.ts",
+        "usedInFrameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS"],
+        "purpose": "Represents an alert configuration triggered when sensor readings exceed configured thresholds"
+      }
+    ]
+  },
+  "ecommerce": {
+    "description": "E-commerce application entities - secondary case study demonstrating MVVM in a different domain",
+    "entities": [
+      {
+        "name": "CatalogProduct",
+        "type": "domain-entity",
+        "file": "apps/ecommerce-mvvm/src/infrastructure/api/ports/ecommerce-api-port.ts",
+        "typeExport": "CatalogProductDto",
+        "properties": [
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Unique identifier for the product"
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "description": "Product name"
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "required": true,
+            "description": "Product description"
+          },
+          {
+            "name": "category",
+            "type": "string",
+            "required": true,
+            "description": "Product category"
+          },
+          {
+            "name": "imageUrl",
+            "type": "string",
+            "required": true,
+            "description": "URL to product image"
+          },
+          {
+            "name": "priceCents",
+            "type": "number",
+            "required": true,
+            "description": "Product price in cents"
+          },
+          {
+            "name": "currency",
+            "type": "CurrencyCode",
+            "required": true,
+            "description": "Currency code (e.g., USD)"
+          },
+          {
+            "name": "stock",
+            "type": "number",
+            "required": true,
+            "description": "Available stock quantity"
+          }
+        ],
+        "model": "apps/ecommerce-mvvm/src/features/catalog/CatalogModel.ts",
+        "viewModel": "apps/ecommerce-mvvm/src/features/catalog/CatalogViewModel.ts",
+        "usedInFrameworks": ["React"],
+        "purpose": "Represents a product in the e-commerce catalog"
+      },
+      {
+        "name": "CartItem",
+        "type": "domain-entity",
+        "file": "apps/ecommerce-mvvm/src/infrastructure/api/ports/ecommerce-api-port.ts",
+        "typeExport": "CartItemDto",
+        "properties": [
+          {
+            "name": "productId",
+            "type": "string",
+            "required": true,
+            "description": "Reference to the product"
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "description": "Product name"
+          },
+          {
+            "name": "imageUrl",
+            "type": "string",
+            "required": true,
+            "description": "URL to product image"
+          },
+          {
+            "name": "unitPriceCents",
+            "type": "number",
+            "required": true,
+            "description": "Price per unit in cents"
+          },
+          {
+            "name": "quantity",
+            "type": "number",
+            "required": true,
+            "description": "Quantity of this item in the cart"
+          },
+          {
+            "name": "lineTotalCents",
+            "type": "number",
+            "required": true,
+            "description": "Total price for this line item (unitPrice * quantity)"
+          },
+          {
+            "name": "currency",
+            "type": "CurrencyCode",
+            "required": true,
+            "description": "Currency code"
+          }
+        ],
+        "purpose": "Represents a single item in the shopping cart"
+      },
+      {
+        "name": "Cart",
+        "type": "domain-entity",
+        "file": "apps/ecommerce-mvvm/src/infrastructure/api/ports/ecommerce-api-port.ts",
+        "typeExport": "CartDto",
+        "properties": [
+          {
+            "name": "items",
+            "type": "CartItemDto[]",
+            "required": true,
+            "description": "Array of items in the cart"
+          },
+          {
+            "name": "itemCount",
+            "type": "number",
+            "required": true,
+            "description": "Total number of items in the cart"
+          },
+          {
+            "name": "subtotalCents",
+            "type": "number",
+            "required": true,
+            "description": "Subtotal of all items in cents"
+          },
+          {
+            "name": "currency",
+            "type": "CurrencyCode",
+            "required": true,
+            "description": "Currency code"
+          }
+        ],
+        "model": "apps/ecommerce-mvvm/src/features/cart/CartModel.ts",
+        "viewModel": "apps/ecommerce-mvvm/src/features/cart/CartViewModel.ts",
+        "usedInFrameworks": ["React"],
+        "purpose": "Represents the shopping cart aggregate containing cart items and totals"
+      },
+      {
+        "name": "CheckoutRequest",
+        "type": "domain-entity",
+        "file": "apps/ecommerce-mvvm/src/infrastructure/api/ports/ecommerce-api-port.ts",
+        "typeExport": "CheckoutRequestDto",
+        "properties": [
+          {
+            "name": "email",
+            "type": "string",
+            "required": true,
+            "description": "Customer email address"
+          },
+          {
+            "name": "shippingAddress",
+            "type": "string",
+            "required": true,
+            "description": "Shipping address"
+          },
+          {
+            "name": "notes",
+            "type": "string",
+            "optional": true,
+            "description": "Optional order notes"
+          }
+        ],
+        "purpose": "Represents checkout request data submitted by the customer"
+      },
+      {
+        "name": "CheckoutResult",
+        "type": "domain-entity",
+        "file": "apps/ecommerce-mvvm/src/infrastructure/api/ports/ecommerce-api-port.ts",
+        "typeExport": "CheckoutResultDto",
+        "properties": [
+          {
+            "name": "orderId",
+            "type": "string",
+            "required": true,
+            "description": "Unique identifier for the completed order"
+          },
+          {
+            "name": "totalCents",
+            "type": "number",
+            "required": true,
+            "description": "Total order amount in cents"
+          },
+          {
+            "name": "currency",
+            "type": "CurrencyCode",
+            "required": true,
+            "description": "Currency code"
+          },
+          {
+            "name": "placedAtIso",
+            "type": "string",
+            "required": true,
+            "description": "ISO timestamp when the order was placed"
+          }
+        ],
+        "purpose": "Represents the result of a successful checkout operation"
+      }
+    ]
+  },
+  "pluginArchitecture": {
+    "description": "Plugin architecture system entities demonstrating runtime extensibility patterns",
+    "entities": [
+      {
+        "name": "PluginManifest",
+        "type": "configuration-entity",
+        "file": "packages/plugin-core/src/contracts/PluginManifest.ts",
+        "typeExport": "PluginManifest<T>",
+        "zodSchema": "PluginManifestSchema",
+        "properties": [
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Unique identifier for the plugin"
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "description": "Display name of the plugin"
+          },
+          {
+            "name": "version",
+            "type": "string",
+            "required": true,
+            "description": "Semantic version of the plugin"
+          },
+          {
+            "name": "entry",
+            "type": "string",
+            "required": true,
+            "description": "Entry point file path for the plugin"
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "optional": true,
+            "description": "Plugin description"
+          },
+          {
+            "name": "author",
+            "type": "string",
+            "optional": true,
+            "description": "Plugin author"
+          },
+          {
+            "name": "icon",
+            "type": "string (URL)",
+            "optional": true,
+            "description": "URL to plugin icon"
+          },
+          {
+            "name": "routes",
+            "type": "PluginRouteDefinition<T>[]",
+            "optional": true,
+            "description": "Routes to be registered by the plugin"
+          },
+          {
+            "name": "menuItems",
+            "type": "PluginMenuItem[]",
+            "optional": true,
+            "description": "Menu items to be added to the host UI"
+          },
+          {
+            "name": "widgets",
+            "type": "PluginWidgetDefinition<T>[]",
+            "optional": true,
+            "description": "Widgets to be displayed in the host application"
+          },
+          {
+            "name": "metadata",
+            "type": "Record<string, unknown>",
+            "optional": true,
+            "description": "Additional plugin metadata"
+          },
+          {
+            "name": "dependencies",
+            "type": "Record<string, string>",
+            "optional": true,
+            "description": "Plugin dependencies with version constraints"
+          }
+        ],
+        "purpose": "Declarative JSON object describing plugin metadata and contributions to the host application"
+      },
+      {
+        "name": "PluginRouteDefinition",
+        "type": "configuration-entity",
+        "file": "packages/plugin-core/src/contracts/PluginManifest.ts",
+        "typeExport": "PluginRouteDefinition<T>",
+        "properties": [
+          {
+            "name": "path",
+            "type": "string",
+            "required": true,
+            "description": "Route path"
+          },
+          {
+            "name": "component",
+            "type": "T (framework-specific component)",
+            "required": true,
+            "description": "Component to render for this route"
+          },
+          {
+            "name": "exact",
+            "type": "boolean",
+            "optional": true,
+            "description": "Whether the route should match exactly"
+          }
+        ],
+        "purpose": "Defines a route to be registered by a plugin"
+      },
+      {
+        "name": "PluginMenuItem",
+        "type": "configuration-entity",
+        "file": "packages/plugin-core/src/contracts/PluginManifest.ts",
+        "typeExport": "PluginMenuItem",
+        "properties": [
+          {
+            "name": "label",
+            "type": "string",
+            "required": true,
+            "description": "Menu item label"
+          },
+          {
+            "name": "path",
+            "type": "string",
+            "required": true,
+            "description": "Navigation path"
+          },
+          {
+            "name": "icon",
+            "type": "string",
+            "optional": true,
+            "description": "Icon identifier"
+          }
+        ],
+        "purpose": "Defines a menu item to be added to the host application's UI"
+      },
+      {
+        "name": "PluginWidgetDefinition",
+        "type": "configuration-entity",
+        "file": "packages/plugin-core/src/contracts/PluginManifest.ts",
+        "typeExport": "PluginWidgetDefinition<T>",
+        "properties": [
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Unique widget identifier"
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "required": true,
+            "description": "Widget title"
+          },
+          {
+            "name": "component",
+            "type": "T (framework-specific component)",
+            "required": true,
+            "description": "Component to render for this widget"
+          }
+        ],
+        "purpose": "Defines a widget to be displayed in the host application (e.g., on a dashboard)"
+      },
+      {
+        "name": "PluginModule",
+        "type": "lifecycle-entity",
+        "file": "packages/plugin-core/src/contracts/PluginModule.ts",
+        "typeExport": "PluginModule",
+        "properties": [
+          {
+            "name": "init",
+            "type": "(sdk: PluginSDK) => Promise<void> | void",
+            "optional": true,
+            "description": "Called once when the plugin is first loaded for background setup"
+          },
+          {
+            "name": "mount",
+            "type": "(sdk: PluginSDK) => Promise<void> | void",
+            "optional": true,
+            "description": "Called when the plugin's UI should be rendered or activated"
+          },
+          {
+            "name": "unmount",
+            "type": "() => Promise<void> | void",
+            "optional": true,
+            "description": "Called when the plugin is being deactivated or unloaded for cleanup"
+          }
+        ],
+        "purpose": "JavaScript module defining plugin runtime behavior through lifecycle hooks"
+      },
+      {
+        "name": "PluginDefinition",
+        "type": "internal-entity",
+        "file": "packages/plugin-core/src/registry/PluginRegistry.ts",
+        "typeExport": "PluginDefinition<T>",
+        "properties": [
+          {
+            "name": "manifest",
+            "type": "PluginManifest<T>",
+            "required": true,
+            "description": "Plugin manifest"
+          },
+          {
+            "name": "state",
+            "type": "PluginState",
+            "required": true,
+            "description": "Current lifecycle state of the plugin"
+          }
+        ],
+        "purpose": "Internal representation of a plugin within the registry"
+      },
+      {
+        "name": "PluginState",
+        "type": "enum-type",
+        "file": "packages/plugin-core/src/registry/PluginRegistry.ts",
+        "typeExport": "PluginState",
+        "values": [
+          "registered",
+          "loading",
+          "loaded",
+          "mounting",
+          "mounted",
+          "unmounting",
+          "unmounted"
+        ],
+        "purpose": "Represents the lifecycle state of a plugin"
+      },
+      {
+        "name": "PluginRegistry",
+        "type": "service-class",
+        "file": "packages/plugin-core/src/registry/PluginRegistry.ts",
+        "classExport": "PluginRegistry<T>",
+        "purpose": "Framework-agnostic plugin management with lifecycle states"
+      },
+      {
+        "name": "FrameworkAdapter",
+        "type": "interface",
+        "file": "packages/plugin-core/src/adapter/FrameworkAdapter.ts",
+        "typeExport": "FrameworkAdapter<T>",
+        "methods": [
+          {
+            "name": "mountComponent",
+            "signature": "(component: T, container: HTMLElement) => void",
+            "description": "Renders a plugin's component into a given DOM element"
+          },
+          {
+            "name": "unmountComponent",
+            "signature": "(container: HTMLElement) => void",
+            "description": "Unmounts and cleans up a rendered component from a DOM element"
+          }
+        ],
+        "purpose": "Abstraction for mounting plugins in different frameworks"
+      },
+      {
+        "name": "PluginSDK",
+        "type": "interface",
+        "file": "packages/plugin-core/src/sdk/PluginSDK.ts",
+        "typeExport": "PluginSDK",
+        "purpose": "API exposed to plugins for host communication - the sole controlled interface between plugin and host"
+      }
+    ]
+  },
+  "mvvmCore": {
+    "description": "Core MVVM architecture entities used throughout the monorepo",
+    "entities": [
+      {
+        "name": "BaseModel",
+        "type": "base-class",
+        "file": "packages/mvvm-core/src/models/BaseModel.ts",
+        "classExport": "BaseModel<TData, TSchema>",
+        "interfaces": ["IBaseModel<TData, TSchema>", "IDisposable"],
+        "observables": [
+          "data$: Observable<TData | null>",
+          "isLoading$: Observable<boolean>",
+          "error$: Observable<Error | null>"
+        ],
+        "purpose": "Base class for models in MVVM architecture providing core data management, loading states, error handling, and Zod validation"
+      },
+      {
+        "name": "RestfulApiModel",
+        "type": "extended-class",
+        "file": "packages/mvvm-core/src/models/RestfulApiModel.ts",
+        "classExport": "RestfulApiModel<TData, TSchema>",
+        "extends": "BaseModel<TData, TSchema>",
+        "purpose": "Extends BaseModel with RESTful API operations (CRUD, pagination)"
+      },
+      {
+        "name": "QueryStateModel",
+        "type": "extended-class",
+        "file": "packages/mvvm-core/src/models/QueryStateModel.ts",
+        "classExport": "QueryStateModel<TData, TSchema, S>",
+        "extends": "BaseModel<TData, TSchema>",
+        "purpose": "Extends BaseModel to provide capabilities for interacting with data sources managed by QueryCore"
+      },
+      {
+        "name": "BaseViewModel",
+        "type": "base-class",
+        "file": "packages/mvvm-core/src/viewmodels/BaseViewModel.ts",
+        "classExport": "BaseViewModel<TModel>",
+        "purpose": "Base class for ViewModels connecting to BaseModel and exposing observables to views"
+      },
+      {
+        "name": "RestfulApiViewModel",
+        "type": "extended-class",
+        "file": "packages/mvvm-core/src/viewmodels/RestfulApiViewModel.ts",
+        "classExport": "RestfulApiViewModel<TData, TSchema>",
+        "extends": "BaseViewModel<RestfulApiModel<TData, TSchema>>",
+        "purpose": "Adds CRUD operations and pagination to BaseViewModel"
+      },
+      {
+        "name": "IDisposable",
+        "type": "interface",
+        "file": "packages/mvvm-core/src/models/BaseModel.ts",
+        "typeExport": "IDisposable",
+        "methods": [
+          {
+            "name": "dispose",
+            "signature": "() => void",
+            "description": "Releases resources and completes observables"
+          }
+        ],
+        "purpose": "Contract for objects that need to release resources"
+      }
+    ]
+  },
+  "summary": {
+    "totalEntities": 29,
+    "byCategory": {
+      "greenwatch": 4,
+      "ecommerce": 5,
+      "pluginArchitecture": 11,
+      "mvvmCore": 9
+    },
+    "primaryCaseStudy": "greenwatch",
+    "secondaryCaseStudy": "ecommerce",
+    "architecturalPatterns": ["mvvmCore", "pluginArchitecture"]
+  }
+}

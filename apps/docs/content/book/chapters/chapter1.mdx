@@ -1,7 +1,7 @@
 ---
 id: "the-frontend-architecture-crisis"
 title: The Frontend Architecture Crisis
-section: The Crisis
+section: Foundations
 ---
 
 # Chapter 1: The Frontend Architecture Crisis
@@ -24,7 +24,7 @@ But somewhere along the way, we forgot the lessons that desktop and mobile devel
 
 It wasn't different. We just didn't bother learning from those who'd come before us.
 
-Consider this typical React component I reviewed last month:
+Consider this typical React component pattern that appears in many codebases:
 
 ```typescript
 function UserDashboard() {
@@ -124,197 +124,197 @@ The pattern is straightforward:
 - **View:** Your framework-specific presentation layer. React components, Vue templates, Angular components—whatever you're using. Its job is to **observe** the ViewModel and **render** the state. That's it.
 - **ViewModel:** The bridge between Model and View. It exposes observable state, handles user interactions, coordinates with services, and contains presentation logic. Crucially, it's **framework-agnostic**.
 
-Here's the same dashboard, restructured with MVVM:
+Throughout this book, we'll use a real-world greenhouse monitoring system called **GreenWatch** to demonstrate these patterns. Let's see how MVVM transforms the architecture.
+
+Here's a real ViewModel from the GreenWatch system that manages sensor data:
 
 ```typescript
-// Model: Pure domain logic
-interface User {
-  id: string;
-  name: string;
-  email: string;
+// File: packages/view-models/src/SensorViewModel.ts
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { SensorListSchema, type SensorListData, SensorModel } from '@repo/models';
+
+export class SensorViewModel extends RestfulApiViewModel<
+  SensorListData, 
+  typeof SensorListSchema
+> {
+  constructor(model: SensorModel) {
+    super(model);
+  }
 }
 
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  published: boolean;
-}
+const sensorModel = new SensorModel();
+export const sensorViewModel = new SensorViewModel(sensorModel);
+```
 
-// ViewModel: Framework-agnostic presentation logic
-class UserDashboardViewModel {
-  private userService: UserService;
-  private postService: PostService;
+This ViewModel extends `RestfulApiViewModel`, which provides reactive state management through RxJS observables. Let's look at what the base classes provide (we'll explore these in detail in [Chapter 4: Building Framework-Agnostic Models](#) and [Chapter 5: ViewModels and Reactive State](#)):
 
-  private _user$ = new BehaviorSubject<User | null>(null);
-  private _posts$ = new BehaviorSubject<Post[]>([]);
-  private _loading$ = new BehaviorSubject<boolean>(true);
-  private _error$ = new BehaviorSubject<string | null>(null);
+```typescript
+// File: packages/mvvm-core/src/models/BaseModel.ts (excerpt)
+export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
+  protected _data$ = new BehaviorSubject<TData | null>(null);
+  public readonly data$: Observable<TData | null> = this._data$.asObservable();
 
-  // Public observables for the View
-  readonly user$ = this._user$.asObservable();
-  readonly publishedPosts$ = this._posts$.pipe(
-    map(posts => posts.filter(p => p.published))
-  );
-  readonly loading$ = this._loading$.asObservable();
-  readonly error$ = this._error$.asObservable();
+  protected _isLoading$ = new BehaviorSubject<boolean>(false);
+  public readonly isLoading$: Observable<boolean> = this._isLoading$.asObservable();
 
-  constructor(
-    private userId: string,
-    userService: UserService,
-    postService: PostService
-  ) {
-    this.userService = userService;
-    this.postService = postService;
-    this.initialize();
+  protected _error$ = new BehaviorSubject<any>(null);
+  public readonly error$: Observable<any> = this._error$.asObservable();
+
+  public readonly schema?: TSchema;
+
+  public setData(newData: TData | null): void {
+    this._data$.next(newData);
   }
 
-  private async initialize(): Promise<void> {
-    try {
-      const [user, posts] = await Promise.all([
-        this.userService.getUser(this.userId),
-        this.postService.getUserPosts(this.userId)
-      ]);
-
-      this._user$.next(user);
-      this._posts$.next(posts);
-    } catch (error) {
-      this._error$.next(error.message);
-    } finally {
-      this._loading$.next(false);
+  public validate(data: any): TData {
+    if (!this.schema) {
+      return data as TData;
     }
+    return this.schema.parse(data); // Zod validation
   }
 
-  async publishPost(postId: string): Promise<void> {
-    try {
-      await this.postService.publishPost(postId);
-
-      const currentPosts = this._posts$.value;
-      this._posts$.next(
-        currentPosts.map(p =>
-          p.id === postId ? { ...p, published: true } : p
-        )
-      );
-    } catch (error) {
-      this._error$.next(`Failed to publish post: ${error.message}`);
-    }
-  }
-
-  dispose(): void {
-    this._user$.complete();
-    this._posts$.complete();
-    this._loading$.complete();
+  public dispose(): void {
+    this._data$.complete();
+    this._isLoading$.complete();
     this._error$.complete();
   }
 }
+```
 
-// View: React component (could just as easily be Vue or Angular)
-function UserDashboard({ userId }: { userId: string }) {
-  const viewModel = useMemo(
-    () => new UserDashboardViewModel(
-      userId,
-      new UserService(),
-      new PostService()
-    ),
-    [userId]
-  );
+```typescript
+// File: packages/mvvm-core/src/viewmodels/BaseViewModel.ts (excerpt)
+export class BaseViewModel<TModel extends BaseModel<any, any>> {
+  protected readonly _destroy$ = new Subject<void>();
+  
+  public readonly data$: Observable<TModel['data']>;
+  public readonly isLoading$: Observable<boolean>;
+  public readonly error$: Observable<any>;
+  public readonly validationErrors$: Observable<ZodError | null>;
 
-  useEffect(() => () => viewModel.dispose(), [viewModel]);
+  protected readonly model: TModel;
 
-  const user = useObservable(viewModel.user$);
-  const posts = useObservable(viewModel.publishedPosts$);
-  const loading = useObservable(viewModel.loading$);
-  const error = useObservable(viewModel.error$);
+  constructor(model: TModel) {
+    this.model = model;
+    
+    // Expose model observables with automatic cleanup
+    this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
+    this.isLoading$ = this.model.isLoading$.pipe(takeUntil(this._destroy$));
+    this.error$ = this.model.error$.pipe(takeUntil(this._destroy$));
+    
+    this.validationErrors$ = this.model.error$.pipe(
+      map((err) => (err instanceof ZodError ? err : null)),
+      startWith(null),
+      takeUntil(this._destroy$),
+    );
+  }
 
-  if (loading) return <Spinner />;
-  if (error) return <ErrorMessage message={error} />;
+  public dispose(): void {
+    this._destroy$.next();
+    this._destroy$.complete();
+  }
+}
+```
+
+Now look at how this same ViewModel is consumed in a React component:
+
+```typescript
+// File: apps/mvvm-react/src/components/SensorList.tsx
+import { useEffect } from 'react';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+export function SensorList() {
+  const sensors = useObservable(sensorViewModel.data$, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await sensorViewModel.fetchCommand.execute();
+    };
+    fetchData();
+  }, []);
 
   return (
-    <div>
-      <UserProfile user={user} />
-      <PostsList
-        posts={posts}
-        onPublish={(postId) => viewModel.publishPost(postId)}
-      />
+    <div className="card">
+      <h1 className="card-title">Sensors</h1>
+      {sensors && sensors.length > 0 ? (
+        <ul className="card-content list">
+          {sensors.map((sensor) => (
+            <li key={sensor.id} className="list-item">
+              {sensor.greenhouse.name} {sensor.type} (Status: {sensor.status})
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No sensors found or still loading...</p>
+      )}
     </div>
   );
 }
 ```
 
-Look at what we've gained:
-
-**1. Business logic is testable in isolation.** We can instantiate `UserDashboardViewModel` directly in tests, inject mock services, and verify behavior without rendering anything:
+The `useObservable` hook is a simple adapter that bridges RxJS observables to React state:
 
 ```typescript
-describe("UserDashboardViewModel", () => {
-  it("filters published posts", async () => {
-    const mockPostService = {
-      getUserPosts: async () => [
-        { id: "1", published: true, title: "Post 1", content: "..." },
-        { id: "2", published: false, title: "Post 2", content: "..." },
-      ],
-    };
+// File: apps/mvvm-react/src/hooks/useObservable.ts
+import { useState, useEffect } from 'react';
+import { Observable } from 'rxjs';
 
-    const vm = new UserDashboardViewModel(
-      "user-123",
-      mockUserService,
-      mockPostService
-    );
+export function useObservable<T>(observable: Observable<T>, initialValue: T) {
+  const [value, setValue] = useState<T>(initialValue);
 
-    const publishedPosts = await firstValueFrom(vm.publishedPosts$);
-    expect(publishedPosts).toHaveLength(1);
-    expect(publishedPosts[0].id).toBe("1");
+  useEffect(() => {
+    const subscription = observable.subscribe(setValue);
+    return () => subscription.unsubscribe();
+  }, [observable]);
+
+  return value;
+}
+```
+
+Look at what we've gained:
+
+**1. Business logic is testable in isolation.** We can instantiate `SensorViewModel` directly in tests, inject mock services, and verify behavior without rendering anything:
+
+```typescript
+describe("SensorViewModel", () => {
+  it("exposes sensor data through observables", async () => {
+    const mockModel = new SensorModel();
+    const viewModel = new SensorViewModel(mockModel);
+
+    // Test the ViewModel without any UI
+    const sensors = await firstValueFrom(viewModel.data$);
+    expect(sensors).toBeDefined();
+    
+    viewModel.dispose();
   });
 });
 ```
 
-These tests run in milliseconds. No DOM. No component lifecycle. Just pure logic verification.
+These tests run in milliseconds. No DOM. No component lifecycle. Just pure logic verification. We'll explore comprehensive testing strategies in [Chapter 19: Testing MVVM Applications](#).
 
-**2. The View becomes simple.** It observes state and renders. That's all. If you need to change the UI, you're changing the View. If you need to change behavior, you're changing the ViewModel. Clear separation means clear responsibility.
+**2. The View becomes simple.** It observes state and renders. That's all. The `SensorList` component has zero business logic—it just subscribes to observables and displays data. If you need to change the UI, you're changing the View. If you need to change behavior, you're changing the ViewModel. Clear separation means clear responsibility.
 
-**3. Framework portability is real.** That same `UserDashboardViewModel`? It works in Vue:
+**3. Framework portability is real.** That same `SensorViewModel`? It works identically in Vue, Angular, Lit, and even vanilla JavaScript. The business logic is written once and reused everywhere. We'll see this in action across [Chapters 8-12](#), where we implement the same ViewModels in five different frameworks.
 
-```typescript
-<script setup lang="ts">
-import { useObservable } from '@/composables/useObservable';
-
-const viewModel = new UserDashboardViewModel(
-  props.userId,
-  new UserService(),
-  new PostService()
-);
-
-const user = useObservable(viewModel.user$);
-const posts = useObservable(viewModel.publishedPosts$);
-const loading = useObservable(viewModel.loading$);
-const error = useObservable(viewModel.error$);
-</script>
-
-<template>
-  <Spinner v-if="loading" />
-  <ErrorMessage v-else-if="error" :message="error" />
-  <div v-else>
-    <UserProfile :user="user" />
-    <PostsList :posts="posts" @publish="viewModel.publishPost" />
-  </div>
-</template>
-```
-
-Same ViewModel. Different View. Zero rewrite of business logic.
-
-**4. Collaboration becomes natural.** Backend developers can work on services and models. UI developers can focus on components and styling. Everyone works with a clear contract defined by the ViewModel's public interface.
+**4. Collaboration becomes natural.** Backend developers can work on Models and domain logic. UI developers can focus on components and styling. Everyone works with a clear contract defined by the ViewModel's public interface.
 
 ## 1.5 What This Book Will Teach You
 
 This isn't a book about React, Vue, or Angular. It's a book about **architecture that transcends frameworks**.
 
-We're going to build a real-world application—a greenhouse monitoring system called GreenWatch—using MVVM principles that work across all three major frameworks. You'll learn:
+We're going to build the GreenWatch greenhouse monitoring system using MVVM principles that work across all major frameworks. You'll learn:
 
-- **How to structure TypeScript code for true framework independence.** We'll establish patterns using RxJS for reactive state management, dependency injection for testability, and clear boundaries between layers.
-- **How to implement ViewModels that drive real UI.** Not toy examples—actual, production-quality code that handles asynchronous data, complex state transitions, and user interactions.
-- **How to bind framework-specific Views to framework-agnostic ViewModels.** We'll see identical ViewModels powering React components, Vue components, and Angular components, understanding the patterns that make this possible.
-- **How to test business logic without touching the DOM.** We'll write fast, focused unit tests for ViewModels and integration tests for services, building a test suite that actually gives us confidence.
-- **How to scale this architecture to enterprise systems.** We'll explore microfrontends, domain-driven design, shared component libraries, and even AI-assisted code generation—all built on the same MVVM foundation.
+- **How to structure TypeScript code for true framework independence.** We'll establish patterns using RxJS for reactive state management, dependency injection for testability, and clear boundaries between layers (Chapters 4-7).
+
+- **How to implement ViewModels that drive real UI.** Not toy examples—actual, production-quality code that handles asynchronous data, complex state transitions, and user interactions (Chapter 5).
+
+- **How to bind framework-specific Views to framework-agnostic ViewModels.** We'll see identical ViewModels powering React components, Vue components, Angular components, Lit web components, and vanilla JavaScript, understanding the patterns that make this possible (Chapters 8-12).
+
+- **How to leverage framework-agnostic patterns.** We'll explore reactive state management, event-driven communication, data fetching strategies, headless UI behaviors, and composed UI patterns—all implemented in ways that work with any framework (Chapters 13-17).
+
+- **How to test business logic without touching the DOM.** We'll write fast, focused unit tests for ViewModels and integration tests for services, building a test suite that actually gives us confidence (Chapter 19).
+
+- **How to scale this architecture to enterprise systems.** We'll explore domain-driven design, plugin architecture, design systems, and performance optimization—all built on the same MVVM foundation (Chapters 18-21).
 
 By the end of this book, you'll have a reusable architectural template that you can apply to any project, regardless of your framework choice. You'll write more maintainable code, ship features faster, and sleep better knowing your architecture won't collapse under its own weight.
 
@@ -327,7 +327,7 @@ This book assumes you're comfortable with:
 - Basic reactive programming concepts (though we'll cover RxJS thoroughly)
 - Testing principles (unit tests, mocks, test doubles)
 
-You don't need to be an expert in all three frameworks. In fact, if you've only used one, you're the ideal reader—you'll see how architectural patterns let you transfer your knowledge across framework boundaries.
+You don't need to be an expert in all frameworks. In fact, if you've only used one, you're the ideal reader—you'll see how architectural patterns let you transfer your knowledge across framework boundaries.
 
 You should read this book if you:
 
@@ -345,6 +345,34 @@ MVVM isn't a religion. It's a tool. There are scenarios where a simple component
 The key is **intentionality**. When you choose to put logic in a component, it should be a conscious decision, not a default. When complexity grows, you should have a clear path to extract that logic into a testable, reusable ViewModel.
 
 This book will give you that path. We'll discuss when to apply MVVM and when simpler patterns suffice. We'll explore the trade-offs honestly, because architecture is about making informed decisions, not following dogma.
+
+## 1.8 The GreenWatch Domain
+
+Throughout this book, we'll use the **GreenWatch** greenhouse monitoring system as our primary case study. This is a real application implemented in the Web Loom monorepo, demonstrating MVVM patterns across multiple frameworks.
+
+**The Domain Model:**
+
+- **Greenhouse**: A physical greenhouse with environmental zones that need monitoring
+- **Sensor**: Devices that measure environmental conditions (temperature, humidity, soil moisture)
+- **SensorReading**: Time-series data points from sensors
+- **ThresholdAlert**: Alerts triggered when readings exceed configured thresholds
+
+**The ViewModels:**
+
+- `GreenHouseViewModel`: Manages greenhouse state and operations
+- `SensorViewModel`: Manages sensor state and configuration
+- `SensorReadingViewModel`: Manages sensor reading streams and aggregations
+- `ThresholdAlertViewModel`: Manages alert configuration and notifications
+
+**The Implementations:**
+
+- `apps/mvvm-react`: React implementation with hooks
+- `apps/mvvm-vue`: Vue 3 implementation with Composition API
+- `apps/mvvm-angular`: Angular implementation with dependency injection
+- `apps/mvvm-lit`: Lit web components implementation
+- `apps/mvvm-vanilla`: Vanilla JavaScript with EJS templates
+
+All of these implementations share the same ViewModels and Models. The business logic is written once and reused everywhere. This is the power of MVVM.
 
 ---
 

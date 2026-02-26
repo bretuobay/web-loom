@@ -1,467 +1,1225 @@
-# Conclusion: Tradeoffs, Discipline, and the Architect's Path
+---
+id: "design-systems-and-theming"
+title: Design Systems and Theming
+section: Advanced Topics
+---
 
-# Chapter 21: Tradeoffs, Discipline, and the Architect's Path
+# Chapter 21: Design Systems and Theming
 
-We've built something substantial together. Over the course of this book, we've constructed a complete IoT greenhouse monitoring system—GreenWatch—using MVVM architecture across multiple frameworks. We've written ViewModels that manage real-time sensor streams, domain models that encapsulate business rules, and view layers that adapt seamlessly to React, Vue, and Angular. More importantly, we've demonstrated that frontend architecture isn't just theoretical posturing—it's practical engineering that solves real problems.
+In previous chapters, we've built ViewModels that manage application state, Models that encapsulate business logic, and Views that render UI across multiple frameworks. But we haven't yet addressed a critical aspect of modern applications: **consistent visual design**. How do you maintain design consistency across components, frameworks, and themes? How do you enable dark mode without duplicating styles? How do you ensure your design system scales as your application grows?
 
-But let's be honest about what we're asking you to do.
+This chapter explores design token systems and theming patterns in general terms, then demonstrates these concepts using the `design-core` library from the Web Loom monorepo as a concrete example. The goal isn't to prescribe a specific library, but to teach you the underlying principles so you can build scalable, maintainable design systems for your MVVM applications.
 
-Adopting MVVM in modern frontend development means swimming against the current. It means writing more files, establishing more conventions, and defending architectural boundaries when your teammates want to "just add it to the component." It means accepting short-term friction for long-term payoff. This final chapter isn't a victory lap—it's a candid assessment of what we've built, when it matters, and what it costs.
+## Why Design Systems Matter for MVVM
 
-## The Honest Calculus: When MVVM Earns Its Keep
+MVVM architecture separates concerns: Models handle business logic, ViewModels manage presentation state, and Views render UI. But this separation creates a challenge: **how do you maintain visual consistency across multiple View implementations?**
 
-Not every application needs MVVM. Let's establish that up front.
+Consider the GreenWatch application we've built throughout this book. We have the same ViewModels running in React, Vue, Angular, Lit, and vanilla JavaScript. Each framework has its own styling approach:
 
-If you're building a simple CRUD interface with basic forms and standard table views, the architectural overhead we've introduced might not pay dividends. Component-local state with a few custom hooks could serve you just fine. The React team built their framework around the assumption that most applications fit this profile, and for many projects, they're right.
+- React: CSS Modules, styled-components, Tailwind
+- Vue: Scoped styles, CSS Modules
+- Angular: Component styles with ViewEncapsulation
+- Lit: Shadow DOM with adoptedStyleSheets
+- Vanilla JS: Global CSS or inline styles
 
-**MVVM justifies itself when specific conditions emerge:**
+Without a design system, you'd need to duplicate color values, spacing units, and typography settings across all these implementations. When you want to add dark mode or change your brand colors, you'd need to update styles in five different places. This violates the DRY principle and makes maintenance painful.
 
-### Complex State Orchestration
 
-When your application state isn't just "loading, loaded, error" but involves coordinating multiple asynchronous streams, managing derived computations, and synchronizing cross-cutting concerns, ViewModels provide structure that component trees struggle to maintain.
+A design system solves this by providing a **single source of truth** for visual design decisions. Just as ViewModels provide a single source of truth for presentation logic, design tokens provide a single source of truth for visual properties.
 
-GreenWatch demonstrates this clearly. Our `EnvironmentalMonitoringViewModel` doesn't just fetch sensor readings—it:
+## Core Concepts: Design Tokens
 
-```typescript
-class EnvironmentalMonitoringViewModel {
-  // Multiple concurrent streams
-  private sensorReadings$ = this.sensorService.streamReadings();
-  private alertThresholds$ = this.configService.getThresholds();
-  private weatherForecast$ = this.weatherService.getForecast();
+**Design tokens** are named entities that store visual design attributes. Instead of hardcoding `#1E40AF` throughout your application, you define a token like `color.base.primary` with that value. Tokens represent:
 
-  // Coordinated derived state
-  readonly environmentalStatus$: Observable<EnvironmentStatus> = combineLatest([
-    this.sensorReadings$,
-    this.alertThresholds$,
-    this.weatherForecast$,
-  ]).pipe(
-    map(([readings, thresholds, forecast]) => this.analyzeEnvironmentalConditions(readings, thresholds, forecast)),
-    shareReplay(1),
-  );
+- **Colors**: Brand colors, semantic colors, neutrals
+- **Spacing**: Margins, padding, gaps
+- **Typography**: Font families, sizes, weights, line heights
+- **Shadows**: Elevation and depth effects
+- **Borders**: Widths, styles, radii
+- **Timing**: Animation durations and easing functions
 
-  // Cross-cutting concerns
-  readonly criticalAlerts$ = this.environmentalStatus$.pipe(
-    filter((status) => status.severity === 'critical'),
-    tap((alert) => this.notificationService.sendAlert(alert)),
-  );
+The key insight is that tokens are **abstract and platform-agnostic**. They're defined once in a structured format (typically JSON or YAML), then transformed into platform-specific formats:
+
+```
+Design Tokens (JSON)
+    ↓
+    ├─→ CSS Custom Properties (--color-primary: #1E40AF)
+    ├─→ JavaScript Objects ({ colorPrimary: '#1E40AF' })
+    ├─→ iOS Swift (UIColor.primary)
+    └─→ Android XML (<color name="primary">#1E40AF</color>)
+```
+
+For web applications, CSS Custom Properties (CSS Variables) are the primary output format because they work across all frameworks and support runtime theming.
+
+### Token Structure and Organization
+
+Tokens are typically organized hierarchically:
+
+```
+colors
+  ├─ base
+  │   ├─ primary: #1E40AF
+  │   ├─ secondary: #64748B
+  │   └─ success: #10B981
+  ├─ neutral
+  │   ├─ white: #FFFFFF
+  │   ├─ black: #000000
+  │   └─ gray
+  │       ├─ 100: #F3F4F6
+  │       ├─ 200: #E5E7EB
+  │       └─ ...
+  └─ themed
+      ├─ light
+      │   ├─ background: {colors.neutral.white}
+      │   └─ text: {colors.neutral.black}
+      └─ dark
+          ├─ background: {colors.neutral.900}
+          └─ text: {colors.neutral.white}
+```
+
+
+Notice the `themed` section uses **token references** (e.g., `{colors.neutral.white}`). This is a powerful pattern: tokens can reference other tokens, creating a semantic layer on top of primitive values. When you change `colors.neutral.white`, all tokens that reference it automatically update.
+
+### Token Formats: DTCG Standard
+
+The [Design Tokens Community Group (DTCG)](https://design-tokens.github.io/community-group/format/) has established a standard format for design tokens:
+
+```json
+{
+  "color": {
+    "base": {
+      "primary": {
+        "value": "#1E40AF",
+        "type": "color",
+        "description": "Primary brand color"
+      }
+    }
+  }
 }
 ```
 
-Try modeling this elegantly in a component tree without a ViewModel. You'll end up with `useEffect` hooks calling other hooks, contexts passing streams through multiple levels, and business logic scattered across the component hierarchy. The ViewModel concentrates this complexity in a testable, framework-agnostic location.
+Each token has:
+- `value`: The actual value
+- `type`: The token type (color, spacing, dimension, etc.)
+- `description`: Human-readable documentation
 
-### Framework Migration or Multi-Platform Requirements
+This standardization enables interoperability between design tools (Figma, Sketch) and code.
 
-If there's even a 20% chance you'll need to support multiple frameworks or migrate between them, MVVM's framework independence becomes invaluable.
+## Design Token System Implementation
 
-We proved this explicitly in our React and Vue implementations. The same `IrrigationControlViewModel` powered both:
+Let's see how to implement a design token system. We'll use the `design-core` library from the Web Loom monorepo as a concrete example, but the patterns apply to any implementation.
+
+### Token Definition
+
+Tokens are defined in JSON files, one per category. Here's an excerpt from `packages/design-core/src/tokens/colors.json`:
+
+```json
+{
+  "color": {
+    "base": {
+      "primary": {
+        "value": "#1E40AF",
+        "type": "color",
+        "description": "Primary brand color"
+      },
+      "secondary": {
+        "value": "#64748B",
+        "type": "color",
+        "description": "Secondary brand color"
+      }
+    },
+    "neutral": {
+      "white": {
+        "value": "#FFFFFF",
+        "type": "color"
+      },
+      "gray": {
+        "900": {
+          "value": "#111827",
+          "type": "color"
+        }
+      }
+    },
+    "themed": {
+      "light": {
+        "background": {
+          "value": "{color.neutral.white.value}",
+          "type": "color"
+        }
+      },
+      "dark": {
+        "background": {
+          "value": "{color.neutral.gray.900.value}",
+          "type": "color"
+        }
+      }
+    }
+  }
+}
+```
+
+
+And from `packages/design-core/src/tokens/spacing.json`:
+
+```json
+{
+  "spacing": {
+    "1": {
+      "value": "4px",
+      "type": "spacing",
+      "description": "Spacing unit 1"
+    },
+    "4": {
+      "value": "16px",
+      "type": "spacing",
+      "description": "Spacing unit 4"
+    },
+    "gutter": {
+      "value": "{spacing.4.value}",
+      "type": "spacing",
+      "description": "Default gutter size"
+    },
+    "padding": {
+      "md": {
+        "value": "{spacing.4.value}",
+        "type": "spacing"
+      }
+    }
+  }
+}
+```
+
+Notice how `spacing.gutter` and `spacing.padding.md` reference `spacing.4`. This creates a semantic layer: if you change the base spacing unit, all derived values update automatically.
+
+### Token Loading and Processing
+
+The token system needs to:
+1. Load token files dynamically
+2. Extract values from the DTCG format
+3. Resolve token references
+4. Cache processed tokens
+
+Here's how `design-core` implements this in `packages/design-core/src/utils/tokens.ts`:
 
 ```typescript
-// React implementation
-function IrrigationControlPanel() {
-  const viewModel = useViewModel(IrrigationControlViewModel);
-  const zones = useObservable(viewModel.irrigationZones$, []);
-  const activeCount = useObservable(viewModel.activeZoneCount$, 0);
+// Token files to load
+const tokenFiles = [
+  'colors.json',
+  'spacing.json',
+  'typography.json',
+  'shadows.json',
+  // ... more categories
+];
 
+// Cache for processed tokens
+const masterTokens: DesignTokens = {};
+let masterTokensInitialized = false;
+
+// Extract 'value' from token objects
+function processTokenNode(node: any): TokenValue | TokenGroup {
+  if (typeof node === 'object' && node !== null) {
+    if ('value' in node) {
+      return node.value;  // Extract the value
+    }
+    // Recurse for nested groups
+    const processedNode: TokenGroup = {};
+    for (const key in node) {
+      processedNode[key] = processTokenNode(node[key]);
+    }
+    return processedNode;
+  }
+  return node;
+}
+```
+
+
+The reference resolution is critical. Tokens like `{color.neutral.white.value}` need to be resolved to their actual values:
+
+```typescript
+// Resolve token references like "{colors.base.primary.value}"
+function resolveTokenReferences(tokens: DesignTokens): void {
+  const referenceRegex = /^{([^}]+)\.value}$/;
+  
+  const getReferencedValue = (path: string, allTokens: DesignTokens) => {
+    const parts = path.split('.');
+    let current: any = allTokens;
+    for (const part of parts) {
+      if (current && typeof current === 'object' && part in current) {
+        current = current[part];
+      } else {
+        return undefined;  // Path not found
+      }
+    }
+    return current;
+  };
+  
+  // Walk through all tokens and resolve references
+  walkTokens(tokens, (value, pathArray) => {
+    if (typeof value === 'string') {
+      const match = value.match(referenceRegex);
+      if (match) {
+        const referencePath = match[1];
+        const resolvedValue = getReferencedValue(referencePath, tokens);
+        if (resolvedValue !== undefined) {
+          // Update the token with the resolved value
+          updateTokenAtPath(tokens, pathArray, resolvedValue);
+        }
+      }
+    }
+  });
+}
+```
+
+This two-pass approach (extract values, then resolve references) ensures all tokens are properly processed before use.
+
+### Accessing Tokens in JavaScript
+
+Once tokens are loaded and processed, you can access them programmatically:
+
+```typescript
+import { getTokenValue, getAllTokens } from '@web-loom/design-core/utils';
+
+// Get a specific token value
+const primaryColor = await getTokenValue('color.base.primary');
+console.log(primaryColor);  // "#1E40AF"
+
+// Get all tokens
+const allTokens = await getAllTokens();
+console.log(allTokens.color.base.primary);  // "#1E40AF"
+```
+
+The async API is necessary because tokens are loaded dynamically from JSON files. This keeps the initial bundle size small and allows for lazy loading of token categories.
+
+
+## CSS Custom Properties Generation
+
+The most powerful way to use design tokens in web applications is through CSS Custom Properties (CSS Variables). They provide:
+
+- **Runtime theming**: Change values without recompiling CSS
+- **Framework independence**: Work in React, Vue, Angular, vanilla JS
+- **Cascade and inheritance**: Leverage CSS's natural scoping
+- **Browser DevTools support**: Inspect and modify values in real-time
+
+### Generating CSS Variables
+
+The token system needs to transform the hierarchical token structure into flat CSS variable declarations. Here's how `design-core` implements this in `packages/design-core/src/utils/cssVariables.ts`:
+
+```typescript
+// Convert token path to CSS variable name
+// "color.base.primary" → "--color-base-primary"
+export function pathToCssVar(path: string): string {
+  return `--${path.replace(/\./g, '-')}`;
+}
+
+// Flatten nested tokens into CSS variables
+function flattenTokensToCssVarsRecursive(
+  tokens: DesignTokens,
+  currentPath: string = '',
+  cssVarsMap: Record<string, TokenValue> = {}
+): Record<string, TokenValue> {
+  for (const key in tokens) {
+    const value = tokens[key];
+    const newPath = currentPath ? `${currentPath}.${key}` : key;
+    
+    if (typeof value === 'object' && value !== null) {
+      // Nested group, recurse
+      flattenTokensToCssVarsRecursive(value, newPath, cssVarsMap);
+    } else if (value !== undefined && value !== null) {
+      // Leaf node, add to map
+      cssVarsMap[pathToCssVar(newPath)] = value;
+    }
+  }
+  return cssVarsMap;
+}
+
+// Generate CSS variable declarations
+export async function generateCssVariablesString(
+  selector: string = ':root'
+): Promise<string> {
+  const cssVarsMap = await generateCssVariablesMap();
+  
+  let cssString = `${selector} {\n`;
+  for (const varName in cssVarsMap) {
+    cssString += `  ${varName}: ${cssVarsMap[varName]};\n`;
+  }
+  cssString += `}\n`;
+  
+  return cssString;
+}
+```
+
+
+This generates CSS like:
+
+```css
+:root {
+  --color-base-primary: #1E40AF;
+  --color-base-secondary: #64748B;
+  --color-neutral-white: #FFFFFF;
+  --color-neutral-gray-900: #111827;
+  --spacing-1: 4px;
+  --spacing-4: 16px;
+  --spacing-gutter: 16px;
+  /* ... hundreds more variables */
+}
+```
+
+### Injecting CSS Variables
+
+You can inject these variables into your application in several ways:
+
+**1. Dynamic injection (JavaScript):**
+
+```typescript
+import { generateCssVariablesString } from '@web-loom/design-core/utils';
+
+async function setupDesignTokens() {
+  const cssVars = await generateCssVariablesString(':root');
+  
+  const styleTag = document.createElement('style');
+  styleTag.id = 'design-tokens';
+  styleTag.textContent = cssVars;
+  document.head.appendChild(styleTag);
+}
+
+// Call early in application lifecycle
+setupDesignTokens();
+```
+
+**2. Pre-generated CSS files:**
+
+The `design-core` package includes pre-generated CSS files that you can import directly:
+
+```javascript
+// Import all token CSS variables
+import '@web-loom/design-core/design-system';
+
+// Or import specific categories
+import '@web-loom/design-core/src/css/colors.css';
+import '@web-loom/design-core/src/css/spacing.css';
+```
+
+**3. Build-time generation:**
+
+Generate CSS files during your build process:
+
+```javascript
+// scripts/generate-css.js
+import { generateCssVariablesString } from '@web-loom/design-core/utils';
+import fs from 'fs';
+
+const css = await generateCssVariablesString(':root');
+fs.writeFileSync('dist/tokens.css', css);
+```
+
+### Using CSS Variables in Styles
+
+Once injected, you can use these variables in any CSS:
+
+```css
+.sensor-card {
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-gray-200);
+  padding: var(--spacing-4);
+  border-radius: var(--radii-md);
+  box-shadow: var(--shadows-sm);
+}
+
+.sensor-reading {
+  color: var(--color-base-primary);
+  font-size: var(--typography-fontSize-md);
+  font-weight: var(--typography-fontWeight-semibold);
+}
+```
+
+
+The beauty of this approach is that it works identically across all frameworks. Your React components, Vue components, Angular components, and vanilla JavaScript all reference the same CSS variables, ensuring perfect visual consistency.
+
+### Helper Functions for CSS Variables
+
+The `design-core` library provides helper functions for working with CSS variables in JavaScript:
+
+```typescript
+import { 
+  getTokenVar, 
+  getSafeTokenVar 
+} from '@web-loom/design-core/utils';
+
+// Get CSS variable reference
+const primaryColorVar = getTokenVar('color.base.primary');
+// Returns: "var(--color-base-primary)"
+
+// Apply to element
+element.style.backgroundColor = primaryColorVar;
+
+// Safe version that checks if token exists
+const accentVar = await getSafeTokenVar('color.base.accent');
+if (accentVar) {
+  element.style.color = accentVar;
+} else {
+  console.warn('Token not found, using fallback');
+  element.style.color = '#000000';
+}
+```
+
+These helpers are particularly useful when applying styles dynamically in JavaScript, such as in ViewModels that need to compute styles based on state.
+
+## Dynamic Theming
+
+The real power of CSS Custom Properties emerges with dynamic theming. Instead of duplicating styles for light and dark modes, you override specific CSS variables based on a theme selector.
+
+### Theme Structure
+
+A theme is a set of token overrides. Here's the conceptual model:
+
+```typescript
+interface Theme {
+  name: string;                    // "dark", "high-contrast", etc.
+  tokens: Partial<DesignTokens>;   // Token overrides
+}
+```
+
+For example, a dark theme might override background and text colors:
+
+```typescript
+const darkTheme = {
+  name: 'dark',
+  tokens: {
+    color: {
+      themed: {
+        background: '#121212',
+        text: '#E0E0E0'
+      }
+    },
+    shadows: {
+      medium: '0 4px 12px rgba(255, 255, 255, 0.1)'
+    }
+  }
+};
+```
+
+
+### Creating and Applying Themes
+
+The `design-core` library provides a complete theming API in `packages/design-core/src/utils/theme.ts`:
+
+```typescript
+import { createTheme, applyTheme, setTheme } from '@web-loom/design-core/utils';
+
+// Create a dark theme
+const darkTheme = createTheme('dark', {
+  color: {
+    themed: {
+      light: {
+        background: { value: '#121212' },
+        text: { value: '#E0E0E0' }
+      }
+    },
+    base: {
+      primary: { value: '#3B82F6' }  // Slightly different blue for dark mode
+    }
+  },
+  shadows: {
+    medium: { value: '0 4px 12px rgba(255, 255, 255, 0.1)' }
+  }
+});
+
+// Apply theme styles (generates CSS for [data-theme="dark"])
+await applyTheme(darkTheme);
+
+// Activate the theme (sets data-theme attribute on <html>)
+setTheme('dark');
+```
+
+The `createTheme` function creates a theme object with token overrides. The `applyTheme` function generates CSS variable declarations scoped to a `data-theme` attribute:
+
+```css
+[data-theme="dark"] {
+  --color-themed-light-background: #121212;
+  --color-themed-light-text: #E0E0E0;
+  --color-base-primary: #3B82F6;
+  --shadows-medium: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+```
+
+When you call `setTheme('dark')`, it sets `<html data-theme="dark">`, which activates these overrides. All components automatically use the new values because they reference CSS variables.
+
+### Theme Implementation Details
+
+Here's how `applyTheme` works internally:
+
+```typescript
+export async function applyTheme(
+  theme: Theme, 
+  applyToRoot: boolean = false
+): Promise<void> {
+  const selector = applyToRoot ? ':root' : `[data-theme="${theme.name}"]`;
+  const styleElementId = `dynamic-theme-styles-${theme.name}`;
+  
+  // Flatten theme overrides to CSS variables
+  const cssVarsMap = flattenThemeOverridesToCssVars(theme.tokens);
+  
+  // Generate CSS string
+  let cssString = `${selector} {\n`;
+  for (const varName in cssVarsMap) {
+    cssString += `  ${varName}: ${cssVarsMap[varName]};\n`;
+  }
+  cssString += `}\n`;
+  
+  // Inject or update style element
+  let styleElement = document.getElementById(styleElementId);
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    styleElement.id = styleElementId;
+    document.head.appendChild(styleElement);
+  }
+  styleElement.textContent = cssString;
+}
+```
+
+
+The `applyToRoot` parameter allows you to apply overrides globally (to `:root`) instead of scoping them to a theme selector. This is useful for base theme customization.
+
+### Theme Switching
+
+Switching themes is as simple as changing the `data-theme` attribute:
+
+```typescript
+export function setTheme(themeName: string): void {
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', themeName);
+    console.log(`Theme switched to "${themeName}"`);
+  }
+}
+
+export function getCurrentTheme(): string | null {
+  if (typeof document !== 'undefined') {
+    return document.documentElement.getAttribute('data-theme');
+  }
+  return null;
+}
+```
+
+This makes theme switching instant—no page reload, no CSS recompilation, just a single attribute change.
+
+### Light/Dark Mode Example
+
+Here's a complete example of implementing light/dark mode:
+
+```typescript
+import { 
+  createTheme, 
+  applyTheme, 
+  setTheme, 
+  getCurrentTheme 
+} from '@web-loom/design-core/utils';
+
+// Define dark theme
+const darkTheme = createTheme('dark', {
+  color: {
+    neutral: {
+      white: { value: '#FFFFFF' },
+      gray: {
+        900: { value: '#111827' }
+      }
+    },
+    themed: {
+      dark: {
+        background: { value: '#121212' },
+        text: { value: '#E0E0E0' }
+      }
+    }
+  }
+});
+
+// Setup themes on app initialization
+async function setupThemes() {
+  await applyTheme(darkTheme);
+  
+  // Check user preference
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  setTheme(prefersDark ? 'dark' : 'light');
+  
+  // Listen for system theme changes
+  window.matchMedia('(prefers-color-scheme: dark)')
+    .addEventListener('change', (e) => {
+      setTheme(e.matches ? 'dark' : 'light');
+    });
+}
+
+// Toggle theme manually
+function toggleTheme() {
+  const current = getCurrentTheme();
+  setTheme(current === 'dark' ? 'light' : 'dark');
+}
+```
+
+
+## Framework-Agnostic Design Systems
+
+The power of CSS Custom Properties is that they work identically across all frameworks. Let's see how the same design system integrates with different View implementations.
+
+### React Integration
+
+```typescript
+import { useEffect, useState } from 'react';
+import { createTheme, applyTheme, setTheme } from '@web-loom/design-core/utils';
+import '@web-loom/design-core/design-system';
+
+function ThemeToggle() {
+  const [theme, setActiveTheme] = useState('light');
+  
+  useEffect(() => {
+    // Setup dark theme on mount
+    const darkTheme = createTheme('dark', {
+      color: {
+        themed: {
+          dark: {
+            background: { value: '#121212' },
+            text: { value: '#E0E0E0' }
+          }
+        }
+      }
+    });
+    applyTheme(darkTheme);
+  }, []);
+  
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    setActiveTheme(newTheme);
+  };
+  
   return (
-    <div className="irrigation-control">
-      <h2>Active Zones: {activeCount}</h2>
-      {zones.map(zone => (
-        <ZoneControl
-          key={zone.id}
-          zone={zone}
-          onToggle={() => viewModel.toggleZone(zone.id)}
-        />
-      ))}
-    </div>
+    <button 
+      className="btn btn-primary" 
+      onClick={toggleTheme}
+    >
+      Toggle Theme
+    </button>
   );
 }
+```
 
-// Vue implementation - same ViewModel, different view layer
-<template>
-  <div class="irrigation-control">
-    <h2>Active Zones: {{ activeZoneCount }}</h2>
-    <zone-control
-      v-for="zone in irrigationZones"
-      :key="zone.id"
-      :zone="zone"
-      @toggle="toggleZone(zone.id)"
-    />
-  </div>
-</template>
+### Vue Integration
 
-<script setup lang="ts">
-const viewModel = useViewModel(IrrigationControlViewModel);
-const irrigationZones = useObservable(viewModel.irrigationZones$, []);
-const activeZoneCount = useObservable(viewModel.activeZoneCount$, 0);
+```vue
+<script setup>
+import { ref, onMounted } from 'vue';
+import { createTheme, applyTheme, setTheme } from '@web-loom/design-core/utils';
+import '@web-loom/design-core/design-system';
 
-function toggleZone(id: string) {
-  viewModel.toggleZone(id);
-}
+const currentTheme = ref('light');
+
+onMounted(async () => {
+  const darkTheme = createTheme('dark', {
+    color: {
+      themed: {
+        dark: {
+          background: { value: '#121212' },
+          text: { value: '#E0E0E0' }
+        }
+      }
+    }
+  });
+  await applyTheme(darkTheme);
+});
+
+const toggleTheme = () => {
+  currentTheme.value = currentTheme.value === 'light' ? 'dark' : 'light';
+  setTheme(currentTheme.value);
+};
 </script>
+
+<template>
+  <button class="btn btn-primary" @click="toggleTheme">
+    Toggle Theme
+  </button>
+</template>
 ```
 
-Zero business logic changed. Zero domain models were rewritten. We adapted only the view layer—exactly as MVVM promises.
 
-### Extensive Business Logic and Domain Rules
-
-When your application isn't just presenting data but actively enforcing complex business rules, validating intricate workflows, and managing domain invariants, keeping this logic out of components becomes critical.
-
-Our `GreenhouseConfigurationDomain` exemplifies this:
+### Angular Integration
 
 ```typescript
-class GreenhouseConfigurationDomain {
-  validateConfiguration(config: GreenhouseConfig): ValidationResult {
-    const errors: string[] = [];
+import { Component, OnInit } from '@angular/core';
+import { createTheme, applyTheme, setTheme } from '@web-loom/design-core/utils';
 
-    // Temperature range validation
-    if (config.temperatureRange.min >= config.temperatureRange.max) {
-      errors.push('Minimum temperature must be less than maximum');
-    }
-
-    if (config.temperatureRange.min < this.ABSOLUTE_MIN_TEMP) {
-      errors.push(`Minimum temperature cannot be below ${this.ABSOLUTE_MIN_TEMP}°C`);
-    }
-
-    // Irrigation schedule validation
-    if (!this.isValidIrrigationSchedule(config.irrigationSchedule)) {
-      errors.push('Irrigation schedule has overlapping time windows');
-    }
-
-    // Sensor dependency validation
-    const requiredSensors = this.getRequiredSensors(config);
-    const missingSensors = requiredSensors.filter((sensor) => !config.activeSensors.includes(sensor));
-
-    if (missingSensors.length > 0) {
-      errors.push(`Missing required sensors: ${missingSensors.join(', ')}`);
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+@Component({
+  selector: 'app-theme-toggle',
+  template: `
+    <button class="btn btn-primary" (click)="toggleTheme()">
+      Toggle Theme
+    </button>
+  `,
+  styles: []
+})
+export class ThemeToggleComponent implements OnInit {
+  currentTheme = 'light';
+  
+  async ngOnInit() {
+    const darkTheme = createTheme('dark', {
+      color: {
+        themed: {
+          dark: {
+            background: { value: '#121212' },
+            text: { value: '#E0E0E0' }
+          }
+        }
+      }
+    });
+    await applyTheme(darkTheme);
+  }
+  
+  toggleTheme() {
+    this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+    setTheme(this.currentTheme);
   }
 }
 ```
 
-This validation logic doesn't belong in a component's `onSubmit` handler. It belongs in the domain layer where it can be tested independently, reused across contexts, and evolved without touching UI code.
+### Vanilla JavaScript Integration
 
-### High Testing Requirements
+```javascript
+import { createTheme, applyTheme, setTheme } from '@web-loom/design-core/utils';
 
-If your application demands comprehensive test coverage—particularly for complex user interactions and business workflows—MVVM's testability advantages compound over time.
+let currentTheme = 'light';
 
-We've demonstrated this repeatedly. Testing a ViewModel requires no DOM, no framework runtime, no browser environment:
+async function setupThemeToggle() {
+  // Setup dark theme
+  const darkTheme = createTheme('dark', {
+    color: {
+      themed: {
+        dark: {
+          background: { value: '#121212' },
+          text: { value: '#E0E0E0' }
+        }
+      }
+    }
+  });
+  await applyTheme(darkTheme);
+  
+  // Add event listener
+  const button = document.getElementById('theme-toggle');
+  button.addEventListener('click', () => {
+    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+    setTheme(currentTheme);
+  });
+}
+
+setupThemeToggle();
+```
+
+Notice that the theming logic is **identical** across all frameworks. Only the component lifecycle and event handling differ. The design system itself is completely framework-agnostic.
+
+
+## Benefits of Framework-Agnostic Design Systems
+
+Using CSS Custom Properties and design tokens provides several key benefits for MVVM applications:
+
+### 1. Single Source of Truth
+
+All visual design decisions live in one place—the token definitions. When you change a color or spacing value, it updates everywhere automatically. This is the same principle as ViewModels providing a single source of truth for presentation logic.
+
+### 2. Framework Independence
+
+The design system works identically in React, Vue, Angular, Lit, and vanilla JavaScript. You can migrate between frameworks without rewriting styles. This aligns perfectly with MVVM's goal of framework-independent business logic.
+
+### 3. Runtime Theming
+
+CSS Custom Properties can be changed at runtime without recompiling CSS. This enables:
+- Light/dark mode switching
+- User-customizable themes
+- A/B testing different color schemes
+- Accessibility themes (high contrast, large text)
+
+### 4. Reduced Bundle Size
+
+Instead of duplicating color values and spacing units throughout your CSS, you reference variables. This reduces CSS file size and improves caching.
+
+### 5. Developer Experience
+
+CSS variables provide excellent DevTools support. You can inspect and modify values in real-time, making debugging and experimentation easier.
+
+### 6. Design Tool Integration
+
+Using the DTCG standard format enables integration with design tools like Figma and Sketch. Designers can export tokens directly from their tools, and developers can import them into code.
+
+## Alternative Approaches
+
+While CSS Custom Properties are the most flexible approach for web applications, other patterns exist:
+
+### 1. CSS-in-JS with Theme Objects
+
+Libraries like styled-components and Emotion use JavaScript theme objects:
 
 ```typescript
-describe('EnvironmentalMonitoringViewModel', () => {
-  it('aggregates sensor data and applies threshold rules', () => {
-    const testScheduler = new TestScheduler((actual, expected) => {
-      expect(actual).toEqual(expected);
-    });
+const theme = {
+  colors: {
+    primary: '#1E40AF',
+    background: '#FFFFFF'
+  },
+  spacing: {
+    small: '8px',
+    medium: '16px'
+  }
+};
 
-    testScheduler.run(({ cold, expectObservable }) => {
-      const readings = cold('a-b-c|', {
-        a: mockSensorReading({ temperature: 22, humidity: 65 }),
-        b: mockSensorReading({ temperature: 28, humidity: 75 }),
-        c: mockSensorReading({ temperature: 32, humidity: 85 }),
-      });
+const Button = styled.button`
+  background: ${props => props.theme.colors.primary};
+  padding: ${props => props.theme.spacing.medium};
+`;
+```
 
-      const mockService = { streamReadings: () => readings };
-      const viewModel = new EnvironmentalMonitoringViewModel(mockService);
+**Pros**: Type-safe, scoped to components, dynamic based on props
+**Cons**: Framework-specific (React), larger bundle size, no DevTools inspection
 
-      expectObservable(viewModel.alertLevel$).toBe('a-b-c|', {
-        a: 'normal',
-        b: 'warning',
-        c: 'critical',
-      });
-    });
+
+### 2. Sass Variables
+
+Sass provides compile-time variables:
+
+```scss
+$color-primary: #1E40AF;
+$spacing-medium: 16px;
+
+.button {
+  background: $color-primary;
+  padding: $spacing-medium;
+}
+```
+
+**Pros**: Mature ecosystem, powerful functions and mixins
+**Cons**: Compile-time only (no runtime theming), requires build step
+
+### 3. Tailwind CSS
+
+Tailwind uses utility classes with a configuration file:
+
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    colors: {
+      primary: '#1E40AF'
+    },
+    spacing: {
+      4: '16px'
+    }
+  }
+};
+```
+
+```html
+<button class="bg-primary p-4">Button</button>
+```
+
+**Pros**: Utility-first, excellent DX, purges unused styles
+**Cons**: Large HTML class strings, harder to theme dynamically
+
+### 4. Design Token Build Tools
+
+Tools like Style Dictionary and Theo transform tokens into multiple formats:
+
+```json
+// tokens.json
+{
+  "color": {
+    "primary": { "value": "#1E40AF" }
+  }
+}
+```
+
+```bash
+# Generate CSS, JS, iOS, Android formats
+style-dictionary build
+```
+
+**Pros**: Multi-platform support, flexible transformations
+**Cons**: Build-time only, requires tooling setup
+
+## Choosing an Approach
+
+For MVVM applications with multiple framework implementations, **CSS Custom Properties with design tokens** is the most flexible approach because:
+
+1. It works across all frameworks without modification
+2. It supports runtime theming for light/dark mode
+3. It has zero runtime dependencies
+4. It integrates with standard CSS workflows
+5. It provides excellent browser DevTools support
+
+Use CSS-in-JS if you're committed to a single framework (React) and want type-safe, component-scoped styles. Use Sass if you need compile-time transformations and don't need runtime theming. Use Tailwind if you prefer utility-first CSS and can accept its tradeoffs.
+
+
+## Design Systems in the GreenWatch Application
+
+Let's see how design tokens apply to the GreenWatch greenhouse monitoring system we've built throughout this book.
+
+### Token Organization for GreenWatch
+
+The application uses semantic tokens that map to domain concepts:
+
+```json
+{
+  "color": {
+    "sensor": {
+      "temperature": {
+        "normal": { "value": "{color.base.primary.value}" },
+        "warning": { "value": "{color.base.warning.value}" },
+        "critical": { "value": "{color.base.danger.value}" }
+      },
+      "humidity": {
+        "normal": { "value": "#3B82F6" },
+        "low": { "value": "#F59E0B" },
+        "high": { "value": "#EF4444" }
+      }
+    },
+    "alert": {
+      "background": { "value": "{color.base.danger.value}" },
+      "text": { "value": "{color.neutral.white.value}" }
+    }
+  }
+}
+```
+
+These semantic tokens make the intent clear: `color.sensor.temperature.critical` is more meaningful than `color.base.danger`.
+
+### Styling Sensor Components
+
+The sensor card component uses design tokens consistently:
+
+```css
+.sensor-card {
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-gray-200);
+  padding: var(--spacing-4);
+  border-radius: var(--radii-md);
+  box-shadow: var(--shadows-sm);
+}
+
+.sensor-reading {
+  font-size: var(--typography-fontSize-lg);
+  font-weight: var(--typography-fontWeight-semibold);
+  margin-bottom: var(--spacing-2);
+}
+
+.sensor-reading--normal {
+  color: var(--color-sensor-temperature-normal);
+}
+
+.sensor-reading--warning {
+  color: var(--color-sensor-temperature-warning);
+}
+
+.sensor-reading--critical {
+  color: var(--color-sensor-temperature-critical);
+}
+```
+
+This works identically in the React, Vue, Angular, Lit, and vanilla JavaScript implementations of GreenWatch.
+
+
+### Dark Mode for GreenWatch
+
+The dark theme overrides background and text colors while maintaining semantic sensor colors:
+
+```typescript
+const greenWatchDarkTheme = createTheme('dark', {
+  color: {
+    neutral: {
+      white: { value: '#FFFFFF' },
+      gray: {
+        900: { value: '#111827' },
+        800: { value: '#1F2937' },
+        200: { value: '#E5E7EB' }
+      }
+    },
+    themed: {
+      dark: {
+        background: { value: '#0F172A' },  // Darker blue-gray
+        text: { value: '#F1F5F9' }
+      }
+    }
+  },
+  shadows: {
+    sm: { value: '0 1px 2px rgba(255, 255, 255, 0.05)' },
+    md: { value: '0 4px 6px rgba(255, 255, 255, 0.1)' }
+  }
+});
+```
+
+When activated, the entire GreenWatch UI switches to dark mode—across all framework implementations—without any component-level changes.
+
+### ViewModel Integration
+
+ViewModels can access design tokens when they need to compute styles dynamically:
+
+```typescript
+import { getTokenValue } from '@web-loom/design-core/utils';
+
+class SensorViewModel extends BaseViewModel {
+  readonly statusColor$ = this.reading$.pipe(
+    map(async (reading) => {
+      if (reading.temperature > this.criticalThreshold) {
+        return await getTokenValue('color.sensor.temperature.critical');
+      } else if (reading.temperature > this.warningThreshold) {
+        return await getTokenValue('color.sensor.temperature.warning');
+      } else {
+        return await getTokenValue('color.sensor.temperature.normal');
+      }
+    })
+  );
+}
+```
+
+This keeps color logic centralized in the design system while allowing ViewModels to make dynamic styling decisions based on state.
+
+## Best Practices
+
+Based on the patterns we've explored, here are best practices for design systems in MVVM applications:
+
+### 1. Use Semantic Token Names
+
+Prefer semantic names over primitive values:
+
+```css
+/* ✅ Good: Semantic */
+.alert {
+  background: var(--color-alert-background);
+  color: var(--color-alert-text);
+}
+
+/* ❌ Avoid: Too specific */
+.alert {
+  background: var(--color-red-500);
+  color: var(--color-white);
+}
+```
+
+Semantic names make intent clear and enable theme-specific overrides.
+
+
+### 2. Load Tokens Early
+
+Inject CSS variables as early as possible in your application lifecycle:
+
+```typescript
+// main.ts or index.ts
+import { generateCssVariablesString } from '@web-loom/design-core/utils';
+
+async function setupDesignSystem() {
+  const cssVars = await generateCssVariablesString(':root');
+  const style = document.createElement('style');
+  style.id = 'design-tokens';
+  style.textContent = cssVars;
+  document.head.appendChild(style);
+}
+
+setupDesignSystem();
+```
+
+This ensures tokens are available before any components render.
+
+### 3. Provide Fallback Values
+
+Always provide fallback values for CSS variables in case tokens aren't loaded:
+
+```css
+.button {
+  background: var(--color-base-primary, #1E40AF);
+  padding: var(--spacing-4, 16px);
+}
+```
+
+This makes your application more resilient to loading failures.
+
+### 4. Test Across Themes
+
+Test your application in all supported themes to ensure visual consistency:
+
+```typescript
+describe('SensorCard', () => {
+  it('renders correctly in light theme', () => {
+    setTheme('light');
+    const { container } = render(<SensorCard />);
+    expect(container).toMatchSnapshot();
+  });
+  
+  it('renders correctly in dark theme', () => {
+    setTheme('dark');
+    const { container } = render(<SensorCard />);
+    expect(container).toMatchSnapshot();
   });
 });
 ```
 
-This test runs in **milliseconds**. No framework setup, no component mounting, no mocking the DOM. We're testing pure business logic with the speed and clarity of unit tests.
+### 5. Document Token Usage
 
-Compare this to testing the same logic embedded in a component:
-
-```typescript
-// Component-embedded logic (harder to test)
-describe('EnvironmentalMonitoringPanel', () => {
-  it('displays critical alert when temperature exceeds threshold', async () => {
-    const mockReadings = [
-      { temperature: 32, humidity: 85, timestamp: Date.now() }
-    ];
-
-    const { getByRole } = render(
-      <SensorProvider readings={mockReadings}>
-        <ThresholdProvider thresholds={mockThresholds}>
-          <EnvironmentalMonitoringPanel />
-        </ThresholdProvider>
-      </SensorProvider>
-    );
-
-    await waitFor(() => {
-      expect(getByRole('alert')).toHaveTextContent('Critical');
-    });
-  });
-});
-```
-
-This test requires rendering the entire component tree, setting up multiple context providers, and waiting for asynchronous updates to propagate through the component lifecycle. It's slower, more brittle, and conflates business logic testing with UI integration testing.
-
-## What It Costs: The Overhead We're Not Hiding
-
-MVVM isn't free. Let's account for its costs honestly.
-
-### More Files, More Indirection
-
-Every feature now requires multiple files:
-
-```
-features/environmental-monitoring/
-├── domain/
-│   ├── EnvironmentalReading.ts          # Domain model
-│   ├── EnvironmentalAnalyzer.ts         # Domain logic
-│   └── EnvironmentalRepository.ts       # Repository interface
-├── viewmodels/
-│   └── EnvironmentalMonitoringViewModel.ts
-├── views/
-│   ├── react/
-│   │   └── EnvironmentalMonitoringPanel.tsx
-│   └── vue/
-│       └── EnvironmentalMonitoringPanel.vue
-└── services/
-    └── SensorDataService.ts              # Infrastructure
-```
-
-Compare this to the component-centric approach where everything lives in a single component file—or perhaps a component plus a custom hook. MVVM distributes responsibility, which means more navigation, more context switching, and more cognitive load when making changes.
-
-This overhead is justified when the separated concerns actually differ in their rate of change, testing requirements, or reuse patterns. If they don't—if your domain model, ViewModel, and view are always changing together—you've introduced accidental complexity.
-
-### Team Onboarding and Convention Enforcement
-
-MVVM requires discipline. Boundaries must be maintained:
-
-- **Domain models** can't depend on ViewModels
-- **ViewModels** can't import framework-specific code
-- **Views** shouldn't contain business logic
-- **Services** must implement repository interfaces, not concrete implementations
-
-Enforcing these rules requires code review diligence, linting configuration, and architectural documentation. New team members need explicit training on layer responsibilities. The architecture won't enforce itself—you need organizational commitment.
-
-We've established conventions throughout this book (dependency injection patterns, observable naming, state management rules), but conventions only work when the team internalizes and maintains them. If you're working solo or with a small team already aligned on architecture, this is manageable. If you're joining an existing team with different patterns or onboarding junior developers rapidly, the friction increases significantly.
-
-### Boilerplate and Ceremony
-
-Setting up dependency injection, configuring observable subscriptions, and implementing repository interfaces introduces boilerplate:
+Document which tokens are used for which purposes:
 
 ```typescript
-// DI container configuration
-container.register<ISensorRepository>('ISensorRepository', { useClass: SensorRepository });
-
-container.register<INotificationService>('INotificationService', { useClass: NotificationService });
-
-container.register<EnvironmentalMonitoringViewModel>(EnvironmentalMonitoringViewModel, {
-  useFactory: (c) =>
-    new EnvironmentalMonitoringViewModel(
-      c.resolve<ISensorRepository>('ISensorRepository'),
-      c.resolve<INotificationService>('INotificationService'),
-      c.resolve<IWeatherService>('IWeatherService'),
-    ),
-});
+/**
+ * Sensor card component
+ * 
+ * Design tokens used:
+ * - color.neutral.white: Card background
+ * - color.neutral.gray.200: Card border
+ * - spacing.4: Card padding
+ * - radii.md: Card border radius
+ * - shadows.sm: Card elevation
+ */
 ```
 
-This configuration is necessary for testability and framework independence, but it's additional code that doesn't directly implement features. The ceremony pays off when you're writing tests or swapping implementations, but it's overhead nonetheless.
+This helps designers and developers understand token dependencies.
 
-### Performance Considerations
+### 6. Version Your Tokens
 
-Observable chains, while powerful, can introduce performance overhead if not managed carefully. Every subscription creates memory allocations, every operator creates a new observable, and every multicasted stream requires explicit sharing configuration.
+Treat design tokens as a versioned API. Use semantic versioning and document breaking changes:
 
-We've addressed these concerns throughout the book (using `shareReplay`, managing subscriptions, avoiding redundant computations), but they require awareness. A component-local `useState` hook has minimal overhead. A ViewModel managing multiple RxJS streams requires understanding of subscription lifecycle, backpressure handling, and memory management.
-
-## GreenWatch as Proof: What We Actually Built
-
-Let's assess what our greenhouse monitoring application demonstrates concretely.
-
-### Real-Time Data Handling Across Contexts
-
-GreenWatch processes live sensor streams, coordinates irrigation schedules, triggers alerts, and updates analytics—all simultaneously. The architecture handles this without creating a tangled web of component dependencies:
-
-```typescript
-// AlertCoordinator subscribes to environmental monitoring domain events
-class AlertCoordinator {
-  constructor(
-    private eventBus: EventBus,
-    private notificationService: INotificationService,
-  ) {
-    this.subscribeToEnvironmentalEvents();
-  }
-
-  private subscribeToEnvironmentalEvents(): void {
-    this.eventBus.subscribe(EnvironmentalThresholdExceeded, (event) => this.handleThresholdAlert(event));
-
-    this.eventBus.subscribe(SensorCommunicationLost, (event) => this.handleSensorFailure(event));
-  }
+```json
+{
+  "version": "2.0.0",
+  "changelog": [
+    "2.0.0: Renamed color.primary to color.base.primary (breaking)",
+    "1.1.0: Added color.sensor.* semantic tokens",
+    "1.0.0: Initial release"
+  ]
 }
 ```
 
-Each bounded context (Environmental Monitoring, Irrigation Control, Alert Management) operates independently but coordinates through domain events. This pattern scales to handle GreenWatch's real-time requirements without creating tight coupling.
 
-### Cross-Platform Consistency
+## Key Takeaways
 
-We implemented identical functionality in React and Vue using the same ViewModels. This isn't a theoretical exercise—it's operational code demonstrating framework independence. When we added the irrigation control feature, we wrote the ViewModel once and implemented two view layers. Both work identically because the business logic lives outside the framework.
+Design systems and theming are critical for maintaining visual consistency in MVVM applications, especially when implementing the same ViewModels across multiple frameworks. The key insights from this chapter:
 
-### Comprehensive Test Coverage
+1. **Design tokens provide a single source of truth** for visual design decisions, just as ViewModels provide a single source of truth for presentation logic.
 
-Our test suite validates business logic without touching the DOM:
+2. **CSS Custom Properties enable framework-agnostic styling** that works identically in React, Vue, Angular, Lit, and vanilla JavaScript.
 
-- Domain model invariants are verified through property-based tests
-- ViewModels are tested with RxJS TestScheduler for timing-dependent behavior
-- Repository implementations use test doubles to isolate infrastructure concerns
-- Integration tests verify domain event coordination
+3. **Token references create semantic layers** that make design systems maintainable and flexible. Changing a base token automatically updates all derived tokens.
 
-This testing strategy provides confidence at low computational cost. Our ViewModel tests execute in milliseconds; our integration tests complete in seconds. We're not waiting for browser automation or component rendering cycles.
+4. **Dynamic theming with CSS variables** enables runtime theme switching without CSS recompilation, supporting light/dark mode and user customization.
 
-### Maintainable Evolution
+5. **The DTCG standard format** enables interoperability between design tools and code, bridging the designer-developer gap.
 
-When we extended GreenWatch with new features (analytics dashboards, advanced irrigation schedules, multi-greenhouse support), we didn't refactor existing code extensively. We added new bounded contexts, introduced new ViewModels, and extended domain models. The architecture accommodated growth without requiring wholesale restructuring.
+6. **Framework-agnostic design systems align with MVVM principles** by separating visual concerns from business logic and enabling View layer flexibility.
 
-This is the litmus test for architecture: Does it facilitate change, or does it ossify over time? Component-centric architectures often start simple but become increasingly difficult to modify as cross-cutting concerns and shared state proliferate. MVVM's explicit boundaries prevent this degradation.
+The `design-core` library demonstrates these patterns concretely, but the principles apply to any design token system. Whether you use `design-core`, Style Dictionary, Theo, or build your own implementation, the core concepts remain the same: centralize design decisions, generate platform-specific outputs, and leverage CSS Custom Properties for runtime flexibility.
 
-## The Discipline Required: What We're Actually Asking
+In the next chapter, we'll bring together everything we've learned—ViewModels, Models, framework implementations, supporting libraries, and design systems—to examine complete case studies of MVVM applications in production.
 
-Architectural patterns don't succeed because they're elegant—they succeed because teams commit to maintaining them. MVVM requires specific disciplines:
+## Further Reading
 
-### Boundary Enforcement
-
-You must actively resist the temptation to take shortcuts. When a deadline looms and adding business logic directly to a component would be faster, you need the discipline to extract it into the domain layer. When a ViewModel needs data and reaching directly into a service seems simpler than defining a repository interface, you need the discipline to maintain abstraction.
-
-This discipline comes from understanding the costs of architectural erosion. One shortcut doesn't break the system. But shortcuts compound. The first violation makes the second easier, and soon the architecture exists only in principle, not in practice.
-
-### Code Review Rigor
-
-Architecture enforcement happens in code review. Your team needs to recognize violations:
-
-```typescript
-// ❌ ViewModel violating framework independence
-class UserProfileViewModel {
-  constructor(
-    private userRepository: IUserRepository,
-    private router: Router, // Framework dependency!
-  ) {}
-
-  async updateProfile(data: ProfileData): Promise<void> {
-    await this.userRepository.update(data);
-    this.router.navigate('/profile/success'); // View concern in ViewModel!
-  }
-}
-
-// ✅ Corrected: ViewModel signals intent, View handles navigation
-class UserProfileViewModel {
-  private updateSuccessSubject = new Subject<void>();
-  readonly updateSuccess$ = this.updateSuccessSubject.asObservable();
-
-  async updateProfile(data: ProfileData): Promise<void> {
-    await this.userRepository.update(data);
-    this.updateSuccessSubject.next(); // Signal success; let View navigate
-  }
-}
-```
-
-Catching these violations requires reviewers who understand the architectural boundaries and why they matter. This means team-wide architectural literacy, not just a single architect enforcing rules.
-
-### Documentation and Examples
-
-Patterns are only maintainable if they're documented and exemplified. When a new developer joins, they need:
-
-- **Architectural Decision Records (ADRs)** explaining why MVVM was chosen and what problems it solves
-- **Example implementations** showing canonical patterns for common scenarios
-- **Linting rules** catching architectural violations automatically
-- **Regular architecture reviews** discussing where patterns are succeeding or breaking down
-
-We've provided extensive documentation through this book, but documentation alone doesn't maintain architecture—organizational commitment does.
-
-## When to Walk Away: Honest Criteria
-
-MVVM isn't universally applicable. Here's when you should genuinely consider simpler approaches:
-
-### Short-Lived Projects or Prototypes
-
-If you're building a proof-of-concept that might be thrown away, or a short-term project with a hard deadline and no maintenance phase, MVVM's upfront costs may not pay off. Component-local state with a few custom hooks gives you speed to delivery.
-
-### Small Teams Without Architectural Alignment
-
-If your team hasn't bought into architectural discipline, forcing MVVM will create friction without benefits. Patterns only work when the team maintains them. A simpler component-centric approach that your team actually executes consistently beats a sophisticated architecture that's inconsistently applied.
-
-### Applications with Minimal Business Logic
-
-If your application is primarily presentational—displaying data with minimal transformation, handling simple CRUD operations, and enforcing few business rules—the separation MVVM provides may be unnecessary. The distinction between "domain logic" and "presentation logic" collapses when there's minimal logic of either kind.
-
-### Framework Lock-In Acceptance
-
-If you're certain your application will never migrate frameworks and your team is deeply invested in React-specific patterns (or Vue-specific, or Angular-specific), framework independence loses value. You're paying for flexibility you'll never use.
-
-## The Architect's Responsibility: What We Owe Our Craft
-
-Frontend development has a reputation for churn. Frameworks rise and fall. Patterns go in and out of fashion. Developers joke about "JavaScript fatigue" and the impossibility of keeping up with ecosystem changes.
-
-But underlying this churn, fundamental engineering principles remain constant:
-
-- **Separation of concerns** improves maintainability
-- **Testability** requires decoupling from infrastructure
-- **Abstraction** enables flexibility and reuse
-- **Explicit dependencies** clarify responsibilities
-
-MVVM isn't new—it's an adaptation of patterns from GUI programming that predate the web. What's novel is applying these patterns rigorously in an ecosystem (frontend JavaScript) that has largely abandoned them in favor of component-centric approaches.
-
-We're not advocating for MVVM out of dogmatism. We're advocating for **architectural thinking** in frontend development. For recognizing that the problems we face—managing complex state, coordinating asynchronous workflows, maintaining large codebases across teams—are engineering problems with engineering solutions.
-
-The architect's responsibility isn't to blindly apply patterns. It's to:
-
-1. **Understand the problems** your application actually faces
-2. **Evaluate solutions** based on their tradeoffs, not their popularity
-3. **Commit to discipline** in maintaining chosen patterns
-4. **Measure outcomes** to validate architectural decisions
-
-GreenWatch demonstrates that MVVM solves real problems in frontend applications. But your application isn't GreenWatch. Your team isn't our team. Your constraints differ.
-
-## Final Guidance: Making the Decision
-
-If you're considering MVVM for a project, ask these questions:
-
-**Does your application have complex, coordinated state?**  
-If yes, MVVM's structured state management provides value. If no, simpler approaches suffice.
-
-**Do you need comprehensive test coverage?**  
-If yes, MVVM's testability advantages justify the overhead. If no, you're paying for a benefit you won't use.
-
-**Is there potential for framework migration or multi-platform support?**  
-If yes, framework independence becomes critical. If no, you can optimize for your current framework.
-
-**Does your team have capacity for architectural discipline?**  
-If yes, MVVM can succeed. If no, simpler patterns are more sustainable.
-
-**Are you building for long-term maintenance?**  
-If yes, MVVM's boundaries prevent degradation over time. If no, optimize for delivery speed.
-
-Answer these honestly. Architecture isn't about sophistication—it's about fit.
-
-## Closing: What We've Accomplished Together
-
-We've built a complete IoT monitoring system using MVVM architecture across multiple frameworks. We've demonstrated real-time data handling, domain-driven design, comprehensive testing, and framework independence—not as abstract theory, but as working code.
-
-More importantly, we've made the case that frontend architecture matters. That the patterns and principles we've explored aren't academic exercises but practical tools for building maintainable, scalable, testable applications.
-
-The frontend ecosystem will continue evolving. New frameworks will emerge. Current frameworks will evolve their patterns. But the fundamental problems—managing complexity, maintaining codebases, coordinating teams—will persist. The solutions we've explored—separation of concerns, testability, explicit dependencies—will remain relevant.
-
-MVVM isn't the only answer. But it's a legitimate answer, backed by decades of GUI development experience and proven effective for applications with specific characteristics. GreenWatch demonstrates this concretely.
-
-Your path forward depends on your context, your constraints, and your team. But you now have a comprehensive framework for evaluating architectural decisions, implementing MVVM patterns when appropriate, and maintaining discipline when it matters.
-
-The frontend architecture crisis we described in Chapter 1 isn't solved by adopting a single pattern. It's solved by developers and teams committing to architectural thinking—understanding tradeoffs, maintaining boundaries, and building systems that survive contact with production.
-
-You've reached the end of this book, but not the end of your architectural journey. Take what's useful. Adapt what needs adapting. Question what doesn't fit. But commit to the discipline of building software that lasts.
-
-That's what architecture demands. That's what our craft deserves.
+- [Design Tokens Community Group Format](https://design-tokens.github.io/community-group/format/)
+- [CSS Custom Properties (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/--*)
+- [Style Dictionary Documentation](https://amzn.github.io/style-dictionary/)
+- [Web Loom design-core README](https://github.com/bretuobay/web-loom/tree/main/packages/design-core)
 
 ---
 
-**We've given you the patterns. Now build something that matters.**
+**Code Examples Source:**
+- Token definitions: `packages/design-core/src/tokens/`
+- Token utilities: `packages/design-core/src/utils/tokens.ts`
+- CSS variable generation: `packages/design-core/src/utils/cssVariables.ts`
+- Theming API: `packages/design-core/src/utils/theme.ts`
+

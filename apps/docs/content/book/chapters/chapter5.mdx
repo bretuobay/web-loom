@@ -1,1336 +1,624 @@
 ---
-id: "domain-events-and-cross-context-communication"
-title: Domain Events & Cross-Context Communication
-section: Framework-Agnostic Core
+id: "viewmodels-and-reactive-state"
+title: ViewModels and Reactive State
+section: Core Patterns
 ---
 
-# Chapter 5: Domain Events & Cross-Context Communication
+# Chapter 5: ViewModels and Reactive State
 
-When you're building modular applications with clear boundaries between contexts, you'll inevitably face a critical challenge: how do you let different parts of your system talk to each other without creating tight coupling? The answer lies in **domain events**—a pattern that's been around for decades but becomes absolutely essential when you're serious about maintaining architectural boundaries.
+In the previous chapter, we explored how Models encapsulate domain logic and data in a framework-agnostic way. But Models alone don't solve the presentation problem—they don't know how to format data for display, manage UI state, or coordinate user interactions. That's where ViewModels come in.
 
-In this chapter, we'll explore how domain events enable communication between bounded contexts while preserving the isolation we've worked so hard to achieve. We're not talking about DOM events or simple pub-sub patterns here. We're talking about a structured approach to capturing significant business occurrences and propagating them through your system in a way that respects context boundaries and maintains your application's integrity.
+The ViewModel is the **presentation logic layer** in MVVM architecture. It sits between your Model (domain logic) and your View (UI), transforming domain data into view-ready state and translating user actions into domain operations. Most importantly, ViewModels are framework-agnostic—the same ViewModel can power a React component, a Vue component, an Angular component, or even vanilla JavaScript.
 
-## 5.1 The Communication Problem
+In this chapter, we'll explore the ViewModel layer using real implementations from the GreenWatch greenhouse monitoring system. You'll see how ViewModels manage reactive state with RxJS observables, handle lifecycle concerns, and provide a clean contract for Views to consume.
 
-Let's revisit our GreenWatch greenhouse monitoring system. We've established six bounded contexts:
+## 5.1 The ViewModel's Responsibilities
 
-- **Device Management** handles sensor registration and lifecycle
-- **Environmental Monitoring** tracks real-time readings
-- **Alert & Notification** manages threshold violations and user notifications
-- **Analytics** processes historical data and trends
-- **Greenhouse Configuration** maintains settings and thresholds
-- **Identity & Access** controls authentication and permissions
+Before diving into implementation, let's be clear about what ViewModels do—and what they don't do.
 
-Here's the problem: these contexts need to react to each other's state changes, but they shouldn't depend on each other's implementation details. When a sensor registers in Device Management, Environmental Monitoring needs to know about it. When a temperature reading exceeds a threshold in Environmental Monitoring, the Alert & Notification context must respond. When an alert fires, Analytics should record it for trend analysis.
+**ViewModels ARE responsible for:**
 
-You might be tempted to solve this by having one context directly call methods on another:
+- **Presentation Logic**: Formatting data for display, computing derived values, managing UI-specific state (like "is this panel expanded?")
+- **User Action Coordination**: Translating button clicks and form submissions into Model operations
+- **State Exposure**: Providing observables that Views can subscribe to for reactive updates
+- **Lifecycle Management**: Cleaning up subscriptions and resources when no longer needed
 
-```typescript
-// ❌ DON'T DO THIS
-class SensorRegistrationService {
-  constructor(
-    private sensorRepository: SensorRepository,
-    private monitoringService: MonitoringService, // Direct dependency
-    private analyticsService: AnalyticsService // Another direct dependency
-  ) {}
+**ViewModels are NOT responsible for:**
 
-  async registerSensor(data: SensorRegistrationData): Promise<Sensor> {
-    const sensor = await this.sensorRepository.save(data);
+- **Domain Logic**: Business rules, validation, and data persistence belong in Models
+- **UI Rendering**: ViewModels don't know about DOM, JSX, templates, or framework-specific rendering
+- **Direct User Interaction**: ViewModels don't handle click events or keyboard input—Views do that and call ViewModel methods
 
-    // Now we're tightly coupled to other contexts
-    await this.monitoringService.startMonitoring(sensor);
-    await this.analyticsService.recordSensorActivation(sensor);
+This separation is crucial. A well-designed ViewModel can be tested without any UI framework, and the same ViewModel can be used across multiple frameworks without modification.
 
-    return sensor;
-  }
-}
-```
+Let's see this in practice with GreenWatch's `SensorViewModel`.
 
-This approach creates several problems:
+## 5.2 BaseViewModel: The Foundation
 
-1. **Tight Coupling**: Device Management now depends on the internal APIs of Environmental Monitoring and Analytics. If those contexts change their interfaces, Device Management breaks.
-
-2. **Transaction Complexity**: What happens if `startMonitoring` succeeds but `recordSensorActivation` fails? You're now managing distributed transactions across contexts.
-
-3. **Context Bleeding**: Device Management is now making decisions about what should happen in other contexts. That's not its job—it should focus solely on device lifecycle management.
-
-4. **Testing Nightmare**: To test sensor registration, you now need to mock out both monitoring and analytics services. Your unit tests become integration tests by necessity.
-
-5. **Scalability Issues**: As your system grows and more contexts need to react to sensor registration, this method becomes unwieldy. You'd need to inject and call services from every interested context.
-
-We need a better approach—one that lets contexts communicate without knowing about each other.
-
-## 5.2 Domain Events as Integration Points
-
-A **domain event** represents something significant that happened in your business domain. It's past tense: `SensorRegistered`, `ThresholdExceeded`, `AlertAcknowledged`. These aren't requests for action; they're statements of fact about things that have already occurred.
-
-Domain events serve as **integration points** between bounded contexts. Instead of one context calling another directly, it publishes an event describing what happened. Other contexts subscribe to events they care about and react accordingly. The publisher doesn't know or care who's listening—it just states what occurred.
-
-This pattern gives us several crucial benefits:
-
-**Decoupling**: Contexts don't depend on each other's internal APIs. They only depend on shared event contracts, which are far more stable than implementation details.
-
-**Flexibility**: Adding new reactions to an event doesn't require changing the publisher. If a new context needs to react to sensor registration, it just subscribes to the `SensorRegistered` event.
-
-**Auditability**: Events create a natural audit log of everything that's happened in your system. You can replay events to understand system behavior or reconstruct state.
-
-**Temporal Decoupling**: Event subscribers don't need to be available when the event is published. You can queue events and process them asynchronously, which improves resilience and scalability.
-
-Let's see how this works in practice:
+All ViewModels in the GreenWatch system extend from `BaseViewModel`, which provides core functionality for connecting to Models and managing reactive state. Let's examine the implementation:
 
 ```typescript
-// Domain event representing a completed business action
-interface SensorRegistered {
-  readonly type: "SensorRegistered";
-  readonly occurredAt: Date;
-  readonly sensorId: string;
-  readonly greenhouseId: string;
-  readonly sensorType: "temperature" | "humidity" | "soil_moisture" | "light";
-  readonly location: {
-    zone: string;
-    position: { x: number; y: number; z: number };
-  };
-}
+// packages/mvvm-core/src/viewmodels/BaseViewModel.ts
+import { Observable, Subject, Subscription } from 'rxjs';
+import { map, startWith, takeUntil } from 'rxjs/operators';
+import { ZodError } from 'zod';
+import type { BaseModel, IDisposable } from '../models/BaseModel';
+import type { ICommand } from '../commands/Command';
 
-// The registration service only cares about its own context
-class SensorRegistrationService {
-  constructor(
-    private sensorRepository: SensorRepository,
-    private eventBus: EventBus // Generic event infrastructure
-  ) {}
+export class BaseViewModel<TModel extends BaseModel<any, any>> {
+  protected readonly _subscriptions = new Subscription();
+  protected readonly _destroy$ = new Subject<void>();
+  private readonly _registeredCommands: ICommand<any, any>[] = [];
 
-  async registerSensor(data: SensorRegistrationData): Promise<Sensor> {
-    const sensor = await this.sensorRepository.save(data);
+  // Expose observables directly from the injected model
+  public readonly data$: Observable<TModel['data']>;
+  public readonly isLoading$: Observable<boolean>;
+  public readonly error$: Observable<any>;
+  public readonly validationErrors$: Observable<ZodError | null>;
+  
+  protected readonly model: TModel;
 
-    // Publish what happened—we don't care who's listening
-    await this.eventBus.publish<SensorRegistered>({
-      type: "SensorRegistered",
-      occurredAt: new Date(),
-      sensorId: sensor.id,
-      greenhouseId: sensor.greenhouseId,
-      sensorType: sensor.type,
-      location: sensor.location,
-    });
-
-    return sensor;
-  }
-}
-```
-
-Now other contexts can react independently:
-
-```typescript
-// Environmental Monitoring context subscribes to sensor events
-class MonitoringEventHandler {
-  constructor(
-    private monitoringCoordinator: MonitoringCoordinator,
-    eventBus: EventBus
-  ) {
-    eventBus.subscribe<SensorRegistered>(
-      "SensorRegistered",
-      this.handleSensorRegistered.bind(this)
-    );
-  }
-
-  private async handleSensorRegistered(event: SensorRegistered): Promise<void> {
-    // Start monitoring this new sensor
-    await this.monitoringCoordinator.initializeMonitoring({
-      sensorId: event.sensorId,
-      greenhouseId: event.greenhouseId,
-      sensorType: event.sensorType,
-    });
-  }
-}
-
-// Analytics context also subscribes independently
-class AnalyticsEventHandler {
-  constructor(
-    private analyticsService: AnalyticsService,
-    eventBus: EventBus
-  ) {
-    eventBus.subscribe<SensorRegistered>(
-      "SensorRegistered",
-      this.handleSensorRegistered.bind(this)
-    );
-  }
-
-  private async handleSensorRegistered(event: SensorRegistered): Promise<void> {
-    // Record activation in analytics
-    await this.analyticsService.recordSensorActivation({
-      sensorId: event.sensorId,
-      activatedAt: event.occurredAt,
-      greenhouseId: event.greenhouseId,
-    });
-  }
-}
-```
-
-Notice what we've achieved here. Device Management publishes `SensorRegistered` and moves on—it doesn't wait for responses or manage coordination. Environmental Monitoring and Analytics each handle the event independently. If Analytics fails, it doesn't affect Monitoring. If we add a new Maintenance context that needs to track sensor warranties, we just subscribe it to `SensorRegistered`—no changes to Device Management required.
-
-This is the power of event-driven integration: we've maintained strict context boundaries while enabling necessary cross-context reactions.
-
-## 5.3 Designing Effective Domain Events
-
-Not all events are created equal. A poorly designed event can create just as much coupling as a direct method call—it'll just be harder to detect. Let's establish principles for designing events that actually maintain your architectural boundaries.
-
-### 5.3.1 Events Are Immutable Facts
-
-An event represents something that already happened. Once published, it can't be changed—history doesn't change. This immutability is crucial for system reliability and auditability.
-
-```typescript
-// ✅ Immutable event with readonly properties
-interface ThresholdExceeded {
-  readonly type: "ThresholdExceeded";
-  readonly occurredAt: Date;
-  readonly sensorId: string;
-  readonly measurementType: "temperature" | "humidity" | "soil_moisture";
-  readonly value: number;
-  readonly threshold: number;
-  readonly severity: "warning" | "critical";
-}
-
-// ❌ Mutable event—dangerous and confusing
-interface ThresholdExceeded {
-  type: "ThresholdExceeded";
-  occurredAt: Date;
-  sensorId: string;
-  value: number; // Could be changed after publishing
-  threshold: number;
-  handled?: boolean; // State that changes over time—doesn't belong here
-}
-```
-
-If you find yourself wanting to modify an event after it's published, you're probably confusing events with commands or state. Instead, publish a new event that describes what happened next.
-
-### 5.3.2 Include Essential Context, Not Implementation Details
-
-Events should contain enough information for subscribers to react without querying back to the publisher. However, they shouldn't expose internal implementation details of the publishing context.
-
-```typescript
-// ✅ Appropriate level of detail
-interface AlertAcknowledged {
-  readonly type: "AlertAcknowledged";
-  readonly occurredAt: Date;
-  readonly alertId: string;
-  readonly acknowledgedBy: string;
-  readonly notes?: string;
-  readonly originalAlert: {
-    type: string;
-    severity: "warning" | "critical";
-    triggeredAt: Date;
-  };
-}
-
-// ❌ Too much internal detail
-interface AlertAcknowledged {
-  readonly type: "AlertAcknowledged";
-  readonly occurredAt: Date;
-  readonly alertId: string;
-  readonly acknowledgedBy: string;
-  readonly notes?: string;
-  readonly internalAlertState: AlertState; // Internal domain object leaked
-  readonly databaseRow: AlertRow; // Persistence detail leaked
-  readonly validationRules: ValidationRule[]; // Business logic leaked
-}
-
-// ❌ Too little information
-interface AlertAcknowledged {
-  readonly type: "AlertAcknowledged";
-  readonly alertId: string;
-  // Subscribers would need to query back to get any useful information
-}
-```
-
-The key is to include what subscribers need to make decisions without coupling them to your internal data structures. Think about the **public interface** of your context—events are part of that interface.
-
-### 5.3.3 Use Domain Language, Not Technical Language
-
-Events should be named and structured using your **ubiquitous language**—the shared vocabulary of your business domain. They describe business occurrences, not technical operations.
-
-```typescript
-// ✅ Domain-focused events
-interface SensorCalibrated {
-  readonly type: "SensorCalibrated";
-  readonly sensorId: string;
-  readonly calibratedAt: Date;
-  readonly previousAccuracy: number;
-  readonly newAccuracy: number;
-}
-
-interface IrrigationScheduleActivated {
-  readonly type: "IrrigationScheduleActivated";
-  readonly scheduleId: string;
-  readonly greenhouseId: string;
-  readonly startTime: Date;
-  readonly estimatedDuration: number;
-  readonly zones: string[];
-}
-
-// ❌ Technical implementation events
-interface DatabaseRecordUpdated {
-  readonly type: "DatabaseRecordUpdated";
-  readonly table: string;
-  readonly rowId: string;
-  readonly changedColumns: string[];
-}
-
-interface CacheInvalidated {
-  readonly type: "CacheInvalidated";
-  readonly cacheKey: string;
-  readonly timestamp: Date;
-}
-```
-
-The business-focused events communicate intent and meaning. The technical events expose implementation details that subscribers shouldn't care about. If you find yourself publishing events like `CacheInvalidated` or `DatabaseRecordUpdated`, you're working at the wrong abstraction level.
-
-### 5.3.4 Granularity Matters
-
-Finding the right level of event granularity is an art. Too fine-grained, and you overwhelm subscribers with noise. Too coarse-grained, and subscribers can't react precisely to what they care about.
-
-```typescript
-// ❌ Too fine-grained—too much noise
-interface SensorFieldUpdated {
-  readonly type: "SensorFieldUpdated";
-  readonly sensorId: string;
-  readonly fieldName: string;
-  readonly oldValue: unknown;
-  readonly newValue: unknown;
-}
-// This would fire dozens of times during a sensor update
-
-// ❌ Too coarse-grained—not enough information
-interface SensorChanged {
-  readonly type: "SensorChanged";
-  readonly sensorId: string;
-}
-// What changed? Subscribers can't tell.
-
-// ✅ Right level of granularity
-interface SensorRelocated {
-  readonly type: "SensorRelocated";
-  readonly sensorId: string;
-  readonly relocatedAt: Date;
-  readonly previousLocation: { zone: string; position: Position };
-  readonly newLocation: { zone: string; position: Position };
-}
-
-interface SensorThresholdsUpdated {
-  readonly type: "SensorThresholdsUpdated";
-  readonly sensorId: string;
-  readonly updatedAt: Date;
-  readonly thresholds: {
-    warning: number;
-    critical: number;
-  };
-}
-```
-
-The right granularity maps to **meaningful business occurrences**. Sensor relocation is a distinct business event that other contexts care about differently than threshold updates. Model events around the decisions subscribers need to make.
-
-## 5.4 Implementing an Event Bus
-
-Now that we understand what domain events are and how to design them, let's build the infrastructure to publish and subscribe to them. We need an **event bus**—a central mechanism for routing events from publishers to subscribers.
-
-Our event bus must handle several concerns:
-
-- **Type Safety**: Subscribers should only receive events they're designed to handle
-- **Error Isolation**: A failing subscriber shouldn't crash other subscribers or the publisher
-- **Async Execution**: Event handling should be non-blocking
-- **Subscription Management**: Clean subscription and unsubscription lifecycle
-
-Here's a robust, TypeScript-based implementation:
-
-```typescript
-// Base type all domain events must extend
-interface DomainEvent {
-  readonly type: string;
-  readonly occurredAt: Date;
-}
-
-// Handler function signature
-type EventHandler<T extends DomainEvent> = (event: T) => Promise<void> | void;
-
-// Subscription token for unsubscribing
-interface Subscription {
-  unsubscribe(): void;
-}
-
-class EventBus {
-  private handlers = new Map<string, Set<EventHandler<any>>>();
-  private isProcessing = false;
-  private eventQueue: Array<{
-    event: DomainEvent;
-    handlers: Set<EventHandler<any>>;
-  }> = [];
-
-  /**
-   * Subscribe to events of a specific type.
-   * Returns a subscription that can be used to unsubscribe.
-   */
-  subscribe<T extends DomainEvent>(
-    eventType: string,
-    handler: EventHandler<T>
-  ): Subscription {
-    if (!this.handlers.has(eventType)) {
-      this.handlers.set(eventType, new Set());
+  constructor(model: TModel) {
+    this.model = model;
+    if (!model) {
+      throw new Error('BaseViewModel requires an instance of BaseModel in its constructor.');
     }
 
-    const handlerSet = this.handlers.get(eventType)!;
-    handlerSet.add(handler);
+    // Connect to Model observables with automatic cleanup
+    this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
+    this.isLoading$ = this.model.isLoading$.pipe(takeUntil(this._destroy$));
+    this.error$ = this.model.error$.pipe(takeUntil(this._destroy$));
 
-    return {
-      unsubscribe: () => {
-        handlerSet.delete(handler);
-        if (handlerSet.size === 0) {
-          this.handlers.delete(eventType);
-        }
-      },
-    };
-  }
-
-  /**
-   * Publish an event to all subscribed handlers.
-   * Handlers execute asynchronously and independently—
-   * one handler's failure doesn't affect others.
-   */
-  async publish<T extends DomainEvent>(event: T): Promise<void> {
-    const handlers = this.handlers.get(event.type);
-
-    if (!handlers || handlers.size === 0) {
-      // No subscribers—this is fine, events can be published even if no one's listening
-      return;
-    }
-
-    // Queue the event if we're already processing
-    if (this.isProcessing) {
-      this.eventQueue.push({ event, handlers: new Set(handlers) });
-      return;
-    }
-
-    await this.processEvent(event, handlers);
-    await this.processQueue();
-  }
-
-  private async processEvent(
-    event: DomainEvent,
-    handlers: Set<EventHandler<any>>
-  ): Promise<void> {
-    this.isProcessing = true;
-
-    // Execute all handlers in parallel—they're independent reactions
-    const handlerPromises = Array.from(handlers).map((handler) =>
-      this.safeExecute(handler, event)
-    );
-
-    await Promise.allSettled(handlerPromises);
-  }
-
-  private async processQueue(): Promise<void> {
-    while (this.eventQueue.length > 0) {
-      const { event, handlers } = this.eventQueue.shift()!;
-      await this.processEvent(event, handlers);
-    }
-
-    this.isProcessing = false;
-  }
-
-  /**
-   * Execute handler with error isolation—one handler's
-   * failure shouldn't crash others or the publisher.
-   */
-  private async safeExecute<T extends DomainEvent>(
-    handler: EventHandler<T>,
-    event: T
-  ): Promise<void> {
-    try {
-      await handler(event);
-    } catch (error) {
-      // Log the error but don't propagate it
-      console.error(`Error handling event ${event.type}:`, error);
-      // In production, you'd send this to your error tracking service
-    }
-  }
-
-  /**
-   * Clear all subscriptions—useful for testing and cleanup.
-   */
-  clear(): void {
-    this.handlers.clear();
-    this.eventQueue = [];
-  }
-}
-```
-
-Let's break down why this implementation works:
-
-**Type Safety**: The generic `subscribe` and `publish` methods ensure that TypeScript can verify event types at compile time. You can't accidentally subscribe a handler to the wrong event type.
-
-**Error Isolation**: The `safeExecute` method wraps each handler in a try-catch block. If one subscriber throws an error, others still execute. The publisher isn't affected by subscriber failures.
-
-**Queue Management**: The `isProcessing` flag and event queue prevent recursive publishing. If a handler publishes an event while we're processing another event, we queue it and process it after current handlers complete. This prevents stack overflow and makes event flow predictable.
-
-**Parallel Execution**: Handlers execute in parallel via `Promise.allSettled`. Since they're independent reactions, there's no reason to serialize them. This improves throughput when multiple contexts react to the same event.
-
-**Clean Lifecycle**: The `Subscription` return value provides a clean way to unsubscribe. This is essential for avoiding memory leaks in long-running applications.
-
-Here's how you'd use this in practice:
-
-```typescript
-// Create a singleton event bus for your application
-const eventBus = new EventBus();
-
-// Subscribe in context initialization
-class MonitoringContext {
-  private subscriptions: Subscription[] = [];
-
-  initialize(): void {
-    // Subscribe to relevant events
-    this.subscriptions.push(
-      eventBus.subscribe<SensorRegistered>(
-        "SensorRegistered",
-        this.handleSensorRegistered.bind(this)
-      )
-    );
-
-    this.subscriptions.push(
-      eventBus.subscribe<SensorDecommissioned>(
-        "SensorDecommissioned",
-        this.handleSensorDecommissioned.bind(this)
-      )
+    // Extract validation errors from the error stream
+    this.validationErrors$ = this.model.error$.pipe(
+      map((err) => (err instanceof ZodError ? err : null)),
+      startWith(null),
+      takeUntil(this._destroy$),
     );
   }
 
-  private async handleSensorRegistered(event: SensorRegistered): Promise<void> {
-    // React to new sensor...
+  protected addSubscription(subscription: Subscription): void {
+    this._subscriptions.add(subscription);
   }
 
-  private async handleSensorDecommissioned(
-    event: SensorDecommissioned
-  ): Promise<void> {
-    // Clean up monitoring...
+  protected registerCommand<TParam, TResult>(
+    command: ICommand<TParam, TResult>
+  ): ICommand<TParam, TResult> {
+    this._registeredCommands.push(command);
+    return command;
   }
 
-  dispose(): void {
-    // Clean up subscriptions
-    this.subscriptions.forEach((sub) => sub.unsubscribe());
-    this.subscriptions = [];
-  }
-}
-```
-
-## 5.5 Event-Driven ViewModel Communication
-
-Domain events aren't just for backend service communication—they're equally valuable for coordinating ViewModels in your presentation layer. When you have multiple ViewModels on a page that need to stay synchronized, events provide a clean mechanism without introducing ViewModel-to-ViewModel dependencies.
-
-Consider a typical greenhouse monitoring dashboard with multiple panels:
-
-- **Sensor List Panel**: Displays all sensors and their current status
-- **Real-Time Readings Panel**: Shows live data from a selected sensor
-- **Alert Panel**: Displays active alerts
-- **Control Panel**: Allows threshold adjustments
-
-These panels need to coordinate. When you select a sensor in the list, the readings panel should update. When you modify a threshold in the control panel, the alert panel should reflect potential changes. When an alert fires, the sensor list should highlight the affected sensor.
-
-You could handle this with direct ViewModel references:
-
-```typescript
-// ❌ Tight coupling between ViewModels
-class SensorListViewModel {
-  constructor(
-    private readingsViewModel: ReadingsViewModel, // Direct dependency
-    private alertViewModel: AlertViewModel // Another dependency
-  ) {}
-
-  selectSensor(sensorId: string): void {
-    this.selectedSensorId = sensorId;
-
-    // Directly manipulate other ViewModels
-    this.readingsViewModel.loadSensor(sensorId);
-    this.alertViewModel.filterBySensor(sensorId);
-  }
-}
-```
-
-But this creates the same problems we saw with service-to-service communication. The ViewModels become tightly coupled, testing becomes harder, and adding new panels that need to react requires modifying existing ViewModels.
-
-Instead, let's use events:
-
-```typescript
-// UI events represent user actions or view state changes
-interface SensorSelected {
-  readonly type: "SensorSelected";
-  readonly sensorId: string;
-  readonly selectedAt: Date;
-}
-
-interface ThresholdAdjusted {
-  readonly type: "ThresholdAdjusted";
-  readonly sensorId: string;
-  readonly thresholdType: "warning" | "critical";
-  readonly oldValue: number;
-  readonly newValue: number;
-}
-
-class SensorListViewModel {
-  private selectedSensorId$ = new BehaviorSubject<string | null>(null);
-
-  constructor(
-    private sensorService: SensorService,
-    private eventBus: EventBus
-  ) {
-    // No dependencies on other ViewModels
-  }
-
-  selectSensor(sensorId: string): void {
-    this.selectedSensorId$.next(sensorId);
-
-    // Publish the selection—we don't care who's listening
-    this.eventBus.publish<SensorSelected>({
-      type: "SensorSelected",
-      sensorId,
-      selectedAt: new Date(),
-    });
-  }
-
-  get selectedSensor$(): Observable<string | null> {
-    return this.selectedSensorId$.asObservable();
-  }
-}
-
-class ReadingsViewModel {
-  private currentSensorId$ = new BehaviorSubject<string | null>(null);
-  private readings$ = new BehaviorSubject<SensorReading[]>([]);
-
-  constructor(
-    private readingsService: ReadingsService,
-    eventBus: EventBus
-  ) {
-    // Subscribe to sensor selection events
-    eventBus.subscribe<SensorSelected>(
-      "SensorSelected",
-      this.handleSensorSelected.bind(this)
-    );
-
-    // Load readings whenever current sensor changes
-    this.currentSensorId$
-      .pipe(
-        filter((id) => id !== null),
-        switchMap((id) => this.readingsService.getRealtimeReadings(id!))
-      )
-      .subscribe((readings) => this.readings$.next(readings));
-  }
-
-  private handleSensorSelected(event: SensorSelected): void {
-    this.currentSensorId$.next(event.sensorId);
-  }
-
-  get readings$(): Observable<SensorReading[]> {
-    return this.readings$.asObservable();
-  }
-}
-
-class AlertViewModel {
-  private activeAlerts$ = new BehaviorSubject<Alert[]>([]);
-  private filteredAlerts$ = new BehaviorSubject<Alert[]>([]);
-  private filterSensorId: string | null = null;
-
-  constructor(
-    private alertService: AlertService,
-    eventBus: EventBus
-  ) {
-    eventBus.subscribe<SensorSelected>(
-      "SensorSelected",
-      this.handleSensorSelected.bind(this)
-    );
-
-    eventBus.subscribe<ThresholdAdjusted>(
-      "ThresholdAdjusted",
-      this.handleThresholdAdjusted.bind(this)
-    );
-
-    // Load all active alerts
-    this.alertService.getActiveAlerts().subscribe((alerts) => {
-      this.activeAlerts$.next(alerts);
-      this.updateFilteredAlerts();
-    });
-  }
-
-  private handleSensorSelected(event: SensorSelected): void {
-    this.filterSensorId = event.sensorId;
-    this.updateFilteredAlerts();
-  }
-
-  private handleThresholdAdjusted(event: ThresholdAdjusted): void {
-    // Refresh alerts since thresholds changed
-    this.alertService.getActiveAlerts().subscribe((alerts) => {
-      this.activeAlerts$.next(alerts);
-      this.updateFilteredAlerts();
-    });
-  }
-
-  private updateFilteredAlerts(): void {
-    const alerts = this.activeAlerts$.value;
-    const filtered = this.filterSensorId
-      ? alerts.filter((a) => a.sensorId === this.filterSensorId)
-      : alerts;
-
-    this.filteredAlerts$.next(filtered);
-  }
-
-  get filteredAlerts$(): Observable<Alert[]> {
-    return this.filteredAlerts$.asObservable();
-  }
-}
-```
-
-Each ViewModel now operates independently. They publish events when their state changes and subscribe to events they care about. Adding a new HistoryViewModel that needs to react to sensor selection doesn't require changing any existing code—it just subscribes to `SensorSelected`.
-
-This event-driven coordination brings the same benefits to your UI layer that it brings to your service layer: loose coupling, independent testability, and easy extensibility.
-
-## 5.6 Event Versioning and Evolution
-
-Your application will evolve. Business requirements change, you'll discover better ways to model your domain, and new features will emerge. When you're using events for integration, you need a strategy for evolving event contracts without breaking existing subscribers.
-
-This isn't a theoretical concern—it's a practical reality you'll face within months of launching your application. Let's look at strategies for managing event evolution.
-
-### 5.6.1 Additive Changes Are Safe
-
-Adding optional fields to an event doesn't break existing subscribers—they'll simply ignore fields they don't know about:
-
-```typescript
-// Original version
-interface SensorRegistered {
-  readonly type: "SensorRegistered";
-  readonly occurredAt: Date;
-  readonly sensorId: string;
-  readonly greenhouseId: string;
-  readonly sensorType: "temperature" | "humidity" | "soil_moisture";
-}
-
-// Evolved version—added optional warranty field
-interface SensorRegistered {
-  readonly type: "SensorRegistered";
-  readonly occurredAt: Date;
-  readonly sensorId: string;
-  readonly greenhouseId: string;
-  readonly sensorType: "temperature" | "humidity" | "soil_moisture";
-  readonly warrantyInfo?: {
-    // New optional field
-    expiresAt: Date;
-    provider: string;
-  };
-}
-```
-
-Old subscribers continue working—they don't reference `warrantyInfo`. New subscribers can access it when needed. This is the safest form of evolution.
-
-### 5.6.2 Breaking Changes Require New Event Types
-
-If you need to make a breaking change—removing a field, changing its type, or restructuring the event—create a new event type:
-
-```typescript
-// Old version
-interface ThresholdExceeded {
-  readonly type: "ThresholdExceeded";
-  readonly occurredAt: Date;
-  readonly sensorId: string;
-  readonly value: number;
-  readonly threshold: number;
-}
-
-// New version with breaking changes—different structure for thresholds
-interface ThresholdExceededV2 {
-  readonly type: "ThresholdExceededV2"; // Different type name
-  readonly occurredAt: Date;
-  readonly sensorId: string;
-  readonly measurement: {
-    value: number;
-    unit: string;
-  };
-  readonly thresholds: {
-    // Structured differently
-    warning: number;
-    critical: number;
-  };
-  readonly exceededLevel: "warning" | "critical";
-}
-```
-
-Now publish both events during a transition period:
-
-```typescript
-class EnvironmentalMonitoringService {
-  async checkThreshold(reading: SensorReading): Promise<void> {
-    if (reading.value > reading.threshold) {
-      // Publish old version for backward compatibility
-      await this.eventBus.publish<ThresholdExceeded>({
-        type: "ThresholdExceeded",
-        occurredAt: new Date(),
-        sensorId: reading.sensorId,
-        value: reading.value,
-        threshold: reading.threshold,
-      });
-
-      // Publish new version for new subscribers
-      await this.eventBus.publish<ThresholdExceededV2>({
-        type: "ThresholdExceededV2",
-        occurredAt: new Date(),
-        sensorId: reading.sensorId,
-        measurement: {
-          value: reading.value,
-          unit: reading.unit,
-        },
-        thresholds: {
-          warning: reading.warningThreshold,
-          critical: reading.criticalThreshold,
-        },
-        exceededLevel:
-          reading.value > reading.criticalThreshold ? "critical" : "warning",
-      });
-    }
-  }
-}
-```
-
-Old subscribers keep working with `ThresholdExceeded`. New subscribers use `ThresholdExceededV2`. You migrate subscribers at your own pace and eventually deprecate the old event.
-
-### 5.6.3 Schema Versioning with Type Discriminators
-
-For complex applications, embed version information directly in events:
-
-```typescript
-interface BaseEvent {
-  readonly type: string;
-  readonly version: number;
-  readonly occurredAt: Date;
-}
-
-interface SensorRegisteredV1 extends BaseEvent {
-  readonly type: "SensorRegistered";
-  readonly version: 1;
-  readonly sensorId: string;
-  readonly greenhouseId: string;
-}
-
-interface SensorRegisteredV2 extends BaseEvent {
-  readonly type: "SensorRegistered";
-  readonly version: 2;
-  readonly sensorId: string;
-  readonly greenhouseId: string;
-  readonly warrantyInfo: {
-    expiresAt: Date;
-    provider: string;
-  };
-  readonly installationDetails: {
-    installedBy: string;
-    installedAt: Date;
-  };
-}
-
-type SensorRegistered = SensorRegisteredV1 | SensorRegisteredV2;
-```
-
-Subscribers can handle multiple versions:
-
-```typescript
-class MonitoringEventHandler {
-  private async handleSensorRegistered(event: SensorRegistered): Promise<void> {
-    // Handle common fields
-    const baseInfo = {
-      sensorId: event.sensorId,
-      greenhouseId: event.greenhouseId,
-    };
-
-    // Type-safe version handling
-    if (event.version === 2) {
-      // Access V2-specific fields
-      await this.recordInstallation({
-        ...baseInfo,
-        installedBy: event.installationDetails.installedBy,
-        installedAt: event.installationDetails.installedAt,
-      });
-    }
-
-    // Continue with monitoring initialization
-    await this.monitoringCoordinator.initializeMonitoring(baseInfo);
-  }
-}
-```
-
-TypeScript's discriminated unions ensure type safety. The compiler knows which fields are available based on the version check.
-
-## 5.7 Testing Event-Driven Systems
-
-Event-driven architecture changes how you approach testing. You're no longer testing direct method calls between components—you're testing event publishing and subscription behavior. Let's look at effective testing strategies.
-
-### 5.7.1 Testing Event Publishers
-
-When testing a service that publishes events, you need to verify that:
-
-1. Events are published when expected
-2. Events contain correct data
-3. Events are published even if no subscribers exist (no exceptions thrown)
-
-```typescript
-describe("SensorRegistrationService", () => {
-  let service: SensorRegistrationService;
-  let mockRepository: jest.Mocked<SensorRepository>;
-  let mockEventBus: jest.Mocked<EventBus>;
-
-  beforeEach(() => {
-    mockRepository = {
-      save: jest.fn(),
-    } as any;
-
-    mockEventBus = {
-      publish: jest.fn().mockResolvedValue(undefined),
-    } as any;
-
-    service = new SensorRegistrationService(mockRepository, mockEventBus);
-  });
-
-  it("publishes SensorRegistered event after successful registration", async () => {
-    // Arrange
-    const registrationData = {
-      greenhouseId: "gh-1",
-      sensorType: "temperature" as const,
-      location: { zone: "A", position: { x: 1, y: 2, z: 3 } },
-    };
-
-    const savedSensor = {
-      id: "sensor-123",
-      ...registrationData,
-    };
-
-    mockRepository.save.mockResolvedValue(savedSensor);
-
-    // Act
-    await service.registerSensor(registrationData);
-
-    // Assert
-    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
-    expect(mockEventBus.publish).toHaveBeenCalledWith({
-      type: "SensorRegistered",
-      occurredAt: expect.any(Date),
-      sensorId: "sensor-123",
-      greenhouseId: "gh-1",
-      sensorType: "temperature",
-      location: registrationData.location,
-    });
-  });
-
-  it("does not publish event if save fails", async () => {
-    // Arrange
-    mockRepository.save.mockRejectedValue(new Error("Database error"));
-
-    // Act & Assert
-    await expect(service.registerSensor({} as any)).rejects.toThrow(
-      "Database error"
-    );
-
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
-  });
-});
-```
-
-The key insight here is that we're testing the contract between the service and the event bus, not the actual event propagation. That's the event bus's responsibility.
-
-### 5.7.2 Testing Event Subscribers
-
-When testing subscribers, you need to verify that they handle events correctly without actually going through the event bus:
-
-```typescript
-describe("MonitoringEventHandler", () => {
-  let handler: MonitoringEventHandler;
-  let mockCoordinator: jest.Mocked<MonitoringCoordinator>;
-
-  beforeEach(() => {
-    mockCoordinator = {
-      initializeMonitoring: jest.fn().mockResolvedValue(undefined),
-    } as any;
-
-    // Create handler without connecting to real event bus
-    handler = new MonitoringEventHandler(mockCoordinator);
-  });
-
-  it("initializes monitoring when SensorRegistered event received", async () => {
-    // Arrange
-    const event: SensorRegistered = {
-      type: "SensorRegistered",
-      occurredAt: new Date(),
-      sensorId: "sensor-123",
-      greenhouseId: "gh-1",
-      sensorType: "temperature",
-      location: { zone: "A", position: { x: 1, y: 2, z: 3 } },
-    };
-
-    // Act—call the handler method directly
-    await handler["handleSensorRegistered"](event);
-
-    // Assert
-    expect(mockCoordinator.initializeMonitoring).toHaveBeenCalledWith({
-      sensorId: "sensor-123",
-      greenhouseId: "gh-1",
-      sensorType: "temperature",
-    });
-  });
-
-  it("handles errors gracefully without crashing", async () => {
-    // Arrange
-    mockCoordinator.initializeMonitoring.mockRejectedValue(
-      new Error("Initialization failed")
-    );
-
-    const event: SensorRegistered = {
-      type: "SensorRegistered",
-      occurredAt: new Date(),
-      sensorId: "sensor-123",
-      greenhouseId: "gh-1",
-      sensorType: "temperature",
-      location: { zone: "A", position: { x: 1, y: 2, z: 3 } },
-    };
-
-    // Act & Assert—should not throw
-    await expect(
-      handler["handleSensorRegistered"](event)
-    ).resolves.not.toThrow();
-  });
-});
-```
-
-We're testing the handler logic in isolation. The event bus's responsibility to route events is tested separately.
-
-### 5.7.3 Integration Testing Event Flow
-
-Unit tests verify individual components, but you also need integration tests that verify the complete event flow from publisher to subscriber:
-
-```typescript
-describe("Sensor Registration Event Flow", () => {
-  let eventBus: EventBus;
-  let registrationService: SensorRegistrationService;
-  let monitoringHandler: MonitoringEventHandler;
-  let analyticsHandler: AnalyticsEventHandler;
-
-  let receivedEvents: DomainEvent[] = [];
-
-  beforeEach(() => {
-    receivedEvents = [];
-    eventBus = new EventBus();
-
-    // Set up real services with real event bus
-    registrationService = new SensorRegistrationService(
-      createMockRepository(),
-      eventBus
-    );
-
-    monitoringHandler = new MonitoringEventHandler(
-      createMockMonitoringCoordinator(),
-      eventBus
-    );
-
-    analyticsHandler = new AnalyticsEventHandler(
-      createMockAnalyticsService(),
-      eventBus
-    );
-
-    // Spy on all events
-    eventBus.subscribe("SensorRegistered", (event) => {
-      receivedEvents.push(event);
-    });
-  });
-
-  it("propagates SensorRegistered event to all subscribers", async () => {
-    // Act
-    await registrationService.registerSensor({
-      greenhouseId: "gh-1",
-      sensorType: "temperature",
-      location: { zone: "A", position: { x: 1, y: 2, z: 3 } },
-    });
-
-    // Wait for async handlers
-    await waitForCondition(() => receivedEvents.length > 0);
-
-    // Assert
-    expect(receivedEvents).toHaveLength(1);
-    expect(receivedEvents[0].type).toBe("SensorRegistered");
-
-    // Verify both handlers were invoked (check their side effects)
-    // This depends on your mock implementations
-  });
-
-  it("continues even if one subscriber fails", async () => {
-    // Arrange—make monitoring handler fail
-    const failingHandler = new MonitoringEventHandler(
-      createFailingMockCoordinator(),
-      eventBus
-    );
-
-    // Act
-    await registrationService.registerSensor({
-      greenhouseId: "gh-1",
-      sensorType: "temperature",
-      location: { zone: "A", position: { x: 1, y: 2, z: 3 } },
-    });
-
-    await waitForCondition(() => receivedEvents.length > 0);
-
-    // Assert—event was still published and received
-    expect(receivedEvents).toHaveLength(1);
-
-    // Analytics handler should still have been called successfully
-    // (verify its side effects)
-  });
-});
-```
-
-These integration tests verify that the complete event infrastructure works correctly, including error isolation and async execution.
-
-## 5.8 Advanced Patterns: Event Sourcing
-
-We've covered the fundamentals of domain events for cross-context communication. Now let's look at a more advanced pattern: **event sourcing**, where events become your primary source of truth rather than just integration notifications.
-
-In traditional systems, you store current state in a database. If a sensor's current temperature is 22°C, that's what you save. The history of how it got there is lost unless you explicitly build audit logs.
-
-Event sourcing flips this around. Instead of storing current state, you store the **sequence of events** that led to that state. The current state is derived by replaying events.
-
-For GreenWatch's Environmental Monitoring context, this might look like:
-
-```typescript
-// Event stream for a specific sensor
-const sensorEvents = [
-  {
-    type: "SensorReadingRecorded",
-    sensorId: "sensor-123",
-    temperature: 20,
-    recordedAt: "2025-11-07T08:00:00Z",
-  },
-  {
-    type: "SensorReadingRecorded",
-    sensorId: "sensor-123",
-    temperature: 21,
-    recordedAt: "2025-11-07T08:15:00Z",
-  },
-  {
-    type: "SensorReadingRecorded",
-    sensorId: "sensor-123",
-    temperature: 22,
-    recordedAt: "2025-11-07T08:30:00Z",
-  },
-];
-
-// Current state is computed by replaying events
-function computeCurrentState(events: SensorEvent[]): SensorState {
-  let state: SensorState = { readings: [], currentValue: null };
-
-  for (const event of events) {
-    if (event.type === "SensorReadingRecorded") {
-      state.readings.push({
-        value: event.temperature,
-        recordedAt: new Date(event.recordedAt),
-      });
-      state.currentValue = event.temperature;
-    }
-  }
-
-  return state;
-}
-```
-
-This approach offers several compelling advantages:
-
-**Complete Audit Trail**: Every state change is preserved. You can answer questions like "What was the temperature at 8:15 AM on November 5th?" by replaying events up to that point.
-
-**Time Travel Debugging**: When investigating a bug, you can replay events to see exactly how the system arrived at a particular state. No more guessing about what happened.
-
-**Flexible Projections**: You can create multiple views of the same data by replaying events differently. One projection might show hourly averages, another might flag anomalies, another might compute trends.
-
-**Event-Driven Analytics**: Your analytics context can subscribe to events and build its own projections without querying the operational database.
-
-Here's a practical implementation for GreenWatch:
-
-```typescript
-interface SensorEvent {
-  readonly type: string;
-  readonly sensorId: string;
-  readonly occurredAt: Date;
-  readonly sequence: number; // Event order within this sensor's stream
-}
-
-interface SensorReadingRecorded extends SensorEvent {
-  readonly type: "SensorReadingRecorded";
-  readonly measurementType: "temperature" | "humidity" | "soil_moisture";
-  readonly value: number;
-  readonly unit: string;
-}
-
-interface SensorCalibrated extends SensorEvent {
-  readonly type: "SensorCalibrated";
-  readonly previousAccuracy: number;
-  readonly newAccuracy: number;
-  readonly calibratedBy: string;
-}
-
-// Event store interface
-interface EventStore {
-  append(sensorId: string, event: SensorEvent): Promise<void>;
-  getEvents(sensorId: string, fromSequence?: number): Promise<SensorEvent[]>;
-  getAllEvents(fromSequence?: number): Promise<SensorEvent[]>;
-}
-
-// Simple in-memory implementation (in production, use a real event store)
-class InMemoryEventStore implements EventStore {
-  private events = new Map<string, SensorEvent[]>();
-  private globalSequence = 0;
-
-  async append(sensorId: string, event: SensorEvent): Promise<void> {
-    if (!this.events.has(sensorId)) {
-      this.events.set(sensorId, []);
-    }
-
-    const stream = this.events.get(sensorId)!;
-
-    // Ensure event has correct sequence number
-    const eventWithSequence = {
-      ...event,
-      sequence: stream.length,
-      globalSequence: this.globalSequence++,
-    };
-
-    stream.push(eventWithSequence);
-  }
-
-  async getEvents(sensorId: string, fromSequence = 0): Promise<SensorEvent[]> {
-    const stream = this.events.get(sensorId) || [];
-    return stream.filter((e) => e.sequence >= fromSequence);
-  }
-
-  async getAllEvents(fromSequence = 0): Promise<SensorEvent[]> {
-    const allEvents: SensorEvent[] = [];
-
-    for (const stream of this.events.values()) {
-      allEvents.push(...stream);
-    }
-
-    return allEvents
-      .sort((a, b) => (a as any).globalSequence - (b as any).globalSequence)
-      .filter((e) => (e as any).globalSequence >= fromSequence);
-  }
-}
-
-// Projection builder—computes current state from events
-class SensorStateProjection {
-  private state: Map<string, SensorCurrentState> = new Map();
-
-  constructor(private eventStore: EventStore) {}
-
-  async rebuild(): Promise<void> {
-    this.state.clear();
-    const events = await this.eventStore.getAllEvents();
-
-    for (const event of events) {
-      this.apply(event);
-    }
-  }
-
-  async getCurrentState(sensorId: string): Promise<SensorCurrentState | null> {
-    // If we don't have it cached, rebuild from events
-    if (!this.state.has(sensorId)) {
-      const events = await this.eventStore.getEvents(sensorId);
-      for (const event of events) {
-        this.apply(event);
+  public dispose(): void {
+    // Dispose all registered commands
+    this._registeredCommands.forEach((cmd) => {
+      if (this.isDisposable(cmd)) {
+        cmd.dispose();
       }
-    }
+    });
+    this._registeredCommands.length = 0;
 
-    return this.state.get(sensorId) || null;
+    this._destroy$.next();
+    this._destroy$.complete();
+    this._subscriptions.unsubscribe();
   }
 
-  private apply(event: SensorEvent): void {
-    const currentState = this.state.get(event.sensorId) || {
-      sensorId: event.sensorId,
-      lastReading: null,
-      accuracy: 100,
-      totalReadings: 0,
-      lastUpdated: event.occurredAt,
-    };
-
-    switch (event.type) {
-      case "SensorReadingRecorded":
-        const reading = event as SensorReadingRecorded;
-        this.state.set(event.sensorId, {
-          ...currentState,
-          lastReading: {
-            value: reading.value,
-            unit: reading.unit,
-            type: reading.measurementType,
-            recordedAt: reading.occurredAt,
-          },
-          totalReadings: currentState.totalReadings + 1,
-          lastUpdated: reading.occurredAt,
-        });
-        break;
-
-      case "SensorCalibrated":
-        const calibration = event as SensorCalibrated;
-        this.state.set(event.sensorId, {
-          ...currentState,
-          accuracy: calibration.newAccuracy,
-          lastUpdated: calibration.occurredAt,
-        });
-        break;
-    }
+  private isDisposable(obj: any): obj is IDisposable {
+    return obj && typeof obj.dispose === 'function';
   }
 }
 ```
 
-The beauty of this approach is that you can create multiple projections from the same event stream. Want hourly averages? Create an `HourlyAverageProjection`. Want to flag anomalies? Create an `AnomalyDetectionProjection`. Each projection rebuilds its view independently by replaying events.
+Let's break down the key patterns here:
 
-**When to Use Event Sourcing**: Event sourcing isn't appropriate for every context. It adds complexity and requires careful thought about event design. Use it when:
+### 5.2.1 Observable Exposure
 
-- Audit requirements are strict (regulatory compliance, financial transactions)
-- Historical analysis is a core requirement
-- You need multiple views of the same data
-- Debugging and troubleshooting require time-travel capabilities
+The ViewModel exposes four core observables that Views can subscribe to:
 
-For GreenWatch, event sourcing makes sense for Environmental Monitoring (we need historical data for analytics) but probably not for Identity & Access (current user state is sufficient).
+- **`data$`**: The current domain data from the Model
+- **`isLoading$`**: Loading state for showing spinners or disabling UI
+- **`error$`**: Any errors that occurred during operations
+- **`validationErrors$`**: Zod validation errors extracted from the error stream
 
-## 5.9 Practical Guidelines and Trade-Offs
+These observables are **derived** from the Model's observables, not duplicated. The ViewModel doesn't maintain its own copy of the data—it simply provides a clean interface to the Model's reactive state.
 
-We've covered a lot of ground in this chapter. Let's consolidate with practical guidelines for applying these patterns effectively.
+### 5.2.2 The takeUntil Pattern
 
-**Start Simple**: Don't event-source everything from day one. Begin with domain events for cross-context communication. Add event sourcing later if you need it.
+Notice the `takeUntil(this._destroy$)` operator on every observable. This is a critical pattern for preventing memory leaks:
 
-**Event Granularity**: Model events around business occurrences, not technical operations. `SensorCalibrated` is a business event; `DatabaseRowUpdated` isn't.
+```typescript
+this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
+```
 
-**Error Handling**: Always isolate subscriber failures. One context's problems shouldn't cascade to others. Log errors comprehensively—you'll need those logs when debugging distributed behavior.
+When `dispose()` is called, it emits on `_destroy$`, which causes all observables to complete. This automatically unsubscribes any Views that were listening, preventing memory leaks when components unmount.
 
-**Testing Strategy**: Unit test publishers and subscribers independently. Integration test the complete event flow. Don't over-mock—real event bus behavior matters.
+### 5.2.3 Subscription Management
 
-**Event Versioning**: Plan for evolution from the start. Use additive changes when possible. Version-stamp events if you anticipate complex evolution.
+The `_subscriptions` property collects all RxJS subscriptions created by the ViewModel. When `dispose()` is called, all subscriptions are cleaned up:
 
-**Performance Considerations**: Event-driven systems can have higher latency than direct calls. If you need real-time responses, consider hybrid approaches where critical paths use direct calls and events handle eventual consistency.
+```typescript
+protected addSubscription(subscription: Subscription): void {
+  this._subscriptions.add(subscription);
+}
 
-**Monitoring**: Instrument your event bus. Track metrics like:
+public dispose(): void {
+  this._subscriptions.unsubscribe();
+  // ... other cleanup
+}
+```
 
-- Events published per type
-- Subscriber execution time
-- Failed subscriptions
-- Event queue depth (if using async processing)
+This ensures that ViewModels don't leak memory even in long-running applications.
 
-**Documentation**: Maintain a registry of all domain events with their contracts and subscribers. This becomes your **integration map**—essential for understanding system behavior.
+### 5.2.4 Command Registration
 
-The patterns in this chapter give you the tools to build loosely coupled, maintainable systems. But like any architectural pattern, they're not free—they add complexity and require discipline. Use them where they provide clear value: when you need to integrate across context boundaries while maintaining modularity.
+Commands (which we'll explore in detail in Chapter 7) are also registered for automatic disposal:
 
-In the next chapter, we'll build on these foundations to implement our ViewModel layer, showing how domain events coordinate complex UI behavior while keeping ViewModels focused and testable.
+```typescript
+protected registerCommand<TParam, TResult>(
+  command: ICommand<TParam, TResult>
+): ICommand<TParam, TResult> {
+  this._registeredCommands.push(command);
+  return command;
+}
+```
+
+This pattern ensures that all resources—observables, subscriptions, and commands—are properly cleaned up when the ViewModel is no longer needed.
+
+## 5.3 RestfulApiViewModel: CRUD Operations
+
+Many ViewModels need to perform CRUD (Create, Read, Update, Delete) operations against a REST API. Rather than implementing these operations in every ViewModel, the GreenWatch system provides `RestfulApiViewModel` as a base class:
+
+```typescript
+// packages/mvvm-core/src/viewmodels/RestfulApiViewModel.ts
+import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
+import { map, startWith } from 'rxjs/operators';
+import { RestfulApiModel } from '../models/RestfulApiModel';
+import { Command } from '../commands/Command';
+import { ZodSchema } from 'zod';
+
+type ItemWithId = { id: string; [key: string]: any };
+type ExtractItemType<T> = T extends (infer U)[] ? U : T;
+
+export class RestfulApiViewModel<TData, TSchema extends ZodSchema<TData>> {
+  protected model: RestfulApiModel<TData, TSchema>;
+
+  public readonly data$: Observable<TData | null>;
+  public readonly isLoading$: Observable<boolean>;
+  public readonly error$: Observable<any>;
+
+  // Commands for CRUD operations
+  public readonly fetchCommand: Command<string | string[] | void, void>;
+  public readonly createCommand: Command<Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[], void>;
+  public readonly updateCommand: Command<{ id: string; payload: Partial<ExtractItemType<TData>> }, void>;
+  public readonly deleteCommand: Command<string, void>;
+
+  // Selection state for list views
+  public readonly selectedItem$: Observable<ExtractItemType<TData> | null>;
+  protected readonly _selectedItemId$ = new BehaviorSubject<string | null>(null);
+
+  constructor(model: RestfulApiModel<TData, TSchema>) {
+    if (!(model instanceof RestfulApiModel)) {
+      throw new Error('RestfulApiViewModel requires an instance of RestfulApiModel.');
+    }
+    this.model = model;
+
+    this.data$ = this.model.data$;
+    this.isLoading$ = this.model.isLoading$;
+    this.error$ = this.model.error$;
+
+    // Initialize Commands
+    this.fetchCommand = new Command(async (id: string | string[] | void) => {
+      const ids = Array.isArray(id) ? id : id ? [id] : undefined;
+      await this.model.fetch(ids);
+    });
+
+    this.createCommand = new Command(
+      async (payload: Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[]) => {
+        await this.model.create(payload);
+      },
+    );
+
+    this.updateCommand = new Command(
+      async ({ id, payload }: { id: string; payload: Partial<ExtractItemType<TData>> }) => {
+        await this.model.update(id, payload);
+      },
+    );
+
+    this.deleteCommand = new Command(async (id: string) => {
+      await this.model.delete(id);
+    });
+
+    // Compute selected item from data and selection state
+    this.selectedItem$ = combineLatest([
+      this.model.data$,
+      this._selectedItemId$,
+    ]).pipe(
+      map(([data, selectedId]) => {
+        if (Array.isArray(data) && selectedId) {
+          const itemWithId = data.find((item: unknown): item is ItemWithId => {
+            return (
+              typeof item === 'object' &&
+              item !== null &&
+              'id' in item &&
+              typeof (item as any).id === 'string' &&
+              (item as any).id === selectedId
+            );
+          });
+          return (itemWithId as ExtractItemType<TData>) || null;
+        }
+        return null;
+      }),
+      startWith(null),
+    );
+  }
+
+  public selectItem(id: string | null): void {
+    this._selectedItemId$.next(id);
+  }
+
+  public dispose(): void {
+    this.model.dispose();
+    this.fetchCommand.dispose();
+    this.createCommand.dispose();
+    this.updateCommand.dispose();
+    this.deleteCommand.dispose();
+    this._selectedItemId$.complete();
+  }
+}
+```
+
+This ViewModel provides several key features:
+
+### 5.3.1 Command Pattern for Operations
+
+Instead of exposing methods like `fetch()`, `create()`, `update()`, and `delete()`, the ViewModel exposes **Commands**. Commands are objects that encapsulate an operation and can be executed, disabled, or monitored:
+
+```typescript
+public readonly fetchCommand: Command<string | string[] | void, void>;
+public readonly createCommand: Command<Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[], void>;
+```
+
+Views can execute commands and subscribe to their state:
+
+```typescript
+// In a React component
+<button 
+  onClick={() => viewModel.fetchCommand.execute()}
+  disabled={viewModel.fetchCommand.isExecuting}
+>
+  Fetch Data
+</button>
+```
+
+We'll explore Commands in depth in Chapter 7.
+
+### 5.3.2 Selection State Management
+
+For list views, the ViewModel manages selection state:
+
+```typescript
+public readonly selectedItem$: Observable<ExtractItemType<TData> | null>;
+protected readonly _selectedItemId$ = new BehaviorSubject<string | null>(null);
+
+public selectItem(id: string | null): void {
+  this._selectedItemId$.next(id);
+}
+```
+
+The `selectedItem$` observable is **computed** from the data and selection ID using `combineLatest`. When either the data changes or the selection changes, the observable emits the currently selected item. This is a powerful pattern for derived state—the ViewModel doesn't store the selected item directly, it computes it on demand.
+
+## 5.4 Real-World Example: SensorViewModel
+
+Now let's see how these patterns come together in a real ViewModel from the GreenWatch system. The `SensorViewModel` manages the list of sensors in a greenhouse:
+
+```typescript
+// packages/view-models/src/SensorViewModel.ts
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { SensorListSchema, type SensorListData, SensorModel } from '@repo/models';
+
+export class SensorViewModel extends RestfulApiViewModel<SensorListData, typeof SensorListSchema> {
+  constructor(model: SensorModel) {
+    super(model);
+  }
+}
+
+// Create a singleton instance for the application
+const sensorModel = new SensorModel();
+export const sensorViewModel = new SensorViewModel(sensorModel);
+export type { SensorListData };
+```
+
+This is remarkably simple because `RestfulApiViewModel` provides all the CRUD functionality. The `SensorViewModel` just needs to:
+
+1. Extend `RestfulApiViewModel` with the correct types
+2. Pass the `SensorModel` to the base class constructor
+
+The ViewModel now exposes:
+
+- `data$`: Observable of sensor list data
+- `isLoading$`: Loading state
+- `error$`: Error state
+- `fetchCommand`: Command to fetch sensors
+- `createCommand`: Command to create a new sensor
+- `updateCommand`: Command to update a sensor
+- `deleteCommand`: Command to delete a sensor
+- `selectedItem$`: Currently selected sensor
+- `selectItem(id)`: Method to select a sensor
+
+All of this functionality is framework-agnostic. The same `SensorViewModel` can be used in React, Vue, Angular, Lit, or vanilla JavaScript. We'll see exactly how in Chapters 8-12.
+
+## 5.5 Advanced Example: GreenHouseViewModel
+
+Some ViewModels need more customization. The `GreenHouseViewModel` uses a factory pattern to create ViewModels with specific configurations:
+
+```typescript
+// packages/view-models/src/GreenHouseViewModel.ts
+import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
+import { greenHouseConfig } from '@repo/models';
+import { type GreenhouseListData, GreenhouseListSchema, type GreenhouseData } from '@repo/models';
+
+type TConfig = ViewModelFactoryConfig<GreenhouseListData, typeof GreenhouseListSchema>;
+
+const config: TConfig = {
+  modelConfig: greenHouseConfig,
+  schema: GreenhouseListSchema,
+};
+
+export const greenHouseViewModel = createReactiveViewModel(config);
+
+export type { GreenhouseListData, GreenhouseData };
+```
+
+This demonstrates an alternative approach: instead of manually instantiating Models and ViewModels, we use a factory function (`createReactiveViewModel`) that creates both from a configuration object. This pattern is useful when you have many similar ViewModels and want to reduce boilerplate.
+
+The key insight is that both approaches—manual instantiation and factory creation—produce the same result: a framework-agnostic ViewModel that exposes reactive state through observables.
+
+## 5.6 Reactive State with RxJS
+
+You've seen observables throughout this chapter, but let's be explicit about why RxJS is the foundation of reactive state in the GreenWatch MVVM implementation.
+
+### 5.6.1 Why RxJS?
+
+RxJS provides several critical capabilities for ViewModels:
+
+**1. Push-Based Reactivity**: Observables push new values to subscribers. When the Model's data changes, all subscribed Views automatically receive the update. No polling, no manual refresh.
+
+**2. Composability**: RxJS operators like `map`, `filter`, `combineLatest`, and `switchMap` let you transform and combine observables declaratively. The `selectedItem$` observable we saw earlier is a perfect example—it's composed from `data$` and `_selectedItemId$`.
+
+**3. Backpressure and Cancellation**: RxJS handles scenarios where data arrives faster than it can be processed, and provides clean cancellation semantics with `takeUntil`.
+
+**4. Framework Agnostic**: RxJS works everywhere—Node.js, browsers, React Native. Your ViewModels aren't tied to any specific UI framework.
+
+### 5.6.2 BehaviorSubject vs Observable
+
+You'll notice that ViewModels use both `BehaviorSubject` and `Observable`:
+
+```typescript
+// Internal state uses BehaviorSubject
+protected readonly _selectedItemId$ = new BehaviorSubject<string | null>(null);
+
+// Public API exposes Observable
+public readonly selectedItem$: Observable<ExtractItemType<TData> | null>;
+```
+
+This is intentional:
+
+- **BehaviorSubject** is used internally because it holds the current value and allows the ViewModel to emit new values with `.next()`
+- **Observable** is exposed publicly because Views should only **read** the state, not modify it
+
+This encapsulation ensures that only the ViewModel can change its state. Views are consumers, not producers.
+
+### 5.6.3 Derived State with Operators
+
+One of the most powerful patterns in reactive ViewModels is **derived state**—state that's computed from other state:
+
+```typescript
+this.selectedItem$ = combineLatest([
+  this.model.data$,
+  this._selectedItemId$,
+]).pipe(
+  map(([data, selectedId]) => {
+    if (Array.isArray(data) && selectedId) {
+      return data.find(item => item.id === selectedId) || null;
+    }
+    return null;
+  }),
+  startWith(null),
+);
+```
+
+This observable automatically recomputes whenever either `data$` or `_selectedItemId$` changes. The ViewModel doesn't need to manually update `selectedItem$`—it's always in sync because it's **derived** from the source observables.
+
+This pattern eliminates entire classes of bugs where state gets out of sync. If you've ever had a "selected item" that didn't match the actual data, you know the pain this solves.
+
+## 5.7 ViewModel Lifecycle
+
+ViewModels have a clear lifecycle that mirrors the lifecycle of the Views that consume them:
+
+**1. Creation**: ViewModel is instantiated with its Model dependency
+
+```typescript
+const model = new SensorModel();
+const viewModel = new SensorViewModel(model);
+```
+
+**2. Subscription**: Views subscribe to the ViewModel's observables
+
+```typescript
+// In a React component
+useEffect(() => {
+  const subscription = viewModel.data$.subscribe(data => {
+    setData(data);
+  });
+  
+  return () => subscription.unsubscribe();
+}, []);
+```
+
+**3. Interaction**: User actions trigger ViewModel methods or commands
+
+```typescript
+<button onClick={() => viewModel.fetchCommand.execute()}>
+  Refresh
+</button>
+```
+
+**4. Disposal**: When the View unmounts, the ViewModel is disposed
+
+```typescript
+useEffect(() => {
+  return () => viewModel.dispose();
+}, []);
+```
+
+The `dispose()` method is critical. It:
+
+- Completes all observables (via `_destroy$`)
+- Unsubscribes all internal subscriptions
+- Disposes all registered commands
+- Prevents memory leaks
+
+**Always call `dispose()` when you're done with a ViewModel.** In React, this happens in the cleanup function of `useEffect`. In Angular, it happens in `ngOnDestroy`. In Vue, it happens in `onUnmounted`. We'll see the framework-specific patterns in Chapters 8-12.
+
+## 5.8 Testing ViewModels
+
+One of the greatest benefits of the MVVM pattern is testability. ViewModels can be tested without any UI framework—they're just TypeScript classes that expose observables.
+
+Here's how you might test the `SensorViewModel`:
+
+```typescript
+import { SensorViewModel } from './SensorViewModel';
+import { SensorModel } from '@repo/models';
+
+describe('SensorViewModel', () => {
+  let viewModel: SensorViewModel;
+  let model: SensorModel;
+
+  beforeEach(() => {
+    model = new SensorModel();
+    viewModel = new SensorViewModel(model);
+  });
+
+  afterEach(() => {
+    viewModel.dispose();
+  });
+
+  it('exposes data from the model', (done) => {
+    // Subscribe to the ViewModel's data observable
+    viewModel.data$.subscribe(data => {
+      expect(data).toBeDefined();
+      done();
+    });
+
+    // Trigger a fetch
+    viewModel.fetchCommand.execute();
+  });
+
+  it('exposes loading state', (done) => {
+    const loadingStates: boolean[] = [];
+
+    viewModel.isLoading$.subscribe(isLoading => {
+      loadingStates.push(isLoading);
+
+      // After fetch completes, we should have seen [false, true, false]
+      if (loadingStates.length === 3) {
+        expect(loadingStates).toEqual([false, true, false]);
+        done();
+      }
+    });
+
+    viewModel.fetchCommand.execute();
+  });
+
+  it('manages selection state', (done) => {
+    // First, load some data
+    viewModel.fetchCommand.execute().then(() => {
+      // Select the first item
+      viewModel.data$.subscribe(data => {
+        if (data && data.length > 0) {
+          viewModel.selectItem(data[0].id);
+
+          // Verify the selected item
+          viewModel.selectedItem$.subscribe(selected => {
+            expect(selected).toEqual(data[0]);
+            done();
+          });
+        }
+      });
+    });
+  });
+
+  it('cleans up on dispose', () => {
+    const subscription = viewModel.data$.subscribe();
+    
+    viewModel.dispose();
+
+    // After disposal, observables should be completed
+    expect(subscription.closed).toBe(true);
+  });
+});
+```
+
+Notice that these tests don't involve any UI framework. We're testing pure business logic—the ViewModel's ability to manage state, expose observables, and coordinate with the Model.
+
+This is the power of separation of concerns. Your presentation logic is testable without rendering a single component.
+
+## 5.9 Preparing for Reactive State Patterns
+
+In this chapter, we've focused on how ViewModels use RxJS observables to manage reactive state. But RxJS is just one approach to reactive state management. In Chapter 13, we'll explore alternative patterns:
+
+- **Signals**: Lightweight reactive primitives (like those in Solid.js or Angular's new signals)
+- **Observable Stores**: Minimal state management libraries (like Zustand or Nanostores)
+- **Native Reactivity**: Using JavaScript Proxies for reactive state
+
+The ViewModel pattern we've established here is **agnostic to the reactive mechanism**. You could implement ViewModels using signals, stores, or even plain callbacks. The key principles remain the same:
+
+- ViewModels expose state that Views can observe
+- ViewModels provide methods/commands for user actions
+- ViewModels manage lifecycle and cleanup
+- ViewModels are framework-agnostic
+
+RxJS is a powerful choice for complex applications with lots of derived state and async operations. But it's not the only choice, and understanding the alternatives will make you a better architect.
+
+## 5.10 Key Takeaways
+
+Let's consolidate what we've learned about ViewModels and reactive state:
+
+**ViewModel Responsibilities**:
+- Presentation logic, not domain logic
+- State exposure through observables
+- User action coordination
+- Lifecycle management
+
+**BaseViewModel Pattern**:
+- Connects to a Model and exposes its observables
+- Uses `takeUntil` pattern for automatic cleanup
+- Manages subscriptions and commands
+- Provides `dispose()` for resource cleanup
+
+**RestfulApiViewModel Pattern**:
+- Extends BaseViewModel with CRUD operations
+- Exposes Commands for operations
+- Manages selection state for list views
+- Computes derived state with RxJS operators
+
+**Reactive State with RxJS**:
+- Push-based reactivity for automatic updates
+- Composable with operators like `map`, `combineLatest`, `switchMap`
+- BehaviorSubject for internal state, Observable for public API
+- Derived state eliminates synchronization bugs
+
+**Lifecycle Management**:
+- Create → Subscribe → Interact → Dispose
+- Always call `dispose()` when done
+- Framework-specific cleanup in useEffect, ngOnDestroy, onUnmounted
+
+**Testing Benefits**:
+- ViewModels are testable without UI frameworks
+- Test presentation logic in isolation
+- Verify observable behavior and state management
+
+In the next chapter, we'll explore the View layer contract—how Views consume ViewModels and what responsibilities they have in the MVVM architecture. You'll see how the same ViewModel can power completely different UI implementations across React, Vue, Angular, and more.
 
 ---
 
-**Key Takeaways**
-
-- Domain events represent past-tense business occurrences, not commands or requests
-- Events enable cross-context communication without tight coupling
-- Design events with appropriate granularity, using domain language, and include essential context
-- Event buses provide infrastructure for publish-subscribe patterns with error isolation
-- Event-driven ViewModels coordinate UI behavior without direct dependencies
-- Plan for event evolution through versioning and backward compatibility
-- Event sourcing treats events as the source of truth, enabling time-travel and multiple projections
-- Start simple with domain events; add complexity like event sourcing only when justified
+**Next Steps**: Now that you understand ViewModels and reactive state, you're ready to see how Views consume them. Chapter 6 will show you the "dumb view" philosophy and how to build Views that are pure presentation layers with no business logic.

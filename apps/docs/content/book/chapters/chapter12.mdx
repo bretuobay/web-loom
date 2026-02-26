@@ -1,1268 +1,893 @@
 ---
-id: 'angular-implementation-native-rxjs-integration'
-title: Angular Implementation – Native RxJS Integration
-section: View Layer Implementations
+id: "vanilla-javascript-implementation"
+title: Vanilla JavaScript Implementation
+section: Framework Implementations
 ---
 
-# Angular Implementation – Native RxJS Integration
+# Chapter 12: Vanilla JavaScript Implementation
 
-# Chapter 13: Angular Implementation – Native RxJS Integration
+In the previous four chapters, we explored MVVM implementations in React, Vue, Angular, and Lit—each demonstrating how ViewModels integrate with different frameworks and libraries. React used custom hooks, Vue used composables, Angular leveraged dependency injection with the async pipe, and Lit used reactive controllers with web components. Now we arrive at the ultimate proof of framework independence: **Vanilla JavaScript with no framework at all**.
 
-Angular sits in a unique position among modern frameworks: it's the only one that treats reactive programming as a first-class citizen from day one. While React and Vue require us to bring RxJS into the picture, Angular was built with it—observables aren't an afterthought; they're foundational to the framework's architecture.
+This chapter demonstrates that MVVM architecture doesn't require any framework. The same ViewModels we've been using throughout this book—`GreenHouseViewModel`, `SensorViewModel`, `SensorReadingViewModel`, and `ThresholdAlertViewModel`—work perfectly with plain JavaScript, direct DOM manipulation, and EJS templates. We'll extract real implementations from `apps/mvvm-vanilla/` in the Web Loom monorepo.
 
-This chapter demonstrates how Angular's native RxJS integration makes MVVM implementation remarkably natural. We'll see how the framework's design philosophy aligns perfectly with reactive ViewModels, how Angular's dependency injection simplifies our architecture, and why the `async` pipe is perhaps the most elegant piece of glue code we could ask for between ViewModels and templates.
+By the end of this chapter, you'll understand that MVVM is fundamentally about **separation of concerns**, not about frameworks. The patterns we've learned apply universally, whether you're using the latest framework or writing framework-free code.
 
-We're implementing the same GreenWatch greenhouse monitoring features we built in React and Vue, but this time we'll leverage Angular's reactive DNA to write less code while maintaining—arguably improving—architectural clarity.
+## 12.1 The Vanilla JavaScript Approach
 
-## Angular's Reactive Foundation
+Building MVVM applications without a framework requires us to handle manually what frameworks do automatically:
 
-Before diving into implementation, let's understand what makes Angular different. When the Angular team rebuilt the framework for version 2+, they made a deliberate choice: embrace observables as the primary async primitive. This wasn't a half-measure—it's woven into HTTP calls, router events, form controls, and component lifecycle.
+1. **Direct Observable Subscriptions**: Subscribe to ViewModel observables using RxJS `.subscribe()` directly
+2. **Manual DOM Manipulation**: Update the DOM imperatively when data changes
+3. **Template Rendering**: Use EJS templates to generate HTML from data
+4. **Subscription Cleanup**: Track and unsubscribe from observables to prevent memory leaks
+5. **Event Handling**: Attach event listeners manually to DOM elements
 
-Here's what this means for our MVVM implementation:
+The vanilla JavaScript implementation is more verbose than framework-based approaches, but it's also more explicit. Every step is visible, making it an excellent learning tool for understanding what frameworks abstract away.
+
+Here's the high-level architecture:
+
+```
+ViewModels (framework-agnostic)
+       ↓
+Direct .subscribe() calls
+       ↓
+Update application state
+       ↓
+Re-render EJS templates
+       ↓
+Update DOM with innerHTML
+```
+
+
+## 12.2 Application Bootstrap: Importing ViewModels
+
+The vanilla JavaScript application starts by importing the same ViewModels used in all previous framework implementations. There's no framework-specific setup—just direct imports:
 
 ```typescript
-// Angular's HttpClient returns observables by default
-this.http.get<SensorData[]>('/api/sensors').subscribe((data) => {
-  // No promise conversion needed
-  // No adapter layer required
-  // Just pure RxJS
+// apps/mvvm-vanilla/src/main.ts
+import '@repo/shared/styles';
+
+// View Models - identical to React, Vue, Angular, Lit
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+
+// App modules
+import { initRouter } from './app/router';
+import { subscribeToUpdates } from './app/subscriptions';
+import { renderLayout } from './app/ui';
+
+async function init() {
+  // Subscribe to updates first to react to data changes
+  subscribeToUpdates();
+
+  // Initial layout render (will be updated when navigation data arrives)
+  await renderLayout();
+
+  // Fetch initial data
+  await Promise.all([
+    greenHouseViewModel.fetchCommand.execute(),
+    sensorViewModel.fetchCommand.execute(),
+    sensorReadingViewModel.fetchCommand.execute(),
+    thresholdAlertViewModel.fetchCommand.execute(),
+  ]);
+
+  // Initialize the router
+  initRouter();
+}
+
+init();
+```
+
+This initialization code is remarkably similar to what we saw in React, Vue, Angular, and Lit. The key difference is that we're not wrapping ViewModels in framework-specific providers or services—we're using them directly.
+
+**Key Points**:
+
+1. **Same ViewModels**: The imports are identical to all previous frameworks
+2. **Direct Command Execution**: We call `.execute()` on ViewModel commands without any framework wrapper
+3. **Manual Orchestration**: We explicitly control the initialization sequence (subscribe → render → fetch → route)
+4. **No Framework Boilerplate**: No `createApp()`, `bootstrapApplication()`, or `ReactDOM.render()`
+
+
+## 12.3 Application State Management
+
+Unlike frameworks that provide reactive state management, vanilla JavaScript requires us to manage state explicitly. We create a simple state object to hold the current data:
+
+```typescript
+// apps/mvvm-vanilla/src/app/state.ts
+import type { GreenhouseListData } from '@repo/view-models/GreenHouseViewModel';
+import type { SensorListData } from '@repo/view-models/SensorViewModel';
+import type { SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
+import type { ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
+
+export const state = {
+  greenHouses: [] as GreenhouseListData,
+  sensors: [] as SensorListData,
+  sensorReadings: [] as SensorReadingListData,
+  thresholdAlerts: [] as ThresholdAlertListData,
+  navigation: [] as any[],
+};
+```
+
+This state object serves as a cache of the latest data from ViewModels. When ViewModel observables emit new values, we update this state and trigger re-renders.
+
+**Why We Need This**:
+
+- **Synchronous Access**: EJS templates need synchronous data access, but observables are asynchronous
+- **Routing Integration**: The router needs to access current data when rendering views
+- **Centralized State**: A single source of truth for the current application state
+
+This pattern is similar to what frameworks do internally—they maintain a state tree and re-render when it changes. We're just doing it manually.
+
+
+## 12.4 Direct Observable Subscriptions
+
+The heart of the vanilla JavaScript MVVM implementation is the subscription module. This is where we subscribe directly to ViewModel observables and update the DOM when data changes:
+
+```typescript
+// apps/mvvm-vanilla/src/app/subscriptions.ts
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+import { navigationViewModel } from '@repo/shared/view-models/NavigationViewModel';
+
+import { state } from './state';
+import { renderLayout, renderCard, renderTemplate } from './ui';
+import { renderSensorReadingsChart } from './chart';
+import { attachGreenhouseFormListeners } from './listeners';
+import { router } from './router';
+
+const app = document.getElementById('app')!;
+const DASHBOARD_VIEW = 'dashboard';
+
+function getActiveView() {
+  return (router.currentRoute.meta?.view as string | undefined) ?? router.currentRoute.path;
+}
+
+export function subscribeToUpdates() {
+  navigationViewModel.navigationList.items$.subscribe((navigation) => {
+    console.log('Navigation data received:', navigation);
+    state.navigation = navigation || [];
+    renderLayout();
+  });
+
+  greenHouseViewModel.data$.subscribe((greenHouses) => {
+    state.greenHouses = greenHouses || [];
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
+      renderCard('greenhouse-card-container', '/src/views/GreenhouseCard.ejs', { greenHouses });
+    } else if (view === 'greenhouses') {
+      renderTemplate('/src/views/GreenhouseList.ejs', { greenHouses }).then((html) => {
+        app.innerHTML = html;
+        attachGreenhouseFormListeners();
+      });
+    }
+  });
+
+  sensorViewModel.data$.subscribe((sensors) => {
+    state.sensors = sensors || [];
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
+      renderCard('sensor-card-container', '/src/views/SensorCard.ejs', { sensors });
+    } else if (view === 'sensors') {
+      renderTemplate('/src/views/SensorList.ejs', { sensors }).then((html) => (app.innerHTML = html));
+    }
+  });
+
+  sensorReadingViewModel.data$.subscribe((sensorReadings) => {
+    state.sensorReadings = sensorReadings || [];
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
+      renderCard('sensor-reading-card-container', '/src/views/SensorReadingCard.ejs', { sensorReadings }).then(() => {
+        renderSensorReadingsChart(sensorReadings || []);
+      });
+    } else if (view === 'sensor-readings') {
+      renderTemplate('/src/views/SensorReadingList.ejs', { sensorReadings }).then((html) => (app.innerHTML = html));
+    }
+  });
+
+  thresholdAlertViewModel.data$.subscribe((thresholdAlerts) => {
+    state.thresholdAlerts = thresholdAlerts || [];
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
+      renderCard('threshold-alert-card-container', '/src/views/ThresholdAlertCard.ejs', { thresholdAlerts });
+    } else if (view === 'threshold-alerts') {
+      renderTemplate('/src/views/ThresholdAlertList.ejs', { thresholdAlerts }).then((html) => (app.innerHTML = html));
+    }
+  });
+}
+```
+
+
+Let's break down the subscription pattern:
+
+**1. Direct Observable Subscription**:
+```typescript
+greenHouseViewModel.data$.subscribe((greenHouses) => {
+  state.greenHouses = greenHouses || [];
+  // ... trigger re-render
 });
 ```
+We call `.subscribe()` directly on the ViewModel's `data$` observable. No hooks, no composables, no async pipe—just the raw RxJS subscription. This is the most explicit form of ViewModel consumption we've seen.
 
-Compare this to React, where we needed to bridge between promises and observables, or Vue, where we converted observables to refs. In Angular, our ViewModels speak the same language as the framework—no translation layer required.
+**2. State Update**:
+```typescript
+state.greenHouses = greenHouses || [];
+```
+When new data arrives, we update the application state. This makes the data available synchronously for templates and routing.
 
-**This matters for architecture.** Every abstraction layer we can eliminate is a potential source of bugs we've avoided, a concept developers don't need to learn, and a maintenance burden we don't carry. Angular's reactive foundation means our MVVM implementation is cleaner because the framework isn't fighting us.
+**3. Conditional Rendering**:
+```typescript
+const view = getActiveView();
+if (view === DASHBOARD_VIEW) {
+  renderCard('greenhouse-card-container', '/src/views/GreenhouseCard.ejs', { greenHouses });
+} else if (view === 'greenhouses') {
+  renderTemplate('/src/views/GreenhouseList.ejs', { greenHouses }).then((html) => {
+    app.innerHTML = html;
+    attachGreenhouseFormListeners();
+  });
+}
+```
+We check which view is currently active and render the appropriate template. This is manual routing integration—frameworks handle this automatically, but here we control it explicitly.
 
-## Component Structure and ViewModel Integration
+**4. DOM Update**:
+```typescript
+app.innerHTML = html;
+```
+We update the DOM directly using `innerHTML`. This is the most straightforward (though not the most efficient) way to update the UI. Frameworks use virtual DOM or fine-grained reactivity for better performance, but for many applications, direct DOM manipulation is sufficient.
 
-Angular components are TypeScript classes with decorators—a natural fit for instantiating and managing ViewModels. Unlike React's hooks or Vue's Composition API, we don't need special patterns to maintain ViewModel instances across renders. We just create them in the constructor and they live for the component's lifetime.
+**5. Event Listener Reattachment**:
+```typescript
+attachGreenhouseFormListeners();
+```
+After updating `innerHTML`, we need to reattach event listeners because the old DOM elements were destroyed. This is a key difference from frameworks—they preserve event listeners across re-renders.
 
-Here's our basic structure for the greenhouse overview component:
+
+## 12.5 Template Rendering with EJS
+
+Vanilla JavaScript doesn't have a built-in templating system, so we use EJS (Embedded JavaScript) to generate HTML from data. EJS is a simple templating language that lets us embed JavaScript expressions in HTML:
 
 ```typescript
-import { Component, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { GreenhouseOverviewViewModel } from '../viewmodels/greenhouse-overview.viewmodel';
-import { GreenhouseService } from '../services/greenhouse.service';
+// apps/mvvm-vanilla/src/app/ui.ts
+import ejs from 'ejs';
+import { state } from './state';
 
-@Component({
-  selector: 'app-greenhouse-overview',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './greenhouse-overview.component.html',
-  styleUrls: ['./greenhouse-overview.component.css'],
-})
-export class GreenhouseOverviewComponent implements OnDestroy {
-  // ViewModel is a simple class property
-  readonly viewModel: GreenhouseOverviewViewModel;
+const header = document.getElementById('header')!;
+const footer = document.getElementById('footer')!;
 
-  constructor(private greenhouseService: GreenhouseService) {
-    // Instantiate once in constructor
-    this.viewModel = new GreenhouseOverviewViewModel(this.greenhouseService);
+export async function renderTemplate(templatePath: string, data: object) {
+  const template = await fetch(templatePath).then((res) => res.text());
+  return ejs.render(template, data);
+}
+
+export async function renderCard(containerId: string, templatePath: string, data: object) {
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.innerHTML = await renderTemplate(templatePath, data);
   }
+}
 
-  ngOnDestroy(): void {
-    // Clean up ViewModel subscriptions
-    this.viewModel.dispose();
-  }
+export async function renderLayout() {
+  console.log('Rendering layout with navigation:', state.navigation);
+  header.innerHTML = await renderTemplate('/src/views/layout/Header.ejs', { navigation: state.navigation });
+  footer.innerHTML = await renderTemplate('/src/views/layout/Footer.ejs', {});
 }
 ```
 
-Notice what we're _not_ doing: we're not managing subscriptions in the component, we're not tracking loading states separately, we're not creating effect hooks. The component's job is simple—instantiate the ViewModel, expose it to the template, and clean up when destroyed.
+**Key Functions**:
 
-**This is the power of framework-ViewModel alignment.** Angular's lifecycle hooks (`ngOnDestroy`) map directly to our ViewModel cleanup needs. We're working with the framework's grain, not against it.
+1. **`renderTemplate()`**: Fetches an EJS template file, renders it with data, and returns the HTML string
+2. **`renderCard()`**: Renders a template into a specific DOM container by ID
+3. **`renderLayout()`**: Renders the header and footer with navigation data
 
-## The Async Pipe: Angular's Secret Weapon
+Here's an example EJS template for the sensor card:
 
-If Angular's reactive foundation is the infrastructure, the `async` pipe is the elegant interface sitting on top. This pipe subscribes to observables, extracts their values, marks the component for change detection when values emit, and automatically unsubscribes when the component is destroyed.
-
-That last part deserves emphasis: **automatic unsubscription**. This is exactly what we need for ViewModel observables.
-
-Here's how we expose ViewModel state to the template:
-
-```typescript
-// greenhouse-overview.component.html
-<div class="greenhouse-overview">
-  <!-- Loading state from ViewModel -->
-  <div *ngIf="viewModel.isLoading$ | async" class="loading-spinner">
-    Loading greenhouse data...
-  </div>
-
-  <!-- Error state from ViewModel -->
-  <div *ngIf="viewModel.error$ | async as error" class="error-banner">
-    {{ error }}
-  </div>
-
-  <!-- Greenhouse data from ViewModel -->
-  <div *ngIf="viewModel.greenhouses$ | async as greenhouses"
-       class="greenhouse-grid">
-    <div *ngFor="let greenhouse of greenhouses"
-         class="greenhouse-card">
-      <h3>{{ greenhouse.name }}</h3>
-      <div class="metrics">
-        <div class="metric">
-          <span class="label">Temperature:</span>
-          <span class="value">{{ greenhouse.currentTemperature }}°C</span>
-        </div>
-        <div class="metric">
-          <span class="label">Humidity:</span>
-          <span class="value">{{ greenhouse.currentHumidity }}%</span>
-        </div>
-      </div>
-    </div>
-  </div>
+```html
+<!-- apps/mvvm-vanilla/src/views/SensorCard.ejs -->
+<div class="card">
+  <a href="/sensors" class="card-header-link">
+    <h3 class="card-title">Sensors</h3>
+  </a>
+  <p class="card-content">Total: <%= sensors.length %></p>
 </div>
 ```
 
-Every `| async` in that template represents Angular managing a subscription for us. When the component is destroyed, Angular unsubscribes from all of them automatically. We've eliminated an entire class of memory leaks—the "forgot to unsubscribe" bugs that plague reactive applications.
+The `<%= sensors.length %>` syntax embeds a JavaScript expression in the HTML. EJS evaluates this expression and inserts the result into the final HTML.
 
-**But there's more.** The `async` pipe also triggers Angular's change detection when values emit. We don't need to manually tell Angular to re-render; it happens automatically when our ViewModel state changes. This is reactive programming at its finest—data flows from domain logic through ViewModels to the UI without imperative glue code.
+Here's a more complex template showing a list:
 
-## Handling User Actions
-
-User actions flow from the template back to the ViewModel through simple method calls. Angular's event binding syntax makes this straightforward:
-
-```typescript
-// Template: greenhouse-overview.component.html
-<button (click)="viewModel.refreshData()"
-        [disabled]="viewModel.isLoading$ | async">
-  Refresh Data
-</button>
-
-<div *ngFor="let greenhouse of viewModel.greenhouses$ | async">
-  <button (click)="viewModel.selectGreenhouse(greenhouse.id)">
-    View Details
-  </button>
-</div>
+```html
+<!-- apps/mvvm-vanilla/src/views/SensorList.ejs -->
+<a href="/" class="back-button">
+  <img src="/public/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
+</a>
+<section class="flex-container flex-row">
+  <div class="card" style="max-width: 800px;">
+    <h1 class="card-title">Sensors</h1>
+    <% if (sensors && sensors.length > 0) { %>
+      <ul class="card-content list">
+        <% sensors.forEach(function(sensor) { %>
+          <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
+            <span><%= sensor.greenhouse.name %></span>
+            <span><%= sensor.type %></span>
+            <span><%= sensor.status %></span>
+          </li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p>No sensors found or still loading...</p>
+    <% } %>
+  </div>
+</section>
 ```
 
-Notice we're not creating wrapper methods in the component. The template calls ViewModel methods directly. This is intentional—the component shouldn't mediate between the view and ViewModel; it's just the connection point.
+**EJS Syntax**:
 
-Here's what those ViewModel methods look like:
+- `<%= expression %>`: Outputs the expression value (escaped)
+- `<% statement %>`: Executes JavaScript statement (no output)
+- `<%- expression %>`: Outputs the expression value (unescaped)
 
-```typescript
-// greenhouse-overview.viewmodel.ts
-export class GreenhouseOverviewViewModel {
-  private greenhouseService: GreenhouseService;
-  private refreshSubject = new Subject<void>();
-  private selectedIdSubject = new BehaviorSubject<string | null>(null);
+This template demonstrates conditional rendering (`if`), iteration (`forEach`), and data binding—all using plain JavaScript within the template.
 
-  readonly isLoading$: Observable<boolean>;
-  readonly error$: Observable<string | null>;
-  readonly greenhouses$: Observable<GreenhouseDTO[]>;
-  readonly selectedGreenhouseId$: Observable<string | null>;
 
-  constructor(greenhouseService: GreenhouseService) {
-    this.greenhouseService = greenhouseService;
+## 12.6 Manual Event Handling and ViewModel Commands
 
-    // Refresh trigger converts button clicks to data fetches
-    const dataStream$ = this.refreshSubject.pipe(
-      startWith(undefined), // Initial load
-      switchMap(() =>
-        this.greenhouseService.getGreenhouses().pipe(
-          catchError((err) => {
-            // Error handling at ViewModel level
-            return of({ success: false, error: err.message, data: [] });
-          }),
-        ),
-      ),
-      shareReplay(1),
-    );
+One of the most challenging aspects of vanilla JavaScript MVVM is event handling. Frameworks provide declarative event binding, but in vanilla JavaScript, we must attach event listeners manually and ensure they're reattached after DOM updates.
 
-    // Derive loading state from the stream
-    this.isLoading$ = merge(this.refreshSubject.pipe(map(() => true)), dataStream$.pipe(map(() => false))).pipe(
-      startWith(false),
-      distinctUntilChanged(),
-    );
-
-    // Extract successful data
-    this.greenhouses$ = dataStream$.pipe(
-      filter((result) => result.success),
-      map((result) => result.data),
-      startWith([]),
-    );
-
-    // Extract errors
-    this.error$ = dataStream$.pipe(
-      map((result) => (result.success ? null : result.error)),
-      startWith(null),
-    );
-
-    this.selectedGreenhouseId$ = this.selectedIdSubject.asObservable();
-  }
-
-  refreshData(): void {
-    this.refreshSubject.next();
-  }
-
-  selectGreenhouse(id: string): void {
-    this.selectedIdSubject.next(id);
-  }
-
-  dispose(): void {
-    this.refreshSubject.complete();
-    this.selectedIdSubject.complete();
-  }
-}
-```
-
-This ViewModel handles the complete lifecycle of data fetching: triggering requests, managing loading states, capturing errors, and exposing successful results. The component doesn't need to know any of this—it just calls `refreshData()` when the user clicks the button.
-
-**This is proper separation of concerns.** The ViewModel contains all the complexity of state management and reactive data flow. The component is a thin binding layer that connects template events to ViewModel methods and ViewModel observables to template expressions.
-
-## Dependency Injection: Angular's Architectural Advantage
-
-Angular's dependency injection system is mature, powerful, and built into the framework. This makes ViewModel construction cleaner and testing far easier than in frameworks where DI is an afterthought.
-
-Here's how we wire up our services:
+Here's the greenhouse form event handling implementation:
 
 ```typescript
-// greenhouse.service.ts
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+// apps/mvvm-vanilla/src/app/listeners.ts (excerpt)
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { state } from './state';
 
-@Injectable({
-  providedIn: 'root', // Singleton service
-})
-export class GreenhouseService {
-  private readonly apiUrl = '/api/greenhouses';
+const greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
 
-  constructor(private http: HttpClient) {}
-
-  getGreenhouses(): Observable<GreenhouseDTO[]> {
-    return this.http.get<GreenhouseDTO[]>(this.apiUrl);
+export function attachGreenhouseFormListeners() {
+  const form = document.getElementById('greenhouse-form') as HTMLFormElement | null;
+  if (!form) {
+    return;
   }
 
-  getGreenhouseById(id: string): Observable<GreenhouseDTO> {
-    return this.http.get<GreenhouseDTO>(`${this.apiUrl}/${id}`);
-  }
-}
-```
+  const nameInput = form.querySelector<HTMLInputElement>('#name');
+  const locationInput = form.querySelector<HTMLTextAreaElement>('#location');
+  const sizeSelect = form.querySelector<HTMLSelectElement>('#size');
+  const cropTypeInput = form.querySelector<HTMLInputElement>('#cropType');
 
-The `@Injectable` decorator with `providedIn: 'root'` tells Angular to create a single instance of this service and inject it wherever needed. We don't manage service instantiation manually—Angular's DI container handles it.
-
-Now here's where it gets interesting for ViewModels. We can create ViewModel factories that leverage DI:
-
-```typescript
-// viewmodel.factory.ts
-import { Injectable } from '@angular/core';
-import { GreenhouseService } from '../services/greenhouse.service';
-import { GreenhouseOverviewViewModel } from '../viewmodels/greenhouse-overview.viewmodel';
-
-@Injectable({
-  providedIn: 'root',
-})
-export class ViewModelFactory {
-  constructor(private greenhouseService: GreenhouseService) {}
-
-  createGreenhouseOverview(): GreenhouseOverviewViewModel {
-    return new GreenhouseOverviewViewModel(this.greenhouseService);
-  }
-}
-```
-
-Our component becomes even simpler:
-
-```typescript
-@Component({
-  selector: 'app-greenhouse-overview',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './greenhouse-overview.component.html',
-})
-export class GreenhouseOverviewComponent implements OnDestroy {
-  readonly viewModel: GreenhouseOverviewViewModel;
-
-  constructor(viewModelFactory: ViewModelFactory) {
-    // Factory handles all dependencies
-    this.viewModel = viewModelFactory.createGreenhouseOverview();
+  if (!nameInput || !locationInput || !sizeSelect || !cropTypeInput) {
+    console.error('Greenhouse form inputs are missing');
+    return;
   }
 
-  ngOnDestroy(): void {
-    this.viewModel.dispose();
-  }
-}
-```
+  const resetFormState = () => {
+    form.reset();
+    delete form.dataset.editId;
+  };
 
-**Why does this matter?** Testing. When we write tests, we can provide mock services through Angular's DI system without changing any component code. The ViewModelFactory approach also centralizes ViewModel construction logic, making it easier to add cross-cutting concerns like logging or analytics.
-
-## Real-Time Sensor Data: RxJS Shines
-
-Let's implement the sensor monitoring component where we display real-time temperature and humidity data. This is where Angular's reactive nature and our RxJS-based ViewModels really prove their worth.
-
-First, the service layer:
-
-```typescript
-// sensor.service.ts
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
-import { Observable, timer } from 'rxjs';
-import { switchMap, retry, share } from 'rxjs/operators';
-
-interface SensorReading {
-  sensorId: string;
-  timestamp: Date;
-  temperature: number;
-  humidity: number;
-}
-
-@Injectable({
-  providedIn: 'root',
-})
-export class SensorService {
-  private ws$: WebSocketSubject<SensorReading> | null = null;
-
-  constructor(private http: HttpClient) {}
-
-  getSensorReadings(greenhouseId: string): Observable<SensorReading[]> {
-    return this.http.get<SensorReading[]>(`/api/greenhouses/${greenhouseId}/sensors/readings`);
-  }
-
-  streamSensorData(greenhouseId: string): Observable<SensorReading> {
-    if (!this.ws$) {
-      this.ws$ = webSocket<SensorReading>(`ws://api.example.com/sensors/${greenhouseId}/stream`);
+  const findGreenhouseById = (id?: string) => {
+    if (!id) {
+      return undefined;
     }
+    return state.greenHouses?.find((gh) => (gh.id ?? '').toString() === id);
+  };
 
-    return this.ws$.pipe(
-      retry({
-        delay: (error, retryCount) => {
-          // Exponential backoff for reconnection
-          const delayMs = Math.min(1000 * Math.pow(2, retryCount), 30000);
-          return timer(delayMs);
+  // Form submission - create or update
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const name = formData.get('name') as string;
+    const location = formData.get('location') as string;
+    const size = formData.get('size') as string;
+    const cropType = formData.get('cropType') as string;
+    const data = { name, location, size, cropType };
+    const editingId = form.dataset.editId;
+
+    if (editingId) {
+      // Update existing greenhouse
+      const greenhouse = findGreenhouseById(editingId);
+      greenHouseViewModel.updateCommand.execute({
+        id: editingId,
+        payload: {
+          ...(greenhouse || { id: editingId }),
+          name,
+          location,
+          size,
+          cropType,
         },
-      }),
-      share(), // Share the WebSocket connection
-    );
-  }
-
-  closeStream(): void {
-    if (this.ws$) {
-      this.ws$.complete();
-      this.ws$ = null;
-    }
-  }
-}
-```
-
-Now the ViewModel that combines historical data with real-time updates:
-
-```typescript
-// sensor-monitoring.viewmodel.ts
-import { Observable, combineLatest, merge, BehaviorSubject } from 'rxjs';
-import { map, scan, startWith, shareReplay } from 'rxjs/operators';
-import { SensorService } from '../services/sensor.service';
-
-interface SensorDisplay {
-  sensorId: string;
-  currentTemperature: number;
-  currentHumidity: number;
-  lastUpdated: Date;
-  readings: Array<{ timestamp: Date; temperature: number; humidity: number }>;
-}
-
-export class SensorMonitoringViewModel {
-  private sensorService: SensorService;
-  private greenhouseIdSubject = new BehaviorSubject<string>('');
-
-  readonly sensors$: Observable<SensorDisplay[]>;
-  readonly isConnected$: Observable<boolean>;
-  readonly error$: Observable<string | null>;
-
-  constructor(sensorService: SensorService, initialGreenhouseId: string) {
-    this.sensorService = sensorService;
-    this.greenhouseIdSubject.next(initialGreenhouseId);
-
-    // Fetch historical data when greenhouse ID changes
-    const historicalData$ = this.greenhouseIdSubject.pipe(
-      switchMap((id) =>
-        this.sensorService.getSensorReadings(id).pipe(map((readings) => ({ type: 'initial' as const, readings }))),
-      ),
-    );
-
-    // Stream real-time updates
-    const realtimeData$ = this.greenhouseIdSubject.pipe(
-      switchMap((id) =>
-        this.sensorService.streamSensorData(id).pipe(map((reading) => ({ type: 'update' as const, reading }))),
-      ),
-    );
-
-    // Combine historical and real-time data
-    this.sensors$ = merge(historicalData$, realtimeData$).pipe(
-      scan((sensors, event) => {
-        if (event.type === 'initial') {
-          // Replace all sensors with historical data
-          return this.buildSensorDisplays(event.readings);
-        } else {
-          // Update specific sensor with new reading
-          return this.updateSensorReading(sensors, event.reading);
-        }
-      }, [] as SensorDisplay[]),
-      startWith([]),
-      shareReplay(1),
-    );
-
-    // Track connection state
-    this.isConnected$ = merge(
-      realtimeData$.pipe(map(() => true)),
-      // Add timeout logic here if needed
-    ).pipe(startWith(false));
-
-    this.error$ = merge(
-      historicalData$.pipe(map(() => null)),
-      realtimeData$.pipe(map(() => null)),
-      // Add error handling here
-    ).pipe(startWith(null));
-  }
-
-  private buildSensorDisplays(readings: any[]): SensorDisplay[] {
-    // Group readings by sensor
-    const grouped = readings.reduce(
-      (acc, reading) => {
-        if (!acc[reading.sensorId]) {
-          acc[reading.sensorId] = [];
-        }
-        acc[reading.sensorId].push(reading);
-        return acc;
-      },
-      {} as Record<string, any[]>,
-    );
-
-    // Create display objects
-    return Object.entries(grouped).map(([sensorId, sensorReadings]) => {
-      const latest = sensorReadings[sensorReadings.length - 1];
-      return {
-        sensorId,
-        currentTemperature: latest.temperature,
-        currentHumidity: latest.humidity,
-        lastUpdated: latest.timestamp,
-        readings: sensorReadings.slice(-20), // Keep last 20 readings
-      };
-    });
-  }
-
-  private updateSensorReading(sensors: SensorDisplay[], reading: any): SensorDisplay[] {
-    return sensors.map((sensor) => {
-      if (sensor.sensorId === reading.sensorId) {
-        return {
-          ...sensor,
-          currentTemperature: reading.temperature,
-          currentHumidity: reading.humidity,
-          lastUpdated: reading.timestamp,
-          readings: [...sensor.readings.slice(-19), reading],
-        };
-      }
-      return sensor;
-    });
-  }
-
-  changeGreenhouse(id: string): void {
-    this.greenhouseIdSubject.next(id);
-  }
-
-  dispose(): void {
-    this.sensorService.closeStream();
-    this.greenhouseIdSubject.complete();
-  }
-}
-```
-
-This ViewModel handles several complex concerns: fetching historical data, establishing WebSocket connections, merging historical and real-time data streams, maintaining a rolling window of recent readings, and tracking connection state. None of this complexity leaks into the component.
-
-Here's the component:
-
-```typescript
-// sensor-monitoring.component.ts
-@Component({
-  selector: 'app-sensor-monitoring',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
-    <div class="sensor-monitoring">
-      <div class="connection-status" [class.connected]="viewModel.isConnected$ | async">
-        {{ (viewModel.isConnected$ | async) ? 'Connected' : 'Disconnected' }}
-      </div>
-
-      <div class="sensor-grid">
-        <div *ngFor="let sensor of viewModel.sensors$ | async" class="sensor-card">
-          <h3>Sensor {{ sensor.sensorId }}</h3>
-          <div class="current-readings">
-            <div class="reading">
-              <span class="label">Temperature:</span>
-              <span class="value">{{ sensor.currentTemperature }}°C</span>
-            </div>
-            <div class="reading">
-              <span class="label">Humidity:</span>
-              <span class="value">{{ sensor.currentHumidity }}%</span>
-            </div>
-            <div class="last-updated">Last updated: {{ sensor.lastUpdated | date: 'short' }}</div>
-          </div>
-
-          <!-- Mini chart of recent readings -->
-          <div class="readings-chart">
-            <div
-              *ngFor="let reading of sensor.readings"
-              class="chart-point"
-              [style.height.%]="(reading.temperature / 40) * 100"
-            ></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [
-    `
-      .connection-status {
-        padding: 8px 16px;
-        background: #f44336;
-        color: white;
-      }
-      .connection-status.connected {
-        background: #4caf50;
-      }
-      /* Additional styles... */
-    `,
-  ],
-})
-export class SensorMonitoringComponent implements OnDestroy {
-  readonly viewModel: SensorMonitoringViewModel;
-
-  constructor(sensorService: SensorService, route: ActivatedRoute) {
-    const greenhouseId = route.snapshot.params['id'];
-    this.viewModel = new SensorMonitoringViewModel(sensorService, greenhouseId);
-  }
-
-  ngOnDestroy(): void {
-    this.viewModel.dispose();
-  }
-}
-```
-
-Look at how clean this component is. It instantiates the ViewModel with the greenhouse ID from the route, exposes it to the template, and handles cleanup. The template uses the `async` pipe to subscribe to all the ViewModel's observables. Angular handles all subscription management automatically.
-
-**This is the power of framework-ViewModel alignment.** Angular's reactive foundation means we're not fighting the framework—we're leveraging it. The same RxJS operators we use in ViewModels work identically in services, pipes, and components. There's one mental model for reactive programming throughout the application.
-
-## Form Handling with Reactive Forms
-
-Angular's Reactive Forms module provides another natural integration point with our ViewModels. Unlike template-driven forms, reactive forms are built on observables—form value changes, validation state, and form control status are all observable streams.
-
-Here's a greenhouse configuration form:
-
-```typescript
-// greenhouse-config.viewmodel.ts
-import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
-import { map, distinctUntilChanged, debounceTime } from 'rxjs/operators';
-
-interface GreenhouseConfig {
-  name: string;
-  targetTemperature: number;
-  targetHumidity: number;
-  alertEmail: string;
-}
-
-interface ValidationState {
-  isValid: boolean;
-  errors: Record<string, string>;
-}
-
-export class GreenhouseConfigViewModel {
-  private configSubject = new BehaviorSubject<GreenhouseConfig>({
-    name: '',
-    targetTemperature: 22,
-    targetHumidity: 60,
-    alertEmail: '',
-  });
-
-  private validationSubject = new BehaviorSubject<ValidationState>({
-    isValid: false,
-    errors: {},
-  });
-
-  readonly config$: Observable<GreenhouseConfig>;
-  readonly validation$: Observable<ValidationState>;
-  readonly canSave$: Observable<boolean>;
-
-  constructor() {
-    this.config$ = this.configSubject.asObservable();
-    this.validation$ = this.validationSubject.asObservable();
-
-    // Derive save button state from validation
-    this.canSave$ = this.validation$.pipe(
-      map((v) => v.isValid),
-      distinctUntilChanged(),
-    );
-  }
-
-  updateName(name: string): void {
-    this.updateConfig({ name });
-    this.validate();
-  }
-
-  updateTargetTemperature(temp: number): void {
-    this.updateConfig({ targetTemperature: temp });
-    this.validate();
-  }
-
-  updateTargetHumidity(humidity: number): void {
-    this.updateConfig({ targetHumidity: humidity });
-    this.validate();
-  }
-
-  updateAlertEmail(email: string): void {
-    this.updateConfig({ alertEmail: email });
-    this.validate();
-  }
-
-  private updateConfig(partial: Partial<GreenhouseConfig>): void {
-    const current = this.configSubject.value;
-    this.configSubject.next({ ...current, ...partial });
-  }
-
-  private validate(): void {
-    const config = this.configSubject.value;
-    const errors: Record<string, string> = {};
-
-    if (!config.name || config.name.trim().length < 3) {
-      errors['name'] = 'Name must be at least 3 characters';
-    }
-
-    if (config.targetTemperature < 10 || config.targetTemperature > 40) {
-      errors['temperature'] = 'Temperature must be between 10°C and 40°C';
-    }
-
-    if (config.targetHumidity < 20 || config.targetHumidity > 90) {
-      errors['humidity'] = 'Humidity must be between 20% and 90%';
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (config.alertEmail && !emailRegex.test(config.alertEmail)) {
-      errors['email'] = 'Invalid email address';
-    }
-
-    this.validationSubject.next({
-      isValid: Object.keys(errors).length === 0,
-      errors,
-    });
-  }
-
-  async save(): Promise<void> {
-    if (!this.validationSubject.value.isValid) {
-      throw new Error('Cannot save invalid configuration');
-    }
-
-    const config = this.configSubject.value;
-    // Save logic here
-    console.log('Saving config:', config);
-  }
-
-  dispose(): void {
-    this.configSubject.complete();
-    this.validationSubject.complete();
-  }
-}
-```
-
-Now the component using Angular's ReactiveFormsModule:
-
-```typescript
-// greenhouse-config.component.ts
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
-import { GreenhouseConfigViewModel } from '../viewmodels/greenhouse-config.viewmodel';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-
-@Component({
-  selector: 'app-greenhouse-config',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
-  template: `
-    <form [formGroup]="form" class="config-form">
-      <div class="form-field">
-        <label for="name">Greenhouse Name</label>
-        <input
-          id="name"
-          type="text"
-          formControlName="name"
-          [class.invalid]="(viewModel.validation$ | async)?.errors['name']"
-        />
-        <span class="error" *ngIf="(viewModel.validation$ | async)?.errors['name'] as error">
-          {{ error }}
-        </span>
-      </div>
-
-      <div class="form-field">
-        <label for="temperature">Target Temperature (°C)</label>
-        <input
-          id="temperature"
-          type="number"
-          formControlName="targetTemperature"
-          [class.invalid]="(viewModel.validation$ | async)?.errors['temperature']"
-        />
-        <span class="error" *ngIf="(viewModel.validation$ | async)?.errors['temperature'] as error">
-          {{ error }}
-        </span>
-      </div>
-
-      <div class="form-field">
-        <label for="humidity">Target Humidity (%)</label>
-        <input
-          id="humidity"
-          type="number"
-          formControlName="targetHumidity"
-          [class.invalid]="(viewModel.validation$ | async)?.errors['humidity']"
-        />
-        <span class="error" *ngIf="(viewModel.validation$ | async)?.errors['humidity'] as error">
-          {{ error }}
-        </span>
-      </div>
-
-      <div class="form-field">
-        <label for="email">Alert Email</label>
-        <input
-          id="email"
-          type="email"
-          formControlName="alertEmail"
-          [class.invalid]="(viewModel.validation$ | async)?.errors['email']"
-        />
-        <span class="error" *ngIf="(viewModel.validation$ | async)?.errors['email'] as error">
-          {{ error }}
-        </span>
-      </div>
-
-      <button type="submit" (click)="onSave()" [disabled]="!(viewModel.canSave$ | async)">Save Configuration</button>
-    </form>
-  `,
-})
-export class GreenhouseConfigComponent implements OnInit, OnDestroy {
-  readonly viewModel: GreenhouseConfigViewModel;
-  form: FormGroup;
-  private destroy$ = new Subject<void>();
-
-  constructor(private fb: FormBuilder) {
-    this.viewModel = new GreenhouseConfigViewModel();
-
-    this.form = this.fb.group({
-      name: [''],
-      targetTemperature: [22],
-      targetHumidity: [60],
-      alertEmail: [''],
-    });
-  }
-
-  ngOnInit(): void {
-    // Sync form changes to ViewModel
-    this.form
-      .get('name')
-      ?.valueChanges.pipe(takeUntil(this.destroy$))
-      .subscribe((value) => this.viewModel.updateName(value));
-
-    this.form
-      .get('targetTemperature')
-      ?.valueChanges.pipe(takeUntil(this.destroy$))
-      .subscribe((value) => this.viewModel.updateTargetTemperature(value));
-
-    this.form
-      .get('targetHumidity')
-      ?.valueChanges.pipe(takeUntil(this.destroy$))
-      .subscribe((value) => this.viewModel.updateTargetHumidity(value));
-
-    this.form
-      .get('alertEmail')
-      ?.valueChanges.pipe(takeUntil(this.destroy$))
-      .subscribe((value) => this.viewModel.updateAlertEmail(value));
-
-    // Sync ViewModel config to form (for initial load or external updates)
-    this.viewModel.config$.pipe(takeUntil(this.destroy$)).subscribe((config) => {
-      this.form.patchValue(config, { emitEvent: false });
-    });
-  }
-
-  onSave(): void {
-    this.viewModel.save();
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-    this.viewModel.dispose();
-  }
-}
-```
-
-We're bridging between Angular's reactive forms and our ViewModel by subscribing to form control value changes and calling ViewModel update methods. This keeps validation logic in the ViewModel where it belongs, making it testable without rendering a component.
-
-**The pattern here is bidirectional sync:** form changes flow to the ViewModel, and ViewModel config updates flow back to the form. The `{ emitEvent: false }` option prevents infinite loops when the ViewModel updates the form.
-
-## Change Detection Strategy: Performance Optimization
-
-Angular's change detection can be expensive if we're not careful. By default, Angular checks every component whenever anything changes anywhere. With MVVM and observables, we can optimize this dramatically using `OnPush` change detection.
-
-Here's how:
-
-```typescript
-import { Component, ChangeDetectionStrategy } from '@angular/core';
-
-@Component({
-  selector: 'app-greenhouse-overview',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush, // Key optimization
-  imports: [CommonModule],
-  template: `
-    <div *ngIf="viewModel.greenhouses$ | async as greenhouses">
-      <!-- Template content -->
-    </div>
-  `,
-})
-export class GreenhouseOverviewComponent {
-  // Component implementation
-}
-```
-
-With `OnPush`, Angular only checks this component when:
-
-1. An `@Input()` reference changes
-2. An event originates from the component (clicks, etc.)
-3. An observable used with `async` pipe emits
-
-Since our ViewModels expose all state through observables and the `async` pipe, we get automatic change detection when needed—and only when needed. We don't need to manually trigger change detection; Angular's `async` pipe handles it.
-
-**This is a massive performance win.** In a large application with hundreds of components, `OnPush` can reduce change detection cycles by 90% or more. And because our architecture uses observables everywhere, we get this benefit for free—no refactoring required.
-
-## Testing: Angular's DI Makes It Clean
-
-Angular's dependency injection system makes testing ViewModels straightforward. We can mock services at the DI level without touching component code.
-
-Here's a component test:
-
-```typescript
-// greenhouse-overview.component.spec.ts
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { GreenhouseOverviewComponent } from './greenhouse-overview.component';
-import { GreenhouseService } from '../services/greenhouse.service';
-import { of, throwError } from 'rxjs';
-
-describe('GreenhouseOverviewComponent', () => {
-  let component: GreenhouseOverviewComponent;
-  let fixture: ComponentFixture<GreenhouseOverviewComponent>;
-  let mockService: jasmine.SpyObj<GreenhouseService>;
-
-  beforeEach(async () => {
-    // Create mock service
-    mockService = jasmine.createSpyObj('GreenhouseService', ['getGreenhouses']);
-
-    await TestBed.configureTestingModule({
-      imports: [GreenhouseOverviewComponent],
-      providers: [{ provide: GreenhouseService, useValue: mockService }],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(GreenhouseOverviewComponent);
-    component = fixture.componentInstance;
-  });
-
-  it('displays loading state initially', () => {
-    mockService.getGreenhouses.and.returnValue(of([]));
-
-    fixture.detectChanges(); // Trigger initial change detection
-
-    // Loading should be true before data arrives
-    let loadingState: boolean | null = null;
-    component.viewModel.isLoading$.subscribe((state) => (loadingState = state));
-
-    expect(loadingState).toBe(true);
-  });
-
-  it('displays greenhouses after data loads', (done) => {
-    const mockData = [
-      { id: '1', name: 'Greenhouse A', currentTemperature: 22, currentHumidity: 65 },
-      { id: '2', name: 'Greenhouse B', currentTemperature: 24, currentHumidity: 70 },
-    ];
-
-    mockService.getGreenhouses.and.returnValue(of(mockData));
-
-    fixture.detectChanges();
-
-    // Wait for async operations
-    setTimeout(() => {
-      component.viewModel.greenhouses$.subscribe((greenhouses) => {
-        expect(greenhouses.length).toBe(2);
-        expect(greenhouses[0].name).toBe('Greenhouse A');
-        done();
       });
-    }, 100);
+    } else {
+      // Create new greenhouse
+      const duplicateByName = state.greenHouses?.find((gh) => gh.name === name);
+      if (duplicateByName) {
+        console.error('Greenhouse with this name already exists:', name);
+        return;
+      }
+      greenHouseViewModel.createCommand.execute(data);
+    }
+
+    resetFormState();
   });
 
-  it('displays error when service fails', (done) => {
-    mockService.getGreenhouses.and.returnValue(throwError(() => new Error('Network error')));
-
-    fixture.detectChanges();
-
-    setTimeout(() => {
-      component.viewModel.error$.subscribe((error) => {
-        expect(error).toBeTruthy();
-        expect(error).toContain('error');
-        done();
-      });
-    }, 100);
+  // Delete buttons
+  document.querySelectorAll<HTMLButtonElement>('.button-tiny-delete').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      const id = button.dataset.id;
+      if (!id) {
+        console.error('No ID provided for deletion');
+        return;
+      }
+      greenHouseViewModel.deleteCommand.execute(id);
+      if (form.dataset.editId === id) {
+        resetFormState();
+      }
+    });
   });
 
-  it('calls service when refresh is triggered', () => {
-    mockService.getGreenhouses.and.returnValue(of([]));
+  // Edit buttons
+  document.querySelectorAll<HTMLButtonElement>('.button-tiny-edit').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      const id = button.dataset.id;
+      if (!id) {
+        console.error('No ID provided for editing');
+        return;
+      }
+      const greenhouse = findGreenhouseById(id);
+      if (!greenhouse) {
+        console.error('Greenhouse not found for update:', id);
+        return;
+      }
+      nameInput.value = greenhouse.name;
+      locationInput.value = greenhouse.location;
+      if (greenHouseSizeOptions.includes(greenhouse.size as (typeof greenHouseSizeOptions)[number])) {
+        sizeSelect.value = greenhouse.size;
+      } else {
+        sizeSelect.value = '100sqm';
+      }
+      cropTypeInput.value = greenhouse.cropType || '';
+      form.dataset.editId = id;
+      nameInput.focus();
+    });
+  });
+}
+```
 
-    fixture.detectChanges();
 
-    mockService.getGreenhouses.calls.reset();
+Let's break down the event handling pattern:
 
-    component.viewModel.refreshData();
+**1. DOM Element Selection**:
+```typescript
+const form = document.getElementById('greenhouse-form') as HTMLFormElement | null;
+const nameInput = form.querySelector<HTMLInputElement>('#name');
+```
+We use `getElementById` and `querySelector` to find DOM elements. This is manual—frameworks handle element references automatically through refs or template variables.
 
-    expect(mockService.getGreenhouses).toHaveBeenCalledTimes(1);
+**2. Event Listener Attachment**:
+```typescript
+form.addEventListener('submit', (event) => {
+  event.preventDefault();
+  // ... handle submission
+});
+```
+We attach event listeners using the native `addEventListener` API. This is the same API frameworks use internally, but we're calling it directly.
+
+**3. ViewModel Command Execution**:
+```typescript
+greenHouseViewModel.createCommand.execute(data);
+// or
+greenHouseViewModel.updateCommand.execute({ id: editingId, payload: { ... } });
+```
+This is identical to how we execute commands in React, Vue, Angular, and Lit. The ViewModel API is the same—only the event handling mechanism differs.
+
+**4. Batch Event Listener Attachment**:
+```typescript
+document.querySelectorAll<HTMLButtonElement>('.button-tiny-delete').forEach((button) => {
+  button.addEventListener('click', (event) => {
+    // ... handle delete
   });
 });
 ```
+We use `querySelectorAll` to find all delete buttons and attach listeners to each one. This is necessary because the buttons are dynamically generated from the template.
 
-Notice we're providing mock services through Angular's `TestBed`. The component doesn't know or care that it's receiving test doubles—dependency injection handles it transparently.
+**5. Form State Management**:
+```typescript
+form.dataset.editId = id;  // Store editing ID in data attribute
+delete form.dataset.editId;  // Clear editing state
+```
+We use HTML5 data attributes to track form state (whether we're creating or editing). Frameworks typically use component state for this, but data attributes work well for vanilla JavaScript.
 
-For ViewModel unit tests (testing ViewModels in isolation without Angular), we simply pass mock services directly to the constructor:
+**Key Challenge**: This function must be called every time the greenhouse list is re-rendered because `innerHTML` destroys the old DOM elements and their event listeners. This is the main drawback of vanilla JavaScript MVVM—manual event listener management.
+
+
+## 12.7 Routing Without a Framework
+
+The vanilla JavaScript implementation uses a custom router from `@web-loom/router-core`—a framework-agnostic routing library. This demonstrates that routing, like ViewModels, can be framework-independent:
 
 ```typescript
-// greenhouse-overview.viewmodel.spec.ts
-import { GreenhouseOverviewViewModel } from './greenhouse-overview.viewmodel';
-import { TestScheduler } from 'rxjs/testing';
-import { of, throwError } from 'rxjs';
+// apps/mvvm-vanilla/src/app/router.ts (excerpt)
+import { createRouter, type RouteDefinition, type RouteMatch } from '@web-loom/router-core';
+import { state } from './state';
+import { renderTemplate, renderCard } from './ui';
 
-describe('GreenhouseOverviewViewModel', () => {
-  let testScheduler: TestScheduler;
-  let mockService: any;
+const app = document.getElementById('app')!;
 
-  beforeEach(() => {
-    testScheduler = new TestScheduler((actual, expected) => {
-      expect(actual).toEqual(expected);
-    });
+type ViewKey = 'dashboard' | 'greenhouses' | 'sensors' | 'sensor-readings' | 'threshold-alerts' | 'not-found';
 
-    mockService = {
-      getGreenhouses: jasmine.createSpy('getGreenhouses'),
-    };
-  });
+const routes: RouteDefinition[] = [
+  { path: '/', name: 'home', meta: { view: 'dashboard' as ViewKey } },
+  { path: '/dashboard', name: 'dashboard', meta: { view: 'dashboard' as ViewKey } },
+  { path: '/greenhouses', name: 'greenhouses', meta: { view: 'greenhouses' as ViewKey } },
+  { path: '/sensors', name: 'sensors', meta: { view: 'sensors' as ViewKey } },
+  { path: '/sensor-readings', name: 'sensor-readings', meta: { view: 'sensor-readings' as ViewKey } },
+  { path: '/threshold-alerts', name: 'threshold-alerts', meta: { view: 'threshold-alerts' as ViewKey } },
+  {
+    path: '/:pathMatch(.*)',
+    name: 'not-found',
+    matchStrategy: 'prefix',
+    meta: { view: 'not-found' as ViewKey },
+  },
+];
 
-  it('loads greenhouses on initialization', () => {
-    testScheduler.run(({ expectObservable, cold }) => {
-      const mockData = [{ id: '1', name: 'Test Greenhouse', currentTemperature: 22, currentHumidity: 60 }];
-
-      mockService.getGreenhouses.and.returnValue(of(mockData));
-
-      const viewModel = new GreenhouseOverviewViewModel(mockService);
-
-      expectObservable(viewModel.greenhouses$).toBe('a', {
-        a: mockData,
-      });
-
-      viewModel.dispose();
-    });
-  });
-
-  it('handles service errors gracefully', () => {
-    testScheduler.run(({ expectObservable }) => {
-      mockService.getGreenhouses.and.returnValue(throwError(() => new Error('Service unavailable')));
-
-      const viewModel = new GreenhouseOverviewViewModel(mockService);
-
-      expectObservable(viewModel.error$).toBe('a', {
-        a: 'Service unavailable',
-      });
-
-      viewModel.dispose();
-    });
-  });
-
-  it('emits loading states correctly', () => {
-    testScheduler.run(({ expectObservable, cold }) => {
-      mockService.getGreenhouses.and.returnValue(cold('--a|', { a: [] }));
-
-      const viewModel = new GreenhouseOverviewViewModel(mockService);
-
-      // Should be true initially, then false after data arrives
-      expectObservable(viewModel.isLoading$).toBe('a-b', {
-        a: true,
-        b: false,
-      });
-
-      viewModel.dispose();
-    });
-  });
+export const router = createRouter({
+  mode: 'history',
+  routes,
 });
-```
 
-These tests run in milliseconds because we're using RxJS's `TestScheduler` for marble testing—time is virtual, so we can test async behavior synchronously.
-
-**This is the testing advantage of MVVM.** ViewModels are just TypeScript classes with observable properties. No DOM, no framework runtime, no complex test setup—just pure logic testing.
-
-## Routing and Navigation
-
-Angular's router integrates naturally with our ViewModel approach. Route parameters and query params are observables, making them easy to feed into ViewModels:
-
-```typescript
-// greenhouse-detail.component.ts
-import { Component, OnDestroy } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { GreenhouseDetailViewModel } from '../viewmodels/greenhouse-detail.viewmodel';
-import { GreenhouseService } from '../services/greenhouse.service';
-import { Subject } from 'rxjs';
-import { takeUntil, switchMap } from 'rxjs/operators';
-
-@Component({
-  selector: 'app-greenhouse-detail',
-  standalone: true,
-  template: `
-    <div *ngIf="viewModel.greenhouse$ | async as greenhouse" class="greenhouse-detail">
-      <h1>{{ greenhouse.name }}</h1>
-
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <h3>Temperature</h3>
-          <div class="value">{{ greenhouse.currentTemperature }}°C</div>
-          <div class="target">Target: {{ greenhouse.targetTemperature }}°C</div>
-        </div>
-
-        <div class="metric-card">
-          <h3>Humidity</h3>
-          <div class="value">{{ greenhouse.currentHumidity }}%</div>
-          <div class="target">Target: {{ greenhouse.targetHumidity }}%</div>
-        </div>
-      </div>
-
-      <div class="sensor-list">
-        <h2>Sensors</h2>
-        <div *ngFor="let sensor of greenhouse.sensors" class="sensor-item">{{ sensor.name }} - {{ sensor.status }}</div>
-      </div>
-    </div>
-  `,
-})
-export class GreenhouseDetailComponent implements OnDestroy {
-  readonly viewModel: GreenhouseDetailViewModel;
-  private destroy$ = new Subject<void>();
-
-  constructor(route: ActivatedRoute, greenhouseService: GreenhouseService) {
-    this.viewModel = new GreenhouseDetailViewModel(greenhouseService);
-
-    // Route param changes trigger ViewModel updates
-    route.params
-      .pipe(
-        takeUntil(this.destroy$),
-        switchMap((params) => {
-          this.viewModel.loadGreenhouse(params['id']);
-          return [];
-        }),
-      )
-      .subscribe();
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-    this.viewModel.dispose();
-  }
-}
-```
-
-The component subscribes to route parameter changes and tells the ViewModel to load the appropriate greenhouse. The ViewModel manages all the state and data fetching logic:
-
-```typescript
-// greenhouse-detail.viewmodel.ts
-export class GreenhouseDetailViewModel {
-  private greenhouseService: GreenhouseService;
-  private greenhouseIdSubject = new BehaviorSubject<string>('');
-
-  readonly greenhouse$: Observable<GreenhouseDetailDTO | null>;
-  readonly isLoading$: Observable<boolean>;
-  readonly error$: Observable<string | null>;
-
-  constructor(greenhouseService: GreenhouseService) {
-    this.greenhouseService = greenhouseService;
-
-    const dataStream$ = this.greenhouseIdSubject.pipe(
-      filter((id) => id !== ''),
-      switchMap((id) =>
-        this.greenhouseService
-          .getGreenhouseById(id)
-          .pipe(catchError((err) => of({ success: false, error: err.message, data: null }))),
-      ),
-      shareReplay(1),
-    );
-
-    this.greenhouse$ = dataStream$.pipe(
-      filter((result) => result.success),
-      map((result) => result.data),
-    );
-
-    this.isLoading$ = merge(
-      this.greenhouseIdSubject.pipe(
-        filter((id) => id !== ''),
-        map(() => true),
-      ),
-      dataStream$.pipe(map(() => false)),
-    );
-
-    this.error$ = dataStream$.pipe(map((result) => (result.success ? null : result.error)));
-  }
-
-  loadGreenhouse(id: string): void {
-    this.greenhouseIdSubject.next(id);
-  }
-
-  dispose(): void {
-    this.greenhouseIdSubject.complete();
-  }
-}
-```
-
-**This pattern keeps routing concerns in the component where they belong.** The ViewModel doesn't know about Angular's router—it just exposes a `loadGreenhouse` method that accepts an ID. This keeps the ViewModel framework-agnostic and testable.
-
-## Cross-Context Communication with Services
-
-In previous chapters, we discussed domain events for communication between bounded contexts. Angular's service architecture provides an excellent way to implement this pattern.
-
-Here's an event bus service:
-
-```typescript
-// domain-events.service.ts
-import { Injectable } from '@angular/core';
-import { Subject, Observable } from 'rxjs';
-import { filter, map } from 'rxjs/operators';
-
-export interface DomainEvent {
-  type: string;
-  timestamp: Date;
-  payload: any;
+async function renderDashboard(_route: RouteMatch) {
+  app.innerHTML = await renderTemplate('/src/views/Dashboard.ejs', {});
+  renderCard('greenhouse-card-container', '/src/views/GreenhouseCard.ejs', { greenHouses: state.greenHouses });
+  renderCard('sensor-card-container', '/src/views/SensorCard.ejs', { sensors: state.sensors });
+  renderCard('threshold-alert-card-container', '/src/views/ThresholdAlertCard.ejs', {
+    thresholdAlerts: state.thresholdAlerts,
+  });
+  renderCard('sensor-reading-card-container', '/src/views/SensorReadingCard.ejs', {
+    sensorReadings: state.sensorReadings,
+  });
 }
 
-@Injectable({
-  providedIn: 'root',
-})
-export class DomainEventsService {
-  private eventSubject = new Subject<DomainEvent>();
+async function renderSensorList(_route: RouteMatch) {
+  app.innerHTML = await renderTemplate('/src/views/SensorList.ejs', { sensors: state.sensors });
+}
 
-  publish(event: Omit<DomainEvent, 'timestamp'>): void {
-    this.eventSubject.next({
-      ...event,
-      timestamp: new Date(),
+// ... other view renderers
+
+function setupLinkInterception() {
+  document.body.addEventListener('click', (event) => {
+    if (isModifiedClick(event)) {
+      return;
+    }
+    const target = event.target as HTMLElement;
+    const anchor = target.closest('a');
+    if (!anchor) {
+      return;
+    }
+    const href = anchor.getAttribute('href');
+    if (!href || href.startsWith('#') || anchor.target === '_blank' || anchor.hasAttribute('download')) {
+      return;
+    }
+    const url = new URL(anchor.href, window.location.origin);
+    if (url.origin !== window.location.origin) {
+      return;
+    }
+    event.preventDefault();
+    router.push(`${url.pathname}${url.search}`).catch((error) => {
+      console.error('Navigation failed', error);
     });
-  }
-
-  subscribe<T>(eventType: string): Observable<T> {
-    return this.eventSubject.pipe(
-      filter((event) => event.type === eventType),
-      map((event) => event.payload as T),
-    );
-  }
-}
-```
-
-Now different parts of the application can communicate without tight coupling:
-
-```typescript
-// alert.service.ts - publishes events
-@Injectable({
-  providedIn: 'root',
-})
-export class AlertService {
-  constructor(
-    private http: HttpClient,
-    private events: DomainEventsService,
-  ) {}
-
-  createAlert(alert: AlertDTO): Observable<void> {
-    return this.http.post<void>('/api/alerts', alert).pipe(
-      tap(() => {
-        // Publish domain event when alert is created
-        this.events.publish({
-          type: 'AlertCreated',
-          payload: { alertId: alert.id, severity: alert.severity },
-        });
-      }),
-    );
-  }
+  });
 }
 
-// notification.service.ts - subscribes to events
-@Injectable({
-  providedIn: 'root',
-})
-export class NotificationService {
-  constructor(private events: DomainEventsService) {
-    // Listen for alert events
-    this.events.subscribe<{ alertId: string; severity: string }>('AlertCreated').subscribe((alert) => {
-      this.showNotification(`New ${alert.severity} alert created`);
+export function initRouter() {
+  router.subscribe((route) => {
+    renderRoute(route).catch((error) => {
+      console.error('Failed to render route', error);
     });
-  }
+  });
 
-  private showNotification(message: string): void {
-    // Show toast notification, send push notification, etc.
-  }
+  setupLinkInterception();
+
+  router.onError((error) => {
+    console.error('Router error', error);
+  });
 }
 ```
 
-ViewModels can also subscribe to domain events:
+**Key Routing Patterns**:
+
+1. **Route Definitions**: Similar to Vue Router or React Router—declarative route configuration
+2. **View Renderers**: Each route maps to a render function that updates the DOM
+3. **Link Interception**: We intercept clicks on `<a>` tags and use the router instead of full page reloads
+4. **History API**: The router uses the browser's History API for client-side navigation
+
+This demonstrates that routing, like ViewModels, is a pattern that transcends frameworks. The `@web-loom/router-core` library provides framework-agnostic routing that works with vanilla JavaScript, React, Vue, or any other framework.
+
+
+## 12.8 Comparing All Five Implementations
+
+We've now seen the same GreenWatch application implemented in five different ways: React, Vue, Angular, Lit, and Vanilla JavaScript. Let's compare how each framework consumes ViewModels:
+
+| Aspect | React | Vue | Angular | Lit | Vanilla JS |
+|--------|-------|-----|---------|-----|------------|
+| **ViewModel Import** | Direct import | Direct import | DI with InjectionToken | Direct import | Direct import |
+| **Observable Subscription** | `useEffect` + `.subscribe()` | `watchEffect` + `.subscribe()` | `async` pipe (no manual subscription) | `connectedCallback` + `.subscribe()` | Direct `.subscribe()` |
+| **State Management** | `useState` hook | `ref` / `reactive` | Component properties | `@state` decorator | Plain object |
+| **Re-render Trigger** | `setState` call | Ref assignment | Change detection | Property assignment | Manual `innerHTML` |
+| **Subscription Cleanup** | `useEffect` return function | `watchEffect` return function | `async` pipe auto-cleanup | `disconnectedCallback` | Manual (not shown) |
+| **Template Syntax** | JSX | Vue template | Angular template | Tagged template literal | EJS template |
+| **Event Handling** | JSX event props | `@event` directive | `(event)` binding | `@event` attribute | `addEventListener` |
+| **Command Execution** | `viewModel.command.execute()` | `viewModel.command.execute()` | `viewModel.command.execute()` | `viewModel.command.execute()` | `viewModel.command.execute()` |
+| **Type Safety** | Full TypeScript | Full TypeScript | Full TypeScript | Full TypeScript | Full TypeScript |
+| **Bundle Size Impact** | React runtime | Vue runtime | Angular runtime | Lit runtime (~5KB) | No framework |
+| **Learning Curve** | Hooks concepts | Composition API | DI + RxJS | Web Components | DOM APIs |
+
+**Key Observations**:
+
+1. **ViewModel API is Identical**: Every framework calls `viewModel.command.execute()` the same way. The ViewModel layer is truly framework-agnostic.
+
+2. **Subscription Patterns Vary**: Each framework has its own way to subscribe to observables, but they all achieve the same result—reactive UI updates.
+
+3. **Angular is Most Concise**: The `async` pipe eliminates manual subscription management, making Angular code the most concise for RxJS-based ViewModels.
+
+4. **Vanilla JS is Most Explicit**: Every step is visible—subscriptions, DOM updates, event listeners. This makes it an excellent learning tool.
+
+5. **Lit is Most Standards-Based**: Lit components are actual web components that work anywhere, with minimal runtime overhead.
+
+6. **React and Vue are Most Popular**: Despite requiring more boilerplate than Angular, React and Vue are widely adopted and have large ecosystems.
+
+
+## 12.9 The Dashboard View: Putting It All Together
+
+Let's see how all these pieces come together in the dashboard view. The dashboard displays cards for greenhouses, sensors, sensor readings, and threshold alerts—all powered by ViewModels:
+
+```html
+<!-- apps/mvvm-vanilla/src/views/Dashboard.ejs -->
+<div class="dashboard-container">
+  <h2>Dashboard</h2>
+  <div class="flex-container">
+    <div class="flex-item" id="greenhouse-card-container"></div>
+    <div class="flex-item" id="sensor-card-container"></div>
+    <div class="flex-item" id="threshold-alert-card-container"></div>
+    <div class="flex-item" id="sensor-reading-card-container"></div>
+  </div>
+</div>
+```
+
+This template defines empty containers that will be filled by the subscription handlers. When ViewModel observables emit new data, the subscription code renders the appropriate card template into each container:
 
 ```typescript
-// dashboard.viewmodel.ts
-export class DashboardViewModel {
-  private events: DomainEventsService;
-  readonly recentAlerts$: Observable<AlertSummary[]>;
-
-  constructor(events: DomainEventsService) {
-    this.events = events;
-
-    // Update dashboard when alerts are created
-    this.recentAlerts$ = this.events.subscribe<{ alertId: string }>('AlertCreated').pipe(
-      scan((alerts, newAlert) => {
-        return [newAlert, ...alerts].slice(0, 5); // Keep last 5
-      }, [] as any[]),
-      startWith([]),
-    );
+// From subscriptions.ts
+greenHouseViewModel.data$.subscribe((greenHouses) => {
+  state.greenHouses = greenHouses || [];
+  const view = getActiveView();
+  if (view === DASHBOARD_VIEW) {
+    renderCard('greenhouse-card-container', '/src/views/GreenhouseCard.ejs', { greenHouses });
   }
-}
+});
+
+sensorViewModel.data$.subscribe((sensors) => {
+  state.sensors = sensors || [];
+  const view = getActiveView();
+  if (view === DASHBOARD_VIEW) {
+    renderCard('sensor-card-container', '/src/views/SensorCard.ejs', { sensors });
+  }
+});
+
+// ... similar subscriptions for sensor readings and threshold alerts
 ```
 
-**This event-driven architecture decouples bounded contexts.** The alert service doesn't need to know about notifications or dashboards—it just publishes events. Other parts of the system subscribe to events they care about. This is Domain-Driven Design applied to frontend architecture.
+Each card template is simple and focused:
 
-## Standalone Components and Modern Angular
+```html
+<!-- apps/mvvm-vanilla/src/views/GreenhouseCard.ejs -->
+<div class="card">
+  <a href="/greenhouses" class="card-header-link">
+    <h3 class="card-title">Greenhouses</h3>
+  </a>
+  <p class="card-content">Total: <%= greenHouses.length %></p>
+</div>
+```
 
-Angular's standalone components (introduced in Angular 14+) eliminate the need for NgModules in most cases, simplifying our architecture. All the examples in this chapter use standalone components—notice the `standalone: true` flag in component decorators.
+**The Data Flow**:
 
-This matters for MVVM because it reduces boilerplate. We don't need to declare components in modules, track complex dependency graphs, or deal with circular dependencies. Each component explicitly imports what it needs:
+1. **Initial Load**: `init()` calls `fetchCommand.execute()` on all ViewModels
+2. **ViewModel Fetches Data**: Each ViewModel makes an API request and updates its `data$` observable
+3. **Subscription Fires**: The subscription handler receives the new data
+4. **State Update**: The application state object is updated
+5. **Template Render**: The appropriate EJS template is rendered with the data
+6. **DOM Update**: The rendered HTML is inserted into the container using `innerHTML`
+7. **User Sees Update**: The dashboard displays the latest data
+
+This is the same data flow we saw in React, Vue, Angular, and Lit—just implemented manually instead of through framework abstractions.
+
+
+## 12.10 Advantages and Tradeoffs of Vanilla JavaScript MVVM
+
+Now that we've seen a complete vanilla JavaScript MVVM implementation, let's discuss when this approach makes sense and when it doesn't.
+
+### Advantages
+
+**1. Zero Framework Dependencies**
+- No framework runtime to download or execute
+- Smaller bundle sizes for simple applications
+- No framework version upgrades or breaking changes
+- Complete control over the codebase
+
+**2. Maximum Transparency**
+- Every step is explicit and visible
+- No "magic" or hidden abstractions
+- Excellent for learning and understanding MVVM
+- Easy to debug because there's no framework layer
+
+**3. Standards-Based**
+- Uses native browser APIs (DOM, History API, etc.)
+- No proprietary abstractions to learn
+- Code is portable and long-lived
+- Works in any JavaScript environment
+
+**4. Framework Independence Proof**
+- Demonstrates that MVVM doesn't require frameworks
+- ViewModels work identically without any framework
+- Validates the framework-agnostic architecture
+
+### Tradeoffs
+
+**1. More Boilerplate**
+- Manual subscription management
+- Manual event listener attachment
+- Manual DOM updates
+- More code to write and maintain
+
+**2. Performance Considerations**
+- `innerHTML` destroys and recreates DOM elements
+- No virtual DOM or fine-grained reactivity
+- Event listeners must be reattached after updates
+- Less efficient than framework-optimized rendering
+
+**3. Developer Experience**
+- No hot module replacement (HMR) in development
+- No component dev tools
+- More manual testing required
+- Steeper learning curve for DOM APIs
+
+**4. Scalability Challenges**
+- Manual event listener management becomes complex at scale
+- No built-in state management patterns
+- Routing integration is manual
+- Testing requires more setup
+
+### When to Use Vanilla JavaScript MVVM
+
+**Good Fit**:
+- Small to medium applications with simple UI requirements
+- Projects where bundle size is critical (embedded systems, low-bandwidth environments)
+- Learning projects to understand MVVM fundamentals
+- Applications that need to run in constrained environments
+- Projects with long-term maintenance requirements (no framework upgrades)
+
+**Not Recommended**:
+- Large, complex applications with many interactive components
+- Projects requiring advanced UI patterns (drag-and-drop, virtualization, etc.)
+- Teams unfamiliar with DOM APIs and manual memory management
+- Applications requiring rich developer tooling and debugging
+
+
+## 12.11 Memory Management and Subscription Cleanup
+
+One critical aspect we haven't fully addressed is subscription cleanup. In the current implementation, subscriptions are created in `subscribeToUpdates()` but never unsubscribed. For a long-running application, this could lead to memory leaks.
+
+Here's how to properly manage subscriptions in vanilla JavaScript:
 
 ```typescript
-@Component({
-  selector: 'app-greenhouse-list',
-  standalone: true,
-  imports: [
-    CommonModule, // *ngIf, *ngFor, etc.
-    RouterModule, // Router directives
-    GreenhouseCardComponent, // Child component
-  ],
-  template: `...`,
-})
-export class GreenhouseListComponent {
-  // Component implementation
+// Improved subscription management
+import { Subscription } from 'rxjs';
+
+const subscriptions: Subscription[] = [];
+
+export function subscribeToUpdates() {
+  // Store each subscription
+  subscriptions.push(
+    greenHouseViewModel.data$.subscribe((greenHouses) => {
+      state.greenHouses = greenHouses || [];
+      // ... render logic
+    })
+  );
+
+  subscriptions.push(
+    sensorViewModel.data$.subscribe((sensors) => {
+      state.sensors = sensors || [];
+      // ... render logic
+    })
+  );
+
+  // ... other subscriptions
 }
+
+export function cleanup() {
+  // Unsubscribe from all subscriptions
+  subscriptions.forEach(sub => sub.unsubscribe());
+  subscriptions.length = 0;
+}
+
+// Call cleanup when the application is destroyed
+window.addEventListener('beforeunload', cleanup);
 ```
 
-This aligns with our modular architecture philosophy: explicit dependencies, clear boundaries, and minimal coupling.
+**Key Points**:
 
-## Key Takeaways
+1. **Store Subscriptions**: Keep references to all subscriptions in an array
+2. **Cleanup Function**: Provide a function to unsubscribe from all subscriptions
+3. **Lifecycle Hook**: Call cleanup when the application is destroyed (e.g., `beforeunload` event)
 
-Angular's native RxJS integration makes MVVM implementation remarkably clean. The framework's reactive foundation means we're not fighting against it—we're leveraging its strengths.
+In frameworks, this cleanup happens automatically:
+- React: `useEffect` cleanup function
+- Vue: `watchEffect` cleanup function
+- Angular: `async` pipe auto-unsubscribes
+- Lit: `disconnectedCallback`
 
-**The `async` pipe eliminates entire classes of bugs.** Automatic subscription management means we can't forget to unsubscribe, can't create memory leaks, and get change detection for free when observables emit.
+In vanilla JavaScript, we must manage it manually. This is another example of the tradeoff between explicitness and convenience.
 
-**Dependency injection makes testing straightforward.** We provide mock services through Angular's DI system, and components remain completely unaware they're being tested with doubles.
 
-**OnPush change detection provides massive performance wins** without any extra work. Because our ViewModels expose state through observables, we get optimal change detection automatically.
+## 12.12 Key Takeaways
 
-**Angular's reactive forms, router, and HTTP client all speak RxJS natively.** There's no impedance mismatch between framework features and our ViewModel architecture—everything composes naturally.
+After exploring vanilla JavaScript MVVM implementation, here are the essential lessons:
 
-In the next chapter, we'll shift gears from individual framework implementations to look at the complete GreenWatch case study—a production-ready application that demonstrates how all these architectural principles come together across multiple bounded contexts, complex domain logic, and real-world requirements.
+**1. MVVM is Framework-Independent**
+The same ViewModels work identically in React, Vue, Angular, Lit, and vanilla JavaScript. MVVM is an architectural pattern, not a framework feature. This chapter proves that ViewModels are truly framework-agnostic.
 
-But first, we've proven the core thesis: the same ViewModel logic works identically across React, Vue, and Angular. We've written the business logic once and connected it to three different frameworks through thin integration layers. That's the promise of framework-agnostic architecture—and we've delivered on it.
+**2. Frameworks Provide Convenience, Not Capability**
+Everything frameworks do—reactive rendering, event handling, routing—can be done manually with vanilla JavaScript. Frameworks automate these tasks and provide better developer experience, but they're not strictly necessary.
+
+**3. Direct Observable Subscriptions are Simple**
+Subscribing to ViewModel observables with `.subscribe()` is straightforward. Frameworks add abstractions (hooks, composables, async pipe) for convenience and cleanup management, but the core pattern is simple.
+
+**4. Manual DOM Manipulation is Explicit**
+Using `innerHTML` and `addEventListener` makes every step visible. This explicitness is valuable for learning, but it becomes tedious at scale. Frameworks abstract this away with declarative templates and automatic event binding.
+
+**5. Subscription Cleanup Matters**
+Memory leaks from uncleaned subscriptions are a real concern. Frameworks handle this automatically, but in vanilla JavaScript, you must manage it manually. Always unsubscribe when components are destroyed.
+
+**6. EJS Templates are Functional**
+EJS provides a simple templating solution for vanilla JavaScript. It's not as powerful as JSX or Vue templates, but it's sufficient for many applications and has zero runtime overhead.
+
+**7. Event Listener Management is Challenging**
+Reattaching event listeners after DOM updates is error-prone and tedious. This is one of the biggest advantages of frameworks—they preserve event listeners across re-renders.
+
+**8. Vanilla JavaScript MVVM is a Learning Tool**
+Building MVVM applications without a framework is an excellent way to understand what frameworks do and why they exist. It demystifies the "magic" and reveals the underlying patterns.
+
+**9. Choose the Right Tool**
+Vanilla JavaScript MVVM is viable for small applications or constrained environments, but frameworks provide significant value for larger applications. The choice depends on your requirements, team skills, and constraints.
+
+**10. The ViewModel Layer is the Key**
+Regardless of whether you use React, Vue, Angular, Lit, or vanilla JavaScript, the ViewModel layer remains the same. This is the power of MVVM—business logic is decoupled from the UI implementation.
+
+
+## 12.13 Looking Ahead
+
+We've now completed our tour of framework implementations. We've seen the same GreenWatch application built with:
+
+- **React** (Chapter 8): Custom hooks for ViewModel integration
+- **Vue** (Chapter 9): Composition API with composables
+- **Angular** (Chapter 10): Dependency injection with async pipe
+- **Lit** (Chapter 11): Web components with reactive controllers
+- **Vanilla JavaScript** (Chapter 12): Direct subscriptions with EJS templates
+
+Each implementation demonstrates the same core principle: **ViewModels are framework-agnostic**. The business logic—data fetching, validation, state management, command execution—is identical across all five implementations. Only the View layer changes.
+
+In the next section (Chapters 13-17), we'll explore **Framework-Agnostic Patterns** that support MVVM architecture:
+
+- **Chapter 13: Reactive State Management Patterns** - Signals, observables, and stores
+- **Chapter 14: Event-Driven Communication** - Pub/sub patterns for cross-component communication
+- **Chapter 15: Data Fetching and Caching Strategies** - Async state management
+- **Chapter 16: Headless UI Behaviors** - Separating behavior from presentation
+- **Chapter 17: Composed UI Patterns** - Building complex patterns from atomic behaviors
+
+These patterns, like ViewModels, are framework-agnostic. They can be implemented with any library or built from scratch. We'll use Web Loom libraries as concrete examples, but the patterns themselves are universal and transferable.
+
+The vanilla JavaScript implementation we explored in this chapter demonstrates that these patterns don't require frameworks—they're fundamental architectural concepts that transcend any particular technology.
+
+---
+
+**Next Chapter**: [Chapter 13: Reactive State Management Patterns](./chapter13.mdx) - Learn how signals, observables, and stores enable reactive MVVM architecture, with examples from `signals-core`, `store-core`, and RxJS.

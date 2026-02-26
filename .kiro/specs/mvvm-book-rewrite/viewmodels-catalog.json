@@ -1,0 +1,356 @@
+{
+  "catalogDate": "2024",
+  "sourceDirectory": "packages/view-models/",
+  "viewModels": [
+    {
+      "name": "GreenHouseViewModel",
+      "file": "packages/view-models/src/GreenHouseViewModel.ts",
+      "purpose": "Manages greenhouse state and operations for the GreenWatch monitoring system. Provides reactive access to greenhouse list data with CRUD operations.",
+      "implementation": "Factory-based reactive ViewModel created using createReactiveViewModel",
+      "baseClass": "createReactiveViewModel (factory function)",
+      "exports": [
+        "greenHouseViewModel (instance)",
+        "GreenhouseListData (type)",
+        "GreenhouseData (type)"
+      ],
+      "keyFeatures": [
+        "Reactive state management with RxJS observables",
+        "Zod schema validation (GreenhouseListSchema)",
+        "RESTful API integration via modelConfig",
+        "CRUD operations (fetch, create, update, delete commands)"
+      ],
+      "usedInFrameworks": [
+        "React (apps/mvvm-react)",
+        "React Integrated (apps/mvvm-react-integrated)",
+        "Vue (apps/mvvm-vue)",
+        "Lit (apps/mvvm-lit)",
+        "Vanilla JS (apps/mvvm-vanilla)"
+      ],
+      "frameworkUsageDetails": {
+        "react": {
+          "components": [
+            "Dashboard.tsx",
+            "GreenhouseList.tsx (implied from Vue structure)"
+          ],
+          "pattern": "useObservable hook to subscribe to data$, isLoading$, error$ observables"
+        },
+        "vue": {
+          "components": [
+            "Dashboard.vue",
+            "GreenhouseList.vue",
+            "GreenhouseCard.vue"
+          ],
+          "pattern": "useObservable composable with Composition API"
+        },
+        "lit": {
+          "components": [
+            "dashboard-view.ts",
+            "greenhouse-list.ts",
+            "greenhouse-card.ts"
+          ],
+          "pattern": "Direct subscription to observables in connectedCallback with @state decorators"
+        },
+        "vanilla": {
+          "files": [
+            "main.ts",
+            "app/subscriptions.ts",
+            "app/listeners.ts",
+            "app/state.ts"
+          ],
+          "pattern": "Direct observable subscriptions with manual state management"
+        }
+      }
+    },
+    {
+      "name": "SensorViewModel",
+      "file": "packages/view-models/src/SensorViewModel.ts",
+      "purpose": "Manages individual sensor state and configuration for the GreenWatch monitoring system. Handles sensor CRUD operations and real-time sensor data.",
+      "implementation": "Class-based ViewModel extending RestfulApiViewModel",
+      "baseClass": "RestfulApiViewModel<SensorListData, typeof SensorListSchema>",
+      "exports": [
+        "SensorViewModel (class)",
+        "sensorViewModel (instance)",
+        "SensorListData (type)"
+      ],
+      "keyFeatures": [
+        "Extends RestfulApiViewModel for RESTful operations",
+        "Zod schema validation (SensorListSchema)",
+        "Reactive state with RxJS observables (data$, isLoading$, error$)",
+        "CRUD commands inherited from RestfulApiViewModel"
+      ],
+      "usedInFrameworks": [
+        "React (apps/mvvm-react)",
+        "React Integrated (apps/mvvm-react-integrated)",
+        "Vue (apps/mvvm-vue)",
+        "Angular (apps/mvvm-angular)",
+        "Lit (apps/mvvm-lit)",
+        "Vanilla JS (apps/mvvm-vanilla)"
+      ],
+      "frameworkUsageDetails": {
+        "react": {
+          "components": [
+            "Dashboard.tsx",
+            "SensorList.tsx",
+            "SensorCard.tsx",
+            "CompositeCommandPanel.tsx"
+          ],
+          "pattern": "useObservable hook for reactive state, useEffect for command execution"
+        },
+        "vue": {
+          "components": [
+            "Dashboard.vue",
+            "SensorList.vue",
+            "SensorCard.vue"
+          ],
+          "pattern": "useObservable composable with onMounted lifecycle hook"
+        },
+        "angular": {
+          "components": [
+            "sensor-card.component.ts",
+            "sensor-list.component.ts"
+          ],
+          "pattern": "Dependency injection with InjectionToken, async pipe in templates"
+        },
+        "lit": {
+          "components": [
+            "dashboard-view.ts"
+          ],
+          "pattern": "Direct subscription with combineLatest for loading states"
+        },
+        "vanilla": {
+          "files": [
+            "main.ts",
+            "app/subscriptions.ts",
+            "app/listeners.ts"
+          ],
+          "pattern": "Direct observable subscriptions with state updates"
+        }
+      }
+    },
+    {
+      "name": "SensorReadingViewModel",
+      "file": "packages/view-models/src/SensorReadingViewModel.ts",
+      "purpose": "Manages sensor reading streams and aggregations for the GreenWatch monitoring system. Provides time-series data for environmental measurements.",
+      "implementation": "Factory-based reactive ViewModel created using createReactiveViewModel",
+      "baseClass": "createReactiveViewModel (factory function)",
+      "exports": [
+        "sensorReadingViewModel (instance)",
+        "SensorReadingListData (type)"
+      ],
+      "keyFeatures": [
+        "Reactive state management with RxJS observables",
+        "Zod schema validation (SensorReadingListSchema)",
+        "RESTful API integration via sensorReadingsConfig",
+        "Time-series data handling for sensor measurements"
+      ],
+      "usedInFrameworks": [
+        "React (apps/mvvm-react)",
+        "React Integrated (apps/mvvm-react-integrated)",
+        "React Native (apps/mvvm-react-native)",
+        "Vue (apps/mvvm-vue)",
+        "Lit (apps/mvvm-lit)",
+        "Vanilla JS (apps/mvvm-vanilla)"
+      ],
+      "frameworkUsageDetails": {
+        "react": {
+          "components": [
+            "Dashboard.tsx",
+            "SensorReadingList.tsx",
+            "SensorReadingCard.tsx",
+            "CompositeCommandPanel.tsx"
+          ],
+          "pattern": "useObservable hook with Chart.js integration for data visualization"
+        },
+        "reactNative": {
+          "components": [
+            "Dashboard.tsx",
+            "SensorReadingCard.tsx"
+          ],
+          "pattern": "useObservable hook adapted for React Native"
+        },
+        "vue": {
+          "components": [
+            "Dashboard.vue",
+            "SensorReadingList.vue (implied)"
+          ],
+          "pattern": "useObservable composable with computed properties"
+        },
+        "lit": {
+          "components": [
+            "dashboard-view.ts",
+            "sensor-reading-list.ts",
+            "sensor-reading-card.ts",
+            "sensor-reading-chart.ts"
+          ],
+          "pattern": "Direct subscription with Chart.js integration"
+        },
+        "vanilla": {
+          "files": [
+            "main.ts",
+            "app/subscriptions.ts",
+            "app/listeners.ts",
+            "app/state.ts"
+          ],
+          "pattern": "Direct observable subscriptions with manual rendering"
+        }
+      }
+    },
+    {
+      "name": "ThresholdAlertViewModel",
+      "file": "packages/view-models/src/ThresholdAlertViewModel.ts",
+      "purpose": "Manages alert configuration and notifications for the GreenWatch monitoring system. Handles threshold-based alerts when sensor readings exceed configured limits.",
+      "implementation": "Class-based ViewModel extending RestfulApiViewModel",
+      "baseClass": "RestfulApiViewModel<ThresholdAlertListData, typeof ThresholdAlertListSchema>",
+      "exports": [
+        "ThresholdAlertViewModel (class)",
+        "thresholdAlertViewModel (instance)",
+        "ThresholdAlertListData (type)"
+      ],
+      "keyFeatures": [
+        "Extends RestfulApiViewModel for RESTful operations",
+        "Zod schema validation (ThresholdAlertListSchema)",
+        "Reactive state with RxJS observables",
+        "Alert management with CRUD operations"
+      ],
+      "usedInFrameworks": [
+        "React (apps/mvvm-react)",
+        "React Integrated (apps/mvvm-react-integrated)",
+        "React Native (apps/mvvm-react-native)",
+        "Vue (apps/mvvm-vue)",
+        "Angular (apps/mvvm-angular)",
+        "Lit (apps/mvvm-lit)",
+        "Vanilla JS (apps/mvvm-vanilla)"
+      ],
+      "frameworkUsageDetails": {
+        "react": {
+          "components": [
+            "Dashboard.tsx",
+            "ThresholdAlertList.tsx",
+            "ThresholdAlertCard.tsx",
+            "CompositeCommandPanel.tsx"
+          ],
+          "pattern": "useObservable hook for reactive state management"
+        },
+        "reactNative": {
+          "components": [
+            "Dashboard.tsx",
+            "ThresholdAlertList.tsx"
+          ],
+          "pattern": "useObservable hook with FlatList rendering"
+        },
+        "vue": {
+          "components": [
+            "Dashboard.vue",
+            "ThresholdAlertList.vue",
+            "ThresholdAlertCard.vue"
+          ],
+          "pattern": "useObservable composable with computed loading states"
+        },
+        "angular": {
+          "components": [
+            "threshold-alert-card.component.ts",
+            "threshold-alert-list.component.ts"
+          ],
+          "pattern": "Dependency injection with InjectionToken, async pipe"
+        },
+        "lit": {
+          "components": [
+            "dashboard-view.ts"
+          ],
+          "pattern": "Direct subscription with combineLatest"
+        },
+        "vanilla": {
+          "files": [
+            "main.ts",
+            "app/listeners.ts"
+          ],
+          "pattern": "Direct observable subscriptions"
+        }
+      }
+    },
+    {
+      "name": "AuthViewModel",
+      "file": "packages/view-models/src/AuthViewModel.ts",
+      "purpose": "Manages authentication state and operations including sign-in, sign-up, password changes, and session management. Provides reactive access to user authentication status and user data.",
+      "implementation": "Class-based ViewModel extending BaseViewModel",
+      "baseClass": "BaseViewModel<AuthModel>",
+      "exports": [
+        "AuthViewModel (class)",
+        "authViewModel (instance)",
+        "AuthTokenResponseData (type)",
+        "ChangePasswordPayload (type)",
+        "SignInPayload (type)",
+        "SignUpPayload (type)"
+      ],
+      "keyFeatures": [
+        "Extends BaseViewModel for core ViewModel functionality",
+        "Command pattern for authentication operations (signInCommand, signUpCommand, changePasswordCommand, signOutCommand, refreshSessionCommand)",
+        "Reactive authentication state (isAuthenticated$, user$, token$, sessionResult$)",
+        "Token-based authentication with session management",
+        "Proper disposal pattern for cleanup"
+      ],
+      "usedInFrameworks": [
+        "React Integrated (apps/mvvm-react-integrated)"
+      ],
+      "frameworkUsageDetails": {
+        "reactIntegrated": {
+          "components": [
+            "AuthGate.tsx",
+            "AccountPanel.tsx",
+            "Header.tsx",
+            "App.tsx"
+          ],
+          "providers": [
+            "AuthProvider.tsx"
+          ],
+          "pattern": "useObservable hook with React Context for authentication state, command execution for auth operations"
+        }
+      }
+    }
+  ],
+  "summary": {
+    "totalViewModels": 5,
+    "implementationPatterns": {
+      "factoryBased": [
+        "GreenHouseViewModel",
+        "SensorReadingViewModel"
+      ],
+      "classBased": [
+        "SensorViewModel",
+        "ThresholdAlertViewModel",
+        "AuthViewModel"
+      ]
+    },
+    "baseClasses": {
+      "createReactiveViewModel": 2,
+      "RestfulApiViewModel": 2,
+      "BaseViewModel": 1
+    },
+    "frameworkCoverage": {
+      "react": 5,
+      "reactIntegrated": 5,
+      "reactNative": 2,
+      "vue": 4,
+      "angular": 2,
+      "lit": 4,
+      "vanilla": 4
+    },
+    "domainAreas": {
+      "greenWatch": [
+        "GreenHouseViewModel",
+        "SensorViewModel",
+        "SensorReadingViewModel",
+        "ThresholdAlertViewModel"
+      ],
+      "authentication": [
+        "AuthViewModel"
+      ]
+    },
+    "keyPatterns": {
+      "reactiveState": "All ViewModels use RxJS observables (data$, isLoading$, error$)",
+      "validation": "All ViewModels use Zod schemas for data validation",
+      "commands": "All ViewModels expose Command objects for operations (fetchCommand, createCommand, updateCommand, deleteCommand)",
+      "frameworkAgnostic": "ViewModels are framework-agnostic and reused across React, Vue, Angular, Lit, and Vanilla JS"
+    }
+  }
+}

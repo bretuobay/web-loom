@@ -1,695 +1,1123 @@
-# Chapter 16: Pragmatic Architecture in the Real World
+---
+id: "headless-ui-behaviors"
+title: Headless UI Behaviors
+section: Framework-Agnostic Patterns
+---
 
-We need to have an honest conversation about architectural theory versus practice.
+# Chapter 16: Headless UI Behaviors
 
-In Chapter 15, we explored Domain-Driven Design principles for frontend applications—establishing bounded contexts, creating ubiquitous language, and organizing code around business capabilities rather than technical concerns. We presented GreenWatch's architecture with clean separations between Device Management, Environmental Monitoring, and Alert systems. It was beautiful, theoretically sound architecture.
+Every interactive application needs common UI behaviors: opening and closing dialogs, expanding and collapsing sections, navigating lists with keyboard arrows, managing form state, selecting items. These behaviors follow well-established patterns—dialogs have open/close states, disclosures toggle between expanded and collapsed, lists support single or multi-select with keyboard navigation.
 
-Now let's talk about reality.
+Yet most developers implement these behaviors from scratch in each project, tightly coupled to their chosen framework. A React developer builds a dialog with `useState` and `useEffect`. A Vue developer uses `ref` and `watch`. An Angular developer creates a service with RxJS. Each implementation is framework-specific, non-reusable, and often incomplete (missing keyboard navigation, accessibility features, or edge case handling).
 
-## The Architecture Gap
+This chapter explores **headless UI behaviors**—a pattern that separates UI interaction logic from presentation. We'll examine why this separation matters for MVVM architecture, understand the core concept of headless components, then show how to implement atomic behaviors that work across all frameworks. We'll use `ui-core` from the Web Loom monorepo as a concrete example, but the patterns we discuss are transferable to any headless UI library—or even your own custom implementations.
 
-If you've worked in industry for any length of time, you've likely encountered this pattern: You read about clean architecture, get excited about the principles, attempt to implement them on your team, and then... well, things get complicated.
+The goal isn't to convince you to use a specific library. It's to teach you the pattern so you can recognize it in solutions like Radix UI, Headless UI, or Ark UI, and implement it yourself when needed.
 
-Your team pushes back. The React developers insist on keeping everything in components. The Product Manager questions why you're "over-engineering" a simple feature. The deadline looms, and suddenly that pristine domain model you designed looks like an expensive luxury rather than a practical necessity.
+## The Headless UI Pattern
 
-Here's what actually happens in most codebases:
+Let's start with a fundamental question: What is a UI component, really?
+
+Most developers think of components as inseparable bundles of logic, styling, and markup. A "Button component" includes the click handler, the visual appearance, and the HTML structure. A "Dialog component" includes the open/close logic, the modal overlay styling, and the dialog markup.
+
+But this bundling creates problems:
+
+**Problem 1: Framework lock-in.** A React dialog component only works in React. Moving to Vue means rewriting everything, including the logic.
+
+**Problem 2: Styling constraints.** Pre-styled components force you into their design system. Customizing them often means fighting against their CSS.
+
+**Problem 3: Limited reusability.** The same dialog logic (open/close state, focus management, escape key handling) gets reimplemented in every project.
+
+
+The headless UI pattern solves this by **separating behavior from presentation**:
+
+```
+Traditional Component = Behavior + Styling + Markup
+Headless Component = Behavior only
+```
+
+A headless component provides the logic—state management, keyboard navigation, accessibility attributes—without dictating how it looks or what framework you use. You bring your own styling and markup. The component handles the complex interaction patterns; you control the visual design.
+
+This separation is powerful because **behavior is universal, but presentation is contextual**. Dialog behavior (open/close state, focus trapping, escape key handling) works the same way in every application. But dialog appearance varies wildly—a settings dialog looks different from a confirmation dialog, which looks different from a full-screen modal.
+
+By extracting behavior into framework-agnostic, headless components, you get:
+
+- **Framework independence**: The same behavior works in React, Vue, Angular, or vanilla JS
+- **Complete styling control**: No CSS to override, no design system to fight against
+- **Reusability**: Write the behavior once, use it everywhere
+- **Testability**: Test behavior in isolation without rendering UI
+- **Composability**: Combine atomic behaviors into complex patterns
+
+Let's see this in practice.
+
+## Why Headless UI Matters for MVVM
+
+In MVVM architecture, we already separate concerns into three layers:
+
+- **Model**: Domain logic and data
+- **ViewModel**: Presentation logic
+- **View**: UI rendering
+
+Headless UI behaviors fit naturally into this architecture as **reusable presentation logic**. They sit between ViewModels and Views, providing common UI interaction patterns that ViewModels can leverage without coupling to specific frameworks.
+
+Consider a greenhouse monitoring dashboard with a sensor configuration dialog. The traditional approach mixes everything together:
+
 
 ```typescript
-// What we often see in production
-src / components / EnvironmentalDashboard / EnvironmentalDashboard.tsx; // 800+ lines
-useEnvironmentalData.ts; // Business logic mixed in
-EnvironmentalChart.tsx;
-utils.ts; // Domain logic hiding here
-DeviceManagement / DeviceList.tsx; // Talks directly to API
-DeviceCard.tsx;
-deviceHelpers.ts; // More hidden domain logic
-api / environmentalApi.ts;
-deviceApi.ts;
-hooks / useDevices.ts;
-useEnvironmentalData.ts;
-utils / // The junk drawer
-  calculations.ts;
-formatters.ts;
-```
+// ❌ Traditional approach: dialog logic mixed with component
+function SensorConfigDialog({ sensor, onSave }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [formData, setFormData] = useState(sensor);
 
-We've abandoned DDD not because it's wrong, but because it _feels_ incompatible with how modern frameworks want us to write code. React's component model, Vue's composition API, Angular's services—they all push us toward patterns that don't obviously map to domain-driven design.
+  // Dialog behavior mixed with component logic
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen]);
 
-But here's the thing: **The frontend community hasn't abandoned architectural thinking. We've just renamed it.**
+  const handleSave = () => {
+    onSave(formData);
+    setIsOpen(false);
+  };
 
-## The Hidden Architecture: What We're Actually Doing
-
-Look closely at what the React community has converged on over the past few years. Pattern names like **Bulletproof React**, **Feature-Sliced Design**, and **Domain-Driven Folders** have emerged as best practices. Let's examine what these patterns actually represent.
-
-### Feature-Sliced Design: DDD in Disguise
-
-Consider the Feature-Sliced Design (FSD) architecture that's gained significant traction in the React community:
-
-```typescript
-// Feature-Sliced Design structure
-src/
-  features/
-    environmental-monitoring/
-      model/                    // Domain logic
-        environmentalStore.ts
-        calculations.ts
-      ui/                       // Presentation
-        Dashboard.tsx
-        Chart.tsx
-      api/                      // Infrastructure
-        environmentalApi.ts
-    device-management/
-      model/
-        deviceStore.ts
-      ui/
-        DeviceList.tsx
-      api/
-        deviceApi.ts
-  shared/
-    ui/
-    lib/
-```
-
-What is this? It's bounded contexts with a different vocabulary. Each "feature" is a bounded context with clear ownership boundaries. The `model/` folder contains domain logic. The `ui/` folder is your View layer. The `api/` folder handles infrastructure concerns.
-
-**This is MVVM organized by domain capability.**
-
-### Bulletproof React: The Repository Pattern Reborn
-
-The Bulletproof React pattern advocates for this structure:
-
-```typescript
-// Bulletproof React approach
-src / features / environmental - monitoring / api / getEnvironmentalData.ts;
-updateThresholds.ts;
-components / Dashboard.tsx;
-hooks / useEnvironmentalData.ts;
-stores / environmentalStore.ts;
-types / environmental.types.ts;
-```
-
-Let's be honest about what this really is:
-
-- **`api/`** — These are Repository implementations
-- **`stores/`** — This is your Domain Model with state
-- **`hooks/`** — These are ViewModel factories that connect domain logic to React components
-- **`components/`** — The View layer
-
-**This is also MVVM.** It's the Repository Pattern. It's Dependency Injection. We've just adapted the terminology to feel more "React-native."
-
-## The Realization: We're Reinventing Architecture
-
-The frontend community didn't reject architectural patterns. We rejected the _vocabulary_ that came from backend development. Terms like "ViewModel," "Repository," and "Domain Service" felt foreign in a world of hooks, components, and reactive state.
-
-So we invented new names. We created patterns that _felt_ like React patterns or Vue patterns, but underneath, we were solving the exact same architectural problems that MVVM and DDD have always addressed:
-
-- **How do we separate business logic from presentation?**
-- **How do we organize code around business capabilities?**
-- **How do we make our application testable without spinning up a browser?**
-- **How do we prevent different parts of the application from becoming entangled?**
-
-Consider these conceptual mappings:
-
-| Traditional DDD/MVVM Term | Modern Frontend Pattern        |
-| ------------------------- | ------------------------------ |
-| Bounded Context           | Feature Slice / Feature Module |
-| Domain Model              | Store / State Manager          |
-| Repository                | API Layer / Data Fetching Hook |
-| ViewModel                 | Custom Hook / Composable       |
-| Domain Service            | Business Logic Module          |
-| View                      | Component / Template           |
-
-The names changed. The problems didn't.
-
-## Enforcing Architecture in Practice
-
-Understanding that modern patterns are architectural patterns in disguise is only half the battle. The real challenge is _enforcing_ those boundaries so they don't erode over time.
-
-We've all seen it happen. The project starts with beautiful feature separation. Then someone adds "just one import" from a different feature. Then another. Within months, you have spaghetti code where the device management feature is directly calling functions from the environmental monitoring feature, creating hidden coupling.
-
-**The solution isn't more documentation or stronger code review guidelines. It's tooling.**
-
-### Enforcing Boundaries with ESLint
-
-Modern JavaScript tooling gives us powerful ways to enforce architectural boundaries. Let's implement them.
-
-First, we establish clear rules using ESLint's `no-restricted-imports` plugin:
-
-```javascript
-// .eslintrc.js
-module.exports = {
-  rules: {
-    'no-restricted-imports': [
-      'error',
-      {
-        patterns: [
-          {
-            group: ['@/features/*/model/*', '@/features/*/api/*'],
-            message: "Don't import domain logic from other features directly. Use the public API instead.",
-          },
-          {
-            group: ['@/features/environmental-monitoring/*'],
-            message: 'Environmental Monitoring is a separate bounded context. Use domain events or shared interfaces.',
-            // Allow only public exports
-            except: ['@/features/environmental-monitoring/index.ts'],
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-This enforces a critical architectural principle: **Features can only communicate through their public interfaces.** You cannot reach into another feature's internals.
-
-For more sophisticated boundary enforcement, we can use `eslint-plugin-boundaries`:
-
-```javascript
-// .eslintrc.js with boundaries plugin
-module.exports = {
-  extends: ['plugin:boundaries/recommended'],
-  settings: {
-    'boundaries/elements': [
-      {
-        type: 'feature',
-        pattern: 'src/features/*',
-        mode: 'folder',
-        capture: ['featureName'],
-      },
-      {
-        type: 'shared',
-        pattern: 'src/shared/*',
-        mode: 'folder',
-      },
-    ],
-    'boundaries/rules': [
-      {
-        from: ['feature'],
-        allow: ['shared', ['feature', { featureName: '${from.featureName}' }]],
-        message: 'Features cannot depend on other features directly',
-      },
-    ],
-  },
-};
-```
-
-**This is compiler-enforced architecture.** Your CI pipeline will fail if someone violates bounded context boundaries. No code review needed—the tooling catches it automatically.
-
-### Monorepo Architecture for Strict Boundaries
-
-For larger applications, monorepo structures provide even stronger guarantees. Tools like Nx, Turborepo, or pnpm workspaces let you define explicit dependency graphs:
-
-```json
-// packages/environmental-monitoring/package.json
-{
-  "name": "@greenwatch/environmental-monitoring",
-  "dependencies": {
-    "@greenwatch/shared-types": "workspace:*",
-    "@greenwatch/domain-events": "workspace:*"
-    // Notice: NO dependency on @greenwatch/device-management
-  }
+  return (
+    <>
+      <button onClick={() => setIsOpen(true)}>Configure Sensor</button>
+      {isOpen && (
+        <div className="modal-overlay" onClick={() => setIsOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Configure {sensor.name}</h2>
+            {/* Form fields... */}
+            <button onClick={handleSave}>Save</button>
+            <button onClick={() => setIsOpen(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 ```
 
-With this structure, it's _physically impossible_ for the environmental monitoring context to import code from device management. The TypeScript compiler won't even resolve the imports. Your IDE won't offer autocomplete suggestions. The dependency simply doesn't exist.
+This works, but it's tightly coupled to React, mixes dialog behavior with sensor configuration logic, and will be reimplemented differently in Vue, Angular, and other frameworks.
 
-This is the strongest form of boundary enforcement. If two features need to communicate, they must do so through:
-
-1. **Shared contracts** defined in a separate package (`@greenwatch/shared-types`)
-2. **Domain events** published through an event bus (`@greenwatch/domain-events`)
-3. **Public APIs** explicitly exported from feature packages
-
-Let's see how this works in practice:
+The headless UI approach separates concerns:
 
 ```typescript
-// packages/environmental-monitoring/src/index.ts
-// This is the ONLY file other packages can import from
+// ✅ Headless approach: dialog behavior extracted
+import { createDialogBehavior } from '@web-loom/ui-core';
 
-export type { EnvironmentalData, ThresholdConfig } from './model/types';
+// Dialog behavior is framework-agnostic
+const dialogBehavior = createDialogBehavior({
+  id: 'sensor-config-dialog',
+  onOpen: (sensor) => console.log('Configuring sensor:', sensor),
+  onClose: () => console.log('Dialog closed'),
+});
 
-export { useEnvironmentalData } from './hooks/useEnvironmentalData';
+// React component uses the behavior
+function SensorConfigDialog({ sensor, onSave }) {
+  const [isOpen, setIsOpen] = useState(false);
 
-// Internal implementation details are NOT exported
-// Other features cannot access:
-// - ./model/environmentalStore.ts
-// - ./api/environmentalApi.ts
-// - ./utils/calculations.ts
-```
-
-```typescript
-// packages/device-management/src/SensorCard.tsx
-// ✅ Allowed - using public API
-import { useEnvironmentalData } from '@greenwatch/environmental-monitoring';
-
-// ❌ Not possible - TypeScript compilation error
-import { environmentalStore } from '@greenwatch/environmental-monitoring/model/environmentalStore';
-```
-
-The monorepo structure gives you architectural boundaries that are _enforced by the build system itself._ This is far more reliable than documentation or code review.
-
-## The Object-Oriented Elephant in the Room
-
-We need to address another point of tension in modern frontend development: the community's complicated relationship with Object-Oriented Programming.
-
-React's documentation actively discourages OOP patterns. Vue's Composition API moved away from class-based components. The entire frontend ecosystem has embraced functional programming, immutability, and pure functions. We use TypeScript primarily for its type system, not its classes.
-
-**And yet...**
-
-When we write real applications, we keep reaching for object-oriented patterns because they solve specific problems that functional programming makes awkward:
-
-- **Encapsulation** — Keeping related state and behavior together
-- **Abstraction** — Hiding implementation details behind interfaces
-- **Polymorphism** — Multiple implementations of the same contract
-- **Lifecycle Management** — Initialization and cleanup logic
-
-The frontend community's rejection of OOP isn't based on its technical inadequacy. It's a cultural reaction to years of over-engineered Java-style abstractions, seven-layer dependency injection containers, and interface-everything architectures that made simple things complicated.
-
-**But here's my argument: We threw out the baby with the bathwater.**
-
-### Where OOP Actually Helps
-
-Let me show you where object-oriented thinking clarifies rather than obscures. Consider a repository implementation:
-
-```typescript
-// ❌ Functional approach - okay for simple cases
-export const environmentalApi = {
-  async getData(deviceId: string): Promise<EnvironmentalData> {
-    const response = await fetch(`/api/devices/${deviceId}/environmental`);
-    if (!response.ok) throw new Error('Failed to fetch data');
-    return response.json();
-  },
-
-  async updateThresholds(deviceId: string, thresholds: ThresholdConfig): Promise<void> {
-    await fetch(`/api/devices/${deviceId}/thresholds`, {
-      method: 'PUT',
-      body: JSON.stringify(thresholds),
+  useEffect(() => {
+    return dialogBehavior.subscribe((state) => {
+      setIsOpen(state.isOpen);
     });
-  },
-};
+  }, []);
+
+  const handleSave = (formData) => {
+    onSave(formData);
+    dialogBehavior.actions.close();
+  };
+
+  return (
+    <>
+      <button onClick={() => dialogBehavior.actions.open(sensor)}>
+        Configure Sensor
+      </button>
+      {isOpen && (
+        <SensorConfigForm
+          sensor={sensor}
+          onSave={handleSave}
+          onCancel={() => dialogBehavior.actions.close()}
+        />
+      )}
+    </>
+  );
+}
 ```
 
-This functional approach works until you need:
+Now the dialog behavior is extracted, framework-agnostic, and reusable. The same `dialogBehavior` can be used in Vue, Angular, or vanilla JavaScript with different UI implementations.
 
-- **Error handling strategy** that's consistent across all API calls
-- **Retry logic** with exponential backoff
-- **Authentication token management**
-- **Request cancellation** for cleanup
-- **Caching** to avoid redundant network requests
-- **Testing** with different implementations
 
-Now the functional approach starts to crack:
+## Atomic Behaviors: The Building Blocks
+
+Headless UI libraries typically provide **atomic behaviors**—small, focused components that handle a single interaction pattern. These behaviors are the building blocks that compose into larger, more complex patterns.
+
+Let's explore five fundamental atomic behaviors from `ui-core`, understanding what problems they solve and how they work.
+
+### Dialog Behavior
+
+Dialogs (modals, popups, overlays) are everywhere in modern UIs. The behavior is simple: open, close, toggle. But implementing it correctly requires handling:
+
+- Open/close state management
+- Content passing (what to show in the dialog)
+- Callbacks for lifecycle events
+- Optional dialog identification
+
+Here's the complete dialog behavior from `packages/ui-core/src/behaviors/dialog.ts`:
 
 ```typescript
-// Functional approach getting messy
-export const environmentalApi = {
-  async getData(
-    deviceId: string,
-    options: {
-      retry?: boolean;
-      cache?: boolean;
-      signal?: AbortSignal;
-    } = {},
-  ): Promise<EnvironmentalData> {
-    const cacheKey = `env-${deviceId}`;
-    if (options.cache && cache.has(cacheKey)) {
-      return cache.get(cacheKey);
-    }
+import { createStore, type Store } from '@web-loom/store-core';
 
-    let attempt = 0;
-    const maxAttempts = options.retry ? 3 : 1;
+export interface DialogState {
+  isOpen: boolean;
+  content: any;
+  id: string | null;
+}
 
-    while (attempt < maxAttempts) {
-      try {
-        const token = await getAuthToken();
-        const response = await fetch(`/api/devices/${deviceId}/environmental`, {
-          signal: options.signal,
-          headers: { Authorization: `Bearer ${token}` },
-        });
+export interface DialogActions {
+  open: (content: any) => void;
+  close: () => void;
+  toggle: (content?: any) => void;
+}
 
-        if (!response.ok) throw new Error('Failed to fetch data');
-        const data = await response.json();
+export interface DialogBehaviorOptions {
+  id?: string;
+  onOpen?: (content: any) => void;
+  onClose?: () => void;
+}
 
-        if (options.cache) cache.set(cacheKey, data);
-        return data;
-      } catch (error) {
-        attempt++;
-        if (attempt >= maxAttempts) throw error;
-        await sleep(Math.pow(2, attempt) * 1000);
+export function createDialogBehavior(options?: DialogBehaviorOptions) {
+  const initialState: DialogState = {
+    isOpen: false,
+    content: null,
+    id: options?.id || null,
+  };
+
+  const store = createStore<DialogState, DialogActions>(
+    initialState,
+    (set, get, actions) => ({
+      open: (content: any) => {
+        set((state) => ({
+          ...state,
+          isOpen: true,
+          content,
+        }));
+
+        if (options?.onOpen) {
+          options.onOpen(content);
+        }
+      },
+
+      close: () => {
+        set((state) => ({
+          ...state,
+          isOpen: false,
+          content: null,
+        }));
+
+        if (options?.onClose) {
+          options.onClose();
+        }
+      },
+
+      toggle: (content?: any) => {
+        const currentState = get();
+        if (currentState.isOpen) {
+          actions.close();
+        } else {
+          actions.open(content !== undefined ? content : null);
+        }
+      },
+    }),
+  );
+
+  return {
+    getState: store.getState,
+    subscribe: store.subscribe,
+    actions: store.actions,
+    destroy: store.destroy,
+  };
+}
+```
+
+
+Notice the pattern:
+
+1. **State interface**: Defines what data the behavior manages (`isOpen`, `content`, `id`)
+2. **Actions interface**: Defines what operations are available (`open`, `close`, `toggle`)
+3. **Options interface**: Defines configuration and callbacks
+4. **Factory function**: Creates an instance with the specified options
+5. **Store-based implementation**: Uses `store-core` for reactive state management
+
+This pattern repeats across all atomic behaviors. The behavior is just state + actions + subscriptions—no UI, no framework dependencies.
+
+Usage is straightforward:
+
+```typescript
+// Create the behavior
+const dialog = createDialogBehavior({
+  id: 'settings-dialog',
+  onOpen: (content) => console.log('Dialog opened with:', content),
+  onClose: () => console.log('Dialog closed'),
+});
+
+// Open the dialog
+dialog.actions.open({ title: 'Settings', tab: 'general' });
+
+// Subscribe to changes
+const unsubscribe = dialog.subscribe((state) => {
+  console.log('Dialog state:', state);
+  // Update UI based on state.isOpen
+});
+
+// Close the dialog
+dialog.actions.close();
+
+// Clean up
+unsubscribe();
+dialog.destroy();
+```
+
+The behavior is framework-agnostic. You can use it in React with `useEffect`, in Vue with `watchEffect`, in Angular with RxJS, or in vanilla JavaScript with direct subscriptions.
+
+### Disclosure Behavior
+
+Disclosures control expandable/collapsible content—accordions, collapsible sections, dropdown menus. The behavior is similar to dialogs but uses `isExpanded` instead of `isOpen`:
+
+```typescript
+// From packages/ui-core/src/behaviors/disclosure.ts
+export interface DisclosureState {
+  isExpanded: boolean;
+  id: string | null;
+}
+
+export interface DisclosureActions {
+  expand: () => void;
+  collapse: () => void;
+  toggle: () => void;
+}
+
+export function createDisclosureBehavior(options?: {
+  id?: string;
+  initialExpanded?: boolean;
+  onExpand?: () => void;
+  onCollapse?: () => void;
+}) {
+  const initialState: DisclosureState = {
+    isExpanded: options?.initialExpanded ?? false,
+    id: options?.id || null,
+  };
+
+  const store = createStore<DisclosureState, DisclosureActions>(
+    initialState,
+    (set, get) => ({
+      expand: () => {
+        const currentState = get();
+        if (!currentState.isExpanded) {
+          set((state) => ({ ...state, isExpanded: true }));
+          if (options?.onExpand) options.onExpand();
+        }
+      },
+
+      collapse: () => {
+        const currentState = get();
+        if (currentState.isExpanded) {
+          set((state) => ({ ...state, isExpanded: false }));
+          if (options?.onCollapse) options.onCollapse();
+        }
+      },
+
+      toggle: () => {
+        const currentState = get();
+        if (currentState.isExpanded) {
+          set((state) => ({ ...state, isExpanded: false }));
+          if (options?.onCollapse) options.onCollapse();
+        } else {
+          set((state) => ({ ...state, isExpanded: true }));
+          if (options?.onExpand) options.onExpand();
+        }
+      },
+    }),
+  );
+
+  return {
+    getState: store.getState,
+    subscribe: store.subscribe,
+    actions: store.actions,
+    destroy: store.destroy,
+  };
+}
+```
+
+
+The pattern is identical to dialog behavior: state + actions + subscriptions. This consistency makes headless behaviors easy to learn and use.
+
+Example usage for an FAQ accordion:
+
+```typescript
+const faqDisclosure = createDisclosureBehavior({
+  id: 'faq-section-1',
+  initialExpanded: false,
+  onToggle: (isExpanded) => console.log('Section expanded:', isExpanded),
+});
+
+// Toggle the disclosure
+faqDisclosure.actions.toggle();
+console.log(faqDisclosure.getState().isExpanded); // true
+
+// Collapse explicitly
+faqDisclosure.actions.collapse();
+console.log(faqDisclosure.getState().isExpanded); // false
+```
+
+### List Selection Behavior
+
+List selection is more complex than dialogs or disclosures. It needs to handle:
+
+- Single selection (only one item selected at a time)
+- Multi-selection (multiple items selected independently)
+- Range selection (shift-click to select ranges)
+- Keyboard navigation
+- Selection state tracking
+
+Here's the core interface from `packages/ui-core/src/behaviors/list-selection.ts`:
+
+```typescript
+export type SelectionMode = 'single' | 'multi' | 'range';
+
+export interface ListSelectionState {
+  selectedIds: string[];
+  lastSelectedId: string | null;
+  mode: SelectionMode;
+  items: string[];
+}
+
+export interface ListSelectionActions {
+  select: (id: string) => void;
+  deselect: (id: string) => void;
+  toggleSelection: (id: string) => void;
+  selectRange: (startId: string, endId: string) => void;
+  clearSelection: () => void;
+  selectAll: () => void;
+}
+
+export function createListSelection(options?: {
+  items?: string[];
+  initialSelectedIds?: string[];
+  mode?: SelectionMode;
+  onSelectionChange?: (selectedIds: string[]) => void;
+}) {
+  const items = options?.items || [];
+  const initialSelectedIds = options?.initialSelectedIds || [];
+  const mode = options?.mode || 'single';
+
+  const initialState: ListSelectionState = {
+    selectedIds: initialSelectedIds,
+    lastSelectedId: initialSelectedIds.length > 0 
+      ? initialSelectedIds[initialSelectedIds.length - 1] 
+      : null,
+    mode,
+    items,
+  };
+
+  // Implementation handles single/multi/range selection logic...
+  // See packages/ui-core/src/behaviors/list-selection.ts for full code
+}
+```
+
+The behavior handles all the complex selection logic—mode switching, range calculations, state tracking—so you don't have to reimplement it in every list component.
+
+
+Example usage for a sensor list:
+
+```typescript
+// Single selection mode
+const sensorSelection = createListSelection({
+  items: ['sensor-1', 'sensor-2', 'sensor-3'],
+  mode: 'single',
+  onSelectionChange: (selectedIds) => {
+    console.log('Selected sensors:', selectedIds);
+  },
+});
+
+sensorSelection.actions.select('sensor-1');
+console.log(sensorSelection.getState().selectedIds); // ['sensor-1']
+
+sensorSelection.actions.select('sensor-2');
+console.log(sensorSelection.getState().selectedIds); // ['sensor-2'] (sensor-1 deselected)
+
+// Multi-selection mode
+const multiSelection = createListSelection({
+  items: ['sensor-1', 'sensor-2', 'sensor-3'],
+  mode: 'multi',
+});
+
+multiSelection.actions.select('sensor-1');
+multiSelection.actions.select('sensor-2');
+console.log(multiSelection.getState().selectedIds); // ['sensor-1', 'sensor-2']
+
+// Range selection mode
+const rangeSelection = createListSelection({
+  items: ['sensor-1', 'sensor-2', 'sensor-3', 'sensor-4'],
+  mode: 'range',
+});
+
+rangeSelection.actions.selectRange('sensor-1', 'sensor-3');
+console.log(rangeSelection.getState().selectedIds); // ['sensor-1', 'sensor-2', 'sensor-3']
+```
+
+### Roving Focus Behavior
+
+Roving focus implements keyboard navigation for composite widgets—toolbars, menus, tab lists, grids. It's the pattern where arrow keys move focus between items, Home/End jump to first/last, and only one item is tabbable at a time.
+
+From `packages/ui-core/src/behaviors/roving-focus.ts`:
+
+```typescript
+export interface RovingFocusState {
+  currentIndex: number;
+  previousIndex: number;
+  items: string[];
+  orientation: 'horizontal' | 'vertical';
+  wrap: boolean;
+}
+
+export interface RovingFocusActions {
+  moveNext: () => void;
+  movePrevious: () => void;
+  moveFirst: () => void;
+  moveLast: () => void;
+  moveTo: (index: number) => void;
+  setItems: (items: string[]) => void;
+}
+
+export function createRovingFocus(options?: {
+  items?: string[];
+  initialIndex?: number;
+  orientation?: 'horizontal' | 'vertical';
+  wrap?: boolean;
+  onFocusChange?: (index: number, itemId: string, previousIndex: number) => void;
+}) {
+  // Implementation handles focus movement with wrapping, orientation, etc.
+  // See packages/ui-core/src/behaviors/roving-focus.ts for full code
+}
+```
+
+
+Example usage for a toolbar:
+
+```typescript
+const toolbar = createRovingFocus({
+  items: ['button-1', 'button-2', 'button-3'],
+  orientation: 'horizontal',
+  wrap: true,
+  onFocusChange: (index, itemId) => {
+    console.log(`Focus moved to ${itemId} at index ${index}`);
+    // Update UI to show focus
+  },
+});
+
+// Move focus with arrow keys
+toolbar.actions.moveNext();  // Focus moves to button-2
+toolbar.actions.moveNext();  // Focus moves to button-3
+toolbar.actions.moveNext();  // Focus wraps to button-1
+
+// Jump to first/last
+toolbar.actions.moveFirst(); // Focus moves to button-1
+toolbar.actions.moveLast();  // Focus moves to button-3
+```
+
+### Form Behavior
+
+Forms are complex: they need field-level state, validation (sync and async), dirty tracking, touched tracking, submission handling, and error management. The form behavior handles all of this:
+
+```typescript
+// From packages/ui-core/src/behaviors/form.ts
+export interface FormState<T extends Record<string, any>> {
+  values: T;
+  errors: Partial<Record<keyof T, string>>;
+  manualErrors: Partial<Record<keyof T, string>>;
+  touched: Partial<Record<keyof T, boolean>>;
+  dirty: Partial<Record<keyof T, boolean>>;
+  isValidating: boolean;
+  isValid: boolean;
+  isSubmitting: boolean;
+  submitCount: number;
+}
+
+export interface FormActions<T extends Record<string, any>> {
+  setFieldValue: (field: keyof T, value: any) => void;
+  setFieldTouched: (field: keyof T, touched: boolean) => void;
+  setFieldError: (field: keyof T, error: string | null) => void;
+  validateField: (field: keyof T) => Promise<void>;
+  validateForm: () => Promise<boolean>;
+  resetForm: () => void;
+  submitForm: () => Promise<void>;
+}
+
+export function createFormBehavior<T extends Record<string, any>>(options: {
+  initialValues: T;
+  fields?: Partial<Record<keyof T, FieldConfig>>;
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
+  onSubmit?: (values: T) => void | Promise<void>;
+  onValuesChange?: (values: T) => void;
+}) {
+  // Implementation handles validation, dirty tracking, submission...
+  // See packages/ui-core/src/behaviors/form.ts for full code
+}
+```
+
+Example usage for sensor configuration:
+
+```typescript
+const sensorForm = createFormBehavior({
+  initialValues: {
+    name: '',
+    type: 'temperature',
+    threshold: 0,
+  },
+  fields: {
+    name: {
+      validate: (value) => {
+        if (!value) return 'Name is required';
+        if (value.length < 3) return 'Name must be at least 3 characters';
+        return null;
+      },
+    },
+    threshold: {
+      validate: async (value) => {
+        if (value < 0) return 'Threshold must be positive';
+        // Could check against server constraints
+        return null;
+      },
+    },
+  },
+  onSubmit: async (values) => {
+    console.log('Saving sensor:', values);
+    // Save to server
+  },
+});
+
+// Set field value
+sensorForm.actions.setFieldValue('name', 'Temperature Sensor 1');
+
+// Mark field as touched (triggers validation if validateOnBlur is true)
+sensorForm.actions.setFieldTouched('name', true);
+
+// Set manual error (e.g., from server-side validation)
+sensorForm.actions.setFieldError('name', 'Sensor name already exists');
+
+// Submit form
+await sensorForm.actions.submitForm();
+```
+
+
+## Composing Behaviors into Patterns
+
+Atomic behaviors are powerful on their own, but their real strength emerges when you compose them into larger patterns. A master-detail layout, for example, combines list selection with detail view synchronization. A wizard combines form behaviors with step navigation. A command palette combines list selection with keyboard shortcuts and filtering.
+
+Let's see how behaviors compose using the master-detail pattern from `packages/ui-patterns/src/patterns/master-detail.ts`:
+
+```typescript
+import { createStore } from '@web-loom/store-core';
+import { createEventBus } from '@web-loom/event-bus-core';
+import { createListSelection } from '@web-loom/ui-core';
+
+export function createMasterDetail<T>(options: {
+  items: T[];
+  getId: (item: T) => string;
+  initialDetailView?: string;
+  onSelectionChange?: (selectedItem: T | null) => void;
+}) {
+  const items = options.items || [];
+  const eventBus = createEventBus();
+
+  // Create a map from item ID to item for quick lookup
+  const itemMap = new Map<string, T>();
+  items.forEach((item) => {
+    const id = options.getId(item);
+    itemMap.set(id, item);
+  });
+
+  // Compose list selection behavior
+  const listSelection = createListSelection({
+    items: items.map(options.getId),
+    mode: 'single',
+    onSelectionChange: (selectedIds) => {
+      const selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
+      const selectedItem = selectedId ? itemMap.get(selectedId) || null : null;
+
+      store.actions.updateSelectedItem(selectedItem);
+
+      if (options.onSelectionChange) {
+        options.onSelectionChange(selectedItem);
       }
-    }
+
+      if (selectedItem) {
+        eventBus.emit('item:selected', selectedItem);
+      }
+    },
+  });
+
+  // Create store for master-detail state
+  const store = createStore(
+    {
+      items,
+      selectedItem: null,
+      detailView: options.initialDetailView || 'default',
+    },
+    (set) => ({
+      selectItem: (item: T) => {
+        const id = options.getId(item);
+        listSelection.actions.select(id);
+      },
+
+      clearSelection: () => {
+        listSelection.actions.clearSelection();
+        set((state) => ({ ...state, selectedItem: null }));
+        eventBus.emit('selection:cleared');
+      },
+
+      setDetailView: (view: string) => {
+        set((state) => ({ ...state, detailView: view }));
+      },
+
+      updateSelectedItem: (item: T | null) => {
+        set((state) => ({ ...state, selectedItem: item }));
+      },
+    }),
+  );
+
+  return {
+    getState: store.getState,
+    subscribe: store.subscribe,
+    actions: {
+      selectItem: store.actions.selectItem,
+      clearSelection: store.actions.clearSelection,
+      setDetailView: store.actions.setDetailView,
+    },
+    eventBus,
+    destroy: () => {
+      listSelection.destroy();
+      store.destroy();
+    },
+  };
+}
+```
+
+
+Notice how the pattern composes:
+
+1. **List selection behavior** handles item selection logic
+2. **Store** manages master-detail state (selected item, detail view)
+3. **Event bus** enables event-driven communication
+4. **Synchronization** keeps list selection and master-detail state in sync
+
+The composed pattern is still framework-agnostic and headless. It provides the logic for master-detail layouts without dictating how they render.
+
+Example usage for a sensor list with detail view:
+
+```typescript
+interface Sensor {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+}
+
+const sensors: Sensor[] = [
+  { id: '1', name: 'Temperature Sensor 1', type: 'temperature', location: 'Greenhouse A' },
+  { id: '2', name: 'Humidity Sensor 1', type: 'humidity', location: 'Greenhouse A' },
+  { id: '3', name: 'Soil Moisture Sensor 1', type: 'soil_moisture', location: 'Greenhouse B' },
+];
+
+const masterDetail = createMasterDetail({
+  items: sensors,
+  getId: (sensor) => sensor.id,
+  onSelectionChange: (sensor) => {
+    console.log('Selected sensor:', sensor);
   },
-  // ... and we haven't even handled updateThresholds yet
-};
+});
+
+// Listen to events
+masterDetail.eventBus.on('item:selected', (sensor) => {
+  console.log('Item selected event:', sensor);
+  // Load sensor details, readings, etc.
+});
+
+// Select a sensor
+masterDetail.actions.selectItem(sensors[0]);
+console.log(masterDetail.getState().selectedItem); // sensors[0]
+
+// Switch detail view
+masterDetail.actions.setDetailView('readings');
+
+// Clear selection
+masterDetail.actions.clearSelection();
+console.log(masterDetail.getState().selectedItem); // null
 ```
 
-Compare this to an object-oriented repository:
+This pattern can be used in any framework. In React, you'd subscribe with `useEffect`. In Vue, with `watchEffect`. In Angular, with RxJS. The behavior logic remains the same; only the framework integration changes.
+
+## Framework-Agnostic Benefits
+
+Why go through the effort of extracting behaviors into framework-agnostic, headless components? What do you gain?
+
+### 1. True Reusability
+
+Write the behavior once, use it everywhere. The same dialog behavior works in:
+
+- React with hooks
+- Vue with Composition API
+- Angular with services
+- Lit with reactive controllers
+- Vanilla JavaScript with direct subscriptions
+
+You're not maintaining five different implementations of dialog logic. You're maintaining one, and adapting it to each framework's integration pattern.
+
+### 2. Testability
+
+Headless behaviors are pure logic—no DOM, no rendering, no framework dependencies. This makes them trivial to test:
 
 ```typescript
-// ✅ OOP approach - clear separation of concerns
-interface IEnvironmentalRepository {
-  getData(deviceId: string): Promise<EnvironmentalData>;
-  updateThresholds(deviceId: string, config: ThresholdConfig): Promise<void>;
-}
+import { describe, it, expect } from 'vitest';
+import { createDialogBehavior } from '@web-loom/ui-core';
 
-class EnvironmentalRepository implements IEnvironmentalRepository {
-  constructor(
-    private readonly httpClient: HttpClient,
-    private readonly cache: Cache,
-    private readonly authService: AuthService,
-  ) {}
+describe('Dialog Behavior', () => {
+  it('should open and close', () => {
+    const dialog = createDialogBehavior();
 
-  async getData(deviceId: string): Promise<EnvironmentalData> {
-    const cacheKey = `env-${deviceId}`;
+    expect(dialog.getState().isOpen).toBe(false);
 
-    return this.cache.getOrFetch(cacheKey, async () => {
-      return this.httpClient.get<EnvironmentalData>(`/api/devices/${deviceId}/environmental`);
+    dialog.actions.open({ title: 'Test' });
+    expect(dialog.getState().isOpen).toBe(true);
+    expect(dialog.getState().content).toEqual({ title: 'Test' });
+
+    dialog.actions.close();
+    expect(dialog.getState().isOpen).toBe(false);
+    expect(dialog.getState().content).toBe(null);
+  });
+
+  it('should toggle state', () => {
+    const dialog = createDialogBehavior();
+
+    dialog.actions.toggle({ title: 'Test' });
+    expect(dialog.getState().isOpen).toBe(true);
+
+    dialog.actions.toggle();
+    expect(dialog.getState().isOpen).toBe(false);
+  });
+
+  it('should invoke callbacks', () => {
+    let openCalled = false;
+    let closeCalled = false;
+
+    const dialog = createDialogBehavior({
+      onOpen: () => { openCalled = true; },
+      onClose: () => { closeCalled = true; },
     });
-  }
 
-  async updateThresholds(deviceId: string, config: ThresholdConfig): Promise<void> {
-    await this.httpClient.put(`/api/devices/${deviceId}/thresholds`, config);
+    dialog.actions.open({ title: 'Test' });
+    expect(openCalled).toBe(true);
 
-    // Invalidate cache
-    this.cache.remove(`env-${deviceId}`);
-  }
-}
-```
-
-The OOP version:
-
-- **Encapsulates** cross-cutting concerns (caching, auth, retry) in the `HttpClient` class
-- **Abstracts** implementation details behind an interface
-- **Manages** dependencies explicitly through constructor injection
-- **Simplifies** testing by allowing mock implementations of dependencies
-
-More importantly, the repository's public interface remains clean and focused on domain operations. The complexity is _contained_ rather than _scattered_ across every function.
-
-### Service Layer Objects
-
-The same principle applies to domain services. Consider alert threshold validation logic:
-
-```typescript
-// ❌ Functional approach - okay initially
-export function validateThresholds(config: ThresholdConfig, sensorType: SensorType): ValidationResult {
-  const errors: string[] = [];
-
-  if (config.min >= config.max) {
-    errors.push('Minimum threshold must be less than maximum');
-  }
-
-  const limits = getSensorLimits(sensorType);
-  if (config.min < limits.min || config.max > limits.max) {
-    errors.push(`Thresholds must be within ${limits.min}-${limits.max}`);
-  }
-
-  return { valid: errors.length === 0, errors };
-}
-
-export function validateAlertConfig(config: AlertConfig): ValidationResult {
-  // More validation logic...
-}
-```
-
-This works until you realize you need:
-
-- **Consistent validation behavior** across different threshold types
-- **Historical threshold comparison** to prevent frequent changes
-- **User permission checking** before allowing threshold updates
-- **Different validation rules** for different greenhouse types
-
-The functional approach leads to an explosion of utility functions, each taking multiple parameters, with unclear relationships between them.
-
-An object-oriented service clarifies these relationships:
-
-```typescript
-// ✅ OOP approach - encapsulates validation rules
-class ThresholdValidator {
-  constructor(
-    private readonly sensorLimits: SensorLimitsProvider,
-    private readonly thresholdHistory: ThresholdHistoryRepository,
-    private readonly permissionChecker: PermissionChecker,
-  ) {}
-
-  async validate(config: ThresholdConfig, context: ValidationContext): Promise<ValidationResult> {
-    const errors: string[] = [];
-
-    // Basic range validation
-    errors.push(...this.validateRange(config));
-
-    // Sensor-specific validation
-    errors.push(...(await this.validateSensorLimits(config, context.sensorType)));
-
-    // Historical validation
-    if (await this.hasRecentChanges(context.deviceId)) {
-      errors.push('Thresholds were recently modified. Please wait before updating again.');
-    }
-
-    // Permission validation
-    if (!(await this.permissionChecker.canUpdateThresholds(context.userId))) {
-      errors.push('Insufficient permissions to update thresholds');
-    }
-
-    return { valid: errors.length === 0, errors };
-  }
-
-  private validateRange(config: ThresholdConfig): string[] {
-    if (config.min >= config.max) {
-      return ['Minimum threshold must be less than maximum'];
-    }
-    return [];
-  }
-
-  private async validateSensorLimits(config: ThresholdConfig, sensorType: SensorType): Promise<string[]> {
-    const limits = await this.sensorLimits.getLimits(sensorType);
-    if (config.min < limits.min || config.max > limits.max) {
-      return [`Thresholds must be within ${limits.min}-${limits.max}`];
-    }
-    return [];
-  }
-
-  private async hasRecentChanges(deviceId: string): Promise<boolean> {
-    const history = await this.thresholdHistory.getRecent(deviceId, 24); // 24 hours
-    return history.length > 0;
-  }
-}
-```
-
-The service object:
-
-- **Coordinates** multiple validation concerns
-- **Encapsulates** validation logic with clear method names
-- **Manages** dependencies on other services
-- **Allows** easy testing of individual validation rules
-- **Provides** a single point of change when validation rules evolve
-
-### Utility Classes vs. Utility Functions
-
-Even for pure utilities, object-oriented thinking can help. Consider date formatting:
-
-```typescript
-// Functional utilities
-export function formatTimestamp(timestamp: number): string {
-  return new Date(timestamp).toLocaleString();
-}
-
-export function formatRelativeTime(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-
-  if (diff < 60000) return 'Just now';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
-  return `${Math.floor(diff / 86400000)} days ago`;
-}
-
-export function formatDuration(milliseconds: number): string {
-  const seconds = Math.floor(milliseconds / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-
-  return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-}
-```
-
-These functions work, but they lack cohesion. They're related but disconnected. Testing them requires importing each individually. Configuring them (e.g., for internationalization) means passing additional parameters to every function.
-
-A utility class provides structure:
-
-```typescript
-class TimeFormatter {
-  constructor(private readonly locale: string = 'en-US') {}
-
-  formatTimestamp(timestamp: number): string {
-    return new Date(timestamp).toLocaleString(this.locale);
-  }
-
-  formatRelativeTime(timestamp: number, now: number = Date.now()): string {
-    const diff = now - timestamp;
-
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
-    return `${Math.floor(diff / 86400000)} days ago`;
-  }
-
-  formatDuration(milliseconds: number): string {
-    const seconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-
-    return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-  }
-}
-
-// Usage with dependency injection
-const timeFormatter = new TimeFormatter('en-US');
-```
-
-The class:
-
-- **Groups** related functionality
-- **Encapsulates** configuration (locale)
-- **Simplifies** testing (mock the entire formatter)
-- **Enables** method chaining or composition if needed
-
-### The Balance: OOP Where It Helps, Functional Where It Fits
-
-I'm not advocating for OOP everywhere. React components should remain functional. Domain events work beautifully with immutable data structures. Pure calculation functions don't need classes.
-
-**But when you're building:**
-
-- **Repositories** that manage data access
-- **Services** that coordinate business logic
-- **Validators** that encapsulate complex rules
-- **Utilities** with shared configuration or state
-
-**Consider object-oriented patterns.** They provide structure, testability, and maintainability that functional approaches struggle to match at this level of abstraction.
-
-The key is recognizing that OOP and functional programming aren't opposing philosophies—they're tools for different problems. Modern TypeScript gives you both. Use the right tool for each job.
-
-## Bringing It Together: Pragmatic Architecture
-
-Let's synthesize everything we've discussed into a practical architectural approach that works in real-world teams.
-
-### 1. Recognize That You're Already Doing Architecture
-
-Stop thinking of architectural patterns as optional "nice-to-haves" or academic exercises. If you're organizing code into folders, you're making architectural decisions. If you're deciding where to put business logic, you're doing architecture.
-
-The question isn't "Should we do architecture?" It's "Are we doing architecture _intentionally_ or _accidentally_?"
-
-### 2. Embrace Modern Patterns as Architecture
-
-Feature-Sliced Design, Bulletproof React, and similar patterns are valid architectural approaches. They're not "React patterns" separate from "real architecture"—they're DDD and MVVM adapted to modern frameworks.
-
-When you structure code like this:
-
-```typescript
-src/
-  features/
-    environmental-monitoring/
-      model/           // Domain layer
-      ui/              // View layer
-      api/             // Repository layer
-```
-
-You're implementing bounded contexts and layered architecture. Call it what you want, but recognize it for what it is.
-
-### 3. Enforce Boundaries with Tooling
-
-Good intentions and documentation don't maintain architectural boundaries. Tooling does.
-
-Implement ESLint rules:
-
-```javascript
-'no-restricted-imports': ['error', {
-  patterns: ['@/features/*/model/*'],
-  message: 'Import from feature public APIs only'
-}]
-```
-
-Or use monorepo packages:
-
-```json
-{
-  "name": "@greenwatch/environmental-monitoring",
-  "dependencies": {
-    "@greenwatch/shared-types": "workspace:*"
-    // No dependency on other features
-  }
-}
-```
-
-Make it _impossible_ to violate boundaries, not just discouraged.
-
-### 4. Use OOP Strategically
-
-Don't write class-based React components. Don't create unnecessary abstraction layers. But _do_ use classes and interfaces for:
-
-- **Repositories** — Encapsulate data access, caching, error handling
-- **Domain Services** — Coordinate complex business logic
-- **Validators** — Encapsulate validation rules
-- **Utilities** — Group related functions with shared configuration
-
-```typescript
-// Yes to this
-class EnvironmentalRepository implements IEnvironmentalRepository {
-  constructor(
-    private readonly httpClient: HttpClient,
-    private readonly cache: Cache,
-  ) {}
-
-  async getData(deviceId: string): Promise<EnvironmentalData> {
-    return this.cache.getOrFetch(`env-${deviceId}`, () =>
-      this.httpClient.get(`/api/devices/${deviceId}/environmental`),
-    );
-  }
-}
-
-// No to this
-class EnvironmentalDashboard extends React.Component {
-  // Don't do this anymore
-}
-```
-
-### 5. Keep It Testable
-
-The ultimate test of architecture is testability. Can you test your business logic without spinning up a browser? Can you test a feature without mocking the entire application?
-
-If your tests look like this:
-
-```typescript
-describe('Environmental Monitoring', () => {
-  it('calculates threshold violations', () => {
-    const service = new ThresholdService();
-    const violation = service.checkViolation({ temperature: 28 }, { min: 18, max: 25 });
-
-    expect(violation.isViolated).toBe(true);
-    expect(violation.type).toBe('temperature-high');
+    dialog.actions.close();
+    expect(closeCalled).toBe(true);
   });
 });
 ```
 
-You have good architecture. If your tests require `render()`, `fireEvent()`, and fifteen lines of setup just to test a calculation, something's wrong.
+No mocking, no rendering, no framework setup. Just pure logic testing.
 
-## The Path Forward
 
-We started this chapter by acknowledging the gap between architectural theory and practice. We've explored how the frontend community has invented patterns that reinvent established architectural principles with framework-specific vocabulary.
+### 3. Separation of Concerns
 
-Here's what you should take away:
+Headless behaviors enforce clean separation between:
 
-**Architecture isn't optional.** You're doing it whether you call it that or not. The question is whether you're doing it intentionally.
+- **Behavior logic**: State management, actions, validation
+- **Presentation logic**: How to render the UI
+- **Styling**: Visual appearance
 
-**Modern patterns are architectural patterns.** Feature-Sliced Design is bounded contexts. Bulletproof React is repository pattern. The names changed; the problems didn't.
+This separation makes code easier to understand, maintain, and modify. You can change the UI without touching the behavior. You can change the behavior without touching the UI. You can test them independently.
 
-**Enforce boundaries with tooling.** ESLint rules and monorepo structures prevent architectural decay better than documentation ever will.
+### 4. Accessibility by Default
 
-**Use OOP strategically.** Classes and interfaces clarify complex business logic, repositories, and services even if you're writing functional React components.
+Complex UI patterns like roving focus, list selection, and keyboard shortcuts require careful implementation to be accessible. By extracting these patterns into reusable behaviors, you can implement accessibility once and get it everywhere.
 
-**Keep it pragmatic.** Don't impose seven-layer abstractions on a simple CRUD app. But don't abandon architectural thinking just because it feels like "over-engineering."
+For example, the roving focus behavior implements the [ARIA roving tabindex pattern](https://www.w3.org/WAI/ARIA/apg/patterns/keyboard-interface/) correctly. Any component using this behavior automatically gets proper keyboard navigation.
 
-In the next chapter, we'll implement these principles in a real-world scenario. We'll take a typical React application structured with component-centric thinking and progressively refactor it toward a feature-sliced, MVVM architecture—with enforced boundaries and strategic use of object-oriented patterns.
+### 5. Composability
 
-You'll see exactly how theory becomes practice.
+Atomic behaviors compose into larger patterns. You can build:
 
----
+- **Master-detail** from list selection + detail view synchronization
+- **Wizard** from form behaviors + step navigation
+- **Command palette** from list selection + keyboard shortcuts + filtering
+- **Tabbed interface** from disclosure behaviors + keyboard navigation
+- **Modal** from dialog behavior + focus trapping
 
-**Next:** Chapter 17 — Refactoring to Clean Architecture: A Step-by-Step Guide
+Each composed pattern is still framework-agnostic and headless, inheriting the benefits of its atomic components.
+
+## Alternative Approaches
+
+The headless UI pattern isn't the only way to build reusable UI behaviors. Let's examine alternatives and when you might choose them.
+
+### Approach 1: Framework-Specific Component Libraries
+
+Libraries like Material-UI (React), Vuetify (Vue), or Angular Material provide complete, styled components. They bundle behavior, styling, and markup together.
+
+**Pros:**
+- Fast to get started
+- Consistent design system out of the box
+- Well-tested, production-ready components
+
+**Cons:**
+- Framework lock-in (can't reuse in other frameworks)
+- Styling constraints (customization often means fighting against the library)
+- Bundle size (you get all the CSS whether you need it or not)
+
+**When to use:** Rapid prototyping, internal tools, or when you're committed to a single framework and design system.
+
+### Approach 2: Web Components
+
+Web Components (Custom Elements, Shadow DOM) provide framework-agnostic components that work everywhere. Libraries like Lit, Stencil, or Shoelace use this approach.
+
+**Pros:**
+- True framework independence (works in any framework or vanilla JS)
+- Encapsulation via Shadow DOM
+- Native browser support
+
+**Cons:**
+- Shadow DOM styling challenges (CSS doesn't cross the boundary easily)
+- Still bundles behavior with presentation
+- Browser compatibility considerations
+
+**When to use:** Building design systems that need to work across multiple frameworks, or when you need true encapsulation.
+
+
+### Approach 3: Render Props / Scoped Slots
+
+React's render props pattern and Vue's scoped slots provide a way to share behavior while letting consumers control rendering.
+
+**Pros:**
+- Flexible rendering (consumer controls the UI)
+- Behavior reuse within a framework
+- Type-safe (TypeScript support)
+
+**Cons:**
+- Framework-specific (render props only work in React, scoped slots only in Vue)
+- Can lead to "wrapper hell" with deeply nested components
+- Not truly headless (still tied to component rendering)
+
+**When to use:** Sharing behavior within a single framework when you don't need cross-framework support.
+
+### Approach 4: Headless UI Libraries
+
+Libraries like Radix UI, Headless UI, Ark UI, and `ui-core` provide behavior without styling. They're the approach we've been discussing.
+
+**Pros:**
+- Complete styling control
+- Framework-agnostic (or framework-specific but behavior-focused)
+- Composable atomic behaviors
+- Testable in isolation
+
+**Cons:**
+- More setup required (you bring your own styling)
+- Steeper learning curve (need to understand the behavior API)
+- No visual consistency out of the box
+
+**When to use:** Building custom design systems, when you need complete styling control, or when you need cross-framework behavior reuse.
+
+### Choosing an Approach
+
+The right approach depends on your constraints:
+
+- **Need speed?** Use a framework-specific component library
+- **Need cross-framework support?** Use headless UI or Web Components
+- **Need complete styling control?** Use headless UI
+- **Need encapsulation?** Use Web Components
+- **Building a design system?** Use headless UI + your own styled components
+
+For MVVM architecture, headless UI behaviors align best because they provide framework-agnostic presentation logic that ViewModels can leverage without coupling to specific frameworks.
+
+## Implementing Your Own Headless Behaviors
+
+You don't need a library to use the headless UI pattern. Let's implement a simple headless behavior from scratch to understand the core concepts.
+
+We'll build a simple tabs behavior that manages active tab state:
+
+```typescript
+// Simple tabs behavior implementation
+interface TabsState {
+  activeTab: string;
+  tabs: string[];
+}
+
+interface TabsActions {
+  setActiveTab: (tabId: string) => void;
+  nextTab: () => void;
+  previousTab: () => void;
+}
+
+interface TabsBehaviorOptions {
+  tabs: string[];
+  initialTab?: string;
+  onTabChange?: (tabId: string) => void;
+}
+
+function createTabsBehavior(options: TabsBehaviorOptions) {
+  const tabs = options.tabs;
+  const initialTab = options.initialTab || tabs[0];
+
+  // State
+  let state: TabsState = {
+    activeTab: initialTab,
+    tabs,
+  };
+
+  // Subscribers
+  const subscribers = new Set<(state: TabsState) => void>();
+
+  // Notify subscribers
+  const notify = () => {
+    subscribers.forEach((subscriber) => subscriber(state));
+  };
+
+  // Actions
+  const actions: TabsActions = {
+    setActiveTab: (tabId: string) => {
+      if (tabs.includes(tabId)) {
+        state = { ...state, activeTab: tabId };
+        notify();
+        if (options.onTabChange) {
+          options.onTabChange(tabId);
+        }
+      }
+    },
+
+    nextTab: () => {
+      const currentIndex = tabs.indexOf(state.activeTab);
+      const nextIndex = (currentIndex + 1) % tabs.length;
+      actions.setActiveTab(tabs[nextIndex]);
+    },
+
+    previousTab: () => {
+      const currentIndex = tabs.indexOf(state.activeTab);
+      const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+      actions.setActiveTab(tabs[prevIndex]);
+    },
+  };
+
+  return {
+    getState: () => state,
+    subscribe: (listener: (state: TabsState) => void) => {
+      subscribers.add(listener);
+      return () => subscribers.delete(listener);
+    },
+    actions,
+    destroy: () => {
+      subscribers.clear();
+    },
+  };
+}
+```
+
+
+That's it! A complete headless tabs behavior in ~60 lines of code. The pattern is:
+
+1. **Define state interface**: What data does the behavior manage?
+2. **Define actions interface**: What operations are available?
+3. **Define options interface**: What configuration does it need?
+4. **Implement state management**: Store state, notify subscribers on changes
+5. **Implement actions**: Modify state, invoke callbacks
+6. **Return behavior interface**: `getState`, `subscribe`, `actions`, `destroy`
+
+Usage is framework-agnostic:
+
+```typescript
+// Create the behavior
+const tabs = createTabsBehavior({
+  tabs: ['overview', 'readings', 'alerts'],
+  initialTab: 'overview',
+  onTabChange: (tabId) => console.log('Tab changed to:', tabId),
+});
+
+// Subscribe to changes
+const unsubscribe = tabs.subscribe((state) => {
+  console.log('Active tab:', state.activeTab);
+  // Update UI to show active tab
+});
+
+// Change tabs
+tabs.actions.setActiveTab('readings');
+tabs.actions.nextTab(); // Moves to 'alerts'
+tabs.actions.previousTab(); // Moves back to 'readings'
+
+// Clean up
+unsubscribe();
+tabs.destroy();
+```
+
+This pattern scales to any UI behavior. The complexity is in the behavior logic (validation, keyboard navigation, accessibility), not in the pattern itself.
+
+## Key Takeaways
+
+Headless UI behaviors separate interaction logic from presentation, providing framework-agnostic, reusable components that work across React, Vue, Angular, and vanilla JavaScript.
+
+**Core concepts:**
+
+1. **Headless = behavior without presentation**: Logic, state, and actions without styling or markup
+2. **Atomic behaviors**: Small, focused components (dialog, disclosure, list selection, roving focus, form)
+3. **Composition**: Atomic behaviors combine into larger patterns (master-detail, wizard, command palette)
+4. **Framework-agnostic**: Same behavior works in any framework with different integration patterns
+5. **Testable**: Pure logic without DOM dependencies makes testing trivial
+
+**Benefits for MVVM:**
+
+- Behaviors provide reusable presentation logic that ViewModels can leverage
+- Clean separation between behavior logic, presentation logic, and UI rendering
+- Framework independence aligns with MVVM's goal of framework-agnostic business logic
+- Composability enables building complex UI patterns from simple building blocks
+
+**Pattern structure:**
+
+```typescript
+interface BehaviorState { /* ... */ }
+interface BehaviorActions { /* ... */ }
+interface BehaviorOptions { /* ... */ }
+
+function createBehavior(options: BehaviorOptions) {
+  // State management
+  // Actions implementation
+  // Subscription handling
+  
+  return {
+    getState: () => state,
+    subscribe: (listener) => { /* ... */ },
+    actions: { /* ... */ },
+    destroy: () => { /* ... */ },
+  };
+}
+```
+
+**When to use:**
+
+- Building custom design systems with complete styling control
+- Sharing UI behaviors across multiple frameworks
+- Implementing complex interaction patterns (keyboard navigation, accessibility)
+- Testing UI logic in isolation without rendering
+
+**Alternatives:**
+
+- Framework-specific component libraries (Material-UI, Vuetify) for rapid prototyping
+- Web Components for encapsulated, framework-agnostic components with styling
+- Render props / scoped slots for behavior sharing within a single framework
+
+The headless UI pattern isn't about any specific library—it's about recognizing that UI behavior is universal and can be extracted into framework-agnostic, reusable components. Whether you use `ui-core`, Radix UI, Headless UI, or build your own, the pattern remains the same: separate behavior from presentation, make it framework-agnostic, and compose atomic behaviors into larger patterns.
+
+In the next chapter, we'll explore how these atomic behaviors compose into complete UI patterns like master-detail layouts, wizards, command palettes, and more, using `ui-patterns` as a concrete example.
+

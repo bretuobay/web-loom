@@ -1,728 +1,609 @@
 ---
-id: "domain-driven-design-for-frontend-applications"
-title: Domain-Driven Design for Frontend Applications
-section: The Crisis
+id: "building-framework-agnostic-models"
+title: Building Framework-Agnostic Models
+section: Core Patterns
 ---
 
-# Chapter 4: Domain-Driven Design for Frontend Applications
+# Chapter 4: Building Framework-Agnostic Models
 
-Most frontend developers have heard of Domain-Driven Design—typically in hushed tones from backend engineers discussing their microservices architecture. There's a common misconception that DDD is exclusively a backend concern, something that lives in the realm of databases, APIs, and server-side business logic. We're here to tell you that's wrong.
+In the MVVM architecture, the Model layer is where your domain logic lives. It's the foundation of your application—the part that knows about sensors, greenhouses, readings, and alerts. It's also the part that should be completely independent of any UI framework.
 
-Your frontend application has a domain. It has business logic. It has complex state that needs modeling. And if you're building anything more sophisticated than a simple CRUD interface, you need DDD—or at least the strategic parts of it—to keep your architecture from collapsing under its own weight.
+This chapter explores how to build Models that work anywhere: in React, Vue, Angular, or even on the server. We'll examine the BaseModel and RestfulApiModel patterns from the Web Loom monorepo, then see how GreenWatch implements domain-specific Models for its greenhouse monitoring system.
 
-In this chapter, we'll explore how to apply Domain-Driven Design principles to frontend development, specifically within our MVVM architecture. We'll examine how to identify bounded contexts, model your domain effectively, and structure your codebase to reflect the business domain rather than technical concerns. By the end, you'll understand why DDD isn't just compatible with frontend development—it's essential for building maintainable, scalable applications.
+## What is a Model?
 
-## Why DDD Matters in the Frontend
+A Model in MVVM represents your application's domain logic and data. It's responsible for:
 
-Let's start with a scenario you've probably encountered. You're building an e-commerce application. You've got products, shopping carts, orders, user accounts, and payment processing. If you're like most teams, your folder structure probably looks something like this:
+- **Managing domain data**: Holding the current state of entities (sensors, greenhouses, readings)
+- **Enforcing business rules**: Validating data, ensuring consistency
+- **Communicating with data sources**: Fetching from APIs, persisting changes
+- **Exposing reactive state**: Publishing data changes through observables
 
-```
-src/
-  components/
-    ProductCard.tsx
-    CartItem.tsx
-    OrderSummary.tsx
-    UserProfile.tsx
-  services/
-    api.ts
-    cart.ts
-    products.ts
-  state/
-    cartSlice.ts
-    productSlice.ts
-    userSlice.ts
-```
+Here's what a Model is *not*:
 
-This is organized by technical concerns—components, services, state management. It's not _wrong_, but it doesn't tell you anything about your business domain. Where does the logic for applying discount codes live? What about inventory management? User preferences? These concepts span multiple technical layers, making them hard to reason about and maintain.
+- **Not a DTO**: Models aren't just data transfer objects from your API
+- **Not framework-specific**: Models don't know about React hooks, Vue refs, or Angular services
+- **Not presentation logic**: Models don't format data for display or handle UI concerns
 
-Now consider an alternative structure:
+The key principle: Models contain the logic that would be the same regardless of which framework renders the UI.
 
-```
-src/
-  domains/
-    catalog/
-      models/
-      viewModels/
-      views/
-    cart/
-      models/
-      viewModels/
-      views/
-    checkout/
-      models/
-      viewModels/
-      views/
-```
+## The BaseModel Pattern
 
-This structure immediately communicates what your application _does_. Each domain folder contains everything related to that business capability—models, ViewModels, views, and any domain-specific logic. This isn't just aesthetics; it's about creating a codebase that reflects how your business thinks about the problem.
-
-Here's why this matters: when your product manager says "we need to change how discount codes work during checkout," you know exactly where to look. When a bug appears in inventory tracking, the scope of your investigation is immediately constrained. When you're testing the cart functionality, you don't need to hunt through multiple unrelated folders to find all the relevant code.
-
-## Bounded Contexts: Drawing Clear Boundaries
-
-The most valuable concept from DDD—and the one most applicable to frontend development—is the _bounded context_. A bounded context is a clear boundary within which a particular domain model is defined and applicable. Within this boundary, every term has a specific, unambiguous meaning.
-
-Let's return to our e-commerce example. Consider the concept of a "Product." In the catalog context, a Product has SKUs, descriptions, images, pricing, and categories. But in the cart context, a Product is simpler—it's essentially just a reference to a catalog item plus a quantity. In the order history context, it might include additional information like the price at the time of purchase (which could differ from current pricing).
-
-These aren't three different products—they're three different _perspectives_ on the same business concept, each appropriate for its context. Trying to create a single, universal Product model that serves all three contexts leads to bloated, confused models with fields that only make sense in certain scenarios.
-
-Here's how we model this in TypeScript:
+Let's start with the foundation. The `BaseModel` class from `packages/mvvm-core/src/models/BaseModel.ts` provides core functionality that all Models need:
 
 ```typescript
-// Catalog Context
-namespace Catalog {
-  export interface Product {
-    id: string;
-    sku: string;
-    name: string;
-    description: string;
-    price: Money;
-    images: ProductImage[];
-    categories: Category[];
-    inventory: InventoryLevel;
-    specifications: Record<string, string>;
-  }
-}
+// packages/mvvm-core/src/models/BaseModel.ts
+export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
+  protected _data$ = new BehaviorSubject<TData | null>(null);
+  public readonly data$: Observable<TData | null> = this._data$.asObservable();
 
-// Cart Context
-namespace Cart {
-  export interface CartItem {
-    productId: string; // Reference to catalog
-    productName: string; // Denormalized for display
-    quantity: number;
-    unitPrice: Money;
-    totalPrice: Money;
-  }
-}
+  protected _isLoading$ = new BehaviorSubject<boolean>(false);
+  public readonly isLoading$: Observable<boolean> = this._isLoading$.asObservable();
 
-// Order Context
-namespace Order {
-  export interface OrderLineItem {
-    productId: string;
-    productName: string;
-    sku: string;
-    quantity: number;
-    unitPriceAtPurchase: Money;
-    totalPrice: Money;
-    appliedDiscounts: Discount[];
+  protected _error$ = new BehaviorSubject<any>(null);
+  public readonly error$: Observable<any> = this._error$.asObservable();
+
+  public readonly schema?: TSchema;
+
+  constructor(input: TConstructorInput<TData, TSchema>) {
+    const { initialData = null, schema } = input;
+    if (initialData !== null) {
+      this._data$.next(initialData);
+    }
+    this.schema = schema;
+  }
+
+  public setData(newData: TData | null): void {
+    this._data$.next(newData);
+  }
+
+  public setLoading(status: boolean): void {
+    this._isLoading$.next(status);
+  }
+
+  public setError(err: any): void {
+    this._error$.next(err);
+  }
+
+  public clearError(): void {
+    this._error$.next(null);
+  }
+
+  public validate(data: any): TData {
+    if (!this.schema) {
+      console.warn('No Zod schema provided. Validation will not occur.');
+      return data as TData;
+    }
+    return this.schema.parse(data);
+  }
+
+  public dispose(): void {
+    this._data$.complete();
+    this._isLoading$.complete();
+    this._error$.complete();
   }
 }
 ```
 
-Notice we're using TypeScript namespaces here to make the boundaries explicit. Each context gets its own definition of product-related data, tailored to that context's needs. The Catalog Product is rich with merchandising information. The Cart item is lightweight and focused on purchase decisions. The Order line item captures historical pricing information.
+**Key design decisions:**
 
-This might seem like duplication, but it's not—it's appropriate modeling. Each context has different responsibilities and therefore different information needs. Trying to share a single model across all three contexts would force unnecessary coupling between unrelated parts of your application.
+1. **RxJS Observables**: The Model uses `BehaviorSubject` internally and exposes read-only `Observable` streams. This provides reactive state that any framework can subscribe to.
 
-## Identifying Bounded Contexts in Frontend Applications
+2. **Generic Types**: `TData` represents the domain data type, `TSchema` is the Zod schema for validation. This makes BaseModel reusable for any domain entity.
 
-So how do you identify bounded contexts in your own application? Here's a practical approach:
+3. **Three core observables**: Every Model exposes `data$`, `isLoading$`, and `error$`. This consistent interface makes Models predictable and easy to consume.
 
-**Start with user workflows.** Map out the major tasks users perform in your application. Each distinct workflow is potentially its own bounded context. In GreenWatch, our greenhouse monitoring application, we identified these workflows:
+4. **Validation with Zod**: The `validate()` method uses Zod schemas to ensure data integrity. Invalid data is rejected before it enters your domain.
 
-- Viewing real-time environmental data from sensors
-- Configuring alerts for out-of-range conditions
-- Analyzing historical trends and patterns
-- Managing greenhouse devices and zones
-- Responding to alerts and taking corrective actions
+5. **Lifecycle management**: The `dispose()` method completes all observables, preventing memory leaks when Models are no longer needed.
 
-**Look for linguistic boundaries.** Pay attention to how your domain experts (product managers, business stakeholders, actual users) talk about different parts of the system. When they switch topics, they often switch terminology. If the same term means different things in different conversations, you've found a bounded context boundary.
+## Framework Independence Through Observables
 
-For example, in GreenWatch, the term "device" means something different when we're talking about device provisioning versus when we're discussing real-time monitoring. During provisioning, we care about device models, firmware versions, and network configuration. During monitoring, we care about current readings, connection status, and historical reliability. These are different contexts.
+Why use RxJS observables instead of framework-specific reactivity (React state, Vue refs, Angular signals)?
 
-**Identify different rates of change.** Parts of your application that change frequently and independently are good candidates for separate contexts. In GreenWatch, the environmental monitoring displays change constantly with new sensor data, while the greenhouse configuration changes rarely. Separating these into different contexts allows each to evolve independently.
+**Observables are framework-agnostic.** Every major framework can consume observables:
 
-**Consider team structure.** If different teams or team members naturally gravitate toward different parts of the application, that's a signal. Conway's Law suggests your architecture will reflect your organizational structure—embrace this rather than fight it.
+- **React**: Subscribe in `useEffect`, update local state
+- **Vue**: Use `watchEffect` or composables to bridge observables to refs
+- **Angular**: Use the `async` pipe directly in templates
+- **Vanilla JS**: Call `.subscribe()` directly
 
-Here's how we mapped out GreenWatch's bounded contexts:
+This means you write your Model once, and it works everywhere. The same `SensorModel` that powers the React dashboard also powers the Vue dashboard, Angular dashboard, and even a Node.js background worker.
+
+## Validation with Zod Schemas
+
+Data validation is a Model responsibility. When data enters your application—from an API, user input, or any external source—the Model validates it before accepting it.
+
+Here's how GreenWatch defines schemas for its domain entities:
 
 ```typescript
-// Domain structure for GreenWatch
-export namespace GreenWatch {
-  // Environmental Monitoring Context
-  export namespace Monitoring {
-    export interface SensorReading {
-      deviceId: string;
-      timestamp: Date;
-      temperature: Temperature;
-      humidity: Percentage;
-      soilMoisture: Percentage;
-      lightLevel: Lumens;
-    }
+// packages/models/src/schemas/greenhouse.schema.ts
+import { z } from 'zod';
 
-    export interface MonitoringViewModel {
-      currentReadings$: Observable<SensorReading[]>;
-      historicalData$: Observable<TimeSeriesData>;
-      connectionStatus$: Observable<DeviceStatus[]>;
+export const CreateGreenhouseSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1),
+  location: z.string().min(1),
+  size: z.string().min(1),
+  cropType: z.string().optional(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+
+export type GreenhouseData = z.infer<typeof CreateGreenhouseSchema>;
+
+export const GreenhouseListSchema = z.array(CreateGreenhouseSchema);
+export type GreenhouseListData = z.infer<typeof GreenhouseListSchema>;
+```
+
+```typescript
+// packages/models/src/schemas/sensor.schema.ts
+import { z } from 'zod';
+
+export const SensorTypeEnum = z.enum([
+  'temperature',
+  'humidity',
+  'soilMoisture',
+  'lightIntensity'
+]);
+
+export const SensorStatusEnum = z.enum(['active', 'inactive']);
+
+export const CreateSensorSchema = z.object({
+  id: z.string().uuid().optional(),
+  type: SensorTypeEnum,
+  status: SensorStatusEnum,
+  greenhouseId: z.number().int().positive(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+  greenhouse: CreateGreenhouseSchema,
+});
+
+export type SensorData = z.infer<typeof CreateSensorSchema>;
+
+export const SensorListSchema = z.array(CreateSensorSchema);
+export type SensorListData = z.infer<typeof SensorListSchema>;
+```
+
+**What these schemas enforce:**
+
+- **Type safety**: TypeScript types are inferred from schemas using `z.infer`
+- **Runtime validation**: Data is validated at runtime, catching API contract violations
+- **Business rules**: Constraints like `min(1)`, `positive()`, and enum values encode domain rules
+- **Nested validation**: The `greenhouse` field in `CreateSensorSchema` validates nested objects
+
+When the Model receives data from the API, it validates against these schemas. Invalid data is rejected with clear error messages, preventing corrupt state from entering your application.
+
+## The RestfulApiModel Pattern
+
+Most Models need to interact with RESTful APIs. The `RestfulApiModel` extends `BaseModel` with CRUD operations:
+
+```typescript
+// packages/mvvm-core/src/models/RestfulApiModel.ts (simplified)
+export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> 
+  extends BaseModel<TData, TSchema> {
+  
+  private readonly baseUrl: string;
+  private readonly endpoint: string;
+  private readonly fetcher: Fetcher;
+
+  constructor(input: TConstructorInput<TData, TSchema>) {
+    super({ initialData: input.initialData, schema: input.schema });
+    this.baseUrl = input.baseUrl;
+    this.endpoint = input.endpoint;
+    this.fetcher = input.fetcher;
+  }
+
+  public async fetch(id?: string | string[]): Promise<void> {
+    this.setLoading(true);
+    this.clearError();
+    
+    try {
+      const url = id ? `${this.baseUrl}/${this.endpoint}/${id}` 
+                     : `${this.baseUrl}/${this.endpoint}`;
+      const data = await this.fetcher(url, { method: 'GET' });
+      
+      // Validate response data
+      const validated = this.validate(data);
+      this.setData(validated);
+    } catch (error) {
+      this.setError(error);
+      throw error;
+    } finally {
+      this.setLoading(false);
     }
   }
 
-  // Alert Management Context
-  export namespace Alerts {
-    export interface AlertRule {
-      id: string;
-      parameter: EnvironmentalParameter;
-      condition: ThresholdCondition;
-      actions: AlertAction[];
-      enabled: boolean;
-    }
+  public async create(payload: Partial<ExtractItemType<TData>>): Promise<void> {
+    // Optimistic update: add item immediately
+    const tempId = generateTempId();
+    const optimisticItem = { ...payload, id: tempId };
+    this.addItemOptimistically(optimisticItem);
 
-    export interface AlertViewModel {
-      activeAlerts$: Observable<Alert[]>;
-      alertHistory$: Observable<Alert[]>;
-      configureAlert(rule: AlertRule): Promise<void>;
-      acknowledgeAlert(alertId: string): Promise<void>;
+    try {
+      const url = `${this.baseUrl}/${this.endpoint}`;
+      const created = await this.fetcher(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      // Replace temp item with server response
+      this.replaceItem(tempId, created);
+    } catch (error) {
+      // Revert optimistic update on failure
+      this.removeItem(tempId);
+      this.setError(error);
+      throw error;
     }
   }
 
-  // Device Management Context
-  export namespace Devices {
-    export interface Device {
-      id: string;
-      name: string;
-      model: DeviceModel;
-      firmwareVersion: string;
-      location: GreenhouseZone;
-      provisionedAt: Date;
-      networkConfig: NetworkConfiguration;
-    }
+  public async update(id: string, payload: Partial<ExtractItemType<TData>>): Promise<void> {
+    // Similar optimistic update pattern
+  }
 
-    export interface DeviceManagementViewModel {
-      devices$: Observable<Device[]>;
-      registerDevice(config: DeviceConfig): Promise<Device>;
-      updateFirmware(deviceId: string): Promise<void>;
-    }
+  public async delete(id: string): Promise<void> {
+    // Similar optimistic update pattern
   }
 }
 ```
 
-Each context has its own models and ViewModels. They communicate through well-defined interfaces—typically domain events—but they don't share internal models. This isolation is crucial for maintainability.
+**Key features:**
 
-## Domain Models vs. Data Transfer Objects
+1. **CRUD operations**: `fetch()`, `create()`, `update()`, `delete()` handle common API interactions
+2. **Optimistic updates**: UI updates immediately, then syncs with server
+3. **Error handling**: Failed operations revert optimistic changes and set error state
+4. **Loading states**: `isLoading$` tracks ongoing operations
+5. **Validation**: All API responses are validated before updating `data$`
 
-Here's a critical distinction that trips up many developers: your domain models aren't your DTOs (Data Transfer Objects). The shape of data your API returns isn't necessarily the shape your domain should use internally.
+## GreenWatch Model Implementations
 
-Let's say your backend API returns sensor readings like this:
+Now let's see how GreenWatch uses these patterns for its domain Models.
 
-```typescript
-// API Response (DTO)
-interface SensorReadingDTO {
-  device_id: string;
-  timestamp: string; // ISO string
-  temp_celsius: number;
-  humidity_pct: number;
-  soil_moisture_pct: number;
-  light_lumens: number;
-  battery_voltage: number;
-}
-```
+### SensorModel
 
-This is fine for data transfer—it's compact, uses simple types, and follows the backend's naming conventions. But it's not ideal for your domain model. Your domain needs richer types that encode business rules and make invalid states unrepresentable:
+The `SensorModel` manages sensor data—devices that measure environmental conditions in greenhouses:
 
 ```typescript
-// Domain Model
-export interface SensorReading {
-  deviceId: DeviceId;
-  timestamp: Timestamp;
-  temperature: Temperature;
-  humidity: Humidity;
-  soilMoisture: SoilMoisture;
-  lightLevel: LightLevel;
-}
+// packages/models/src/SensorModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { SensorListSchema, type SensorListData } from './schemas';
+import { fetchWithCache } from './utils/fetcher';
+import { API_BASE_URL } from './config';
+import { apiRegistry } from './services/services';
 
-// Value Objects with validation and business rules
-export class Temperature {
-  private constructor(
-    public readonly celsius: number,
-    public readonly unit: "C" | "F"
-  ) {}
+const { path } = apiRegistry.sensor.list;
 
-  static fromCelsius(value: number): Result<Temperature, ValidationError> {
-    if (value < -273.15 || value > 100) {
-      return Result.error(
-        new ValidationError("Temperature out of valid range")
-      );
-    }
-    return Result.ok(new Temperature(value, "C"));
-  }
+const CONFIG = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: fetchWithCache,
+  schema: SensorListSchema,
+  initialData: [] as SensorListData,
+  validateSchema: false,
+};
 
-  toFahrenheit(): number {
-    return (this.celsius * 9) / 5 + 32;
-  }
-
-  isInRange(min: Temperature, max: Temperature): boolean {
-    return this.celsius >= min.celsius && this.celsius <= max.celsius;
-  }
-}
-
-export class Humidity {
-  private constructor(public readonly percentage: number) {}
-
-  static fromPercentage(value: number): Result<Humidity, ValidationError> {
-    if (value < 0 || value > 100) {
-      return Result.error(
-        new ValidationError("Humidity must be between 0 and 100")
-      );
-    }
-    return Result.ok(new Humidity(value));
-  }
-
-  isOptimal(): boolean {
-    return this.percentage >= 50 && this.percentage <= 70;
-  }
-}
-```
-
-Notice what we've done here. Our domain models use value objects—small, immutable objects that encapsulate both data and behavior. The Temperature class doesn't just hold a number; it validates that the number is physically possible, provides unit conversion, and implements domain logic like range checking. The constructor is private, forcing clients to use the factory method, which ensures all Temperature instances are valid.
-
-This is a key DDD principle: make illegal states unrepresentable. You can't accidentally create a Temperature of 150°C or a Humidity of -20%. The type system enforces business rules at compile time.
-
-Here's how we translate between DTOs and domain models:
-
-```typescript
-export class SensorReadingMapper {
-  static toDomain(
-    dto: SensorReadingDTO
-  ): Result<SensorReading, ValidationError> {
-    const temperature = Temperature.fromCelsius(dto.temp_celsius);
-    const humidity = Humidity.fromPercentage(dto.humidity_pct);
-    const soilMoisture = SoilMoisture.fromPercentage(dto.soil_moisture_pct);
-    const lightLevel = LightLevel.fromLumens(dto.light_lumens);
-
-    // Combine results using Result monad
-    return Result.combine([
-      temperature,
-      humidity,
-      soilMoisture,
-      lightLevel,
-    ]).map(([temp, hum, soil, light]) => ({
-      deviceId: DeviceId.from(dto.device_id),
-      timestamp: Timestamp.fromISO(dto.timestamp),
-      temperature: temp,
-      humidity: hum,
-      soilMoisture: soil,
-      lightLevel: light,
-    }));
-  }
-
-  static toDTO(reading: SensorReading): SensorReadingDTO {
-    return {
-      device_id: reading.deviceId.value,
-      timestamp: reading.timestamp.toISO(),
-      temp_celsius: reading.temperature.celsius,
-      humidity_pct: reading.humidity.percentage,
-      soil_moisture_pct: reading.soilMoisture.percentage,
-      light_lumens: reading.lightLevel.lumens,
-      battery_voltage: 0, // Not tracked in domain
-    };
-  }
-}
-```
-
-The mapper sits at the boundary of your domain, translating between the outside world's representation and your internal model. This gives you several benefits:
-
-- **Backend independence**: If the API response format changes, you only update the mapper. Your domain code is unaffected.
-- **Validation at the boundary**: Invalid data is caught and rejected before it enters your domain.
-- **Rich domain models**: Your internal code works with meaningful types that express business concepts, not primitive strings and numbers.
-
-## Domain Events: Communication Between Contexts
-
-Bounded contexts need to communicate, but they shouldn't be tightly coupled. You don't want your alert management system directly calling methods on your device management system. Instead, we use domain events—messages that announce something interesting has happened.
-
-Domain events serve two purposes in frontend applications. First, they decouple bounded contexts by allowing them to react to changes without direct dependencies. Second, they create an audit trail of user actions and system behavior, which is invaluable for debugging and analytics.
-
-Here's how we model domain events in GreenWatch:
-
-```typescript
-// Base domain event
-export abstract class DomainEvent {
-  public readonly occurredAt: Date;
-  public readonly eventId: string;
-
+export class SensorModel extends RestfulApiModel<
+  SensorListData, 
+  typeof SensorListSchema
+> {
   constructor() {
-    this.occurredAt = new Date();
-    this.eventId = crypto.randomUUID();
-  }
-
-  abstract get eventType(): string;
-}
-
-// Specific events
-export class TemperatureThresholdExceeded extends DomainEvent {
-  constructor(
-    public readonly deviceId: string,
-    public readonly currentTemperature: Temperature,
-    public readonly threshold: Temperature,
-    public readonly severity: AlertSeverity
-  ) {
-    super();
-  }
-
-  get eventType(): string {
-    return "monitoring.temperature-threshold-exceeded";
-  }
-}
-
-export class AlertAcknowledged extends DomainEvent {
-  constructor(
-    public readonly alertId: string,
-    public readonly acknowledgedBy: UserId,
-    public readonly notes?: string
-  ) {
-    super();
-  }
-
-  get eventType(): string {
-    return "alerts.alert-acknowledged";
-  }
-}
-
-export class DeviceOffline extends DomainEvent {
-  constructor(
-    public readonly deviceId: string,
-    public readonly lastSeenAt: Date
-  ) {
-    super();
-  }
-
-  get eventType(): string {
-    return "devices.device-offline";
+    super(CONFIG);
   }
 }
 ```
 
-These events are published to an event bus, which we'll implement using RxJS:
+**What's happening here:**
+
+- **Extends RestfulApiModel**: Inherits CRUD operations and reactive state
+- **Type-safe**: `SensorListData` is inferred from the Zod schema
+- **Configured for sensors**: Points to the sensor API endpoint
+- **Caching**: Uses `fetchWithCache` to avoid redundant API calls
+- **No framework dependencies**: This Model works in any JavaScript environment
+
+Usage is simple:
 
 ```typescript
-export class DomainEventBus {
-  private readonly events$ = new Subject<DomainEvent>();
+const sensorModel = new SensorModel();
 
-  // Publish an event
-  publish(event: DomainEvent): void {
-    this.events$.next(event);
-  }
+// Subscribe to sensor data
+sensorModel.data$.subscribe(sensors => {
+  console.log('Sensors:', sensors);
+});
 
-  // Subscribe to specific event types
-  subscribe<T extends DomainEvent>(
-    eventType: string,
-    handler: (event: T) => void
-  ): Subscription {
-    return this.events$
-      .pipe(
-        filter((event) => event.eventType === eventType),
-        map((event) => event as T)
-      )
-      .subscribe(handler);
-  }
+// Fetch sensors from API
+await sensorModel.fetch();
 
-  // Get observable of all events (useful for logging/debugging)
-  get allEvents$(): Observable<DomainEvent> {
-    return this.events$.asObservable();
+// Create a new sensor
+await sensorModel.create({
+  type: 'temperature',
+  status: 'active',
+  greenhouseId: 1
+});
+```
+
+### GreenHouseModel
+
+The `GreenHouseModel` manages greenhouse entities:
+
+```typescript
+// packages/models/src/GreenHouseModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { GreenhouseListSchema, type GreenhouseListData } from './schemas';
+import { nativeFetcher } from './utils/fetcher';
+import { apiRegistry } from './services/services';
+import { API_BASE_URL } from './config';
+
+const { path } = apiRegistry.greenhouse.list;
+
+export const greenHouseConfig = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: nativeFetcher,
+  schema: GreenhouseListSchema,
+  initialData: [],
+  validateSchema: false,
+};
+
+export class GreenHouseModel extends RestfulApiModel<
+  GreenhouseListData, 
+  typeof GreenhouseListSchema
+> {
+  constructor() {
+    super(greenHouseConfig);
   }
 }
 ```
 
-Now different contexts can react to events from other contexts without direct coupling:
+Same pattern, different domain entity. The Model knows about greenhouses—their names, locations, sizes, crop types—but nothing about how they're displayed in a UI.
+
+### SensorReadingModel
+
+The `SensorReadingModel` manages time-series sensor data:
 
 ```typescript
-// In the Alerts context
-export class AlertViewModel {
-  constructor(
-    private readonly eventBus: DomainEventBus,
-    private readonly alertService: AlertService
-  ) {
-    // Subscribe to monitoring events
-    this.eventBus.subscribe<TemperatureThresholdExceeded>(
-      "monitoring.temperature-threshold-exceeded",
-      (event) => this.handleThresholdExceeded(event)
-    );
-  }
+// packages/models/src/SensorReadingModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { 
+  SensorReadingListSchema, 
+  type SensorReadingListData 
+} from './schemas/sensor-reading.schema';
+import { fetchWithCache } from './utils/fetcher';
+import { apiRegistry } from './services/services';
+import { API_BASE_URL } from './config';
 
-  private handleThresholdExceeded(event: TemperatureThresholdExceeded): void {
-    // Create alert based on the monitoring event
-    this.alertService.createAlert({
-      deviceId: event.deviceId,
-      type: "temperature",
-      severity: event.severity,
-      message: `Temperature ${event.currentTemperature.celsius}°C exceeds threshold`,
-      triggeredAt: event.occurredAt,
-    });
+const { path } = apiRegistry.reading.list;
+
+export const sensorReadingsConfig = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: fetchWithCache,
+  schema: SensorReadingListSchema,
+  initialData: [] as SensorReadingListData,
+  validateSchema: false,
+};
+
+export class SensorReadingModel extends RestfulApiModel<
+  SensorReadingListData, 
+  typeof SensorReadingListSchema
+> {
+  constructor() {
+    super(sensorReadingsConfig);
   }
 }
+```
 
-// In the Monitoring context
-export class MonitoringViewModel {
-  constructor(private readonly eventBus: DomainEventBus) {}
+Sensor readings are high-volume, time-series data. The Model handles fetching, caching, and validation, but doesn't concern itself with how readings are charted or displayed.
 
-  private checkThresholds(reading: SensorReading): void {
-    const rules = this.getAlertRules(reading.deviceId);
+### ThresholdAlertModel
 
-    for (const rule of rules) {
-      if (this.isThresholdExceeded(reading, rule)) {
-        // Publish event - we don't know or care who handles it
-        this.eventBus.publish(
-          new TemperatureThresholdExceeded(
-            reading.deviceId.value,
-            reading.temperature,
-            rule.threshold,
-            rule.severity
-          )
-        );
-      }
+The `ThresholdAlertModel` manages alerts triggered when sensor readings exceed thresholds:
+
+```typescript
+// packages/models/src/ThresholdAlertModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { 
+  ThresholdAlertListSchema, 
+  type ThresholdAlertListData 
+} from './schemas/alert.schema';
+import { fetchWithCache } from './utils/fetcher';
+import { apiRegistry } from './services/services';
+import { API_BASE_URL } from './config';
+
+const { path } = apiRegistry.alert.list;
+
+const CONFIG = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: fetchWithCache,
+  schema: ThresholdAlertListSchema,
+  initialData: [],
+  validateSchema: false,
+};
+
+export class ThresholdAlertModel extends RestfulApiModel<
+  ThresholdAlertListData, 
+  typeof ThresholdAlertListSchema
+> {
+  constructor() {
+    super(CONFIG);
+  }
+}
+```
+
+Alerts are critical for greenhouse monitoring. The Model manages alert data and state, but doesn't handle notification UI or sound effects—those are View concerns.
+
+## Model Responsibilities in Practice
+
+Let's clarify what Models do and don't do by examining a complete data flow:
+
+**What Models DO:**
+
+1. **Fetch data from APIs**
+   ```typescript
+   await sensorModel.fetch(); // GET /api/sensors
+   ```
+
+2. **Validate incoming data**
+   ```typescript
+   const validated = SensorListSchema.parse(apiResponse);
+   ```
+
+3. **Manage domain state**
+   ```typescript
+   sensorModel.data$.subscribe(sensors => {
+     // Sensors are always valid, type-safe data
+   });
+   ```
+
+4. **Handle errors**
+   ```typescript
+   sensorModel.error$.subscribe(error => {
+     // API errors, validation failures, network issues
+   });
+   ```
+
+5. **Provide loading states**
+   ```typescript
+   sensorModel.isLoading$.subscribe(loading => {
+     // Show/hide loading spinners
+   });
+   ```
+
+**What Models DON'T DO:**
+
+1. **Format data for display**: Models don't convert temperatures to Fahrenheit or format dates. That's ViewModel or View logic.
+
+2. **Handle UI events**: Models don't respond to button clicks or form submissions. ViewModels orchestrate those interactions.
+
+3. **Know about frameworks**: Models don't import React, Vue, or Angular. They're pure TypeScript classes with RxJS.
+
+4. **Manage presentation state**: Models don't track which item is selected, whether a modal is open, or if a form is dirty. ViewModels handle that.
+
+## Testing Models
+
+Because Models are framework-independent, they're trivial to test:
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+import { SensorModel } from './SensorModel';
+
+describe('SensorModel', () => {
+  let model: SensorModel;
+
+  beforeEach(() => {
+    model = new SensorModel();
+  });
+
+  it('initializes with empty data', () => {
+    expect(model.getCurrentData()).toEqual([]);
+  });
+
+  it('updates data when fetch succeeds', async () => {
+    await model.fetch();
+    
+    const sensors = model.getCurrentData();
+    expect(Array.isArray(sensors)).toBe(true);
+  });
+
+  it('sets error when fetch fails', async () => {
+    // Mock fetcher to throw error
+    try {
+      await model.fetch('invalid-id');
+    } catch (error) {
+      expect(model.getCurrentError()).toBeTruthy();
     }
-  }
-}
-```
+  });
 
-The monitoring context doesn't know anything about alerts. It just publishes events when interesting things happen. The alert context subscribes to those events and reacts accordingly. This loose coupling means we can modify or even remove the alert system without touching the monitoring code.
-
-## Structuring Your Codebase by Domain
-
-Now let's put it all together and look at how to structure your codebase to reflect your bounded contexts. Here's the complete structure for GreenWatch:
-
-```
-src/
-  domains/
-    monitoring/
-      models/
-        SensorReading.ts
-        Temperature.ts
-        Humidity.ts
-        DeviceStatus.ts
-      viewModels/
-        MonitoringViewModel.ts
-        DashboardViewModel.ts
-      views/
-        MonitoringDashboard.tsx
-        SensorCard.tsx
-        TimeSeriesChart.tsx
-      services/
-        MonitoringService.ts
-        WebSocketClient.ts
-      events/
-        TemperatureThresholdExceeded.ts
-        DeviceReadingReceived.ts
-
-    alerts/
-      models/
-        Alert.ts
-        AlertRule.ts
-        ThresholdCondition.ts
-      viewModels/
-        AlertViewModel.ts
-        AlertHistoryViewModel.ts
-      views/
-        AlertPanel.tsx
-        AlertRuleConfig.tsx
-      services/
-        AlertService.ts
-        NotificationService.ts
-      events/
-        AlertTriggered.ts
-        AlertAcknowledged.ts
-
-    devices/
-      models/
-        Device.ts
-        DeviceModel.ts
-        NetworkConfiguration.ts
-      viewModels/
-        DeviceManagementViewModel.ts
-        DeviceProvisioningViewModel.ts
-      views/
-        DeviceList.tsx
-        DeviceDetails.tsx
-        ProvisioningWizard.tsx
-      services/
-        DeviceService.ts
-        FirmwareService.ts
-      events/
-        DeviceRegistered.ts
-        DeviceOffline.ts
-
-  shared/
-    core/
-      DomainEvent.ts
-      DomainEventBus.ts
-      Result.ts
-      ValueObject.ts
-    types/
-      primitives.ts
-    utils/
-      validation.ts
-```
-
-Each domain folder contains everything related to that bounded context. When you're working on monitoring features, you stay within the monitoring folder. When you're fixing a bug in alert rules, you work in the alerts folder. This locality makes navigation faster and reasoning about the codebase easier.
-
-The `shared` folder contains truly cross-cutting concerns—the event bus infrastructure, common base classes, utility functions. But note what's _not_ in shared: domain concepts. Each bounded context defines its own models, even if they superficially represent similar things.
-
-## Anti-Patterns to Avoid
-
-Let's talk about what _not_ to do when applying DDD to frontend development.
-
-**Don't create a "shared models" folder.** This is tempting—you notice that multiple contexts reference "products" or "users" and think you'll save code by defining them once. Don't do it. Shared models create coupling between contexts. When one context needs to change its model, you're forced to either modify the shared model (affecting all contexts) or create a context-specific subtype (defeating the purpose of sharing).
-
-**Don't overuse domain events.** Events are powerful, but they come with complexity—asynchronous behavior, ordering concerns, debugging challenges. Use them for communication between bounded contexts, but within a single context, direct method calls are fine. You don't need an event for every state change.
-
-**Don't confuse DDD with over-engineering.** Not every application needs the full DDD treatment. If you're building a simple CRUD interface with no complex business logic, you probably don't need bounded contexts and domain events. DDD's value emerges when you have genuine domain complexity—multiple interrelated concepts, complex business rules, different user roles with different views of the data. Apply DDD judiciously.
-
-**Don't ignore the ubiquitous language.** This is one of DDD's most valuable concepts—using the same terminology in code that domain experts use when discussing the business. If your product manager talks about "greenhouses" and "zones," your code should too. Don't translate to "facilities" and "areas" because it sounds more technical. The code should speak the language of the domain.
-
-## Integrating DDD with MVVM
-
-You might be wondering how DDD fits with MVVM. They're complementary, not competing approaches.
-
-DDD tells you how to organize your domain—what models to create, how to structure bounded contexts, how contexts communicate. MVVM tells you how to structure each bounded context internally—how views interact with domain models through ViewModels.
-
-Here's how they work together:
-
-```typescript
-// Domain model (from DDD)
-export class AlertRule {
-  constructor(
-    public readonly id: string,
-    public readonly parameter: EnvironmentalParameter,
-    public readonly condition: ThresholdCondition,
-    public readonly actions: AlertAction[],
-    public readonly enabled: boolean
-  ) {}
-
-  evaluate(reading: SensorReading): boolean {
-    // Domain logic for evaluating the rule
-    const value = this.extractParameter(reading);
-    return this.condition.isSatisfied(value);
-  }
-
-  private extractParameter(reading: SensorReading): number {
-    switch (this.parameter) {
-      case "temperature":
-        return reading.temperature.celsius;
-      case "humidity":
-        return reading.humidity.percentage;
-      // ... etc
-    }
-  }
-}
-
-// ViewModel (from MVVM)
-export class AlertRuleViewModel {
-  private rules$ = new BehaviorSubject<AlertRule[]>([]);
-
-  constructor(
-    private readonly alertService: AlertService,
-    private readonly eventBus: DomainEventBus
-  ) {
-    this.loadRules();
-    this.subscribeToEvents();
-  }
-
-  // View-friendly observables
-  get rules(): Observable<AlertRuleViewModel[]> {
-    return this.rules$.pipe(
-      map((rules) => rules.map((rule) => this.toViewModel(rule)))
-    );
-  }
-
-  // Commands from the view
-  async createRule(config: AlertRuleConfig): Promise<Result<void, Error>> {
-    const rule = this.createDomainModel(config);
-    const result = await this.alertService.saveRule(rule);
-
-    if (result.isOk()) {
-      this.eventBus.publish(new AlertRuleCreated(rule.id));
-      await this.loadRules();
-    }
-
-    return result;
-  }
-
-  private toViewModel(rule: AlertRule): AlertRuleViewModel {
-    // Transform domain model to view-friendly representation
-    return {
-      id: rule.id,
-      parameter: this.formatParameter(rule.parameter),
-      condition: this.formatCondition(rule.condition),
-      isEnabled: rule.enabled,
-      // ... etc
-    };
-  }
-}
-```
-
-The domain model (`AlertRule`) contains business logic—how to evaluate whether a rule is satisfied. The ViewModel wraps this domain model, exposing observables for the view to bind to and providing commands for the view to invoke. The ViewModel handles the translation between domain models and view-friendly representations.
-
-This separation means your domain logic can be tested independently of the view layer. You can test `AlertRule.evaluate()` with simple unit tests. You can test the ViewModel's orchestration logic with slightly more involved tests that mock the service layer. And you can test the view with component tests that don't need to know anything about the underlying domain complexity.
-
-## Testing Domain Models
-
-One of DDD's major benefits is testability. Domain models are just classes with methods—no framework dependencies, no view coupling. This makes them trivial to test:
-
-```typescript
-describe("AlertRule", () => {
-  describe("evaluate", () => {
-    it("returns true when temperature exceeds maximum threshold", () => {
-      // Arrange
-      const rule = new AlertRule(
-        "rule-1",
-        "temperature",
-        new MaximumThreshold(Temperature.fromCelsius(30)),
-        [],
-        true
-      );
-
-      const reading = createSensorReading({
-        temperature: Temperature.fromCelsius(35),
-      });
-
-      // Act
-      const result = rule.evaluate(reading);
-
-      // Assert
-      expect(result).toBe(true);
+  it('sets loading state during fetch', async () => {
+    const loadingStates: boolean[] = [];
+    
+    model.isLoading$.subscribe(loading => {
+      loadingStates.push(loading);
     });
 
-    it("returns false when temperature is within threshold", () => {
-      const rule = new AlertRule(
-        "rule-1",
-        "temperature",
-        new MaximumThreshold(Temperature.fromCelsius(30)),
-        [],
-        true
-      );
-
-      const reading = createSensorReading({
-        temperature: Temperature.fromCelsius(25),
-      });
-
-      expect(rule.evaluate(reading)).toBe(false);
-    });
-
-    it("returns false when rule is disabled", () => {
-      const rule = new AlertRule(
-        "rule-1",
-        "temperature",
-        new MaximumThreshold(Temperature.fromCelsius(30)),
-        [],
-        false // disabled
-      );
-
-      const reading = createSensorReading({
-        temperature: Temperature.fromCelsius(35),
-      });
-
-      expect(rule.evaluate(reading)).toBe(false);
-    });
+    await model.fetch();
+    
+    expect(loadingStates).toEqual([false, true, false]);
   });
 });
 ```
 
-These are fast, focused tests with no external dependencies. You're testing pure logic. Compare this to testing business logic that's embedded in a React component—you'd need to render components, simulate user interactions, and deal with framework-specific testing utilities. By extracting domain logic into separate models, you've made it drastically easier to test.
+No framework setup, no DOM, no component rendering. Just pure logic tests.
 
-## Where to Go from Here
+## When to Extend Models
 
-We've covered the strategic patterns of DDD—bounded contexts, domain events, the distinction between domain models and DTOs. These are the high-value concepts that will improve your architecture immediately.
+The GreenWatch Models are simple—they inherit all functionality from `RestfulApiModel` without adding custom methods. When should you extend a Model with custom logic?
 
-There are deeper DDD patterns we haven't explored—aggregates, repositories, domain services, specifications. Some of these translate well to frontend development; others are less relevant. As you become comfortable with bounded contexts and domain modeling, explore these patterns selectively based on your needs.
+**Add custom methods when you have domain-specific operations:**
 
-The key takeaway: your frontend application has a domain. Model it intentionally. Create boundaries that reflect business concepts, not technical layers. Use rich domain models that encode business rules. Let different parts of your application evolve independently by communicating through events rather than direct coupling.
+```typescript
+export class SensorModel extends RestfulApiModel<...> {
+  // Custom method: fetch only active sensors
+  async fetchActive(): Promise<void> {
+    const url = `${this.baseUrl}/${this.endpoint}?status=active`;
+    // ... implementation
+  }
 
-In the next chapter, we'll implement our first ViewModel, bringing together everything we've learned about MVVM and DDD. We'll build the monitoring dashboard for GreenWatch, demonstrating how domain models, ViewModels, and reactive streams combine to create a maintainable, testable architecture.
+  // Custom method: calibrate a sensor
+  async calibrate(sensorId: string, calibrationData: CalibrationData): Promise<void> {
+    const url = `${this.baseUrl}/${this.endpoint}/${sensorId}/calibrate`;
+    // ... implementation
+  }
+
+  // Custom computed property: get sensors by type
+  getSensorsByType(type: SensorType): Observable<SensorData[]> {
+    return this.data$.pipe(
+      map(sensors => sensors?.filter(s => s.type === type) ?? [])
+    );
+  }
+}
+```
+
+**Don't add methods for presentation logic:**
+
+```typescript
+// ❌ BAD: Presentation logic in Model
+export class SensorModel extends RestfulApiModel<...> {
+  formatTemperature(celsius: number): string {
+    return `${celsius}°C`;
+  }
+
+  isSelected(sensorId: string): boolean {
+    return this.selectedId === sensorId;
+  }
+}
+
+// ✅ GOOD: Presentation logic in ViewModel
+export class SensorViewModel {
+  formatTemperature(celsius: number): string {
+    return `${celsius}°C`;
+  }
+
+  isSelected(sensorId: string): boolean {
+    return this.selectedId === sensorId;
+  }
+}
+```
+
+## Key Takeaways
+
+1. **Models are framework-agnostic**: They use RxJS observables, not framework-specific reactivity. This makes them reusable across React, Vue, Angular, and beyond.
+
+2. **Models manage domain data**: They fetch from APIs, validate with Zod schemas, and expose reactive state through observables.
+
+3. **BaseModel provides the foundation**: Core observables (`data$`, `isLoading$`, `error$`), validation, and lifecycle management.
+
+4. **RestfulApiModel adds CRUD**: Fetch, create, update, delete operations with optimistic updates and error handling.
+
+5. **GreenWatch Models are simple**: They inherit from `RestfulApiModel` and configure it for specific domain entities (sensors, greenhouses, readings, alerts).
+
+6. **Models don't handle presentation**: Formatting, UI state, and user interactions belong in ViewModels and Views.
+
+7. **Models are easy to test**: No framework dependencies means simple, fast unit tests.
+
+## Next Steps
+
+We've built the foundation—Models that manage domain data independently of any UI framework. In the next chapter, we'll explore ViewModels: the presentation logic layer that connects Models to Views. ViewModels consume Model observables, transform data for display, and handle user interactions—all while remaining framework-agnostic themselves.
+
+The combination of Models and ViewModels creates a powerful separation: domain logic in Models, presentation logic in ViewModels, and framework-specific rendering in Views. This architecture scales from simple dashboards to complex, multi-framework applications like GreenWatch.

@@ -1,0 +1,275 @@
+{
+  "metadata": {
+    "generatedAt": "2025-01-15",
+    "description": "Complete inventory of available implementations in the Web Loom monorepo for the MVVM book rewrite",
+    "purpose": "Consolidates ViewModels, framework implementations, supporting libraries, and domain entities for reference during book rewriting"
+  },
+  "viewModels": {
+    "sourceDirectory": "packages/view-models/",
+    "total": 5,
+    "list": [
+      {
+        "name": "GreenHouseViewModel",
+        "file": "packages/view-models/src/GreenHouseViewModel.ts",
+        "purpose": "Manages greenhouse state and operations for the GreenWatch monitoring system",
+        "usedInFrameworks": ["React", "Vue", "Lit", "Vanilla JS"]
+      },
+      {
+        "name": "SensorViewModel",
+        "file": "packages/view-models/src/SensorViewModel.ts",
+        "purpose": "Manages individual sensor state and configuration",
+        "usedInFrameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS"]
+      },
+      {
+        "name": "SensorReadingViewModel",
+        "file": "packages/view-models/src/SensorReadingViewModel.ts",
+        "purpose": "Manages sensor reading streams and aggregations",
+        "usedInFrameworks": ["React", "Vue", "Lit", "Vanilla JS"]
+      },
+      {
+        "name": "ThresholdAlertViewModel",
+        "file": "packages/view-models/src/ThresholdAlertViewModel.ts",
+        "purpose": "Manages alert configuration and notifications",
+        "usedInFrameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS"]
+      },
+      {
+        "name": "AuthViewModel",
+        "file": "packages/view-models/src/AuthViewModel.ts",
+        "purpose": "Manages authentication state and operations",
+        "usedInFrameworks": ["React"]
+      }
+    ]
+  },
+  "models": {
+    "sourceDirectory": "packages/mvvm-core/src/models/",
+    "coreModels": [
+      {
+        "name": "BaseModel",
+        "file": "packages/mvvm-core/src/models/BaseModel.ts",
+        "purpose": "Base class for models providing core data management, loading states, error handling, and Zod validation"
+      },
+      {
+        "name": "RestfulApiModel",
+        "file": "packages/mvvm-core/src/models/RestfulApiModel.ts",
+        "purpose": "Extends BaseModel with RESTful API operations (CRUD, pagination)"
+      },
+      {
+        "name": "QueryStateModel",
+        "file": "packages/mvvm-core/src/models/QueryStateModel.ts",
+        "purpose": "Extends BaseModel to provide capabilities for interacting with data sources managed by QueryCore"
+      }
+    ],
+    "domainModels": [
+      {
+        "name": "GreenHouseModel",
+        "file": "packages/models/src/GreenHouseModel.ts",
+        "purpose": "Domain model for greenhouse entities"
+      },
+      {
+        "name": "SensorModel",
+        "file": "packages/models/src/SensorModel.ts",
+        "purpose": "Domain model for sensor entities"
+      },
+      {
+        "name": "ThresholdAlertModel",
+        "file": "packages/models/src/ThresholdAlertModel.ts",
+        "purpose": "Domain model for threshold alert entities"
+      }
+    ]
+  },
+  "frameworkImplementations": {
+    "sourceDirectory": "apps/mvvm-*",
+    "total": 7,
+    "frameworks": [
+      {
+        "framework": "React",
+        "appDirectory": "apps/mvvm-react",
+        "description": "React implementation of GreenWatch using hooks pattern",
+        "buildTool": "Vite",
+        "componentCount": 9,
+        "viewModelsUsed": ["greenHouseViewModel", "sensorViewModel", "sensorReadingViewModel", "thresholdAlertViewModel"],
+        "keyPattern": "useObservable custom hook"
+      },
+      {
+        "framework": "Vue",
+        "appDirectory": "apps/mvvm-vue",
+        "description": "Vue 3 implementation using Composition API",
+        "buildTool": "Vite",
+        "componentCount": 9,
+        "viewModelsUsed": ["greenHouseViewModel", "sensorViewModel", "sensorReadingViewModel", "thresholdAlertViewModel"],
+        "keyPattern": "useObservable composable"
+      },
+      {
+        "framework": "Angular",
+        "appDirectory": "apps/mvvm-angular",
+        "description": "Angular implementation using dependency injection",
+        "buildTool": "Angular CLI",
+        "componentCount": 10,
+        "viewModelsUsed": ["greenHouseViewModel", "sensorViewModel", "sensorReadingViewModel", "thresholdAlertViewModel"],
+        "keyPattern": "Dependency injection with InjectionToken, async pipe"
+      },
+      {
+        "framework": "Lit",
+        "appDirectory": "apps/mvvm-lit",
+        "description": "Lit web components implementation",
+        "buildTool": "Vite",
+        "componentCount": 10,
+        "viewModelsUsed": ["greenHouseViewModel", "sensorViewModel", "sensorReadingViewModel", "thresholdAlertViewModel"],
+        "keyPattern": "Direct subscription with @state decorators"
+      },
+      {
+        "framework": "Vanilla JavaScript",
+        "appDirectory": "apps/mvvm-vanilla",
+        "description": "Framework-free implementation using EJS templates",
+        "buildTool": "Vite",
+        "viewCount": 9,
+        "viewModelsUsed": ["greenHouseViewModel", "sensorViewModel", "sensorReadingViewModel", "thresholdAlertViewModel"],
+        "keyPattern": "Direct observable subscriptions with EJS templates"
+      },
+      {
+        "framework": "React Integrated",
+        "appDirectory": "apps/mvvm-react-integrated",
+        "description": "Advanced React implementation with design system integration and authentication",
+        "buildTool": "Vite",
+        "componentCount": 8,
+        "viewModelsUsed": ["greenHouseViewModel", "sensorViewModel", "sensorReadingViewModel", "thresholdAlertViewModel", "authViewModel"],
+        "keyPattern": "useObservable hook with design tokens and composite commands"
+      },
+      {
+        "framework": "React Native",
+        "appDirectory": "apps/mvvm-react-native",
+        "description": "React Native implementation for mobile platforms",
+        "buildTool": "Metro",
+        "componentCount": 9,
+        "viewModelsUsed": ["greenHouseViewModel", "sensorViewModel", "sensorReadingViewModel", "thresholdAlertViewModel"],
+        "keyPattern": "useObservable hook with FlatList rendering"
+      }
+    ]
+  },
+  "supportingLibraries": {
+    "sourceDirectory": "packages/",
+    "total": 7,
+    "frameworkAgnosticLibraries": [
+      {
+        "name": "signals-core",
+        "package": "@web-loom/signals-core",
+        "purpose": "Framework-agnostic reactive signals with computed values and effects",
+        "pattern": "Signals Pattern",
+        "mvvmLayer": "ViewModel",
+        "keyExports": ["signal", "computed", "effect", "batch", "untracked"]
+      },
+      {
+        "name": "store-core",
+        "package": "@web-loom/store-core",
+        "purpose": "Minimal client state management library",
+        "pattern": "Observable Store Pattern",
+        "mvvmLayer": "ViewModel",
+        "keyExports": ["createStore", "LocalStorageAdapter", "IndexedDBAdapter"]
+      },
+      {
+        "name": "event-bus-core",
+        "package": "@web-loom/event-bus-core",
+        "purpose": "Lightweight event bus for decoupled communication",
+        "pattern": "Publish-Subscribe Pattern",
+        "mvvmLayer": "Cross-cutting",
+        "keyExports": ["createEventBus"]
+      },
+      {
+        "name": "query-core",
+        "package": "@web-loom/query-core",
+        "purpose": "Minimal server state management with caching",
+        "pattern": "Data Fetching and Caching Pattern",
+        "mvvmLayer": "Model",
+        "keyExports": ["QueryCore", "InMemoryCacheProvider", "LocalStorageCacheProvider", "IndexedDBCacheProvider"]
+      },
+      {
+        "name": "ui-core",
+        "package": "@web-loom/ui-core",
+        "purpose": "Framework-agnostic headless UI behaviors",
+        "pattern": "Headless UI Pattern",
+        "mvvmLayer": "View",
+        "keyExports": ["createDialogBehavior", "createDisclosureBehavior", "createFormBehavior", "createListSelectionBehavior", "createRovingFocusBehavior"]
+      },
+      {
+        "name": "ui-patterns",
+        "package": "@web-loom/ui-patterns",
+        "purpose": "Composed UI patterns built on ui-core behaviors",
+        "pattern": "Composed UI Pattern",
+        "mvvmLayer": "View",
+        "keyExports": ["createMasterDetail", "createWizard", "createModal", "createCommandPalette", "createTabbedInterface"]
+      },
+      {
+        "name": "design-core",
+        "package": "@web-loom/design-core",
+        "purpose": "Minimal design system library with design tokens",
+        "pattern": "Design Token System Pattern",
+        "mvvmLayer": "View",
+        "keyExports": ["Type definitions for design tokens", "CSS custom property files"]
+      }
+    ],
+    "otherLibraries": [
+      {
+        "name": "mvvm-core",
+        "package": "@web-loom/mvvm-core",
+        "purpose": "Core MVVM library with BaseModel, BaseViewModel, RestfulApiViewModel",
+        "keyExports": ["BaseModel", "RestfulApiModel", "QueryStateModel", "BaseViewModel", "RestfulApiViewModel"]
+      },
+      {
+        "name": "plugin-core",
+        "package": "@web-loom/plugin-core",
+        "purpose": "Plugin architecture library for runtime extensibility",
+        "keyExports": ["PluginRegistry", "FrameworkAdapter", "PluginManifest", "PluginSDK"]
+      },
+      {
+        "name": "models",
+        "package": "@repo/models",
+        "purpose": "Shared data models and Zod schemas",
+        "keyExports": ["Greenhouse schemas", "Sensor schemas", "SensorReading schemas", "ThresholdAlert schemas"]
+      }
+    ]
+  },
+  "domainEntities": {
+    "greenWatch": {
+      "description": "Primary case study - greenhouse monitoring system",
+      "entities": ["Greenhouse", "Sensor", "SensorReading", "ThresholdAlert"],
+      "entityCount": 4
+    },
+    "ecommerce": {
+      "description": "Secondary case study - e-commerce application",
+      "entities": ["CatalogProduct", "CartItem", "Cart", "CheckoutRequest", "CheckoutResult"],
+      "entityCount": 5
+    },
+    "pluginArchitecture": {
+      "description": "Plugin system demonstrating runtime extensibility",
+      "entities": ["PluginManifest", "PluginRouteDefinition", "PluginMenuItem", "PluginWidgetDefinition", "PluginModule", "PluginDefinition", "PluginState", "PluginRegistry", "FrameworkAdapter", "PluginSDK"],
+      "entityCount": 10
+    },
+    "mvvmCore": {
+      "description": "Core MVVM architecture entities",
+      "entities": ["BaseModel", "RestfulApiModel", "QueryStateModel", "BaseViewModel", "RestfulApiViewModel", "IDisposable"],
+      "entityCount": 6
+    }
+  },
+  "summary": {
+    "totalViewModels": 5,
+    "totalFrameworkImplementations": 7,
+    "totalSupportingLibraries": 10,
+    "totalDomainEntities": 25,
+    "primaryCaseStudy": "GreenWatch (greenhouse monitoring)",
+    "secondaryCaseStudy": "E-commerce application",
+    "frameworksCovered": ["React", "Vue", "Angular", "Lit", "Vanilla JS", "React Native"],
+    "mvvmLayers": {
+      "Model": ["query-core", "mvvm-core models"],
+      "ViewModel": ["signals-core", "store-core", "mvvm-core viewmodels"],
+      "View": ["ui-core", "ui-patterns", "design-core"],
+      "CrossCutting": ["event-bus-core"]
+    }
+  },
+  "notes": [
+    "All ViewModels are framework-agnostic and reused across multiple framework implementations",
+    "Framework-agnostic libraries demonstrate MVVM-supporting patterns without prescribing specific solutions",
+    "GreenWatch system is implemented across all 7 framework implementations",
+    "Supporting libraries cover reactive state, events, data fetching, UI behaviors, and design systems",
+    "Domain entities are validated using Zod schemas for type safety"
+  ]
+}

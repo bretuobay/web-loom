@@ -1,0 +1,662 @@
+{
+  "metadata": {
+    "generatedAt": "2025-01-09",
+    "purpose": "Catalog of framework-agnostic libraries for MVVM Book Rewrite",
+    "totalLibraries": 7,
+    "note": "These libraries serve as concrete examples of MVVM-supporting patterns, not prescriptive solutions"
+  },
+  "libraries": [
+    {
+      "name": "signals-core",
+      "package": "@web-loom/signals-core",
+      "version": "0.6.0",
+      "description": "Framework-agnostic reactive signals with computed values and effects",
+      "purpose": "Demonstrates the signals pattern for reactive state management without RxJS",
+      "generalPattern": "Signals Pattern",
+      "patternDescription": "Fine-grained reactive state management using writable signals, computed values, and side effects. Signals track dependencies automatically and notify subscribers when values change.",
+      "keyExports": [
+        "signal<T>(initial, options?): WritableSignal<T>",
+        "computed<T>(derive, options?): Computed<T>",
+        "effect(fn, options?): EffectHandle",
+        "batch<T>(fn): T",
+        "untracked<T>(fn): T",
+        "flush(): void",
+        "isSignal(value): boolean",
+        "isWritableSignal(value): boolean"
+      ],
+      "coreTypes": [
+        "WritableSignal<T>",
+        "ReadonlySignal<T>",
+        "Computed<T>",
+        "EffectHandle",
+        "SignalOptions<T>",
+        "ComputedOptions<T>",
+        "EffectOptions"
+      ],
+      "mvvmSupport": {
+        "layer": "ViewModel",
+        "howItHelps": "Enables reactive state in ViewModels without RxJS. Signals provide fine-grained reactivity, computed values for derived state, and effects for side effects. The encapsulation pattern (asReadonly()) mirrors Angular's approach for exposing state without allowing external writes.",
+        "useCases": [
+          "Reactive ViewModel properties",
+          "Computed/derived state",
+          "Side effects and cleanup",
+          "Batched state updates",
+          "Encapsulated state (readonly signals)"
+        ]
+      },
+      "designPrinciples": [
+        "Zero dependencies",
+        "Lazy computed values (only recompute on get() after dependency changes)",
+        "Dynamic dependency tracking",
+        "Custom equality checks",
+        "Effect cleanup support",
+        "Batching support for multiple updates"
+      ],
+      "alternativeImplementations": [
+        {
+          "name": "Solid.js Signals",
+          "description": "Fine-grained reactive primitives from Solid.js framework"
+        },
+        {
+          "name": "Preact Signals",
+          "description": "Reactive state management for Preact and React"
+        },
+        {
+          "name": "Angular Signals",
+          "description": "Built-in signals in Angular 16+"
+        },
+        {
+          "name": "Vue Reactivity API",
+          "description": "ref() and computed() from Vue 3"
+        },
+        {
+          "name": "Custom Implementation",
+          "description": "Can be implemented using Proxy-based reactivity or observer pattern"
+        }
+      ],
+      "exampleUsage": {
+        "file": "packages/signals-core/README.md",
+        "snippet": "const count = signal(0);\nconst doubled = computed(() => count.get() * 2);\neffect(() => console.log('count:', count.get()));"
+      },
+      "sourceFiles": [
+        "packages/signals-core/src/signal.ts",
+        "packages/signals-core/src/computed.ts",
+        "packages/signals-core/src/effect.ts",
+        "packages/signals-core/src/batch.ts",
+        "packages/signals-core/src/untracked.ts"
+      ]
+    },
+    {
+      "name": "store-core",
+      "package": "@web-loom/store-core",
+      "version": "0.5.4",
+      "description": "Minimal client state management library for building reactive web applications",
+      "purpose": "Demonstrates the observable store pattern as an alternative to Redux/Zustand",
+      "generalPattern": "Observable Store Pattern",
+      "patternDescription": "Centralized state management with actions, subscriptions, and optional persistence. State changes occur only through explicit actions, promoting immutability and predictability.",
+      "keyExports": [
+        "createStore<S, A>(initialState, createActions, persistence?): Store<S, A> | PersistedStore<S, A>",
+        "LocalStorageAdapter",
+        "IndexedDBAdapter",
+        "MemoryAdapter"
+      ],
+      "coreTypes": [
+        "Store<S, A>",
+        "PersistedStore<S, A>",
+        "State",
+        "Actions<S, A>",
+        "Listener<S>",
+        "Selector<S, T>",
+        "PersistenceAdapter",
+        "PersistenceConfig<S>"
+      ],
+      "mvvmSupport": {
+        "layer": "ViewModel",
+        "howItHelps": "Provides framework-agnostic state management for ViewModels. Stores encapsulate state and actions, with subscription mechanisms for reactive updates. Supports persistence for user preferences and application state.",
+        "useCases": [
+          "ViewModel state management",
+          "Client-side state stores",
+          "User preferences persistence",
+          "Form state management",
+          "UI state (filters, selections, etc.)"
+        ]
+      },
+      "designPrinciples": [
+        "Simplicity with minimal boilerplate",
+        "Type safety with full TypeScript support",
+        "Framework agnostic",
+        "Predictable state changes through actions",
+        "Lightweight (<1KB)",
+        "Optional persistence (localStorage, IndexedDB, memory)"
+      ],
+      "alternativeImplementations": [
+        {
+          "name": "Redux",
+          "description": "Predictable state container with actions and reducers"
+        },
+        {
+          "name": "Zustand",
+          "description": "Small, fast state management with hooks"
+        },
+        {
+          "name": "MobX",
+          "description": "Observable state management with automatic tracking"
+        },
+        {
+          "name": "Pinia",
+          "description": "Vue state management library"
+        },
+        {
+          "name": "Jotai",
+          "description": "Primitive and flexible state management for React"
+        },
+        {
+          "name": "Custom Implementation",
+          "description": "Can be implemented using observer pattern with Map/Set for listeners"
+        }
+      ],
+      "exampleUsage": {
+        "file": "packages/store-core/README.md",
+        "snippet": "const store = createStore({ count: 0 }, (set) => ({\n  increment: () => set(state => ({ count: state.count + 1 }))\n}));"
+      },
+      "sourceFiles": [
+        "packages/store-core/src/index.ts",
+        "packages/store-core/src/persistence/index.ts"
+      ]
+    },
+    {
+      "name": "event-bus-core",
+      "package": "@web-loom/event-bus-core",
+      "version": "0.5.4",
+      "description": "Lightweight, framework-agnostic Event Bus library for decoupled communication",
+      "purpose": "Demonstrates event-driven architecture and pub/sub patterns for cross-component communication",
+      "generalPattern": "Publish-Subscribe (Pub/Sub) Pattern",
+      "patternDescription": "Event-driven communication where components publish events and other components subscribe to them without direct dependencies. Enables loose coupling and modular architecture.",
+      "keyExports": [
+        "createEventBus<M>(): EventBus<M>"
+      ],
+      "coreTypes": [
+        "EventBus<M>",
+        "EventMap",
+        "Listener<E, M>",
+        "GenericListener"
+      ],
+      "mvvmSupport": {
+        "layer": "Cross-cutting (Model, ViewModel, View)",
+        "howItHelps": "Enables decoupled communication between ViewModels, Models, and Views. ViewModels can emit domain events, Views can listen to ViewModel events, and Models can publish data change events without tight coupling.",
+        "useCases": [
+          "Cross-component communication",
+          "Domain event publishing",
+          "ViewModel-to-ViewModel communication",
+          "View-to-ViewModel event propagation",
+          "Global application events (login, logout, etc.)"
+        ]
+      },
+      "designPrinciples": [
+        "Type-safe with full TypeScript support",
+        "Framework agnostic",
+        "Lightweight (~1KB gzipped)",
+        "Zero dependencies",
+        "Simple API (on, once, emit, off)",
+        "Stable listener execution order",
+        "Memory leak prevention"
+      ],
+      "alternativeImplementations": [
+        {
+          "name": "EventEmitter (Node.js)",
+          "description": "Built-in Node.js event emitter"
+        },
+        {
+          "name": "EventTarget (Browser)",
+          "description": "Native browser API for event handling"
+        },
+        {
+          "name": "mitt",
+          "description": "Tiny 200-byte functional event emitter"
+        },
+        {
+          "name": "eventemitter3",
+          "description": "High-performance event emitter"
+        },
+        {
+          "name": "RxJS Subject",
+          "description": "Observable-based pub/sub with RxJS"
+        },
+        {
+          "name": "Custom Implementation",
+          "description": "Can be implemented using Map of event names to listener arrays"
+        }
+      ],
+      "exampleUsage": {
+        "file": "packages/event-bus-core/README.md",
+        "snippet": "const eventBus = createEventBus<AppEvents>();\neventBus.on('user:login', (user) => console.log(user));\neventBus.emit('user:login', { id: '123', name: 'Alice' });"
+      },
+      "sourceFiles": [
+        "packages/event-bus-core/src/eventBus.ts",
+        "packages/event-bus-core/src/types.ts"
+      ]
+    },
+    {
+      "name": "query-core",
+      "package": "@web-loom/query-core",
+      "version": "0.5.4",
+      "description": "Minimal server state management library for building reactive web applications",
+      "purpose": "Demonstrates data fetching and caching patterns for async state management",
+      "generalPattern": "Data Fetching and Caching Pattern",
+      "patternDescription": "Manages asynchronous data fetching with automatic caching, background refetching, and state management. Handles loading states, errors, and cache invalidation with minimal configuration.",
+      "keyExports": [
+        "QueryCore",
+        "InMemoryCacheProvider",
+        "LocalStorageCacheProvider",
+        "IndexedDBCacheProvider"
+      ],
+      "coreTypes": [
+        "QueryCore",
+        "QueryCoreOptions",
+        "EndpointOptions",
+        "EndpointState<TData>",
+        "CacheProvider",
+        "CachedItem<TData>"
+      ],
+      "mvvmSupport": {
+        "layer": "Model",
+        "howItHelps": "Provides framework-agnostic data fetching for Models. Handles async state (loading, error, data), automatic caching, and background refetching. Models can define endpoints and ViewModels can subscribe to endpoint state changes.",
+        "useCases": [
+          "RESTful API data fetching",
+          "Async Model data loading",
+          "Background data synchronization",
+          "Cache management",
+          "Stale-while-revalidate pattern",
+          "Automatic refetch on window focus/network reconnect"
+        ]
+      },
+      "designPrinciples": [
+        "Zero dependencies",
+        "Declarative endpoint definitions",
+        "Automatic caching (in-memory, localStorage, IndexedDB)",
+        "Subscription-based state management",
+        "Automatic refetching (stale data, window focus, network reconnect)",
+        "Manual control (refetch, invalidate)",
+        "Deep cloning for data immutability"
+      ],
+      "alternativeImplementations": [
+        {
+          "name": "React Query (TanStack Query)",
+          "description": "Powerful data fetching and caching for React"
+        },
+        {
+          "name": "SWR",
+          "description": "React hooks for data fetching with stale-while-revalidate"
+        },
+        {
+          "name": "Apollo Client",
+          "description": "GraphQL client with caching and state management"
+        },
+        {
+          "name": "RTK Query",
+          "description": "Redux Toolkit's data fetching and caching solution"
+        },
+        {
+          "name": "Native fetch with cache",
+          "description": "Can be implemented using fetch API with manual cache management"
+        },
+        {
+          "name": "Custom Implementation",
+          "description": "Can be implemented using Promise-based fetchers with Map-based cache"
+        }
+      ],
+      "exampleUsage": {
+        "file": "packages/query-core/README.md",
+        "snippet": "const queryCore = new QueryCore();\nawait queryCore.defineEndpoint('users', () => fetch('/api/users'));\nqueryCore.subscribe('users', (state) => console.log(state.data));"
+      },
+      "sourceFiles": [
+        "packages/query-core/src/QueryCore.ts",
+        "packages/query-core/src/cacheProviders/InMemoryCacheProvider.ts",
+        "packages/query-core/src/cacheProviders/LocalStorageCacheProvider.ts",
+        "packages/query-core/src/cacheProviders/IndexedDBCacheProvider.ts"
+      ]
+    },
+    {
+      "name": "ui-core",
+      "package": "@web-loom/ui-core",
+      "version": "0.5.4",
+      "description": "Framework-agnostic headless UI behaviors for modern web applications",
+      "purpose": "Demonstrates headless UI behavior patterns that separate interaction logic from presentation",
+      "generalPattern": "Headless UI Pattern",
+      "patternDescription": "Atomic UI interaction behaviors that encapsulate logic without prescribing presentation. Behaviors manage state and interactions (keyboard, mouse, focus) while leaving rendering to the framework.",
+      "keyExports": [
+        "createDialogBehavior",
+        "createDisclosureBehavior",
+        "createFormBehavior",
+        "createListSelectionBehavior",
+        "createRovingFocusBehavior",
+        "createKeyboardShortcutsBehavior",
+        "createUndoRedoStackBehavior",
+        "createDragDropBehavior"
+      ],
+      "coreTypes": [
+        "DialogBehavior",
+        "DisclosureBehavior",
+        "FormBehavior",
+        "ListSelectionBehavior",
+        "RovingFocusBehavior",
+        "KeyboardShortcutsBehavior",
+        "UndoRedoStackBehavior",
+        "DragDropBehavior"
+      ],
+      "mvvmSupport": {
+        "layer": "View",
+        "howItHelps": "Provides reusable UI interaction logic that Views can consume. Behaviors handle complex interactions (keyboard navigation, focus management, selection) in a framework-agnostic way, allowing Views to focus on rendering.",
+        "useCases": [
+          "Dialog/modal management",
+          "Accordion/disclosure interactions",
+          "Form state and validation",
+          "List selection (single/multiple)",
+          "Keyboard navigation (roving focus)",
+          "Keyboard shortcuts",
+          "Undo/redo functionality",
+          "Drag and drop interactions"
+        ]
+      },
+      "designPrinciples": [
+        "Framework agnostic (works with React, Vue, Angular, vanilla JS)",
+        "Separation of behavior from presentation",
+        "Atomic behaviors that compose into larger patterns",
+        "Built on @web-loom/store-core for state management",
+        "Accessibility-first design",
+        "Tree-shakeable exports"
+      ],
+      "alternativeImplementations": [
+        {
+          "name": "Headless UI (Tailwind)",
+          "description": "Unstyled, accessible UI components for React and Vue"
+        },
+        {
+          "name": "Radix UI Primitives",
+          "description": "Low-level UI primitives for React"
+        },
+        {
+          "name": "React Aria",
+          "description": "Accessible UI primitives for React"
+        },
+        {
+          "name": "Zag.js",
+          "description": "Framework-agnostic UI component logic"
+        },
+        {
+          "name": "Ariakit",
+          "description": "Toolkit for building accessible web apps"
+        },
+        {
+          "name": "Custom Implementation",
+          "description": "Can be implemented using state machines and event handlers"
+        }
+      ],
+      "exampleUsage": {
+        "file": "packages/ui-core/src/index.ts",
+        "snippet": "const dialog = createDialogBehavior({ id: 'my-dialog' });\ndialog.actions.open({ title: 'Hello' });\ndialog.subscribe((state) => console.log(state));"
+      },
+      "sourceFiles": [
+        "packages/ui-core/src/behaviors/dialog.ts",
+        "packages/ui-core/src/behaviors/disclosure.ts",
+        "packages/ui-core/src/behaviors/form.ts",
+        "packages/ui-core/src/behaviors/list-selection.ts",
+        "packages/ui-core/src/behaviors/roving-focus.ts",
+        "packages/ui-core/src/behaviors/keyboard-shortcuts.ts",
+        "packages/ui-core/src/behaviors/undo-redo-stack.ts",
+        "packages/ui-core/src/behaviors/drag-drop.ts"
+      ]
+    },
+    {
+      "name": "ui-patterns",
+      "package": "@web-loom/ui-patterns",
+      "version": "0.5.4",
+      "description": "Composed UI patterns built on Web Loom UI Core behaviors",
+      "purpose": "Demonstrates composed UI patterns that combine atomic behaviors into complete interaction patterns",
+      "generalPattern": "Composed UI Pattern",
+      "patternDescription": "Higher-level UI patterns that compose atomic behaviors from ui-core into complete interaction flows. Patterns coordinate multiple behaviors and provide event-driven communication.",
+      "keyExports": [
+        "createMasterDetail",
+        "createWizard",
+        "createModal",
+        "createCommandPalette",
+        "createTabbedInterface",
+        "createSidebarShell",
+        "createToastQueue",
+        "createFloatingActionButton",
+        "createGridLayout",
+        "createHubAndSpoke"
+      ],
+      "coreTypes": [
+        "MasterDetailPattern",
+        "WizardPattern",
+        "ModalPattern",
+        "CommandPalettePattern",
+        "TabbedInterfacePattern",
+        "SidebarShellPattern",
+        "ToastQueuePattern",
+        "FloatingActionButtonPattern",
+        "GridLayoutPattern",
+        "HubAndSpokePattern"
+      ],
+      "mvvmSupport": {
+        "layer": "View",
+        "howItHelps": "Provides complete UI patterns that Views can use for common application layouts and interactions. Patterns handle coordination between multiple behaviors and provide event buses for communication.",
+        "useCases": [
+          "Master-detail layouts (list + detail view)",
+          "Multi-step wizards/forms",
+          "Modal stacks and dialogs",
+          "Command palettes (search + actions)",
+          "Tabbed interfaces",
+          "Sidebar navigation shells",
+          "Toast/notification queues",
+          "Floating action buttons",
+          "Grid layouts with drag-drop",
+          "Hub-and-spoke navigation"
+        ]
+      },
+      "designPrinciples": [
+        "Built by composing ui-core atomic behaviors",
+        "Framework agnostic",
+        "Event-driven pattern communication",
+        "Dependency on @web-loom/ui-core, @web-loom/store-core, @web-loom/event-bus-core",
+        "Tree-shakeable exports",
+        "Separation of pattern logic from presentation"
+      ],
+      "alternativeImplementations": [
+        {
+          "name": "Custom Composition",
+          "description": "Compose your own patterns using ui-core behaviors"
+        },
+        {
+          "name": "Framework-specific patterns",
+          "description": "React Router, Vue Router, Angular Router for navigation patterns"
+        },
+        {
+          "name": "UI Libraries",
+          "description": "Material-UI, Ant Design, Chakra UI provide pre-built patterns"
+        },
+        {
+          "name": "Custom Implementation",
+          "description": "Can be implemented by coordinating multiple behaviors with event buses"
+        }
+      ],
+      "exampleUsage": {
+        "file": "packages/ui-patterns/src/index.ts",
+        "snippet": "const masterDetail = createMasterDetail({\n  items: [{ id: '1', name: 'Item 1' }],\n  getId: (item) => item.id\n});\nmasterDetail.actions.selectItem(items[0]);"
+      },
+      "sourceFiles": [
+        "packages/ui-patterns/src/patterns/master-detail.ts",
+        "packages/ui-patterns/src/patterns/wizard.ts",
+        "packages/ui-patterns/src/patterns/modal.ts",
+        "packages/ui-patterns/src/patterns/command-palette.ts",
+        "packages/ui-patterns/src/patterns/tabbed-interface.ts",
+        "packages/ui-patterns/src/patterns/sidebar-shell.ts",
+        "packages/ui-patterns/src/patterns/toast-queue.ts",
+        "packages/ui-patterns/src/patterns/floating-action-button.ts",
+        "packages/ui-patterns/src/patterns/grid-layout.ts",
+        "packages/ui-patterns/src/patterns/hub-and-spoke.ts"
+      ]
+    },
+    {
+      "name": "design-core",
+      "package": "@web-loom/design-core",
+      "version": "0.5.6",
+      "description": "Minimal design system library for building reactive web applications",
+      "purpose": "Demonstrates design token and theming patterns for framework-agnostic design systems",
+      "generalPattern": "Design Token System Pattern",
+      "patternDescription": "Framework-agnostic design token system using CSS custom properties. Provides type-safe design tokens for colors, spacing, typography, shadows, and more, with support for dynamic theming.",
+      "keyExports": [
+        "Type definitions for design tokens (borders, breakpoints, colors, spacing, typography, etc.)",
+        "CSS custom property files",
+        "Design system utilities"
+      ],
+      "coreTypes": [
+        "BorderToken",
+        "BreakpointToken",
+        "ColorToken",
+        "CursorStyleToken",
+        "FocusRingToken",
+        "GradientToken",
+        "OpacityToken",
+        "RadiusToken",
+        "ShadowToken",
+        "SizingToken",
+        "SpacingToken",
+        "TimingToken",
+        "TransitionToken",
+        "TypographyToken",
+        "ZIndexToken"
+      ],
+      "mvvmSupport": {
+        "layer": "View",
+        "howItHelps": "Provides framework-agnostic design tokens that Views can use for consistent styling. Design tokens enable theming, dark mode, and design system consistency across all framework implementations.",
+        "useCases": [
+          "Design system tokens",
+          "Theme management (light/dark mode)",
+          "CSS custom properties generation",
+          "Consistent spacing and typography",
+          "Color palettes and gradients",
+          "Responsive breakpoints",
+          "Animation timing and transitions"
+        ]
+      },
+      "designPrinciples": [
+        "Framework agnostic (CSS custom properties)",
+        "Type-safe design tokens with TypeScript",
+        "Modular CSS exports (import only what you need)",
+        "Dynamic theming support",
+        "Scalable design system foundation",
+        "Zero runtime JavaScript (pure CSS)"
+      ],
+      "alternativeImplementations": [
+        {
+          "name": "Style Dictionary",
+          "description": "Build system for design tokens"
+        },
+        {
+          "name": "Theo",
+          "description": "Design token transformer by Salesforce"
+        },
+        {
+          "name": "Vanilla Extract",
+          "description": "Zero-runtime CSS-in-TypeScript"
+        },
+        {
+          "name": "Stitches",
+          "description": "CSS-in-JS with design tokens"
+        },
+        {
+          "name": "Tailwind CSS",
+          "description": "Utility-first CSS framework with design tokens"
+        },
+        {
+          "name": "Custom CSS Variables",
+          "description": "Can be implemented using native CSS custom properties"
+        }
+      ],
+      "exampleUsage": {
+        "file": "packages/design-core/package.json",
+        "snippet": "import '@web-loom/design-core/design-system';\nimport type { ColorToken } from '@web-loom/design-core';\nconst primary: ColorToken = 'var(--color-primary)';"
+      },
+      "sourceFiles": [
+        "packages/design-core/src/types/borders.ts",
+        "packages/design-core/src/types/breakpoints.ts",
+        "packages/design-core/src/types/colors.ts",
+        "packages/design-core/src/types/spacing.ts",
+        "packages/design-core/src/types/typography.ts",
+        "packages/design-core/src/css/colors.css",
+        "packages/design-core/src/css/spacing.css",
+        "packages/design-core/src/css/typography.css"
+      ]
+    }
+  ],
+  "patternSummary": {
+    "reactiveState": {
+      "pattern": "Reactive State Management",
+      "libraries": ["signals-core", "store-core"],
+      "description": "Patterns for managing reactive state that automatically updates subscribers when values change",
+      "alternatives": ["RxJS", "MobX", "Vue Reactivity", "Angular Signals", "Solid.js Signals"]
+    },
+    "communication": {
+      "pattern": "Event-Driven Communication",
+      "libraries": ["event-bus-core"],
+      "description": "Pub/sub patterns for decoupled communication between components",
+      "alternatives": ["EventEmitter", "EventTarget", "RxJS Subject", "mitt", "eventemitter3"]
+    },
+    "dataFetching": {
+      "pattern": "Data Fetching and Caching",
+      "libraries": ["query-core"],
+      "description": "Patterns for managing async data with caching, background refetching, and state management",
+      "alternatives": ["React Query", "SWR", "Apollo Client", "RTK Query", "Native fetch with cache"]
+    },
+    "uiBehaviors": {
+      "pattern": "Headless UI Behaviors",
+      "libraries": ["ui-core"],
+      "description": "Atomic UI interaction logic separated from presentation",
+      "alternatives": ["Headless UI", "Radix UI", "React Aria", "Zag.js", "Ariakit"]
+    },
+    "uiPatterns": {
+      "pattern": "Composed UI Patterns",
+      "libraries": ["ui-patterns"],
+      "description": "Higher-level patterns that compose atomic behaviors into complete interaction flows",
+      "alternatives": ["Custom composition", "Framework-specific patterns", "UI library patterns"]
+    },
+    "designSystem": {
+      "pattern": "Design Token System",
+      "libraries": ["design-core"],
+      "description": "Framework-agnostic design tokens using CSS custom properties for theming and consistency",
+      "alternatives": ["Style Dictionary", "Theo", "Vanilla Extract", "Stitches", "Tailwind CSS"]
+    }
+  },
+  "mvvmLayerMapping": {
+    "Model": {
+      "libraries": ["query-core"],
+      "description": "Libraries that support the Model layer with data fetching and async state management"
+    },
+    "ViewModel": {
+      "libraries": ["signals-core", "store-core"],
+      "description": "Libraries that support the ViewModel layer with reactive state management"
+    },
+    "View": {
+      "libraries": ["ui-core", "ui-patterns", "design-core"],
+      "description": "Libraries that support the View layer with UI behaviors, patterns, and design tokens"
+    },
+    "CrossCutting": {
+      "libraries": ["event-bus-core"],
+      "description": "Libraries that support communication across all layers"
+    }
+  },
+  "teachingApproach": {
+    "principle": "Patterns First, Libraries as Examples",
+    "description": "The book teaches MVVM patterns and principles in general terms, using these libraries as concrete implementations to demonstrate the patterns, not as prescriptive solutions.",
+    "structure": [
+      "1. Explain the pattern conceptually (why it matters, what problem it solves)",
+      "2. Show the Web Loom library as one implementation approach",
+      "3. Present alternative implementations (other libraries, native APIs)",
+      "4. Provide guidance on when to use each approach",
+      "5. Emphasize transferable knowledge (patterns can be implemented without specific libraries)"
+    ],
+    "emphasis": "Readers should be able to apply the patterns using any reactive library or build their own implementations"
+  }
+}

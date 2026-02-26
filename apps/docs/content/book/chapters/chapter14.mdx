@@ -1,1500 +1,1788 @@
-# Chapter 14: Cross-Platform — Ionic, React Native, and Electron with Shared ViewModels
+---
+id: "event-driven-communication"
+title: Event-Driven Communication
+section: Framework-Agnostic Patterns
+---
 
-## Introduction: The Promise and the Reality
+# Chapter 14: Event-Driven Communication
 
-When we talk about "write once, run anywhere," we're usually met with skepticism—and rightfully so. The graveyard of cross-platform solutions is littered with frameworks that promised universal code but delivered universal mediocrity. Java applets, Flash, early PhoneGap implementations—each generation has learned that abstraction has a cost.
+Modern applications are composed of many independent components that need to communicate with each other. A sensor reading arrives and multiple parts of your UI need to update. A user adds an item to their cart and you need to refresh the cart badge, update analytics, and maybe show a notification. A threshold alert triggers and you need to log it, display it, and possibly send a notification.
 
-But here's the thing: **we're not proposing to abstract away platform differences**. We're proposing something more pragmatic and, frankly, more honest. We'll write our business logic once, in framework-agnostic ViewModels, and then implement platform-specific views that feel native to their environment. The ViewModel doesn't care if it's driving a React Native mobile app, an Electron desktop application, or an Ionic web-based interface—it just exposes observables and accepts commands.
+The naive approach is direct coupling: Component A calls a method on Component B, which calls a method on Component C. This creates a tangled web of dependencies where every component needs to know about every other component it affects. Testing becomes a nightmare. Reusing components in different contexts becomes impossible. Adding new features means modifying existing code in multiple places.
 
-This chapter proves that architectural separation isn't just about maintainability within a single platform—it's about **true portability across platforms**. We'll take the same `GreenhouseDetailViewModel` we've been using throughout this book and run it in three radically different environments, writing only view-layer code for each platform.
+Event-driven architecture solves this problem by decoupling components through events. Instead of components calling each other directly, they communicate through events: Component A emits an event, and any component that cares about that event can listen for it. Components don't need to know about each other—they only need to know about the events they care about.
 
-Let's see how this actually works.
+This chapter explores event-driven communication as a **framework-agnostic pattern**. We'll examine why event-driven architecture matters for MVVM, explore the publish-subscribe (pub/sub) pattern, and show how to implement it using `event-bus-core` from the Web Loom monorepo as a concrete example. But remember: the patterns we discuss are transferable to any event library, native browser APIs, or even your own custom implementation.
 
-## Why This Matters: Beyond Theoretical Portability
+## Why Event-Driven Communication Matters for MVVM
 
-Before we dive into the technical implementation, we need to understand what we're really achieving here. This isn't about reducing code duplication for its own sake—though we'll certainly achieve that. This is about **architectural honesty**.
+In MVVM architecture, the separation of concerns across Model, ViewModel, and View layers creates natural boundaries. But these layers—and the components within them—still need to communicate. Event-driven communication provides a clean way to enable this communication without creating tight coupling.
 
-Consider the typical cross-platform development story: A team starts with a web application. Business is good, and stakeholders want a mobile app. The team faces a choice:
+### The Problem: Tight Coupling
 
-1. **Rewrite everything natively** (iOS Swift, Android Kotlin)—expensive, but each platform gets exactly what it needs.
-2. **Use a cross-platform framework** (React Native, Flutter)—cheaper upfront, but now you're maintaining a different codebase from your web app.
-3. **Wrap the web app** (Ionic, Capacitor)—fastest, but often delivers a subpar mobile experience.
+Consider a greenhouse monitoring system without events:
 
-Each approach has merit, but they all share a fundamental problem: **your business logic is coupled to your platform choice**. If you wrote your greenhouse monitoring logic inside React components, you can't reuse it in React Native without modification. If your temperature validation lives in a Vue component, good luck using it in Electron.
-
-Our approach is different. The business logic—all those rules about temperature thresholds, irrigation schedules, and alert generation—lives in ViewModels that don't import a single line of React, Vue, or Angular code. This means:
-
-- **Platform flexibility:** Start with web, add mobile later, maybe build a desktop app for power users—the core logic doesn't change.
-- **Team specialization:** Your iOS developer can work on the native view layer while your backend engineer refines the domain logic, without stepping on each other's toes.
-- **Incremental migration:** Moving from one framework to another becomes a view-layer exercise, not a complete rewrite.
-- **Testing sanity:** You test your business logic once, in plain TypeScript with no framework overhead. Platform-specific view tests focus on rendering and user interaction, not business rules.
-
-This isn't theoretical. We've seen production codebases where the same ViewModel drives a React web app, a React Native mobile app, and an Electron desktop client, with the only differences being the view implementations. Let's build exactly that.
-
-## The Shared Foundation: What Stays Constant
-
-Before we implement platform-specific views, let's establish what remains unchanged across all platforms. This is the architecture's payoff—the code we'll never have to rewrite.
-
-### The ViewModel: Truly Platform-Agnostic
-
-Here's our `GreenhouseDetailViewModel` again, unchanged from previous chapters:
 
 ```typescript
-// src/viewmodels/GreenhouseDetailViewModel.ts
-import { BehaviorSubject, Observable, Subject, combineLatest } from 'rxjs';
-import { map, distinctUntilChanged, takeUntil } from 'rxjs/operators';
-import { GreenhouseService } from '../domain/services/GreenhouseService';
-import { IrrigationService } from '../domain/services/IrrigationService';
-import { Greenhouse, IrrigationStatus } from '../domain/models';
+// ❌ Tightly coupled: direct dependencies between components
+class SensorDashboard {
+  constructor(
+    private alertPanel: AlertPanel,
+    private analyticsService: AnalyticsService,
+    private notificationService: NotificationService
+  ) {}
 
-export interface GreenhouseDetailState {
-  greenhouse: Greenhouse | null;
-  irrigationStatus: IrrigationStatus | null;
-  isLoading: boolean;
-  error: string | null;
-  lastUpdated: Date | null;
+  handleSensorReading(reading: SensorReading) {
+    // Update own state
+    this.updateDisplay(reading);
+
+    // Directly call other components
+    if (reading.value > reading.threshold) {
+      this.alertPanel.showAlert(reading);
+      this.analyticsService.trackThresholdExceeded(reading);
+      this.notificationService.notify('Threshold exceeded!');
+    }
+  }
+}
+```
+
+This approach has several problems:
+
+1. **Tight coupling**: `SensorDashboard` must know about `AlertPanel`, `AnalyticsService`, and `NotificationService`. It can't be reused without these dependencies.
+
+2. **Testing complexity**: To test `SensorDashboard`, you must mock all three dependencies, even if you're only testing the display logic.
+
+3. **Inflexibility**: Adding a new feature (like logging to a database) requires modifying `SensorDashboard` to add another dependency.
+
+4. **Framework lock-in**: If these components use framework-specific APIs, the entire chain is locked to that framework.
+
+### The Solution: Event-Driven Communication
+
+With events, components communicate through a shared event bus without knowing about each other:
+
+```typescript
+// ✅ Decoupled: components communicate through events
+class SensorDashboard {
+  constructor(private eventBus: EventBus) {}
+
+  handleSensorReading(reading: SensorReading) {
+    // Update own state
+    this.updateDisplay(reading);
+
+    // Emit an event - don't care who listens
+    if (reading.value > reading.threshold) {
+      this.eventBus.emit('sensor:threshold-exceeded', reading);
+    }
+  }
 }
 
-export class GreenhouseDetailViewModel {
-  private readonly state$ = new BehaviorSubject<GreenhouseDetailState>({
-    greenhouse: null,
-    irrigationStatus: null,
-    isLoading: false,
-    error: null,
-    lastUpdated: null,
+// Other components listen independently
+class AlertPanel {
+  constructor(private eventBus: EventBus) {
+    this.eventBus.on('sensor:threshold-exceeded', (reading) => {
+      this.showAlert(reading);
+    });
+  }
+}
+
+class AnalyticsService {
+  constructor(private eventBus: EventBus) {
+    this.eventBus.on('sensor:threshold-exceeded', (reading) => {
+      this.trackThresholdExceeded(reading);
+    });
+  }
+}
+
+class NotificationService {
+  constructor(private eventBus: EventBus) {
+    this.eventBus.on('sensor:threshold-exceeded', () => {
+      this.notify('Threshold exceeded!');
+    });
+  }
+}
+```
+
+Now:
+
+- **Loose coupling**: `SensorDashboard` only depends on the event bus, not on specific components.
+- **Easy testing**: Test `SensorDashboard` by verifying it emits the right events. Test listeners in isolation.
+- **Flexibility**: Add new listeners without modifying existing code.
+- **Framework independence**: The event bus is framework-agnostic, so components can be reused across frameworks.
+
+
+
+## Event-Driven Architecture Patterns
+
+Before diving into implementation, let's understand the core patterns that make event-driven architecture work.
+
+### The Publish-Subscribe (Pub/Sub) Pattern
+
+The pub/sub pattern is the foundation of event-driven communication. It has three key concepts:
+
+1. **Publisher**: Emits events when something interesting happens. Publishers don't know who (if anyone) is listening.
+
+2. **Subscriber**: Registers interest in specific events. Subscribers don't know who published the event.
+
+3. **Event Bus**: The intermediary that routes events from publishers to subscribers. It maintains the list of subscribers for each event type.
+
+```
+┌─────────────┐         ┌─────────────┐         ┌─────────────┐
+│  Publisher  │────────>│  Event Bus  │────────>│ Subscriber  │
+│             │  emit   │             │  notify │             │
+└─────────────┘         └─────────────┘         └─────────────┘
+                              │
+                              │ notify
+                              ▼
+                        ┌─────────────┐
+                        │ Subscriber  │
+                        │             │
+                        └─────────────┘
+```
+
+The beauty of this pattern is the **decoupling**: publishers and subscribers never directly reference each other. They only share knowledge of event names and payloads.
+
+### Event Naming Conventions
+
+Good event names are crucial for maintainability. A common convention is to use namespaces with colons:
+
+```typescript
+// Domain events: entity:action
+'user:login'
+'user:logout'
+'sensor:reading-received'
+'cart:item-added'
+
+// UI events: component:action
+'modal:opened'
+'modal:closed'
+'notification:shown'
+
+// System events: system:state
+'app:ready'
+'app:error'
+'network:online'
+'network:offline'
+```
+
+This convention makes it easy to:
+- **Group related events**: All `sensor:*` events are sensor-related
+- **Filter events**: Listen to all `user:*` events with a wildcard (if your event bus supports it)
+- **Avoid naming collisions**: `user:updated` vs `profile:updated` are clearly different
+
+### Event Payloads
+
+Events carry data (payloads) from publishers to subscribers. Design payloads carefully:
+
+```typescript
+// ❌ Bad: Too much data, tight coupling to internal structure
+eventBus.emit('sensor:reading', {
+  sensor: entireSensorObject,
+  reading: entireReadingObject,
+  metadata: internalMetadata,
+  _privateField: 'should not be exposed'
+});
+
+// ✅ Good: Minimal, focused data
+eventBus.emit('sensor:reading-received', {
+  sensorId: 'sensor-123',
+  value: 25.5,
+  unit: 'celsius',
+  timestamp: Date.now()
+});
+```
+
+Guidelines for event payloads:
+
+1. **Include only necessary data**: Don't expose internal implementation details.
+2. **Use primitive types when possible**: Strings, numbers, booleans are easier to serialize and test.
+3. **Be consistent**: Similar events should have similar payload structures.
+4. **Document the contract**: Event names and payloads are your API—document them.
+
+
+
+## Pattern Implementation: Event-Bus-Core
+
+The `event-bus-core` library (`packages/event-bus-core/`) from the Web Loom monorepo demonstrates a clean, framework-agnostic implementation of the pub/sub pattern. Let's examine how it works.
+
+### The EventBus Interface
+
+The core interface is simple but powerful:
+
+```typescript
+// packages/event-bus-core/src/types.ts
+export type EventMap = Record<string, any[] | undefined>;
+
+export type Listener<K extends keyof M, M extends EventMap> = 
+  (...args: M[K] extends any[] ? M[K] : []) => void;
+
+export interface EventBus<M extends EventMap> {
+  // Register a listener for one or more events
+  on<K extends keyof M>(event: K | K[], listener: Listener<K, M>): void;
+
+  // Register a one-time listener
+  once<K extends keyof M>(event: K, listener: Listener<K, M>): void;
+
+  // Unregister listeners
+  off<K extends keyof M>(event?: K, listener?: Listener<K, M>): void;
+
+  // Emit an event
+  emit<K extends keyof M>(event: K, ...args: M[K] extends any[] ? M[K] : []): void;
+}
+```
+
+This interface provides everything you need for pub/sub:
+
+- **`on()`**: Subscribe to events
+- **`once()`**: Subscribe to an event that fires only once
+- **`off()`**: Unsubscribe from events
+- **`emit()`**: Publish events
+
+### Type-Safe Event Definitions
+
+One of the strengths of `event-bus-core` is full TypeScript support. You define your events as a type-safe map:
+
+```typescript
+// Define your application's events
+interface AppEvents extends EventMap {
+  'user:login': [{ userId: string; username: string }];
+  'user:logout': [];
+  'sensor:reading-received': [{ 
+    sensorId: string; 
+    value: number; 
+    unit: string; 
+    timestamp: number 
+  }];
+  'cart:item-added': [productId: string, quantity: number];
+}
+
+// Create a type-safe event bus
+const eventBus = createEventBus<AppEvents>();
+
+// TypeScript enforces correct event names and payloads
+eventBus.on('user:login', (payload) => {
+  // payload is typed as { userId: string; username: string }
+  console.log(`User ${payload.username} logged in`);
+});
+
+eventBus.emit('user:login', { userId: '123', username: 'Alice' });
+
+// TypeScript error if you pass wrong payload:
+// eventBus.emit('user:login', { wrong: 'payload' }); // ❌ Error!
+```
+
+This type safety is invaluable for large applications where events are your API between components.
+
+### The Implementation
+
+The implementation is straightforward, built on top of `event-emitter-core`:
+
+```typescript
+// packages/event-bus-core/src/eventBus.ts
+import { EventEmitter } from '@web-loom/event-emitter-core';
+import { EventBus, EventMap, Listener, GenericListener } from './types';
+
+class EventBusImpl<M extends EventMap> implements EventBus<M> {
+  private emitter = new EventEmitter<M>();
+
+  on<K extends keyof M>(event: K | K[], listener: Listener<K, M>): void {
+    const eventNames = Array.isArray(event) ? event : [event];
+    eventNames.forEach((eventName) => {
+      this.emitter.on(eventName, listener as GenericListener);
+    });
+  }
+
+  once<K extends keyof M>(event: K, listener: Listener<K, M>): void {
+    this.emitter.once(event, listener as GenericListener);
+  }
+
+  off<K extends keyof M>(event?: K, listener?: Listener<K, M>): void {
+    if (!event) {
+      this.emitter.removeAllListeners();
+      return;
+    }
+
+    if (!listener) {
+      this.emitter.removeAllListeners(event);
+      return;
+    }
+
+    this.emitter.off(event, listener as GenericListener);
+  }
+
+  emit<K extends keyof M>(event: K, ...args: M[K] extends any[] ? M[K] : []): void {
+    (this.emitter.emit as any)(event, ...args);
+  }
+}
+
+export function createEventBus<M extends EventMap>(): EventBus<M> {
+  return new EventBusImpl<M>();
+}
+```
+
+Key implementation details:
+
+1. **Delegation to EventEmitter**: The event bus delegates to `event-emitter-core`, which handles the low-level listener management.
+
+2. **Array support for `on()`**: You can register the same listener for multiple events: `on(['event-a', 'event-b'], handler)`.
+
+3. **Flexible `off()`**: Three usage patterns:
+   - `off('event', handler)`: Remove specific listener
+   - `off('event')`: Remove all listeners for an event
+   - `off()`: Remove all listeners for all events
+
+4. **Framework-agnostic**: No imports from React, Vue, Angular, or any framework. Pure TypeScript.
+
+
+
+## Real-World Example: E-Commerce Events
+
+Let's see how event-driven communication works in a real application. The e-commerce app in the Web Loom monorepo (`apps/ecommerce-mvvm/`) uses events to coordinate between different parts of the application.
+
+### Defining Domain Events
+
+First, define the events your application needs:
+
+```typescript
+// apps/ecommerce-mvvm/src/infrastructure/events/app-bus.ts
+import { createEventBus } from '@web-loom/event-bus-core';
+
+interface AppEventMap extends Record<string, any[] | undefined> {
+  'catalog:reloaded': [count: number];
+  'cart:item-added': [productId: string, quantity: number];
+  'cart:updated': [itemCount: number, subtotalCents: number];
+  'checkout:completed': [orderId: string, totalCents: number];
+}
+
+export const appBus = createEventBus<AppEventMap>();
+```
+
+These events represent important domain actions in an e-commerce system:
+
+- **`catalog:reloaded`**: The product catalog was refreshed (useful for cache invalidation)
+- **`cart:item-added`**: A product was added to the cart (triggers analytics, UI updates)
+- **`cart:updated`**: The cart state changed (update cart badge, recalculate totals)
+- **`checkout:completed`**: An order was placed (trigger confirmation, clear cart, track conversion)
+
+### Publishing Events from ViewModels
+
+ViewModels emit events when important actions occur:
+
+```typescript
+// Conceptual CartViewModel
+export class CartViewModel {
+  constructor(private eventBus: EventBus<AppEventMap>) {}
+
+  async addItem(productId: string, quantity: number): Promise<void> {
+    try {
+      // Update the cart
+      await this.cartService.addItem(productId, quantity);
+
+      // Emit event - don't care who listens
+      this.eventBus.emit('cart:item-added', productId, quantity);
+
+      // Fetch updated cart state
+      const cart = await this.cartService.getCart();
+      this.eventBus.emit('cart:updated', cart.itemCount, cart.subtotalCents);
+    } catch (error) {
+      console.error('Failed to add item to cart:', error);
+      throw error;
+    }
+  }
+
+  async checkout(): Promise<string> {
+    try {
+      const order = await this.cartService.checkout();
+
+      // Emit checkout completed event
+      this.eventBus.emit('checkout:completed', order.id, order.totalCents);
+
+      return order.id;
+    } catch (error) {
+      console.error('Checkout failed:', error);
+      throw error;
+    }
+  }
+}
+```
+
+The ViewModel doesn't know or care what happens when these events are emitted. It just publishes the events and moves on.
+
+### Subscribing to Events in Components
+
+Different components subscribe to the events they care about:
+
+```typescript
+// Cart badge component - shows item count
+function CartBadge() {
+  const [itemCount, setItemCount] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = appBus.on('cart:updated', (count, subtotal) => {
+      setItemCount(count);
+    });
+
+    return unsubscribe; // Cleanup on unmount
+  }, []);
+
+  return <div className="cart-badge">{itemCount}</div>;
+}
+
+// Analytics service - tracks user behavior
+class AnalyticsService {
+  constructor(private eventBus: EventBus<AppEventMap>) {
+    this.setupListeners();
+  }
+
+  private setupListeners(): void {
+    this.eventBus.on('cart:item-added', (productId, quantity) => {
+      this.track('add_to_cart', { productId, quantity });
+    });
+
+    this.eventBus.on('checkout:completed', (orderId, totalCents) => {
+      this.track('purchase', { orderId, revenue: totalCents / 100 });
+    });
+  }
+
+  private track(event: string, data: any): void {
+    // Send to analytics service
+    console.log('Analytics:', event, data);
+  }
+}
+
+// Notification service - shows toast messages
+class NotificationService {
+  constructor(private eventBus: EventBus<AppEventMap>) {
+    this.setupListeners();
+  }
+
+  private setupListeners(): void {
+    this.eventBus.on('cart:item-added', () => {
+      this.showToast('Item added to cart', 'success');
+    });
+
+    this.eventBus.on('checkout:completed', () => {
+      this.showToast('Order placed successfully!', 'success');
+    });
+  }
+
+  private showToast(message: string, type: 'success' | 'error'): void {
+    // Show toast notification
+    console.log(`Toast [${type}]:`, message);
+  }
+}
+```
+
+Notice how each component:
+
+1. **Subscribes independently**: No component knows about the others.
+2. **Handles cleanup**: Returns an unsubscribe function to prevent memory leaks.
+3. **Focuses on its concern**: Cart badge updates UI, analytics tracks events, notifications show messages.
+
+This is the power of event-driven architecture: you can add new listeners without modifying existing code.
+
+
+
+## Cross-Component Communication Strategies
+
+Event-driven communication enables several powerful patterns for coordinating between components.
+
+### Pattern 1: One-to-Many Broadcasting
+
+One publisher, many subscribers. This is the most common pattern.
+
+```typescript
+// One publisher
+class SensorService {
+  constructor(private eventBus: EventBus) {}
+
+  async fetchLatestReading(sensorId: string): Promise<void> {
+    const reading = await this.api.getSensorReading(sensorId);
+    
+    // Broadcast to all interested parties
+    this.eventBus.emit('sensor:reading-received', {
+      sensorId,
+      value: reading.value,
+      unit: reading.unit,
+      timestamp: reading.timestamp
+    });
+  }
+}
+
+// Many subscribers
+class SensorDashboard {
+  constructor(private eventBus: EventBus) {
+    this.eventBus.on('sensor:reading-received', (reading) => {
+      this.updateChart(reading);
+    });
+  }
+}
+
+class AlertMonitor {
+  constructor(private eventBus: EventBus) {
+    this.eventBus.on('sensor:reading-received', (reading) => {
+      this.checkThresholds(reading);
+    });
+  }
+}
+
+class DataLogger {
+  constructor(private eventBus: EventBus) {
+    this.eventBus.on('sensor:reading-received', (reading) => {
+      this.logToDatabase(reading);
+    });
+  }
+}
+```
+
+All three subscribers receive the same event, but each handles it differently. The publisher doesn't know or care how many subscribers exist.
+
+### Pattern 2: Event Chaining
+
+One event triggers another event, creating a chain of reactions.
+
+```typescript
+class CartViewModel {
+  constructor(private eventBus: EventBus) {
+    // Listen for item added
+    this.eventBus.on('cart:item-added', async (productId, quantity) => {
+      // Recalculate cart totals
+      const cart = await this.cartService.getCart();
+      
+      // Emit updated cart state
+      this.eventBus.emit('cart:updated', cart.itemCount, cart.subtotalCents);
+    });
+  }
+}
+
+class InventoryService {
+  constructor(private eventBus: EventBus) {
+    // Listen for cart updates
+    this.eventBus.on('cart:updated', async (itemCount, subtotal) => {
+      // Check inventory availability
+      const available = await this.checkInventory();
+      
+      // Emit inventory status
+      if (!available) {
+        this.eventBus.emit('inventory:low-stock');
+      }
+    });
+  }
+}
+
+class NotificationService {
+  constructor(private eventBus: EventBus) {
+    // Listen for inventory issues
+    this.eventBus.on('inventory:low-stock', () => {
+      this.showToast('Some items may be out of stock', 'warning');
+    });
+  }
+}
+```
+
+The chain: `cart:item-added` → `cart:updated` → `inventory:low-stock` → notification shown.
+
+**Caution**: Event chains can become hard to debug if they're too long or circular. Document your event flows and avoid circular dependencies.
+
+### Pattern 3: Event Aggregation
+
+Multiple events trigger a single aggregated event.
+
+```typescript
+class DataSyncService {
+  private pendingChanges = new Set<string>();
+
+  constructor(private eventBus: EventBus) {
+    // Listen to multiple change events
+    this.eventBus.on([
+      'sensor:updated',
+      'greenhouse:updated',
+      'alert:updated'
+    ], (entityId: string) => {
+      this.pendingChanges.add(entityId);
+      this.scheduleSync();
+    });
+  }
+
+  private scheduleSync(): void {
+    // Debounce and aggregate changes
+    clearTimeout(this.syncTimer);
+    this.syncTimer = setTimeout(() => {
+      if (this.pendingChanges.size > 0) {
+        // Emit aggregated event
+        this.eventBus.emit('data:sync-needed', Array.from(this.pendingChanges));
+        this.pendingChanges.clear();
+      }
+    }, 1000);
+  }
+}
+```
+
+This pattern is useful for batching operations or debouncing frequent events.
+
+### Pattern 4: Event Filtering
+
+Subscribers can filter events based on payload data.
+
+```typescript
+class UserNotificationService {
+  constructor(
+    private eventBus: EventBus,
+    private currentUserId: string
+  ) {
+    // Listen to all messages, but filter for current user
+    this.eventBus.on('message:received', (message) => {
+      if (message.recipientId === this.currentUserId) {
+        this.showNotification(message);
+      }
+    });
+  }
+}
+
+// Or create a helper for filtered subscriptions
+function createFilteredListener<T>(
+  eventBus: EventBus,
+  eventName: string,
+  filter: (payload: T) => boolean,
+  callback: (payload: T) => void
+): () => void {
+  const handler = (payload: T) => {
+    if (filter(payload)) {
+      callback(payload);
+    }
+  };
+
+  eventBus.on(eventName, handler);
+  return () => eventBus.off(eventName, handler);
+}
+
+// Usage
+const unsubscribe = createFilteredListener(
+  eventBus,
+  'sensor:reading-received',
+  (reading) => reading.sensorId === 'sensor-123',
+  (reading) => console.log('Sensor 123 reading:', reading)
+);
+```
+
+
+
+## Alternative Approaches
+
+While `event-bus-core` provides a clean, type-safe implementation, it's not the only way to implement event-driven communication. Let's explore alternatives.
+
+### Approach 1: Native EventTarget
+
+Modern browsers provide the `EventTarget` API, which you can use for event-driven communication:
+
+```typescript
+// Create a custom event target
+class AppEventBus extends EventTarget {
+  emit(eventName: string, detail?: any): void {
+    this.dispatchEvent(new CustomEvent(eventName, { detail }));
+  }
+
+  on(eventName: string, listener: (event: CustomEvent) => void): () => void {
+    this.addEventListener(eventName, listener as EventListener);
+    return () => this.removeEventListener(eventName, listener as EventListener);
+  }
+}
+
+// Usage
+const eventBus = new AppEventBus();
+
+eventBus.on('user:login', (event) => {
+  console.log('User logged in:', event.detail);
+});
+
+eventBus.emit('user:login', { userId: '123', username: 'Alice' });
+```
+
+**Pros:**
+- Native browser API, no dependencies
+- Works in all modern browsers
+- Familiar API if you've used DOM events
+
+**Cons:**
+- No TypeScript type safety for event names or payloads
+- Slightly more verbose (wrapping in `CustomEvent`, accessing `event.detail`)
+- No built-in support for multiple event subscriptions with one call
+
+### Approach 2: RxJS Subjects
+
+If you're already using RxJS (common in Angular applications), you can use `Subject` for event communication:
+
+```typescript
+import { Subject } from 'rxjs';
+import { filter } from 'rxjs/operators';
+
+// Define event types
+type AppEvent =
+  | { type: 'user:login'; payload: { userId: string; username: string } }
+  | { type: 'user:logout'; payload: undefined }
+  | { type: 'cart:updated'; payload: { itemCount: number; subtotal: number } };
+
+class RxEventBus {
+  private subject = new Subject<AppEvent>();
+
+  emit<T extends AppEvent['type']>(
+    type: T,
+    payload: Extract<AppEvent, { type: T }>['payload']
+  ): void {
+    this.subject.next({ type, payload } as AppEvent);
+  }
+
+  on<T extends AppEvent['type']>(
+    type: T,
+    callback: (payload: Extract<AppEvent, { type: T }>['payload']) => void
+  ): () => void {
+    const subscription = this.subject
+      .pipe(filter((event) => event.type === type))
+      .subscribe((event) => {
+        callback((event as Extract<AppEvent, { type: T }>).payload);
+      });
+
+    return () => subscription.unsubscribe();
+  }
+}
+
+// Usage
+const eventBus = new RxEventBus();
+
+eventBus.on('user:login', (payload) => {
+  console.log('User logged in:', payload.username);
+});
+
+eventBus.emit('user:login', { userId: '123', username: 'Alice' });
+```
+
+**Pros:**
+- Powerful RxJS operators for event transformation, filtering, debouncing
+- Type-safe with discriminated unions
+- Integrates naturally with RxJS-based architectures
+
+**Cons:**
+- Requires RxJS dependency (~15KB gzipped)
+- More complex API if you're not familiar with RxJS
+- Overkill if you only need simple pub/sub
+
+### Approach 3: Simple Custom Implementation
+
+You can build a minimal event bus in ~30 lines of code:
+
+```typescript
+type Listener = (...args: any[]) => void;
+
+class SimpleEventBus {
+  private listeners = new Map<string, Set<Listener>>();
+
+  on(event: string, listener: Listener): () => void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event)!.add(listener);
+
+    return () => this.off(event, listener);
+  }
+
+  off(event: string, listener?: Listener): void {
+    if (!listener) {
+      this.listeners.delete(event);
+      return;
+    }
+
+    const listeners = this.listeners.get(event);
+    if (listeners) {
+      listeners.delete(listener);
+      if (listeners.size === 0) {
+        this.listeners.delete(event);
+      }
+    }
+  }
+
+  emit(event: string, ...args: any[]): void {
+    const listeners = this.listeners.get(event);
+    if (listeners) {
+      listeners.forEach((listener) => listener(...args));
+    }
+  }
+}
+```
+
+**Pros:**
+- Zero dependencies
+- Simple to understand and maintain
+- Full control over implementation
+
+**Cons:**
+- No TypeScript type safety
+- No advanced features (once, error handling, etc.)
+- You're responsible for testing and maintaining it
+
+
+
+## Framework Integration
+
+Event-driven communication is framework-agnostic, but each framework has its own patterns for integrating with event buses.
+
+### React Integration
+
+In React, use `useEffect` to subscribe to events and clean up on unmount:
+
+```typescript
+import { useEffect, useState } from 'react';
+import { appBus } from './eventBus';
+
+function CartBadge() {
+  const [itemCount, setItemCount] = useState(0);
+
+  useEffect(() => {
+    // Subscribe to cart updates
+    const unsubscribe = appBus.on('cart:updated', (count, subtotal) => {
+      setItemCount(count);
+    });
+
+    // Cleanup on unmount
+    return unsubscribe;
+  }, []);
+
+  return <div className="cart-badge">{itemCount}</div>;
+}
+
+// Custom hook for reusability
+function useEventListener<T>(
+  eventName: string,
+  callback: (payload: T) => void
+): void {
+  useEffect(() => {
+    const unsubscribe = appBus.on(eventName, callback);
+    return unsubscribe;
+  }, [eventName, callback]);
+}
+
+// Usage
+function NotificationListener() {
+  useEventListener('notification:show', ({ message, type }) => {
+    showToast(message, type);
   });
 
-  private readonly destroy$ = new Subject<void>();
+  return null;
+}
+```
 
-  // Public observables
-  readonly greenhouse$: Observable<Greenhouse | null>;
-  readonly temperature$: Observable<number | null>;
-  readonly humidity$: Observable<number | null>;
-  readonly isIrrigationActive$: Observable<boolean>;
-  readonly isLoading$: Observable<boolean>;
-  readonly error$: Observable<string | null>;
+**Key points:**
+- Always return the unsubscribe function from `useEffect`
+- Be careful with callback dependencies—use `useCallback` if the callback changes frequently
+- Consider creating custom hooks for common event patterns
+
+### Vue Integration
+
+In Vue 3, use `onMounted` and `onUnmounted` lifecycle hooks:
+
+```vue
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
+import { appBus } from './eventBus';
+
+const itemCount = ref(0);
+
+onMounted(() => {
+  appBus.on('cart:updated', (count, subtotal) => {
+    itemCount.value = count;
+  });
+});
+
+onUnmounted(() => {
+  appBus.off('cart:updated');
+});
+</script>
+
+<template>
+  <div class="cart-badge">{{ itemCount }}</div>
+</template>
+```
+
+Or create a composable for reusability:
+
+```typescript
+// composables/useEventListener.ts
+import { onMounted, onUnmounted } from 'vue';
+import { appBus } from './eventBus';
+
+export function useEventListener<T>(
+  eventName: string,
+  callback: (payload: T) => void
+): void {
+  let unsubscribe: (() => void) | null = null;
+
+  onMounted(() => {
+    unsubscribe = appBus.on(eventName, callback);
+  });
+
+  onUnmounted(() => {
+    if (unsubscribe) {
+      unsubscribe();
+    }
+  });
+}
+
+// Usage in component
+<script setup>
+import { useEventListener } from './composables/useEventListener';
+
+useEventListener('notification:show', ({ message, type }) => {
+  showToast(message, type);
+});
+</script>
+```
+
+### Angular Integration
+
+In Angular, subscribe in `ngOnInit` and clean up in `ngOnDestroy`:
+
+```typescript
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { appBus } from './eventBus';
+
+@Component({
+  selector: 'app-cart-badge',
+  template: `<div class="cart-badge">{{ itemCount }}</div>`
+})
+export class CartBadgeComponent implements OnInit, OnDestroy {
+  itemCount = 0;
+  private unsubscribe?: () => void;
+
+  ngOnInit(): void {
+    this.unsubscribe = appBus.on('cart:updated', (count, subtotal) => {
+      this.itemCount = count;
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
+  }
+}
+```
+
+Or create a service to manage event subscriptions:
+
+```typescript
+import { Injectable, OnDestroy } from '@angular/core';
+import { appBus } from './eventBus';
+
+@Injectable()
+export class EventBusService implements OnDestroy {
+  private subscriptions: Array<() => void> = [];
+
+  on<T>(eventName: string, callback: (payload: T) => void): void {
+    const unsubscribe = appBus.on(eventName, callback);
+    this.subscriptions.push(unsubscribe);
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.forEach((unsubscribe) => unsubscribe());
+    this.subscriptions = [];
+  }
+}
+```
+
+### Vanilla JavaScript Integration
+
+In vanilla JavaScript, manage subscriptions manually:
+
+```typescript
+class SensorDashboard {
+  private unsubscribers: Array<() => void> = [];
+
+  constructor(private eventBus: EventBus) {
+    this.setupListeners();
+  }
+
+  private setupListeners(): void {
+    const unsubscribe1 = this.eventBus.on('sensor:reading-received', (reading) => {
+      this.updateDisplay(reading);
+    });
+
+    const unsubscribe2 = this.eventBus.on('sensor:error', (error) => {
+      this.showError(error);
+    });
+
+    this.unsubscribers.push(unsubscribe1, unsubscribe2);
+  }
+
+  destroy(): void {
+    // Clean up all subscriptions
+    this.unsubscribers.forEach((unsubscribe) => unsubscribe());
+    this.unsubscribers = [];
+  }
+
+  private updateDisplay(reading: SensorReading): void {
+    document.getElementById('sensor-value')!.textContent = reading.value.toString();
+  }
+
+  private showError(error: Error): void {
+    document.getElementById('error-message')!.textContent = error.message;
+  }
+}
+
+// Usage
+const dashboard = new SensorDashboard(eventBus);
+
+// Later, when removing the dashboard
+dashboard.destroy();
+```
+
+
+
+## Event-Driven Communication in MVVM
+
+Let's see how event-driven communication fits into the MVVM architecture across all three layers.
+
+### Events in the Model Layer
+
+Models can emit domain events when important state changes occur:
+
+```typescript
+import { BehaviorSubject, Observable } from 'rxjs';
+import { EventBus } from '@web-loom/event-bus-core';
+
+export class SensorModel {
+  private dataSubject = new BehaviorSubject<Sensor | null>(null);
+  readonly data$: Observable<Sensor | null> = this.dataSubject.asObservable();
 
   constructor(
-    private readonly greenhouseId: string,
-    private readonly greenhouseService: GreenhouseService,
-    private readonly irrigationService: IrrigationService,
+    private sensorId: string,
+    private eventBus: EventBus
+  ) {}
+
+  async updateThreshold(newThreshold: number): Promise<void> {
+    const sensor = this.dataSubject.value;
+    if (!sensor) return;
+
+    const oldThreshold = sensor.threshold;
+    sensor.threshold = newThreshold;
+
+    // Update the model state
+    this.dataSubject.next(sensor);
+
+    // Emit domain event
+    this.eventBus.emit('sensor:threshold-changed', {
+      sensorId: this.sensorId,
+      oldThreshold,
+      newThreshold,
+      timestamp: Date.now()
+    });
+
+    // Persist to backend
+    await this.api.updateSensor(this.sensorId, { threshold: newThreshold });
+  }
+
+  processReading(reading: SensorReading): void {
+    const sensor = this.dataSubject.value;
+    if (!sensor) return;
+
+    // Check if reading exceeds threshold
+    if (reading.value > sensor.threshold) {
+      // Emit domain event
+      this.eventBus.emit('sensor:threshold-exceeded', {
+        sensorId: this.sensorId,
+        reading: reading.value,
+        threshold: sensor.threshold,
+        timestamp: reading.timestamp
+      });
+    }
+
+    // Emit reading received event
+    this.eventBus.emit('sensor:reading-received', {
+      sensorId: this.sensorId,
+      value: reading.value,
+      unit: reading.unit,
+      timestamp: reading.timestamp
+    });
+  }
+}
+```
+
+Domain events from Models represent important business events that other parts of the system might care about.
+
+### Events in the ViewModel Layer
+
+ViewModels can both emit and listen to events:
+
+```typescript
+export class GreenHouseViewModel {
+  private greenhouseSubject = new BehaviorSubject<GreenHouse | null>(null);
+  readonly greenhouse$: Observable<GreenHouse | null>;
+
+  constructor(
+    private greenhouseId: string,
+    private eventBus: EventBus
   ) {
-    // Derive specific observables from state
-    this.greenhouse$ = this.state$.pipe(
-      map((state) => state.greenhouse),
-      distinctUntilChanged(),
-    );
-
-    this.temperature$ = this.greenhouse$.pipe(map((gh) => gh?.currentTemperature ?? null));
-
-    this.humidity$ = this.greenhouse$.pipe(map((gh) => gh?.currentHumidity ?? null));
-
-    this.isIrrigationActive$ = this.state$.pipe(
-      map((state) => state.irrigationStatus?.isActive ?? false),
-      distinctUntilChanged(),
-    );
-
-    this.isLoading$ = this.state$.pipe(
-      map((state) => state.isLoading),
-      distinctUntilChanged(),
-    );
-
-    this.error$ = this.state$.pipe(
-      map((state) => state.error),
-      distinctUntilChanged(),
-    );
+    this.greenhouse$ = this.greenhouseSubject.asObservable();
+    this.setupEventListeners();
   }
 
-  async initialize(): Promise<void> {
-    this.updateState({ isLoading: true, error: null });
+  private setupEventListeners(): void {
+    // Listen to sensor events for this greenhouse
+    this.eventBus.on('sensor:threshold-exceeded', (event) => {
+      if (this.belongsToGreenhouse(event.sensorId)) {
+        this.handleThresholdExceeded(event);
+      }
+    });
 
+    this.eventBus.on('sensor:reading-received', (event) => {
+      if (this.belongsToGreenhouse(event.sensorId)) {
+        this.updateSensorReading(event);
+      }
+    });
+  }
+
+  async addSensor(sensorData: CreateSensorDTO): Promise<void> {
     try {
-      const [greenhouse, irrigationStatus] = await Promise.all([
-        this.greenhouseService.getById(this.greenhouseId),
-        this.irrigationService.getStatus(this.greenhouseId),
-      ]);
+      const sensor = await this.api.createSensor(this.greenhouseId, sensorData);
 
-      this.updateState({
-        greenhouse,
-        irrigationStatus,
-        isLoading: false,
-        lastUpdated: new Date(),
+      // Update local state
+      const greenhouse = this.greenhouseSubject.value;
+      if (greenhouse) {
+        greenhouse.sensors.push(sensor);
+        this.greenhouseSubject.next(greenhouse);
+      }
+
+      // Emit event
+      this.eventBus.emit('greenhouse:sensor-added', {
+        greenhouseId: this.greenhouseId,
+        sensorId: sensor.id,
+        timestamp: Date.now()
       });
-
-      // Subscribe to real-time updates
-      this.subscribeToUpdates();
     } catch (error) {
-      this.updateState({
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to load greenhouse data',
-      });
+      console.error('Failed to add sensor:', error);
+      throw error;
     }
   }
 
-  async toggleIrrigation(): Promise<void> {
-    const currentStatus = this.state$.value.irrigationStatus;
-    if (!currentStatus) return;
-
-    try {
-      const newStatus = currentStatus.isActive
-        ? await this.irrigationService.stop(this.greenhouseId)
-        : await this.irrigationService.start(this.greenhouseId);
-
-      this.updateState({ irrigationStatus: newStatus });
-    } catch (error) {
-      this.updateState({
-        error: error instanceof Error ? error.message : 'Failed to toggle irrigation',
-      });
-    }
+  private handleThresholdExceeded(event: ThresholdExceededEvent): void {
+    // Update UI state to show alert
+    console.log('Threshold exceeded for sensor:', event.sensorId);
+    
+    // Could emit another event for UI notifications
+    this.eventBus.emit('notification:show', {
+      message: `Sensor ${event.sensorId} exceeded threshold`,
+      type: 'warning'
+    });
   }
 
-  private subscribeToUpdates(): void {
-    // Subscribe to real-time sensor updates
-    this.greenhouseService
-      .subscribeToUpdates(this.greenhouseId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((greenhouse) => {
-        this.updateState({ greenhouse, lastUpdated: new Date() });
-      });
-
-    // Subscribe to irrigation status changes
-    this.irrigationService
-      .subscribeToStatus(this.greenhouseId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((irrigationStatus) => {
-        this.updateState({ irrigationStatus });
-      });
-  }
-
-  private updateState(partial: Partial<GreenhouseDetailState>): void {
-    this.state$.next({ ...this.state$.value, ...partial });
+  private belongsToGreenhouse(sensorId: string): boolean {
+    const greenhouse = this.greenhouseSubject.value;
+    return greenhouse?.sensors.some(s => s.id === sensorId) ?? false;
   }
 
   dispose(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-    this.state$.complete();
+    // Clean up event listeners
+    this.eventBus.off('sensor:threshold-exceeded');
+    this.eventBus.off('sensor:reading-received');
   }
 }
 ```
 
-**Why this ViewModel is platform-agnostic:**
+ViewModels act as coordinators, listening to domain events and emitting UI-related events.
 
-- **No framework imports:** Not a single line of React, React Native, Angular, or Electron-specific code.
-- **RxJS observables:** The universal reactive primitive. Every major framework can consume observables.
-- **Pure TypeScript:** Runs in any JavaScript environment—browser, Node.js, React Native's JavaScript Core, Electron's main or renderer process.
-- **Dependency injection:** Services are injected, making the ViewModel testable and framework-independent.
+### Events in the View Layer
 
-This is the code we'll never rewrite. Whether we're building for web, mobile, or desktop, this ViewModel works identically.
-
-### The Domain Layer: Also Unchanged
-
-Similarly, our domain services remain platform-agnostic:
+Views primarily listen to events to update the UI:
 
 ```typescript
-// src/domain/services/GreenhouseService.ts
-import { Observable } from 'rxjs';
-import { Greenhouse } from '../models/Greenhouse';
-import { IGreenhouseRepository } from '../repositories/IGreenhouseRepository';
-
-export class GreenhouseService {
-  constructor(private readonly repository: IGreenhouseRepository) {}
-
-  async getById(id: string): Promise<Greenhouse> {
-    return this.repository.findById(id);
-  }
-
-  subscribeToUpdates(id: string): Observable<Greenhouse> {
-    return this.repository.subscribeToUpdates(id);
-  }
-
-  async updateConfiguration(id: string, config: Partial<Greenhouse>): Promise<void> {
-    await this.repository.update(id, config);
-  }
-}
-```
-
-The only thing that changes across platforms is the **repository implementation**. On web, we might use `fetch`. On React Native, we'd use the same `fetch` API or a library like Axios. On Electron, we might access a local SQLite database in the main process. But the service? Unchanged.
-
-This layered architecture means **platform-specific code lives only where it must**—in the view layer and in infrastructure adapters (repositories, API clients). Everything else is shared.
-
-## Platform 1: Ionic with React
-
-Ionic represents the "web-first" approach to cross-platform development. It's essentially a web application packaged with Capacitor (or Cordova) to access native device features. The advantage? You're writing web code—HTML, CSS, JavaScript—and deploying to iOS, Android, and web from a single codebase.
-
-For our purposes, Ionic with React is nearly identical to pure React web development, with a few key differences:
-
-- **Ionic components:** Provides mobile-optimized UI components (`IonButton`, `IonCard`, `IonHeader`)
-- **Capacitor plugins:** Native device access (camera, geolocation, push notifications)
-- **Mobile navigation:** Uses `IonPage`, `IonRouterOutlet` for mobile navigation patterns
-
-Let's implement our greenhouse detail view for Ionic.
-
-### Project Setup
-
-```bash
-npm install @ionic/react @ionic/react-router @capacitor/core @capacitor/cli
-npm install --save-dev @capacitor/android @capacitor/ios
-
-# Initialize Capacitor
-npx cap init
-```
-
-### The Ionic View Component
-
-```typescript
-// src/views/ionic/GreenhouseDetailPage.tsx
-import React, { useEffect, useMemo } from 'react';
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonContent,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
-  IonButton,
-  IonSpinner,
-  IonIcon,
-  IonRefresher,
-  IonRefresherContent,
-  RefresherEventDetail
-} from '@ionic/react';
-import { waterOutline, thermometerOutline } from 'ionicons/icons';
-import { useParams } from 'react-router-dom';
-import { useObservable } from '../../hooks/useObservable';
-import { GreenhouseDetailViewModel } from '../../viewmodels/GreenhouseDetailViewModel';
-import { createGreenhouseDetailViewModel } from '../../composition/ViewModelFactory';
-
-export const GreenhouseDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-
-  // Create ViewModel (memoized to prevent recreation on re-renders)
-  const viewModel = useMemo(
-    () => createGreenhouseDetailViewModel(id),
-    [id]
-  );
-
-  // Subscribe to ViewModel observables
-  const greenhouse = useObservable(viewModel.greenhouse$);
-  const temperature = useObservable(viewModel.temperature$);
-  const humidity = useObservable(viewModel.humidity$);
-  const isIrrigationActive = useObservable(viewModel.isIrrigationActive$);
-  const isLoading = useObservable(viewModel.isLoading$);
-  const error = useObservable(viewModel.error$);
-
-  // Initialize ViewModel on mount
-  useEffect(() => {
-    viewModel.initialize();
-    return () => viewModel.dispose();
-  }, [viewModel]);
-
-  const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
-    await viewModel.initialize();
-    event.detail.complete();
-  };
-
-  const handleToggleIrrigation = async () => {
-    await viewModel.toggleIrrigation();
-  };
-
-  if (isLoading && !greenhouse) {
-    return (
-      <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Loading...</IonTitle>
-          </IonToolbar>
-        </IonHeader>
-        <IonContent className="ion-padding ion-text-center">
-          <IonSpinner name="crescent" />
-        </IonContent>
-      </IonPage>
-    );
-  }
-
-  if (error) {
-    return (
-      <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Error</IonTitle>
-          </IonToolbar>
-        </IonHeader>
-        <IonContent className="ion-padding">
-          <p>{error}</p>
-          <IonButton onClick={() => viewModel.initialize()}>
-            Retry
-          </IonButton>
-        </IonContent>
-      </IonPage>
-    );
-  }
-
-  return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>{greenhouse?.name ?? 'Greenhouse'}</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent>
-        <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
-          <IonRefresherContent />
-        </IonRefresher>
-
-        {/* Environmental Data Card */}
-        <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>Environmental Data</IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <div className="environmental-metrics">
-              <div className="metric">
-                <IonIcon icon={thermometerOutline} />
-                <span className="value">{temperature?.toFixed(1) ?? '--'}°C</span>
-                <span className="label">Temperature</span>
-              </div>
-              <div className="metric">
-                <IonIcon icon={waterOutline} />
-                <span className="value">{humidity?.toFixed(0) ?? '--'}%</span>
-                <span className="label">Humidity</span>
-              </div>
-            </div>
-          </IonCardContent>
-        </IonCard>
-
-        {/* Irrigation Control Card */}
-        <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>Irrigation Control</IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <p>
-              Status: {isIrrigationActive ? 'Active' : 'Inactive'}
-            </p>
-            <IonButton
-              expand="block"
-              color={isIrrigationActive ? 'danger' : 'primary'}
-              onClick={handleToggleIrrigation}
-              disabled={isLoading}
-            >
-              {isIrrigationActive ? 'Stop Irrigation' : 'Start Irrigation'}
-            </IonButton>
-          </IonCardContent>
-        </IonCard>
-      </IonContent>
-    </IonPage>
-  );
-};
-```
-
-**Key observations:**
-
-- **Ionic-specific components:** We're using `IonPage`, `IonCard`, `IonButton`—these provide mobile-optimized styling and behavior.
-- **Pull-to-refresh:** The `IonRefresher` gives us native pull-to-refresh behavior with zero additional logic—we just call `viewModel.initialize()`.
-- **Same ViewModel, different view:** Notice that the ViewModel interaction is identical to our web React implementation. We subscribe to observables, call commands, and let the ViewModel handle all business logic.
-- **Mobile navigation patterns:** Ionic handles navigation through `IonRouterOutlet`, but our ViewModel doesn't care—it receives an ID and does its job.
-
-### Accessing Native Features with Capacitor
-
-One advantage of Ionic is easy access to native device features. Let's add camera functionality to capture photos of greenhouse conditions:
-
-```typescript
-// src/views/ionic/GreenhouseDetailPage.tsx (extended)
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-
-export const GreenhouseDetailPage: React.FC = () => {
-  // ... existing code ...
-
-  const handleTakePhoto = async () => {
-    try {
-      const photo = await Camera.getPhoto({
-        resultType: CameraResultType.Uri,
-        source: CameraSource.Camera,
-        quality: 90
-      });
-
-      // Pass the photo URI to a ViewModel command
-      // (You'd extend GreenhouseDetailViewModel with an `attachPhoto` method)
-      await viewModel.attachPhoto(photo.webPath!);
-    } catch (error) {
-      console.error('Failed to capture photo:', error);
-    }
-  };
-
-  return (
-    <IonPage>
-      {/* ... existing JSX ... */}
-      <IonButton onClick={handleTakePhoto}>
-        Take Photo
-      </IonButton>
-    </IonPage>
-  );
-};
-```
-
-**The ViewModel doesn't know about Capacitor.** It receives a photo URI (a string) and handles the upload through a domain service. The view layer's job is to bridge the native API (Capacitor Camera) with the ViewModel's abstract interface.
-
-### Ionic: The Tradeoffs
-
-**Advantages:**
-
-- **Web skills transfer directly:** If you know React, you know Ionic React.
-- **Single codebase for web, iOS, Android:** Deploy everywhere with minimal platform-specific code.
-- **Rapid prototyping:** Ionic's components look good out of the box and work across platforms.
-
-**Disadvantages:**
-
-- **Not truly native:** It's still a web view. Performance-intensive UIs (complex animations, heavy lists) can struggle.
-- **"Uncanny valley" on iOS:** Ionic apps can feel slightly "off" to iOS users who expect native interactions.
-- **Plugin dependence:** For advanced native features, you're reliant on Capacitor plugins or writing your own.
-
-**When to use Ionic:**
-
-- You're building a content-heavy or form-heavy application where native UI performance isn't critical.
-- Your team is already proficient in web development and you need to ship quickly.
-- You want maximum code reuse between web and mobile.
-
-For GreenWatch, Ionic is a solid choice for internal dashboards or monitoring interfaces where performance is less critical than rapid development.
-
-## Platform 2: React Native
-
-React Native is a different beast. It's not a web view—it renders actual native UI components. When you write `<View>` in React Native, you get a `UIView` on iOS and an `android.view.View` on Android. This gives you true native performance and feel, at the cost of additional platform-specific considerations.
-
-The good news? **Our ViewModel still doesn't care.** React Native runs JavaScript, supports RxJS, and can consume observables just like React web. The view layer changes completely, but the business logic remains untouched.
-
-### Project Setup
-
-```bash
-npx react-native init GreenWatchMobile --template react-native-template-typescript
-cd GreenWatchMobile
-npm install rxjs
-
-# Copy your shared code
-cp -r ../shared/src/viewmodels ./src/
-cp -r ../shared/src/domain ./src/
-```
-
-### The React Native View Component
-
-```typescript
-// src/screens/GreenhouseDetailScreen.tsx
-import React, { useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  RefreshControl
-} from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
-import { useObservable } from '../hooks/useObservable';
-import { GreenhouseDetailViewModel } from '../viewmodels/GreenhouseDetailViewModel';
-import { createGreenhouseDetailViewModel } from '../composition/ViewModelFactory';
-
-type RouteParams = {
-  GreenhouseDetail: { id: string };
-};
-
-export const GreenhouseDetailScreen: React.FC = () => {
-  const route = useRoute<RouteProp<RouteParams, 'GreenhouseDetail'>>();
-  const { id } = route.params;
-
-  const viewModel = useMemo(
-    () => createGreenhouseDetailViewModel(id),
-    [id]
-  );
-
-  const greenhouse = useObservable(viewModel.greenhouse$);
-  const temperature = useObservable(viewModel.temperature$);
-  const humidity = useObservable(viewModel.humidity$);
-  const isIrrigationActive = useObservable(viewModel.isIrrigationActive$);
-  const isLoading = useObservable(viewModel.isLoading$);
-  const error = useObservable(viewModel.error$);
-
-  const [refreshing, setRefreshing] = React.useState(false);
+// React View
+function AlertPanel() {
+  const [alerts, setAlerts] = useState<Alert[]>([]);
 
   useEffect(() => {
-    viewModel.initialize();
-    return () => viewModel.dispose();
-  }, [viewModel]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await viewModel.initialize();
-    setRefreshing(false);
-  };
-
-  const handleToggleIrrigation = async () => {
-    await viewModel.toggleIrrigation();
-  };
-
-  if (isLoading && !greenhouse) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => viewModel.initialize()}
-        >
-          <Text style={styles.buttonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-      }
-    >
-      {/* Environmental Data Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Environmental Data</Text>
-        <View style={styles.metricsRow}>
-          <View style={styles.metric}>
-            <Text style={styles.metricValue}>
-              {temperature?.toFixed(1) ?? '--'}°C
-            </Text>
-            <Text style={styles.metricLabel}>Temperature</Text>
-          </View>
-          <View style={styles.metric}>
-            <Text style={styles.metricValue}>
-              {humidity?.toFixed(0) ?? '--'}%
-            </Text>
-            <Text style={styles.metricLabel}>Humidity</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Irrigation Control Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Irrigation Control</Text>
-        <Text style={styles.statusText}>
-          Status: {isIrrigationActive ? 'Active' : 'Inactive'}
-        </Text>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            isIrrigationActive ? styles.dangerButton : styles.primaryButton
-          ]}
-          onPress={handleToggleIrrigation}
-          disabled={isLoading}
-        >
-          <Text style={styles.buttonText}>
-            {isIrrigationActive ? 'Stop Irrigation' : 'Start Irrigation'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5'
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20
-  },
-  card: {
-    backgroundColor: 'white',
-    margin: 16,
-    padding: 16,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around'
-  },
-  metric: {
-    alignItems: 'center'
-  },
-  metricValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#007AFF'
-  },
-  metricLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4
-  },
-  statusText: {
-    fontSize: 16,
-    marginBottom: 12,
-    color: '#333'
-  },
-  button: {
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center'
-  },
-  primaryButton: {
-    backgroundColor: '#007AFF'
-  },
-  dangerButton: {
-    backgroundColor: '#FF3B30'
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600'
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#FF3B30',
-    textAlign: 'center',
-    marginBottom: 20
-  }
-});
-```
-
-**Key differences from Ionic:**
-
-- **Native components:** `View`, `Text`, `TouchableOpacity`—these are real native UI elements.
-- **StyleSheet:** React Native's styling is CSS-like but uses JavaScript objects. No CSS files.
-- **Platform-specific behaviors:** `RefreshControl` handles pull-to-refresh differently on iOS vs. Android, but React Native abstracts that for us.
-- **Same ViewModel:** Notice the ViewModel interaction is **identical** to both the web React and Ionic implementations. Same observables, same commands, same business logic.
-
-### Handling Platform-Specific Code
-
-Sometimes you need platform-specific behavior. React Native provides the `Platform` module:
-
-```typescript
-import { Platform } from 'react-native';
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: 'white',
-    margin: 16,
-    padding: 16,
-    borderRadius: 8,
-    // Shadow for iOS
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-});
-```
-
-**The ViewModel is completely unaware of these platform differences.** The view layer handles them. This is exactly the separation we want—platform-specific rendering code lives in the view, business logic in the ViewModel.
-
-### React Native: The Tradeoffs
-
-**Advantages:**
-
-- **True native performance:** Smooth animations, fast lists, native feel.
-- **Native UI components:** Apps feel "at home" on iOS and Android.
-- **Direct native module access:** Can write custom native code when needed.
-- **Strong ecosystem:** Mature tooling, extensive third-party libraries.
-
-**Disadvantages:**
-
-- **Separate codebase from web:** Can't reuse view code between web and mobile (though you reuse ViewModels and domain logic).
-- **Platform-specific quirks:** iOS and Android sometimes behave differently, requiring conditional code.
-- **Native dependencies:** Some libraries require linking native modules, adding build complexity.
-
-**When to use React Native:**
-
-- You need a mobile app with native performance and feel.
-- Your application has complex UI interactions or animations.
-- You're willing to maintain separate view codebases for web and mobile to get optimal user experience on each platform.
-
-For GreenWatch, React Native is the right choice for a customer-facing mobile app where performance and native feel matter. The shared ViewModel means we're not duplicating business logic, just writing the best possible UI for mobile.
-
-## Platform 3: Electron
-
-Electron brings us full circle—it's essentially a web application running in a Chromium browser bundled with Node.js. But unlike Ionic (which targets mobile), Electron targets desktop. This gives us access to filesystem APIs, native menus, system tray integration, and more.
-
-For GreenWatch, an Electron desktop app might serve power users who need advanced analytics, offline data access, or integration with local tools.
-
-### Project Setup
-
-```bash
-npm install electron electron-builder
-npm install --save-dev @types/electron
-
-# Create Electron entry point
-```
-
-### Electron Architecture: Main and Renderer Processes
-
-Electron has a unique architecture with two process types:
-
-- **Main process:** Runs Node.js, manages application lifecycle, creates windows, accesses native APIs.
-- **Renderer process:** Each window runs a separate Chromium instance. This is where your React/Vue/Angular app lives.
-
-Our ViewModel runs in the **renderer process**, just like a normal web application. The main process handles desktop-specific concerns like window management and native menus.
-
-### The Main Process
-
-```typescript
-// electron/main.ts
-import { app, BrowserWindow, Menu, shell } from 'electron';
-import * as path from 'path';
-
-let mainWindow: BrowserWindow | null = null;
-
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
-    },
-  });
-
-  // In development, load from webpack dev server
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:3000');
-    mainWindow.webContents.openDevTools();
-  } else {
-    // In production, load the built files
-    mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
-  }
-
-  // Create custom menu
-  const menu = Menu.buildFromTemplate([
-    {
-      label: 'File',
-      submenu: [
+    const unsubscribe = eventBus.on('sensor:threshold-exceeded', (event) => {
+      setAlerts((prev) => [
+        ...prev,
         {
-          label: 'Export Data',
-          click: async () => {
-            // Communicate with renderer process to trigger export
-            mainWindow?.webContents.send('export-data');
-          },
-        },
-        { type: 'separator' },
-        { role: 'quit' },
-      ],
-    },
-    {
-      label: 'View',
-      submenu: [{ role: 'reload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { role: 'togglefullscreen' }],
-    },
-    {
-      label: 'Help',
-      submenu: [
-        {
-          label: 'Documentation',
-          click: async () => {
-            await shell.openExternal('https://greenwatch.example.com/docs');
-          },
-        },
-      ],
-    },
-  ]);
-
-  Menu.setApplicationMenu(menu);
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
-}
-
-app.on('ready', createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-app.on('activate', () => {
-  if (mainWindow === null) {
-    createWindow();
-  }
-});
-```
-
-**What's happening here:**
-
-- **Window creation:** We're creating a 1200x800 window that loads our React application.
-- **Security:** `nodeIntegration: false` and `contextIsolation: true` are modern Electron security best practices. The renderer process doesn't have direct access to Node.js APIs.
-- **Custom menu:** We're creating a native menu bar with Export Data, Developer Tools, and Help options.
-- **Inter-process communication:** The main process can send messages to the renderer process (and vice versa) for coordination.
-
-### The Renderer Process: React Application
-
-In the renderer process, we're just writing a normal React application. The only difference is we can communicate with the main process through Electron's IPC (Inter-Process Communication):
-
-```typescript
-// src/views/electron/GreenhouseDetailView.tsx
-import React, { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
-import { useObservable } from '../../hooks/useObservable';
-import { GreenhouseDetailViewModel } from '../../viewmodels/GreenhouseDetailViewModel';
-import { createGreenhouseDetailViewModel } from '../../composition/ViewModelFactory';
-
-export const GreenhouseDetailView: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-
-  const viewModel = useMemo(
-    () => createGreenhouseDetailViewModel(id),
-    [id]
-  );
-
-  const greenhouse = useObservable(viewModel.greenhouse$);
-  const temperature = useObservable(viewModel.temperature$);
-  const humidity = useObservable(viewModel.humidity$);
-  const isIrrigationActive = useObservable(viewModel.isIrrigationActive$);
-  const isLoading = useObservable(viewModel.isLoading$);
-  const error = useObservable(viewModel.error$);
-
-  useEffect(() => {
-    viewModel.initialize();
-
-    // Listen for export command from main process
-    const handleExport = () => {
-      exportGreenhouseData(greenhouse);
-    };
-
-    window.electron.on('export-data', handleExport);
-
-    return () => {
-      window.electron.off('export-data', handleExport);
-      viewModel.dispose();
-    };
-  }, [viewModel, greenhouse]);
-
-  const exportGreenhouseData = async (data: any) => {
-    // Use Electron's dialog to choose save location
-    const filePath = await window.electron.showSaveDialog({
-      title: 'Export Greenhouse Data',
-      defaultPath: `greenhouse-${id}-data.json`,
-      filters: [{ name: 'JSON', extensions: ['json'] }]
+          id: Date.now().toString(),
+          sensorId: event.sensorId,
+          message: `Sensor ${event.sensorId} exceeded threshold`,
+          timestamp: event.timestamp
+        }
+      ]);
     });
 
-    if (filePath) {
-      await window.electron.writeFile(
-        filePath,
-        JSON.stringify(data, null, 2)
-      );
-    }
-  };
+    return unsubscribe;
+  }, []);
 
-  // Render code identical to web React implementation
   return (
-    <div className="greenhouse-detail">
-      {/* Same JSX as web React version */}
-      <div className="environmental-data">
-        <div className="metric">
-          <span className="value">{temperature?.toFixed(1) ?? '--'}°C</span>
-          <span className="label">Temperature</span>
+    <div className="alert-panel">
+      {alerts.map((alert) => (
+        <div key={alert.id} className="alert">
+          {alert.message}
         </div>
-        <div className="metric">
-          <span className="value">{humidity?.toFixed(0) ?? '--'}%</span>
-          <span className="label">Humidity</span>
-        </div>
-      </div>
-
-      <button
-        onClick={() => viewModel.toggleIrrigation()}
-        disabled={isLoading}
-      >
-        {isIrrigationActive ? 'Stop' : 'Start'} Irrigation
-      </button>
+      ))}
     </div>
   );
-};
+}
 ```
 
-### Bridging Main and Renderer: The Preload Script
+Views should primarily listen to events, not emit them (except for user interaction events). Business logic events should come from Models or ViewModels.
 
-For security reasons, the renderer process can't directly access Node.js or Electron APIs. Instead, we use a **preload script** to expose specific, safe APIs:
+
+
+## Best Practices and Patterns
+
+### 1. Document Your Event Contracts
+
+Events are your API between components. Document them clearly:
 
 ```typescript
-// electron/preload.ts
-import { contextBridge, ipcRenderer } from 'electron';
+/**
+ * Application Event Contracts
+ * 
+ * These events represent the public API for cross-component communication.
+ * All events should be documented here with their payload structure.
+ */
 
-// Expose protected methods to renderer process
-contextBridge.exposeInMainWorld('electron', {
-  // Listen for events from main process
-  on: (channel: string, callback: Function) => {
-    ipcRenderer.on(channel, (_, ...args) => callback(...args));
-  },
+interface AppEvents extends EventMap {
+  /**
+   * Emitted when a user successfully logs in
+   * @payload userId - The unique identifier of the user
+   * @payload username - The user's display name
+   */
+  'user:login': [{ userId: string; username: string }];
 
-  // Remove event listeners
-  off: (channel: string, callback: Function) => {
-    ipcRenderer.removeListener(channel, callback as any);
-  },
+  /**
+   * Emitted when a sensor reading is received
+   * @payload sensorId - The sensor identifier
+   * @payload value - The reading value
+   * @payload unit - The unit of measurement
+   * @payload timestamp - Unix timestamp of the reading
+   */
+  'sensor:reading-received': [{
+    sensorId: string;
+    value: number;
+    unit: string;
+    timestamp: number;
+  }];
 
-  // Show save dialog
-  showSaveDialog: (options: any) => {
-    return ipcRenderer.invoke('show-save-dialog', options);
-  },
+  /**
+   * Emitted when a sensor reading exceeds its configured threshold
+   * @payload sensorId - The sensor identifier
+   * @payload reading - The actual reading value
+   * @payload threshold - The configured threshold value
+   * @payload timestamp - Unix timestamp when threshold was exceeded
+   */
+  'sensor:threshold-exceeded': [{
+    sensorId: string;
+    reading: number;
+    threshold: number;
+    timestamp: number;
+  }];
+}
+```
 
-  // Write file
-  writeFile: (path: string, content: string) => {
-    return ipcRenderer.invoke('write-file', path, content);
-  },
+### 2. Use Namespaces Consistently
+
+Organize events with consistent namespacing:
+
+```typescript
+// Domain entity events: entity:action
+'user:login'
+'user:logout'
+'sensor:created'
+'sensor:updated'
+'sensor:deleted'
+
+// UI events: component:action
+'modal:opened'
+'modal:closed'
+'sidebar:toggled'
+
+// System events: system:state
+'app:ready'
+'app:error'
+'network:online'
+'network:offline'
+```
+
+### 3. Avoid Event Storms
+
+Too many events can create performance problems and make debugging difficult:
+
+```typescript
+// ❌ Bad: Emitting events in a tight loop
+for (let i = 0; i < 1000; i++) {
+  eventBus.emit('item:processed', i);
+}
+
+// ✅ Good: Batch events or debounce
+const processedItems: number[] = [];
+for (let i = 0; i < 1000; i++) {
+  processedItems.push(i);
+}
+eventBus.emit('items:batch-processed', processedItems);
+
+// ✅ Good: Debounce frequent events
+let debounceTimer: number;
+function emitSearchQuery(query: string): void {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    eventBus.emit('search:query-changed', query);
+  }, 300);
+}
+```
+
+### 4. Clean Up Subscriptions
+
+Always unsubscribe when components unmount to prevent memory leaks:
+
+```typescript
+// ✅ Good: Store unsubscribe functions
+class MyComponent {
+  private unsubscribers: Array<() => void> = [];
+
+  constructor(private eventBus: EventBus) {
+    this.unsubscribers.push(
+      this.eventBus.on('event1', this.handler1),
+      this.eventBus.on('event2', this.handler2),
+      this.eventBus.on('event3', this.handler3)
+    );
+  }
+
+  destroy(): void {
+    this.unsubscribers.forEach((unsubscribe) => unsubscribe());
+    this.unsubscribers = [];
+  }
+}
+```
+
+### 5. Avoid Circular Event Dependencies
+
+Be careful not to create circular event chains:
+
+```typescript
+// ❌ Bad: Circular event dependency
+eventBus.on('event-a', () => {
+  eventBus.emit('event-b');
+});
+
+eventBus.on('event-b', () => {
+  eventBus.emit('event-a'); // Infinite loop!
+});
+
+// ✅ Good: Clear event flow
+eventBus.on('user:action', () => {
+  eventBus.emit('data:changed');
+});
+
+eventBus.on('data:changed', () => {
+  eventBus.emit('ui:update-needed');
+});
+
+// No circular dependencies
+```
+
+### 6. Use TypeScript for Type Safety
+
+Always define event maps with TypeScript for compile-time safety:
+
+```typescript
+// ✅ Good: Type-safe events
+interface AppEvents extends EventMap {
+  'user:login': [{ userId: string; username: string }];
+  'cart:updated': [itemCount: number, subtotalCents: number];
+}
+
+const eventBus = createEventBus<AppEvents>();
+
+// TypeScript catches errors
+eventBus.emit('user:login', { userId: '123', username: 'Alice' }); // ✅
+eventBus.emit('user:login', { wrong: 'payload' }); // ❌ Type error
+eventBus.emit('typo:event', {}); // ❌ Type error
+```
+
+### 7. Test Event Flows
+
+Test that components emit and handle events correctly:
+
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+import { createEventBus } from '@web-loom/event-bus-core';
+
+describe('CartViewModel', () => {
+  it('should emit cart:updated event when item is added', async () => {
+    const eventBus = createEventBus();
+    const listener = vi.fn();
+    
+    eventBus.on('cart:updated', listener);
+    
+    const viewModel = new CartViewModel(eventBus);
+    await viewModel.addItem('product-123', 2);
+    
+    expect(listener).toHaveBeenCalledWith(1, 2999); // itemCount, subtotal
+  });
+
+  it('should handle sensor:reading-received event', () => {
+    const eventBus = createEventBus();
+    const viewModel = new SensorViewModel(eventBus);
+    
+    const updateSpy = vi.spyOn(viewModel as any, 'updateDisplay');
+    
+    eventBus.emit('sensor:reading-received', {
+      sensorId: 'sensor-123',
+      value: 25.5,
+      unit: 'celsius',
+      timestamp: Date.now()
+    });
+    
+    expect(updateSpy).toHaveBeenCalled();
+  });
 });
 ```
 
-Now, in the renderer process, TypeScript knows about `window.electron`:
+
+
+## When to Use Event-Driven Communication
+
+Event-driven communication is powerful, but it's not always the right choice. Here's guidance on when to use it.
+
+### Use Events When:
+
+**1. Components are loosely related**
+
+If components don't have a direct parent-child relationship and need to communicate, events are ideal:
 
 ```typescript
-// src/types/electron.d.ts
-interface Window {
-  electron: {
-    on: (channel: string, callback: Function) => void;
-    off: (channel: string, callback: Function) => void;
-    showSaveDialog: (options: any) => Promise<string | null>;
-    writeFile: (path: string, content: string) => Promise<void>;
+// Cart badge and product list are siblings - use events
+eventBus.emit('cart:item-added', productId, quantity);
+```
+
+**2. Multiple components need to react to the same action**
+
+When one action triggers multiple reactions across different parts of your app:
+
+```typescript
+// One event, many listeners
+eventBus.emit('user:login', { userId, username });
+// → Update header
+// → Load user preferences
+// → Track analytics
+// → Show welcome message
+```
+
+**3. You need to decouple dependencies**
+
+When you want to add new features without modifying existing code:
+
+```typescript
+// Add new analytics tracking without modifying existing components
+eventBus.on('checkout:completed', (orderId, total) => {
+  analytics.track('purchase', { orderId, revenue: total });
+});
+```
+
+**4. Cross-cutting concerns**
+
+For concerns that span multiple features (logging, analytics, notifications):
+
+```typescript
+// Centralized logging
+eventBus.on(['user:login', 'user:logout', 'cart:updated'], (event) => {
+  logger.log(event);
+});
+```
+
+### Don't Use Events When:
+
+**1. Direct parent-child communication**
+
+Use props/callbacks for direct parent-child relationships:
+
+```typescript
+// ❌ Overkill: Using events for parent-child communication
+function Parent() {
+  useEffect(() => {
+    eventBus.on('child:clicked', handleClick);
+  }, []);
+  return <Child />;
+}
+
+function Child() {
+  return <button onClick={() => eventBus.emit('child:clicked')}>Click</button>;
+}
+
+// ✅ Better: Use props
+function Parent() {
+  return <Child onClick={handleClick} />;
+}
+
+function Child({ onClick }) {
+  return <button onClick={onClick}>Click</button>;
+}
+```
+
+**2. Simple state sharing**
+
+For simple state sharing between components, use a shared store or context:
+
+```typescript
+// ❌ Overkill: Events for simple state
+eventBus.emit('theme:changed', 'dark');
+
+// ✅ Better: Shared state
+const themeStore = createStore({ theme: 'dark' });
+```
+
+**3. Request-response patterns**
+
+Events are fire-and-forget. For request-response, use promises or callbacks:
+
+```typescript
+// ❌ Bad: Using events for request-response
+eventBus.emit('data:fetch-requested', userId);
+eventBus.on('data:fetch-completed', (data) => {
+  // How do we know this is for our request?
+});
+
+// ✅ Better: Use promises
+const data = await fetchUserData(userId);
+```
+
+**4. Synchronous data flow**
+
+If you need synchronous, predictable data flow, use direct function calls:
+
+```typescript
+// ❌ Bad: Events for synchronous validation
+eventBus.emit('form:validate', formData);
+// Wait... is it valid? When will we know?
+
+// ✅ Better: Direct function call
+const isValid = validateForm(formData);
+if (isValid) {
+  submitForm(formData);
+}
+```
+
+
+
+## Debugging Event-Driven Systems
+
+Event-driven systems can be harder to debug than direct function calls. Here are strategies to make debugging easier.
+
+### 1. Event Logging
+
+Add logging to see what events are being emitted:
+
+```typescript
+function createDebugEventBus<M extends EventMap>(): EventBus<M> {
+  const bus = createEventBus<M>();
+
+  return {
+    on: (event, listener) => {
+      console.log(`[EventBus] Registering listener for "${String(event)}"`);
+      return bus.on(event, listener);
+    },
+    
+    once: (event, listener) => {
+      console.log(`[EventBus] Registering one-time listener for "${String(event)}"`);
+      return bus.once(event, listener);
+    },
+    
+    off: (event, listener) => {
+      console.log(`[EventBus] Removing listener for "${String(event)}"`);
+      bus.off(event, listener);
+    },
+    
+    emit: (event, ...args) => {
+      console.log(`[EventBus] Emitting "${String(event)}"`, args);
+      bus.emit(event, ...args);
+    }
   };
 }
+
+// Use in development
+const eventBus = process.env.NODE_ENV === 'development'
+  ? createDebugEventBus<AppEvents>()
+  : createEventBus<AppEvents>();
 ```
 
-**The key insight:** Even with Electron's dual-process architecture and IPC complexity, **the ViewModel remains unchanged**. It doesn't know about main processes, renderer processes, or IPC. It exposes observables and commands, and the view layer (in this case, React components) handles all platform-specific concerns.
+### 2. Event History
 
-### Electron: The Tradeoffs
-
-**Advantages:**
-
-- **Desktop-class applications:** Native menus, system tray, file system access, background processing.
-- **Web technologies:** Build with HTML/CSS/JavaScript—no need to learn native desktop development.
-- **Cross-platform:** Windows, macOS, Linux from a single codebase.
-- **Same codebase as web:** Your React web app can become an Electron app with minimal changes.
-
-**Disadvantages:**
-
-- **Bundle size:** Chromium + Node.js = large install size (100+ MB even for simple apps).
-- **Memory footprint:** Electron apps are notorious for high memory usage.
-- **Not "native":** Doesn't integrate as seamlessly as truly native desktop apps.
-
-**When to use Electron:**
-
-- You need a desktop application but your team specializes in web development.
-- You want offline capabilities, file system access, or system-level integrations.
-- You already have a web app and want to offer a desktop version without rewriting everything.
-
-For GreenWatch, Electron is perfect for an admin dashboard where operators need advanced analytics, offline data export, and integration with local tools—all while reusing the same ViewModels that power the web and mobile apps.
-
-## Code Sharing Strategy: The Practical Reality
-
-Now that we've seen three different platforms, let's talk about the practical reality of sharing code. You're not going to have a single project that builds for web, mobile, and desktop simultaneously—that's a build system nightmare. Instead, you'll structure your codebase to maximize reuse while keeping platform-specific concerns separate.
-
-### Monorepo Structure
-
-Here's a realistic monorepo structure for GreenWatch:
-
-```
-greenwatch/
-├── packages/
-│   ├── core/                          # Shared business logic
-│   │   ├── src/
-│   │   │   ├── domain/                # Domain models and services
-│   │   │   │   ├── models/
-│   │   │   │   ├── services/
-│   │   │   │   └── repositories/
-│   │   │   ├── viewmodels/            # Framework-agnostic ViewModels
-│   │   │   └── utils/
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── web/                           # Web application (React)
-│   │   ├── src/
-│   │   │   ├── views/                 # React components
-│   │   │   ├── hooks/
-│   │   │   ├── composition/           # DI setup
-│   │   │   └── infrastructure/        # Web-specific implementations
-│   │   ├── public/
-│   │   ├── package.json               # Depends on @greenwatch/core
-│   │   └── tsconfig.json
-│   │
-│   ├── mobile-ionic/                  # Ionic mobile app
-│   │   ├── src/
-│   │   │   ├── views/                 # Ionic React components
-│   │   │   ├── hooks/
-│   │   │   └── composition/
-│   │   ├── capacitor.config.ts
-│   │   ├── package.json               # Depends on @greenwatch/core
-│   │   └── tsconfig.json
-│   │
-│   ├── mobile-native/                 # React Native app
-│   │   ├── src/
-│   │   │   ├── screens/               # React Native components
-│   │   │   ├── hooks/
-│   │   │   ├── navigation/
-│   │   │   └── composition/
-│   │   ├── ios/
-│   │   ├── android/
-│   │   ├── package.json               # Depends on @greenwatch/core
-│   │   └── tsconfig.json
-│   │
-│   └── desktop/                       # Electron desktop app
-│       ├── electron/                  # Main process code
-│       │   ├── main.ts
-│       │   └── preload.ts
-│       ├── src/                       # Renderer process (React)
-│       │   ├── views/
-│       │   ├── hooks/
-│       │   └── composition/
-│       ├── package.json               # Depends on @greenwatch/core
-│       └── tsconfig.json
-│
-├── package.json                       # Root workspace config
-└── pnpm-workspace.yaml               # Or npm/yarn workspaces
-```
-
-### The `@greenwatch/core` Package
-
-This is the heart of code reuse. It contains **everything that's platform-agnostic:**
-
-```json
-// packages/core/package.json
-{
-  "name": "@greenwatch/core",
-  "version": "1.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "test": "jest"
-  },
-  "dependencies": {
-    "rxjs": "^7.8.0"
-  },
-  "devDependencies": {
-    "@types/jest": "^29.5.0",
-    "jest": "^29.5.0",
-    "typescript": "^5.0.0"
-  }
-}
-```
-
-**Notice what's NOT in the dependencies:** No React, no React Native, no Angular, no Vue, no Electron. This package is **pure TypeScript and RxJS**. It's testable without any framework overhead.
-
-Each platform-specific package depends on `@greenwatch/core`:
-
-```json
-// packages/web/package.json
-{
-  "name": "@greenwatch/web",
-  "dependencies": {
-    "@greenwatch/core": "workspace:*",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "rxjs": "^7.8.0"
-  }
-}
-```
-
-### What Gets Shared vs. What Doesn't
-
-Let's be explicit about this:
-
-**Always shared (in `@greenwatch/core`):**
-
-- **Domain models:** `Greenhouse`, `Sensor`, `IrrigationStatus`
-- **ViewModels:** `GreenhouseDetailViewModel`, `GreenhouseListViewModel`
-- **Domain services:** `GreenhouseService`, `IrrigationService`
-- **Repository interfaces:** `IGreenhouseRepository`, `ISensorRepository`
-- **Domain events:** `TemperatureAlertEvent`, `IrrigationStartedEvent`
-- **Utility functions:** Date formatting, validation, calculations
-
-**Never shared (platform-specific):**
-
-- **View components:** React components, Vue components, React Native screens
-- **Navigation:** React Router, React Navigation, Ionic Router
-- **Styling:** CSS, StyleSheet, Ionic themes
-- **Repository implementations:** Fetch-based, Axios-based, SQLite-based
-- **Platform APIs:** Capacitor plugins, React Native modules, Electron IPC
-
-**Sometimes shared (depends on context):**
-
-- **React hooks:** `useObservable` can be shared between React web, Ionic, and Electron (all use React), but not with React Native (slightly different implementation)
-- **Composition root:** DI setup is conceptually the same but often requires platform-specific tweaks (e.g., different repository implementations)
-
-The rule of thumb: **If it imports from a framework, it's platform-specific. If it's plain TypeScript and RxJS, it's shared.**
-
-## Testing: The Ultimate Validation
-
-The proof that our architecture works is in the testing. If we've truly separated concerns, we should be able to test our business logic once—in the `@greenwatch/core` package—without any framework dependencies.
-
-### Testing the ViewModel (Again, to Prove a Point)
-
-This test runs identically whether you're building for web, mobile, or desktop:
+Track event history for debugging:
 
 ```typescript
-// packages/core/src/viewmodels/__tests__/GreenhouseDetailViewModel.test.ts
-import { TestScheduler } from 'rxjs/testing';
-import { GreenhouseDetailViewModel } from '../GreenhouseDetailViewModel';
-import { MockGreenhouseService } from '../../domain/services/__mocks__/MockGreenhouseService';
-import { MockIrrigationService } from '../../domain/services/__mocks__/MockIrrigationService';
+class EventBusWithHistory<M extends EventMap> {
+  private bus = createEventBus<M>();
+  private history: Array<{ event: string; args: any[]; timestamp: number }> = [];
+  private maxHistory = 100;
 
-describe('GreenhouseDetailViewModel', () => {
-  let testScheduler: TestScheduler;
-  let mockGreenhouseService: MockGreenhouseService;
-  let mockIrrigationService: MockIrrigationService;
-
-  beforeEach(() => {
-    testScheduler = new TestScheduler((actual, expected) => {
-      expect(actual).toEqual(expected);
-    });
-    mockGreenhouseService = new MockGreenhouseService();
-    mockIrrigationService = new MockIrrigationService();
-  });
-
-  it('should load greenhouse data on initialization', async () => {
-    const greenhouse = {
-      id: 'gh-1',
-      name: 'Greenhouse Alpha',
-      currentTemperature: 23.5,
-      currentHumidity: 65,
-    };
-    mockGreenhouseService.setGreenhouse(greenhouse);
-
-    const viewModel = new GreenhouseDetailViewModel('gh-1', mockGreenhouseService, mockIrrigationService);
-
-    await viewModel.initialize();
-
-    testScheduler.run(({ expectObservable }) => {
-      expectObservable(viewModel.temperature$).toBe('a', { a: 23.5 });
-      expectObservable(viewModel.humidity$).toBe('a', { a: 65 });
+  emit(event: keyof M, ...args: any[]): void {
+    this.history.push({
+      event: String(event),
+      args,
+      timestamp: Date.now()
     });
 
-    viewModel.dispose();
-  });
+    if (this.history.length > this.maxHistory) {
+      this.history.shift();
+    }
 
-  it('should toggle irrigation status', async () => {
-    mockIrrigationService.setStatus({ isActive: false });
+    this.bus.emit(event, ...args);
+  }
 
-    const viewModel = new GreenhouseDetailViewModel('gh-1', mockGreenhouseService, mockIrrigationService);
+  getHistory(): typeof this.history {
+    return [...this.history];
+  }
 
-    await viewModel.initialize();
-    await viewModel.toggleIrrigation();
+  clearHistory(): void {
+    this.history = [];
+  }
 
-    testScheduler.run(({ expectObservable }) => {
-      expectObservable(viewModel.isIrrigationActive$).toBe('a', { a: true });
+  // Delegate other methods to bus
+  on = this.bus.on.bind(this.bus);
+  once = this.bus.once.bind(this.bus);
+  off = this.bus.off.bind(this.bus);
+}
+
+// Usage
+const eventBus = new EventBusWithHistory<AppEvents>();
+
+// Later, inspect history
+console.table(eventBus.getHistory());
+```
+
+### 3. Event Flow Visualization
+
+Create a visual representation of event flows:
+
+```typescript
+class EventFlowTracker {
+  private flows = new Map<string, Set<string>>();
+
+  trackEmit(event: string, emitter: string): void {
+    if (!this.flows.has(event)) {
+      this.flows.set(event, new Set());
+    }
+    this.flows.get(event)!.add(`emit:${emitter}`);
+  }
+
+  trackListen(event: string, listener: string): void {
+    if (!this.flows.has(event)) {
+      this.flows.set(event, new Set());
+    }
+    this.flows.get(event)!.add(`listen:${listener}`);
+  }
+
+  visualize(): void {
+    console.log('Event Flow Map:');
+    this.flows.forEach((participants, event) => {
+      console.log(`\n${event}:`);
+      participants.forEach((participant) => {
+        console.log(`  - ${participant}`);
+      });
     });
+  }
+}
 
-    viewModel.dispose();
-  });
-});
+// Usage
+const tracker = new EventFlowTracker();
+
+// In your components
+class CartViewModel {
+  constructor(eventBus: EventBus) {
+    tracker.trackListen('cart:item-added', 'CartViewModel');
+    eventBus.on('cart:item-added', this.handleItemAdded);
+  }
+
+  addItem(productId: string, quantity: number): void {
+    tracker.trackEmit('cart:item-added', 'CartViewModel');
+    eventBus.emit('cart:item-added', productId, quantity);
+  }
+}
+
+// Later
+tracker.visualize();
+// Output:
+// Event Flow Map:
+// 
+// cart:item-added:
+//   - emit:CartViewModel
+//   - listen:CartBadge
+//   - listen:AnalyticsService
+//   - listen:NotificationService
 ```
 
-**This test runs in milliseconds, with no framework overhead, and validates business logic across all platforms.** When you make a change to `GreenhouseDetailViewModel`, you run this test once, and you've verified the behavior for web, Ionic, React Native, and Electron.
+### 4. Browser DevTools Integration
 
-### Platform-Specific View Tests
-
-Platform-specific view tests are much simpler because they're not testing business logic—just rendering and interaction:
+Integrate with browser DevTools for better debugging:
 
 ```typescript
-// packages/web/src/views/__tests__/GreenhouseDetailView.test.tsx
-import { render, screen, fireEvent } from '@testing-library/react';
-import { GreenhouseDetailView } from '../GreenhouseDetailView';
-import { createGreenhouseDetailViewModel } from '../../composition/ViewModelFactory';
-
-// Mock the ViewModel factory to return a mock ViewModel
-jest.mock('../../composition/ViewModelFactory');
-
-describe('GreenhouseDetailView', () => {
-  it('should display temperature from ViewModel', () => {
-    const mockViewModel = {
-      temperature$: of(23.5),
-      humidity$: of(65),
-      isLoading$: of(false),
-      error$: of(null),
-      initialize: jest.fn(),
-      dispose: jest.fn()
-    };
-
-    (createGreenhouseDetailViewModel as jest.Mock).mockReturnValue(mockViewModel);
-
-    render(<GreenhouseDetailView />);
-
-    expect(screen.getByText(/23.5°C/)).toBeInTheDocument();
-  });
-
-  it('should call toggleIrrigation when button clicked', () => {
-    const mockViewModel = {
-      temperature$: of(23.5),
-      isIrrigationActive$: of(false),
-      isLoading$: of(false),
-      toggleIrrigation: jest.fn(),
-      initialize: jest.fn(),
-      dispose: jest.fn()
-    };
-
-    (createGreenhouseDetailViewModel as jest.Mock).mockReturnValue(mockViewModel);
-
-    render(<GreenhouseDetailView />);
-
-    fireEvent.click(screen.getByText(/Start Irrigation/));
-
-    expect(mockViewModel.toggleIrrigation).toHaveBeenCalled();
-  });
-});
-```
-
-**This test verifies that:**
-
-1. The view correctly subscribes to ViewModel observables
-2. The view correctly calls ViewModel commands
-
-It doesn't test business logic—that's already covered in the ViewModel tests. This separation dramatically reduces test complexity and execution time.
-
-## Real-World Considerations
-
-Before you rush off to build your cross-platform empire, let's address some practical realities.
-
-### "Do I Really Need All Three Platforms?"
-
-Probably not. Most teams should start with **one platform** and validate the product before investing in others. The beauty of our architecture is that you can start with web, prove the concept, and then add mobile or desktop later without rewriting business logic.
-
-**Start with web if:**
-
-- Your users primarily access the app from desktops
-- You want fastest time-to-market
-- Your team is strongest in web development
-
-**Start with React Native if:**
-
-- Mobile is your primary platform
-- You need native performance and feel
-- You're willing to invest in mobile-specific tooling
-
-**Add Ionic later if:**
-
-- You need mobile but don't need peak performance
-- You want to maximize code reuse with your web app
-- You're targeting multiple mobile platforms quickly
-
-**Add Electron later if:**
-
-- Power users need desktop-specific features
-- Offline capabilities are critical
-- You need system-level integrations
-
-### Platform-Specific Features: When Abstraction Breaks Down
-
-Sometimes you need platform-specific features that don't abstract well. Camera access, push notifications, file system operations—these vary significantly across platforms.
-
-**Strategy 1: Platform-Specific Commands**
-
-Add optional methods to your ViewModel that only make sense on certain platforms:
-
-```typescript
-export class GreenhouseDetailViewModel {
-  // Core methods (all platforms)
-  async initialize(): Promise<void> {}
-  async toggleIrrigation(): Promise<void> {}
-
-  // Mobile-specific (Ionic, React Native)
-  async capturePhoto?(): Promise<void> {
-    // Only implemented when running on mobile
-    // Desktop/web views can check if this method exists
-  }
-
-  // Desktop-specific (Electron)
-  async exportToCSV?(filePath: string): Promise<void> {
-    // Only implemented in Electron build
-  }
-}
-```
-
-**Strategy 2: Platform-Specific ViewModels**
-
-For features that differ substantially, create platform-specific ViewModels that extend the base:
-
-```typescript
-// Base ViewModel (all platforms)
-export class GreenhouseDetailViewModel {}
-
-// Mobile-specific extension
-export class MobileGreenhouseDetailViewModel extends GreenhouseDetailViewModel {
-  async capturePhoto(): Promise<void> {
-    // Mobile-specific implementation using domain service
-  }
-
-  async enablePushNotifications(): Promise<void> {
-    // Register for push notifications
-  }
-}
-```
-
-This keeps the core ViewModel clean while allowing platform-specific extensions.
-
-### Deployment and Build Complexity
-
-Managing builds for multiple platforms is non-trivial. Here's the reality:
-
-**Web:** Straightforward. Run `npm run build`, deploy to CDN or static host.
-
-**Ionic:**
-
-```bash
-# Build for web
-npm run build
-
-# Build for iOS
-npx cap sync ios
-npx cap open ios  # Open Xcode, build & sign
-
-# Build for Android
-npx cap sync android
-npx cap open android  # Open Android Studio, build & sign
-```
-
-**React Native:**
-
-```bash
-# iOS (requires Mac)
-npx react-native run-ios
-# Or open Xcode for release builds
-
-# Android
-npx react-native run-android
-# Or use Android Studio for release builds
-```
-
-**Electron:**
-
-```bash
-# Build for all platforms
-npm run build
-electron-builder --mac --windows --linux
-```
-
-You'll want CI/CD pipelines for each platform. GitHub Actions, Bitrise, or Fastlane can automate this, but expect to invest time in build infrastructure.
-
-### Keeping Dependencies in Sync
-
-A practical challenge: different platforms may require different versions of shared dependencies. For example:
-
-- React 18 on web
-- React 18 on Ionic (should match web)
-- React 18 on Electron (should match web)
-- React 18 on React Native (but React Native may lag behind web React versions)
-
-**Solution:** Use peer dependencies in `@greenwatch/core` to let each platform choose its React version, while enforcing compatible RxJS versions:
-
-```json
-// packages/core/package.json
-{
-  "peerDependencies": {
-    "rxjs": "^7.8.0"
-  }
-}
-```
-
-Each platform package pins its exact versions:
-
-```json
-// packages/web/package.json
-{
-  "dependencies": {
-    "rxjs": "7.8.1",
-    "react": "18.2.0"
-  }
+// Add to window for DevTools access
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  (window as any).__EVENT_BUS__ = eventBus;
+  (window as any).__EVENT_HISTORY__ = eventBus.getHistory?.bind(eventBus);
 }
 
-// packages/mobile-native/package.json
-{
-  "dependencies": {
-    "rxjs": "7.8.1",
-    "react": "18.2.0",  // Might be different from web in reality
-    "react-native": "0.72.0"
-  }
-}
+// Now in browser console:
+// __EVENT_BUS__.emit('test:event', { data: 'test' })
+// __EVENT_HISTORY__()
 ```
 
-Test the `@greenwatch/core` package against the **lowest** version of RxJS you support to ensure compatibility.
 
-## When This Approach Shines (And When It Doesn't)
 
-Let's be honest about when this architecture makes sense and when it's overkill.
+## Key Takeaways
 
-### ✅ **This Approach Excels When:**
+Event-driven communication is a powerful pattern for building decoupled, maintainable applications. Here's what to remember:
 
-- **You're building for multiple platforms** (or plan to). If you know you'll need web + mobile, or web + desktop, this architecture pays for itself immediately.
-- **Your business logic is complex.** The more rules, calculations, and workflows you have, the more value you get from centralizing them in ViewModels.
-- **Your team has diverse specializations.** Backend engineers can work on domain services, iOS developers on native views, React developers on web UI—without stepping on each other.
-- **You need high test coverage.** Testing ViewModels independently of frameworks is dramatically faster and simpler than full integration tests.
-- **The application will evolve.** When requirements change, you modify the ViewModel once, not in every platform-specific component.
+**Core Concepts:**
 
-### ❌ **This Approach Is Overkill When:**
+1. **Pub/Sub Pattern**: Publishers emit events, subscribers listen, and an event bus routes messages. Components don't need to know about each other.
 
-- **You're only building for one platform with no plans to expand.** If you're only ever building a web app, the overhead of separating ViewModels might not be worth it. (Though you still gain testability benefits.)
-- **Your application is extremely simple.** A basic CRUD app with minimal logic doesn't benefit much from MVVM. Just build it in React or Vue directly.
-- **You're prototyping rapidly.** In the early stages, velocity matters more than architecture. Build scrappy, refactor later if the product succeeds.
-- **Your team is small and everyone wears all hats.** If it's just you, or a two-person team, the benefits of separation may not outweigh the mental overhead of managing more files.
+2. **Framework Independence**: Event buses are framework-agnostic. The same event bus works in React, Vue, Angular, Lit, and vanilla JavaScript.
 
-The key question: **Are you solving a problem that will recur across platforms or over time?** If yes, invest in architecture. If no, don't over-engineer.
+3. **Type Safety**: Use TypeScript to define event contracts with type-safe event names and payloads.
 
-## Conclusion: Portability Through Discipline
+**Implementation Approaches:**
 
-We started this chapter by acknowledging the graveyard of "write once, run anywhere" solutions. The reason so many have failed is that they tried to abstract away platform differences entirely—to pretend that iOS and web and desktop are all the same.
+1. **event-bus-core**: Type-safe, lightweight (~1KB), zero dependencies. Great for most applications.
 
-They're not. And that's okay.
+2. **Native EventTarget**: Built into browsers, no dependencies, but less type-safe and more verbose.
 
-Our approach doesn't deny platform differences—it **embraces them at the right layer**. Business logic lives in framework-agnostic ViewModels. Platform-specific concerns live in platform-specific views. This separation gives us genuine portability where it matters (the expensive, complex business logic) while allowing us to optimize for each platform where it matters (the user experience).
+3. **RxJS Subjects**: Powerful operators for event transformation, but requires RxJS dependency and more complex API.
 
-We've seen the same `GreenhouseDetailViewModel` drive three radically different interfaces:
+4. **Custom Implementation**: Full control, zero dependencies, but you're responsible for testing and maintenance.
 
-- **Ionic:** Web-based, mobile-optimized, rapid to develop
-- **React Native:** Truly native, smooth performance, platform-appropriate feel
-- **Electron:** Desktop-class, powerful integrations, offline-capable
+**Best Practices:**
 
-In each case, the ViewModel was unchanged. We wrote it once, tested it once, and deployed it everywhere. The view layer adapted to each platform's strengths and conventions.
+1. **Document event contracts**: Events are your API—document them clearly.
 
-This is the promise of MVVM for cross-platform development—not "write once, run anywhere" (which inevitably means "run poorly everywhere"), but **"write your business logic once, then write the best possible UI for each platform."**
+2. **Use consistent naming**: Adopt a namespace convention like `entity:action`.
 
-That's a promise we can keep.
+3. **Clean up subscriptions**: Always unsubscribe when components unmount to prevent memory leaks.
 
----
+4. **Avoid event storms**: Batch or debounce frequent events.
 
-## Summary
+5. **Test event flows**: Verify that components emit and handle events correctly.
 
-**Key Takeaways:**
+6. **Use events judiciously**: Not every communication needs events. Use props for parent-child, stores for shared state, and promises for request-response.
 
-- **ViewModels are genuinely platform-agnostic** when you avoid framework imports and use RxJS observables for state management.
-- **Ionic** offers maximum code reuse (web + mobile) at the cost of native feel; best for content-heavy apps where web performance is sufficient.
-- **React Native** provides true native performance and UI, requiring separate view code but reusing all business logic; best for customer-facing mobile apps.
-- **Electron** brings desktop capabilities (file system, native menus, offline) using web technologies; best for power-user tools and admin dashboards.
-- **Monorepo structure** with a shared `@greenwatch/core` package enables code reuse while keeping platform-specific concerns isolated.
-- **Testing strategy** validates business logic once in the core package, then focuses platform-specific tests on rendering and interaction, not logic.
-- **This approach shines** for multi-platform applications with complex business logic and teams with diverse specializations; it's overkill for simple, single-platform projects.
+**MVVM Integration:**
+
+1. **Models emit domain events**: When important business state changes occur.
+
+2. **ViewModels coordinate**: Listen to domain events, emit UI events.
+
+3. **Views react**: Listen to events to update the UI, but rarely emit business events.
+
+**Debugging:**
+
+1. **Add logging**: Log event emissions and subscriptions in development.
+
+2. **Track history**: Keep a history of recent events for debugging.
+
+3. **Visualize flows**: Create tools to visualize which components emit and listen to which events.
+
+Event-driven communication enables loose coupling, making your application more flexible, testable, and maintainable. Combined with MVVM's separation of concerns, it creates a powerful architecture for building complex frontend applications that can evolve over time without becoming tangled messes of dependencies.
+
+In the next chapter, we'll explore another framework-agnostic pattern: data fetching and caching strategies. We'll see how to manage async state, implement caching, and keep data fresh—all in a way that works across any framework.
+

@@ -1,42 +1,337 @@
 ---
-id: "implementing-the-view-layer-react-edition"
-title: Implementing the View Layer – React Edition
-section: Framework-Agnostic Core
+id: "dependency-injection-and-lifecycle-management"
+title: Dependency Injection and Lifecycle Management
+section: Core Patterns
 ---
 
-# Chapter 7: Implementing the View Layer – React Edition
+# Chapter 7: Dependency Injection and Lifecycle Management
 
-We've built our framework-agnostic core. Now it's time to connect it to the real world. This is where theory meets practice, where your carefully crafted ViewModels finally talk to actual UI components.
+You've built ViewModels that encapsulate presentation logic. You've created Models that handle domain concerns. But how do these pieces come together in a real application? How do you instantiate ViewModels with their dependencies? How do you ensure resources are cleaned up when components unmount? How do you manage the lifecycle of objects that need to live beyond a single component?
 
-Here's the thing: **the View layer is the only part of your application that's allowed to be framework-specific**. Everything else—your domain logic, your state management, your business rules—lives in that pristine, testable core we've been building. The View's job is singular: render what the ViewModel tells it to render, and forward user interactions back to the ViewModel. That's it.
+This chapter answers those questions. We'll explore dependency injection patterns for MVVM applications, examine the DI container implementation from `packages/mvvm-core/src/core/di-container.ts`, and see how different frameworks handle ViewModel lifecycle management. By the end, you'll understand how to wire up your MVVM architecture in a maintainable, testable way.
 
-In this chapter, we'll implement GreenWatch's View layer using React. We'll start with the fundamental patterns that make this integration work, then build progressively toward a complete, production-ready implementation. By the end, you'll understand not just _how_ to connect React to your ViewModels, but _why_ these patterns create applications that are easier to maintain, test, and reason about.
+## Why Dependency Injection Matters for MVVM
 
-## The View Layer Contract
+Dependency injection (DI) is the practice of providing an object with its dependencies from the outside rather than having the object create them itself. In MVVM, this pattern is crucial for several reasons:
 
-Before we write any React code, let's establish what we expect from our View layer. Think of this as a contract between your framework-agnostic core and the UI framework you've chosen.
+**1. Testability**: When ViewModels receive their dependencies through constructor injection, you can easily substitute mock implementations during testing. No need for complex mocking frameworks or global state manipulation.
 
-**The View layer must:**
+**2. Flexibility**: Want to swap your REST API client for a GraphQL client? With DI, you change the registration in one place. ViewModels that depend on the abstraction don't need to change at all.
 
-1. **Subscribe to ViewModel state changes** and re-render when state updates
-2. **Forward user interactions** to ViewModel command handlers
-3. **Remain completely stateless** regarding business logic—all logic lives in the ViewModel
-4. **Handle only presentation concerns**—loading states, error displays, conditional rendering
-5. **Never directly manipulate domain objects or perform business operations**
+**3. Lifecycle Control**: Some dependencies should be singletons (one instance for the entire app), while others should be transient (new instance every time). DI containers manage these lifecycle concerns explicitly.
 
-This contract is crucial. It's what allows us to swap React for Vue or Angular without touching our core logic. It's what makes testing straightforward because we can test ViewModels without rendering anything. It's what makes maintenance easier because each layer has clear, limited responsibilities.
+**4. Framework Independence**: A well-designed DI system works the same way regardless of whether you're using React, Vue, Angular, or vanilla JavaScript. The core logic remains framework-agnostic.
 
-Let's see what this looks like in practice.
+Let's see how this works in practice.
 
-## The Basic Pattern: Connecting React to RxJS
+## The DI Container Pattern
 
-React doesn't natively understand RxJS observables. React's mental model is "props and state change, component re-renders." RxJS's mental model is "streams emit values over time, observers react." We need to bridge these two worlds.
+The Web Loom monorepo includes a simple but powerful DI container in `packages/mvvm-core/src/core/di-container.ts`. This container provides type-safe service registration and resolution without the complexity of larger DI frameworks.
 
-Here's the fundamental pattern we'll use throughout this chapter:
+Here's the core interface:
 
 ```typescript
-import { useEffect, useState } from "react";
-import { Observable } from "rxjs";
+// packages/mvvm-core/src/core/di-container.ts
+
+/**
+ * ServiceRegistry defines a map of service keys to their types.
+ * Applications augment this interface to register their services.
+ */
+export interface ServiceRegistry {
+  // Applications extend this via module augmentation
+}
+
+/**
+ * A simple dependency injection container using a registry pattern.
+ */
+export class SimpleDIContainer {
+  /**
+   * Registers a service with the DI container.
+   * @param key A unique key for the service from ServiceRegistry
+   * @param resolver The constructor or factory function to create the service
+   * @param options Configuration: isSingleton, dependencies
+   */
+  public static register<K extends keyof ServiceRegistry>(
+    key: K,
+    resolver: Constructor<ServiceRegistry[K]> | Factory<ServiceRegistry[K]>,
+    options: {
+      isSingleton?: boolean;
+      dependencies?: (keyof ServiceRegistry)[];
+    } = {}
+  ): void {
+    // Registration logic...
+  }
+
+  /**
+   * Resolves (retrieves or creates) an instance of a registered service.
+   * @param key The key of the service to resolve
+   * @returns An instance of the resolved service
+   */
+  public static resolve<K extends keyof ServiceRegistry>(
+    key: K
+  ): ServiceRegistry[K] {
+    // Resolution logic with circular dependency detection...
+  }
+}
+```
+
+**Key features:**
+
+- **Type Safety**: TypeScript ensures you can only register and resolve services that exist in the `ServiceRegistry` interface
+- **Singleton Support**: Services can be registered as singletons (one instance) or transient (new instance each time)
+- **Dependency Resolution**: The container automatically resolves dependencies and passes them to constructors
+- **Circular Dependency Detection**: Prevents infinite loops when services depend on each other
+
+Let's see how to use this container in a real application.
+
+## Registering Services
+
+Before you can resolve services, you need to register them. This typically happens at application startup, before any components render.
+
+First, augment the `ServiceRegistry` interface to declare your services:
+
+```typescript
+// src/di/service-registry.ts
+import type { SimpleDIContainer } from '@repo/mvvm-core';
+import type { GreenhouseService } from '../services/greenhouse.service';
+import type { SensorService } from '../services/sensor.service';
+import type { ApiClient } from '../services/api-client';
+
+declare module '@repo/mvvm-core' {
+  interface ServiceRegistry {
+    apiClient: ApiClient;
+    greenhouseService: GreenhouseService;
+    sensorService: SensorService;
+  }
+}
+```
+
+Now TypeScript knows about your services and can provide autocomplete and type checking.
+
+Next, register the services with the container:
+
+```typescript
+// src/di/container-setup.ts
+import { SimpleDIContainer } from '@repo/mvvm-core';
+import { ApiClient } from '../services/api-client';
+import { GreenhouseService } from '../services/greenhouse.service';
+import { SensorService } from '../services/sensor.service';
+
+export function setupDIContainer(): void {
+  // Register ApiClient as a singleton (one instance for the app)
+  SimpleDIContainer.register('apiClient', ApiClient, {
+    isSingleton: true,
+  });
+
+  // Register GreenhouseService as a singleton, depends on apiClient
+  SimpleDIContainer.register('greenhouseService', GreenhouseService, {
+    isSingleton: true,
+    dependencies: ['apiClient'],
+  });
+
+  // Register SensorService as a singleton, depends on apiClient
+  SimpleDIContainer.register('sensorService', SensorService, {
+    isSingleton: true,
+    dependencies: ['apiClient'],
+  });
+}
+```
+
+The container will automatically resolve dependencies. When you request `greenhouseService`, the container sees it depends on `apiClient`, resolves that first, and passes it to the `GreenhouseService` constructor.
+
+Call `setupDIContainer()` once at application startup:
+
+```typescript
+// src/main.tsx (React) or src/main.ts (Vue/Angular)
+import { setupDIContainer } from './di/container-setup';
+
+setupDIContainer();
+
+// Now render your app...
+```
+
+## ViewModel Lifecycle Management
+
+ViewModels have a lifecycle: they're created when a component mounts, they manage subscriptions while the component is active, and they must clean up when the component unmounts. Failing to clean up leads to memory leaks and unexpected behavior.
+
+The `BaseViewModel` class from `packages/mvvm-core/src/viewmodels/BaseViewModel.ts` provides built-in lifecycle management:
+
+```typescript
+// packages/mvvm-core/src/viewmodels/BaseViewModel.ts
+
+export class BaseViewModel<TModel extends BaseModel<any, any>> {
+  protected readonly _subscriptions = new Subscription();
+  protected readonly _destroy$ = new Subject<void>();
+  private readonly _registeredCommands: ICommand<any, any>[] = [];
+
+  constructor(model: TModel) {
+    this.model = model;
+    
+    // All observables use takeUntil(this._destroy$) for automatic cleanup
+    this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
+    this.isLoading$ = this.model.isLoading$.pipe(takeUntil(this._destroy$));
+    this.error$ = this.model.error$.pipe(takeUntil(this._destroy$));
+  }
+
+  /**
+   * Register a command for automatic disposal when ViewModel is disposed.
+   */
+  protected registerCommand<TParam, TResult>(
+    command: ICommand<TParam, TResult>
+  ): ICommand<TParam, TResult> {
+    this._registeredCommands.push(command);
+    return command;
+  }
+
+  /**
+   * Disposes of all subscriptions and registered commands.
+   * Call this when the ViewModel is no longer needed.
+   */
+  public dispose(): void {
+    // Dispose all registered commands
+    this._registeredCommands.forEach((cmd) => {
+      if (typeof cmd.dispose === 'function') {
+        cmd.dispose();
+      }
+    });
+    this._registeredCommands.length = 0;
+
+    // Complete the destroy$ subject to trigger takeUntil cleanup
+    this._destroy$.next();
+    this._destroy$.complete();
+    
+    // Unsubscribe from any manually added subscriptions
+    this._subscriptions.unsubscribe();
+  }
+}
+```
+
+**The lifecycle pattern:**
+
+1. **Creation**: ViewModel is instantiated with its dependencies
+2. **Active**: ViewModel manages subscriptions using `takeUntil(this._destroy$)`
+3. **Disposal**: `dispose()` is called, triggering cleanup of all subscriptions and commands
+
+The `takeUntil` pattern is crucial. Every observable exposed by the ViewModel automatically completes when `_destroy$` emits. This prevents memory leaks even if the View forgets to unsubscribe.
+
+## Framework-Specific DI Approaches
+
+Different frameworks have different conventions for dependency injection. Let's see how to integrate ViewModels with each framework's DI system.
+
+### Angular: Native Dependency Injection
+
+Angular has a powerful built-in DI system. We can leverage it for ViewModels using `InjectionToken`:
+
+```typescript
+// apps/mvvm-angular/src/app/components/greenhouse-list/greenhouse-list.component.ts
+
+import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+// Create an InjectionToken for the ViewModel
+export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>(
+  'GREENHOUSE_VIEW_MODEL'
+);
+
+@Component({
+  selector: 'app-greenhouse-list',
+  standalone: true,
+  templateUrl: './greenhouse-list.component.html',
+  providers: [
+    {
+      provide: GREENHOUSE_VIEW_MODEL,
+      useValue: greenHouseViewModel,
+    },
+  ],
+})
+export class GreenhouseListComponent implements OnInit, OnDestroy {
+  public vm: typeof greenHouseViewModel;
+
+  constructor(@Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel) {
+    this.vm = vm;
+  }
+
+  ngOnInit(): void {
+    this.vm.fetchCommand.execute();
+  }
+
+  ngOnDestroy(): void {
+    // Angular's subscription management handles cleanup,
+    // but if using manual subscriptions, call dispose() here
+    // this.vm.dispose();
+  }
+}
+```
+
+**Why this works:**
+
+- `InjectionToken` provides type-safe dependency injection
+- The `providers` array registers the ViewModel at the component level
+- Angular's lifecycle hooks (`ngOnInit`, `ngOnDestroy`) map naturally to ViewModel lifecycle
+- The `async` pipe in templates automatically handles subscription cleanup
+
+**In the template:**
+
+```html
+<!-- greenhouse-list.component.html -->
+<div *ngIf="vm.data$ | async as greenhouses">
+  <div *ngFor="let greenhouse of greenhouses">
+    {{ greenhouse.name }}
+  </div>
+</div>
+```
+
+The `async` pipe subscribes to `vm.data$` and automatically unsubscribes when the component is destroyed. This is Angular's idiomatic way of handling observables—no manual subscription management needed.
+
+### React: Context and Hooks
+
+React doesn't have built-in DI, but we can use Context API for ViewModel injection and hooks for lifecycle management:
+
+```typescript
+// apps/mvvm-react/src/components/GreenhouseList.tsx
+
+import { useEffect } from 'react';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+export function GreenhouseList() {
+  // Subscribe to ViewModel observables
+  const greenHouses = useObservable(
+    greenHouseViewModel.data$, 
+    [] as GreenhouseData[]
+  );
+
+  // Fetch data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await greenHouseViewModel.fetchCommand.execute();
+      } catch (error) {
+        console.error('Error fetching greenhouses:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Component cleanup happens automatically via useObservable hook
+  
+  return (
+    <div>
+      {greenHouses.map((gh) => (
+        <div key={gh.id}>{gh.name}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+The `useObservable` hook handles subscription lifecycle:
+
+```typescript
+// apps/mvvm-react/src/hooks/useObservable.ts
+
+import { useEffect, useState } from 'react';
+import { Observable } from 'rxjs';
 
 export function useObservable<T>(
   observable$: Observable<T>,
@@ -46,6 +341,8 @@ export function useObservable<T>(
 
   useEffect(() => {
     const subscription = observable$.subscribe(setValue);
+    
+    // Cleanup function runs when component unmounts
     return () => subscription.unsubscribe();
   }, [observable$]);
 
@@ -53,802 +350,352 @@ export function useObservable<T>(
 }
 ```
 
-This custom hook does exactly what we need: it subscribes to an observable when the component mounts, updates React state whenever the observable emits, and cleans up the subscription when the component unmounts. It's simple, but it's the foundation of our entire View layer.
+**Key points:**
 
-**Why this pattern works:** React handles the rendering lifecycle, RxJS handles the state changes. They each do what they're good at, and we've built a minimal, predictable bridge between them. We're not fighting either framework's design—we're respecting both.
+- `useEffect` with an empty dependency array runs once on mount
+- The cleanup function returned from `useEffect` runs on unmount
+- `useObservable` automatically subscribes and unsubscribes
+- No manual `dispose()` call needed because `BaseViewModel` uses `takeUntil` internally
 
-Let's apply this to a real component.
-
-## Building the GreenhouseCard Component
-
-GreenWatch displays multiple greenhouses, each with their current environmental status. The `GreenhouseCard` component shows a single greenhouse's data: temperature, humidity, soil moisture, and any active alerts.
-
-Here's our ViewModel interface (from Chapter 5):
+For more complex scenarios, you can create a Context for ViewModel injection:
 
 ```typescript
-// src/presentation/greenhouses/greenhouse-list.viewmodel.ts
-export interface GreenhouseCardViewModel {
-  readonly state$: Observable<{
-    greenhouse: Greenhouse;
-    metrics: EnvironmentalMetrics;
-    hasAlerts: boolean;
-    isLoading: boolean;
-  }>;
+// src/contexts/GreenhouseContext.tsx
 
-  readonly commands: {
-    viewDetails: () => void;
-    acknowledgeAlerts: () => void;
-  };
-}
-```
+import React, { createContext, useContext, useMemo } from 'react';
+import { SimpleDIContainer } from '@repo/mvvm-core';
+import { GreenhouseViewModel } from '@repo/view-models';
 
-Now let's build the React component that consumes it:
+const GreenhouseContext = createContext<GreenhouseViewModel | null>(null);
 
-```typescript
-// src/presentation/views/react/components/GreenhouseCard.tsx
-import React from 'react';
-import { GreenhouseCardViewModel } from '@presentation/greenhouses';
-import { useObservable } from '@presentation/views/react/hooks';
-
-interface GreenhouseCardProps {
-  viewModel: GreenhouseCardViewModel;
-}
-
-export const GreenhouseCard: React.FC<GreenhouseCardProps> = ({ viewModel }) => {
-  const state = useObservable(viewModel.state$, {
-    greenhouse: null,
-    metrics: null,
-    hasAlerts: false,
-    isLoading: true
-  });
-
-  if (state.isLoading) {
-    return <LoadingCard />;
-  }
-
-  if (!state.greenhouse || !state.metrics) {
-    return <ErrorCard message="Unable to load greenhouse data" />;
-  }
-
-  const { greenhouse, metrics, hasAlerts } = state;
-
-  return (
-    <div className="greenhouse-card">
-      <header className="greenhouse-card__header">
-        <h3>{greenhouse.name}</h3>
-        {hasAlerts && <AlertBadge count={greenhouse.activeAlerts.length} />}
-      </header>
-
-      <section className="greenhouse-card__metrics">
-        <MetricDisplay
-          label="Temperature"
-          value={metrics.temperature}
-          unit="°C"
-          status={getMetricStatus(metrics.temperature, greenhouse.config.temperatureRange)}
-        />
-        <MetricDisplay
-          label="Humidity"
-          value={metrics.humidity}
-          unit="%"
-          status={getMetricStatus(metrics.humidity, greenhouse.config.humidityRange)}
-        />
-        <MetricDisplay
-          label="Soil Moisture"
-          value={metrics.soilMoisture}
-          unit="%"
-          status={getMetricStatus(metrics.soilMoisture, greenhouse.config.moistureRange)}
-        />
-      </section>
-
-      <footer className="greenhouse-card__actions">
-        <button
-          onClick={viewModel.commands.viewDetails}
-          className="btn btn--primary"
-        >
-          View Details
-        </button>
-        {hasAlerts && (
-          <button
-            onClick={viewModel.commands.acknowledgeAlerts}
-            className="btn btn--secondary"
-          >
-            Acknowledge Alerts
-          </button>
-        )}
-      </footer>
-    </div>
-  );
-};
-```
-
-**What's happening here?** The component receives a ViewModel as a prop—this is dependency injection at the component level. It uses our `useObservable` hook to subscribe to the ViewModel's state stream. When state changes, React re-renders. When the user clicks a button, we call the appropriate command on the ViewModel. The component doesn't know or care _how_ those commands work—that's the ViewModel's responsibility.
-
-Notice what's **not** in this component:
-
-- No business logic
-- No state management beyond React's rendering concerns
-- No direct API calls
-- No domain object manipulation
-- No complex calculations
-
-This component is pure presentation. It displays what it's told to display and forwards user actions back to the ViewModel. That's the contract in action.
-
-## Handling Asynchronous Operations
-
-Real applications don't just display static data—they load data from servers, submit forms, and perform operations that take time. Let's see how our pattern handles async operations while maintaining separation of concerns.
-
-Consider the greenhouse configuration form. Users need to update temperature thresholds, humidity ranges, and other parameters. Here's the ViewModel:
-
-```typescript
-// src/presentation/greenhouses/greenhouse-config.viewmodel.ts
-export interface GreenhouseConfigViewModel {
-  readonly state$: Observable<{
-    config: GreenhouseConfiguration;
-    isDirty: boolean;
-    isSaving: boolean;
-    validationErrors: Record<string, string>;
-    saveError: string | null;
-  }>;
-
-  readonly commands: {
-    updateTemperatureRange: (min: number, max: number) => void;
-    updateHumidityRange: (min: number, max: number) => void;
-    updateMoistureRange: (min: number, max: number) => void;
-    save: () => Promise<void>;
-    reset: () => void;
-  };
-}
-```
-
-The ViewModel tracks whether we're currently saving, whether the form has unsaved changes, and any validation errors. The View just needs to reflect this state:
-
-```typescript
-// src/presentation/views/react/components/GreenhouseConfigForm.tsx
-export const GreenhouseConfigForm: React.FC<{
-  viewModel: GreenhouseConfigViewModel;
-}> = ({ viewModel }) => {
-  const state = useObservable(viewModel.state$, {
-    config: null,
-    isDirty: false,
-    isSaving: false,
-    validationErrors: {},
-    saveError: null
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await viewModel.commands.save();
-      // ViewModel will update state$ to reflect success
-    } catch (error) {
-      // ViewModel handles error state, we just re-render
-    }
-  };
-
-  if (!state.config) {
-    return <LoadingForm />;
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="config-form">
-      {state.saveError && (
-        <ErrorMessage message={state.saveError} />
-      )}
-
-      <fieldset disabled={state.isSaving}>
-        <legend>Temperature Range</legend>
-        <RangeInput
-          label="Minimum Temperature"
-          value={state.config.temperatureRange.min}
-          onChange={(value) => viewModel.commands.updateTemperatureRange(
-            value,
-            state.config.temperatureRange.max
-          )}
-          error={state.validationErrors.temperatureMin}
-          unit="°C"
-        />
-        <RangeInput
-          label="Maximum Temperature"
-          value={state.config.temperatureRange.max}
-          onChange={(value) => viewModel.commands.updateTemperatureRange(
-            state.config.temperatureRange.min,
-            value
-          )}
-          error={state.validationErrors.temperatureMax}
-          unit="°C"
-        />
-      </fieldset>
-
-      {/* Similar fieldsets for humidity and moisture */}
-
-      <div className="form-actions">
-        <button
-          type="button"
-          onClick={viewModel.commands.reset}
-          disabled={!state.isDirty || state.isSaving}
-          className="btn btn--secondary"
-        >
-          Reset
-        </button>
-        <button
-          type="submit"
-          disabled={!state.isDirty || state.isSaving}
-          className="btn btn--primary"
-        >
-          {state.isSaving ? 'Saving...' : 'Save Configuration'}
-        </button>
-      </div>
-    </form>
-  );
-};
-```
-
-**The key insight:** The component doesn't manage the async operation—it just displays the current state of that operation. When `save()` is called, the ViewModel updates `isSaving` to `true`, performs the operation, then updates the state again with the result. The component re-renders at each state change because it's subscribed to `state$`.
-
-This pattern eliminates entire categories of bugs. You can't forget to set loading states because the ViewModel controls them. You can't have race conditions in the UI because all state changes flow through a single stream. You can't display stale data because the component always reflects the current observable value.
-
-## Composing Complex Views
-
-Real applications don't consist of isolated components—they're composed of many components working together, each with its own ViewModel. Let's look at how to structure a complete page.
-
-The Greenhouse Detail view shows comprehensive information about a single greenhouse: current metrics, historical data, device status, and active alerts. This requires coordinating multiple ViewModels:
-
-```typescript
-// src/presentation/greenhouses/greenhouse-detail.viewmodel.ts
-export interface GreenhouseDetailViewModel {
-  readonly header: GreenhouseHeaderViewModel;
-  readonly metrics: EnvironmentalMetricsViewModel;
-  readonly history: MetricsHistoryViewModel;
-  readonly devices: DeviceStatusViewModel;
-  readonly alerts: AlertListViewModel;
-
-  readonly state$: Observable<{
-    isLoading: boolean;
-    error: string | null;
-  }>;
-}
-```
-
-Each child ViewModel handles its own domain area, and the parent coordinates them. Here's the React implementation:
-
-```typescript
-// src/presentation/views/react/pages/GreenhouseDetailPage.tsx
-export const GreenhouseDetailPage: React.FC<{
-  viewModel: GreenhouseDetailViewModel;
-}> = ({ viewModel }) => {
-  const state = useObservable(viewModel.state$, {
-    isLoading: true,
-    error: null
-  });
-
-  if (state.isLoading) {
-    return <LoadingPage />;
-  }
-
-  if (state.error) {
-    return <ErrorPage message={state.error} />;
-  }
-
-  return (
-    <div className="greenhouse-detail">
-      <GreenhouseHeader viewModel={viewModel.header} />
-
-      <div className="greenhouse-detail__grid">
-        <section className="metrics-section">
-          <h2>Current Conditions</h2>
-          <EnvironmentalMetrics viewModel={viewModel.metrics} />
-        </section>
-
-        <section className="history-section">
-          <h2>24-Hour History</h2>
-          <MetricsHistory viewModel={viewModel.history} />
-        </section>
-
-        <section className="devices-section">
-          <h2>Connected Devices</h2>
-          <DeviceStatus viewModel={viewModel.devices} />
-        </section>
-
-        <section className="alerts-section">
-          <h2>Active Alerts</h2>
-          <AlertList viewModel={viewModel.alerts} />
-        </section>
-      </div>
-    </div>
-  );
-};
-```
-
-**This is compositional architecture in practice.** Each section has its own ViewModel that handles its own domain concerns. The page component just arranges them spatially. If we need to add a new section (say, an irrigation schedule), we add a new ViewModel to the coordinator and a new component to the page. No existing code changes.
-
-More importantly, we can test each ViewModel independently. We can test the `MetricsHistoryViewModel` without caring about alerts. We can test the `AlertListViewModel` without rendering any charts. The separation of concerns isn't theoretical—it has concrete benefits for testing, maintenance, and team collaboration.
-
-## Optimizing Re-renders with Memoization
-
-React re-renders components when their props change. Since we're passing ViewModels as props, we need to ensure we're not creating unnecessary re-renders. Here's where React's memoization features help us.
-
-```typescript
-// src/presentation/views/react/components/EnvironmentalMetrics.tsx
-export const EnvironmentalMetrics: React.FC<{
-  viewModel: EnvironmentalMetricsViewModel;
-}> = React.memo(({ viewModel }) => {
-  const state = useObservable(viewModel.state$, {
-    current: null,
-    trend: null,
-    isLoading: true
-  });
-
-  if (state.isLoading || !state.current) {
-    return <MetricsSkeleton />;
-  }
-
-  return (
-    <div className="environmental-metrics">
-      <MetricCard
-        icon="thermometer"
-        label="Temperature"
-        value={state.current.temperature}
-        unit="°C"
-        trend={state.trend?.temperature}
-      />
-      <MetricCard
-        icon="droplet"
-        label="Humidity"
-        value={state.current.humidity}
-        unit="%"
-        trend={state.trend?.humidity}
-      />
-      <MetricCard
-        icon="droplets"
-        label="Soil Moisture"
-        value={state.current.soilMoisture}
-        unit="%"
-        trend={state.trend?.soilMoisture}
-      />
-    </div>
-  );
-});
-
-EnvironmentalMetrics.displayName = 'EnvironmentalMetrics';
-```
-
-By wrapping our component with `React.memo`, we tell React to skip re-rendering if the ViewModel reference hasn't changed. Since we typically create ViewModels once at the page level and pass them down, this prevents unnecessary re-renders in child components.
-
-**A word of caution:** Don't memoize everything. Memoization has its own performance cost. Use it for components that:
-
-1. Receive complex ViewModels with many observables
-2. Render frequently due to parent re-renders
-3. Perform expensive rendering operations
-
-For simple components that render quickly, the memoization overhead isn't worth it.
-
-## Handling Navigation and Routing
-
-ViewModels shouldn't know about React Router (or any other routing library). But they do need to trigger navigation—when you save a greenhouse configuration, you should navigate back to the list. How do we handle this while maintaining our architectural boundaries?
-
-**The answer: navigation is an external dependency, just like API clients.** We inject it into our ViewModels through an abstraction:
-
-```typescript
-// src/presentation/services/navigation.service.ts
-export interface NavigationService {
-  navigateTo(route: string, params?: Record<string, unknown>): void;
-  navigateBack(): void;
-  getCurrentRoute(): string;
-}
-
-// src/presentation/views/react/services/react-navigation.service.ts
-import { useNavigate, useLocation } from "react-router-dom";
-
-export class ReactNavigationService implements NavigationService {
-  constructor(
-    private navigate: ReturnType<typeof useNavigate>,
-    private location: ReturnType<typeof useLocation>
-  ) {}
-
-  navigateTo(route: string, params?: Record<string, unknown>): void {
-    this.navigate(route, { state: params });
-  }
-
-  navigateBack(): void {
-    this.navigate(-1);
-  }
-
-  getCurrentRoute(): string {
-    return this.location.pathname;
-  }
-}
-```
-
-Now our ViewModels can navigate without knowing anything about React Router:
-
-```typescript
-// src/presentation/greenhouses/greenhouse-config.viewmodel.impl.ts
-export class GreenhouseConfigViewModelImpl
-  implements GreenhouseConfigViewModel
-{
-  constructor(
-    private greenhouseId: string,
-    private configService: GreenhouseConfigService,
-    private navigationService: NavigationService
-  ) {
-    this.initializeState();
-  }
-
-  readonly commands = {
-    save: async () => {
-      this.stateSubject.next({ ...this.currentState, isSaving: true });
-
-      try {
-        await this.configService.saveConfiguration(
-          this.greenhouseId,
-          this.currentState.config
-        );
-
-        this.navigationService.navigateBack();
-      } catch (error) {
-        this.stateSubject.next({
-          ...this.currentState,
-          isSaving: false,
-          saveError: "Failed to save configuration",
-        });
-      }
-    },
-  };
-}
-```
-
-At the page level, we wire this up using React Router's hooks:
-
-```typescript
-// src/presentation/views/react/pages/GreenhouseConfigPage.tsx
-export const GreenhouseConfigPage: React.FC = () => {
-  const { greenhouseId } = useParams<{ greenhouseId: string }>();
-  const navigate = useNavigate();
-  const location = useLocation();
-
+export function GreenhouseProvider({ children }: { children: React.ReactNode }) {
   const viewModel = useMemo(() => {
-    const navigationService = new ReactNavigationService(navigate, location);
-    const configService = container.resolve<GreenhouseConfigService>('GreenhouseConfigService');
+    // Resolve ViewModel from DI container
+    return SimpleDIContainer.resolve('greenhouseViewModel');
+  }, []);
 
-    return new GreenhouseConfigViewModelImpl(
-      greenhouseId!,
-      configService,
-      navigationService
-    );
-  }, [greenhouseId, navigate, location]);
-
-  return <GreenhouseConfigForm viewModel={viewModel} />;
-};
-```
-
-**Why this matters:** If we decide to switch from React Router to TanStack Router, we only change the implementation of `NavigationService`. The ViewModels don't change. The components don't change. Our tests don't change. That's the power of abstraction at architectural boundaries.
-
-## Error Boundaries and Graceful Degradation
-
-Even with perfect architecture, things fail. Network requests time out. APIs return unexpected data. Devices disconnect. A robust View layer handles these failures gracefully.
-
-React's Error Boundaries catch rendering errors, but they don't catch errors in async code or event handlers. Since our ViewModels handle async operations, we need a strategy for surfacing those errors to the UI.
-
-**We use two complementary approaches:**
-
-1. **State-based error handling for expected failures:** Network timeouts, validation errors, business rule violations. These go into the ViewModel state and the component renders them.
-
-2. **Error boundaries for unexpected failures:** Null reference exceptions, unhandled promise rejections, catastrophic failures. These are caught by React Error Boundaries and shown as fallback UI.
-
-Here's a reusable error boundary for our pages:
-
-```typescript
-// src/presentation/views/react/components/ErrorBoundary.tsx
-interface ErrorBoundaryProps {
-  fallback: React.ComponentType<{ error: Error; reset: () => void }>;
-  children: React.ReactNode;
-}
-
-interface ErrorBoundaryState {
-  error: Error | null;
-}
-
-export class ErrorBoundary extends React.Component
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { error: null };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    // Log to error tracking service (e.g., Sentry)
-    console.error('Caught by ErrorBoundary:', error, errorInfo);
-  }
-
-  reset = (): void => {
-    this.setState({ error: null });
-  };
-
-  render(): React.ReactNode {
-    if (this.state.error) {
-      const Fallback = this.props.fallback;
-      return <Fallback error={this.state.error} reset={this.reset} />;
-    }
-
-    return this.props.children;
-  }
-}
-
-// Usage in app structure
-export const App: React.FC = () => {
   return (
-    <ErrorBoundary fallback={GlobalErrorFallback}>
-      <Router>
-        <Routes>
-          <Route path="/greenhouses" element={
-            <ErrorBoundary fallback={PageErrorFallback}>
-              <GreenhouseListPage />
-            </ErrorBoundary>
-          } />
-          {/* Other routes */}
-        </Routes>
-      </Router>
-    </ErrorBoundary>
+    <GreenhouseContext.Provider value={viewModel}>
+      {children}
+    </GreenhouseContext.Provider>
   );
-};
+}
+
+export function useGreenhouseViewModel(): GreenhouseViewModel {
+  const vm = useContext(GreenhouseContext);
+  if (!vm) {
+    throw new Error('useGreenhouseViewModel must be used within GreenhouseProvider');
+  }
+  return vm;
+}
 ```
 
-For expected errors, the ViewModel manages them as state:
+This pattern is useful when multiple components need access to the same ViewModel instance.
+
+### Vue: Provide/Inject
+
+Vue 3's Composition API provides `provide` and `inject` for dependency injection:
 
 ```typescript
-// Inside GreenhouseListViewModel implementation
-private async loadGreenhouses(): Promise<void> {
-  this.stateSubject.next({
-    ...this.currentState,
-    isLoading: true,
-    error: null
+// src/composables/useGreenhouseViewModel.ts
+
+import { inject, provide, InjectionKey } from 'vue';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+// Create a typed injection key
+export const GreenhouseViewModelKey: InjectionKey<typeof greenHouseViewModel> = 
+  Symbol('GreenhouseViewModel');
+
+// Provide the ViewModel at a parent level
+export function provideGreenhouseViewModel() {
+  provide(GreenhouseViewModelKey, greenHouseViewModel);
+}
+
+// Inject the ViewModel in child components
+export function useGreenhouseViewModel() {
+  const vm = inject(GreenhouseViewModelKey);
+  if (!vm) {
+    throw new Error('GreenhouseViewModel not provided');
+  }
+  return vm;
+}
+```
+
+In a component:
+
+```vue
+<!-- GreenhouseList.vue -->
+<script setup lang="ts">
+import { onMounted, ref } from 'vue';
+import { useGreenhouseViewModel } from '../composables/useGreenhouseViewModel';
+import { useObservable } from '../composables/useObservable';
+
+const vm = useGreenhouseViewModel();
+const greenhouses = useObservable(vm.data$, []);
+
+onMounted(async () => {
+  await vm.fetchCommand.execute();
+});
+</script>
+
+<template>
+  <div>
+    <div v-for="gh in greenhouses" :key="gh.id">
+      {{ gh.name }}
+    </div>
+  </div>
+</template>
+```
+
+The `useObservable` composable for Vue:
+
+```typescript
+// src/composables/useObservable.ts
+
+import { ref, onUnmounted, Ref } from 'vue';
+import { Observable } from 'rxjs';
+
+export function useObservable<T>(
+  observable$: Observable<T>,
+  initialValue: T
+): Ref<T> {
+  const value = ref<T>(initialValue) as Ref<T>;
+
+  const subscription = observable$.subscribe((newValue) => {
+    value.value = newValue;
   });
 
-  try {
-    const greenhouses = await this.greenhouseService.getAll();
-    this.stateSubject.next({
-      greenhouses,
-      isLoading: false,
-      error: null
-    });
-  } catch (error) {
-    this.stateSubject.next({
-      ...this.currentState,
-      isLoading: false,
-      error: 'Unable to load greenhouses. Please check your connection and try again.'
-    });
+  // Cleanup on component unmount
+  onUnmounted(() => {
+    subscription.unsubscribe();
+  });
+
+  return value;
+}
+```
+
+### Vanilla JavaScript: Manual Management
+
+Without a framework, you manage lifecycle manually:
+
+```typescript
+// src/controllers/GreenhouseListController.ts
+
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { Subscription } from 'rxjs';
+
+export class GreenhouseListController {
+  private subscriptions = new Subscription();
+
+  constructor(private containerElement: HTMLElement) {
+    this.initialize();
+  }
+
+  private initialize(): void {
+    // Subscribe to ViewModel observables
+    this.subscriptions.add(
+      greenHouseViewModel.data$.subscribe((greenhouses) => {
+        this.render(greenhouses);
+      })
+    );
+
+    // Fetch initial data
+    greenHouseViewModel.fetchCommand.execute();
+  }
+
+  private render(greenhouses: GreenhouseData[]): void {
+    this.containerElement.innerHTML = greenhouses
+      .map((gh) => `<div>${gh.name}</div>`)
+      .join('');
+  }
+
+  public destroy(): void {
+    // Clean up subscriptions
+    this.subscriptions.unsubscribe();
+    
+    // Optionally dispose ViewModel if it's not shared
+    // greenHouseViewModel.dispose();
   }
 }
 ```
 
-The component renders the error state normally:
+Usage:
 
 ```typescript
-export const GreenhouseListPage: React.FC<{
-  viewModel: GreenhouseListViewModel;
-}> = ({ viewModel }) => {
-  const state = useObservable(viewModel.state$, {
-    greenhouses: [],
-    isLoading: true,
-    error: null
-  });
+// src/main.ts
 
-  if (state.error) {
-    return (
-      <ErrorState
-        message={state.error}
-        action={{
-          label: 'Retry',
-          onClick: () => viewModel.commands.refresh()
-        }}
-      />
-    );
-  }
+const container = document.getElementById('greenhouse-list');
+const controller = new GreenhouseListController(container);
 
-  // Normal rendering...
-};
+// When navigating away or destroying the view:
+// controller.destroy();
 ```
 
-This dual approach gives us the best of both worlds: graceful handling of expected failures with clear user feedback, and a safety net for unexpected failures that prevents the entire app from crashing.
+**Key principle:** Regardless of framework, the pattern is the same:
 
-## Testing the View Layer
+1. Subscribe to ViewModel observables when the component mounts
+2. Unsubscribe when the component unmounts
+3. Call `dispose()` on the ViewModel if it's not shared across components
 
-Here's where our architectural investment pays off. Testing React components connected to ViewModels is straightforward because we can create test doubles for the ViewModels.
+## Singleton vs. Transient ViewModels
+
+Should ViewModels be singletons (one instance for the entire app) or transient (new instance per component)?
+
+**Use singletons when:**
+
+- The ViewModel manages global application state (e.g., user session, app configuration)
+- Multiple components need to share the same data and react to the same changes
+- The ViewModel coordinates cross-cutting concerns (e.g., notifications, real-time updates)
+
+**Use transient instances when:**
+
+- Each component instance needs its own isolated state
+- The ViewModel is tied to a specific entity (e.g., editing a specific greenhouse)
+- You want to avoid accidental state sharing between components
+
+In the GreenWatch application, the ViewModels are currently implemented as singletons (single instances exported from the module):
 
 ```typescript
-// src/presentation/views/react/components/__tests__/GreenhouseCard.test.tsx
-import { render, screen, fireEvent } from '@testing-library/react';
-import { BehaviorSubject } from 'rxjs';
-import { GreenhouseCard } from '../GreenhouseCard';
-import type { GreenhouseCardViewModel } from '@presentation/greenhouses';
+// packages/view-models/src/GreenHouseViewModel.ts
 
-describe('GreenhouseCard', () => {
-  it('displays greenhouse metrics when loaded', () => {
-    const stateSubject = new BehaviorSubject({
-      greenhouse: {
-        id: 'gh-1',
-        name: 'Greenhouse Alpha',
-        activeAlerts: []
-      },
-      metrics: {
-        temperature: 22.5,
-        humidity: 65,
-        soilMoisture: 40
-      },
-      hasAlerts: false,
-      isLoading: false
-    });
+export const greenHouseViewModel = new RestfulApiViewModel(
+  new RestfulApiModel(/* ... */),
+  /* ... */
+);
+```
 
-    const viewModel: GreenhouseCardViewModel = {
-      state$: stateSubject.asObservable(),
-      commands: {
-        viewDetails: jest.fn(),
-        acknowledgeAlerts: jest.fn()
-      }
-    };
+This works well for the dashboard where all components show the same list of greenhouses. But for a detail view where you're editing a specific greenhouse, you'd want a transient instance:
 
-    render(<GreenhouseCard viewModel={viewModel} />);
+```typescript
+// Create a factory function for transient ViewModels
+export function createGreenhouseDetailViewModel(
+  greenhouseId: string
+): GreenhouseDetailViewModel {
+  const model = new GreenhouseDetailModel(greenhouseId);
+  return new GreenhouseDetailViewModel(model);
+}
 
-    expect(screen.getByText('Greenhouse Alpha')).toBeInTheDocument();
-    expect(screen.getByText('22.5°C')).toBeInTheDocument();
-    expect(screen.getByText('65%')).toBeInTheDocument();
-  });
+// In a component:
+const viewModel = useMemo(
+  () => createGreenhouseDetailViewModel(greenhouseId),
+  [greenhouseId]
+);
 
-  it('calls viewDetails command when button clicked', () => {
-    const viewDetailsCommand = jest.fn();
-    const stateSubject = new BehaviorSubject({
-      greenhouse: { id: 'gh-1', name: 'Test', activeAlerts: [] },
-      metrics: { temperature: 20, humidity: 60, soilMoisture: 35 },
-      hasAlerts: false,
-      isLoading: false
-    });
+useEffect(() => {
+  return () => viewModel.dispose(); // Clean up on unmount
+}, [viewModel]);
+```
 
-    const viewModel: GreenhouseCardViewModel = {
-      state$: stateSubject.asObservable(),
-      commands: {
-        viewDetails: viewDetailsCommand,
-        acknowledgeAlerts: jest.fn()
-      }
-    };
+## Testing with Dependency Injection
 
-    render(<GreenhouseCard viewModel={viewModel} />);
+DI makes testing straightforward. You can inject mock dependencies without touching the production code:
 
-    fireEvent.click(screen.getByText('View Details'));
+```typescript
+// __tests__/GreenhouseViewModel.test.ts
 
-    expect(viewDetailsCommand).toHaveBeenCalledTimes(1);
-  });
+import { GreenhouseViewModel } from '../GreenhouseViewModel';
+import { GreenhouseModel } from '../GreenhouseModel';
+import { MockApiClient } from './mocks/MockApiClient';
 
-  it('re-renders when state changes', () => {
-    const stateSubject = new BehaviorSubject({
-      greenhouse: { id: 'gh-1', name: 'Test', activeAlerts: [] },
-      metrics: { temperature: 20, humidity: 60, soilMoisture: 35 },
-      hasAlerts: false,
-      isLoading: false
-    });
+describe('GreenhouseViewModel', () => {
+  it('loads greenhouses on initialization', async () => {
+    // Create mock dependencies
+    const mockApiClient = new MockApiClient();
+    mockApiClient.getGreenhouses.mockResolvedValue([
+      { id: '1', name: 'Greenhouse Alpha' },
+      { id: '2', name: 'Greenhouse Beta' },
+    ]);
 
-    const viewModel: GreenhouseCardViewModel = {
-      state$: stateSubject.asObservable(),
-      commands: {
-        viewDetails: jest.fn(),
-        acknowledgeAlerts: jest.fn()
-      }
-    };
+    // Inject mock into Model
+    const model = new GreenhouseModel(mockApiClient);
+    const viewModel = new GreenhouseViewModel(model);
 
-    const { rerender } = render(<GreenhouseCard viewModel={viewModel} />);
-    expect(screen.getByText('20°C')).toBeInTheDocument();
+    // Execute command
+    await viewModel.fetchCommand.execute();
 
-    // Update the state
-    stateSubject.next({
-      ...stateSubject.value,
-      metrics: { temperature: 25, humidity: 60, soilMoisture: 35 }
-    });
+    // Verify results
+    const data = await firstValueFrom(viewModel.data$);
+    expect(data).toHaveLength(2);
+    expect(data[0].name).toBe('Greenhouse Alpha');
 
-    rerender(<GreenhouseCard viewModel={viewModel} />);
-    expect(screen.getByText('25°C')).toBeInTheDocument();
+    // Clean up
+    viewModel.dispose();
   });
 });
 ```
 
-**Notice what we're not doing:** We're not mocking RxJS. We're not mocking React hooks. We're using real `BehaviorSubject` instances and testing the actual subscription behavior. The only thing we're controlling is the ViewModel—and we're controlling it through its public interface.
+No global state. No complex mocking frameworks. Just inject the mock and test the behavior.
 
-This is fast, reliable testing. No brittle mocks. No complex setup. Just create a ViewModel test double, render the component, verify the output.
+## Common Pitfalls and Solutions
 
-## Performance Considerations
+### Pitfall 1: Forgetting to Dispose ViewModels
 
-React + RxJS is performant when done correctly, but there are some patterns to avoid:
+**Problem:** Memory leaks from undisposed subscriptions.
 
-**Don't: Create observables in render:**
+**Solution:** Always call `dispose()` when the ViewModel is no longer needed. Use framework lifecycle hooks:
+
+- React: `useEffect` cleanup function
+- Vue: `onUnmounted` hook
+- Angular: `ngOnDestroy` lifecycle hook
+- Vanilla: Manual `destroy()` method
+
+### Pitfall 2: Creating ViewModels in Render
+
+**Problem:** Creating a new ViewModel on every render causes subscriptions to leak and state to reset.
+
+**Solution:** Use memoization:
 
 ```typescript
-// ❌ BAD: Creates new observable on every render
-const MetricsDisplay: React.FC = () => {
-  const metrics$ = getMetricsStream(); // New observable every render!
-  const metrics = useObservable(metrics$, null);
+// ❌ BAD: Creates new ViewModel on every render
+function MyComponent() {
+  const vm = new MyViewModel(); // DON'T DO THIS
   // ...
-};
-```
+}
 
-**Do: Receive observables as props or create them with useMemo:**
-
-```typescript
-// ✅ GOOD: Observable is stable across renders
-const MetricsDisplay: React.FC<{ viewModel: MetricsViewModel }> = ({
-  viewModel,
-}) => {
-  const metrics = useObservable(viewModel.metrics$, null);
+// ✅ GOOD: Memoize ViewModel creation
+function MyComponent() {
+  const vm = useMemo(() => new MyViewModel(), []);
+  
+  useEffect(() => {
+    return () => vm.dispose();
+  }, [vm]);
   // ...
-};
-
-// ✅ ALSO GOOD: Observable is memoized
-const MetricsDisplay: React.FC<{ greenhouseId: string }> = ({
-  greenhouseId,
-}) => {
-  const metrics$ = useMemo(
-    () => getMetricsStream(greenhouseId),
-    [greenhouseId]
-  );
-  const metrics = useObservable(metrics$, null);
-  // ...
-};
+}
 ```
 
-**Don't: Use observables for every tiny piece of state:**
+### Pitfall 3: Circular Dependencies
 
-```typescript
-// ❌ BAD: Observable overkill for UI-only state
-const SearchInput: React.FC = () => {
-  const [inputValue$] = useState(() => new BehaviorSubject(''));
-  const value = useObservable(inputValue$, '');
+**Problem:** ServiceA depends on ServiceB, which depends on ServiceA.
 
-  return (
-    <input
-      value={value}
-      onChange={(e) => inputValue$.next(e.target.value)}
-    />
-  );
-};
-```
+**Solution:** The DI container detects circular dependencies and throws an error. To fix:
 
-**Do: Use React state for purely presentational concerns:**
+1. Refactor to remove the circular dependency (preferred)
+2. Use an event bus for communication instead of direct dependencies
+3. Inject a factory function instead of the service directly
 
-```typescript
-// ✅ GOOD: Plain React state for UI concerns
-const SearchInput: React.FC<{ onSearch: (term: string) => void }> = ({ onSearch }) => {
-  const [value, setValue] = useState('');
+### Pitfall 4: Sharing Mutable State
 
-  return (
-    <input
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={() => onSearch(value)}
-    />
-  );
-};
-```
+**Problem:** Multiple components modify the same ViewModel state, causing unexpected behavior.
 
-**The rule of thumb:** Use observables for state that comes from your ViewModels. Use React state for purely UI concerns like accordion open/closed state, form input values (before submission), hover states, and other presentational details.
+**Solution:** 
 
-## What We've Built
+- Use immutable updates (spread operators, `Object.assign`)
+- Consider using transient ViewModels for isolated state
+- Use commands for state mutations to centralize logic
 
-We've implemented a complete View layer that connects React to our framework-agnostic core. We've established clear patterns for:
+## Key Takeaways
 
-- Subscribing to ViewModel state and triggering re-renders
-- Forwarding user interactions to ViewModel commands
-- Composing complex views from multiple ViewModels
-- Handling async operations and error states
-- Managing navigation while respecting architectural boundaries
-- Testing components in isolation
+1. **Dependency injection enables testability and flexibility** by providing dependencies from the outside rather than creating them internally
 
-The components we've built don't contain business logic. They don't directly call APIs. They don't manipulate domain objects. They do exactly one thing: translate ViewModel state into visual elements and translate user interactions into ViewModel commands.
+2. **The DI container pattern** provides type-safe service registration and resolution with automatic dependency resolution
 
-This is what the View layer should be—a thin, declarative shell around your core logic. It's framework-specific by necessity, but it's so simple and predictable that changing frameworks becomes a realistic option rather than a project-killing endeavor.
+3. **ViewModel lifecycle management** is critical for preventing memory leaks. Always dispose ViewModels when they're no longer needed
 
-In the next chapter, we'll implement the exact same application using Vue. You'll see how the ViewModels don't change at all—only the View layer changes. That's the promise of framework-agnostic architecture: invest in your core logic once, swap out the UI as needed.
+4. **Framework-specific DI approaches** vary, but the core pattern remains the same: inject dependencies, manage lifecycle, clean up resources
 
-But before we move on, make sure you understand the patterns here. Build a few components. Wire them up to real ViewModels. Get comfortable with the `useObservable` hook and the ViewModel-as-props pattern. These aren't theoretical constructs—they're practical tools you'll use in every component you build from here forward.
+5. **Singleton vs. transient** depends on whether state should be shared across components or isolated per instance
+
+6. **Testing with DI** is straightforward: inject mocks, test behavior, verify results
+
+In the next chapter, we'll see how to implement the View layer in React, using the DI and lifecycle patterns we've established here. You'll see how these architectural decisions pay off in clean, maintainable component code.
+

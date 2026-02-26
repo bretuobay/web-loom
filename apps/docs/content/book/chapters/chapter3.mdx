@@ -1,14 +1,12 @@
 ---
-id: "the-mvvm-pattern-fundamentals"
-title: The MVVM Pattern Fundamentals
-section: The Crisis
+id: "mvvm-pattern-fundamentals"
+title: MVVM Pattern Fundamentals
+section: Foundations
 ---
 
-# Chapter 3: The MVVM Pattern Fundamentals
+# Chapter 3: MVVM Pattern Fundamentals
 
-Before we dive into building framework-agnostic architecture, we need to establish a solid understanding of the MVVM pattern itself. If you've worked with Angular or WPF, you've likely encountered MVVM. If you're coming from React or Vue, you might think this pattern is overkill or outdated. I'm here to challenge that assumption.
-
-MVVM isn't just a pattern—it's a philosophy about how we structure frontend applications to maximize testability, maintainability, and flexibility. In this chapter, we'll dissect MVVM's core components, understand why each layer exists, and see how this separation of concerns directly addresses the architectural problems we identified in Chapter 1.
+Before we dive into building framework-agnostic architecture, we need to establish a solid understanding of the MVVM pattern itself. MVVM isn't just a pattern—it's a philosophy about how we structure frontend applications to maximize testability, maintainability, and flexibility. In this chapter, we'll dissect MVVM's core components, understand why each layer exists, and see how this separation of concerns directly addresses the architectural problems we identified in Chapter 1.
 
 ## 3.1 Understanding the Three Layers
 
@@ -20,54 +18,98 @@ The Model represents your application's domain logic and data structures. It's f
 
 Think of the Model as your application's **source of truth**. It contains:
 
-- **Domain entities**: The core business objects (e.g., `Greenhouse`, `Sensor`, `Reading`)
+- **Domain data**: The core business objects and their state
 - **Business rules**: Logic that's true regardless of how you display it
-- **Data access**: Interfaces for fetching and persisting data
+- **Data validation**: Ensuring data integrity with schemas
+- **State management**: Reactive observables for data changes
 
 Here's a critical point: your Model shouldn't depend on your View or ViewModel. This unidirectional dependency flow is what makes MVVM testable. You can validate your business logic without ever rendering a UI component.
 
+Let's look at the actual `BaseModel` implementation from the Web Loom monorepo:
+
 ```typescript
-// models/Sensor.ts
-export interface SensorReading {
-  timestamp: Date;
-  value: number;
-  unit: string;
+// packages/mvvm-core/src/models/BaseModel.ts
+import { BehaviorSubject, Observable } from 'rxjs';
+import { ZodSchema } from 'zod';
+
+export interface IBaseModel<TData, TSchema extends ZodSchema<TData>> {
+  readonly data$: Observable<TData | null>;
+  readonly isLoading$: Observable<boolean>;
+  readonly error$: Observable<any>;
+  readonly schema?: TSchema;
+
+  setData(newData: TData | null): void;
+  setLoading(status: boolean): void;
+  setError(err: any): void;
+  clearError(): void;
+  validate(data: any): TData;
 }
 
-export class Sensor {
-  constructor(
-    public readonly id: string,
-    public readonly type: "temperature" | "humidity" | "soil_moisture",
-    public readonly location: string,
-    private readings: SensorReading[] = []
-  ) {}
+export class BaseModel<TData, TSchema extends ZodSchema<TData>> 
+  implements IBaseModel<TData, TSchema> {
+  
+  protected _data$ = new BehaviorSubject<TData | null>(null);
+  public readonly data$: Observable<TData | null> = this._data$.asObservable();
 
-  addReading(reading: SensorReading): void {
-    this.readings.push(reading);
+  protected _isLoading$ = new BehaviorSubject<boolean>(false);
+  public readonly isLoading$: Observable<boolean> = this._isLoading$.asObservable();
 
-    // Business rule: Keep only last 100 readings
-    if (this.readings.length > 100) {
-      this.readings.shift();
+  protected _error$ = new BehaviorSubject<any>(null);
+  public readonly error$: Observable<any> = this._error$.asObservable();
+
+  public readonly schema?: TSchema;
+
+  constructor(input: { initialData?: TData | null; schema?: TSchema }) {
+    const { initialData = null, schema } = input;
+    if (initialData !== null) {
+      this._data$.next(initialData);
     }
+    this.schema = schema;
   }
 
-  getLatestReading(): SensorReading | null {
-    return this.readings[this.readings.length - 1] || null;
+  public setData(newData: TData | null): void {
+    this._data$.next(newData);
   }
 
-  getAverageValue(minutes: number): number {
-    const cutoff = new Date(Date.now() - minutes * 60 * 1000);
-    const recentReadings = this.readings.filter((r) => r.timestamp >= cutoff);
+  public setLoading(status: boolean): void {
+    this._isLoading$.next(status);
+  }
 
-    if (recentReadings.length === 0) return 0;
+  public setError(err: any): void {
+    this._error$.next(err);
+  }
 
-    const sum = recentReadings.reduce((acc, r) => acc + r.value, 0);
-    return sum / recentReadings.length;
+  public clearError(): void {
+    this._error$.next(null);
+  }
+
+  public validate(data: any): TData {
+    if (!this.schema) {
+      console.warn('No Zod schema provided. Validation will not occur.');
+      return data as TData;
+    }
+    return this.schema.parse(data);
+  }
+
+  public dispose(): void {
+    this._data$.complete();
+    this._isLoading$.complete();
+    this._error$.complete();
   }
 }
 ```
 
-Notice how this Model contains business logic (`getAverageValue`) but has zero knowledge of React hooks, Vue reactivity, or Angular change detection. It's pure TypeScript. This is intentional—your domain logic shouldn't be coupled to framework specifics.
+Notice several key characteristics of this Model:
+
+**Reactive State with RxJS**: The Model uses `BehaviorSubject` to manage state reactively. Any component that subscribes to `data$`, `isLoading$`, or `error$` will automatically receive updates when state changes.
+
+**Framework Independence**: This is pure TypeScript with RxJS. There's no React, Vue, or Angular code here. The Model works with any framework—or no framework at all.
+
+**Validation with Zod**: The Model accepts a Zod schema for type-safe validation. When data is validated, Zod ensures it matches the expected structure and types.
+
+**Lifecycle Management**: The `dispose()` method completes all observables, preventing memory leaks when the Model is no longer needed.
+
+This is the foundation of MVVM in the GreenWatch system. Every domain entity—sensors, greenhouses, readings, alerts—extends this `BaseModel` to get reactive state management and validation for free.
 
 ### The View Layer: Presentation Only
 
@@ -75,54 +117,59 @@ The View is responsible for rendering UI and capturing user input. That's it. In
 
 Your View should _never_ contain business logic. If you're writing an `if` statement in your View that makes a business decision, you're doing it wrong. That logic belongs in the ViewModel or Model.
 
-Here's what a proper MVVM View looks like in React:
+Here's what a proper MVVM View looks like in React, taken from the GreenWatch application:
 
 ```typescript
-// views/SensorCard.tsx
-import React, { useEffect, useState } from 'react';
-import { SensorCardViewModel } from '../viewmodels/SensorCardViewModel';
+// apps/mvvm-react/src/components/SensorReadingList.tsx
+import { useEffect } from 'react';
+import { sensorReadingViewModel, type SensorReadingListData } 
+  from '@repo/view-models/SensorReadingViewModel';
+import { useObservable } from '../hooks/useObservable';
 
-interface SensorCardProps {
-  viewModel: SensorCardViewModel;
-}
-
-export const SensorCard: React.FC<SensorCardProps> = ({ viewModel }) => {
-  const [state, setState] = useState(viewModel.getState());
+export function SensorReadingList() {
+  const readingList = useObservable(
+    sensorReadingViewModel.data$, 
+    [] as SensorReadingListData
+  );
 
   useEffect(() => {
-    // Subscribe to ViewModel state changes
-    const subscription = viewModel.state$.subscribe(newState => {
-      setState(newState);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [viewModel]);
+    const fetchData = async () => {
+      await sensorReadingViewModel.fetchCommand.execute();
+    };
+    fetchData();
+  }, []);
 
   return (
-    <div className={`sensor-card ${state.statusClass}`}>
-      <h3>{state.displayName}</h3>
-      <div className="reading">
-        <span className="value">{state.displayValue}</span>
-        <span className="unit">{state.unit}</span>
-      </div>
-      <div className="trend">
-        <span className={state.trendIconClass}></span>
-        <span>{state.trendText}</span>
-      </div>
-      <button
-        onClick={() => viewModel.refreshReading()}
-        disabled={state.isRefreshing}
-      >
-        {state.refreshButtonText}
-      </button>
+    <div className="card">
+      <h1 className="card-title">Sensor Readings</h1>
+      {readingList && readingList.length > 0 ? (
+        <ul className="card-content list">
+          {readingList.map((reading) => (
+            <li key={reading.id + reading.timestamp} className="list-item">
+              Reading ID: {reading.sensorId}, 
+              Timestamp: {new Date(reading.timestamp).toLocaleString()}, 
+              Value: {reading.value}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No sensor readings found or still loading...</p>
+      )}
     </div>
   );
-};
+}
 ```
 
-See what's happening here? The View doesn't know _anything_ about how to format the sensor value, what the trend means, or when to disable the refresh button. It just displays state from the ViewModel and calls ViewModel methods. This is **declarative UI** at its finest.
+See what's happening here? The View doesn't know _anything_ about:
 
-The View subscribes to the ViewModel's state observable (`state$`) and re-renders whenever state changes. We'll explore this reactive binding mechanism in detail later, but the key insight is this: the View is a pure function of ViewModel state.
+- How to fetch sensor readings from the API
+- How to format or transform the data
+- What business rules apply to sensor readings
+- How to handle errors or loading states
+
+It just subscribes to the ViewModel's `data$` observable using the `useObservable` hook and renders what it receives. When the user wants to fetch data, it calls `viewModel.fetchCommand.execute()`. That's it.
+
+The View is a pure function of ViewModel state. This is **declarative UI** at its finest.
 
 ### The ViewModel Layer: The Bridge
 
@@ -135,237 +182,126 @@ Your ViewModel has several responsibilities:
 3. **Command Handling**: Processes user actions and coordinates with the Model
 4. **Presentation Logic**: Determines what to show and when
 
-Let's build the ViewModel for our sensor card:
+Let's look at the actual `BaseViewModel` implementation from Web Loom:
 
 ```typescript
-// viewmodels/SensorCardViewModel.ts
-import { BehaviorSubject, Observable, combineLatest, interval } from "rxjs";
-import { map, distinctUntilChanged, startWith } from "rxjs/operators";
-import { Sensor, SensorReading } from "../models/Sensor";
-import { SensorService } from "../services/SensorService";
+// packages/mvvm-core/src/viewmodels/BaseViewModel.ts
+import { Observable, Subject, Subscription } from 'rxjs';
+import { map, startWith, takeUntil } from 'rxjs/operators';
+import { ZodError } from 'zod';
+import type { BaseModel } from '../models/BaseModel';
 
-export interface SensorCardState {
-  displayName: string;
-  displayValue: string;
-  unit: string;
-  statusClass: string;
-  trendIconClass: string;
-  trendText: string;
-  isRefreshing: boolean;
-  refreshButtonText: string;
-  lastError: string | null;
-}
+export class BaseViewModel<TModel extends BaseModel<any, any>> {
+  protected readonly _subscriptions = new Subscription();
+  protected readonly _destroy$ = new Subject<void>();
 
-export class SensorCardViewModel {
-  private sensorSubject = new BehaviorSubject<Sensor>(this.sensor);
-  private isRefreshingSubject = new BehaviorSubject<boolean>(false);
-  private lastErrorSubject = new BehaviorSubject<string | null>(null);
+  // Expose observables directly from the injected model
+  public readonly data$: Observable<TModel['data']>;
+  public readonly isLoading$: Observable<boolean>;
+  public readonly error$: Observable<any>;
+  public readonly validationErrors$: Observable<ZodError | null>;
+  
+  protected readonly model: TModel;
 
-  // Public state observable that Views subscribe to
-  public readonly state$: Observable<SensorCardState>;
+  constructor(model: TModel) {
+    this.model = model;
+    if (!model) {
+      throw new Error('BaseViewModel requires an instance of BaseModel.');
+    }
 
-  constructor(
-    private sensor: Sensor,
-    private sensorService: SensorService
-  ) {
-    // Combine all state sources into a single observable
-    this.state$ = combineLatest([
-      this.sensorSubject.asObservable(),
-      this.isRefreshingSubject.asObservable(),
-      this.lastErrorSubject.asObservable(),
-      // Trigger recalculation every 5 seconds for trend updates
-      interval(5000).pipe(startWith(0)),
-    ]).pipe(
-      map(([sensor, isRefreshing, lastError]) =>
-        this.computeState(sensor, isRefreshing, lastError)
-      ),
-      distinctUntilChanged(
-        (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)
-      )
+    // Expose model observables with automatic cleanup
+    this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
+    this.isLoading$ = this.model.isLoading$.pipe(takeUntil(this._destroy$));
+    this.error$ = this.model.error$.pipe(takeUntil(this._destroy$));
+
+    // Extract Zod validation errors from the error stream
+    this.validationErrors$ = this.model.error$.pipe(
+      map((err) => (err instanceof ZodError ? err : null)),
+      startWith(null),
+      takeUntil(this._destroy$),
     );
   }
 
-  private computeState(
-    sensor: Sensor,
-    isRefreshing: boolean,
-    lastError: string | null
-  ): SensorCardState {
-    const reading = sensor.getLatestReading();
-
-    return {
-      displayName: this.formatDisplayName(sensor),
-      displayValue: this.formatDisplayValue(sensor, reading),
-      unit: reading?.unit || "",
-      statusClass: this.determineStatusClass(sensor, reading),
-      trendIconClass: this.determineTrendIcon(sensor),
-      trendText: this.formatTrendText(sensor),
-      isRefreshing,
-      refreshButtonText: isRefreshing ? "Refreshing..." : "Refresh",
-      lastError,
-    };
+  protected addSubscription(subscription: Subscription): void {
+    this._subscriptions.add(subscription);
   }
 
-  private formatDisplayName(sensor: Sensor): string {
-    // Presentation logic: Format sensor type for display
-    const typeMap = {
-      temperature: "Temperature",
-      humidity: "Humidity",
-      soil_moisture: "Soil Moisture",
-    };
-    return `${typeMap[sensor.type]} - ${sensor.location}`;
-  }
-
-  private formatDisplayValue(
-    sensor: Sensor,
-    reading: SensorReading | null
-  ): string {
-    if (!reading) return "--";
-
-    // Presentation logic: Format value based on sensor type
-    if (sensor.type === "temperature") {
-      return reading.value.toFixed(1);
-    }
-    return reading.value.toFixed(0);
-  }
-
-  private determineStatusClass(
-    sensor: Sensor,
-    reading: SensorReading | null
-  ): string {
-    if (!reading) return "status-unknown";
-
-    // Presentation logic: Determine visual status
-    if (sensor.type === "temperature") {
-      if (reading.value < 15 || reading.value > 30) return "status-warning";
-    } else if (sensor.type === "humidity") {
-      if (reading.value < 40 || reading.value > 70) return "status-warning";
-    }
-
-    return "status-normal";
-  }
-
-  private determineTrendIcon(sensor: Sensor): string {
-    const avg5min = sensor.getAverageValue(5);
-    const avg30min = sensor.getAverageValue(30);
-
-    if (avg5min > avg30min * 1.05) return "icon-trending-up";
-    if (avg5min < avg30min * 0.95) return "icon-trending-down";
-    return "icon-trending-stable";
-  }
-
-  private formatTrendText(sensor: Sensor): string {
-    const avg5min = sensor.getAverageValue(5);
-    const avg30min = sensor.getAverageValue(30);
-    const change = (((avg5min - avg30min) / avg30min) * 100).toFixed(1);
-
-    if (Math.abs(parseFloat(change)) < 5) return "Stable";
-    return `${change}% (30min)`;
-  }
-
-  public async refreshReading(): Promise<void> {
-    if (this.isRefreshingSubject.value) return;
-
-    this.isRefreshingSubject.next(true);
-    this.lastErrorSubject.next(null);
-
-    try {
-      // Coordinate with service layer to fetch new data
-      const newReading = await this.sensorService.fetchLatestReading(
-        this.sensor.id
-      );
-      this.sensor.addReading(newReading);
-      this.sensorSubject.next(this.sensor); // Trigger state recalculation
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to refresh";
-      this.lastErrorSubject.next(errorMessage);
-      console.error("Error refreshing sensor:", error);
-    } finally {
-      this.isRefreshingSubject.next(false);
-    }
-  }
-
-  public getState(): SensorCardState {
-    // Synchronous state access for initial render
-    return this.computeState(
-      this.sensor,
-      this.isRefreshingSubject.value,
-      this.lastErrorSubject.value
-    );
-  }
-
-  public destroy(): void {
-    // Clean up subscriptions if needed
-    this.isRefreshingSubject.complete();
-    this.lastErrorSubject.complete();
-    this.sensorSubject.complete();
+  public dispose(): void {
+    this._destroy$.next();
+    this._destroy$.complete();
+    this._subscriptions.unsubscribe();
   }
 }
 ```
 
-This ViewModel demonstrates several critical MVVM principles:
+This `BaseViewModel` demonstrates several critical MVVM principles:
 
-**Reactive State Management**: The `state$` observable combines multiple state sources using RxJS's `combineLatest`. Whenever any underlying state changes, the entire view state is recomputed and emitted to subscribers.
+**Model Connection**: The ViewModel receives a Model instance in its constructor and exposes the Model's observables to Views. This creates a clean separation—the ViewModel doesn't own the data, it just provides access to it.
 
-**Computed State**: Properties like `displayValue` and `statusClass` are derived from Model state through the `computeState` method. They're calculated on-demand and automatically update when the underlying data changes. This is reactive programming in action.
+**Reactive Streams**: The ViewModel uses RxJS operators like `takeUntil` to automatically clean up subscriptions when the ViewModel is disposed. This prevents memory leaks.
 
-**Action Methods**: The `refreshReading` method handles user interaction. It updates UI state through BehaviorSubjects, coordinates with the service layer, and updates the Model—all while keeping the View completely unaware of these details.
+**Validation Error Handling**: The ViewModel extracts Zod validation errors from the Model's error stream and exposes them separately. This makes it easy for Views to display validation errors distinctly from other errors.
 
-**Presentation Logic Isolation**: Notice how all the logic for formatting values, determining status colors, and calculating trends lives in the ViewModel. The View is completely decoupled from these decisions.
+**Lifecycle Management**: The `dispose()` method ensures all subscriptions are cleaned up when the ViewModel is no longer needed.
+
+Here's a concrete example from GreenWatch—the `SensorViewModel`:
+
+```typescript
+// packages/view-models/src/SensorViewModel.ts
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { SensorListSchema, type SensorListData, SensorModel } 
+  from '@repo/models';
+
+export class SensorViewModel extends RestfulApiViewModel<
+  SensorListData, 
+  typeof SensorListSchema
+> {
+  constructor(model: SensorModel) {
+    super(model);
+  }
+}
+
+const sensorModel = new SensorModel();
+export const sensorViewModel = new SensorViewModel(sensorModel);
+```
+
+The `SensorViewModel` extends `RestfulApiViewModel`, which adds CRUD operations (create, read, update, delete) on top of `BaseViewModel`. This demonstrates the power of composition—we build specialized ViewModels by extending base classes with additional capabilities.
 
 ## 3.2 Data Flow in MVVM
 
-Understanding how data flows through MVVM is crucial. Let's trace a complete cycle from user action to UI update.
+Understanding how data flows through MVVM is crucial. Let's trace a complete cycle from user action to UI update using the GreenWatch sensor reading example.
 
 ### The Request Flow: User Action → Model Update
 
-1. **User interacts with View**: Clicks the refresh button
-2. **View calls ViewModel method**: `viewModel.refreshReading()`
-3. **ViewModel updates UI state**: Emits `true` through `isRefreshingSubject`
-4. **ViewModel coordinates with services**: Calls `sensorService.fetchLatestReading()`
-5. **Service fetches data**: Makes HTTP request, receives new sensor reading
-6. **ViewModel updates Model**: Calls `sensor.addReading(newReading)`
-7. **Model applies business rules**: Adds reading and maintains max 100 readings
-8. **ViewModel triggers state recalculation**: Emits updated sensor through `sensorSubject`
-9. **ViewModel updates UI state**: Emits `false` through `isRefreshingSubject`
+1. **User interacts with View**: Clicks to fetch sensor readings
+2. **View calls ViewModel method**: `sensorReadingViewModel.fetchCommand.execute()`
+3. **ViewModel coordinates with Model**: The command triggers the Model's fetch operation
+4. **Model updates loading state**: Emits `true` through `isLoading$`
+5. **Model fetches data**: Makes HTTP request to the API
+6. **Model validates data**: Uses Zod schema to validate the response
+7. **Model updates data state**: Emits new data through `data$`
+8. **Model updates loading state**: Emits `false` through `isLoading$`
 
 ### The Response Flow: Model Update → UI Update
 
 This is where reactive programming shines:
 
-1. **Model state changes**: New reading added to `sensor.readings` array
-2. **ViewModel detects change**: `sensorSubject` emits updated sensor
-3. **State recomputation triggered**: `combineLatest` operator triggers `computeState`
-4. **New state calculated**: All presentation logic executes to compute new display values
-5. **State emitted to subscribers**: `state$` observable emits new `SensorCardState`
-6. **View receives update**: React's `useEffect` subscription callback fires
-7. **Framework re-renders View**: React updates the DOM with new values
+1. **Model state changes**: New sensor readings added to `data$`
+2. **ViewModel observables emit**: The `data$` observable emits the new data
+3. **View subscription receives update**: The `useObservable` hook receives the new data
+4. **React re-renders**: React updates the DOM with new sensor readings
 
-Here's the critical insight: the View never explicitly subscribes to Model changes or manually updates the DOM. The reactive binding system handles this automatically through RxJS observables. This is why MVVM scales so well—adding new computed properties doesn't require touching the View code.
+Here's the critical insight: the View never explicitly subscribes to Model changes or manually updates the DOM. The reactive binding system handles this automatically through RxJS observables. This is why MVVM scales so well—adding new data sources doesn't require touching the View code.
 
-### Diagram Description: MVVM Data Flow
+### Unidirectional Data Flow
 
-_[Note: This section should include a diagram showing the bidirectional flow between layers]_
+MVVM enforces unidirectional data flow:
 
-**Component Layout:**
+- **View → ViewModel**: The View calls ViewModel methods (commands)
+- **ViewModel → Model**: The ViewModel updates Model state
+- **Model → ViewModel → View**: Data flows back through observables
 
-- Three vertical layers: View (left), ViewModel (center), Model (right)
-- Service layer shown as an external component interacting with ViewModel
-- RxJS observables represented as streams connecting layers
-
-**Key Relationships:**
-
-- View → ViewModel: One-way binding (displays state, calls methods)
-- ViewModel → Model: Bidirectional (reads state, calls methods)
-- ViewModel → Services: Bidirectional (coordinates data fetching/persistence)
-- Model → ViewModel: Reactive updates through BehaviorSubjects
-- ViewModel → View: Reactive stream through `state$` observable
-
-**Flow Arrows:**
-
-- **User Action Flow** (solid arrows): View → ViewModel → Services → Model
-- **Update Flow** (dashed arrows): Model → BehaviorSubject → `combineLatest` → `state$` → View subscription
-- **Observable Streams** (wavy lines): Continuous reactive connections
+This unidirectional flow makes the application predictable and debuggable. You always know where state changes originate and how they propagate through the system.
 
 ## 3.3 The Benefits of Layer Separation
 
@@ -375,226 +311,40 @@ Now that we've seen how MVVM works, let's discuss _why_ this separation matters.
 
 The most immediate benefit is testability. Because your ViewModel doesn't depend on framework-specific UI components, you can test it in a pure Node.js environment with standard testing tools.
 
-```typescript
-// viewmodels/__tests__/SensorCardViewModel.test.ts
-import { firstValueFrom } from "rxjs";
-import { take } from "rxjs/operators";
-import { SensorCardViewModel } from "../SensorCardViewModel";
-import { Sensor } from "../../models/Sensor";
-import { MockSensorService } from "../../services/__mocks__/SensorService";
-
-describe("SensorCardViewModel", () => {
-  let viewModel: SensorCardViewModel;
-  let mockSensor: Sensor;
-  let mockService: MockSensorService;
-
-  beforeEach(() => {
-    mockSensor = new Sensor("sensor-1", "temperature", "Greenhouse A");
-    mockService = new MockSensorService();
-    viewModel = new SensorCardViewModel(mockSensor, mockService);
-  });
-
-  afterEach(() => {
-    viewModel.destroy();
-  });
-
-  describe("state$ observable", () => {
-    it("emits initial state immediately", async () => {
-      const state = await firstValueFrom(viewModel.state$.pipe(take(1)));
-
-      expect(state.displayName).toBe("Temperature - Greenhouse A");
-      expect(state.displayValue).toBe("--");
-      expect(state.isRefreshing).toBe(false);
-    });
-
-    it("formats temperature with one decimal place", async () => {
-      mockSensor.addReading({
-        timestamp: new Date(),
-        value: 23.456,
-        unit: "°C",
-      });
-
-      const state = await firstValueFrom(viewModel.state$.pipe(take(1)));
-      expect(state.displayValue).toBe("23.5");
-    });
-
-    it("shows warning status when temperature is too high", async () => {
-      mockSensor.addReading({
-        timestamp: new Date(),
-        value: 35,
-        unit: "°C",
-      });
-
-      const state = await firstValueFrom(viewModel.state$.pipe(take(1)));
-      expect(state.statusClass).toBe("status-warning");
-    });
-
-    it("shows normal status when temperature is in range", async () => {
-      mockSensor.addReading({
-        timestamp: new Date(),
-        value: 22,
-        unit: "°C",
-      });
-
-      const state = await firstValueFrom(viewModel.state$.pipe(take(1)));
-      expect(state.statusClass).toBe("status-normal");
-    });
-  });
-
-  describe("refreshReading", () => {
-    it("updates isRefreshing state during fetch", async () => {
-      const states: boolean[] = [];
-
-      viewModel.state$.pipe(take(3)).subscribe((state) => {
-        states.push(state.isRefreshing);
-      });
-
-      const mockReading = {
-        timestamp: new Date(),
-        value: 25,
-        unit: "°C",
-      };
-      mockService.setNextReading(mockReading);
-
-      await viewModel.refreshReading();
-
-      // Should see: false (initial), true (during), false (after)
-      expect(states).toEqual([false, true, false]);
-    });
-
-    it("adds new reading to sensor on success", async () => {
-      const mockReading = {
-        timestamp: new Date(),
-        value: 25,
-        unit: "°C",
-      };
-      mockService.setNextReading(mockReading);
-
-      await viewModel.refreshReading();
-
-      expect(mockSensor.getLatestReading()).toEqual(mockReading);
-    });
-
-    it("sets error message on failure", async () => {
-      mockService.setNextError(new Error("Network timeout"));
-
-      await viewModel.refreshReading();
-
-      const state = await firstValueFrom(viewModel.state$.pipe(take(1)));
-      expect(state.lastError).toBe("Network timeout");
-    });
-
-    it("emits updated state after successful refresh", async () => {
-      const states: string[] = [];
-
-      viewModel.state$.pipe(take(2)).subscribe((state) => {
-        states.push(state.displayValue);
-      });
-
-      mockService.setNextReading({
-        timestamp: new Date(),
-        value: 25.7,
-        unit: "°C",
-      });
-
-      await viewModel.refreshReading();
-
-      expect(states[0]).toBe("--"); // Initial state
-      expect(states[1]).toBe("25.7"); // After refresh
-    });
-  });
-});
-```
-
-This test suite validates all our ViewModel logic without ever rendering a component. We're testing:
+With the GreenWatch ViewModels, you can test:
 
 - Observable emissions and reactive state updates
-- Data formatting logic
-- Status determination
-- Async operation handling
-- Error states
+- Data transformation logic
+- Command execution and error handling
+- Validation with Zod schemas
 
-Compare this to testing presentation logic embedded in React components—you'd need to set up a rendering environment, mock browser APIs, and navigate framework-specific testing utilities. With MVVM, your tests are faster, more focused, and framework-agnostic.
+All without ever rendering a component. Compare this to testing presentation logic embedded in React components—you'd need to set up a rendering environment, mock browser APIs, and navigate framework-specific testing utilities. With MVVM, your tests are faster, more focused, and framework-agnostic.
 
 ### Maintainability: Change One Layer at a Time
 
-MVVM's clear boundaries make code changes safer and more predictable. Let's say you need to change how temperature values are formatted. In a tightly coupled architecture, this might touch multiple files and risk breaking unrelated functionality.
+MVVM's clear boundaries make code changes safer and more predictable. Let's say you need to change how sensor readings are formatted. In a tightly coupled architecture, this might touch multiple files and risk breaking unrelated functionality.
 
-With MVVM, you change exactly one method:
-
-```typescript
-private formatDisplayValue(sensor: Sensor, reading: SensorReading | null): string {
-  if (!reading) return '--';
-
-  // Changed: Now show two decimal places for temperature
-  if (sensor.type === 'temperature') {
-    return reading.value.toFixed(2); // Changed from .toFixed(1)
-  }
-  return reading.value.toFixed(0);
-}
-```
-
-Your View doesn't change. Your Model doesn't change. The reactive system automatically propagates the update. Your tests update to expect two decimal places, and you're done. This is the power of separation of concerns—changes are localized to the layer that owns the concern.
+With MVVM, you change exactly one place—the ViewModel's data transformation logic. Your View doesn't change. Your Model doesn't change. The reactive system automatically propagates the update. This is the power of separation of concerns—changes are localized to the layer that owns the concern.
 
 ### Framework Independence: Swap Frameworks Without Rewriting Logic
 
-Here's where MVVM truly shines for modern frontend development. Your ViewModel and Model are pure TypeScript with RxJS—they work with React, Vue, Angular, Svelte, or even a custom rendering engine.
+Here's where MVVM truly shines for modern frontend development. Your ViewModel and Model are pure TypeScript with RxJS—they work with React, Vue, Angular, Lit, or even vanilla JavaScript.
 
-Let's see the same `SensorCardViewModel` working with Vue:
+The `SensorViewModel` we saw earlier works identically in:
 
-```vue
-<!-- views/SensorCard.vue -->
-<template>
-  <div :class="['sensor-card', state.statusClass]">
-    <h3>{{ state.displayName }}</h3>
-    <div class="reading">
-      <span class="value">{{ state.displayValue }}</span>
-      <span class="unit">{{ state.unit }}</span>
-    </div>
-    <div class="trend">
-      <span :class="state.trendIconClass"></span>
-      <span>{{ state.trendText }}</span>
-    </div>
-    <button @click="viewModel.refreshReading()" :disabled="state.isRefreshing">
-      {{ state.refreshButtonText }}
-    </button>
-  </div>
-</template>
+- React (with `useObservable` hook)
+- Vue (with `watchEffect` composable)
+- Angular (with `async` pipe)
+- Lit (with reactive controllers)
+- Vanilla JS (with direct subscriptions)
 
-<script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
-import { Subscription } from "rxjs";
-import {
-  SensorCardViewModel,
-  SensorCardState,
-} from "../viewmodels/SensorCardViewModel";
-
-const props = defineProps<{
-  viewModel: SensorCardViewModel;
-}>();
-
-const state = ref<SensorCardState>(props.viewModel.getState());
-let subscription: Subscription;
-
-onMounted(() => {
-  subscription = props.viewModel.state$.subscribe((newState) => {
-    state.value = newState;
-  });
-});
-
-onUnmounted(() => {
-  subscription.unsubscribe();
-});
-</script>
-```
-
-The _exact same_ ViewModel works in both React and Vue. We didn't rewrite any logic, business rules, or data transformation code. We only changed the View layer—the framework-specific rendering code.
+The _exact same_ ViewModel works in all these frameworks. We didn't rewrite any logic, business rules, or data transformation code. We only changed the View layer—the framework-specific rendering code.
 
 This isn't a theoretical exercise. In real-world applications, you might need to:
 
-- Migrate from Angular to React as your framework of choice evolves
-- Build a React Native mobile app that shares logic with your React web app
-- Create an Electron desktop app that reuses your web ViewModels
+- Migrate from one framework to another as your framework of choice evolves
+- Build a mobile app that shares logic with your web app
+- Create a desktop app that reuses your web ViewModels
 
 With MVVM, these scenarios become feasible. Your core logic is framework-agnostic, so you're not locked into a single ecosystem.
 
@@ -619,16 +369,14 @@ If you're building a small prototype that you'll throw away next month, fine—s
 
 ### "Reactive Programming is Too Complex"
 
-Some developers see RxJS operators like `combineLatest`, `map`, and `distinctUntilChanged` and think it's overcomplicated. They'd rather use simple imperative code with manual state updates.
+Some developers see RxJS operators like `takeUntil`, `map`, and `combineLatest` and think it's overcomplicated. They'd rather use simple imperative code with manual state updates.
 
-This is short-term thinking. RxJS has a learning curve, but once you understand it, it makes your code significantly simpler. Consider the alternative: without reactive programming, your `refreshReading` method would need to:
+This is short-term thinking. RxJS has a learning curve, but once you understand it, it makes your code significantly simpler. Without reactive programming, you'd need to:
 
-1. Update the sensor data
-2. Manually recalculate display values
-3. Manually update status classes
-4. Manually update trend indicators
-5. Manually notify all interested Views
-6. Handle race conditions if multiple refreshes happen simultaneously
+1. Manually track all state changes
+2. Manually notify all interested Views
+3. Handle race conditions if multiple updates happen simultaneously
+4. Write complex cleanup logic to prevent memory leaks
 
 With RxJS, you update the BehaviorSubject and everything else happens automatically through the observable pipeline. The complexity is managed by a well-tested reactive system instead of scattered throughout your codebase.
 
@@ -640,75 +388,35 @@ Your ViewModel should be **pure TypeScript with RxJS**. If it depends on framewo
 
 The View layer is where you integrate framework-specific code. Use React hooks in your View components if you need them, but keep the ViewModel framework-agnostic.
 
-## 3.5 MVVM Variations and Alternatives
+## 3.5 MVVM in the GreenWatch System
 
-MVVM isn't the only architectural pattern, and it's worth understanding how it relates to alternatives.
+Let's see how MVVM applies to the GreenWatch greenhouse monitoring system. The domain model includes:
 
-### MVC: The Predecessor
+- **Greenhouse**: Container entity with environmental zones
+- **Sensor**: Device that measures environmental conditions (temperature, humidity, soil moisture)
+- **SensorReading**: Time-series data point from a sensor
+- **ThresholdAlert**: Alert triggered when readings exceed configured thresholds
 
-Model-View-Controller (MVC) predates MVVM and is still widely used in backend frameworks (Rails, Django, Spring). In MVC:
+Each of these domain entities has:
 
-- **Model**: Same as MVVM—domain logic and data
-- **View**: Renders UI, but may contain more presentation logic
-- **Controller**: Handles user input and coordinates Model/View updates
+- A **Model** (extending `BaseModel`) that manages domain data and business rules
+- A **ViewModel** (extending `BaseViewModel` or `RestfulApiViewModel`) that provides presentation logic
+- **Views** in React, Vue, Angular, Lit, and Vanilla JS that render the UI
 
-The key difference is that MVC doesn't have the reactive binding that makes MVVM powerful. Controllers manually update Views after Model changes. This works fine for server-side rendering where each request creates a fresh page, but it's painful for modern SPAs with complex, stateful UIs.
+The same ViewModels work across all five framework implementations. This demonstrates the power of MVVM—write your business logic once, use it everywhere.
 
-MVVM evolved from MVC specifically to handle rich client applications. The ViewModel's reactive observables eliminate the manual View update logic that Controllers require.
-
-### MVP: Model-View-Presenter
-
-Model-View-Presenter (MVP) is another MVC derivative. The Presenter is similar to a ViewModel but uses explicit View interfaces instead of reactive binding:
-
-```typescript
-interface ISensorCardView {
-  setDisplayValue(value: string): void;
-  setStatusClass(className: string): void;
-  setRefreshingState(isRefreshing: boolean): void;
-}
-
-class SensorCardPresenter {
-  constructor(
-    private view: ISensorCardView,
-    private sensor: Sensor
-  ) {}
-
-  updateDisplay(): void {
-    const reading = this.sensor.getLatestReading();
-    this.view.setDisplayValue(reading ? reading.value.toFixed(1) : "--");
-    this.view.setStatusClass(this.calculateStatus(reading));
-  }
-}
-```
-
-MVP works, but it's more verbose than MVVM because you're explicitly pushing updates to the View. With MVVM's reactive binding through RxJS, the View automatically updates when ViewModel observables emit—you don't need all those `setXXX` methods.
-
-### When to Use MVVM
-
-MVVM is ideal when:
-
-- You're building a **complex SPA** with significant client-side state
-- You need **high test coverage** of presentation logic
-- You want **framework flexibility** to migrate or support multiple platforms
-- You have **multiple developers** who need clear architectural boundaries
-- Your application has **real-time data** that benefits from reactive streams
-
-MVVM might be overkill when:
-
-- You're building a simple content site with minimal interactivity
-- Your UI is mostly server-rendered with occasional client-side enhancements
-- You have a tiny team building a short-lived prototype
-
-For the GreenWatch IoT monitoring system we're building throughout this book, MVVM is absolutely the right choice. We have complex real-time data visualization, multiple platforms (web and mobile), and a need for extensive testing of our monitoring logic.
+In the next chapters, we'll dive deeper into building Models and ViewModels, exploring reactive state management, and implementing Views in different frameworks. But first, you need to understand these fundamentals—the three layers, the data flow, and the benefits of separation of concerns.
 
 ## Summary
 
 MVVM provides a robust architectural foundation for modern frontend applications through its clear separation of concerns:
 
-- The **Model** contains domain logic and data, completely independent of UI frameworks
-- The **View** renders UI declaratively based on ViewModel state
-- The **ViewModel** bridges the gap, transforming domain data into presentation formats through reactive observables and handling user interactions
+- The **Model** contains domain logic and data, completely independent of UI frameworks. It uses RxJS observables for reactive state management and Zod for validation.
+
+- The **View** renders UI declaratively based on ViewModel state. It subscribes to ViewModel observables and calls ViewModel methods, but contains no business logic.
+
+- The **ViewModel** bridges the gap, exposing Model observables to Views and handling user interactions. It's framework-agnostic and testable without UI dependencies.
 
 This separation delivers concrete benefits: ViewModels are testable without UI dependencies, business logic is maintainable in isolation, and your core logic works across any framework or platform. RxJS provides the reactive glue that makes this architecture elegant and scalable.
 
-In the next chapter, we'll start building the foundation of our framework-agnostic MVVM architecture. We'll establish the core abstractions and patterns that'll allow our ViewModels to work seamlessly with React, Vue, and Angular—without compromising on any of these benefits.
+In the next chapter, we'll start building framework-agnostic Models, exploring how to implement domain logic, validation, and API operations using the `BaseModel` and `RestfulApiModel` patterns from Web Loom.

@@ -1,1352 +1,1192 @@
 ---
-id: 'the-future-trainable-structures-and-ai-automation'
-title: The Future - Trainable Structures and AI Automation
-section: Enterprise Scale
+id: "plugin-architecture-and-extensibility"
+title: Plugin Architecture and Extensibility
+section: Advanced Topics
 ---
 
-# The Future: Trainable Structures and AI Automation
+# Chapter 20: Plugin Architecture and Extensibility
 
-# Chapter 20: The Future: Trainable Structures and AI Automation
+Modern applications increasingly need to be extensible—allowing third-party developers to add features without modifying the core codebase. Whether you're building a developer tool, a content management system, or an enterprise application, a well-designed plugin architecture enables runtime extensibility while maintaining architectural integrity.
 
-We've spent nineteen chapters building a foundation for maintainable, testable, framework-agnostic architecture. Now let's address what this means for the immediate future of software development: the rise of AI-powered coding tools.
+This chapter explores plugin architecture patterns using the Web Loom monorepo's `plugin-core` library and `plugin-react` application as concrete examples. We'll examine how to build framework-agnostic plugin systems that integrate seamlessly with MVVM architecture, demonstrating the PluginRegistry, FrameworkAdapter, PluginManifest, and PluginSDK patterns.
 
-Here's the uncomfortable truth many architects are discovering: **most AI coding assistants generate absolute garbage when working with business-critical frontend code.** They mix concerns, couple components to frameworks, ignore domain boundaries, and produce untestable messes that appear to work but create maintenance nightmares.
+## Why Plugin Architecture Matters for MVVM
 
-This isn't because AI tools are inherently flawed—it's because they're **trained on the chaotic patterns that dominate modern codebases**. Feed an AI examples of components with embedded business logic, and it'll generate more of the same. Ask it to add a feature to a poorly structured application, and it'll make the structure worse.
+Plugin architectures solve a fundamental problem: **how do you allow external code to extend your application without breaking architectural boundaries?**
 
-But there's a different outcome when you apply these tools to well-architected systems. **Predictable architecture becomes trainable architecture.** When your codebase follows consistent patterns—clear domain models, framework-agnostic ViewModels, explicit dependency injection—AI tools don't just work better. They become genuinely useful force multipliers.
+In MVVM applications, this challenge is particularly interesting because:
 
-This chapter explores how the architectural principles we've established throughout this book create systems that AI can understand, extend, and maintain. We'll examine practical strategies for leveraging AI tools without sacrificing the architectural discipline that makes professional software development sustainable.
+1. **Framework Independence**: Plugins should work regardless of whether your host uses React, Vue, Angular, or another framework
+2. **Lifecycle Management**: Plugins need controlled initialization, mounting, and cleanup
+3. **Isolation**: Plugins shouldn't directly access host internals or break encapsulation
+4. **Validation**: Plugin configurations must be validated before loading
+5. **Dependencies**: Plugins may depend on other plugins, requiring load order resolution
 
-## Predictable Architecture = Trainable Architecture
+A well-designed plugin system provides these capabilities while maintaining the separation of concerns that makes MVVM valuable.
 
-Let's start with a fundamental observation: **AI coding assistants work best with patterns they can recognize and reproduce consistently.** This is exactly what clean architecture provides.
+## The Plugin Architecture Pattern
 
-Consider the structure we've built throughout this book:
+At its core, a plugin architecture consists of four key components:
+
+
+1. **PluginRegistry**: Manages plugin registration, lifecycle states, and dependency resolution
+2. **PluginManifest**: Declarative configuration describing what a plugin provides
+3. **FrameworkAdapter**: Abstraction for mounting plugins in specific UI frameworks
+4. **PluginSDK**: Controlled API for plugin-host communication
+
+Let's examine each component using real implementations from the Web Loom monorepo.
+
+## PluginRegistry: Framework-Agnostic Plugin Management
+
+The PluginRegistry is the heart of the plugin system. It maintains the registry of all plugins, tracks their lifecycle states, and resolves dependencies.
+
+Here's the actual implementation from `packages/plugin-core/src/registry/PluginRegistry.ts`:
 
 ```typescript
-// Clear, consistent structure across all features
-src/
-  domain/
-    models/          // Pure data structures
-    services/        // Business logic
-    repositories/    // Data access abstractions
-  application/
-    viewmodels/      // Presentation logic
-  infrastructure/
-    repositories/    // Concrete implementations
-  ui/
-    react/          // Framework-specific views
+/**
+ * The lifecycle state of a plugin.
+ */
+export type PluginState =
+  | 'registered' // Manifest has been loaded and validated
+  | 'loading'    // Plugin code is being fetched
+  | 'loaded'     // Plugin code has been loaded, `init` called
+  | 'mounted'    // `mount` has been called
+  | 'unmounted'  // `unmount` has been called
+  | 'error';     // An error occurred
+
+/**
+ * Internal representation of a plugin within the registry.
+ */
+export interface PluginDefinition<T extends TComponent = TComponent> {
+  manifest: PluginManifest<T>;
+  state: PluginState;
+  instance?: any; // This would hold the loaded plugin module
+}
+
+export class PluginRegistry<T extends TComponent = TComponent> {
+  public readonly plugins = new Map<string, PluginDefinition<T>>();
+
+  constructor(public readonly adapter?: FrameworkAdapter<T>) {}
+
+  /**
+   * Registers a plugin with the registry.
+   */
+  register(manifest: PluginManifest<T>): void {
+    // 1. Validate the manifest
+    try {
+      PluginManifestSchema.parse(manifest);
+    } catch (error) {
+      const e = error as Error;
+      throw new Error(`Invalid plugin manifest for "${manifest.id}": ${e.message}`);
+    }
+
+    // 2. Check for duplicates
+    if (this.plugins.has(manifest.id)) {
+      throw new Error(`Plugin with ID "${manifest.id}" is already registered.`);
+    }
+
+    // 3. Store the plugin definition
+    const definition: PluginDefinition<T> = {
+      manifest,
+      state: 'registered',
+    };
+    this.plugins.set(manifest.id, definition);
+  }
+}
 ```
 
-Every feature follows this pattern. When you add a new sensor type to GreenWatch, you know exactly where each piece goes:
 
-1. **Domain model** in `domain/models/sensors/`
-2. **Repository interface** in `domain/repositories/`
-3. **Repository implementation** in `infrastructure/repositories/`
-4. **ViewModel** in `application/viewmodels/sensors/`
-5. **React components** in `ui/react/sensors/`
+Notice several key design decisions:
 
-This predictability isn't just good for human developers—it's **perfect for AI tools**. When an AI assistant encounters this structure repeatedly, it learns the pattern. It understands that ViewModels never import React. It recognizes that domain services receive dependencies through constructor injection. It sees that every repository has both an interface and an implementation.
+1. **Generic Type Parameter**: `T extends TComponent` allows the registry to work with any framework's component type
+2. **Lifecycle States**: Explicit states track plugin progression from registration to mounting
+3. **Validation First**: Manifests are validated using Zod before registration
+4. **Duplicate Prevention**: The registry prevents ID collisions
 
-### The Training Effect
+### Plugin Lifecycle Management
 
-Here's what happens when you consistently apply these patterns: AI tools begin to generate code that **matches your architectural standards** instead of fighting them.
+The lifecycle states enable controlled plugin initialization:
 
-Let's look at a concrete example. Suppose we ask an AI to add a new sensor type—a CO₂ sensor—to GreenWatch. With a poorly structured codebase, you might get something like this:
+- **registered**: Manifest validated and stored
+- **loading**: Plugin code being fetched (for remote plugins)
+- **loaded**: Plugin module loaded, `init()` called
+- **mounted**: Plugin's `mount()` called, UI rendered
+- **unmounted**: Plugin's `unmount()` called, cleanup performed
+- **error**: An error occurred during any lifecycle transition
+
+This explicit state machine prevents plugins from being used before they're ready and ensures proper cleanup.
+
+### Dependency Resolution with Topological Sort
+
+One of the most sophisticated features of the PluginRegistry is automatic dependency resolution. Plugins can declare dependencies on other plugins, and the registry calculates the correct load order:
 
 ```typescript
-// ❌ What AI generates from a messy codebase
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+/**
+ * Resolves the plugin load order based on dependencies using topological sort.
+ */
+resolveLoadOrder(): string[] {
+  const pluginIds = Array.from(this.plugins.keys());
+  const adj = new Map<string, string[]>();
+  const inDegree = new Map<string, number>();
 
-export function CO2Sensor({ sensorId }: { sensorId: string }) {
-  const [reading, setReading] = useState<number | null>(null);
-  const [alert, setAlert] = useState(false);
+  // Initialize in-degrees and adjacency list
+  for (const id of pluginIds) {
+    inDegree.set(id, 0);
+    adj.set(id, []);
+  }
+
+  // Build the graph
+  for (const [id, plugin] of this.plugins) {
+    const dependencies = plugin.manifest.dependencies || {};
+    for (const depId of Object.keys(dependencies)) {
+      if (!this.plugins.has(depId)) {
+        throw new Error(
+          `Plugin "${id}" has an unresolved dependency: "${depId}" is not registered.`
+        );
+      }
+      // Edge from dependency to the plugin that depends on it
+      adj.get(depId)!.push(id);
+      inDegree.set(id, (inDegree.get(id) || 0) + 1);
+    }
+  }
+
+  // Kahn's algorithm for topological sort
+  const queue = pluginIds.filter((id) => inDegree.get(id) === 0);
+  const sorted: string[] = [];
+
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    sorted.push(id);
+
+    for (const dependentId of adj.get(id)!) {
+      inDegree.set(dependentId, (inDegree.get(dependentId) || 0) - 1);
+      if (inDegree.get(dependentId) === 0) {
+        queue.push(dependentId);
+      }
+    }
+  }
+
+  // Detect circular dependencies
+  if (sorted.length !== pluginIds.length) {
+    const cycleNodes = pluginIds.filter((id) => !sorted.includes(id));
+    throw new Error(
+      `Circular dependency detected. Check: ${cycleNodes.join(', ')}`
+    );
+  }
+
+  return sorted;
+}
+```
+
+
+This implementation uses Kahn's algorithm for topological sorting, which:
+
+1. Builds a dependency graph from plugin manifests
+2. Identifies plugins with no dependencies (in-degree = 0)
+3. Processes plugins in order, removing edges as dependencies are satisfied
+4. Detects circular dependencies if any plugins remain unprocessed
+
+This ensures plugins always load after their dependencies, preventing runtime errors from missing dependencies.
+
+## PluginManifest: Declarative Configuration
+
+The PluginManifest is a declarative, JSON-serializable object that describes what a plugin provides. This separation of configuration from implementation is crucial for plugin systems.
+
+Here's the manifest interface from `packages/plugin-core/src/contracts/PluginManifest.ts`:
+
+```typescript
+/**
+ * The plugin manifest is a static, declarative JSON object that describes
+ * the plugin's metadata and its contributions to the host application.
+ */
+export interface PluginManifest<T extends TComponent = TComponent> {
+  id: string;
+  name: string;
+  version: string;
+  entry: string;
+  description?: string;
+  author?: string;
+  icon?: string;
+  routes?: PluginRouteDefinition<T>[];
+  menuItems?: PluginMenuItem[];
+  widgets?: PluginWidgetDefinition<T>[];
+  metadata?: Record<string, unknown>;
+  dependencies?: Record<string, string>;
+}
+
+/**
+ * Defines a route to be registered by a plugin.
+ */
+export interface PluginRouteDefinition<T extends TComponent = TComponent> {
+  path: string;
+  component: T;
+  exact?: boolean;
+}
+
+/**
+ * Defines a menu item to be added to the host application's UI.
+ */
+export interface PluginMenuItem {
+  label: string;
+  path: string;
+  icon?: string;
+}
+
+/**
+ * Defines a widget to be displayed in the host application.
+ */
+export interface PluginWidgetDefinition<T extends TComponent = TComponent> {
+  id: string;
+  title: string;
+  component: T;
+}
+```
+
+The manifest enables plugins to contribute:
+
+- **Routes**: New pages/views in the application
+- **Menu Items**: Navigation entries
+- **Widgets**: Dashboard components
+- **Metadata**: Custom configuration data
+- **Dependencies**: Required plugins
+
+### Runtime Validation with Zod
+
+Manifests are validated at runtime using Zod schemas, ensuring type safety even for dynamically loaded plugins:
+
+```typescript
+const PluginRouteDefinitionSchema = z.object({
+  path: z.string(),
+  component: z.any(),
+  exact: z.boolean().optional(),
+});
+
+const PluginMenuItemSchema = z.object({
+  label: z.string(),
+  path: z.string(),
+  icon: z.string().optional(),
+});
+
+const PluginWidgetDefinitionSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  component: z.any(),
+});
+
+export const PluginManifestSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  version: z.string().min(1),
+  entry: z.string().min(1),
+  description: z.string().optional(),
+  author: z.string().optional(),
+  icon: z.string().url().optional(),
+  routes: z.array(PluginRouteDefinitionSchema).optional(),
+  menuItems: z.array(PluginMenuItemSchema).optional(),
+  widgets: z.array(PluginWidgetDefinitionSchema).optional(),
+  metadata: z.record(z.unknown()).optional(),
+  dependencies: z.record(z.string()).optional(),
+});
+```
+
+
+This validation happens in the `PluginRegistry.register()` method before a plugin is accepted, preventing invalid plugins from entering the system.
+
+### Real Plugin Manifest Example
+
+Here's an actual plugin manifest from the GreenWatch application (`apps/plugin-react/src/config/plugin.config.ts`):
+
+```typescript
+const greenhouseManifest: PluginManifest<ReactPluginComponent> = {
+  id: 'greenhouse-plugin',
+  name: 'Greenhouse Plugin',
+  version: '1.0.0',
+  entry: '../plugins/greenhouse/index.tsx',
+  description: 'Greenhouse list and summary widget',
+  routes: [
+    {
+      path: '/greenhouses',
+      component: GreenhouseList,
+    },
+  ],
+  widgets: [
+    {
+      id: 'greenhouse-card-widget',
+      title: 'Greenhouses',
+      component: GreenhouseWidget,
+    },
+  ],
+};
+```
+
+This manifest declares that the greenhouse plugin:
+- Provides a route at `/greenhouses` rendering the `GreenhouseList` component
+- Contributes a dashboard widget showing greenhouse summaries
+- Has no dependencies on other plugins
+
+## FrameworkAdapter: Bridging Framework Boundaries
+
+The FrameworkAdapter is the abstraction that makes the plugin system framework-agnostic. It defines how to mount and unmount components in a specific UI framework.
+
+Here's the interface from `packages/plugin-core/src/adapter/FrameworkAdapter.ts`:
+
+```typescript
+/**
+ * The FrameworkAdapter is responsible for bridging the gap between the
+ * framework-agnostic plugin core and the specific UI framework used by the host.
+ *
+ * @template T The base component type for the target framework
+ */
+export interface FrameworkAdapter<T extends TComponent = TComponent> {
+  /**
+   * Renders a plugin's component into a given DOM element.
+   */
+  mountComponent(component: T, container: HTMLElement): void;
+
+  /**
+   * Unmounts and cleans up a rendered component from a DOM element.
+   */
+  unmountComponent(container: HTMLElement): void;
+}
+```
+
+This simple interface hides all framework-specific complexity behind two methods. The host application provides an implementation for its framework.
+
+### React Framework Adapter Implementation
+
+Here's the React adapter from `apps/plugin-react/src/host/PluginHost.tsx`:
+
+```typescript
+import { createRoot, type Root } from 'react-dom/client';
+
+const rootMap = new Map<HTMLElement, Root>();
+
+const ReactAdapter: FrameworkAdapter<ReactPluginComponent> = {
+  mountComponent: (component, container) => {
+    let root = rootMap.get(container);
+    if (!root) {
+      root = createRoot(container);
+      rootMap.set(container, root);
+    }
+    root.render(createElement(component));
+  },
+  
+  unmountComponent: (container) => {
+    const root = rootMap.get(container);
+    if (root) {
+      root.unmount();
+      rootMap.delete(container);
+    }
+  },
+};
+```
+
+
+Key implementation details:
+
+1. **Root Management**: Maintains a map of containers to React roots for proper cleanup
+2. **Lazy Root Creation**: Creates roots only when needed
+3. **Cleanup**: Properly unmounts and removes roots to prevent memory leaks
+
+For Vue, Angular, or other frameworks, you'd implement the same interface using framework-specific mounting APIs. The plugin-core library remains completely framework-agnostic.
+
+## PluginSDK: Controlled Host Communication
+
+The PluginSDK is the sole interface between plugins and the host application. It provides a controlled API that prevents plugins from accessing host internals directly.
+
+Here's the SDK interface from `packages/plugin-core/src/sdk/PluginSDK.ts`:
+
+```typescript
+/**
+ * The Plugin SDK is the sole, controlled interface between a plugin 
+ * and the host application.
+ */
+export interface PluginSDK {
+  /**
+   * Provides context about the plugin itself.
+   */
+  readonly plugin: {
+    id: string;
+    manifest: PluginManifest;
+  };
+
+  /**
+   * Manages registration of application routes.
+   */
+  readonly routes: {
+    add: <T extends TComponent>(route: PluginRouteDefinition<T>) => void;
+    remove: (path: string) => void;
+  };
+
+  /**
+   * Manages registration of navigation menu items.
+   */
+  readonly menus: {
+    addItem: (item: PluginMenuItem) => void;
+    removeItem: (label: string) => void;
+  };
+
+  /**
+   * Manages registration of dashboard widgets.
+   */
+  readonly widgets: {
+    add: <T extends TComponent>(widget: PluginWidgetDefinition<T>) => void;
+    remove: (id: string) => void;
+  };
+
+  /**
+   * A pub/sub event bus for cross-plugin and host-plugin communication.
+   */
+  readonly events: {
+    on: (event: string, handler: (...args: any[]) => void) => void;
+    off: (event: string, handler: (...args: any[]) => void) => void;
+    emit: (event: string, ...args: any[]) => void;
+  };
+
+  /**
+   * Provides access to shared, host-managed UI components.
+   */
+  readonly ui: {
+    showModal: <T extends TComponent>(content: T, options?: object) => void;
+    showToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
+  };
+
+  /**
+   * Provides access to shared, host-provided application services.
+   */
+  readonly services: {
+    apiClient: {
+      get: <T>(url: string) => Promise<T>;
+      post: <T>(url: string, data: any) => Promise<T>;
+      put: <T>(url: string, data: any) => Promise<T>;
+      delete: <T>(url: string) => Promise<T>;
+    };
+    auth: {
+      getUser: () => Promise<{ id: string; name: string; email: string } | null>;
+      hasRole: (role: string) => Promise<boolean>;
+    };
+    storage: {
+      get: <T>(key: string) => Promise<T | null>;
+      set: (key: string, value: any) => Promise<void>;
+      remove: (key: string) => Promise<void>;
+    };
+  };
+}
+```
+
+
+The SDK provides several categories of functionality:
+
+1. **Plugin Context**: Information about the plugin itself
+2. **Contribution APIs**: Register routes, menus, and widgets
+3. **Event Bus**: Cross-plugin communication
+4. **UI Services**: Shared UI components (modals, toasts)
+5. **Application Services**: Authenticated API client, auth, storage
+
+This design ensures plugins can only interact with the host through well-defined APIs, maintaining encapsulation and security.
+
+## Building a Plugin: Complete Example
+
+Let's examine a complete plugin implementation from the GreenWatch application. This is the greenhouse plugin from `apps/plugin-react/src/plugins/greenhouse/index.tsx`:
+
+```typescript
+import React, { useEffect } from 'react';
+import type { PluginModule, PluginSDK } from '@repo/plugin-core';
+import { registerManifestContributions, unregisterManifestContributions } from '../utils/manifestHelpers';
+import GreenhouseCard from '../../components/GreenhouseCard';
+import { greenHouseViewModel, type GreenhouseListData } from '@repo/view-models/GreenHouseViewModel';
+import { useObservable } from '../../hooks/useObservable';
+
+// The widget component that will be rendered
+const GreenhouseWidget: React.FC = () => {
+  const greenHouses = useObservable(greenHouseViewModel.data$, [] as GreenhouseListData);
 
   useEffect(() => {
-    // Business logic mixed with component lifecycle
-    const interval = setInterval(async () => {
-      const response = await axios.get(`/api/sensors/${sensorId}`);
-      const co2Level = response.data.co2;
-      setReading(co2Level);
-
-      // Alert logic embedded in component
-      if (co2Level > 1000) {
-        setAlert(true);
-        axios.post('/api/alerts', {
-          type: 'high_co2',
-          sensorId,
-          value: co2Level
-        });
+    const fetchData = async () => {
+      try {
+        await greenHouseViewModel.fetchCommand.execute();
+      } catch (error) {
+        console.error('[greenhouse widget] failed to load data', error);
       }
-    }, 5000);
+    };
 
-    return () => clearInterval(interval);
-  }, [sensorId]);
+    fetchData();
+  }, []);
+
+  return <GreenhouseCard greenHouses={greenHouses} />;
+};
+
+let activeSdk: PluginSDK | null = null;
+
+// The plugin module with lifecycle methods
+const greenhouseModule: PluginModule = {
+  init: async (sdk) => {
+    activeSdk = sdk;
+    console.debug('[greenhouse] initialized');
+  },
+  
+  mount: async (sdk) => {
+    activeSdk = sdk;
+    registerManifestContributions(sdk);
+    console.debug('[greenhouse] mounted');
+  },
+  
+  unmount: async () => {
+    if (!activeSdk) return;
+    unregisterManifestContributions(activeSdk);
+    console.debug('[greenhouse] unmounted');
+    activeSdk = null;
+  },
+};
+
+export { GreenhouseWidget };
+export default greenhouseModule;
+```
+
+Notice how this plugin:
+
+1. **Uses MVVM**: The widget subscribes to `greenHouseViewModel.data$` using the `useObservable` hook
+2. **Implements Lifecycle**: Provides `init`, `mount`, and `unmount` methods
+3. **Registers Contributions**: Uses the SDK to register routes and widgets
+4. **Maintains State**: Tracks the active SDK for cleanup
+5. **Handles Cleanup**: Unregisters contributions on unmount
+
+This demonstrates how plugins integrate seamlessly with MVVM architecture—the plugin uses the same ViewModels as the rest of the application.
+
+
+## The Plugin Host: Bringing It All Together
+
+The plugin host is the application that loads and manages plugins. Here's a simplified version of the React plugin host from `apps/plugin-react/src/host/PluginHost.tsx`:
+
+```typescript
+export const PluginHostProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [routes, setRoutes] = useState<PluginRouteDefinition<ReactPluginComponent>[]>([]);
+  const [widgets, setWidgets] = useState<PluginWidgetDefinition<ReactPluginComponent>[]>([]);
+  const [menuItems, setMenuItems] = useState<PluginMenuItem[]>([]);
+  const [isReady, setIsReady] = useState(false);
+
+  // Create host services that plugins can access via SDK
+  const hostServices = useMemo<HostServices>(() => {
+    const addRoute = <T extends TComponent>(route: PluginRouteDefinition<T>) => {
+      const normalizedRoute: PluginRouteDefinition<ReactPluginComponent> = {
+        ...route,
+        component: route.component as ReactPluginComponent,
+      };
+      setRoutes((prev) =>
+        prev.some((entry) => entry.path === normalizedRoute.path) 
+          ? prev 
+          : [...prev, normalizedRoute]
+      );
+    };
+
+    const addWidget = <T extends TComponent>(widget: PluginWidgetDefinition<T>) => {
+      const normalizedWidget: PluginWidgetDefinition<ReactPluginComponent> = {
+        ...widget,
+        component: widget.component as ReactPluginComponent,
+      };
+      setWidgets((prev) =>
+        prev.some((entry) => entry.id === normalizedWidget.id) 
+          ? prev 
+          : [...prev, normalizedWidget]
+      );
+    };
+
+    const addMenuItem = (item: PluginMenuItem) => {
+      setMenuItems((prev) => 
+        prev.some((entry) => entry.label === item.label) 
+          ? prev 
+          : [...prev, item]
+      );
+    };
+
+    // Event bus implementation
+    const handlers = new Map<string, Set<(...args: any[]) => void>>();
+
+    const registerEvent = (event: string, handler: (...args: any[]) => void) => {
+      const set = handlers.get(event) ?? new Set();
+      set.add(handler);
+      handlers.set(event, set);
+    };
+
+    const emitEvent = (event: string, ...args: any[]) => {
+      handlers.get(event)?.forEach((handler) => handler(...args));
+    };
+
+    return {
+      routes: { add: addRoute, remove: (path) => setRoutes(prev => prev.filter(r => r.path !== path)) },
+      menus: { addItem: addMenuItem, removeItem: (label) => setMenuItems(prev => prev.filter(m => m.label !== label)) },
+      widgets: { add: addWidget, remove: (id) => setWidgets(prev => prev.filter(w => w.id !== id)) },
+      events: { on: registerEvent, off: () => {}, emit: emitEvent },
+      ui: { showModal: () => {}, showToast: (msg) => console.info(msg) },
+      services: { /* API client, auth, storage implementations */ },
+    };
+  }, []);
+
+  useEffect(() => {
+    // Register all plugin manifests
+    pluginManifests.forEach((manifest) => {
+      try {
+        if (!pluginRegistry.get(manifest.id)) {
+          pluginRegistry.register(manifest);
+        }
+      } catch (error) {
+        console.error('Failed to register plugin', manifest.id, error);
+      }
+    });
+
+    // Load and initialize plugins
+    const loadPlugins = async () => {
+      for (const manifest of pluginManifests) {
+        const module = pluginModules[manifest.id];
+        if (!module) continue;
+
+        const sdk = new PluginSDKImplementation(manifest.id, manifest, hostServices);
+        try {
+          await module.init?.(sdk);
+          await module.mount?.(sdk);
+        } catch (error) {
+          console.error(`Failed to initialize plugin ${manifest.id}`, error);
+        }
+      }
+      setIsReady(true);
+    };
+
+    loadPlugins();
+
+    // Cleanup on unmount
+    return () => {
+      pluginManifests.forEach((manifest) => {
+        pluginModules[manifest.id]?.unmount?.();
+      });
+    };
+  }, [hostServices]);
 
   return (
-    <div className={alert ? 'alert' : ''}>
-      CO₂: {reading} ppm
-    </div>
+    <PluginHostContext.Provider value={{ routes, widgets, menuItems, isReady }}>
+      {children}
+    </PluginHostContext.Provider>
   );
-}
+};
 ```
 
-This is typical AI-generated code when working with unstructured applications. It works, but it's untestable, tightly coupled to React and axios, and duplicates business logic that should be shared across the application.
 
-Now let's see what happens when the AI is trained on our architectural patterns:
+The host implementation:
+
+1. **Manages Plugin State**: Tracks routes, widgets, and menu items contributed by plugins
+2. **Provides Host Services**: Creates the services object passed to plugins via SDK
+3. **Registers Plugins**: Validates and registers all plugin manifests
+4. **Initializes Plugins**: Calls `init()` and `mount()` on each plugin module
+5. **Handles Cleanup**: Calls `unmount()` on all plugins when the host unmounts
+
+This pattern ensures plugins are loaded in a controlled manner with proper lifecycle management.
+
+## Rendering Plugin Contributions
+
+Once plugins are loaded, the host needs to render their contributions. Here's how the GreenWatch application renders plugin widgets and routes:
 
 ```typescript
-// ✅ What AI generates from a well-structured codebase
+export const PluginHost: React.FC = () => {
+  const { routes, widgets, isReady } = usePluginHostContext();
+  const location = useLocation();
+  const showWidgets = ['/', '/dashboard'].includes(location.pathname);
 
-// domain/models/sensors/CO2Sensor.ts
-export interface CO2SensorReading extends SensorReading {
-  readonly co2Level: number;
-  readonly measurementQuality: 'good' | 'fair' | 'poor';
-}
-
-export class CO2Sensor implements Sensor {
-  constructor(
-    public readonly id: string,
-    public readonly location: string,
-    public readonly calibrationDate: Date
-  ) {}
-
-  isReadingNormal(reading: CO2SensorReading): boolean {
-    return reading.co2Level <= 1000 && reading.measurementQuality === 'good';
+  if (!isReady) {
+    return <p>Loading plugins...</p>;
   }
-
-  requiresCalibration(): boolean {
-    const daysSinceCalibration =
-      (Date.now() - this.calibrationDate.getTime()) / (1000 * 60 * 60 * 24);
-    return daysSinceCalibration > 180;
-  }
-}
-
-// application/viewmodels/sensors/CO2SensorViewModel.ts
-export class CO2SensorViewModel {
-  private readonly readings$$ = new BehaviorSubject<CO2SensorReading | null>(null);
-  private readonly alertState$$ = new BehaviorSubject<AlertState>({ active: false });
-  private subscription?: Subscription;
-
-  readonly currentReading$ = this.readings$$.asObservable();
-  readonly alertState$ = this.alertState$$.asObservable();
-
-  readonly displayReading$ = this.currentReading$.pipe(
-    map(reading => reading
-      ? `${reading.co2Level} ppm (${reading.measurementQuality})`
-      : 'No data'
-    )
-  );
-
-  constructor(
-    private readonly sensor: CO2Sensor,
-    private readonly repository: ISensorRepository,
-    private readonly alertService: IAlertService
-  ) {}
-
-  initialize(): void {
-    this.subscription = this.repository
-      .observeSensorReadings(this.sensor.id)
-      .pipe(
-        tap(reading => this.readings$$.next(reading as CO2SensorReading)),
-        filter(reading => !this.sensor.isReadingNormal(reading as CO2SensorReading)),
-        switchMap(reading =>
-          this.alertService.createAlert({
-            type: 'high_co2',
-            sensorId: this.sensor.id,
-            severity: this.calculateSeverity(reading as CO2SensorReading),
-            value: (reading as CO2SensorReading).co2Level
-          })
-        ),
-        tap(() => this.alertState$$.next({ active: true }))
-      )
-      .subscribe();
-  }
-
-  private calculateSeverity(reading: CO2SensorReading): 'warning' | 'critical' {
-    return reading.co2Level > 2000 ? 'critical' : 'warning';
-  }
-
-  dispose(): void {
-    this.subscription?.unsubscribe();
-    this.readings$$.complete();
-    this.alertState$$.complete();
-  }
-}
-
-// ui/react/sensors/CO2SensorView.tsx
-export function CO2SensorView({ viewModel }: { viewModel: CO2SensorViewModel }) {
-  const reading = useObservable(viewModel.displayReading$, 'No data');
-  const alertState = useObservable(viewModel.alertState$, { active: false });
 
   return (
-    <div className={alertState.active ? 'sensor-alert' : 'sensor-normal'}>
-      <h3>CO₂ Sensor</h3>
-      <div className="reading">{reading}</div>
+    <div>
+      {/* Render plugin widgets on dashboard */}
+      {showWidgets && widgets.length > 0 && (
+        <section className="widget-area">
+          {widgets.map((widget) => (
+            <article key={widget.id} className="widget-card">
+              <header>
+                <h3>{widget.title}</h3>
+              </header>
+              <div>
+                <widget.component />
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {/* Render plugin routes */}
+      <Routes>
+        {routes.map((route) => (
+          <Route
+            key={route.path}
+            path={route.path}
+            element={<route.component />}
+          />
+        ))}
+        <Route path="*" element={<p>Select a feature from the navigation menu.</p>} />
+      </Routes>
     </div>
   );
+};
+```
+
+This demonstrates the power of the plugin system: the host doesn't know what widgets or routes exist at build time. Plugins dynamically contribute UI elements that are rendered seamlessly alongside the host application.
+
+## Security Considerations
+
+Plugin architectures introduce security concerns that must be addressed:
+
+### 1. Manifest Validation
+
+Always validate plugin manifests before loading:
+
+```typescript
+register(manifest: PluginManifest<T>): void {
+  try {
+    PluginManifestSchema.parse(manifest);
+  } catch (error) {
+    throw new Error(`Invalid plugin manifest: ${error.message}`);
+  }
+  // ... rest of registration
 }
 ```
 
-The AI has generated code that:
+This prevents malformed or malicious manifests from entering the system.
 
-- Separates domain logic (CO₂ threshold checking) from presentation concerns
-- Uses dependency injection for testability
-- Follows our established RxJS patterns for reactive state
-- Implements proper lifecycle management with `dispose()`
-- Creates framework-agnostic ViewModels that work with any UI library
-- Maintains type safety throughout
+### 2. SDK Encapsulation
 
-**This is the power of trainable architecture.** The AI didn't need to be explicitly told to follow these patterns—it learned them from the consistent structure of the existing codebase.
-
-### Pattern Recognition in Practice
-
-AI tools use pattern matching to generate code. When your architecture is inconsistent, the AI has no reliable pattern to match against. It might see domain logic in components, services with different dependency injection styles, and mixed testing approaches. The result? Generated code that reflects this chaos.
-
-But when you maintain architectural discipline, the AI's pattern matching works in your favor. After encountering the ViewModel pattern dozens of times across your codebase, the AI understands:
-
-- ViewModels expose observables, not imperative methods
-- ViewModels receive dependencies through constructors
-- ViewModels implement `dispose()` for cleanup
-- ViewModels never import UI framework code
-- Business logic lives in domain services, not ViewModels
-
-This isn't magic—it's the natural consequence of **eliminating architectural ambiguity**. When there's only one way to structure a feature, AI tools learn that way.
-
-## How Consistent Patterns Enable AI-Assisted Development
-
-Let's get practical. How do we actually leverage AI tools while maintaining architectural integrity?
-
-### Strategy 1: AI-Powered Scaffolding with Architectural Guardrails
-
-The most valuable use of AI in well-architected systems is **generating boilerplate code that follows your established patterns**. This isn't about having AI make architectural decisions—it's about automating the mechanical work of creating the file structure and basic implementations.
-
-Here's a scaffolding prompt that works well with current AI tools:
-
-```
-Generate a new feature for monitoring light levels in the GreenWatch greenhouse system.
-
-Follow this structure exactly:
-1. Create domain model in domain/models/sensors/LightSensor.ts
-   - Extend the Sensor interface
-   - Include properties: spectrum, intensity, duration
-   - Add method: isOptimalForGrowth(): boolean
-
-2. Create repository interface in domain/repositories/ILightSensorRepository.ts
-   - Extend ISensorRepository
-   - Add method: findBySpectrumType(spectrum: string): Observable<LightSensor[]>
-
-3. Create ViewModel in application/viewmodels/sensors/LightSensorViewModel.ts
-   - Follow the established ViewModel pattern
-   - Expose observables for current reading and growth status
-   - Implement initialize() and dispose()
-   - Inject ILightSensorRepository and IAlertService
-
-4. Create tests in application/viewmodels/sensors/__tests__/LightSensorViewModel.test.ts
-   - Test initialization and subscription setup
-   - Test alert triggering when light is not optimal
-   - Test proper cleanup in dispose()
-   - Use test doubles for dependencies
-
-Generate all files following the existing patterns in the codebase.
-```
-
-Notice what we're doing here: we're **constraining the AI's output** to match our architectural standards. We're not asking it to design the feature—we're asking it to implement a design we've already specified using patterns it's seen throughout the codebase.
-
-The AI-generated code won't be perfect, but it'll be close to production-ready because it's following a well-established template. You'll spend your time on domain-specific logic, not fixing architectural violations.
-
-### Strategy 2: Auto-Generating ViewModels from Domain Models
-
-One of the most tedious aspects of MVVM is creating ViewModels that expose domain state through observables. This is perfect work for AI because it's **mechanical and pattern-driven**.
-
-Consider our domain model for a greenhouse section:
+The SDK should be the only way plugins interact with the host:
 
 ```typescript
-// domain/models/greenhouse/GreenhouseSection.ts
-export class GreenhouseSection {
-  constructor(
-    public readonly id: string,
-    public readonly name: string,
-    public readonly area: number,
-    public readonly targetTemperature: TemperatureRange,
-    public readonly targetHumidity: HumidityRange,
-    public readonly activeSensors: Sensor[],
-  ) {}
+// ❌ Bad: Plugin directly accesses host internals
+import { hostDatabase } from '../host/database';
 
-  isEnvironmentOptimal(currentTemp: number, currentHumidity: number): boolean {
-    return (
-      currentTemp >= this.targetTemperature.min &&
-      currentTemp <= this.targetTemperature.max &&
-      currentHumidity >= this.targetHumidity.min &&
-      currentHumidity <= this.targetHumidity.max
-    );
-  }
+// ✅ Good: Plugin uses SDK services
+const data = await sdk.services.storage.get('myData');
+```
 
-  getSensorsByType(type: SensorType): Sensor[] {
-    return this.activeSensors.filter((s) => s.type === type);
-  }
+Never expose host internals to plugins. All communication should go through the SDK.
+
+
+### 3. Sandboxing and Permissions
+
+For untrusted plugins, consider implementing a permission system:
+
+```typescript
+interface PluginPermissions {
+  canAccessNetwork: boolean;
+  canAccessStorage: boolean;
+  canRegisterRoutes: boolean;
+  allowedAPIs: string[];
+}
+
+// Check permissions before allowing SDK operations
+if (!plugin.permissions.canAccessStorage) {
+  throw new Error('Plugin does not have storage permission');
 }
 ```
 
-We can train AI to generate the corresponding ViewModel automatically:
+This allows fine-grained control over what each plugin can do.
+
+### 4. Content Security Policy
+
+For plugins loaded from remote sources, use Content Security Policy headers to restrict what code can execute:
 
 ```typescript
-// application/viewmodels/greenhouse/GreenhouseSectionViewModel.ts
-export class GreenhouseSectionViewModel {
-  private readonly section$$ = new BehaviorSubject<GreenhouseSection | null>(null);
-  private readonly currentTemperature$$ = new BehaviorSubject<number | null>(null);
-  private readonly currentHumidity$$ = new BehaviorSubject<number | null>(null);
-  private subscriptions = new Subscription();
+// Only allow scripts from trusted sources
+const csp = "script-src 'self' https://trusted-plugin-cdn.com";
+```
 
-  // Auto-generated observable exposing domain state
-  readonly section$ = this.section$$.asObservable();
-  readonly name$ = this.section$.pipe(map((section) => section?.name ?? ''));
-  readonly area$ = this.section$.pipe(map((section) => section?.area ?? 0));
+### 5. Plugin Isolation
 
-  // Auto-generated derived state using domain logic
-  readonly isOptimal$ = combineLatest([this.section$, this.currentTemperature$$, this.currentHumidity$$]).pipe(
-    map(([section, temp, humidity]) =>
-      section && temp !== null && humidity !== null ? section.isEnvironmentOptimal(temp, humidity) : false,
-    ),
-  );
+Consider loading plugins in iframes or web workers for stronger isolation:
 
-  // Auto-generated computed properties
-  readonly temperatureSensors$ = this.section$.pipe(map((section) => section?.getSensorsByType('temperature') ?? []));
+```typescript
+// Load plugin in isolated context
+const worker = new Worker(pluginUrl);
+worker.postMessage({ type: 'init', sdk: serializableSDK });
+```
 
-  readonly humiditySensors$ = this.section$.pipe(map((section) => section?.getSensorsByType('humidity') ?? []));
+This prevents plugins from accessing the main application's memory or DOM directly.
 
-  constructor(
-    private readonly sectionId: string,
-    private readonly repository: IGreenhouseRepository,
-    private readonly sensorRepository: ISensorRepository,
-  ) {}
+## Plugin Architecture and MVVM Integration
 
-  initialize(): void {
-    // Auto-generated subscription setup
-    this.subscriptions.add(
-      this.repository.observeSection(this.sectionId).subscribe((section) => this.section$$.next(section)),
-    );
+The plugin architecture integrates beautifully with MVVM:
 
-    this.subscriptions.add(
-      this.sensorRepository
-        .observeAverageTemperature(this.sectionId)
-        .subscribe((temp) => this.currentTemperature$$.next(temp)),
-    );
+### Plugins Use ViewModels
 
-    this.subscriptions.add(
-      this.sensorRepository
-        .observeAverageHumidity(this.sectionId)
-        .subscribe((humidity) => this.currentHumidity$$.next(humidity)),
-    );
+Plugins can use the same ViewModels as the host application:
+
+```typescript
+// Plugin component uses shared ViewModel
+const GreenhouseWidget: React.FC = () => {
+  const greenHouses = useObservable(greenHouseViewModel.data$, []);
+  
+  useEffect(() => {
+    greenHouseViewModel.fetchCommand.execute();
+  }, []);
+
+  return <GreenhouseCard greenHouses={greenHouses} />;
+};
+```
+
+This ensures plugins follow the same architectural patterns as the host.
+
+### ViewModels Remain Framework-Agnostic
+
+Because ViewModels are framework-agnostic, plugins can use them regardless of the host's framework:
+
+```typescript
+// Same ViewModel works in React plugin
+const reactPlugin = () => {
+  const data = useObservable(sensorViewModel.data$);
+  return <div>{data}</div>;
+};
+
+// And in Vue plugin
+const vuePlugin = () => {
+  const data = ref([]);
+  watchEffect(() => {
+    sensorViewModel.data$.subscribe(value => data.value = value);
+  });
+  return () => <div>{data.value}</div>;
+};
+```
+
+### Plugins Contribute Views, Not Business Logic
+
+Plugins should contribute Views (UI components) while using shared ViewModels for business logic:
+
+```typescript
+// ✅ Good: Plugin provides View, uses shared ViewModel
+const SensorWidget = () => {
+  const sensors = useObservable(sensorViewModel.data$);
+  return <SensorList sensors={sensors} />;
+};
+
+// ❌ Bad: Plugin duplicates business logic
+const SensorWidget = () => {
+  const [sensors, setSensors] = useState([]);
+  useEffect(() => {
+    fetch('/api/sensors').then(r => r.json()).then(setSensors);
+  }, []);
+  return <SensorList sensors={sensors} />;
+};
+```
+
+This maintains the separation of concerns that makes MVVM valuable.
+
+
+## Advanced Plugin Patterns
+
+### Plugin Communication via Event Bus
+
+Plugins can communicate with each other through the SDK's event bus:
+
+```typescript
+// Plugin A emits an event
+sdk.events.emit('sensor:reading:updated', { sensorId: '123', value: 25.5 });
+
+// Plugin B listens for the event
+sdk.events.on('sensor:reading:updated', (data) => {
+  console.log('Sensor updated:', data);
+  updateChart(data);
+});
+```
+
+This enables loose coupling between plugins while maintaining encapsulation.
+
+### Lazy Loading Plugins
+
+For better performance, load plugins on demand:
+
+```typescript
+const loadPlugin = async (pluginId: string) => {
+  const manifest = await fetch(`/plugins/${pluginId}/manifest.json`).then(r => r.json());
+  pluginRegistry.register(manifest);
+  
+  const module = await import(`/plugins/${pluginId}/index.js`);
+  const sdk = new PluginSDKImplementation(pluginId, manifest, hostServices);
+  
+  await module.default.init?.(sdk);
+  await module.default.mount?.(sdk);
+};
+
+// Load plugin when user navigates to its route
+router.beforeEach(async (to) => {
+  const pluginId = getPluginForRoute(to.path);
+  if (pluginId && !pluginRegistry.get(pluginId)) {
+    await loadPlugin(pluginId);
   }
+});
+```
 
-  dispose(): void {
-    this.subscriptions.unsubscribe();
-    this.section$$.complete();
-    this.currentTemperature$$.complete();
-    this.currentHumidity$$.complete();
-  }
+### Plugin Hot Reloading
+
+For development, implement hot reloading:
+
+```typescript
+if (import.meta.hot) {
+  import.meta.hot.accept('./plugins/greenhouse/index.tsx', (newModule) => {
+    // Unmount old version
+    greenhouseModule.unmount?.();
+    
+    // Mount new version
+    newModule.default.init?.(sdk);
+    newModule.default.mount?.(sdk);
+  });
 }
 ```
 
-**The pattern here is completely mechanical.** For each property in the domain model, create an observable. For each method in the domain model, create a derived observable. Set up subscriptions in `initialize()`, clean up in `dispose()`.
+### Plugin Versioning and Compatibility
 
-AI tools excel at this kind of transformation. You can create a custom prompt or even a small CLI tool that feeds your domain model to an AI and gets back a ViewModel skeleton. The key is that you've established a **consistent transformation pattern** that the AI can learn and reproduce.
-
-### Strategy 3: AI-Powered Test Generation for Predictable Structures
-
-Testing is another area where architectural consistency enables effective AI assistance. When your ViewModels follow the same pattern—constructor injection, observable-based state, `initialize()/dispose()` lifecycle—AI can generate comprehensive test suites.
-
-Here's a prompt that works well:
-
-```
-Generate comprehensive tests for the GreenhouseSectionViewModel.
-
-Follow the established testing patterns:
-1. Create test doubles for IGreenhouseRepository and ISensorRepository
-2. Test initialization and subscription setup
-3. Test each derived observable (isOptimal$, temperatureSensors$, etc.)
-4. Test proper cleanup in dispose()
-5. Use RxJS TestScheduler for timing-dependent behavior
-6. Verify observables emit expected values
-7. Ensure no subscriptions leak after dispose()
-
-Match the testing style used in existing ViewModel tests.
-```
-
-The AI generates:
+Handle plugin version compatibility:
 
 ```typescript
-// application/viewmodels/greenhouse/__tests__/GreenhouseSectionViewModel.test.ts
-describe('GreenhouseSectionViewModel', () => {
-  let viewModel: GreenhouseSectionViewModel;
-  let mockRepository: jest.Mocked<IGreenhouseRepository>;
-  let mockSensorRepository: jest.Mocked<ISensorRepository>;
-  let testScheduler: TestScheduler;
+interface PluginManifest {
+  // ... other fields
+  version: string;
+  hostVersion: string; // Required host version
+  dependencies?: Record<string, string>; // Required plugin versions
+}
+
+const isCompatible = (plugin: PluginManifest): boolean => {
+  const hostVersion = '2.1.0';
+  return semver.satisfies(hostVersion, plugin.hostVersion);
+};
+
+if (!isCompatible(manifest)) {
+  throw new Error(`Plugin requires host version ${manifest.hostVersion}, but running ${hostVersion}`);
+}
+```
+
+## Testing Plugin Systems
+
+### Testing the PluginRegistry
+
+```typescript
+describe('PluginRegistry', () => {
+  it('should register valid plugins', () => {
+    const registry = new PluginRegistry();
+    const manifest: PluginManifest = {
+      id: 'test-plugin',
+      name: 'Test Plugin',
+      version: '1.0.0',
+      entry: './index.js',
+    };
+
+    expect(() => registry.register(manifest)).not.toThrow();
+    expect(registry.get('test-plugin')).toBeDefined();
+  });
+
+  it('should reject invalid manifests', () => {
+    const registry = new PluginRegistry();
+    const invalidManifest = { id: '', name: 'Test' }; // Missing required fields
+
+    expect(() => registry.register(invalidManifest as any)).toThrow();
+  });
+
+  it('should resolve plugin dependencies', () => {
+    const registry = new PluginRegistry();
+    
+    registry.register({ id: 'plugin-a', name: 'A', version: '1.0.0', entry: './a.js' });
+    registry.register({ 
+      id: 'plugin-b', 
+      name: 'B', 
+      version: '1.0.0', 
+      entry: './b.js',
+      dependencies: { 'plugin-a': '1.0.0' }
+    });
+
+    const order = registry.resolveLoadOrder();
+    expect(order.indexOf('plugin-a')).toBeLessThan(order.indexOf('plugin-b'));
+  });
+
+  it('should detect circular dependencies', () => {
+    const registry = new PluginRegistry();
+    
+    registry.register({ 
+      id: 'plugin-a', 
+      name: 'A', 
+      version: '1.0.0', 
+      entry: './a.js',
+      dependencies: { 'plugin-b': '1.0.0' }
+    });
+    registry.register({ 
+      id: 'plugin-b', 
+      name: 'B', 
+      version: '1.0.0', 
+      entry: './b.js',
+      dependencies: { 'plugin-a': '1.0.0' }
+    });
+
+    expect(() => registry.resolveLoadOrder()).toThrow(/circular dependency/i);
+  });
+});
+```
+
+
+### Testing Plugin Modules
+
+```typescript
+describe('GreenhousePlugin', () => {
+  let mockSDK: jest.Mocked<PluginSDK>;
 
   beforeEach(() => {
-    mockRepository = {
-      observeSection: jest.fn(),
-    } as any;
-
-    mockSensorRepository = {
-      observeAverageTemperature: jest.fn(),
-      observeAverageHumidity: jest.fn(),
-    } as any;
-
-    testScheduler = new TestScheduler((actual, expected) => {
-      expect(actual).toEqual(expected);
-    });
+    mockSDK = {
+      plugin: { id: 'greenhouse-plugin', manifest: {} as any },
+      routes: { add: jest.fn(), remove: jest.fn() },
+      widgets: { add: jest.fn(), remove: jest.fn() },
+      menus: { addItem: jest.fn(), removeItem: jest.fn() },
+      events: { on: jest.fn(), off: jest.fn(), emit: jest.fn() },
+      ui: { showModal: jest.fn(), showToast: jest.fn() },
+      services: {} as any,
+    };
   });
 
-  afterEach(() => {
-    viewModel?.dispose();
+  it('should initialize without errors', async () => {
+    await expect(greenhouseModule.init(mockSDK)).resolves.not.toThrow();
   });
 
-  describe('initialization', () => {
-    it('should subscribe to section updates', () => {
-      const section$ = new Subject<GreenhouseSection>();
-      mockRepository.observeSection.mockReturnValue(section$);
-      mockSensorRepository.observeAverageTemperature.mockReturnValue(NEVER);
-      mockSensorRepository.observeAverageHumidity.mockReturnValue(NEVER);
-
-      viewModel = new GreenhouseSectionViewModel('section-1', mockRepository, mockSensorRepository);
-
-      viewModel.initialize();
-
-      expect(mockRepository.observeSection).toHaveBeenCalledWith('section-1');
-    });
-
-    it('should subscribe to temperature and humidity updates', () => {
-      mockRepository.observeSection.mockReturnValue(NEVER);
-      mockSensorRepository.observeAverageTemperature.mockReturnValue(NEVER);
-      mockSensorRepository.observeAverageHumidity.mockReturnValue(NEVER);
-
-      viewModel = new GreenhouseSectionViewModel('section-1', mockRepository, mockSensorRepository);
-
-      viewModel.initialize();
-
-      expect(mockSensorRepository.observeAverageTemperature).toHaveBeenCalledWith('section-1');
-      expect(mockSensorRepository.observeAverageHumidity).toHaveBeenCalledWith('section-1');
-    });
+  it('should register contributions on mount', async () => {
+    await greenhouseModule.mount(mockSDK);
+    
+    expect(mockSDK.routes.add).toHaveBeenCalled();
+    expect(mockSDK.widgets.add).toHaveBeenCalled();
   });
 
-  describe('isOptimal$', () => {
-    it('should emit true when environment is within target ranges', () => {
-      testScheduler.run(({ cold, expectObservable }) => {
-        const section = new GreenhouseSection(
-          'section-1',
-          'Tomatoes',
-          100,
-          { min: 20, max: 26 },
-          { min: 60, max: 80 },
-          [],
-        );
+  it('should cleanup on unmount', async () => {
+    await greenhouseModule.mount(mockSDK);
+    await greenhouseModule.unmount();
+    
+    expect(mockSDK.routes.remove).toHaveBeenCalled();
+    expect(mockSDK.widgets.remove).toHaveBeenCalled();
+  });
+});
+```
 
-        const section$ = cold('a', { a: section });
-        const temperature$ = cold('t', { t: 23 });
-        const humidity$ = cold('h', { h: 70 });
+### Integration Testing
 
-        mockRepository.observeSection.mockReturnValue(section$);
-        mockSensorRepository.observeAverageTemperature.mockReturnValue(temperature$);
-        mockSensorRepository.observeAverageHumidity.mockReturnValue(humidity$);
+```typescript
+describe('Plugin System Integration', () => {
+  it('should load and render plugin widgets', async () => {
+    const { container } = render(
+      <PluginHostProvider>
+        <PluginHost />
+      </PluginHostProvider>
+    );
 
-        viewModel = new GreenhouseSectionViewModel('section-1', mockRepository, mockSensorRepository);
-
-        viewModel.initialize();
-
-        expectObservable(viewModel.isOptimal$).toBe('o', { o: true });
-      });
+    // Wait for plugins to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading plugins...')).not.toBeInTheDocument();
     });
 
-    it('should emit false when temperature is out of range', () => {
-      testScheduler.run(({ cold, expectObservable }) => {
-        const section = new GreenhouseSection(
-          'section-1',
-          'Tomatoes',
-          100,
-          { min: 20, max: 26 },
-          { min: 60, max: 80 },
-          [],
-        );
-
-        const section$ = cold('a', { a: section });
-        const temperature$ = cold('t', { t: 30 }); // Too hot
-        const humidity$ = cold('h', { h: 70 });
-
-        mockRepository.observeSection.mockReturnValue(section$);
-        mockSensorRepository.observeAverageTemperature.mockReturnValue(temperature$);
-        mockSensorRepository.observeAverageHumidity.mockReturnValue(humidity$);
-
-        viewModel = new GreenhouseSectionViewModel('section-1', mockRepository, mockSensorRepository);
-
-        viewModel.initialize();
-
-        expectObservable(viewModel.isOptimal$).toBe('o', { o: false });
-      });
-    });
+    // Verify plugin widgets are rendered
+    expect(screen.getByText('Greenhouses')).toBeInTheDocument();
+    expect(screen.getByText('Sensors')).toBeInTheDocument();
   });
 
-  describe('disposal', () => {
-    it('should unsubscribe from all observables', () => {
-      const section$ = new Subject<GreenhouseSection>();
-      const temperature$ = new Subject<number>();
-      const humidity$ = new Subject<number>();
+  it('should navigate to plugin routes', async () => {
+    render(
+      <MemoryRouter initialEntries={['/greenhouses']}>
+        <PluginHostProvider>
+          <PluginHost />
+        </PluginHostProvider>
+      </MemoryRouter>
+    );
 
-      mockRepository.observeSection.mockReturnValue(section$);
-      mockSensorRepository.observeAverageTemperature.mockReturnValue(temperature$);
-      mockSensorRepository.observeAverageHumidity.mockReturnValue(humidity$);
-
-      viewModel = new GreenhouseSectionViewModel('section-1', mockRepository, mockSensorRepository);
-
-      viewModel.initialize();
-
-      expect(section$.observed).toBe(true);
-      expect(temperature$.observed).toBe(true);
-      expect(humidity$.observed).toBe(true);
-
-      viewModel.dispose();
-
-      expect(section$.observed).toBe(false);
-      expect(temperature$.observed).toBe(false);
-      expect(humidity$.observed).toBe(false);
-    });
-
-    it('should complete internal subjects', (done) => {
-      mockRepository.observeSection.mockReturnValue(NEVER);
-      mockSensorRepository.observeAverageTemperature.mockReturnValue(NEVER);
-      mockSensorRepository.observeAverageHumidity.mockReturnValue(NEVER);
-
-      viewModel = new GreenhouseSectionViewModel('section-1', mockRepository, mockSensorRepository);
-
-      viewModel.initialize();
-
-      viewModel.section$.subscribe({
-        complete: () => done(),
-      });
-
-      viewModel.dispose();
-    });
-  });
-
-  describe('derived observables', () => {
-    it('should expose section name', () => {
-      testScheduler.run(({ cold, expectObservable }) => {
-        const section = new GreenhouseSection(
-          'section-1',
-          'Tomatoes',
-          100,
-          { min: 20, max: 26 },
-          { min: 60, max: 80 },
-          [],
-        );
-
-        const section$ = cold('a', { a: section });
-        mockRepository.observeSection.mockReturnValue(section$);
-        mockSensorRepository.observeAverageTemperature.mockReturnValue(NEVER);
-        mockSensorRepository.observeAverageHumidity.mockReturnValue(NEVER);
-
-        viewModel = new GreenhouseSectionViewModel('section-1', mockRepository, mockSensorRepository);
-
-        viewModel.initialize();
-
-        expectObservable(viewModel.name$).toBe('n', { n: 'Tomatoes' });
-      });
-    });
-
-    it('should filter sensors by type', () => {
-      testScheduler.run(({ cold, expectObservable }) => {
-        const tempSensor = { type: 'temperature' } as Sensor;
-        const humiditySensor = { type: 'humidity' } as Sensor;
-
-        const section = new GreenhouseSection(
-          'section-1',
-          'Tomatoes',
-          100,
-          { min: 20, max: 26 },
-          { min: 60, max: 80 },
-          [tempSensor, tempSensor, humiditySensor],
-        );
-
-        const section$ = cold('a', { a: section });
-        mockRepository.observeSection.mockReturnValue(section$);
-        mockSensorRepository.observeAverageTemperature.mockReturnValue(NEVER);
-        mockSensorRepository.observeAverageHumidity.mockReturnValue(NEVER);
-
-        viewModel = new GreenhouseSectionViewModel('section-1', mockRepository, mockSensorRepository);
-
-        viewModel.initialize();
-
-        expectObservable(viewModel.temperatureSensors$).toBe('t', {
-          t: [tempSensor, tempSensor],
-        });
-      });
+    await waitFor(() => {
+      expect(screen.getByText('Greenhouse List')).toBeInTheDocument();
     });
   });
 });
 ```
 
-This test suite is comprehensive, follows our established patterns, and would be tedious to write manually. But because our ViewModels follow a consistent structure, AI can generate these tests reliably.
+## Real-World Considerations
 
-The key insight: **we're not asking AI to understand what the code does**. We're asking it to apply a testing template to a known structure. That's something current AI tools can do extremely well.
+### Performance
 
-### Strategy 4: Code Scaffolding Based on DDD Bounded Contexts
+1. **Lazy Loading**: Load plugins only when needed
+2. **Code Splitting**: Bundle plugins separately from the host
+3. **Caching**: Cache plugin manifests and modules
+4. **Tree Shaking**: Ensure unused plugin code is eliminated
 
-Domain-Driven Design gives us another dimension of predictability: bounded contexts. Each bounded context in GreenWatch—Device Management, Environmental Monitoring, Alert & Notification—follows the same internal structure.
+### Monitoring
 
-When we add a new bounded context, we can use AI to scaffold the entire directory structure with placeholder implementations:
-
-```
-Create a new bounded context for "Pest Management" in the GreenWatch system.
-
-Generate:
-1. Domain models in domain/pest-management/models/
-   - PestReport
-   - PestType
-   - TreatmentPlan
-
-2. Domain services in domain/pest-management/services/
-   - IPestIdentificationService
-   - ITreatmentRecommendationService
-
-3. Repository interfaces in domain/pest-management/repositories/
-   - IPestReportRepository
-   - ITreatmentPlanRepository
-
-4. ViewModels in application/viewmodels/pest-management/
-   - PestReportViewModel
-   - TreatmentPlanViewModel
-
-5. React components in ui/react/pest-management/
-   - PestReportView
-   - TreatmentPlanView
-
-Follow the existing patterns in other bounded contexts.
-Include proper TypeScript types and interfaces.
-Set up dependency injection in each ViewModel.
-```
-
-The AI generates a complete bounded context structure that matches our established conventions. You'll still need to implement the actual business logic, but the mechanical work of creating files, setting up dependency injection, and establishing the basic structure is automated.
-
-## GreenWatch Example: AI in Practice
-
-Let's see these strategies in action with our GreenWatch greenhouse monitoring system.
-
-### Training an AI to Generate New Sensor Type Integrations
-
-We've built multiple sensor types throughout this book—temperature, humidity, soil moisture, light levels. Each follows the same pattern. Now we want to add a new sensor type: **pH sensors** for monitoring soil acidity.
-
-Instead of writing this from scratch, we can leverage AI by providing clear context about our existing patterns:
-
-```
-Generate a complete implementation for pH sensors in the GreenWatch system.
-
-Follow these existing sensor patterns:
-- See domain/models/sensors/TemperatureSensor.ts for domain model structure
-- See domain/models/sensors/HumiditySensor.ts for threshold checking
-- See application/viewmodels/sensors/TemperatureSensorViewModel.ts for ViewModel pattern
-- See infrastructure/repositories/TemperatureSensorRepository.ts for repository implementation
-
-Requirements for pH sensor:
-- Measure pH range 0-14 (7 is neutral)
-- Optimal range for most plants: 6.0-7.5
-- Critical alerts: pH < 5.0 or pH > 8.5
-- Warning alerts: pH < 5.5 or pH > 8.0
-- Track calibration status (sensors need monthly calibration)
-
-Generate:
-1. Domain model with threshold checking
-2. Repository interface and implementation
-3. ViewModel with alert integration
-4. React component
-5. Complete test suite
-
-Use RxJS for reactive state management.
-Inject dependencies through constructors.
-Follow the established naming conventions.
-```
-
-The AI generates:
+Track plugin health and performance:
 
 ```typescript
-// domain/models/sensors/PHSensor.ts
-export interface PHReading extends SensorReading {
-  readonly phLevel: number;
-  readonly temperature: number; // pH varies with temperature
-  readonly calibrationStatus: 'valid' | 'expired' | 'required';
-}
-
-export class PHSensor implements Sensor {
-  readonly type = 'ph' as const;
-
-  constructor(
-    public readonly id: string,
-    public readonly location: string,
-    public readonly lastCalibration: Date
-  ) {}
-
-  isReadingNormal(reading: PHReading): boolean {
-    return (
-      reading.phLevel >= 6.0 &&
-      reading.phLevel <= 7.5 &&
-      reading.calibrationStatus === 'valid'
-    );
-  }
-
-  getAlertLevel(reading: PHReading): 'none' | 'warning' | 'critical' {
-    if (reading.calibrationStatus !== 'valid') {
-      return 'warning';
-    }
-
-    if (reading.phLevel < 5.0 || reading.phLevel > 8.5) {
-      return 'critical';
-    }
-
-    if (reading.phLevel < 5.5 || reading.phLevel > 8.0) {
-      return 'warning';
-    }
-
-    return 'none';
-  }
-
-  requiresCalibration(): boolean {
-    const daysSinceCalibration =
-      (Date.now() - this.lastCalibration.getTime()) / (1000 * 60 * 60 * 24);
-    return daysSinceCalibration > 30;
-  }
-
-  getOptimalRange(): { min: number; max: number } {
-    return { min: 6.0, max: 7.5 };
-  }
-}
-
-// domain/repositories/IPHSensorRepository.ts
-export interface IPHSensorRepository extends ISensorRepository {
-  observePHReadings(sensorId: string): Observable<PHReading>;
-  calibrateSensor(sensorId: string): Promise<void>;
-  findSensorsRequiringCalibration(): Observable<PHSensor[]>;
-}
-
-// infrastructure/repositories/PHSensorRepository.ts
-export class PHSensorRepository implements IPHSensorRepository {
-  constructor(
-    private readonly httpClient: IHttpClient,
-    private readonly websocketService: IWebSocketService
-  ) {}
-
-  observePHReadings(sensorId: string): Observable<PHReading> {
-    return this.websocketService.subscribe<PHReading>(
-      `/sensors/ph/${sensorId}/readings`
-    ).pipe(
-      retry({ delay: 2000, count: 3 })
-    );
-  }
-
-  async calibrateSensor(sensorId: string): Promise<void> {
-    await this.httpClient.post(`/sensors/ph/${sensorId}/calibrate`, {});
-  }
-
-  findSensorsRequiringCalibration(): Observable<PHSensor[]> {
-    return this.httpClient.get<PHSensor[]>(
-      '/sensors/ph/calibration-required'
-    ).pipe(
-      catchError(error => {
-        console.error('Failed to fetch sensors requiring calibration', error);
-        return of([]);
-      })
-    );
-  }
-
-  // ... implement remaining ISensorRepository methods
-}
-
-// application/viewmodels/sensors/PHSensorViewModel.ts
-export class PHSensorViewModel {
-  private readonly currentReading$$ = new BehaviorSubject<PHReading | null>(null);
-  private readonly alertLevel$$ = new BehaviorSubject<'none' | 'warning' | 'critical'>('none');
-  private readonly isCalibrating$$ = new BehaviorSubject<boolean>(false);
-  private subscriptions = new Subscription();
-
-  readonly currentReading$ = this.currentReading$$.asObservable();
-  readonly alertLevel$ = this.alertLevel$$.asObservable();
-  readonly isCalibrating$ = this.isCalibrating$$.asObservable();
-
-  readonly displayReading$ = this.currentReading$.pipe(
-    map(reading => reading
-      ? `pH ${reading.phLevel.toFixed(2)} @ ${reading.temperature.toFixed(1)}°C`
-      : 'No data'
-    )
-  );
-
-  readonly needsCalibration$ = this.currentReading$.pipe(
-    map(reading =>
-      reading ? reading.calibrationStatus !== 'valid' : false
-    )
-  );
-
-  readonly statusMessage$ = combineLatest([
-    this.alertLevel$,
-    this.needsCalibration$
-  ]).pipe(
-    map(([alert, needsCal]) => {
-      if (needsCal) return 'Sensor requires calibration';
-      if (alert === 'critical') return 'Critical: pH outside safe range';
-      if (alert === 'warning') return 'Warning: pH approaching unsafe levels';
-      return 'pH levels normal';
-    })
-  );
-
-  constructor(
-    private readonly sensor: PHSensor,
-    private readonly repository: IPHSensorRepository,
-    private readonly alertService: IAlertService
-  ) {}
-
-  initialize(): void {
-    this.subscriptions.add(
-      this.repository.observePHReadings(this.sensor.id)
-        .pipe(
-          tap(reading => this.currentReading$$.next(reading)),
-          map(reading => this.sensor.getAlertLevel(reading)),
-          tap(level => this.alertLevel$$.next(level)),
-          filter(level => level !== 'none'),
-          switchMap(level =>
-            this.alertService.createAlert({
-              type: level === 'critical' ? 'critical_ph' : 'warning_ph',
-              sensorId: this.sensor.id,
-              severity: level,
-              message: this.getAlertMessage(this.currentReading$$.value!)
-            })
-          )
-        )
-        .subscribe()
-    );
-  }
-
-  async calibrate(): Promise<void> {
-    this.isCalibrating$$.next(true);
-    try {
-      await this.repository.calibrateSensor(this.sensor.id);
-    } finally {
-      this.isCalibrating$$.next(false);
-    }
-  }
-
-  private getAlertMessage(reading: PHReading): string {
-    if (reading.phLevel < 5.0) {
-      return `Soil pH critically low (${reading.phLevel.toFixed(2)})`;
-    }
-    if (reading.phLevel > 8.5) {
-      return `Soil pH critically high (${reading.phLevel.toFixed(2)})`;
-    }
-    return `Soil pH outside optimal range (${reading.phLevel.toFixed(2)})`;
-  }
-
-  dispose(): void {
-    this.subscriptions.unsubscribe();
-    this.currentReading$$.complete();
-    this.alertLevel$$.complete();
-    this.isCalibrating$$.complete();
-  }
-}
-
-// ui/react/sensors/PHSensorView.tsx
-export function PHSensorView({ viewModel }: { viewModel: PHSensorViewModel }) {
-  const reading = useObservable(viewModel.displayReading$, 'No data');
-  const alertLevel = useObservable(viewModel.alertLevel$, 'none');
-  const statusMessage = useObservable(viewModel.statusMessage$, '');
-  const needsCalibration = useObservable(viewModel.needsCalibration$, false);
-  const isCalibrating = useObservable(viewModel.isCalibrating$, false);
-
-  const handleCalibrate = useCallback(() => {
-    viewModel.calibrate();
-  }, [viewModel]);
-
-  const alertClass =
-    alertLevel === 'critical' ? 'sensor-critical' :
-    alertLevel === 'warning' ? 'sensor-warning' :
-    'sensor-normal';
-
-  return (
-    <div className={`ph-sensor ${alertClass}`}>
-      <div className="sensor-header">
-        <h3>pH Sensor</h3>
-        <span className="sensor-location">{viewModel.sensor.location}</span>
-      </div>
-
-      <div className="sensor-reading">
-        {reading}
-      </div>
-
-      <div className="sensor-status">
-        {statusMessage}
-      </div>
-
-      {needsCalibration && (
-        <button
-          onClick={handleCalibrate}
-          disabled={isCalibrating}
-          className="calibrate-button"
-        >
-          {isCalibrating ? 'Calibrating...' : 'Calibrate Sensor'}
-        </button>
-      )}
-    </div>
-  );
-}
-```
-
-The AI has generated a complete, production-ready implementation that:
-
-- Follows our established domain modeling patterns
-- Uses RxJS consistently for reactive state
-- Implements proper error handling and retry logic
-- Maintains framework independence in the ViewModel
-- Integrates with our alert system using the same patterns as other sensors
-- Includes lifecycle management with proper disposal
-
-**This is realistic AI assistance.** We didn't ask the AI to design a new architecture—we asked it to apply our existing architecture to a new domain entity. The consistency of our patterns made this possible.
-
-### Automated Creation of Alert Rule ViewModels from Specifications
-
-Let's take this further. GreenWatch needs flexible alert rules—conditions that trigger notifications when specific sensor thresholds are crossed. These rules follow a predictable structure, making them perfect candidates for AI-generated ViewModels.
-
-Here's a specification for a new alert rule:
-
-```yaml
-alertRule:
-  name: 'High Temperature Alert'
-  description: 'Trigger when temperature exceeds threshold for sustained period'
-
-  triggers:
-    - sensor: temperature
-      condition: greaterThan
-      threshold: 30
-      duration: 300 # 5 minutes
-
-  actions:
-    - type: email
-      recipients: ['greenhouse-manager@example.com']
-      subject: 'High Temperature Alert'
-      template: 'high-temp-alert'
-
-    - type: sms
-      recipients: ['+1234567890']
-      message: 'Temperature in {{location}} exceeds 30°C'
-
-    - type: activateVentilation
-      targetSectionId: '{{sectionId}}'
-      duration: 1800 # 30 minutes
-```
-
-We can feed this specification to an AI along with our existing alert rule patterns:
-
-```
-Generate a ViewModel for the "High Temperature Alert" rule based on the provided specification.
-
-Follow these existing alert rule patterns:
-- See application/viewmodels/alerts/AlertRuleViewModel.ts for base structure
-- See application/viewmodels/alerts/HumidityAlertRuleViewModel.ts for threshold monitoring
-- See domain/services/INotificationService.ts for notification integration
-
-The ViewModel should:
-1. Monitor temperature sensor data
-2. Track duration of threshold violations
-3. Trigger configured actions only after duration requirement is met
-4. Expose observable state for UI binding
-5. Implement proper disposal to clean up subscriptions
-6. Use dependency injection for services
-
-Generate the complete ViewModel with comprehensive error handling.
-```
-
-The AI generates:
-
-```typescript
-// application/viewmodels/alerts/HighTemperatureAlertRuleViewModel.ts
-export class HighTemperatureAlertRuleViewModel {
-  private readonly isActive$$ = new BehaviorSubject<boolean>(false);
-  private readonly lastTriggered$$ = new BehaviorSubject<Date | null>(null);
-  private readonly currentViolation$$ = new BehaviorSubject<{
-    startTime: Date;
-    currentValue: number;
-  } | null>(null);
-
-  private subscriptions = new Subscription();
-
-  readonly isActive$ = this.isActive$$.asObservable();
-  readonly lastTriggered$ = this.lastTriggered$$.asObservable();
-  readonly currentViolation$ = this.currentViolation$$.asObservable();
-
-  readonly timeUntilTrigger$ = this.currentViolation$.pipe(
-    map((violation) => {
-      if (!violation) return null;
-
-      const elapsed = Date.now() - violation.startTime.getTime();
-      const remaining = this.rule.triggers[0].duration * 1000 - elapsed;
-
-      return remaining > 0 ? remaining : 0;
-    }),
-  );
-
-  readonly displayStatus$ = combineLatest([this.isActive$, this.currentViolation$, this.timeUntilTrigger$]).pipe(
-    map(([active, violation, timeUntil]) => {
-      if (!active) return 'Inactive';
-      if (!violation) return 'Monitoring';
-      if (timeUntil && timeUntil > 0) {
-        const seconds = Math.ceil(timeUntil / 1000);
-        return `Alert pending: ${seconds}s`;
-      }
-      return 'Alert triggered';
-    }),
-  );
-
-  constructor(
-    private readonly rule: AlertRuleSpec,
-    private readonly sensorRepository: ISensorRepository,
-    private readonly notificationService: INotificationService,
-    private readonly automationService: IAutomationService,
-    private readonly sectionId: string,
-  ) {}
-
-  initialize(): void {
-    this.subscriptions.add(this.monitorTemperatureViolations());
-  }
-
-  activate(): void {
-    this.isActive$$.next(true);
-  }
-
-  deactivate(): void {
-    this.isActive$$.next(false);
-    this.currentViolation$$.next(null);
-  }
-
-  private monitorTemperatureViolations(): Subscription {
-    return this.sensorRepository
-      .observeAverageTemperature(this.sectionId)
-      .pipe(
-        filter(() => this.isActive$$.value),
-        map((temp) => ({
-          exceedsThreshold: temp > this.rule.triggers[0].threshold,
-          value: temp,
-        })),
-        scan(
-          (acc, curr) => {
-            // Start tracking violation
-            if (curr.exceedsThreshold && !acc.violationStart) {
-              return {
-                violationStart: new Date(),
-                currentValue: curr.value,
-              };
-            }
-
-            // Continue tracking violation
-            if (curr.exceedsThreshold && acc.violationStart) {
-              return {
-                ...acc,
-                currentValue: curr.value,
-              };
-            }
-
-            // Reset if temperature drops below threshold
-            return { violationStart: null, currentValue: null };
-          },
-          { violationStart: null, currentValue: null } as {
-            violationStart: Date | null;
-            currentValue: number | null;
-          },
-        ),
-        tap((state) => {
-          if (state.violationStart && state.currentValue !== null) {
-            this.currentViolation$$.next({
-              startTime: state.violationStart,
-              currentValue: state.currentValue,
-            });
-          } else {
-            this.currentViolation$$.next(null);
-          }
-        }),
-        filter((state) => {
-          if (!state.violationStart) return false;
-
-          const duration = Date.now() - state.violationStart.getTime();
-          return duration >= this.rule.triggers[0].duration * 1000;
-        }),
-        debounceTime(1000), // Prevent multiple rapid triggers
-        switchMap(() => this.executeAlertActions()),
-      )
-      .subscribe();
-  }
-
-  private executeAlertActions(): Observable<void> {
-    const actions$ = this.rule.actions.map((action) => {
-      switch (action.type) {
-        case 'email':
-          return this.sendEmailNotification(action);
-        case 'sms':
-          return this.sendSMSNotification(action);
-        case 'activateVentilation':
-          return this.activateVentilation(action);
-        default:
-          return of(undefined);
-      }
-    });
-
-    return forkJoin(actions$).pipe(
-      tap(() => this.lastTriggered$$.next(new Date())),
-      tap(() => this.currentViolation$$.next(null)), // Reset after trigger
-      map(() => undefined),
-      catchError((error) => {
-        console.error('Error executing alert actions', error);
-        return of(undefined);
-      }),
-    );
-  }
-
-  private sendEmailNotification(action: EmailAction): Observable<void> {
-    const currentReading = this.currentViolation$$.value;
-    if (!currentReading) return of(undefined);
-
-    return from(
-      this.notificationService.sendEmail({
-        recipients: action.recipients,
-        subject: action.subject,
-        template: action.template,
-        data: {
-          location: this.sectionId,
-          temperature: currentReading.currentValue,
-          threshold: this.rule.triggers[0].threshold,
-          duration: this.rule.triggers[0].duration,
-        },
-      }),
-    ).pipe(map(() => undefined));
-  }
-
-  private sendSMSNotification(action: SMSAction): Observable<void> {
-    const currentReading = this.currentViolation$$.value;
-    if (!currentReading) return of(undefined);
-
-    const message = action.message
-      .replace('{{location}}', this.sectionId)
-      .replace('{{temperature}}', currentReading.currentValue.toString());
-
-    return from(
-      this.notificationService.sendSMS({
-        recipients: action.recipients,
-        message,
-      }),
-    ).pipe(map(() => undefined));
-  }
-
-  private activateVentilation(action: VentilationAction): Observable<void> {
-    return from(
-      this.automationService.activateVentilation({
-        sectionId: action.targetSectionId.replace('{{sectionId}}', this.sectionId),
-        duration: action.duration,
-      }),
-    ).pipe(map(() => undefined));
-  }
-
-  dispose(): void {
-    this.subscriptions.unsubscribe();
-    this.isActive$$.complete();
-    this.lastTriggered$$.complete();
-    this.currentViolation$$.complete();
-  }
-}
-```
-
-The AI has generated a sophisticated ViewModel that:
-
-- Tracks violation duration using RxJS's `scan` operator
-- Implements debouncing to prevent alert spam
-- Executes multiple actions in parallel using `forkJoin`
-- Exposes derived observables for UI binding
-- Handles errors gracefully
-- Follows our established patterns for lifecycle management
-
-**This is the real power of AI in well-architected systems.** We've established patterns so consistent that AI can generate non-trivial business logic that actually works. The key is that we provided clear specifications and pointed the AI to existing examples of similar functionality.
-
-## Practical Guidelines for AI-Assisted Development
-
-Let's consolidate what we've learned into actionable strategies you can implement immediately.
-
-### 1. Establish Pattern Libraries
-
-Create a dedicated directory in your codebase for **canonical examples** of each architectural pattern:
-
-```
-docs/
-  examples/
-    domain-model.example.ts
-    repository-interface.example.ts
-    repository-implementation.example.ts
-    viewmodel.example.ts
-    domain-service.example.ts
-    test-viewmodel.example.ts
-    test-domain-service.example.ts
-```
-
-When asking AI to generate code, reference these examples explicitly: "Follow the ViewModel pattern shown in `docs/examples/viewmodel.example.ts`."
-
-These aren't documentation—they're **training data**. Keep them up-to-date as your patterns evolve.
-
-### 2. Use Context-Rich Prompts
-
-Don't just ask AI to "create a feature." Provide architectural context:
-
-```
-Generate a new feature for [specific functionality].
-
-Architecture context:
-- This is a Domain-Driven Design application
-- Business logic lives in domain services
-- ViewModels expose reactive state via RxJS observables
-- All dependencies use constructor injection
-- Framework-specific code stays in the UI layer
-
-Follow these existing patterns:
-- Domain model: [path to similar domain model]
-- ViewModel: [path to similar ViewModel]
-- Tests: [path to similar test file]
-
-Requirements:
-[Specific business requirements]
-
-The generated code must:
-- Be fully type-safe with TypeScript
-- Include comprehensive error handling
-- Implement proper disposal of subscriptions
-- Follow the single responsibility principle
-```
-
-The more context you provide, the better the AI's output will match your architectural standards.
-
-### 3. Generate in Layers
-
-Don't ask AI to generate an entire feature at once. Work in layers:
-
-1. **Domain layer first**: Generate models and business logic
-2. **Application layer**: Generate ViewModels based on domain models
-3. **Infrastructure layer**: Generate repository implementations
-4. **UI layer**: Generate framework-specific components
-5. **Tests**: Generate test suites for each layer
-
-This approach prevents AI from taking shortcuts that violate architectural boundaries. Each layer builds on validated code from the previous layer.
-
-### 4. Validate Generated Code Against Architectural Rules
-
-AI-generated code should pass the same architectural checks as human-written code. Use tools like **ESLint** with custom rules to enforce:
-
-```typescript
-// .eslintrc.js
-module.exports = {
-  rules: {
-    // ViewModels cannot import UI frameworks
-    'no-restricted-imports': [
-      'error',
-      {
-        patterns: [
-          {
-            group: ['react', 'vue', '@angular/*'],
-            message: 'ViewModels must not import UI framework code',
-          },
-        ],
-      },
-    ],
-
-    // Domain layer cannot import infrastructure
-    'import/no-restricted-paths': [
-      'error',
-      {
-        zones: [
-          {
-            target: './src/domain',
-            from: './src/infrastructure',
-            message: 'Domain layer cannot depend on infrastructure',
-          },
-        ],
-      },
-    ],
+const pluginMetrics = {
+  loadTime: new Map<string, number>(),
+  errors: new Map<string, Error[]>(),
+  
+  trackLoad(pluginId: string, duration: number) {
+    this.loadTime.set(pluginId, duration);
+  },
+  
+  trackError(pluginId: string, error: Error) {
+    const errors = this.errors.get(pluginId) || [];
+    errors.push(error);
+    this.errors.set(pluginId, errors);
   },
 };
+
+// Use in plugin loading
+const start = performance.now();
+try {
+  await loadPlugin(pluginId);
+  pluginMetrics.trackLoad(pluginId, performance.now() - start);
+} catch (error) {
+  pluginMetrics.trackError(pluginId, error);
+}
 ```
 
-Run these checks on AI-generated code before accepting it. If the AI violates architectural rules, the problem is usually in your prompt or the examples you provided.
+### Documentation
 
-### 5. Iterate on Prompts
+Provide clear documentation for plugin developers:
 
-Your first attempt at an AI-assisted workflow won't be perfect. **Treat prompts as code**: version them, review them, refine them.
+1. **SDK Reference**: Document all SDK methods and types
+2. **Examples**: Provide working plugin examples
+3. **Best Practices**: Guide developers on plugin architecture
+4. **Migration Guides**: Help developers update plugins for new host versions
 
-When AI generates code that doesn't meet your standards, don't just fix it manually. Update your prompt to prevent the same issue in future generations. Over time, you'll build a library of proven prompts that consistently produce good results.
 
-### 6. Human Review for Business Logic
+## Key Takeaways
 
-AI excels at applying patterns but struggles with domain complexity. Always review generated business logic:
+1. **Plugin Architecture Enables Extensibility**: A well-designed plugin system allows third-party developers to extend your application without modifying core code
 
-- **Data validation rules**: AI might miss edge cases
-- **Business invariants**: AI might not understand domain constraints
-- **Error handling**: AI tends toward generic error handling
-- **Performance implications**: AI might choose suboptimal approaches
+2. **Four Core Components**: PluginRegistry (lifecycle management), PluginManifest (declarative configuration), FrameworkAdapter (framework abstraction), and PluginSDK (controlled communication)
 
-Use AI for structure, use human expertise for correctness.
+3. **Framework Independence**: The plugin-core library is completely framework-agnostic, with framework-specific concerns isolated in the FrameworkAdapter
 
-## The Limits of AI Assistance
+4. **Lifecycle Management**: Explicit lifecycle states (registered → loading → loaded → mounted → unmounted) ensure controlled plugin initialization and cleanup
 
-Let's be realistic about what AI can't do with current technology.
+5. **Dependency Resolution**: Topological sorting automatically resolves plugin dependencies and detects circular dependencies
 
-### AI Cannot Design Your Architecture
+6. **Validation First**: Zod schemas validate plugin manifests at runtime, preventing invalid plugins from entering the system
 
-AI tools are pattern matchers, not architects. They can apply an architectural pattern after you've established it, but they can't determine whether MVVM is the right choice for your application, or how to decompose your domain into bounded contexts, or when to introduce a domain event.
+7. **SDK Encapsulation**: The PluginSDK is the sole interface between plugins and the host, maintaining security and encapsulation
 
-**Architectural decisions require judgment that comes from understanding your specific business context, team capabilities, and long-term maintenance implications.** AI has none of this context.
+8. **MVVM Integration**: Plugins use shared ViewModels for business logic while contributing framework-specific Views, maintaining architectural consistency
 
-Use AI to implement architectural decisions, not make them.
+9. **Security Matters**: Implement manifest validation, SDK encapsulation, permission systems, and consider sandboxing for untrusted plugins
 
-### AI Cannot Maintain Architectural Integrity Across Large Changes
+10. **Testing is Essential**: Test the PluginRegistry, individual plugin modules, and the complete integration to ensure reliability
 
-When you need to refactor a core abstraction that affects dozens of files, AI tools struggle to maintain consistency. They work well on isolated features but fail when changes require understanding complex relationships between distant parts of the codebase.
+## Looking Ahead
 
-**Major architectural changes still require human oversight** to ensure all affected components are updated correctly and no hidden dependencies break.
+Plugin architecture represents one of the most sophisticated applications of MVVM principles. By maintaining clear boundaries between the plugin system (framework-agnostic core), the host application (framework-specific implementation), and individual plugins (framework-specific Views using shared ViewModels), you create systems that are both extensible and maintainable.
 
-### AI Cannot Understand Your Domain
+In the next chapter, we'll explore design systems and theming patterns, examining how to build framework-agnostic design token systems that work seamlessly with MVVM architecture. We'll see how the `design-core` library provides dynamic theming capabilities while maintaining the separation of concerns that makes MVVM valuable.
 
-AI can generate code that looks right syntactically but is wrong semantically. If you ask it to create an irrigation scheduling algorithm, it might produce something that compiles and even passes basic tests, but doesn't actually solve the real-world problem of optimal water distribution.
+The patterns we've learned—lifecycle management, dependency resolution, validation, and controlled communication—apply beyond plugin systems to any scenario where you need to integrate external code into your application while maintaining architectural integrity.
 
-**Domain expertise cannot be outsourced to AI.** You still need humans who understand greenhouse operations, plant biology, sensor behavior, and the subtle requirements that make the difference between a system that works and one that doesn't.
+---
 
-### AI Cannot Predict Long-Term Maintainability
+**Code References:**
+- `packages/plugin-core/src/registry/PluginRegistry.ts` - Plugin registry implementation
+- `packages/plugin-core/src/adapter/FrameworkAdapter.ts` - Framework adapter interface
+- `packages/plugin-core/src/contracts/PluginManifest.ts` - Plugin manifest types and validation
+- `packages/plugin-core/src/sdk/PluginSDK.ts` - Plugin SDK interface
+- `apps/plugin-react/src/host/PluginHost.tsx` - React plugin host implementation
+- `apps/plugin-react/src/plugins/greenhouse/index.tsx` - Example plugin implementation
+- `apps/plugin-react/src/config/plugin.config.ts` - Plugin configuration
 
-AI optimizes for solving the immediate problem. It doesn't consider:
-
-- How this code will evolve over the next five years
-- Whether this abstraction will make future requirements harder to implement
-- How this decision affects the cognitive load on your team
-- Whether this pattern will still make sense when your application grows 10x
-
-**Maintainability requires foresight that AI doesn't have.** Use AI for tactical implementation, not strategic planning.
-
-## Conclusion: Architecture as a Competitive Advantage
-
-Here's the paradox we're facing: as AI tools become more powerful, **the quality of your architecture becomes more important, not less**.
-
-In a world where any developer can use AI to generate thousands of lines of code per day, the differentiator isn't coding speed—it's architectural discipline. Companies that maintain clean boundaries, consistent patterns, and testable structures can leverage AI effectively. Companies with chaotic codebases just generate chaos faster.
-
-The patterns we've established throughout this book—MVVM separation, domain-driven design, framework-agnostic ViewModels, comprehensive testing—aren't just good engineering practices. They're **AI multipliers**. Every hour you invest in architectural clarity pays dividends when you have AI tools that can understand and extend your patterns.
-
-This isn't about replacing developers with AI. It's about amplifying what skilled developers can accomplish by automating the mechanical aspects of software development while preserving the judgment, domain expertise, and architectural vision that make software genuinely valuable.
-
-The future belongs to teams that can use AI tools effectively while maintaining professional standards. That requires architecture that's predictable, testable, and consistent—exactly what we've been building throughout this book.
-
-**The modular revival isn't just about surviving the present complexity of frontend development. It's about thriving in a future where the ability to maintain and extend large-scale applications becomes your primary competitive advantage.**
-
-AI won't write your architecture for you. But with the right architecture, AI can help you build faster, test more thoroughly, and scale more effectively than ever before. The choice is yours: adapt your architecture to leverage AI, or watch as your codebase becomes an increasingly expensive liability.
-
-We've reached the end of our journey from the "Frontend Architecture Crisis" to a future where consistent patterns enable AI-assisted development. The principles remain unchanged: separate concerns, minimize coupling, maximize testability, maintain framework independence. What's new is that these principles now serve a dual purpose—they make your code maintainable for humans _and_ trainable for AI.
-
-The organizations that will thrive in the next decade are those that recognize architecture isn't a cost to be minimized—it's an investment that compounds over time. Every pattern you establish today becomes a template that accelerates development tomorrow.
-
-Build your architecture once, properly. Then let AI help you scale it.

@@ -1,0 +1,1324 @@
+---
+id: "complete-case-studies"
+title: Complete Case Studies
+section: Real-World Applications
+---
+
+# Chapter 22: Complete Case Studies
+
+Throughout this book, we've explored MVVM architecture piece by piece: Models that encapsulate business logic, ViewModels that manage presentation state, Views that render UI, and supporting patterns like reactive state management, event-driven communication, and design systems. We've used the GreenWatch greenhouse monitoring system as our primary teaching example, showing individual components and patterns in isolation.
+
+Now it's time to see how everything comes together. This chapter presents **complete, production-ready implementations** of MVVM applications, showing how all the patterns we've learned integrate into cohesive systems. We'll examine:
+
+1. **GreenWatch**: The complete greenhouse monitoring system across all five frameworks (React, Vue, Angular, Lit, Vanilla JS)
+2. **E-Commerce Application**: A secondary case study demonstrating MVVM in a different domain
+3. **Pattern Comparison**: How domain requirements shape architectural decisions
+
+These aren't toy examples or simplified demos. They're real implementations from the Web Loom monorepo, with production-grade error handling, validation, state management, and user experience patterns. By studying complete applications, you'll see how MVVM scales from individual components to full-featured systems.
+
+## Why Complete Case Studies Matter
+
+Learning patterns in isolation is valuable, but it can leave gaps in understanding:
+
+- How do ViewModels coordinate with each other?
+- How do you structure an application with multiple domains?
+- How do you handle cross-cutting concerns like authentication and error handling?
+- How do you maintain consistency across framework implementations?
+
+Complete case studies answer these questions by showing the **full context** of architectural decisions. You'll see not just what patterns to use, but when, why, and how they interact.
+
+
+## GreenWatch: Complete Implementation
+
+GreenWatch is a greenhouse monitoring system that tracks environmental conditions across multiple greenhouses. It demonstrates MVVM architecture applied to a real-time monitoring domain with complex state management, data visualization, and alert handling.
+
+### Domain Model
+
+The GreenWatch domain consists of four core entities:
+
+**Greenhouse**: A physical structure containing sensors and growing crops
+- Properties: name, location, size, crop type
+- Relationships: has many sensors
+
+**Sensor**: A device that measures environmental conditions
+- Properties: type (temperature, humidity, soil moisture), status, greenhouse reference
+- Relationships: belongs to greenhouse, produces readings
+
+**SensorReading**: A time-series data point from a sensor
+- Properties: value, unit, timestamp, sensor reference
+- Relationships: belongs to sensor
+
+**ThresholdAlert**: An alert triggered when readings exceed configured thresholds
+- Properties: threshold value, alert level, message, sensor reference
+- Relationships: belongs to sensor
+
+This domain model is consistent across all framework implementations, demonstrating MVVM's principle of **framework-independent business logic**.
+
+### Shared ViewModels
+
+The heart of GreenWatch's architecture is its shared ViewModels, defined in `packages/view-models/`. These ViewModels work identically across React, Vue, Angular, Lit, and vanilla JavaScript implementations.
+
+#### GreenHouseViewModel
+
+The `GreenHouseViewModel` manages greenhouse state and CRUD operations:
+
+```typescript
+// packages/view-models/src/GreenHouseViewModel.ts
+import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
+import { greenHouseConfig } from '@repo/models';
+import { type GreenhouseListData, GreenhouseListSchema, type GreenhouseData } from '@repo/models';
+
+type TConfig = ViewModelFactoryConfig<GreenhouseListData, typeof GreenhouseListSchema>;
+
+const config: TConfig = {
+  modelConfig: greenHouseConfig,
+  schema: GreenhouseListSchema,
+};
+
+export const greenHouseViewModel = createReactiveViewModel(config);
+
+export type { GreenhouseListData, GreenhouseData };
+```
+
+This ViewModel uses the factory pattern from `mvvm-core` to create a reactive ViewModel with built-in CRUD commands. The `createReactiveViewModel` function generates:
+
+- `data$`: Observable of greenhouse list
+- `isLoading$`: Observable of loading state
+- `error$`: Observable of error state
+- `fetchCommand`: Command to fetch greenhouses
+- `createCommand`: Command to create a greenhouse
+- `updateCommand`: Command to update a greenhouse
+- `deleteCommand`: Command to delete a greenhouse
+
+
+#### SensorViewModel
+
+The `SensorViewModel` extends `RestfulApiViewModel` for more control over API operations:
+
+```typescript
+// packages/view-models/src/SensorViewModel.ts
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { SensorListSchema, type SensorListData, SensorModel } from '@repo/models';
+
+export class SensorViewModel extends RestfulApiViewModel<SensorListData, typeof SensorListSchema> {
+  constructor(model: SensorModel) {
+    super(model);
+  }
+}
+
+const sensorModel = new SensorModel();
+export const sensorViewModel = new SensorViewModel(sensorModel);
+export type { SensorListData };
+```
+
+This demonstrates the class-based approach for ViewModels that need custom behavior. The `RestfulApiViewModel` base class provides the same CRUD operations as the factory approach, but allows for method overrides and additional logic.
+
+#### SensorReadingViewModel and ThresholdAlertViewModel
+
+These ViewModels follow similar patterns:
+
+```typescript
+// packages/view-models/src/SensorReadingViewModel.ts
+import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
+import { type SensorReadingListData, SensorReadingListSchema, sensorReadingsConfig } from '@repo/models';
+
+type TConfig = ViewModelFactoryConfig<SensorReadingListData, typeof SensorReadingListSchema>;
+
+const config: TConfig = {
+  modelConfig: sensorReadingsConfig,
+  schema: SensorReadingListSchema,
+};
+
+export const sensorReadingViewModel = createReactiveViewModel(config);
+```
+
+```typescript
+// packages/view-models/src/ThresholdAlertViewModel.ts
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { type ThresholdAlertListData, ThresholdAlertListSchema, ThresholdAlertModel } from '@repo/models';
+
+export class ThresholdAlertViewModel extends RestfulApiViewModel<
+  ThresholdAlertListData,
+  typeof ThresholdAlertListSchema
+> {
+  constructor(model: ThresholdAlertModel) {
+    super(model);
+  }
+}
+
+const thresholdAlertModel = new ThresholdAlertModel();
+export const thresholdAlertViewModel = new ThresholdAlertViewModel(thresholdAlertModel);
+```
+
+The key insight: **these ViewModels are defined once and used everywhere**. They contain all the presentation logic, state management, and API coordination. The framework-specific Views simply subscribe to their observables and invoke their commands.
+
+
+### React Implementation
+
+The React implementation (`apps/mvvm-react/`) uses hooks to subscribe to ViewModel observables. Let's examine the `GreenhouseList` component:
+
+```typescript
+// apps/mvvm-react/src/components/GreenhouseList.tsx
+import { useEffect } from 'react';
+import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+export function GreenhouseList() {
+  // Subscribe to ViewModel observables using custom hook
+  const greenHouses = useObservable(greenHouseViewModel.data$, [] as GreenhouseData[]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await greenHouseViewModel.fetchCommand.execute();
+      } catch (error) {
+        console.error('Error fetching greenhouses:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const formData = new FormData(event.target as HTMLFormElement);
+    const data = {
+      name: formData.get('name') as string,
+      location: formData.get('location') as string,
+      size: formData.get('size') as string,
+      cropType: formData.get('cropType') as string,
+    };
+
+    greenHouseViewModel.createCommand.execute(data);
+  };
+
+  const handleDelete = (id?: string) => {
+    if (!id) return;
+    greenHouseViewModel.deleteCommand.execute(id);
+  };
+
+  return (
+    <section className="flex-container flex-row">
+      <form className="form-container" onSubmit={handleSubmit}>
+        {/* Form fields */}
+      </form>
+      <div className="card">
+        <h1 className="card-title">Greenhouses</h1>
+        {greenHouses && greenHouses.length > 0 ? (
+          <ul className="card-content list">
+            {greenHouses.map((gh) => (
+              <li key={gh.id} className="list-item">
+                <span>{gh.name}</span>
+                <button onClick={() => handleDelete(gh.id)}>Delete</button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No greenhouses found or still loading...</p>
+        )}
+      </div>
+    </section>
+  );
+}
+```
+
+The `useObservable` hook bridges RxJS observables to React state:
+
+```typescript
+// apps/mvvm-react/src/hooks/useObservable.ts
+import { useState, useEffect } from 'react';
+import { Observable } from 'rxjs';
+
+export function useObservable<T>(observable: Observable<T>, initialValue: T) {
+  const [value, setValue] = useState<T>(initialValue);
+
+  useEffect(() => {
+    const subscription = observable.subscribe(setValue);
+    return () => subscription.unsubscribe();
+  }, [observable]);
+
+  return value;
+}
+```
+
+This pattern is clean and idiomatic React: hooks manage subscriptions, effects handle lifecycle, and the component remains purely presentational.
+
+
+### Vue Implementation
+
+The Vue implementation (`apps/mvvm-vue/`) uses the Composition API with a similar `useObservable` composable:
+
+```vue
+<!-- apps/mvvm-vue/src/components/GreenhouseList.vue -->
+<template>
+  <section class="flex-container flex-row">
+    <form class="form-container" @submit.prevent="handleSubmit">
+      <div class="form-group">
+        <label for="name">Greenhouse Name:</label>
+        <input
+          id="name"
+          v-model="formData.name"
+          type="text"
+          required
+          class="input-field"
+        >
+      </div>
+      <!-- More form fields -->
+      <button type="submit" class="button">Submit</button>
+    </form>
+
+    <div class="card">
+      <h1 class="card-title">Greenhouses</h1>
+      <div v-if="isLoading">
+        <p>Loading greenhouses...</p>
+      </div>
+      <div v-else-if="greenhouses && greenhouses.length > 0">
+        <ul class="card-content list">
+          <li v-for="gh in greenhouses" :key="gh.id" class="list-item">
+            <span>{{ gh.name }}</span>
+            <button @click="handleDelete(gh.id)">Delete</button>
+          </li>
+        </ul>
+      </div>
+      <div v-else>
+        <p>No greenhouses found.</p>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { onMounted, reactive } from 'vue';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+const isLoading = useObservable(greenHouseViewModel.isLoading$, true);
+const greenhouses = useObservable(greenHouseViewModel.data$, []);
+
+const formData = reactive({
+  name: '',
+  location: '',
+  size: '',
+  cropType: '',
+});
+
+onMounted(() => {
+  greenHouseViewModel.fetchCommand.execute();
+});
+
+const handleSubmit = () => {
+  greenHouseViewModel.createCommand.execute(formData);
+  Object.assign(formData, { name: '', location: '', size: '', cropType: '' });
+};
+
+const handleDelete = (id?: string) => {
+  if (!id) return;
+  greenHouseViewModel.deleteCommand.execute(id);
+};
+</script>
+```
+
+The Vue implementation uses `v-model` for two-way binding and Vue's reactive system for form state, but the ViewModel interaction is identical to React: subscribe to observables, invoke commands, let the ViewModel handle the rest.
+
+
+### Angular Implementation
+
+The Angular implementation (`apps/mvvm-angular/`) leverages dependency injection and the async pipe:
+
+```typescript
+// apps/mvvm-angular/src/app/components/greenhouse-list/greenhouse-list.component.ts
+import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { GreenhouseData, greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { Observable, Subscription } from 'rxjs';
+
+export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>('GREENHOUSE_VIEW_MODEL');
+
+@Component({
+  selector: 'app-greenhouse-list',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './greenhouse-list.component.html',
+  providers: [
+    {
+      provide: GREENHOUSE_VIEW_MODEL,
+      useValue: greenHouseViewModel,
+    },
+  ],
+})
+export class GreenhouseListComponent implements OnInit, OnDestroy {
+  public vm: typeof greenHouseViewModel;
+  public greenhouses$!: Observable<GreenhouseData[] | null>;
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
+
+  greenhouseForm: FormGroup;
+  greenhouses: GreenhouseData[] = [];
+  private greenhousesSubscription: Subscription | undefined;
+
+  constructor(
+    private fb: FormBuilder,
+    @Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel,
+  ) {
+    this.vm = vm;
+    this.greenhouseForm = this.fb.group({
+      name: ['', Validators.required],
+      location: ['', Validators.required],
+      size: ['', Validators.required],
+      cropType: [''],
+    });
+  }
+
+  ngOnInit(): void {
+    this.greenhouses$ = this.vm.data$;
+    this.loading$ = this.vm.isLoading$;
+    this.error$ = this.vm.error$;
+
+    this.vm.fetchCommand.execute();
+    this.greenhousesSubscription = this.greenhouses$.subscribe(
+      (ghs) => (this.greenhouses = ghs || [])
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.greenhousesSubscription?.unsubscribe();
+  }
+
+  handleSubmit(): void {
+    if (this.greenhouseForm.invalid) return;
+    this.vm.createCommand.execute(this.greenhouseForm.value);
+    this.greenhouseForm.reset();
+  }
+
+  handleDelete(id?: string): void {
+    if (!id) return;
+    this.vm.deleteCommand.execute(id);
+  }
+}
+```
+
+Angular's approach is more verbose but provides strong typing and dependency injection. The ViewModel is injected via an `InjectionToken`, making it easy to mock for testing. The template uses the `async` pipe to subscribe to observables declaratively.
+
+
+### Lit Web Components Implementation
+
+The Lit implementation (`apps/mvvm-lit/`) uses decorators and reactive properties:
+
+```typescript
+// apps/mvvm-lit/src/components/greenhouse-list.ts
+import { LitElement, html } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
+import { Subscription } from 'rxjs';
+
+@customElement('greenhouse-list')
+export class GreenhouseList extends LitElement {
+  createRenderRoot() {
+    return this; // Use light DOM for global styles
+  }
+
+  @state()
+  private greenhouses: GreenhouseData[] = [];
+
+  private dataSubscription: Subscription | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.dataSubscription = greenHouseViewModel.data$.subscribe((data: any) => {
+      this.greenhouses = data;
+    });
+    greenHouseViewModel.fetchCommand.execute();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.dataSubscription?.unsubscribe();
+  }
+
+  private handleSubmit(event: SubmitEvent) {
+    event.preventDefault();
+    const form = event.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const data = {
+      name: formData.get('name') as string,
+      location: formData.get('location') as string,
+      size: formData.get('size') as string,
+      cropType: formData.get('cropType') as string,
+    };
+
+    greenHouseViewModel.createCommand.execute(data);
+    form.reset();
+  }
+
+  private handleDelete(id?: string) {
+    if (id) {
+      greenHouseViewModel.deleteCommand.execute(id);
+    }
+  }
+
+  render() {
+    return html`
+      <section class="flex-container flex-row">
+        <form class="form-container" @submit=${this.handleSubmit}>
+          <!-- Form fields -->
+          <button type="submit" class="button">Submit</button>
+        </form>
+        <div class="card">
+          <h1 class="card-title">Greenhouses</h1>
+          ${this.greenhouses && this.greenhouses.length > 0
+            ? html`
+                <ul class="card-content list">
+                  ${this.greenhouses.map(
+                    (gh) => html`
+                      <li class="list-item">
+                        <span>${gh.name}</span>
+                        <button @click=${() => this.handleDelete(gh.id)}>Delete</button>
+                      </li>
+                    `,
+                  )}
+                </ul>
+              `
+            : html`<p>No greenhouses found or still loading...</p>`}
+        </div>
+      </section>
+    `;
+  }
+}
+```
+
+Lit's approach uses web component lifecycle methods (`connectedCallback`, `disconnectedCallback`) for subscription management. The `@state()` decorator makes properties reactive, triggering re-renders when they change. The template uses tagged template literals with the `html` function.
+
+
+### Vanilla JavaScript Implementation
+
+The vanilla JavaScript implementation (`apps/mvvm-vanilla/`) uses EJS templates and direct DOM manipulation:
+
+```typescript
+// apps/mvvm-vanilla/src/main.ts
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+
+import { initRouter } from './app/router';
+import { subscribeToUpdates } from './app/subscriptions';
+import { renderLayout } from './app/ui';
+
+async function init() {
+  // Subscribe to ViewModel updates first
+  subscribeToUpdates();
+
+  // Render initial layout
+  await renderLayout();
+
+  // Fetch initial data
+  await Promise.all([
+    greenHouseViewModel.fetchCommand.execute(),
+    sensorViewModel.fetchCommand.execute(),
+    sensorReadingViewModel.fetchCommand.execute(),
+    thresholdAlertViewModel.fetchCommand.execute(),
+  ]);
+
+  // Initialize router
+  initRouter();
+}
+
+init();
+```
+
+The EJS template for the greenhouse list:
+
+```html
+<!-- apps/mvvm-vanilla/src/views/GreenhouseList.ejs -->
+<section class="flex-container flex-row">
+  <form class="form-container" id="greenhouse-form">
+    <div class="form-group">
+      <label for="name">Greenhouse Name:</label>
+      <input type="text" id="name" name="name" required class="input-field" />
+    </div>
+    <!-- More form fields -->
+    <button type="submit" class="button">Submit</button>
+  </form>
+
+  <div class="card">
+    <h1 class="card-title">Greenhouses</h1>
+    <% if (greenHouses && greenHouses.length > 0) { %>
+      <ul class="card-content list">
+        <% greenHouses.forEach(function(gh) { %>
+          <li class="list-item">
+            <span><%= gh.name %></span>
+            <button class="button-tiny button-tiny-delete" data-id="<%= gh.id %>">
+              Delete
+            </button>
+          </li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p>No greenhouses found or still loading...</p>
+    <% } %>
+  </div>
+</section>
+```
+
+The vanilla implementation requires more manual wiring—subscribing to observables, rendering templates, attaching event listeners—but the ViewModel interaction remains the same. The business logic is identical across all five implementations.
+
+
+### Framework Comparison
+
+Let's compare how each framework handles the same ViewModel operations:
+
+| Aspect | React | Vue | Angular | Lit | Vanilla JS |
+|--------|-------|-----|---------|-----|------------|
+| **Observable Subscription** | `useObservable` hook | `useObservable` composable | Direct subscription + async pipe | Direct subscription in lifecycle | Direct subscription |
+| **Form Handling** | Controlled components | `v-model` two-way binding | Reactive Forms | FormData API | FormData API |
+| **Lifecycle Management** | `useEffect` cleanup | `onMounted` / `onUnmounted` | `ngOnInit` / `ngOnDestroy` | `connectedCallback` / `disconnectedCallback` | Manual setup/teardown |
+| **Templating** | JSX | Vue template syntax | Angular templates | Tagged template literals | EJS templates |
+| **State Updates** | `useState` triggers re-render | Reactive refs trigger re-render | Change detection | `@state()` triggers re-render | Manual DOM updates |
+| **Dependency Injection** | Context API (optional) | `provide` / `inject` (optional) | Built-in DI system | None (direct imports) | None (direct imports) |
+
+Despite these differences, the **ViewModel code is identical**. Each framework subscribes to the same observables, invokes the same commands, and receives the same data. This is the power of MVVM: framework-specific concerns stay in the View layer, while business logic remains framework-agnostic.
+
+### Key Architectural Patterns in GreenWatch
+
+Several patterns emerge from the complete GreenWatch implementation:
+
+**1. Shared ViewModel Instances**
+
+All frameworks import the same ViewModel instances:
+
+```typescript
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+```
+
+This ensures consistent state across the application. If multiple components subscribe to `greenHouseViewModel.data$`, they all receive the same updates.
+
+**2. Command Pattern for Actions**
+
+All mutations go through commands:
+
+```typescript
+greenHouseViewModel.createCommand.execute(data);
+greenHouseViewModel.updateCommand.execute({ id, payload });
+greenHouseViewModel.deleteCommand.execute(id);
+```
+
+This provides a clear API for actions and enables features like undo/redo, command queuing, and optimistic updates.
+
+**3. Observable Streams for State**
+
+All state is exposed as RxJS observables:
+
+```typescript
+greenHouseViewModel.data$       // Current data
+greenHouseViewModel.isLoading$  // Loading state
+greenHouseViewModel.error$      // Error state
+```
+
+This enables reactive UIs that automatically update when state changes, without manual state synchronization.
+
+**4. Validation at the Model Layer**
+
+Data validation happens in the Model using Zod schemas, not in the View:
+
+```typescript
+const GreenhouseListSchema = z.array(GreenhouseSchema);
+```
+
+This ensures validation rules are consistent across all framework implementations and can't be bypassed by malicious or buggy View code.
+
+
+## E-Commerce Application: A Different Domain
+
+While GreenWatch demonstrates MVVM in a monitoring and data visualization context, e-commerce applications present different challenges: shopping carts, checkout flows, product catalogs, and inventory management. Let's examine how MVVM adapts to this domain.
+
+### Domain Model
+
+The e-commerce domain consists of:
+
+**Product**: Items available for purchase
+- Properties: name, description, price, SKU, inventory count, images
+- Relationships: belongs to categories, has reviews
+
+**Cart**: A user's shopping cart
+- Properties: items, subtotal, tax, total
+- Relationships: contains cart items
+
+**CartItem**: A product in the cart with quantity
+- Properties: product reference, quantity, price snapshot
+- Relationships: belongs to cart, references product
+
+**Order**: A completed purchase
+- Properties: order number, status, shipping address, payment method, items
+- Relationships: contains order items, belongs to user
+
+**User**: A customer account
+- Properties: email, name, addresses, payment methods
+- Relationships: has orders, has cart
+
+### ViewModel Architecture
+
+E-commerce applications typically use these ViewModels:
+
+**ProductCatalogViewModel**: Manages product browsing, filtering, and search
+- Observables: `products$`, `filters$`, `searchQuery$`, `isLoading$`
+- Commands: `fetchProducts`, `applyFilters`, `search`, `clearFilters`
+
+**ProductDetailViewModel**: Manages individual product details
+- Observables: `product$`, `selectedVariant$`, `reviews$`, `isLoading$`
+- Commands: `fetchProduct`, `selectVariant`, `addToCart`
+
+**CartViewModel**: Manages shopping cart state
+- Observables: `items$`, `subtotal$`, `total$`, `itemCount$`
+- Commands: `addItem`, `removeItem`, `updateQuantity`, `clearCart`
+
+**CheckoutViewModel**: Manages checkout flow
+- Observables: `shippingAddress$`, `paymentMethod$`, `orderSummary$`, `isProcessing$`
+- Commands: `setShippingAddress`, `setPaymentMethod`, `placeOrder`
+
+**OrderHistoryViewModel**: Manages past orders
+- Observables: `orders$`, `selectedOrder$`, `isLoading$`
+- Commands: `fetchOrders`, `fetchOrderDetails`, `cancelOrder`
+
+
+### Cart Management Example
+
+Let's examine a `CartViewModel` implementation:
+
+```typescript
+import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+interface CartItem {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl: string;
+}
+
+export class CartViewModel {
+  private _items$ = new BehaviorSubject<CartItem[]>([]);
+  private _taxRate = 0.08; // 8% tax
+
+  // Public observables
+  public items$: Observable<CartItem[]> = this._items$.asObservable();
+  
+  public itemCount$: Observable<number> = this._items$.pipe(
+    map(items => items.reduce((sum, item) => sum + item.quantity, 0))
+  );
+  
+  public subtotal$: Observable<number> = this._items$.pipe(
+    map(items => items.reduce((sum, item) => sum + (item.price * item.quantity), 0))
+  );
+  
+  public tax$: Observable<number> = this.subtotal$.pipe(
+    map(subtotal => subtotal * this._taxRate)
+  );
+  
+  public total$: Observable<number> = combineLatest([this.subtotal$, this.tax$]).pipe(
+    map(([subtotal, tax]) => subtotal + tax)
+  );
+
+  // Commands
+  addItem(product: { id: string; name: string; price: number; imageUrl: string }) {
+    const currentItems = this._items$.value;
+    const existingItem = currentItems.find(item => item.productId === product.id);
+    
+    if (existingItem) {
+      // Increment quantity if item already in cart
+      this.updateQuantity(product.id, existingItem.quantity + 1);
+    } else {
+      // Add new item
+      this._items$.next([
+        ...currentItems,
+        {
+          productId: product.id,
+          name: product.name,
+          price: product.price,
+          quantity: 1,
+          imageUrl: product.imageUrl,
+        }
+      ]);
+    }
+  }
+
+  removeItem(productId: string) {
+    const currentItems = this._items$.value;
+    this._items$.next(currentItems.filter(item => item.productId !== productId));
+  }
+
+  updateQuantity(productId: string, quantity: number) {
+    if (quantity <= 0) {
+      this.removeItem(productId);
+      return;
+    }
+    
+    const currentItems = this._items$.value;
+    this._items$.next(
+      currentItems.map(item =>
+        item.productId === productId ? { ...item, quantity } : item
+      )
+    );
+  }
+
+  clearCart() {
+    this._items$.next([]);
+  }
+
+  dispose() {
+    this._items$.complete();
+  }
+}
+
+export const cartViewModel = new CartViewModel();
+```
+
+This ViewModel demonstrates several patterns:
+
+**1. Derived Observables**: `itemCount$`, `subtotal$`, `tax$`, and `total$` are computed from `items$` using RxJS operators. They automatically update when items change.
+
+**2. Immutable Updates**: Commands like `addItem` and `updateQuantity` create new arrays rather than mutating existing ones, ensuring predictable state updates.
+
+**3. Business Logic Encapsulation**: Tax calculation, quantity validation, and cart totals are handled in the ViewModel, not in the View.
+
+
+### Checkout Flow Example
+
+E-commerce checkout flows are multi-step processes that benefit from ViewModel coordination:
+
+```typescript
+import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+interface ShippingAddress {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+}
+
+interface PaymentMethod {
+  type: 'credit_card' | 'paypal' | 'apple_pay';
+  last4?: string;
+  expiryDate?: string;
+}
+
+interface OrderSummary {
+  items: CartItem[];
+  subtotal: number;
+  tax: number;
+  shipping: number;
+  total: number;
+  shippingAddress: ShippingAddress | null;
+  paymentMethod: PaymentMethod | null;
+}
+
+export class CheckoutViewModel {
+  private _currentStep$ = new BehaviorSubject<'shipping' | 'payment' | 'review'>('shipping');
+  private _shippingAddress$ = new BehaviorSubject<ShippingAddress | null>(null);
+  private _paymentMethod$ = new BehaviorSubject<PaymentMethod | null>(null);
+  private _isProcessing$ = new BehaviorSubject<boolean>(false);
+  private _error$ = new BehaviorSubject<string | null>(null);
+
+  // Public observables
+  public currentStep$ = this._currentStep$.asObservable();
+  public shippingAddress$ = this._shippingAddress$.asObservable();
+  public paymentMethod$ = this._paymentMethod$.asObservable();
+  public isProcessing$ = this._isProcessing$.asObservable();
+  public error$ = this._error$.asObservable();
+
+  // Computed order summary
+  public orderSummary$: Observable<OrderSummary> = combineLatest([
+    cartViewModel.items$,
+    cartViewModel.subtotal$,
+    cartViewModel.tax$,
+    this._shippingAddress$,
+    this._paymentMethod$,
+  ]).pipe(
+    map(([items, subtotal, tax, shippingAddress, paymentMethod]) => ({
+      items,
+      subtotal,
+      tax,
+      shipping: this.calculateShipping(shippingAddress),
+      total: subtotal + tax + this.calculateShipping(shippingAddress),
+      shippingAddress,
+      paymentMethod,
+    }))
+  );
+
+  // Validation observables
+  public canProceedToPayment$: Observable<boolean> = this._shippingAddress$.pipe(
+    map(address => address !== null && this.isValidAddress(address))
+  );
+
+  public canProceedToReview$: Observable<boolean> = combineLatest([
+    this._shippingAddress$,
+    this._paymentMethod$,
+  ]).pipe(
+    map(([address, payment]) => 
+      address !== null && payment !== null && 
+      this.isValidAddress(address) && this.isValidPayment(payment)
+    )
+  );
+
+  // Commands
+  setShippingAddress(address: ShippingAddress) {
+    if (!this.isValidAddress(address)) {
+      this._error$.next('Invalid shipping address');
+      return;
+    }
+    this._shippingAddress$.next(address);
+    this._error$.next(null);
+  }
+
+  setPaymentMethod(payment: PaymentMethod) {
+    if (!this.isValidPayment(payment)) {
+      this._error$.next('Invalid payment method');
+      return;
+    }
+    this._paymentMethod$.next(payment);
+    this._error$.next(null);
+  }
+
+  goToStep(step: 'shipping' | 'payment' | 'review') {
+    this._currentStep$.next(step);
+  }
+
+  async placeOrder(): Promise<void> {
+    const address = this._shippingAddress$.value;
+    const payment = this._paymentMethod$.value;
+    const items = cartViewModel.items$.value;
+
+    if (!address || !payment || items.length === 0) {
+      this._error$.next('Cannot place order: missing required information');
+      return;
+    }
+
+    this._isProcessing$.next(true);
+    this._error$.next(null);
+
+    try {
+      // Call API to place order
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items,
+          shippingAddress: address,
+          paymentMethod: payment,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Order placement failed');
+      }
+
+      // Clear cart on success
+      cartViewModel.clearCart();
+      
+      // Navigate to confirmation (handled by View)
+      this._isProcessing$.next(false);
+    } catch (error) {
+      this._error$.next(error instanceof Error ? error.message : 'Unknown error');
+      this._isProcessing$.next(false);
+    }
+  }
+
+  private calculateShipping(address: ShippingAddress | null): number {
+    if (!address) return 0;
+    // Simple shipping calculation (could be more complex)
+    return address.country === 'US' ? 5.99 : 15.99;
+  }
+
+  private isValidAddress(address: ShippingAddress): boolean {
+    return !!(address.street && address.city && address.state && address.zipCode && address.country);
+  }
+
+  private isValidPayment(payment: PaymentMethod): boolean {
+    return !!payment.type;
+  }
+
+  dispose() {
+    this._currentStep$.complete();
+    this._shippingAddress$.complete();
+    this._paymentMethod$.complete();
+    this._isProcessing$.complete();
+    this._error$.complete();
+  }
+}
+
+export const checkoutViewModel = new CheckoutViewModel();
+```
+
+This ViewModel demonstrates:
+
+**1. Multi-Step Flow Management**: The `currentStep$` observable tracks progress through the checkout flow.
+
+**2. Cross-ViewModel Coordination**: The checkout ViewModel depends on the cart ViewModel for items and totals.
+
+**3. Validation Observables**: `canProceedToPayment$` and `canProceedToReview$` enable/disable navigation based on validation rules.
+
+**4. Async Operations**: The `placeOrder` command handles API calls, loading states, and error handling.
+
+
+## Domain Pattern Comparison
+
+Let's compare how MVVM patterns differ between GreenWatch (monitoring) and e-commerce (transactional) domains:
+
+### State Management Patterns
+
+**GreenWatch (Monitoring Domain)**:
+- **Read-heavy**: Constantly fetching sensor readings and displaying real-time data
+- **Time-series data**: Sensor readings are timestamped and often visualized as charts
+- **Alert-driven**: Threshold alerts trigger notifications when conditions exceed limits
+- **Polling/WebSockets**: Real-time updates via polling or WebSocket connections
+
+**E-Commerce (Transactional Domain)**:
+- **Write-heavy**: Users add/remove items, update quantities, place orders
+- **Stateful workflows**: Multi-step checkout flows with validation at each step
+- **Optimistic updates**: Cart updates happen immediately, with server sync in background
+- **Session-based**: Cart state persists across page refreshes via localStorage or server sessions
+
+### ViewModel Coordination
+
+**GreenWatch**:
+```typescript
+// ViewModels are largely independent
+greenHouseViewModel.fetchCommand.execute();
+sensorViewModel.fetchCommand.execute();
+sensorReadingViewModel.fetchCommand.execute();
+
+// Minimal cross-ViewModel dependencies
+// Sensors belong to greenhouses, but ViewModels don't directly reference each other
+```
+
+**E-Commerce**:
+```typescript
+// ViewModels are tightly coordinated
+checkoutViewModel.orderSummary$ = combineLatest([
+  cartViewModel.items$,
+  cartViewModel.subtotal$,
+  cartViewModel.tax$,
+  // ...
+]);
+
+// Checkout depends on cart state
+// Order history depends on user authentication state
+// Product detail depends on inventory state
+```
+
+E-commerce ViewModels have more interdependencies because the domain requires coordination (e.g., checkout needs cart data, inventory affects product availability).
+
+### Validation Strategies
+
+**GreenWatch**:
+- **Schema validation**: Sensor readings validated against Zod schemas
+- **Range validation**: Temperature/humidity values must be within physical limits
+- **Referential integrity**: Sensors must belong to valid greenhouses
+
+**E-Commerce**:
+- **Business rule validation**: Minimum order amounts, maximum quantities, coupon eligibility
+- **Multi-step validation**: Shipping address, payment method, order review
+- **Inventory validation**: Products must be in stock before checkout
+- **Payment validation**: Credit card numbers, expiry dates, CVV codes
+
+E-commerce validation is more complex because it involves business rules, external systems (payment processors), and multi-step workflows.
+
+
+### Error Handling Patterns
+
+**GreenWatch**:
+```typescript
+// Sensor reading errors are non-critical
+sensorReadingViewModel.error$.subscribe(error => {
+  if (error) {
+    console.warn('Failed to fetch sensor readings:', error);
+    // Show warning banner, but don't block UI
+  }
+});
+
+// Graceful degradation: show stale data if fetch fails
+```
+
+**E-Commerce**:
+```typescript
+// Payment errors are critical
+checkoutViewModel.error$.subscribe(error => {
+  if (error) {
+    // Block checkout flow
+    // Show prominent error message
+    // Require user action to retry
+    alert(`Order failed: ${error}`);
+  }
+});
+
+// No graceful degradation: must succeed or fail explicitly
+```
+
+Monitoring applications can tolerate temporary failures (show stale data, retry in background), while transactional applications require explicit error handling (block workflow, require user intervention).
+
+### Data Persistence
+
+**GreenWatch**:
+- **Server-authoritative**: All data comes from the API
+- **No local persistence**: Sensor readings aren't cached locally (too much data)
+- **Ephemeral state**: UI state (selected greenhouse, date range) doesn't persist across sessions
+
+**E-Commerce**:
+- **Hybrid persistence**: Cart state persists locally (localStorage) and syncs to server
+- **Optimistic updates**: Cart changes happen immediately, sync in background
+- **Session continuity**: Cart, checkout progress, and user preferences persist across page refreshes
+
+E-commerce applications require more sophisticated persistence strategies to provide a seamless user experience across sessions and devices.
+
+### UI Patterns
+
+**GreenWatch**:
+- **Dashboard-centric**: Overview of all greenhouses, sensors, and alerts
+- **Data visualization**: Charts, graphs, and real-time indicators
+- **Drill-down navigation**: Greenhouse → Sensors → Readings → Details
+- **Minimal forms**: Mostly read-only with occasional configuration changes
+
+**E-Commerce**:
+- **Catalog-centric**: Browse products, filter, search
+- **Form-heavy**: Shipping addresses, payment methods, account details
+- **Wizard flows**: Multi-step checkout with progress indicators
+- **Persistent cart**: Cart widget visible on every page
+
+The UI patterns reflect the domain: monitoring applications focus on data visualization, while e-commerce applications focus on forms and workflows.
+
+
+## Lessons from Complete Case Studies
+
+Studying complete applications reveals patterns and principles that aren't obvious from isolated examples:
+
+### 1. ViewModels Should Be Domain-Focused
+
+Both GreenWatch and e-commerce applications organize ViewModels around domain entities (Greenhouse, Sensor, Product, Cart) rather than UI components. This makes ViewModels reusable across different Views and frameworks.
+
+**Good**:
+```typescript
+// Domain-focused ViewModel
+class ProductCatalogViewModel {
+  products$: Observable<Product[]>;
+  filters$: Observable<ProductFilters>;
+  applyFilters(filters: ProductFilters): void;
+}
+```
+
+**Bad**:
+```typescript
+// UI-focused ViewModel (too specific)
+class ProductGridViewModel {
+  gridColumns: number;
+  cardWidth: string;
+  // Mixes presentation concerns with domain logic
+}
+```
+
+### 2. Shared ViewModel Instances Enable Consistency
+
+Both applications use singleton ViewModel instances that are imported across components:
+
+```typescript
+// Shared instance
+export const cartViewModel = new CartViewModel();
+
+// Multiple components subscribe to the same instance
+// Component A
+const items = useObservable(cartViewModel.items$);
+
+// Component B (cart widget)
+const itemCount = useObservable(cartViewModel.itemCount$);
+```
+
+This ensures all components see the same state without manual synchronization.
+
+### 3. Commands Provide Clear Action APIs
+
+Both applications use commands for all mutations:
+
+```typescript
+// Clear, discoverable API
+greenHouseViewModel.createCommand.execute(data);
+cartViewModel.addItem(product);
+checkoutViewModel.placeOrder();
+```
+
+This is better than exposing internal state setters, which would allow Views to bypass validation and business logic.
+
+### 4. Derived Observables Reduce Duplication
+
+Both applications use RxJS operators to derive state:
+
+```typescript
+// Derived from items$
+public itemCount$ = this._items$.pipe(
+  map(items => items.reduce((sum, item) => sum + item.quantity, 0))
+);
+
+public total$ = combineLatest([this.subtotal$, this.tax$]).pipe(
+  map(([subtotal, tax]) => subtotal + tax)
+);
+```
+
+This eliminates the need to manually update multiple state properties when items change.
+
+### 5. Validation Belongs in ViewModels
+
+Both applications validate data in ViewModels, not Views:
+
+```typescript
+setShippingAddress(address: ShippingAddress) {
+  if (!this.isValidAddress(address)) {
+    this._error$.next('Invalid shipping address');
+    return;
+  }
+  this._shippingAddress$.next(address);
+}
+```
+
+This ensures validation rules are consistent across all framework implementations and can't be bypassed.
+
+
+### 6. Framework-Specific Code Should Be Minimal
+
+The React, Vue, Angular, Lit, and Vanilla JS implementations of GreenWatch differ only in:
+- How they subscribe to observables (hooks, composables, async pipe, direct subscriptions)
+- How they handle forms (controlled components, v-model, Reactive Forms, FormData)
+- How they render templates (JSX, Vue templates, Angular templates, tagged literals, EJS)
+
+The ViewModel code is **identical** across all implementations. This is the goal of MVVM: minimize framework-specific code.
+
+### 7. Error Handling Should Match Domain Criticality
+
+GreenWatch uses non-blocking error handling (show warnings, retry in background) because sensor reading failures are non-critical. E-commerce uses blocking error handling (stop checkout flow, require user action) because payment failures are critical.
+
+Match your error handling strategy to your domain requirements.
+
+### 8. State Persistence Should Match User Expectations
+
+GreenWatch doesn't persist UI state because users expect fresh data on each visit. E-commerce persists cart state because users expect their cart to survive page refreshes and browser restarts.
+
+Consider user expectations when designing persistence strategies.
+
+### 9. ViewModel Coordination Should Be Explicit
+
+E-commerce ViewModels use `combineLatest` to explicitly declare dependencies:
+
+```typescript
+public orderSummary$ = combineLatest([
+  cartViewModel.items$,
+  cartViewModel.subtotal$,
+  this._shippingAddress$,
+]).pipe(map(/* ... */));
+```
+
+This makes dependencies visible and ensures derived state updates correctly when any dependency changes.
+
+### 10. Testing Is Easier with MVVM
+
+Both applications benefit from MVVM's testability:
+
+```typescript
+// Test ViewModel in isolation (no framework, no DOM)
+describe('CartViewModel', () => {
+  it('should calculate total correctly', () => {
+    const vm = new CartViewModel();
+    vm.addItem({ id: '1', name: 'Product', price: 10, imageUrl: '' });
+    vm.addItem({ id: '2', name: 'Product 2', price: 20, imageUrl: '' });
+    
+    let total: number | undefined;
+    vm.total$.subscribe(value => total = value);
+    
+    expect(total).toBe(32.40); // 30 + 8% tax
+  });
+});
+```
+
+No need to render components, mock frameworks, or manipulate the DOM. Just test the ViewModel logic directly.
+
+
+## Key Takeaways
+
+Complete case studies reveal the full power of MVVM architecture:
+
+**1. Framework Independence Is Real**
+
+GreenWatch runs identically in React, Vue, Angular, Lit, and vanilla JavaScript. The same ViewModels, the same business logic, the same validation rules. Only the View layer changes. This isn't theoretical—it's production code.
+
+**2. Domain Patterns Shape Architecture**
+
+Monitoring applications (GreenWatch) and transactional applications (e-commerce) have different requirements, leading to different ViewModel patterns:
+- Monitoring: read-heavy, real-time updates, graceful degradation
+- E-commerce: write-heavy, multi-step workflows, explicit error handling
+
+MVVM adapts to your domain without prescribing a one-size-fits-all solution.
+
+**3. ViewModels Are the Integration Layer**
+
+ViewModels coordinate between Models (business logic), Views (UI), and external systems (APIs, storage). They handle:
+- State management (observables)
+- Action coordination (commands)
+- Validation (business rules)
+- Error handling (domain-appropriate strategies)
+- Cross-ViewModel dependencies (combineLatest)
+
+This makes them the natural place for integration logic.
+
+**4. Shared Instances Enable Consistency**
+
+Both applications use singleton ViewModel instances imported across components. This ensures all components see the same state without manual synchronization or complex state management libraries.
+
+**5. Testing Is Dramatically Simpler**
+
+MVVM's separation of concerns makes testing straightforward:
+- Test ViewModels in isolation (no framework, no DOM)
+- Test Models in isolation (pure business logic)
+- Test Views with mocked ViewModels (fast, focused)
+
+No need for complex integration tests or end-to-end tests for most scenarios.
+
+**6. Patterns Are Transferable**
+
+The patterns you've learned—reactive state, command pattern, derived observables, validation strategies—apply to any domain. Whether you're building monitoring dashboards, e-commerce sites, social networks, or productivity tools, these patterns scale.
+
+**7. MVVM Scales from Components to Applications**
+
+We started this book with individual components (a sensor card, a greenhouse list). We end with complete applications spanning multiple domains, frameworks, and use cases. MVVM scales seamlessly from small to large.
+
+
+## Next Steps
+
+You've now seen MVVM architecture in action across complete, production-ready applications. You understand:
+
+- How ViewModels coordinate across domains
+- How framework implementations differ while sharing business logic
+- How domain requirements shape architectural decisions
+- How patterns scale from components to applications
+
+In the final chapter, we'll synthesize everything you've learned into a set of best practices and guidelines for building your own MVVM applications. We'll cover:
+
+- When to use MVVM (and when not to)
+- How to structure large-scale MVVM applications
+- Common pitfalls and how to avoid them
+- Migration strategies for existing applications
+- The future of MVVM in frontend development
+
+The journey from architectural crisis to production-ready MVVM applications is complete. Now it's time to apply these patterns to your own projects.
+
+---
+
+**Explore the Code**
+
+All the code examples in this chapter come from the Web Loom monorepo:
+
+- **GreenWatch ViewModels**: `packages/view-models/src/`
+- **React Implementation**: `apps/mvvm-react/`
+- **Vue Implementation**: `apps/mvvm-vue/`
+- **Angular Implementation**: `apps/mvvm-angular/`
+- **Lit Implementation**: `apps/mvvm-lit/`
+- **Vanilla JS Implementation**: `apps/mvvm-vanilla/`
+
+Clone the repository and explore the complete implementations. Run the applications, modify the ViewModels, and see how changes propagate across all framework implementations. There's no better way to learn than by working with real code.

@@ -1,820 +1,957 @@
 ---
-id: 'comprehensive-testing-strategy-at-scale'
-title: Comprehensive Testing Strategy at Scale
-section: Enterprise Scale
+id: "domain-driven-design-for-frontend"
+title: Domain-Driven Design for Frontend
+section: Advanced Topics
 ---
 
-# Comprehensive Testing Strategy at Scale
+# Chapter 18: Domain-Driven Design for Frontend
 
-# Chapter 18: The Final Frontier: When (and How) to Use Microfrontends
+You've built ViewModels that manage presentation logic. You've created Models that handle data and validation. You've connected them to Views across multiple frameworks. But there's a deeper question lurking beneath all this architecture: **How do you organize your domain logic itself?**
 
-You've built a modular monolith. Your bounded contexts are clean, your ViewModels are framework-agnostic, and your domain events flow smoothly between modules. Everything works. The team ships features predictably. Tests run in milliseconds.
+Domain-Driven Design (DDD) provides answers. Originally conceived for backend systems, DDD's principles translate remarkably well to frontend applications—especially when combined with MVVM's separation of concerns. This chapter explores how to apply DDD concepts to frontend architecture using the GreenWatch greenhouse monitoring system as our case study.
 
-Then someone asks: "Should we split this into microfrontends?"
+## Why DDD Matters for Frontend
 
-The answer is almost always: **not yet**.
+Traditional frontend development often treats the UI as a thin layer over backend APIs. Components fetch data, display it, and send updates back. Business logic? That lives on the server.
 
-Microfrontends aren't the natural evolution of good architecture—they're a **scaling solution for specific organizational problems**. They introduce operational complexity, runtime coordination challenges, and deployment overhead that most teams don't need. The modular monolith we've built throughout this book solves the vast majority of frontend scaling problems without those costs.
+But modern frontend applications are more sophisticated. They:
 
-But sometimes—**sometimes**—microfrontends are exactly what you need.
+- **Manage complex domain models** (greenhouses, sensors, readings, alerts)
+- **Enforce business rules** (threshold validation, sensor calibration)
+- **Coordinate workflows** (alert configuration, data aggregation)
+- **Handle offline scenarios** (local state, sync strategies)
 
-This chapter explores when that "sometimes" arrives and how the architectural foundations we've established make the transition clean and reversible. We'll extract GreenWatch's Analytics module into a standalone microfrontend, demonstrating how proper modularity makes this transformation surgical rather than catastrophic.
+When your frontend has genuine domain complexity, DDD provides the vocabulary and patterns to manage it. The key insight: **your frontend has its own domain model**, distinct from (but related to) the backend's domain model.
 
-## The Microfrontend Trap
+## Core DDD Concepts for Frontend
 
-Let's address the elephant in the architecture review room: microfrontends have become a solution looking for a problem.
+### Ubiquitous Language
 
-The pitch sounds compelling: "We'll split our frontend into independent applications, each owned by a separate team, deployed independently, composed at runtime." It promises organizational autonomy, independent deployments, and technology flexibility.
+DDD starts with language. The terms you use in code should match the terms domain experts use. In GreenWatch, we don't have "data points"—we have **sensor readings**. We don't have "notification rules"—we have **threshold alerts**.
 
-The reality is messier. Most teams that adopt microfrontends prematurely discover they've traded well-understood complexity (managing a large codebase) for poorly-understood complexity (managing distributed frontend systems). They've added network boundaries, version coordination, shared state synchronization, and bundle size multiplication.
-
-Here's what actually happens:
-
-**Before microfrontends:**
+This linguistic precision shows up everywhere in our codebase:
 
 ```typescript
-// Simple function call within the monolith
-const analytics = await analyticsViewModel.generateReport(params);
+// packages/models/src/schemas/sensor.schema.ts
+export const SensorTypeEnum = z.enum([
+  'temperature',
+  'humidity', 
+  'soilMoisture',
+  'lightIntensity'
+]);
+
+export const SensorStatusEnum = z.enum(['active', 'inactive']);
 ```
 
-**After microfrontends:**
+These aren't arbitrary technical names. They're the exact terms greenhouse operators use. When a developer reads `SensorTypeEnum`, they immediately understand what it represents. When a domain expert reviews the code, they recognize their own vocabulary.
+
+
+### Entities and Value Objects
+
+**Entities** have identity that persists over time. A greenhouse with ID `gh-123` remains the same greenhouse even if its name or location changes. **Value Objects** are defined by their attributes—two sensor readings with identical values are interchangeable.
+
+In GreenWatch, our entities are clear:
 
 ```typescript
-// Now you're doing distributed systems
-const analytics = await fetch('/analytics-mfe/api/report', {
-  method: 'POST',
-  body: JSON.stringify(params),
-  headers: {
-    'X-Auth-Token': await getToken(), // Shared auth
-    'X-Correlation-Id': correlationId, // Distributed tracing
-  },
-}).then((response) => {
-  if (!response.ok) {
-    // Handle network failures, timeouts, version mismatches...
-    throw new NetworkError('Analytics MFE unavailable');
-  }
-  return response.json();
+// packages/models/src/schemas/greenhouse.schema.ts
+export const CreateGreenhouseSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1),
+  location: z.string().min(1),
+  size: z.string().min(1),
+  cropType: z.string().optional(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+
+export type GreenhouseData = z.infer<typeof CreateGreenhouseSchema>;
+```
+
+The `id` field signals entity status—this greenhouse has persistent identity. Compare with a sensor reading:
+
+```typescript
+// packages/models/src/schemas/sensor-reading.schema.ts
+export const CreateSensorReadingSchema = z.object({
+  id: z.string().uuid().optional(),
+  sensorId: z.number().int().positive(),
+  timestamp: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: 'Invalid timestamp format',
+  }),
+  value: z.number(),
 });
 ```
 
-You've introduced:
+While readings have IDs for database purposes, conceptually they're value objects. A reading of "22.5°C at 2024-01-15 10:30" is defined entirely by those attributes. Two readings with identical values are functionally equivalent.
 
-- Network latency and failure modes
-- Version coordination between microfrontends
-- Shared authentication state management
-- Distributed error handling
-- Performance monitoring across boundaries
-- Multiple bundle downloads
+### Aggregates and Aggregate Roots
 
-The modular monolith gives you **logical boundaries** without operational boundaries. That's usually what you actually want.
+An **aggregate** is a cluster of entities and value objects treated as a single unit for data changes. The **aggregate root** is the only entity that external code can reference directly.
 
-## When Microfrontends Make Sense
-
-Microfrontends become viable when you face **organizational scaling problems that architectural modularity can't solve**. Specifically:
-
-### 1. **Genuinely Independent Deployment Cycles**
-
-Not "different teams want to deploy whenever they want" (that's a process problem), but "this module has fundamentally different deployment characteristics."
-
-**Example:** GreenWatch's Analytics module processes time-series data using heavy computational libraries. The team updates statistical models weekly based on new research. These deployments have nothing to do with the core monitoring features, but every deployment forces a full application rebuild and cache invalidation.
-
-The **entire application** gets a new version hash because one module changed:
+In GreenWatch, `Greenhouse` is an aggregate root:
 
 ```typescript
-// Before: Analytics changes force new bundle hash
-// app.a8b3c2d1.js contains everything
-// Analytics update? Now it's app.f7e4d3c2.js
-// All users download everything again
-
-// After: Analytics is independent
-// app.core.a8b3c2d1.js (unchanged for months)
-// analytics.f7e4d3c2.js (updated weekly)
-// Only analytics users download the new code
+// Conceptual aggregate structure (not explicit in code, but enforced by design)
+Greenhouse (Aggregate Root)
+├── Sensors (Entities within aggregate)
+│   └── SensorReadings (Value Objects)
+└── ThresholdAlerts (Entities within aggregate)
 ```
 
-If your modules **don't** have genuinely independent deployment needs, you don't need microfrontends. You need better module boundaries.
-
-### 2. **Extreme Performance Isolation**
-
-When a module's performance characteristics fundamentally conflict with the rest of the application.
-
-GreenWatch's Analytics module processes millions of sensor readings through statistical models. It uses WebAssembly for computations, loads 2MB of charting libraries, and maintains large in-memory datasets. This is **radically different** from the real-time monitoring UI, which needs to stay lightweight and responsive.
-
-In a monolith, you can code-split aggressively, but you still share:
-
-- The main thread (heavy analytics computations block UI updates)
-- Memory space (large datasets compete with cached sensor data)
-- Bundle parsing time (even with code splitting, the browser parses all vendor code)
-
-A microfrontend with **dedicated resources** solves this:
+The `RestfulApiModel` pattern enforces aggregate boundaries through its API design:
 
 ```typescript
-// Analytics runs in a separate iframe with dedicated resources
-// Heavy computations don't block the main application thread
-// Memory exhaustion in analytics doesn't crash monitoring
-// Different performance budgets for different user needs
-```
+// packages/mvvm-core/src/models/RestfulApiModel.ts
+export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> extends BaseModel<TData, TSchema> {
+  public async fetch(id?: string | string[]): Promise<void> {
+    let url = this.getUrl();
+    let expectedType: 'single' | 'collection' = 'collection';
 
-If your modules have **similar performance profiles**, code splitting and lazy loading are sufficient. You don't need process isolation.
+    if (id) {
+      if (Array.isArray(id)) {
+        url = `${this.getUrl()}?ids=${id.join(',')}`;
+        expectedType = 'collection';
+      } else {
+        url = this.getUrl(id);
+        expectedType = 'single';
+      }
+    }
 
-### 3. **Team Scaling Beyond Module Ownership**
+    const fetchedData = await this.executeApiRequest(url, { method: 'GET' }, expectedType);
+    this.setData(fetchedData);
+  }
 
-When you have **multiple teams** that need to work in the same bounded context without coordinating every change.
+  public async create(
+    payload: Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[]
+  ): Promise<ExtractItemType<TData> | ExtractItemType<TData>[] | undefined> {
+    // Optimistic update implementation...
+  }
 
-This is rare. Most "team scaling" problems are actually **communication problems** masked as technical problems. If your teams can't coordinate on a shared codebase, giving them separate repositories won't magically improve communication—it'll just make integration harder.
+  public async update(
+    id: string,
+    payload: Partial<ExtractItemType<TData>>
+  ): Promise<ExtractItemType<TData> | undefined> {
+    // Optimistic update with aggregate consistency...
+  }
 
-But sometimes it's real: You've acquired another company that has its own frontend team, their own deployment pipeline, their own tooling. Full integration would take 18 months and disrupt both teams' velocity. A microfrontend boundary gives you time to integrate gradually.
-
-If your teams **can** coordinate effectively (stand-ups, shared PR reviews, common standards), module ownership in a monolith works better. You don't need repository isolation.
-
-### 4. **Technology Migration**
-
-When you need to **gradually migrate** from one framework to another without a rewrite.
-
-The modular monolith we've built makes this relatively painless—you can migrate module by module **within** the monolith. But sometimes the migration itself becomes a political problem. Stakeholders get nervous about long-running migrations in the main codebase. Teams fear breaking the existing application.
-
-Microfrontends provide psychological safety: the new technology is **completely isolated**. If it fails, you can roll back without touching the stable code.
-
-```typescript
-// Old application continues unchanged
-// New features get built in the new framework
-// Gradual migration without dual maintenance in one codebase
-```
-
-If you're **confident** in your migration strategy and your team embraces incremental change, migrating within the monolith is lower risk. You don't need separate applications.
-
-## The GreenWatch Analytics Extraction
-
-Let's walk through extracting GreenWatch's Analytics module into a microfrontend. We'll see how the architectural decisions we made throughout this book make this extraction **surprisingly clean**.
-
-### Why Analytics Is the Perfect Candidate
-
-The Analytics bounded context exhibits **all four microfrontend justifications**:
-
-1. **Independent deployments:** Data science team updates statistical models weekly, completely independent of monitoring features
-2. **Performance isolation:** Processes millions of data points through WebAssembly, needs dedicated resources
-3. **Team scaling:** Analytics team works with data scientists who don't need to understand React component lifecycles
-4. **Technology considerations:** Exploring GPU-accelerated computations that might require different runtime constraints
-
-More importantly, Analytics has **clean boundaries** already:
-
-```typescript
-// src/contexts/analytics/domain/
-
-export interface AnalyticsRepository {
-  getHistoricalReadings(greenhouseId: string, range: DateRange): Observable<SensorReading[]>;
-}
-
-export interface StatisticalModelService {
-  calculateTrends(data: SensorReading[]): TrendAnalysis;
-  detectAnomalies(data: SensorReading[]): Anomaly[];
-  predictConditions(history: SensorReading[]): Prediction[];
-}
-
-export class AnalyticsDomainEvents {
-  static reportGenerated(report: AnalyticsReport): DomainEvent {
-    return {
-      type: 'analytics.report-generated',
-      payload: report,
-      timestamp: new Date(),
-    };
+  public async delete(id: string): Promise<void> {
+    // Aggregate deletion...
   }
 }
 ```
 
-Notice what's **already** in place:
 
-- Domain interfaces, not framework-specific implementations
-- Observable-based data access (works across microfrontend boundaries)
-- Domain events for cross-context communication
-- No direct imports from other contexts
+Notice how `RestfulApiModel` provides CRUD operations at the aggregate level. You don't update individual sensor readings directly—you work through the sensor aggregate. This maintains consistency boundaries.
 
-This is why we built modular foundations first. Extraction becomes a **deployment change**, not an architectural rewrite.
-
-### Step 1: Create the Analytics Microfrontend Shell
-
-We'll use **Module Federation** (Webpack 5's runtime module sharing) to load Analytics dynamically. Other approaches exist (iframe isolation, Web Components), but Module Federation gives us **shared dependencies** without duplication.
+The optimistic update pattern in `create()` and `update()` methods demonstrates aggregate thinking:
 
 ```typescript
-// analytics-mfe/webpack.config.js
-const ModuleFederationPlugin = require('webpack/lib/container/ModuleFederationPlugin');
+// From RestfulApiModel.create()
+public async create(
+  payload: Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[]
+): Promise<ExtractItemType<TData> | ExtractItemType<TData>[] | undefined> {
+  const originalData = this.getCurrentData();
+  
+  // Generate temporary ID for optimistic update
+  const tempId = generateTempId();
+  const tempItem = { ...payload, id: tempId, tempId: tempId };
+  
+  // Optimistically update the aggregate
+  if (Array.isArray(originalData)) {
+    optimisticData = [...originalData, tempItem];
+  }
+  this.setData(optimisticData);
 
-module.exports = {
-  plugins: [
-    new ModuleFederationPlugin({
-      name: 'analytics',
-      filename: 'remoteEntry.js',
-      exposes: {
-        './AnalyticsModule': './src/AnalyticsModule.tsx',
-        './AnalyticsViewModel': './src/application/AnalyticsViewModel.ts',
+  try {
+    // Persist to server
+    const createdItem = await this.executeApiRequest(
+      this.getUrl(),
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       },
-      shared: {
-        react: { singleton: true, requiredVersion: '^18.0.0' },
-        'react-dom': { singleton: true, requiredVersion: '^18.0.0' },
-        rxjs: { singleton: true, requiredVersion: '^7.8.0' },
-      },
-    }),
-  ],
-};
+      'single'
+    );
+
+    // Replace temporary item with server response
+    this.setData(
+      currentData.map((item: any) =>
+        item.id === tempId ? createdItem : item
+      ) as TData
+    );
+    
+    return createdItem;
+  } catch (error) {
+    // Revert optimistic update on failure
+    this.setData(originalData);
+    throw error;
+  }
+}
 ```
 
-This configuration:
+The aggregate (the collection of items) is updated atomically. Either the entire operation succeeds, or it's rolled back. This maintains aggregate consistency even with optimistic updates.
 
-- **Exposes** the Analytics module as a remote entry point
-- **Shares** React, ReactDOM, and RxJS as singletons (loaded once, shared between host and remote)
-- Creates a separate bundle with independent versioning
+## Bounded Contexts in GreenWatch
 
-The **key insight**: We're exposing both the **React component** (`AnalyticsModule`) and the **ViewModel** (`AnalyticsViewModel`). The ViewModel remains framework-agnostic, testable as a plain TypeScript class, and usable across microfrontend boundaries.
+A **bounded context** is an explicit boundary within which a domain model is defined and applicable. Different contexts can have different models of the same concepts.
 
-### Step 2: Configure the Host Application
+GreenWatch has three primary bounded contexts:
+
+### 1. Monitoring Context
+
+**Purpose:** Real-time sensor data visualization and greenhouse status
+
+**Core Entities:**
+- Greenhouse (aggregate root)
+- Sensor (entity)
+- SensorReading (value object)
+
+**Key Operations:**
+- Fetch current sensor readings
+- Display greenhouse status
+- Visualize trends
+
+**ViewModel:**
 
 ```typescript
-// host-app/webpack.config.js
-const ModuleFederationPlugin = require('webpack/lib/container/ModuleFederationPlugin');
+// packages/view-models/src/SensorViewModel.ts
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { SensorListSchema, type SensorListData, SensorModel } from '@repo/models';
 
-module.exports = {
-  plugins: [
-    new ModuleFederationPlugin({
-      name: 'host',
-      remotes: {
-        analytics: 'analytics@http://localhost:3001/remoteEntry.js',
-      },
-      shared: {
-        react: { singleton: true, requiredVersion: '^18.0.0' },
-        'react-dom': { singleton: true, requiredVersion: '^18.0.0' },
-        rxjs: { singleton: true, requiredVersion: '^7.8.0' },
-      },
-    }),
-  ],
-};
+export class SensorViewModel extends RestfulApiViewModel<
+  SensorListData,
+  typeof SensorListSchema
+> {
+  constructor(model: SensorModel) {
+    super(model);
+  }
+}
+
+const sensorModel = new SensorModel();
+export const sensorViewModel = new SensorViewModel(sensorModel);
 ```
 
-The host application now **consumes** Analytics as a remote module. In production, that URL would point to your CDN where the Analytics team deploys independently.
+The `SensorViewModel` focuses purely on presentation concerns within the Monitoring context. It doesn't know about alert configuration or historical analytics—those belong to other contexts.
 
-### Step 3: Load Analytics Dynamically
+
+### 2. Alerting Context
+
+**Purpose:** Threshold management and alert notifications
+
+**Core Entities:**
+- ThresholdAlert (aggregate root)
+- AlertRule (value object)
+- AlertNotification (value object)
+
+**Key Operations:**
+- Configure alert thresholds
+- Trigger alerts when thresholds exceeded
+- Manage notification preferences
+
+**Model:**
 
 ```typescript
-// src/application/AppViewModel.ts
-import { Observable, BehaviorSubject, from } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+// packages/models/src/ThresholdAlertModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { ThresholdAlertListSchema, type ThresholdAlertListData } from './schemas/alert.schema';
+import { fetchWithCache } from './utils/fetcher';
+import { apiRegistry } from './services/services';
+import { API_BASE_URL } from './config';
 
-export class AppViewModel {
-  private readonly _analyticsAvailable = new BehaviorSubject<boolean>(false);
-  public readonly analyticsAvailable$ = this._analyticsAvailable.asObservable();
+const { path } = apiRegistry.alert.list;
 
-  private analyticsViewModel?: any; // Dynamic import, no compile-time dependency
+const CONFIG = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: fetchWithCache,
+  schema: ThresholdAlertListSchema,
+  initialData: [],
+  validateSchema: false,
+};
 
-  async loadAnalyticsModule(): Promise<void> {
+export class ThresholdAlertModel extends RestfulApiModel<
+  ThresholdAlertListData,
+  typeof ThresholdAlertListSchema
+> {
+  constructor() {
+    super(CONFIG);
+  }
+}
+```
+
+The Alerting context has its own model of what matters. It cares about thresholds and notifications, not about real-time sensor visualization. This separation allows each context to evolve independently.
+
+### 3. Configuration Context
+
+**Purpose:** Greenhouse and sensor setup and management
+
+**Core Entities:**
+- Greenhouse (aggregate root)
+- Sensor (entity)
+- SensorConfiguration (value object)
+
+**Key Operations:**
+- Create/update greenhouses
+- Add/remove sensors
+- Configure sensor parameters
+
+**ViewModel:**
+
+```typescript
+// packages/view-models/src/GreenHouseViewModel.ts
+import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
+import { greenHouseConfig } from '@repo/models';
+import { type GreenhouseListData, GreenhouseListSchema, type GreenhouseData } from '@repo/models';
+
+type TConfig = ViewModelFactoryConfig<GreenhouseListData, typeof GreenhouseListSchema>;
+
+const config: TConfig = {
+  modelConfig: greenHouseConfig,
+  schema: GreenhouseListSchema,
+};
+
+export const greenHouseViewModel = createReactiveViewModel(config);
+```
+
+The Configuration context treats greenhouses as mutable entities that can be created, updated, and deleted. The Monitoring context, by contrast, treats them as relatively static containers for sensor data.
+
+## Context Mapping
+
+Different bounded contexts need to communicate. **Context mapping** defines how contexts relate and integrate.
+
+### Shared Kernel
+
+The `packages/models/src/schemas/` directory represents a **shared kernel**—domain concepts shared across contexts:
+
+```typescript
+// Shared across all contexts
+packages/models/src/schemas/
+├── greenhouse.schema.ts    // Shared greenhouse definition
+├── sensor.schema.ts        // Shared sensor definition
+├── sensor-reading.schema.ts // Shared reading definition
+└── alert.schema.ts         // Shared alert definition
+```
+
+All contexts agree on these core schemas. When Monitoring context fetches a greenhouse, it gets the same structure that Configuration context uses to create greenhouses.
+
+The shared kernel is kept minimal. Only truly universal concepts belong here. Context-specific concerns (like alert notification preferences) live within their respective contexts.
+
+
+### Customer-Supplier
+
+The backend API is the **supplier**, and our frontend contexts are **customers**. The API defines the contract, and we adapt to it:
+
+```typescript
+// packages/models/src/utils/fetcher.ts
+// Adapter layer between our domain and the API
+export async function fetchWithCache<T>(
+  url: string,
+  options?: RequestInit
+): Promise<T> {
+  // Caching logic, error handling, retries...
+  const response = await fetch(url, options);
+  
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+  
+  return response.json();
+}
+```
+
+The `fetcher` function is an **anti-corruption layer**. It translates between the API's representation and our domain model. If the API changes, we update the adapter, not our entire domain model.
+
+### Published Language
+
+Zod schemas serve as our **published language**—the formal contract between contexts:
+
+```typescript
+// packages/models/src/schemas/sensor.schema.ts
+export const SensorTypeEnum = z.enum([
+  'temperature',
+  'humidity',
+  'soilMoisture',
+  'lightIntensity'
+]);
+
+export const SensorStatusEnum = z.enum(['active', 'inactive']);
+
+export const CreateSensorSchema = z.object({
+  id: z.string().uuid().optional(),
+  type: SensorTypeEnum,
+  status: SensorStatusEnum,
+  greenhouseId: z.number().int().positive(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+  greenhouse: CreateGreenhouseSchema,
+});
+
+export type SensorData = z.infer<typeof CreateSensorSchema>;
+```
+
+These schemas are executable documentation. They define exactly what a valid sensor looks like, and they enforce that definition at runtime. Any context that works with sensors uses this published language.
+
+## Domain Events
+
+**Domain events** represent significant occurrences in the domain. In frontend applications, domain events enable loose coupling between bounded contexts.
+
+While GreenWatch doesn't currently implement explicit domain events, the architecture supports them through the event bus pattern. Here's how you would implement domain events:
+
+```typescript
+// Hypothetical domain events for GreenWatch
+import { createEventBus, EventMap } from '@web-loom/event-bus-core';
+
+// Define domain events as a type-safe event map
+interface GreenWatchDomainEvents extends EventMap {
+  'sensor.reading.received': [reading: SensorReadingData];
+  'threshold.alert.triggered': [alert: ThresholdAlertData];
+  'greenhouse.created': [greenhouse: GreenhouseData];
+  'sensor.status.changed': [sensorId: string, status: 'active' | 'inactive'];
+}
+
+// Create a domain event bus
+export const domainEventBus = createEventBus<GreenWatchDomainEvents>();
+
+// Monitoring context publishes events
+export class SensorReadingService {
+  async recordReading(reading: SensorReadingData): Promise<void> {
+    // Persist the reading
+    await this.sensorReadingModel.create(reading);
+    
+    // Publish domain event
+    domainEventBus.emit('sensor.reading.received', reading);
+  }
+}
+
+// Alerting context subscribes to events
+export class AlertingService {
+  constructor() {
+    // Listen for sensor readings
+    domainEventBus.on('sensor.reading.received', (reading) => {
+      this.checkThresholds(reading);
+    });
+  }
+  
+  private async checkThresholds(reading: SensorReadingData): Promise<void> {
+    const alerts = await this.findTriggeredAlerts(reading);
+    
+    for (const alert of alerts) {
+      // Publish alert event
+      domainEventBus.emit('threshold.alert.triggered', alert);
+    }
+  }
+}
+```
+
+
+Domain events provide several benefits:
+
+1. **Decoupling:** Monitoring context doesn't need to know about Alerting context. It just publishes events.
+
+2. **Extensibility:** New contexts can subscribe to existing events without modifying publishers.
+
+3. **Audit Trail:** Events create a natural log of what happened in the system.
+
+4. **Temporal Decoupling:** Publishers and subscribers don't need to be active simultaneously.
+
+The event bus implementation from `@web-loom/event-bus-core` provides type-safe event handling:
+
+```typescript
+// packages/event-bus-core/src/eventBus.ts
+class EventBusImpl<M extends EventMap> implements EventBus<M> {
+  private emitter = new EventEmitter<M>();
+
+  on<K extends keyof M>(event: K | K[], listener: Listener<K, M>): void {
+    const eventNames = Array.isArray(event) ? event : [event];
+    eventNames.forEach((eventName) => {
+      this.emitter.on(eventName, listener as GenericListener);
+    });
+  }
+
+  emit<K extends keyof M>(event: K, ...args: M[K] extends any[] ? M[K] : []): void {
+    (this.emitter.emit as any)(event, ...args);
+  }
+}
+```
+
+Type safety ensures that event payloads match their definitions. You can't emit a `sensor.reading.received` event with the wrong payload type—TypeScript catches it at compile time.
+
+## Repositories and Data Access
+
+In DDD, **repositories** provide collection-like interfaces for accessing aggregates. They abstract away data storage details.
+
+The `RestfulApiModel` pattern serves as our repository implementation:
+
+```typescript
+// RestfulApiModel acts as a repository
+export class SensorModel extends RestfulApiModel<SensorListData, typeof SensorListSchema> {
+  // Repository interface:
+  // - fetch(id?) - retrieve sensors
+  // - create(payload) - add new sensor
+  // - update(id, payload) - modify sensor
+  // - delete(id) - remove sensor
+}
+
+// Usage in ViewModel
+export class SensorViewModel extends RestfulApiViewModel<
+  SensorListData,
+  typeof SensorListSchema
+> {
+  constructor(model: SensorModel) {
+    super(model);
+    // ViewModel uses model as a repository
+    // It doesn't know about HTTP, caching, or storage
+  }
+}
+```
+
+The repository pattern provides several advantages:
+
+1. **Abstraction:** ViewModels work with domain concepts, not HTTP endpoints.
+
+2. **Testability:** Mock the repository in tests without mocking HTTP.
+
+3. **Flexibility:** Swap implementations (REST API, GraphQL, local storage) without changing ViewModels.
+
+4. **Consistency:** All data access goes through repositories, enforcing aggregate boundaries.
+
+The `RestfulApiModel` base class implements common repository operations:
+
+```typescript
+// From RestfulApiModel
+public async fetch(id?: string | string[]): Promise<void> {
+  // Fetch aggregate(s) from repository
+}
+
+public async create(
+  payload: Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[]
+): Promise<ExtractItemType<TData> | ExtractItemType<TData>[] | undefined> {
+  // Add aggregate(s) to repository
+}
+
+public async update(
+  id: string,
+  payload: Partial<ExtractItemType<TData>>
+): Promise<ExtractItemType<TData> | undefined> {
+  // Update aggregate in repository
+}
+
+public async delete(id: string): Promise<void> {
+  // Remove aggregate from repository
+}
+```
+
+Each method maintains aggregate consistency. Updates are atomic—either the entire aggregate changes, or nothing changes.
+
+
+## Domain Services
+
+Some domain logic doesn't naturally belong to any entity. **Domain services** encapsulate this logic.
+
+In GreenWatch, sensor calibration is a domain service:
+
+```typescript
+// Hypothetical domain service
+export class SensorCalibrationService {
+  /**
+   * Calibrates a sensor reading based on sensor type and environmental factors
+   */
+  calibrateReading(
+    reading: SensorReadingData,
+    sensor: SensorData,
+    environmentalFactors: EnvironmentalFactors
+  ): CalibratedReading {
+    // Domain logic for calibration
+    const baseValue = reading.value;
+    
+    // Apply sensor-specific calibration
+    let calibratedValue = baseValue;
+    
+    if (sensor.type === 'temperature') {
+      // Temperature sensors need altitude adjustment
+      calibratedValue = this.adjustForAltitude(
+        baseValue,
+        environmentalFactors.altitude
+      );
+    } else if (sensor.type === 'humidity') {
+      // Humidity sensors need temperature compensation
+      calibratedValue = this.compensateForTemperature(
+        baseValue,
+        environmentalFactors.temperature
+      );
+    }
+    
+    return {
+      ...reading,
+      value: calibratedValue,
+      calibrated: true,
+      calibrationFactors: environmentalFactors
+    };
+  }
+  
+  private adjustForAltitude(value: number, altitude: number): number {
+    // Domain-specific calibration formula
+    const altitudeAdjustment = altitude * 0.0065; // °C per meter
+    return value + altitudeAdjustment;
+  }
+  
+  private compensateForTemperature(humidity: number, temp: number): number {
+    // Relative humidity compensation
+    const compensationFactor = 1 + ((temp - 20) * 0.01);
+    return humidity * compensationFactor;
+  }
+}
+```
+
+This service encapsulates domain knowledge about sensor calibration. It doesn't belong in `SensorReading` (a value object) or `Sensor` (which represents the physical device). It's a standalone domain service.
+
+Domain services are stateless and operate on domain objects passed as parameters. They're distinct from application services (which orchestrate use cases) and infrastructure services (which handle technical concerns).
+
+## Validation as Domain Logic
+
+Validation is domain logic. The rules for what constitutes a valid greenhouse or sensor reading are domain concerns, not technical concerns.
+
+Zod schemas encode domain validation rules:
+
+```typescript
+// packages/models/src/schemas/sensor-reading.schema.ts
+export const CreateSensorReadingSchema = z.object({
+  id: z.string().uuid().optional(),
+  sensorId: z.number().int().positive(),
+  timestamp: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: 'Invalid timestamp format',
+  }),
+  value: z.number(),
+});
+```
+
+These aren't arbitrary technical constraints. They represent domain rules:
+
+- **Sensor ID must be positive:** You can't have a sensor with ID -1 or 0. That's a domain rule.
+- **Timestamp must be valid:** Sensor readings must have valid timestamps. That's a domain rule.
+- **Value must be numeric:** Sensor readings are numeric measurements. That's a domain rule.
+
+More complex domain rules can be encoded as custom refinements:
+
+```typescript
+// Hypothetical domain validation
+export const ThresholdAlertSchema = z.object({
+  id: z.string().uuid().optional(),
+  sensorId: z.number().int().positive(),
+  minThreshold: z.number(),
+  maxThreshold: z.number(),
+  alertType: z.enum(['warning', 'critical']),
+}).refine(
+  (data) => data.minThreshold < data.maxThreshold,
+  {
+    message: 'Minimum threshold must be less than maximum threshold',
+    path: ['minThreshold'],
+  }
+).refine(
+  (data) => {
+    // Critical alerts must have tighter thresholds
+    if (data.alertType === 'critical') {
+      const range = data.maxThreshold - data.minThreshold;
+      return range <= 10; // Max 10-degree range for critical alerts
+    }
+    return true;
+  },
+  {
+    message: 'Critical alerts must have threshold range ≤ 10',
+    path: ['alertType'],
+  }
+);
+```
+
+These refinements encode domain invariants—rules that must always hold true. The schema becomes executable domain knowledge.
+
+
+## Layered Architecture with DDD
+
+DDD works best with a layered architecture. GreenWatch follows this structure:
+
+```
+┌─────────────────────────────────────────┐
+│         Presentation Layer              │
+│  (Views - React, Vue, Angular, etc.)    │
+│  - Components                           │
+│  - UI State                             │
+│  - Framework-specific code              │
+└─────────────────────────────────────────┘
+              ↓ observables
+┌─────────────────────────────────────────┐
+│        Application Layer                │
+│         (ViewModels)                    │
+│  - Presentation logic                   │
+│  - Use case orchestration               │
+│  - Framework-agnostic                   │
+└─────────────────────────────────────────┘
+              ↓ commands
+┌─────────────────────────────────────────┐
+│          Domain Layer                   │
+│    (Models, Entities, Services)         │
+│  - Business logic                       │
+│  - Domain rules                         │
+│  - Aggregates                           │
+│  - Domain events                        │
+└─────────────────────────────────────────┘
+              ↓ persistence
+┌─────────────────────────────────────────┐
+│      Infrastructure Layer               │
+│  (API clients, Storage, Event Bus)      │
+│  - HTTP communication                   │
+│  - Caching                              │
+│  - Event publishing                     │
+└─────────────────────────────────────────┘
+```
+
+Each layer has clear responsibilities:
+
+**Presentation Layer** (`apps/mvvm-react/src/components/`):
+- Renders UI
+- Handles user interactions
+- Subscribes to ViewModel observables
+- Framework-specific
+
+**Application Layer** (`packages/view-models/`):
+- Orchestrates use cases
+- Manages presentation state
+- Coordinates between domain and presentation
+- Framework-agnostic
+
+**Domain Layer** (`packages/models/`, `packages/mvvm-core/src/models/`):
+- Encodes business rules
+- Defines entities and aggregates
+- Implements domain services
+- Pure domain logic
+
+**Infrastructure Layer** (`packages/models/src/utils/`, API clients):
+- Handles technical concerns
+- Communicates with backend
+- Manages caching and storage
+- Publishes events
+
+Dependencies flow downward. Presentation depends on Application, Application depends on Domain, Domain depends on nothing (except Infrastructure for persistence, via dependency inversion).
+
+## Practical DDD Patterns in GreenWatch
+
+Let's see how these concepts come together in actual code.
+
+### Pattern 1: Aggregate Root with Optimistic Updates
+
+```typescript
+// packages/mvvm-core/src/models/RestfulApiModel.ts
+export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> 
+  extends BaseModel<TData, TSchema> {
+  
+  public async update(
+    id: string,
+    payload: Partial<ExtractItemType<TData>>
+  ): Promise<ExtractItemType<TData> | undefined> {
+    const originalData = this.getCurrentData();
+    let itemToUpdateOriginal: ExtractItemType<TData> | undefined;
+    let optimisticData: TData | null = null;
+
+    // Find the aggregate to update
+    if (Array.isArray(originalData)) {
+      itemToUpdateOriginal = originalData.find((item: any) => item.id === id);
+      
+      if (!itemToUpdateOriginal) {
+        throw new Error(`Item with id ${id} not found for update`);
+      }
+      
+      // Optimistically update the aggregate
+      const optimisticallyUpdatedItem = { ...itemToUpdateOriginal, ...payload };
+      optimisticData = originalData.map((item: any) =>
+        item.id === id ? optimisticallyUpdatedItem : item
+      ) as TData;
+    }
+
+    // Apply optimistic update
+    this.setData(optimisticData);
+
     try {
-      // @ts-ignore - Dynamic import of remote module
-      const { AnalyticsViewModel } = await import('analytics/AnalyticsViewModel');
-
-      // Instantiate with our existing services
-      // The ViewModel doesn't know or care that it's in a microfrontend
-      this.analyticsViewModel = new AnalyticsViewModel(
-        this.analyticsRepository,
-        this.statisticalModelService,
-        this.eventBus,
+      // Persist to repository
+      const updatedItemFromServer = await this.executeApiRequest(
+        this.getUrl(id),
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        },
+        'single'
       );
 
-      this._analyticsAvailable.next(true);
+      // Replace optimistic update with server response
+      const currentData = this.getCurrentData();
+      if (Array.isArray(currentData)) {
+        this.setData(
+          currentData.map((item: any) =>
+            item.id === id ? updatedItemFromServer : item
+          ) as TData
+        );
+      }
+      
+      return updatedItemFromServer;
     } catch (error) {
-      console.error('Failed to load Analytics module:', error);
-      // Graceful degradation - core app continues working
-      this._analyticsAvailable.next(false);
+      // Revert on failure - maintain aggregate consistency
+      this.setData(originalData);
+      throw error;
     }
-  }
-
-  getAnalyticsViewModel(): any {
-    if (!this.analyticsViewModel) {
-      throw new Error('Analytics module not loaded');
-    }
-    return this.analyticsViewModel;
   }
 }
 ```
 
-Critical observations:
+This pattern maintains aggregate consistency even with optimistic updates. The aggregate is either fully updated or fully reverted—never in an inconsistent state.
 
-**The ViewModel contract doesn't change.** We instantiate `AnalyticsViewModel` exactly as we did in the monolith—with repository, service, and event bus dependencies. The ViewModel has **no idea** it's crossing a microfrontend boundary.
 
-**Graceful degradation.** If the Analytics microfrontend fails to load (network issues, deployment problems, version conflicts), the core application continues functioning. We expose an observable that the UI can react to.
-
-**No compile-time coupling.** The host application doesn't import Analytics types at build time. It loads them at runtime. This means Analytics can deploy new versions without forcing host recompilation.
-
-### Step 4: Render Analytics Dynamically
+### Pattern 2: Repository with Type-Safe Schemas
 
 ```typescript
-// src/components/AnalyticsRoute.tsx
-import React, { Suspense, useEffect } from 'react';
-import { useViewModel } from '../hooks/useViewModel';
-import { AppViewModel } from '../application/AppViewModel';
+// packages/models/src/ThresholdAlertModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { 
+  ThresholdAlertListSchema, 
+  type ThresholdAlertListData 
+} from './schemas/alert.schema';
+import { fetchWithCache } from './utils/fetcher';
+import { apiRegistry } from './services/services';
+import { API_BASE_URL } from './config';
 
-// Lazy load the Analytics component
-const AnalyticsModule = React.lazy(() =>
-  // @ts-ignore
-  import('analytics/AnalyticsModule')
-);
+const { path } = apiRegistry.alert.list;
 
-export const AnalyticsRoute: React.FC = () => {
-  const appViewModel = useViewModel(AppViewModel);
-  const [analyticsAvailable] = useObservable(
-    appViewModel.analyticsAvailable$,
-    false
-  );
-
-  useEffect(() => {
-    appViewModel.loadAnalyticsModule();
-  }, [appViewModel]);
-
-  if (!analyticsAvailable) {
-    return (
-      <div className="analytics-loading">
-        <p>Loading Analytics module...</p>
-        <p className="text-muted">
-          Connecting to analytics service...
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <Suspense fallback={<AnalyticsLoadingSkeleton />}>
-      <AnalyticsModule
-        viewModel={appViewModel.getAnalyticsViewModel()}
-      />
-    </Suspense>
-  );
+const CONFIG = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: fetchWithCache,
+  schema: ThresholdAlertListSchema,
+  initialData: [],
+  validateSchema: false,
 };
-```
 
-React's `Suspense` handles the async loading, showing a loading state while the remote bundle downloads. If Analytics deploys a new version, users get it on next navigation—no full-page refresh required.
-
-### Step 5: Maintain Shared ViewModels
-
-Here's where our architecture really shines. The **ViewModel lives in both places**:
-
-```typescript
-// Shared between host and remote
-// analytics-mfe/src/application/AnalyticsViewModel.ts
-// (identical copy in host for type safety during development)
-
-export class AnalyticsViewModel {
-  private readonly _report = new BehaviorSubject<AnalyticsReport | null>(null);
-  public readonly report$ = this._report.asObservable();
-
-  constructor(
-    private readonly repository: AnalyticsRepository,
-    private readonly modelService: StatisticalModelService,
-    private readonly eventBus: EventBus,
-  ) {}
-
-  async generateReport(params: ReportParams): Promise<void> {
-    const readings = await firstValueFrom(this.repository.getHistoricalReadings(params.greenhouseId, params.range));
-
-    const trends = this.modelService.calculateTrends(readings);
-    const anomalies = this.modelService.detectAnomalies(readings);
-
-    const report: AnalyticsReport = {
-      trends,
-      anomalies,
-      generatedAt: new Date(),
-    };
-
-    this._report.next(report);
-
-    // Domain event works across microfrontend boundaries
-    this.eventBus.publish(AnalyticsDomainEvents.reportGenerated(report));
-  }
-}
-```
-
-**This is the same code we wrote in Chapter 6.** Nothing changed. The ViewModel:
-
-- Remains framework-agnostic
-- Uses observables for reactive state
-- Publishes domain events through the event bus
-- Has no awareness of deployment topology
-
-We can **test this ViewModel in the host application's test suite** even though it's deployed separately. We can share it between React (host) and Vue (if we migrate Analytics later). The microfrontend boundary is a **runtime deployment concern**, not an architectural one.
-
-### Step 6: Handle Cross-Context Communication
-
-Domain events need to flow **across microfrontend boundaries**. Our event bus implementation needs a small enhancement:
-
-```typescript
-// shared/infrastructure/CrossMicrofrontendEventBus.ts
-import { Subject, Observable } from 'rxjs';
-import { filter } from 'rxjs/operators';
-
-export class CrossMicrofrontendEventBus implements EventBus {
-  private readonly events = new Subject<DomainEvent>();
-  private readonly broadcastChannel: BroadcastChannel;
-
+export class ThresholdAlertModel extends RestfulApiModel<
+  ThresholdAlertListData,
+  typeof ThresholdAlertListSchema
+> {
   constructor() {
-    // BroadcastChannel enables communication between same-origin contexts
-    this.broadcastChannel = new BroadcastChannel('greenwatch-events');
-
-    // Listen for events from other microfrontends
-    this.broadcastChannel.onmessage = (event) => {
-      this.events.next(event.data);
-    };
-  }
-
-  publish(event: DomainEvent): void {
-    // Publish locally
-    this.events.next(event);
-
-    // Broadcast to other microfrontends
-    this.broadcastChannel.postMessage(event);
-  }
-
-  subscribe<T extends DomainEvent>(eventType: string): Observable<T> {
-    return this.events.pipe(filter((event) => event.type === eventType)) as Observable<T>;
+    super(CONFIG);
   }
 }
 ```
 
-Now when Analytics publishes `analytics.report-generated`, the Monitoring context in the host application receives it **even though they're in different bundles**. The domain event pattern scales across deployment boundaries.
+The repository pattern abstracts data access. The ViewModel doesn't know about HTTP, endpoints, or caching. It just works with the repository interface.
 
-**Alternative approaches:**
-
-- **Custom events on window object** (simpler, but couples to browser globals)
-- **Shared Redux store** (works, but reintroduces framework coupling)
-- **Backend event relay** (more reliable for complex workflows, adds latency)
-
-BroadcastChannel is the sweet spot: standard browser API, same-origin restriction for security, low latency.
-
-## What We Gained (and Lost)
-
-### Gains
-
-**Independent deployments:** Analytics team ships weekly model updates without touching the core application. No coordinated releases, no cache invalidation for monitoring users.
-
-**Performance isolation:** Heavy statistical computations run in their own thread context (if using iframes) or at least their own bundle parsing budget. A memory leak in analytics doesn't crash the monitoring dashboard.
-
-**Team autonomy:** Analytics team owns their deployment pipeline, their testing strategy, their performance budget. They can experiment with WebAssembly, GPU acceleration, or different chart libraries without host application approval.
-
-**Technology flexibility:** Want to try Svelte for the analytics UI? You can. The ViewModel contract doesn't change, and the host application doesn't care about your view layer choice.
-
-### Losses
-
-**Operational complexity:** You now run **two applications**. Two build processes, two deployment pipelines, two monitoring dashboards, two sets of logs to correlate when debugging issues.
-
-**Version coordination:** Module Federation helps, but you still need to ensure the host and remote agree on shared dependency versions. A breaking change in RxJS requires coordinated updates.
-
-**Network latency:** Loading the Analytics module adds a network round-trip. For users on slow connections, that's noticeable. Code splitting in a monolith is faster.
-
-**Bundle size multiplication:** Despite shared dependencies, you've increased total JavaScript download. The remote entry point adds overhead. You're downloading module loading infrastructure.
-
-**Debugging difficulty:** Stack traces now cross bundle boundaries. Source maps need careful configuration. Error monitoring requires distributed tracing. When something breaks, "which version of which microfrontend" becomes a question you'll ask often.
-
-**Testing complexity:** Integration tests now require running multiple applications. Your CI pipeline needs to orchestrate containers. End-to-end tests become flakier because they depend on network behavior.
-
-## The Decision Framework
-
-Use this framework when evaluating microfrontends:
-
-### Start Here: Can Module Boundaries Solve This?
-
-- **If** teams are stepping on each other's code → Create clearer module boundaries with enforced dependency rules
-- **If** deployments are too risky → Improve automated testing and feature flags
-- **If** the codebase feels too large → Implement better code organization and lazy loading
-- **If** builds are too slow → Optimize your build pipeline and use incremental compilation
-
-**Only proceed** if module boundaries fundamentally can't address your problem.
-
-### Evaluate Each Context Independently
-
-Not all bounded contexts should become microfrontends. Evaluate each:
+### Pattern 3: ViewModel as Application Service
 
 ```typescript
-interface MicrofrontendCandidate {
-  deploymentFrequency: 'hourly' | 'daily' | 'weekly' | 'monthly';
-  performanceProfile: 'lightweight' | 'standard' | 'computationally-intensive';
-  teamOwnership: 'shared' | 'dedicated' | 'external';
-  userOverlap: 'all-users' | 'most-users' | 'power-users-only';
-  technicalDependencies: 'tightly-coupled' | 'loosely-coupled' | 'independent';
-}
+// packages/view-models/src/SensorViewModel.ts
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { SensorListSchema, type SensorListData, SensorModel } from '@repo/models';
 
-function evaluateMicrofrontendViability(
-  context: MicrofrontendCandidate,
-): 'good-candidate' | 'maybe' | 'keep-in-monolith' {
-  // Good candidates: frequent independent deployments, heavy performance needs,
-  // dedicated team, specialized user base, minimal dependencies
-  if (
-    context.deploymentFrequency === 'daily' &&
-    context.performanceProfile === 'computationally-intensive' &&
-    context.teamOwnership === 'dedicated' &&
-    context.userOverlap === 'power-users-only' &&
-    context.technicalDependencies === 'independent'
-  ) {
-    return 'good-candidate';
+export class SensorViewModel extends RestfulApiViewModel<
+  SensorListData,
+  typeof SensorListSchema
+> {
+  constructor(model: SensorModel) {
+    super(model);
   }
-
-  // Keep in monolith: shared ownership, all users need it, tightly coupled
-  if (
-    context.teamOwnership === 'shared' ||
-    context.userOverlap === 'all-users' ||
-    context.technicalDependencies === 'tightly-coupled'
-  ) {
-    return 'keep-in-monolith';
-  }
-
-  return 'maybe';
+  
+  // Application service methods would go here
+  // For example:
+  // async activateSensor(sensorId: string): Promise<void>
+  // async deactivateSensor(sensorId: string): Promise<void>
+  // async calibrateSensor(sensorId: string, factors: CalibrationFactors): Promise<void>
 }
 ```
 
-Apply this to GreenWatch:
+The ViewModel acts as an application service, orchestrating domain operations and managing presentation state. It's the bridge between the domain layer and the presentation layer.
 
-- **Analytics:** Good candidate (daily deployments, computationally intensive, dedicated team, power users only, independent)
-- **Monitoring:** Keep in monolith (all users, tightly coupled to device management, shared team ownership)
-- **Device Management:** Keep in monolith (all users, foundational to everything else)
-- **Alerts:** Keep in monolith (all users, frequent cross-context communication)
-
-### Consider the Reversibility
-
-Can you **go back** if microfrontends don't work out?
-
-Our architecture makes this feasible:
-
-- ViewModels are shared code—you can move them back into the monolith without changes
-- Domain events work identically in monolith and microfrontend configurations
-- No framework lock-in means you can merge codebases without rewriting
-
-If your microfrontend extraction requires **rewriting domain logic** or **changing communication patterns**, you've coupled your business logic to your deployment strategy. That's backwards.
-
-### Calculate the Real Costs
-
-**Development time:**
-
-- Monolith module: 2-3 weeks to build, well-understood patterns
-- Microfrontend: Add 1-2 weeks for Module Federation setup, testing infrastructure, deployment pipeline
-
-**Ongoing maintenance:**
-
-- Monolith: One deployment pipeline, one monitoring system, centralized logging
-- Microfrontend: Multiply everything by number of microfrontends, plus coordination overhead
-
-**Performance:**
-
-- Monolith with code splitting: First load includes shell, lazy load modules on demand
-- Microfrontend: First load includes shell + Module Federation runtime, network request for each microfrontend on demand
-
-Run the numbers honestly. Microfrontends often cost more than teams expect.
-
-## Implementation Patterns
-
-### Pattern 1: Shell Architecture
-
-The host application becomes a **minimal shell** that orchestrates microfrontends:
+### Pattern 4: Shared Kernel with Published Language
 
 ```typescript
-// src/application/ShellViewModel.ts
-export class ShellViewModel {
-  private readonly microfrontends = new Map<string, MicrofrontendConfig>();
+// packages/models/src/schemas/sensor.schema.ts
+import { z } from 'zod';
+import { CreateGreenhouseSchema } from './greenhouse.schema';
 
-  registerMicrofrontend(config: MicrofrontendConfig): void {
-    this.microfrontends.set(config.name, config);
-  }
+// Published language - shared across all contexts
+export const SensorTypeEnum = z.enum([
+  'temperature',
+  'humidity',
+  'soilMoisture',
+  'lightIntensity'
+]);
 
-  async loadMicrofrontend(name: string): Promise<void> {
-    const config = this.microfrontends.get(name);
-    if (!config) {
-      throw new Error(`Microfrontend ${name} not registered`);
-    }
+export const SensorStatusEnum = z.enum(['active', 'inactive']);
 
-    // Dynamic import with error handling
-    try {
-      await import(/* webpackIgnore: true */ config.remoteEntry);
-    } catch (error) {
-      // Fallback or graceful degradation
-      console.error(`Failed to load ${name}:`, error);
-    }
-  }
-}
-```
-
-The shell handles:
-
-- Authentication (shared auth state)
-- Navigation (routing between microfrontends)
-- Shared UI components (header, footer, navigation)
-- Error boundaries (isolate microfrontend failures)
-
-**Keep the shell minimal.** If you put business logic in the shell, you've created a distributed monolith—the worst of both worlds.
-
-### Pattern 2: Shared ViewModel Layer
-
-ViewModels live in a **shared package** that both host and remotes consume:
-
-```typescript
-// packages/shared-viewmodels/package.json
-{
-  "name": "@greenwatch/shared-viewmodels",
-  "version": "2.3.1",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "peerDependencies": {
-    "rxjs": "^7.8.0"
-  }
-}
-
-// Host and Analytics both depend on this package
-// Version alignment happens at package dependency resolution
-// Breaking changes are explicit version bumps
-```
-
-This ensures:
-
-- **Type safety** across microfrontend boundaries (TypeScript knows the contract)
-- **Version coordination** (package manager enforces compatible versions)
-- **Shared testing** (test utilities work for all consumers)
-
-**Alternative:** You could use runtime contracts (TypeScript interfaces published as JSON schemas), but you lose compile-time safety. Shared packages are simpler until you hit multi-repository scaling problems.
-
-### Pattern 3: Event-Driven Integration
-
-Microfrontends communicate through **domain events only**—no direct function calls:
-
-```typescript
-// ❌ Don't: Direct coupling across microfrontends
-analytics.onReportGenerated((report) => {
-  monitoring.updateDashboard(report); // Now Analytics knows about Monitoring
+export const CreateSensorSchema = z.object({
+  id: z.string().uuid().optional(),
+  type: SensorTypeEnum,
+  status: SensorStatusEnum,
+  greenhouseId: z.number().int().positive(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+  greenhouse: CreateGreenhouseSchema,
 });
 
-// ✅ Do: Event-driven decoupling
-eventBus.publish(AnalyticsDomainEvents.reportGenerated(report));
-
-// Monitoring subscribes independently
-eventBus.subscribe<ReportGeneratedEvent>('analytics.report-generated').subscribe((event) => {
-  this.updateDashboard(event.payload);
-});
+export type SensorData = z.infer<typeof CreateSensorSchema>;
+export const SensorListSchema = z.array(CreateSensorSchema);
+export type SensorListData = z.infer<typeof SensorListSchema>;
 ```
 
-This maintains **loose coupling** even across deployment boundaries. If you remove the Analytics microfrontend, Monitoring just stops receiving those events—no code changes required.
+These schemas form the shared kernel—the common language all contexts use. They're versioned, validated, and serve as executable contracts.
 
-### Pattern 4: Progressive Enhancement
+## When to Use DDD in Frontend
 
-Load microfrontends **progressively** based on user needs:
+DDD isn't always necessary. Use it when:
 
-```typescript
-// Core users never download Analytics code
-// Power users get it lazily when they navigate to analytics
-// Admin users get it preloaded on application startup
+1. **Domain complexity is high:** Multiple entities, complex business rules, intricate workflows.
 
-export class ProgressiveLoadingStrategy {
-  constructor(
-    private readonly userRole: UserRole,
-    private readonly shellViewModel: ShellViewModel,
-  ) {}
+2. **Multiple bounded contexts exist:** Different parts of the application have different models of the same concepts.
 
-  async initialize(): Promise<void> {
-    // Always load core functionality
-    await this.shellViewModel.loadMicrofrontend('monitoring');
+3. **Long-term evolution is expected:** The domain will grow and change over time.
 
-    // Preload for admins (they'll use it soon)
-    if (this.userRole === 'admin') {
-      await this.shellViewModel.loadMicrofrontend('analytics');
-    }
+4. **Team size justifies it:** Multiple developers need shared vocabulary and clear boundaries.
 
-    // Lazy load for power users (on-demand)
-    // Nothing for basic users (they never see it)
-  }
-}
-```
+Don't use DDD when:
 
-This optimizes initial load time while ensuring advanced features are available when needed.
+1. **Domain is simple:** CRUD operations on a few entities don't need DDD.
 
-## Testing Across Boundaries
+2. **Application is short-lived:** Prototypes and experiments don't benefit from DDD overhead.
 
-### Unit Testing ViewModels
+3. **Team is small:** Solo developers or tiny teams may find DDD too heavyweight.
 
-**Nothing changes.** ViewModels remain plain TypeScript classes:
+4. **Backend owns all domain logic:** If your frontend is truly just a thin UI layer, DDD may be overkill.
 
-```typescript
-// analytics-mfe/src/application/__tests__/AnalyticsViewModel.test.ts
-describe('AnalyticsViewModel', () => {
-  it('generates reports from sensor readings', async () => {
-    // Same test we wrote in Chapter 7
-    const repository = createMockRepository();
-    const modelService = createMockModelService();
-    const eventBus = createMockEventBus();
+GreenWatch benefits from DDD because it has genuine domain complexity: multiple entity types, business rules (threshold validation, sensor calibration), and distinct bounded contexts (monitoring, alerting, configuration).
 
-    const viewModel = new AnalyticsViewModel(repository, modelService, eventBus);
 
-    await viewModel.generateReport({
-      greenhouseId: 'gh-1',
-      range: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
-    });
+## Key Takeaways
 
-    expect(eventBus.publish).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'analytics.report-generated',
-      }),
-    );
-  });
-});
-```
+1. **Ubiquitous Language:** Use domain terms consistently in code, conversations, and documentation. `SensorReading`, not `DataPoint`.
 
-The microfrontend boundary doesn't affect unit tests. They run in milliseconds. No network, no containers, no coordination.
+2. **Entities vs Value Objects:** Entities have persistent identity. Value objects are defined by their attributes.
 
-### Integration Testing
+3. **Aggregates:** Group related entities and value objects. Enforce consistency boundaries through aggregate roots.
 
-Test the **Module Federation integration**:
+4. **Bounded Contexts:** Different parts of the application can have different models. Monitoring, Alerting, and Configuration are separate contexts.
 
-```typescript
-// host-app/__tests__/integration/analytics-loading.test.ts
-import { screen, waitFor } from '@testing-library/react';
-import { setupTestEnvironment } from './test-utils';
+5. **Context Mapping:** Define how contexts relate. Use shared kernels, customer-supplier relationships, and published languages.
 
-describe('Analytics Microfrontend Integration', () => {
-  it('loads analytics module dynamically', async () => {
-    const { navigateToAnalytics, getByTestId } = setupTestEnvironment();
+6. **Domain Events:** Represent significant occurrences. Enable loose coupling between contexts.
 
-    await navigateToAnalytics();
+7. **Repositories:** Abstract data access. ViewModels work with domain concepts, not HTTP endpoints.
 
-    await waitFor(() => {
-      expect(getByTestId('analytics-dashboard')).toBeInTheDocument();
-    });
-  });
+8. **Domain Services:** Encapsulate domain logic that doesn't belong to any entity.
 
-  it('handles analytics loading failure gracefully', async () => {
-    // Mock network failure
-    mockModuleFederationFailure('analytics');
+9. **Validation as Domain Logic:** Encode business rules in schemas. Make invalid states unrepresentable.
 
-    const { navigateToAnalytics } = setupTestEnvironment();
-    await navigateToAnalytics();
+10. **Layered Architecture:** Separate presentation, application, domain, and infrastructure concerns.
 
-    expect(screen.getByText(/Analytics unavailable/i)).toBeInTheDocument();
-    // Core app still functions
-    expect(screen.getByTestId('monitoring-dashboard')).toBeInTheDocument();
-  });
-});
-```
+DDD provides the vocabulary and patterns to manage domain complexity in frontend applications. Combined with MVVM's separation of concerns, it creates a robust foundation for building maintainable, evolvable applications.
 
-Use **test doubles** for the remote module during CI. Full microfrontend integration tests are expensive—run them selectively.
-
-### Contract Testing
-
-Ensure the host and remote **agree on contracts**:
-
-```typescript
-// packages/shared-contracts/__tests__/analytics.contract.test.ts
-import { AnalyticsViewModel } from '@greenwatch/shared-viewmodels';
-
-describe('Analytics Contract', () => {
-  it('AnalyticsViewModel exposes required interface', () => {
-    const viewModel = new AnalyticsViewModel({} as any, {} as any, {} as any);
-
-    // Host depends on these properties existing
-    expect(viewModel).toHaveProperty('report$');
-    expect(viewModel).toHaveProperty('generateReport');
-    expect(typeof viewModel.generateReport).toBe('function');
-  });
-});
-```
-
-Contract tests catch **breaking changes** before they reach production. If Analytics team changes the ViewModel interface, the contract test fails in CI.
-
-## When to Stay Monolithic
-
-Let's be explicit: **most applications should remain modular monoliths**.
-
-You don't need microfrontends if:
-
-- You have **fewer than 50 developers** working on the frontend
-- Your modules don't have **wildly different deployment cycles** (daily vs. monthly)
-- Performance problems can be solved with **code splitting and lazy loading**
-- Your team can coordinate **pull requests and code reviews** effectively
-- You don't have **organizational boundaries** that require repository isolation
-
-The modular monolith we've built gives you:
-
-- **Logical boundaries** (bounded contexts, clean dependencies)
-- **Independent testing** (test each module in isolation)
-- **Code organization** (clear structure, enforced by linting)
-- **Lazy loading** (users only download code they need)
-
-That's **90% of what microfrontends promise** without the operational cost.
-
-## The Path Forward
-
-If you do extract microfrontends, do it **incrementally**:
-
-1. **Start with one context** (the most independent, like Analytics)
-2. **Prove the value** (faster deployments? Better performance? Clearer ownership?)
-3. **Measure the costs** (operational overhead, debugging complexity, development slowdown)
-4. **Decide deliberately** whether to extract more contexts
-
-Don't commit to "microfrontends for everything" upfront. That's **architectural astronautics**—designing for scale you don't have yet.
-
-The beauty of our modular foundation is that you can **always extract later**. Clean bounded contexts, framework-agnostic ViewModels, and event-driven communication make extraction surgical rather than catastrophic.
-
-But extraction is **reversible**, too. If microfrontends don't deliver value, you can merge contexts back into the monolith. The domain logic doesn't change. The ViewModel tests don't change. You just change deployment topology.
-
-That's the real power of architecture: **options**. You can scale up or down based on **actual needs** rather than speculative futures.
+The GreenWatch system demonstrates these patterns in practice. The domain model is explicit, bounded contexts are clear, and the architecture supports long-term evolution. As the system grows—adding new sensor types, more sophisticated alerting rules, or advanced analytics—the DDD foundation makes that growth manageable.
 
 ---
 
-**Next**, we'll explore the future of frontend architecture—how AI-assisted development, edge computing, and evolving framework patterns will interact with the modular foundations we've established. The tools change, but the principles remain.
+**Next**, we'll explore testing strategies for MVVM applications, showing how the separation of concerns we've established makes comprehensive testing practical and effective.
+

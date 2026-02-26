@@ -1,1596 +1,1394 @@
 ---
-id: 'the-scalable-monolith-modular-architecture-patterns'
-title: The Scalable Monolith - Modular Architecture Patterns
-section: Enterprise Scale
+id: "testing-mvvm-applications"
+title: Testing MVVM Applications
+section: Advanced Topics
 ---
 
-# The Scalable Monolith: Modular Architecture Patterns
+# Chapter 19: Testing MVVM Applications
 
-# Chapter 19: The Scalable Monolith
+_"The best architecture is the one you can test."_
 
-_"Microservices without the microproblems."_
+We've built framework-agnostic ViewModels, reactive Models, and clean View layers across React, Vue, Angular, Lit, and Vanilla JavaScript. Now comes the payoff: **testing becomes dramatically simpler** when your architecture enforces separation of concerns.
 
-We've spent eighteen chapters building framework-agnostic ViewModels, implementing domain-driven design, and establishing clean boundaries between our application layers. Now we need to talk about how to scale this architecture—not just in terms of performance, but in terms of **team size, feature velocity, and cognitive load**.
+This chapter shows you how to test MVVM applications using real examples from the Web Loom monorepo. We'll extract actual test files from `packages/mvvm-core/`, demonstrate unit testing ViewModels in isolation, show integration testing across layers, and prove that MVVM's separation of concerns makes testing faster, more reliable, and more maintainable.
 
-The frontend community has an odd relationship with monoliths. We've watched backend teams fragment perfectly functional systems into dozens of microservices, struggle with distributed transactions and network latency, then quietly consolidate back into what they now call "modular monoliths." Meanwhile, we've been busy making the same mistakes with microfrontends.
+## 19.1 Why MVVM Makes Testing Easier
 
-Here's what we've learned: **the problem was never the monolith**. The problem was poorly structured monoliths that let developers ignore boundaries, skip abstractions, and tangle everything together. When you enforce proper boundaries, a monolith becomes your most powerful architecture.
+Before diving into code, let's understand **why** MVVM architecture improves testability.
 
-This chapter shows you how to build a **scalable monolith** using modern tooling—monorepos that enforce boundaries, linters that prevent violations, and build systems that make the whole thing fast. We'll explore patterns that let your team grow from three to thirty developers without fragmenting your codebase into unmaintainable pieces.
+### The Problem with Tightly Coupled Code
 
-## 19.1 Why Monoliths Scale (And Microfrontends Often Don't)
-
-Before we dive into tooling, let's establish why you should default to a monolith for most frontend applications.
-
-### The Microfrontend Promise vs. Reality
-
-The microfrontend pitch sounds compelling: "Split your frontend into independently deployable pieces, just like microservices! Different teams can own different parts, use different frameworks, deploy independently!"
-
-In practice, here's what happens:
+In traditional frontend applications, business logic lives inside components:
 
 ```typescript
-// ❌ The microfrontend nightmare
-// Team A's code (React 17, deployed Tuesday)
-window.__SHARED_STATE__ = {
-  user: currentUser,
-  theme: 'dark',
-};
-
-// Team B's code (Vue 3, deployed Thursday)
-const user = window.__SHARED_STATE__?.user;
-// Breaks on Thursday because Team A renamed 'user' to 'currentUser'
-
-// Team C's code (Angular 14, deployed Friday)
-// Loads a completely different version of RxJS
-// Now you have 847KB of duplicate dependencies
-```
-
-**What went wrong?**
-
-1. **You can't share types** across runtime boundaries. TypeScript compilation happens per-fragment.
-2. **You can't enforce contracts** at compile time. Breaking changes become runtime errors.
-3. **You duplicate dependencies** massively. Each fragment bundles its own React/Vue/RxJS.
-4. **Testing integration** becomes a deployment problem, not a test suite problem.
-5. **Debugging** requires correlating logs across multiple deployments and network boundaries.
-
-These aren't edge cases—they're fundamental issues with distributed frontends. You've taken all the problems of distributed systems (network failures, eventual consistency, version skew) and brought them into the browser.
-
-### What Makes a Monolith Scalable?
-
-A scalable monolith has one key property: **enforced boundaries without distribution**.
-
-```typescript
-// ✅ Scalable monolith approach
-// Everything compiles together, shares types, but respects boundaries
-
-// packages/device-management/src/domain/Device.ts
-export class Device {
-  constructor(
-    public readonly id: DeviceId,
-    public readonly greenhouseId: GreenhouseId,
-    private status: DeviceStatus,
-  ) {}
-}
-
-// packages/environmental-monitoring/src/application/MonitoringService.ts
-// This CAN import Device because we've explicitly allowed it
-import { Device } from '@greenwatch/device-management';
-
-// packages/environmental-monitoring/src/infrastructure/DeviceRepository.ts
-// This CANNOT import from device-management internals
-// ESLint + Sheriff will fail the build if you try
-import { DeviceRepository } from '@greenwatch/device-management/internals'; // ❌ Build fails
-```
-
-**This gives you:**
-
-1. **Compile-time safety**: TypeScript catches breaking changes before deployment
-2. **Single deployment**: One build, one artifact, no network boundaries to debug
-3. **Shared code**: No dependency duplication. One version of React, one RxJS
-4. **Gradual extraction**: If you _really_ need to extract a service later, you already have clear boundaries
-5. **Fast feedback**: Run the entire test suite in seconds, not after deployment
-
-The scalable monolith isn't about avoiding boundaries—it's about **enforcing boundaries without the operational complexity of distribution**.
-
-## 19.2 Monorepo Fundamentals
-
-A monorepo isn't just "multiple packages in one repo." It's a structured way to manage dependencies, enforce boundaries, and share tooling across your entire application.
-
-### Structure: Packages vs. Apps
-
-Your monorepo should distinguish between **packages** (shared libraries) and **apps** (deployable artifacts):
-
-```
-greenwatch/
-├── apps/
-│   ├── web/                    # Main React/Vue web app
-│   ├── mobile/                 # React Native mobile app
-│   ├── admin-portal/           # Separate admin interface
-│   └── monitoring-dashboard/   # Real-time monitoring view
-│
-├── packages/
-│   ├── domain/
-│   │   ├── device-management/
-│   │   ├── environmental-monitoring/
-│   │   ├── alerts/
-│   │   └── analytics/
-│   │
-│   ├── application/
-│   │   ├── device-viewmodels/
-│   │   ├── monitoring-viewmodels/
-│   │   └── alert-viewmodels/
-│   │
-│   ├── infrastructure/
-│   │   ├── http-client/
-│   │   ├── websocket-client/
-│   │   └── local-storage/
-│   │
-│   └── shared/
-│       ├── types/              # Shared TypeScript types
-│       ├── testing/            # Test utilities
-│       └── ui-primitives/      # Framework-agnostic UI utilities
-│
-├── tools/
-│   ├── eslint-config/
-│   ├── typescript-config/
-│   └── sheriff-config/
-│
-└── package.json
-```
-
-**Key principles:**
-
-1. **Apps consume, packages provide**: Apps never export anything. Packages never render UI (except ui-primitives).
-2. **Domain packages are bounded contexts**: Each package under `domain/` represents a bounded context from our DDD model.
-3. **Application packages are ViewModels**: These expose framework-agnostic ViewModels that apps bind to.
-4. **Infrastructure is adapter-based**: These implement interfaces defined by domain/application packages.
-
-### Dependency Graph Rules
-
-Not all dependencies are equal. Your monorepo structure should encode **architectural layers**:
-
-```typescript
-// ✅ Allowed dependencies (acyclic, downward flow)
-apps/web
-  → packages/application/device-viewmodels
-    → packages/domain/device-management
-      → packages/shared/types
-
-// ❌ Forbidden dependencies (would create cycles or violate layers)
-packages/domain/device-management
-  → packages/application/device-viewmodels  // Domain can't depend on application
-
-packages/application/device-viewmodels
-  → apps/web  // Application can't depend on specific apps
-
-packages/domain/environmental-monitoring
-  → packages/infrastructure/http-client  // Domain can't depend on infrastructure details
-```
-
-We'll enforce these rules with tooling in section 19.3.
-
-### Workspace Configuration
-
-Modern package managers (npm, yarn, pnpm) support workspaces natively. Here's a `package.json` configuration:
-
-```json
-{
-  "name": "greenwatch",
-  "private": true,
-  "workspaces": ["apps/*", "packages/*/*", "packages/shared/*", "tools/*"],
-  "scripts": {
-    "build": "turbo run build",
-    "test": "turbo run test",
-    "lint": "turbo run lint",
-    "type-check": "turbo run type-check"
-  },
-  "devDependencies": {
-    "turbo": "^2.0.0",
-    "@sheriff/cli": "^0.10.0",
-    "typescript": "^5.3.0"
-  }
-}
-```
-
-**Each package** has its own `package.json`:
-
-```json
-// packages/domain/device-management/package.json
-{
-  "name": "@greenwatch/device-management",
-  "version": "1.0.0",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "test": "jest",
-    "lint": "eslint src/"
-  },
-  "dependencies": {
-    "@greenwatch/types": "workspace:*",
-    "rxjs": "^7.8.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.3.0",
-    "jest": "^29.0.0"
-  }
-}
-```
-
-**Notice `workspace:*`**: This tells the package manager "use the local workspace version, not npm registry." When you publish (if you ever do), it'll resolve to actual version numbers.
-
-## 19.3 Enforcing Boundaries with Sheriff and ESLint
-
-Structure alone doesn't prevent violations. You need automated enforcement. That's where **Sheriff** comes in.
-
-### What Sheriff Does
-
-[Sheriff](https://github.com/softarc-consulting/sheriff) is a tool that enforces dependency rules in TypeScript monorepos. Think of it as ESLint for architecture.
-
-You define rules like "domain packages can't import from infrastructure packages," and Sheriff fails your build if someone violates them. Unlike runtime checks, this happens at **compile time**.
-
-### Configuration
-
-Create a `sheriff.config.ts` at the repo root:
-
-```typescript
-// sheriff.config.ts
-import { SheriffConfig } from '@sheriff/types';
-
-export const config: SheriffConfig = {
-  version: 1,
-
-  // Define tags for each layer
-  tagging: {
-    'packages/domain/<pkg>': ['domain', 'domain:<pkg>'],
-    'packages/application/<pkg>': ['application', 'application:<pkg>'],
-    'packages/infrastructure/<pkg>': ['infrastructure', 'infrastructure:<pkg>'],
-    'packages/shared/<pkg>': ['shared', 'shared:<pkg>'],
-    'apps/<app>': ['app', 'app:<app>'],
-  },
-
-  // Define dependency rules
-  depRules: {
-    // Root rule: Define layered architecture
-    root: [
-      // Apps can depend on anything (they're the top layer)
-      'app -> *',
-
-      // Application layer can depend on domain and shared
-      'application -> domain',
-      'application -> shared',
-
-      // Domain can only depend on shared (no application, no infrastructure)
-      'domain -> shared',
-      'domain -> domain', // Domain packages can depend on other domains
-
-      // Infrastructure can depend on domain and shared
-      'infrastructure -> domain',
-      'infrastructure -> shared',
-
-      // Shared can only depend on other shared packages
-      'shared -> shared',
-    ],
-
-    // Specific bounded context rules
-    'domain:environmental-monitoring': [
-      // Environmental monitoring can depend on device management
-      'same -> domain:device-management',
-
-      // But NOT on alerts (different bounded context)
-      'same -x domain:alerts',
-    ],
-
-    // Prevent apps from depending on each other
-    'app:web': ['same -x app:*'],
-    'app:mobile': ['same -x app:*'],
-  },
-};
-```
-
-**Breaking this down:**
-
-1. **Tagging**: Each directory gets tags (`domain`, `application:<pkg>`, etc.)
-2. **Root rules**: Define general layer constraints (domain → shared, but not domain → infrastructure)
-3. **Specific rules**: Add context-specific constraints (environmental-monitoring → device-management is allowed)
-4. **Negation**: `same -x domain:alerts` means "this package CANNOT depend on the alerts domain"
-
-### Integration with Build
-
-Add Sheriff to your CI pipeline:
-
-```json
-// package.json
-{
-  "scripts": {
-    "sheriff": "sheriff verify",
-    "build": "npm run sheriff && turbo run build"
-  }
-}
-```
-
-Now **every build** verifies your architecture. If a developer tries this:
-
-```typescript
-// packages/domain/device-management/src/Device.ts
-import { HttpClient } from '@greenwatch/infrastructure/http-client'; // ❌
-```
-
-The build **fails immediately** with:
-
-```
-Error: Dependency rule violation
-  packages/domain/device-management cannot depend on packages/infrastructure/http-client
-
-  Rule: domain -> shared, domain
-  Violated by: domain:device-management -> infrastructure:http-client
-
-  Domain layer must not depend on infrastructure.
-  Use dependency injection to inject infrastructure at runtime.
-```
-
-**This is architectural enforcement at compile time.** No code review required—the machine catches it.
-
-### Complementing with ESLint
-
-Sheriff handles package-level rules. ESLint handles module-level rules within packages:
-
-```javascript
-// .eslintrc.js
-module.exports = {
-  root: true,
-
-  overrides: [
-    {
-      // Rules for domain packages
-      files: ['packages/domain/*/src/**/*.ts'],
-      rules: {
-        // No direct imports from infrastructure
-        'no-restricted-imports': [
-          'error',
-          {
-            patterns: ['**/infrastructure/**'],
-            message: 'Domain layer cannot import infrastructure. Use dependency injection.',
-          },
-        ],
-
-        // No framework imports in domain
-        'no-restricted-imports': [
-          'error',
-          {
-            patterns: ['react', 'vue', '@angular/**'],
-            message: 'Domain must be framework-agnostic.',
-          },
-        ],
-      },
-    },
-
-    {
-      // Rules for ViewModels
-      files: ['packages/application/*/src/**/*ViewModel.ts'],
-      rules: {
-        // ViewModels must not import UI frameworks
-        'no-restricted-imports': [
-          'error',
-          {
-            patterns: ['react', 'vue', '@angular/**'],
-            message: 'ViewModels must be framework-agnostic. Return observables.',
-          },
-        ],
-      },
-    },
-  ],
-};
-```
-
-**Sheriff + ESLint** gives you defense-in-depth: package-level boundaries enforced by Sheriff, module-level boundaries enforced by ESLint.
-
-## 19.4 Build Performance with Turborepo and Nx
-
-Monorepos get slow as they grow. If every change requires rebuilding 50 packages, your feedback loop dies. Build tools like **Turborepo** and **Nx** solve this with **caching** and **task orchestration**.
-
-### Turborepo: Simple and Fast
-
-Turborepo focuses on one thing: **never build the same thing twice**.
-
-```json
-// turbo.json
-{
-  "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
-    "build": {
-      // Build depends on dependencies being built first
-      "dependsOn": ["^build"],
-
-      // Cache based on source files and dependencies
-      "inputs": ["src/**", "package.json", "tsconfig.json"],
-
-      // Save build outputs to cache
-      "outputs": ["dist/**", ".next/**"]
-    },
-
-    "test": {
-      // Tests depend on the package being built
-      "dependsOn": ["build"],
-
-      // Cache based on source and test files
-      "inputs": ["src/**", "tests/**", "package.json"],
-
-      // No outputs (tests don't produce artifacts)
-      "outputs": []
-    },
-
-    "lint": {
-      // Linting can run independently
-      "inputs": ["src/**", ".eslintrc.js"],
-      "outputs": []
-    },
-
-    "type-check": {
-      "dependsOn": ["^build"], // Needs dependencies' types
-      "inputs": ["src/**", "tsconfig.json"],
-      "outputs": []
-    }
-  }
-}
-```
-
-**How it works:**
-
-1. You change `packages/domain/device-management/src/Device.ts`
-2. Turbo detects the change via file hashing
-3. It rebuilds `device-management` (cache miss)
-4. It rebuilds `application/device-viewmodels` (depends on device-management)
-5. It **skips** rebuilding `domain/alerts` (no changes, cache hit)
-6. It rebuilds `apps/web` (depends on device-viewmodels)
-
-**On CI**, Turborepo can use **remote caching**:
-
-```json
-// turbo.json
-{
-  "remoteCache": {
-    "enabled": true,
-    "signature": true // Verify cache integrity
-  }
-}
-```
-
-Now when CI runs, it checks a remote cache (Vercel, AWS S3, custom) for previous build artifacts. If commit `abc123` was already built on another developer's machine, CI just downloads the cached outputs. **Builds that took 10 minutes now take 30 seconds.**
-
-### Nx: More Features, More Configuration
-
-Nx offers similar caching plus **code generation**, **dependency graph visualization**, and **affected testing**.
-
-```json
-// nx.json
-{
-  "tasksRunnerOptions": {
-    "default": {
-      "runner": "nx/tasks-runners/default",
-      "options": {
-        "cacheableOperations": ["build", "test", "lint"],
-        "parallel": 3 // Run 3 tasks in parallel
-      }
-    }
-  },
-
-  "targetDefaults": {
-    "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["production", "^production"],
-      "outputs": ["{projectRoot}/dist"]
-    }
-  }
-}
-```
-
-**Key Nx features:**
-
-1. **Affected commands**: `nx affected:test` only runs tests for projects impacted by your changes
-2. **Dependency graph**: `nx graph` visualizes your package dependencies
-3. **Generators**: `nx generate @nx/react:library` scaffolds new packages with templates
-4. **Module boundary rules**: Built-in enforcement (alternative to Sheriff)
-
-### Which Should You Use?
-
-**Use Turborepo if:**
-
-- You want simplicity and speed out of the box
-- You're comfortable with existing tooling (just need caching)
-- Your monorepo structure is stable
-
-**Use Nx if:**
-
-- You need code generation and scaffolding
-- You want built-in enforcement of module boundaries
-- You want detailed dependency analysis and visualization
-- You're building a large enterprise monorepo (100+ packages)
-
-For most projects, **start with Turborepo**. Its minimal configuration and excellent caching are enough. Add Nx later if you need its advanced features.
-
-## 19.5 Domain-Driven Design in the Monorepo
-
-We've discussed DDD extensively in earlier chapters. Here's how it maps to monorepo structure.
-
-### Bounded Contexts as Packages
-
-Each bounded context becomes a **domain package**:
-
-```
-packages/domain/
-├── device-management/
-│   ├── src/
-│   │   ├── entities/
-│   │   │   ├── Device.ts
-│   │   │   ├── Sensor.ts
-│   │   │   └── DeviceStatus.ts
-│   │   ├── value-objects/
-│   │   │   ├── DeviceId.ts
-│   │   │   └── SensorReading.ts
-│   │   ├── aggregates/
-│   │   │   └── DeviceAggregate.ts
-│   │   ├── repositories/
-│   │   │   └── IDeviceRepository.ts  (interface only)
-│   │   ├── services/
-│   │   │   └── DeviceCalibrationService.ts
-│   │   └── events/
-│   │       ├── DeviceRegistered.ts
-│   │       └── DeviceStatusChanged.ts
-│   ├── tests/
-│   └── package.json
-│
-└── environmental-monitoring/
-    ├── src/
-    │   ├── entities/
-    │   │   ├── Greenhouse.ts
-    │   │   └── EnvironmentalReading.ts
-    │   ├── value-objects/
-    │   │   ├── Temperature.ts
-    │   │   └── Humidity.ts
-    │   ├── services/
-    │   │   └── OptimalRangeService.ts
-    │   └── events/
-    │       └── ThresholdExceeded.ts
-    └── package.json
-```
-
-**Each package has:**
-
-1. **Clear boundaries**: Can only depend on other domain packages explicitly allowed by Sheriff
-2. **Published interface**: Exports entities, value objects, events, and repository interfaces
-3. **Hidden internals**: Implementation details stay internal (not exported)
-
-### Anti-Corruption Layer Pattern
-
-When one bounded context needs data from another, use an **Anti-Corruption Layer** (ACL):
-
-```typescript
-// packages/domain/environmental-monitoring/src/acl/DeviceACL.ts
-import { Device, DeviceId } from '@greenwatch/device-management';
-import { MonitoringDevice } from '../entities/MonitoringDevice';
-
-/**
- * Anti-Corruption Layer: Translates Device (from device-management context)
- * into MonitoringDevice (environmental-monitoring's internal model).
- *
- * Why? Environmental monitoring doesn't care about calibration history,
- * firmware versions, or installation dates. It only needs sensor capabilities
- * and current operational status.
- */
-export class DeviceACL {
-  static toMonitoringDevice(device: Device): MonitoringDevice {
-    return new MonitoringDevice(
-      device.id,
-      device.sensorTypes, // Only extract what we need
-      device.isOperational(), // Hide device-management's complex status model
-    );
-  }
-
-  static toDeviceId(monitoringDeviceId: string): DeviceId {
-    return DeviceId.fromString(monitoringDeviceId);
-  }
-}
-
-// Usage in environmental-monitoring
-export class EnvironmentalMonitoringService {
-  constructor(
-    private deviceRepo: IDeviceRepository, // From device-management
-    private readingRepo: IReadingRepository,
-  ) {}
-
-  async recordReading(deviceId: string, reading: SensorReading): Promise<void> {
-    // Translate to device-management's ID format
-    const device = await this.deviceRepo.findById(DeviceACL.toDeviceId(deviceId));
-
-    if (!device) throw new Error('Device not found');
-
-    // Translate to our internal model
-    const monitoringDevice = DeviceACL.toMonitoringDevice(device);
-
-    // Now work with our own entities
-    if (!monitoringDevice.canRecord(reading.type)) {
-      throw new Error('Device cannot record this sensor type');
-    }
-
-    await this.readingRepo.save(reading);
-  }
-}
-```
-
-**The ACL prevents:**
-
-1. **Tight coupling**: Environmental monitoring doesn't depend on device-management's internal structure
-2. **Breaking changes**: Device-management can refactor its `Device` entity without breaking environmental-monitoring
-3. **Context leakage**: Concepts like "firmware version" don't leak into environmental monitoring
-
-### Shared Kernel
-
-Some concepts genuinely belong to **multiple contexts**. Put these in a **shared kernel**:
-
-```typescript
-// packages/shared/types/src/core/EntityId.ts
-export abstract class EntityId {
-  protected constructor(public readonly value: string) {
-    if (!value || value.trim() === '') {
-      throw new Error('Entity ID cannot be empty');
-    }
-  }
-
-  equals(other: EntityId): boolean {
-    return this.value === other.value;
-  }
-
-  toString(): string {
-    return this.value;
-  }
-}
-
-// packages/domain/device-management/src/value-objects/DeviceId.ts
-import { EntityId } from '@greenwatch/types/core';
-
-export class DeviceId extends EntityId {
-  private constructor(value: string) {
-    super(value);
-  }
-
-  static create(): DeviceId {
-    return new DeviceId(crypto.randomUUID());
-  }
-
-  static fromString(value: string): DeviceId {
-    return new DeviceId(value);
-  }
-}
-```
-
-**Shared kernel should contain:**
-
-- **Value object base classes** (like `EntityId`)
-- **Common types** (like `Result<T, E>` for error handling)
-- **Framework-agnostic utilities** (date formatting, validation helpers)
-- **Domain events infrastructure** (event bus interfaces)
-
-**Shared kernel should NOT contain:**
-
-- Business logic (that belongs in domain packages)
-- Infrastructure concerns (HTTP clients, database adapters)
-- Anything framework-specific (React hooks, Vue composables)
-
-## 19.6 Testing Strategy for Monorepos
-
-Testing a monolith is simpler than testing distributed systems, but you still need a strategy for **speed** and **isolation**.
-
-### The Testing Pyramid in Monorepos
-
-```
-              /\
-             /  \
-            / E2E \          ← Few, expensive, slow
-           /--------\
-          /          \
-         / Integration \     ← Some, moderate cost
-        /--------------\
-       /                \
-      /   Unit Tests     \   ← Many, cheap, fast
-     /--------------------\
-```
-
-**In a monorepo:**
-
-1. **Unit tests** run per-package (fast, cached by Turbo)
-2. **Integration tests** run across packages (moderate speed)
-3. **E2E tests** run against the full app (slow, CI-only)
-
-### Unit Testing: Per-Package Isolation
-
-Each package has its own test suite:
-
-```typescript
-// packages/domain/device-management/tests/Device.test.ts
-import { Device, DeviceId, DeviceStatus } from '../src';
-
-describe('Device', () => {
-  it('should transition from offline to online', () => {
-    const device = Device.create(DeviceId.create(), 'Sensor-001', DeviceStatus.Offline);
-
-    device.markOnline();
-
-    expect(device.status).toBe(DeviceStatus.Online);
-  });
-
-  it('should emit DeviceStatusChanged event on transition', () => {
-    const device = Device.create(DeviceId.create(), 'Sensor-001', DeviceStatus.Offline);
-
-    device.markOnline();
-
-    const events = device.pullDomainEvents();
-    expect(events).toHaveLength(1);
-    expect(events[0]).toBeInstanceOf(DeviceStatusChanged);
-  });
-});
-```
-
-**Run with Turbo:**
-
-```bash
-turbo run test --filter=@greenwatch/device-management
-```
-
-Turbo caches the result. If you haven't changed `device-management` or its dependencies, the test result is pulled from cache (takes ~50ms instead of ~2s).
-
-### Integration Testing: Cross-Package Scenarios
-
-Integration tests verify that packages work together:
-
-```typescript
-// packages/application/monitoring-viewmodels/tests/integration/GreenviewViewModel.integration.test.ts
-import { GreenviewViewModel } from '../../src/GreenviewViewModel';
-import { InMemoryDeviceRepository } from '@greenwatch/device-management/testing';
-import { InMemoryReadingRepository } from '@greenwatch/environmental-monitoring/testing';
-import { Device, DeviceId, DeviceStatus } from '@greenwatch/device-management';
-
-describe('GreenviewViewModel Integration', () => {
-  it('should display readings from active devices', async () => {
-    // Arrange: Set up repositories with test data
-    const deviceRepo = new InMemoryDeviceRepository();
-    const readingRepo = new InMemoryReadingRepository();
-
-    const deviceId = DeviceId.create();
-    const device = Device.create(deviceId, 'Test-Sensor', DeviceStatus.Online);
-    await deviceRepo.save(device);
-
-    const reading = SensorReading.create(deviceId, Temperature.celsius(23.5));
-    await readingRepo.save(reading);
-
-    // Act: Create ViewModel and load data
-    const viewModel = new GreenviewViewModel(deviceRepo, readingRepo);
-    await viewModel.loadGreenhouse('greenhouse-1');
-
-    // Assert: ViewModel exposes correct state
-    const state = await firstValueFrom(viewModel.state$);
-    expect(state.devices).toHaveLength(1);
-    expect(state.devices[0].latestReading.temperature).toBe(23.5);
-  });
-});
-```
-
-**Key points:**
-
-1. Uses **test doubles from each package** (`InMemoryDeviceRepository`)
-2. Tests **cross-package contracts** (ViewModel + Domain + Repositories)
-3. Still **fast** (no network, no database, no UI rendering)
-
-### E2E Testing: Full Application Flow
-
-E2E tests run against the deployed app (or local dev server):
-
-```typescript
-// apps/web/e2e/monitoring.spec.ts
-import { test, expect } from '@playwright/test';
-
-test('displays real-time sensor readings', async ({ page }) => {
-  await page.goto('/greenhouses/test-greenhouse-1');
-
-  // Wait for WebSocket connection and initial data load
-  await expect(page.locator('[data-testid="sensor-grid"]')).toBeVisible();
-
-  // Verify initial reading
-  const tempReading = page.locator('[data-testid="temperature-display"]');
-  await expect(tempReading).toContainText('23.5°C');
-
-  // Simulate new reading via WebSocket (test harness injects this)
-  await page.evaluate(() => {
-    window.__TEST_WS__.send({
-      type: 'READING_UPDATE',
-      deviceId: 'device-1',
-      temperature: 24.2,
-    });
-  });
-
-  // Verify UI updates reactively
-  await expect(tempReading).toContainText('24.2°C', { timeout: 2000 });
-});
-```
-
-**Run E2E sparingly:**
-
-```json
-// package.json
-{
-  "scripts": {
-    "test:e2e": "playwright test",
-    "test:e2e:ci": "playwright test --workers=3"
-  }
-}
-```
-
-E2E tests run **only in CI** or before releases. They're too slow for local development.
-
-### Test Organization Best Practices
-
-1. **Colocate tests with source**: Each package has a `tests/` directory
-2. **Export test utilities**: Packages export test doubles under a `/testing` export path
-3. **Run tests in parallel**: Use Turbo's `--concurrency` flag
-4. **Cache aggressively**: Configure Turbo to cache test results
-5. **Split test types**: Run unit tests on every commit, integration tests on PR, E2E on merge
-
-```json
-// turbo.json
-{
-  "pipeline": {
-    "test:unit": {
-      "inputs": ["src/**", "tests/**"],
-      "outputs": ["coverage/**"]
-    },
-    "test:integration": {
-      "dependsOn": ["^build"],
-      "inputs": ["src/**", "tests/**"]
-    },
-    "test:e2e": {
-      "dependsOn": ["build"],
-      "cache": false // E2E shouldn't be cached (external dependencies)
-    }
-  }
-}
-```
-
-## 19.7 Deployment Strategies
-
-A monorepo monolith deploys as **one artifact**, but that doesn't mean you can't optimize the deployment.
-
-### Single Build, Multiple Deployment Targets
-
-You might deploy different **apps** from the same monorepo to different environments:
-
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build all packages
-        run: npx turbo run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: build-artifacts
-          path: |
-            apps/*/dist
-            apps/*/.next
-
-  deploy-web:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-
-      - name: Deploy to Vercel
-        run: vercel deploy --prod --cwd apps/web
-
-  deploy-admin:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-
-      - name: Deploy to internal server
-        run: rsync -avz apps/admin-portal/dist/ admin-server:/var/www/
-```
-
-**Key benefits:**
-
-1. **One build** ensures all apps use the same package versions
-2. **Parallel deploys** speed up the process
-3. **Shared cache** means unchanged apps skip rebuilding
-
-### Incremental Deployment with Feature Flags
-
-You don't need microfrontends to deploy features incrementally. Use **feature flags**:
-
-```typescript
-// packages/shared/feature-flags/src/FeatureFlagService.ts
-export class FeatureFlagService {
-  constructor(private flags: Map<string, boolean>) {}
-
-  isEnabled(flag: string): boolean {
-    return this.flags.get(flag) ?? false;
-  }
-}
-
-// apps/web/src/main.tsx
-const featureFlags = new FeatureFlagService(
-  new Map([
-    ['new-analytics-dashboard', import.meta.env.VITE_FF_NEW_ANALYTICS === 'true'],
-    ['real-time-alerts', import.meta.env.VITE_FF_REALTIME_ALERTS === 'true'],
-  ]),
-);
-
-// Usage in ViewModels
-export class DashboardViewModel {
-  constructor(
-    private featureFlags: FeatureFlagService,
-    private analyticsService: AnalyticsService,
-  ) {}
-
-  get shouldShowNewDashboard$(): Observable<boolean> {
-    return of(this.featureFlags.isEnabled('new-analytics-dashboard'));
-  }
-}
-```
-
-**Deploy to production with flags off**, then **enable incrementally**:
-
-```bash
-# Deploy with new code, flag disabled
-VITE_FF_NEW_ANALYTICS=false npm run build && npm run deploy
-
-# Enable for 10% of users via CDN config
-curl -X POST https://cdn.example.com/config \
-  -d '{"feature": "new-analytics-dashboard", "rollout": 0.1}'
-
-# Monitor metrics, then increase rollout
-curl -X POST https://cdn.example.com/config \
-  -d '{"feature": "new-analytics-dashboard", "rollout": 1.0}'
-```
-
-This gives you **controlled rollout** without fragmenting your codebase.
-
-### Build Optimization: Code Splitting
-
-Modern bundlers (Vite, Webpack) support **automatic code splitting**:
-
-```typescript
-// apps/web/src/routes.tsx
-import { lazy } from 'react';
-
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
-const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-
-export const routes = [
-  { path: '/', component: DashboardPage },
-  { path: '/analytics', component: AnalyticsPage },
-  { path: '/settings', component: SettingsPage },
-];
-```
-
-Vite automatically splits each page into a separate chunk. User visiting `/` doesn't download `/analytics` code.
-
-**For shared packages**, use **barrel exports** carefully:
-
-```typescript
-// ❌ Bad: Importing from barrel pulls in everything
-import { DeviceViewModel } from '@greenwatch/device-viewmodels';
-// This imports ALL ViewModels, not just DeviceViewModel
-
-// ✅ Good: Import from specific files
-import { DeviceViewModel } from '@greenwatch/device-viewmodels/DeviceViewModel';
-// Bundler can tree-shake unused code
-```
-
-Configure your package exports:
-
-```json
-// packages/application/device-viewmodels/package.json
-{
-  "name": "@greenwatch/device-viewmodels",
-  "exports": {
-    ".": "./dist/index.js",
-    "./DeviceViewModel": "./dist/DeviceViewModel.js",
-    "./DeviceListViewModel": "./dist/DeviceListViewModel.js"
-  }
-}
-```
-
-Now imports are explicit, and bundlers can optimize better.
-
-## 19.8 Bulletproof Patterns for All Frameworks
-
-The patterns in [Bulletproof React](https://github.com/alan2207/bulletproof-react) aren't React-specific—they're good frontend architecture that translates to Vue, Angular, and Svelte. Let's extract the framework-agnostic principles.
-
-### Feature-Sliced Architecture
-
-Bulletproof React organizes code by **feature**, not by technical type:
-
-```
-apps/web/src/
-├── features/
-│   ├── device-management/
-│   │   ├── components/
-│   │   │   ├── DeviceList.tsx
-│   │   │   └── DeviceCard.tsx
-│   │   ├── hooks/
-│   │   │   └── useDeviceViewModel.ts  (React adapter)
-│   │   └── index.ts
-│   │
-│   ├── environmental-monitoring/
-│   │   ├── components/
-│   │   │   ├── SensorReadingChart.tsx
-│   │   │   └── ThresholdAlert.tsx
-│   │   ├── hooks/
-│   │   │   └── useMonitoringViewModel.ts
-│   │   └── index.ts
-│   │
-│   └── analytics/
-│       ├── components/
-│       ├── hooks/
-│       └── index.ts
-│
-├── components/  (Shared UI components)
-│   ├── Button/
-│   ├── Card/
-│   └── DataTable/
-│
-└── lib/  (Framework-specific utilities)
-    ├── useObservable.ts
-    └── providers.tsx
-```
-
-**Why this works:**
-
-1. **Features are self-contained**: Everything related to device management is in one place
-2. **Clear boundaries**: Features don't import from each other (use shared ViewModels instead)
-3. **Easy navigation**: Developers don't hunt through `components/`, `containers/`, `actions/`, etc.
-
-This pattern works **identically in Vue**:
-
-```
-apps/web/src/
-├── features/
-│   ├── device-management/
-│   │   ├── components/
-│   │   │   ├── DeviceList.vue
-│   │   │   └── DeviceCard.vue
-│   │   ├── composables/
-│   │   │   └── useDeviceViewModel.ts  (Vue adapter)
-│   │   └── index.ts
-```
-
-Or **Svelte**:
-
-```
-apps/web/src/
-├── features/
-│   ├── device-management/
-│   │   ├── components/
-│   │   │   ├── DeviceList.svelte
-│   │   │   └── DeviceCard.svelte
-│   │   ├── stores/
-│   │   │   └── deviceViewModel.ts  (Svelte adapter)
-│   │   └── index.ts
-```
-
-The **structure is the same**. Only the framework adapters (`hooks/`, `composables/`, `stores/`) change.
-
-### API Layer Separation
-
-Bulletproof React separates API concerns from component concerns:
-
-```typescript
-// apps/web/src/lib/api-client.ts
-export class ApiClient {
-  constructor(private baseUrl: string) {}
-
-  async get<T>(path: string): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`);
-    if (!response.ok) throw new Error('Network error');
-    return response.json();
-  }
-
-  async post<T>(path: string, data: unknown): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Network error');
-    return response.json();
-  }
-}
-
-// features/device-management/api/deviceApi.ts
-import { ApiClient } from '@/lib/api-client';
-import { Device } from '@greenwatch/device-management';
-
-export class DeviceApi {
-  constructor(private client: ApiClient) {}
-
-  async getDevices(greenhouseId: string): Promise<Device[]> {
-    const response = await this.client.get<DeviceDTO[]>(`/greenhouses/${greenhouseId}/devices`);
-    return response.map((dto) => Device.fromDTO(dto));
-  }
-
-  async updateDevice(device: Device): Promise<void> {
-    await this.client.post(`/devices/${device.id}`, device.toDTO());
-  }
-}
-```
-
-**This lets you:**
-
-1. **Mock the API layer** in tests without mocking `fetch`
-2. **Swap implementations** (REST → GraphQL) without touching ViewModels
-3. **Add retry logic** or caching in one place
-
-The pattern is **identical in Vue, Angular, or Svelte**—just swap out the DI mechanism.
-
-### Error Boundaries and Fallbacks
-
-Bulletproof React wraps features in error boundaries:
-
-```typescript
-// React version
-import { ErrorBoundary } from 'react-error-boundary';
-
-function App() {
-  return (
-    <ErrorBoundary fallback={<ErrorFallback />}>
-      <DeviceManagementFeature />
-    </ErrorBoundary>
-  );
-}
-
-// Vue version (using vue-error-boundary or custom)
-<template>
-  <ErrorBoundary>
-    <DeviceManagementFeature />
-    <template #fallback>
-      <ErrorFallback />
-    </template>
-  </ErrorBoundary>
-</template>
-```
-
-**The principle**: Features fail independently. An error in analytics doesn't crash device management.
-
-This pairs beautifully with **ViewModels that expose error state**:
-
-```typescript
-export class DeviceListViewModel {
-  readonly state$ = this.stateSubject.asObservable();
-
-  private stateSubject = new BehaviorSubject<DeviceListState>({
-    devices: [],
-    loading: false,
-    error: null,  // ViewModel exposes errors
-  });
-
-  async loadDevices(): Promise<void> {
-    this.stateSubject.next({ ...this.stateSubject.value, loading: true });
-
-    try {
-      const devices = await this.deviceRepo.getAll();
-      this.stateSubject.next({ devices, loading: false, error: null });
-    } catch (error) {
-      this.stateSubject.next({
-        ...this.stateSubject.value,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  }
-}
-
-// React component
-function DeviceList() {
-  const { devices, loading, error } = useDeviceViewModel();
-
-  if (error) return <ErrorDisplay message={error} />;
-  if (loading) return <Spinner />;
-
-  return <div>{devices.map(d => <DeviceCard key={d.id} device={d} />)}</div>;
-}
-```
-
-**Framework-agnostic error handling** in the ViewModel, **framework-specific rendering** in the component.
-
-### Configuration and Environment Variables
-
-Bulletproof React centralizes configuration:
-
-```typescript
-// apps/web/src/config.ts
-export const config = {
-  apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-  wsUrl: import.meta.env.VITE_WS_URL || 'ws://localhost:3000',
-  enableAnalytics: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',
-  environment: import.meta.env.MODE,
-} as const;
-
-// Type-safe access
-const apiUrl: string = config.apiUrl;
-```
-
-**Inject config into ViewModels via DI:**
-
-```typescript
-export class DashboardViewModel {
-  constructor(
-    private analyticsService: AnalyticsService,
-    private config: AppConfig, // Injected, not imported
-  ) {}
-
-  trackEvent(event: string): void {
-    if (this.config.enableAnalytics) {
-      this.analyticsService.track(event);
-    }
-  }
-}
-```
-
-Now you can **test with different configs** without changing environment variables.
-
-## 19.9 Real-World Examples: Open Source Monorepos
-
-Let's look at how successful projects structure their monorepos.
-
-### Cal.com (Scheduling Platform)
-
-[Cal.com](https://github.com/calcom/cal.com) is an open-source Calendly alternative built as a monorepo.
-
-**Structure:**
-
-```
-cal.com/
-├── apps/
-│   ├── web/            # Next.js app
-│   ├── api/            # tRPC API
-│   └── swagger/        # API docs
-│
-├── packages/
-│   ├── prisma/         # Database schema
-│   ├── trpc/           # tRPC routers
-│   ├── ui/             # Shared UI components
-│   ├── lib/            # Shared utilities
-│   ├── emails/         # Email templates
-│   └── features/       # Feature packages (bookings, teams, etc.)
-│
-└── turbo.json
-```
-
-**Key insights:**
-
-1. **Features as packages**: `packages/features/bookings` contains ALL booking logic (API routes, UI, types)
-2. **Shared primitives**: `packages/ui` has framework-agnostic components
-3. **Turbo caching**: Build times stay under 2 minutes despite 20+ packages
-
-### Vercel's Turborepo Example
-
-[Turborepo examples](https://github.com/vercel/turbo/tree/main/examples) show best practices:
-
-```
-examples/kitchen-sink/
-├── apps/
-│   ├── docs/           # Documentation site
-│   ├── web/            # Main app
-│   └── admin/          # Admin dashboard
-│
-├── packages/
-│   ├── ui/             # React component library
-│   ├── config/         # ESLint + TypeScript configs
-│   ├── logger/         # Shared logging
-│   └── database/       # Prisma client
-│
-└── turbo.json
-```
-
-**Pattern**: Apps are **thin wrappers** around packages. Most logic lives in packages.
-
-### Nx's E-commerce Demo
-
-[Nx's demo app](https://github.com/nrwl/nx-examples) shows DDD in a monorepo:
-
-```
-nx-shop/
-├── apps/
-│   └── shop/
-│
-├── libs/
-│   ├── products/
-│   │   ├── domain/         # Product entities and logic
-│   │   ├── data-access/    # Repository implementations
-│   │   └── feature-list/   # Product list feature
-│   │
-│   ├── cart/
-│   │   ├── domain/
-│   │   ├── data-access/
-│   │   └── feature-cart/
-│   │
-│   └── shared/
-│       ├── ui/
-│       └── utils/
-```
-
-**Notice the layers**: `domain/` (entities), `data-access/` (repositories), `feature-*/` (UI).
-
-This maps directly to our GreenWatch structure.
-
-## 19.10 Migration Path: From Monolith to Modular Monolith
-
-If you're stuck with a legacy codebase, here's how to migrate incrementally.
-
-### Step 1: Introduce Boundaries Without Moving Files
-
-Before splitting into packages, **enforce boundaries in place**:
-
-```javascript
-// .eslintrc.js
-module.exports = {
-  rules: {
-    'no-restricted-imports': [
-      'error',
-      {
-        patterns: [
-          {
-            group: ['**/device-management/**'],
-            message: 'Import from @domain/device-management instead',
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-This **fails builds** when someone violates boundaries, even though code is still in one directory.
-
-### Step 2: Extract Domain Logic
-
-Move business logic out of components into **plain TypeScript classes**:
-
-```typescript
-// Before (tangled)
-function DeviceListComponent() {
-  const [devices, setDevices] = useState<Device[]>([]);
+// ❌ Tightly coupled: business logic mixed with UI
+function SensorDashboard() {
+  const [sensors, setSensors] = useState<Sensor[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/devices')
+    setLoading(true);
+    fetch('/api/sensors')
       .then(res => res.json())
-      .then(data => setDevices(data));
+      .then(data => {
+        setSensors(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, []);
 
-  const handleCalibrate = (deviceId: string) => {
-    fetch(`/api/devices/${deviceId}/calibrate`, { method: 'POST' })
-      .then(() => alert('Calibrated!'));
+  const handleCalibrate = (sensorId: string) => {
+    fetch(`/api/sensors/${sensorId}/calibrate`, { method: 'POST' })
+      .then(() => alert('Calibrated!'))
+      .catch(err => alert(err.message));
   };
 
-  return <div>{devices.map(d => <DeviceCard device={d} />)}</div>;
-}
+  if (loading) return <Spinner />;
+  if (error) return <ErrorDisplay message={error} />;
 
-// After (separated)
-// src/domain/DeviceService.ts
-export class DeviceService {
-  constructor(private api: ApiClient) {}
-
-  async getDevices(): Promise<Device[]> {
-    return this.api.get('/devices');
-  }
-
-  async calibrate(deviceId: DeviceId): Promise<void> {
-    await this.api.post(`/devices/${deviceId}/calibrate`);
-  }
-}
-
-// src/application/DeviceListViewModel.ts
-export class DeviceListViewModel {
-  readonly devices$ = this.devicesSubject.asObservable();
-
-  constructor(private service: DeviceService) {}
-
-  async load(): Promise<void> {
-    const devices = await this.service.getDevices();
-    this.devicesSubject.next(devices);
-  }
-
-  async calibrate(deviceId: DeviceId): Promise<void> {
-    await this.service.calibrate(deviceId);
-    await this.load();  // Refresh list
-  }
-}
-
-// src/components/DeviceListComponent.tsx
-function DeviceListComponent() {
-  const { devices } = useDeviceViewModel();
-
-  return <div>{devices.map(d => <DeviceCard device={d} />)}</div>;
-}
-```
-
-Now you can **test DeviceService and ViewModel** without React. Move them to packages later.
-
-### Step 3: Move to Packages Incrementally
-
-Create the monorepo structure, then **move one domain at a time**:
-
-```bash
-# Week 1: Set up monorepo, move device-management
-mkdir -p packages/domain/device-management/src
-git mv src/domain/device-management/* packages/domain/device-management/src/
-
-# Week 2: Move environmental-monitoring
-mkdir -p packages/domain/environmental-monitoring/src
-git mv src/domain/environmental-monitoring/* packages/domain/environmental-monitoring/src/
-
-# Week 3: Extract ViewModels
-mkdir -p packages/application/device-viewmodels/src
-# ... and so on
-```
-
-**Use git history** to track which code moved where. Don't try to migrate everything at once.
-
-### Step 4: Enforce with Tooling
-
-Once packages exist, **add Sheriff**:
-
-```bash
-npm install --save-dev @sheriff/cli
-npx sheriff init
-```
-
-This generates a config. **Start with loose rules**, then tighten:
-
-```typescript
-// Week 1: Just prevent cycles
-export const config: SheriffConfig = {
-  depRules: {
-    root: ['* -> *'], // Allow everything for now
-  },
-};
-
-// Week 4: Enforce layers
-export const config: SheriffConfig = {
-  depRules: {
-    root: [
-      'domain -> shared', // Domain can't depend on application
-      'application -> domain', // Application can depend on domain
-    ],
-  },
-};
-
-// Week 8: Full enforcement with exceptions documented
-export const config: SheriffConfig = {
-  depRules: {
-    root: ['domain -> shared', 'application -> domain', 'infrastructure -> domain'],
-    // Document why this exception exists
-    'domain:alerts': [
-      'same -> domain:device-management', // Alerts need device context
-    ],
-  },
-};
-```
-
-**Gradual adoption** prevents disruption.
-
-## 19.11 When to Actually Split into Microfrontends
-
-Sometimes you **do** need microfrontends. Here's when:
-
-### Legitimate Reasons
-
-1. **Independent deployment cycles**: Team A deploys every hour, Team B deploys once a month, and they genuinely can't coordinate
-2. **Different tech stacks for good reasons**: Legacy Angular admin panel + new React customer app, and rewriting the admin panel isn't worth it
-3. **Scale beyond one build**: Build times exceed 30 minutes even with Turbo caching, and you've exhausted optimization options
-4. **Regulatory boundaries**: Different parts of the app have different compliance requirements (PCI, HIPAA), and auditors require physical separation
-
-### Illegitimate Reasons (Don't Do This)
-
-1. "Team autonomy" – **Fix your process, not your architecture**
-2. "Different frameworks" – **This is a failure of architecture, not a microfrontend use case**
-3. "Microservices on the backend" – **Backend architecture doesn't dictate frontend architecture**
-4. "Faster builds" – **Try Turbo/Nx first**
-
-### If You Must: Module Federation
-
-[Webpack Module Federation](https://webpack.js.org/concepts/module-federation/) or [Vite Federation](https://github.com/originjs/vite-plugin-federation) let you load code dynamically:
-
-```typescript
-// apps/host/vite.config.ts
-import federation from '@originjs/vite-plugin-federation';
-
-export default defineConfig({
-  plugins: [
-    federation({
-      name: 'host',
-      remotes: {
-        deviceManagement: 'http://localhost:5001/assets/remoteEntry.js',
-        analytics: 'http://localhost:5002/assets/remoteEntry.js',
-      },
-      shared: ['react', 'react-dom', 'rxjs'], // Shared dependencies
-    }),
-  ],
-});
-
-// apps/device-management/vite.config.ts
-export default defineConfig({
-  plugins: [
-    federation({
-      name: 'deviceManagement',
-      filename: 'remoteEntry.js',
-      exposes: {
-        './DeviceList': './src/components/DeviceList',
-      },
-      shared: ['react', 'react-dom', 'rxjs'],
-    }),
-  ],
-});
-```
-
-**Usage:**
-
-```typescript
-// Host app dynamically loads remote
-const DeviceList = lazy(() => import('deviceManagement/DeviceList'));
-
-function App() {
   return (
-    <Suspense fallback={<Spinner />}>
-      <DeviceList />
-    </Suspense>
+    <div>
+      {sensors.map(sensor => (
+        <SensorCard 
+          key={sensor.id} 
+          sensor={sensor}
+          onCalibrate={() => handleCalibrate(sensor.id)}
+        />
+      ))}
+    </div>
   );
 }
 ```
 
-**But remember**: You've now introduced **network latency**, **version skew**, and **runtime errors**. Only do this if the benefits outweigh these costs.
+**How do you test this?**
 
-## 19.12 Key Takeaways
 
-1. **Monoliths scale when boundaries are enforced**. Sheriff + ESLint give you compile-time guarantees.
-2. **Turborepo and Nx make monorepos fast**. Caching means you never rebuild unchanged code.
-3. **Feature-sliced architecture works across frameworks**. The structure is the same; only adapters change.
-4. **DDD maps naturally to packages**. Each bounded context becomes a package with clear exports.
-5. **Testing is faster in monoliths**. No network boundaries means tests run in milliseconds.
-6. **Deployment is simpler**. One artifact, one build, one cache.
-7. **Microfrontends are a last resort**. Exhaust architectural options first.
+1. **You need a DOM**: Can't test business logic without rendering React components
+2. **You need to mock fetch**: Every test requires mocking network calls
+3. **You can't test in isolation**: Business logic is tangled with UI rendering
+4. **Tests are slow**: Rendering components and mocking DOM APIs takes time
+5. **Tests are brittle**: Changes to UI break business logic tests
 
-The scalable monolith isn't a compromise—it's the **optimal architecture** for most teams. You get boundaries without distribution, team independence without fragmentation, and architectural enforcement without runtime overhead.
+### The MVVM Solution
 
-In the next chapter, we'll explore how **microfrontends** actually work (for the rare cases where you need them), and how to maintain the MVVM patterns we've established even across distributed frontend boundaries.
+With MVVM, business logic lives in **framework-agnostic ViewModels**:
+
+```typescript
+// ✅ Separated: business logic in ViewModel
+export class SensorViewModel extends BaseViewModel<SensorModel> {
+  readonly sensors$ = this.model.data$;
+  readonly isLoading$ = this.model.isLoading$;
+  readonly error$ = this.model.error$;
+
+  constructor(model: SensorModel) {
+    super(model);
+  }
+
+  async loadSensors(): Promise<void> {
+    await this.model.fetch();
+  }
+
+  async calibrateSensor(sensorId: string): Promise<void> {
+    await this.model.calibrate(sensorId);
+  }
+}
+
+// View is now "dumb" - just renders ViewModel state
+function SensorDashboard() {
+  const viewModel = useViewModel(SensorViewModel);
+  const sensors = useObservable(viewModel.sensors$);
+  const loading = useObservable(viewModel.isLoading$);
+  const error = useObservable(viewModel.error$);
+
+  if (loading) return <Spinner />;
+  if (error) return <ErrorDisplay message={error} />;
+
+  return (
+    <div>
+      {sensors?.map(sensor => (
+        <SensorCard 
+          key={sensor.id} 
+          sensor={sensor}
+          onCalibrate={() => viewModel.calibrateSensor(sensor.id)}
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+**Now testing is straightforward:**
+
+1. **No DOM needed**: Test ViewModels as plain TypeScript classes
+2. **Mock at the Model layer**: Inject mock Models into ViewModels
+3. **Test in isolation**: ViewModels have no UI dependencies
+4. **Tests are fast**: No rendering, no DOM, just pure logic
+5. **Tests are stable**: UI changes don't break ViewModel tests
+
+Let's see this in practice with real tests from the Web Loom monorepo.
+
+## 19.2 Testing Models with Zod Validation
+
+Models contain domain logic and data validation. Let's test `BaseModel` from `packages/mvvm-core/src/models/BaseModel.ts`.
+
+### BaseModel Test Structure
+
+Here's the actual test file from the monorepo (`packages/mvvm-core/src/models/BaseModel.test.ts`):
+
+```typescript
+// packages/mvvm-core/src/models/BaseModel.test.ts
+import { describe, it, beforeEach, expect, vi } from 'vitest';
+import { BaseModel } from './BaseModel';
+import { z } from 'zod';
+import { first } from 'rxjs/operators';
+
+describe('BaseModel', () => {
+  // Define a simple Zod schema for testing
+  const TestSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    age: z.number().min(0),
+  });
+
+  type TestDataType = z.infer<typeof TestSchema>;
+
+  let model: BaseModel<TestDataType, typeof TestSchema>;
+
+  beforeEach(() => {
+    model = new BaseModel<TestDataType, typeof TestSchema>({
+      initialData: null,
+      schema: TestSchema,
+    });
+  });
+
+  it('should initialize with null data, not loading, and no error', async () => {
+    expect(await model.data$.pipe(first()).toPromise()).toBeNull();
+    expect(await model.isLoading$.pipe(first()).toPromise()).toBe(false);
+    expect(await model.error$.pipe(first()).toPromise()).toBeNull();
+  });
+
+  it('should set initial data correctly', async () => {
+    const initialData = { id: '1', name: 'Initial', age: 30 };
+    const newModel = new BaseModel<TestDataType, typeof TestSchema>({
+      initialData,
+      schema: TestSchema,
+    });
+    expect(await newModel.data$.pipe(first()).toPromise()).toEqual(initialData);
+  });
+
+  it('should update data using setData', async () => {
+    const newData = { id: '2', name: 'Updated', age: 25 };
+    model.setData(newData);
+    expect(await model.data$.pipe(first()).toPromise()).toEqual(newData);
+  });
+
+  it('should validate data successfully using the provided schema', () => {
+    const validData = { id: 'abc', name: 'Test User', age: 42 };
+    expect(model.validate(validData)).toEqual(validData);
+  });
+
+  it('should throw ZodError for invalid data when schema is provided', () => {
+    const invalidData = { id: 'def', name: 'Another User', age: -5 }; // Invalid age
+    expect(() => model.validate(invalidData)).toThrow(z.ZodError);
+  });
+});
+```
+
+**Key testing patterns:**
+
+1. **Test reactive state**: Use RxJS `first()` operator to get current observable values
+2. **Test validation**: Verify Zod schema validation works correctly
+3. **Test state transitions**: Verify `setData`, `setLoading`, `setError` update observables
+4. **Test edge cases**: Invalid data, null data, schema violations
+
+### Testing Model Disposal
+
+Models must clean up subscriptions when disposed. Here's the disposal test:
+
+```typescript
+describe('dispose', () => {
+  it('should complete all observables and prevent further emissions', () => {
+    const dataNextSpy = vi.fn();
+    const dataCompleteSpy = vi.fn();
+
+    model.data$.subscribe({
+      next: dataNextSpy,
+      complete: dataCompleteSpy,
+    });
+
+    // Call dispose
+    model.dispose();
+
+    // Verify that complete was called
+    expect(dataCompleteSpy).toHaveBeenCalledTimes(1);
+
+    // Reset spies to check if new values are emitted after dispose
+    dataNextSpy.mockClear();
+
+    // Attempt to emit new values
+    model.setData({ id: '3', name: 'Disposed', age: 50 });
+
+    // Verify that no new values were emitted
+    expect(dataNextSpy).not.toHaveBeenCalled();
+  });
+});
+```
+
+**This test verifies:**
+- Observables complete when `dispose()` is called
+- No new emissions occur after disposal
+- Subscriptions are properly cleaned up
+
+
+## 19.3 Testing ViewModels in Isolation
+
+ViewModels connect Models to Views. Testing them in isolation proves they correctly expose Model state and handle user actions.
+
+### BaseViewModel Test Structure
+
+Here's the actual test from `packages/mvvm-core/src/viewmodels/BaseViewModel.test.ts`:
+
+```typescript
+// packages/mvvm-core/src/viewmodels/BaseViewModel.test.ts
+import { describe, it, beforeEach, expect, afterEach } from 'vitest';
+import { BaseViewModel } from './BaseViewModel';
+import { BaseModel } from '../models/BaseModel';
+import { z, ZodError } from 'zod';
+import { first, skip } from 'rxjs/operators';
+
+// Define a test model and schema
+const TestSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+type TestDataType = z.infer<typeof TestSchema>;
+
+class MockBaseModel extends BaseModel<TestDataType, typeof TestSchema> {
+  constructor(initialData: TestDataType | null = null) {
+    super({
+      initialData,
+      schema: TestSchema,
+    });
+  }
+}
+
+describe('BaseViewModel', () => {
+  let mockModel: MockBaseModel;
+  let viewModel: BaseViewModel<MockBaseModel>;
+
+  beforeEach(() => {
+    mockModel = new MockBaseModel();
+    viewModel = new BaseViewModel(mockModel);
+  });
+
+  afterEach(() => {
+    viewModel.dispose(); // Ensure dispose is called after each test
+  });
+
+  it('should initialize with null data, not loading, and no error from model', async () => {
+    expect(await viewModel.data$.pipe(first()).toPromise()).toBeNull();
+    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(false);
+    expect(await viewModel.error$.pipe(first()).toPromise()).toBeNull();
+    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+  });
+
+  it('should expose data$ from the model', async () => {
+    const testData = { id: '1', name: 'Test' };
+    mockModel.setData(testData);
+    expect(await viewModel.data$.pipe(first()).toPromise()).toEqual(testData);
+  });
+
+  it('should expose isLoading$ from the model', async () => {
+    mockModel.setLoading(true);
+    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(true);
+
+    mockModel.setLoading(false);
+    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(false);
+  });
+
+  it('should derive validationErrors$ from model error$ if it is a ZodError', async () => {
+    const nonZodError = new Error('Generic error');
+    const zodError = new ZodError([]);
+
+    // Set generic error, validationErrors$ should remain null
+    mockModel.setError(nonZodError);
+    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+
+    // Set ZodError, validationErrors$ should update
+    mockModel.setError(zodError);
+    expect(await viewModel.validationErrors$.pipe(skip(1), first()).toPromise()).toBe(zodError);
+
+    // Clear error, validationErrors$ should become null again
+    mockModel.clearError();
+    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+  });
+});
+```
+
+**Key testing patterns:**
+
+1. **Mock the Model**: Create a simple mock Model for testing
+2. **Test observable exposure**: Verify ViewModel exposes Model observables correctly
+3. **Test derived state**: Verify `validationErrors$` derives from `error$`
+4. **Clean up after tests**: Always call `dispose()` in `afterEach`
+
+### Testing ViewModel Command Registration
+
+ViewModels can register Commands for user actions. Here's how to test command registration and disposal:
+
+```typescript
+describe('BaseViewModel Command Registration', () => {
+  class TestViewModel extends BaseViewModel<MockBaseModel> {
+    public readonly cmd1: Command<void, string>;
+    public readonly cmd2: Command<void, string>;
+
+    constructor(model: MockBaseModel) {
+      super(model);
+
+      this.cmd1 = this.registerCommand(new Command(async () => 'result1'));
+      this.cmd2 = this.registerCommand(new Command(async () => 'result2'));
+    }
+
+    public getRegisteredCommandCount(): number {
+      return (this as any)._registeredCommands.length;
+    }
+  }
+
+  let model: MockBaseModel;
+  let viewModel: TestViewModel;
+
+  beforeEach(() => {
+    model = new MockBaseModel();
+    viewModel = new TestViewModel(model);
+  });
+
+  afterEach(() => {
+    viewModel.dispose();
+  });
+
+  it('should track registered commands', () => {
+    expect(viewModel.getRegisteredCommandCount()).toBe(2);
+  });
+
+  it('should allow command execution after registration', async () => {
+    const result = await viewModel.cmd1.execute();
+    expect(result).toBe('result1');
+  });
+
+  it('should dispose all registered commands', () => {
+    const disposeSpy1 = vi.spyOn(viewModel.cmd1 as any, 'dispose');
+    const disposeSpy2 = vi.spyOn(viewModel.cmd2 as any, 'dispose');
+
+    viewModel.dispose();
+
+    expect(disposeSpy1).toHaveBeenCalled();
+    expect(disposeSpy2).toHaveBeenCalled();
+  });
+
+  it('should prevent command execution after disposal', async () => {
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    viewModel.dispose();
+
+    const result = await viewModel.cmd1.execute();
+
+    expect(result).toBeUndefined();
+    expect(consoleSpy).toHaveBeenCalledWith('Command is disposed. Cannot execute.');
+
+    consoleSpy.mockRestore();
+  });
+});
+```
+
+**This demonstrates:**
+- Commands are tracked by the ViewModel
+- Commands execute correctly when registered
+- Commands are disposed when ViewModel is disposed
+- Commands cannot execute after disposal
+
+## 19.4 Testing RestfulApiViewModel with CRUD Operations
+
+`RestfulApiViewModel` extends `BaseViewModel` with CRUD operations. Let's test it with real examples from `packages/mvvm-core/src/viewmodels/RestfulApiViewModel.test.ts`.
+
+### Testing Fetch Command
+
+```typescript
+describe('fetchCommand', () => {
+  it('should call model.fetch without ID when executed without parameter', async () => {
+    const loadingStates: boolean[] = [];
+    viewModel.isLoading$.pipe(take(3)).subscribe((val) => loadingStates.push(val));
+
+    const dataStates: (ItemArray | null)[] = [];
+    viewModel.data$.pipe(take(2)).subscribe((val) => dataStates.push(val));
+
+    await viewModel.fetchCommand.execute();
+
+    expect(mockModel.fetch).toHaveBeenCalledWith(undefined);
+    expect(await firstValueFrom(viewModel.fetchCommand.isExecuting$)).toBe(false);
+    expect(loadingStates).toEqual([false, true, false]);
+    expect(dataStates[dataStates.length - 1]).toEqual([
+      { id: '1', name: 'Item 1' },
+      { id: '2', name: 'Item 2' },
+    ]);
+    expect(await firstValueFrom(viewModel.error$)).toBeNull();
+  });
+
+  it('should call model.fetch with ID when executed with a string parameter', async () => {
+    await viewModel.fetchCommand.execute('item-id-3');
+    expect(mockModel.fetch).toHaveBeenCalledWith(['item-id-3']);
+    expect(await firstValueFrom(viewModel.data$)).toEqual({
+      id: 'item-id-3',
+      name: 'Fetched item-id-3',
+    });
+  });
+
+  it('should set error$ if fetch fails', async () => {
+    const fetchError = new Error('Fetch failed');
+    mockModel.fetch.mockImplementation(async () => {
+      mockModel._isLoading$.next(true);
+      mockModel._error$.next(fetchError);
+      mockModel._isLoading$.next(false);
+      throw fetchError;
+    });
+
+    await expect(viewModel.fetchCommand.execute()).rejects.toThrow(fetchError);
+
+    expect(await firstValueFrom(viewModel.error$)).toBe(fetchError);
+    expect(await firstValueFrom(viewModel.isLoading$)).toBe(false);
+  });
+});
+```
+
+**Key patterns:**
+- Test loading state transitions (`false → true → false`)
+- Test successful data fetching
+- Test error handling
+- Verify command execution state
+
+
+### Testing Create, Update, Delete Commands
+
+```typescript
+describe('createCommand', () => {
+  const payload: Partial<Item> = { name: 'New Test Item' };
+
+  it('should call model.create and update data', async () => {
+    mockModel._data$.next([]);
+    await viewModel.createCommand.execute(payload);
+
+    expect(mockModel.create).toHaveBeenCalledWith(payload);
+    expect(await firstValueFrom(viewModel.createCommand.isExecuting$)).toBe(false);
+    const data = await firstValueFrom(viewModel.data$);
+    expect(Array.isArray(data) && data.length).toBe(1);
+    expect(Array.isArray(data) && data[0].name).toBe('New Test Item');
+  });
+
+  it('should set error$ if create fails', async () => {
+    const createError = new Error('Create failed');
+    mockModel.create.mockImplementation(async () => {
+      mockModel._isLoading$.next(true);
+      mockModel._error$.next(createError);
+      mockModel._isLoading$.next(false);
+      throw createError;
+    });
+
+    await expect(viewModel.createCommand.execute(payload)).rejects.toThrow(createError);
+    expect(await firstValueFrom(viewModel.error$)).toBe(createError);
+  });
+});
+
+describe('updateCommand', () => {
+  const existingItem: Item = { id: '1', name: 'Original Name' };
+  const payload: Partial<Item> = { name: 'Updated Name' };
+
+  beforeEach(() => {
+    mockModel._data$.next([existingItem]);
+  });
+
+  it('should call model.update and update data', async () => {
+    await viewModel.updateCommand.execute({ id: existingItem.id, payload });
+
+    expect(mockModel.update).toHaveBeenCalledWith(existingItem.id, payload);
+    const data = await firstValueFrom(viewModel.data$);
+    expect(Array.isArray(data) && data[0].name).toBe('Updated Name');
+  });
+});
+
+describe('deleteCommand', () => {
+  const itemToDelete: Item = { id: '1', name: 'To Be Deleted' };
+
+  beforeEach(() => {
+    mockModel._data$.next([itemToDelete, { id: '2', name: 'Keep Me' }]);
+  });
+
+  it('should call model.delete and update data', async () => {
+    await viewModel.deleteCommand.execute(itemToDelete.id);
+
+    expect(mockModel.delete).toHaveBeenCalledWith(itemToDelete.id);
+    const data = await firstValueFrom(viewModel.data$);
+    expect(Array.isArray(data) && data.length).toBe(1);
+    expect(Array.isArray(data) && data[0].id).toBe('2');
+  });
+});
+```
+
+**These tests demonstrate:**
+- CRUD operations update ViewModel state correctly
+- Commands handle errors and propagate them to `error$`
+- Loading states transition properly during operations
+- Data updates are reflected in observables
+
+### Testing Selected Item State
+
+`RestfulApiViewModel` includes item selection logic:
+
+```typescript
+describe('selectedItem$ and selectItem method', () => {
+  const items: ItemArray = [
+    { id: 'a', name: 'Alice' },
+    { id: 'b', name: 'Bob' },
+    { id: 'c', name: 'Charlie' },
+  ];
+
+  beforeEach(() => {
+    mockModel._data$.next(items);
+  });
+
+  it('should emit null initially for selectedItem$', async () => {
+    expect(await firstValueFrom(viewModel.selectedItem$)).toBeNull();
+  });
+
+  it('should update selectedItem$ when selectItem is called with a valid ID', async () => {
+    const emittedValues: (Item | null)[] = [];
+    const subscription = viewModel.selectedItem$.subscribe((value) => {
+      emittedValues.push(value);
+    });
+    
+    viewModel.selectItem('b');
+    subscription.unsubscribe();
+    
+    expect(emittedValues.pop()).toEqual(items[1]);
+  });
+
+  it('should emit null for selectedItem$ if ID is not found', async () => {
+    viewModel.selectItem('non-existent-id');
+    await vi.waitFor(async () => {
+      expect(await firstValueFrom(viewModel.selectedItem$)).toBeNull();
+    });
+  });
+
+  it('should handle selectItem(null) to clear selection', async () => {
+    viewModel.selectItem('a');
+    await vi.waitFor(async () => {
+      expect(await firstValueFrom(viewModel.selectedItem$.pipe(skip(1)))).toEqual(items[0]);
+    });
+
+    viewModel.selectItem(null);
+    await vi.waitFor(async () => {
+      expect(await firstValueFrom(viewModel.selectedItem$)).toBeNull();
+    });
+  });
+});
+```
+
+**This tests:**
+- Initial selection state is null
+- Selection updates when valid ID is provided
+- Selection clears when ID is not found
+- Selection can be explicitly cleared with `null`
+
+## 19.5 Integration Testing Across Layers
+
+Unit tests verify individual components work correctly. Integration tests verify they work together correctly.
+
+### Testing ViewModel with Real Model
+
+Here's an integration test from `packages/mvvm-core/src/viewmodels/RestfulApiViewModel.test.ts` that uses a real `RestfulApiModel` instead of a mock:
+
+```typescript
+describe('RestfulApiViewModel with Real RestfulApiModel Integration', () => {
+  let mockFetcher: ReturnType<typeof vi.fn>;
+  let realModel: RestfulApiModel<ItemArray, z.ZodArray<typeof ItemSchema>>;
+  let viewModel: RestfulApiViewModel<ItemArray, z.ZodArray<typeof ItemSchema>>;
+  const baseUrl = 'http://real-api.com';
+  const endpoint = 'items';
+
+  beforeEach(() => {
+    mockFetcher = vi.fn();
+    realModel = new RestfulApiModel<ItemArray, z.ZodArray<typeof ItemSchema>>({
+      baseUrl,
+      endpoint,
+      fetcher: mockFetcher,
+      schema: z.array(ItemSchema),
+      initialData: null,
+    });
+    viewModel = new RestfulApiViewModel(realModel);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    viewModel.dispose();
+  });
+
+  it('should fetch data and update viewModel.data$', async () => {
+    const expectedItems: ItemArray = [
+      { id: '1', name: 'Item 1 from Real Model' },
+      { id: '2', name: 'Item 2 from Real Model' },
+    ];
+    mockFetcher.mockResolvedValue(expectedItems);
+
+    const dataEmissions: (ItemArray | null)[] = [];
+    const isLoadingEmissions: boolean[] = [];
+    const errorEmissions: (Error | null)[] = [];
+
+    viewModel.data$.subscribe((data) => dataEmissions.push(data));
+    viewModel.isLoading$.subscribe((loading) => isLoadingEmissions.push(loading));
+    viewModel.error$.subscribe((error) => errorEmissions.push(error));
+
+    await viewModel.fetchCommand.execute();
+
+    expect(mockFetcher).toHaveBeenCalledTimes(1);
+    expect(mockFetcher).toHaveBeenCalledWith(`${baseUrl}/${endpoint}`, { method: 'GET' });
+
+    // Verify loading state transitions
+    expect(isLoadingEmissions).toContain(true);
+    expect(isLoadingEmissions[isLoadingEmissions.length - 1]).toBe(false);
+
+    // Verify data was updated
+    expect(dataEmissions[0]).toBeNull(); // Initial value
+    expect(dataEmissions[1]).toEqual(expectedItems); // Value after fetch
+
+    // Verify no errors
+    const lastError = errorEmissions.pop();
+    expect(lastError === null || lastError === undefined).toBe(true);
+  });
+
+  it('should set error$ on viewModel if fetcher fails', async () => {
+    const apiError = new Error('API Failure');
+    mockFetcher.mockRejectedValue(apiError);
+
+    const errorEmissions: (Error | null)[] = [];
+    viewModel.error$.subscribe((error) => errorEmissions.push(error));
+
+    await expect(viewModel.fetchCommand.execute()).rejects.toThrow(apiError);
+
+    expect(mockFetcher).toHaveBeenCalledTimes(1);
+    expect(errorEmissions.pop()).toBe(apiError);
+  });
+});
+```
+
+**This integration test:**
+- Uses a real `RestfulApiModel` (not a mock)
+- Mocks only the `fetcher` function (network boundary)
+- Tests the complete flow: ViewModel → Model → Fetcher
+- Verifies state transitions across both layers
+- Proves ViewModel and Model integrate correctly
+
+
+## 19.6 Testing with Vitest
+
+All tests in the Web Loom monorepo use **Vitest**, a fast, modern test runner built for Vite projects.
+
+### Vitest Configuration
+
+Here's the Vitest configuration from `packages/mvvm-core/vitest.config.js`:
+
+```javascript
+// packages/mvvm-core/vitest.config.js
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './vitest.setup.ts',
+    testTimeout: 20000,
+    include: ['src/**/*.{test,spec}.{js,ts}'],
+  },
+});
+```
+
+**Key configuration:**
+- `globals: true`: Makes `describe`, `it`, `expect` available globally
+- `environment: 'jsdom'`: Provides DOM APIs for tests that need them
+- `testTimeout: 20000`: Sets timeout to 20 seconds for async tests
+- `include`: Matches test files with `.test.ts` or `.spec.ts` suffix
+
+### Running Tests
+
+```bash
+# Run tests once
+cd packages/mvvm-core && npm test
+
+# Run tests in watch mode
+cd packages/mvvm-core && npm run test:watch
+
+# Run tests with coverage
+cd packages/mvvm-core && npm run test:coverage
+```
+
+### Vitest Features Used in MVVM Tests
+
+**1. Mocking with `vi.fn()`:**
+
+```typescript
+const mockFetcher = vi.fn();
+mockFetcher.mockResolvedValue({ id: '1', name: 'Test' });
+
+await viewModel.fetchCommand.execute();
+
+expect(mockFetcher).toHaveBeenCalledTimes(1);
+expect(mockFetcher).toHaveBeenCalledWith('/api/items', { method: 'GET' });
+```
+
+**2. Spying on methods:**
+
+```typescript
+const disposeSpy = vi.spyOn(viewModel.cmd1 as any, 'dispose');
+
+viewModel.dispose();
+
+expect(disposeSpy).toHaveBeenCalled();
+```
+
+**3. Async testing with `waitFor`:**
+
+```typescript
+viewModel.selectItem('a');
+
+await vi.waitFor(async () => {
+  expect(await firstValueFrom(viewModel.selectedItem$)).toEqual(items[0]);
+});
+```
+
+**4. Lifecycle hooks:**
+
+```typescript
+describe('BaseViewModel', () => {
+  let viewModel: BaseViewModel<MockBaseModel>;
+
+  beforeEach(() => {
+    viewModel = new BaseViewModel(new MockBaseModel());
+  });
+
+  afterEach(() => {
+    viewModel.dispose(); // Clean up after each test
+  });
+
+  it('should test something', () => {
+    // Test code
+  });
+});
+```
+
+## 19.7 Testing Strategies for Each MVVM Layer
+
+Let's summarize testing strategies for each layer of MVVM architecture.
+
+### Testing Models
+
+**What to test:**
+- Initial state (data, loading, error)
+- State updates (`setData`, `setLoading`, `setError`)
+- Validation with Zod schemas
+- Disposal and cleanup
+
+**How to test:**
+- Create Model instances directly
+- Call methods and verify observable emissions
+- Test validation with valid and invalid data
+- Verify disposal completes observables
+
+**Example:**
+
+```typescript
+it('should validate data successfully', () => {
+  const validData = { id: 'abc', name: 'Test User', age: 42 };
+  expect(model.validate(validData)).toEqual(validData);
+});
+
+it('should throw ZodError for invalid data', () => {
+  const invalidData = { id: 'def', name: 'Another User', age: -5 };
+  expect(() => model.validate(invalidData)).toThrow(z.ZodError);
+});
+```
+
+### Testing ViewModels
+
+**What to test:**
+- Observable exposure from Model
+- Derived state (like `validationErrors$`)
+- Command registration and execution
+- Selection state management
+- Disposal and cleanup
+
+**How to test:**
+- Create mock Models
+- Inject mocks into ViewModels
+- Verify ViewModel exposes correct observables
+- Test commands execute correctly
+- Verify disposal cleans up commands and subscriptions
+
+**Example:**
+
+```typescript
+it('should expose data$ from the model', async () => {
+  const testData = { id: '1', name: 'Test' };
+  mockModel.setData(testData);
+  expect(await viewModel.data$.pipe(first()).toPromise()).toEqual(testData);
+});
+
+it('should dispose all registered commands', () => {
+  const disposeSpy = vi.spyOn(viewModel.cmd1 as any, 'dispose');
+  viewModel.dispose();
+  expect(disposeSpy).toHaveBeenCalled();
+});
+```
+
+### Testing Views
+
+**What to test:**
+- Correct rendering based on ViewModel state
+- User interactions trigger ViewModel methods
+- Subscription cleanup on unmount
+
+**How to test:**
+- Use framework-specific testing libraries (React Testing Library, Vue Test Utils)
+- Mock ViewModels or use real ViewModels with mock Models
+- Verify UI updates when ViewModel state changes
+- Verify user actions call ViewModel methods
+
+**Example (React Testing Library):**
+
+```typescript
+it('should display sensors when loaded', async () => {
+  const mockViewModel = {
+    sensors$: of([
+      { id: '1', name: 'Sensor 1' },
+      { id: '2', name: 'Sensor 2' },
+    ]),
+    isLoading$: of(false),
+    error$: of(null),
+  };
+
+  render(<SensorDashboard viewModel={mockViewModel} />);
+
+  expect(screen.getByText('Sensor 1')).toBeInTheDocument();
+  expect(screen.getByText('Sensor 2')).toBeInTheDocument();
+});
+
+it('should call calibrateSensor when button clicked', async () => {
+  const calibrateSpy = vi.fn();
+  const mockViewModel = {
+    sensors$: of([{ id: '1', name: 'Sensor 1' }]),
+    isLoading$: of(false),
+    error$: of(null),
+    calibrateSensor: calibrateSpy,
+  };
+
+  render(<SensorDashboard viewModel={mockViewModel} />);
+
+  const calibrateButton = screen.getByText('Calibrate');
+  fireEvent.click(calibrateButton);
+
+  expect(calibrateSpy).toHaveBeenCalledWith('1');
+});
+```
+
+### Integration Testing
+
+**What to test:**
+- Complete flows across Model → ViewModel → View
+- Real Model with mocked network layer
+- State synchronization across layers
+
+**How to test:**
+- Use real Models and ViewModels
+- Mock only external dependencies (fetch, APIs)
+- Test complete user workflows
+- Verify state updates propagate correctly
+
+**Example:**
+
+```typescript
+it('should complete full CRUD workflow', async () => {
+  const mockFetcher = vi.fn();
+  const model = new RestfulApiModel({ 
+    baseUrl: '/api', 
+    endpoint: 'items',
+    fetcher: mockFetcher,
+    schema: ItemSchema,
+  });
+  const viewModel = new RestfulApiViewModel(model);
+
+  // Fetch items
+  mockFetcher.mockResolvedValueOnce([{ id: '1', name: 'Item 1' }]);
+  await viewModel.fetchCommand.execute();
+  expect(await firstValueFrom(viewModel.data$)).toHaveLength(1);
+
+  // Create item
+  mockFetcher.mockResolvedValueOnce({ id: '2', name: 'Item 2' });
+  await viewModel.createCommand.execute({ name: 'Item 2' });
+  expect(await firstValueFrom(viewModel.data$)).toHaveLength(2);
+
+  // Update item
+  mockFetcher.mockResolvedValueOnce({ id: '1', name: 'Updated Item 1' });
+  await viewModel.updateCommand.execute({ id: '1', payload: { name: 'Updated Item 1' } });
+  const data = await firstValueFrom(viewModel.data$);
+  expect(data[0].name).toBe('Updated Item 1');
+
+  // Delete item
+  mockFetcher.mockResolvedValueOnce(undefined);
+  await viewModel.deleteCommand.execute('1');
+  expect(await firstValueFrom(viewModel.data$)).toHaveLength(1);
+});
+```
+
+
+## 19.8 Testing Benefits of MVVM Separation
+
+Let's compare testing complexity between tightly coupled code and MVVM architecture.
+
+### Tightly Coupled Code: Testing Nightmare
+
+```typescript
+// ❌ Component with embedded business logic
+function SensorDashboard() {
+  const [sensors, setSensors] = useState<Sensor[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedSensor, setSelectedSensor] = useState<Sensor | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/sensors')
+      .then(res => res.json())
+      .then(data => {
+        setSensors(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleCalibrate = async (sensorId: string) => {
+    try {
+      await fetch(`/api/sensors/${sensorId}/calibrate`, { method: 'POST' });
+      // Refresh sensors
+      const res = await fetch('/api/sensors');
+      const data = await res.json();
+      setSensors(data);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleSelect = (sensor: Sensor) => {
+    setSelectedSensor(sensor);
+  };
+
+  // ... rendering logic
+}
+```
+
+**To test this, you need:**
+1. Render the entire React component
+2. Mock `fetch` globally
+3. Wait for async effects to complete
+4. Query DOM elements to verify state
+5. Simulate user interactions on DOM
+6. Mock timers if there are delays
+7. Clean up global mocks after each test
+
+**Test complexity: HIGH**
+- Slow (rendering + DOM queries)
+- Brittle (UI changes break tests)
+- Hard to isolate (everything coupled)
+- Difficult to test edge cases
+
+### MVVM Architecture: Testing Bliss
+
+```typescript
+// ✅ ViewModel with isolated business logic
+export class SensorViewModel extends RestfulApiViewModel<Sensor[], typeof SensorSchema> {
+  constructor(model: SensorModel) {
+    super(model);
+  }
+
+  async calibrateSensor(sensorId: string): Promise<void> {
+    await this.model.calibrate(sensorId);
+    await this.fetchCommand.execute(); // Refresh data
+  }
+}
+
+// ✅ Dumb view component
+function SensorDashboard({ viewModel }: { viewModel: SensorViewModel }) {
+  const sensors = useObservable(viewModel.data$);
+  const loading = useObservable(viewModel.isLoading$);
+  const error = useObservable(viewModel.error$);
+  const selectedSensor = useObservable(viewModel.selectedItem$);
+
+  // ... rendering logic
+}
+```
+
+**To test the ViewModel:**
+1. Create a mock Model
+2. Instantiate the ViewModel with the mock
+3. Call methods directly
+4. Verify observable emissions
+
+**Test complexity: LOW**
+- Fast (no rendering, no DOM)
+- Stable (UI changes don't affect tests)
+- Easy to isolate (ViewModel is independent)
+- Simple to test edge cases
+
+**Example test:**
+
+```typescript
+it('should calibrate sensor and refresh data', async () => {
+  const mockModel = new MockSensorModel();
+  const viewModel = new SensorViewModel(mockModel);
+
+  mockModel.calibrate = vi.fn().mockResolvedValue(undefined);
+  mockModel.fetch = vi.fn().mockResolvedValue([
+    { id: '1', name: 'Sensor 1', calibrated: true },
+  ]);
+
+  await viewModel.calibrateSensor('1');
+
+  expect(mockModel.calibrate).toHaveBeenCalledWith('1');
+  expect(mockModel.fetch).toHaveBeenCalled();
+  
+  const data = await firstValueFrom(viewModel.data$);
+  expect(data[0].calibrated).toBe(true);
+});
+```
+
+**No rendering. No DOM. No mocking fetch globally. Just pure logic testing.**
+
+## 19.9 Testing Patterns and Best Practices
+
+### Pattern 1: Always Dispose in afterEach
+
+```typescript
+describe('SensorViewModel', () => {
+  let viewModel: SensorViewModel;
+
+  beforeEach(() => {
+    viewModel = new SensorViewModel(new MockSensorModel());
+  });
+
+  afterEach(() => {
+    viewModel.dispose(); // Prevent memory leaks
+  });
+
+  // Tests...
+});
+```
+
+**Why:** ViewModels hold subscriptions. Failing to dispose causes memory leaks and test pollution.
+
+### Pattern 2: Use RxJS Operators for Testing Observables
+
+```typescript
+import { first, skip, take } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
+
+// Get current value
+const currentValue = await firstValueFrom(viewModel.data$);
+
+// Skip initial value, get next
+const nextValue = await firstValueFrom(viewModel.data$.pipe(skip(1)));
+
+// Collect multiple emissions
+const emissions: boolean[] = [];
+viewModel.isLoading$.pipe(take(3)).subscribe(val => emissions.push(val));
+```
+
+**Why:** RxJS operators make testing observables straightforward and readable.
+
+### Pattern 3: Mock at the Right Boundary
+
+```typescript
+// ❌ Don't mock internal ViewModel methods
+const viewModel = new SensorViewModel(mockModel);
+vi.spyOn(viewModel, 'loadSensors'); // Bad: testing implementation details
+
+// ✅ Mock external dependencies (Model, API)
+const mockModel = new MockSensorModel();
+mockModel.fetch = vi.fn().mockResolvedValue([...]); // Good: mock boundary
+const viewModel = new SensorViewModel(mockModel);
+```
+
+**Why:** Mocking internal methods tests implementation, not behavior. Mock external dependencies instead.
+
+### Pattern 4: Test State Transitions, Not Just Final State
+
+```typescript
+it('should transition through loading states', async () => {
+  const loadingStates: boolean[] = [];
+  viewModel.isLoading$.subscribe(val => loadingStates.push(val));
+
+  await viewModel.fetchCommand.execute();
+
+  expect(loadingStates).toEqual([false, true, false]);
+  //                            initial → loading → complete
+});
+```
+
+**Why:** State transitions reveal bugs that final state alone might miss.
+
+### Pattern 5: Test Error Paths, Not Just Happy Paths
+
+```typescript
+it('should handle fetch errors gracefully', async () => {
+  const fetchError = new Error('Network failure');
+  mockModel.fetch.mockRejectedValue(fetchError);
+
+  await expect(viewModel.fetchCommand.execute()).rejects.toThrow(fetchError);
+
+  expect(await firstValueFrom(viewModel.error$)).toBe(fetchError);
+  expect(await firstValueFrom(viewModel.isLoading$)).toBe(false);
+  expect(await firstValueFrom(viewModel.data$)).toBeNull();
+});
+```
+
+**Why:** Error handling is critical. Test it explicitly.
+
+### Pattern 6: Use Descriptive Test Names
+
+```typescript
+// ❌ Vague
+it('should work', () => { ... });
+
+// ✅ Descriptive
+it('should emit null for selectedItem$ when ID is not found in data array', () => { ... });
+```
+
+**Why:** Descriptive names document behavior and make failures easier to diagnose.
+
+## 19.10 Real-World Testing Example: GreenWatch Sensor Monitoring
+
+Let's put it all together with a complete testing example for the GreenWatch sensor monitoring system.
+
+### SensorViewModel Implementation
+
+```typescript
+// packages/view-models/src/SensorViewModel.ts
+export class SensorViewModel extends RestfulApiViewModel<Sensor[], typeof SensorSchema> {
+  readonly selectedSensor$ = this.selectedItem$;
+
+  constructor(model: SensorModel) {
+    super(model);
+  }
+
+  async loadSensors(greenhouseId: string): Promise<void> {
+    await this.fetchCommand.execute(greenhouseId);
+  }
+
+  async calibrateSensor(sensorId: string): Promise<void> {
+    await this.model.calibrate(sensorId);
+    await this.fetchCommand.execute(); // Refresh after calibration
+  }
+
+  selectSensor(sensorId: string | null): void {
+    this.selectItem(sensorId);
+  }
+}
+```
+
+### Complete Test Suite
+
+```typescript
+// packages/view-models/src/SensorViewModel.test.ts
+import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
+import { SensorViewModel } from './SensorViewModel';
+import { SensorModel } from '../models/SensorModel';
+import { firstValueFrom, skip } from 'rxjs';
+
+class MockSensorModel extends SensorModel {
+  fetch = vi.fn();
+  calibrate = vi.fn();
+}
+
+describe('SensorViewModel', () => {
+  let mockModel: MockSensorModel;
+  let viewModel: SensorViewModel;
+
+  beforeEach(() => {
+    mockModel = new MockSensorModel();
+    viewModel = new SensorViewModel(mockModel);
+  });
+
+  afterEach(() => {
+    viewModel.dispose();
+  });
+
+  describe('loadSensors', () => {
+    it('should fetch sensors for a greenhouse', async () => {
+      const sensors = [
+        { id: 's1', name: 'Temperature Sensor', type: 'temperature' },
+        { id: 's2', name: 'Humidity Sensor', type: 'humidity' },
+      ];
+      mockModel.fetch.mockResolvedValue(sensors);
+
+      await viewModel.loadSensors('greenhouse-1');
+
+      expect(mockModel.fetch).toHaveBeenCalledWith('greenhouse-1');
+      expect(await firstValueFrom(viewModel.data$)).toEqual(sensors);
+    });
+
+    it('should handle fetch errors', async () => {
+      const error = new Error('Failed to load sensors');
+      mockModel.fetch.mockRejectedValue(error);
+
+      await expect(viewModel.loadSensors('greenhouse-1')).rejects.toThrow(error);
+      expect(await firstValueFrom(viewModel.error$)).toBe(error);
+    });
+  });
+
+  describe('calibrateSensor', () => {
+    it('should calibrate sensor and refresh data', async () => {
+      const initialSensors = [
+        { id: 's1', name: 'Sensor 1', calibrated: false },
+      ];
+      const updatedSensors = [
+        { id: 's1', name: 'Sensor 1', calibrated: true },
+      ];
+
+      mockModel.fetch.mockResolvedValueOnce(initialSensors);
+      await viewModel.loadSensors('greenhouse-1');
+
+      mockModel.calibrate.mockResolvedValue(undefined);
+      mockModel.fetch.mockResolvedValueOnce(updatedSensors);
+
+      await viewModel.calibrateSensor('s1');
+
+      expect(mockModel.calibrate).toHaveBeenCalledWith('s1');
+      expect(mockModel.fetch).toHaveBeenCalledTimes(2); // Initial load + refresh
+      
+      const data = await firstValueFrom(viewModel.data$);
+      expect(data[0].calibrated).toBe(true);
+    });
+  });
+
+  describe('selectSensor', () => {
+    it('should select a sensor by ID', async () => {
+      const sensors = [
+        { id: 's1', name: 'Sensor 1' },
+        { id: 's2', name: 'Sensor 2' },
+      ];
+      mockModel.fetch.mockResolvedValue(sensors);
+      await viewModel.loadSensors('greenhouse-1');
+
+      viewModel.selectSensor('s2');
+
+      const selected = await firstValueFrom(viewModel.selectedSensor$.pipe(skip(1)));
+      expect(selected).toEqual(sensors[1]);
+    });
+
+    it('should clear selection when null is passed', async () => {
+      const sensors = [{ id: 's1', name: 'Sensor 1' }];
+      mockModel.fetch.mockResolvedValue(sensors);
+      await viewModel.loadSensors('greenhouse-1');
+
+      viewModel.selectSensor('s1');
+      await firstValueFrom(viewModel.selectedSensor$.pipe(skip(1)));
+
+      viewModel.selectSensor(null);
+
+      const selected = await firstValueFrom(viewModel.selectedSensor$);
+      expect(selected).toBeNull();
+    });
+  });
+});
+```
+
+**This test suite demonstrates:**
+- Complete ViewModel testing with mocked Model
+- Testing async operations (load, calibrate)
+- Testing state management (selection)
+- Testing error handling
+- Testing data refresh after mutations
+- Proper setup and teardown
+
+
+## 19.11 Key Takeaways
+
+1. **MVVM makes testing dramatically simpler** by separating business logic from UI rendering. ViewModels can be tested as plain TypeScript classes without any framework dependencies.
+
+2. **Test Models for domain logic and validation**. Use Zod schemas to validate data, and test that Models correctly manage reactive state (data, loading, error).
+
+3. **Test ViewModels in isolation** by mocking Models. Verify that ViewModels correctly expose Model observables, handle commands, manage selection state, and clean up on disposal.
+
+4. **Integration tests verify layers work together**. Use real Models with mocked network boundaries to test complete workflows across Model → ViewModel.
+
+5. **Vitest provides excellent testing experience** with fast execution, built-in mocking, and modern async testing utilities.
+
+6. **Test state transitions, not just final state**. Verify loading states transition correctly (`false → true → false`) and errors are handled properly.
+
+7. **Always dispose ViewModels in `afterEach`** to prevent memory leaks and test pollution from lingering subscriptions.
+
+8. **Mock at the right boundary**. Mock external dependencies (Models, APIs) rather than internal ViewModel methods. Test behavior, not implementation.
+
+9. **Use RxJS operators for testing observables**. `first()`, `skip()`, `take()`, and `firstValueFrom()` make observable testing straightforward.
+
+10. **The testing pyramid applies to MVVM**:
+    - **Many unit tests** for Models and ViewModels (fast, isolated)
+    - **Some integration tests** across layers (moderate speed)
+    - **Few end-to-end tests** for complete user workflows (slow, expensive)
+
+## 19.12 Testing Checklist
+
+When testing MVVM applications, ensure you cover:
+
+**Model Tests:**
+- [ ] Initial state (data, loading, error)
+- [ ] State updates (setData, setLoading, setError)
+- [ ] Validation with Zod schemas (valid and invalid data)
+- [ ] Disposal completes observables
+- [ ] No emissions after disposal
+
+**ViewModel Tests:**
+- [ ] Observable exposure from Model
+- [ ] Derived state (validationErrors$, computed values)
+- [ ] Command registration and execution
+- [ ] Command disposal on ViewModel disposal
+- [ ] Selection state management
+- [ ] Disposal cleans up all subscriptions
+
+**Integration Tests:**
+- [ ] ViewModel + Model work together
+- [ ] CRUD operations update state correctly
+- [ ] Error handling propagates through layers
+- [ ] State synchronization across layers
+
+**View Tests (framework-specific):**
+- [ ] Correct rendering based on ViewModel state
+- [ ] User interactions trigger ViewModel methods
+- [ ] Subscription cleanup on unmount
+- [ ] Loading and error states display correctly
+
+## 19.13 Next Steps
+
+Now that you understand how to test MVVM applications, you're ready to explore more advanced topics:
+
+- **Chapter 20: Plugin Architecture and Extensibility** - Learn how to build runtime-extensible applications with the plugin-core library
+- **Chapter 21: Design Systems and Theming** - Discover how to create framework-agnostic design systems with design-core
+- **Chapter 22: Complete Case Studies** - See complete implementations of GreenWatch and e-commerce applications across all frameworks
+
+The testing strategies you've learned in this chapter apply to all these advanced topics. MVVM's separation of concerns makes even complex features testable, maintainable, and reliable.
 
 ---
 
-**Next Steps:**
+**Remember:** The best architecture is the one you can test. MVVM gives you that architecture. Now go write some tests!
 
-1. **Set up a monorepo** with Turborepo or Nx
-2. **Install Sheriff** and define initial boundary rules
-3. **Organize by feature**, not by technical type
-4. **Extract ViewModels** from components
-5. **Enforce testing pyramid**: Many unit tests, some integration tests, few E2E tests
-6. **Deploy as one artifact**, but use feature flags for incremental rollout
-
-The tools exist. The patterns work. Now it's time to build your scalable monolith.

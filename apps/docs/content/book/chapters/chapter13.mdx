@@ -1,909 +1,690 @@
-# Chapter 13: Vue Implementation — Proving Framework Independence
+---
+id: "reactive-state-management-patterns"
+title: Reactive State Management Patterns
+section: Framework-Agnostic Patterns
+---
 
-When we built the React implementation of GreenWatch in Chapter 11, we made a deliberate architectural bet: that our ViewModels, domain logic, and state management would work unchanged across different frameworks. Now it's time to prove it.
+# Chapter 13: Reactive State Management Patterns
 
-This chapter isn't about learning Vue. If you're reading this book, you likely already know at least one modern framework—whether that's React, Vue, or Angular. What matters here is demonstrating that the architectural principles we've established actually deliver on their promise of framework independence.
+In the previous chapters, we've built ViewModels that expose state through RxJS observables. We've seen how React components subscribe to these observables with `useEffect`, how Vue components use `watchEffect`, and how Angular components leverage the `async` pipe. But we haven't yet explored *why* reactive state management is fundamental to MVVM architecture, or what alternatives exist beyond RxJS.
 
-We'll implement the same GreenWatch greenhouse monitoring features we built in React, but this time using Vue 3's Composition API. You'll see that our `GreenhouseViewModel`, our domain services, and our entire business logic layer remain completely untouched. Only the View layer changes—and that's exactly the point.
+This chapter steps back from framework-specific implementations to examine reactive state patterns in general terms. We'll explore the core concepts—signals, observables, and stores—and see how different libraries implement these patterns. The goal isn't to prescribe a specific library, but to teach you the underlying principles so you can choose the right approach for your application or even build your own implementation.
 
-## The Real Value of Framework Independence
+## Why Reactive State Matters for MVVM
 
-Before we dive into code, let's be clear about why this matters.
+MVVM architecture depends on a critical capability: **the View must automatically update when the ViewModel's state changes**. Without this, you'd need to manually call render functions or update DOM elements every time data changes—exactly the kind of imperative, error-prone code that MVVM aims to eliminate.
 
-Framework independence isn't about being able to rewrite your entire application in a different framework on a whim. That's not a realistic business scenario, and it's not what we're optimizing for. The real value shows up in three practical situations:
+Reactive state management solves this problem by making state changes *observable*. When state changes, interested parties (like UI components) are automatically notified and can react accordingly. This is the foundation that enables the clean separation between ViewModels and Views.
 
-**First, it protects you from framework obsolescence.** Remember AngularJS? Backbone? If you built your business logic directly into those frameworks, you threw it away and started over when they became obsolete. With our architecture, when the next framework shift happens—and it will—you'll port your View layer while keeping your tested, battle-hardened business logic intact.
-
-**Second, it enables genuine code reuse across platforms.** Your web application and your mobile application need the same business rules, validation logic, and state management. With framework-agnostic ViewModels, you can share that logic between React web, React Native mobile, and even Electron desktop applications. You're not just sharing utilities—you're sharing the _intelligent_ parts of your application.
-
-**Third, it makes your codebase more maintainable right now.** When business logic lives in ViewModels rather than components, developers don't need to understand framework-specific patterns to modify that logic. A developer who knows TypeScript and RxJS can work on your ViewModels regardless of whether they know React, Vue, or Angular.
-
-Let's prove all three benefits by building the same application twice.
-
-## What We're Building (Again)
-
-We'll implement the same three core features from Chapter 11:
-
-1. **Real-time greenhouse monitoring** displaying temperature, humidity, and soil moisture with visual indicators for critical thresholds
-2. **Historical trends visualization** showing how environmental parameters change over time
-3. **Alert management** displaying active warnings when parameters exceed safe ranges
-
-The domain logic, validation rules, and business behavior remain identical. We're not simplifying anything for Vue or adding Vue-specific features. This is a true apples-to-apples comparison.
-
-## The ViewModel: Already Done
-
-Here's something remarkable. We don't need to write this:
+Consider what happens without reactive state:
 
 ```typescript
-// ❌ We DON'T need to create a Vue-specific ViewModel
-export class VueGreenhouseViewModel {
-  // No Vue-specific implementation needed
+// ❌ Without reactive state: manual updates required
+class SensorViewModel {
+  private temperature: number = 0;
+  
+  setTemperature(value: number): void {
+    this.temperature = value;
+    // Now what? How do Views know to update?
+    // You'd need to manually call update methods on every View
+  }
+  
+  getTemperature(): number {
+    return this.temperature;
+  }
 }
+
+// Views must poll for changes or be explicitly notified
+const viewModel = new SensorViewModel();
+setInterval(() => {
+  const temp = viewModel.getTemperature();
+  updateUI(temp); // Manual update
+}, 1000);
 ```
 
-Why? Because we already have `GreenhouseViewModel`. Let's look at it again, paying attention to what makes it framework-agnostic:
+This approach breaks down quickly. You need polling, manual update calls, or complex callback systems. It's fragile and doesn't scale.
+
+Now consider reactive state:
 
 ```typescript
-// ✅ This ViewModel works in React, Vue, Angular—anything
-export class GreenhouseViewModel {
-  // Public observables for View consumption
-  readonly currentReadings$: Observable<EnvironmentalReading>;
-  readonly historicalData$: Observable<HistoricalDataPoint[]>;
-  readonly activeAlerts$: Observable<Alert[]>;
-  readonly isLoading$: Observable<boolean>;
+// ✅ With reactive state: automatic updates
+class SensorViewModel {
+  private readonly _temperature$ = new BehaviorSubject<number>(0);
+  public readonly temperature$ = this._temperature$.asObservable();
+  
+  setTemperature(value: number): void {
+    this._temperature$.next(value);
+    // That's it! All subscribers are automatically notified
+  }
+}
 
+// Views subscribe once and receive all updates automatically
+const viewModel = new SensorViewModel();
+viewModel.temperature$.subscribe(temp => {
+  updateUI(temp); // Automatic update on every change
+});
+```
+
+The reactive approach is declarative: you describe *what* should happen when state changes, not *how* to propagate those changes. This is why reactive state is fundamental to MVVM—it enables the automatic View updates that make the pattern practical.
+
+## Core Reactive State Patterns
+
+There are three primary patterns for reactive state management, each with different characteristics and use cases:
+
+### 1. The Signals Pattern
+
+**Signals** are the simplest reactive primitive. A signal is a container for a value that notifies subscribers when the value changes. Signals typically support:
+
+- **Writable signals**: Direct value updates
+- **Computed signals**: Derived values that automatically update when dependencies change
+- **Effects**: Side effects that run when signals change
+
+Here's the conceptual model:
+
+```typescript
+// Conceptual signals API (not tied to any specific library)
+const temperature = signal(20);           // Writable signal
+const fahrenheit = computed(() =>         // Computed signal
+  temperature.value * 9/5 + 32
+);
+
+effect(() => {                            // Effect
+  console.log(`Temperature: ${temperature.value}°C`);
+});
+
+temperature.set(25);  // Triggers effect, updates computed value
+```
+
+Signals are **synchronous** and **fine-grained**. When you update a signal, effects run immediately, and only the specific computations that depend on that signal are re-evaluated. This makes signals very efficient for local state management.
+
+### 2. The Observable Pattern
+
+**Observables** represent streams of values over time. Unlike signals, which hold a single current value, observables can emit multiple values asynchronously. Observables support:
+
+- **Operators**: Transform, filter, combine, and control streams
+- **Backpressure**: Handle fast producers and slow consumers
+- **Cancellation**: Unsubscribe to stop receiving values
+
+Here's the conceptual model:
+
+```typescript
+// Conceptual observable API (RxJS-style)
+const temperature$ = new BehaviorSubject(20);  // Observable with current value
+
+const fahrenheit$ = temperature$.pipe(         // Transformed observable
+  map(c => c * 9/5 + 32)
+);
+
+const subscription = temperature$.subscribe(   // Subscription
+  temp => console.log(`Temperature: ${temp}°C`)
+);
+
+temperature$.next(25);  // Emit new value
+subscription.unsubscribe();  // Stop receiving updates
+```
+
+Observables are **asynchronous** and **stream-oriented**. They excel at handling time-based operations like debouncing, throttling, and combining multiple async data sources. This makes observables ideal for ViewModels that manage complex async state.
+
+### 3. The Store Pattern
+
+**Stores** are centralized state containers that combine reactive primitives with state management patterns. Stores typically provide:
+
+- **Single source of truth**: All state in one place
+- **Actions**: Named operations that modify state
+- **Selectors**: Derived state computations
+- **Middleware**: Intercept and augment state changes
+
+Here's the conceptual model:
+
+```typescript
+// Conceptual store API
+const store = createStore({
+  temperature: 20,
+  humidity: 65
+}, (set, get) => ({
+  setTemperature: (value: number) => 
+    set(state => ({ ...state, temperature: value })),
+  
+  setHumidity: (value: number) =>
+    set(state => ({ ...state, humidity: value }))
+}));
+
+store.subscribe((newState, oldState) => {
+  console.log('State changed:', newState);
+});
+
+store.actions.setTemperature(25);  // Update via action
+```
+
+Stores are **centralized** and **action-oriented**. They work well for application-level state that multiple components need to access, and they make state changes explicit through actions.
+
+## Implementation Example: RxJS Observables in BaseModel
+
+Let's examine how the Web Loom monorepo implements reactive state using RxJS observables in the `BaseModel` class. This is a concrete example of the observable pattern applied to MVVM.
+
+```typescript
+// From packages/mvvm-core/src/models/BaseModel.ts
+export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
   // Private subjects for internal state management
-  private readonly readingsSubject = new BehaviorSubject<EnvironmentalReading | null>(null);
-  private readonly historySubject = new BehaviorSubject<HistoricalDataPoint[]>([]);
-  private readonly alertsSubject = new BehaviorSubject<Alert[]>([]);
-  private readonly loadingSubject = new BehaviorSubject<boolean>(false);
-
-  constructor(
-    private readonly monitoringService: GreenhouseMonitoringService,
-    private readonly alertService: AlertService,
-    private readonly greenhouseId: string,
-  ) {
-    this.currentReadings$ = this.readingsSubject
-      .asObservable()
-      .pipe(filter((reading): reading is EnvironmentalReading => reading !== null));
-
-    this.historicalData$ = this.historySubject.asObservable();
-    this.activeAlerts$ = this.alertsSubject.asObservable();
-    this.isLoading$ = this.loadingSubject.asObservable();
+  protected _data$ = new BehaviorSubject<TData | null>(null);
+  protected _isLoading$ = new BehaviorSubject<boolean>(false);
+  protected _error$ = new BehaviorSubject<any>(null);
+  
+  // Public observables for external consumption
+  public readonly data$: Observable<TData | null> = this._data$.asObservable();
+  public readonly isLoading$: Observable<boolean> = this._isLoading$.asObservable();
+  public readonly error$: Observable<any> = this._error$.asObservable();
+  
+  public readonly schema?: TSchema;
+  
+  constructor(input: TConstructorInput<TData, TSchema>) {
+    const { initialData = null, schema } = input;
+    if (initialData !== null) {
+      this._data$.next(initialData);
+    }
+    this.schema = schema;
   }
-
-  initialize(): void {
-    this.loadingSubject.next(true);
-
-    // Subscribe to real-time readings
-    this.monitoringService
-      .streamReadings(this.greenhouseId)
-      .pipe(
-        tap(() => this.loadingSubject.next(false)),
-        catchError((error) => {
-          console.error('Failed to stream readings:', error);
-          this.loadingSubject.next(false);
-          return EMPTY;
-        }),
-      )
-      .subscribe((reading) => this.readingsSubject.next(reading));
-
-    // Load historical data
-    this.loadHistoricalData();
-
-    // Subscribe to alerts
-    this.alertService.streamAlerts(this.greenhouseId).subscribe((alerts) => this.alertsSubject.next(alerts));
+  
+  public setData(newData: TData | null): void {
+    this._data$.next(newData);
   }
-
-  private loadHistoricalData(): void {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setHours(startDate.getHours() - 24);
-
-    this.monitoringService
-      .getHistoricalData(this.greenhouseId, startDate, endDate)
-      .subscribe((data) => this.historySubject.next(data));
+  
+  public setLoading(status: boolean): void {
+    this._isLoading$.next(status);
   }
-
-  acknowledgeAlert(alertId: string): void {
-    this.alertService.acknowledgeAlert(alertId).subscribe({
-      next: () => {
-        const currentAlerts = this.alertsSubject.value;
-        this.alertsSubject.next(currentAlerts.filter((alert) => alert.id !== alertId));
-      },
-      error: (error) => {
-        console.error('Failed to acknowledge alert:', error);
-      },
-    });
+  
+  public setError(err: any): void {
+    this._error$.next(err);
   }
-
-  dispose(): void {
-    this.readingsSubject.complete();
-    this.historySubject.complete();
-    this.alertsSubject.complete();
-    this.loadingSubject.complete();
+  
+  public dispose(): void {
+    this._data$.complete();
+    this._isLoading$.complete();
+    this._error$.complete();
   }
 }
 ```
 
-Notice what's _not_ here:
+This implementation demonstrates several key patterns:
 
-- No React hooks
-- No Vue refs or reactivity
-- No Angular decorators
-- No framework-specific lifecycle methods
-- No JSX or template syntax
+**Encapsulation**: Private `BehaviorSubject` instances (`_data$`, `_isLoading$`, `_error$`) hold the mutable state, while public `Observable` properties expose read-only streams. External code can subscribe to changes but cannot directly modify the subjects.
 
-This is pure TypeScript. The ViewModel exposes its state through **RxJS observables**, and any framework that can subscribe to observables can use it. That's the entire trick.
+**Current Value Semantics**: `BehaviorSubject` is used instead of plain `Subject` because it holds the current value and immediately emits it to new subscribers. This is crucial for UI—when a component mounts, it needs the current state immediately, not just future updates.
 
-## Bridging RxJS to Vue Reactivity
+**Lifecycle Management**: The `dispose()` method completes all subjects, signaling to subscribers that no more values will be emitted. This prevents memory leaks when Models are no longer needed.
 
-Vue 3's Composition API is built on a different reactivity system than RxJS. Vue uses **proxies** to track dependencies and trigger updates, while RxJS uses **observables** for reactive streams. We need a bridge.
+**Type Safety**: TypeScript generics ensure that `data$` emits values of type `TData | null`, providing compile-time safety for consumers.
 
-Here's our solution—a composable that converts RxJS observables into Vue refs:
+## Reactive State in ViewModels
+
+ViewModels build on Models by adding presentation logic and derived state. Let's see how `BaseViewModel` consumes the Model's reactive state:
 
 ```typescript
-// src/presentation/vue/composables/useObservable.ts
-import { ref, onUnmounted, Ref } from 'vue';
-import { Observable } from 'rxjs';
-
-export function useObservable<T>(observable: Observable<T>, initialValue: T): Ref<T> {
-  const value = ref<T>(initialValue) as Ref<T>;
-
-  const subscription = observable.subscribe({
-    next: (newValue) => {
-      value.value = newValue;
-    },
-    error: (error) => {
-      console.error('Observable error:', error);
-    },
-  });
-
-  onUnmounted(() => {
-    subscription.unsubscribe();
-  });
-
-  return value;
-}
-```
-
-This is elegantly simple. We create a Vue `ref` with an initial value, subscribe to the observable, and update the ref whenever the observable emits. When the component unmounts, we clean up the subscription.
-
-This pattern is important because it shows how architectural boundaries work in practice. We're not mixing concerns—the ViewModel doesn't know about Vue refs, and Vue components don't directly manipulate RxJS subjects. The composable is a clean adapter between two reactivity systems.
-
-## Building the Vue Component
-
-Now we can build our Vue component. It'll look different from React's JSX, but the architectural pattern is identical: the component subscribes to ViewModel state and invokes ViewModel methods for user actions.
-
-```typescript
-// src/presentation/vue/components/GreenhouseMonitor.vue
-<script setup lang="ts">
-import { onMounted, onUnmounted, computed } from 'vue';
-import { GreenhouseViewModel } from '@/application/viewmodels/GreenhouseViewModel';
-import { useObservable } from '@/presentation/vue/composables/useObservable';
-import AlertList from './AlertList.vue';
-import EnvironmentalDisplay from './EnvironmentalDisplay.vue';
-import HistoricalChart from './HistoricalChart.vue';
-
-interface Props {
-  viewModel: GreenhouseViewModel;
-}
-
-const props = defineProps<Props>();
-
-// Convert ViewModel observables to Vue refs
-const currentReadings = useObservable(
-  props.viewModel.currentReadings$,
-  null
-);
-
-const historicalData = useObservable(
-  props.viewModel.historicalData$,
-  []
-);
-
-const activeAlerts = useObservable(
-  props.viewModel.activeAlerts$,
-  []
-);
-
-const isLoading = useObservable(
-  props.viewModel.isLoading$,
-  true
-);
-
-// Computed properties for derived state
-const hasAlerts = computed(() => activeAlerts.value.length > 0);
-
-const criticalAlerts = computed(() =>
-  activeAlerts.value.filter(alert => alert.severity === 'critical')
-);
-
-// Lifecycle management
-onMounted(() => {
-  props.viewModel.initialize();
-});
-
-onUnmounted(() => {
-  props.viewModel.dispose();
-});
-
-// Event handlers
-const handleAlertAcknowledge = (alertId: string) => {
-  props.viewModel.acknowledgeAlert(alertId);
-};
-</script>
-
-<template>
-  <div class="greenhouse-monitor">
-    <div v-if="isLoading" class="loading-state">
-      <div class="spinner" />
-      <p>Loading greenhouse data...</p>
-    </div>
-
-    <template v-else>
-      <div class="monitor-header">
-        <h1>Greenhouse Monitor</h1>
-        <div v-if="hasAlerts" class="alert-badge">
-          {{ criticalAlerts.length }} Critical Alerts
-        </div>
-      </div>
-
-      <div class="monitor-content">
-        <EnvironmentalDisplay
-          v-if="currentReadings"
-          :temperature="currentReadings.temperature"
-          :humidity="currentReadings.humidity"
-          :soilMoisture="currentReadings.soilMoisture"
-          :timestamp="currentReadings.timestamp"
-        />
-
-        <HistoricalChart
-          :data="historicalData"
-          :loading="isLoading"
-        />
-
-        <AlertList
-          v-if="hasAlerts"
-          :alerts="activeAlerts"
-          @acknowledge="handleAlertAcknowledge"
-        />
-      </div>
-    </template>
-  </div>
-</template>
-
-<style scoped>
-.greenhouse-monitor {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.monitor-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.alert-badge {
-  padding: 0.5rem 1rem;
-  background-color: #e74c3c;
-  color: white;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.monitor-content {
-  display: grid;
-  gap: 2rem;
-}
-</style>
-```
-
-Compare this to the React implementation from Chapter 11. The structure is remarkably similar:
-
-1. **We receive the ViewModel via props** (not through context or dependency injection—keeping it simple)
-2. **We convert observables to framework-native reactive primitives** (refs in Vue, state in React)
-3. **We initialize the ViewModel on mount and dispose on unmount**
-4. **We create event handlers that call ViewModel methods**
-5. **We render child components with data from the ViewModel**
-
-The template syntax differs from JSX, but the architectural flow is identical. That's what framework independence looks like—different syntax, same structure.
-
-## Building Child Components
-
-Let's implement one of the child components to show the pattern continues all the way down:
-
-```typescript
-// src/presentation/vue/components/EnvironmentalDisplay.vue
-<script setup lang="ts">
-import { computed } from 'vue';
-
-interface Props {
-  temperature: number;
-  humidity: number;
-  soilMoisture: number;
-  timestamp: Date;
-}
-
-const props = defineProps<Props>();
-
-// Business logic for threshold evaluation
-// (In a real app, this might come from the ViewModel)
-const getTemperatureStatus = computed(() => {
-  if (props.temperature < 15 || props.temperature > 30) {
-    return { status: 'critical', color: '#e74c3c' };
-  }
-  if (props.temperature < 18 || props.temperature > 27) {
-    return { status: 'warning', color: '#f39c12' };
-  }
-  return { status: 'normal', color: '#27ae60' };
-});
-
-const getHumidityStatus = computed(() => {
-  if (props.humidity < 40 || props.humidity > 80) {
-    return { status: 'critical', color: '#e74c3c' };
-  }
-  if (props.humidity < 50 || props.humidity > 70) {
-    return { status: 'warning', color: '#f39c12' };
-  }
-  return { status: 'normal', color: '#27ae60' };
-});
-
-const getSoilMoistureStatus = computed(() => {
-  if (props.soilMoisture < 30 || props.soilMoisture > 80) {
-    return { status: 'critical', color: '#e74c3c' };
-  }
-  if (props.soilMoisture < 40 || props.soilMoisture > 70) {
-    return { status: 'warning', color: '#f39c12' };
-  }
-  return { status: 'normal', color: '#27ae60' };
-});
-
-const formattedTime = computed(() => {
-  return props.timestamp.toLocaleTimeString();
-});
-</script>
-
-<template>
-  <div class="environmental-display">
-    <h2>Current Conditions</h2>
-    <p class="timestamp">Last updated: {{ formattedTime }}</p>
-
-    <div class="readings-grid">
-      <div class="reading-card">
-        <div class="reading-header">
-          <h3>Temperature</h3>
-          <span
-            class="status-indicator"
-            :style="{ backgroundColor: getTemperatureStatus.color }"
-          />
-        </div>
-        <div class="reading-value">
-          {{ temperature.toFixed(1) }}°C
-        </div>
-        <div class="reading-status">
-          {{ getTemperatureStatus.status }}
-        </div>
-      </div>
-
-      <div class="reading-card">
-        <div class="reading-header">
-          <h3>Humidity</h3>
-          <span
-            class="status-indicator"
-            :style="{ backgroundColor: getHumidityStatus.color }"
-          />
-        </div>
-        <div class="reading-value">
-          {{ humidity.toFixed(1) }}%
-        </div>
-        <div class="reading-status">
-          {{ getHumidityStatus.status }}
-        </div>
-      </div>
-
-      <div class="reading-card">
-        <div class="reading-header">
-          <h3>Soil Moisture</h3>
-          <span
-            class="status-indicator"
-            :style="{ backgroundColor: getSoilMoistureStatus.color }"
-          />
-        </div>
-        <div class="reading-value">
-          {{ soilMoisture.toFixed(1) }}%
-        </div>
-        <div class="reading-status">
-          {{ getSoilMoistureStatus.status }}
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
-<style scoped>
-.environmental-display {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.timestamp {
-  color: #7f8c8d;
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
-}
-
-.readings-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.reading-card {
-  border: 1px solid #ecf0f1;
-  border-radius: 4px;
-  padding: 1rem;
-}
-
-.reading-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.reading-header h3 {
-  margin: 0;
-  font-size: 1rem;
-  color: #2c3e50;
-}
-
-.status-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.reading-value {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0.5rem 0;
-}
-
-.reading-status {
-  font-size: 0.875rem;
-  color: #7f8c8d;
-  text-transform: capitalize;
-}
-</style>
-```
-
-Notice something here: we've put threshold evaluation logic in the component. Is this wrong? Not necessarily—it depends on your requirements.
-
-If threshold logic is pure presentation (displaying different colors), keeping it in the component is fine. If it's business logic that affects behavior beyond display (triggering alerts, logging events), it belongs in the ViewModel or domain layer.
-
-This is a judgment call you'll make based on your application's needs. The architecture doesn't dogmatically enforce where every piece of logic lives—it gives you the tools to make informed decisions about boundaries.
-
-## Dependency Injection in Vue
-
-We need to provide the ViewModel to our component. In React, we used Context. In Vue, we've got several options. Let's use Vue's `provide/inject` API:
-
-```typescript
-// src/presentation/vue/main.ts
-import { createApp } from 'vue';
-import App from './App.vue';
-import { GreenhouseViewModel } from '@/application/viewmodels/GreenhouseViewModel';
-import { GreenhouseMonitoringService } from '@/domain/services/GreenhouseMonitoringService';
-import { AlertService } from '@/domain/services/AlertService';
-
-const app = createApp(App);
-
-// Create service instances
-// (In production, you'd use a proper DI container)
-const monitoringService = new GreenhouseMonitoringService();
-/* inject HTTP client or API gateway */
-
-const alertService = new AlertService();
-/* inject dependencies */
-
-// Create ViewModel instance
-const greenhouseViewModel = new GreenhouseViewModel(
-  monitoringService,
-  alertService,
-  'greenhouse-001', // In real app, this would be dynamic
-);
-
-// Provide ViewModel to entire app
-app.provide('greenhouseViewModel', greenhouseViewModel);
-
-app.mount('#app');
-```
-
-Then inject it in components:
-
-```typescript
-// src/presentation/vue/components/GreenhouseMonitor.vue
-<script setup lang="ts">
-import { inject } from 'vue';
-import { GreenhouseViewModel } from '@/application/viewmodels/GreenhouseViewModel';
-
-const viewModel = inject<GreenhouseViewModel>('greenhouseViewModel');
-
-if (!viewModel) {
-  throw new Error('GreenhouseViewModel not provided');
-}
-
-// Rest of component code...
-</script>
-```
-
-This pattern mirrors React's Context API conceptually, though the syntax differs. Both solve the same problem: passing dependencies through the component tree without prop drilling.
-
-## Testing Vue Components
-
-Here's where framework independence pays immediate dividends. Our ViewModel tests remain unchanged—we don't need to rewrite them for Vue. We only need to test the Vue-specific integration layer.
-
-```typescript
-// src/presentation/vue/components/__tests__/GreenhouseMonitor.spec.ts
-import { mount } from '@vue/test-utils';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BehaviorSubject } from 'rxjs';
-import GreenhouseMonitor from '../GreenhouseMonitor.vue';
-import { GreenhouseViewModel } from '@/application/viewmodels/GreenhouseViewModel';
-import type { EnvironmentalReading, Alert } from '@/domain/types';
-
-describe('GreenhouseMonitor', () => {
-  let mockViewModel: jest.Mocked<GreenhouseViewModel>;
-  let readingsSubject: BehaviorSubject<EnvironmentalReading | null>;
-  let alertsSubject: BehaviorSubject<Alert[]>;
-  let loadingSubject: BehaviorSubject<boolean>;
-
-  beforeEach(() => {
-    // Create test subjects
-    readingsSubject = new BehaviorSubject<EnvironmentalReading | null>(null);
-    alertsSubject = new BehaviorSubject<Alert[]>([]);
-    loadingSubject = new BehaviorSubject<boolean>(true);
-
-    // Create mock ViewModel
-    mockViewModel = {
-      currentReadings$: readingsSubject.asObservable(),
-      activeAlerts$: alertsSubject.asObservable(),
-      isLoading$: loadingSubject.asObservable(),
-      historicalData$: new BehaviorSubject([]).asObservable(),
-      initialize: vi.fn(),
-      dispose: vi.fn(),
-      acknowledgeAlert: vi.fn(),
-    } as any;
-  });
-
-  it('renders loading state initially', () => {
-    const wrapper = mount(GreenhouseMonitor, {
-      props: { viewModel: mockViewModel },
-    });
-
-    expect(wrapper.find('.loading-state').exists()).toBe(true);
-    expect(wrapper.text()).toContain('Loading greenhouse data');
-  });
-
-  it('initializes ViewModel on mount', () => {
-    mount(GreenhouseMonitor, {
-      props: { viewModel: mockViewModel },
-    });
-
-    expect(mockViewModel.initialize).toHaveBeenCalled();
-  });
-
-  it('disposes ViewModel on unmount', () => {
-    const wrapper = mount(GreenhouseMonitor, {
-      props: { viewModel: mockViewModel },
-    });
-
-    wrapper.unmount();
-
-    expect(mockViewModel.dispose).toHaveBeenCalled();
-  });
-
-  it('displays environmental readings when loaded', async () => {
-    loadingSubject.next(false);
-    readingsSubject.next({
-      temperature: 22.5,
-      humidity: 65.0,
-      soilMoisture: 55.0,
-      timestamp: new Date('2024-01-15T10:30:00Z'),
-    });
-
-    const wrapper = mount(GreenhouseMonitor, {
-      props: { viewModel: mockViewModel },
-    });
-
-    await wrapper.vm.$nextTick();
-
-    expect(wrapper.find('.environmental-display').exists()).toBe(true);
-  });
-
-  it('displays alert badge when alerts exist', async () => {
-    loadingSubject.next(false);
-    alertsSubject.next([
-      {
-        id: 'alert-1',
-        severity: 'critical',
-        message: 'Temperature too high',
-        timestamp: new Date(),
-      },
-    ]);
-
-    const wrapper = mount(GreenhouseMonitor, {
-      props: { viewModel: mockViewModel },
-    });
-
-    await wrapper.vm.$nextTick();
-
-    expect(wrapper.find('.alert-badge').exists()).toBe(true);
-    expect(wrapper.text()).toContain('1 Critical Alerts');
-  });
-
-  it('calls acknowledgeAlert when alert is acknowledged', async () => {
-    loadingSubject.next(false);
-    alertsSubject.next([
-      {
-        id: 'alert-1',
-        severity: 'warning',
-        message: 'Humidity low',
-        timestamp: new Date(),
-      },
-    ]);
-
-    const wrapper = mount(GreenhouseMonitor, {
-      props: { viewModel: mockViewModel },
-    });
-
-    await wrapper.vm.$nextTick();
-
-    // Find and click acknowledge button in AlertList
-    const alertList = wrapper.findComponent({ name: 'AlertList' });
-    alertList.vm.$emit('acknowledge', 'alert-1');
-
-    expect(mockViewModel.acknowledgeAlert).toHaveBeenCalledWith('alert-1');
-  });
-});
-```
-
-This test structure should look familiar—it's nearly identical to our React tests from Chapter 12. We're testing the same behaviors:
-
-- Component initialization and cleanup
-- Observable-to-reactive-primitive conversion
-- Event handler wiring
-- Conditional rendering based on state
-
-The syntax differs (Vue Test Utils vs React Testing Library), but the testing strategy is identical. That's because we're testing the same architectural pattern.
-
-## What We've Proven
-
-By implementing GreenWatch in both React and Vue, we've demonstrated several critical points:
-
-**The ViewModel is genuinely framework-agnostic.** We didn't modify a single line of `GreenhouseViewModel` code. The same TypeScript class works perfectly in both frameworks because it depends only on RxJS observables, not framework-specific primitives.
-
-**The domain layer is completely isolated.** Our `GreenhouseMonitoringService` and `AlertService` don't know or care which framework is consuming them. They expose domain operations through RxJS streams, and any framework can subscribe to those streams.
-
-**The View layer is the only thing that changes.** React and Vue have different syntax, different reactivity systems, and different component models. That's fine—we expect the View layer to be framework-specific. What matters is that it's a thin adapter over framework-agnostic business logic.
-
-**Testing remains consistent.** We test ViewModels the same way regardless of framework. We test components with framework-specific tools, but we're testing the same integration concerns: observable subscription, lifecycle management, and event handling.
-
-**Team knowledge transfers.** A developer who understands the MVVM pattern in React can immediately understand it in Vue. The frameworks differ, but the architecture is the same. That's a huge win for maintainability and onboarding.
-
-## The Bridge Pattern
-
-The `useObservable` composable we built is an example of the **Bridge pattern**. We're connecting two incompatible interfaces—RxJS observables and Vue refs—without modifying either side.
-
-This is important because it means we can adapt our architecture to any framework. Need to support Angular? Write a bridge that converts observables to Angular signals. Need to support Svelte? Write a bridge that converts observables to Svelte stores. The ViewModel never changes.
-
-Here's what that pattern looks like generically:
-
-```typescript
-// ✅ Generic bridge pattern for any reactive system
-interface ReactiveAdapter<TSource, TTarget> {
-  convert(source: TSource, initialValue: any): TTarget;
-  cleanup?(): void;
-}
-
-// Vue implementation
-class VueReactiveAdapter implements ReactiveAdapter<Observable<any>, Ref<any>> {
-  convert<T>(observable: Observable<T>, initialValue: T): Ref<T> {
-    const value = ref<T>(initialValue) as Ref<T>;
-
-    const subscription = observable.subscribe({
-      next: (newValue) => (value.value = newValue),
-      error: (error) => console.error('Observable error:', error),
-    });
-
-    onUnmounted(() => subscription.unsubscribe());
-
-    return value;
-  }
-}
-
-// React implementation
-class ReactReactiveAdapter implements ReactiveAdapter<Observable<any>, any> {
-  convert<T>(observable: Observable<T>, initialValue: T): T {
-    const [value, setValue] = useState<T>(initialValue);
-
-    useEffect(() => {
-      const subscription = observable.subscribe({
-        next: setValue,
-        error: (error) => console.error('Observable error:', error),
-      });
-
-      return () => subscription.unsubscribe();
-    }, [observable]);
-
-    return value;
-  }
-}
-```
-
-This abstraction shows that the pattern we're using isn't specific to React or Vue—it's a general solution for connecting observables to any reactive UI framework.
-
-## Performance Considerations
-
-One concern developers raise about framework-agnostic architecture is performance. Does the extra abstraction layer—the ViewModel sitting between components and domain logic—introduce meaningful overhead?
-
-In practice, no. The performance characteristics are excellent because:
-
-**RxJS observables are highly optimized.** The library has been battle-tested in production applications at Google and elsewhere for years. Observable subscriptions have minimal overhead.
-
-**We're not creating extra renders.** When the ViewModel emits a new value, the framework's reactive system handles it exactly as it would handle any other state change. There's no double-rendering or unnecessary updates.
-
-**The architecture actually improves performance** by enabling better optimization strategies. Because ViewModels manage state centrally, we can implement debouncing, throttling, and caching at the ViewModel level, benefiting all Views that consume that ViewModel.
-
-Here's an example of ViewModel-level optimization:
-
-```typescript
-// ✅ Optimize expensive operations at the ViewModel level
-export class GreenhouseViewModel {
-  readonly currentReadings$: Observable<EnvironmentalReading>;
-
-  constructor(private readonly monitoringService: GreenhouseMonitoringService) {
-    this.currentReadings$ = this.monitoringService.streamReadings(this.greenhouseId).pipe(
-      // Throttle updates to once per second
-      // This optimization benefits ALL views consuming this ViewModel
-      throttleTime(1000),
-
-      // Only emit when values actually change
-      distinctUntilChanged(
-        (prev, curr) =>
-          prev.temperature === curr.temperature &&
-          prev.humidity === curr.humidity &&
-          prev.soilMoisture === curr.soilMoisture,
-      ),
-
-      // Share the subscription across multiple consumers
-      shareReplay(1),
+// From packages/mvvm-core/src/viewmodels/BaseViewModel.ts
+export class BaseViewModel<TModel extends BaseModel<any, any>> {
+  protected readonly _destroy$ = new Subject<void>();
+  protected readonly model: TModel;
+  
+  // Expose observables from the model
+  public readonly data$: Observable<TModel['data']>;
+  public readonly isLoading$: Observable<boolean>;
+  public readonly error$: Observable<any>;
+  
+  // Derived state: validation errors extracted from general errors
+  public readonly validationErrors$: Observable<ZodError | null>;
+  
+  constructor(model: TModel) {
+    this.model = model;
+    
+    // Pipe model observables through takeUntil for automatic cleanup
+    this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
+    this.isLoading$ = this.model.isLoading$.pipe(takeUntil(this._destroy$));
+    this.error$ = this.model.error$.pipe(takeUntil(this._destroy$));
+    
+    // Derive validation errors from the error stream
+    this.validationErrors$ = this.model.error$.pipe(
+      map(err => err instanceof ZodError ? err : null),
+      startWith(null),
+      takeUntil(this._destroy$)
     );
   }
+  
+  public dispose(): void {
+    this._destroy$.next();
+    this._destroy$.complete();
+  }
 }
 ```
 
-These optimizations happen once, in the ViewModel, and benefit every component in every framework that consumes this ViewModel. That's more maintainable than optimizing each component individually.
+This demonstrates **state derivation**—creating new observables from existing ones. The `validationErrors$` observable is computed from `error$` using the `map` operator. When `error$` emits, `validationErrors$` automatically updates. This is the observable equivalent of computed signals.
 
-## Common Pitfalls
+The `takeUntil(this._destroy$)` pattern is crucial for preventing memory leaks. When `dispose()` is called, `_destroy$` emits, causing all piped observables to complete and unsubscribe from their sources.
 
-Let's address some mistakes developers make when implementing this pattern in Vue:
+## Advanced Reactive Patterns in RestfulApiViewModel
 
-**Pitfall 1: Creating Vue-specific ViewModels**
+The `RestfulApiViewModel` shows more sophisticated reactive patterns:
 
 ```typescript
-// ❌ Don't create framework-specific ViewModels
-export class VueGreenhouseViewModel {
-  temperature = ref(0);
-  humidity = ref(0);
-
-  // This defeats the entire purpose of framework independence
+// From packages/mvvm-core/src/viewmodels/RestfulApiViewModel.ts
+export class RestfulApiViewModel<TData, TSchema extends ZodSchema<TData>> {
+  protected model: RestfulApiModel<TData, TSchema>;
+  
+  public readonly data$: Observable<TData | null>;
+  public readonly isLoading$: Observable<boolean>;
+  public readonly error$: Observable<any>;
+  
+  // View-specific state for item selection
+  protected readonly _selectedItemId$ = new BehaviorSubject<string | null>(null);
+  public readonly selectedItem$: Observable<ExtractItemType<TData> | null>;
+  
+  constructor(model: RestfulApiModel<TData, TSchema>) {
+    this.model = model;
+    this.data$ = this.model.data$;
+    this.isLoading$ = this.model.isLoading$;
+    this.error$ = this.model.error$;
+    
+    // Combine two observables to derive selected item
+    this.selectedItem$ = combineLatest([
+      this.model.data$,
+      this._selectedItemId$
+    ]).pipe(
+      map(([data, selectedId]) => {
+        if (Array.isArray(data) && selectedId) {
+          const item = data.find((item: any) => item.id === selectedId);
+          return item || null;
+        }
+        return null;
+      }),
+      startWith(null)
+    );
+  }
+  
+  public selectItem(id: string | null): void {
+    this._selectedItemId$.next(id);
+  }
 }
 ```
 
-If you're creating separate ViewModels for each framework, you've misunderstood the architecture. The ViewModel should be framework-agnostic. Use adapters to bridge the gap, don't rewrite the ViewModel.
+This demonstrates **state composition**—combining multiple observables with `combineLatest`. Whenever either `data$` or `_selectedItemId$` emits, the `selectedItem$` observable recomputes the selected item. This is declarative: you describe the relationship between observables, and RxJS handles the updates.
 
-**Pitfall 2: Mixing reactive systems**
+## RxJS Operators for State Management
+
+RxJS provides powerful operators for transforming and controlling reactive state. Here are the most important ones for MVVM:
+
+### Transformation Operators
 
 ```typescript
-// ❌ Don't mix RxJS and Vue reactivity in the ViewModel
-export class GreenhouseViewModel {
-  readonly temperature$ = new BehaviorSubject(0);
-  readonly humidity = ref(0); // Wrong! Vue-specific primitive in ViewModel
+// map: Transform each emitted value
+const fahrenheit$ = celsius$.pipe(
+  map(c => c * 9/5 + 32)
+);
 
-  // This makes the ViewModel Vue-dependent
+// filter: Only emit values that pass a predicate
+const highTemperatures$ = temperature$.pipe(
+  filter(temp => temp > 30)
+);
+
+// scan: Accumulate values over time (like Array.reduce)
+const temperatureHistory$ = temperature$.pipe(
+  scan((history, temp) => [...history, temp], [] as number[])
+);
+```
+
+### Combination Operators
+
+```typescript
+// combineLatest: Emit when any source emits (requires all to have emitted once)
+const environmental$ = combineLatest([
+  temperature$,
+  humidity$,
+  soilMoisture$
+]).pipe(
+  map(([temp, humidity, moisture]) => ({ temp, humidity, moisture }))
+);
+
+// merge: Emit from any source as soon as it emits
+const allSensorReadings$ = merge(
+  sensor1.readings$,
+  sensor2.readings$,
+  sensor3.readings$
+);
+
+// withLatestFrom: Combine with latest value from other observables
+const alertsWithContext$ = alerts$.pipe(
+  withLatestFrom(temperature$, humidity$),
+  map(([alert, temp, humidity]) => ({
+    ...alert,
+    context: { temp, humidity }
+  }))
+);
+```
+
+### Timing Operators
+
+```typescript
+// debounceTime: Wait for silence before emitting
+const searchQuery$ = userInput$.pipe(
+  debounceTime(300),  // Wait 300ms after user stops typing
+  distinctUntilChanged()
+);
+
+// throttleTime: Emit at most once per time period
+const scrollPosition$ = scrollEvents$.pipe(
+  throttleTime(100),  // At most once per 100ms
+  map(event => event.target.scrollTop)
+);
+
+// delay: Delay emissions by a specified time
+const delayedNotification$ = notification$.pipe(
+  delay(2000)  // Show notification 2 seconds later
+);
+```
+
+### Error Handling Operators
+
+```typescript
+// catchError: Handle errors and return a fallback observable
+const safeData$ = apiCall$.pipe(
+  catchError(error => {
+    console.error('API call failed:', error);
+    return of(null);  // Return null on error
+  })
+);
+
+// retry: Retry on error
+const resilientApiCall$ = apiCall$.pipe(
+  retry(3),  // Retry up to 3 times
+  catchError(error => of(null))
+);
+
+// timeout: Error if no emission within time limit
+const timedApiCall$ = apiCall$.pipe(
+  timeout(5000),  // Error if no response in 5 seconds
+  catchError(error => of(null))
+);
+```
+
+## Alternative Approach: Store Pattern with store-core
+
+While RxJS observables work well for ViewModels, sometimes you need simpler state management for application-level state. The Web Loom monorepo includes `store-core`, a minimal store implementation that demonstrates the store pattern.
+
+```typescript
+// From packages/store-core/src/index.ts
+export function createStore<S extends State, A extends Actions<S, A>>(
+  initialState: S,
+  createActions: (
+    set: (updater: (state: S) => S) => void,
+    get: () => S,
+    actions: A
+  ) => A
+): Store<S, A> {
+  let state: S = initialState;
+  const listeners: Set<Listener<S>> = new Set();
+  
+  const getState = (): S => state;
+  
+  const setState = (updater: (state: S) => S): void => {
+    const oldState = state;
+    const newState = updater(state);
+    
+    // Shallow comparison to detect changes
+    let hasChanged = false;
+    if (newState !== oldState) {
+      const oldKeys = Object.keys(oldState);
+      const newKeys = Object.keys(newState);
+      if (oldKeys.length !== newKeys.length) {
+        hasChanged = true;
+      } else {
+        for (const key of newKeys) {
+          if (oldState[key] !== newState[key]) {
+            hasChanged = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (hasChanged) {
+      state = newState;
+      listeners.forEach(listener => listener(newState, oldState));
+    }
+  };
+  
+  const subscribe = (listener: Listener<S>): (() => void) => {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  };
+  
+  const destroy = (): void => {
+    listeners.clear();
+  };
+  
+  // Create actions
+  const tempActions = {} as A;
+  const createdActions = createActions(setState, getState, tempActions);
+  
+  // Populate actions
+  for (const key in createdActions) {
+    if (Object.prototype.hasOwnProperty.call(createdActions, key)) {
+      tempActions[key] = createdActions[key];
+    }
+  }
+  
+  return {
+    getState,
+    setState,
+    subscribe,
+    destroy,
+    actions: tempActions
+  };
 }
 ```
 
-Keep the ViewModel purely RxJS-based. Use adapters in the View layer to convert to Vue refs.
-
-**Pitfall 3: Forgetting cleanup**
+This store implementation is much simpler than RxJS but still provides reactive state. Here's how you'd use it:
 
 ```typescript
-// ❌ Don't forget to unsubscribe from observables
-<script setup>
-const temperature = ref(0);
+// Example: Greenhouse monitoring store
+interface GreenhouseState {
+  temperature: number;
+  humidity: number;
+  alerts: Alert[];
+}
 
-// This subscription will leak memory
-props.viewModel.currentReadings$.subscribe(reading => {
-  temperature.value = reading.temperature;
+const greenhouseStore = createStore<GreenhouseState, any>(
+  {
+    temperature: 20,
+    humidity: 65,
+    alerts: []
+  },
+  (set, get) => ({
+    setTemperature: (value: number) =>
+      set(state => ({ ...state, temperature: value })),
+    
+    setHumidity: (value: number) =>
+      set(state => ({ ...state, humidity: value })),
+    
+    addAlert: (alert: Alert) =>
+      set(state => ({ ...state, alerts: [...state.alerts, alert] })),
+    
+    clearAlerts: () =>
+      set(state => ({ ...state, alerts: [] }))
+  })
+);
+
+// Subscribe to state changes
+const unsubscribe = greenhouseStore.subscribe((newState, oldState) => {
+  console.log('Temperature changed:', newState.temperature);
 });
-// No cleanup! The subscription never ends.
-</script>
+
+// Update state via actions
+greenhouseStore.actions.setTemperature(25);
+greenhouseStore.actions.addAlert({
+  id: '1',
+  message: 'Temperature high',
+  severity: 'warning'
+});
+
+// Cleanup
+unsubscribe();
+greenhouseStore.destroy();
 ```
 
-Always clean up subscriptions when components unmount. That's why we built `useObservable`—it handles cleanup automatically.
+The store pattern is **simpler** than RxJS for basic state management but **less powerful** for complex async operations. It's a good choice for application-level state that doesn't need sophisticated stream transformations.
 
-**Pitfall 4: Putting business logic in computed properties**
+## Comparing Reactive Approaches
+
+Let's compare the three approaches for a concrete scenario: managing sensor readings with derived state.
+
+### Using RxJS Observables
 
 ```typescript
-// ❌ Don't put complex business logic in Vue computed properties
-<script setup>
-const isIrrigationNeeded = computed(() => {
-  // Complex calculation involving multiple business rules
-  const soilThreshold = getSoilThresholdForSeasonAndPlantType();
-  const recentRainfall = calculateRecentRainfall();
-  const weatherForecast = getWeatherForecast();
-
-  return soilMoisture.value < soilThreshold &&
-         recentRainfall < 10 &&
-         !weatherForecast.willRain;
-});
-</script>
+class SensorViewModel {
+  private readonly _temperature$ = new BehaviorSubject<number>(20);
+  private readonly _humidity$ = new BehaviorSubject<number>(65);
+  
+  public readonly temperature$ = this._temperature$.asObservable();
+  public readonly humidity$ = this._humidity$.asObservable();
+  
+  // Derived state: comfort level based on temperature and humidity
+  public readonly comfortLevel$ = combineLatest([
+    this.temperature$,
+    this.humidity$
+  ]).pipe(
+    map(([temp, humidity]) => {
+      if (temp >= 20 && temp <= 26 && humidity >= 40 && humidity <= 60) {
+        return 'comfortable';
+      } else if (temp >= 18 && temp <= 28 && humidity >= 30 && humidity <= 70) {
+        return 'acceptable';
+      } else {
+        return 'uncomfortable';
+      }
+    })
+  );
+  
+  setTemperature(value: number): void {
+    this._temperature$.next(value);
+  }
+  
+  setHumidity(value: number): void {
+    this._humidity$.next(value);
+  }
+}
 ```
 
-This logic belongs in the ViewModel or domain layer, where it can be properly tested and reused across frameworks. Computed properties should be simple derivations of ViewModel state, not complex business logic.
+**Pros**: Powerful operators, excellent for async operations, fine-grained control
+**Cons**: Steeper learning curve, more verbose for simple cases
 
-## When to Use Vue Over React
+### Using a Store
 
-This book isn't advocating for one framework over another. Both React and Vue are excellent tools. The choice between them should be based on your team's preferences and project requirements, not architectural constraints.
+```typescript
+interface SensorState {
+  temperature: number;
+  humidity: number;
+}
 
-However, there are situations where Vue's design makes certain patterns more natural:
+const sensorStore = createStore<SensorState, any>(
+  { temperature: 20, humidity: 65 },
+  (set, get) => ({
+    setTemperature: (value: number) =>
+      set(state => ({ ...state, temperature: value })),
+    
+    setHumidity: (value: number) =>
+      set(state => ({ ...state, humidity: value })),
+    
+    // Derived state as a method
+    getComfortLevel: () => {
+      const { temperature, humidity } = get();
+      if (temperature >= 20 && temperature <= 26 && humidity >= 40 && humidity <= 60) {
+        return 'comfortable';
+      } else if (temperature >= 18 && temperature <= 28 && humidity >= 30 && humidity <= 70) {
+        return 'acceptable';
+      } else {
+        return 'uncomfortable';
+      }
+    }
+  })
+);
+```
 
-**Vue excels at progressive enhancement.** If you're adding interactivity to an existing server-rendered application, Vue's template syntax integrates more smoothly with traditional HTML than React's JSX.
+**Pros**: Simple API, centralized state, easy to understand
+**Cons**: Derived state requires manual computation, less powerful for async
 
-**Vue's reactivity system is more intuitive for developers new to reactive programming.** React's unidirectional data flow requires understanding when and why components re-render. Vue's reactivity is more transparent—you change a ref, the UI updates.
+### Using Native Proxy-Based Reactivity
 
-**Vue's Composition API is arguably cleaner for composing behavior.** The composable pattern feels more natural than React's hook composition for complex logic reuse.
+```typescript
+// Simplified reactive system using Proxy
+function createReactive<T extends object>(target: T, onChange: () => void): T {
+  return new Proxy(target, {
+    set(obj, prop, value) {
+      const oldValue = obj[prop as keyof T];
+      if (oldValue !== value) {
+        obj[prop as keyof T] = value;
+        onChange();
+      }
+      return true;
+    }
+  });
+}
 
-But here's the key insight: with MVVM architecture, you're not locked into that decision. If you start with Vue and later decide React better serves your needs, or vice versa, you're only rewriting the View layer. Your business logic, your tests, your domain model—all of that stays intact.
+const sensorState = createReactive(
+  { temperature: 20, humidity: 65 },
+  () => console.log('State changed')
+);
 
-That's the real value we're building here.
+sensorState.temperature = 25;  // Triggers onChange
+```
 
-## Moving Forward
+**Pros**: No dependencies, simple for basic cases, native JavaScript
+**Cons**: Limited functionality, no built-in derived state, manual effect management
 
-We've now implemented GreenWatch in both React and Vue, proving that our architecture delivers on its promise of framework independence. The same ViewModel, the same domain services, the same business logic—working perfectly in two different frameworks.
+## When to Use Each Approach
 
-In the next chapter, we'll complete the framework trilogy by implementing GreenWatch in Angular. You'll see that Angular's dependency injection system and decorators create a different developer experience, but the underlying architecture remains identical.
+Choose your reactive state approach based on your application's needs:
 
-Then, in Part 4, we'll tackle the full GreenWatch case study, expanding beyond simple monitoring to include irrigation control, multi-greenhouse management, user authentication, and real-time collaboration. We'll see how the architectural patterns we've established scale to production-level complexity.
+**Use RxJS Observables when:**
+- You need sophisticated async operations (debouncing, throttling, retries)
+- You're building ViewModels that manage complex state transformations
+- You need fine-grained control over subscription lifecycle
+- You're already using RxJS elsewhere in your application
+- You need powerful composition of multiple data streams
 
-But before we move on, take a moment to appreciate what we've built. We have a single codebase—one ViewModel, one set of domain services, one set of tests—that works across multiple frameworks. That's not just architecturally elegant. It's practically powerful.
+**Use a Store (like store-core) when:**
+- You need centralized application state
+- State changes should be explicit through actions
+- You want simple, predictable state updates
+- You don't need complex async transformations
+- You want minimal dependencies
+
+**Use Native Reactivity (Proxy) when:**
+- You're building a simple application with minimal state
+- You want zero dependencies
+- You don't need sophisticated derived state
+- You're comfortable implementing your own reactive primitives
+
+**Use Signals (if available in your framework) when:**
+- You're using a framework with built-in signals (Angular, Solid, Preact)
+- You need fine-grained reactivity with minimal overhead
+- You want synchronous, predictable updates
+- You're building UI-focused reactive state
+
+## Patterns Are Transferable
+
+The most important lesson from this chapter is that **reactive state patterns are transferable**. Whether you use RxJS, store-core, signals, or build your own solution, the core concepts remain the same:
+
+1. **State is observable**: Changes can be subscribed to
+2. **Derived state is automatic**: Computed values update when dependencies change
+3. **Effects are declarative**: You describe what should happen, not how to propagate changes
+4. **Cleanup is essential**: Subscriptions must be disposed to prevent memory leaks
+
+These principles enable MVVM architecture regardless of the specific library you choose. The ViewModel exposes reactive state, and the View subscribes to it. The implementation details—whether you use observables, signals, or stores—are secondary to the pattern itself.
+
+## Key Takeaways
+
+- **Reactive state is fundamental to MVVM**: It enables automatic View updates when ViewModel state changes
+- **Three core patterns exist**: Signals (fine-grained, synchronous), Observables (stream-oriented, async), and Stores (centralized, action-based)
+- **RxJS observables are powerful**: They excel at complex async operations and state transformations
+- **Stores are simpler**: They work well for centralized application state with explicit actions
+- **Patterns are transferable**: The concepts apply regardless of the specific library you use
+- **Choose based on needs**: Consider your application's complexity, async requirements, and team familiarity
+
+In the next chapter, we'll explore event-driven communication patterns—another framework-agnostic technique that complements reactive state management for building decoupled MVVM applications.

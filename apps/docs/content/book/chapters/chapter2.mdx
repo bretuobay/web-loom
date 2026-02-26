@@ -1,657 +1,439 @@
 ---
-id: "the-crisis-in-contemporary-frontend-development"
-title: The Crisis in Contemporary Frontend Development
-section: The Crisis
+id: why-mvvm-matters
+title: Why MVVM Matters for Modern Frontend
+section: Foundations
 ---
 
-# Chapter 2: The Crisis in Contemporary Frontend Development
+# Why MVVM Matters for Modern Frontend
 
-## Introduction
+In the previous chapter, we explored the architectural crisis facing modern frontend development: tightly coupled code, framework lock-in, testing nightmares, and maintenance headaches. Now let's see how MVVM (Model-View-ViewModel) provides concrete solutions to these problems.
 
-We've built an impressive arsenal of frontend tools. React, Vue, Angular, Svelte—each framework promises faster development, better performance, and happier developers. Yet here's what we're not talking about: the architectures we're building on top of these frameworks are often fragile, tightly coupled, and nearly impossible to test properly.
+## The Promise of MVVM
 
-I've seen it countless times. A team starts with React and builds a beautiful application. Two years later, they want to migrate to Vue or add a mobile app with React Native. What should be a straightforward task becomes a six-month rewrite because their business logic is scattered throughout their components. Their domain models are tangled with UI state. Their data fetching is hardcoded into lifecycle methods.
+MVVM isn't just another architectural pattern—it's a systematic approach to separating concerns in frontend applications. By dividing your application into three distinct layers (Model, View, and ViewModel), MVVM enables:
 
-This isn't a framework problem—it's an architecture problem.
+- **Framework independence**: Write business logic once, use it everywhere
+- **Testability**: Test business logic without rendering UI
+- **Maintainability**: Change UI frameworks without rewriting logic
+- **Team collaboration**: Frontend and business logic teams work independently
 
-In this chapter, we'll examine why modern frontend development has drifted away from proven architectural patterns, what we've lost in that drift, and why frameworks alone can't solve the fundamental challenges of building maintainable software.
+Let's see these benefits in action using real code from the GreenWatch greenhouse monitoring system.
 
-## 2.1 The Framework-First Mindset
+## Problem 1: Framework Lock-In
 
-### 2.1.1 How We Got Here
+### The Traditional Approach
 
-Let's start with a simple observation: when React introduced JSX and the component model in 2013, it fundamentally changed how we think about building UIs. Instead of writing jQuery selectors and manually manipulating the DOM, we could declare what our UI should look like and let React handle the updates. This was genuinely transformative.
+In traditional frontend applications, business logic is tightly coupled to the UI framework. Consider a typical React component that manages sensor data:
 
-But somewhere along the way, we made a subtle yet critical mistake. We stopped thinking about _architecture_ and started thinking about _components_.
-
-Consider this typical React component from a real-world application:
-
-```typescript
-function UserProfile() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+```tsx
+// Traditional approach: Business logic mixed with UI
+function SensorDashboard() {
+  const [sensors, setSensors] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('/api/users/me')
-      .then(res => res.json())
-      .then(data => {
-        setUser(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
-      });
+    const fetchSensors = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/sensors');
+        const data = await response.json();
+        setSensors(data);
+      } catch (err) {
+        setError(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSensors();
   }, []);
-
-  if (loading) return <Spinner />;
-  if (error) return <ErrorMessage message={error} />;
 
   return (
     <div>
-      <h1>{user.name}</h1>
-      <p>{user.email}</p>
-      <button onClick={() => {
-        fetch('/api/users/me', {
-          method: 'PUT',
-          body: JSON.stringify({ ...user, name: 'New Name' })
-        });
-      }}>
-        Update Name
-      </button>
+      {isLoading && <p>Loading...</p>}
+      {error && <p>Error: {error.message}</p>}
+      {sensors.map(sensor => (
+        <div key={sensor.id}>{sensor.type}</div>
+      ))}
     </div>
   );
 }
 ```
 
-This looks reasonable at first glance. It's concise, it works, and it's exactly what you'll find in thousands of React tutorials. But let's examine what we've actually built:
+**Problems with this approach:**
+- Business logic (data fetching, state management, error handling) is embedded in React
+- Cannot reuse this logic in Vue, Angular, or other frameworks
+- Cannot test the logic without rendering React components
+- Switching frameworks means rewriting everything
 
-1. **Business logic lives in the UI layer.** Our data fetching, error handling, and state management are all embedded directly in the component.
-2. **No domain model.** We're working with raw API responses rather than domain entities with behavior and validation.
-3. **Impossible to test properly.** To test this component, we need to mock `fetch`, render the actual component, and wait for async updates. We can't test the business logic in isolation.
-4. **Framework lock-in.** Every line of this code is React-specific. Moving to Vue or Angular means rewriting everything.
-5. **Tight coupling.** The component knows about API endpoints, response structures, and error handling strategies.
+### The MVVM Solution
 
-This isn't a critique of React—you'll find identical problems in Vue, Angular, and Svelte codebases. The framework doesn't force this approach; we've simply normalized it.
-
-### 2.1.2 The Productivity Paradox
-
-Here's where things get interesting. That component above? A competent developer can write it in fifteen minutes. It works immediately. There are no additional files, no abstractions, no "over-engineering." Ship it.
-
-This is the productivity trap.
-
-What we've gained in short-term velocity, we've lost in long-term maintainability. Six months later, when we need to:
-
-- Add offline support
-- Implement optimistic updates
-- Share this logic with a mobile app
-- Write comprehensive tests
-- Add field-level validation
-- Implement undo/redo functionality
-
-...we discover that our "simple" component has become a maintenance nightmare. Every new requirement means surgically modifying component logic, adding more state variables, and praying we don't break existing functionality.
-
-The framework gave us the tools to build quickly. It didn't give us the architecture to build well.
-
-### 2.1.3 The Illusion of Separation
-
-Modern frameworks have introduced patterns that look like architecture but don't provide its benefits. Let's examine some common approaches:
-
-**Custom Hooks (React)**
+MVVM solves this by extracting business logic into a framework-agnostic ViewModel. Here's the actual `SensorViewModel` from GreenWatch:
 
 ```typescript
-function useUser() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+// packages/view-models/src/SensorViewModel.ts
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { SensorListSchema, type SensorListData, SensorModel } from '@repo/models';
 
-  useEffect(() => {
-    fetch("/api/users/me")
-      .then((res) => res.json())
-      .then(setUser)
-      .finally(() => setLoading(false));
-  }, []);
-
-  return { user, loading };
-}
-```
-
-This looks better—we've extracted the logic from the component. But we haven't actually achieved separation. This hook is still:
-
-- Framework-specific (React)
-- Tightly coupled to the fetch API
-- Untestable without mocking React's runtime
-- Mixing data fetching with state management
-
-**Composables (Vue)**
-
-```typescript
-function useUser() {
-  const user = ref(null);
-  const loading = ref(true);
-
-  onMounted(async () => {
-    user.value = await fetch("/api/users/me").then((r) => r.json());
-    loading.value = false;
-  });
-
-  return { user, loading };
-}
-```
-
-Same pattern, same problems. Different framework.
-
-**Services (Angular)**
-
-```typescript
-@Injectable()
-class UserService {
-  getUser() {
-    return this.http.get("/api/users/me");
+export class SensorViewModel extends RestfulApiViewModel<SensorListData, typeof SensorListSchema> {
+  constructor(model: SensorModel) {
+    super(model);
   }
 }
+
+const sensorModel = new SensorModel();
+export const sensorViewModel = new SensorViewModel(sensorModel);
+export type { SensorListData };
 ```
 
-Angular gets closer with dependency injection and services, but even here, we often see business logic leaking into components through RxJS operators and template bindings.
+This ViewModel is **completely framework-agnostic**. It doesn't import React, Vue, or any UI framework. It exposes reactive observables (`data$`, `isLoading$`, `error$`) that any framework can consume.
 
-These patterns provide _code organization_. They don't provide _architectural separation_. There's a critical difference.
+### Using the Same ViewModel in React
 
-## 2.2 What We've Lost
+Here's how the React implementation consumes the ViewModel:
 
-### 2.2.1 Testability
+```tsx
+// apps/mvvm-react/src/components/SensorList.tsx
+import { useEffect } from 'react';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { useObservable } from '../hooks/useObservable';
 
-Let's be direct: most frontend code isn't tested properly. Not because developers don't care about testing, but because the architectures we've built make testing prohibitively difficult.
+export function SensorList() {
+  const sensors = useObservable(sensorViewModel.data$, []);
 
-Consider testing that first `UserProfile` component. You have three options:
+  useEffect(() => {
+    const fetchData = async () => {
+      await sensorViewModel.fetchCommand.execute();
+    };
+    fetchData();
+  }, []);
 
-**Option 1: Integration Tests**
+  return (
+    <div className="card">
+      <h1 className="card-title">Sensors</h1>
+      {sensors && sensors.length > 0 ? (
+        <ul className="card-content list">
+          {sensors.map((sensor) => (
+            <li key={sensor.id} className="list-item">
+              {sensor.greenhouse.name} {sensor.type} (Status: {sensor.status})
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No sensors found or still loading...</p>
+      )}
+    </div>
+  );
+}
+```
 
-```typescript
-test('displays user profile', async () => {
-  // Mock fetch
+The React component is now a **"dumb view"**—it only handles rendering. All business logic lives in the ViewModel.
+
+### Using the Same ViewModel in Vue
+
+Here's the exact same ViewModel used in Vue:
+
+```vue
+<!-- apps/mvvm-vue/src/components/SensorList.vue -->
+<template>
+  <div class="card">
+    <h4 class="card-title">Sensors List</h4>
+    <div v-if="isLoading">
+      <p class="content">Loading sensors...</p>
+    </div>
+    <div v-else-if="filteredSensors && filteredSensors.length > 0">
+      <ul class="card-content list">
+        <li v-for="sensor in filteredSensors" :key="sensor.id" class="list-item">
+          Sensor Type: {{ sensor.type }}
+          <span v-if="sensor.greenhouse"> | Greenhouse: {{ sensor.greenhouse.name }}</span>
+          (Status: {{ sensor.status || 'N/A' }})
+        </li>
+      </ul>
+    </div>
+    <div v-else>
+      <p>No sensors found.</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+const isLoading = useObservable(sensorViewModel.isLoading$, true);
+const allSensors = useObservable(sensorViewModel.data$, []);
+
+onMounted(() => {
+  sensorViewModel.fetchCommand.execute();
+});
+</script>
+```
+
+**Notice what's identical:**
+- Same `sensorViewModel` import
+- Same `data$` and `isLoading$` observables
+- Same `fetchCommand.execute()` method
+- Zero business logic duplication
+
+**What's different:**
+- Only the UI rendering (JSX vs Vue template)
+- Framework-specific subscription patterns (`useObservable` hook)
+
+This is the power of MVVM: **write business logic once, use it in any framework**.
+
+## Problem 2: Untestable Business Logic
+
+### The Traditional Testing Challenge
+
+Testing the traditional React component requires:
+- Rendering the component with a testing library
+- Mocking fetch API calls
+- Simulating loading states
+- Asserting on DOM elements
+
+```tsx
+// Traditional testing: Complex and brittle
+test('loads sensors', async () => {
   global.fetch = jest.fn(() =>
     Promise.resolve({
-      json: () => Promise.resolve({ name: 'John', email: 'john@example.com' })
+      json: () => Promise.resolve([{ id: 1, type: 'temperature' }])
     })
   );
-
-  render(<UserProfile />);
-
+  
+  render(<SensorDashboard />);
+  expect(screen.getByText('Loading...')).toBeInTheDocument();
   await waitFor(() => {
-    expect(screen.getByText('John')).toBeInTheDocument();
+    expect(screen.getByText('temperature')).toBeInTheDocument();
   });
 });
 ```
 
-This works, but it's slow, brittle, and tests too much at once. We're testing React's rendering, our component logic, and the data fetching all in one test. When this fails, we don't know where the problem is.
+This test is slow, brittle, and tightly coupled to React.
 
-**Option 2: Mock Everything**
+### The MVVM Testing Advantage
 
-```typescript
-jest.mock("react", () => ({
-  ...jest.requireActual("react"),
-  useState: jest.fn(),
-  useEffect: jest.fn(),
-}));
-```
-
-Now we're mocking React itself. This is madness. We're not testing our code anymore—we're testing our mocks.
-
-**Option 3: Don't Test**
-
-This is what most teams choose. Not explicitly, but implicitly. The friction is too high, so they focus on E2E tests and hope for the best.
-
-Compare this to a properly architected ViewModel:
+With MVVM, you test the ViewModel directly—no UI rendering required:
 
 ```typescript
-class UserProfileViewModel {
-  private _user = new BehaviorSubject<User | null>(null);
-  private _loading = new BehaviorSubject<boolean>(true);
-
-  user$ = this._user.asObservable();
-  loading$ = this._loading.asObservable();
-
-  constructor(private userRepository: IUserRepository) {
-    this.loadUser();
-  }
-
-  private async loadUser() {
-    try {
-      const user = await this.userRepository.getCurrentUser();
-      this._user.next(user);
-    } finally {
-      this._loading.next(false);
-    }
-  }
-}
-```
-
-Testing this is straightforward:
-
-```typescript
-test("loads user on initialization", async () => {
-  const mockRepo = {
-    getCurrentUser: jest.fn(() =>
-      Promise.resolve(new User("John", "john@example.com"))
-    ),
-  };
-
-  const viewModel = new UserProfileViewModel(mockRepo);
-
-  // Wait for async operation
-  await new Promise((resolve) => setTimeout(resolve, 0));
-
-  const user = await firstValueFrom(viewModel.user$);
-  expect(user?.name).toBe("John");
-  expect(mockRepo.getCurrentUser).toHaveBeenCalledTimes(1);
+// Testing the ViewModel: Fast and framework-agnostic
+test('SensorViewModel loads sensor data', async () => {
+  const viewModel = new SensorViewModel(mockSensorModel);
+  
+  // Subscribe to observables
+  const dataValues: any[] = [];
+  viewModel.data$.subscribe(data => dataValues.push(data));
+  
+  // Execute command
+  await viewModel.fetchCommand.execute();
+  
+  // Assert on business logic
+  expect(dataValues).toHaveLength(2); // null, then data
+  expect(dataValues[1]).toHaveLength(3); // 3 sensors
+  expect(dataValues[1][0].type).toBe('temperature');
 });
 ```
 
-No framework runtime. No component rendering. No DOM. Just pure business logic testing. This test runs in milliseconds and tells us exactly what we need to know: does our ViewModel correctly orchestrate data loading?
+**Benefits:**
+- No DOM rendering (10-100x faster)
+- No framework dependencies
+- Tests pure business logic
+- Same tests work regardless of UI framework
 
-### 2.2.2 Framework Independence
+## Problem 3: Reactive State Management
 
-Here's a question: if React became unmaintained tomorrow (unlikely, but stay with me), how much of your codebase would you need to rewrite?
+### The Challenge of State Synchronization
 
-For most applications, the answer is: nearly everything.
+Modern applications need reactive state—when data changes, the UI should update automatically. Traditional approaches require manual state management:
 
-This isn't because React is bad—it's because we've built our entire application _in_ React rather than building our application _with_ React. There's a fundamental difference.
-
-Your business logic shouldn't care whether it's running in React, Vue, Angular, or a CLI tool. User validation rules don't change based on whether you're rendering with JSX or template syntax. Domain models don't care about component lifecycles.
-
-Yet we've built architectures where these concerns are inseparable. The framework isn't a detail—it's the foundation. When the framework changes (and it will), everything must change.
-
-### 2.2.3 Domain-Driven Design
-
-Domain-Driven Design (DDD) emerged from Eric Evans' observation that the most successful software projects maintain a clear, sophisticated model of their business domain. The code should reflect how domain experts think and talk about the problem space.
-
-In modern frontend development, we've largely abandoned this principle. Instead of domain models, we have:
-
-- API response objects
-- Form state
-- Redux/Vuex state shapes
-- Component props interfaces
-
-Consider a typical e-commerce scenario. Here's what we often see:
-
-```typescript
-interface CartItem {
-  productId: string;
-  quantity: number;
-  price: number;
-}
-
-function Cart() {
-  const [items, setItems] = useState<CartItem[]>([]);
-
-  const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-  return <div>Total: ${total}</div>;
+```tsx
+// Manual state updates: Error-prone
+function updateSensor(id, newData) {
+  setSensors(prev => prev.map(s => 
+    s.id === id ? { ...s, ...newData } : s
+  ));
 }
 ```
 
-This works, but it's not a domain model. Where's the business logic? Where's the validation? What happens when we need to apply discounts, handle inventory constraints, or implement complex pricing rules?
+### MVVM's Reactive Foundation
 
-A proper domain model looks different:
+MVVM uses reactive observables at its core. Here's the `BaseModel` that powers all GreenWatch models:
 
 ```typescript
-class Cart {
-  private items: Map<string, CartItem> = new Map();
+// packages/mvvm-core/src/models/BaseModel.ts
+export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
+  protected _data$ = new BehaviorSubject<TData | null>(null);
+  public readonly data$: Observable<TData | null> = this._data$.asObservable();
 
-  addItem(product: Product, quantity: number): Result<void, CartError> {
-    if (quantity <= 0) {
-      return Result.error(new CartError("Quantity must be positive"));
-    }
+  protected _isLoading$ = new BehaviorSubject<boolean>(false);
+  public readonly isLoading$: Observable<boolean> = this._isLoading$.asObservable();
 
-    const existingItem = this.items.get(product.id);
-    if (existingItem) {
-      return existingItem.increaseQuantity(quantity);
-    }
+  protected _error$ = new BehaviorSubject<any>(null);
+  public readonly error$: Observable<any> = this._error$.asObservable();
 
-    this.items.set(product.id, new CartItem(product, quantity));
-    return Result.ok();
+  public setData(newData: TData | null): void {
+    this._data$.next(newData);
   }
 
-  calculateTotal(): Money {
-    let total = Money.zero();
-    for (const item of this.items.values()) {
-      total = total.add(item.getSubtotal());
-    }
-    return total;
-  }
-}
-
-class CartItem {
-  constructor(
-    private readonly product: Product,
-    private quantity: number
-  ) {}
-
-  increaseQuantity(amount: number): Result<void, CartError> {
-    const newQuantity = this.quantity + amount;
-    if (newQuantity > this.product.maxOrderQuantity) {
-      return Result.error(new CartError("Exceeds maximum order quantity"));
-    }
-    this.quantity = newQuantity;
-    return Result.ok();
+  public setLoading(status: boolean): void {
+    this._isLoading$.next(status);
   }
 
-  getSubtotal(): Money {
-    return this.product.price.multiply(this.quantity);
+  public setError(err: any): void {
+    this._error$.next(err);
   }
 }
 ```
 
-Notice what we've gained:
+**Key features:**
+- **BehaviorSubject**: Holds current state and emits to new subscribers
+- **Observable**: Read-only stream that Views subscribe to
+- **Automatic updates**: When `setData()` is called, all subscribers update automatically
 
-1. **Behavior lives with data.** The `Cart` knows how to add items, not just hold them.
-2. **Validation is built-in.** Business rules are enforced at the model level.
-3. **Type safety.** We're using `Money` instead of `number`, preventing currency errors.
-4. **Testability.** We can test cart logic without any UI framework.
-5. **Rich domain language.** Methods like `increaseQuantity` and `getSubtotal` reflect how domain experts talk.
+### Framework-Specific Subscription Patterns
 
-This model can be used with React, Vue, Angular, or a backend service. It's framework-agnostic because it represents the actual business domain, not UI concerns.
+Each framework subscribes to these observables using its own patterns:
 
-## 2.3 The Testing Crisis
-
-### 2.3.1 The Current State
-
-Let's examine real numbers from a survey of 500 frontend codebases we analyzed:
-
-- **Average test coverage:** 42%
-- **Percentage with unit tests for business logic:** 23%
-- **Percentage with only E2E tests:** 61%
-- **Average test execution time:** 8.5 minutes
-
-These numbers tell a story. Teams want to test their code, but the architectures they've built make it impractical. So they rely on E2E tests that are slow, flaky, and expensive to maintain.
-
-### 2.3.2 Why Testing Matters
-
-This isn't about test coverage metrics or satisfying some abstract "best practice." Testing is about confidence and velocity.
-
-When you have comprehensive, fast unit tests:
-
-- You can refactor fearlessly
-- New developers can make changes safely
-- Bugs are caught in seconds, not after deployment
-- Documentation comes for free (tests show how code should be used)
-
-When you don't:
-
-- Every change is risky
-- Refactoring is avoided because "it works, don't touch it"
-- Simple bugs slip through to production
-- New team members are afraid to make changes
-
-The difference in team velocity is dramatic. Teams with well-tested codebases move faster over time. Teams without slow down as the codebase grows.
-
-### 2.3.3 The Architecture Connection
-
-Here's the key insight: testing isn't primarily a tooling problem. Tools like Jest, Vitest, and Testing Library are excellent. The problem is architectural.
-
-When your business logic is tangled with framework code, you can't test it in isolation. When your components do everything—data fetching, state management, business logic, and rendering—you can't write focused tests.
-
-The solution isn't better testing tools. It's better architecture.
-
-## 2.4 The Myth of Framework Solutions
-
-### 2.4.1 State Management Libraries
-
-Redux, MobX, Zustand, Pinia, NgRx—we've built an entire ecosystem of state management solutions. These libraries promise to solve our architectural problems by providing "better" ways to manage state.
-
-But state management is a symptom, not the disease.
-
-Consider a typical Redux setup:
-
+**React with hooks:**
 ```typescript
-// Actions
-const FETCH_USER_REQUEST = "FETCH_USER_REQUEST";
-const FETCH_USER_SUCCESS = "FETCH_USER_SUCCESS";
-const FETCH_USER_FAILURE = "FETCH_USER_FAILURE";
-
-// Action Creators
-const fetchUser = () => async (dispatch) => {
-  dispatch({ type: FETCH_USER_REQUEST });
-  try {
-    const response = await fetch("/api/users/me");
-    const data = await response.json();
-    dispatch({ type: FETCH_USER_SUCCESS, payload: data });
-  } catch (error) {
-    dispatch({ type: FETCH_USER_FAILURE, payload: error.message });
-  }
-};
-
-// Reducer
-function userReducer(state = initialState, action) {
-  switch (action.type) {
-    case FETCH_USER_REQUEST:
-      return { ...state, loading: true };
-    case FETCH_USER_SUCCESS:
-      return { ...state, loading: false, user: action.payload };
-    case FETCH_USER_FAILURE:
-      return { ...state, loading: false, error: action.payload };
-    default:
-      return state;
-  }
-}
-```
-
-We've added three files, thirty lines of boilerplate, and introduced new concepts (actions, reducers, thunks). But have we actually solved our architectural problems?
-
-- **Still framework-specific.** This only works with React and Redux.
-- **Still no domain model.** We're managing state, not modeling our domain.
-- **Still mixing concerns.** Data fetching is happening in action creators.
-- **Added complexity.** We now have actions, reducers, and middleware to understand.
-
-Redux is a powerful tool, but it's solving the wrong problem. We don't need better state containers—we need to separate our concerns properly in the first place.
-
-### 2.4.2 The Framework Upgrade Treadmill
-
-Frameworks evolve quickly. React introduced Hooks in 2016, changing how we write components. Vue 3 brought the Composition API. Angular regularly ships major versions with breaking changes.
-
-When your architecture is tied to framework specifics, every framework evolution requires significant refactoring. Consider the progression in React alone:
-
-```typescript
-// 2014: createClass
-const UserProfile = React.createClass({
-  getInitialState() {
-    return { user: null };
-  },
-  componentDidMount() {
-    fetch('/api/users/me').then(/* ... */);
-  },
-  render() {
-    return <div>{this.state.user?.name}</div>;
-  }
-});
-
-// 2016: Class Components
-class UserProfile extends React.Component {
-  state = { user: null };
-
-  componentDidMount() {
-    fetch('/api/users/me').then(/* ... */);
-  }
-
-  render() {
-    return <div>{this.state.user?.name}</div>;
-  }
-}
-
-// 2019: Hooks
-function UserProfile() {
-  const [user, setUser] = useState(null);
+// apps/mvvm-react/src/hooks/useObservable.ts
+export function useObservable<T>(observable: Observable<T>, initialValue: T) {
+  const [value, setValue] = useState<T>(initialValue);
 
   useEffect(() => {
-    fetch('/api/users/me').then(/* ... */);
-  }, []);
+    const subscription = observable.subscribe(setValue);
+    return () => subscription.unsubscribe();
+  }, [observable]);
 
-  return <div>{user?.name}</div>;
-}
-
-// 2024: Server Components (maybe?)
-async function UserProfile() {
-  const user = await fetch('/api/users/me');
-  return <div>{user.name}</div>;
+  return value;
 }
 ```
 
-Each evolution required rewriting components. Not because the business logic changed, but because the framework idioms changed. Teams spent months migrating from class components to Hooks, not to add features, but just to stay current.
+**Vue with Composition API:**
+```typescript
+// apps/mvvm-vue/src/hooks/useObservable.ts
+export function useObservable<T>(observable: Observable<T>, initialValue: any) {
+  const value = ref<T | undefined>(initialValue);
+  const subscription = observable.subscribe({
+    next: (val) => {
+      value.value = val;
+    },
+  });
 
-This is the framework treadmill. When your architecture is framework-first, you're always playing catch-up.
+  onUnmounted(() => {
+    subscription.unsubscribe();
+  });
 
-## 2.5 The Path Forward
+  return value;
+}
+```
 
-### 2.5.1 What We Need
+Both hooks do the same thing—subscribe to an observable and update local state—but use framework-specific APIs. The ViewModel remains unchanged.
 
-The solution isn't to abandon frameworks—they're genuinely useful tools. The solution is to build a proper architecture _around_ frameworks, not _with_ them.
+## Problem 4: Validation and Error Handling
 
-We need:
+### Scattered Validation Logic
 
-1. **Clear separation of concerns.** Business logic separate from UI logic separate from framework code.
-2. **Framework-agnostic core.** Your domain models and business rules shouldn't know about React or Vue.
-3. **Testability by default.** Unit testing should be natural, not a struggle.
-4. **Domain-driven design.** Model your problem domain, not your UI state.
-5. **Reactive patterns.** Handle async operations and state changes declaratively.
+Traditional applications scatter validation across components:
 
-This is where MVVM comes in. Not as a dogmatic pattern, but as a proven architectural approach that addresses these exact problems.
+```tsx
+// Validation mixed with UI
+function SensorForm() {
+  const [errors, setErrors] = useState({});
+  
+  const handleSubmit = (data) => {
+    const newErrors = {};
+    if (!data.type) newErrors.type = 'Type is required';
+    if (data.threshold < 0) newErrors.threshold = 'Must be positive';
+    setErrors(newErrors);
+  };
+}
+```
 
-### 2.5.2 Why MVVM?
+### Centralized Validation with Zod
 
-MVVM (Model-View-ViewModel) emerged from Microsoft's WPF framework, but its principles are universal. It provides:
-
-**Clear Layering:**
-
-- **Model:** Domain entities with business rules
-- **ViewModel:** Presentation logic and state management
-- **View:** Pure UI rendering (your framework components)
-
-**Framework Independence:**
-The Model and ViewModel layers don't depend on any UI framework. They can be used with React today, Vue tomorrow, and Angular next year.
-
-**Testability:**
-Each layer can be tested in isolation. Your business logic tests don't need to render components. Your ViewModel tests don't need to mock the framework.
-
-**Reactive by Nature:**
-MVVM embraces observables and data binding, making it natural to handle async operations, user input, and complex state changes.
-
-We'll explore MVVM in depth throughout this book, but here's a preview of what that `UserProfile` component looks like when properly architected:
+MVVM centralizes validation in the Model layer using Zod schemas:
 
 ```typescript
-// Model Layer - Domain Entity
-class User {
-  constructor(
-    public readonly id: string,
-    public readonly name: string,
-    public readonly email: string
-  ) {}
+// Validation in the Model layer
+export const SensorSchema = z.object({
+  id: z.string(),
+  type: z.enum(['temperature', 'humidity', 'soil_moisture']),
+  status: z.enum(['active', 'inactive', 'error']),
+  threshold: z.number().positive(),
+  greenhouseId: z.string()
+});
 
-  static fromJSON(data: any): User {
-    return new User(data.id, data.name, data.email);
-  }
-}
-
-// Model Layer - Repository Interface
-interface IUserRepository {
-  getCurrentUser(): Promise<User>;
-  updateUser(user: User): Promise<User>;
-}
-
-// ViewModel Layer
-class UserProfileViewModel {
-  private _user = new BehaviorSubject<User | null>(null);
-  private _loading = new BehaviorSubject<boolean>(true);
-  private _error = new BehaviorSubject<string | null>(null);
-
-  user$ = this._user.asObservable();
-  loading$ = this._loading.asObservable();
-  error$ = this._error.asObservable();
-
-  constructor(private repository: IUserRepository) {
-    this.loadUser();
-  }
-
-  private async loadUser() {
-    try {
-      const user = await this.repository.getCurrentUser();
-      this._user.next(user);
-      this._error.next(null);
-    } catch (err) {
-      this._error.next(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      this._loading.next(false);
+export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
+  public validate(data: any): TData {
+    if (!this.schema) {
+      return data as TData;
     }
+    return this.schema.parse(data); // Throws ZodError if invalid
   }
-
-  async updateName(newName: string) {
-    const currentUser = this._user.value;
-    if (!currentUser) return;
-
-    try {
-      const updatedUser = new User(currentUser.id, newName, currentUser.email);
-      await this.repository.updateUser(updatedUser);
-      this._user.next(updatedUser);
-    } catch (err) {
-      this._error.next(err instanceof Error ? err.message : 'Update failed');
-    }
-  }
-
-  dispose() {
-    this._user.complete();
-    this._loading.complete();
-    this._error.complete();
-  }
-}
-
-// View Layer - React Component
-function UserProfile() {
-  const viewModel = useMemo(
-    () => new UserProfileViewModel(new UserRepository()),
-    []
-  );
-
-  const user = useObservable(viewModel.user$);
-  const loading = useObservable(viewModel.loading$);
-  const error = useObservable(viewModel.error$);
-
-  useEffect(() => () => viewModel.dispose(), [viewModel]);
-
-  if (loading) return <Spinner />;
-  if (error) return <ErrorMessage message={error} />;
-  if (!user) return null;
-
-  return (
-    <div>
-      <h1>{user.name}</h1>
-      <p>{user.email}</p>
-      <button onClick={() => viewModel.updateName('New Name')}>
-        Update Name
-      </button>
-    </div>
-  );
 }
 ```
 
-Look at what we've achieved:
+**Benefits:**
+- Single source of truth for validation rules
+- Type-safe validation with TypeScript
+- Automatic error messages
+- Reusable across all frameworks
 
-1. **Separation of concerns.** Domain logic (User), presentation logic (ViewModel), and UI (React component) are all separate.
-2. **Framework independence.** The User and UserProfileViewModel can be used with Vue, Angular, or a CLI tool.
-3. **Testability.** We can test the ViewModel without React, and test the User model without any dependencies at all.
-4. **Reactive.** The ViewModel exposes observables that the View subscribes to, providing automatic updates.
-5. **Type safety.** TypeScript enforces our contracts throughout.
+## The Complete Picture
 
-Yes, it's more code upfront. But this code is maintainable, testable, and will scale with your application. The framework-first component we started with? It'll become unmaintainable long before it reaches production scale.
+Let's see how all these pieces work together in a real GreenWatch scenario:
 
-## 2.6 Conclusion
+1. **User action**: User clicks "Refresh Sensors" button in React
+2. **View layer**: React component calls `sensorViewModel.fetchCommand.execute()`
+3. **ViewModel layer**: ViewModel coordinates the operation:
+   - Sets `isLoading$` to `true`
+   - Calls Model's fetch method
+   - Validates response with Zod
+   - Updates `data$` with validated data
+   - Sets `isLoading$` to `false`
+4. **Reactive update**: All subscribed Views (React, Vue, Angular) automatically re-render with new data
 
-The crisis in frontend development isn't a failure of frameworks—frameworks are excellent at what they do. The crisis is that we've stopped thinking architecturally. We've mistaken component organization for software architecture.
+**The same flow works identically in Vue, Angular, Lit, or Vanilla JS** because the ViewModel is framework-agnostic.
 
-Building maintainable applications requires more than knowing React Hooks or Vue's Composition API. It requires understanding separation of concerns, dependency inversion, domain modeling, and testability. These are timeless principles that existed before modern frameworks and will exist after.
+## When MVVM Shines
 
-In the chapters ahead, we'll rebuild our mental model of frontend architecture from the ground up. We'll explore MVVM in depth, see how to model complex domains, learn to write comprehensive tests, and discover how to build applications that are genuinely framework-agnostic.
+MVVM is particularly valuable when:
 
-But first, we needed to establish why this matters. Why the status quo isn't working. Why "just use React" isn't architecture. Why the pain you've felt maintaining large frontend codebases isn't inevitable—it's a consequence of architectural choices we can change.
+- **Building for multiple platforms**: Web, mobile, desktop with shared logic
+- **Framework migration**: Need to switch frameworks without rewriting logic
+- **Large teams**: Frontend and business logic teams work independently
+- **Complex business logic**: Logic is too complex to mix with UI
+- **High test coverage**: Need fast, reliable unit tests for business logic
 
-The path forward requires us to think differently. Not to reject frameworks, but to use them as the interchangeable tools they should be. To build our applications _with_ frameworks, not _in_ them.
+## When MVVM Might Be Overkill
 
-Let's begin.
+MVVM adds architectural overhead. Consider simpler patterns for:
+
+- **Simple CRUD apps**: Minimal business logic, framework-specific is fine
+- **Prototypes**: Speed matters more than architecture
+- **Single-framework projects**: No plans to support multiple frameworks
+- **Small teams**: Overhead of separation isn't worth it
+
+## Key Takeaways
+
+1. **MVVM separates concerns**: Model (data), View (UI), ViewModel (presentation logic)
+2. **Framework independence**: Write business logic once, use it in any framework
+3. **Testability**: Test business logic without rendering UI (10-100x faster)
+4. **Reactive state**: Observables provide automatic UI updates
+5. **Centralized validation**: Zod schemas in Models ensure data integrity
+6. **Real-world proven**: GreenWatch demonstrates MVVM across React, Vue, Angular, Lit, and Vanilla JS
+
+## What's Next
+
+Now that you understand *why* MVVM matters, the next chapter dives deep into the fundamentals: the three layers of MVVM, their responsibilities, and how data flows through the architecture. We'll build a complete mental model of MVVM before implementing it in code.
+
+---
+
+**Code References:**
+- `packages/view-models/src/SensorViewModel.ts` - Framework-agnostic ViewModel
+- `apps/mvvm-react/src/components/SensorList.tsx` - React implementation
+- `apps/mvvm-vue/src/components/SensorList.vue` - Vue implementation
+- `packages/mvvm-core/src/models/BaseModel.ts` - Reactive Model foundation
+- `apps/mvvm-react/src/hooks/useObservable.ts` - React observable hook
+- `apps/mvvm-vue/src/hooks/useObservable.ts` - Vue observable composable
