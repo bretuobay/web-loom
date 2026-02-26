@@ -1,0 +1,893 @@
+---
+id: "vanilla-javascript-implementation"
+title: Vanilla JavaScript Implementation
+section: Framework Implementations
+---
+
+# Chapter 12: Vanilla JavaScript Implementation
+
+In the previous four chapters, we explored MVVM implementations in React, Vue, Angular, and Lit—each demonstrating how ViewModels integrate with different frameworks and libraries. React used custom hooks, Vue used composables, Angular leveraged dependency injection with the async pipe, and Lit used reactive controllers with web components. Now we arrive at the ultimate proof of framework independence: **Vanilla JavaScript with no framework at all**.
+
+This chapter demonstrates that MVVM architecture doesn't require any framework. The same ViewModels we've been using throughout this book—`GreenHouseViewModel`, `SensorViewModel`, `SensorReadingViewModel`, and `ThresholdAlertViewModel`—work perfectly with plain JavaScript, direct DOM manipulation, and EJS templates. We'll extract real implementations from `apps/mvvm-vanilla/` in the Web Loom monorepo.
+
+By the end of this chapter, you'll understand that MVVM is fundamentally about **separation of concerns**, not about frameworks. The patterns we've learned apply universally, whether you're using the latest framework or writing framework-free code.
+
+## 12.1 The Vanilla JavaScript Approach
+
+Building MVVM applications without a framework requires us to handle manually what frameworks do automatically:
+
+1. **Direct Observable Subscriptions**: Subscribe to ViewModel observables using RxJS `.subscribe()` directly
+2. **Manual DOM Manipulation**: Update the DOM imperatively when data changes
+3. **Template Rendering**: Use EJS templates to generate HTML from data
+4. **Subscription Cleanup**: Track and unsubscribe from observables to prevent memory leaks
+5. **Event Handling**: Attach event listeners manually to DOM elements
+
+The vanilla JavaScript implementation is more verbose than framework-based approaches, but it's also more explicit. Every step is visible, making it an excellent learning tool for understanding what frameworks abstract away.
+
+Here's the high-level architecture:
+
+```
+ViewModels (framework-agnostic)
+       ↓
+Direct .subscribe() calls
+       ↓
+Update application state
+       ↓
+Re-render EJS templates
+       ↓
+Update DOM with innerHTML
+```
+
+
+## 12.2 Application Bootstrap: Importing ViewModels
+
+The vanilla JavaScript application starts by importing the same ViewModels used in all previous framework implementations. There's no framework-specific setup—just direct imports:
+
+```typescript
+// apps/mvvm-vanilla/src/main.ts
+import '@repo/shared/styles';
+
+// View Models - identical to React, Vue, Angular, Lit
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+
+// App modules
+import { initRouter } from './app/router';
+import { subscribeToUpdates } from './app/subscriptions';
+import { renderLayout } from './app/ui';
+
+async function init() {
+  // Subscribe to updates first to react to data changes
+  subscribeToUpdates();
+
+  // Initial layout render (will be updated when navigation data arrives)
+  await renderLayout();
+
+  // Fetch initial data
+  await Promise.all([
+    greenHouseViewModel.fetchCommand.execute(),
+    sensorViewModel.fetchCommand.execute(),
+    sensorReadingViewModel.fetchCommand.execute(),
+    thresholdAlertViewModel.fetchCommand.execute(),
+  ]);
+
+  // Initialize the router
+  initRouter();
+}
+
+init();
+```
+
+This initialization code is remarkably similar to what we saw in React, Vue, Angular, and Lit. The key difference is that we're not wrapping ViewModels in framework-specific providers or services—we're using them directly.
+
+**Key Points**:
+
+1. **Same ViewModels**: The imports are identical to all previous frameworks
+2. **Direct Command Execution**: We call `.execute()` on ViewModel commands without any framework wrapper
+3. **Manual Orchestration**: We explicitly control the initialization sequence (subscribe → render → fetch → route)
+4. **No Framework Boilerplate**: No `createApp()`, `bootstrapApplication()`, or `ReactDOM.render()`
+
+
+## 12.3 Application State Management
+
+Unlike frameworks that provide reactive state management, vanilla JavaScript requires us to manage state explicitly. We create a simple state object to hold the current data:
+
+```typescript
+// apps/mvvm-vanilla/src/app/state.ts
+import type { GreenhouseListData } from '@repo/view-models/GreenHouseViewModel';
+import type { SensorListData } from '@repo/view-models/SensorViewModel';
+import type { SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
+import type { ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
+
+export const state = {
+  greenHouses: [] as GreenhouseListData,
+  sensors: [] as SensorListData,
+  sensorReadings: [] as SensorReadingListData,
+  thresholdAlerts: [] as ThresholdAlertListData,
+  navigation: [] as any[],
+};
+```
+
+This state object serves as a cache of the latest data from ViewModels. When ViewModel observables emit new values, we update this state and trigger re-renders.
+
+**Why We Need This**:
+
+- **Synchronous Access**: EJS templates need synchronous data access, but observables are asynchronous
+- **Routing Integration**: The router needs to access current data when rendering views
+- **Centralized State**: A single source of truth for the current application state
+
+This pattern is similar to what frameworks do internally—they maintain a state tree and re-render when it changes. We're just doing it manually.
+
+
+## 12.4 Direct Observable Subscriptions
+
+The heart of the vanilla JavaScript MVVM implementation is the subscription module. This is where we subscribe directly to ViewModel observables and update the DOM when data changes:
+
+```typescript
+// apps/mvvm-vanilla/src/app/subscriptions.ts
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+import { navigationViewModel } from '@repo/shared/view-models/NavigationViewModel';
+
+import { state } from './state';
+import { renderLayout, renderCard, renderTemplate } from './ui';
+import { renderSensorReadingsChart } from './chart';
+import { attachGreenhouseFormListeners } from './listeners';
+import { router } from './router';
+
+const app = document.getElementById('app')!;
+const DASHBOARD_VIEW = 'dashboard';
+
+function getActiveView() {
+  return (router.currentRoute.meta?.view as string | undefined) ?? router.currentRoute.path;
+}
+
+export function subscribeToUpdates() {
+  navigationViewModel.navigationList.items$.subscribe((navigation) => {
+    console.log('Navigation data received:', navigation);
+    state.navigation = navigation || [];
+    renderLayout();
+  });
+
+  greenHouseViewModel.data$.subscribe((greenHouses) => {
+    state.greenHouses = greenHouses || [];
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
+      renderCard('greenhouse-card-container', '/src/views/GreenhouseCard.ejs', { greenHouses });
+    } else if (view === 'greenhouses') {
+      renderTemplate('/src/views/GreenhouseList.ejs', { greenHouses }).then((html) => {
+        app.innerHTML = html;
+        attachGreenhouseFormListeners();
+      });
+    }
+  });
+
+  sensorViewModel.data$.subscribe((sensors) => {
+    state.sensors = sensors || [];
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
+      renderCard('sensor-card-container', '/src/views/SensorCard.ejs', { sensors });
+    } else if (view === 'sensors') {
+      renderTemplate('/src/views/SensorList.ejs', { sensors }).then((html) => (app.innerHTML = html));
+    }
+  });
+
+  sensorReadingViewModel.data$.subscribe((sensorReadings) => {
+    state.sensorReadings = sensorReadings || [];
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
+      renderCard('sensor-reading-card-container', '/src/views/SensorReadingCard.ejs', { sensorReadings }).then(() => {
+        renderSensorReadingsChart(sensorReadings || []);
+      });
+    } else if (view === 'sensor-readings') {
+      renderTemplate('/src/views/SensorReadingList.ejs', { sensorReadings }).then((html) => (app.innerHTML = html));
+    }
+  });
+
+  thresholdAlertViewModel.data$.subscribe((thresholdAlerts) => {
+    state.thresholdAlerts = thresholdAlerts || [];
+    const view = getActiveView();
+    if (view === DASHBOARD_VIEW) {
+      renderCard('threshold-alert-card-container', '/src/views/ThresholdAlertCard.ejs', { thresholdAlerts });
+    } else if (view === 'threshold-alerts') {
+      renderTemplate('/src/views/ThresholdAlertList.ejs', { thresholdAlerts }).then((html) => (app.innerHTML = html));
+    }
+  });
+}
+```
+
+
+Let's break down the subscription pattern:
+
+**1. Direct Observable Subscription**:
+```typescript
+greenHouseViewModel.data$.subscribe((greenHouses) => {
+  state.greenHouses = greenHouses || [];
+  // ... trigger re-render
+});
+```
+We call `.subscribe()` directly on the ViewModel's `data$` observable. No hooks, no composables, no async pipe—just the raw RxJS subscription. This is the most explicit form of ViewModel consumption we've seen.
+
+**2. State Update**:
+```typescript
+state.greenHouses = greenHouses || [];
+```
+When new data arrives, we update the application state. This makes the data available synchronously for templates and routing.
+
+**3. Conditional Rendering**:
+```typescript
+const view = getActiveView();
+if (view === DASHBOARD_VIEW) {
+  renderCard('greenhouse-card-container', '/src/views/GreenhouseCard.ejs', { greenHouses });
+} else if (view === 'greenhouses') {
+  renderTemplate('/src/views/GreenhouseList.ejs', { greenHouses }).then((html) => {
+    app.innerHTML = html;
+    attachGreenhouseFormListeners();
+  });
+}
+```
+We check which view is currently active and render the appropriate template. This is manual routing integration—frameworks handle this automatically, but here we control it explicitly.
+
+**4. DOM Update**:
+```typescript
+app.innerHTML = html;
+```
+We update the DOM directly using `innerHTML`. This is the most straightforward (though not the most efficient) way to update the UI. Frameworks use virtual DOM or fine-grained reactivity for better performance, but for many applications, direct DOM manipulation is sufficient.
+
+**5. Event Listener Reattachment**:
+```typescript
+attachGreenhouseFormListeners();
+```
+After updating `innerHTML`, we need to reattach event listeners because the old DOM elements were destroyed. This is a key difference from frameworks—they preserve event listeners across re-renders.
+
+
+## 12.5 Template Rendering with EJS
+
+Vanilla JavaScript doesn't have a built-in templating system, so we use EJS (Embedded JavaScript) to generate HTML from data. EJS is a simple templating language that lets us embed JavaScript expressions in HTML:
+
+```typescript
+// apps/mvvm-vanilla/src/app/ui.ts
+import ejs from 'ejs';
+import { state } from './state';
+
+const header = document.getElementById('header')!;
+const footer = document.getElementById('footer')!;
+
+export async function renderTemplate(templatePath: string, data: object) {
+  const template = await fetch(templatePath).then((res) => res.text());
+  return ejs.render(template, data);
+}
+
+export async function renderCard(containerId: string, templatePath: string, data: object) {
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.innerHTML = await renderTemplate(templatePath, data);
+  }
+}
+
+export async function renderLayout() {
+  console.log('Rendering layout with navigation:', state.navigation);
+  header.innerHTML = await renderTemplate('/src/views/layout/Header.ejs', { navigation: state.navigation });
+  footer.innerHTML = await renderTemplate('/src/views/layout/Footer.ejs', {});
+}
+```
+
+**Key Functions**:
+
+1. **`renderTemplate()`**: Fetches an EJS template file, renders it with data, and returns the HTML string
+2. **`renderCard()`**: Renders a template into a specific DOM container by ID
+3. **`renderLayout()`**: Renders the header and footer with navigation data
+
+Here's an example EJS template for the sensor card:
+
+```html
+<!-- apps/mvvm-vanilla/src/views/SensorCard.ejs -->
+<div class="card">
+  <a href="/sensors" class="card-header-link">
+    <h3 class="card-title">Sensors</h3>
+  </a>
+  <p class="card-content">Total: <%= sensors.length %></p>
+</div>
+```
+
+The `<%= sensors.length %>` syntax embeds a JavaScript expression in the HTML. EJS evaluates this expression and inserts the result into the final HTML.
+
+Here's a more complex template showing a list:
+
+```html
+<!-- apps/mvvm-vanilla/src/views/SensorList.ejs -->
+<a href="/" class="back-button">
+  <img src="/public/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
+</a>
+<section class="flex-container flex-row">
+  <div class="card" style="max-width: 800px;">
+    <h1 class="card-title">Sensors</h1>
+    <% if (sensors && sensors.length > 0) { %>
+      <ul class="card-content list">
+        <% sensors.forEach(function(sensor) { %>
+          <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
+            <span><%= sensor.greenhouse.name %></span>
+            <span><%= sensor.type %></span>
+            <span><%= sensor.status %></span>
+          </li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p>No sensors found or still loading...</p>
+    <% } %>
+  </div>
+</section>
+```
+
+**EJS Syntax**:
+
+- `<%= expression %>`: Outputs the expression value (escaped)
+- `<% statement %>`: Executes JavaScript statement (no output)
+- `<%- expression %>`: Outputs the expression value (unescaped)
+
+This template demonstrates conditional rendering (`if`), iteration (`forEach`), and data binding—all using plain JavaScript within the template.
+
+
+## 12.6 Manual Event Handling and ViewModel Commands
+
+One of the most challenging aspects of vanilla JavaScript MVVM is event handling. Frameworks provide declarative event binding, but in vanilla JavaScript, we must attach event listeners manually and ensure they're reattached after DOM updates.
+
+Here's the greenhouse form event handling implementation:
+
+```typescript
+// apps/mvvm-vanilla/src/app/listeners.ts (excerpt)
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { state } from './state';
+
+const greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
+
+export function attachGreenhouseFormListeners() {
+  const form = document.getElementById('greenhouse-form') as HTMLFormElement | null;
+  if (!form) {
+    return;
+  }
+
+  const nameInput = form.querySelector<HTMLInputElement>('#name');
+  const locationInput = form.querySelector<HTMLTextAreaElement>('#location');
+  const sizeSelect = form.querySelector<HTMLSelectElement>('#size');
+  const cropTypeInput = form.querySelector<HTMLInputElement>('#cropType');
+
+  if (!nameInput || !locationInput || !sizeSelect || !cropTypeInput) {
+    console.error('Greenhouse form inputs are missing');
+    return;
+  }
+
+  const resetFormState = () => {
+    form.reset();
+    delete form.dataset.editId;
+  };
+
+  const findGreenhouseById = (id?: string) => {
+    if (!id) {
+      return undefined;
+    }
+    return state.greenHouses?.find((gh) => (gh.id ?? '').toString() === id);
+  };
+
+  // Form submission - create or update
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const name = formData.get('name') as string;
+    const location = formData.get('location') as string;
+    const size = formData.get('size') as string;
+    const cropType = formData.get('cropType') as string;
+    const data = { name, location, size, cropType };
+    const editingId = form.dataset.editId;
+
+    if (editingId) {
+      // Update existing greenhouse
+      const greenhouse = findGreenhouseById(editingId);
+      greenHouseViewModel.updateCommand.execute({
+        id: editingId,
+        payload: {
+          ...(greenhouse || { id: editingId }),
+          name,
+          location,
+          size,
+          cropType,
+        },
+      });
+    } else {
+      // Create new greenhouse
+      const duplicateByName = state.greenHouses?.find((gh) => gh.name === name);
+      if (duplicateByName) {
+        console.error('Greenhouse with this name already exists:', name);
+        return;
+      }
+      greenHouseViewModel.createCommand.execute(data);
+    }
+
+    resetFormState();
+  });
+
+  // Delete buttons
+  document.querySelectorAll<HTMLButtonElement>('.button-tiny-delete').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      const id = button.dataset.id;
+      if (!id) {
+        console.error('No ID provided for deletion');
+        return;
+      }
+      greenHouseViewModel.deleteCommand.execute(id);
+      if (form.dataset.editId === id) {
+        resetFormState();
+      }
+    });
+  });
+
+  // Edit buttons
+  document.querySelectorAll<HTMLButtonElement>('.button-tiny-edit').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      const id = button.dataset.id;
+      if (!id) {
+        console.error('No ID provided for editing');
+        return;
+      }
+      const greenhouse = findGreenhouseById(id);
+      if (!greenhouse) {
+        console.error('Greenhouse not found for update:', id);
+        return;
+      }
+      nameInput.value = greenhouse.name;
+      locationInput.value = greenhouse.location;
+      if (greenHouseSizeOptions.includes(greenhouse.size as (typeof greenHouseSizeOptions)[number])) {
+        sizeSelect.value = greenhouse.size;
+      } else {
+        sizeSelect.value = '100sqm';
+      }
+      cropTypeInput.value = greenhouse.cropType || '';
+      form.dataset.editId = id;
+      nameInput.focus();
+    });
+  });
+}
+```
+
+
+Let's break down the event handling pattern:
+
+**1. DOM Element Selection**:
+```typescript
+const form = document.getElementById('greenhouse-form') as HTMLFormElement | null;
+const nameInput = form.querySelector<HTMLInputElement>('#name');
+```
+We use `getElementById` and `querySelector` to find DOM elements. This is manual—frameworks handle element references automatically through refs or template variables.
+
+**2. Event Listener Attachment**:
+```typescript
+form.addEventListener('submit', (event) => {
+  event.preventDefault();
+  // ... handle submission
+});
+```
+We attach event listeners using the native `addEventListener` API. This is the same API frameworks use internally, but we're calling it directly.
+
+**3. ViewModel Command Execution**:
+```typescript
+greenHouseViewModel.createCommand.execute(data);
+// or
+greenHouseViewModel.updateCommand.execute({ id: editingId, payload: { ... } });
+```
+This is identical to how we execute commands in React, Vue, Angular, and Lit. The ViewModel API is the same—only the event handling mechanism differs.
+
+**4. Batch Event Listener Attachment**:
+```typescript
+document.querySelectorAll<HTMLButtonElement>('.button-tiny-delete').forEach((button) => {
+  button.addEventListener('click', (event) => {
+    // ... handle delete
+  });
+});
+```
+We use `querySelectorAll` to find all delete buttons and attach listeners to each one. This is necessary because the buttons are dynamically generated from the template.
+
+**5. Form State Management**:
+```typescript
+form.dataset.editId = id;  // Store editing ID in data attribute
+delete form.dataset.editId;  // Clear editing state
+```
+We use HTML5 data attributes to track form state (whether we're creating or editing). Frameworks typically use component state for this, but data attributes work well for vanilla JavaScript.
+
+**Key Challenge**: This function must be called every time the greenhouse list is re-rendered because `innerHTML` destroys the old DOM elements and their event listeners. This is the main drawback of vanilla JavaScript MVVM—manual event listener management.
+
+
+## 12.7 Routing Without a Framework
+
+The vanilla JavaScript implementation uses a custom router from `@web-loom/router-core`—a framework-agnostic routing library. This demonstrates that routing, like ViewModels, can be framework-independent:
+
+```typescript
+// apps/mvvm-vanilla/src/app/router.ts (excerpt)
+import { createRouter, type RouteDefinition, type RouteMatch } from '@web-loom/router-core';
+import { state } from './state';
+import { renderTemplate, renderCard } from './ui';
+
+const app = document.getElementById('app')!;
+
+type ViewKey = 'dashboard' | 'greenhouses' | 'sensors' | 'sensor-readings' | 'threshold-alerts' | 'not-found';
+
+const routes: RouteDefinition[] = [
+  { path: '/', name: 'home', meta: { view: 'dashboard' as ViewKey } },
+  { path: '/dashboard', name: 'dashboard', meta: { view: 'dashboard' as ViewKey } },
+  { path: '/greenhouses', name: 'greenhouses', meta: { view: 'greenhouses' as ViewKey } },
+  { path: '/sensors', name: 'sensors', meta: { view: 'sensors' as ViewKey } },
+  { path: '/sensor-readings', name: 'sensor-readings', meta: { view: 'sensor-readings' as ViewKey } },
+  { path: '/threshold-alerts', name: 'threshold-alerts', meta: { view: 'threshold-alerts' as ViewKey } },
+  {
+    path: '/:pathMatch(.*)',
+    name: 'not-found',
+    matchStrategy: 'prefix',
+    meta: { view: 'not-found' as ViewKey },
+  },
+];
+
+export const router = createRouter({
+  mode: 'history',
+  routes,
+});
+
+async function renderDashboard(_route: RouteMatch) {
+  app.innerHTML = await renderTemplate('/src/views/Dashboard.ejs', {});
+  renderCard('greenhouse-card-container', '/src/views/GreenhouseCard.ejs', { greenHouses: state.greenHouses });
+  renderCard('sensor-card-container', '/src/views/SensorCard.ejs', { sensors: state.sensors });
+  renderCard('threshold-alert-card-container', '/src/views/ThresholdAlertCard.ejs', {
+    thresholdAlerts: state.thresholdAlerts,
+  });
+  renderCard('sensor-reading-card-container', '/src/views/SensorReadingCard.ejs', {
+    sensorReadings: state.sensorReadings,
+  });
+}
+
+async function renderSensorList(_route: RouteMatch) {
+  app.innerHTML = await renderTemplate('/src/views/SensorList.ejs', { sensors: state.sensors });
+}
+
+// ... other view renderers
+
+function setupLinkInterception() {
+  document.body.addEventListener('click', (event) => {
+    if (isModifiedClick(event)) {
+      return;
+    }
+    const target = event.target as HTMLElement;
+    const anchor = target.closest('a');
+    if (!anchor) {
+      return;
+    }
+    const href = anchor.getAttribute('href');
+    if (!href || href.startsWith('#') || anchor.target === '_blank' || anchor.hasAttribute('download')) {
+      return;
+    }
+    const url = new URL(anchor.href, window.location.origin);
+    if (url.origin !== window.location.origin) {
+      return;
+    }
+    event.preventDefault();
+    router.push(`${url.pathname}${url.search}`).catch((error) => {
+      console.error('Navigation failed', error);
+    });
+  });
+}
+
+export function initRouter() {
+  router.subscribe((route) => {
+    renderRoute(route).catch((error) => {
+      console.error('Failed to render route', error);
+    });
+  });
+
+  setupLinkInterception();
+
+  router.onError((error) => {
+    console.error('Router error', error);
+  });
+}
+```
+
+**Key Routing Patterns**:
+
+1. **Route Definitions**: Similar to Vue Router or React Router—declarative route configuration
+2. **View Renderers**: Each route maps to a render function that updates the DOM
+3. **Link Interception**: We intercept clicks on `<a>` tags and use the router instead of full page reloads
+4. **History API**: The router uses the browser's History API for client-side navigation
+
+This demonstrates that routing, like ViewModels, is a pattern that transcends frameworks. The `@web-loom/router-core` library provides framework-agnostic routing that works with vanilla JavaScript, React, Vue, or any other framework.
+
+
+## 12.8 Comparing All Five Implementations
+
+We've now seen the same GreenWatch application implemented in five different ways: React, Vue, Angular, Lit, and Vanilla JavaScript. Let's compare how each framework consumes ViewModels:
+
+| Aspect | React | Vue | Angular | Lit | Vanilla JS |
+|--------|-------|-----|---------|-----|------------|
+| **ViewModel Import** | Direct import | Direct import | DI with InjectionToken | Direct import | Direct import |
+| **Observable Subscription** | `useEffect` + `.subscribe()` | `watchEffect` + `.subscribe()` | `async` pipe (no manual subscription) | `connectedCallback` + `.subscribe()` | Direct `.subscribe()` |
+| **State Management** | `useState` hook | `ref` / `reactive` | Component properties | `@state` decorator | Plain object |
+| **Re-render Trigger** | `setState` call | Ref assignment | Change detection | Property assignment | Manual `innerHTML` |
+| **Subscription Cleanup** | `useEffect` return function | `watchEffect` return function | `async` pipe auto-cleanup | `disconnectedCallback` | Manual (not shown) |
+| **Template Syntax** | JSX | Vue template | Angular template | Tagged template literal | EJS template |
+| **Event Handling** | JSX event props | `@event` directive | `(event)` binding | `@event` attribute | `addEventListener` |
+| **Command Execution** | `viewModel.command.execute()` | `viewModel.command.execute()` | `viewModel.command.execute()` | `viewModel.command.execute()` | `viewModel.command.execute()` |
+| **Type Safety** | Full TypeScript | Full TypeScript | Full TypeScript | Full TypeScript | Full TypeScript |
+| **Bundle Size Impact** | React runtime | Vue runtime | Angular runtime | Lit runtime (~5KB) | No framework |
+| **Learning Curve** | Hooks concepts | Composition API | DI + RxJS | Web Components | DOM APIs |
+
+**Key Observations**:
+
+1. **ViewModel API is Identical**: Every framework calls `viewModel.command.execute()` the same way. The ViewModel layer is truly framework-agnostic.
+
+2. **Subscription Patterns Vary**: Each framework has its own way to subscribe to observables, but they all achieve the same result—reactive UI updates.
+
+3. **Angular is Most Concise**: The `async` pipe eliminates manual subscription management, making Angular code the most concise for RxJS-based ViewModels.
+
+4. **Vanilla JS is Most Explicit**: Every step is visible—subscriptions, DOM updates, event listeners. This makes it an excellent learning tool.
+
+5. **Lit is Most Standards-Based**: Lit components are actual web components that work anywhere, with minimal runtime overhead.
+
+6. **React and Vue are Most Popular**: Despite requiring more boilerplate than Angular, React and Vue are widely adopted and have large ecosystems.
+
+
+## 12.9 The Dashboard View: Putting It All Together
+
+Let's see how all these pieces come together in the dashboard view. The dashboard displays cards for greenhouses, sensors, sensor readings, and threshold alerts—all powered by ViewModels:
+
+```html
+<!-- apps/mvvm-vanilla/src/views/Dashboard.ejs -->
+<div class="dashboard-container">
+  <h2>Dashboard</h2>
+  <div class="flex-container">
+    <div class="flex-item" id="greenhouse-card-container"></div>
+    <div class="flex-item" id="sensor-card-container"></div>
+    <div class="flex-item" id="threshold-alert-card-container"></div>
+    <div class="flex-item" id="sensor-reading-card-container"></div>
+  </div>
+</div>
+```
+
+This template defines empty containers that will be filled by the subscription handlers. When ViewModel observables emit new data, the subscription code renders the appropriate card template into each container:
+
+```typescript
+// From subscriptions.ts
+greenHouseViewModel.data$.subscribe((greenHouses) => {
+  state.greenHouses = greenHouses || [];
+  const view = getActiveView();
+  if (view === DASHBOARD_VIEW) {
+    renderCard('greenhouse-card-container', '/src/views/GreenhouseCard.ejs', { greenHouses });
+  }
+});
+
+sensorViewModel.data$.subscribe((sensors) => {
+  state.sensors = sensors || [];
+  const view = getActiveView();
+  if (view === DASHBOARD_VIEW) {
+    renderCard('sensor-card-container', '/src/views/SensorCard.ejs', { sensors });
+  }
+});
+
+// ... similar subscriptions for sensor readings and threshold alerts
+```
+
+Each card template is simple and focused:
+
+```html
+<!-- apps/mvvm-vanilla/src/views/GreenhouseCard.ejs -->
+<div class="card">
+  <a href="/greenhouses" class="card-header-link">
+    <h3 class="card-title">Greenhouses</h3>
+  </a>
+  <p class="card-content">Total: <%= greenHouses.length %></p>
+</div>
+```
+
+**The Data Flow**:
+
+1. **Initial Load**: `init()` calls `fetchCommand.execute()` on all ViewModels
+2. **ViewModel Fetches Data**: Each ViewModel makes an API request and updates its `data$` observable
+3. **Subscription Fires**: The subscription handler receives the new data
+4. **State Update**: The application state object is updated
+5. **Template Render**: The appropriate EJS template is rendered with the data
+6. **DOM Update**: The rendered HTML is inserted into the container using `innerHTML`
+7. **User Sees Update**: The dashboard displays the latest data
+
+This is the same data flow we saw in React, Vue, Angular, and Lit—just implemented manually instead of through framework abstractions.
+
+
+## 12.10 Advantages and Tradeoffs of Vanilla JavaScript MVVM
+
+Now that we've seen a complete vanilla JavaScript MVVM implementation, let's discuss when this approach makes sense and when it doesn't.
+
+### Advantages
+
+**1. Zero Framework Dependencies**
+- No framework runtime to download or execute
+- Smaller bundle sizes for simple applications
+- No framework version upgrades or breaking changes
+- Complete control over the codebase
+
+**2. Maximum Transparency**
+- Every step is explicit and visible
+- No "magic" or hidden abstractions
+- Excellent for learning and understanding MVVM
+- Easy to debug because there's no framework layer
+
+**3. Standards-Based**
+- Uses native browser APIs (DOM, History API, etc.)
+- No proprietary abstractions to learn
+- Code is portable and long-lived
+- Works in any JavaScript environment
+
+**4. Framework Independence Proof**
+- Demonstrates that MVVM doesn't require frameworks
+- ViewModels work identically without any framework
+- Validates the framework-agnostic architecture
+
+### Tradeoffs
+
+**1. More Boilerplate**
+- Manual subscription management
+- Manual event listener attachment
+- Manual DOM updates
+- More code to write and maintain
+
+**2. Performance Considerations**
+- `innerHTML` destroys and recreates DOM elements
+- No virtual DOM or fine-grained reactivity
+- Event listeners must be reattached after updates
+- Less efficient than framework-optimized rendering
+
+**3. Developer Experience**
+- No hot module replacement (HMR) in development
+- No component dev tools
+- More manual testing required
+- Steeper learning curve for DOM APIs
+
+**4. Scalability Challenges**
+- Manual event listener management becomes complex at scale
+- No built-in state management patterns
+- Routing integration is manual
+- Testing requires more setup
+
+### When to Use Vanilla JavaScript MVVM
+
+**Good Fit**:
+- Small to medium applications with simple UI requirements
+- Projects where bundle size is critical (embedded systems, low-bandwidth environments)
+- Learning projects to understand MVVM fundamentals
+- Applications that need to run in constrained environments
+- Projects with long-term maintenance requirements (no framework upgrades)
+
+**Not Recommended**:
+- Large, complex applications with many interactive components
+- Projects requiring advanced UI patterns (drag-and-drop, virtualization, etc.)
+- Teams unfamiliar with DOM APIs and manual memory management
+- Applications requiring rich developer tooling and debugging
+
+
+## 12.11 Memory Management and Subscription Cleanup
+
+One critical aspect we haven't fully addressed is subscription cleanup. In the current implementation, subscriptions are created in `subscribeToUpdates()` but never unsubscribed. For a long-running application, this could lead to memory leaks.
+
+Here's how to properly manage subscriptions in vanilla JavaScript:
+
+```typescript
+// Improved subscription management
+import { Subscription } from 'rxjs';
+
+const subscriptions: Subscription[] = [];
+
+export function subscribeToUpdates() {
+  // Store each subscription
+  subscriptions.push(
+    greenHouseViewModel.data$.subscribe((greenHouses) => {
+      state.greenHouses = greenHouses || [];
+      // ... render logic
+    })
+  );
+
+  subscriptions.push(
+    sensorViewModel.data$.subscribe((sensors) => {
+      state.sensors = sensors || [];
+      // ... render logic
+    })
+  );
+
+  // ... other subscriptions
+}
+
+export function cleanup() {
+  // Unsubscribe from all subscriptions
+  subscriptions.forEach(sub => sub.unsubscribe());
+  subscriptions.length = 0;
+}
+
+// Call cleanup when the application is destroyed
+window.addEventListener('beforeunload', cleanup);
+```
+
+**Key Points**:
+
+1. **Store Subscriptions**: Keep references to all subscriptions in an array
+2. **Cleanup Function**: Provide a function to unsubscribe from all subscriptions
+3. **Lifecycle Hook**: Call cleanup when the application is destroyed (e.g., `beforeunload` event)
+
+In frameworks, this cleanup happens automatically:
+- React: `useEffect` cleanup function
+- Vue: `watchEffect` cleanup function
+- Angular: `async` pipe auto-unsubscribes
+- Lit: `disconnectedCallback`
+
+In vanilla JavaScript, we must manage it manually. This is another example of the tradeoff between explicitness and convenience.
+
+
+## 12.12 Key Takeaways
+
+After exploring vanilla JavaScript MVVM implementation, here are the essential lessons:
+
+**1. MVVM is Framework-Independent**
+The same ViewModels work identically in React, Vue, Angular, Lit, and vanilla JavaScript. MVVM is an architectural pattern, not a framework feature. This chapter proves that ViewModels are truly framework-agnostic.
+
+**2. Frameworks Provide Convenience, Not Capability**
+Everything frameworks do—reactive rendering, event handling, routing—can be done manually with vanilla JavaScript. Frameworks automate these tasks and provide better developer experience, but they're not strictly necessary.
+
+**3. Direct Observable Subscriptions are Simple**
+Subscribing to ViewModel observables with `.subscribe()` is straightforward. Frameworks add abstractions (hooks, composables, async pipe) for convenience and cleanup management, but the core pattern is simple.
+
+**4. Manual DOM Manipulation is Explicit**
+Using `innerHTML` and `addEventListener` makes every step visible. This explicitness is valuable for learning, but it becomes tedious at scale. Frameworks abstract this away with declarative templates and automatic event binding.
+
+**5. Subscription Cleanup Matters**
+Memory leaks from uncleaned subscriptions are a real concern. Frameworks handle this automatically, but in vanilla JavaScript, you must manage it manually. Always unsubscribe when components are destroyed.
+
+**6. EJS Templates are Functional**
+EJS provides a simple templating solution for vanilla JavaScript. It's not as powerful as JSX or Vue templates, but it's sufficient for many applications and has zero runtime overhead.
+
+**7. Event Listener Management is Challenging**
+Reattaching event listeners after DOM updates is error-prone and tedious. This is one of the biggest advantages of frameworks—they preserve event listeners across re-renders.
+
+**8. Vanilla JavaScript MVVM is a Learning Tool**
+Building MVVM applications without a framework is an excellent way to understand what frameworks do and why they exist. It demystifies the "magic" and reveals the underlying patterns.
+
+**9. Choose the Right Tool**
+Vanilla JavaScript MVVM is viable for small applications or constrained environments, but frameworks provide significant value for larger applications. The choice depends on your requirements, team skills, and constraints.
+
+**10. The ViewModel Layer is the Key**
+Regardless of whether you use React, Vue, Angular, Lit, or vanilla JavaScript, the ViewModel layer remains the same. This is the power of MVVM—business logic is decoupled from the UI implementation.
+
+
+## 12.13 Looking Ahead
+
+We've now completed our tour of framework implementations. We've seen the same GreenWatch application built with:
+
+- **React** (Chapter 8): Custom hooks for ViewModel integration
+- **Vue** (Chapter 9): Composition API with composables
+- **Angular** (Chapter 10): Dependency injection with async pipe
+- **Lit** (Chapter 11): Web components with reactive controllers
+- **Vanilla JavaScript** (Chapter 12): Direct subscriptions with EJS templates
+
+Each implementation demonstrates the same core principle: **ViewModels are framework-agnostic**. The business logic—data fetching, validation, state management, command execution—is identical across all five implementations. Only the View layer changes.
+
+In the next section (Chapters 13-17), we'll explore **Framework-Agnostic Patterns** that support MVVM architecture:
+
+- **Chapter 13: Reactive State Management Patterns** - Signals, observables, and stores
+- **Chapter 14: Event-Driven Communication** - Pub/sub patterns for cross-component communication
+- **Chapter 15: Data Fetching and Caching Strategies** - Async state management
+- **Chapter 16: Headless UI Behaviors** - Separating behavior from presentation
+- **Chapter 17: Composed UI Patterns** - Building complex patterns from atomic behaviors
+
+These patterns, like ViewModels, are framework-agnostic. They can be implemented with any library or built from scratch. We'll use Web Loom libraries as concrete examples, but the patterns themselves are universal and transferable.
+
+The vanilla JavaScript implementation we explored in this chapter demonstrates that these patterns don't require frameworks—they're fundamental architectural concepts that transcend any particular technology.
+
+---
+
+**Next Chapter**: [Chapter 13: Reactive State Management Patterns](./chapter13.mdx) - Learn how signals, observables, and stores enable reactive MVVM architecture, with examples from `signals-core`, `store-core`, and RxJS.

@@ -1,0 +1,1467 @@
+---
+id: "data-fetching-and-caching-strategies"
+title: Data Fetching and Caching Strategies
+section: Framework-Agnostic Patterns
+---
+
+# Chapter 15: Data Fetching and Caching Strategies
+
+Every application that talks to a server faces the same fundamental challenges: How do we handle loading states? How do we cache responses to avoid redundant requests? How do we keep data fresh without hammering our servers? How do we handle errors gracefully? How do we coordinate multiple components requesting the same data?
+
+These aren't framework-specific problems. Whether you're building with React, Vue, Angular, or vanilla JavaScript, you need solutions for async state management, caching, invalidation, and background refetching. Yet most developers reach for framework-specific solutions—React Query for React, VueUse for Vue, custom services for Angular—that lock their data fetching logic into a particular framework.
+
+This chapter explores data fetching as a **framework-agnostic pattern**. We'll examine the core problems that any data fetching solution must solve, understand why these patterns matter for MVVM architecture, then show how to implement them in a way that works across all frameworks. We'll use `query-core` from the Web Loom monorepo as a concrete example, but the patterns we discuss are transferable to any library—or even your own custom implementation.
+
+The goal isn't to convince you to use a specific library. It's to teach you the patterns so you can recognize them in any data fetching solution and implement them yourself when needed.
+
+## The Data Fetching Problem Space
+
+Let's start by understanding what we're solving. Consider a typical greenhouse monitoring dashboard that displays sensor readings. The naive approach looks like this:
+
+```typescript
+// ❌ Naive approach: data fetching mixed with component logic
+function SensorDashboard() {
+  const [sensors, setSensors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/sensors')
+      .then(res => res.json())
+      .then(data => {
+        setSensors(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  return <SensorList sensors={sensors} />;
+}
+```
+
+This works for a demo, but it falls apart in production. Here's why:
+
+
+**Problem 1: No caching.** Every time the component mounts, it fetches data—even if we just fetched the same data seconds ago. If you have three components showing sensor data, you make three identical API calls.
+
+**Problem 2: No coordination.** Multiple components can't share data. Each manages its own loading state, error state, and cached data independently.
+
+**Problem 3: No freshness strategy.** Once data is loaded, it never updates unless the component remounts. Users see stale data without knowing it.
+
+**Problem 4: Framework lock-in.** This code only works in React. Moving to Vue or Angular means rewriting everything, including the data fetching logic.
+
+**Problem 5: Testing complexity.** Testing this component requires mocking `fetch`, managing async state, and dealing with React's rendering lifecycle.
+
+These aren't edge cases—they're fundamental problems that every non-trivial application encounters. Let's see how to solve them systematically.
+
+## Five Core Patterns for Data Fetching
+
+Any robust data fetching solution must address five fundamental challenges. Understanding these patterns helps you evaluate libraries, implement your own solutions, and recognize good architecture when you see it.
+
+### Pattern 1: Async State Management
+
+When you make an async request, you're not just waiting for data—you're managing a state machine with multiple possible states:
+
+```typescript
+// The async state machine
+type AsyncState<TData, TError = Error> =
+  | { status: 'idle'; data: undefined; error: undefined }
+  | { status: 'loading'; data: undefined; error: undefined }
+  | { status: 'success'; data: TData; error: undefined }
+  | { status: 'error'; data: undefined; error: TError }
+  | { status: 'refetching'; data: TData; error: undefined }; // Stale data while refetching
+```
+
+Notice the `refetching` state—this is crucial for good UX. When refetching data, you want to show the stale data while loading fresh data in the background, not replace it with a loading spinner.
+
+The pattern here is **explicit state modeling**. Instead of managing `loading`, `error`, and `data` as independent booleans, model the entire state machine explicitly. This prevents impossible states (like `loading: true` and `error: true` simultaneously) and makes state transitions clear.
+
+### Pattern 2: Request Deduplication and Caching
+
+If two components request the same data simultaneously, only one network request should go out. The pattern:
+
+```typescript
+// Conceptual deduplication
+class DataFetchingService {
+  private cache = new Map<string, CachedData>();
+  private inflightRequests = new Map<string, Promise<any>>();
+
+  async fetch<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    // Return cached data if fresh
+    const cached = this.cache.get(key);
+    if (cached && !this.isStale(cached)) {
+      return cached.data;
+    }
+
+    // Return inflight request if one exists
+    const inflight = this.inflightRequests.get(key);
+    if (inflight) {
+      return inflight;
+    }
+
+    // Make new request
+    const promise = fetcher();
+    this.inflightRequests.set(key, promise);
+
+    try {
+      const data = await promise;
+      this.cache.set(key, { data, timestamp: Date.now() });
+      return data;
+    } finally {
+      this.inflightRequests.delete(key);
+    }
+  }
+}
+```
+
+The key insight: **use a unique key to identify each data endpoint**. Multiple components requesting data with the same key share the same cache entry and the same inflight request.
+
+
+### Pattern 3: Stale-While-Revalidate
+
+This pattern, popularized by HTTP caching, provides excellent UX: show cached (potentially stale) data immediately, then fetch fresh data in the background and update when it arrives.
+
+```typescript
+// Stale-while-revalidate pattern
+async function fetchWithSWR<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  options: { staleTime: number }
+): Promise<T> {
+  const cached = cache.get(key);
+
+  // Return cached data immediately if available
+  if (cached) {
+    // If data is fresh, just return it
+    if (Date.now() - cached.timestamp < options.staleTime) {
+      return cached.data;
+    }
+
+    // Data is stale: return it but trigger background refetch
+    fetchInBackground(key, fetcher);
+    return cached.data;
+  }
+
+  // No cached data: fetch and wait
+  return fetcher();
+}
+```
+
+This pattern dramatically improves perceived performance. Users see data instantly (even if slightly stale) rather than waiting for a network request.
+
+### Pattern 4: Automatic Refetching
+
+Data becomes stale over time. Good data fetching solutions automatically refetch in common scenarios:
+
+- **Window focus**: When the user returns to your tab, refetch stale data
+- **Network reconnect**: When the network comes back online, refetch to get latest data
+- **Time-based**: Refetch data that's older than a configured threshold
+- **Manual invalidation**: Let developers explicitly mark data as stale
+
+```typescript
+// Automatic refetching pattern
+class QueryClient {
+  constructor() {
+    // Refetch on window focus
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.refetchStaleQueries();
+      }
+    });
+
+    // Refetch on network reconnect
+    window.addEventListener('online', () => {
+      this.refetchStaleQueries();
+    });
+  }
+
+  private refetchStaleQueries() {
+    this.queries.forEach((query, key) => {
+      if (query.hasSubscribers && this.isStale(query)) {
+        this.refetch(key);
+      }
+    });
+  }
+}
+```
+
+The pattern: **observe global events and automatically refetch observed queries**. Only refetch queries that have active subscribers (components currently using the data).
+
+### Pattern 5: Framework Integration
+
+The data fetching logic should be framework-agnostic, but it needs to integrate smoothly with each framework's reactivity system. The pattern is the **adapter pattern**—create thin adapters that bridge your framework-agnostic core to framework-specific reactivity:
+
+```typescript
+// React adapter
+function useQuery<T>(key: string, fetcher: () => Promise<T>) {
+  const [state, setState] = useState<QueryState<T>>({ status: 'loading' });
+
+  useEffect(() => {
+    const unsubscribe = queryClient.subscribe(key, setState);
+    return unsubscribe;
+  }, [key]);
+
+  return state;
+}
+
+// Vue adapter
+function useQuery<T>(key: string, fetcher: () => Promise<T>) {
+  const state = ref<QueryState<T>>({ status: 'loading' });
+
+  const unsubscribe = queryClient.subscribe(key, (newState) => {
+    state.value = newState;
+  });
+
+  onUnmounted(unsubscribe);
+
+  return state;
+}
+```
+
+Same core logic, different adapters. This is how you achieve framework independence while maintaining ergonomic APIs.
+
+## Why Data Fetching Patterns Matter for MVVM
+
+In MVVM architecture, data fetching belongs in the **Model or ViewModel layer**, not the View. This separation provides several critical benefits:
+
+**Framework independence**: ViewModels can use framework-agnostic data fetching libraries, making the business logic portable across frameworks. When you move from React to Vue, your data fetching logic moves with you.
+
+**Centralized caching**: When data fetching happens in ViewModels, multiple Views can share the same cached data without coordination. Three components showing sensor data? One API call, one cache entry, three Views.
+
+**Testability**: You can test data fetching logic in isolation, without rendering components or mocking framework-specific APIs. Your ViewModel tests verify caching, error handling, and state management without touching React or Vue.
+
+**Reusability**: The same ViewModel with its data fetching logic works in web, mobile, and desktop applications. Your React web app and React Native mobile app share the same data fetching ViewModels.
+
+Let's see these patterns implemented in a real library.
+
+
+## QueryCore: A Framework-Agnostic Implementation
+
+The `query-core` library (`packages/query-core/`) from the Web Loom monorepo demonstrates these patterns in a zero-dependency, framework-agnostic implementation. Let's examine how it works.
+
+### The Core Architecture
+
+QueryCore uses a centralized client that manages all data endpoints:
+
+```typescript
+// packages/query-core/src/QueryCore.ts
+export interface QueryCoreOptions {
+  cacheProvider?: 'localStorage' | 'indexedDB' | 'inMemory' | CacheProvider;
+  defaultRefetchAfter?: number; // Global default for refetchAfter
+}
+
+export interface EndpointOptions {
+  refetchAfter?: number; // in milliseconds
+  cacheProvider?: 'localStorage' | 'indexedDB' | 'inMemory' | CacheProvider;
+}
+
+export interface EndpointState<TData> {
+  data: TData | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  error: any | undefined;
+  lastUpdated: number | undefined; // Timestamp of last successful fetch
+}
+
+class QueryCore {
+  private globalOptions: QueryCoreOptions;
+  private endpoints: Map<string, Endpoint<any>>;
+
+  constructor(options?: QueryCoreOptions) {
+    this.globalOptions = {
+      cacheProvider: 'inMemory',
+      defaultRefetchAfter: undefined,
+      ...options,
+    };
+    this.endpoints = new Map();
+    this._setupGlobalEventListeners();
+  }
+
+  // Define an endpoint with fetcher and options
+  public async defineEndpoint<TData>(
+    endpointKey: string,
+    fetcher: () => Promise<TData>,
+    options: EndpointOptions = {},
+  ): Promise<void> {
+    const effectiveOptions: EndpointOptions = {
+      refetchAfter: this.globalOptions.defaultRefetchAfter,
+      ...options,
+    };
+
+    const cache = this._getCacheProvider(
+      effectiveOptions.cacheProvider || this.globalOptions.cacheProvider
+    );
+
+    // Load initial data from cache
+    const cachedItem = await cache.get<TData>(endpointKey);
+    const initialState: EndpointState<TData> = {
+      data: cachedItem?.data,
+      isLoading: false,
+      isError: false,
+      error: undefined,
+      lastUpdated: cachedItem?.lastUpdated,
+    };
+
+    this.endpoints.set(endpointKey, {
+      fetcher,
+      options: effectiveOptions,
+      state: initialState,
+      subscribers: new Set(),
+      cache,
+      pendingForceRefetch: false,
+    });
+
+    this._updateStateAndNotify(endpointKey, {});
+  }
+}
+```
+
+Notice what makes this framework-agnostic:
+
+1. **No framework imports**: Pure TypeScript with no React, Vue, or Angular dependencies
+2. **Observable pattern**: Uses callbacks for state updates, compatible with any reactivity system
+3. **Async/await**: Standard JavaScript promises, not framework-specific async handling
+4. **Pluggable caching**: Supports multiple cache providers without framework coupling
+
+### Subscription and State Management
+
+QueryCore implements the observer pattern for state updates:
+
+```typescript
+// packages/query-core/src/QueryCore.ts (continued)
+public subscribe<TData>(
+  endpointKey: string,
+  callback: (state: EndpointState<TData>) => void
+): () => void {
+  const endpoint = this.endpoints.get(endpointKey);
+  if (!endpoint) {
+    callback({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error(`Endpoint "${endpointKey}" not defined.`),
+      lastUpdated: undefined,
+    });
+    return () => {};
+  }
+
+  endpoint.subscribers.add(callback);
+  callback({ ...endpoint.state }); // Immediately call with current state
+
+  // Auto-refetch if data is stale or missing
+  const { refetchAfter } = endpoint.options;
+  const { lastUpdated, isLoading } = endpoint.state;
+
+  if (!isLoading) {
+    if (refetchAfter && lastUpdated) {
+      const timeSinceLastFetch = Date.now() - lastUpdated;
+      if (timeSinceLastFetch >= refetchAfter) {
+        this.refetch(endpointKey, false);
+      }
+    } else if (!lastUpdated) {
+      // No data yet: trigger initial fetch
+      this.refetch(endpointKey, true);
+    }
+  }
+
+  return () => {
+    endpoint.subscribers.delete(callback);
+  };
+}
+```
+
+This implements **stale-while-revalidate**: when a component subscribes, it immediately receives cached data (if available), then QueryCore checks if the data is stale and triggers a background refetch if needed.
+
+
+### Refetching Logic
+
+The refetch method implements request deduplication and time-based staleness:
+
+```typescript
+// packages/query-core/src/QueryCore.ts (continued)
+public async refetch<TData>(
+  endpointKey: string,
+  forceRefetch = false
+): Promise<void> {
+  const endpoint = this.endpoints.get(endpointKey);
+  if (!endpoint) {
+    console.error(`Cannot refetch. Endpoint "${endpointKey}" not defined.`);
+    return;
+  }
+
+  // Request deduplication: don't start a new fetch if one is in progress
+  if (endpoint.state.isLoading) {
+    if (forceRefetch) {
+      endpoint.pendingForceRefetch = true;
+    }
+    return;
+  }
+
+  // Time-based staleness check
+  const { refetchAfter } = endpoint.options;
+  const { lastUpdated } = endpoint.state;
+  if (!forceRefetch && refetchAfter && lastUpdated) {
+    const timeSinceLastFetch = Date.now() - lastUpdated;
+    if (timeSinceLastFetch < refetchAfter) {
+      // Data is still fresh, skip refetch
+      return;
+    }
+  }
+
+  // Update state to loading
+  this._updateStateAndNotify(endpointKey, {
+    isLoading: true,
+    isError: false,
+    error: undefined
+  });
+
+  try {
+    const data = await endpoint.fetcher();
+    const newLastUpdated = Date.now();
+
+    // Cache the new data
+    await endpoint.cache.set<TData>(endpointKey, {
+      data,
+      lastUpdated: newLastUpdated
+    });
+
+    // Update state with success
+    this._updateStateAndNotify(endpointKey, {
+      data,
+      isLoading: false,
+      lastUpdated: newLastUpdated,
+      isError: false,
+      error: undefined,
+    });
+  } catch (error) {
+    // Update state with error (don't update lastUpdated on error)
+    this._updateStateAndNotify(endpointKey, {
+      isLoading: false,
+      isError: true,
+      error,
+    });
+  }
+
+  // Handle pending force refetch
+  if (endpoint.pendingForceRefetch) {
+    endpoint.pendingForceRefetch = false;
+    await this.refetch(endpointKey, true);
+  }
+}
+```
+
+This implements several patterns:
+
+1. **Request deduplication**: If a fetch is in progress, subsequent refetch calls are ignored (or queued if forced)
+2. **Time-based staleness**: Data is only refetched if it's older than `refetchAfter`
+3. **Error handling**: Errors are captured in state, not thrown
+4. **Optimistic updates**: The state shows loading while keeping existing data (stale-while-revalidate)
+
+### Automatic Refetching on Window Focus and Network Reconnect
+
+QueryCore sets up global event listeners to automatically refetch stale data:
+
+```typescript
+// packages/query-core/src/QueryCore.ts (continued)
+private _setupGlobalEventListeners(): void {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('visibilitychange', this._handleVisibilityChange);
+    window.addEventListener('online', this._handleOnlineStatus);
+  }
+}
+
+private _handleVisibilityChange(): void {
+  if (document.visibilityState === 'visible') {
+    console.log('Window focused. Refetching observed stale queries.');
+    this.endpoints.forEach((endpoint, key) => {
+      if (endpoint.subscribers.size > 0) {
+        // Only refetch if observed (has subscribers)
+        this.refetch(key, false);
+      }
+    });
+  }
+}
+
+private _handleOnlineStatus(): void {
+  console.log('Network connection restored. Refetching observed queries.');
+  this.endpoints.forEach((endpoint, key) => {
+    if (endpoint.subscribers.size > 0) {
+      // Force refetch because network was just restored
+      this.refetch(key, true);
+    }
+  });
+}
+```
+
+This implements **automatic refetching**: when the window regains focus or the network reconnects, QueryCore automatically refetches all observed queries (queries with active subscribers). This keeps data fresh without manual intervention.
+
+### Pluggable Cache Providers
+
+QueryCore supports multiple caching strategies through a simple interface:
+
+```typescript
+// packages/query-core/src/cacheProviders/CacheProvider.ts
+export interface CachedItem<TData> {
+  data: TData;
+  lastUpdated: number;
+}
+
+export interface CacheProvider {
+  get<TData>(key: string): Promise<CachedItem<TData> | undefined>;
+  set<TData>(key: string, item: CachedItem<TData>): Promise<void>;
+  remove(key: string): Promise<void>;
+  clearAll?(): Promise<void>;
+}
+```
+
+Three built-in implementations:
+
+1. **InMemoryCacheProvider**: Fast, but data is lost on page refresh
+2. **LocalStorageCacheProvider**: Persists across sessions, limited to ~5MB
+3. **IndexedDBCacheProvider**: Persists across sessions, supports large datasets
+
+You can choose per-endpoint or globally:
+
+```typescript
+const queryCore = new QueryCore({
+  cacheProvider: 'indexedDB', // Global default
+  defaultRefetchAfter: 5 * 60 * 1000, // 5 minutes
+});
+
+// Override for specific endpoint
+await queryCore.defineEndpoint('sensors', fetchSensors, {
+  cacheProvider: 'inMemory', // Real-time data, don't persist
+  refetchAfter: 30 * 1000, // 30 seconds
+});
+```
+
+
+## Using QueryCore in a ViewModel
+
+Let's see how to use QueryCore in a ViewModel for the GreenWatch greenhouse monitoring system:
+
+```typescript
+// packages/view-models/src/SensorViewModel.ts
+import { BehaviorSubject, Observable } from 'rxjs';
+import QueryCore from '@web-loom/query-core';
+
+export interface Sensor {
+  id: string;
+  name: string;
+  type: 'temperature' | 'humidity' | 'soil_moisture';
+  greenhouseId: string;
+  status: 'active' | 'inactive' | 'error';
+}
+
+export class SensorViewModel {
+  private queryCore: QueryCore;
+  private sensorsSubject = new BehaviorSubject<Sensor[]>([]);
+  private loadingSubject = new BehaviorSubject<boolean>(true);
+  private errorSubject = new BehaviorSubject<Error | null>(null);
+
+  readonly sensors$: Observable<Sensor[]>;
+  readonly isLoading$: Observable<boolean>;
+  readonly error$: Observable<Error | null>;
+
+  constructor(
+    private readonly greenhouseId: string,
+    private readonly apiClient: ApiClient
+  ) {
+    this.sensors$ = this.sensorsSubject.asObservable();
+    this.isLoading$ = this.loadingSubject.asObservable();
+    this.error$ = this.errorSubject.asObservable();
+
+    this.queryCore = new QueryCore({
+      cacheProvider: 'indexedDB',
+      defaultRefetchAfter: 2 * 60 * 1000, // 2 minutes
+    });
+
+    this.initializeQuery();
+  }
+
+  private async initializeQuery(): Promise<void> {
+    // Define the sensors endpoint
+    await this.queryCore.defineEndpoint(
+      `sensors-${this.greenhouseId}`,
+      () => this.apiClient.getSensors(this.greenhouseId),
+      {
+        refetchAfter: 2 * 60 * 1000, // Refetch every 2 minutes
+      }
+    );
+
+    // Subscribe to state changes
+    this.queryCore.subscribe(`sensors-${this.greenhouseId}`, (state) => {
+      this.loadingSubject.next(state.isLoading);
+      this.errorSubject.next(state.error || null);
+
+      if (state.data) {
+        this.sensorsSubject.next(state.data);
+      }
+    });
+  }
+
+  async refreshSensors(): Promise<void> {
+    await this.queryCore.refetch(`sensors-${this.greenhouseId}`, true);
+  }
+
+  async invalidateCache(): Promise<void> {
+    await this.queryCore.invalidate(`sensors-${this.greenhouseId}`);
+  }
+
+  dispose(): void {
+    this.sensorsSubject.complete();
+    this.loadingSubject.complete();
+    this.errorSubject.complete();
+  }
+}
+```
+
+Notice how the ViewModel:
+
+1. **Encapsulates QueryCore**: The View doesn't know about QueryCore, it only sees RxJS observables
+2. **Provides domain methods**: `refreshSensors()` and `invalidateCache()` expose business operations
+3. **Remains framework-agnostic**: No React, Vue, or Angular dependencies
+4. **Handles state mapping**: Converts QueryCore's state to RxJS observables for consistency with other ViewModels
+
+This is the MVVM pattern in action: the ViewModel manages data fetching and caching, exposing a clean interface to the View layer.
+
+## Alternative Approaches
+
+QueryCore is one way to implement these patterns. Let's examine alternatives and when to use each.
+
+### Approach 1: React Query
+
+React Query is the most popular data fetching library for React. It implements all the patterns we've discussed, but it's React-specific:
+
+```typescript
+// React Query approach
+import { useQuery } from '@tanstack/react-query';
+
+function SensorDashboard({ greenhouseId }: Props) {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['sensors', greenhouseId],
+    queryFn: () => apiClient.getSensors(greenhouseId),
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  return <SensorList sensors={data} onRefresh={refetch} />;
+}
+```
+
+**Pros:**
+- Excellent React integration with hooks
+- Mature ecosystem with devtools, plugins, and extensive documentation
+- Optimized for React's rendering model
+- Large community and active development
+
+**Cons:**
+- React-only (can't use in Vue, Angular, or vanilla JS)
+- Data fetching logic lives in components, not ViewModels
+- Harder to test in isolation (requires React Testing Library)
+- Couples business logic to React
+
+**When to use React Query:**
+- You're building a React-only application
+- You don't need framework independence
+- You want the best React-specific DX
+- You're not using MVVM architecture
+
+
+### Approach 2: SWR
+
+SWR (stale-while-revalidate) is another React-focused library with a simpler API:
+
+```typescript
+// SWR approach
+import useSWR from 'swr';
+
+function SensorDashboard({ greenhouseId }: Props) {
+  const { data, error, isLoading, mutate } = useSWR(
+    `/api/greenhouses/${greenhouseId}/sensors`,
+    fetcher,
+    {
+      refreshInterval: 2 * 60 * 1000,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+    }
+  );
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  return <SensorList sensors={data} onRefresh={() => mutate()} />;
+}
+```
+
+**Pros:**
+- Simpler API than React Query
+- Smaller bundle size
+- Built-in support for polling and revalidation
+- Good TypeScript support
+
+**Cons:**
+- React-only (same limitation as React Query)
+- Less feature-rich than React Query
+- Smaller ecosystem
+- Still couples data fetching to components
+
+**When to use SWR:**
+- You're building a React-only application
+- You want a simpler API than React Query
+- You don't need advanced features like optimistic updates or infinite queries
+- You're not using MVVM architecture
+
+### Approach 3: Native Fetch with Custom Caching
+
+You can implement these patterns yourself using native browser APIs:
+
+```typescript
+// Custom implementation with native fetch
+class DataCache {
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private inflightRequests = new Map<string, Promise<any>>();
+
+  async fetch<T>(
+    key: string,
+    fetcher: () => Promise<T>,
+    options: { staleTime: number }
+  ): Promise<T> {
+    // Check cache
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < options.staleTime) {
+      return cached.data;
+    }
+
+    // Check inflight requests
+    const inflight = this.inflightRequests.get(key);
+    if (inflight) {
+      return inflight;
+    }
+
+    // Make new request
+    const promise = fetcher();
+    this.inflightRequests.set(key, promise);
+
+    try {
+      const data = await promise;
+      this.cache.set(key, { data, timestamp: Date.now() });
+      return data;
+    } finally {
+      this.inflightRequests.delete(key);
+    }
+  }
+
+  invalidate(key: string): void {
+    this.cache.delete(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+// Usage in ViewModel
+export class SensorViewModel {
+  private cache = new DataCache();
+
+  async loadSensors(): Promise<Sensor[]> {
+    return this.cache.fetch(
+      `sensors-${this.greenhouseId}`,
+      () => this.apiClient.getSensors(this.greenhouseId),
+      { staleTime: 2 * 60 * 1000 }
+    );
+  }
+}
+```
+
+**Pros:**
+- Zero dependencies
+- Full control over implementation
+- Framework-agnostic
+- Minimal bundle size
+
+**Cons:**
+- You have to implement everything yourself
+- No automatic refetching on window focus or network reconnect
+- No built-in devtools
+- More code to maintain and test
+
+**When to use custom implementation:**
+- You have simple caching needs
+- You want zero dependencies
+- You need full control over caching behavior
+- You're building a library that shouldn't depend on external data fetching libraries
+
+### Approach 4: Framework-Agnostic Libraries (QueryCore, TanStack Query Core)
+
+Libraries like QueryCore and TanStack Query Core (the framework-agnostic core of React Query) implement these patterns without framework coupling:
+
+```typescript
+// QueryCore approach (framework-agnostic)
+const queryCore = new QueryCore({
+  cacheProvider: 'indexedDB',
+  defaultRefetchAfter: 2 * 60 * 1000,
+});
+
+await queryCore.defineEndpoint(
+  'sensors',
+  () => apiClient.getSensors(greenhouseId)
+);
+
+queryCore.subscribe('sensors', (state) => {
+  if (state.isLoading) {
+    // Update UI
+  } else if (state.data) {
+    // Render data
+  }
+});
+```
+
+**Pros:**
+- Framework-agnostic (works in React, Vue, Angular, vanilla JS)
+- Implements all the patterns we've discussed
+- Can be used in ViewModels for MVVM architecture
+- Testable in isolation
+
+**Cons:**
+- Less ergonomic than framework-specific hooks
+- Smaller ecosystem than React Query or SWR
+- Requires adapters for each framework
+- Less documentation and community support
+
+**When to use framework-agnostic libraries:**
+- You're using MVVM architecture
+- You need framework independence
+- You want to share data fetching logic across platforms
+- You're building a library or design system
+
+
+## Choosing the Right Approach
+
+Here's a decision framework for selecting a data fetching strategy:
+
+### Use React Query or SWR when:
+- You're building a React-only application with no plans for other frameworks
+- You don't need to share business logic across platforms
+- You want the best React-specific developer experience
+- You're comfortable with data fetching logic in components
+- You value ecosystem size and community support
+
+### Use a framework-agnostic library (QueryCore, TanStack Query Core) when:
+- You're using MVVM architecture with ViewModels
+- You need framework independence (supporting multiple frameworks or planning to migrate)
+- You want to share data fetching logic between web and mobile
+- You're building a library or design system
+- You want to test data fetching logic in isolation from UI
+
+### Build a custom solution when:
+- You have simple caching needs (just deduplication and basic staleness)
+- You want zero dependencies
+- You need full control over caching behavior
+- You're building a library that shouldn't depend on external data fetching libraries
+- You have unique requirements not met by existing libraries
+
+### Use native fetch without caching when:
+- You're building a prototype or demo
+- Data is always fresh (real-time WebSocket data)
+- You're fetching data once on app initialization
+- Caching would cause more problems than it solves
+
+The key insight: **the patterns are more important than the specific library**. Whether you use React Query, QueryCore, or build your own solution, you're implementing the same fundamental patterns: async state management, caching, deduplication, stale-while-revalidate, and automatic refetching.
+
+## Integrating with MVVM Architecture
+
+Let's see a complete example of data fetching in MVVM architecture using QueryCore:
+
+```typescript
+// Step 1: Define the ViewModel with QueryCore
+export class GreenhouseViewModel {
+  private queryCore: QueryCore;
+  private greenhouseSubject = new BehaviorSubject<Greenhouse | null>(null);
+  private sensorsSubject = new BehaviorSubject<Sensor[]>([]);
+  private loadingSubject = new BehaviorSubject<boolean>(true);
+
+  readonly greenhouse$: Observable<Greenhouse | null>;
+  readonly sensors$: Observable<Sensor[]>;
+  readonly isLoading$: Observable<boolean>;
+
+  constructor(
+    private readonly greenhouseId: string,
+    private readonly apiClient: ApiClient
+  ) {
+    this.greenhouse$ = this.greenhouseSubject.asObservable();
+    this.sensors$ = this.sensorsSubject.asObservable();
+    this.isLoading$ = this.loadingSubject.asObservable();
+
+    this.queryCore = new QueryCore({
+      cacheProvider: 'indexedDB',
+      defaultRefetchAfter: 5 * 60 * 1000, // 5 minutes
+    });
+
+    this.initializeQueries();
+  }
+
+  private async initializeQueries(): Promise<void> {
+    // Define greenhouse endpoint
+    await this.queryCore.defineEndpoint(
+      `greenhouse-${this.greenhouseId}`,
+      () => this.apiClient.getGreenhouse(this.greenhouseId),
+      { refetchAfter: 10 * 60 * 1000 } // Greenhouse data changes less frequently
+    );
+
+    // Define sensors endpoint
+    await this.queryCore.defineEndpoint(
+      `sensors-${this.greenhouseId}`,
+      () => this.apiClient.getSensors(this.greenhouseId),
+      { refetchAfter: 2 * 60 * 1000 } // Sensor data changes more frequently
+    );
+
+    // Subscribe to greenhouse state
+    this.queryCore.subscribe(`greenhouse-${this.greenhouseId}`, (state) => {
+      if (state.data) {
+        this.greenhouseSubject.next(state.data);
+      }
+    });
+
+    // Subscribe to sensors state
+    this.queryCore.subscribe(`sensors-${this.greenhouseId}`, (state) => {
+      this.loadingSubject.next(state.isLoading);
+      if (state.data) {
+        this.sensorsSubject.next(state.data);
+      }
+    });
+  }
+
+  async refreshAll(): Promise<void> {
+    await Promise.all([
+      this.queryCore.refetch(`greenhouse-${this.greenhouseId}`, true),
+      this.queryCore.refetch(`sensors-${this.greenhouseId}`, true),
+    ]);
+  }
+
+  async refreshSensors(): Promise<void> {
+    await this.queryCore.refetch(`sensors-${this.greenhouseId}`, true);
+  }
+
+  dispose(): void {
+    this.greenhouseSubject.complete();
+    this.sensorsSubject.complete();
+    this.loadingSubject.complete();
+  }
+}
+```
+
+```typescript
+// Step 2: Use the ViewModel in React
+function GreenhouseDashboard({ greenhouseId }: Props) {
+  const [viewModel] = useState(
+    () => new GreenhouseViewModel(greenhouseId, apiClient)
+  );
+
+  const greenhouse = useObservable(viewModel.greenhouse$, null);
+  const sensors = useObservable(viewModel.sensors$, []);
+  const isLoading = useObservable(viewModel.isLoading$, true);
+
+  useEffect(() => {
+    return () => viewModel.dispose();
+  }, [viewModel]);
+
+  if (isLoading) return <LoadingSpinner />;
+
+  return (
+    <div>
+      <h1>{greenhouse?.name}</h1>
+      <button onClick={() => viewModel.refreshAll()}>Refresh All</button>
+      <SensorList sensors={sensors} onRefresh={() => viewModel.refreshSensors()} />
+    </div>
+  );
+}
+```
+
+```typescript
+// Step 3: Use the same ViewModel in Vue
+<script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue';
+import { useObservable } from '@/composables/useObservable';
+import { GreenhouseViewModel } from '@/viewmodels/GreenhouseViewModel';
+
+const props = defineProps<{ greenhouseId: string }>();
+
+const viewModel = new GreenhouseViewModel(props.greenhouseId, apiClient);
+
+const greenhouse = useObservable(viewModel.greenhouse$, null);
+const sensors = useObservable(viewModel.sensors$, []);
+const isLoading = useObservable(viewModel.isLoading$, true);
+
+onUnmounted(() => {
+  viewModel.dispose();
+});
+</script>
+
+<template>
+  <div v-if="isLoading">
+    <LoadingSpinner />
+  </div>
+  <div v-else>
+    <h1>{{ greenhouse?.name }}</h1>
+    <button @click="viewModel.refreshAll()">Refresh All</button>
+    <SensorList :sensors="sensors" @refresh="viewModel.refreshSensors()" />
+  </div>
+</template>
+```
+
+Same ViewModel, same data fetching logic, different frameworks. That's the power of framework-agnostic patterns.
+
+
+## Advanced Patterns
+
+Once you understand the basics, several advanced patterns become possible.
+
+### Pattern: Optimistic Updates
+
+Optimistic updates improve perceived performance by updating the UI immediately, then rolling back if the server request fails:
+
+```typescript
+export class SensorViewModel {
+  async updateSensorName(sensorId: string, newName: string): Promise<void> {
+    const currentSensors = this.sensorsSubject.value;
+
+    // Optimistic update: update UI immediately
+    const optimisticSensors = currentSensors.map(sensor =>
+      sensor.id === sensorId ? { ...sensor, name: newName } : sensor
+    );
+    this.sensorsSubject.next(optimisticSensors);
+
+    try {
+      // Make server request
+      await this.apiClient.updateSensor(sensorId, { name: newName });
+
+      // Invalidate cache to refetch fresh data
+      await this.queryCore.invalidate(`sensors-${this.greenhouseId}`);
+    } catch (error) {
+      // Rollback on error
+      this.sensorsSubject.next(currentSensors);
+      throw error;
+    }
+  }
+}
+```
+
+### Pattern: Dependent Queries
+
+Sometimes one query depends on data from another:
+
+```typescript
+export class SensorReadingsViewModel {
+  constructor(
+    private readonly sensorId: string,
+    private readonly queryCore: QueryCore,
+    private readonly apiClient: ApiClient
+  ) {
+    this.initializeQueries();
+  }
+
+  private async initializeQueries(): Promise<void> {
+    // First query: get sensor details
+    await this.queryCore.defineEndpoint(
+      `sensor-${this.sensorId}`,
+      () => this.apiClient.getSensor(this.sensorId)
+    );
+
+    // Subscribe to sensor details
+    this.queryCore.subscribe(`sensor-${this.sensorId}`, async (state) => {
+      if (state.data) {
+        const sensor = state.data;
+
+        // Second query: get readings (depends on sensor type)
+        await this.queryCore.defineEndpoint(
+          `readings-${this.sensorId}`,
+          () => this.apiClient.getReadings(this.sensorId, sensor.type),
+          { refetchAfter: 30 * 1000 } // Refetch every 30 seconds
+        );
+
+        // Subscribe to readings
+        this.queryCore.subscribe(`readings-${this.sensorId}`, (readingsState) => {
+          if (readingsState.data) {
+            this.readingsSubject.next(readingsState.data);
+          }
+        });
+      }
+    });
+  }
+}
+```
+
+### Pattern: Infinite Queries (Pagination)
+
+For paginated data, you need to track multiple pages:
+
+```typescript
+export class SensorHistoryViewModel {
+  private pages = new BehaviorSubject<SensorReading[][]>([]);
+  private hasMoreSubject = new BehaviorSubject<boolean>(true);
+
+  readonly allReadings$: Observable<SensorReading[]>;
+  readonly hasMore$: Observable<boolean>;
+
+  constructor(
+    private readonly sensorId: string,
+    private readonly queryCore: QueryCore,
+    private readonly apiClient: ApiClient
+  ) {
+    this.allReadings$ = this.pages.pipe(
+      map(pages => pages.flat())
+    );
+    this.hasMore$ = this.hasMoreSubject.asObservable();
+  }
+
+  async loadNextPage(): Promise<void> {
+    const currentPages = this.pages.value;
+    const nextPage = currentPages.length;
+
+    const pageKey = `sensor-readings-${this.sensorId}-page-${nextPage}`;
+
+    await this.queryCore.defineEndpoint(
+      pageKey,
+      () => this.apiClient.getReadings(this.sensorId, {
+        page: nextPage,
+        limit: 50
+      })
+    );
+
+    this.queryCore.subscribe(pageKey, (state) => {
+      if (state.data) {
+        const newPages = [...currentPages, state.data];
+        this.pages.next(newPages);
+
+        // Check if there are more pages
+        if (state.data.length < 50) {
+          this.hasMoreSubject.next(false);
+        }
+      }
+    });
+  }
+}
+```
+
+### Pattern: Polling
+
+For real-time data, you can implement polling:
+
+```typescript
+export class LiveSensorViewModel {
+  private pollingInterval: number | null = null;
+
+  startPolling(intervalMs: number = 5000): void {
+    this.stopPolling();
+
+    this.pollingInterval = window.setInterval(() => {
+      this.queryCore.refetch(`sensor-${this.sensorId}`, true);
+    }, intervalMs);
+  }
+
+  stopPolling(): void {
+    if (this.pollingInterval !== null) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+
+  dispose(): void {
+    this.stopPolling();
+    super.dispose();
+  }
+}
+```
+
+## Testing Data Fetching Logic
+
+One major benefit of framework-agnostic data fetching is testability. You can test ViewModels without rendering components:
+
+```typescript
+// SensorViewModel.test.ts
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { SensorViewModel } from './SensorViewModel';
+import { firstValueFrom } from 'rxjs';
+
+describe('SensorViewModel', () => {
+  let viewModel: SensorViewModel;
+  let mockApiClient: jest.Mocked<ApiClient>;
+
+  beforeEach(() => {
+    mockApiClient = {
+      getSensors: vi.fn(),
+    } as any;
+
+    viewModel = new SensorViewModel('greenhouse-1', mockApiClient);
+  });
+
+  it('loads sensors on initialization', async () => {
+    const mockSensors = [
+      { id: 's1', name: 'Temp Sensor', type: 'temperature' },
+      { id: 's2', name: 'Humidity Sensor', type: 'humidity' },
+    ];
+
+    mockApiClient.getSensors.mockResolvedValue(mockSensors);
+
+    // Wait for initial load
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const sensors = await firstValueFrom(viewModel.sensors$);
+    expect(sensors).toEqual(mockSensors);
+    expect(mockApiClient.getSensors).toHaveBeenCalledWith('greenhouse-1');
+  });
+
+  it('caches sensor data', async () => {
+    const mockSensors = [{ id: 's1', name: 'Sensor', type: 'temperature' }];
+    mockApiClient.getSensors.mockResolvedValue(mockSensors);
+
+    // First load
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Create second ViewModel with same greenhouse ID
+    const viewModel2 = new SensorViewModel('greenhouse-1', mockApiClient);
+
+    // Wait for second ViewModel to initialize
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Should use cached data, not make another API call
+    expect(mockApiClient.getSensors).toHaveBeenCalledTimes(1);
+  });
+
+  it('refetches stale data', async () => {
+    const mockSensors = [{ id: 's1', name: 'Sensor', type: 'temperature' }];
+    mockApiClient.getSensors.mockResolvedValue(mockSensors);
+
+    // Initial load
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Manually trigger refetch
+    await viewModel.refreshSensors();
+
+    // Should make second API call
+    expect(mockApiClient.getSensors).toHaveBeenCalledTimes(2);
+  });
+
+  it('handles errors gracefully', async () => {
+    const mockError = new Error('Network error');
+    mockApiClient.getSensors.mockRejectedValue(mockError);
+
+    // Wait for error
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const error = await firstValueFrom(viewModel.error$);
+    expect(error).toEqual(mockError);
+  });
+});
+```
+
+No React Testing Library, no Vue Test Utils—just pure TypeScript testing. This is possible because data fetching logic lives in ViewModels, not components.
+
+
+## Common Pitfalls and How to Avoid Them
+
+### Pitfall 1: Over-caching
+
+Not all data should be cached. Real-time data, user-specific data, and sensitive data often shouldn't be cached:
+
+```typescript
+// ❌ Don't cache real-time sensor readings
+await queryCore.defineEndpoint('live-readings', fetchLiveReadings, {
+  cacheProvider: 'indexedDB', // Wrong! This data changes every second
+  refetchAfter: 60 * 1000,
+});
+
+// ✅ Use in-memory cache or no cache for real-time data
+await queryCore.defineEndpoint('live-readings', fetchLiveReadings, {
+  cacheProvider: 'inMemory', // Data is lost on refresh, which is fine
+  refetchAfter: 1000, // Refetch every second
+});
+```
+
+### Pitfall 2: Forgetting to Clean Up
+
+Always dispose of ViewModels and unsubscribe from queries:
+
+```typescript
+// ❌ Memory leak: subscription never cleaned up
+function Component() {
+  const viewModel = new SensorViewModel('greenhouse-1', apiClient);
+  // Component unmounts, but ViewModel keeps running
+}
+
+// ✅ Clean up on unmount
+function Component() {
+  const [viewModel] = useState(
+    () => new SensorViewModel('greenhouse-1', apiClient)
+  );
+
+  useEffect(() => {
+    return () => viewModel.dispose();
+  }, [viewModel]);
+}
+```
+
+### Pitfall 3: Mixing Data Fetching Strategies
+
+Don't mix framework-specific and framework-agnostic approaches in the same codebase:
+
+```typescript
+// ❌ Inconsistent: some components use React Query, others use QueryCore
+function ComponentA() {
+  const { data } = useQuery(['sensors'], fetchSensors); // React Query
+}
+
+function ComponentB() {
+  const viewModel = useSensorViewModel(); // QueryCore in ViewModel
+}
+
+// ✅ Pick one strategy and use it consistently
+```
+
+### Pitfall 4: Not Handling Loading and Error States
+
+Always handle all possible states:
+
+```typescript
+// ❌ Doesn't handle loading or error states
+function SensorList() {
+  const sensors = useObservable(viewModel.sensors$, []);
+  return <ul>{sensors.map(s => <li key={s.id}>{s.name}</li>)}</ul>;
+}
+
+// ✅ Handle all states
+function SensorList() {
+  const sensors = useObservable(viewModel.sensors$, []);
+  const isLoading = useObservable(viewModel.isLoading$, true);
+  const error = useObservable(viewModel.error$, null);
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+  if (sensors.length === 0) return <EmptyState />;
+  return <ul>{sensors.map(s => <li key={s.id}>{s.name}</li>)}</ul>;
+}
+```
+
+### Pitfall 5: Ignoring Cache Invalidation
+
+When you mutate data on the server, invalidate the cache:
+
+```typescript
+// ❌ Doesn't invalidate cache after mutation
+async function updateSensor(id: string, data: Partial<Sensor>) {
+  await apiClient.updateSensor(id, data);
+  // UI still shows old data!
+}
+
+// ✅ Invalidate cache after mutation
+async function updateSensor(id: string, data: Partial<Sensor>) {
+  await apiClient.updateSensor(id, data);
+  await queryCore.invalidate(`sensors-${greenhouseId}`);
+  // Cache is cleared, next access will refetch
+}
+```
+
+## Performance Considerations
+
+Data fetching patterns can significantly impact performance. Here are key considerations:
+
+### Request Deduplication
+
+QueryCore automatically deduplicates requests. If three components request the same data simultaneously, only one network request goes out:
+
+```typescript
+// All three components subscribe to the same endpoint
+// Only one API call is made
+<SensorDashboard greenhouseId="gh-1" />
+<SensorList greenhouseId="gh-1" />
+<SensorMap greenhouseId="gh-1" />
+```
+
+### Stale-While-Revalidate
+
+Showing stale data while refetching dramatically improves perceived performance:
+
+```typescript
+// User sees data immediately (from cache)
+// Fresh data loads in background
+// UI updates seamlessly when fresh data arrives
+```
+
+### Selective Refetching
+
+Only refetch queries that have active subscribers:
+
+```typescript
+// QueryCore only refetches observed queries on window focus
+private _handleVisibilityChange(): void {
+  if (document.visibilityState === 'visible') {
+    this.endpoints.forEach((endpoint, key) => {
+      if (endpoint.subscribers.size > 0) { // Only if observed
+        this.refetch(key, false);
+      }
+    });
+  }
+}
+```
+
+### Cache Persistence
+
+Using IndexedDB for caching means data persists across page refreshes, eliminating initial loading states:
+
+```typescript
+const queryCore = new QueryCore({
+  cacheProvider: 'indexedDB', // Data persists across sessions
+});
+
+// On page load, data is immediately available from IndexedDB
+// No loading spinner on subsequent visits
+```
+
+## Key Takeaways
+
+Let's summarize what we've learned about data fetching patterns:
+
+**1. Data fetching is a framework-agnostic problem.** The challenges—async state management, caching, deduplication, staleness—exist regardless of your framework choice.
+
+**2. Five core patterns solve these challenges:**
+   - Async state management (explicit state machines)
+   - Request deduplication and caching (unique keys, shared cache)
+   - Stale-while-revalidate (show cached data, refetch in background)
+   - Automatic refetching (window focus, network reconnect, time-based)
+   - Framework integration (adapters for each framework's reactivity system)
+
+**3. In MVVM architecture, data fetching belongs in ViewModels.** This provides framework independence, centralized caching, testability, and reusability.
+
+**4. Multiple approaches exist:**
+   - React Query/SWR: Best React-specific DX, but framework-locked
+   - Framework-agnostic libraries (QueryCore): Work across frameworks, ideal for MVVM
+   - Custom implementations: Full control, zero dependencies, more work
+   - Native fetch: Simple cases only
+
+**5. Choose based on your architecture:**
+   - Component-based architecture → React Query or SWR
+   - MVVM architecture → Framework-agnostic library
+   - Simple needs → Custom implementation or native fetch
+
+**6. The patterns are transferable.** Whether you use React Query, QueryCore, or build your own solution, you're implementing the same fundamental patterns. Understanding these patterns helps you evaluate libraries and make informed architectural decisions.
+
+## Moving Forward
+
+We've now covered three critical framework-agnostic patterns: reactive state management (Chapter 13), event-driven communication (Chapter 14), and data fetching (this chapter). These patterns form the foundation of robust, maintainable MVVM applications.
+
+In the next chapter, we'll explore headless UI behaviors—framework-agnostic UI logic that separates behavior from presentation. You'll see how patterns like Dialog, Form, List Selection, and Roving Focus can be implemented once and used across all frameworks.
+
+Then in Chapter 17, we'll examine composed UI patterns—how atomic behaviors combine into complete patterns like Master-Detail, Wizard, Modal, and Command Palette.
+
+But before moving on, take a moment to appreciate what we've built. We have a data fetching strategy that works across React, Vue, Angular, and vanilla JavaScript. The same ViewModel, the same caching logic, the same business rules—working perfectly in any framework. That's not just architecturally elegant. It's practically powerful.
+

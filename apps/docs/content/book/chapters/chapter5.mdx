@@ -1,0 +1,624 @@
+---
+id: "viewmodels-and-reactive-state"
+title: ViewModels and Reactive State
+section: Core Patterns
+---
+
+# Chapter 5: ViewModels and Reactive State
+
+In the previous chapter, we explored how Models encapsulate domain logic and data in a framework-agnostic way. But Models alone don't solve the presentation problem—they don't know how to format data for display, manage UI state, or coordinate user interactions. That's where ViewModels come in.
+
+The ViewModel is the **presentation logic layer** in MVVM architecture. It sits between your Model (domain logic) and your View (UI), transforming domain data into view-ready state and translating user actions into domain operations. Most importantly, ViewModels are framework-agnostic—the same ViewModel can power a React component, a Vue component, an Angular component, or even vanilla JavaScript.
+
+In this chapter, we'll explore the ViewModel layer using real implementations from the GreenWatch greenhouse monitoring system. You'll see how ViewModels manage reactive state with RxJS observables, handle lifecycle concerns, and provide a clean contract for Views to consume.
+
+## 5.1 The ViewModel's Responsibilities
+
+Before diving into implementation, let's be clear about what ViewModels do—and what they don't do.
+
+**ViewModels ARE responsible for:**
+
+- **Presentation Logic**: Formatting data for display, computing derived values, managing UI-specific state (like "is this panel expanded?")
+- **User Action Coordination**: Translating button clicks and form submissions into Model operations
+- **State Exposure**: Providing observables that Views can subscribe to for reactive updates
+- **Lifecycle Management**: Cleaning up subscriptions and resources when no longer needed
+
+**ViewModels are NOT responsible for:**
+
+- **Domain Logic**: Business rules, validation, and data persistence belong in Models
+- **UI Rendering**: ViewModels don't know about DOM, JSX, templates, or framework-specific rendering
+- **Direct User Interaction**: ViewModels don't handle click events or keyboard input—Views do that and call ViewModel methods
+
+This separation is crucial. A well-designed ViewModel can be tested without any UI framework, and the same ViewModel can be used across multiple frameworks without modification.
+
+Let's see this in practice with GreenWatch's `SensorViewModel`.
+
+## 5.2 BaseViewModel: The Foundation
+
+All ViewModels in the GreenWatch system extend from `BaseViewModel`, which provides core functionality for connecting to Models and managing reactive state. Let's examine the implementation:
+
+```typescript
+// packages/mvvm-core/src/viewmodels/BaseViewModel.ts
+import { Observable, Subject, Subscription } from 'rxjs';
+import { map, startWith, takeUntil } from 'rxjs/operators';
+import { ZodError } from 'zod';
+import type { BaseModel, IDisposable } from '../models/BaseModel';
+import type { ICommand } from '../commands/Command';
+
+export class BaseViewModel<TModel extends BaseModel<any, any>> {
+  protected readonly _subscriptions = new Subscription();
+  protected readonly _destroy$ = new Subject<void>();
+  private readonly _registeredCommands: ICommand<any, any>[] = [];
+
+  // Expose observables directly from the injected model
+  public readonly data$: Observable<TModel['data']>;
+  public readonly isLoading$: Observable<boolean>;
+  public readonly error$: Observable<any>;
+  public readonly validationErrors$: Observable<ZodError | null>;
+  
+  protected readonly model: TModel;
+
+  constructor(model: TModel) {
+    this.model = model;
+    if (!model) {
+      throw new Error('BaseViewModel requires an instance of BaseModel in its constructor.');
+    }
+
+    // Connect to Model observables with automatic cleanup
+    this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
+    this.isLoading$ = this.model.isLoading$.pipe(takeUntil(this._destroy$));
+    this.error$ = this.model.error$.pipe(takeUntil(this._destroy$));
+
+    // Extract validation errors from the error stream
+    this.validationErrors$ = this.model.error$.pipe(
+      map((err) => (err instanceof ZodError ? err : null)),
+      startWith(null),
+      takeUntil(this._destroy$),
+    );
+  }
+
+  protected addSubscription(subscription: Subscription): void {
+    this._subscriptions.add(subscription);
+  }
+
+  protected registerCommand<TParam, TResult>(
+    command: ICommand<TParam, TResult>
+  ): ICommand<TParam, TResult> {
+    this._registeredCommands.push(command);
+    return command;
+  }
+
+  public dispose(): void {
+    // Dispose all registered commands
+    this._registeredCommands.forEach((cmd) => {
+      if (this.isDisposable(cmd)) {
+        cmd.dispose();
+      }
+    });
+    this._registeredCommands.length = 0;
+
+    this._destroy$.next();
+    this._destroy$.complete();
+    this._subscriptions.unsubscribe();
+  }
+
+  private isDisposable(obj: any): obj is IDisposable {
+    return obj && typeof obj.dispose === 'function';
+  }
+}
+```
+
+Let's break down the key patterns here:
+
+### 5.2.1 Observable Exposure
+
+The ViewModel exposes four core observables that Views can subscribe to:
+
+- **`data$`**: The current domain data from the Model
+- **`isLoading$`**: Loading state for showing spinners or disabling UI
+- **`error$`**: Any errors that occurred during operations
+- **`validationErrors$`**: Zod validation errors extracted from the error stream
+
+These observables are **derived** from the Model's observables, not duplicated. The ViewModel doesn't maintain its own copy of the data—it simply provides a clean interface to the Model's reactive state.
+
+### 5.2.2 The takeUntil Pattern
+
+Notice the `takeUntil(this._destroy$)` operator on every observable. This is a critical pattern for preventing memory leaks:
+
+```typescript
+this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
+```
+
+When `dispose()` is called, it emits on `_destroy$`, which causes all observables to complete. This automatically unsubscribes any Views that were listening, preventing memory leaks when components unmount.
+
+### 5.2.3 Subscription Management
+
+The `_subscriptions` property collects all RxJS subscriptions created by the ViewModel. When `dispose()` is called, all subscriptions are cleaned up:
+
+```typescript
+protected addSubscription(subscription: Subscription): void {
+  this._subscriptions.add(subscription);
+}
+
+public dispose(): void {
+  this._subscriptions.unsubscribe();
+  // ... other cleanup
+}
+```
+
+This ensures that ViewModels don't leak memory even in long-running applications.
+
+### 5.2.4 Command Registration
+
+Commands (which we'll explore in detail in Chapter 7) are also registered for automatic disposal:
+
+```typescript
+protected registerCommand<TParam, TResult>(
+  command: ICommand<TParam, TResult>
+): ICommand<TParam, TResult> {
+  this._registeredCommands.push(command);
+  return command;
+}
+```
+
+This pattern ensures that all resources—observables, subscriptions, and commands—are properly cleaned up when the ViewModel is no longer needed.
+
+## 5.3 RestfulApiViewModel: CRUD Operations
+
+Many ViewModels need to perform CRUD (Create, Read, Update, Delete) operations against a REST API. Rather than implementing these operations in every ViewModel, the GreenWatch system provides `RestfulApiViewModel` as a base class:
+
+```typescript
+// packages/mvvm-core/src/viewmodels/RestfulApiViewModel.ts
+import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
+import { map, startWith } from 'rxjs/operators';
+import { RestfulApiModel } from '../models/RestfulApiModel';
+import { Command } from '../commands/Command';
+import { ZodSchema } from 'zod';
+
+type ItemWithId = { id: string; [key: string]: any };
+type ExtractItemType<T> = T extends (infer U)[] ? U : T;
+
+export class RestfulApiViewModel<TData, TSchema extends ZodSchema<TData>> {
+  protected model: RestfulApiModel<TData, TSchema>;
+
+  public readonly data$: Observable<TData | null>;
+  public readonly isLoading$: Observable<boolean>;
+  public readonly error$: Observable<any>;
+
+  // Commands for CRUD operations
+  public readonly fetchCommand: Command<string | string[] | void, void>;
+  public readonly createCommand: Command<Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[], void>;
+  public readonly updateCommand: Command<{ id: string; payload: Partial<ExtractItemType<TData>> }, void>;
+  public readonly deleteCommand: Command<string, void>;
+
+  // Selection state for list views
+  public readonly selectedItem$: Observable<ExtractItemType<TData> | null>;
+  protected readonly _selectedItemId$ = new BehaviorSubject<string | null>(null);
+
+  constructor(model: RestfulApiModel<TData, TSchema>) {
+    if (!(model instanceof RestfulApiModel)) {
+      throw new Error('RestfulApiViewModel requires an instance of RestfulApiModel.');
+    }
+    this.model = model;
+
+    this.data$ = this.model.data$;
+    this.isLoading$ = this.model.isLoading$;
+    this.error$ = this.model.error$;
+
+    // Initialize Commands
+    this.fetchCommand = new Command(async (id: string | string[] | void) => {
+      const ids = Array.isArray(id) ? id : id ? [id] : undefined;
+      await this.model.fetch(ids);
+    });
+
+    this.createCommand = new Command(
+      async (payload: Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[]) => {
+        await this.model.create(payload);
+      },
+    );
+
+    this.updateCommand = new Command(
+      async ({ id, payload }: { id: string; payload: Partial<ExtractItemType<TData>> }) => {
+        await this.model.update(id, payload);
+      },
+    );
+
+    this.deleteCommand = new Command(async (id: string) => {
+      await this.model.delete(id);
+    });
+
+    // Compute selected item from data and selection state
+    this.selectedItem$ = combineLatest([
+      this.model.data$,
+      this._selectedItemId$,
+    ]).pipe(
+      map(([data, selectedId]) => {
+        if (Array.isArray(data) && selectedId) {
+          const itemWithId = data.find((item: unknown): item is ItemWithId => {
+            return (
+              typeof item === 'object' &&
+              item !== null &&
+              'id' in item &&
+              typeof (item as any).id === 'string' &&
+              (item as any).id === selectedId
+            );
+          });
+          return (itemWithId as ExtractItemType<TData>) || null;
+        }
+        return null;
+      }),
+      startWith(null),
+    );
+  }
+
+  public selectItem(id: string | null): void {
+    this._selectedItemId$.next(id);
+  }
+
+  public dispose(): void {
+    this.model.dispose();
+    this.fetchCommand.dispose();
+    this.createCommand.dispose();
+    this.updateCommand.dispose();
+    this.deleteCommand.dispose();
+    this._selectedItemId$.complete();
+  }
+}
+```
+
+This ViewModel provides several key features:
+
+### 5.3.1 Command Pattern for Operations
+
+Instead of exposing methods like `fetch()`, `create()`, `update()`, and `delete()`, the ViewModel exposes **Commands**. Commands are objects that encapsulate an operation and can be executed, disabled, or monitored:
+
+```typescript
+public readonly fetchCommand: Command<string | string[] | void, void>;
+public readonly createCommand: Command<Partial<ExtractItemType<TData>> | Partial<ExtractItemType<TData>>[], void>;
+```
+
+Views can execute commands and subscribe to their state:
+
+```typescript
+// In a React component
+<button 
+  onClick={() => viewModel.fetchCommand.execute()}
+  disabled={viewModel.fetchCommand.isExecuting}
+>
+  Fetch Data
+</button>
+```
+
+We'll explore Commands in depth in Chapter 7.
+
+### 5.3.2 Selection State Management
+
+For list views, the ViewModel manages selection state:
+
+```typescript
+public readonly selectedItem$: Observable<ExtractItemType<TData> | null>;
+protected readonly _selectedItemId$ = new BehaviorSubject<string | null>(null);
+
+public selectItem(id: string | null): void {
+  this._selectedItemId$.next(id);
+}
+```
+
+The `selectedItem$` observable is **computed** from the data and selection ID using `combineLatest`. When either the data changes or the selection changes, the observable emits the currently selected item. This is a powerful pattern for derived state—the ViewModel doesn't store the selected item directly, it computes it on demand.
+
+## 5.4 Real-World Example: SensorViewModel
+
+Now let's see how these patterns come together in a real ViewModel from the GreenWatch system. The `SensorViewModel` manages the list of sensors in a greenhouse:
+
+```typescript
+// packages/view-models/src/SensorViewModel.ts
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { SensorListSchema, type SensorListData, SensorModel } from '@repo/models';
+
+export class SensorViewModel extends RestfulApiViewModel<SensorListData, typeof SensorListSchema> {
+  constructor(model: SensorModel) {
+    super(model);
+  }
+}
+
+// Create a singleton instance for the application
+const sensorModel = new SensorModel();
+export const sensorViewModel = new SensorViewModel(sensorModel);
+export type { SensorListData };
+```
+
+This is remarkably simple because `RestfulApiViewModel` provides all the CRUD functionality. The `SensorViewModel` just needs to:
+
+1. Extend `RestfulApiViewModel` with the correct types
+2. Pass the `SensorModel` to the base class constructor
+
+The ViewModel now exposes:
+
+- `data$`: Observable of sensor list data
+- `isLoading$`: Loading state
+- `error$`: Error state
+- `fetchCommand`: Command to fetch sensors
+- `createCommand`: Command to create a new sensor
+- `updateCommand`: Command to update a sensor
+- `deleteCommand`: Command to delete a sensor
+- `selectedItem$`: Currently selected sensor
+- `selectItem(id)`: Method to select a sensor
+
+All of this functionality is framework-agnostic. The same `SensorViewModel` can be used in React, Vue, Angular, Lit, or vanilla JavaScript. We'll see exactly how in Chapters 8-12.
+
+## 5.5 Advanced Example: GreenHouseViewModel
+
+Some ViewModels need more customization. The `GreenHouseViewModel` uses a factory pattern to create ViewModels with specific configurations:
+
+```typescript
+// packages/view-models/src/GreenHouseViewModel.ts
+import { createReactiveViewModel, type ViewModelFactoryConfig } from '@web-loom/mvvm-core';
+import { greenHouseConfig } from '@repo/models';
+import { type GreenhouseListData, GreenhouseListSchema, type GreenhouseData } from '@repo/models';
+
+type TConfig = ViewModelFactoryConfig<GreenhouseListData, typeof GreenhouseListSchema>;
+
+const config: TConfig = {
+  modelConfig: greenHouseConfig,
+  schema: GreenhouseListSchema,
+};
+
+export const greenHouseViewModel = createReactiveViewModel(config);
+
+export type { GreenhouseListData, GreenhouseData };
+```
+
+This demonstrates an alternative approach: instead of manually instantiating Models and ViewModels, we use a factory function (`createReactiveViewModel`) that creates both from a configuration object. This pattern is useful when you have many similar ViewModels and want to reduce boilerplate.
+
+The key insight is that both approaches—manual instantiation and factory creation—produce the same result: a framework-agnostic ViewModel that exposes reactive state through observables.
+
+## 5.6 Reactive State with RxJS
+
+You've seen observables throughout this chapter, but let's be explicit about why RxJS is the foundation of reactive state in the GreenWatch MVVM implementation.
+
+### 5.6.1 Why RxJS?
+
+RxJS provides several critical capabilities for ViewModels:
+
+**1. Push-Based Reactivity**: Observables push new values to subscribers. When the Model's data changes, all subscribed Views automatically receive the update. No polling, no manual refresh.
+
+**2. Composability**: RxJS operators like `map`, `filter`, `combineLatest`, and `switchMap` let you transform and combine observables declaratively. The `selectedItem$` observable we saw earlier is a perfect example—it's composed from `data$` and `_selectedItemId$`.
+
+**3. Backpressure and Cancellation**: RxJS handles scenarios where data arrives faster than it can be processed, and provides clean cancellation semantics with `takeUntil`.
+
+**4. Framework Agnostic**: RxJS works everywhere—Node.js, browsers, React Native. Your ViewModels aren't tied to any specific UI framework.
+
+### 5.6.2 BehaviorSubject vs Observable
+
+You'll notice that ViewModels use both `BehaviorSubject` and `Observable`:
+
+```typescript
+// Internal state uses BehaviorSubject
+protected readonly _selectedItemId$ = new BehaviorSubject<string | null>(null);
+
+// Public API exposes Observable
+public readonly selectedItem$: Observable<ExtractItemType<TData> | null>;
+```
+
+This is intentional:
+
+- **BehaviorSubject** is used internally because it holds the current value and allows the ViewModel to emit new values with `.next()`
+- **Observable** is exposed publicly because Views should only **read** the state, not modify it
+
+This encapsulation ensures that only the ViewModel can change its state. Views are consumers, not producers.
+
+### 5.6.3 Derived State with Operators
+
+One of the most powerful patterns in reactive ViewModels is **derived state**—state that's computed from other state:
+
+```typescript
+this.selectedItem$ = combineLatest([
+  this.model.data$,
+  this._selectedItemId$,
+]).pipe(
+  map(([data, selectedId]) => {
+    if (Array.isArray(data) && selectedId) {
+      return data.find(item => item.id === selectedId) || null;
+    }
+    return null;
+  }),
+  startWith(null),
+);
+```
+
+This observable automatically recomputes whenever either `data$` or `_selectedItemId$` changes. The ViewModel doesn't need to manually update `selectedItem$`—it's always in sync because it's **derived** from the source observables.
+
+This pattern eliminates entire classes of bugs where state gets out of sync. If you've ever had a "selected item" that didn't match the actual data, you know the pain this solves.
+
+## 5.7 ViewModel Lifecycle
+
+ViewModels have a clear lifecycle that mirrors the lifecycle of the Views that consume them:
+
+**1. Creation**: ViewModel is instantiated with its Model dependency
+
+```typescript
+const model = new SensorModel();
+const viewModel = new SensorViewModel(model);
+```
+
+**2. Subscription**: Views subscribe to the ViewModel's observables
+
+```typescript
+// In a React component
+useEffect(() => {
+  const subscription = viewModel.data$.subscribe(data => {
+    setData(data);
+  });
+  
+  return () => subscription.unsubscribe();
+}, []);
+```
+
+**3. Interaction**: User actions trigger ViewModel methods or commands
+
+```typescript
+<button onClick={() => viewModel.fetchCommand.execute()}>
+  Refresh
+</button>
+```
+
+**4. Disposal**: When the View unmounts, the ViewModel is disposed
+
+```typescript
+useEffect(() => {
+  return () => viewModel.dispose();
+}, []);
+```
+
+The `dispose()` method is critical. It:
+
+- Completes all observables (via `_destroy$`)
+- Unsubscribes all internal subscriptions
+- Disposes all registered commands
+- Prevents memory leaks
+
+**Always call `dispose()` when you're done with a ViewModel.** In React, this happens in the cleanup function of `useEffect`. In Angular, it happens in `ngOnDestroy`. In Vue, it happens in `onUnmounted`. We'll see the framework-specific patterns in Chapters 8-12.
+
+## 5.8 Testing ViewModels
+
+One of the greatest benefits of the MVVM pattern is testability. ViewModels can be tested without any UI framework—they're just TypeScript classes that expose observables.
+
+Here's how you might test the `SensorViewModel`:
+
+```typescript
+import { SensorViewModel } from './SensorViewModel';
+import { SensorModel } from '@repo/models';
+
+describe('SensorViewModel', () => {
+  let viewModel: SensorViewModel;
+  let model: SensorModel;
+
+  beforeEach(() => {
+    model = new SensorModel();
+    viewModel = new SensorViewModel(model);
+  });
+
+  afterEach(() => {
+    viewModel.dispose();
+  });
+
+  it('exposes data from the model', (done) => {
+    // Subscribe to the ViewModel's data observable
+    viewModel.data$.subscribe(data => {
+      expect(data).toBeDefined();
+      done();
+    });
+
+    // Trigger a fetch
+    viewModel.fetchCommand.execute();
+  });
+
+  it('exposes loading state', (done) => {
+    const loadingStates: boolean[] = [];
+
+    viewModel.isLoading$.subscribe(isLoading => {
+      loadingStates.push(isLoading);
+
+      // After fetch completes, we should have seen [false, true, false]
+      if (loadingStates.length === 3) {
+        expect(loadingStates).toEqual([false, true, false]);
+        done();
+      }
+    });
+
+    viewModel.fetchCommand.execute();
+  });
+
+  it('manages selection state', (done) => {
+    // First, load some data
+    viewModel.fetchCommand.execute().then(() => {
+      // Select the first item
+      viewModel.data$.subscribe(data => {
+        if (data && data.length > 0) {
+          viewModel.selectItem(data[0].id);
+
+          // Verify the selected item
+          viewModel.selectedItem$.subscribe(selected => {
+            expect(selected).toEqual(data[0]);
+            done();
+          });
+        }
+      });
+    });
+  });
+
+  it('cleans up on dispose', () => {
+    const subscription = viewModel.data$.subscribe();
+    
+    viewModel.dispose();
+
+    // After disposal, observables should be completed
+    expect(subscription.closed).toBe(true);
+  });
+});
+```
+
+Notice that these tests don't involve any UI framework. We're testing pure business logic—the ViewModel's ability to manage state, expose observables, and coordinate with the Model.
+
+This is the power of separation of concerns. Your presentation logic is testable without rendering a single component.
+
+## 5.9 Preparing for Reactive State Patterns
+
+In this chapter, we've focused on how ViewModels use RxJS observables to manage reactive state. But RxJS is just one approach to reactive state management. In Chapter 13, we'll explore alternative patterns:
+
+- **Signals**: Lightweight reactive primitives (like those in Solid.js or Angular's new signals)
+- **Observable Stores**: Minimal state management libraries (like Zustand or Nanostores)
+- **Native Reactivity**: Using JavaScript Proxies for reactive state
+
+The ViewModel pattern we've established here is **agnostic to the reactive mechanism**. You could implement ViewModels using signals, stores, or even plain callbacks. The key principles remain the same:
+
+- ViewModels expose state that Views can observe
+- ViewModels provide methods/commands for user actions
+- ViewModels manage lifecycle and cleanup
+- ViewModels are framework-agnostic
+
+RxJS is a powerful choice for complex applications with lots of derived state and async operations. But it's not the only choice, and understanding the alternatives will make you a better architect.
+
+## 5.10 Key Takeaways
+
+Let's consolidate what we've learned about ViewModels and reactive state:
+
+**ViewModel Responsibilities**:
+- Presentation logic, not domain logic
+- State exposure through observables
+- User action coordination
+- Lifecycle management
+
+**BaseViewModel Pattern**:
+- Connects to a Model and exposes its observables
+- Uses `takeUntil` pattern for automatic cleanup
+- Manages subscriptions and commands
+- Provides `dispose()` for resource cleanup
+
+**RestfulApiViewModel Pattern**:
+- Extends BaseViewModel with CRUD operations
+- Exposes Commands for operations
+- Manages selection state for list views
+- Computes derived state with RxJS operators
+
+**Reactive State with RxJS**:
+- Push-based reactivity for automatic updates
+- Composable with operators like `map`, `combineLatest`, `switchMap`
+- BehaviorSubject for internal state, Observable for public API
+- Derived state eliminates synchronization bugs
+
+**Lifecycle Management**:
+- Create → Subscribe → Interact → Dispose
+- Always call `dispose()` when done
+- Framework-specific cleanup in useEffect, ngOnDestroy, onUnmounted
+
+**Testing Benefits**:
+- ViewModels are testable without UI frameworks
+- Test presentation logic in isolation
+- Verify observable behavior and state management
+
+In the next chapter, we'll explore the View layer contract—how Views consume ViewModels and what responsibilities they have in the MVVM architecture. You'll see how the same ViewModel can power completely different UI implementations across React, Vue, Angular, and more.
+
+---
+
+**Next Steps**: Now that you understand ViewModels and reactive state, you're ready to see how Views consume them. Chapter 6 will show you the "dumb view" philosophy and how to build Views that are pure presentation layers with no business logic.

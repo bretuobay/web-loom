@@ -1,0 +1,887 @@
+{
+  "catalogDate": "2024",
+  "sourceDirectory": "apps/mvvm-*",
+  "frameworkImplementations": [
+    {
+      "framework": "React",
+      "appDirectory": "apps/mvvm-react",
+      "description": "React implementation of GreenWatch using hooks pattern for ViewModel consumption",
+      "buildTool": "Vite",
+      "testFramework": "Vitest",
+      "components": [
+        {
+          "name": "Dashboard",
+          "file": "src/components/Dashboard.tsx",
+          "purpose": "Main dashboard view showing overview of all GreenWatch entities",
+          "viewModelsUsed": [
+            "greenHouseViewModel",
+            "sensorViewModel",
+            "sensorReadingViewModel",
+            "thresholdAlertViewModel"
+          ],
+          "pattern": "useObservable hook with useEffect for lifecycle management"
+        },
+        {
+          "name": "GreenhouseList",
+          "file": "src/components/GreenhouseList.tsx",
+          "purpose": "List view of all greenhouses with CRUD operations",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "useObservable hook for reactive state, command execution for operations"
+        },
+        {
+          "name": "GreenhouseCard",
+          "file": "src/components/GreenhouseCard.tsx",
+          "purpose": "Card component displaying individual greenhouse details",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "Props-based component receiving data from parent"
+        },
+        {
+          "name": "SensorList",
+          "file": "src/components/SensorList.tsx",
+          "purpose": "List view of sensors with filtering and CRUD operations",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "useObservable hook with command pattern for operations"
+        },
+        {
+          "name": "SensorCard",
+          "file": "src/components/SensorCard.tsx",
+          "purpose": "Card component displaying individual sensor details",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "Props-based component"
+        },
+        {
+          "name": "SensorReadingList",
+          "file": "src/components/SensorReadingList.tsx",
+          "purpose": "List view of sensor readings with time-series data",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "useObservable hook with Chart.js integration"
+        },
+        {
+          "name": "SensorReadingCard",
+          "file": "src/components/SensorReadingCard.tsx",
+          "purpose": "Card component displaying sensor reading data with charts",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "Props-based component with Chart.js visualization"
+        },
+        {
+          "name": "ThresholdAlertList",
+          "file": "src/components/ThresholdAlertList.tsx",
+          "purpose": "List view of threshold alerts with management operations",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "useObservable hook for reactive alert management"
+        },
+        {
+          "name": "ThresholdAlertCard",
+          "file": "src/components/ThresholdAlertCard.tsx",
+          "purpose": "Card component displaying individual alert details",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "Props-based component"
+        }
+      ],
+      "hooks": [
+        {
+          "name": "useObservable",
+          "file": "src/hooks/useObservable.ts",
+          "purpose": "Custom hook for subscribing to RxJS observables in React components",
+          "pattern": "Manages subscription lifecycle with useEffect cleanup"
+        }
+      ],
+      "layout": [
+        {
+          "name": "Container",
+          "file": "src/layout/Container.tsx",
+          "purpose": "Main layout container component"
+        },
+        {
+          "name": "Header",
+          "file": "src/layout/Header.tsx",
+          "purpose": "Application header with navigation"
+        },
+        {
+          "name": "Footer",
+          "file": "src/layout/Footer.tsx",
+          "purpose": "Application footer"
+        }
+      ],
+      "keyPatterns": {
+        "viewModelConsumption": "useObservable custom hook",
+        "stateManagement": "RxJS observables via useObservable",
+        "lifecycle": "useEffect for subscriptions and cleanup",
+        "commands": "Direct command execution via ViewModel instances"
+      }
+    },
+    {
+      "framework": "Vue",
+      "appDirectory": "apps/mvvm-vue",
+      "description": "Vue 3 implementation of GreenWatch using Composition API for ViewModel consumption",
+      "buildTool": "Vite",
+      "testFramework": "Vitest",
+      "components": [
+        {
+          "name": "Dashboard",
+          "file": "src/components/Dashboard.vue",
+          "purpose": "Main dashboard view showing overview of all GreenWatch entities",
+          "viewModelsUsed": [
+            "greenHouseViewModel",
+            "sensorViewModel",
+            "sensorReadingViewModel",
+            "thresholdAlertViewModel"
+          ],
+          "pattern": "useObservable composable with onMounted lifecycle"
+        },
+        {
+          "name": "GreenhouseList",
+          "file": "src/components/GreenhouseList.vue",
+          "purpose": "List view of all greenhouses with CRUD operations",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "useObservable composable with reactive forms"
+        },
+        {
+          "name": "GreenhouseCard",
+          "file": "src/components/GreenhouseCard.vue",
+          "purpose": "Card component displaying individual greenhouse details",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "Props-based component with computed properties"
+        },
+        {
+          "name": "SensorList",
+          "file": "src/components/SensorList.vue",
+          "purpose": "List view of sensors with filtering",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "useObservable composable with watch for reactive updates"
+        },
+        {
+          "name": "SensorCard",
+          "file": "src/components/SensorCard.vue",
+          "purpose": "Card component displaying individual sensor details",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "Props-based component"
+        },
+        {
+          "name": "SensorReadingList",
+          "file": "src/components/SensorReadingList.vue",
+          "purpose": "List view of sensor readings with time-series data",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "useObservable composable with computed properties"
+        },
+        {
+          "name": "SensorReadingCard",
+          "file": "src/components/SensorReadingCard.vue",
+          "purpose": "Card component displaying sensor reading data",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "Props-based component"
+        },
+        {
+          "name": "ThresholdAlertList",
+          "file": "src/components/ThresholdAlertList.vue",
+          "purpose": "List view of threshold alerts",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "useObservable composable with onMounted"
+        },
+        {
+          "name": "ThresholdAlertCard",
+          "file": "src/components/ThresholdAlertCard.vue",
+          "purpose": "Card component displaying individual alert details",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "Props-based component"
+        }
+      ],
+      "composables": [
+        {
+          "name": "useObservable",
+          "file": "src/hooks/useObservable.ts",
+          "purpose": "Composable for subscribing to RxJS observables in Vue components",
+          "pattern": "Returns reactive ref that updates when observable emits"
+        }
+      ],
+      "layout": [
+        {
+          "name": "Container",
+          "file": "src/layout/Container.vue",
+          "purpose": "Main layout container component"
+        },
+        {
+          "name": "Header",
+          "file": "src/layout/Header.vue",
+          "purpose": "Application header with navigation"
+        },
+        {
+          "name": "Footer",
+          "file": "src/layout/Footer.vue",
+          "purpose": "Application footer"
+        }
+      ],
+      "keyPatterns": {
+        "viewModelConsumption": "useObservable composable",
+        "stateManagement": "RxJS observables converted to Vue refs",
+        "lifecycle": "onMounted for initialization, automatic cleanup on unmount",
+        "commands": "Direct command execution via ViewModel instances",
+        "reactivity": "Computed properties and watch for derived state"
+      }
+    },
+    {
+      "framework": "Angular",
+      "appDirectory": "apps/mvvm-angular",
+      "description": "Angular implementation of GreenWatch using dependency injection for ViewModel management",
+      "buildTool": "Angular CLI",
+      "testFramework": "Jasmine/Karma",
+      "components": [
+        {
+          "name": "Dashboard",
+          "file": "src/app/components/dashboard/dashboard.component.ts",
+          "purpose": "Main dashboard view showing overview of all GreenWatch entities",
+          "viewModelsUsed": [
+            "greenHouseViewModel",
+            "sensorViewModel",
+            "sensorReadingViewModel",
+            "thresholdAlertViewModel"
+          ],
+          "pattern": "Dependency injection with InjectionToken, async pipe in templates"
+        },
+        {
+          "name": "GreenhouseCard",
+          "file": "src/app/components/greenhouse-card/greenhouse-card.component.ts",
+          "purpose": "Card component displaying greenhouse details",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "Dependency injection with async pipe"
+        },
+        {
+          "name": "GreenhouseList",
+          "file": "src/app/components/greenhouse-list/greenhouse-list.component.ts",
+          "purpose": "List view of all greenhouses with CRUD operations",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "Dependency injection with ReactiveFormsModule for forms"
+        },
+        {
+          "name": "SensorCard",
+          "file": "src/app/components/sensor-card/sensor-card.component.ts",
+          "purpose": "Card component displaying sensor details",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "Dependency injection with async pipe"
+        },
+        {
+          "name": "SensorList",
+          "file": "src/app/components/sensor-list/sensor-list.component.ts",
+          "purpose": "List view of sensors",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "Dependency injection with async pipe"
+        },
+        {
+          "name": "SensorReadingCard",
+          "file": "src/app/components/sensor-reading-card/sensor-reading-card.component.ts",
+          "purpose": "Card component displaying sensor reading data with charts",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "Dependency injection with Chart.js integration"
+        },
+        {
+          "name": "SensorReadingList",
+          "file": "src/app/components/sensor-reading-list/sensor-reading-list.component.ts",
+          "purpose": "List view of sensor readings with time-series data",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "Dependency injection with Chart.js visualization"
+        },
+        {
+          "name": "ThresholdAlertCard",
+          "file": "src/app/components/threshold-alert-card/threshold-alert-card.component.ts",
+          "purpose": "Card component displaying alert details",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "Dependency injection with async pipe"
+        },
+        {
+          "name": "ThresholdAlertList",
+          "file": "src/app/components/threshold-alert-list/threshold-alert-list.component.ts",
+          "purpose": "List view of threshold alerts",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "Dependency injection with async pipe"
+        },
+        {
+          "name": "BackIcon",
+          "file": "src/app/components/back-icon/back-icon.component.ts",
+          "purpose": "Reusable back navigation icon component",
+          "viewModelsUsed": [],
+          "pattern": "Standalone component with RouterModule"
+        }
+      ],
+      "keyPatterns": {
+        "viewModelConsumption": "Dependency injection with InjectionToken",
+        "stateManagement": "RxJS observables consumed via async pipe",
+        "lifecycle": "OnInit for initialization, OnDestroy for cleanup",
+        "commands": "Direct command execution via injected ViewModel instances",
+        "templates": "Async pipe for automatic subscription management"
+      }
+    },
+    {
+      "framework": "Lit",
+      "appDirectory": "apps/mvvm-lit",
+      "description": "Lit web components implementation of GreenWatch using decorators and reactive properties",
+      "buildTool": "Vite",
+      "testFramework": "Vitest",
+      "components": [
+        {
+          "name": "DashboardView",
+          "file": "src/components/dashboard-view.ts",
+          "purpose": "Main dashboard view showing overview of all GreenWatch entities",
+          "viewModelsUsed": [
+            "greenHouseViewModel",
+            "sensorViewModel",
+            "sensorReadingViewModel",
+            "thresholdAlertViewModel"
+          ],
+          "pattern": "Direct subscription with combineLatest for loading states, @state decorators"
+        },
+        {
+          "name": "GreenhouseList",
+          "file": "src/components/greenhouse-list.ts",
+          "purpose": "List view of all greenhouses",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "Direct subscription in connectedCallback, @state for reactive properties"
+        },
+        {
+          "name": "GreenhouseCard",
+          "file": "src/components/greenhouse-card.ts",
+          "purpose": "Card component displaying greenhouse details",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "Direct subscription with @state decorators"
+        },
+        {
+          "name": "SensorList",
+          "file": "src/components/sensor-list.ts",
+          "purpose": "List view of sensors",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "Direct subscription with @state decorators"
+        },
+        {
+          "name": "SensorCard",
+          "file": "src/components/sensor-card.ts",
+          "purpose": "Card component displaying sensor details",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "Direct subscription with @state decorators"
+        },
+        {
+          "name": "SensorReadingList",
+          "file": "src/components/sensor-reading-list.ts",
+          "purpose": "List view of sensor readings",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "Direct subscription with @state decorators"
+        },
+        {
+          "name": "SensorReadingCard",
+          "file": "src/components/sensor-reading-card.ts",
+          "purpose": "Card component displaying sensor reading data with charts",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "Direct subscription with Chart.js integration, @state decorators"
+        },
+        {
+          "name": "SensorReadingChart",
+          "file": "src/components/sensor-reading-chart.ts",
+          "purpose": "Chart rendering utility for sensor readings",
+          "viewModelsUsed": [],
+          "pattern": "Utility function for Chart.js rendering"
+        },
+        {
+          "name": "ThresholdAlertList",
+          "file": "src/components/threshold-alert-list.ts",
+          "purpose": "List view of threshold alerts",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "Direct subscription with @state decorators"
+        },
+        {
+          "name": "ThresholdAlertCard",
+          "file": "src/components/threshold-alert-card.ts",
+          "purpose": "Card component displaying alert details",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "Direct subscription with @state decorators"
+        }
+      ],
+      "layout": [
+        {
+          "name": "AppContainer",
+          "file": "src/layout/app-container.ts",
+          "purpose": "Main layout container web component"
+        },
+        {
+          "name": "AppHeader",
+          "file": "src/layout/app-header.ts",
+          "purpose": "Application header web component"
+        },
+        {
+          "name": "AppFooter",
+          "file": "src/layout/app-footer.ts",
+          "purpose": "Application footer web component"
+        }
+      ],
+      "keyPatterns": {
+        "viewModelConsumption": "Direct observable subscriptions",
+        "stateManagement": "@state decorators for reactive properties",
+        "lifecycle": "connectedCallback for subscriptions, disconnectedCallback for cleanup",
+        "commands": "Direct command execution via ViewModel instances",
+        "webComponents": "Custom elements with @customElement decorator"
+      }
+    },
+    {
+      "framework": "Vanilla JavaScript",
+      "appDirectory": "apps/mvvm-vanilla",
+      "description": "Framework-free implementation of GreenWatch using EJS templates and direct DOM manipulation",
+      "buildTool": "Vite",
+      "testFramework": "None",
+      "views": [
+        {
+          "name": "Dashboard",
+          "file": "src/views/Dashboard.ejs",
+          "purpose": "Main dashboard view template",
+          "viewModelsUsed": [
+            "greenHouseViewModel",
+            "sensorViewModel",
+            "sensorReadingViewModel",
+            "thresholdAlertViewModel"
+          ],
+          "pattern": "EJS template rendered with state data"
+        },
+        {
+          "name": "GreenhouseList",
+          "file": "src/views/GreenhouseList.ejs",
+          "purpose": "Greenhouse list view template",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "EJS template with iteration"
+        },
+        {
+          "name": "GreenhouseCard",
+          "file": "src/views/GreenhouseCard.ejs",
+          "purpose": "Greenhouse card template",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "EJS partial template"
+        },
+        {
+          "name": "SensorList",
+          "file": "src/views/SensorList.ejs",
+          "purpose": "Sensor list view template",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "EJS template with iteration"
+        },
+        {
+          "name": "SensorCard",
+          "file": "src/views/SensorCard.ejs",
+          "purpose": "Sensor card template",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "EJS partial template"
+        },
+        {
+          "name": "SensorReadingList",
+          "file": "src/views/SensorReadingList.ejs",
+          "purpose": "Sensor reading list view template",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "EJS template with iteration"
+        },
+        {
+          "name": "SensorReadingCard",
+          "file": "src/views/SensorReadingCard.ejs",
+          "purpose": "Sensor reading card template",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "EJS partial template"
+        },
+        {
+          "name": "ThresholdAlertList",
+          "file": "src/views/ThresholdAlertList.ejs",
+          "purpose": "Threshold alert list view template",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "EJS template with iteration"
+        },
+        {
+          "name": "ThresholdAlertCard",
+          "file": "src/views/ThresholdAlertCard.ejs",
+          "purpose": "Threshold alert card template",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "EJS partial template"
+        }
+      ],
+      "appModules": [
+        {
+          "name": "main",
+          "file": "src/main.ts",
+          "purpose": "Application entry point, initializes ViewModels and app modules",
+          "viewModelsUsed": [
+            "greenHouseViewModel",
+            "sensorViewModel",
+            "sensorReadingViewModel",
+            "thresholdAlertViewModel"
+          ]
+        },
+        {
+          "name": "subscriptions",
+          "file": "src/app/subscriptions.ts",
+          "purpose": "Manages observable subscriptions and state updates",
+          "viewModelsUsed": [
+            "greenHouseViewModel",
+            "sensorViewModel",
+            "sensorReadingViewModel",
+            "thresholdAlertViewModel"
+          ]
+        },
+        {
+          "name": "listeners",
+          "file": "src/app/listeners.ts",
+          "purpose": "Manages DOM event listeners and command execution",
+          "viewModelsUsed": [
+            "greenHouseViewModel",
+            "sensorViewModel",
+            "sensorReadingViewModel",
+            "thresholdAlertViewModel"
+          ]
+        },
+        {
+          "name": "state",
+          "file": "src/app/state.ts",
+          "purpose": "Centralized application state management",
+          "viewModelsUsed": []
+        },
+        {
+          "name": "ui",
+          "file": "src/app/ui.ts",
+          "purpose": "UI rendering utilities using EJS templates",
+          "viewModelsUsed": []
+        },
+        {
+          "name": "router",
+          "file": "src/app/router.ts",
+          "purpose": "Client-side routing implementation",
+          "viewModelsUsed": []
+        },
+        {
+          "name": "chart",
+          "file": "src/app/chart.ts",
+          "purpose": "Chart.js integration for sensor readings",
+          "viewModelsUsed": []
+        }
+      ],
+      "keyPatterns": {
+        "viewModelConsumption": "Direct observable subscriptions",
+        "stateManagement": "Manual state object with observable subscriptions",
+        "lifecycle": "Manual subscription management with cleanup",
+        "commands": "Direct command execution via ViewModel instances",
+        "rendering": "EJS templates with manual DOM updates",
+        "routing": "Custom hash-based router"
+      }
+    },
+    {
+      "framework": "React Integrated",
+      "appDirectory": "apps/mvvm-react-integrated",
+      "description": "Advanced React implementation showcasing MVVM with design system integration, authentication, and composite command patterns",
+      "buildTool": "Vite",
+      "testFramework": "Vitest",
+      "components": [
+        {
+          "name": "Dashboard",
+          "file": "src/components/Dashboard.tsx",
+          "purpose": "Main dashboard view with design system integration",
+          "viewModelsUsed": [
+            "greenHouseViewModel",
+            "sensorViewModel",
+            "sensorReadingViewModel",
+            "thresholdAlertViewModel"
+          ],
+          "pattern": "useObservable hook with design tokens and theming"
+        },
+        {
+          "name": "GreenhouseList",
+          "file": "src/components/GreenhouseList.tsx",
+          "purpose": "List view of greenhouses with UI patterns integration",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "useObservable hook with ui-patterns components"
+        },
+        {
+          "name": "SensorList",
+          "file": "src/components/SensorList.tsx",
+          "purpose": "List view of sensors with routing",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "useObservable hook with React Router"
+        },
+        {
+          "name": "ThresholdAlertList",
+          "file": "src/components/ThresholdAlertList.tsx",
+          "purpose": "List view of threshold alerts",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "useObservable hook"
+        },
+        {
+          "name": "CompositeCommandPanel",
+          "file": "src/components/CompositeCommandPanel.tsx",
+          "purpose": "Demonstrates composite command pattern for batch operations",
+          "viewModelsUsed": [
+            "greenHouseViewModel",
+            "sensorViewModel",
+            "sensorReadingViewModel",
+            "thresholdAlertViewModel"
+          ],
+          "pattern": "CompositeCommand pattern with multiple ViewModels"
+        },
+        {
+          "name": "AuthGate",
+          "file": "src/components/AuthGate.tsx",
+          "purpose": "Authentication gate component for protected routes",
+          "viewModelsUsed": ["authViewModel"],
+          "pattern": "useAuth hook with AuthProvider context"
+        },
+        {
+          "name": "AccountPanel",
+          "file": "src/components/AccountPanel.tsx",
+          "purpose": "User account management panel",
+          "viewModelsUsed": ["authViewModel"],
+          "pattern": "useObservable hook with form handling"
+        },
+        {
+          "name": "ThemeToggle",
+          "file": "src/components/ThemeToggle.tsx",
+          "purpose": "Theme switching component using design-core",
+          "viewModelsUsed": [],
+          "pattern": "Design system theming integration"
+        }
+      ],
+      "providers": [
+        {
+          "name": "AuthProvider",
+          "file": "src/providers/AuthProvider.tsx",
+          "purpose": "React Context provider for authentication state",
+          "viewModelsUsed": ["authViewModel"],
+          "pattern": "Context API with useObservable for global auth state"
+        }
+      ],
+      "layout": [
+        {
+          "name": "Header",
+          "file": "src/layout/Header.tsx",
+          "purpose": "Application header with navigation and auth status",
+          "viewModelsUsed": ["navigationViewModel", "authViewModel"],
+          "pattern": "useAuth hook with navigation integration"
+        }
+      ],
+      "keyPatterns": {
+        "viewModelConsumption": "useObservable custom hook",
+        "stateManagement": "RxJS observables with React Context for global state",
+        "lifecycle": "useEffect for subscriptions and cleanup",
+        "commands": "CompositeCommand pattern for batch operations",
+        "authentication": "AuthViewModel with Context API",
+        "designSystem": "Integration with design-core for theming",
+        "uiPatterns": "Integration with ui-patterns for composed behaviors"
+      }
+    },
+    {
+      "framework": "React Native",
+      "appDirectory": "apps/mvvm-react-native",
+      "description": "React Native implementation of GreenWatch for mobile platforms",
+      "buildTool": "Metro",
+      "testFramework": "None",
+      "components": [
+        {
+          "name": "Dashboard",
+          "file": "src/components/Dashboard.tsx",
+          "purpose": "Main dashboard view for mobile",
+          "viewModelsUsed": [
+            "greenHouseViewModel",
+            "sensorViewModel",
+            "sensorReadingViewModel",
+            "thresholdAlertViewModel"
+          ],
+          "pattern": "useObservable hook with React Native components"
+        },
+        {
+          "name": "GreenhouseList",
+          "file": "src/components/GreenhouseList.tsx",
+          "purpose": "List view of greenhouses using FlatList",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "useObservable hook with FlatList rendering"
+        },
+        {
+          "name": "GreenhouseCard",
+          "file": "src/components/GreenhouseCard.tsx",
+          "purpose": "Card component for greenhouse display",
+          "viewModelsUsed": ["greenHouseViewModel"],
+          "pattern": "Props-based component with React Native styling"
+        },
+        {
+          "name": "SensorList",
+          "file": "src/components/SensorList.tsx",
+          "purpose": "List view of sensors using FlatList",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "useObservable hook with FlatList"
+        },
+        {
+          "name": "SensorCard",
+          "file": "src/components/SensorCard.tsx",
+          "purpose": "Card component for sensor display",
+          "viewModelsUsed": ["sensorViewModel"],
+          "pattern": "Props-based component"
+        },
+        {
+          "name": "SensorReadingList",
+          "file": "src/components/SensorReadingList.tsx",
+          "purpose": "List view of sensor readings",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "useObservable hook with FlatList"
+        },
+        {
+          "name": "SensorReadingCard",
+          "file": "src/components/SensorReadingCard.tsx",
+          "purpose": "Card component for sensor reading display",
+          "viewModelsUsed": ["sensorReadingViewModel"],
+          "pattern": "Props-based component"
+        },
+        {
+          "name": "ThresholdAlertList",
+          "file": "src/components/ThresholdAlertList.tsx",
+          "purpose": "List view of threshold alerts",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "useObservable hook with FlatList"
+        },
+        {
+          "name": "ThresholdAlertCard",
+          "file": "src/components/ThresholdAlertCard.tsx",
+          "purpose": "Card component for alert display",
+          "viewModelsUsed": ["thresholdAlertViewModel"],
+          "pattern": "Props-based component"
+        }
+      ],
+      "hooks": [
+        {
+          "name": "useObservable",
+          "file": "src/hooks/useObservable.ts",
+          "purpose": "Custom hook for subscribing to RxJS observables in React Native",
+          "pattern": "Same pattern as React web, adapted for mobile"
+        }
+      ],
+      "keyPatterns": {
+        "viewModelConsumption": "useObservable custom hook (same as React web)",
+        "stateManagement": "RxJS observables via useObservable",
+        "lifecycle": "useEffect for subscriptions and cleanup",
+        "commands": "Direct command execution via ViewModel instances",
+        "rendering": "FlatList for performant list rendering",
+        "styling": "StyleSheet API for mobile-optimized styling"
+      }
+    },
+    {
+      "framework": "Marko",
+      "appDirectory": "apps/mvvm-marko",
+      "description": "Marko framework implementation (early stage/experimental)",
+      "buildTool": "Vite",
+      "testFramework": "None",
+      "status": "experimental",
+      "components": [],
+      "keyPatterns": {
+        "note": "This is an experimental implementation and may not be fully functional"
+      }
+    }
+  ],
+  "summary": {
+    "totalFrameworks": 7,
+    "productionReady": [
+      "React",
+      "Vue",
+      "Angular",
+      "Lit",
+      "Vanilla JavaScript",
+      "React Integrated",
+      "React Native"
+    ],
+    "experimental": ["Marko"],
+    "viewModelUsageAcrossFrameworks": {
+      "greenHouseViewModel": {
+        "frameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS", "React Integrated", "React Native"],
+        "totalComponents": 21,
+        "demonstratesFrameworkIndependence": true
+      },
+      "sensorViewModel": {
+        "frameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS", "React Integrated", "React Native"],
+        "totalComponents": 21,
+        "demonstratesFrameworkIndependence": true
+      },
+      "sensorReadingViewModel": {
+        "frameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS", "React Integrated", "React Native"],
+        "totalComponents": 21,
+        "demonstratesFrameworkIndependence": true
+      },
+      "thresholdAlertViewModel": {
+        "frameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS", "React Integrated", "React Native"],
+        "totalComponents": 21,
+        "demonstratesFrameworkIndependence": true
+      },
+      "authViewModel": {
+        "frameworks": ["React Integrated"],
+        "totalComponents": 4,
+        "demonstratesFrameworkIndependence": false,
+        "note": "Authentication-specific ViewModel, only used in React Integrated app"
+      }
+    },
+    "frameworkSpecificPatterns": {
+      "React": {
+        "pattern": "Custom hooks (useObservable)",
+        "stateManagement": "RxJS observables converted to React state",
+        "lifecycle": "useEffect for subscriptions"
+      },
+      "Vue": {
+        "pattern": "Composables (useObservable)",
+        "stateManagement": "RxJS observables converted to Vue refs",
+        "lifecycle": "onMounted for initialization"
+      },
+      "Angular": {
+        "pattern": "Dependency injection with InjectionToken",
+        "stateManagement": "Async pipe for automatic subscription management",
+        "lifecycle": "OnInit/OnDestroy lifecycle hooks"
+      },
+      "Lit": {
+        "pattern": "Direct subscriptions with decorators",
+        "stateManagement": "@state decorators for reactive properties",
+        "lifecycle": "connectedCallback/disconnectedCallback"
+      },
+      "VanillaJS": {
+        "pattern": "Direct subscriptions with manual DOM updates",
+        "stateManagement": "Manual state object with observable subscriptions",
+        "lifecycle": "Manual subscription management"
+      },
+      "ReactIntegrated": {
+        "pattern": "Custom hooks with Context API",
+        "stateManagement": "RxJS observables with React Context for global state",
+        "lifecycle": "useEffect with Context providers",
+        "additionalFeatures": "Design system integration, composite commands, authentication"
+      },
+      "ReactNative": {
+        "pattern": "Custom hooks (same as React web)",
+        "stateManagement": "RxJS observables converted to React state",
+        "lifecycle": "useEffect for subscriptions",
+        "rendering": "FlatList for performant mobile lists"
+      }
+    },
+    "componentMapping": {
+      "Dashboard": {
+        "frameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS", "React Integrated", "React Native"],
+        "purpose": "Main dashboard showing all GreenWatch entities",
+        "viewModels": ["greenHouseViewModel", "sensorViewModel", "sensorReadingViewModel", "thresholdAlertViewModel"]
+      },
+      "GreenhouseList": {
+        "frameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS", "React Integrated", "React Native"],
+        "purpose": "List view of greenhouses with CRUD operations",
+        "viewModels": ["greenHouseViewModel"]
+      },
+      "SensorList": {
+        "frameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS", "React Integrated", "React Native"],
+        "purpose": "List view of sensors",
+        "viewModels": ["sensorViewModel"]
+      },
+      "SensorReadingList": {
+        "frameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS", "React Integrated", "React Native"],
+        "purpose": "List view of sensor readings with time-series data",
+        "viewModels": ["sensorReadingViewModel"]
+      },
+      "ThresholdAlertList": {
+        "frameworks": ["React", "Vue", "Angular", "Lit", "Vanilla JS", "React Integrated", "React Native"],
+        "purpose": "List view of threshold alerts",
+        "viewModels": ["thresholdAlertViewModel"]
+      }
+    },
+    "keyInsights": {
+      "frameworkIndependence": "All 4 core GreenWatch ViewModels are successfully used across 7 different framework implementations, demonstrating true framework independence",
+      "consistentPatterns": "Each framework adapts the same ViewModels using framework-specific patterns (hooks, composables, DI, decorators, direct subscriptions)",
+      "sharedBusinessLogic": "Business logic in ViewModels is completely reused - only the View layer changes between frameworks",
+      "scalability": "The pattern scales from simple (Vanilla JS) to complex (React Integrated with design system and auth)",
+      "crossPlatform": "Same ViewModels work on web (React, Vue, Angular, Lit, Vanilla) and mobile (React Native)"
+    }
+  }
+}

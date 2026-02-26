@@ -1,0 +1,628 @@
+{
+  "totalChapters": 23,
+  "generatedAt": "2025-01-15",
+  "description": "New chapter structure for MVVM Book Rewrite with six sections and 23 chapters",
+  "sections": [
+    {
+      "sectionNumber": 1,
+      "sectionName": "Foundations",
+      "description": "Introduces the frontend architecture crisis and MVVM fundamentals",
+      "chapters": [
+        {
+          "chapterNumber": 1,
+          "newFileName": "chapter1.mdx",
+          "oldChapterNumber": 1,
+          "id": "the-frontend-architecture-crisis",
+          "title": "The Frontend Architecture Crisis",
+          "learningObjectives": [
+            "Understand the challenges of modern frontend development",
+            "Identify common architectural problems in frontend applications",
+            "Recognize the need for structured architectural patterns",
+            "Learn why separation of concerns matters in frontend code"
+          ],
+          "coreConceptsToTeach": [
+            "Frontend complexity growth",
+            "Tight coupling between UI and business logic",
+            "Testing challenges in tightly coupled code",
+            "Maintenance difficulties in unstructured applications"
+          ]
+        },
+        {
+          "chapterNumber": 2,
+          "newFileName": "chapter2.mdx",
+          "oldChapterNumber": 2,
+          "id": "why-mvvm-matters-for-modern-frontend",
+          "title": "Why MVVM Matters for Modern Frontend",
+          "learningObjectives": [
+            "Understand what MVVM is and why it exists",
+            "Learn how MVVM solves frontend architectural problems",
+            "See concrete examples of problems MVVM addresses",
+            "Understand the benefits of framework-agnostic business logic"
+          ],
+          "coreConceptsToTeach": [
+            "MVVM as a solution to frontend complexity",
+            "Separation of concerns in practice",
+            "Framework independence benefits",
+            "Testability improvements with MVVM"
+          ]
+        },
+        {
+          "chapterNumber": 3,
+          "newFileName": "chapter3.mdx",
+          "oldChapterNumber": 3,
+          "id": "mvvm-pattern-fundamentals",
+          "title": "MVVM Pattern Fundamentals",
+          "learningObjectives": [
+            "Understand the three layers of MVVM (Model, View, ViewModel)",
+            "Learn the responsibilities of each layer",
+            "Understand how data flows through MVVM layers",
+            "See a complete MVVM example with GreenWatch domain"
+          ],
+          "coreConceptsToTeach": [
+            "Model layer: domain logic and data",
+            "ViewModel layer: presentation logic",
+            "View layer: UI rendering",
+            "Unidirectional data flow",
+            "Layer boundaries and contracts"
+          ]
+        }
+      ]
+    },
+    {
+      "sectionNumber": 2,
+      "sectionName": "Core Patterns",
+      "description": "Covers Models, ViewModels, Views, and reactive state management",
+      "chapters": [
+        {
+          "chapterNumber": 4,
+          "newFileName": "chapter4.mdx",
+          "oldChapterNumber": 4,
+          "id": "building-framework-agnostic-models",
+          "title": "Building Framework-Agnostic Models",
+          "learningObjectives": [
+            "Understand Model layer responsibilities",
+            "Learn how to build framework-agnostic Models",
+            "Implement domain logic in Models",
+            "Use Zod for validation in Models",
+            "Understand BaseModel and RestfulApiModel patterns"
+          ],
+          "coreConceptsToTeach": [
+            "Model as domain logic container",
+            "Framework independence in Models",
+            "Validation with Zod schemas",
+            "BaseModel pattern with reactive state",
+            "RestfulApiModel for API operations",
+            "GreenWatch Model implementations (Sensor, SensorReading, etc.)"
+          ]
+        },
+        {
+          "chapterNumber": 5,
+          "newFileName": "chapter5.mdx",
+          "oldChapterNumber": 6,
+          "id": "viewmodels-and-reactive-state",
+          "title": "ViewModels and Reactive State",
+          "learningObjectives": [
+            "Understand ViewModel layer responsibilities",
+            "Learn how ViewModels connect Models to Views",
+            "Implement reactive state with RxJS observables",
+            "Manage ViewModel lifecycle",
+            "Understand BaseViewModel and RestfulApiViewModel patterns"
+          ],
+          "coreConceptsToTeach": [
+            "ViewModel as presentation logic layer",
+            "Reactive state with RxJS BehaviorSubject and Observable",
+            "ViewModel lifecycle management",
+            "BaseViewModel pattern",
+            "RestfulApiViewModel with CRUD operations",
+            "GreenWatch ViewModel implementations (GreenHouseViewModel, SensorViewModel, etc.)",
+            "Introduction to reactive state patterns (detailed in Chapter 13)"
+          ]
+        },
+        {
+          "chapterNumber": 6,
+          "newFileName": "chapter6.mdx",
+          "oldChapterNumber": 10,
+          "id": "the-view-layer-contract",
+          "title": "The View Layer Contract",
+          "learningObjectives": [
+            "Understand View layer responsibilities",
+            "Learn the 'dumb view' philosophy",
+            "Understand how Views consume ViewModels",
+            "See View implementations across multiple frameworks",
+            "Learn View layer best practices"
+          ],
+          "coreConceptsToTeach": [
+            "View as pure presentation layer",
+            "Dumb view philosophy",
+            "View-ViewModel contract",
+            "Subscribing to ViewModel observables",
+            "Framework-specific View patterns",
+            "Comparison of View implementations across frameworks"
+          ]
+        },
+        {
+          "chapterNumber": 7,
+          "newFileName": "chapter7.mdx",
+          "oldChapterNumber": 9,
+          "id": "dependency-injection-and-lifecycle-management",
+          "title": "Dependency Injection and Lifecycle Management",
+          "learningObjectives": [
+            "Understand dependency injection patterns for ViewModels",
+            "Learn ViewModel lifecycle management",
+            "Implement DI container for MVVM",
+            "Manage subscriptions and cleanup",
+            "Understand framework-specific DI approaches"
+          ],
+          "coreConceptsToTeach": [
+            "Dependency injection for ViewModels",
+            "DI container implementation",
+            "ViewModel lifecycle (creation, mounting, unmounting)",
+            "Subscription cleanup with takeUntil pattern",
+            "Framework-specific DI (Angular DI, React Context, Vue provide/inject)"
+          ]
+        }
+      ]
+    },
+    {
+      "sectionNumber": 3,
+      "sectionName": "Framework Implementations",
+      "description": "Demonstrates MVVM implementation across React, Vue, Angular, Lit, and Vanilla JS",
+      "chapters": [
+        {
+          "chapterNumber": 8,
+          "newFileName": "chapter8.mdx",
+          "oldChapterNumber": 7,
+          "id": "react-implementation-with-hooks",
+          "title": "React Implementation with Hooks",
+          "learningObjectives": [
+            "Implement MVVM in React using hooks",
+            "Subscribe to ViewModel observables in React components",
+            "Manage ViewModel lifecycle in React",
+            "Build GreenWatch UI in React",
+            "Understand React-specific MVVM patterns"
+          ],
+          "coreConceptsToTeach": [
+            "React hooks for ViewModel consumption",
+            "useEffect for observable subscriptions",
+            "Custom hooks for ViewModel integration",
+            "React component lifecycle with ViewModels",
+            "GreenWatch React implementation examples"
+          ]
+        },
+        {
+          "chapterNumber": 9,
+          "newFileName": "chapter9.mdx",
+          "oldChapterNumber": 11,
+          "id": "vue-implementation-with-composition-api",
+          "title": "Vue Implementation with Composition API",
+          "learningObjectives": [
+            "Implement MVVM in Vue using Composition API",
+            "Subscribe to ViewModel observables in Vue components",
+            "Manage ViewModel lifecycle in Vue",
+            "Build GreenWatch UI in Vue",
+            "Compare Vue implementation with React"
+          ],
+          "coreConceptsToTeach": [
+            "Vue Composition API for ViewModel consumption",
+            "watchEffect for observable subscriptions",
+            "Composables for ViewModel integration",
+            "Vue component lifecycle with ViewModels",
+            "GreenWatch Vue implementation examples",
+            "Framework independence demonstrated through same ViewModels"
+          ]
+        },
+        {
+          "chapterNumber": 10,
+          "newFileName": "chapter10.mdx",
+          "oldChapterNumber": 12,
+          "id": "angular-implementation-with-di",
+          "title": "Angular Implementation with DI",
+          "learningObjectives": [
+            "Implement MVVM in Angular using dependency injection",
+            "Subscribe to ViewModel observables using async pipe",
+            "Manage ViewModel lifecycle in Angular",
+            "Build GreenWatch UI in Angular",
+            "Compare Angular implementation with React and Vue"
+          ],
+          "coreConceptsToTeach": [
+            "Angular dependency injection for ViewModels",
+            "Async pipe for observable subscriptions",
+            "Angular services as ViewModel containers",
+            "Angular component lifecycle with ViewModels",
+            "GreenWatch Angular implementation examples",
+            "Native RxJS integration benefits in Angular"
+          ]
+        },
+        {
+          "chapterNumber": 11,
+          "newFileName": "chapter11.mdx",
+          "oldChapterNumber": null,
+          "id": "lit-web-components-implementation",
+          "title": "Lit Web Components Implementation",
+          "learningObjectives": [
+            "Implement MVVM in Lit web components",
+            "Subscribe to ViewModel observables in Lit",
+            "Manage ViewModel lifecycle in Lit",
+            "Build GreenWatch UI with Lit",
+            "Understand web components with MVVM"
+          ],
+          "coreConceptsToTeach": [
+            "Lit decorators and reactive properties",
+            "Reactive controllers for ViewModel integration",
+            "Web components lifecycle with ViewModels",
+            "GreenWatch Lit implementation examples",
+            "Standards-based web components with MVVM"
+          ],
+          "note": "New chapter - content needs to be created from apps/mvvm-lit"
+        },
+        {
+          "chapterNumber": 12,
+          "newFileName": "chapter12.mdx",
+          "oldChapterNumber": null,
+          "id": "vanilla-javascript-implementation",
+          "title": "Vanilla JavaScript Implementation",
+          "learningObjectives": [
+            "Implement MVVM without any framework",
+            "Subscribe to ViewModel observables in vanilla JS",
+            "Manage ViewModel lifecycle manually",
+            "Build GreenWatch UI with vanilla JS and EJS templates",
+            "Understand framework-free MVVM"
+          ],
+          "coreConceptsToTeach": [
+            "Direct observable subscriptions in vanilla JS",
+            "Manual DOM manipulation with ViewModels",
+            "EJS templates for rendering",
+            "GreenWatch vanilla JS implementation examples",
+            "Framework independence fully demonstrated"
+          ],
+          "note": "New chapter - content needs to be created from apps/mvvm-vanilla"
+        }
+      ]
+    },
+    {
+      "sectionNumber": 4,
+      "sectionName": "Framework-Agnostic Patterns",
+      "description": "Covers reactive state, events, data fetching, UI behaviors, and design systems using framework-agnostic libraries as examples",
+      "chapters": [
+        {
+          "chapterNumber": 13,
+          "newFileName": "chapter13.mdx",
+          "oldChapterNumber": null,
+          "id": "reactive-state-management-patterns",
+          "title": "Reactive State Management Patterns",
+          "learningObjectives": [
+            "Understand reactive state patterns in general terms",
+            "Learn why reactive state matters for MVVM",
+            "Explore signals pattern with signals-core as example",
+            "Explore observable store pattern with store-core as example",
+            "Compare alternative approaches (RxJS, native Proxy)",
+            "Choose appropriate reactive state approach for your needs"
+          ],
+          "coreConceptsToTeach": [
+            "Reactive state patterns (signals, observables, stores)",
+            "Why reactive state enables MVVM architecture",
+            "Signals pattern: writable signals, computed values, effects",
+            "Observable store pattern: minimal state management",
+            "Alternative implementations: RxJS, native Proxy-based reactivity",
+            "When to use each approach",
+            "Patterns are transferable across libraries"
+          ],
+          "note": "New chapter - teaches patterns first, then shows Web Loom libraries as examples"
+        },
+        {
+          "chapterNumber": 14,
+          "newFileName": "chapter14.mdx",
+          "oldChapterNumber": 5,
+          "id": "event-driven-communication",
+          "title": "Event-Driven Communication",
+          "learningObjectives": [
+            "Understand event-driven architecture patterns",
+            "Learn why event-driven communication matters for MVVM",
+            "Explore pub/sub pattern with event-bus-core as example",
+            "Implement cross-component communication",
+            "Compare alternative approaches (native EventTarget, other libraries)",
+            "Choose appropriate event communication approach"
+          ],
+          "coreConceptsToTeach": [
+            "Event-driven architecture patterns",
+            "Pub/sub pattern for decoupled communication",
+            "Domain events in frontend applications",
+            "Cross-component and cross-context communication",
+            "Event-bus-core as example implementation",
+            "Alternative implementations: native EventTarget, other event libraries",
+            "When to use event-driven communication"
+          ]
+        },
+        {
+          "chapterNumber": 15,
+          "newFileName": "chapter15.mdx",
+          "oldChapterNumber": null,
+          "id": "data-fetching-and-caching-strategies",
+          "title": "Data Fetching and Caching Strategies",
+          "learningObjectives": [
+            "Understand data fetching patterns in general terms",
+            "Learn why data fetching patterns matter for MVVM",
+            "Explore async state management with query-core as example",
+            "Implement caching and invalidation strategies",
+            "Compare alternative approaches (React Query, SWR, native fetch)",
+            "Choose appropriate data fetching approach"
+          ],
+          "coreConceptsToTeach": [
+            "Data fetching patterns: async state, caching, invalidation",
+            "Why data fetching patterns enable MVVM ViewModels",
+            "Query-core as framework-agnostic example",
+            "Caching strategies and cache invalidation",
+            "Alternative implementations: React Query, SWR, native fetch with caching",
+            "When to use each approach",
+            "Framework-agnostic data fetching benefits"
+          ],
+          "note": "New chapter - teaches patterns first, then shows Web Loom libraries as examples"
+        },
+        {
+          "chapterNumber": 16,
+          "newFileName": "chapter16.mdx",
+          "oldChapterNumber": null,
+          "id": "headless-ui-behaviors",
+          "title": "Headless UI Behaviors",
+          "learningObjectives": [
+            "Understand headless UI pattern in general terms",
+            "Learn why headless UI patterns matter for MVVM",
+            "Explore atomic behaviors with ui-core as example",
+            "Implement framework-agnostic UI logic",
+            "Understand behavior composition",
+            "Compare alternative approaches"
+          ],
+          "coreConceptsToTeach": [
+            "Headless UI pattern: separation of behavior from presentation",
+            "Why headless UI enables framework-agnostic MVVM",
+            "Atomic behaviors: Dialog, Form, List Selection, Roving Focus, Disclosure",
+            "Ui-core as example implementation",
+            "Behavior composition into larger patterns",
+            "Framework-agnostic UI logic benefits",
+            "Alternative implementations where applicable"
+          ],
+          "note": "New chapter - teaches patterns first, then shows Web Loom libraries as examples"
+        },
+        {
+          "chapterNumber": 17,
+          "newFileName": "chapter17.mdx",
+          "oldChapterNumber": null,
+          "id": "composed-ui-patterns",
+          "title": "Composed UI Patterns",
+          "learningObjectives": [
+            "Understand composed UI patterns in general terms",
+            "Learn why composed patterns matter for MVVM",
+            "Explore pattern composition with ui-patterns as example",
+            "Implement Master-Detail, Wizard, Modal, Command Palette patterns",
+            "Understand event-driven pattern communication",
+            "Build framework-agnostic UI patterns"
+          ],
+          "coreConceptsToTeach": [
+            "Composed UI patterns: Master-Detail, Wizard, Modal, Command Palette, Tabbed Interface, Sidebar Shell, Toast Queue",
+            "Why composed patterns enable reusable MVVM components",
+            "Pattern composition from atomic behaviors",
+            "Ui-patterns as example implementation",
+            "Event-driven pattern communication",
+            "Framework-agnostic pattern implementations",
+            "How patterns integrate with ViewModels"
+          ],
+          "note": "New chapter - teaches patterns first, then shows Web Loom libraries as examples"
+        }
+      ]
+    },
+    {
+      "sectionNumber": 5,
+      "sectionName": "Advanced Topics",
+      "description": "Covers DDD, testing, plugin architecture, and design systems",
+      "chapters": [
+        {
+          "chapterNumber": 18,
+          "newFileName": "chapter18.mdx",
+          "oldChapterNumber": 4,
+          "id": "domain-driven-design-for-frontend",
+          "title": "Domain-Driven Design for Frontend",
+          "learningObjectives": [
+            "Understand DDD principles applied to frontend",
+            "Learn bounded contexts in frontend applications",
+            "Implement aggregates and domain events",
+            "Apply DDD to GreenWatch domain model",
+            "Understand ubiquitous language in frontend"
+          ],
+          "coreConceptsToTeach": [
+            "DDD principles for frontend",
+            "Bounded contexts and context mapping",
+            "Aggregates and entities",
+            "Domain events in frontend",
+            "Ubiquitous language",
+            "GreenWatch as DDD example (Greenhouse, Sensor, SensorReading, ThresholdAlert)",
+            "Value objects and domain services"
+          ]
+        },
+        {
+          "chapterNumber": 19,
+          "newFileName": "chapter19.mdx",
+          "oldChapterNumber": 8,
+          "id": "testing-mvvm-applications",
+          "title": "Testing MVVM Applications",
+          "learningObjectives": [
+            "Understand testing strategies for MVVM layers",
+            "Learn unit testing for ViewModels",
+            "Learn unit testing for Models with Zod validation",
+            "Implement integration testing across layers",
+            "Use Vitest for MVVM testing",
+            "Understand testing benefits of MVVM separation"
+          ],
+          "coreConceptsToTeach": [
+            "Testing strategies for Models, ViewModels, Views",
+            "Unit testing ViewModels in isolation",
+            "Testing Models with Zod validation",
+            "Integration testing across MVVM layers",
+            "Vitest configuration and usage",
+            "Testing benefits of separation of concerns",
+            "Real test examples from monorepo"
+          ]
+        },
+        {
+          "chapterNumber": 20,
+          "newFileName": "chapter20.mdx",
+          "oldChapterNumber": null,
+          "id": "plugin-architecture-and-extensibility",
+          "title": "Plugin Architecture and Extensibility",
+          "learningObjectives": [
+            "Understand plugin architecture patterns",
+            "Learn PluginRegistry and lifecycle management",
+            "Implement FrameworkAdapter abstraction",
+            "Use PluginManifest for plugin configuration",
+            "Implement PluginSDK for host-plugin communication",
+            "Build runtime-extensible applications"
+          ],
+          "coreConceptsToTeach": [
+            "Plugin architecture patterns",
+            "PluginRegistry: framework-agnostic plugin management",
+            "Plugin lifecycle states (registered → loading → loaded → mounted → unmounted)",
+            "FrameworkAdapter: mounting plugins in different frameworks",
+            "PluginManifest: Zod-validated declarative configuration",
+            "PluginSDK: API for host communication",
+            "Real examples from plugin-core and apps/plugin-react"
+          ],
+          "note": "New chapter - content needs to be created from packages/plugin-core and apps/plugin-react"
+        },
+        {
+          "chapterNumber": 21,
+          "newFileName": "chapter21.mdx",
+          "oldChapterNumber": null,
+          "id": "design-systems-and-theming",
+          "title": "Design Systems and Theming",
+          "learningObjectives": [
+            "Understand design token and theming patterns",
+            "Learn why design systems matter for MVVM applications",
+            "Explore design token system with design-core as example",
+            "Implement CSS custom properties generation",
+            "Build dynamic theming with light/dark mode",
+            "Create framework-agnostic design systems"
+          ],
+          "coreConceptsToTeach": [
+            "Design token and theming patterns in general terms",
+            "Why design systems matter for MVVM applications",
+            "Design-core as example implementation",
+            "CSS custom properties for theming",
+            "Dynamic theming and mode switching",
+            "Framework-agnostic design systems benefits",
+            "Alternative approaches where applicable"
+          ],
+          "note": "New chapter - teaches patterns first, then shows Web Loom libraries as examples"
+        }
+      ]
+    },
+    {
+      "sectionNumber": 6,
+      "sectionName": "Real-World Applications",
+      "description": "Complete case studies and best practices",
+      "chapters": [
+        {
+          "chapterNumber": 22,
+          "newFileName": "chapter22.mdx",
+          "oldChapterNumber": 15,
+          "id": "complete-case-studies",
+          "title": "Complete Case Studies",
+          "learningObjectives": [
+            "See complete GreenWatch implementation across all frameworks",
+            "Understand e-commerce application as secondary case study",
+            "Learn how all MVVM patterns come together",
+            "Compare different domain implementations",
+            "Apply MVVM to your own projects"
+          ],
+          "coreConceptsToTeach": [
+            "Complete GreenWatch implementation walkthrough",
+            "GreenWatch architecture and bounded contexts",
+            "Multi-framework implementation showcase",
+            "E-commerce application patterns",
+            "Contrasting different domain patterns",
+            "How all patterns integrate in real applications",
+            "Comprehensive code examples from monorepo"
+          ]
+        },
+        {
+          "chapterNumber": 23,
+          "newFileName": "chapter23.mdx",
+          "oldChapterNumber": 21,
+          "id": "conclusion-and-best-practices",
+          "title": "Conclusion and Best Practices",
+          "learningObjectives": [
+            "Summarize key MVVM patterns and principles",
+            "Understand when to use MVVM",
+            "Learn architectural tradeoffs",
+            "Apply best practices for MVVM applications",
+            "Continue learning and growing"
+          ],
+          "coreConceptsToTeach": [
+            "Summary of MVVM patterns and principles",
+            "When to use MVVM (and when not to)",
+            "Architectural tradeoffs and decisions",
+            "Best practices for MVVM applications",
+            "Common pitfalls and how to avoid them",
+            "Framework-agnostic thinking",
+            "Patterns over libraries philosophy",
+            "Next steps for readers"
+          ]
+        }
+      ]
+    }
+  ],
+  "chapterMapping": {
+    "description": "Mapping from old chapter numbers to new chapter numbers",
+    "mappings": [
+      { "oldChapter": 1, "newChapter": 1, "action": "keep", "sectionChange": "The Crisis → Foundations" },
+      { "oldChapter": 2, "newChapter": 2, "action": "rename", "oldTitle": "The Crisis in Contemporary Frontend Development", "newTitle": "Why MVVM Matters for Modern Frontend", "sectionChange": "The Crisis → Foundations" },
+      { "oldChapter": 3, "newChapter": 3, "action": "keep", "sectionChange": "The Crisis → Foundations" },
+      { "oldChapter": 4, "newChapter": 18, "action": "move", "sectionChange": "The Crisis → Advanced Topics" },
+      { "oldChapter": 5, "newChapter": 14, "action": "rename", "oldTitle": "Domain Events & Cross-Context Communication", "newTitle": "Event-Driven Communication", "sectionChange": "Framework-Agnostic Core → Framework-Agnostic Patterns" },
+      { "oldChapter": 6, "newChapter": 5, "action": "rename", "oldTitle": "Reactive State Management with RxJS", "newTitle": "ViewModels and Reactive State", "sectionChange": "Framework-Agnostic Core → Core Patterns" },
+      { "oldChapter": 7, "newChapter": 8, "action": "rename", "oldTitle": "Implementing the View Layer – React Edition", "newTitle": "React Implementation with Hooks", "sectionChange": "Framework-Agnostic Core → Framework Implementations" },
+      { "oldChapter": 8, "newChapter": 19, "action": "rename", "oldTitle": "Testing ViewModels and Domain Logic", "newTitle": "Testing MVVM Applications", "sectionChange": "Framework-Agnostic Core → Advanced Topics" },
+      { "oldChapter": 9, "newChapter": 7, "action": "rename", "oldTitle": "Dependency Injection and Service Architecture", "newTitle": "Dependency Injection and Lifecycle Management", "sectionChange": "Framework-Agnostic Core → Core Patterns" },
+      { "oldChapter": 10, "newChapter": 6, "action": "rename", "oldTitle": "The Dumb View Philosophy and View Layer Contracts", "newTitle": "The View Layer Contract", "sectionChange": "View Layer Implementations → Core Patterns" },
+      { "oldChapter": 11, "newChapter": 9, "action": "rename", "oldTitle": "Vue Implementation — Proving Framework Independence", "newTitle": "Vue Implementation with Composition API", "sectionChange": "Missing Section → Framework Implementations" },
+      { "oldChapter": 12, "newChapter": 10, "action": "rename", "oldTitle": "Angular Implementation – Native RxJS Integration", "newTitle": "Angular Implementation with DI", "sectionChange": "View Layer Implementations → Framework Implementations" },
+      { "oldChapter": 13, "newChapter": null, "action": "remove", "reason": "Duplicate Vue chapter" },
+      { "oldChapter": 14, "newChapter": null, "action": "remove", "reason": "Cross-platform content to be integrated into framework chapters" },
+      { "oldChapter": 15, "newChapter": 22, "action": "rename", "oldTitle": "GreenWatch Architecture and Bounded Contexts", "newTitle": "Complete Case Studies", "sectionChange": "The GreenWatch Case Study → Real-World Applications" },
+      { "oldChapter": 16, "newChapter": null, "action": "remove", "reason": "Pragmatic architecture content to be integrated into other chapters" },
+      { "oldChapter": 17, "newChapter": null, "action": "remove", "reason": "Multi-framework showcase content to be integrated into Chapter 22" },
+      { "oldChapter": 18, "newChapter": null, "action": "remove", "reason": "Testing content consolidated into Chapter 19" },
+      { "oldChapter": 19, "newChapter": null, "action": "remove", "reason": "Scalable monolith content to be integrated into other chapters" },
+      { "oldChapter": 20, "newChapter": null, "action": "remove", "reason": "AI automation content out of scope for core MVVM book" },
+      { "oldChapter": 21, "newChapter": 23, "action": "keep", "sectionChange": "Missing Section → Real-World Applications" }
+    ],
+    "newChapters": [
+      { "newChapter": 4, "title": "Building Framework-Agnostic Models", "reason": "New chapter to cover Model layer in detail" },
+      { "newChapter": 11, "title": "Lit Web Components Implementation", "reason": "New chapter for Lit framework (apps/mvvm-lit exists)" },
+      { "newChapter": 12, "title": "Vanilla JavaScript Implementation", "reason": "New chapter for Vanilla JS (apps/mvvm-vanilla exists)" },
+      { "newChapter": 13, "title": "Reactive State Management Patterns", "reason": "New chapter for framework-agnostic reactive state patterns" },
+      { "newChapter": 15, "title": "Data Fetching and Caching Strategies", "reason": "New chapter for framework-agnostic data fetching patterns" },
+      { "newChapter": 16, "title": "Headless UI Behaviors", "reason": "New chapter for framework-agnostic UI behavior patterns" },
+      { "newChapter": 17, "title": "Composed UI Patterns", "reason": "New chapter for framework-agnostic composed UI patterns" },
+      { "newChapter": 20, "title": "Plugin Architecture and Extensibility", "reason": "New chapter for plugin architecture (packages/plugin-core exists)" },
+      { "newChapter": 21, "title": "Design Systems and Theming", "reason": "New chapter for design systems (packages/design-core exists)" }
+    ]
+  },
+  "summary": {
+    "totalOldChapters": 21,
+    "totalNewChapters": 23,
+    "chaptersKept": 3,
+    "chaptersRenamed": 10,
+    "chaptersMoved": 8,
+    "chaptersRemoved": 8,
+    "newChaptersAdded": 9,
+    "sectionsCount": 6
+  },
+  "notes": [
+    "Expanded from 21 to 23 chapters to accommodate framework-agnostic patterns section",
+    "Added 9 new chapters: Models (4), Lit (11), Vanilla JS (12), Reactive State (13), Data Fetching (15), Headless UI (16), Composed UI (17), Plugin Architecture (20), Design Systems (21)",
+    "Removed 8 old chapters: duplicate Vue (13), cross-platform (14), pragmatic architecture (16), multi-framework showcase (17), comprehensive testing (18), scalable monolith (19), AI automation (20)",
+    "Framework-agnostic patterns section (Chapters 13-17) teaches patterns first, then shows Web Loom libraries as examples",
+    "All framework implementations (React, Vue, Angular, Lit, Vanilla JS) now have dedicated chapters",
+    "GreenWatch is the primary case study throughout the book",
+    "Book follows principles-first, library-agnostic approach"
+  ]
+}

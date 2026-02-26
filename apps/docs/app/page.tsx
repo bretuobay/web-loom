@@ -194,6 +194,12 @@ export default function HomePage() {
             >
               Blog
             </Link>
+            <Link
+              href="/book"
+              className="px-3 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors"
+            >
+              Book
+            </Link>
             <a
               href={GITHUB_URL}
               target="_blank"
@@ -459,8 +465,92 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── MVVM Book ───────────────────────────────────────────────────── */}
+        <section className="py-20 bg-slate-50 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="grid md:grid-cols-2 gap-10 items-center">
+              {/* Book visual */}
+              <div className="relative">
+                <div className="relative rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-8 shadow-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-2xl" aria-hidden="true" />
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xl font-[650]">
+                        M
+                      </div>
+                      <div>
+                        <div className="text-xs font-[500] uppercase tracking-widest text-blue-500 dark:text-blue-400">
+                          Technical Book
+                        </div>
+                        <div className="text-sm font-[500] text-slate-700 dark:text-slate-300">
+                          23 Chapters
+                        </div>
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-[650] text-slate-800 dark:text-slate-100 mb-3">
+                      MVVM in Practice
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                      A practical, code-first guide to Model-View-ViewModel architecture for modern frontend development.
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {['Foundations', 'Core Patterns', 'Framework Implementations', 'Advanced Topics'].map((section) => (
+                        <span
+                          key={section}
+                          className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-400"
+                        >
+                          {section}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Book description */}
+              <div>
+                <p className="text-xs font-[500] uppercase tracking-widest text-blue-500 dark:text-blue-400 mb-3">
+                  Learn MVVM
+                </p>
+                <h2 className="text-2xl sm:text-3xl font-[650] text-slate-800 dark:text-slate-100 mb-4 leading-tight">
+                  Master framework-agnostic architecture
+                </h2>
+                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
+                  Learn MVVM patterns that work across React, Vue, Angular, Lit, and vanilla JavaScript.
+                  Every example is extracted from real, production-ready code in the Web Loom monorepo.
+                </p>
+                <ul className="space-y-3 mb-8">
+                  {[
+                    'Build Models that encapsulate business logic',
+                    'Create ViewModels that manage presentation state',
+                    'Implement Views that remain purely presentational',
+                    'Apply patterns like reactive state, event-driven communication, and design systems',
+                  ].map((item) => (
+                    <li key={item} className="flex gap-3 text-sm">
+                      <svg className="shrink-0 w-5 h-5 text-blue-500 dark:text-blue-400 mt-0.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
+                      </svg>
+                      <span className="text-slate-600 dark:text-slate-400">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/book"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-blue-500 hover:bg-blue-400 text-white text-sm font-[500] transition-colors shadow-lg shadow-blue-500/20"
+                >
+                  Start reading
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <path d="M3 7h8M7.5 4l3.5 3-3.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── Framework compatibility ──────────────────────────────────────── */}
-        <section className="py-20 border-y border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+        <section className="py-20 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
           <div className="max-w-5xl mx-auto px-6 text-center">
             <p className="text-xs font-[500] uppercase tracking-widest text-blue-500 dark:text-blue-400 mb-3">
               Compatibility

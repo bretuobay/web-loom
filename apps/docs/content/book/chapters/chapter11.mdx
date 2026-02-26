@@ -1,0 +1,942 @@
+---
+id: "lit-web-components-implementation"
+title: Lit Web Components Implementation
+section: Framework Implementations
+---
+
+# Chapter 11: Lit Web Components Implementation
+
+In the previous three chapters, we explored MVVM implementations in React, Vue, and Angular—three of the most popular frontend frameworks. Each required different approaches to integrate with ViewModels: React used custom hooks, Vue used composables, and Angular leveraged its native RxJS support with the async pipe. Now we turn to Lit—a library that takes a fundamentally different approach by building on **web standards**.
+
+Lit is a lightweight library for building fast, standards-based web components. Unlike React, Vue, and Angular, which create their own component models, Lit components are actual Custom Elements—part of the Web Components standard supported natively by browsers. This means Lit components can be used anywhere HTML can be used, regardless of framework.
+
+Despite this standards-based approach, Lit integrates beautifully with MVVM architecture. We'll continue using the GreenWatch greenhouse monitoring system, extracting real implementations from `apps/mvvm-lit/` in the Web Loom monorepo. By the end of this chapter, you'll understand how to build web components with MVVM architecture—and you'll see that the same ViewModels work identically across React, Vue, Angular, and Lit without any modifications.
+
+## 11.1 The Lit-MVVM Integration Approach
+
+Lit components need to:
+1. Subscribe to ViewModel observables
+2. Trigger re-renders when observable values change
+3. Clean up subscriptions when components disconnect
+4. Execute ViewModel commands in response to user actions
+
+Lit provides several features that make MVVM integration straightforward:
+
+- **Reactive Properties**: Decorated properties (`@state`, `@property`) that trigger re-renders when changed
+- **Lifecycle Callbacks**: `connectedCallback` and `disconnectedCallback` for subscription management
+- **Declarative Templates**: Tagged template literals with `html` for reactive rendering
+- **Lightweight**: No virtual DOM overhead—updates are applied directly to the real DOM
+
+
+Unlike React and Vue, Lit doesn't need a custom hook or composable. Instead, we subscribe directly to observables in `connectedCallback` and update `@state` properties, which automatically trigger re-renders.
+
+## 11.2 Lit Decorators and Reactive State
+
+Lit uses TypeScript decorators to define component behavior. The most important decorators for MVVM integration are:
+
+- **`@customElement('tag-name')`**: Registers the class as a custom element
+- **`@state()`**: Marks a property as internal reactive state
+- **`@property()`**: Marks a property as a public reactive attribute/property
+
+Here's a simple example showing how these decorators work with ViewModels:
+
+```typescript
+// apps/mvvm-lit/src/components/greenhouse-card.ts
+import { LitElement, html } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
+import { Subscription } from 'rxjs';
+
+@customElement('greenhouse-card')
+export class GreenhouseCard extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
+  
+  @state() private greenhouses: GreenhouseData[] = [];
+  private subscription: Subscription | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.subscription = greenHouseViewModel.data$.subscribe((data: any) => {
+      this.greenhouses = data;
+    });
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.subscription?.unsubscribe();
+  }
+
+  render() {
+    return html`
+      <div class="card">
+        <h3 class="card-title">
+          <a href="/greenhouses" class="card-title-link">Greenhouses</a>
+        </h3>
+        <p class="card-content">Total: ${this.greenhouses.length}</p>
+      </div>
+    `;
+  }
+}
+```
+
+Let's break down the key patterns:
+
+
+**1. Custom Element Registration**:
+```typescript
+@customElement('greenhouse-card')
+export class GreenhouseCard extends LitElement {
+```
+The `@customElement` decorator registers this class as a custom element with the tag name `<greenhouse-card>`. This is a web standard—the component can be used in any HTML context.
+
+**2. Reactive State**:
+```typescript
+@state() private greenhouses: GreenhouseData[] = [];
+```
+The `@state()` decorator marks `greenhouses` as reactive state. When this property changes, Lit automatically re-renders the component. The `private` modifier indicates this is internal state, not exposed as an attribute.
+
+**3. Subscription in connectedCallback**:
+```typescript
+connectedCallback() {
+  super.connectedCallback();
+  this.subscription = greenHouseViewModel.data$.subscribe((data: any) => {
+    this.greenhouses = data;
+  });
+}
+```
+`connectedCallback` is a web component lifecycle method called when the element is added to the DOM. We subscribe to the ViewModel's `data$` observable and update the `@state` property when new data arrives. This triggers a re-render automatically.
+
+**4. Cleanup in disconnectedCallback**:
+```typescript
+disconnectedCallback() {
+  super.disconnectedCallback();
+  this.subscription?.unsubscribe();
+}
+```
+`disconnectedCallback` is called when the element is removed from the DOM. We unsubscribe to prevent memory leaks—the same pattern we saw in React and Vue.
+
+**5. Declarative Template**:
+```typescript
+render() {
+  return html`
+    <div class="card">
+      <h3 class="card-title">
+        <a href="/greenhouses" class="card-title-link">Greenhouses</a>
+      </h3>
+      <p class="card-content">Total: ${this.greenhouses.length}</p>
+    </div>
+  `;
+}
+```
+The `render()` method returns a template using Lit's `html` tagged template literal. The `${this.greenhouses.length}` expression is reactive—when `greenhouses` changes, only this part of the DOM updates.
+
+
+
+## 11.3 Building the Sensor List: Direct Observable Subscriptions
+
+The Sensor List component demonstrates a complete CRUD interface with Lit. Unlike Angular's async pipe, Lit requires manual subscription management, but the pattern is straightforward and similar to React and Vue.
+
+Here's the complete implementation:
+
+```typescript
+// apps/mvvm-lit/src/components/sensor-list.ts
+import { LitElement, html } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { sensorViewModel, type SensorListData } from '@repo/view-models/SensorViewModel';
+import { Subscription } from 'rxjs';
+
+@customElement('sensor-list')
+export class SensorList extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
+  
+  @state() private sensors: SensorListData = [];
+  private subscription: Subscription | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.subscription = sensorViewModel.data$.subscribe((data: any) => {
+      this.sensors = data;
+    });
+    sensorViewModel.fetchCommand.execute();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.subscription?.unsubscribe();
+  }
+
+  render() {
+    return html`
+      <a href="/" class="back-button">
+        <img src="/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
+      </a>
+      <div class="card">
+        <h1 class="card-title">Sensors</h1>
+        ${this.sensors && this.sensors.length > 0
+          ? html`
+              <ul class="card-content list">
+                ${this.sensors.map(
+                  (sensor: any) =>
+                    html`<li class="list-item">
+                      ${sensor.greenhouse.name} ${sensor.type} (Status: ${sensor.status})
+                    </li>`,
+                )}
+              </ul>
+            `
+          : html`<p>No sensors found or still loading...</p>`}
+      </div>
+    `;
+  }
+}
+```
+
+Key patterns in this component:
+
+
+**1. Command Execution**:
+```typescript
+connectedCallback() {
+  super.connectedCallback();
+  this.subscription = sensorViewModel.data$.subscribe((data: any) => {
+    this.sensors = data;
+  });
+  sensorViewModel.fetchCommand.execute();
+}
+```
+After subscribing to the data observable, we immediately execute the `fetchCommand` to load sensor data. This is the same pattern we saw in React and Vue.
+
+**2. Conditional Rendering**:
+```typescript
+${this.sensors && this.sensors.length > 0
+  ? html`<ul>...</ul>`
+  : html`<p>No sensors found or still loading...</p>`}
+```
+Lit's template syntax supports JavaScript expressions, including ternary operators for conditional rendering. This is more explicit than Angular's `*ngIf` but more concise than React's JSX.
+
+**3. List Rendering with map()**:
+```typescript
+${this.sensors.map(
+  (sensor: any) =>
+    html`<li class="list-item">
+      ${sensor.greenhouse.name} ${sensor.type} (Status: ${sensor.status})
+    </li>`,
+)}
+```
+We use JavaScript's native `map()` function to iterate over the sensors array. Each iteration returns an `html` template literal, which Lit efficiently renders. This is similar to React's approach but without JSX.
+
+**4. No Shadow DOM**:
+```typescript
+createRenderRoot() {
+  return this;
+}
+```
+By default, Lit components use Shadow DOM for style encapsulation. In this implementation, `createRenderRoot()` returns `this` instead of creating a shadow root, which means the component renders directly into the light DOM. This is useful when you want to share global styles across components.
+
+
+
+## 11.4 Multi-ViewModel Coordination: The Dashboard Component
+
+The Dashboard component demonstrates how Lit handles multiple ViewModels simultaneously. This is a more complex scenario that showcases Lit's ability to manage multiple subscriptions and coordinate loading states.
+
+Here's the complete Dashboard implementation:
+
+```typescript
+// apps/mvvm-lit/src/components/dashboard-view.ts
+import { LitElement, html } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { Subscription, combineLatest } from 'rxjs';
+
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+
+import './greenhouse-card';
+import './sensor-card';
+import './sensor-reading-card';
+import './threshold-alert-card';
+
+@customElement('dashboard-view')
+export class DashboardView extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
+  
+  @state() private isLoading = true;
+  private subscriptions: Subscription[] = [];
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.subscriptions.push(
+      combineLatest([
+        greenHouseViewModel.isLoading$,
+        sensorViewModel.isLoading$,
+        sensorReadingViewModel.isLoading$,
+        thresholdAlertViewModel.isLoading$,
+      ]).subscribe(([gh, s, sr, ta]) => {
+        this.isLoading = gh || s || sr || ta;
+      }),
+    );
+    this.fetchData();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
+  }
+
+  private async fetchData() {
+    try {
+      await Promise.all([
+        greenHouseViewModel.fetchCommand.execute(),
+        sensorViewModel.fetchCommand.execute(),
+        sensorReadingViewModel.fetchCommand.execute(),
+        thresholdAlertViewModel.fetchCommand.execute(),
+      ]);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  }
+
+  render() {
+    return html`
+      <div class="dashboard-container">
+        ${this.isLoading
+          ? html`<p>Loading dashboard data...</p>`
+          : html`
+              <h2>Dashboard</h2>
+              <div class="flex-container">
+                <div class="flex-item">
+                  <greenhouse-card></greenhouse-card>
+                </div>
+                <div class="flex-item">
+                  <sensor-card></sensor-card>
+                </div>
+                <div class="flex-item">
+                  <threshold-alert-card></threshold-alert-card>
+                </div>
+                <div class="flex-item">
+                  <sensor-reading-card></sensor-reading-card>
+                </div>
+              </div>
+            `}
+      </div>
+    `;
+  }
+}
+```
+
+This component introduces several advanced patterns:
+
+
+**1. Multiple Subscriptions**:
+```typescript
+private subscriptions: Subscription[] = [];
+```
+Instead of tracking individual subscriptions, we store them in an array. This makes cleanup simpler when dealing with multiple observables.
+
+**2. combineLatest for Coordinated State**:
+```typescript
+this.subscriptions.push(
+  combineLatest([
+    greenHouseViewModel.isLoading$,
+    sensorViewModel.isLoading$,
+    sensorReadingViewModel.isLoading$,
+    thresholdAlertViewModel.isLoading$,
+  ]).subscribe(([gh, s, sr, ta]) => {
+    this.isLoading = gh || s || sr || ta;
+  }),
+);
+```
+RxJS's `combineLatest` operator combines multiple observables into a single stream. The dashboard shows a loading state if *any* ViewModel is loading. This is a powerful pattern for coordinating state across multiple ViewModels.
+
+**3. Parallel Command Execution**:
+```typescript
+private async fetchData() {
+  try {
+    await Promise.all([
+      greenHouseViewModel.fetchCommand.execute(),
+      sensorViewModel.fetchCommand.execute(),
+      sensorReadingViewModel.fetchCommand.execute(),
+      thresholdAlertViewModel.fetchCommand.execute(),
+    ]);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+}
+```
+We use `Promise.all()` to execute all fetch commands in parallel. This is more efficient than sequential fetching and demonstrates how ViewModels can be orchestrated independently.
+
+**4. Batch Cleanup**:
+```typescript
+disconnectedCallback() {
+  super.disconnectedCallback();
+  this.subscriptions.forEach((sub) => sub.unsubscribe());
+}
+```
+When the component disconnects, we unsubscribe from all subscriptions at once using `forEach()`. This ensures no memory leaks regardless of how many subscriptions we have.
+
+**5. Composing Web Components**:
+```typescript
+<greenhouse-card></greenhouse-card>
+<sensor-card></sensor-card>
+<threshold-alert-card></threshold-alert-card>
+<sensor-reading-card></sensor-reading-card>
+```
+Lit components are just HTML elements, so composition is natural. Each card is an independent web component that manages its own ViewModel subscription.
+
+
+
+## 11.5 Form Handling and CRUD Operations
+
+The Greenhouse List component demonstrates a complete CRUD interface with form handling in Lit. This showcases how Lit handles user input, form submission, and ViewModel command execution.
+
+Here's the implementation:
+
+```typescript
+// apps/mvvm-lit/src/components/greenhouse-list.ts
+import { LitElement, html } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
+import { Subscription } from 'rxjs';
+
+@customElement('greenhouse-list')
+export class GreenhouseList extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
+  
+  @state() private greenhouses: GreenhouseData[] = [];
+  private dataSubscription: Subscription | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.dataSubscription = greenHouseViewModel.data$.subscribe((data: any) => {
+      this.greenhouses = data;
+    });
+    greenHouseViewModel.fetchCommand.execute();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.dataSubscription?.unsubscribe();
+  }
+
+  private handleSubmit(event: SubmitEvent) {
+    event.preventDefault();
+    const form = event.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const name = formData.get('name') as string;
+    const location = formData.get('location') as string;
+    const size = formData.get('size') as string;
+    const cropType = formData.get('cropType') as string;
+    const data = { name, location, size, cropType };
+
+    const existingGreenhouse = this.greenhouses.find((gh) => gh.name === name);
+    if (existingGreenhouse) {
+      greenHouseViewModel.updateCommand.execute({
+        id: existingGreenhouse.id || '',
+        payload: {
+          ...existingGreenhouse,
+          ...data,
+        },
+      });
+    } else {
+      greenHouseViewModel.createCommand.execute(data);
+    }
+    form.reset();
+  }
+
+  private handleDelete(id?: string) {
+    if (id) {
+      greenHouseViewModel.deleteCommand.execute(id);
+    }
+  }
+
+  private handleUpdate(id?: string) {
+    const greenhouse = this.greenhouses.find((gh) => gh.id === id);
+    if (greenhouse) {
+      const nameInput = this.querySelector<HTMLInputElement>('#name');
+      const locationInput = this.querySelector<HTMLTextAreaElement>('#location');
+      const sizeSelect = this.querySelector<HTMLSelectElement>('#size');
+      const cropTypeInput = this.querySelector<HTMLInputElement>('#cropType');
+
+      if (nameInput) nameInput.value = greenhouse.name;
+      if (locationInput) locationInput.value = greenhouse.location;
+      if (sizeSelect) sizeSelect.value = greenhouse.size;
+      if (cropTypeInput) cropTypeInput.value = greenhouse.cropType || '';
+    }
+  }
+
+  render() {
+    return html`
+      <a href="/" class="back-button">
+        <img src="/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
+      </a>
+      <section class="flex-container flex-row">
+        <form class="form-container" @submit=${this.handleSubmit}>
+          <div class="form-group">
+            <label for="name">Greenhouse Name:</label>
+            <input type="text" id="name" name="name" required class="input-field" 
+                   placeholder="Enter greenhouse name" />
+          </div>
+          <div class="form-group">
+            <label for="location">Location:</label>
+            <textarea id="location" name="location" required rows="3" 
+                      class="textarea-field" placeholder="Location"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="size">Size:</label>
+            <select id="size" class="select-field" name="size" required>
+              <option value="">Select size</option>
+              <option value="25sqm">25sqm / Small</option>
+              <option value="50sqm">50sqm / Medium</option>
+              <option value="100sqm">100sqm / Large</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cropType">Crop Type:</label>
+            <input type="text" name="cropType" id="cropType" class="input-field" 
+                   placeholder="Enter crop type" />
+          </div>
+          <button type="submit" class="button">Submit</button>
+        </form>
+        <div class="card" style="max-width: 600px;">
+          <h1 class="card-title">Greenhouses</h1>
+          ${this.greenhouses && this.greenhouses.length > 0
+            ? html`
+                <ul class="card-content list">
+                  ${this.greenhouses.map(
+                    (gh) => html`
+                      <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
+                        <span>${gh.name}</span>
+                        <div class="button-group">
+                          <button class="button-tiny button-tiny-delete" 
+                                  @click=${() => this.handleDelete(gh.id)}>
+                            Delete
+                          </button>
+                          <button class="button-tiny button-tiny-edit" 
+                                  @click=${() => this.handleUpdate(gh.id)}>
+                            Edit
+                          </button>
+                        </div>
+                      </li>
+                    `,
+                  )}
+                </ul>
+              `
+            : html`<p>No greenhouses found or still loading...</p>`}
+        </div>
+      </section>
+    `;
+  }
+}
+```
+
+Key patterns in form handling:
+
+
+**1. Event Binding with @**:
+```typescript
+<form class="form-container" @submit=${this.handleSubmit}>
+```
+Lit uses the `@` prefix for event listeners. This is similar to Vue's `@` syntax and more concise than React's `onSubmit` or Angular's `(submit)`.
+
+**2. Native FormData API**:
+```typescript
+private handleSubmit(event: SubmitEvent) {
+  event.preventDefault();
+  const form = event.target as HTMLFormElement;
+  const formData = new FormData(form);
+  const name = formData.get('name') as string;
+  const location = formData.get('location') as string;
+  // ...
+}
+```
+Lit works directly with native browser APIs. We use the standard `FormData` API to extract form values—no framework-specific form handling required. This is simpler than Angular's reactive forms but more manual than React's controlled components.
+
+**3. Direct DOM Queries**:
+```typescript
+private handleUpdate(id?: string) {
+  const greenhouse = this.greenhouses.find((gh) => gh.id === id);
+  if (greenhouse) {
+    const nameInput = this.querySelector<HTMLInputElement>('#name');
+    const locationInput = this.querySelector<HTMLTextAreaElement>('#location');
+    // ...
+    if (nameInput) nameInput.value = greenhouse.name;
+  }
+}
+```
+When populating the form for editing, we use `querySelector` to access DOM elements directly. This is a web standards approach—no refs or template variables needed. Lit components have direct access to their DOM.
+
+**4. Inline Event Handlers**:
+```typescript
+<button class="button-tiny button-tiny-delete" 
+        @click=${() => this.handleDelete(gh.id)}>
+  Delete
+</button>
+```
+We can use arrow functions inline to pass parameters to event handlers. This is similar to React's approach and more flexible than Angular's template syntax.
+
+**5. ViewModel Command Execution**:
+```typescript
+greenHouseViewModel.createCommand.execute(data);
+// or
+greenHouseViewModel.updateCommand.execute({
+  id: existingGreenhouse.id || '',
+  payload: { ...existingGreenhouse, ...data },
+});
+```
+The ViewModel commands are executed directly—the same API we've used in React, Vue, and Angular. The ViewModel layer is completely framework-agnostic.
+
+
+
+## 11.6 Routing with Lit: The App Shell Pattern
+
+Lit doesn't include a built-in router, but it integrates well with routing libraries. The GreenWatch Lit app uses `@lit-labs/router` to demonstrate client-side routing with web components.
+
+Here's the app shell implementation:
+
+```typescript
+// apps/mvvm-lit/src/app-shell.ts
+import { LitElement, html } from 'lit';
+import { customElement } from 'lit/decorators.js';
+import { Router } from '@lit-labs/router';
+
+import './components/dashboard-view';
+import './components/greenhouse-list';
+import './components/sensor-list';
+import './components/sensor-reading-list';
+import './components/threshold-alert-list';
+import './layout/app-container';
+import './layout/app-header';
+import './layout/app-footer';
+
+@customElement('app-shell')
+export class AppShell extends LitElement {
+  createRenderRoot() {
+    return this;
+  }
+
+  private router = new Router(this, [
+    { path: '/', render: () => html`<dashboard-view></dashboard-view>` },
+    { path: '/dashboard', render: () => html`<dashboard-view></dashboard-view>` },
+    { path: '/greenhouses', render: () => html`<greenhouse-list></greenhouse-list>` },
+    { path: '/sensors', render: () => html`<sensor-list></sensor-list>` },
+    { path: '/sensor-readings', render: () => html`<sensor-reading-list></sensor-reading-list>` },
+    { path: '/threshold-alerts', render: () => html`<threshold-alert-list></threshold-alert-list>` },
+  ]);
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('navigate', this.handleNavigation as EventListener);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('navigate', this.handleNavigation as EventListener);
+  }
+
+  private handleNavigation = (event: Event) => {
+    const customEvent = event as CustomEvent;
+    const { path } = customEvent.detail;
+    this.router.goto(path);
+  };
+
+  render() {
+    return html`
+      <app-header></app-header>
+      <div class="content">
+        <app-container> ${this.router.outlet()} </app-container>
+      </div>
+      <app-footer></app-footer>
+    `;
+  }
+}
+```
+
+Key routing patterns:
+
+**1. Router Configuration**:
+```typescript
+private router = new Router(this, [
+  { path: '/', render: () => html`<dashboard-view></dashboard-view>` },
+  { path: '/greenhouses', render: () => html`<greenhouse-list></greenhouse-list>` },
+  // ...
+]);
+```
+The router is configured with path-to-component mappings. Each route renders a web component using Lit's `html` template literal.
+
+**2. Router Outlet**:
+```typescript
+<app-container> ${this.router.outlet()} </app-container>
+```
+The `router.outlet()` method returns the component for the current route. This is similar to Angular's `<router-outlet>` but implemented as a method call.
+
+**3. Custom Events for Navigation**:
+```typescript
+private handleNavigation = (event: Event) => {
+  const customEvent = event as CustomEvent;
+  const { path } = customEvent.detail;
+  this.router.goto(path);
+};
+```
+The app shell listens for custom `navigate` events from child components (like the header) and programmatically navigates using `router.goto()`. This demonstrates how web components communicate through custom events—a web standard pattern.
+
+
+
+## 11.7 Comparing Lit with React, Vue, and Angular
+
+Now that we've seen MVVM implementations in four frameworks, let's compare their approaches side by side. We'll focus on the key integration points: subscribing to observables, triggering re-renders, and cleanup.
+
+### 11.7.1 Observable Subscription Patterns
+
+**React (Custom Hook)**:
+```typescript
+const sensors = useObservable(sensorViewModel.data$, []);
+const isLoading = useObservable(sensorViewModel.isLoading$, true);
+
+// useObservable internally:
+// - Creates state with useState
+// - Subscribes in useEffect
+// - Returns cleanup function to unsubscribe
+```
+
+**Vue (Composable)**:
+```typescript
+const sensors = useObservable(sensorViewModel.data$, []);
+const isLoading = useObservable(sensorViewModel.isLoading$, true);
+
+// useObservable internally:
+// - Creates ref with ref()
+// - Subscribes immediately
+// - Unsubscribes in onUnmounted
+```
+
+**Angular (Async Pipe)**:
+```html
+<ul *ngIf="data$ | async as sensors">
+  <li *ngFor="let sensor of sensors">...</li>
+</ul>
+<p *ngIf="loading$ | async">Loading...</p>
+
+<!-- Async pipe internally:
+     - Subscribes when component renders
+     - Triggers change detection on new values
+     - Unsubscribes when component destroys
+-->
+```
+
+**Lit (Direct Subscription)**:
+```typescript
+@state() private sensors: SensorListData = [];
+private subscription: Subscription | null = null;
+
+connectedCallback() {
+  super.connectedCallback();
+  this.subscription = sensorViewModel.data$.subscribe((data: any) => {
+    this.sensors = data;
+  });
+}
+
+disconnectedCallback() {
+  super.disconnectedCallback();
+  this.subscription?.unsubscribe();
+}
+```
+
+### 11.7.2 Key Differences
+
+| Aspect | React | Vue | Angular | Lit |
+|--------|-------|-----|---------|-----|
+| **Integration** | Custom hook | Composable | Async pipe | Direct subscription |
+| **Boilerplate** | Medium | Medium | Low | Medium |
+| **Lifecycle** | useEffect | onMounted/onUnmounted | Automatic | connectedCallback/disconnectedCallback |
+| **Re-render Trigger** | setState | ref.value = | Change detection | @state property |
+| **Cleanup** | useEffect return | onUnmounted | Automatic | disconnectedCallback |
+| **Template Syntax** | JSX | Vue template | Angular template | Tagged template literals |
+| **Standards-Based** | No | No | No | Yes (Web Components) |
+| **Bundle Size** | Large | Medium | Large | Small |
+
+
+
+### 11.7.3 When to Choose Lit
+
+Lit is an excellent choice when:
+
+- **Standards matter**: You want to build on web standards (Custom Elements, Shadow DOM) rather than framework-specific abstractions
+- **Size matters**: You need a small bundle size (Lit is ~5KB gzipped vs 40KB+ for React/Vue)
+- **Interoperability matters**: You need components that work in any framework or no framework
+- **Performance matters**: You want direct DOM updates without virtual DOM overhead
+- **Simplicity matters**: You prefer working with native browser APIs over framework abstractions
+
+Lit may not be ideal when:
+
+- **Ecosystem matters**: You need a large ecosystem of third-party components and libraries
+- **Team familiarity matters**: Your team is already experienced with React, Vue, or Angular
+- **Complex state management matters**: You need advanced state management patterns (though MVVM helps here)
+
+## 11.8 The Same ViewModels, Four Different Frameworks
+
+The most important takeaway from this chapter—and the previous three—is that **the same ViewModels work identically across all four frameworks**. Let's emphasize this with a side-by-side comparison of the same ViewModel being used in different frameworks:
+
+**The ViewModel (Framework-Agnostic)**:
+```typescript
+// packages/view-models/src/SensorViewModel.ts
+import { RestfulApiViewModel } from '@repo/mvvm-core/viewmodels/RestfulApiViewModel';
+import { SensorModel } from '@repo/models/SensorModel';
+
+export const sensorViewModel = new RestfulApiViewModel(
+  new SensorModel(),
+  '/api/sensors'
+);
+
+// Exposes:
+// - data$: Observable<SensorListData>
+// - isLoading$: Observable<boolean>
+// - error$: Observable<any>
+// - fetchCommand, createCommand, updateCommand, deleteCommand
+```
+
+**React Usage**:
+```typescript
+const sensors = useObservable(sensorViewModel.data$, []);
+const isLoading = useObservable(sensorViewModel.isLoading$, true);
+
+useEffect(() => {
+  sensorViewModel.fetchCommand.execute();
+}, []);
+```
+
+**Vue Usage**:
+```typescript
+const sensors = useObservable(sensorViewModel.data$, []);
+const isLoading = useObservable(sensorViewModel.isLoading$, true);
+
+onMounted(() => {
+  sensorViewModel.fetchCommand.execute();
+});
+```
+
+**Angular Usage**:
+```typescript
+public data$ = sensorViewModel.data$;
+public loading$ = sensorViewModel.isLoading$;
+
+ngOnInit() {
+  sensorViewModel.fetchCommand.execute();
+}
+```
+
+**Lit Usage**:
+```typescript
+@state() private sensors: SensorListData = [];
+private subscription: Subscription | null = null;
+
+connectedCallback() {
+  super.connectedCallback();
+  this.subscription = sensorViewModel.data$.subscribe((data) => {
+    this.sensors = data;
+  });
+  sensorViewModel.fetchCommand.execute();
+}
+```
+
+The ViewModel code is **identical** across all four frameworks. Only the View layer integration differs. This is the power of MVVM: **write your business logic once, use it everywhere**.
+
+
+
+## 11.9 Lit-Specific Advantages for MVVM
+
+While all four frameworks work well with MVVM, Lit offers some unique advantages:
+
+### 11.9.1 True Framework Independence
+
+Lit components are **actual web components**—they're not tied to any framework ecosystem. This means:
+
+- You can use Lit components in a React app
+- You can use Lit components in a Vue app
+- You can use Lit components in an Angular app
+- You can use Lit components in vanilla JavaScript
+
+This makes Lit components the most portable option for building reusable UI components with MVVM architecture.
+
+### 11.9.2 Minimal Abstraction
+
+Lit provides just enough abstraction to make web components ergonomic, but it doesn't hide the underlying platform. You work directly with:
+
+- Native DOM APIs (`querySelector`, `addEventListener`)
+- Native form APIs (`FormData`, `HTMLFormElement`)
+- Native event APIs (`CustomEvent`, `dispatchEvent`)
+- Native lifecycle callbacks (`connectedCallback`, `disconnectedCallback`)
+
+This means less to learn and less framework-specific knowledge required.
+
+### 11.9.3 Performance
+
+Lit's rendering is highly optimized:
+
+- **No virtual DOM**: Updates are applied directly to the real DOM
+- **Efficient diffing**: Only the parts of the template that changed are updated
+- **Small bundle size**: ~5KB gzipped for the entire library
+- **Fast initial render**: No framework initialization overhead
+
+For MVVM applications where ViewModels manage state, Lit's lightweight approach is ideal.
+
+### 11.9.4 Shadow DOM Encapsulation (Optional)
+
+Lit supports Shadow DOM for true style encapsulation, but it's optional. In the GreenWatch app, we disabled Shadow DOM with `createRenderRoot()` to share global styles, but you can enable it for component isolation:
+
+```typescript
+// With Shadow DOM (default)
+export class MyComponent extends LitElement {
+  // Shadow DOM is created automatically
+  // Styles are scoped to this component
+}
+
+// Without Shadow DOM (light DOM)
+export class MyComponent extends LitElement {
+  createRenderRoot() {
+    return this; // Render into light DOM
+  }
+}
+```
+
+This flexibility is unique to Lit and web components.
+
+
+
+## 11.10 Key Takeaways
+
+1. **Lit is standards-based**: Lit components are actual Custom Elements that work anywhere HTML works, making them the most portable option for MVVM components.
+
+2. **Direct observable subscriptions**: Unlike Angular's async pipe, Lit requires manual subscription management in `connectedCallback` and cleanup in `disconnectedCallback`, similar to React and Vue.
+
+3. **Reactive properties with decorators**: The `@state()` and `@property()` decorators make properties reactive—when they change, Lit automatically re-renders the component.
+
+4. **Native browser APIs**: Lit works directly with native DOM, form, and event APIs, requiring less framework-specific knowledge than React, Vue, or Angular.
+
+5. **Lightweight and performant**: Lit's small bundle size (~5KB) and direct DOM updates make it ideal for performance-critical applications.
+
+6. **Same ViewModels, different View layer**: The `SensorViewModel`, `GreenHouseViewModel`, and other ViewModels work identically in Lit, React, Vue, and Angular—only the View layer integration differs.
+
+7. **Tagged template literals**: Lit's `html` tagged template literals provide a declarative, reactive template syntax that's more concise than JSX but more explicit than Angular templates.
+
+8. **Web Components composition**: Lit components compose naturally as HTML elements, making component hierarchies simple and standards-based.
+
+9. **Optional Shadow DOM**: Lit supports both Shadow DOM (for style encapsulation) and light DOM (for global styles), giving you flexibility based on your needs.
+
+10. **Framework-agnostic MVVM**: Lit proves that MVVM architecture works beautifully with web standards—no framework required, just the platform.
+
+## 11.11 What's Next
+
+We've now seen MVVM implementations in React, Vue, Angular, and Lit—four very different frameworks with four different approaches to component architecture. But what about **no framework at all**?
+
+In the next chapter, we'll explore a vanilla JavaScript implementation of GreenWatch that uses the same ViewModels but with zero framework dependencies. We'll see how MVVM works with direct DOM manipulation, EJS templates, and pure JavaScript—proving that MVVM is truly framework-agnostic.
+
+After that, we'll shift focus from framework implementations to **framework-agnostic patterns**—exploring reactive state management, event-driven communication, data fetching strategies, and UI behavior patterns that support MVVM architecture regardless of which framework (or no framework) you choose.
+

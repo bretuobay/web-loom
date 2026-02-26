@@ -1,0 +1,701 @@
+---
+id: "dependency-injection-and-lifecycle-management"
+title: Dependency Injection and Lifecycle Management
+section: Core Patterns
+---
+
+# Chapter 7: Dependency Injection and Lifecycle Management
+
+You've built ViewModels that encapsulate presentation logic. You've created Models that handle domain concerns. But how do these pieces come together in a real application? How do you instantiate ViewModels with their dependencies? How do you ensure resources are cleaned up when components unmount? How do you manage the lifecycle of objects that need to live beyond a single component?
+
+This chapter answers those questions. We'll explore dependency injection patterns for MVVM applications, examine the DI container implementation from `packages/mvvm-core/src/core/di-container.ts`, and see how different frameworks handle ViewModel lifecycle management. By the end, you'll understand how to wire up your MVVM architecture in a maintainable, testable way.
+
+## Why Dependency Injection Matters for MVVM
+
+Dependency injection (DI) is the practice of providing an object with its dependencies from the outside rather than having the object create them itself. In MVVM, this pattern is crucial for several reasons:
+
+**1. Testability**: When ViewModels receive their dependencies through constructor injection, you can easily substitute mock implementations during testing. No need for complex mocking frameworks or global state manipulation.
+
+**2. Flexibility**: Want to swap your REST API client for a GraphQL client? With DI, you change the registration in one place. ViewModels that depend on the abstraction don't need to change at all.
+
+**3. Lifecycle Control**: Some dependencies should be singletons (one instance for the entire app), while others should be transient (new instance every time). DI containers manage these lifecycle concerns explicitly.
+
+**4. Framework Independence**: A well-designed DI system works the same way regardless of whether you're using React, Vue, Angular, or vanilla JavaScript. The core logic remains framework-agnostic.
+
+Let's see how this works in practice.
+
+## The DI Container Pattern
+
+The Web Loom monorepo includes a simple but powerful DI container in `packages/mvvm-core/src/core/di-container.ts`. This container provides type-safe service registration and resolution without the complexity of larger DI frameworks.
+
+Here's the core interface:
+
+```typescript
+// packages/mvvm-core/src/core/di-container.ts
+
+/**
+ * ServiceRegistry defines a map of service keys to their types.
+ * Applications augment this interface to register their services.
+ */
+export interface ServiceRegistry {
+  // Applications extend this via module augmentation
+}
+
+/**
+ * A simple dependency injection container using a registry pattern.
+ */
+export class SimpleDIContainer {
+  /**
+   * Registers a service with the DI container.
+   * @param key A unique key for the service from ServiceRegistry
+   * @param resolver The constructor or factory function to create the service
+   * @param options Configuration: isSingleton, dependencies
+   */
+  public static register<K extends keyof ServiceRegistry>(
+    key: K,
+    resolver: Constructor<ServiceRegistry[K]> | Factory<ServiceRegistry[K]>,
+    options: {
+      isSingleton?: boolean;
+      dependencies?: (keyof ServiceRegistry)[];
+    } = {}
+  ): void {
+    // Registration logic...
+  }
+
+  /**
+   * Resolves (retrieves or creates) an instance of a registered service.
+   * @param key The key of the service to resolve
+   * @returns An instance of the resolved service
+   */
+  public static resolve<K extends keyof ServiceRegistry>(
+    key: K
+  ): ServiceRegistry[K] {
+    // Resolution logic with circular dependency detection...
+  }
+}
+```
+
+**Key features:**
+
+- **Type Safety**: TypeScript ensures you can only register and resolve services that exist in the `ServiceRegistry` interface
+- **Singleton Support**: Services can be registered as singletons (one instance) or transient (new instance each time)
+- **Dependency Resolution**: The container automatically resolves dependencies and passes them to constructors
+- **Circular Dependency Detection**: Prevents infinite loops when services depend on each other
+
+Let's see how to use this container in a real application.
+
+## Registering Services
+
+Before you can resolve services, you need to register them. This typically happens at application startup, before any components render.
+
+First, augment the `ServiceRegistry` interface to declare your services:
+
+```typescript
+// src/di/service-registry.ts
+import type { SimpleDIContainer } from '@repo/mvvm-core';
+import type { GreenhouseService } from '../services/greenhouse.service';
+import type { SensorService } from '../services/sensor.service';
+import type { ApiClient } from '../services/api-client';
+
+declare module '@repo/mvvm-core' {
+  interface ServiceRegistry {
+    apiClient: ApiClient;
+    greenhouseService: GreenhouseService;
+    sensorService: SensorService;
+  }
+}
+```
+
+Now TypeScript knows about your services and can provide autocomplete and type checking.
+
+Next, register the services with the container:
+
+```typescript
+// src/di/container-setup.ts
+import { SimpleDIContainer } from '@repo/mvvm-core';
+import { ApiClient } from '../services/api-client';
+import { GreenhouseService } from '../services/greenhouse.service';
+import { SensorService } from '../services/sensor.service';
+
+export function setupDIContainer(): void {
+  // Register ApiClient as a singleton (one instance for the app)
+  SimpleDIContainer.register('apiClient', ApiClient, {
+    isSingleton: true,
+  });
+
+  // Register GreenhouseService as a singleton, depends on apiClient
+  SimpleDIContainer.register('greenhouseService', GreenhouseService, {
+    isSingleton: true,
+    dependencies: ['apiClient'],
+  });
+
+  // Register SensorService as a singleton, depends on apiClient
+  SimpleDIContainer.register('sensorService', SensorService, {
+    isSingleton: true,
+    dependencies: ['apiClient'],
+  });
+}
+```
+
+The container will automatically resolve dependencies. When you request `greenhouseService`, the container sees it depends on `apiClient`, resolves that first, and passes it to the `GreenhouseService` constructor.
+
+Call `setupDIContainer()` once at application startup:
+
+```typescript
+// src/main.tsx (React) or src/main.ts (Vue/Angular)
+import { setupDIContainer } from './di/container-setup';
+
+setupDIContainer();
+
+// Now render your app...
+```
+
+## ViewModel Lifecycle Management
+
+ViewModels have a lifecycle: they're created when a component mounts, they manage subscriptions while the component is active, and they must clean up when the component unmounts. Failing to clean up leads to memory leaks and unexpected behavior.
+
+The `BaseViewModel` class from `packages/mvvm-core/src/viewmodels/BaseViewModel.ts` provides built-in lifecycle management:
+
+```typescript
+// packages/mvvm-core/src/viewmodels/BaseViewModel.ts
+
+export class BaseViewModel<TModel extends BaseModel<any, any>> {
+  protected readonly _subscriptions = new Subscription();
+  protected readonly _destroy$ = new Subject<void>();
+  private readonly _registeredCommands: ICommand<any, any>[] = [];
+
+  constructor(model: TModel) {
+    this.model = model;
+    
+    // All observables use takeUntil(this._destroy$) for automatic cleanup
+    this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
+    this.isLoading$ = this.model.isLoading$.pipe(takeUntil(this._destroy$));
+    this.error$ = this.model.error$.pipe(takeUntil(this._destroy$));
+  }
+
+  /**
+   * Register a command for automatic disposal when ViewModel is disposed.
+   */
+  protected registerCommand<TParam, TResult>(
+    command: ICommand<TParam, TResult>
+  ): ICommand<TParam, TResult> {
+    this._registeredCommands.push(command);
+    return command;
+  }
+
+  /**
+   * Disposes of all subscriptions and registered commands.
+   * Call this when the ViewModel is no longer needed.
+   */
+  public dispose(): void {
+    // Dispose all registered commands
+    this._registeredCommands.forEach((cmd) => {
+      if (typeof cmd.dispose === 'function') {
+        cmd.dispose();
+      }
+    });
+    this._registeredCommands.length = 0;
+
+    // Complete the destroy$ subject to trigger takeUntil cleanup
+    this._destroy$.next();
+    this._destroy$.complete();
+    
+    // Unsubscribe from any manually added subscriptions
+    this._subscriptions.unsubscribe();
+  }
+}
+```
+
+**The lifecycle pattern:**
+
+1. **Creation**: ViewModel is instantiated with its dependencies
+2. **Active**: ViewModel manages subscriptions using `takeUntil(this._destroy$)`
+3. **Disposal**: `dispose()` is called, triggering cleanup of all subscriptions and commands
+
+The `takeUntil` pattern is crucial. Every observable exposed by the ViewModel automatically completes when `_destroy$` emits. This prevents memory leaks even if the View forgets to unsubscribe.
+
+## Framework-Specific DI Approaches
+
+Different frameworks have different conventions for dependency injection. Let's see how to integrate ViewModels with each framework's DI system.
+
+### Angular: Native Dependency Injection
+
+Angular has a powerful built-in DI system. We can leverage it for ViewModels using `InjectionToken`:
+
+```typescript
+// apps/mvvm-angular/src/app/components/greenhouse-list/greenhouse-list.component.ts
+
+import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+// Create an InjectionToken for the ViewModel
+export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>(
+  'GREENHOUSE_VIEW_MODEL'
+);
+
+@Component({
+  selector: 'app-greenhouse-list',
+  standalone: true,
+  templateUrl: './greenhouse-list.component.html',
+  providers: [
+    {
+      provide: GREENHOUSE_VIEW_MODEL,
+      useValue: greenHouseViewModel,
+    },
+  ],
+})
+export class GreenhouseListComponent implements OnInit, OnDestroy {
+  public vm: typeof greenHouseViewModel;
+
+  constructor(@Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel) {
+    this.vm = vm;
+  }
+
+  ngOnInit(): void {
+    this.vm.fetchCommand.execute();
+  }
+
+  ngOnDestroy(): void {
+    // Angular's subscription management handles cleanup,
+    // but if using manual subscriptions, call dispose() here
+    // this.vm.dispose();
+  }
+}
+```
+
+**Why this works:**
+
+- `InjectionToken` provides type-safe dependency injection
+- The `providers` array registers the ViewModel at the component level
+- Angular's lifecycle hooks (`ngOnInit`, `ngOnDestroy`) map naturally to ViewModel lifecycle
+- The `async` pipe in templates automatically handles subscription cleanup
+
+**In the template:**
+
+```html
+<!-- greenhouse-list.component.html -->
+<div *ngIf="vm.data$ | async as greenhouses">
+  <div *ngFor="let greenhouse of greenhouses">
+    {{ greenhouse.name }}
+  </div>
+</div>
+```
+
+The `async` pipe subscribes to `vm.data$` and automatically unsubscribes when the component is destroyed. This is Angular's idiomatic way of handling observables—no manual subscription management needed.
+
+### React: Context and Hooks
+
+React doesn't have built-in DI, but we can use Context API for ViewModel injection and hooks for lifecycle management:
+
+```typescript
+// apps/mvvm-react/src/components/GreenhouseList.tsx
+
+import { useEffect } from 'react';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+export function GreenhouseList() {
+  // Subscribe to ViewModel observables
+  const greenHouses = useObservable(
+    greenHouseViewModel.data$, 
+    [] as GreenhouseData[]
+  );
+
+  // Fetch data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await greenHouseViewModel.fetchCommand.execute();
+      } catch (error) {
+        console.error('Error fetching greenhouses:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Component cleanup happens automatically via useObservable hook
+  
+  return (
+    <div>
+      {greenHouses.map((gh) => (
+        <div key={gh.id}>{gh.name}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+The `useObservable` hook handles subscription lifecycle:
+
+```typescript
+// apps/mvvm-react/src/hooks/useObservable.ts
+
+import { useEffect, useState } from 'react';
+import { Observable } from 'rxjs';
+
+export function useObservable<T>(
+  observable$: Observable<T>,
+  initialValue: T
+): T {
+  const [value, setValue] = useState<T>(initialValue);
+
+  useEffect(() => {
+    const subscription = observable$.subscribe(setValue);
+    
+    // Cleanup function runs when component unmounts
+    return () => subscription.unsubscribe();
+  }, [observable$]);
+
+  return value;
+}
+```
+
+**Key points:**
+
+- `useEffect` with an empty dependency array runs once on mount
+- The cleanup function returned from `useEffect` runs on unmount
+- `useObservable` automatically subscribes and unsubscribes
+- No manual `dispose()` call needed because `BaseViewModel` uses `takeUntil` internally
+
+For more complex scenarios, you can create a Context for ViewModel injection:
+
+```typescript
+// src/contexts/GreenhouseContext.tsx
+
+import React, { createContext, useContext, useMemo } from 'react';
+import { SimpleDIContainer } from '@repo/mvvm-core';
+import { GreenhouseViewModel } from '@repo/view-models';
+
+const GreenhouseContext = createContext<GreenhouseViewModel | null>(null);
+
+export function GreenhouseProvider({ children }: { children: React.ReactNode }) {
+  const viewModel = useMemo(() => {
+    // Resolve ViewModel from DI container
+    return SimpleDIContainer.resolve('greenhouseViewModel');
+  }, []);
+
+  return (
+    <GreenhouseContext.Provider value={viewModel}>
+      {children}
+    </GreenhouseContext.Provider>
+  );
+}
+
+export function useGreenhouseViewModel(): GreenhouseViewModel {
+  const vm = useContext(GreenhouseContext);
+  if (!vm) {
+    throw new Error('useGreenhouseViewModel must be used within GreenhouseProvider');
+  }
+  return vm;
+}
+```
+
+This pattern is useful when multiple components need access to the same ViewModel instance.
+
+### Vue: Provide/Inject
+
+Vue 3's Composition API provides `provide` and `inject` for dependency injection:
+
+```typescript
+// src/composables/useGreenhouseViewModel.ts
+
+import { inject, provide, InjectionKey } from 'vue';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+
+// Create a typed injection key
+export const GreenhouseViewModelKey: InjectionKey<typeof greenHouseViewModel> = 
+  Symbol('GreenhouseViewModel');
+
+// Provide the ViewModel at a parent level
+export function provideGreenhouseViewModel() {
+  provide(GreenhouseViewModelKey, greenHouseViewModel);
+}
+
+// Inject the ViewModel in child components
+export function useGreenhouseViewModel() {
+  const vm = inject(GreenhouseViewModelKey);
+  if (!vm) {
+    throw new Error('GreenhouseViewModel not provided');
+  }
+  return vm;
+}
+```
+
+In a component:
+
+```vue
+<!-- GreenhouseList.vue -->
+<script setup lang="ts">
+import { onMounted, ref } from 'vue';
+import { useGreenhouseViewModel } from '../composables/useGreenhouseViewModel';
+import { useObservable } from '../composables/useObservable';
+
+const vm = useGreenhouseViewModel();
+const greenhouses = useObservable(vm.data$, []);
+
+onMounted(async () => {
+  await vm.fetchCommand.execute();
+});
+</script>
+
+<template>
+  <div>
+    <div v-for="gh in greenhouses" :key="gh.id">
+      {{ gh.name }}
+    </div>
+  </div>
+</template>
+```
+
+The `useObservable` composable for Vue:
+
+```typescript
+// src/composables/useObservable.ts
+
+import { ref, onUnmounted, Ref } from 'vue';
+import { Observable } from 'rxjs';
+
+export function useObservable<T>(
+  observable$: Observable<T>,
+  initialValue: T
+): Ref<T> {
+  const value = ref<T>(initialValue) as Ref<T>;
+
+  const subscription = observable$.subscribe((newValue) => {
+    value.value = newValue;
+  });
+
+  // Cleanup on component unmount
+  onUnmounted(() => {
+    subscription.unsubscribe();
+  });
+
+  return value;
+}
+```
+
+### Vanilla JavaScript: Manual Management
+
+Without a framework, you manage lifecycle manually:
+
+```typescript
+// src/controllers/GreenhouseListController.ts
+
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { Subscription } from 'rxjs';
+
+export class GreenhouseListController {
+  private subscriptions = new Subscription();
+
+  constructor(private containerElement: HTMLElement) {
+    this.initialize();
+  }
+
+  private initialize(): void {
+    // Subscribe to ViewModel observables
+    this.subscriptions.add(
+      greenHouseViewModel.data$.subscribe((greenhouses) => {
+        this.render(greenhouses);
+      })
+    );
+
+    // Fetch initial data
+    greenHouseViewModel.fetchCommand.execute();
+  }
+
+  private render(greenhouses: GreenhouseData[]): void {
+    this.containerElement.innerHTML = greenhouses
+      .map((gh) => `<div>${gh.name}</div>`)
+      .join('');
+  }
+
+  public destroy(): void {
+    // Clean up subscriptions
+    this.subscriptions.unsubscribe();
+    
+    // Optionally dispose ViewModel if it's not shared
+    // greenHouseViewModel.dispose();
+  }
+}
+```
+
+Usage:
+
+```typescript
+// src/main.ts
+
+const container = document.getElementById('greenhouse-list');
+const controller = new GreenhouseListController(container);
+
+// When navigating away or destroying the view:
+// controller.destroy();
+```
+
+**Key principle:** Regardless of framework, the pattern is the same:
+
+1. Subscribe to ViewModel observables when the component mounts
+2. Unsubscribe when the component unmounts
+3. Call `dispose()` on the ViewModel if it's not shared across components
+
+## Singleton vs. Transient ViewModels
+
+Should ViewModels be singletons (one instance for the entire app) or transient (new instance per component)?
+
+**Use singletons when:**
+
+- The ViewModel manages global application state (e.g., user session, app configuration)
+- Multiple components need to share the same data and react to the same changes
+- The ViewModel coordinates cross-cutting concerns (e.g., notifications, real-time updates)
+
+**Use transient instances when:**
+
+- Each component instance needs its own isolated state
+- The ViewModel is tied to a specific entity (e.g., editing a specific greenhouse)
+- You want to avoid accidental state sharing between components
+
+In the GreenWatch application, the ViewModels are currently implemented as singletons (single instances exported from the module):
+
+```typescript
+// packages/view-models/src/GreenHouseViewModel.ts
+
+export const greenHouseViewModel = new RestfulApiViewModel(
+  new RestfulApiModel(/* ... */),
+  /* ... */
+);
+```
+
+This works well for the dashboard where all components show the same list of greenhouses. But for a detail view where you're editing a specific greenhouse, you'd want a transient instance:
+
+```typescript
+// Create a factory function for transient ViewModels
+export function createGreenhouseDetailViewModel(
+  greenhouseId: string
+): GreenhouseDetailViewModel {
+  const model = new GreenhouseDetailModel(greenhouseId);
+  return new GreenhouseDetailViewModel(model);
+}
+
+// In a component:
+const viewModel = useMemo(
+  () => createGreenhouseDetailViewModel(greenhouseId),
+  [greenhouseId]
+);
+
+useEffect(() => {
+  return () => viewModel.dispose(); // Clean up on unmount
+}, [viewModel]);
+```
+
+## Testing with Dependency Injection
+
+DI makes testing straightforward. You can inject mock dependencies without touching the production code:
+
+```typescript
+// __tests__/GreenhouseViewModel.test.ts
+
+import { GreenhouseViewModel } from '../GreenhouseViewModel';
+import { GreenhouseModel } from '../GreenhouseModel';
+import { MockApiClient } from './mocks/MockApiClient';
+
+describe('GreenhouseViewModel', () => {
+  it('loads greenhouses on initialization', async () => {
+    // Create mock dependencies
+    const mockApiClient = new MockApiClient();
+    mockApiClient.getGreenhouses.mockResolvedValue([
+      { id: '1', name: 'Greenhouse Alpha' },
+      { id: '2', name: 'Greenhouse Beta' },
+    ]);
+
+    // Inject mock into Model
+    const model = new GreenhouseModel(mockApiClient);
+    const viewModel = new GreenhouseViewModel(model);
+
+    // Execute command
+    await viewModel.fetchCommand.execute();
+
+    // Verify results
+    const data = await firstValueFrom(viewModel.data$);
+    expect(data).toHaveLength(2);
+    expect(data[0].name).toBe('Greenhouse Alpha');
+
+    // Clean up
+    viewModel.dispose();
+  });
+});
+```
+
+No global state. No complex mocking frameworks. Just inject the mock and test the behavior.
+
+## Common Pitfalls and Solutions
+
+### Pitfall 1: Forgetting to Dispose ViewModels
+
+**Problem:** Memory leaks from undisposed subscriptions.
+
+**Solution:** Always call `dispose()` when the ViewModel is no longer needed. Use framework lifecycle hooks:
+
+- React: `useEffect` cleanup function
+- Vue: `onUnmounted` hook
+- Angular: `ngOnDestroy` lifecycle hook
+- Vanilla: Manual `destroy()` method
+
+### Pitfall 2: Creating ViewModels in Render
+
+**Problem:** Creating a new ViewModel on every render causes subscriptions to leak and state to reset.
+
+**Solution:** Use memoization:
+
+```typescript
+// ❌ BAD: Creates new ViewModel on every render
+function MyComponent() {
+  const vm = new MyViewModel(); // DON'T DO THIS
+  // ...
+}
+
+// ✅ GOOD: Memoize ViewModel creation
+function MyComponent() {
+  const vm = useMemo(() => new MyViewModel(), []);
+  
+  useEffect(() => {
+    return () => vm.dispose();
+  }, [vm]);
+  // ...
+}
+```
+
+### Pitfall 3: Circular Dependencies
+
+**Problem:** ServiceA depends on ServiceB, which depends on ServiceA.
+
+**Solution:** The DI container detects circular dependencies and throws an error. To fix:
+
+1. Refactor to remove the circular dependency (preferred)
+2. Use an event bus for communication instead of direct dependencies
+3. Inject a factory function instead of the service directly
+
+### Pitfall 4: Sharing Mutable State
+
+**Problem:** Multiple components modify the same ViewModel state, causing unexpected behavior.
+
+**Solution:** 
+
+- Use immutable updates (spread operators, `Object.assign`)
+- Consider using transient ViewModels for isolated state
+- Use commands for state mutations to centralize logic
+
+## Key Takeaways
+
+1. **Dependency injection enables testability and flexibility** by providing dependencies from the outside rather than creating them internally
+
+2. **The DI container pattern** provides type-safe service registration and resolution with automatic dependency resolution
+
+3. **ViewModel lifecycle management** is critical for preventing memory leaks. Always dispose ViewModels when they're no longer needed
+
+4. **Framework-specific DI approaches** vary, but the core pattern remains the same: inject dependencies, manage lifecycle, clean up resources
+
+5. **Singleton vs. transient** depends on whether state should be shared across components or isolated per instance
+
+6. **Testing with DI** is straightforward: inject mocks, test behavior, verify results
+
+In the next chapter, we'll see how to implement the View layer in React, using the DI and lifecycle patterns we've established here. You'll see how these architectural decisions pay off in clean, maintainable component code.
+

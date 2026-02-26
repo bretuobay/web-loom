@@ -1,0 +1,1157 @@
+---
+id: "angular-implementation-with-di"
+title: Angular Implementation with DI
+section: Framework Implementations
+---
+
+# Chapter 10: Angular Implementation with DI
+
+In the previous two chapters, we explored how React's hooks and Vue's Composition API integrate with MVVM architecture. Both frameworks required custom utilities (`useObservable`) to bridge RxJS observables with their respective reactive systems. Now we turn to Angular—a framework that has a unique advantage: **native RxJS integration**.
+
+Angular was built with RxJS from the ground up. Observables are first-class citizens in Angular's ecosystem, used for HTTP requests, routing, forms, and more. This means Angular components can consume ViewModel observables directly without any bridging code. Combined with Angular's powerful dependency injection system and the `async` pipe, Angular provides the most seamless MVVM integration of any framework we'll explore.
+
+We'll continue using the GreenWatch greenhouse monitoring system, extracting real implementations from `apps/mvvm-angular/` in the Web Loom monorepo. By the end of this chapter, you'll understand how to build Angular applications with MVVM architecture—and you'll see that the same ViewModels work identically across React, Vue, and Angular without any modifications.
+
+## 10.1 The Angular-MVVM Integration Advantage
+
+Angular components need to:
+1. Subscribe to ViewModel observables
+2. Trigger change detection when observable values change
+3. Clean up subscriptions when components are destroyed
+4. Execute ViewModel commands in response to user actions
+
+Unlike React and Vue, Angular doesn't need a custom hook or composable to bridge observables. Instead, Angular provides:
+
+- **Native RxJS Support**: Observables work directly in Angular without conversion
+- **Async Pipe**: Automatically subscribes, updates, and unsubscribes from observables in templates
+- **Dependency Injection**: Provides ViewModels to components through Angular's DI system
+- **InjectionTokens**: Type-safe tokens for registering and injecting ViewModels
+
+This makes Angular the most natural fit for MVVM with RxJS-based ViewModels.
+
+
+
+## 10.2 Dependency Injection with InjectionTokens
+
+Angular's dependency injection system is one of its most powerful features. To provide ViewModels to components, we use `InjectionToken`—a type-safe way to register dependencies that aren't classes.
+
+Here's how we create an injection token for the `SensorViewModel`:
+
+```typescript
+// apps/mvvm-angular/src/app/components/sensor-list/sensor-list.component.ts
+import { Component, OnInit, Inject, InjectionToken } from '@angular/core';
+import { sensorViewModel, SensorViewModel } from '@repo/view-models/SensorViewModel';
+
+// Create an injection token for the sensor view model
+export const SENSOR_VIEW_MODEL = new InjectionToken<SensorViewModel>('SensorViewModel');
+
+@Component({
+  selector: 'app-sensor-list',
+  standalone: true,
+  imports: [CommonModule, BackIconComponent, RouterLink],
+  providers: [
+    {
+      provide: SENSOR_VIEW_MODEL,
+      useValue: sensorViewModel,
+    },
+  ],
+  templateUrl: './sensor-list.component.html',
+  styleUrl: './sensor-list.component.scss',
+})
+export class SensorListComponent implements OnInit {
+  public data$!: Observable<SensorListData | null>;
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
+
+  constructor(@Inject(SENSOR_VIEW_MODEL) public readonly vm: SensorViewModel) {
+    // Constructor only for dependency injection
+  }
+
+  ngOnInit(): void {
+    // Initialize observables in ngOnInit
+    this.data$ = this.vm.data$;
+    this.loading$ = this.vm.isLoading$;
+    this.error$ = this.vm.error$;
+
+    // Execute commands and side effects
+    this.vm.fetchCommand.execute();
+  }
+
+  getStatusClass(status: string | undefined): string {
+    if (!status) return '';
+    switch (status.toLowerCase()) {
+      case 'online':
+        return 'status-online';
+      case 'offline':
+        return 'status-offline';
+      case 'error':
+        return 'status-error';
+      default:
+        return '';
+    }
+  }
+}
+```
+
+Let's break down the dependency injection pattern:
+
+**1. InjectionToken Creation**: 
+```typescript
+export const SENSOR_VIEW_MODEL = new InjectionToken<SensorViewModel>('SensorViewModel');
+```
+This creates a type-safe token that Angular's DI system can use to identify the dependency. The generic type `<SensorViewModel>` ensures type safety when injecting.
+
+**2. Provider Configuration**:
+```typescript
+providers: [
+  {
+    provide: SENSOR_VIEW_MODEL,
+    useValue: sensorViewModel,
+  },
+]
+```
+The `providers` array tells Angular how to resolve the token. `useValue` provides the actual ViewModel instance (the singleton `sensorViewModel` from `@repo/view-models`).
+
+**3. Constructor Injection**:
+```typescript
+constructor(@Inject(SENSOR_VIEW_MODEL) public readonly vm: SensorViewModel) {
+  // Constructor only for dependency injection
+}
+```
+The `@Inject` decorator tells Angular to inject the dependency associated with `SENSOR_VIEW_MODEL`. The `public readonly` modifier makes `vm` accessible in the template.
+
+**4. Observable Initialization**:
+```typescript
+ngOnInit(): void {
+  this.data$ = this.vm.data$;
+  this.loading$ = this.vm.isLoading$;
+  this.error$ = this.vm.error$;
+  
+  this.vm.fetchCommand.execute();
+}
+```
+In `ngOnInit`, we assign the ViewModel's observables to component properties and execute the initial fetch command.
+
+
+
+## 10.3 The Async Pipe: Automatic Subscription Management
+
+The `async` pipe is Angular's secret weapon for working with observables. It automatically subscribes to an observable, returns the latest value, and unsubscribes when the component is destroyed. This eliminates the manual subscription management we saw in React and Vue.
+
+Here's the template for the `SensorListComponent`:
+
+```html
+<!-- apps/mvvm-angular/src/app/components/sensor-list/sensor-list.component.html -->
+<a routerLink="/" class="back-button">
+  <back-icon> </back-icon>
+</a>
+<div class="card">
+  <h2 class="card-title">Sensor List</h2>
+  <ul class="list" *ngIf="data$ | async as sensors">
+    <li *ngFor="let sensor of sensors" class="list-item">
+      <h3>{{ sensor.status }} ({{ sensor.id }})</h3>
+      <p>Type:{{ sensor.type }}</p>
+      <p>Greenhouse: {{ sensor.greenhouse.name }}</p>
+      <p>
+        Status:
+        <span [ngClass]="getStatusClass(sensor.status)">{{ sensor.status }}</span>
+      </p>
+    </li>
+  </ul>
+  <p *ngIf="loading$ | async">Loading.....</p>
+</div>
+```
+
+Let's examine the key patterns:
+
+**1. Async Pipe with Alias**:
+```html
+<ul class="list" *ngIf="data$ | async as sensors">
+```
+The `async` pipe subscribes to `data$` and assigns the emitted value to the `sensors` variable. The `*ngIf` ensures the list only renders when data is available (not `null` or `undefined`).
+
+**2. Iteration with *ngFor**:
+```html
+<li *ngFor="let sensor of sensors" class="list-item">
+```
+Once we have the `sensors` array from the async pipe, we iterate over it with `*ngFor`—standard Angular template syntax.
+
+**3. Loading State**:
+```html
+<p *ngIf="loading$ | async">Loading.....</p>
+```
+The `loading$` observable is also consumed with the async pipe. When `loading$` emits `true`, the loading message displays.
+
+**4. No Manual Cleanup**:
+Notice there's no `ngOnDestroy` or manual `unsubscribe()` calls. The async pipe handles all subscription lifecycle management automatically.
+
+### 10.3.1 Comparing with React and Vue
+
+Let's compare how the three frameworks handle observable subscriptions:
+
+**React (Manual Subscription)**:
+```typescript
+const sensors = useObservable(sensorViewModel.data$, []);
+const isLoading = useObservable(sensorViewModel.isLoading$, true);
+
+// useObservable internally:
+// - Creates state with useState
+// - Subscribes in useEffect
+// - Returns cleanup function to unsubscribe
+```
+
+**Vue (Manual Subscription)**:
+```typescript
+const sensors = useObservable(sensorViewModel.data$, []);
+const isLoading = useObservable(sensorViewModel.isLoading$, true);
+
+// useObservable internally:
+// - Creates ref with ref()
+// - Subscribes immediately
+// - Unsubscribes in onUnmounted
+```
+
+**Angular (Automatic with Async Pipe)**:
+```html
+<ul *ngIf="data$ | async as sensors">
+  <li *ngFor="let sensor of sensors">...</li>
+</ul>
+<p *ngIf="loading$ | async">Loading...</p>
+
+<!-- Async pipe internally:
+     - Subscribes when component renders
+     - Triggers change detection on new values
+     - Unsubscribes when component destroys
+-->
+```
+
+Angular's approach is the most declarative and requires the least boilerplate. The async pipe is a perfect match for MVVM's observable-based ViewModels.
+
+
+
+## 10.4 Building the Greenhouse List: CRUD Operations with ViewModels
+
+The Greenhouse List component demonstrates a more complex scenario: a form-driven CRUD interface that creates, updates, and deletes greenhouses through the `GreenHouseViewModel`. This showcases how Angular's reactive forms integrate with ViewModel commands.
+
+Here's the complete component implementation:
+
+```typescript
+// apps/mvvm-angular/src/app/components/greenhouse-list/greenhouse-list.component.ts
+import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { GreenhouseData, greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { Observable, Subscription, tap } from 'rxjs';
+import { RouterLink } from '@angular/router';
+
+export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>('GREENHOUSE_VIEW_MODEL');
+
+@Component({
+  selector: 'app-greenhouse-list',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, BackIconComponent, RouterLink],
+  templateUrl: './greenhouse-list.component.html',
+  styleUrls: ['./greenhouse-list.component.scss'],
+  providers: [
+    {
+      provide: GREENHOUSE_VIEW_MODEL,
+      useValue: greenHouseViewModel,
+    },
+  ],
+})
+export class GreenhouseListComponent implements OnInit, OnDestroy {
+  public vm: typeof greenHouseViewModel;
+  public greenhouses$!: Observable<GreenhouseData[] | null>;
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
+
+  greenhouseForm: FormGroup;
+  editingGreenhouseId: string | null | undefined = null;
+  greenhouses: GreenhouseData[] = [];
+  private greenhousesSubscription: Subscription | undefined;
+
+  greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
+
+  constructor(
+    private fb: FormBuilder,
+    @Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel,
+  ) {
+    this.vm = vm;
+    this.greenhouseForm = this.fb.group({
+      name: ['', Validators.required],
+      location: ['', Validators.required],
+      size: ['', Validators.required],
+      cropType: [''],
+      id: [''], // Optional field for editing
+    });
+  }
+
+  ngOnInit(): void {
+    this.greenhouses$ = this.vm.data$.pipe(tap((ghs) => (this.greenhouses = ghs || [])));
+    this.loading$ = this.vm.isLoading$;
+    this.error$ = this.vm.error$;
+
+    this.vm.fetchCommand.execute();
+    this.greenhousesSubscription = this.greenhouses$.subscribe();
+  }
+
+  ngOnDestroy(): void {
+    if (this.greenhousesSubscription) {
+      this.greenhousesSubscription.unsubscribe();
+    }
+  }
+
+  handleSubmit(): void {
+    if (this.greenhouseForm.invalid) {
+      console.error('Form is invalid');
+      return;
+    }
+
+    const formDataValue = this.greenhouseForm.value;
+
+    if (this.editingGreenhouseId) {
+      const existingGreenhouse = this.greenhouses.find((gh) => gh.id === this.editingGreenhouseId);
+      if (existingGreenhouse) {
+        this.vm.updateCommand.execute({
+          id: this.editingGreenhouseId,
+          payload: {
+            ...existingGreenhouse,
+            name: formDataValue.name,
+            location: formDataValue.location,
+            size: formDataValue.size,
+            cropType: formDataValue.cropType,
+          },
+        });
+      }
+    } else {
+      this.vm.createCommand.execute(formDataValue);
+    }
+
+    this.greenhouseForm.reset();
+    this.editingGreenhouseId = null;
+  }
+
+  handleUpdateForm(id?: string): void {
+    if (!id) return;
+    const greenhouse = this.greenhouses.find((gh) => gh.id === id);
+    if (greenhouse) {
+      this.editingGreenhouseId = greenhouse.id;
+      this.greenhouseForm.patchValue({
+        name: greenhouse.name,
+        location: greenhouse.location,
+        size: greenhouse.size,
+        cropType: greenhouse.cropType || '',
+      });
+    }
+  }
+
+  handleDelete(id?: string): void {
+    if (!id) {
+      console.error('No ID provided for deletion');
+      return;
+    }
+    this.vm.deleteCommand.execute(id);
+    if (this.editingGreenhouseId === id) {
+      this.greenhouseForm.reset();
+      this.editingGreenhouseId = null;
+    }
+  }
+}
+```
+
+
+
+### 10.4.1 Pattern Analysis: Angular Forms with ViewModels
+
+Let's examine the key patterns in this component:
+
+**1. Reactive Forms Setup**:
+```typescript
+this.greenhouseForm = this.fb.group({
+  name: ['', Validators.required],
+  location: ['', Validators.required],
+  size: ['', Validators.required],
+  cropType: [''],
+});
+```
+Angular's `FormBuilder` creates a reactive form with validation rules. This is pure Angular—no MVVM-specific code here.
+
+**2. Observable with Side Effects**:
+```typescript
+this.greenhouses$ = this.vm.data$.pipe(
+  tap((ghs) => (this.greenhouses = ghs || []))
+);
+```
+We use RxJS's `tap` operator to maintain a local array copy of greenhouses. This is needed for the edit/delete operations that require finding specific greenhouses by ID. The `tap` operator doesn't transform the stream—it just performs side effects.
+
+**3. Manual Subscription for Side Effects**:
+```typescript
+this.greenhousesSubscription = this.greenhouses$.subscribe();
+```
+We manually subscribe to trigger the `tap` side effect. This subscription is cleaned up in `ngOnDestroy`.
+
+**4. ViewModel Command Execution**:
+```typescript
+// Create
+this.vm.createCommand.execute(formDataValue);
+
+// Update
+this.vm.updateCommand.execute({
+  id: this.editingGreenhouseId,
+  payload: { ...existingGreenhouse, ...formDataValue },
+});
+
+// Delete
+this.vm.deleteCommand.execute(id);
+```
+All CRUD operations go through ViewModel commands. The component doesn't know about HTTP requests, API endpoints, or data persistence—that's all encapsulated in the ViewModel.
+
+**5. Form State Management**:
+```typescript
+handleUpdateForm(id?: string): void {
+  const greenhouse = this.greenhouses.find((gh) => gh.id === id);
+  if (greenhouse) {
+    this.editingGreenhouseId = greenhouse.id;
+    this.greenhouseForm.patchValue({
+      name: greenhouse.name,
+      location: greenhouse.location,
+      size: greenhouse.size,
+      cropType: greenhouse.cropType || '',
+    });
+  }
+}
+```
+When editing, we populate the form with existing data using `patchValue`. The `editingGreenhouseId` tracks whether we're in create or update mode.
+
+
+
+Here's the corresponding template:
+
+```html
+<!-- apps/mvvm-angular/src/app/components/greenhouse-list/greenhouse-list.component.html -->
+<a routerLink="/" class="back-button">
+  <back-icon></back-icon>
+</a>
+<section class="flex-container flex-row">
+  <form [formGroup]="greenhouseForm" (ngSubmit)="handleSubmit()" class="form-container">
+    <div class="form-group">
+      <label for="name">Greenhouse Name:</label>
+      <input
+        type="text"
+        id="name"
+        formControlName="name"
+        required
+        class="input-field"
+        placeholder="Enter greenhouse name"
+      />
+      <div
+        *ngIf="
+          greenhouseForm.get('name')?.invalid &&
+          (greenhouseForm.get('name')?.dirty || greenhouseForm.get('name')?.touched)
+        "
+        class="error-message"
+      >
+        Name is required.
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="location">Location:</label>
+      <textarea
+        id="location"
+        formControlName="location"
+        required
+        rows="3"
+        class="textarea-field"
+        placeholder="Location"
+      ></textarea>
+      <div
+        *ngIf="
+          greenhouseForm.get('location')?.invalid &&
+          (greenhouseForm.get('location')?.dirty || greenhouseForm.get('location')?.touched)
+        "
+        class="error-message"
+      >
+        Location is required.
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="size">Size:</label>
+      <select id="size" formControlName="size" class="select-field" required>
+        <option value="">Select size</option>
+        <option value="25sqm">25sqm / Small</option>
+        <option value="50sqm">50sqm / Medium</option>
+        <option value="100sqm">100sqm / Large</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="cropType">Crop Type:</label>
+      <input type="text" id="cropType" formControlName="cropType" class="input-field" placeholder="Enter crop type" />
+    </div>
+
+    <button type="submit" class="button" [disabled]="greenhouseForm.invalid">Submit</button>
+  </form>
+
+  <div class="card" style="max-width: 600px">
+    <h1 class="card-title">Greenhouses</h1>
+    <div *ngIf="loading$ | async" class="card-content">
+      <p>Loading greenhouses...</p>
+    </div>
+    <ng-container *ngIf="greenhouses$ | async as greenhouseList">
+      <div *ngIf="greenhouseList && greenhouseList.length > 0; else noGreenhouses">
+        <ul class="card-content list">
+          <li
+            *ngFor="let gh of greenhouseList"
+            class="list-item"
+            style="font-size: 1.8rem; justify-content: space-between"
+          >
+            <span>{{ gh.name }}</span>
+            <div class="button-group">
+              <button class="button-tiny button-tiny-delete" (click)="handleDelete(gh?.id)">Delete</button>
+              <button class="button-tiny button-tiny-edit" (click)="handleUpdateForm(gh?.id)">Edit</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </ng-container>
+    <ng-template #noGreenhouses>
+      <p *ngIf="!(loading$ | async)" class="card-content">No greenhouses found.</p>
+    </ng-template>
+  </div>
+</section>
+```
+
+The template demonstrates several Angular-specific patterns:
+
+**1. Reactive Forms Binding**:
+```html
+<form [formGroup]="greenhouseForm" (ngSubmit)="handleSubmit()">
+  <input formControlName="name" />
+</form>
+```
+The `[formGroup]` directive binds the form to the `FormGroup` instance. Individual controls use `formControlName` to bind to form fields.
+
+**2. Validation Display**:
+```html
+<div
+  *ngIf="
+    greenhouseForm.get('name')?.invalid &&
+    (greenhouseForm.get('name')?.dirty || greenhouseForm.get('name')?.touched)
+  "
+  class="error-message"
+>
+  Name is required.
+</div>
+```
+Angular's reactive forms provide rich validation state. We show errors only when the field is invalid AND has been interacted with.
+
+**3. Async Pipe with ng-container**:
+```html
+<ng-container *ngIf="greenhouses$ | async as greenhouseList">
+  <div *ngIf="greenhouseList && greenhouseList.length > 0; else noGreenhouses">
+    <ul>
+      <li *ngFor="let gh of greenhouseList">...</li>
+    </ul>
+  </div>
+</ng-container>
+```
+The `ng-container` is a logical container that doesn't render to the DOM. We use it with the async pipe to unwrap the observable, then check if the list has items.
+
+**4. Event Binding to ViewModel Commands**:
+```html
+<button (click)="handleDelete(gh?.id)">Delete</button>
+<button (click)="handleUpdateForm(gh?.id)">Edit</button>
+```
+Click events call component methods, which in turn execute ViewModel commands. The component acts as a thin adapter between the template and the ViewModel.
+
+
+
+## 10.5 Building the Dashboard: Component Composition
+
+The GreenWatch Dashboard in Angular demonstrates a different architectural approach compared to React and Vue. Instead of managing multiple ViewModels in a single component, Angular's Dashboard delegates to child components, each responsible for its own ViewModel.
+
+Here's the Dashboard component:
+
+```typescript
+// apps/mvvm-angular/src/app/components/dashboard/dashboard.component.ts
+import { Component } from '@angular/core';
+import { GreenhouseCardComponent } from '../greenhouse-card/greenhouse-card.component';
+import { SensorCardComponent } from '../sensor-card/sensor-card.component';
+import { SensorReadingCardComponent } from '../sensor-reading-card/sensor-reading-card.component';
+import { ThresholdAlertCardComponent } from '../threshold-alert-card/threshold-alert-card.component';
+
+@Component({
+  selector: 'app-dashboard',
+  standalone: true,
+  imports: [
+    GreenhouseCardComponent, 
+    SensorCardComponent, 
+    SensorReadingCardComponent, 
+    ThresholdAlertCardComponent
+  ],
+  templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.component.scss',
+})
+export class DashboardComponent {}
+```
+
+And the template:
+
+```html
+<!-- apps/mvvm-angular/src/app/components/dashboard/dashboard.component.html -->
+<div>
+  <h2>Dashboard</h2>
+  <div class="flex-container">
+    <div class="flex-item">
+      <app-greenhouse-card></app-greenhouse-card>
+    </div>
+
+    <div class="flex-item">
+      <app-sensor-card></app-sensor-card>
+    </div>
+
+    <div class="flex-item">
+      <app-threshold-alert-card></app-threshold-alert-card>
+    </div>
+
+    <div class="flex-item">
+      <app-sensor-reading-card></app-sensor-reading-card>
+    </div>
+  </div>
+</div>
+```
+
+Notice how simple this is! The Dashboard component has no logic—it's purely a layout container. Each card component manages its own ViewModel through dependency injection.
+
+Here's one of the card components:
+
+```typescript
+// apps/mvvm-angular/src/app/components/greenhouse-card/greenhouse-card.component.ts
+import { Component, OnInit, Inject, InjectionToken } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { greenHouseViewModel, GreenhouseListData } from '@repo/view-models/GreenHouseViewModel';
+import { Observable } from 'rxjs';
+
+export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>('GREENHOUSE_VIEW_MODEL');
+
+@Component({
+  selector: 'app-greenhouse-card',
+  standalone: true,
+  imports: [RouterModule, CommonModule],
+  templateUrl: './greenhouse-card.component.html',
+  styleUrl: './greenhouse-card.component.scss',
+  providers: [
+    {
+      provide: GREENHOUSE_VIEW_MODEL,
+      useValue: greenHouseViewModel,
+    },
+  ],
+})
+export class GreenhouseCardComponent implements OnInit {
+  public vm: typeof greenHouseViewModel;
+  public data$!: Observable<GreenhouseListData | null>;
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
+
+  constructor(@Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel) {
+    this.vm = vm;
+  }
+
+  ngOnInit(): void {
+    this.data$ = this.vm.data$;
+    this.loading$ = this.vm.isLoading$;
+    this.error$ = this.vm.error$;
+
+    this.vm.fetchCommand.execute();
+  }
+}
+```
+
+And its template:
+
+```html
+<!-- apps/mvvm-angular/src/app/components/greenhouse-card/greenhouse-card.component.html -->
+<div class="card">
+  <div class="card-title">
+    <a routerLink="/greenhouses">Greenhouses</a>
+  </div>
+  <div class="card-content">
+    <p>Total: {{ (data$ | async)?.length }}</p>
+  </div>
+</div>
+```
+
+### 10.5.1 Comparing Dashboard Architectures
+
+Let's compare how the three frameworks structure the Dashboard:
+
+**React (Centralized ViewModel Management)**:
+```tsx
+const Dashboard: React.FC = () => {
+  // All ViewModels managed in parent component
+  const greenHouses = useObservable(greenHouseViewModel.data$, []);
+  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensorReadings = useObservable(sensorReadingViewModel.data$, []);
+  const thresholdAlerts = useObservable(thresholdAlertViewModel.data$, []);
+
+  useEffect(() => {
+    // Fetch all data in parent
+    greenHouseViewModel.fetchCommand.execute();
+    sensorViewModel.fetchCommand.execute();
+    // ...
+  }, []);
+
+  return (
+    <div>
+      <GreenhouseCard greenHouses={greenHouses} />
+      <SensorCard sensors={sensors} />
+      {/* Props passed down to children */}
+    </div>
+  );
+};
+```
+
+**Vue (Centralized ViewModel Management)**:
+```vue
+<script setup lang="ts">
+// All ViewModels managed in parent component
+const greenHouses = useObservable(greenHouseViewModel.data$, []);
+const sensors = useObservable(sensorViewModel.data$, []);
+const sensorReadings = useObservable(sensorReadingViewModel.data$, []);
+const thresholdAlerts = useObservable(thresholdAlertViewModel.data$, []);
+
+onMounted(async () => {
+  // Fetch all data in parent
+  await greenHouseViewModel.fetchCommand.execute();
+  await sensorViewModel.fetchCommand.execute();
+  // ...
+});
+</script>
+
+<template>
+  <div>
+    <GreenhouseCard :greenhouse-list-data-prop="greenHouses" />
+    <SensorCard :sensor-list-data-prop="sensors" />
+    <!-- Props passed down to children -->
+  </div>
+</template>
+```
+
+**Angular (Decentralized with DI)**:
+```typescript
+@Component({
+  selector: 'app-dashboard',
+  template: `
+    <div>
+      <app-greenhouse-card></app-greenhouse-card>
+      <app-sensor-card></app-sensor-card>
+      <!-- Each child manages its own ViewModel via DI -->
+    </div>
+  `
+})
+export class DashboardComponent {}
+
+// Each card component:
+@Component({
+  selector: 'app-greenhouse-card',
+  providers: [
+    { provide: GREENHOUSE_VIEW_MODEL, useValue: greenHouseViewModel }
+  ]
+})
+export class GreenhouseCardComponent {
+  constructor(@Inject(GREENHOUSE_VIEW_MODEL) public vm: typeof greenHouseViewModel) {}
+  
+  ngOnInit() {
+    this.vm.fetchCommand.execute();
+  }
+}
+```
+
+**Key Differences**:
+
+1. **Data Flow**: React and Vue pass data down as props; Angular uses dependency injection
+2. **Responsibility**: React and Vue centralize ViewModel management in the parent; Angular distributes it to children
+3. **Coupling**: React and Vue create parent-child coupling through props; Angular components are more independent
+4. **Testability**: Angular's DI makes it easier to mock ViewModels in child component tests
+
+Both approaches are valid. Angular's DI approach scales better for large applications with deep component trees, while React/Vue's prop-passing approach makes data flow more explicit.
+
+
+
+## 10.6 Three-Way Framework Comparison
+
+Now that we've seen MVVM implementations in React, Vue, and Angular, let's compare them side by side across key dimensions:
+
+### 10.6.1 Observable Integration
+
+| Framework | Approach | Boilerplate | Automatic Cleanup |
+|-----------|----------|-------------|-------------------|
+| **React** | Custom `useObservable` hook | Medium | Yes (via useEffect) |
+| **Vue** | Custom `useObservable` composable | Medium | Yes (via onUnmounted) |
+| **Angular** | Native async pipe | Low | Yes (automatic) |
+
+**Winner**: Angular. The async pipe is built-in and requires no custom code.
+
+### 10.6.2 ViewModel Injection
+
+| Framework | Approach | Type Safety | Testability |
+|-----------|----------|-------------|-------------|
+| **React** | Direct import or Context | Manual | Good (can mock imports) |
+| **Vue** | Direct import or provide/inject | Manual | Good (can mock imports) |
+| **Angular** | InjectionToken + DI | Built-in | Excellent (DI system) |
+
+**Winner**: Angular. The DI system provides superior type safety and testability.
+
+### 10.6.3 Template Syntax
+
+| Framework | Approach | Verbosity | Type Safety |
+|-----------|----------|-----------|-------------|
+| **React** | JSX with JavaScript expressions | Low | Excellent (TypeScript) |
+| **Vue** | Template with directives | Medium | Good (with TypeScript) |
+| **Angular** | Template with directives | High | Good (with TypeScript) |
+
+**Winner**: React. JSX is the most concise and has the best TypeScript integration.
+
+### 10.6.4 Form Handling
+
+| Framework | Approach | Validation | Integration with MVVM |
+|-----------|----------|------------|----------------------|
+| **React** | Controlled components or libraries | Manual or library | Good |
+| **Vue** | v-model or libraries | Manual or library | Good |
+| **Angular** | Reactive Forms | Built-in | Excellent |
+
+**Winner**: Angular. Reactive Forms provide powerful built-in validation and state management.
+
+### 10.6.5 Learning Curve
+
+| Framework | MVVM-Specific Complexity | Overall Complexity |
+|-----------|-------------------------|-------------------|
+| **React** | Low (just useObservable) | Low |
+| **Vue** | Low (just useObservable) | Low |
+| **Angular** | Medium (DI + async pipe) | High |
+
+**Winner**: React and Vue. Both have simpler mental models for MVVM integration.
+
+### 10.6.6 Code Example: Same ViewModel, Three Frameworks
+
+Here's the same functionality—displaying a list of sensors—implemented in all three frameworks:
+
+**React**:
+```tsx
+const SensorList: React.FC = () => {
+  const sensors = useObservable(sensorViewModel.data$, []);
+  const loading = useObservable(sensorViewModel.isLoading$, true);
+
+  useEffect(() => {
+    sensorViewModel.fetchCommand.execute();
+  }, []);
+
+  if (loading) return <p>Loading...</p>;
+
+  return (
+    <ul>
+      {sensors.map(sensor => (
+        <li key={sensor.id}>{sensor.status}</li>
+      ))}
+    </ul>
+  );
+};
+```
+
+**Vue**:
+```vue
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import { useObservable } from '../hooks/useObservable';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+
+const sensors = useObservable(sensorViewModel.data$, []);
+const loading = useObservable(sensorViewModel.isLoading$, true);
+
+onMounted(() => {
+  sensorViewModel.fetchCommand.execute();
+});
+</script>
+
+<template>
+  <p v-if="loading">Loading...</p>
+  <ul v-else>
+    <li v-for="sensor in sensors" :key="sensor.id">
+      {{ sensor.status }}
+    </li>
+  </ul>
+</template>
+```
+
+**Angular**:
+```typescript
+@Component({
+  selector: 'app-sensor-list',
+  template: `
+    <p *ngIf="loading$ | async">Loading...</p>
+    <ul *ngIf="data$ | async as sensors">
+      <li *ngFor="let sensor of sensors">
+        {{ sensor.status }}
+      </li>
+    </ul>
+  `,
+  providers: [
+    { provide: SENSOR_VIEW_MODEL, useValue: sensorViewModel }
+  ]
+})
+export class SensorListComponent implements OnInit {
+  data$!: Observable<SensorListData | null>;
+  loading$!: Observable<boolean>;
+
+  constructor(@Inject(SENSOR_VIEW_MODEL) public vm: SensorViewModel) {}
+
+  ngOnInit() {
+    this.data$ = this.vm.data$;
+    this.loading$ = this.vm.isLoading$;
+    this.vm.fetchCommand.execute();
+  }
+}
+```
+
+**Observations**:
+- All three use the **exact same ViewModel** (`sensorViewModel`)
+- React and Vue are more concise (fewer lines of code)
+- Angular requires more setup (InjectionToken, providers, ngOnInit) but provides better DI
+- Angular's async pipe eliminates manual subscription code
+- The business logic is **identical** across all three—only the View layer differs
+
+
+
+## 10.7 Angular-Specific MVVM Advantages
+
+While all three frameworks work well with MVVM, Angular has some unique advantages:
+
+### 10.7.1 Native RxJS Integration
+
+Angular was built with RxJS from the ground up. This means:
+- **No bridging code needed**: Observables work directly without custom hooks
+- **Async pipe**: Automatic subscription management in templates
+- **Consistent patterns**: HTTP, routing, forms all use observables
+- **Performance**: Angular's change detection is optimized for observables
+
+### 10.7.2 Dependency Injection System
+
+Angular's DI system provides:
+- **Type-safe injection**: InjectionTokens ensure type safety
+- **Hierarchical injectors**: Different components can have different ViewModel instances
+- **Testing support**: Easy to mock dependencies in tests
+- **Lazy loading**: ViewModels can be provided at route level for code splitting
+
+### 10.7.3 Reactive Forms
+
+Angular's Reactive Forms integrate naturally with MVVM:
+- **Observable-based**: Form state is exposed as observables
+- **Built-in validation**: Rich validation with error messages
+- **Type-safe**: FormGroup types match your data models
+- **Composable**: Forms can be nested and composed
+
+### 10.7.4 Standalone Components
+
+Angular's standalone components (introduced in Angular 14+) make MVVM even cleaner:
+- **No NgModules needed**: Components declare their own dependencies
+- **Simpler DI**: Providers are declared directly on components
+- **Better tree-shaking**: Unused code is eliminated more effectively
+- **Easier testing**: Components are more self-contained
+
+All the examples in this chapter use standalone components, which is the recommended approach for new Angular applications.
+
+
+
+## 10.8 Common Patterns and Best Practices
+
+Based on the GreenWatch Angular implementation, here are some best practices for Angular MVVM:
+
+### 10.8.1 Use InjectionTokens for ViewModels
+
+Always create InjectionTokens for ViewModels rather than injecting them directly:
+
+```typescript
+// ✅ Good: Type-safe injection token
+export const SENSOR_VIEW_MODEL = new InjectionToken<SensorViewModel>('SensorViewModel');
+
+@Component({
+  providers: [
+    { provide: SENSOR_VIEW_MODEL, useValue: sensorViewModel }
+  ]
+})
+export class SensorListComponent {
+  constructor(@Inject(SENSOR_VIEW_MODEL) public vm: SensorViewModel) {}
+}
+
+// ❌ Bad: Direct injection without token
+// This doesn't work because ViewModels aren't classes
+```
+
+### 10.8.2 Initialize Observables in ngOnInit
+
+Always assign ViewModel observables in `ngOnInit`, not in the constructor:
+
+```typescript
+// ✅ Good: Initialize in ngOnInit
+ngOnInit(): void {
+  this.data$ = this.vm.data$;
+  this.loading$ = this.vm.isLoading$;
+  this.vm.fetchCommand.execute();
+}
+
+// ❌ Bad: Initialize in constructor
+constructor(@Inject(SENSOR_VIEW_MODEL) public vm: SensorViewModel) {
+  this.data$ = this.vm.data$; // Too early!
+}
+```
+
+The constructor should only be used for dependency injection. All initialization logic belongs in `ngOnInit`.
+
+### 10.8.3 Prefer Async Pipe Over Manual Subscriptions
+
+Use the async pipe in templates whenever possible:
+
+```html
+<!-- ✅ Good: Async pipe handles subscription -->
+<ul *ngIf="data$ | async as sensors">
+  <li *ngFor="let sensor of sensors">{{ sensor.status }}</li>
+</ul>
+
+<!-- ❌ Bad: Manual subscription -->
+<ul>
+  <li *ngFor="let sensor of sensors">{{ sensor.status }}</li>
+</ul>
+```
+
+```typescript
+// ❌ Bad: Manual subscription in component
+sensors: Sensor[] = [];
+
+ngOnInit() {
+  this.vm.data$.subscribe(data => {
+    this.sensors = data;
+  });
+}
+```
+
+Manual subscriptions require cleanup in `ngOnDestroy`. The async pipe handles this automatically.
+
+### 10.8.4 Use tap for Side Effects
+
+When you need to perform side effects on observable values, use the `tap` operator:
+
+```typescript
+// ✅ Good: tap for side effects
+this.greenhouses$ = this.vm.data$.pipe(
+  tap((ghs) => (this.greenhouses = ghs || []))
+);
+
+// ❌ Bad: Manual subscription for side effects
+this.vm.data$.subscribe(ghs => {
+  this.greenhouses = ghs || [];
+});
+```
+
+The `tap` operator keeps the observable chain intact while performing side effects.
+
+### 10.8.5 Provide ViewModels at Component Level
+
+Provide ViewModels in the component's `providers` array, not at the module or root level:
+
+```typescript
+// ✅ Good: Component-level provider
+@Component({
+  selector: 'app-sensor-list',
+  providers: [
+    { provide: SENSOR_VIEW_MODEL, useValue: sensorViewModel }
+  ]
+})
+export class SensorListComponent {}
+
+// ❌ Bad: Root-level provider
+// This creates a single instance shared across the entire app
+```
+
+Component-level providers ensure each component gets its own ViewModel instance (if needed) and make testing easier.
+
+### 10.8.6 Keep Components Thin
+
+Components should be thin adapters between templates and ViewModels:
+
+```typescript
+// ✅ Good: Thin component
+export class SensorListComponent {
+  data$ = this.vm.data$;
+  loading$ = this.vm.isLoading$;
+
+  constructor(@Inject(SENSOR_VIEW_MODEL) public vm: SensorViewModel) {}
+
+  ngOnInit() {
+    this.vm.fetchCommand.execute();
+  }
+}
+
+// ❌ Bad: Business logic in component
+export class SensorListComponent {
+  sensors: Sensor[] = [];
+
+  async loadSensors() {
+    const response = await fetch('/api/sensors');
+    this.sensors = await response.json();
+    // Business logic belongs in ViewModel!
+  }
+}
+```
+
+All business logic should live in ViewModels. Components should only handle framework-specific concerns (DI, lifecycle, template binding).
+
+
+
+## 10.9 Key Takeaways
+
+Let's summarize what we've learned about Angular MVVM implementation:
+
+**1. Native RxJS Integration**: Angular's built-in RxJS support makes it the most natural fit for observable-based ViewModels. No custom hooks or composables needed—observables are first-class citizens.
+
+**2. Async Pipe Eliminates Boilerplate**: The async pipe automatically subscribes, updates, and unsubscribes from observables in templates. This eliminates the manual subscription management required in React and Vue.
+
+**3. Dependency Injection for ViewModels**: InjectionTokens provide type-safe, testable ViewModel injection. Angular's DI system is more sophisticated than React Context or Vue's provide/inject.
+
+**4. Reactive Forms Integration**: Angular's Reactive Forms work seamlessly with MVVM, providing built-in validation and observable-based form state.
+
+**5. Component-Level Providers**: Providing ViewModels at the component level (rather than root level) ensures proper encapsulation and makes testing easier.
+
+**6. Decentralized Architecture**: Angular's DI enables a decentralized architecture where child components manage their own ViewModels, reducing parent-child coupling.
+
+**7. Framework Independence Proven**: The same ViewModels (`sensorViewModel`, `greenHouseViewModel`, etc.) work identically in React, Vue, and Angular. Only the View layer changes—the business logic is completely reusable.
+
+**8. Trade-offs**: Angular requires more setup (InjectionTokens, providers, ngOnInit) compared to React and Vue, but provides better DI, testability, and built-in features (Reactive Forms, async pipe).
+
+**9. Standalone Components**: Angular's standalone components (Angular 14+) simplify MVVM by eliminating NgModules and making components more self-contained.
+
+**10. Best Practices**: Use InjectionTokens, initialize in ngOnInit, prefer async pipe, use tap for side effects, provide at component level, and keep components thin.
+
+
+
+## 10.10 What's Next
+
+We've now seen MVVM implemented in three major frameworks: React, Vue, and Angular. Each framework has its own approach to consuming ViewModels, but the core principle remains the same—**framework-agnostic business logic with framework-specific views**.
+
+In the next chapter, we'll explore **Lit Web Components**, which takes a standards-based approach to MVVM. Lit uses native web component APIs and reactive controllers to integrate with ViewModels, demonstrating that MVVM works even with vanilla web standards.
+
+After that, we'll look at **Vanilla JavaScript** implementation, proving that MVVM doesn't require any framework at all—just observables and DOM manipulation.
+
+The journey continues as we explore how MVVM adapts to different UI paradigms while maintaining the same core architecture.
+
+---
+
+**Code References**:
+- Angular components: `apps/mvvm-angular/src/app/components/`
+- Sensor list: `apps/mvvm-angular/src/app/components/sensor-list/`
+- Greenhouse list: `apps/mvvm-angular/src/app/components/greenhouse-list/`
+- Dashboard: `apps/mvvm-angular/src/app/components/dashboard/`
+- Shared ViewModels: `packages/view-models/src/`
+

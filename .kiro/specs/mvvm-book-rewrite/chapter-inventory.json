@@ -1,0 +1,207 @@
+{
+  "totalChapters": 21,
+  "generatedAt": "2025-01-15",
+  "chapters": [
+    {
+      "chapterNumber": 1,
+      "fileName": "chapter1.mdx",
+      "id": "the-frontend-architecture-crisis",
+      "title": "The Frontend Architecture Crisis",
+      "section": "The Crisis"
+    },
+    {
+      "chapterNumber": 2,
+      "fileName": "chapter2.mdx",
+      "id": "the-crisis-in-contemporary-frontend-development",
+      "title": "The Crisis in Contemporary Frontend Development",
+      "section": "The Crisis"
+    },
+    {
+      "chapterNumber": 3,
+      "fileName": "chapter3.mdx",
+      "id": "the-mvvm-pattern-fundamentals",
+      "title": "The MVVM Pattern Fundamentals",
+      "section": "The Crisis"
+    },
+    {
+      "chapterNumber": 4,
+      "fileName": "chapter4.mdx",
+      "id": "domain-driven-design-for-frontend-applications",
+      "title": "Domain-Driven Design for Frontend Applications",
+      "section": "The Crisis"
+    },
+    {
+      "chapterNumber": 5,
+      "fileName": "chapter5.mdx",
+      "id": "domain-events-and-cross-context-communication",
+      "title": "Domain Events & Cross-Context Communication",
+      "section": "Framework-Agnostic Core"
+    },
+    {
+      "chapterNumber": 6,
+      "fileName": "chapter6.mdx",
+      "id": "reactive-state-management-with-rxjs",
+      "title": "Reactive State Management with RxJS",
+      "section": "Framework-Agnostic Core"
+    },
+    {
+      "chapterNumber": 7,
+      "fileName": "chapter7.mdx",
+      "id": "implementing-the-view-layer-react-edition",
+      "title": "Implementing the View Layer – React Edition",
+      "section": "Framework-Agnostic Core"
+    },
+    {
+      "chapterNumber": 8,
+      "fileName": "chapter8.mdx",
+      "id": "testing-viewmodels-and-domain-logic",
+      "title": "Testing ViewModels and Domain Logic",
+      "section": "Framework-Agnostic Core"
+    },
+    {
+      "chapterNumber": 9,
+      "fileName": "chapter9.mdx",
+      "id": "dependency-injection-and-service-architecture",
+      "title": "Vue Implementation — Proving Framework Independence",
+      "section": "Framework-Agnostic Core"
+    },
+    {
+      "chapterNumber": 10,
+      "fileName": "chapter10.mdx",
+      "id": "dumb-view-philosophy-and-view-layer-contracts",
+      "title": "The Dumb View Philosophy and View Layer Contracts",
+      "section": "View Layer Implementations"
+    },
+    {
+      "chapterNumber": 11,
+      "fileName": "chapter11.mdx",
+      "id": null,
+      "title": "Vue Implementation — Proving Framework Independence",
+      "section": null,
+      "note": "Missing frontmatter - extracted title from content"
+    },
+    {
+      "chapterNumber": 12,
+      "fileName": "chapter12.mdx",
+      "id": "angular-implementation-native-rxjs-integration",
+      "title": "Angular Implementation – Native RxJS Integration",
+      "section": "View Layer Implementations"
+    },
+    {
+      "chapterNumber": 13,
+      "fileName": "chapter13.mdx",
+      "id": null,
+      "title": "Vue Implementation — Proving Framework Independence",
+      "section": null,
+      "note": "Missing frontmatter - extracted title from content"
+    },
+    {
+      "chapterNumber": 14,
+      "fileName": "chapter14.mdx",
+      "id": null,
+      "title": "Cross-Platform — Ionic, React Native, and Electron with Shared ViewModels",
+      "section": null,
+      "note": "Missing frontmatter - extracted title from content"
+    },
+    {
+      "chapterNumber": 15,
+      "fileName": "chapter15.mdx",
+      "id": "greenwatch-architecture-and-bounded-contexts",
+      "title": "GreenWatch Architecture and Bounded Contexts",
+      "section": "The GreenWatch Case Study"
+    },
+    {
+      "chapterNumber": 16,
+      "fileName": "chapter16.mdx",
+      "id": null,
+      "title": "Pragmatic Architecture in the Real World",
+      "section": null,
+      "note": "Missing frontmatter - extracted title from content"
+    },
+    {
+      "chapterNumber": 17,
+      "fileName": "chapter17.mdx",
+      "id": "multi-framework-implementation-showcase",
+      "title": "Multi-Framework Implementation Showcase",
+      "section": "The GreenWatch Case Study"
+    },
+    {
+      "chapterNumber": 18,
+      "fileName": "chapter18.mdx",
+      "id": "comprehensive-testing-strategy-at-scale",
+      "title": "Comprehensive Testing Strategy at Scale",
+      "section": "Enterprise Scale"
+    },
+    {
+      "chapterNumber": 19,
+      "fileName": "chapter19.mdx",
+      "id": "the-scalable-monolith-modular-architecture-patterns",
+      "title": "The Scalable Monolith - Modular Architecture Patterns",
+      "section": "Enterprise Scale"
+    },
+    {
+      "chapterNumber": 20,
+      "fileName": "chapter20.mdx",
+      "id": "the-future-trainable-structures-and-ai-automation",
+      "title": "The Future - Trainable Structures and AI Automation",
+      "section": "Enterprise Scale"
+    },
+    {
+      "chapterNumber": 21,
+      "fileName": "chapter21.mdx",
+      "id": null,
+      "title": "Tradeoffs, Discipline, and the Architect's Path",
+      "section": null,
+      "note": "Missing frontmatter - extracted title from content"
+    }
+  ],
+  "sectionSummary": {
+    "The Crisis": {
+      "chapters": [1, 2, 3, 4],
+      "description": "Introduces the frontend architecture crisis and MVVM fundamentals"
+    },
+    "Framework-Agnostic Core": {
+      "chapters": [5, 6, 7, 8, 9],
+      "description": "Covers domain events, state management, React implementation, testing, and Vue implementation"
+    },
+    "View Layer Implementations": {
+      "chapters": [10, 12],
+      "description": "Covers view layer philosophy and Angular implementation"
+    },
+    "The GreenWatch Case Study": {
+      "chapters": [15, 17],
+      "description": "Detailed case study of the GreenWatch greenhouse monitoring system"
+    },
+    "Enterprise Scale": {
+      "chapters": [18, 19, 20],
+      "description": "Covers testing at scale, modular architecture, and AI automation"
+    },
+    "Missing Section": {
+      "chapters": [11, 13, 14, 16, 21],
+      "description": "Chapters without frontmatter section metadata"
+    }
+  },
+  "issues": [
+    {
+      "type": "missing_frontmatter",
+      "chapters": [11, 13, 14, 16, 21],
+      "description": "These chapters are missing frontmatter metadata (id and/or section)"
+    },
+    {
+      "type": "duplicate_titles",
+      "chapters": [9, 10, 11, 13],
+      "description": "Multiple chapters have similar or identical titles about Vue implementation"
+    },
+    {
+      "type": "inconsistent_sections",
+      "description": "Current section organization doesn't match the planned six-section structure from the design document"
+    }
+  ],
+  "notes": [
+    "Total of 21 chapters found as expected",
+    "5 chapters are missing frontmatter metadata",
+    "Current sections: The Crisis, Framework-Agnostic Core, View Layer Implementations, The GreenWatch Case Study, Enterprise Scale",
+    "Planned sections (from design): Foundations, Core Patterns, Framework Implementations, Framework-Agnostic Patterns, Advanced Topics, Real-World Applications",
+    "Significant reorganization will be needed to align with the new structure"
+  ]
+}

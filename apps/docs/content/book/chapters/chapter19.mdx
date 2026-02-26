@@ -1,0 +1,1394 @@
+---
+id: "testing-mvvm-applications"
+title: Testing MVVM Applications
+section: Advanced Topics
+---
+
+# Chapter 19: Testing MVVM Applications
+
+_"The best architecture is the one you can test."_
+
+We've built framework-agnostic ViewModels, reactive Models, and clean View layers across React, Vue, Angular, Lit, and Vanilla JavaScript. Now comes the payoff: **testing becomes dramatically simpler** when your architecture enforces separation of concerns.
+
+This chapter shows you how to test MVVM applications using real examples from the Web Loom monorepo. We'll extract actual test files from `packages/mvvm-core/`, demonstrate unit testing ViewModels in isolation, show integration testing across layers, and prove that MVVM's separation of concerns makes testing faster, more reliable, and more maintainable.
+
+## 19.1 Why MVVM Makes Testing Easier
+
+Before diving into code, let's understand **why** MVVM architecture improves testability.
+
+### The Problem with Tightly Coupled Code
+
+In traditional frontend applications, business logic lives inside components:
+
+```typescript
+// ❌ Tightly coupled: business logic mixed with UI
+function SensorDashboard() {
+  const [sensors, setSensors] = useState<Sensor[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/sensors')
+      .then(res => res.json())
+      .then(data => {
+        setSensors(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleCalibrate = (sensorId: string) => {
+    fetch(`/api/sensors/${sensorId}/calibrate`, { method: 'POST' })
+      .then(() => alert('Calibrated!'))
+      .catch(err => alert(err.message));
+  };
+
+  if (loading) return <Spinner />;
+  if (error) return <ErrorDisplay message={error} />;
+
+  return (
+    <div>
+      {sensors.map(sensor => (
+        <SensorCard 
+          key={sensor.id} 
+          sensor={sensor}
+          onCalibrate={() => handleCalibrate(sensor.id)}
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+**How do you test this?**
+
+
+1. **You need a DOM**: Can't test business logic without rendering React components
+2. **You need to mock fetch**: Every test requires mocking network calls
+3. **You can't test in isolation**: Business logic is tangled with UI rendering
+4. **Tests are slow**: Rendering components and mocking DOM APIs takes time
+5. **Tests are brittle**: Changes to UI break business logic tests
+
+### The MVVM Solution
+
+With MVVM, business logic lives in **framework-agnostic ViewModels**:
+
+```typescript
+// ✅ Separated: business logic in ViewModel
+export class SensorViewModel extends BaseViewModel<SensorModel> {
+  readonly sensors$ = this.model.data$;
+  readonly isLoading$ = this.model.isLoading$;
+  readonly error$ = this.model.error$;
+
+  constructor(model: SensorModel) {
+    super(model);
+  }
+
+  async loadSensors(): Promise<void> {
+    await this.model.fetch();
+  }
+
+  async calibrateSensor(sensorId: string): Promise<void> {
+    await this.model.calibrate(sensorId);
+  }
+}
+
+// View is now "dumb" - just renders ViewModel state
+function SensorDashboard() {
+  const viewModel = useViewModel(SensorViewModel);
+  const sensors = useObservable(viewModel.sensors$);
+  const loading = useObservable(viewModel.isLoading$);
+  const error = useObservable(viewModel.error$);
+
+  if (loading) return <Spinner />;
+  if (error) return <ErrorDisplay message={error} />;
+
+  return (
+    <div>
+      {sensors?.map(sensor => (
+        <SensorCard 
+          key={sensor.id} 
+          sensor={sensor}
+          onCalibrate={() => viewModel.calibrateSensor(sensor.id)}
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+**Now testing is straightforward:**
+
+1. **No DOM needed**: Test ViewModels as plain TypeScript classes
+2. **Mock at the Model layer**: Inject mock Models into ViewModels
+3. **Test in isolation**: ViewModels have no UI dependencies
+4. **Tests are fast**: No rendering, no DOM, just pure logic
+5. **Tests are stable**: UI changes don't break ViewModel tests
+
+Let's see this in practice with real tests from the Web Loom monorepo.
+
+## 19.2 Testing Models with Zod Validation
+
+Models contain domain logic and data validation. Let's test `BaseModel` from `packages/mvvm-core/src/models/BaseModel.ts`.
+
+### BaseModel Test Structure
+
+Here's the actual test file from the monorepo (`packages/mvvm-core/src/models/BaseModel.test.ts`):
+
+```typescript
+// packages/mvvm-core/src/models/BaseModel.test.ts
+import { describe, it, beforeEach, expect, vi } from 'vitest';
+import { BaseModel } from './BaseModel';
+import { z } from 'zod';
+import { first } from 'rxjs/operators';
+
+describe('BaseModel', () => {
+  // Define a simple Zod schema for testing
+  const TestSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    age: z.number().min(0),
+  });
+
+  type TestDataType = z.infer<typeof TestSchema>;
+
+  let model: BaseModel<TestDataType, typeof TestSchema>;
+
+  beforeEach(() => {
+    model = new BaseModel<TestDataType, typeof TestSchema>({
+      initialData: null,
+      schema: TestSchema,
+    });
+  });
+
+  it('should initialize with null data, not loading, and no error', async () => {
+    expect(await model.data$.pipe(first()).toPromise()).toBeNull();
+    expect(await model.isLoading$.pipe(first()).toPromise()).toBe(false);
+    expect(await model.error$.pipe(first()).toPromise()).toBeNull();
+  });
+
+  it('should set initial data correctly', async () => {
+    const initialData = { id: '1', name: 'Initial', age: 30 };
+    const newModel = new BaseModel<TestDataType, typeof TestSchema>({
+      initialData,
+      schema: TestSchema,
+    });
+    expect(await newModel.data$.pipe(first()).toPromise()).toEqual(initialData);
+  });
+
+  it('should update data using setData', async () => {
+    const newData = { id: '2', name: 'Updated', age: 25 };
+    model.setData(newData);
+    expect(await model.data$.pipe(first()).toPromise()).toEqual(newData);
+  });
+
+  it('should validate data successfully using the provided schema', () => {
+    const validData = { id: 'abc', name: 'Test User', age: 42 };
+    expect(model.validate(validData)).toEqual(validData);
+  });
+
+  it('should throw ZodError for invalid data when schema is provided', () => {
+    const invalidData = { id: 'def', name: 'Another User', age: -5 }; // Invalid age
+    expect(() => model.validate(invalidData)).toThrow(z.ZodError);
+  });
+});
+```
+
+**Key testing patterns:**
+
+1. **Test reactive state**: Use RxJS `first()` operator to get current observable values
+2. **Test validation**: Verify Zod schema validation works correctly
+3. **Test state transitions**: Verify `setData`, `setLoading`, `setError` update observables
+4. **Test edge cases**: Invalid data, null data, schema violations
+
+### Testing Model Disposal
+
+Models must clean up subscriptions when disposed. Here's the disposal test:
+
+```typescript
+describe('dispose', () => {
+  it('should complete all observables and prevent further emissions', () => {
+    const dataNextSpy = vi.fn();
+    const dataCompleteSpy = vi.fn();
+
+    model.data$.subscribe({
+      next: dataNextSpy,
+      complete: dataCompleteSpy,
+    });
+
+    // Call dispose
+    model.dispose();
+
+    // Verify that complete was called
+    expect(dataCompleteSpy).toHaveBeenCalledTimes(1);
+
+    // Reset spies to check if new values are emitted after dispose
+    dataNextSpy.mockClear();
+
+    // Attempt to emit new values
+    model.setData({ id: '3', name: 'Disposed', age: 50 });
+
+    // Verify that no new values were emitted
+    expect(dataNextSpy).not.toHaveBeenCalled();
+  });
+});
+```
+
+**This test verifies:**
+- Observables complete when `dispose()` is called
+- No new emissions occur after disposal
+- Subscriptions are properly cleaned up
+
+
+## 19.3 Testing ViewModels in Isolation
+
+ViewModels connect Models to Views. Testing them in isolation proves they correctly expose Model state and handle user actions.
+
+### BaseViewModel Test Structure
+
+Here's the actual test from `packages/mvvm-core/src/viewmodels/BaseViewModel.test.ts`:
+
+```typescript
+// packages/mvvm-core/src/viewmodels/BaseViewModel.test.ts
+import { describe, it, beforeEach, expect, afterEach } from 'vitest';
+import { BaseViewModel } from './BaseViewModel';
+import { BaseModel } from '../models/BaseModel';
+import { z, ZodError } from 'zod';
+import { first, skip } from 'rxjs/operators';
+
+// Define a test model and schema
+const TestSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+type TestDataType = z.infer<typeof TestSchema>;
+
+class MockBaseModel extends BaseModel<TestDataType, typeof TestSchema> {
+  constructor(initialData: TestDataType | null = null) {
+    super({
+      initialData,
+      schema: TestSchema,
+    });
+  }
+}
+
+describe('BaseViewModel', () => {
+  let mockModel: MockBaseModel;
+  let viewModel: BaseViewModel<MockBaseModel>;
+
+  beforeEach(() => {
+    mockModel = new MockBaseModel();
+    viewModel = new BaseViewModel(mockModel);
+  });
+
+  afterEach(() => {
+    viewModel.dispose(); // Ensure dispose is called after each test
+  });
+
+  it('should initialize with null data, not loading, and no error from model', async () => {
+    expect(await viewModel.data$.pipe(first()).toPromise()).toBeNull();
+    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(false);
+    expect(await viewModel.error$.pipe(first()).toPromise()).toBeNull();
+    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+  });
+
+  it('should expose data$ from the model', async () => {
+    const testData = { id: '1', name: 'Test' };
+    mockModel.setData(testData);
+    expect(await viewModel.data$.pipe(first()).toPromise()).toEqual(testData);
+  });
+
+  it('should expose isLoading$ from the model', async () => {
+    mockModel.setLoading(true);
+    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(true);
+
+    mockModel.setLoading(false);
+    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(false);
+  });
+
+  it('should derive validationErrors$ from model error$ if it is a ZodError', async () => {
+    const nonZodError = new Error('Generic error');
+    const zodError = new ZodError([]);
+
+    // Set generic error, validationErrors$ should remain null
+    mockModel.setError(nonZodError);
+    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+
+    // Set ZodError, validationErrors$ should update
+    mockModel.setError(zodError);
+    expect(await viewModel.validationErrors$.pipe(skip(1), first()).toPromise()).toBe(zodError);
+
+    // Clear error, validationErrors$ should become null again
+    mockModel.clearError();
+    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+  });
+});
+```
+
+**Key testing patterns:**
+
+1. **Mock the Model**: Create a simple mock Model for testing
+2. **Test observable exposure**: Verify ViewModel exposes Model observables correctly
+3. **Test derived state**: Verify `validationErrors$` derives from `error$`
+4. **Clean up after tests**: Always call `dispose()` in `afterEach`
+
+### Testing ViewModel Command Registration
+
+ViewModels can register Commands for user actions. Here's how to test command registration and disposal:
+
+```typescript
+describe('BaseViewModel Command Registration', () => {
+  class TestViewModel extends BaseViewModel<MockBaseModel> {
+    public readonly cmd1: Command<void, string>;
+    public readonly cmd2: Command<void, string>;
+
+    constructor(model: MockBaseModel) {
+      super(model);
+
+      this.cmd1 = this.registerCommand(new Command(async () => 'result1'));
+      this.cmd2 = this.registerCommand(new Command(async () => 'result2'));
+    }
+
+    public getRegisteredCommandCount(): number {
+      return (this as any)._registeredCommands.length;
+    }
+  }
+
+  let model: MockBaseModel;
+  let viewModel: TestViewModel;
+
+  beforeEach(() => {
+    model = new MockBaseModel();
+    viewModel = new TestViewModel(model);
+  });
+
+  afterEach(() => {
+    viewModel.dispose();
+  });
+
+  it('should track registered commands', () => {
+    expect(viewModel.getRegisteredCommandCount()).toBe(2);
+  });
+
+  it('should allow command execution after registration', async () => {
+    const result = await viewModel.cmd1.execute();
+    expect(result).toBe('result1');
+  });
+
+  it('should dispose all registered commands', () => {
+    const disposeSpy1 = vi.spyOn(viewModel.cmd1 as any, 'dispose');
+    const disposeSpy2 = vi.spyOn(viewModel.cmd2 as any, 'dispose');
+
+    viewModel.dispose();
+
+    expect(disposeSpy1).toHaveBeenCalled();
+    expect(disposeSpy2).toHaveBeenCalled();
+  });
+
+  it('should prevent command execution after disposal', async () => {
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    viewModel.dispose();
+
+    const result = await viewModel.cmd1.execute();
+
+    expect(result).toBeUndefined();
+    expect(consoleSpy).toHaveBeenCalledWith('Command is disposed. Cannot execute.');
+
+    consoleSpy.mockRestore();
+  });
+});
+```
+
+**This demonstrates:**
+- Commands are tracked by the ViewModel
+- Commands execute correctly when registered
+- Commands are disposed when ViewModel is disposed
+- Commands cannot execute after disposal
+
+## 19.4 Testing RestfulApiViewModel with CRUD Operations
+
+`RestfulApiViewModel` extends `BaseViewModel` with CRUD operations. Let's test it with real examples from `packages/mvvm-core/src/viewmodels/RestfulApiViewModel.test.ts`.
+
+### Testing Fetch Command
+
+```typescript
+describe('fetchCommand', () => {
+  it('should call model.fetch without ID when executed without parameter', async () => {
+    const loadingStates: boolean[] = [];
+    viewModel.isLoading$.pipe(take(3)).subscribe((val) => loadingStates.push(val));
+
+    const dataStates: (ItemArray | null)[] = [];
+    viewModel.data$.pipe(take(2)).subscribe((val) => dataStates.push(val));
+
+    await viewModel.fetchCommand.execute();
+
+    expect(mockModel.fetch).toHaveBeenCalledWith(undefined);
+    expect(await firstValueFrom(viewModel.fetchCommand.isExecuting$)).toBe(false);
+    expect(loadingStates).toEqual([false, true, false]);
+    expect(dataStates[dataStates.length - 1]).toEqual([
+      { id: '1', name: 'Item 1' },
+      { id: '2', name: 'Item 2' },
+    ]);
+    expect(await firstValueFrom(viewModel.error$)).toBeNull();
+  });
+
+  it('should call model.fetch with ID when executed with a string parameter', async () => {
+    await viewModel.fetchCommand.execute('item-id-3');
+    expect(mockModel.fetch).toHaveBeenCalledWith(['item-id-3']);
+    expect(await firstValueFrom(viewModel.data$)).toEqual({
+      id: 'item-id-3',
+      name: 'Fetched item-id-3',
+    });
+  });
+
+  it('should set error$ if fetch fails', async () => {
+    const fetchError = new Error('Fetch failed');
+    mockModel.fetch.mockImplementation(async () => {
+      mockModel._isLoading$.next(true);
+      mockModel._error$.next(fetchError);
+      mockModel._isLoading$.next(false);
+      throw fetchError;
+    });
+
+    await expect(viewModel.fetchCommand.execute()).rejects.toThrow(fetchError);
+
+    expect(await firstValueFrom(viewModel.error$)).toBe(fetchError);
+    expect(await firstValueFrom(viewModel.isLoading$)).toBe(false);
+  });
+});
+```
+
+**Key patterns:**
+- Test loading state transitions (`false → true → false`)
+- Test successful data fetching
+- Test error handling
+- Verify command execution state
+
+
+### Testing Create, Update, Delete Commands
+
+```typescript
+describe('createCommand', () => {
+  const payload: Partial<Item> = { name: 'New Test Item' };
+
+  it('should call model.create and update data', async () => {
+    mockModel._data$.next([]);
+    await viewModel.createCommand.execute(payload);
+
+    expect(mockModel.create).toHaveBeenCalledWith(payload);
+    expect(await firstValueFrom(viewModel.createCommand.isExecuting$)).toBe(false);
+    const data = await firstValueFrom(viewModel.data$);
+    expect(Array.isArray(data) && data.length).toBe(1);
+    expect(Array.isArray(data) && data[0].name).toBe('New Test Item');
+  });
+
+  it('should set error$ if create fails', async () => {
+    const createError = new Error('Create failed');
+    mockModel.create.mockImplementation(async () => {
+      mockModel._isLoading$.next(true);
+      mockModel._error$.next(createError);
+      mockModel._isLoading$.next(false);
+      throw createError;
+    });
+
+    await expect(viewModel.createCommand.execute(payload)).rejects.toThrow(createError);
+    expect(await firstValueFrom(viewModel.error$)).toBe(createError);
+  });
+});
+
+describe('updateCommand', () => {
+  const existingItem: Item = { id: '1', name: 'Original Name' };
+  const payload: Partial<Item> = { name: 'Updated Name' };
+
+  beforeEach(() => {
+    mockModel._data$.next([existingItem]);
+  });
+
+  it('should call model.update and update data', async () => {
+    await viewModel.updateCommand.execute({ id: existingItem.id, payload });
+
+    expect(mockModel.update).toHaveBeenCalledWith(existingItem.id, payload);
+    const data = await firstValueFrom(viewModel.data$);
+    expect(Array.isArray(data) && data[0].name).toBe('Updated Name');
+  });
+});
+
+describe('deleteCommand', () => {
+  const itemToDelete: Item = { id: '1', name: 'To Be Deleted' };
+
+  beforeEach(() => {
+    mockModel._data$.next([itemToDelete, { id: '2', name: 'Keep Me' }]);
+  });
+
+  it('should call model.delete and update data', async () => {
+    await viewModel.deleteCommand.execute(itemToDelete.id);
+
+    expect(mockModel.delete).toHaveBeenCalledWith(itemToDelete.id);
+    const data = await firstValueFrom(viewModel.data$);
+    expect(Array.isArray(data) && data.length).toBe(1);
+    expect(Array.isArray(data) && data[0].id).toBe('2');
+  });
+});
+```
+
+**These tests demonstrate:**
+- CRUD operations update ViewModel state correctly
+- Commands handle errors and propagate them to `error$`
+- Loading states transition properly during operations
+- Data updates are reflected in observables
+
+### Testing Selected Item State
+
+`RestfulApiViewModel` includes item selection logic:
+
+```typescript
+describe('selectedItem$ and selectItem method', () => {
+  const items: ItemArray = [
+    { id: 'a', name: 'Alice' },
+    { id: 'b', name: 'Bob' },
+    { id: 'c', name: 'Charlie' },
+  ];
+
+  beforeEach(() => {
+    mockModel._data$.next(items);
+  });
+
+  it('should emit null initially for selectedItem$', async () => {
+    expect(await firstValueFrom(viewModel.selectedItem$)).toBeNull();
+  });
+
+  it('should update selectedItem$ when selectItem is called with a valid ID', async () => {
+    const emittedValues: (Item | null)[] = [];
+    const subscription = viewModel.selectedItem$.subscribe((value) => {
+      emittedValues.push(value);
+    });
+    
+    viewModel.selectItem('b');
+    subscription.unsubscribe();
+    
+    expect(emittedValues.pop()).toEqual(items[1]);
+  });
+
+  it('should emit null for selectedItem$ if ID is not found', async () => {
+    viewModel.selectItem('non-existent-id');
+    await vi.waitFor(async () => {
+      expect(await firstValueFrom(viewModel.selectedItem$)).toBeNull();
+    });
+  });
+
+  it('should handle selectItem(null) to clear selection', async () => {
+    viewModel.selectItem('a');
+    await vi.waitFor(async () => {
+      expect(await firstValueFrom(viewModel.selectedItem$.pipe(skip(1)))).toEqual(items[0]);
+    });
+
+    viewModel.selectItem(null);
+    await vi.waitFor(async () => {
+      expect(await firstValueFrom(viewModel.selectedItem$)).toBeNull();
+    });
+  });
+});
+```
+
+**This tests:**
+- Initial selection state is null
+- Selection updates when valid ID is provided
+- Selection clears when ID is not found
+- Selection can be explicitly cleared with `null`
+
+## 19.5 Integration Testing Across Layers
+
+Unit tests verify individual components work correctly. Integration tests verify they work together correctly.
+
+### Testing ViewModel with Real Model
+
+Here's an integration test from `packages/mvvm-core/src/viewmodels/RestfulApiViewModel.test.ts` that uses a real `RestfulApiModel` instead of a mock:
+
+```typescript
+describe('RestfulApiViewModel with Real RestfulApiModel Integration', () => {
+  let mockFetcher: ReturnType<typeof vi.fn>;
+  let realModel: RestfulApiModel<ItemArray, z.ZodArray<typeof ItemSchema>>;
+  let viewModel: RestfulApiViewModel<ItemArray, z.ZodArray<typeof ItemSchema>>;
+  const baseUrl = 'http://real-api.com';
+  const endpoint = 'items';
+
+  beforeEach(() => {
+    mockFetcher = vi.fn();
+    realModel = new RestfulApiModel<ItemArray, z.ZodArray<typeof ItemSchema>>({
+      baseUrl,
+      endpoint,
+      fetcher: mockFetcher,
+      schema: z.array(ItemSchema),
+      initialData: null,
+    });
+    viewModel = new RestfulApiViewModel(realModel);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    viewModel.dispose();
+  });
+
+  it('should fetch data and update viewModel.data$', async () => {
+    const expectedItems: ItemArray = [
+      { id: '1', name: 'Item 1 from Real Model' },
+      { id: '2', name: 'Item 2 from Real Model' },
+    ];
+    mockFetcher.mockResolvedValue(expectedItems);
+
+    const dataEmissions: (ItemArray | null)[] = [];
+    const isLoadingEmissions: boolean[] = [];
+    const errorEmissions: (Error | null)[] = [];
+
+    viewModel.data$.subscribe((data) => dataEmissions.push(data));
+    viewModel.isLoading$.subscribe((loading) => isLoadingEmissions.push(loading));
+    viewModel.error$.subscribe((error) => errorEmissions.push(error));
+
+    await viewModel.fetchCommand.execute();
+
+    expect(mockFetcher).toHaveBeenCalledTimes(1);
+    expect(mockFetcher).toHaveBeenCalledWith(`${baseUrl}/${endpoint}`, { method: 'GET' });
+
+    // Verify loading state transitions
+    expect(isLoadingEmissions).toContain(true);
+    expect(isLoadingEmissions[isLoadingEmissions.length - 1]).toBe(false);
+
+    // Verify data was updated
+    expect(dataEmissions[0]).toBeNull(); // Initial value
+    expect(dataEmissions[1]).toEqual(expectedItems); // Value after fetch
+
+    // Verify no errors
+    const lastError = errorEmissions.pop();
+    expect(lastError === null || lastError === undefined).toBe(true);
+  });
+
+  it('should set error$ on viewModel if fetcher fails', async () => {
+    const apiError = new Error('API Failure');
+    mockFetcher.mockRejectedValue(apiError);
+
+    const errorEmissions: (Error | null)[] = [];
+    viewModel.error$.subscribe((error) => errorEmissions.push(error));
+
+    await expect(viewModel.fetchCommand.execute()).rejects.toThrow(apiError);
+
+    expect(mockFetcher).toHaveBeenCalledTimes(1);
+    expect(errorEmissions.pop()).toBe(apiError);
+  });
+});
+```
+
+**This integration test:**
+- Uses a real `RestfulApiModel` (not a mock)
+- Mocks only the `fetcher` function (network boundary)
+- Tests the complete flow: ViewModel → Model → Fetcher
+- Verifies state transitions across both layers
+- Proves ViewModel and Model integrate correctly
+
+
+## 19.6 Testing with Vitest
+
+All tests in the Web Loom monorepo use **Vitest**, a fast, modern test runner built for Vite projects.
+
+### Vitest Configuration
+
+Here's the Vitest configuration from `packages/mvvm-core/vitest.config.js`:
+
+```javascript
+// packages/mvvm-core/vitest.config.js
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './vitest.setup.ts',
+    testTimeout: 20000,
+    include: ['src/**/*.{test,spec}.{js,ts}'],
+  },
+});
+```
+
+**Key configuration:**
+- `globals: true`: Makes `describe`, `it`, `expect` available globally
+- `environment: 'jsdom'`: Provides DOM APIs for tests that need them
+- `testTimeout: 20000`: Sets timeout to 20 seconds for async tests
+- `include`: Matches test files with `.test.ts` or `.spec.ts` suffix
+
+### Running Tests
+
+```bash
+# Run tests once
+cd packages/mvvm-core && npm test
+
+# Run tests in watch mode
+cd packages/mvvm-core && npm run test:watch
+
+# Run tests with coverage
+cd packages/mvvm-core && npm run test:coverage
+```
+
+### Vitest Features Used in MVVM Tests
+
+**1. Mocking with `vi.fn()`:**
+
+```typescript
+const mockFetcher = vi.fn();
+mockFetcher.mockResolvedValue({ id: '1', name: 'Test' });
+
+await viewModel.fetchCommand.execute();
+
+expect(mockFetcher).toHaveBeenCalledTimes(1);
+expect(mockFetcher).toHaveBeenCalledWith('/api/items', { method: 'GET' });
+```
+
+**2. Spying on methods:**
+
+```typescript
+const disposeSpy = vi.spyOn(viewModel.cmd1 as any, 'dispose');
+
+viewModel.dispose();
+
+expect(disposeSpy).toHaveBeenCalled();
+```
+
+**3. Async testing with `waitFor`:**
+
+```typescript
+viewModel.selectItem('a');
+
+await vi.waitFor(async () => {
+  expect(await firstValueFrom(viewModel.selectedItem$)).toEqual(items[0]);
+});
+```
+
+**4. Lifecycle hooks:**
+
+```typescript
+describe('BaseViewModel', () => {
+  let viewModel: BaseViewModel<MockBaseModel>;
+
+  beforeEach(() => {
+    viewModel = new BaseViewModel(new MockBaseModel());
+  });
+
+  afterEach(() => {
+    viewModel.dispose(); // Clean up after each test
+  });
+
+  it('should test something', () => {
+    // Test code
+  });
+});
+```
+
+## 19.7 Testing Strategies for Each MVVM Layer
+
+Let's summarize testing strategies for each layer of MVVM architecture.
+
+### Testing Models
+
+**What to test:**
+- Initial state (data, loading, error)
+- State updates (`setData`, `setLoading`, `setError`)
+- Validation with Zod schemas
+- Disposal and cleanup
+
+**How to test:**
+- Create Model instances directly
+- Call methods and verify observable emissions
+- Test validation with valid and invalid data
+- Verify disposal completes observables
+
+**Example:**
+
+```typescript
+it('should validate data successfully', () => {
+  const validData = { id: 'abc', name: 'Test User', age: 42 };
+  expect(model.validate(validData)).toEqual(validData);
+});
+
+it('should throw ZodError for invalid data', () => {
+  const invalidData = { id: 'def', name: 'Another User', age: -5 };
+  expect(() => model.validate(invalidData)).toThrow(z.ZodError);
+});
+```
+
+### Testing ViewModels
+
+**What to test:**
+- Observable exposure from Model
+- Derived state (like `validationErrors$`)
+- Command registration and execution
+- Selection state management
+- Disposal and cleanup
+
+**How to test:**
+- Create mock Models
+- Inject mocks into ViewModels
+- Verify ViewModel exposes correct observables
+- Test commands execute correctly
+- Verify disposal cleans up commands and subscriptions
+
+**Example:**
+
+```typescript
+it('should expose data$ from the model', async () => {
+  const testData = { id: '1', name: 'Test' };
+  mockModel.setData(testData);
+  expect(await viewModel.data$.pipe(first()).toPromise()).toEqual(testData);
+});
+
+it('should dispose all registered commands', () => {
+  const disposeSpy = vi.spyOn(viewModel.cmd1 as any, 'dispose');
+  viewModel.dispose();
+  expect(disposeSpy).toHaveBeenCalled();
+});
+```
+
+### Testing Views
+
+**What to test:**
+- Correct rendering based on ViewModel state
+- User interactions trigger ViewModel methods
+- Subscription cleanup on unmount
+
+**How to test:**
+- Use framework-specific testing libraries (React Testing Library, Vue Test Utils)
+- Mock ViewModels or use real ViewModels with mock Models
+- Verify UI updates when ViewModel state changes
+- Verify user actions call ViewModel methods
+
+**Example (React Testing Library):**
+
+```typescript
+it('should display sensors when loaded', async () => {
+  const mockViewModel = {
+    sensors$: of([
+      { id: '1', name: 'Sensor 1' },
+      { id: '2', name: 'Sensor 2' },
+    ]),
+    isLoading$: of(false),
+    error$: of(null),
+  };
+
+  render(<SensorDashboard viewModel={mockViewModel} />);
+
+  expect(screen.getByText('Sensor 1')).toBeInTheDocument();
+  expect(screen.getByText('Sensor 2')).toBeInTheDocument();
+});
+
+it('should call calibrateSensor when button clicked', async () => {
+  const calibrateSpy = vi.fn();
+  const mockViewModel = {
+    sensors$: of([{ id: '1', name: 'Sensor 1' }]),
+    isLoading$: of(false),
+    error$: of(null),
+    calibrateSensor: calibrateSpy,
+  };
+
+  render(<SensorDashboard viewModel={mockViewModel} />);
+
+  const calibrateButton = screen.getByText('Calibrate');
+  fireEvent.click(calibrateButton);
+
+  expect(calibrateSpy).toHaveBeenCalledWith('1');
+});
+```
+
+### Integration Testing
+
+**What to test:**
+- Complete flows across Model → ViewModel → View
+- Real Model with mocked network layer
+- State synchronization across layers
+
+**How to test:**
+- Use real Models and ViewModels
+- Mock only external dependencies (fetch, APIs)
+- Test complete user workflows
+- Verify state updates propagate correctly
+
+**Example:**
+
+```typescript
+it('should complete full CRUD workflow', async () => {
+  const mockFetcher = vi.fn();
+  const model = new RestfulApiModel({ 
+    baseUrl: '/api', 
+    endpoint: 'items',
+    fetcher: mockFetcher,
+    schema: ItemSchema,
+  });
+  const viewModel = new RestfulApiViewModel(model);
+
+  // Fetch items
+  mockFetcher.mockResolvedValueOnce([{ id: '1', name: 'Item 1' }]);
+  await viewModel.fetchCommand.execute();
+  expect(await firstValueFrom(viewModel.data$)).toHaveLength(1);
+
+  // Create item
+  mockFetcher.mockResolvedValueOnce({ id: '2', name: 'Item 2' });
+  await viewModel.createCommand.execute({ name: 'Item 2' });
+  expect(await firstValueFrom(viewModel.data$)).toHaveLength(2);
+
+  // Update item
+  mockFetcher.mockResolvedValueOnce({ id: '1', name: 'Updated Item 1' });
+  await viewModel.updateCommand.execute({ id: '1', payload: { name: 'Updated Item 1' } });
+  const data = await firstValueFrom(viewModel.data$);
+  expect(data[0].name).toBe('Updated Item 1');
+
+  // Delete item
+  mockFetcher.mockResolvedValueOnce(undefined);
+  await viewModel.deleteCommand.execute('1');
+  expect(await firstValueFrom(viewModel.data$)).toHaveLength(1);
+});
+```
+
+
+## 19.8 Testing Benefits of MVVM Separation
+
+Let's compare testing complexity between tightly coupled code and MVVM architecture.
+
+### Tightly Coupled Code: Testing Nightmare
+
+```typescript
+// ❌ Component with embedded business logic
+function SensorDashboard() {
+  const [sensors, setSensors] = useState<Sensor[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedSensor, setSelectedSensor] = useState<Sensor | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/sensors')
+      .then(res => res.json())
+      .then(data => {
+        setSensors(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleCalibrate = async (sensorId: string) => {
+    try {
+      await fetch(`/api/sensors/${sensorId}/calibrate`, { method: 'POST' });
+      // Refresh sensors
+      const res = await fetch('/api/sensors');
+      const data = await res.json();
+      setSensors(data);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleSelect = (sensor: Sensor) => {
+    setSelectedSensor(sensor);
+  };
+
+  // ... rendering logic
+}
+```
+
+**To test this, you need:**
+1. Render the entire React component
+2. Mock `fetch` globally
+3. Wait for async effects to complete
+4. Query DOM elements to verify state
+5. Simulate user interactions on DOM
+6. Mock timers if there are delays
+7. Clean up global mocks after each test
+
+**Test complexity: HIGH**
+- Slow (rendering + DOM queries)
+- Brittle (UI changes break tests)
+- Hard to isolate (everything coupled)
+- Difficult to test edge cases
+
+### MVVM Architecture: Testing Bliss
+
+```typescript
+// ✅ ViewModel with isolated business logic
+export class SensorViewModel extends RestfulApiViewModel<Sensor[], typeof SensorSchema> {
+  constructor(model: SensorModel) {
+    super(model);
+  }
+
+  async calibrateSensor(sensorId: string): Promise<void> {
+    await this.model.calibrate(sensorId);
+    await this.fetchCommand.execute(); // Refresh data
+  }
+}
+
+// ✅ Dumb view component
+function SensorDashboard({ viewModel }: { viewModel: SensorViewModel }) {
+  const sensors = useObservable(viewModel.data$);
+  const loading = useObservable(viewModel.isLoading$);
+  const error = useObservable(viewModel.error$);
+  const selectedSensor = useObservable(viewModel.selectedItem$);
+
+  // ... rendering logic
+}
+```
+
+**To test the ViewModel:**
+1. Create a mock Model
+2. Instantiate the ViewModel with the mock
+3. Call methods directly
+4. Verify observable emissions
+
+**Test complexity: LOW**
+- Fast (no rendering, no DOM)
+- Stable (UI changes don't affect tests)
+- Easy to isolate (ViewModel is independent)
+- Simple to test edge cases
+
+**Example test:**
+
+```typescript
+it('should calibrate sensor and refresh data', async () => {
+  const mockModel = new MockSensorModel();
+  const viewModel = new SensorViewModel(mockModel);
+
+  mockModel.calibrate = vi.fn().mockResolvedValue(undefined);
+  mockModel.fetch = vi.fn().mockResolvedValue([
+    { id: '1', name: 'Sensor 1', calibrated: true },
+  ]);
+
+  await viewModel.calibrateSensor('1');
+
+  expect(mockModel.calibrate).toHaveBeenCalledWith('1');
+  expect(mockModel.fetch).toHaveBeenCalled();
+  
+  const data = await firstValueFrom(viewModel.data$);
+  expect(data[0].calibrated).toBe(true);
+});
+```
+
+**No rendering. No DOM. No mocking fetch globally. Just pure logic testing.**
+
+## 19.9 Testing Patterns and Best Practices
+
+### Pattern 1: Always Dispose in afterEach
+
+```typescript
+describe('SensorViewModel', () => {
+  let viewModel: SensorViewModel;
+
+  beforeEach(() => {
+    viewModel = new SensorViewModel(new MockSensorModel());
+  });
+
+  afterEach(() => {
+    viewModel.dispose(); // Prevent memory leaks
+  });
+
+  // Tests...
+});
+```
+
+**Why:** ViewModels hold subscriptions. Failing to dispose causes memory leaks and test pollution.
+
+### Pattern 2: Use RxJS Operators for Testing Observables
+
+```typescript
+import { first, skip, take } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
+
+// Get current value
+const currentValue = await firstValueFrom(viewModel.data$);
+
+// Skip initial value, get next
+const nextValue = await firstValueFrom(viewModel.data$.pipe(skip(1)));
+
+// Collect multiple emissions
+const emissions: boolean[] = [];
+viewModel.isLoading$.pipe(take(3)).subscribe(val => emissions.push(val));
+```
+
+**Why:** RxJS operators make testing observables straightforward and readable.
+
+### Pattern 3: Mock at the Right Boundary
+
+```typescript
+// ❌ Don't mock internal ViewModel methods
+const viewModel = new SensorViewModel(mockModel);
+vi.spyOn(viewModel, 'loadSensors'); // Bad: testing implementation details
+
+// ✅ Mock external dependencies (Model, API)
+const mockModel = new MockSensorModel();
+mockModel.fetch = vi.fn().mockResolvedValue([...]); // Good: mock boundary
+const viewModel = new SensorViewModel(mockModel);
+```
+
+**Why:** Mocking internal methods tests implementation, not behavior. Mock external dependencies instead.
+
+### Pattern 4: Test State Transitions, Not Just Final State
+
+```typescript
+it('should transition through loading states', async () => {
+  const loadingStates: boolean[] = [];
+  viewModel.isLoading$.subscribe(val => loadingStates.push(val));
+
+  await viewModel.fetchCommand.execute();
+
+  expect(loadingStates).toEqual([false, true, false]);
+  //                            initial → loading → complete
+});
+```
+
+**Why:** State transitions reveal bugs that final state alone might miss.
+
+### Pattern 5: Test Error Paths, Not Just Happy Paths
+
+```typescript
+it('should handle fetch errors gracefully', async () => {
+  const fetchError = new Error('Network failure');
+  mockModel.fetch.mockRejectedValue(fetchError);
+
+  await expect(viewModel.fetchCommand.execute()).rejects.toThrow(fetchError);
+
+  expect(await firstValueFrom(viewModel.error$)).toBe(fetchError);
+  expect(await firstValueFrom(viewModel.isLoading$)).toBe(false);
+  expect(await firstValueFrom(viewModel.data$)).toBeNull();
+});
+```
+
+**Why:** Error handling is critical. Test it explicitly.
+
+### Pattern 6: Use Descriptive Test Names
+
+```typescript
+// ❌ Vague
+it('should work', () => { ... });
+
+// ✅ Descriptive
+it('should emit null for selectedItem$ when ID is not found in data array', () => { ... });
+```
+
+**Why:** Descriptive names document behavior and make failures easier to diagnose.
+
+## 19.10 Real-World Testing Example: GreenWatch Sensor Monitoring
+
+Let's put it all together with a complete testing example for the GreenWatch sensor monitoring system.
+
+### SensorViewModel Implementation
+
+```typescript
+// packages/view-models/src/SensorViewModel.ts
+export class SensorViewModel extends RestfulApiViewModel<Sensor[], typeof SensorSchema> {
+  readonly selectedSensor$ = this.selectedItem$;
+
+  constructor(model: SensorModel) {
+    super(model);
+  }
+
+  async loadSensors(greenhouseId: string): Promise<void> {
+    await this.fetchCommand.execute(greenhouseId);
+  }
+
+  async calibrateSensor(sensorId: string): Promise<void> {
+    await this.model.calibrate(sensorId);
+    await this.fetchCommand.execute(); // Refresh after calibration
+  }
+
+  selectSensor(sensorId: string | null): void {
+    this.selectItem(sensorId);
+  }
+}
+```
+
+### Complete Test Suite
+
+```typescript
+// packages/view-models/src/SensorViewModel.test.ts
+import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
+import { SensorViewModel } from './SensorViewModel';
+import { SensorModel } from '../models/SensorModel';
+import { firstValueFrom, skip } from 'rxjs';
+
+class MockSensorModel extends SensorModel {
+  fetch = vi.fn();
+  calibrate = vi.fn();
+}
+
+describe('SensorViewModel', () => {
+  let mockModel: MockSensorModel;
+  let viewModel: SensorViewModel;
+
+  beforeEach(() => {
+    mockModel = new MockSensorModel();
+    viewModel = new SensorViewModel(mockModel);
+  });
+
+  afterEach(() => {
+    viewModel.dispose();
+  });
+
+  describe('loadSensors', () => {
+    it('should fetch sensors for a greenhouse', async () => {
+      const sensors = [
+        { id: 's1', name: 'Temperature Sensor', type: 'temperature' },
+        { id: 's2', name: 'Humidity Sensor', type: 'humidity' },
+      ];
+      mockModel.fetch.mockResolvedValue(sensors);
+
+      await viewModel.loadSensors('greenhouse-1');
+
+      expect(mockModel.fetch).toHaveBeenCalledWith('greenhouse-1');
+      expect(await firstValueFrom(viewModel.data$)).toEqual(sensors);
+    });
+
+    it('should handle fetch errors', async () => {
+      const error = new Error('Failed to load sensors');
+      mockModel.fetch.mockRejectedValue(error);
+
+      await expect(viewModel.loadSensors('greenhouse-1')).rejects.toThrow(error);
+      expect(await firstValueFrom(viewModel.error$)).toBe(error);
+    });
+  });
+
+  describe('calibrateSensor', () => {
+    it('should calibrate sensor and refresh data', async () => {
+      const initialSensors = [
+        { id: 's1', name: 'Sensor 1', calibrated: false },
+      ];
+      const updatedSensors = [
+        { id: 's1', name: 'Sensor 1', calibrated: true },
+      ];
+
+      mockModel.fetch.mockResolvedValueOnce(initialSensors);
+      await viewModel.loadSensors('greenhouse-1');
+
+      mockModel.calibrate.mockResolvedValue(undefined);
+      mockModel.fetch.mockResolvedValueOnce(updatedSensors);
+
+      await viewModel.calibrateSensor('s1');
+
+      expect(mockModel.calibrate).toHaveBeenCalledWith('s1');
+      expect(mockModel.fetch).toHaveBeenCalledTimes(2); // Initial load + refresh
+      
+      const data = await firstValueFrom(viewModel.data$);
+      expect(data[0].calibrated).toBe(true);
+    });
+  });
+
+  describe('selectSensor', () => {
+    it('should select a sensor by ID', async () => {
+      const sensors = [
+        { id: 's1', name: 'Sensor 1' },
+        { id: 's2', name: 'Sensor 2' },
+      ];
+      mockModel.fetch.mockResolvedValue(sensors);
+      await viewModel.loadSensors('greenhouse-1');
+
+      viewModel.selectSensor('s2');
+
+      const selected = await firstValueFrom(viewModel.selectedSensor$.pipe(skip(1)));
+      expect(selected).toEqual(sensors[1]);
+    });
+
+    it('should clear selection when null is passed', async () => {
+      const sensors = [{ id: 's1', name: 'Sensor 1' }];
+      mockModel.fetch.mockResolvedValue(sensors);
+      await viewModel.loadSensors('greenhouse-1');
+
+      viewModel.selectSensor('s1');
+      await firstValueFrom(viewModel.selectedSensor$.pipe(skip(1)));
+
+      viewModel.selectSensor(null);
+
+      const selected = await firstValueFrom(viewModel.selectedSensor$);
+      expect(selected).toBeNull();
+    });
+  });
+});
+```
+
+**This test suite demonstrates:**
+- Complete ViewModel testing with mocked Model
+- Testing async operations (load, calibrate)
+- Testing state management (selection)
+- Testing error handling
+- Testing data refresh after mutations
+- Proper setup and teardown
+
+
+## 19.11 Key Takeaways
+
+1. **MVVM makes testing dramatically simpler** by separating business logic from UI rendering. ViewModels can be tested as plain TypeScript classes without any framework dependencies.
+
+2. **Test Models for domain logic and validation**. Use Zod schemas to validate data, and test that Models correctly manage reactive state (data, loading, error).
+
+3. **Test ViewModels in isolation** by mocking Models. Verify that ViewModels correctly expose Model observables, handle commands, manage selection state, and clean up on disposal.
+
+4. **Integration tests verify layers work together**. Use real Models with mocked network boundaries to test complete workflows across Model → ViewModel.
+
+5. **Vitest provides excellent testing experience** with fast execution, built-in mocking, and modern async testing utilities.
+
+6. **Test state transitions, not just final state**. Verify loading states transition correctly (`false → true → false`) and errors are handled properly.
+
+7. **Always dispose ViewModels in `afterEach`** to prevent memory leaks and test pollution from lingering subscriptions.
+
+8. **Mock at the right boundary**. Mock external dependencies (Models, APIs) rather than internal ViewModel methods. Test behavior, not implementation.
+
+9. **Use RxJS operators for testing observables**. `first()`, `skip()`, `take()`, and `firstValueFrom()` make observable testing straightforward.
+
+10. **The testing pyramid applies to MVVM**:
+    - **Many unit tests** for Models and ViewModels (fast, isolated)
+    - **Some integration tests** across layers (moderate speed)
+    - **Few end-to-end tests** for complete user workflows (slow, expensive)
+
+## 19.12 Testing Checklist
+
+When testing MVVM applications, ensure you cover:
+
+**Model Tests:**
+- [ ] Initial state (data, loading, error)
+- [ ] State updates (setData, setLoading, setError)
+- [ ] Validation with Zod schemas (valid and invalid data)
+- [ ] Disposal completes observables
+- [ ] No emissions after disposal
+
+**ViewModel Tests:**
+- [ ] Observable exposure from Model
+- [ ] Derived state (validationErrors$, computed values)
+- [ ] Command registration and execution
+- [ ] Command disposal on ViewModel disposal
+- [ ] Selection state management
+- [ ] Disposal cleans up all subscriptions
+
+**Integration Tests:**
+- [ ] ViewModel + Model work together
+- [ ] CRUD operations update state correctly
+- [ ] Error handling propagates through layers
+- [ ] State synchronization across layers
+
+**View Tests (framework-specific):**
+- [ ] Correct rendering based on ViewModel state
+- [ ] User interactions trigger ViewModel methods
+- [ ] Subscription cleanup on unmount
+- [ ] Loading and error states display correctly
+
+## 19.13 Next Steps
+
+Now that you understand how to test MVVM applications, you're ready to explore more advanced topics:
+
+- **Chapter 20: Plugin Architecture and Extensibility** - Learn how to build runtime-extensible applications with the plugin-core library
+- **Chapter 21: Design Systems and Theming** - Discover how to create framework-agnostic design systems with design-core
+- **Chapter 22: Complete Case Studies** - See complete implementations of GreenWatch and e-commerce applications across all frameworks
+
+The testing strategies you've learned in this chapter apply to all these advanced topics. MVVM's separation of concerns makes even complex features testable, maintainable, and reliable.
+
+---
+
+**Remember:** The best architecture is the one you can test. MVVM gives you that architecture. Now go write some tests!
+

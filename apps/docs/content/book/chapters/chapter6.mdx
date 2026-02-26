@@ -1,0 +1,726 @@
+---
+id: "the-view-layer-contract"
+title: The View Layer Contract
+section: Core Patterns
+---
+
+# Chapter 6: The View Layer Contract
+
+In the previous chapter, we explored ViewModels—the presentation logic layer that transforms domain data into view-ready state. But ViewModels don't exist in isolation. They need Views to consume their observables and render UI. This chapter examines the View layer: its responsibilities, its relationship with ViewModels, and how to implement it across different frameworks while maintaining the same business logic.
+
+The View layer is where MVVM's framework independence becomes tangible. The same ViewModel—with identical business logic, validation, and state management—can power React components, Vue templates, Angular views, Lit web components, and even vanilla JavaScript. The View layer is the only part that changes between frameworks, and it should be as thin as possible.
+
+## The Dumb View Philosophy
+
+A well-designed View in MVVM is "dumb"—it contains minimal logic and delegates everything to the ViewModel. This isn't a criticism; it's a design principle that keeps Views simple, testable, and replaceable.
+
+**What a View should do:**
+- Subscribe to ViewModel observables
+- Render data from those observables
+- Capture user interactions and call ViewModel commands
+- Handle framework-specific concerns (routing, animations, accessibility)
+
+**What a View should NOT do:**
+- Contain business logic or validation rules
+- Make API calls or access repositories directly
+- Transform or compute data (that's the ViewModel's job)
+- Maintain state beyond what's needed for UI interactions (form inputs, modal visibility)
+
+This separation creates a clear contract: **the ViewModel exposes observables and commands; the View subscribes and invokes.**
+
+Let's see this contract in action with our GreenWatch greenhouse monitoring system. We'll use the same `SensorViewModel` across three different frameworks to demonstrate how the View layer adapts while the business logic remains unchanged.
+
+## The ViewModel: Our Single Source of Truth
+
+Before we look at Views, let's examine the ViewModel they'll consume. Here's the actual `SensorViewModel` from our monorepo:
+
+```typescript
+// packages/view-models/src/SensorViewModel.ts
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { SensorListSchema, type SensorListData, SensorModel } from '@repo/models';
+
+export class SensorViewModel extends RestfulApiViewModel<
+  SensorListData,
+  typeof SensorListSchema
+> {
+  constructor(model: SensorModel) {
+    super(model);
+  }
+}
+
+// Singleton instance shared across all Views
+const sensorModel = new SensorModel();
+export const sensorViewModel = new SensorViewModel(sensorModel);
+export type { SensorListData };
+```
+
+This ViewModel extends `RestfulApiViewModel`, which provides:
+- `data$: Observable<SensorListData | null>` - The sensor list data
+- `isLoading$: Observable<boolean>` - Loading state
+- `error$: Observable<any>` - Error state
+- `fetchCommand.execute()` - Command to fetch sensors from the API
+
+Notice what's NOT here: no React hooks, no Vue refs, no Angular decorators. This ViewModel is pure TypeScript with RxJS observables. It works in any JavaScript environment.
+
+Now let's see how different frameworks consume this ViewModel.
+
+## React Implementation: Hooks and Subscriptions
+
+React Views use hooks to subscribe to ViewModel observables. The pattern is straightforward: create a custom `useObservable` hook that manages subscriptions and cleanup.
+
+### The useObservable Hook
+
+```typescript
+// apps/mvvm-react/src/hooks/useObservable.ts
+import { useState, useEffect } from 'react';
+import { Observable } from 'rxjs';
+
+export function useObservable<T>(observable: Observable<T>, initialValue: T) {
+  const [value, setValue] = useState<T>(initialValue);
+
+  useEffect(() => {
+    const subscription = observable.subscribe(setValue);
+    return () => subscription.unsubscribe();
+  }, [observable]);
+
+  return value;
+}
+```
+
+This hook:
+1. Creates local state with `useState` to trigger re-renders
+2. Subscribes to the observable in `useEffect`
+3. Updates state when the observable emits
+4. Cleans up the subscription when the component unmounts
+
+### React Dashboard Component
+
+Here's how the React Dashboard uses this hook to consume multiple ViewModels:
+
+```tsx
+// apps/mvvm-react/src/components/Dashboard.tsx
+import React, { useEffect } from 'react';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+import GreenhouseCard from './GreenhouseCard';
+import SensorCard from './SensorCard';
+import SensorReadingCard from './SensorReadingCard';
+import ThresholdAlertCard from './ThresholdAlertCard';
+
+const Dashboard: React.FC = () => {
+  // Subscribe to data observables
+  const greenHouses = useObservable(greenHouseViewModel.data$, []);
+  const isLoadingGreenHouses = useObservable(greenHouseViewModel.isLoading$, true);
+
+  const sensors = useObservable(sensorViewModel.data$, []);
+  const isLoadingSensors = useObservable(sensorViewModel.isLoading$, true);
+
+  const sensorReadings = useObservable(sensorReadingViewModel.data$, []);
+  const isLoadingSensorReadings = useObservable(sensorReadingViewModel.isLoading$, true);
+
+  const thresholdAlerts = useObservable(thresholdAlertViewModel.data$, []);
+  const isLoadingThresholdAlerts = useObservable(thresholdAlertViewModel.isLoading$, true);
+
+  // Fetch data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await greenHouseViewModel.fetchCommand.execute();
+        await sensorViewModel.fetchCommand.execute();
+        await sensorReadingViewModel.fetchCommand.execute();
+        await thresholdAlertViewModel.fetchCommand.execute();
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []); // Empty dependency array ensures this runs once on mount
+
+  const isLoading = 
+    isLoadingGreenHouses || 
+    isLoadingSensors || 
+    isLoadingSensorReadings || 
+    isLoadingThresholdAlerts;
+
+  return (
+    <div className="dashboard-container">
+      {isLoading && <p>Loading dashboard data...</p>}
+      {!isLoading && (
+        <>
+          <h2>Dashboard</h2>
+          <div className="flex-container">
+            <div className="flex-item">
+              <GreenhouseCard greenHouses={greenHouses} />
+            </div>
+            <div className="flex-item">
+              <SensorCard sensors={sensors} />
+            </div>
+            <div className="flex-item">
+              <ThresholdAlertCard thresholdAlerts={thresholdAlerts ?? []} />
+            </div>
+            <div className="flex-item">
+              <SensorReadingCard sensorReadings={sensorReadings ?? []} />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default Dashboard;
+```
+
+**Key observations:**
+- The component imports ViewModels directly—no dependency injection needed
+- `useObservable` converts RxJS observables into React state
+- Commands are called in `useEffect` with an empty dependency array (runs once on mount)
+- The component is purely presentational—all logic lives in the ViewModels
+- Loading states from multiple ViewModels are combined with simple boolean logic
+
+## Vue Implementation: Composition API and Composables
+
+Vue 3's Composition API provides a similar pattern to React hooks. We create a `useObservable` composable that manages subscriptions.
+
+### The useObservable Composable
+
+```typescript
+// apps/mvvm-vue/src/hooks/useObservable.ts
+import { ref, onUnmounted } from 'vue';
+import { Observable } from 'rxjs';
+
+export function useObservable<T>(observable: Observable<T>, initialValue: any) {
+  const value = ref<T | undefined>(initialValue);
+  
+  const subscription = observable.subscribe({
+    next: (val) => {
+      value.value = val;
+    },
+  });
+
+  onUnmounted(() => {
+    subscription.unsubscribe();
+  });
+
+  return value;
+}
+```
+
+This composable:
+1. Creates a reactive ref with `ref()` to trigger re-renders
+2. Subscribes to the observable immediately
+3. Updates the ref when the observable emits
+4. Cleans up the subscription when the component unmounts
+
+### Vue Dashboard Component
+
+Here's the same Dashboard implemented in Vue:
+
+```vue
+<!-- apps/mvvm-vue/src/components/Dashboard.vue -->
+<template>
+  <div class="dashboard-container">
+    <h2>Dashboard</h2>
+
+    <div v-if="isLoading" class="loading-message">
+      <p>Loading dashboard data...</p>
+    </div>
+
+    <div v-if="!isLoading" class="flex-container">
+      <div className="flex-item">
+        <GreenhouseCard :greenhouse-list-data-prop="greenHouses" />
+      </div>
+      <div className="flex-item">
+        <SensorCard :sensor-list-data-prop="sensors" />
+      </div>
+      <div className="flex-item">
+        <ThresholdAlertCard :threshold-alerts-prop="thresholdAlerts" />
+      </div>
+      <div className="flex-item">
+        <SensorReadingCard :sensor-readings-prop="sensorReadings" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted, computed } from 'vue';
+import { useObservable } from '../hooks/useObservable';
+
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+
+import GreenhouseCard from './GreenhouseCard.vue';
+import SensorCard from './SensorCard.vue';
+import SensorReadingCard from './SensorReadingCard.vue';
+import ThresholdAlertCard from './ThresholdAlertCard.vue';
+
+// Subscribe to data observables
+const greenHouses = useObservable(greenHouseViewModel.data$, []);
+const isLoadingGreenHouses = useObservable(greenHouseViewModel.isLoading$, true);
+
+const sensors = useObservable(sensorViewModel.data$, []);
+const isLoadingSensors = useObservable(sensorViewModel.isLoading$, true);
+
+const sensorReadings = useObservable(sensorReadingViewModel.data$, []);
+const isLoadingSensorReadings = useObservable(sensorReadingViewModel.isLoading$, true);
+
+const thresholdAlerts = useObservable(thresholdAlertViewModel.data$, []);
+const isLoadingThresholdAlerts = useObservable(thresholdAlertViewModel.isLoading$, true);
+
+// Computed property for combined loading state
+const isLoading = computed(
+  () =>
+    isLoadingGreenHouses.value ||
+    isLoadingSensors.value ||
+    isLoadingSensorReadings.value ||
+    isLoadingThresholdAlerts.value,
+);
+
+// Fetch data on mount
+onMounted(async () => {
+  try {
+    await greenHouseViewModel.fetchCommand.execute();
+    await sensorViewModel.fetchCommand.execute();
+    await sensorReadingViewModel.fetchCommand.execute();
+    await thresholdAlertViewModel.fetchCommand.execute();
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+  }
+});
+</script>
+
+<style scoped></style>
+```
+
+**Key observations:**
+- The structure mirrors the React implementation almost exactly
+- `useObservable` returns a Vue `ref` instead of React state
+- `computed()` creates a derived value (like React's `useMemo`)
+- `onMounted` replaces React's `useEffect` for initialization
+- The same ViewModels work without modification
+
+## Angular Implementation: Dependency Injection and Async Pipe
+
+Angular takes a different approach. Instead of hooks or composables, Angular uses dependency injection to provide ViewModels and the `async` pipe to subscribe to observables directly in templates.
+
+### Angular Component with DI
+
+```typescript
+// apps/mvvm-angular/src/app/components/greenhouse-card/greenhouse-card.component.ts
+import { Component, OnInit, Inject, InjectionToken } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { greenHouseViewModel, GreenhouseListData } from '@repo/view-models/GreenHouseViewModel';
+import { Observable } from 'rxjs';
+
+export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>(
+  'GREENHOUSE_VIEW_MODEL'
+);
+
+@Component({
+  selector: 'app-greenhouse-card',
+  standalone: true,
+  imports: [RouterModule, CommonModule],
+  templateUrl: './greenhouse-card.component.html',
+  styleUrl: './greenhouse-card.component.scss',
+  providers: [
+    {
+      provide: GREENHOUSE_VIEW_MODEL,
+      useValue: greenHouseViewModel,
+    },
+  ],
+})
+export class GreenhouseCardComponent implements OnInit {
+  public vm: typeof greenHouseViewModel;
+  public data$!: Observable<GreenhouseListData | null>;
+  public loading$!: Observable<boolean>;
+  public error$!: Observable<any>;
+
+  constructor(@Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel) {
+    this.vm = vm;
+  }
+
+  ngOnInit(): void {
+    // Expose observables to the template
+    this.data$ = this.vm.data$;
+    this.loading$ = this.vm.isLoading$;
+    this.error$ = this.vm.error$;
+
+    // Fetch data
+    this.vm.fetchCommand.execute();
+  }
+}
+```
+
+### Angular Template with Async Pipe
+
+```html
+<!-- apps/mvvm-angular/src/app/components/greenhouse-card/greenhouse-card.component.html -->
+<div class="card">
+  <div class="card-title">
+    <a routerLink="/greenhouses">Greenhouses</a>
+  </div>
+  <div class="card-content">
+    <p>Total: {{ (data$ | async)?.length }}</p>
+  </div>
+</div>
+```
+
+**Key observations:**
+- Angular uses `InjectionToken` to provide the ViewModel
+- The component exposes observables as public properties
+- The template uses the `async` pipe to subscribe automatically
+- No manual subscription management—Angular handles cleanup
+- The `async` pipe unwraps the observable value in the template
+
+## Framework Comparison: Same ViewModel, Different Views
+
+Let's compare how each framework handles the same task: displaying a list of sensors.
+
+### React: Hooks Pattern
+
+```tsx
+// apps/mvvm-react/src/components/SensorList.tsx
+import { useEffect } from 'react';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { useObservable } from '../hooks/useObservable';
+
+export function SensorList() {
+  const sensors = useObservable(sensorViewModel.data$, []);
+  const isLoading = useObservable(sensorViewModel.isLoading$, false);
+
+  useEffect(() => {
+    sensorViewModel.fetchCommand.execute();
+  }, []);
+
+  if (isLoading) return <p>Loading sensors...</p>;
+
+  return (
+    <div>
+      <h2>Sensors</h2>
+      <ul>
+        {sensors.map((sensor) => (
+          <li key={sensor.id}>
+            {sensor.name} - {sensor.type}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### Vue: Composables Pattern
+
+```vue
+<!-- apps/mvvm-vue/src/components/SensorList.vue -->
+<template>
+  <div>
+    <h2>Sensors</h2>
+    <p v-if="isLoading">Loading sensors...</p>
+    <ul v-else>
+      <li v-for="sensor in sensors" :key="sensor.id">
+        {{ sensor.name }} - {{ sensor.type }}
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import { useObservable } from '../hooks/useObservable';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+
+const sensors = useObservable(sensorViewModel.data$, []);
+const isLoading = useObservable(sensorViewModel.isLoading$, false);
+
+onMounted(() => {
+  sensorViewModel.fetchCommand.execute();
+});
+</script>
+```
+
+### Angular: Async Pipe Pattern
+
+```typescript
+// apps/mvvm-angular/src/app/components/sensor-list/sensor-list.component.ts
+import { Component, OnInit, Inject, InjectionToken } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { sensorViewModel, SensorListData } from '@repo/view-models/SensorViewModel';
+import { Observable } from 'rxjs';
+
+export const SENSOR_VIEW_MODEL = new InjectionToken<typeof sensorViewModel>(
+  'SENSOR_VIEW_MODEL'
+);
+
+@Component({
+  selector: 'app-sensor-list',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div>
+      <h2>Sensors</h2>
+      <p *ngIf="loading$ | async">Loading sensors...</p>
+      <ul *ngIf="!(loading$ | async)">
+        <li *ngFor="let sensor of data$ | async">
+          {{ sensor.name }} - {{ sensor.type }}
+        </li>
+      </ul>
+    </div>
+  `,
+  providers: [
+    {
+      provide: SENSOR_VIEW_MODEL,
+      useValue: sensorViewModel,
+    },
+  ],
+})
+export class SensorListComponent implements OnInit {
+  public data$!: Observable<SensorListData | null>;
+  public loading$!: Observable<boolean>;
+
+  constructor(@Inject(SENSOR_VIEW_MODEL) private vm: typeof sensorViewModel) {}
+
+  ngOnInit(): void {
+    this.data$ = this.vm.data$;
+    this.loading$ = this.vm.isLoading$;
+    this.vm.fetchCommand.execute();
+  }
+}
+```
+
+### Side-by-Side Comparison
+
+| Aspect | React | Vue | Angular |
+|--------|-------|-----|---------|
+| **Subscription** | `useObservable` hook | `useObservable` composable | `async` pipe |
+| **Cleanup** | `useEffect` return | `onUnmounted` | Automatic |
+| **State** | `useState` | `ref` | Observable directly |
+| **Initialization** | `useEffect` | `onMounted` | `ngOnInit` |
+| **Template** | JSX | Vue template | Angular template |
+| **DI** | Direct import | Direct import | InjectionToken |
+
+**What's the same:**
+- The ViewModel (`sensorViewModel`) is identical
+- The observables (`data$`, `isLoading$`) are identical
+- The commands (`fetchCommand.execute()`) are identical
+- The business logic is identical
+
+**What's different:**
+- How subscriptions are managed (hooks vs composables vs async pipe)
+- How state triggers re-renders (setState vs ref vs change detection)
+- How components are structured (functional vs SFC vs class)
+
+This is MVVM's power: **write the business logic once, adapt the View layer to each framework.**
+
+## View Layer Best Practices
+
+Based on our real-world implementations, here are the patterns that work:
+
+### 1. Keep Views Thin
+
+Views should be as simple as possible. If you find yourself writing complex logic in a component, move it to the ViewModel.
+
+**Bad:**
+```tsx
+// Component contains business logic
+function SensorCard({ sensor }) {
+  const status = sensor.value > sensor.threshold ? 'critical' : 'normal';
+  const color = status === 'critical' ? 'red' : 'green';
+  const message = status === 'critical' 
+    ? `Alert: ${sensor.name} is ${sensor.value - sensor.threshold} over threshold`
+    : `${sensor.name} is operating normally`;
+  
+  return <div style={{ color }}>{message}</div>;
+}
+```
+
+**Good:**
+```tsx
+// ViewModel contains business logic
+class SensorViewModel {
+  public readonly displayStatus$: Observable<{
+    status: 'critical' | 'normal';
+    color: string;
+    message: string;
+  }>;
+  
+  constructor(sensor$: Observable<Sensor>) {
+    this.displayStatus$ = sensor$.pipe(
+      map(sensor => ({
+        status: sensor.value > sensor.threshold ? 'critical' : 'normal',
+        color: sensor.value > sensor.threshold ? 'red' : 'green',
+        message: sensor.value > sensor.threshold
+          ? `Alert: ${sensor.name} is ${sensor.value - sensor.threshold} over threshold`
+          : `${sensor.name} is operating normally`
+      }))
+    );
+  }
+}
+
+// Component just renders
+function SensorCard() {
+  const status = useObservable(sensorViewModel.displayStatus$, null);
+  if (!status) return null;
+  
+  return <div style={{ color: status.color }}>{status.message}</div>;
+}
+```
+
+### 2. Subscribe Once, Use Everywhere
+
+Don't subscribe to the same observable multiple times in a component. Subscribe once and use the value.
+
+**Bad:**
+```tsx
+function Dashboard() {
+  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensorCount = useObservable(sensorViewModel.data$, []).length; // Duplicate subscription
+  const hasSensors = useObservable(sensorViewModel.data$, []).length > 0; // Another duplicate
+  
+  return <div>...</div>;
+}
+```
+
+**Good:**
+```tsx
+function Dashboard() {
+  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensorCount = sensors.length;
+  const hasSensors = sensors.length > 0;
+  
+  return <div>...</div>;
+}
+```
+
+Or better yet, move derived values to the ViewModel:
+
+```typescript
+class SensorViewModel {
+  public readonly data$: Observable<Sensor[]>;
+  public readonly count$: Observable<number>;
+  public readonly hasSensors$: Observable<boolean>;
+  
+  constructor() {
+    this.data$ = /* ... */;
+    this.count$ = this.data$.pipe(map(sensors => sensors.length));
+    this.hasSensors$ = this.count$.pipe(map(count => count > 0));
+  }
+}
+```
+
+### 3. Handle Loading and Error States
+
+Always handle loading and error states from ViewModels. Don't assume data is always available.
+
+```tsx
+function SensorList() {
+  const sensors = useObservable(sensorViewModel.data$, null);
+  const isLoading = useObservable(sensorViewModel.isLoading$, false);
+  const error = useObservable(sensorViewModel.error$, null);
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+  if (!sensors || sensors.length === 0) return <EmptyState />;
+
+  return (
+    <ul>
+      {sensors.map(sensor => (
+        <li key={sensor.id}>{sensor.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### 4. Use Commands for User Actions
+
+When users interact with the UI, call ViewModel commands. Don't make API calls or update state directly in the View.
+
+**Bad:**
+```tsx
+function SensorCard({ sensor }) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await fetch(`/api/sensors/${sensor.id}`, { method: 'DELETE' });
+      // Now what? How do we update the list?
+    } catch (error) {
+      alert('Failed to delete sensor');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
+  return <button onClick={handleDelete}>Delete</button>;
+}
+```
+
+**Good:**
+```tsx
+function SensorCard({ sensor }) {
+  const isDeleting = useObservable(sensorViewModel.isDeleting$, false);
+  
+  const handleDelete = () => {
+    sensorViewModel.deleteCommand.execute(sensor.id);
+  };
+  
+  return (
+    <button onClick={handleDelete} disabled={isDeleting}>
+      {isDeleting ? 'Deleting...' : 'Delete'}
+    </button>
+  );
+}
+```
+
+### 5. Dispose ViewModels When Done
+
+If you create ViewModel instances (not singletons), dispose them when the component unmounts.
+
+```tsx
+function SensorDetail({ sensorId }) {
+  const [viewModel] = useState(() => new SensorDetailViewModel(sensorId));
+  
+  useEffect(() => {
+    return () => viewModel.dispose(); // Cleanup
+  }, [viewModel]);
+  
+  const sensor = useObservable(viewModel.sensor$, null);
+  
+  return <div>{sensor?.name}</div>;
+}
+```
+
+## Key Takeaways
+
+The View layer in MVVM is the framework-specific adapter that consumes framework-agnostic ViewModels. By keeping Views thin and delegating all logic to ViewModels, we achieve true framework independence.
+
+**The View-ViewModel contract:**
+- ViewModels expose observables and commands
+- Views subscribe to observables and invoke commands
+- Views handle framework-specific concerns (routing, animations, accessibility)
+- ViewModels handle business logic, validation, and state management
+
+**Framework patterns:**
+- **React**: Use `useObservable` hook with `useEffect` for subscriptions
+- **Vue**: Use `useObservable` composable with `onUnmounted` for cleanup
+- **Angular**: Use dependency injection with `async` pipe for automatic subscriptions
+
+**Best practices:**
+- Keep Views as thin as possible
+- Subscribe once, use the value multiple times
+- Always handle loading, error, and empty states
+- Use ViewModel commands for user actions
+- Dispose ViewModels when components unmount
+
+In the next chapter, we'll explore dependency injection and lifecycle management—how to provide ViewModels to Views, manage their lifecycles, and handle cleanup across different frameworks.

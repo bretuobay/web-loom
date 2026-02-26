@@ -1,0 +1,609 @@
+---
+id: "building-framework-agnostic-models"
+title: Building Framework-Agnostic Models
+section: Core Patterns
+---
+
+# Chapter 4: Building Framework-Agnostic Models
+
+In the MVVM architecture, the Model layer is where your domain logic lives. It's the foundation of your application—the part that knows about sensors, greenhouses, readings, and alerts. It's also the part that should be completely independent of any UI framework.
+
+This chapter explores how to build Models that work anywhere: in React, Vue, Angular, or even on the server. We'll examine the BaseModel and RestfulApiModel patterns from the Web Loom monorepo, then see how GreenWatch implements domain-specific Models for its greenhouse monitoring system.
+
+## What is a Model?
+
+A Model in MVVM represents your application's domain logic and data. It's responsible for:
+
+- **Managing domain data**: Holding the current state of entities (sensors, greenhouses, readings)
+- **Enforcing business rules**: Validating data, ensuring consistency
+- **Communicating with data sources**: Fetching from APIs, persisting changes
+- **Exposing reactive state**: Publishing data changes through observables
+
+Here's what a Model is *not*:
+
+- **Not a DTO**: Models aren't just data transfer objects from your API
+- **Not framework-specific**: Models don't know about React hooks, Vue refs, or Angular services
+- **Not presentation logic**: Models don't format data for display or handle UI concerns
+
+The key principle: Models contain the logic that would be the same regardless of which framework renders the UI.
+
+## The BaseModel Pattern
+
+Let's start with the foundation. The `BaseModel` class from `packages/mvvm-core/src/models/BaseModel.ts` provides core functionality that all Models need:
+
+```typescript
+// packages/mvvm-core/src/models/BaseModel.ts
+export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
+  protected _data$ = new BehaviorSubject<TData | null>(null);
+  public readonly data$: Observable<TData | null> = this._data$.asObservable();
+
+  protected _isLoading$ = new BehaviorSubject<boolean>(false);
+  public readonly isLoading$: Observable<boolean> = this._isLoading$.asObservable();
+
+  protected _error$ = new BehaviorSubject<any>(null);
+  public readonly error$: Observable<any> = this._error$.asObservable();
+
+  public readonly schema?: TSchema;
+
+  constructor(input: TConstructorInput<TData, TSchema>) {
+    const { initialData = null, schema } = input;
+    if (initialData !== null) {
+      this._data$.next(initialData);
+    }
+    this.schema = schema;
+  }
+
+  public setData(newData: TData | null): void {
+    this._data$.next(newData);
+  }
+
+  public setLoading(status: boolean): void {
+    this._isLoading$.next(status);
+  }
+
+  public setError(err: any): void {
+    this._error$.next(err);
+  }
+
+  public clearError(): void {
+    this._error$.next(null);
+  }
+
+  public validate(data: any): TData {
+    if (!this.schema) {
+      console.warn('No Zod schema provided. Validation will not occur.');
+      return data as TData;
+    }
+    return this.schema.parse(data);
+  }
+
+  public dispose(): void {
+    this._data$.complete();
+    this._isLoading$.complete();
+    this._error$.complete();
+  }
+}
+```
+
+**Key design decisions:**
+
+1. **RxJS Observables**: The Model uses `BehaviorSubject` internally and exposes read-only `Observable` streams. This provides reactive state that any framework can subscribe to.
+
+2. **Generic Types**: `TData` represents the domain data type, `TSchema` is the Zod schema for validation. This makes BaseModel reusable for any domain entity.
+
+3. **Three core observables**: Every Model exposes `data$`, `isLoading$`, and `error$`. This consistent interface makes Models predictable and easy to consume.
+
+4. **Validation with Zod**: The `validate()` method uses Zod schemas to ensure data integrity. Invalid data is rejected before it enters your domain.
+
+5. **Lifecycle management**: The `dispose()` method completes all observables, preventing memory leaks when Models are no longer needed.
+
+## Framework Independence Through Observables
+
+Why use RxJS observables instead of framework-specific reactivity (React state, Vue refs, Angular signals)?
+
+**Observables are framework-agnostic.** Every major framework can consume observables:
+
+- **React**: Subscribe in `useEffect`, update local state
+- **Vue**: Use `watchEffect` or composables to bridge observables to refs
+- **Angular**: Use the `async` pipe directly in templates
+- **Vanilla JS**: Call `.subscribe()` directly
+
+This means you write your Model once, and it works everywhere. The same `SensorModel` that powers the React dashboard also powers the Vue dashboard, Angular dashboard, and even a Node.js background worker.
+
+## Validation with Zod Schemas
+
+Data validation is a Model responsibility. When data enters your application—from an API, user input, or any external source—the Model validates it before accepting it.
+
+Here's how GreenWatch defines schemas for its domain entities:
+
+```typescript
+// packages/models/src/schemas/greenhouse.schema.ts
+import { z } from 'zod';
+
+export const CreateGreenhouseSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1),
+  location: z.string().min(1),
+  size: z.string().min(1),
+  cropType: z.string().optional(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+
+export type GreenhouseData = z.infer<typeof CreateGreenhouseSchema>;
+
+export const GreenhouseListSchema = z.array(CreateGreenhouseSchema);
+export type GreenhouseListData = z.infer<typeof GreenhouseListSchema>;
+```
+
+```typescript
+// packages/models/src/schemas/sensor.schema.ts
+import { z } from 'zod';
+
+export const SensorTypeEnum = z.enum([
+  'temperature',
+  'humidity',
+  'soilMoisture',
+  'lightIntensity'
+]);
+
+export const SensorStatusEnum = z.enum(['active', 'inactive']);
+
+export const CreateSensorSchema = z.object({
+  id: z.string().uuid().optional(),
+  type: SensorTypeEnum,
+  status: SensorStatusEnum,
+  greenhouseId: z.number().int().positive(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+  greenhouse: CreateGreenhouseSchema,
+});
+
+export type SensorData = z.infer<typeof CreateSensorSchema>;
+
+export const SensorListSchema = z.array(CreateSensorSchema);
+export type SensorListData = z.infer<typeof SensorListSchema>;
+```
+
+**What these schemas enforce:**
+
+- **Type safety**: TypeScript types are inferred from schemas using `z.infer`
+- **Runtime validation**: Data is validated at runtime, catching API contract violations
+- **Business rules**: Constraints like `min(1)`, `positive()`, and enum values encode domain rules
+- **Nested validation**: The `greenhouse` field in `CreateSensorSchema` validates nested objects
+
+When the Model receives data from the API, it validates against these schemas. Invalid data is rejected with clear error messages, preventing corrupt state from entering your application.
+
+## The RestfulApiModel Pattern
+
+Most Models need to interact with RESTful APIs. The `RestfulApiModel` extends `BaseModel` with CRUD operations:
+
+```typescript
+// packages/mvvm-core/src/models/RestfulApiModel.ts (simplified)
+export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> 
+  extends BaseModel<TData, TSchema> {
+  
+  private readonly baseUrl: string;
+  private readonly endpoint: string;
+  private readonly fetcher: Fetcher;
+
+  constructor(input: TConstructorInput<TData, TSchema>) {
+    super({ initialData: input.initialData, schema: input.schema });
+    this.baseUrl = input.baseUrl;
+    this.endpoint = input.endpoint;
+    this.fetcher = input.fetcher;
+  }
+
+  public async fetch(id?: string | string[]): Promise<void> {
+    this.setLoading(true);
+    this.clearError();
+    
+    try {
+      const url = id ? `${this.baseUrl}/${this.endpoint}/${id}` 
+                     : `${this.baseUrl}/${this.endpoint}`;
+      const data = await this.fetcher(url, { method: 'GET' });
+      
+      // Validate response data
+      const validated = this.validate(data);
+      this.setData(validated);
+    } catch (error) {
+      this.setError(error);
+      throw error;
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  public async create(payload: Partial<ExtractItemType<TData>>): Promise<void> {
+    // Optimistic update: add item immediately
+    const tempId = generateTempId();
+    const optimisticItem = { ...payload, id: tempId };
+    this.addItemOptimistically(optimisticItem);
+
+    try {
+      const url = `${this.baseUrl}/${this.endpoint}`;
+      const created = await this.fetcher(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      // Replace temp item with server response
+      this.replaceItem(tempId, created);
+    } catch (error) {
+      // Revert optimistic update on failure
+      this.removeItem(tempId);
+      this.setError(error);
+      throw error;
+    }
+  }
+
+  public async update(id: string, payload: Partial<ExtractItemType<TData>>): Promise<void> {
+    // Similar optimistic update pattern
+  }
+
+  public async delete(id: string): Promise<void> {
+    // Similar optimistic update pattern
+  }
+}
+```
+
+**Key features:**
+
+1. **CRUD operations**: `fetch()`, `create()`, `update()`, `delete()` handle common API interactions
+2. **Optimistic updates**: UI updates immediately, then syncs with server
+3. **Error handling**: Failed operations revert optimistic changes and set error state
+4. **Loading states**: `isLoading$` tracks ongoing operations
+5. **Validation**: All API responses are validated before updating `data$`
+
+## GreenWatch Model Implementations
+
+Now let's see how GreenWatch uses these patterns for its domain Models.
+
+### SensorModel
+
+The `SensorModel` manages sensor data—devices that measure environmental conditions in greenhouses:
+
+```typescript
+// packages/models/src/SensorModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { SensorListSchema, type SensorListData } from './schemas';
+import { fetchWithCache } from './utils/fetcher';
+import { API_BASE_URL } from './config';
+import { apiRegistry } from './services/services';
+
+const { path } = apiRegistry.sensor.list;
+
+const CONFIG = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: fetchWithCache,
+  schema: SensorListSchema,
+  initialData: [] as SensorListData,
+  validateSchema: false,
+};
+
+export class SensorModel extends RestfulApiModel<
+  SensorListData, 
+  typeof SensorListSchema
+> {
+  constructor() {
+    super(CONFIG);
+  }
+}
+```
+
+**What's happening here:**
+
+- **Extends RestfulApiModel**: Inherits CRUD operations and reactive state
+- **Type-safe**: `SensorListData` is inferred from the Zod schema
+- **Configured for sensors**: Points to the sensor API endpoint
+- **Caching**: Uses `fetchWithCache` to avoid redundant API calls
+- **No framework dependencies**: This Model works in any JavaScript environment
+
+Usage is simple:
+
+```typescript
+const sensorModel = new SensorModel();
+
+// Subscribe to sensor data
+sensorModel.data$.subscribe(sensors => {
+  console.log('Sensors:', sensors);
+});
+
+// Fetch sensors from API
+await sensorModel.fetch();
+
+// Create a new sensor
+await sensorModel.create({
+  type: 'temperature',
+  status: 'active',
+  greenhouseId: 1
+});
+```
+
+### GreenHouseModel
+
+The `GreenHouseModel` manages greenhouse entities:
+
+```typescript
+// packages/models/src/GreenHouseModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { GreenhouseListSchema, type GreenhouseListData } from './schemas';
+import { nativeFetcher } from './utils/fetcher';
+import { apiRegistry } from './services/services';
+import { API_BASE_URL } from './config';
+
+const { path } = apiRegistry.greenhouse.list;
+
+export const greenHouseConfig = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: nativeFetcher,
+  schema: GreenhouseListSchema,
+  initialData: [],
+  validateSchema: false,
+};
+
+export class GreenHouseModel extends RestfulApiModel<
+  GreenhouseListData, 
+  typeof GreenhouseListSchema
+> {
+  constructor() {
+    super(greenHouseConfig);
+  }
+}
+```
+
+Same pattern, different domain entity. The Model knows about greenhouses—their names, locations, sizes, crop types—but nothing about how they're displayed in a UI.
+
+### SensorReadingModel
+
+The `SensorReadingModel` manages time-series sensor data:
+
+```typescript
+// packages/models/src/SensorReadingModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { 
+  SensorReadingListSchema, 
+  type SensorReadingListData 
+} from './schemas/sensor-reading.schema';
+import { fetchWithCache } from './utils/fetcher';
+import { apiRegistry } from './services/services';
+import { API_BASE_URL } from './config';
+
+const { path } = apiRegistry.reading.list;
+
+export const sensorReadingsConfig = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: fetchWithCache,
+  schema: SensorReadingListSchema,
+  initialData: [] as SensorReadingListData,
+  validateSchema: false,
+};
+
+export class SensorReadingModel extends RestfulApiModel<
+  SensorReadingListData, 
+  typeof SensorReadingListSchema
+> {
+  constructor() {
+    super(sensorReadingsConfig);
+  }
+}
+```
+
+Sensor readings are high-volume, time-series data. The Model handles fetching, caching, and validation, but doesn't concern itself with how readings are charted or displayed.
+
+### ThresholdAlertModel
+
+The `ThresholdAlertModel` manages alerts triggered when sensor readings exceed thresholds:
+
+```typescript
+// packages/models/src/ThresholdAlertModel.ts
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { 
+  ThresholdAlertListSchema, 
+  type ThresholdAlertListData 
+} from './schemas/alert.schema';
+import { fetchWithCache } from './utils/fetcher';
+import { apiRegistry } from './services/services';
+import { API_BASE_URL } from './config';
+
+const { path } = apiRegistry.alert.list;
+
+const CONFIG = {
+  baseUrl: API_BASE_URL,
+  endpoint: path,
+  fetcher: fetchWithCache,
+  schema: ThresholdAlertListSchema,
+  initialData: [],
+  validateSchema: false,
+};
+
+export class ThresholdAlertModel extends RestfulApiModel<
+  ThresholdAlertListData, 
+  typeof ThresholdAlertListSchema
+> {
+  constructor() {
+    super(CONFIG);
+  }
+}
+```
+
+Alerts are critical for greenhouse monitoring. The Model manages alert data and state, but doesn't handle notification UI or sound effects—those are View concerns.
+
+## Model Responsibilities in Practice
+
+Let's clarify what Models do and don't do by examining a complete data flow:
+
+**What Models DO:**
+
+1. **Fetch data from APIs**
+   ```typescript
+   await sensorModel.fetch(); // GET /api/sensors
+   ```
+
+2. **Validate incoming data**
+   ```typescript
+   const validated = SensorListSchema.parse(apiResponse);
+   ```
+
+3. **Manage domain state**
+   ```typescript
+   sensorModel.data$.subscribe(sensors => {
+     // Sensors are always valid, type-safe data
+   });
+   ```
+
+4. **Handle errors**
+   ```typescript
+   sensorModel.error$.subscribe(error => {
+     // API errors, validation failures, network issues
+   });
+   ```
+
+5. **Provide loading states**
+   ```typescript
+   sensorModel.isLoading$.subscribe(loading => {
+     // Show/hide loading spinners
+   });
+   ```
+
+**What Models DON'T DO:**
+
+1. **Format data for display**: Models don't convert temperatures to Fahrenheit or format dates. That's ViewModel or View logic.
+
+2. **Handle UI events**: Models don't respond to button clicks or form submissions. ViewModels orchestrate those interactions.
+
+3. **Know about frameworks**: Models don't import React, Vue, or Angular. They're pure TypeScript classes with RxJS.
+
+4. **Manage presentation state**: Models don't track which item is selected, whether a modal is open, or if a form is dirty. ViewModels handle that.
+
+## Testing Models
+
+Because Models are framework-independent, they're trivial to test:
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+import { SensorModel } from './SensorModel';
+
+describe('SensorModel', () => {
+  let model: SensorModel;
+
+  beforeEach(() => {
+    model = new SensorModel();
+  });
+
+  it('initializes with empty data', () => {
+    expect(model.getCurrentData()).toEqual([]);
+  });
+
+  it('updates data when fetch succeeds', async () => {
+    await model.fetch();
+    
+    const sensors = model.getCurrentData();
+    expect(Array.isArray(sensors)).toBe(true);
+  });
+
+  it('sets error when fetch fails', async () => {
+    // Mock fetcher to throw error
+    try {
+      await model.fetch('invalid-id');
+    } catch (error) {
+      expect(model.getCurrentError()).toBeTruthy();
+    }
+  });
+
+  it('sets loading state during fetch', async () => {
+    const loadingStates: boolean[] = [];
+    
+    model.isLoading$.subscribe(loading => {
+      loadingStates.push(loading);
+    });
+
+    await model.fetch();
+    
+    expect(loadingStates).toEqual([false, true, false]);
+  });
+});
+```
+
+No framework setup, no DOM, no component rendering. Just pure logic tests.
+
+## When to Extend Models
+
+The GreenWatch Models are simple—they inherit all functionality from `RestfulApiModel` without adding custom methods. When should you extend a Model with custom logic?
+
+**Add custom methods when you have domain-specific operations:**
+
+```typescript
+export class SensorModel extends RestfulApiModel<...> {
+  // Custom method: fetch only active sensors
+  async fetchActive(): Promise<void> {
+    const url = `${this.baseUrl}/${this.endpoint}?status=active`;
+    // ... implementation
+  }
+
+  // Custom method: calibrate a sensor
+  async calibrate(sensorId: string, calibrationData: CalibrationData): Promise<void> {
+    const url = `${this.baseUrl}/${this.endpoint}/${sensorId}/calibrate`;
+    // ... implementation
+  }
+
+  // Custom computed property: get sensors by type
+  getSensorsByType(type: SensorType): Observable<SensorData[]> {
+    return this.data$.pipe(
+      map(sensors => sensors?.filter(s => s.type === type) ?? [])
+    );
+  }
+}
+```
+
+**Don't add methods for presentation logic:**
+
+```typescript
+// ❌ BAD: Presentation logic in Model
+export class SensorModel extends RestfulApiModel<...> {
+  formatTemperature(celsius: number): string {
+    return `${celsius}°C`;
+  }
+
+  isSelected(sensorId: string): boolean {
+    return this.selectedId === sensorId;
+  }
+}
+
+// ✅ GOOD: Presentation logic in ViewModel
+export class SensorViewModel {
+  formatTemperature(celsius: number): string {
+    return `${celsius}°C`;
+  }
+
+  isSelected(sensorId: string): boolean {
+    return this.selectedId === sensorId;
+  }
+}
+```
+
+## Key Takeaways
+
+1. **Models are framework-agnostic**: They use RxJS observables, not framework-specific reactivity. This makes them reusable across React, Vue, Angular, and beyond.
+
+2. **Models manage domain data**: They fetch from APIs, validate with Zod schemas, and expose reactive state through observables.
+
+3. **BaseModel provides the foundation**: Core observables (`data$`, `isLoading$`, `error$`), validation, and lifecycle management.
+
+4. **RestfulApiModel adds CRUD**: Fetch, create, update, delete operations with optimistic updates and error handling.
+
+5. **GreenWatch Models are simple**: They inherit from `RestfulApiModel` and configure it for specific domain entities (sensors, greenhouses, readings, alerts).
+
+6. **Models don't handle presentation**: Formatting, UI state, and user interactions belong in ViewModels and Views.
+
+7. **Models are easy to test**: No framework dependencies means simple, fast unit tests.
+
+## Next Steps
+
+We've built the foundation—Models that manage domain data independently of any UI framework. In the next chapter, we'll explore ViewModels: the presentation logic layer that connects Models to Views. ViewModels consume Model observables, transform data for display, and handle user interactions—all while remaining framework-agnostic themselves.
+
+The combination of Models and ViewModels creates a powerful separation: domain logic in Models, presentation logic in ViewModels, and framework-specific rendering in Views. This architecture scales from simple dashboards to complex, multi-framework applications like GreenWatch.
