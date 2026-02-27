@@ -23,6 +23,7 @@ npm create web-loom@latest
 4. **Starter overlay**: Copies templates from `src/templates/shared` and `src/templates/<framework>/<variant>` into the generated project.
 
 The overlay intentionally replaces Vite's runnable starter entry files.
+`create-vite` is invoked with `--no-immediate` so Web Loom install + overlay steps always complete before any dev-server flow.
 
 If a generated scaffold cannot be mapped to a supported template target, the CLI fails fast with an unsupported-scaffold error instead of writing incorrect files.
 
