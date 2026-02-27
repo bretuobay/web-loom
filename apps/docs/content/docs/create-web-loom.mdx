@@ -1,6 +1,6 @@
 ---
 title: 'create-web-loom'
-summary: 'Scaffold a new Web Loom project with one command. Runs Vite interactively, installs all published @web-loom/* packages, and injects MVVM boilerplate so the pattern is immediately runnable.'
+summary: 'Scaffold a Vite app, install @web-loom packages, and replace runnable Vite starter files with Web Loom MVVM starter overlays.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
 nextTitle: 'Getting Started'
@@ -9,47 +9,73 @@ nextSlug: '/docs/getting-started'
 
 # create-web-loom
 
-`create-web-loom` is a project scaffolding CLI that sets up a new Web Loom project in one command. It runs Vite's interactive scaffolding so you choose your framework naturally, then installs the full set of published `@web-loom/*` packages, and finally injects a working MVVM boilerplate — a ViewModel, a View, and a reactive bridge hook — so you can see the pattern in action immediately.
+`create-web-loom` scaffolds a Vite project, installs Web Loom packages, and applies framework-specific starter overlays so your app boots into a Web Loom MVVM counter immediately.
 
 ```bash
 npm create web-loom@latest
 ```
 
----
+## Flow
 
-## How it works
+1. **Vite scaffold**: Runs `create-vite` interactively.
+2. **Scaffold detection**: Detects framework + JS/TS variant.
+3. **Package install**: Installs published `@web-loom/*` packages.
+4. **Starter overlay**: Copies templates from `src/templates/shared` and `src/templates/<framework>/<variant>` into the generated project.
 
-The CLI runs three steps in sequence after you invoke it:
+The overlay intentionally replaces Vite's runnable starter entry files.
 
-**1. Vite scaffold** — Vite's interactive prompt runs exactly as if you had typed `npm create vite@latest`. You pick the framework (React, Vue, Vanilla, Lit, …), the variant (TypeScript, JavaScript), and the project name.
+If a generated scaffold cannot be mapped to a supported template target, the CLI fails fast with an unsupported-scaffold error instead of writing incorrect files.
 
-**2. Package installation** — Once Vite finishes, the CLI installs every published `@web-loom/*` package into your new project using whatever package manager you invoked it with.
+## Supported frameworks
 
-**3. Boilerplate injection** — The CLI detects which framework Vite created and writes a small set of MVVM starter files into `src/`. These files demonstrate the ViewModel → View wiring so you have something working before writing a single line of your own code.
+| Framework | Variants | Runnable files replaced |
+|---|---|---|
+| React | TS, JS | `src/App.tsx` / `src/App.jsx` |
+| Preact | TS, JS | `src/app.tsx` / `src/app.jsx` |
+| Vue | TS, JS | `src/App.vue` |
+| Solid | TS, JS | `src/App.tsx` / `src/App.jsx` |
+| Svelte | TS, JS | `src/App.svelte` |
+| Lit | TS, JS | `src/my-element.ts` / `src/my-element.js` |
+| Vanilla | TS, JS | `src/main.ts` / `src/main.js` |
+| Qwik | TS-first | `src/routes/index.tsx` |
 
----
+Shared starter files are copied for every framework (for example `src/viewmodels/CounterViewModel.ts`).
 
-## Installation
+## Template source of truth
 
-No global install is needed. Run directly with your package manager's `create` command:
+Templates are file-based:
+
+- `packages/create-web-loom/src/templates/shared/**`
+- `packages/create-web-loom/src/templates/<framework>/<variant>/**`
+
+During package build, these are copied to `dist/templates/**`. Runtime injection uses `dist/templates` so published binaries remain self-contained.
+
+## Framework and variant detection
+
+Framework detection checks generated dependencies in this priority order:
+
+1. `@builder.io/qwik`
+2. `solid-js`
+3. `preact`
+4. `react`
+5. `vue`
+6. `lit`
+7. `svelte`
+8. fallback: `vanilla`
+
+Variant detection resolves `ts | js` from:
+
+- `typescript` dependency/devDependency, and
+- scaffold entry file extensions (`.ts/.tsx` vs `.js/.jsx`).
+
+## Usage
 
 ```bash
 npm create web-loom@latest
-
-pnpm create web-loom
-
-yarn create web-loom
-
-bun create web-loom
-```
-
-You can optionally pass a project name to skip the name prompt:
-
-```bash
 npm create web-loom@latest my-app
 ```
 
-After the CLI finishes, start the dev server:
+After generation:
 
 ```bash
 cd my-app
@@ -57,222 +83,15 @@ npm install
 npm run dev
 ```
 
----
-
 ## Installed packages
 
-All currently published `@web-loom/*` packages are added to your project automatically:
-
-| Package | Purpose |
-|---|---|
-| `@web-loom/mvvm-core` | `BaseModel`, `BaseViewModel`, `Command` |
-| `@web-loom/mvvm-patterns` | Higher-level MVVM composition patterns |
-| `@web-loom/signals-core` | Lightweight `signal()` / `computed()` / `effect()` |
-| `@web-loom/store-core` | Minimal UI-state store with persistence adapters |
-| `@web-loom/query-core` | Data fetching with caching and stale-while-revalidate |
-| `@web-loom/event-bus-core` | Typed pub/sub for cross-feature messaging |
-| `@web-loom/event-emitter-core` | Low-level event emitter utilities |
-| `@web-loom/ui-core` | Headless dialog, list, form, roving-focus behaviors |
-| `@web-loom/ui-patterns` | Wizard, MasterDetail, CommandPalette shells |
-| `@web-loom/design-core` | Design tokens and CSS theming utilities |
-
----
-
-## Generated boilerplate
-
-The CLI writes framework-specific MVVM starter files into your project after Vite runs.
-
-### React
-
-```
-src/
-├── hooks/
-│   └── useObservable.ts       # useSignal<T> — subscribes to a signal, returns React state
-├── viewmodels/
-│   └── CounterViewModel.ts    # signal() + computed(), increment / decrement / reset
-└── components/
-    └── Counter.tsx             # View — reads signals via useSignal, calls VM methods
-```
-
-**`CounterViewModel.ts`** — a plain TypeScript class with no framework imports:
-
-```typescript
-import { signal, computed } from '@web-loom/signals-core';
-
-export class CounterViewModel {
-  readonly count   = signal(0);
-  readonly doubled = computed(() => this.count.get() * 2);
-
-  increment() { this.count.set(this.count.get() + 1); }
-  decrement() { this.count.set(this.count.get() - 1); }
-  reset()     { this.count.set(0); }
-  dispose()   { /* cancel any subscriptions */ }
-}
-```
-
-**`hooks/useObservable.ts`** — the reactive bridge between signals and React state:
-
-```typescript
-import { useState, useEffect } from 'react';
-import type { Signal } from '@web-loom/signals-core';
-
-export function useSignal<T>(signal: Signal<T>): T {
-  const [value, setValue] = useState<T>(() => signal.get());
-  useEffect(() => signal.subscribe((next) => setValue(next)), [signal]);
-  return value;
-}
-```
-
-**`components/Counter.tsx`** — the View, which is the only framework-specific code:
-
-```tsx
-import { useMemo, useEffect } from 'react';
-import { useSignal } from '../hooks/useObservable';
-import { CounterViewModel } from '../viewmodels/CounterViewModel';
-
-export function Counter() {
-  const vm      = useMemo(() => new CounterViewModel(), []);
-  const count   = useSignal(vm.count);
-  const doubled = useSignal(vm.doubled);
-
-  useEffect(() => () => vm.dispose(), [vm]);
-
-  return (
-    <div>
-      <h2>Web Loom Counter</h2>
-      <p>Count: <strong>{count}</strong></p>
-      <p>Doubled: <strong>{doubled}</strong></p>
-      <button onClick={() => vm.decrement()}>-</button>
-      <button onClick={() => vm.reset()}>Reset</button>
-      <button onClick={() => vm.increment()}>+</button>
-    </div>
-  );
-}
-```
-
-The ViewModel is instantiated once with `useMemo`, signals are subscribed in `useSignal`, and `dispose()` is called on unmount. This is the complete MVVM loop for a React component.
-
----
-
-### Vue
-
-```
-src/
-├── composables/
-│   └── useObservable.ts       # useSignal<T> — bridges signals to Vue refs
-├── viewmodels/
-│   └── CounterViewModel.ts    # identical to the React version — no framework imports
-└── components/
-    └── Counter.vue             # <script setup> View consuming the composable
-```
-
-**`composables/useObservable.ts`**:
-
-```typescript
-import { ref, onUnmounted } from 'vue';
-import type { Signal } from '@web-loom/signals-core';
-
-export function useSignal<T>(signal: Signal<T>) {
-  const value = ref<T>(signal.get() as T);
-  const unsub = signal.subscribe((next: T) => { value.value = next; });
-  onUnmounted(unsub);
-  return value;
-}
-```
-
-**`components/Counter.vue`**:
-
-```vue
-<script setup lang="ts">
-import { onUnmounted } from 'vue';
-import { useSignal } from '../composables/useObservable';
-import { CounterViewModel } from '../viewmodels/CounterViewModel';
-
-const vm      = new CounterViewModel();
-const count   = useSignal(vm.count);
-const doubled = useSignal(vm.doubled);
-onUnmounted(() => vm.dispose());
-</script>
-
-<template>
-  <h2>Web Loom Counter</h2>
-  <p>Count: <strong>{{ count }}</strong></p>
-  <p>Doubled: <strong>{{ doubled }}</strong></p>
-  <button @click="vm.decrement()">-</button>
-  <button @click="vm.reset()">Reset</button>
-  <button @click="vm.increment()">+</button>
-</template>
-```
-
-The ViewModel is the same class as the React version. Only the composable and template syntax differ.
-
----
-
-### Vanilla / Lit / others
-
-```
-src/
-└── viewmodels/
-    └── CounterViewModel.ts
-counter.ts                     # subscribes signals to DOM elements
-counter.html                   # minimal HTML wiring
-```
-
-**`counter.ts`**:
-
-```typescript
-import { CounterViewModel } from './viewmodels/CounterViewModel';
-
-const vm = new CounterViewModel();
-
-vm.count.subscribe((n)   => { document.getElementById('count')!.textContent   = String(n); });
-vm.doubled.subscribe((n) => { document.getElementById('doubled')!.textContent = String(n); });
-
-document.getElementById('btn-inc')?.addEventListener('click',   () => vm.increment());
-document.getElementById('btn-dec')?.addEventListener('click',   () => vm.decrement());
-document.getElementById('btn-reset')?.addEventListener('click', () => vm.reset());
-
-window.addEventListener('beforeunload', () => vm.dispose());
-```
-
-No framework, no build magic beyond Vite's TypeScript handling. The ViewModel and signal subscriptions work the same way regardless of framework.
-
----
-
-## Package manager support
-
-The CLI detects which package manager invoked it from `process.env.npm_config_user_agent` and forwards that same manager to both the Vite scaffold and the `@web-loom/*` package install:
-
-| You run | Vite runs as | Packages installed with |
-|---|---|---|
-| `npm create web-loom@latest` | `npm create vite@latest` | `npm install` |
-| `pnpm create web-loom` | `pnpm create vite` | `pnpm add` |
-| `yarn create web-loom` | `yarn create vite` | `yarn add` |
-| `bun create web-loom` | `bun create vite` | `bun add` |
-
----
-
-## Framework detection
-
-After Vite finishes, the CLI reads the generated `package.json` dependencies to decide which boilerplate to write:
-
-| Dependency present | Detected framework | Boilerplate written |
-|---|---|---|
-| `react` | `react` | `hooks/`, `viewmodels/`, `components/Counter.tsx` |
-| `vue` | `vue` | `composables/`, `viewmodels/`, `components/Counter.vue` |
-| `lit` | `lit` | `viewmodels/`, `counter.ts`, `counter.html` |
-| `@angular/core` | `angular` | `viewmodels/`, `counter.ts`, `counter.html` |
-| `svelte` | `svelte` | `viewmodels/`, `counter.ts`, `counter.html` |
-| _(none matched)_ | `vanilla` | `viewmodels/`, `counter.ts`, `counter.html` |
-
----
-
-## Where to go next
-
-The generated boilerplate is intentionally minimal — a single counter demonstrates the ViewModel → View wiring without any API dependency. From here:
-
-- Replace `signal()` with `BehaviorSubject` from RxJS if you need async streams — see [Getting Started](/docs/getting-started) for a full Model + ViewModel example with `fetch`.
-- Add a [`Command`](/docs/mvvm-core) to wrap an async operation with loading and error state.
-- Pull shared UI behaviors from [`@web-loom/ui-core`](/docs/ui-core) — Dialog, List, Form, RovingFocus — all headless and framework-agnostic.
-- Use [`@web-loom/query-core`](/docs/query-core) for data fetching with caching instead of raw `fetch`.
-- Wire up cross-feature communication with [`@web-loom/event-bus-core`](/docs/event-bus-core).
+- `@web-loom/mvvm-core`
+- `@web-loom/mvvm-patterns`
+- `@web-loom/store-core`
+- `@web-loom/query-core`
+- `@web-loom/event-bus-core`
+- `@web-loom/event-emitter-core`
+- `@web-loom/signals-core`
+- `@web-loom/design-core`
+- `@web-loom/ui-core`
+- `@web-loom/ui-patterns`

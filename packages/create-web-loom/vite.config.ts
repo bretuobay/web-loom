@@ -1,7 +1,22 @@
-import { defineConfig } from 'vite';
+import { cpSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { defineConfig, type PluginOption } from 'vite';
+
+const templateSourceDir = resolve(__dirname, 'src/templates');
+
+function copyTemplatesPlugin(): PluginOption {
+  return {
+    name: 'copy-create-web-loom-templates',
+    closeBundle() {
+      const templateOutDir = resolve(__dirname, 'dist/templates');
+      rmSync(templateOutDir, { recursive: true, force: true });
+      cpSync(templateSourceDir, templateOutDir, { recursive: true });
+    },
+  };
+}
 
 export default defineConfig({
+  plugins: [copyTemplatesPlugin()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,
