@@ -1,13 +1,13 @@
 import { $, component$, useSignal, useTask$ } from '@builder.io/qwik';
 import { isBrowser } from '@builder.io/qwik/build';
-import { CounterViewModel } from '../viewmodels/CounterViewModel';
-import '../app.css';
+import { CounterViewModel } from './viewmodels/CounterViewModel';
+import './app.css';
 
-const STACK = ['Vite', 'TypeScript', 'Qwik', '@web-loom/mvvm-core', '@web-loom/signals-core'];
+const STACK = ['Vite', 'JavaScript', 'Qwik', '@web-loom/mvvm-core', '@web-loom/signals-core'];
 
 const vmSnippet = `export class CounterViewModel {
-  readonly count = signal(0);
-  readonly doubled = computed(() => this.count.get() * 2);
+  count = signal(0);
+  doubled = computed(() => this.count.get() * 2);
 
   increment() { this.count.set(this.count.get() + 1); }
   decrement() { this.count.set(this.count.get() - 1); }
@@ -16,7 +16,7 @@ const vmSnippet = `export class CounterViewModel {
 
 const counterViewModel = new CounterViewModel();
 
-export default component$(() => {
+export const App = component$(() => {
   const count = useSignal(0);
   const doubled = useSignal(0);
 
@@ -47,7 +47,7 @@ export default component$(() => {
   return (
     <main class="starter-root">
       <section class="hero">
-        <p class="kicker">Web Loom starter (Qwik + TypeScript)</p>
+        <p class="kicker">Web Loom starter (Qwik + JavaScript)</p>
         <h1>MVVM Starter Kit</h1>
         <p class="lead">Resumable Qwik UI powered by a framework-agnostic ViewModel and signal layer.</p>
         <div class="stack" role="list" aria-label="Starter technologies">

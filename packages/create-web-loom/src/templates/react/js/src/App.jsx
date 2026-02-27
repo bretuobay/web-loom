@@ -8,8 +8,8 @@ const STACK = ['Vite', 'JavaScript', 'React', '@web-loom/mvvm-core', '@web-loom/
 const vmSnippet = `import { computed, signal } from '@web-loom/signals-core';
 
 export class CounterViewModel {
-  readonly count = signal(0);
-  readonly doubled = computed(() => this.count.get() * 2);
+  count = signal(0);
+  doubled = computed(() => this.count.get() * 2);
 
   increment() { this.count.set(this.count.get() + 1); }
   decrement() { this.count.set(this.count.get() - 1); }

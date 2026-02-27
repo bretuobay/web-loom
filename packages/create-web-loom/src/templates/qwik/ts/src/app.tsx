@@ -1,7 +1,7 @@
 import { $, component$, useSignal, useTask$ } from '@builder.io/qwik';
 import { isBrowser } from '@builder.io/qwik/build';
-import { CounterViewModel } from '../viewmodels/CounterViewModel';
-import '../app.css';
+import { CounterViewModel } from './viewmodels/CounterViewModel';
+import './app.css';
 
 const STACK = ['Vite', 'TypeScript', 'Qwik', '@web-loom/mvvm-core', '@web-loom/signals-core'];
 
@@ -16,7 +16,7 @@ const vmSnippet = `export class CounterViewModel {
 
 const counterViewModel = new CounterViewModel();
 
-export default component$(() => {
+export const App = component$(() => {
   const count = useSignal(0);
   const doubled = useSignal(0);
 
