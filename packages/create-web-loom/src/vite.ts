@@ -3,17 +3,17 @@ import { readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { detectPackageManager } from './detect.js';
 
-function buildViteArgs(pm: string, projectName?: string): string[] {
+export function buildViteArgs(pm: string, projectName?: string): string[] {
   switch (pm) {
     case 'pnpm':
-      return ['create', 'vite', ...(projectName ? [projectName] : [])];
+      return ['create', 'vite', ...(projectName ? [projectName] : []), '--no-immediate'];
     case 'yarn':
-      return ['create', 'vite', ...(projectName ? [projectName] : [])];
+      return ['create', 'vite', ...(projectName ? [projectName] : []), '--no-immediate'];
     case 'bun':
-      return ['create', 'vite', ...(projectName ? [projectName] : [])];
+      return ['create', 'vite', ...(projectName ? [projectName] : []), '--no-immediate'];
     default:
-      // npm: npm create vite@latest [name]
-      return ['create', 'vite@latest', ...(projectName ? [projectName] : [])];
+      // npm: npm create vite@latest [name] -- --no-immediate
+      return ['create', 'vite@latest', ...(projectName ? [projectName] : []), '--', '--no-immediate'];
   }
 }
 
@@ -33,10 +33,11 @@ export function runVite(projectName?: string): { projectDir: string; projectName
   // Snapshot existing dirs before Vite runs so we can detect the new one
   const dirsBefore = readdirSync(cwd);
 
+  console.log('\nRunning create-vite with --no-immediate so Web Loom post-scaffold steps can complete...');
   const result = spawnSync(pm, args, { stdio: 'inherit', shell: true, cwd });
 
   if (result.status !== 0) {
-    throw new Error('Vite scaffolding failed or was cancelled.');
+    throw new Error('Vite scaffolding was cancelled or failed before Web Loom post-processing could run.');
   }
 
   let resolvedName: string;

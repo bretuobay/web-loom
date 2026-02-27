@@ -20,6 +20,7 @@ bun create web-loom
 4. Applies a **template overlay** from `src/templates/<framework>/<variant>` plus `src/templates/shared`.
 
 The overlay intentionally replaces Vite's runnable starter entry files so `npm run dev` starts in a Web Loom MVVM starter immediately.
+`create-vite` is invoked with `--no-immediate` so it cannot auto-install and start the dev server before Web Loom post-steps finish.
 
 If the scaffold cannot be mapped to a supported framework template, the CLI exits with a clear unsupported-scaffold error.
 
