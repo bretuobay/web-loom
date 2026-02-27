@@ -71,7 +71,6 @@ npm run dev
 All currently published core packages are installed:
 
 - `@web-loom/mvvm-core`
-- `@web-loom/mvvm-patterns`
 - `@web-loom/store-core`
 - `@web-loom/query-core`
 - `@web-loom/event-bus-core`
@@ -80,6 +79,8 @@ All currently published core packages are installed:
 - `@web-loom/design-core`
 - `@web-loom/ui-core`
 - `@web-loom/ui-patterns`
+
+If a package is temporarily unavailable on npm, the installer retries one package at a time and skips only the unavailable package(s) instead of failing the whole scaffold.
 
 ## Local development
 

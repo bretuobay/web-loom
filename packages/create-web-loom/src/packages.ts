@@ -2,7 +2,6 @@ import type { Framework } from './detect.js';
 
 export const CORE_PACKAGES = [
   '@web-loom/mvvm-core',
-  '@web-loom/mvvm-patterns',
   '@web-loom/store-core',
   '@web-loom/query-core',
   '@web-loom/event-bus-core',
