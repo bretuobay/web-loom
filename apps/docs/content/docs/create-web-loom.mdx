@@ -10,6 +10,7 @@ nextSlug: '/docs/getting-started'
 # create-web-loom
 
 `create-web-loom` scaffolds a Vite project, installs Web Loom packages, and applies framework-specific starter overlays so your app boots into a Web Loom MVVM counter immediately.
+It supports npm, pnpm, yarn, and bun.
 
 ```bash
 npm create web-loom@latest
@@ -29,16 +30,14 @@ If a generated scaffold cannot be mapped to a supported template target, the CLI
 
 ## Supported frameworks
 
-| Framework | Variants | Runnable files replaced |
-|---|---|---|
-| React | TS, JS | `src/App.tsx` / `src/App.jsx` |
-| Preact | TS, JS | `src/app.tsx` / `src/app.jsx` |
-| Vue | TS, JS | `src/App.vue` |
-| Solid | TS, JS | `src/App.tsx` / `src/App.jsx` |
-| Svelte | TS, JS | `src/App.svelte` |
-| Lit | TS, JS | `src/my-element.ts` / `src/my-element.js` |
-| Vanilla | TS, JS | `src/main.ts` / `src/main.js` |
-| Qwik | TS-first | `src/routes/index.tsx` |
+- **React** (TS, JS): `src/App.tsx` / `src/App.jsx`
+- **Preact** (TS, JS): `src/app.tsx` / `src/app.jsx`
+- **Vue** (TS, JS): `src/App.vue`
+- **Solid** (TS, JS): `src/App.tsx` / `src/App.jsx`
+- **Svelte** (TS, JS): `src/App.svelte`
+- **Lit** (TS, JS): `src/my-element.ts` / `src/my-element.js`
+- **Vanilla** (TS, JS): `src/main.ts` / `src/main.js`
+- **Qwik** (TS, JS): `src/app.tsx` / `src/app.jsx` (and `src/routes/index.tsx` for route-based setups)
 
 Shared starter files are copied for every framework (for example `src/viewmodels/CounterViewModel.ts`).
 
@@ -72,16 +71,53 @@ Variant detection resolves `ts | js` from:
 ## Usage
 
 ```bash
-npm create web-loom@latest
+# npm
 npm create web-loom@latest my-app
+```
+
+```bash
+# pnpm
+pnpm create web-loom@latest my-app
+```
+
+```bash
+# yarn
+yarn create web-loom my-app
+```
+
+```bash
+# bun
+bun create web-loom@latest my-app
 ```
 
 After generation:
 
 ```bash
 cd my-app
+```
+
+```bash
+# npm
 npm install
 npm run dev
+```
+
+```bash
+# pnpm
+pnpm install
+pnpm dev
+```
+
+```bash
+# yarn
+yarn
+yarn dev
+```
+
+```bash
+# bun
+bun install
+bun run dev
 ```
 
 ## Installed packages
