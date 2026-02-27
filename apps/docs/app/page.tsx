@@ -14,13 +14,13 @@ export const metadata: Metadata = {
     absolute: 'Web Loom — Framework-Agnostic MVVM Architecture',
   },
   description:
-    'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
+    'Framework-agnostic MVVM architecture for the modern web. Start fast with create-web-loom using npm, pnpm, yarn, or bun and scaffold Vite + MVVM starters across React, Vue, Preact, Solid, Svelte, Lit, Vanilla, and Qwik.',
   alternates: { canonical: SITE_URL },
   openGraph: {
     url: SITE_URL,
     title: 'Web Loom — Framework-Agnostic MVVM Architecture',
     description:
-      'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
+      'Framework-agnostic MVVM architecture for the modern web. Start fast with create-web-loom using npm, pnpm, yarn, or bun and scaffold Vite + MVVM starters across React, Vue, Preact, Solid, Svelte, Lit, Vanilla, and Qwik.',
   },
 };
 
@@ -291,6 +291,31 @@ export default function HomePage() {
                 </svg>
                 View on GitHub
               </a>
+            </div>
+
+            <div className="max-w-2xl mx-auto mb-12 rounded-2xl border border-blue-500/25 bg-slate-900/75 px-5 py-5 sm:px-6 sm:py-6 text-left shadow-lg shadow-blue-500/10">
+              <h3 className="text-lg sm:text-xl font-[650] text-slate-100 mb-2">
+                Scaffold a full Web Loom app in one command
+              </h3>
+              <p className="text-sm text-slate-400 mb-4 leading-relaxed">
+                `create-web-loom` runs Vite, installs Web Loom packages, and replaces runnable starter files with a polished MVVM starter UI.
+                It supports npm, pnpm, yarn, and bun.
+              </p>
+              <pre className="max-w-full rounded-xl bg-slate-950 border border-slate-700/80 p-4 mb-4 overflow-x-auto text-sm text-slate-200">
+                <code className="font-mono">npm create web-loom@latest my-app</code>
+              </pre>
+              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                Supports Vite starters for React, Vue, Preact, Solid, Svelte, Lit, Vanilla, and Qwik in both TypeScript and JavaScript variants.
+              </p>
+              <Link
+                href="/docs/create-web-loom"
+                className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                See create-web-loom docs
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M3 7h8M7.5 4l3.5 3-3.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </Link>
             </div>
 
             {/* Framework pill row — animated to show swappability */}
@@ -631,21 +656,20 @@ export default function HomePage() {
         <section className="bg-slate-950 py-20">
           <div className="max-w-3xl mx-auto px-6 text-center">
             <h2 className="text-2xl sm:text-3xl font-[650] text-slate-100 mb-4">
-              Ready to stop rewriting?
+              Ready to scaffold and ship faster?
             </h2>
             <p className="text-slate-400 text-sm mb-8 max-w-md mx-auto leading-relaxed">
-              Install the core package and wire up your first ViewModel in minutes.
+              Start with the CLI starter, then evolve your ViewModels without framework lock-in.
             </p>
-            <div className="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-slate-800 border border-slate-700/80 font-mono text-sm text-slate-300 mb-8 select-all">
-              <span className="text-slate-500 select-none">$</span>
-              npm install @web-loom/mvvm-core rxjs
-            </div>
+            <pre className="inline-block max-w-full rounded-lg bg-slate-800 border border-slate-700/80 px-5 py-3 mb-8 overflow-x-auto text-sm text-slate-300">
+              <code className="font-mono">npm create web-loom@latest my-app</code>
+            </pre>
             <div className="flex flex-wrap justify-center gap-3">
               <Link
-                href="/docs/getting-started"
+                href="/docs/create-web-loom"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-blue-500 hover:bg-blue-400 text-slate-950 text-sm font-[500] transition-colors shadow-lg shadow-blue-500/20"
               >
-                Read the docs
+                Use starter utility
               </Link>
               <a
                 href={GITHUB_URL}

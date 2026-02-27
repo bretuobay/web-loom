@@ -59,6 +59,9 @@ export default function SupportSidebar() {
                   <SidebarLink href="/docs/getting-started">Getting Started</SidebarLink>
                 </li>
                 <li>
+                  <SidebarLink href="/docs/create-web-loom">create-web-loom CLI</SidebarLink>
+                </li>
+                <li>
                   <SidebarLink href="/docs/core-concepts">Core Concepts</SidebarLink>
                 </li>
                 <li>
