@@ -1,6 +1,6 @@
 {
   "name": "create-web-loom",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Create a new Web Loom project powered by Vite",
   "type": "module",
   "bin": {

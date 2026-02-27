@@ -44,8 +44,8 @@ describe('injectBoilerplate', () => {
     { framework: 'lit', variant: 'js', entry: 'src/my-element.js' },
     { framework: 'vanilla', variant: 'ts', entry: 'src/main.ts' },
     { framework: 'vanilla', variant: 'js', entry: 'src/main.js' },
-    { framework: 'qwik', variant: 'ts', entry: 'src/routes/index.tsx' },
-    { framework: 'qwik', variant: 'js', entry: 'src/routes/index.tsx' },
+    { framework: 'qwik', variant: 'ts', entry: 'src/app.tsx' },
+    { framework: 'qwik', variant: 'js', entry: 'src/app.jsx' },
   ];
 
   for (const scenario of scenarios) {

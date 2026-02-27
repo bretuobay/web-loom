@@ -20,6 +20,7 @@ describe('build packaging', () => {
 
     expect(existsSync(join(packageRoot, 'dist/templates/shared/src/viewmodels/CounterViewModel.ts'))).toBe(true);
     expect(existsSync(join(packageRoot, 'dist/templates/react/ts/src/App.tsx'))).toBe(true);
-    expect(existsSync(join(packageRoot, 'dist/templates/qwik/ts/src/routes/index.tsx'))).toBe(true);
+    expect(existsSync(join(packageRoot, 'dist/templates/qwik/ts/src/app.tsx'))).toBe(true);
+    expect(existsSync(join(packageRoot, 'dist/templates/qwik/js/src/app.jsx'))).toBe(true);
   });
 });
