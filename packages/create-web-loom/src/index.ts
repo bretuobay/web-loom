@@ -1,8 +1,7 @@
 import { runVite } from './vite.js';
-import { detectFramework } from './detect.js';
+import { detectScaffold } from './detect.js';
 import { installPackages } from './install.js';
 import { injectBoilerplate } from './boilerplate.js';
-import type { Framework } from './detect.js';
 
 const BANNER = `
   ╔══════════════════════════════════╗
@@ -31,23 +30,38 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Step 2: Detect the framework Vite scaffolded
-  const framework: Framework = detectFramework(projectDir);
-  console.log(`\n✔  Detected framework: ${framework}`);
-
-  // Step 3: Install @web-loom/* packages
+  // Step 2: Detect scaffold details produced by Vite
+  let scaffold: ReturnType<typeof detectScaffold>;
   try {
-    installPackages(projectDir, framework);
+    scaffold = detectScaffold(projectDir);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`\n✖  ${message}`);
     process.exit(1);
   }
 
-  // Step 4: Inject MVVM boilerplate
-  console.log('\nInjecting Web Loom MVVM boilerplate...');
-  injectBoilerplate(projectDir, framework);
-  console.log('✔  Boilerplate written.');
+  console.log(`\n✔  Detected framework: ${scaffold.framework}`);
+  console.log(`✔  Detected template variant: ${scaffold.variant}`);
+
+  // Step 3: Install @web-loom/* packages
+  try {
+    installPackages(projectDir, scaffold.framework);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`\n✖  ${message}`);
+    process.exit(1);
+  }
+
+  // Step 4: Overlay Web Loom starter templates
+  console.log('\nApplying Web Loom starter overlay...');
+  try {
+    injectBoilerplate(projectDir, scaffold);
+    console.log('✔  Starter overlay written (runnable Vite starter files replaced).');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`\n✖  ${message}`);
+    process.exit(1);
+  }
 
   // Step 5: Print success + next steps
   console.log(`
@@ -61,10 +75,8 @@ async function main(): Promise<void> {
     npm install
     npm run dev
 
-  Explore the generated MVVM boilerplate in src/:
-    • viewmodels/CounterViewModel.ts  — your first ViewModel
-    • components/Counter.tsx (or .vue) — the View
-    • hooks/useObservable.ts           — the reactive bridge
+  The generated app now boots with Web Loom starter templates
+  overlaid on Vite's framework scaffold.
 
   Docs: https://github.com/your-org/web-loom
 `);

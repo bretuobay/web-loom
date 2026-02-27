@@ -1,6 +1,6 @@
 # create-web-loom
 
-Scaffold a new Web Loom project in seconds.
+Scaffold a new Web Loom starter on top of a Vite project.
 
 ```bash
 npm create web-loom@latest
@@ -14,21 +14,50 @@ bun create web-loom
 
 ## What it does
 
-1. **Runs Vite interactively** — you pick framework, variant, and project name exactly as you would with `npm create vite@latest`.
-2. **Installs all published `@web-loom/*` packages** into the generated project.
-3. **Injects MVVM boilerplate** — a `CounterViewModel`, a reactive `Counter` component, and a signals bridge hook — so the pattern is immediately visible and runnable.
+1. Runs `create-vite` interactively.
+2. Detects the generated framework + JS/TS variant.
+3. Installs published `@web-loom/*` packages.
+4. Applies a **template overlay** from `src/templates/<framework>/<variant>` plus `src/templates/shared`.
+
+The overlay intentionally replaces Vite's runnable starter entry files so `npm run dev` starts in a Web Loom MVVM starter immediately.
+
+If the scaffold cannot be mapped to a supported framework template, the CLI exits with a clear unsupported-scaffold error.
+
+## Framework support
+
+| Framework | Variants | Overwritten runnable files |
+| --- | --- | --- |
+| React | TS, JS | `src/App.tsx` / `src/App.jsx` |
+| Preact | TS, JS | `src/app.tsx` / `src/app.jsx` |
+| Vue | TS, JS | `src/App.vue` |
+| Solid | TS, JS | `src/App.tsx` / `src/App.jsx` |
+| Svelte | TS, JS | `src/App.svelte` |
+| Lit | TS, JS | `src/my-element.ts` / `src/my-element.js` |
+| Vanilla | TS, JS | `src/main.ts` / `src/main.js` |
+| Qwik | TS-first | `src/routes/index.tsx` |
+
+Shared files are copied for every framework (for example `src/viewmodels/CounterViewModel.ts`).
+
+## Template source of truth
+
+Template content is file-based and lives in:
+
+- `src/templates/shared/**`
+- `src/templates/<framework>/<variant>/**`
+
+During build, templates are copied into `dist/templates/**`. Runtime boilerplate injection reads from `dist/templates` so published CLI builds are self-contained.
 
 ## Usage
 
 ```bash
-# Interactive (you are prompted for a project name and framework)
+# Interactive
 npm create web-loom@latest
 
-# Pass a project name to skip the name prompt
+# Pass project name
 npm create web-loom@latest my-app
 ```
 
-After the CLI finishes:
+After generation:
 
 ```bash
 cd my-app
@@ -36,97 +65,31 @@ npm install
 npm run dev
 ```
 
-## Generated file structure
-
-The CLI writes a small set of MVVM starter files into `src/` after Vite scaffolds the project.
-
-### React
-
-```
-src/
-├── hooks/
-│   └── useObservable.ts       # useSignal<T> — bridges signals-core to React state
-├── viewmodels/
-│   └── CounterViewModel.ts    # signal() + computed(), increment / decrement / reset
-└── components/
-    └── Counter.tsx             # View — reads signals via useSignal, calls VM methods
-```
-
-### Vue
-
-```
-src/
-├── composables/
-│   └── useObservable.ts       # useSignal<T> — bridges signals-core to Vue refs
-├── viewmodels/
-│   └── CounterViewModel.ts    # same ViewModel as React — no framework imports
-└── components/
-    └── Counter.vue             # <script setup> View consuming the composable
-```
-
-### Vanilla / Lit / others
-
-```
-src/
-└── viewmodels/
-    └── CounterViewModel.ts
-counter.ts                     # DOM subscription entry point
-counter.html                   # Minimal HTML wiring up the counter
-```
-
 ## Installed packages
 
-All currently published `@web-loom/*` packages are installed automatically:
+All currently published core packages are installed:
 
-| Package                        | Purpose                                               |
-| ------------------------------ | ----------------------------------------------------- |
-| `@web-loom/mvvm-core`          | `BaseModel`, `BaseViewModel`, `Command`               |
-| `@web-loom/mvvm-patterns`      | Higher-level MVVM composition patterns                |
-| `@web-loom/signals-core`       | Lightweight `signal()` / `computed()` / `effect()`    |
-| `@web-loom/store-core`         | Minimal UI-state store with persistence adapters      |
-| `@web-loom/query-core`         | Data fetching with caching and stale-while-revalidate |
-| `@web-loom/event-bus-core`     | Typed pub/sub for cross-feature messaging             |
-| `@web-loom/event-emitter-core` | Low-level event emitter utilities                     |
-| `@web-loom/ui-core`            | Headless dialog, list, form, roving-focus behaviors   |
-| `@web-loom/ui-patterns`        | Wizard, MasterDetail, CommandPalette shells           |
-| `@web-loom/design-core`        | Design tokens and CSS theming utilities               |
-
-## Package manager support
-
-The CLI detects which package manager invoked it via `npm_config_user_agent` and forwards that same manager to both the Vite scaffold and the Web Loom package install.
-
-| Command                      | Vite invoked as          |
-| ---------------------------- | ------------------------ |
-| `npm create web-loom@latest` | `npm create vite@latest` |
-| `pnpm create web-loom`       | `pnpm create vite`       |
-| `yarn create web-loom`       | `yarn create vite`       |
-| `bun create web-loom`        | `bun create vite`        |
-
-## Framework detection
-
-After Vite scaffolds the project, the CLI reads `package.json` dependencies to identify the framework:
-
-| Dependency present    | Detected as |
-| --------------------- | ----------- |
-| `react`               | `react`     |
-| `vue`                 | `vue`       |
-| `lit`                 | `lit`       |
-| `@angular/core`       | `angular`   |
-| `svelte`              | `svelte`    |
-| _(none of the above)_ | `vanilla`   |
-
-The detected framework determines which boilerplate files are written.
+- `@web-loom/mvvm-core`
+- `@web-loom/mvvm-patterns`
+- `@web-loom/store-core`
+- `@web-loom/query-core`
+- `@web-loom/event-bus-core`
+- `@web-loom/event-emitter-core`
+- `@web-loom/signals-core`
+- `@web-loom/design-core`
+- `@web-loom/ui-core`
+- `@web-loom/ui-patterns`
 
 ## Local development
 
 ```bash
-# Build the CLI
 cd packages/create-web-loom
-npm run build         # vite build → dist/index.js
+npm run build
+npm run test
 
-# Test locally without publishing
+# Try locally
 node dist/index.js my-test-app
 
-# Verify the tarball contents
+# Check publish contents
 npm pack --dry-run
 ```

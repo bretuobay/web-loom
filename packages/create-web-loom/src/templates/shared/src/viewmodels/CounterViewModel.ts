@@ -1,4 +1,4 @@
-export const counterViewModelTemplate = `import { signal, computed } from '@web-loom/signals-core';
+import { computed, signal } from '@web-loom/signals-core';
 
 export class CounterViewModel {
   readonly count = signal(0);
@@ -17,7 +17,6 @@ export class CounterViewModel {
   }
 
   dispose(): void {
-    // Cleanup subscriptions here
+    // Placeholder for future cleanup logic.
   }
 }
-`;

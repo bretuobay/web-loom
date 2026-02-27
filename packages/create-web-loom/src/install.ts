@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process';
-import { detectPackageManager } from './detect.js';
+import { detectPackageManager, type Framework } from './detect.js';
 import { getPackages } from './packages.js';
 
-export function installPackages(projectDir: string, framework: string): void {
+export function installPackages(projectDir: string, framework: Framework): void {
   const pm = detectPackageManager();
   const packages = getPackages(framework);
   const addCmd = pm === 'npm' ? 'install' : 'add';

@@ -1,3 +1,5 @@
+import type { Framework } from './detect.js';
+
 export const CORE_PACKAGES = [
   '@web-loom/mvvm-core',
   '@web-loom/mvvm-patterns',
@@ -11,15 +13,17 @@ export const CORE_PACKAGES = [
   '@web-loom/ui-patterns',
 ];
 
-export const FRAMEWORK_PACKAGES: Record<string, string[]> = {
+export const FRAMEWORK_PACKAGES: Record<Framework, string[]> = {
   react: [],
+  preact: [],
   vue: [],
   vanilla: [],
   lit: [],
-  angular: [],
   svelte: [],
+  solid: [],
+  qwik: [],
 };
 
-export function getPackages(framework: string): string[] {
+export function getPackages(framework: Framework): string[] {
   return [...CORE_PACKAGES, ...(FRAMEWORK_PACKAGES[framework] ?? [])];
 }
