@@ -10,7 +10,7 @@ const nextConfig = {
   // next/image requires unoptimized: true when using output: export
   images: { unoptimized: true },
   // Ensure packages hoisted to monorepo root are resolved by webpack
-  transpilePackages: ["next-themes"],
+  transpilePackages: ["next-themes", "@repo/docs-theme"],
   webpack: (config) => {
     config.resolve.modules.push(path.resolve(__dirname, "../../node_modules"));
     return config;

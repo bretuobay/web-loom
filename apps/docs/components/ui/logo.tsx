@@ -1,13 +1,15 @@
-import Link from 'next/link';
-import Image from 'next/image';
+import { BrandLogo } from '@repo/docs-theme';
 
 export default function Logo() {
   return (
-    <Link className="inline-flex items-center gap-2.5" href="/" aria-label="Web Loom">
-      <Image src="/images/webloom.png" width={36} height={36} alt="Web Loom logo" />
-      <span className="hidden sm:inline text-base font-semibold text-slate-800 dark:text-slate-100">
-        Web<span className="text-blue-600 dark:text-blue-400">.loom</span>
-      </span>
-    </Link>
+    <BrandLogo
+      href="/"
+      imageSrc="/images/webloom.png"
+      imageAlt="Web Loom logo"
+      imageWidth={36}
+      imageHeight={36}
+      brandText="Web"
+      accentText=".loom"
+    />
   );
 }
