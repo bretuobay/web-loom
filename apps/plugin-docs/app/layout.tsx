@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   description:
     'A practical guide to building extensible systems with framework-agnostic plugin architecture in TypeScript.',
   alternates: {
-    canonical: `${SITE_URL}/book`,
+    canonical: SITE_URL,
   },
   icons: {
     icon: '/favicon.ico',

@@ -3,7 +3,7 @@ import { BrandLogo } from '@repo/docs-theme';
 export default function Logo() {
   return (
     <BrandLogo
-      href="/book"
+      href="/"
       imageSrc="/images/webloom.png"
       imageAlt="Web Loom logo"
       imageWidth={36}

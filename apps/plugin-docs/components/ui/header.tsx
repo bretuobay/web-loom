@@ -3,7 +3,10 @@ import type { NavItem } from '@repo/docs-theme';
 import Logo from './logo';
 import { getBookSearchEntries } from '@/components/mdx/utils';
 
-const NAV_ITEMS: NavItem[] = [{ label: 'Book', href: '/book' }];
+const NAV_ITEMS: NavItem[] = [
+  { label: 'Home', href: '/' },
+  { label: 'Book', href: '/book' },
+];
 
 export default function Header() {
   const searchEntries = getBookSearchEntries();
