@@ -8,6 +8,7 @@ import type { Metadata } from 'next';
 
 const GITHUB_URL = 'https://github.com/bretuobay/web-loom';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
+const PLUGIN_DOCS_URL = process.env.NEXT_PUBLIC_PLUGIN_DOCS_URL ?? 'https://plugin-architectures-book.webloomframework.com';
 
 export const metadata: Metadata = {
   title: {
@@ -714,6 +715,12 @@ export default function HomePage() {
             <Link href="/docs/packages-roadmap" className="hover:text-slate-300 transition-colors">
               Roadmap
             </Link>
+            <a
+              href={PLUGIN_DOCS_URL}
+              className="hover:text-slate-300 transition-colors"
+            >
+              Plugin Architecture Book
+            </a>
             <a
               href={GITHUB_URL}
               target="_blank"
