@@ -9,110 +9,81 @@ nextSlug: '/docs/07-plugin-sdk-design'
 
 # Chapter 6: Dynamic Loading and Module Resolution Strategies
 
-In the last chapter, we built the **Plugin Registry**—the system that knows _what_ plugins exist, their states, and their dependencies.
-Now we need to solve the equally critical question: **how do we actually load plugin code into the application?**
+Chapter 5 ended at the moment the registry calls `load()`. That call is the handoff from coordination to execution — from knowing what a plugin is to actually running its code. This chapter covers everything that happens in that moment and everything that shapes it: how plugin code is fetched, which module format it arrives in, how its assets are isolated from the host, and what happens when any of it goes wrong.
 
-Dynamic loading is the heart of a runtime-extensible system. It lets us:
-
-- Add new features without redeploying the whole app.
-- Reduce initial bundle size by loading plugins only when needed.
-- Support remote marketplaces and self-updating plugins.
-
-In this chapter, we’ll cover:
-
-1. **Module loading approaches** for different environments.
-2. **Bundle splitting and code splitting** to optimize delivery.
-3. **Asset management** for plugin CSS, images, and other resources.
-4. **Development vs. production loading** strategies.
-5. **Error handling and fallbacks** for reliability.
+Dynamic loading is what makes a plugin system genuinely extensible at runtime. Without it, plugins are just build-time dependencies with extra ceremony. With it, a user can install a plugin today and have it running without touching the application's source code or triggering a redeploy. That capability comes with complexity — different module formats, cross-origin constraints, dependency sharing, and failure modes that do not exist in static imports — and managing that complexity is the subject of this chapter.
 
 ---
 
 ## 6.1 Module Loading Approaches
 
-The host must load plugin code that may come in different module formats, from various sources, and possibly built with different toolchains.
+The loader's first task is always the same: turn a URL or file path from the manifest's `entry` field into a module object with callable exports. How it does that depends on the environment it is running in and the format the plugin was compiled to.
 
-### Production Module Loading Patterns
+### How Production Systems Load Plugins
 
-Real-world plugin systems demonstrate diverse loading strategies:
+The range of approaches in production systems tracks closely with how much the system controls its execution environment.
 
-**VS Code: Multi-Environment Module Loading**
-Handles ESM and CommonJS across Node.js and browser environments:
+VS Code has the most complex loader because it supports extensions in three distinct environments: a local Node.js extension host, a browser-based web worker, and a remote server. Each environment can run different module formats, so the loader detects the environment before deciding how to load:
 
 ```ts
-// Node.js extension host
-async function loadCommonJS(modulePath: string) {
-  return require(modulePath);
-}
-
-// Browser/web environment
-async function loadESM(url: string) {
-  return import(url);
-}
-
-// Auto-detect and load
 async function loadExtension(manifest: IExtensionManifest) {
   const isWeb = typeof window !== 'undefined';
   const loader = isWeb ? loadESM : loadCommonJS;
   return loader(manifest.main);
 }
+
+async function loadESM(url: string) {
+  return import(url);
+}
+
+async function loadCommonJS(modulePath: string) {
+  return require(modulePath);
+}
 ```
 
-**Vite: Native ESM-First Loading**
-Leverages browser native ESM with no bundling in development:
+Vite takes advantage of the fact that modern browsers support ES modules natively, eliminating any need for a bundler in development. In development the plugin is served as raw source files; in production it is pre-bundled with Rollup:
 
 ```ts
-// Development: direct ESM import
+// Development: direct ESM import, no bundling
 const plugin = await import('/plugins/my-plugin/index.js');
 
-// Production: pre-bundled with rollup
+// Production: pre-bundled and hashed
 const plugin = await import('/assets/my-plugin-abc123.js');
 ```
 
-**Babel: Synchronous Plugin Loading**
-Build-time plugins loaded synchronously via require:
+Babel's loader is the simplest of all, because it runs at build time in a trusted Node.js environment. Plugins are loaded synchronously via `require` — there are no network requests, no async concerns, and no untrusted code:
 
 ```ts
 function loadPlugin(name: string) {
-  // Resolve plugin name
   const resolved = resolvePlugin(name);
-
-  // Synchronous require (build-time only)
   const plugin = require(resolved);
-
-  // Validate structure
   return validatePlugin(plugin);
 }
 ```
 
-**Backstage: Package-Based Loading**
-Plugins are regular npm packages imported normally:
+Backstage treats plugins as regular npm packages. They are imported like any other dependency, either statically at build time or dynamically for code splitting. This is the simplest possible mental model — plugin authors do not need to learn a new packaging system:
 
 ```ts
-// Static import (bundled together)
+// Static import — bundled together
 import { catalogPlugin } from '@backstage/plugin-catalog';
 
-// Dynamic import for code splitting
+// Dynamic import — separate chunk, loaded on demand
 const plugin = await import('@backstage/plugin-techdocs');
 ```
 
----
+### Module Formats and the Dual Package Hazard
 
-### ES Modules vs. CommonJS
-
-Modern browsers support ES modules; Node.js supports both. Production systems handle this carefully:
-
-**Dual Package Hazard (Node.js)**
-The same package loaded as ESM and CJS creates two instances:
+Modern JavaScript has two official module formats — ES Modules (ESM) and CommonJS (CJS) — and they do not interoperate cleanly in Node.js. The most dangerous manifestation of this is the dual package hazard: if the same plugin package is loaded as both ESM and CJS, you get two separate instances of it. Singletons break, `instanceof` checks fail, and the bugs are extremely hard to trace:
 
 ```ts
-// Problem: Two instances of the same plugin!
-import plugin1 from 'my-plugin';           // ESM
-const plugin2 = require('my-plugin');      // CJS
-console.log(plugin1 === plugin2);          // false!
+// Two instances of the same plugin — a subtle disaster
+import plugin1 from 'my-plugin';       // ESM path
+const plugin2 = require('my-plugin');  // CJS path
+console.log(plugin1 === plugin2);      // false!
 ```
 
-**Solution: Conditional Exports (package.json)**
+The solution is `package.json` conditional exports, which lets a package declare separate entry points for ESM and CJS consumers while ensuring Node.js only resolves one of them per process:
+
 ```json
 {
   "name": "my-plugin",
@@ -125,31 +96,23 @@ console.log(plugin1 === plugin2);          // false!
 }
 ```
 
-**Comprehensive Module Loader**:
+For a plugin host that needs to load modules in any format from any source, a universal loader wraps the format-specific paths behind a common interface:
+
 ```ts
 class UniversalModuleLoader {
-  async load<T>(
-    path: string,
-    options: LoadOptions = {}
-  ): Promise<T> {
+  async load<T>(path: string, options: LoadOptions = {}): Promise<T> {
     const { format = 'auto', timeout = 30000 } = options;
 
-    // Auto-detect module format
     const detectedFormat = format === 'auto'
       ? await this.detectFormat(path)
       : format;
 
-    // Load with timeout
     return withTimeout(async () => {
       switch (detectedFormat) {
-        case 'esm':
-          return this.loadESM<T>(path);
-        case 'cjs':
-          return this.loadCommonJS<T>(path);
-        case 'umd':
-          return this.loadUMD<T>(path);
-        case 'systemjs':
-          return this.loadSystemJS<T>(path);
+        case 'esm':    return this.loadESM<T>(path);
+        case 'cjs':    return this.loadCommonJS<T>(path);
+        case 'umd':    return this.loadUMD<T>(path);
+        case 'systemjs': return this.loadSystemJS<T>(path);
         default:
           throw new Error(`Unknown module format: ${detectedFormat}`);
       }
@@ -157,75 +120,43 @@ class UniversalModuleLoader {
   }
 
   private async loadESM<T>(url: string): Promise<T> {
-    // Use native dynamic import
     const module = await import(/* @vite-ignore */ url);
     return module.default || module;
   }
 
   private loadCommonJS<T>(path: string): T {
-    // Node.js only
     if (typeof require === 'undefined') {
-      throw new Error('CommonJS not supported in browser');
+      throw new Error('CommonJS not supported in this environment');
     }
-
-    // Clear require cache for hot reload
     delete require.cache[require.resolve(path)];
     return require(path);
   }
 
   private async loadUMD<T>(url: string): Promise<T> {
-    // Load via script tag, access via global
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = url;
-      script.onload = () => {
-        const global = this.extractUMDExport(url);
-        resolve(global as T);
-      };
+      script.onload = () => resolve(this.extractUMDExport(url) as T);
       script.onerror = reject;
       document.head.appendChild(script);
     });
   }
 
   private async detectFormat(path: string): Promise<ModuleFormat> {
-    // Check file extension
     if (path.endsWith('.mjs')) return 'esm';
     if (path.endsWith('.cjs')) return 'cjs';
-
-    // Check package.json type field
     const pkgJson = await this.findPackageJson(path);
     if (pkgJson?.type === 'module') return 'esm';
-
-    // Default to CommonJS for .js files
     return 'cjs';
   }
 }
 ```
 
----
+### Dependency Sharing with Module Federation
 
-### SystemJS and Module Federation
+The dual package hazard becomes critical when plugins share framework dependencies with the host. If a plugin bundles its own copy of React and the host also has React, two React instances exist simultaneously — hooks break, context does not cross component boundaries, and the errors are deeply confusing.
 
-**SystemJS (Universal Loader)**
-Handles any module format at runtime:
-
-```ts
-import SystemJS from 'systemjs';
-
-// Load any module format
-const plugin = await SystemJS.import('https://cdn.example.com/plugin.js');
-
-// Configure import maps
-SystemJS.addImportMap({
-  imports: {
-    'react': 'https://esm.sh/react@18',
-    'react-dom': 'https://esm.sh/react-dom@18',
-  },
-});
-```
-
-**Webpack Module Federation (Micro-Frontends)**
-Share dependencies between host and plugins:
+Webpack Module Federation solves this by allowing the host to declare which dependencies are shared, and allowing plugins to consume the host's version rather than bundling their own:
 
 ```ts
 // Host webpack.config.js
@@ -258,62 +189,41 @@ module.exports = {
   ],
 };
 
-// Host loads plugin
+// Host loads the plugin at runtime
 const container = await import('https://plugin.example.com/remoteEntry.js');
 await container.init(__webpack_share_scopes__.default);
 const Plugin = await container.get('./Plugin');
 ```
 
-**Vite's Approach (No Federation)**
-Pre-bundles dependencies, simpler but larger bundles:
+The `singleton: true` flag is the critical part — it tells Module Federation to use only one copy across the entire application, regardless of which version each party declared. Without it, version mismatches silently fall back to loading two copies.
+
+SystemJS is an alternative for environments where you do not control the build toolchain. It is a universal module loader that handles ESM, CJS, AMD, and UMD at runtime, and supports import maps for redirecting bare specifiers:
 
 ```ts
-// Vite automatically bundles everything
-const plugin = await import('/dist/plugin.js');
-// All dependencies included in bundle
-```
+import SystemJS from 'systemjs';
 
----
-
-### Web Workers for Plugin Isolation
-
-**VS Code: Extension Host in Worker**
-Runs all extensions in a dedicated worker process:
-
-```ts
-// Main thread
-const extensionHost = new Worker('extensionHost.worker.js');
-
-// Communication via message passing
-extensionHost.postMessage({
-  type: 'activateExtension',
-  extensionId: 'my-extension',
+SystemJS.addImportMap({
+  imports: {
+    'react': 'https://esm.sh/react@18',
+    'react-dom': 'https://esm.sh/react-dom@18',
+  },
 });
 
-extensionHost.onmessage = (event) => {
-  if (event.data.type === 'executeCommand') {
-    // Handle command from extension
-    commands.execute(event.data.command);
-  }
-};
-
-// Extension host worker
-onmessage = async (event) => {
-  if (event.data.type === 'activateExtension') {
-    const ext = await loadExtension(event.data.extensionId);
-    await ext.activate(createExtensionContext());
-  }
-};
+const plugin = await SystemJS.import('https://cdn.example.com/plugin.js');
 ```
 
-**Compute-Heavy Plugin Pattern**:
+SystemJS adds roughly 15KB to the host bundle — worth considering when evaluating whether its flexibility justifies the weight.
+
+### Isolating Heavy Work in Web Workers
+
+Some plugins perform computation that should not run on the main thread — data processing, encryption, format parsing. VS Code's extension host is effectively a dedicated Web Worker for extensions, keeping extension execution entirely separate from the editor's rendering. The same pattern applies at the individual plugin level:
+
 ```ts
-// Plugin with expensive operations
+// Main thread — plugin sends work to its own worker
 class DataProcessingPlugin {
   private worker: Worker;
 
   async init() {
-    // Load worker for heavy computation
     this.worker = new Worker(
       new URL('./dataProcessor.worker.js', import.meta.url),
       { type: 'module' }
@@ -323,165 +233,216 @@ class DataProcessingPlugin {
   async processLargeDataset(data: unknown[]) {
     return new Promise((resolve, reject) => {
       this.worker.postMessage({ type: 'process', data });
-
       this.worker.onmessage = (e) => {
-        if (e.data.type === 'result') {
-          resolve(e.data.result);
-        } else if (e.data.type === 'error') {
-          reject(new Error(e.data.error));
-        }
+        if (e.data.type === 'result') resolve(e.data.result);
+        else if (e.data.type === 'error') reject(new Error(e.data.error));
       };
     });
   }
 }
 ```
 
----
-
-### Service Workers for Caching
-
-**VS Code Web: Offline Extension Support**
-Caches extension files for offline use:
-
-```ts
-// service-worker.js
-const CACHE_NAME = 'extensions-v1';
-
-self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('/extensions/')) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-
-        return fetch(event.request).then((response) => {
-          return caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, response.clone());
-            return response;
-          });
-        });
-      })
-    );
-  }
-});
-```
-
-**Predictive Caching**:
-```ts
-class PluginCacheManager {
-  async preCachePopularPlugins() {
-    const popular = await this.getPopularPlugins();
-
-    if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-
-      await registration.sync.register('cache-plugins');
-
-      // Service worker handles actual caching
-      self.addEventListener('sync', async (event) => {
-        if (event.tag === 'cache-plugins') {
-          for (const plugin of popular) {
-            await caches.open('plugins').then((cache) =>
-              cache.add(plugin.url)
-            );
-          }
-        }
-      });
-    }
-  }
-}
-```
+Plugin workers are particularly useful for plugins that process large files, run machine learning models, or maintain long-running background jobs. The main thread stays responsive; the worker handles the cost.
 
 ---
 
 ## 6.2 Bundle Splitting and Code Splitting
 
-Dynamic plugin loading works best when the core app’s bundle is **small** and each plugin is its own chunk.
+Dynamic loading only delivers its performance promise when the host's own bundle does not already contain the plugin code. The key constraint is that each plugin must be its own chunk — a separately deliverable unit of JavaScript that the browser downloads and executes only when the plugin is activated.
 
----
+### Keeping Plugins Out of the Host Bundle
 
-### Webpack Module Federation Setup
-
-- Expose plugin entry points via `exposes` in plugin’s webpack config.
-- Host app dynamically loads them using `import()` and `__webpack_init_sharing__`.
-
----
-
-### Dynamic Import Patterns
-
-To load from a URL:
+The standard mechanism is a dynamic `import()` with a build-tool comment that suppresses bundling:
 
 ```ts
-const pluginModule = await import(/* webpackIgnore: true */ pluginManifest.entry);
+// The webpackIgnore/vite-ignore comment tells the bundler not to inline this
+const pluginModule = await import(
+  /* webpackIgnore: true */
+  /* @vite-ignore */
+  pluginManifest.entry
+);
 ```
 
-The `webpackIgnore: true` comment tells Webpack not to try bundling the plugin into the host build.
+Without these comments, Webpack and Vite will attempt to statically analyse the import and include the referenced module in the host bundle. The comment signals that the URL is dynamic and should be left as a runtime `import()`.
 
----
+For plugins that are part of the same monorepo or npm workspace and whose source is known at build time, named chunks give the bundler enough information to split them correctly while still allowing dynamic loading:
 
-### Chunk Optimization Strategies
+```ts
+const module = await import(
+  /* webpackChunkName: "[request]" */
+  /* webpackPrefetch: true */
+  manifest.entry
+);
+```
 
-- Group low-priority plugins into a shared “lazy” chunk.
-- Use **prefetch** for likely-to-be-used plugins.
-- Use **preload** for immediately needed plugins.
+The `webpackChunkName: "[request]"` pattern names the chunk after the module being imported, making bundle analysis much easier. Chunks named `my-plugin.js` are far more useful in a bundle analyser than chunks named `chunk-abc123.js`.
 
----
+### The Lazy Plugin Loader
 
-### Tree Shaking for Plugin Code
+The loader that integrates with the registry tracks which plugins have already been loaded so that navigating to a plugin's route twice does not trigger two network requests:
 
-If plugins are authored in a tree-shakeable way, unused exports can be removed automatically, reducing size.
+```ts
+class LazyPluginLoader {
+  private loadedModules = new Map<string, PluginModule>();
+
+  async loadOnDemand(pluginId: string): Promise<PluginModule> {
+    if (this.loadedModules.has(pluginId)) {
+      return this.loadedModules.get(pluginId)!;
+    }
+
+    const manifest = this.registry.get(pluginId)?.manifest;
+    if (!manifest) throw new Error(`Plugin ${pluginId} not registered`);
+
+    const module = await import(
+      /* webpackIgnore: true */
+      manifest.entry
+    );
+
+    this.loadedModules.set(pluginId, module);
+    return module;
+  }
+
+  prefetch(pluginIds: string[]) {
+    pluginIds.forEach(id => {
+      const manifest = this.registry.get(id)?.manifest;
+      if (!manifest) return;
+
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = manifest.entry;
+      document.head.appendChild(link);
+    });
+  }
+}
+```
+
+### Prefetch vs Preload
+
+The `<link rel="prefetch">` and `<link rel="preload">` hints give the browser guidance about which resources to fetch ahead of when they are explicitly needed, but they have meaningfully different semantics.
+
+`prefetch` is a low-priority background hint. The browser fetches the resource during idle time, after higher-priority work is done. It is appropriate for plugins that are likely to be needed soon — the analytics-informed preloading from chapter 5 should use `prefetch` so it never competes with in-progress user interactions.
+
+`preload` is a high-priority instruction. The browser fetches it immediately, in parallel with the current page load. It is appropriate for plugins that will definitely be needed as part of the current navigation — a plugin that owns the current route, for example.
+
+```ts
+function hintPluginLoad(href: string, priority: 'prefetch' | 'preload') {
+  const link = document.createElement('link');
+  link.rel = priority;
+  link.as = 'script';
+  link.href = href;
+  document.head.appendChild(link);
+}
+
+// Likely needed soon — background fetch
+hintPluginLoad(manifest.entry, 'prefetch');
+
+// Needed now — fetch immediately
+hintPluginLoad(manifest.entry, 'preload');
+```
+
+Overusing `preload` defeats its purpose — the browser deprioritises preload hints when there are too many of them competing. Reserve it for plugins that are unambiguously required for the current page render.
 
 ---
 
 ## 6.3 Asset Management
 
-Plugins often ship with CSS, images, fonts, or JSON files. Without proper isolation, these can leak into the host’s UI or conflict with other plugins.
+A plugin is rarely just JavaScript. It brings CSS, icons, images, localisation files, and potentially fonts. Each of these assets needs to be loaded without interfering with the host's own assets or with other plugins' assets.
 
----
+### CSS Isolation
 
-### CSS and Style Isolation
+The most reliable approach to CSS isolation in the browser is Shadow DOM. A plugin component that attaches its shadow root carries its styles inside the shadow boundary — they cannot leak out, and the host's styles cannot leak in:
 
-- **Shadow DOM** ensures styles are scoped to the plugin’s root element.
-- **CSS Modules** prevent class name collisions.
-- For global styles, require explicit opt-in via the manifest.
+```ts
+class IsolatedPluginWidget extends HTMLElement {
+  constructor() {
+    super();
+    const shadow = this.attachShadow({ mode: 'closed' });
 
----
+    // Styles are scoped to this shadow root
+    const style = document.createElement('style');
+    style.textContent = `
+      .widget { background: var(--plugin-bg, white); }
+      .title { font-size: 1.2rem; }
+    `;
 
-### Resource Loading and Caching
-
-Load images and fonts via relative paths in the manifest:
-
-```json
-{
-  "icon": "./assets/icon.png",
-  "styles": ["./styles/plugin.css"]
+    shadow.appendChild(style);
+    shadow.appendChild(this.render());
+  }
 }
 ```
 
-The loader can fetch and inject these dynamically.
+The `var(--plugin-bg, white)` pattern is important — CSS custom properties (variables) *do* cross the shadow boundary, which is the intended mechanism for theme integration. The host sets `--plugin-bg` on a parent element; the plugin reads it through its shadow root. Isolation is preserved for regular properties; design tokens flow through intentionally.
+
+When Shadow DOM is not practical — for plugins that render inside React's VDOM, for example — CSS Modules at build time achieve class-name isolation without runtime overhead:
+
+```ts
+// Plugin uses CSS Modules (class names are hashed at build time)
+import styles from './widget.module.css';
+
+function MyWidget() {
+  return <div className={styles.container}>...</div>;
+}
+// Renders as: <div class="widget_container_x7k2p">...</div>
+```
+
+The hashed class name prevents collisions between plugins that happen to use the same class name. No runtime isolation mechanism is needed because the classes are made unique at build time.
+
+### Dynamic Style Injection
+
+For plugins loaded at runtime, CSS cannot be bundled into the host's stylesheet. It needs to be injected dynamically when the plugin activates and removed when it deactivates:
+
+```ts
+class PluginStyleManager {
+  private injectedSheets = new Map<string, HTMLLinkElement>();
+
+  inject(pluginId: string, cssUrl: string): void {
+    if (this.injectedSheets.has(pluginId)) return;
+
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = cssUrl;
+    link.dataset.pluginId = pluginId;
+    document.head.appendChild(link);
+
+    this.injectedSheets.set(pluginId, link);
+  }
+
+  remove(pluginId: string): void {
+    const link = this.injectedSheets.get(pluginId);
+    if (link) {
+      link.remove();
+      this.injectedSheets.delete(pluginId);
+    }
+  }
+}
+```
+
+Calling `remove()` during the plugin's `unmount` lifecycle hook ensures styles do not accumulate in the document as plugins are activated and deactivated over the course of a session.
+
+### Static Assets
+
+Icons, images, and other static assets should be referenced through versioned, content-hashed URLs. This allows aggressive caching — once a user has fetched the asset, they will never need to refetch it for that version of the plugin — while guaranteeing that updates are reflected immediately when the plugin version changes:
+
+```json
+{
+  "id": "my-plugin",
+  "version": "1.2.0",
+  "icon": "https://cdn.example.com/plugins/my-plugin@1.2.0/icon.svg",
+  "entry": "https://cdn.example.com/plugins/my-plugin@1.2.0/index.js"
+}
+```
+
+The host should apply `Cache-Control: public, max-age=31536000, immutable` to versioned plugin assets. The `immutable` directive tells the browser it does not need to revalidate, even after the max-age would normally expire — because the URL itself changes when the content changes.
 
 ---
 
-### CDN Integration Strategies
+## 6.4 Development vs Production Loading
 
-For public plugin marketplaces, serve plugin assets from a CDN with versioned URLs for caching and rollback.
+The loading strategy appropriate for production — minimised bundles, content-hashed filenames, CDN delivery — is actively harmful during development. Iterating on a plugin should be fast: change a file, see the result within 200ms, without rebuilding the world.
 
----
+### Development Workflows
 
-### Progressive Loading Techniques
-
-- Load CSS before JavaScript to avoid FOUC (flash of unstyled content).
-- Lazy-load heavy assets (e.g., charts, maps) only when needed.
-
----
-
-## 6.4 Development vs. Production Loading
-
-The way we load plugins in development should **optimize for speed and debugging**, not final performance.
-
-### Production Development Workflows
-
-**Vite: Instant HMR Without Bundling**
-Development server serves source files directly, HMR via WebSocket:
+Vite's development server serves source files over native ESM with no bundling step. Changes are propagated via WebSocket and the browser re-imports only the changed module — not the whole application:
 
 ```ts
 // vite.config.ts
@@ -491,7 +452,6 @@ export default {
       name: 'plugin-hmr',
       handleHotUpdate({ file, server }) {
         if (file.includes('/plugins/')) {
-          // Notify all clients to reload plugin
           server.ws.send({
             type: 'custom',
             event: 'plugin-update',
@@ -506,170 +466,12 @@ export default {
 // Client-side HMR handler
 if (import.meta.hot) {
   import.meta.hot.accept((newModule) => {
-    // Reload plugin with new code
     pluginRegistry.reload(pluginId, newModule);
   });
 }
 ```
 
-**Babel: Transform-Only Development**
-No bundling, just transformation:
-
-```ts
-// Development: transform on-the-fly
-require('@babel/register')({
-  plugins: ['transform-typescript', 'transform-jsx'],
-  extensions: ['.ts', '.tsx', '.js', '.jsx'],
-});
-
-// Now can require .ts files directly
-const plugin = require('./my-plugin.ts');
-```
-
-**VS Code: Watch Mode with Incremental Compilation**
-TypeScript watch mode for fast recompilation:
-
-```json
-{
-  "compilerOptions": {
-    "incremental": true,
-    "tsBuildInfoFile": ".tsbuildinfo"
-  },
-  "watchOptions": {
-    "excludeDirectories": ["node_modules"]
-  }
-}
-```
-
----
-
-### Hot Module Replacement (HMR)
-
-**Comprehensive HMR Implementation**:
-```ts
-class PluginHMRManager {
-  private activePlugins = new Map<string, PluginInstance>();
-
-  async reload(pluginId: string, newModule: PluginModule): Promise<void> {
-    const existing = this.activePlugins.get(pluginId);
-
-    // 1. Call dispose on old module
-    await existing?.module.dispose?.();
-
-    // 2. Preserve state if possible
-    const preservedState = existing?.getState?.();
-
-    // 3. Load new module
-    const instance = this.createInstance(newModule);
-
-    // 4. Restore state
-    if (preservedState) {
-      instance.setState?.(preservedState);
-    }
-
-    // 5. Re-mount
-    await instance.mount(this.sdk);
-
-    // 6. Update registry
-    this.activePlugins.set(pluginId, instance);
-
-    console.log(`[HMR] Reloaded plugin: ${pluginId}`);
-  }
-
-  accept(pluginId: string, callback: (newModule: PluginModule) => void) {
-    if (import.meta.hot) {
-      import.meta.hot.accept((newModule) => {
-        callback(newModule);
-        this.reload(pluginId, newModule);
-      });
-    }
-  }
-}
-
-// Plugin developer uses it
-export const myPlugin = {
-  init(sdk) {
-    // Plugin logic
-  },
-
-  // HMR support
-  dispose() {
-    // Cleanup before reload
-    this.cleanup();
-  },
-
-  getState() {
-    // Return state to preserve across reloads
-    return { counter: this.counter };
-  },
-
-  setState(state) {
-    // Restore state after reload
-    this.counter = state.counter;
-  },
-};
-
-// Enable HMR in development
-if (import.meta.hot) {
-  import.meta.hot.accept();
-}
-```
-
----
-
-### Source Map Integration
-
-**VS Code: Source Map Support**
-Maps compiled code back to source for debugging:
-
-```ts
-// Extension loads with source maps
-const extension = await import('./extension.js');
-//# sourceMappingURL=extension.js.map
-
-// Debugger shows original TypeScript code
-// Even though it's running compiled JavaScript
-```
-
-**Production Source Maps Strategy**:
-```ts
-// vite.config.ts
-export default {
-  build: {
-    sourcemap: process.env.NODE_ENV === 'development' ? 'inline' : 'hidden',
-    // 'hidden' - generate maps but don't reference them
-    // Only load maps when needed (debugging production issues)
-  },
-};
-
-// Error reporting with source maps
-import { SourceMapConsumer } from 'source-map';
-
-async function getOriginalPosition(
-  file: string,
-  line: number,
-  column: number
-) {
-  const mapResponse = await fetch(`${file}.map`);
-  const map = await mapResponse.json();
-
-  const consumer = await new SourceMapConsumer(map);
-  const original = consumer.originalPositionFor({ line, column });
-
-  return {
-    source: original.source,
-    line: original.line,
-    column: original.column,
-  };
-}
-```
-
----
-
-### Debugging Configuration
-
-**VS Code: Extension Development Host**
-Dedicated debugging environment for extensions:
+VS Code extension development uses TypeScript's incremental watch mode so that only changed files are recompiled, combined with a dedicated "Extension Development Host" window that automatically reloads the extension:
 
 ```json
 {
@@ -682,63 +484,128 @@ Dedicated debugging environment for extensions:
 }
 ```
 
-**Comprehensive Development Logging**:
+Babel's development story is the simplest: `@babel/register` intercepts `require()` calls and transforms TypeScript and JSX on the fly, so plugin authors can write TypeScript and run it without a compilation step:
+
+```ts
+require('@babel/register')({
+  plugins: ['transform-typescript', 'transform-jsx'],
+  extensions: ['.ts', '.tsx', '.js', '.jsx'],
+});
+
+const plugin = require('./my-plugin.ts');
+```
+
+### Hot Module Replacement
+
+A full HMR implementation for plugins needs to be careful about state. A naive reload destroys all plugin state — if the plugin had an open modal or a partially filled form, the reload clears it. A state-preserving reload captures the plugin's state before disposal and restores it after the new version mounts:
+
+```ts
+class PluginHMRManager {
+  private activePlugins = new Map<string, PluginInstance>();
+
+  async reload(pluginId: string, newModule: PluginModule): Promise<void> {
+    const existing = this.activePlugins.get(pluginId);
+
+    // 1. Capture state before dispose
+    const preservedState = existing?.getState?.();
+
+    // 2. Dispose the old module
+    await existing?.module.dispose?.();
+
+    // 3. Load new module and restore state
+    const instance = this.createInstance(newModule);
+    if (preservedState) {
+      instance.setState?.(preservedState);
+    }
+
+    // 4. Re-mount and update registry
+    await instance.mount(this.sdk);
+    this.activePlugins.set(pluginId, instance);
+  }
+}
+
+// Plugin adds HMR support by implementing these hooks
+export const myPlugin = {
+  init(sdk) { /* ... */ },
+
+  dispose() {
+    this.cleanup();
+  },
+
+  getState() {
+    return { counter: this.counter };
+  },
+
+  setState(state) {
+    this.counter = state.counter;
+  },
+};
+
+if (import.meta.hot) {
+  import.meta.hot.accept();
+}
+```
+
+The `getState` / `setState` pair is a contract between the plugin and the HMR manager. Plugins that do not implement them get a full re-initialisation on every reload, which is fine for stateless UI plugins.
+
+### Source Maps and Debugging
+
+Development builds should use inline source maps so that TypeScript stack traces appear in the browser debugger rather than compiled JavaScript line numbers:
+
+```ts
+// vite.config.ts
+export default {
+  build: {
+    sourcemap: process.env.NODE_ENV === 'development' ? 'inline' : 'hidden',
+  },
+};
+```
+
+The `hidden` strategy for production is the right compromise: source maps are generated and stored on the error reporting server, but the deployed JavaScript files do not reference them. Users cannot access the source maps, but when a production error is reported, you can map the error's line and column back to the original TypeScript:
+
+```ts
+import { SourceMapConsumer } from 'source-map';
+
+async function getOriginalPosition(file: string, line: number, column: number) {
+  const mapResponse = await fetch(`${file}.map`);
+  const map = await mapResponse.json();
+  const consumer = await new SourceMapConsumer(map);
+  return consumer.originalPositionFor({ line, column });
+}
+```
+
+A development logger that reports load timing in real time helps plugin authors identify performance regressions as they build:
+
 ```ts
 class PluginDevLogger {
   private enabled = process.env.NODE_ENV === 'development';
 
-  logDiscovery(plugins: PluginManifest[]) {
-    if (!this.enabled) return;
-
-    console.group('🔍 Plugin Discovery');
-    plugins.forEach((p, index) => {
-      console.log(`${index + 1}. ${p.id} v${p.version}`);
-      console.log(`   Dependencies:`, p.requiredPlugins);
-    });
-    console.groupEnd();
-  }
-
   logLoadTiming(pluginId: string, phase: string, duration: number) {
     if (!this.enabled) return;
-
-    const color = duration > 1000 ? '🔴' : duration > 500 ? '🟡' : '🟢';
-    console.log(`${color} [${pluginId}] ${phase}: ${duration}ms`);
-  }
-
-  logError(pluginId: string, phase: string, error: Error) {
-    console.group(`❌ Plugin Error: ${pluginId}`);
-    console.log('Phase:', phase);
-    console.log('Error:', error.message);
-    console.log('Stack:', error.stack);
-    console.groupEnd();
+    const indicator = duration > 1000 ? '🔴' : duration > 500 ? '🟡' : '🟢';
+    console.log(`${indicator} [${pluginId}] ${phase}: ${duration}ms`);
   }
 
   logStateTransition(pluginId: string, from: string, to: string) {
     if (!this.enabled) return;
     console.log(`🔄 [${pluginId}] ${from} → ${to}`);
   }
+
+  logError(pluginId: string, phase: string, error: Error) {
+    console.group(`❌ Plugin Error: ${pluginId}`);
+    console.log('Phase:', phase);
+    console.error(error);
+    console.groupEnd();
+  }
 }
 ```
 
----
+### Production Build Configuration
 
-### Production Optimization
+Production builds trade the fast iteration cycle for delivery efficiency. The key differences from a development build are minification, content hashing, and chunk splitting:
 
-**Multi-Stage Build Strategy**:
 ```ts
-// Development build (fast, unoptimized)
-const devConfig = {
-  mode: 'development',
-  devtool: 'eval-source-map',  // Fastest rebuild
-  optimization: {
-    minimize: false,
-    removeAvailableModules: false,
-    removeEmptyChunks: false,
-    splitChunks: false,
-  },
-};
-
-// Production build (optimized, slow)
+// Webpack production configuration
 const prodConfig = {
   mode: 'production',
   devtool: 'hidden-source-map',
@@ -747,9 +614,7 @@ const prodConfig = {
     minimizer: [
       new TerserPlugin({
         terserOptions: {
-          compress: {
-            drop_console: true,  // Remove console.log
-          },
+          compress: { drop_console: true },
         },
       }),
     ],
@@ -764,14 +629,10 @@ const prodConfig = {
     },
   },
 };
-```
 
-**Vite Production Optimizations**:
-```ts
-// vite.config.ts
+// Vite production configuration
 export default {
   build: {
-    // Code splitting
     rollupOptions: {
       output: {
         manualChunks: {
@@ -780,180 +641,164 @@ export default {
         },
       },
     },
-
-    // Compression
     minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        pure_funcs: ['console.log', 'console.debug'],
-      },
-    },
-
-    // Modern vs legacy builds
-    target: 'es2020',  // Modern browsers only
-    // Or use @vitejs/plugin-legacy for dual builds
+    target: 'es2020',
   },
 };
-
-// Immutable caching
-app.use((req, res, next) => {
-  if (req.url.match(/\.[a-f0-9]{8}\.(js|css)$/)) {
-    // Versioned assets never change
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-  }
-  next();
-});
 ```
 
-**Lazy Loading Strategy**:
-```ts
-class LazyPluginLoader {
-  private loadedPlugins = new Set<string>();
-
-  async loadOnDemand(pluginId: string): Promise<PluginModule> {
-    if (this.loadedPlugins.has(pluginId)) {
-      return this.registry.get(pluginId).module;
-    }
-
-    // Load only when needed
-    const manifest = this.registry.get(pluginId).manifest;
-
-    // Use dynamic import for code splitting
-    const module = await import(
-      /* webpackChunkName: "[request]" */
-      /* webpackPrefetch: true */
-      manifest.entry
-    );
-
-    this.loadedPlugins.add(pluginId);
-    return module;
-  }
-
-  // Prefetch likely-needed plugins
-  prefetch(pluginIds: string[]) {
-    pluginIds.forEach(id => {
-      const manifest = this.registry.get(id)?.manifest;
-      if (manifest) {
-        // Create prefetch link
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.href = manifest.entry;
-        document.head.appendChild(link);
-      }
-    });
-  }
-}
-```
+Content-hashed filenames enable indefinite caching for plugin assets. When the server sends `Cache-Control: public, max-age=31536000, immutable` for a file named `my-plugin-a3f9c1b2.js`, the browser caches it permanently — and when the plugin is updated, the hash changes, the URL changes, and the browser fetches fresh.
 
 ---
 
 ## 6.5 Error Handling and Fallbacks
 
-Dynamic loading introduces many new failure modes: network issues, syntax errors, incompatible module formats. The loader must degrade gracefully.
+Dynamic loading introduces failure modes that static imports cannot have: network errors, CORS rejections, malformed bundles, parse failures, and activation timeouts. Each needs to be caught, categorised, and handled in a way that does not silently corrupt the application state.
 
----
+### Categorising Load Failures
 
-### Module Loading Error Recovery
+A typed error hierarchy makes it possible to handle different failure modes differently in the caller:
 
-If a plugin fails to load:
+```ts
+type PluginLoadError =
+  | { kind: 'network'; url: string; status?: number; cause: Error }
+  | { kind: 'parse'; url: string; cause: SyntaxError }
+  | { kind: 'validation'; message: string; manifest: PluginManifest }
+  | { kind: 'timeout'; url: string; timeoutMs: number }
+  | { kind: 'activation'; pluginId: string; phase: string; cause: Error };
 
-1. Log the error with context.
-2. Show a **placeholder UI** explaining the problem.
-3. Retry if applicable.
+class PluginLoader {
+  async load(manifest: PluginManifest): Promise<PluginModule> {
+    let raw: unknown;
 
----
+    try {
+      raw = await withTimeout(
+        () => import(/* @vite-ignore */ manifest.entry),
+        30_000,
+        () => ({ kind: 'timeout', url: manifest.entry, timeoutMs: 30_000 } as PluginLoadError)
+      );
+    } catch (cause) {
+      if (cause instanceof SyntaxError) {
+        throw { kind: 'parse', url: manifest.entry, cause } satisfies PluginLoadError;
+      }
+      throw { kind: 'network', url: manifest.entry, cause } satisfies PluginLoadError;
+    }
+
+    if (!isPluginModule(raw)) {
+      throw {
+        kind: 'validation',
+        message: 'Module does not export a valid plugin',
+        manifest,
+      } satisfies PluginLoadError;
+    }
+
+    return raw;
+  }
+}
+```
+
+The caller can then branch on `error.kind` and respond appropriately — retry a network error, surface a user-visible message for a validation failure, log and disable for a parse error.
 
 ### Graceful Degradation
 
-If a widget plugin fails, keep the rest of the dashboard functional.
+A plugin that fails to load should not take down the parts of the application that were working. The principle is the same one Kibana applies to required vs optional plugins: required plugins failing is fatal; optional plugins failing is logged and skipped.
+
+For UI plugins, the practical implementation is a fallback component — something the host renders in place of a failed plugin's UI that tells the user what happened without exposing internal error detail:
+
+```ts
+function PluginErrorBoundary({
+  pluginId,
+  error,
+  children,
+}: {
+  pluginId: string;
+  error: PluginLoadError | null;
+  children: React.ReactNode;
+}) {
+  if (error) {
+    return (
+      <div role="alert" className="plugin-error">
+        <p>The <strong>{pluginId}</strong> plugin could not be loaded.</p>
+        {error.kind === 'network' && (
+          <p>Check your connection and refresh to try again.</p>
+        )}
+        {error.kind === 'validation' && (
+          <p>This plugin may be incompatible with the current version.</p>
+        )}
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+```
+
+The error message shown to the user should be actionable — "refresh to try again" for a network failure, "contact the plugin author" for a validation failure — rather than a raw error stack.
+
+### Retry Logic
+
+Network failures are transient. A loader with bounded retry and exponential back-off handles them without manual intervention:
+
+```ts
+async function loadWithRetry(
+  manifest: PluginManifest,
+  maxRetries = 3
+): Promise<PluginModule> {
+  let lastError: PluginLoadError | undefined;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await pluginLoader.load(manifest);
+    } catch (error) {
+      lastError = error as PluginLoadError;
+
+      // Only retry network failures
+      if (lastError.kind !== 'network') throw lastError;
+
+      if (attempt < maxRetries) {
+        const delay = Math.min(1000 * 2 ** attempt, 10_000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError;
+}
+```
+
+Exponential back-off — 1s, 2s, 4s, capped at 10s — avoids hammering a struggling CDN while still recovering if it stabilises within a reasonable window.
+
+### Fallback Plugins
+
+For plugins that are critical to the application's function, a bundled fallback version eliminates the gap between remote load failure and complete unavailability. The fallback is a stripped-down local implementation that covers the core use case without any dependencies on external resources:
+
+```ts
+async function loadWithFallback(manifest: PluginManifest): Promise<PluginModule> {
+  try {
+    return await loadWithRetry(manifest);
+  } catch (error) {
+    const fallback = localFallbacks.get(manifest.id);
+    if (fallback) {
+      logger.warn(`[${manifest.id}] Using bundled fallback after load failure`);
+      return fallback;
+    }
+    throw error;
+  }
+}
+```
+
+Fallback plugins should be reserved for truly critical functionality — a payments plugin in an e-commerce application, for example. Bundling a fallback for every optional plugin would undermine the code splitting that makes the system efficient.
 
 ---
 
-### Fallback Plugin Implementation
+## Conclusion
 
-Have a “safe mode” version of critical plugins that runs locally if the remote one fails.
+Dynamic loading is where the plugin system's runtime behaviour becomes real. Everything in the previous chapters — the contracts, the lifecycle, the registry — is infrastructure. Loading is the moment when a manifest entry field becomes running code.
 
----
+The range of strategies across production systems reflects the diversity of constraints they face. Vite's native ESM approach is the cleanest model for browser-based systems: no custom loader, no module format negotiation, just `import()`. VS Code's multi-environment loader is the most complex, because it must handle Node.js, browsers, and remote servers without the plugin author needing to think about which environment they are in. Backstage's approach — treat plugins as normal packages — is the most ergonomic and the right model when the set of plugins is known at build time.
 
-### User Experience During Failures
+For runtime-loaded plugins from unknown sources, the investment is higher: a universal module loader, CSS isolation, dependency sharing via Module Federation, content-hashed CDN delivery, and a typed error hierarchy with fallbacks. The returns are proportional — a plugin system that supports third-party plugins from an open marketplace needs all of it.
 
-Always prefer a visible, friendly error over silent failures.
-Example: “The Reports Plugin could not be loaded. Please refresh or contact support.”
+A practical reference: a base dynamic loader adds around 5–10KB to the host bundle. SystemJS adds another 15KB; Module Federation's runtime adds 10KB. Plugin load times should target under 50ms from the same origin and under 200ms from CDN with a warm cache. HMR during development should complete within 300ms to feel instant. These numbers are not aspirational — they are achievable with the approaches in this chapter and worth tracking as the ecosystem grows.
 
----
-
-## Key Takeaways
-
-A **dynamic loader** must be:
-
-1. **Flexible** — handle multiple module formats (ESM, CommonJS, UMD, SystemJS) and auto-detect when possible.
-
-2. **Efficient** — load only what's needed, when it's needed through code splitting, lazy loading, and prefetching strategies.
-
-3. **Safe** — isolate styles, sandbox execution in workers, provide fallbacks, and handle errors gracefully.
-
-4. **Developer-friendly** — support HMR for instant feedback, source maps for debugging, and verbose logging in development.
-
-5. **Production-optimized** — minify bundles, enable immutable caching, split chunks intelligently, and measure performance.
-
----
-
-### Lessons from Production Systems
-
-**Vite** demonstrates that native ESM in development eliminates bundling overhead, enabling instant startup and sub-100ms HMR. Production builds pre-bundle with Rollup for optimal delivery.
-
-**VS Code** shows how multi-environment support (Node.js, browser, web worker) requires environment-aware loading with fallbacks and graceful degradation.
-
-**Babel** teaches that synchronous loading suffices for build-time plugins, while runtime plugins demand async patterns with timeout handling and error recovery.
-
-**Backstage** proves that treating plugins as regular npm packages simplifies the mental model—standard package.json, normal imports, familiar tooling.
-
-**Webpack Module Federation** enables dependency sharing between host and plugins, crucial for micro-frontend architectures where duplicate React instances cause bugs.
-
-### Architecture Principles
-
-**1. Progressive Enhancement**
-Start with simple dynamic imports, add complexity (Module Federation, SystemJS) only when needed.
-
-**2. Environment Detection**
-Auto-detect browser vs Node.js, ESM vs CommonJS support. Provide appropriate loaders for each environment.
-
-**3. Timeout Everything**
-Network requests, module loads, plugin initialization—all should have timeouts to prevent hung applications.
-
-**4. Fail Visibly**
-Silent failures during loading create mysterious bugs. Show errors prominently with actionable messages.
-
-**5. Cache Aggressively**
-Use content hashing for immutable caching. Pre-cache popular plugins with service workers for instant activation.
-
-**6. Optimize for Development**
-Development speed (HMR, no minification, inline source maps) beats production optimization during iteration.
-
-**7. Measure Everything**
-Track load times, bundle sizes, cache hit rates. Performance regressions often creep in during plugin ecosystem growth.
-
-### Performance Considerations
-
-**Bundle Size Impact**:
-- Base loader: ~5-10 KB gzipped
-- SystemJS: +15 KB
-- Module Federation runtime: +10 KB
-- Source maps: 2-3x original size (serve separately)
-
-**Load Time Targets** (95th percentile):
-- Local plugin (same origin): < 50ms
-- CDN plugin (HTTP/2): < 200ms
-- With cold cache: < 500ms
-
-**Development HMR Targets**:
-- Code change detected: < 50ms
-- Plugin reloaded: < 200ms
-- UI updated: < 50ms
-- Total: < 300ms for instant feedback
-
----
-
-**Next up:**
-In **Chapter 7**, we'll design the **Plugin SDK** itself—the developer-facing API that makes building plugins a pleasure, with strong typing, discoverable methods, comprehensive documentation, and a smooth developer experience. This is where we transform our technical foundation into a friendly, productive interface for third-party developers.
+In the next chapter, we will design the SDK that plugin authors interact with directly — the developer-facing API that determines how enjoyable it is to build on the platform.

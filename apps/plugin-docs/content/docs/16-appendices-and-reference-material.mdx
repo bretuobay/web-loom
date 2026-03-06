@@ -9,9 +9,13 @@ nextSlug: '/docs/00-table-of-contents'
 
 # Appendices
 
+The chapters of this book have introduced a lot of patterns, interfaces, and conventions in the context of specific problems. This section collects the most important of them in one place: canonical type definitions you can copy into a real project, concrete plugin examples for each major framework, build configurations for the three most common bundlers, and condensed checklists for security and performance. Treat it as a reference you return to rather than a section you read once.
+
+---
+
 ## Appendix A: Complete TypeScript Type Definitions
 
-These are the **core contracts** we’ve referenced throughout the book.
+These are the core contracts we have referenced throughout the book. They form the boundary between the host application and the plugin ecosystem — everything a plugin can do is expressed through these interfaces, and everything the host is obligated to provide is declared here as well.
 
 ```ts
 /**
@@ -28,6 +32,7 @@ export interface PluginManifest {
   author?: string;
   entry: string;
   icon?: string;
+  permissions?: string[];
   routes?: PluginRouteDefinition[];
   menuItems?: PluginMenuItem[];
   widgets?: PluginWidgetDefinition[];
@@ -37,7 +42,7 @@ export interface PluginManifest {
 export interface PluginModule {
   init?: (sdk: PluginSDK) => void | Promise<void>;
   mount?: (sdk: PluginSDK) => void | Promise<void>;
-  unmount?: () => void | Promise<void>;
+  unmount?: (sdk: PluginSDK) => void | Promise<void>;
 }
 
 export interface PluginRouteDefinition<TComponent = unknown> {
@@ -138,6 +143,8 @@ export interface PluginSDK {
 
 ## Appendix B: Example Plugin Implementations
 
+These four examples implement the same conceptual plugin — a widget that registers itself on mount and removes itself on unmount — across the four most common integration targets. The pattern is identical in each case; only the component authoring syntax changes.
+
 ### React Plugin Example
 
 ```tsx
@@ -153,19 +160,39 @@ export interface PluginSDK {
 // index.tsx
 import React from 'react';
 
-const SalesChart: React.FC = () => <div>Chart here</div>;
+interface SalesData {
+  month: string;
+  revenue: number;
+}
+
+const SalesChart: React.FC = () => {
+  const [data, setData] = React.useState<SalesData[]>([]);
+
+  React.useEffect(() => {
+    // Fetch is performed through the SDK's apiClient in a real implementation.
+    // The component receives data via props or a context bridge.
+  }, []);
+
+  return (
+    <div className="sales-chart-widget">
+      {data.map(({ month, revenue }) => (
+        <div key={month}>{month}: {revenue}</div>
+      ))}
+    </div>
+  );
+};
 
 export const module: PluginModule = {
   mount(sdk) {
     sdk.widgets.add({
       id: 'sales-chart',
       title: 'Sales Chart',
-      render: SalesChart
+      render: SalesChart,
     });
   },
   unmount(sdk) {
     sdk.widgets.remove('sales-chart');
-  }
+  },
 };
 ```
 
@@ -175,11 +202,16 @@ export const module: PluginModule = {
 
 ```ts
 // index.ts
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, ref } from 'vue';
 
 const HelloWidget = defineComponent({
+  name: 'HelloWidget',
+  setup() {
+    const message = ref('Hello from Vue widget!');
+    return { message };
+  },
   render() {
-    return h('div', 'Hello from Vue widget!');
+    return h('div', { class: 'hello-widget' }, this.message);
   },
 });
 
@@ -228,12 +260,26 @@ export const module: PluginModule = {
 
 ### Vanilla JavaScript Plugin Example
 
+Vanilla plugins follow the same `mount`/`unmount` contract. Because there is no component abstraction, the plugin creates DOM elements directly. This is the lowest-level integration point and requires the most manual cleanup.
+
 ```js
+let container;
+
 export const module = {
   mount(sdk) {
-    const el = document.createElement('div');
-    el.textContent = 'Hello from Vanilla JS!';
-    sdk.ui.showModal(el, { title: 'Vanilla Plugin' });
+    container = document.createElement('div');
+    container.className = 'vanilla-widget';
+    container.textContent = 'Hello from Vanilla JS!';
+
+    sdk.widgets.add({
+      id: 'vanilla-widget',
+      title: 'Vanilla Widget',
+      render: container,
+    });
+  },
+  unmount(sdk) {
+    sdk.widgets.remove('vanilla-widget');
+    container = undefined;
   },
 };
 ```
@@ -241,6 +287,8 @@ export const module = {
 ---
 
 ## Appendix C: Build Configuration Examples
+
+Plugins must be compiled to a format the host can load dynamically. The three configurations below produce UMD and ES module outputs suitable for remote loading. All three assume an entry point at `src/index.ts` and output to `dist/`.
 
 ### Webpack Configuration
 
@@ -250,10 +298,15 @@ module.exports = {
   output: {
     filename: 'plugin.js',
     libraryTarget: 'umd',
+    globalObject: 'this',
   },
-  resolve: { extensions: ['.ts', '.js'] },
+  resolve: { extensions: ['.ts', '.tsx', '.js'] },
   module: {
-    rules: [{ test: /\.ts$/, use: 'ts-loader', exclude: /node_modules/ }],
+    rules: [{ test: /\.tsx?$/, use: 'ts-loader', exclude: /node_modules/ }],
+  },
+  externals: {
+    react: 'React',
+    'react-dom': 'ReactDOM',
   },
 };
 ```
@@ -270,6 +323,18 @@ export default defineConfig({
     lib: {
       entry: 'src/index.ts',
       formats: ['es', 'umd'],
+      name: 'Plugin',
+    },
+    rollupOptions: {
+      // Exclude framework dependencies — the host provides them.
+      external: ['react', 'react-dom', 'vue'],
+      output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+          vue: 'Vue',
+        },
+      },
     },
   },
 });
@@ -281,14 +346,16 @@ export default defineConfig({
 
 ```ts
 import typescript from '@rollup/plugin-typescript';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 
 export default {
   input: 'src/index.ts',
   output: [
     { file: 'dist/plugin.esm.js', format: 'es' },
-    { file: 'dist/plugin.umd.js', format: 'umd', name: 'Plugin' },
+    { file: 'dist/plugin.umd.js', format: 'umd', name: 'Plugin', globals: { react: 'React' } },
   ],
-  plugins: [typescript()],
+  external: ['react', 'react-dom'],
+  plugins: [nodeResolve(), typescript()],
 };
 ```
 
@@ -296,27 +363,48 @@ export default {
 
 ## Appendix D: Security Checklist
 
-- [ ] Manifest schema validation before loading.
-- [ ] Sandboxed execution (IFrame, Worker, or VM).
-- [ ] Permissions declared in manifest and enforced in SDK.
-- [ ] All network requests via `sdk.services.apiClient`.
-- [ ] CSP headers block inline and untrusted scripts.
-- [ ] Digital signature verification for plugin bundles.
-- [ ] Event bus restricted to declared events.
-- [ ] Storage keys namespaced by plugin ID.
+This checklist covers the key controls discussed in Chapter 9. It is intentionally terse — each item maps to a section in that chapter where the rationale and implementation details are explained.
+
+**Before loading a plugin:**
+- [ ] Validate manifest schema against a strict JSON Schema definition before any code is executed.
+- [ ] Verify the plugin bundle's digital signature against the publisher's public key.
+- [ ] Check that all declared permissions are recognised and that none exceed what the installation context allows.
+- [ ] Inspect bundle size against the configured limit before fetching.
+
+**At runtime:**
+- [ ] Execute plugin code inside a sandboxed boundary (iframe, Web Worker, or VM context).
+- [ ] Route all network requests through `sdk.services.apiClient`; block direct `fetch`/`XMLHttpRequest` from within the sandbox.
+- [ ] Enforce CSP headers that prevent inline scripts and restrict script sources to known origins.
+- [ ] Namespace all storage keys by plugin ID to prevent cross-plugin data access.
+- [ ] Restrict event bus subscriptions to events the plugin declared in its manifest.
+
+**At deactivation:**
+- [ ] Call `unmount` and confirm all registered widgets, routes, and menu items have been removed.
+- [ ] Release the sandbox boundary (terminate the Worker, destroy the iframe).
+- [ ] Audit the event bus for any listeners the plugin failed to deregister.
 
 ---
 
 ## Appendix E: Performance Benchmarking
 
-- **Load Time**: Measure manifest fetch, code fetch, and init time separately.
-- **Memory Usage**: Track heap size before/after mounting a plugin.
-- **CPU Time**: Profile render and event handling.
-- **Network**: Count API requests per plugin; deduplicate where possible.
-- **Bundle Size**: Enforce limits (e.g., 100KB gzipped).
+Measuring plugin system performance requires instrumenting at multiple layers. A plugin that loads in 200ms on a developer machine may load in two seconds on a low-end device over a 4G connection. Establish baselines early and enforce them in CI.
 
-**Tools**: Chrome DevTools Performance tab, Lighthouse CI, WebPageTest, custom `performance.mark()` instrumentation.
+**What to measure:**
+
+- **Load time**: Separate the manifest fetch, bundle fetch, parse time, and `init`/`mount` execution. Tracking these individually tells you which phase to optimise.
+- **Memory usage**: Record heap size before and after mounting a plugin. A plugin that never unmounts cleanly will show a growing heap over repeated activation cycles.
+- **CPU time**: Profile `mount`, event handler execution, and widget re-renders. Plugins that schedule work synchronously on the main thread will cause jank during host application interactions.
+- **Network requests**: Count API calls per plugin per page load. Deduplicate requests that multiple plugins make to the same endpoint using the `DeduplicatingApiClient` pattern from Chapter 14.
+- **Bundle size**: Enforce per-plugin size budgets (a reasonable starting point is 100KB gzipped for a full-featured plugin, 20KB for a utility plugin). Fail CI builds that exceed the budget.
+
+**Tools**: Chrome DevTools Performance and Memory tabs, Lighthouse CI, WebPageTest for real-network simulation, `performance.mark()` and `performance.measure()` for custom instrumentation, Bundlephobia or `vite-bundle-visualizer` for static bundle analysis.
 
 ---
 
-If you want, I can now **bundle all 15 chapters + appendices into a single continuous manuscript** so it’s ready for publication as a complete book. This would keep formatting, headings, and flow consistent from start to finish. Would you like me to prepare that next?
+## A Note on What Comes Next
+
+The architecture patterns in this book are stable, but plugin systems are not a solved problem — they are a design space you navigate continuously. Every real deployment will surface constraints that no generic guide anticipated: a permission model that turns out to be too coarse, a sandbox that the team cannot afford to enforce across all plugins, a versioning policy that made sense until a critical plugin needed to ship a breaking change.
+
+What matters is that you have a vocabulary for the tradeoffs now. Isolation versus performance. Flexibility versus governance. Centralised distribution versus team autonomy. The production systems referenced throughout — VS Code, Vite, Backstage, Kibana, Vendure, TinaCMS — each resolved these tradeoffs differently, and each resolution was shaped by the specific constraints of its ecosystem.
+
+Start with the contracts. Define `PluginManifest`, `PluginSDK`, and `PluginModule` before you write a single plugin. Build the loader next, then the registry, then the SDK implementation. Add sandboxing when the threat model justifies it. Add a marketplace when the ecosystem justifies it. The temptation is to build everything upfront; the systems that last are the ones that added complexity only when a real problem demanded it.

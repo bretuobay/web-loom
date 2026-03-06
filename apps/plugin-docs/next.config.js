@@ -5,6 +5,10 @@ const withMDX = require("@next/mdx")();
 const nextConfig = {
   // Configure `pageExtensions` to include MDX files
   pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
+  // Static export for Cloudflare Pages / Wrangler assets deploy
+  output: "export",
+  // next/image requires this when output=export
+  images: { unoptimized: true },
   // Ensure workspace package sources are transpiled
   transpilePackages: ["next-themes", "@repo/docs-theme"],
   // Ensure packages hoisted to monorepo root are resolved by webpack

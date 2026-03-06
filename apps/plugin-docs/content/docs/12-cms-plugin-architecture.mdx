@@ -9,37 +9,27 @@ nextSlug: '/docs/13-dashboard-analytics-plugins'
 
 # Chapter 12: Content Management System Plugin Architecture
 
-In this chapter, we’ll explore how our framework-agnostic, TypeScript-first plugin architecture applies to a **Content Management System (CMS)**.
-While e-commerce plugins focus heavily on transactions and compliance, CMS plugins prioritize **editorial workflow**, **content structure**, and **site presentation**.
+E-commerce plugins are shaped by transactions — payment compliance, order lifecycle, inventory state. CMS plugins are shaped by a different set of pressures: the authoring experience, the content model, and the rendering pipeline. An editor who writes a blog post, a developer who adds a new content type, and a marketer who installs an SEO tool all touch the same plugin system with completely different expectations of what it should do for them.
 
-We’ll cover:
+The extension points in a CMS are also structurally different. An e-commerce plugin typically hooks into a defined process — the checkout flow, the order confirmation. A CMS plugin may need to modify the editor's toolbar, contribute a new field type to the form builder, intercept content before it is saved, inject markup into the rendered page, or register a whole new content creation workflow. The surface area is wider and the plugins interact with the platform more intimately.
 
-1. **CMS plugin ecosystem design** — key requirements and constraints.
-2. **Case study: WordPress-style plugin system** — hooks, filters, and UI integration.
-3. **Content editor plugins** — enhancing the authoring experience.
-4. **SEO and marketing plugins** — extending content optimization capabilities.
-5. **Multi-tenancy considerations** — keeping tenants secure and isolated.
+This chapter walks through how the architecture adapts to those demands, first through a generic fictional platform, then through TinaCMS — a real Git-backed CMS whose plugin model offers several patterns worth studying closely.
 
 ---
 
 ## 12.1 CMS Plugin Ecosystem Design
 
-A CMS plugin system should allow third-party developers to:
+A CMS plugin system needs to serve at least four distinct extension scenarios that rarely overlap in e-commerce.
 
-- Add **new content types** (e.g., events, portfolios, testimonials).
-- Extend the **editor UI** with custom blocks, input fields, and validation tools.
-- Alter the **front-end rendering pipeline** (themes, templates, scripts).
-- Integrate external APIs for **analytics, marketing, or data sources**.
+Adding new content types is the foundational one. A platform that ships with posts and pages becomes genuinely useful when plugins can add events, portfolios, product catalogues, testimonials, or job listings — each with their own field definitions, validation rules, and editor interfaces. The plugin system needs an extension point that is not just "add a route" but "contribute a content type schema that the platform's form builder, validation layer, and data store all know how to handle."
 
-The architecture must balance:
+Editor UI extensions are a second category, and they are more technically demanding than they appear. A plugin that adds a YouTube embed button to the rich text editor needs to know where in the toolbar hierarchy to place itself, how to communicate with the editor's selection model, and what serialisation format the inserted embed uses. A plugin that adds a colour picker field needs to integrate with the form builder's layout system, not just render a component into a designated slot.
 
-- **Flexibility** — to meet diverse content needs.
-- **Security** — to prevent malicious code execution.
-- **Performance** — so plugins don’t slow down the editorial or viewing experience.
+Content pipeline hooks are the third category. WordPress's hook and filter system exists because there are dozens of points in the content lifecycle — before save, after save, before publish, before render — where plugins legitimately need to intervene. An SEO plugin might add structured data to rendered pages. A caching plugin might invalidate specific cache keys when content changes. A content review plugin might block publication until a word count threshold is met.
 
----
+The fourth category is rendering pipeline extension: themes, templates, and scripts that affect the published site. This is where CMS plugins most clearly differ from application plugins — they need to produce output that users outside the admin experience encounter.
 
-### Example CMS Plugin Manifest
+A gallery block plugin manifest illustrates how these capabilities are declared:
 
 ```json
 {
@@ -55,233 +45,356 @@ The architecture must balance:
 }
 ```
 
-This declares:
-
-- **UI editor integration** — the plugin will appear in the content editor.
-- **Front-end rendering** — it contributes output to the published site.
+The `metadata.editorIntegration` flag tells the host that this plugin contributes to the editor experience and needs to be loaded when the editor initialises. The `metadata.frontendRender` flag signals that the plugin also needs to be present at render time — the host must include the gallery block's rendering logic when generating pages, not just when loading the admin. These two lifecycle modes — editorial and rendering — are the architectural divide that CMS plugins must navigate that most other plugin systems do not.
 
 ---
 
-## 12.2 Case Study: WordPress-Style Plugin System
+## 12.2 Hooks and Filters in a Typed Plugin System
 
-The WordPress ecosystem thrives because of its **hook and filter architecture**. Our framework-agnostic system can take inspiration from that—while keeping strong typing and modern security.
+WordPress's influence on CMS architecture is substantial, and the reason is the hook system. `do_action` and `apply_filters` are conceptually simple — announce that something is happening and let registered handlers respond — but they have been the foundation of one of the largest plugin ecosystems in the world. The framework-agnostic event bus from chapter 8 implements the same idea with TypeScript types.
 
----
-
-### Hook System in TypeScript
-
-We can model hooks as **event types** in the `PluginSDK.events` API:
+Action hooks map directly to event emissions. A plugin that wants to run logic when content is saved subscribes to `'save:after'`:
 
 ```ts
-sdk.events.on('render:before', (context) => {
-  context.html = injectCustomCSS(context.html);
-});
 sdk.events.on('save:after', (content) => {
   logContentRevision(content);
+  invalidateCacheForSlug(content.slug);
 });
 ```
 
----
+The event carries the saved content as its payload. Multiple plugins can subscribe to the same event independently — the caching plugin and the revision logger both listen to `'save:after'` without knowing about each other. The platform emits the event once; both handlers run.
 
-### Filter System Example
-
-Filters can transform data before it’s saved or displayed:
+Filter hooks — WordPress's `apply_filters` — are slightly different in character. They transform a value as it passes through a pipeline rather than simply reacting to an event. Modelling this cleanly requires that each handler in the chain receives the output of the previous handler. The event bus from chapter 8 handles this through chained subscriptions or, more explicitly, through a dedicated filter pipeline:
 
 ```ts
-sdk.events.on('content:filter', (content) => {
-  return sanitizeHTML(content); // Prevent XSS
-});
+// A content pipeline that applies registered transformations in order
+class ContentPipeline {
+  private filters: Array<(content: string) => string> = [];
+
+  addFilter(fn: (content: string) => string): void {
+    this.filters.push(fn);
+  }
+
+  apply(content: string): string {
+    return this.filters.reduce((current, filter) => filter(current), content);
+  }
+}
+
+// Plugins register their transformations
+pipeline.addFilter((content) => sanitizeHTML(content));
+pipeline.addFilter((content) => expandShortcodes(content));
+pipeline.addFilter((content) => injectStructuredData(content));
 ```
 
----
+This is more explicit than WordPress's `apply_filters` call, and that explicitness is valuable: the pipeline's execution order is deterministic and visible. A plugin that needs to run after the sanitiser can inspect the filter order and insert itself at the right position.
 
-### Admin Interface Extensions
-
-The plugin could use `sdk.routes.add()` to register new admin pages for configuration:
+Admin interface extensions follow the same pattern as any other SDK route contribution:
 
 ```ts
 sdk.routes.add({
   path: '/admin/gallery-settings',
   component: GallerySettingsPage,
 });
+
+sdk.menus.addItem({
+  label: 'Gallery',
+  path: '/admin/gallery-settings',
+  section: 'media',
+  icon: GalleryIcon,
+});
 ```
+
+The menu item placement — `section: 'media'` — is a CMS-specific extension over the base `PluginMenuItem` type. The host's admin navigation knows about sections and places menu items in the right part of the sidebar without requiring each plugin to know the full admin navigation structure.
 
 ---
 
 ## 12.3 Content Editor Plugins
 
-Modern CMS editors (like Gutenberg, Sanity, or Contentful) thrive on **block-based** or **field-based** plugins.
+The editor is where authors spend most of their time, and its extensibility determines whether a CMS can adapt to the wildly varied content types that real editorial teams produce.
 
----
+### Block-Based Editor Extensions
 
-### Rich Text Editor Extensions
-
-A plugin can add a toolbar button to insert a custom shortcode or embed:
-
-```ts
-sdk.widgets.add({
-  id: 'insert-youtube',
-  title: 'Insert YouTube Video',
-  render: YouTubeEmbedButton,
-});
-```
-
----
-
-### Block-Based Editor Plugins
-
-Block plugins define their own render logic and inspector controls:
+Modern block editors — Gutenberg, Slate, Lexical — organise content as a sequence of typed blocks. Each block type has an editor component (what authors see and interact with) and a renderer (what appears on the published site). A plugin that contributes a new block type needs to register both:
 
 ```ts
 sdk.widgets.add({
   id: 'gallery-block',
   title: 'Gallery Block',
   render: GalleryEditorComponent,
+  icon: GalleryIcon,
+  keywords: ['image', 'photos', 'gallery'],
+  category: 'media',
+});
+
+// Registration also needs a renderer for the published site
+sdk.rendering.registerBlockRenderer('gallery-block', GalleryRenderer);
+```
+
+The `keywords` and `category` fields make the block discoverable in the editor's block inserter without requiring authors to know the block's exact name. The separation between editor component and renderer is important: the editor component may have drag-and-drop image reordering, a focal point selector, and caption editing; the renderer needs only to produce the correct HTML. Keeping them separate allows the renderer to be a small, fast function while the editor component can be as rich as the author experience requires.
+
+### Rich Text Toolbar Extensions
+
+Rich text editors expose a toolbar extension point that is narrower than the block inserter but equally important for editorial workflows:
+
+```ts
+sdk.widgets.add({
+  id: 'insert-youtube',
+  title: 'Insert YouTube Video',
+  render: YouTubeEmbedButton,
+  placement: 'toolbar',
+  position: 'end',
 });
 ```
 
----
+The `YouTubeEmbedButton` component renders a button in the toolbar that opens a URL input, validates the YouTube URL format, and inserts an embed node into the editor's document model. The plugin does not need to know which rich text library the host uses — the SDK abstracts the "insert node at cursor" operation through an editor actions API.
 
 ### Custom Field Types
 
-A plugin could add a **color picker** field type to the CMS form builder:
+The form builder is the editor's structural layer — it determines what fields an author fills in for each content type. Field type plugins extend this vocabulary. A colour picker field, an address lookup field, a social media handle field with validation — each represents a new primitive that content designers can use when defining content types:
 
 ```ts
 sdk.widgets.add({
   id: 'color-picker',
   title: 'Color Picker',
   render: ColorPickerComponent,
+  fieldType: true,
+  defaultValue: '#000000',
+  validate: (value: string) => {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(value)) {
+      return 'Please enter a valid hex colour (e.g. #FF5733)';
+    }
+  },
+  serialize: (value: string) => value.toLowerCase(),
+  deserialize: (raw: string) => raw.toUpperCase(),
 });
 ```
 
----
+The `validate`, `serialize`, and `deserialize` functions are what distinguish a field type plugin from a display widget. The `validate` function runs before save and blocks publication if it returns an error string. `serialize` transforms the value before it is written to storage; `deserialize` transforms it back when the form loads. This separation means a field type plugin can store normalised data (lowercase hex) while displaying a user-friendly format (uppercase) without the form builder knowing anything about the normalisation strategy.
 
 ### Content Validation Plugins
 
-For example, a “Readability Checker” plugin could validate text length and keyword density before allowing publish:
+Validation plugins hook into the publication lifecycle rather than the editor UI. A readability checker that blocks publication until a minimum word count is met, or a broken link checker that prevents saving until all links are reachable, runs at the `'publish:before'` event:
 
 ```ts
-sdk.events.on('publish:before', (content) => {
-  if (!hasMinimumWordCount(content, 300)) {
-    throw new Error('Content too short to publish.');
+sdk.events.on('publish:before', async (content) => {
+  if (!hasMinimumWordCount(content.body, 300)) {
+    throw new ValidationError('Content too short to publish. Minimum 300 words required.');
+  }
+
+  const brokenLinks = await checkLinks(content.body);
+  if (brokenLinks.length > 0) {
+    throw new ValidationError(
+      `Found ${brokenLinks.length} broken link(s): ${brokenLinks.join(', ')}`
+    );
   }
 });
 ```
+
+Throwing a `ValidationError` from a `'publish:before'` handler signals to the host that the publication should not proceed. The host catches this, displays the error to the author, and keeps the content in draft state. The plugin does not need to know how the error is displayed — that is the host's responsibility.
 
 ---
 
 ## 12.4 SEO and Marketing Plugins
 
-A strong CMS plugin ecosystem must include SEO and marketing tools.
-
----
+SEO plugins are among the most commonly installed in any CMS, because most authors need guidance and automation rather than raw access to meta tags.
 
 ### SEO Metadata Management
+
+An SEO plugin adds a panel to the editor sidebar where authors can write custom title tags, meta descriptions, and Open Graph data. It also analyses the content in real time and provides readability scores and keyword density feedback:
 
 ```ts
 sdk.widgets.add({
   id: 'seo-meta',
   title: 'SEO Meta Settings',
   render: SEOMetaEditor,
+  placement: 'sidebar',
+});
+
+// The SEO editor widget reads and writes metadata alongside the content
+// When the author saves, the plugin appends its data to the save payload
+sdk.events.on('save:before', (payload) => {
+  const seoData = sdk.services.storage.get<SEOData>('seo-meta');
+  if (seoData) {
+    payload.metadata = { ...payload.metadata, seo: seoData };
+  }
 });
 ```
 
-This lets content creators add title tags, meta descriptions, and social media previews directly from the editor.
-
----
+The metadata lives alongside the content in the same save operation, not in a separate API call. This ensures that SEO data and content are always synchronised — saving a draft saves both.
 
 ### Sitemap Generation
 
-Plugins can subscribe to content changes and regenerate the XML sitemap:
+A sitemap plugin subscribes to content publication events and regenerates the XML sitemap incrementally. Full regeneration on every publish is expensive for large sites; an incremental approach — updating only the changed page's entry — is faster:
 
 ```ts
-sdk.events.on('content:published', regenerateSitemap);
+sdk.events.on('content:published', async (content) => {
+  const existingSitemap = await fetchCurrentSitemap();
+  const updatedSitemap = upsertSitemapEntry(existingSitemap, {
+    loc: `https://example.com/${content.slug}`,
+    lastmod: new Date().toISOString(),
+    changefreq: content.type === 'news' ? 'daily' : 'weekly',
+    priority: content.featured ? '0.9' : '0.7',
+  });
+  await saveSitemap(updatedSitemap);
+});
+
+sdk.events.on('content:unpublished', async ({ slug }) => {
+  const existingSitemap = await fetchCurrentSitemap();
+  await saveSitemap(removeSitemapEntry(existingSitemap, slug));
+});
 ```
 
----
+Listening to `'content:unpublished'` as well as `'content:published'` is the detail that most sitemap implementations get wrong. A page that is taken down should disappear from the sitemap promptly; leaving it in means search engines keep indexing a URL that returns 404.
 
 ### Analytics Integration
 
-An analytics plugin can listen for `page:viewed` events from the front end and send them to Google Analytics or another service.
+Analytics plugins observe page view events from the front end and forward them to the analytics service. In a CMS context, this is more nuanced than in a single-page application because pages may be statically rendered — the plugin needs to instrument both the rendered pages and the admin interface:
+
+```ts
+// Front-end instrumentation — injected into rendered pages
+sdk.events.on('page:viewed', ({ path, title, referrer }) => {
+  gtag('event', 'page_view', {
+    page_title: title,
+    page_location: window.location.href,
+    page_referrer: referrer,
+  });
+});
+
+// Editor instrumentation — tracks content performance in admin
+sdk.events.on('content:opened-for-edit', ({ contentId, slug }) => {
+  gtag('event', 'content_edit_started', { content_id: contentId, slug });
+});
+```
 
 ---
 
 ## 12.5 Multi-Tenancy Considerations
 
-In a multi-tenant CMS, plugins must **respect tenant boundaries**:
+A CMS deployed as a SaaS platform — where many organisations each have their own content, their own authors, and their own plugins — introduces isolation requirements that go beyond the security model described in chapter 9. Tenant isolation is not just about preventing data leaks; it is about maintaining the appearance and behaviour of independent instances running on shared infrastructure.
+
+### Per-Tenant Plugin Registries
+
+Each tenant must have its own plugin registry. A plugin installed for one tenant's account should have no visibility into another tenant's data, event subscriptions, or storage. The simplest implementation creates a registry instance per tenant and scopes all SDK operations through that instance:
+
+```ts
+class TenantRegistry {
+  private plugins = new Map<string, LoadedPlugin>();
+  private tenantId: string;
+
+  constructor(tenantId: string) {
+    this.tenantId = tenantId;
+  }
+
+  createScopedSDK(pluginId: string): PluginSDK {
+    const tenantPrefix = `tenant:${this.tenantId}:plugin:${pluginId}`;
+    return {
+      ...baseSDK,
+      services: {
+        ...baseSDK.services,
+        storage: {
+          get: (key) => baseSDK.services.storage.get(`${tenantPrefix}:${key}`),
+          set: (key, value) => baseSDK.services.storage.set(`${tenantPrefix}:${key}`, value),
+          remove: (key) => baseSDK.services.storage.remove(`${tenantPrefix}:${key}`),
+        },
+      },
+      events: createTenantScopedEventBus(this.tenantId),
+    };
+  }
+}
+```
+
+The `createTenantScopedEventBus` returns an event bus that only routes events between plugins in the same tenant. A plugin in tenant A that emits `'content:published'` reaches only the subscribers registered by tenant A's plugins. Tenant B's plugins are invisible to it.
+
+### Shared Plugins with Isolated Configuration
+
+Some plugins make sense to share across tenants — a core SEO plugin, a standard image gallery block — while their configuration remains tenant-specific. The SEO plugin that tenant A has configured with `site_name: "Acme Corp"` should not leak that configuration to tenant B:
+
+```ts
+// Platform-level plugin installation (available to all tenants)
+platformRegistry.install('cms.seo', SEOPlugin);
+
+// Per-tenant configuration — stored isolated from other tenants
+async function configureTenantPlugin(
+  tenantId: string,
+  pluginId: string,
+  config: Record<string, unknown>
+): Promise<void> {
+  await db.tenantPluginConfigs.upsert({
+    tenantId,
+    pluginId,
+    config,
+    updatedAt: new Date(),
+  });
+}
+
+// Plugin receives only its tenant's configuration
+const tenantConfig = await db.tenantPluginConfigs.findOne({
+  tenantId: context.tenantId,
+  pluginId: 'cms.seo',
+});
+```
+
+The plugin itself does not know whether it is running in a shared or dedicated context. It receives configuration through the SDK and treats it as authoritative. The isolation happens at the infrastructure layer, not inside the plugin.
+
+### Tenant Security Boundaries
+
+Cross-tenant access attempts should be treated as security events, not ordinary errors. If plugin A in tenant B somehow constructs a storage key that references tenant A's namespace and attempts to read it, that is an anomaly worth logging and alerting on, not just returning `undefined`:
+
+```ts
+function assertTenantAccess(requestedKey: string, currentTenantId: string): void {
+  const keyTenantId = extractTenantId(requestedKey);
+
+  if (keyTenantId && keyTenantId !== currentTenantId) {
+    securityAuditLog.warn({
+      event: 'cross-tenant-access-attempt',
+      requestedTenant: keyTenantId,
+      currentTenant: currentTenantId,
+      timestamp: new Date(),
+    });
+    throw new SecurityError('Cross-tenant storage access denied');
+  }
+}
+```
+
+The key insight is that the boundary is enforced in the SDK layer, not by convention. Plugins cannot accidentally access another tenant's data because the SDK does not give them a path to it. They can only access data through `sdk.services.storage`, and that API enforces the namespace before any underlying read or write occurs.
 
 ---
 
-### Plugin Isolation per Tenant
+## 12.6 TinaCMS: A Production CMS Plugin Model
 
-- Each tenant should have its **own plugin registry**.
-- Plugins installed for one tenant should not be accessible to others.
+TinaCMS is a Git-backed CMS where the content is stored in Markdown and MDX files committed to a repository. Its plugin system reflects this architecture: plugins are first-class React citizens, the plugin registry is typed and synchronous, and the lifecycle is tied directly to React component mounting and unmounting.
 
----
+### Type-Organised Registry
 
-### Shared Plugin Resources
-
-- Some plugins (e.g., a core SEO plugin) can be shared across tenants, but with isolated configurations.
-
----
-
-### Configuration Management
-
-- Plugin settings must be stored **per tenant** to prevent data leakage.
-
----
-
-### Security Boundaries
-
-- Tenants cannot modify or access plugins belonging to other tenants.
-
----
-
-## Key Takeaways
-
-A CMS plugin architecture should:
-
-1. Provide **clear extension points** for editor, backend, and frontend contributions.
-2. Maintain **security boundaries** to protect content and data.
-3. Allow **runtime enable/disable** of plugins without affecting core stability.
-4. Support **multi-tenant isolation** for SaaS deployments.
-
----
-
-In **Chapter 13**, we’ll design a **dashboard and analytics plugin ecosystem**, where data visualization, real-time updates, and custom widgets come together—showing how our architecture adapts to data-heavy applications.
-
-## Real-World Plugin Architecture: TinaCMS Case Study
-
-TinaCMS is a Git-backed content management system that demonstrates a modern, type-safe, and React-first approach to plugin architecture. Its design offers valuable lessons for building extensible CMS platforms.
-
-### Type-Organized Registry and Explicit Registration
-
-Plugins in TinaCMS are grouped by type (e.g., field, screen, form) and registered explicitly, not discovered automatically. This ensures predictability, type safety, and optimal bundling:
+TinaCMS organises plugins by type — `field`, `screen`, `form`, `content-creator` — rather than treating all plugins as instances of a single interface. This is a design choice that trades generality for clarity: you always know what kind of plugin you are registering, and the registry enforces the correct interface for each type:
 
 ```ts
 const cms = new CMS({
   plugins: [TextFieldPlugin, ImageFieldPlugin, ColorFieldPlugin],
 });
+
+// Type-safe addition after construction
 cms.plugins.add(customPlugin);
-cms.fields.add(fieldPlugin); // Type-safe
+cms.fields.add(fieldPlugin); // Only accepts field-typed plugins
 ```
 
-You can also register plugins dynamically via React hooks:
+The `usePlugin` hook integrates this registration with React's lifecycle, preventing the accumulation of stale registrations when components unmount:
 
 ```ts
-function MyEditor() {
-  usePlugin({
-    __type: 'field',
-    name: 'custom',
-    Component: CustomField
-  });
-  return <FormBuilder />;
+export function usePlugin(plugin: Plugin) {
+  const cms = useCMS();
+  React.useEffect(() => {
+    cms.plugins.add(plugin);
+    return () => cms.plugins.remove(plugin);
+  }, [cms, plugin]);
 }
 ```
 
-### Field Plugin Patterns and Validation
+This is the same principle that chapter 5 described for the registry lifecycle — plugins should be unregistered when they are no longer needed — implemented through React's `useEffect` cleanup rather than an explicit lifecycle method call.
 
-TinaCMS field plugins showcase sophisticated patterns for content editing. Here's a realistic text field plugin with validation:
+### Field Plugin Patterns
+
+Field plugins are the most common extension point in TinaCMS. A well-designed field plugin separates three concerns: the component that renders the field in the editor, the validation logic, and the serialisation strategy:
 
 ```ts
 export const TextFieldPlugin = {
@@ -299,7 +412,9 @@ export const TextFieldPlugin = {
 };
 ```
 
-A more complex example with rich text editing:
+`parse` runs when the form reads from the data store; `format` runs when it writes back. This is where the serialise/deserialise distinction from section 12.3 appears in practice: a rich text field might `parse` a Markdown string into an editor-native JSON structure and `format` that structure back to Markdown for storage. The field component never handles the format conversion — that is the plugin's job, not the editor's.
+
+For more complex fields, the same structure scales up:
 
 ```ts
 export const RichTextPlugin = {
@@ -326,73 +441,15 @@ export const RichTextPlugin = {
     if (field.minWords && wordCount < field.minWords) {
       return `Minimum ${field.minWords} words required`;
     }
-  }
+  },
 };
 ```
 
-### Event-Driven Coordination
+The `field.toolbar` configuration option shows a pattern worth generalising: the field plugin does not hard-code its behaviour but accepts configuration from the content type definition that uses it. A content type can use the `rich-text` field type with `toolbar: 'minimal'` or `toolbar: 'full'` depending on what the content requires.
 
-TinaCMS uses an EventBus for reactive communication. Every plugin addition/removal emits events, enabling decoupled, composable UIs:
+### Content Creator Plugins
 
-```ts
-cms.plugins.add(plugin); // → Emits: { type: 'plugin:add:field' }
-cms.plugins.remove(plugin); // → Emits: { type: 'plugin:remove:field' }
-```
-
-Components subscribe to events for real-time updates:
-
-```ts
-cms.fields.subscribe(() => rebuildFormFields());
-```
-
-### React Integration and Lifecycle Management
-
-Plugins are first-class React citizens. The CMS instance is provided via context, and plugins can be registered/unregistered automatically with hooks:
-
-```ts
-export function usePlugin(plugin: Plugin) {
-  const cms = useCMS();
-  React.useEffect(() => {
-    cms.plugins.add(plugin);
-    return () => cms.plugins.remove(plugin);
-  }, [cms, plugin]);
-}
-```
-
-This pattern prevents memory leaks and stale registrations, aligning plugin lifecycle with React component lifecycle.
-
-### Extension Points and Configuration Patterns
-
-TinaCMS exposes multiple extension points: field plugins, screen plugins, form plugins, content creators, cloud config, and form meta plugins. Plugins can be simple object literals, factory functions, or classes:
-
-```ts
-export const TextFieldPlugin = {
-  name: 'text',
-  Component: TextField,
-  validate: (value) => (value ? undefined : 'Required'),
-};
-
-class BranchSwitcherPlugin implements ScreenPlugin {
-  __type = 'screen';
-  constructor(private api: GitAPI) {}
-  Component = () => {
-    /* ... */
-  };
-}
-```
-
-### Service Locator for APIs
-
-Plugins access external services via a simple registry:
-
-```ts
-cms.registerApi('github', new GitHubAPI());
-cms.api.github.createFile(value);
-```
-
-### Content Creation and Form Workflows
-
-TinaCMS provides sophisticated content creation patterns through Content Creator plugins:
+Content creator plugins add new content types to the CMS through a wizard-style modal. The `BlogPostCreator` illustrates the full pattern: field definitions with inline validation, auto-generated fields, and an `onSubmit` handler that writes to the Git repository through the CMS API:
 
 ```ts
 export const BlogPostCreator = {
@@ -436,18 +493,15 @@ export const BlogPostCreator = {
       category: values.category,
     };
 
-    await cms.api.github.createFile(filename, {
-      frontmatter,
-      content: values.content,
-    });
-
-    // Trigger rebuild
+    await cms.api.github.createFile(filename, { frontmatter, content: values.content });
     cms.events.dispatch({ type: 'site:rebuild' });
   },
 };
 ```
 
-For more complex workflows, use factory patterns:
+The `generate` function on the slug field automatically populates the slug from the title as the author types. This is a small ergonomic detail with a significant impact on content quality — authors who are not prompted to fill in a slug manually tend to end up with filenames like `untitled-post-3`.
+
+The factory pattern scales this approach to multiple content types without duplication:
 
 ```ts
 export function createContentCreator(options) {
@@ -456,20 +510,17 @@ export function createContentCreator(options) {
     name: options.name,
     fields: options.fields,
     onSubmit: async (values, cms) => {
-      // Auto-generate required fields
       const enriched = {
         ...values,
         id: generateId(),
         createdAt: new Date().toISOString(),
         author: cms.user?.name,
       };
-
       return options.onSubmit(enriched, cms);
     },
   };
 }
 
-// Usage
 const eventCreator = createContentCreator({
   name: 'Event',
   fields: eventFields,
@@ -479,9 +530,9 @@ const eventCreator = createContentCreator({
 });
 ```
 
-### Screen Plugins for Custom Interfaces
+### Screen Plugins and Service Locator
 
-Screen plugins enable full-page or modal interfaces for complex operations:
+Screen plugins provide full-page or modal interfaces for operations that do not fit in the editor sidebar — a media manager, a user permissions interface, a plugin configuration screen:
 
 ```ts
 export class MediaManagerPlugin implements ScreenPlugin {
@@ -509,9 +560,7 @@ export class MediaManagerPlugin implements ScreenPlugin {
           <h1>Media Manager</h1>
           <button onClick={close}>Close</button>
         </header>
-
         <FileUploader onUpload={uploadFile} />
-
         <div className="media-grid">
           {files.map(file => (
             <MediaCard key={file.id} file={file} />
@@ -523,37 +572,32 @@ export class MediaManagerPlugin implements ScreenPlugin {
 }
 ```
 
-### Security and Performance Trade-offs
+Access to the API layer goes through `useCMS()` and `cms.api`, which is TinaCMS's service locator. Rather than a full dependency injection container, TinaCMS provides a simple registry of named APIs:
 
-- **Trust Model:** Plugins run in the same JS context as core code; no sandboxing or permissions by default.
-- **Performance:** Lazy initialization, O(1) name-based lookup, and event snapshots optimize runtime efficiency.
+```ts
+cms.registerApi('github', new GitHubAPI());
+// Plugin accesses it as:
+cms.api.github.createFile(value);
+```
 
-### Key Lessons for Plugin Designers
+This is the service locator pattern from chapter 7, implemented without the overhead of a DI framework. The trade-off is that consumers call `cms.api.github` rather than declaring a typed dependency, which means TypeScript cannot guarantee the API exists at compile time. For a trusted, first-party plugin ecosystem — which TinaCMS's model assumes — this is acceptable. For an open marketplace with unknown third-party plugins, the typed service references from Backstage's pattern are safer.
 
-1. **Type-based organization for clarity and safety**: Group plugins by purpose (`field`, `screen`, `form`) with TypeScript generics.
-2. **Explicit registration over auto-discovery**: Predictable loading, better bundling, compile-time safety.
-3. **Event-driven patterns for reactive UIs**: Use pub/sub for decoupled communication between plugins and core.
-4. **Deep framework integration**: Leverage React hooks, context, and component lifecycle for seamless plugin management.
-5. **Progressive complexity patterns**: Support object literals for simple plugins, factory functions for composition, classes for state management.
-6. **Lightweight service locator**: Simple API registry pattern without heavyweight DI frameworks.
-7. **Validation and parsing separation**: Decouple input validation from data transformation for reusable field logic.
-8. **Automatic lifecycle management**: Use `usePlugin` hook to prevent memory leaks and stale registrations.
+### What TinaCMS's Choices Reveal
 
-### Architectural Trade-offs Analysis
+TinaCMS makes no attempt at sandboxing or permission checking. Plugins run in the same JavaScript context as core code and have access to the same APIs. This is the same trust model Vendure uses: plugins are vetted, first-party code reviewed before being added to the application. For a CMS used by a development team building their own editorial system, this is appropriate and significantly simpler to implement than a sandboxed model.
 
-**TinaCMS Strengths:**
+The type-organised registry — where each plugin type (`field`, `screen`, `content-creator`) has its own collection with typed methods — is a pattern worth borrowing even in systems that use a single unified registry internally. Exposing type-specific registration methods to plugin authors makes the correct extension point obvious and eliminates a class of "wrong type registered in the wrong place" errors.
 
-- Excellent TypeScript integration and developer experience
-- Minimal API surface reduces cognitive overhead
-- React-first design aligns with ecosystem patterns
-- Event-driven architecture enables reactive features
-- Lazy initialization optimizes performance
+The `usePlugin` hook is TinaCMS's most replicable contribution: tying plugin registration to React component lifecycle makes cleanup automatic and mental model alignment with React's data flow intuitive. Any React-based CMS or application platform that manages a plugin registry should consider the same approach.
 
-**TinaCMS Limitations:**
+---
 
-- No sandboxing or permission system (trust-based model)
-- Limited to React applications
-- No hot reloading of plugins during development
-- Manual dependency management between plugins
+## Conclusion
 
-TinaCMS demonstrates that powerful extensibility can be achieved with simplicity, type safety, and excellent developer experience—particularly effective for trusted, first-party plugin ecosystems in React applications.
+CMS plugin architecture covers more ground than e-commerce does because the extension scenarios are more varied. Adding a content type, contributing an editor block, intercepting the render pipeline, and instrumenting the published site are four categorically different operations that the same plugin system must accommodate.
+
+The hook and filter pattern, borrowed from WordPress and translated into typed events, provides a clean mental model for content pipeline extensions. The block registration and field type patterns address the editor-specific extension points. Multi-tenancy adds the constraint that all of this must work in isolation for each tenant without requiring separate deployments.
+
+TinaCMS offers a specific lesson about scope: a simple, type-organised registry with React lifecycle integration and a service locator pattern is sufficient for a trusted editorial team's plugin system. The sophistication needed for an open marketplace — typed service references, permission grants, sandbox boundaries — is a function of who the plugin authors are, not an inherent requirement of CMS plugin architecture.
+
+The next chapter moves to a third domain: dashboard and analytics platforms, where the plugin extension points are data visualisations, live data sources, and configurable widget layouts.

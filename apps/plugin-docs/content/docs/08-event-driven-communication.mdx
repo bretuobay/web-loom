@@ -9,40 +9,23 @@ nextSlug: '/docs/09-security-considerations'
 
 # Chapter 8: Event-Driven Communication and Inter-Plugin Messaging
 
-So far, we've designed the **Plugin SDK** as the official bridge between plugins and the host application. But what about **plugin-to-plugin communication**?
+The SDK described in the previous chapter gives plugins a typed surface for interacting with the host. But it does not address a different problem: how do plugins coordinate with *each other*?
 
-In a large ecosystem, plugins inevitably need to:
+In a small ecosystem of two or three plugins, you might get away with one plugin importing another directly. But that approach breaks down quickly. The analytics plugin now depends on the cart plugin. The notification plugin depends on the form plugin. Every dependency is a wire you have to manage — every wire is a potential tangle. Remove any plugin from the system and something else breaks silently.
 
-- React to changes triggered by other plugins
-- Share data without creating direct dependencies
-- Coordinate workflows while remaining loosely coupled
-- Handle complex multi-step processes across plugin boundaries
+The solution is indirection. Instead of plugins calling each other directly, they communicate through a shared channel. A plugin announces that something happened; any other plugin that cares can react. Neither plugin knows whether the other exists. The cart plugin does not know there is an analytics plugin; the analytics plugin does not know there is a cart plugin. They interact through a named event and an agreed-upon payload shape, nothing more.
 
-Production plugin systems demonstrate that **event-driven communication** is not just helpful—it's essential for scalable plugin architectures. Systems like **TinaCMS** (React-focused CMS), **Backstage** (developer platforms), **Beekeeper Studio** (database tools), and **NocoBase** (enterprise platforms) each showcase different approaches to event-driven plugin coordination.
-
-This chapter examines real-world event communication patterns, analyzing their trade-offs and implementation strategies:
-
-1. **Event system architecture** — from simple pub/sub to sophisticated event streams
-2. **Production communication patterns** — how successful systems handle plugin coordination
-3. **Message passing protocols** — structured communication in isolated environments
-4. **Performance and security** — keeping events fast and safe
-5. **Framework-specific adaptations** — integrating events with React, Vue, and other frameworks
+This is the event-driven model, and it is the pattern that every production plugin system studied here uses at some layer of its architecture — though, as we will see, they each extend it differently depending on what problems they are actually trying to solve.
 
 ---
 
 ## 8.1 Event System Architecture
 
-An event system is essentially a **Pub/Sub (publish/subscribe)** mechanism:
+At its simplest, an event system has three moving parts. A publisher emits an event with optional data attached. A subscriber registers a handler for a named event. An event bus sits between them: it holds the registry of subscriptions and is responsible for delivering each emitted event to the right handlers.
 
-- **Publisher** — emits an event with optional data.
-- **Subscriber** — listens for an event and reacts when it’s emitted.
-- **Event Bus** — central hub that delivers events to all subscribers.
+The event bus is the piece your SDK controls. Publishers and subscribers are plugin code; they come and go. The event bus is host infrastructure, and its design determines most of what is possible and what is safe in the communication layer.
 
----
-
-### Event Bus in the SDK
-
-Our `PluginSDK` already includes an event system:
+The `PluginSDK` interface from chapter 7 includes the core event surface:
 
 ```ts
 events: {
@@ -52,140 +35,256 @@ events: {
 };
 ```
 
----
+This is enough to build working inter-plugin communication, but `payload?: unknown` is a problem. If the analytics plugin and the cart plugin both use the `'cart:updated'` event but disagree about what the payload looks like, you get a runtime failure with no compile-time warning. TypeScript cannot help you unless you give it something to work with.
 
-### How It Works
+### Typed Event Schemas
 
-1. **Plugin A** calls `sdk.events.emit('cart:updated', { items: 5 })`.
-2. The event bus finds all registered listeners for `'cart:updated'`.
-3. Each listener is invoked with `{ items: 5 }` as the payload.
+The solution is a typed event registry — a map from event names to their payload types, which the event bus uses to constrain both emitters and subscribers:
 
----
+```ts
+// Declare all inter-plugin events in one place
+export interface PluginEventMap {
+  'cart:updated': { items: number; total: number };
+  'user:login': { userId: string; roles: string[] };
+  'theme:change': { theme: 'light' | 'dark' };
+  'report:ready': { reportId: string; url: string };
+}
 
-### Benefits
+// Type-safe event bus
+export interface TypedEventBus {
+  on<K extends keyof PluginEventMap>(
+    event: K,
+    handler: (payload: PluginEventMap[K]) => void
+  ): () => void;
 
-- **Loose coupling** — Plugins don’t know or care who is listening.
-- **Scalability** — New plugins can join the event flow without breaking existing ones.
-- **Testability** — Easy to mock and assert in isolation.
+  emit<K extends keyof PluginEventMap>(
+    event: K,
+    payload: PluginEventMap[K]
+  ): void;
+}
+```
+
+With this in place, `sdk.events.emit('cart:updated', { items: 5 })` is a type error because it is missing `total`. `sdk.events.on('cart:updated', ({ userId }) => ...)` is a type error because `userId` does not exist on the cart payload. The event bus becomes a compile-time contract between plugins, not just a runtime channel.
+
+The `on` method returns a cleanup function rather than requiring a separate `off` call. This is a small ergonomic improvement that matters in practice: it is easy to forget to call `off` with the right reference to the original handler, but difficult to misuse a returned disposer.
 
 ---
 
 ## 8.2 Inter-Plugin Communication Patterns
 
-While events are the backbone, there are multiple ways plugins can talk to each other.
+Not all plugin coordination fits the same pattern. Four approaches appear repeatedly across the systems studied, and they exist on a spectrum from simplest to most structured.
 
----
+### Direct Event Broadcasting
 
-### Direct Message Passing
-
-The simplest approach—plugins send events to each other directly via the event bus.
-Example:
+The most common pattern: a plugin emits a named event and any subscriber in the system reacts. Neither side knows about the other.
 
 ```ts
-sdk.events.emit('theme:change', { theme: 'dark' });
+// Cart plugin — publisher
+sdk.events.emit('cart:updated', { items: 5, total: 89.99 });
+
+// Analytics plugin — subscriber
+sdk.events.on('cart:updated', ({ items, total }) => {
+  trackCartUpdate({ itemCount: items, orderValue: total });
+});
+
+// Notification plugin — also subscribing to the same event
+sdk.events.on('cart:updated', ({ items }) => {
+  sdk.ui.showToast(`Cart updated — ${items} item${items !== 1 ? 's' : ''}`);
+});
 ```
 
-A theme plugin might listen:
+This is the loose coupling that pub/sub is designed for. The cart plugin's `emit` call reaches both subscribers without the cart plugin knowing they exist. Adding a third plugin that listens to `'cart:updated'` requires no change to the cart plugin at all.
+
+The limitation is that this pattern is inherently fire-and-forget. The emitter has no way to know whether any subscribers handled the event, whether they succeeded, or what they returned.
+
+### Request-Reply with Shared Storage
+
+Sometimes the communication pattern is not a broadcast but a query: one plugin needs information that another plugin owns. Direct events are too loose — you need a response.
+
+One approach is to combine events with the SDK's storage layer. A plugin registers itself as the provider for a particular key, and other plugins read from that key rather than coupling to the provider directly:
 
 ```ts
-sdk.events.on('theme:change', ({ theme }) => {
+// Theme plugin — registers as provider
+sdk.events.on('theme:request', () => {
+  const currentTheme = sdk.services.storage.get<string>('global:theme') ?? 'light';
+  sdk.events.emit('theme:response', { theme: currentTheme as 'light' | 'dark' });
+});
+
+// Consumer plugin — makes a request
+sdk.events.emit('theme:request', undefined as never);
+sdk.events.on('theme:response', ({ theme }) => {
   applyTheme(theme);
 });
 ```
 
----
-
-### Shared State Management
-
-Sometimes, events alone aren’t enough—you need **persistent state** that multiple plugins can read and write.
-We handle this with `sdk.services.storage`:
-
-```ts
-sdk.services.storage.set('global:theme', 'dark');
-```
-
-Plugins can subscribe to a `"theme:change"` event and also query the latest value from storage.
-
----
+This works for simple cases but gets fragile with more than one consumer. If two plugins both emit `'theme:request'` at the same time, both will receive both responses. Section 8.3 covers the cleaner request-reply pattern using correlation identifiers.
 
 ### Service-Based Communication
 
-For complex integrations, one plugin can expose an **SDK service** that others can call.
-Example:
+For complex integrations where one plugin provides a capability that many others need, the service registration pattern is more appropriate than events. Rather than broadcasting, the providing plugin registers a named service with the SDK, and consuming plugins call it directly through the service registry:
 
-- Analytics plugin registers `sdk.services.analytics.trackEvent()`.
-- Other plugins call it to record events without knowing analytics internals.
+```ts
+// Analytics plugin — registers a service during setup
+sdk.services.register('analytics', {
+  trackEvent: (name: string, properties?: Record<string, unknown>) => {
+    sendToAnalyticsPipeline({ name, properties, timestamp: Date.now() });
+  },
+  trackPageView: (path: string) => {
+    sendToAnalyticsPipeline({ type: 'pageview', path, timestamp: Date.now() });
+  },
+});
 
----
+// Any other plugin — calls the service without knowing how it is implemented
+const analytics = sdk.services.get<AnalyticsService>('analytics');
+analytics?.trackEvent('checkout:started', { cartTotal: 89.99 });
+```
 
-### Event-Driven Workflows
+The analytics plugin's implementation is completely hidden. Other plugins do not know whether events are going to Mixpanel, Segment, a custom backend, or nowhere at all in a test environment. This is the service locator pattern at the plugin level, and it is appropriate here because the SDK mediates access — plugins cannot reach past it to the analytics plugin's internals.
 
-Combine events with services to chain actions:
+Backstage's extension point model extends this idea: rather than registering a concrete service, a plugin defines an interface and other plugins contribute implementations to it. The search plugin defines `SearchExtensionPoint`; any other plugin can add an indexer by depending on that extension point rather than on the search plugin itself.
 
-1. Form plugin emits `form:submitted`.
-2. Validation plugin listens and checks data.
-3. API plugin sends data to the server.
-4. Notification plugin shows a success toast.
+### Chained Workflows
+
+The third pattern combines events with services to coordinate multi-step processes across plugin boundaries. Each step in the workflow is owned by a different plugin; events carry the state forward:
+
+```ts
+// Form plugin — initiates the chain
+async function handleFormSubmit(formData: FormData): Promise<void> {
+  sdk.events.emit('form:submitted', { data: formData });
+}
+
+// Validation plugin — intercepts and validates
+sdk.events.on('form:submitted', async ({ data }) => {
+  const result = await validate(data);
+  if (result.valid) {
+    sdk.events.emit('form:validated', { data });
+  } else {
+    sdk.events.emit('form:validation-failed', { errors: result.errors });
+  }
+});
+
+// API plugin — submits after validation
+sdk.events.on('form:validated', async ({ data }) => {
+  const response = await sdk.services.apiClient.post('/submissions', data);
+  sdk.events.emit('form:saved', { id: response.id });
+});
+
+// Notification plugin — closes the loop
+sdk.events.on('form:saved', () => {
+  sdk.ui.showToast('Saved successfully', 'success');
+});
+
+sdk.events.on('form:validation-failed', ({ errors }) => {
+  sdk.ui.showToast(`Please fix ${errors.length} error(s)`, 'error');
+});
+```
+
+This is essentially a pipeline. Each plugin owns its step and announces the result. The chain is easy to extend — adding an audit logging plugin means adding another listener to `'form:validated'` and `'form:saved'`. Nothing in the existing chain needs to change.
+
+The risk is debugging: when something goes wrong mid-chain, tracing which step failed requires either good logging or tooling that can visualise the event sequence. This is worth building early.
 
 ---
 
 ## 8.3 Asynchronous Communication
 
-Real-world events aren’t always instant—some require async handling.
+Most event handling in real applications is asynchronous. Network requests happen inside event handlers. Database operations run in the background. The event bus needs to accommodate this gracefully.
 
----
+### Async Event Handlers
 
-### Promise-Based APIs
-
-You can wrap event responses in promises for request-reply flows:
-
-```ts
-function requestTheme(): Promise<string> {
-  return new Promise((resolve) => {
-    sdk.events.emit('theme:request');
-    sdk.events.on('theme:response', resolve);
-  });
-}
-```
-
----
-
-### Async/Await Patterns
-
-Inside listeners, use `async` functions to handle long-running tasks:
+Registering an `async` function as a handler is straightforward, but the event bus needs to decide what to do with the returned promise. The simplest approach is to let handlers run independently and catch any rejections:
 
 ```ts
 sdk.events.on('report:generate', async (params) => {
   const data = await fetchReport(params);
-  sdk.events.emit('report:ready', data);
+  sdk.events.emit('report:ready', { reportId: data.id, url: data.downloadUrl });
 });
 ```
 
----
+If `fetchReport` throws, the event bus should catch the rejection and log it rather than letting it propagate as an unhandled rejection. Whether to emit a corresponding `'report:failed'` event depends on whether other plugins are expected to react to failures — in most workflows, they should be.
 
-### Message Acknowledgment
+### Request-Reply with Correlation
 
-For critical workflows, plugins can send back acknowledgments to confirm event handling.
-
----
-
-### Timeout and Error Handling
-
-If no plugin responds within a set time, the host can trigger a fallback:
+The pattern of emitting a request event and listening for a response event has a concurrency problem: if two plugins emit the same request simultaneously, both will receive both responses. Correlation identifiers solve this:
 
 ```ts
-setTimeout(() => {
-  console.warn('No plugin responded to theme:request');
-}, 3000);
+function requestWithReply<K extends keyof PluginEventMap>(
+  requestEvent: K,
+  responseEvent: keyof PluginEventMap,
+  payload: PluginEventMap[K],
+  timeoutMs = 3000
+): Promise<unknown> {
+  const correlationId = crypto.randomUUID();
+
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error(`No response to '${requestEvent}' within ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    const cleanup = sdk.events.on(responseEvent as keyof PluginEventMap, (response: any) => {
+      if (response.correlationId !== correlationId) return;
+      clearTimeout(timeoutId);
+      cleanup();
+      resolve(response);
+    });
+
+    sdk.events.emit(requestEvent, { ...payload, correlationId } as any);
+  });
+}
 ```
+
+Each request carries a unique `correlationId`. The responding plugin echoes that identifier back in its response. The requesting plugin filters incoming responses by correlationId, so concurrent requests never interfere with each other. The timeout ensures that the promise resolves even if no responder is registered, avoiding an indefinite hang.
+
+### Message Acknowledgement
+
+For critical workflows — particularly those involving side effects that should not be executed twice — acknowledgement adds a confirmation layer:
+
+```ts
+interface AcknowledgedEvent<T> {
+  payload: T;
+  correlationId: string;
+  acknowledge: (result: { success: boolean; error?: string }) => void;
+}
+
+// Host-side event emission with acknowledgement support
+function emitWithAck<K extends keyof PluginEventMap>(
+  event: K,
+  payload: PluginEventMap[K]
+): Promise<{ success: boolean; error?: string }> {
+  const correlationId = crypto.randomUUID();
+
+  return new Promise((resolve) => {
+    const wrappedPayload: AcknowledgedEvent<PluginEventMap[K]> = {
+      payload,
+      correlationId,
+      acknowledge: resolve,
+    };
+    sdk.events.emit(event as any, wrappedPayload);
+  });
+}
+
+// Subscriber that acknowledges
+sdk.events.on('payment:process' as any, async ({ payload, acknowledge }: AcknowledgedEvent<any>) => {
+  try {
+    await processPayment(payload);
+    acknowledge({ success: true });
+  } catch (error) {
+    acknowledge({ success: false, error: (error as Error).message });
+  }
+});
+```
+
+The emitter waits for acknowledgement before proceeding. If the handler fails, the emitter receives the error and can decide whether to retry, surface the failure, or take a compensating action. This pattern is appropriate for payment processing, file operations, and any workflow where "fire and forget" would leave the system in an inconsistent state.
 
 ---
 
-## 8.4 Performance and Security — Production Lessons
+## 8.4 Performance and Security
 
-### Performance Optimization Strategies
+Event-driven architectures can run into trouble at scale. High-frequency events flood the bus. Plugins that forget to clean up their listeners accumulate memory. Malicious or poorly written plugins try to emit events they should not have access to. Production systems have each developed specific techniques to address these problems.
 
-**Event Batching and Debouncing (TinaCMS Pattern)**
+### Event Batching and Debouncing
+
+TinaCMS operates in an edit-heavy environment where field changes fire rapidly as users type. Delivering every keypress as a discrete event to all subscribers would mean significant CPU overhead for nothing — the interesting event is the one that arrives after the user pauses, not each intermediate state. The batching approach collects high-frequency events and flushes them together on the next animation frame:
 
 ```ts
 class OptimizedEventBus {
@@ -228,7 +327,11 @@ class OptimizedEventBus {
 }
 ```
 
-**Memory Management (VS Code Pattern)**
+The `shouldBatch` decision is where application-specific knowledge lives. `'form:field-change'` events should be batched; `'payment:confirmed'` should never be. The event name prefix or a configuration table can drive this decision. Critical events bypass the batch queue entirely and are delivered immediately.
+
+### Memory Management
+
+VS Code's extension host manages hundreds of event subscriptions across dozens of extensions, and it has learned the hard way that leaked listeners accumulate quietly until they cause noticeable performance degradation. The pattern it uses ties listener tracking to the owner object:
 
 ```ts
 class MemoryEfficientEventBus {
@@ -271,9 +374,13 @@ class MemoryEfficientEventBus {
 }
 ```
 
-### Security and Validation
+The `WeakMap` keyed on the plugin instance is the critical detail. When the plugin is garbage-collected, its entry in the WeakMap is automatically removed — no explicit cleanup required. The `cleanupPlugin` method handles the deterministic case: when a plugin is unloaded through the lifecycle (stop → unload), the registry calls `cleanupPlugin` with the plugin instance, removing all its listeners immediately. The warning at 100 listeners per owner catches the most common leak pattern early.
 
-**Message Validation (Beekeeper Studio Pattern)**
+The connection to chapter 5's lifecycle is direct: the registry's `unload` step should call `cleanupPlugin` for every plugin being removed. Without that hook, plugins that go through a normal unload leave their listeners behind indefinitely.
+
+### Message Validation and Permission Checking
+
+Beekeeper Studio runs plugins inside iframes for process isolation. When a plugin sends a message to the host, the host cannot take that message at face value — the plugin may be buggy, or it may be actively trying to exceed its permissions. Every message goes through a validation and authorisation layer:
 
 ```ts
 interface SecurityContext {
@@ -327,7 +434,7 @@ class SecureEventBus {
         action: message.name,
         timestamp: new Date(),
         success: false,
-        error: error.message,
+        error: (error as Error).message,
       });
       throw error;
     }
@@ -358,7 +465,13 @@ class SecureEventBus {
 }
 ```
 
-**Cross-Plugin Security (NocoBase Pattern)**
+The permission set for each plugin is derived from its manifest at load time. A plugin that declared `capabilities.database` in its manifest can call `getTables` and `getColumns`. It cannot call `runQuery` unless it also declared `capabilities.queries`. The manifest, which was validated and potentially signed before installation, is the source of truth for what any given plugin is allowed to do.
+
+The audit log is worth highlighting: every action, successful or not, is recorded with a timestamp and the plugin's identifier. In a production environment, this log is the forensic trail that makes incident response possible.
+
+### Multi-Tenant Security
+
+NocoBase introduces an additional dimension: plugins can communicate across tenant boundaries in a multi-tenant deployment, and that capability needs careful control. A plugin processing data for tenant A should not be able to broadcast events that reach tenant B's subscribers:
 
 ```ts
 class MultiTenantEventSecurity {
@@ -400,56 +513,16 @@ class MultiTenantEventSecurity {
 }
 ```
 
----
+The `containsSensitiveData` scan is a blunt instrument — it will catch obvious leaks but not carefully obfuscated ones. In a production system, this would be accompanied by schema validation against the declared payload type, which ensures the payload is exactly what the event schema permits and nothing more. Chapter 9 covers the broader security model in detail; this is a preview of how the event bus feeds into it.
 
 ---
 
-## Key Takeaways — Event-Driven Architecture Lessons
+## Conclusion
 
-Production plugin systems demonstrate that event-driven communication is essential for scalable architectures, but implementation patterns vary significantly based on architectural constraints:
+Event-driven communication solves a specific problem: plugins that need to coordinate without depending on each other's code. The event bus is the mediator, and its design determines how loosely coupled the ecosystem can actually be in practice.
 
-### Pattern Selection Guidelines:
+The patterns covered here exist on a spectrum. Direct event broadcasting is the starting point and handles the majority of cases. Request-reply with correlation handles the minority where the emitter needs a response. Service registration handles the case where one plugin owns a capability that many others consume. Chained workflows handle multi-step processes that span plugin boundaries.
 
-**Use TinaCMS-style React Integration when:**
+The infrastructure concerns — typed schemas, async handling, batching, memory management, permission validation — are not optional extras. They are what separates a system that works in development from one that works reliably under real-world conditions. Typed event schemas catch integration errors at compile time. Memory management prevents degradation over long sessions. Permission validation ensures that the loose coupling of events does not become a security hole.
 
-- Building React-first applications
-- Component lifecycle management is critical
-- Type safety and developer experience are priorities
-
-**Use Backstage-style Extension Points when:**
-
-- Building enterprise platforms with complex dependencies
-- Type-safe service composition is required
-- Plugin capabilities need dynamic discovery
-
-**Use Beekeeper Studio-style Message Passing when:**
-
-- Security isolation is paramount
-- Plugins run in different execution contexts (iframes, workers)
-- Structured communication with validation is needed
-
-**Use NocoBase-style Event Sourcing when:**
-
-- Multi-tenant systems require audit trails
-- Event replay and debugging are important
-- Persistent event history provides business value
-
-### Universal Principles:
-
-1. **Memory Management**: Always provide cleanup mechanisms tied to plugin lifecycle
-2. **Type Safety**: Use TypeScript discriminated unions for event schemas
-3. **Performance**: Batch high-frequency events and debounce rapid changes
-4. **Security**: Validate messages, check permissions, and log access
-5. **Developer Experience**: Provide framework-specific integrations (React hooks, RxJS operators)
-
-### Architecture Trade-offs:
-
-- **Simplicity vs. Features**: Simple pub/sub is easy but lacks advanced patterns
-- **Security vs. Performance**: Message validation adds overhead but prevents attacks
-- **Type Safety vs. Flexibility**: Strong typing prevents errors but limits dynamic behavior
-- **Isolation vs. Integration**: Process isolation is secure but complicates communication
-
----
-
-**Next up:**
-In **Chapter 9**, we'll dive into **Security Considerations in Plugin Architecture**—examining how production systems handle sandboxing, permission models, and threat mitigation. We'll see how the event communication patterns we've explored integrate with comprehensive security architectures to create trustworthy plugin ecosystems.
+In the next chapter, we look at the security model as a whole — how sandboxing, permission declarations, and threat models combine into an architecture that can be trusted with sensitive data and third-party code.

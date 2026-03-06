@@ -1,0 +1,4 @@
+/docs /book 301
+/docs/* /book/:splat 301
+/documentation /book 301
+/documentation/* /book/:splat 301
