@@ -6,6 +6,8 @@
     "dev": "next dev --turbopack --port 3002",
     "build": "next build",
     "start": "next start",
+    "cf:upload": "npx wrangler versions upload --config wrangler.jsonc",
+    "cf:deploy": "npx wrangler deploy --config wrangler.jsonc",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "test": "echo \"No tests for plugin-docs\""
   },
