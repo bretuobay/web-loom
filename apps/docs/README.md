@@ -1,38 +1,89 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Web Loom Docs
 
-## Getting Started
+The main documentation site for the [Web Loom](https://github.com/bretuobay/web-loom) framework. It covers the MVVM architecture, all published and in-development packages, framework integration guides, and the `create-web-loom` CLI starter.
 
-First, run the development server:
+Built with Next.js 15 + Turbopack, Tailwind CSS 4, and MDX. Part of the web-loom monorepo.
+
+## What This Site Documents
+
+**Core architecture** — `BaseModel`, `BaseViewModel`, Commands, and the MVVM layering pattern that keeps business logic framework-agnostic.
+
+**Published packages** (10 on npm under `@web-loom/*`):
+
+| Package | Description |
+|---------|-------------|
+| `mvvm-core` | Base classes for Model, ViewModel, and Commands |
+| `mvvm-patterns` | Higher-level MVVM design patterns |
+| `signals-core` | Zero-dependency reactive primitives |
+| `query-core` | Typed caching layer over fetch |
+| `store-core` | Minimal reactive store for UI state |
+| `event-bus-core` | Typed pub/sub over EventTarget |
+| `event-emitter-core` | Strongly typed event emitter with disposal |
+| `ui-core` | Headless accessibility behaviors |
+| `ui-patterns` | Composed UI patterns (Wizard, MasterDetail, CommandPalette) |
+| `design-core` | Design tokens as CSS custom properties |
+
+**Package roadmap** — 24 additional packages fully implemented in the monorepo but not yet published: forms, media, HTTP, storage, router, i18n, notifications, error handling, platform detection, and more.
+
+**Framework guides** — Integration patterns and worked examples for React, Vue, Angular, Lit, Marko, Svelte, Solid, Qwik, React Native, and Vanilla TypeScript.
+
+**`create-web-loom`** — CLI scaffolder that generates Vite + MVVM starter apps across all supported frameworks and variants.
+
+## Local Development
+
+From the monorepo root:
+
+```bash
+nvm use 23
+npm install
+turbo run dev --filter=docs
+```
+
+Or from this directory:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The site runs at [http://localhost:4000](http://localhost:4000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Editing Content
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+Documentation pages live in `content/docs/` as `.mdx` files:
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+```
+content/docs/
+  getting-started.mdx
+  core-concepts.mdx
+  fundamentals.mdx
+  mvvm-core.mdx
+  viewmodels.mdx
+  models.mdx
+  signals-core.mdx
+  query-core.mdx
+  store-core.mdx
+  event-bus-core.mdx
+  ui-core.mdx
+  design-core.mdx
+  packages-roadmap.mdx
+  create-web-loom.mdx
+  mvvm-react-use-case.mdx
+  mvvm-vue-use-case.mdx
+  mvvm-angular-use-case.mdx
+  ... (one file per framework)
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Pages are discovered automatically from the filesystem. Frontmatter drives the sidebar title and navigation links.
 
-## Learn More
+## Building
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- [Next.js 15](https://nextjs.org/) with Turbopack
+- [Tailwind CSS 4](https://tailwindcss.com/)
+- MDX for documentation content
+- TypeScript 5
