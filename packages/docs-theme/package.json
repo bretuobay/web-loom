@@ -1,0 +1,32 @@
+{
+  "name": "@repo/docs-theme",
+  "version": "0.5.3",
+  "private": true,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./styles.css",
+    "./types": "./src/types.ts",
+    "./header": "./src/components/header.tsx",
+    "./footer": "./src/components/footer.tsx",
+    "./logo": "./src/components/logo.tsx",
+    "./theme-toggle": "./src/components/theme-toggle.tsx",
+    "./search-modal": "./src/components/search-modal.tsx",
+    "./search-trigger": "./src/components/search-trigger.tsx",
+    "./layout-shell": "./src/components/layout-shell.tsx"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit",
+    "test": "echo \"No tests for @repo/docs-theme\""
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "peerDependencies": {
+    "@headlessui/react": "^2.1.1",
+    "next": "^16.0.0",
+    "next-themes": "^0.4.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

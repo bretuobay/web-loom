@@ -9,37 +9,21 @@ nextSlug: '/docs/16-appendices-and-reference-material'
 
 # Chapter 15: Deployment, Versioning, and Plugin Distribution
 
-A plugin architecture is only as successful as its **distribution model**.
-No matter how well the SDK is designed or how secure the sandbox is, plugin developers and users need a **smooth path** to:
+Everything covered so far — manifests, lifecycles, registries, SDKs, security, performance — describes what happens after a plugin arrives in a running application. This chapter addresses how it gets there: the distribution model that determines where plugins come from and who controls that flow; the versioning strategy that keeps the ecosystem stable as plugins and the host platform both change; the CI/CD pipeline that automates the path from a developer's commit to a published release; the marketplace infrastructure that users interact with; and the governance requirements that enterprise deployments impose on all of the above.
 
-- **Publish** new plugins.
-- **Update** them safely.
-- **Distribute** them to the right audience (public marketplace, private registry, or enterprise deployments).
-
-This chapter focuses on:
-
-1. **Plugin distribution models** — public, private, and hybrid.
-2. **Version management strategies** — keeping compatibility and stability.
-3. **Deployment automation** — CI/CD for plugin publishing.
-4. **Plugin store implementation** — architecture for marketplaces.
-5. **Enterprise considerations** — secure, compliant, internal plugin ecosystems.
+These concerns are not purely operational. The distribution model shapes the security architecture — an open marketplace where any developer can publish requires different validation than a closed enterprise registry where every plugin is reviewed by an internal team. The versioning strategy shapes the SDK design — a platform that commits to strict semver compatibility must design its plugin APIs differently from one that expects plugins to be rebuilt for each major release. The decisions made here either reinforce or undermine the architectural choices in every earlier chapter.
 
 ---
 
 ## 15.1 Plugin Distribution Models
 
-How plugins reach the host application shapes the ecosystem’s reach and governance.
+The choice of distribution model is fundamentally a question of who the plugin authors are and how much the platform operator trusts them.
 
----
+### Centralised Marketplace
 
-### Centralized Marketplace
-
-**Examples**: VS Code Marketplace, WordPress Plugin Directory.
-
-**Architecture**: Single, curated source for all plugins with centralized review and distribution.
+VS Code's marketplace and WordPress's plugin directory are the canonical examples. A single, platform-operated registry is the source of all plugins. Every submission goes through automated validation and, for higher-risk plugins, human review. The registry tracks installation counts, user ratings, and compatibility data, which the host application uses to surface recommendations and warn about compatibility issues.
 
 ```typescript
-// VS Code Extension Manifest Example
 {
   "name": "typescript-hero",
   "publisher": "rbbit",
@@ -51,26 +35,15 @@ How plugins reach the host application shapes the ecosystem’s reach and govern
 }
 ```
 
-**Key Features**:
+The `engines.vscode` field is the platform's version constraint: the marketplace will not offer this extension to users running an older VS Code. The registry enforces this at the index level, not at load time, which means incompatible plugins are simply invisible to ineligible users rather than failing at activation.
 
-- **Automated validation** - Manifest schema validation, security scanning
-- **Review process** - Human moderation for quality and compliance
-- **Usage analytics** - Download metrics, active installations, ratings
-- **Update orchestration** - Automatic updates with rollback capabilities
-
-**Pros:** Easy discovery, trust-building via central review, unified update experience.
-**Cons:** Slower approval cycles, platform dependency, limited control for developers.
-
----
+The centralised model builds user trust through accountability — every published plugin is associated with a named publisher, download counts provide a social signal, and the review process catches obvious problems before they reach users. The cost is throughput: VS Code's marketplace review queue can take days for new publishers, and large extensions with complex permissions require more scrutiny. For most platforms, this trade-off is correct: the friction of review is much cheaper than the damage of a compromised plugin reaching millions of users.
 
 ### Private Plugin Registries
 
-**Examples**: Backstage's internal plugin ecosystem, enterprise Kibana deployments.
-
-**Architecture**: Organization-hosted registries with access controls and custom approval workflows.
+Backstage's internal plugin ecosystem and enterprise Kibana deployments use organisation-hosted registries where access is controlled by SSO and every submission goes through an internal approval workflow. The registry is not open to external developers; it serves only the organisation's own teams:
 
 ```typescript
-// Enterprise Plugin Configuration
 {
   "registries": [
     {
@@ -83,26 +56,15 @@ How plugins reach the host application shapes the ecosystem’s reach and govern
 }
 ```
 
-**Key Features**:
+The `policies` array names automated checks that run against every submitted plugin before it enters the review queue. A plugin that fails the security scan or uses a licence that conflicts with the company's legal policy is rejected automatically, without consuming a reviewer's time. Audit trails record every installation, configuration change, and removal — a requirement in regulated industries where change management processes must be demonstrable.
 
-- **SSO integration** - Enterprise authentication systems
-- **Policy enforcement** - Automated security and compliance checks
-- **License tracking** - Dependency license management
-- **Audit trails** - Complete installation and update history
-
-**Pros:** Controlled access, internal compliance, custom policies.
-**Cons:** Limited ecosystem growth, maintenance overhead.
-
----
+Private registries grow more slowly than open marketplaces because every author is an internal developer, but the trust model is correspondingly stronger. An enterprise that runs a private registry knows exactly who wrote every plugin, when it was reviewed, and what changed between versions.
 
 ### Self-Hosted Distribution
 
-**Examples**: Vite plugins via npm, Babel plugins from GitHub.
-
-**Architecture**: Plugin manifests and bundles served from developer-owned infrastructure.
+Vite plugins distributed via npm and Babel plugins hosted on GitHub are self-hosted: the plugin author controls the infrastructure and publishes without a centralised gatekeeper. The host application discovers plugins by URL or package name rather than through a curated index:
 
 ```typescript
-// Self-Hosted Plugin Discovery
 interface PluginManifest {
   name: string;
   version: string;
@@ -116,57 +78,33 @@ interface PluginManifest {
 }
 ```
 
-**Key Features**:
+The `checksum` field is what makes self-hosted distribution viable from a security perspective. The host verifies the downloaded bundle against the declared checksum before evaluating it, as described in chapter 9. The plugin author is responsible for hosting uptime and CDN performance; the platform operator is responsible for ensuring that only checksummed, verified bundles run.
 
-- **CDN distribution** - Global edge caching for performance
-- **Immutable versioning** - Content-addressed storage
-- **Developer autonomy** - No approval process required
-- **Custom licensing** - Flexible commercial models
-
-**Pros:** Full developer control, rapid deployment, custom business models.
-**Cons:** Requires developer to manage hosting, security, and uptime.
-
----
+This model suits developer-tool ecosystems where the users are also developers: they read changelogs, understand version constraints, and make informed decisions about which third-party plugins to trust. It is less appropriate for platforms whose users are non-technical.
 
 ### Database-Driven Dynamic Systems
 
-**Examples**: NocoBase runtime plugin management, dynamic CMS extensions.
-
-**Architecture**: Plugins installed and configured through admin interfaces with database persistence.
+NocoBase's runtime plugin management persists plugin state in the database, allowing administrators to install, configure, enable, and disable plugins through a UI without touching configuration files or redeploying the application:
 
 ```typescript
-// Runtime Plugin Management
 interface PluginRecord {
   name: string;
   version: string;
   enabled: boolean;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   dependencies: string[];
   installDate: Date;
   lastUpdate: Date;
 }
 ```
 
-**Key Features**:
-
-- **Hot-swapping** - Install/uninstall without restarts
-- **Multi-tenant configs** - Per-organization plugin settings
-- **Rollback support** - Version history and state restoration
-- **Admin UI** - Non-technical plugin management
-
-**Pros:** Runtime flexibility, multi-tenancy, user-friendly management.
-**Cons:** Complex state management, potential runtime instability.
-
----
+The platform queries this table at startup and on each state-change notification, reconciling what is in the database with what is loaded in memory. The operational flexibility is significant: an administrator can disable a plugin that is causing problems without a deployment, and the change propagates to all running instances within the next reconciliation cycle. The corresponding risk is complexity — runtime state transitions require careful handling of partial failures, and a plugin that crashes during hot-load can leave the system in an inconsistent state if the failure path is not well-designed.
 
 ### Hybrid Multi-Registry Models
 
-**Examples**: Backstage (marketplace + private), Kibana (core + commercial + community).
-
-**Architecture**: Multiple plugin sources with priority and fallback mechanisms.
+Backstage and Kibana both operate hybrid models: a curated core set of plugins maintained by the platform team, a commercial tier of verified third-party plugins, and a community tier with lighter review requirements. Each source has different trust levels and different policies applied to plugins from it:
 
 ```typescript
-// Multi-Registry Configuration
 {
   "pluginSources": [
     {
@@ -185,69 +123,76 @@ interface PluginRecord {
 }
 ```
 
-**Key Features**:
-
-- **Source prioritization** - Internal plugins override public ones
-- **Fallback chains** - Multiple sources for reliability
-- **Scope isolation** - Different policies per source
-- **Unified management** - Single interface for all sources
-
-**Pros:** Maximum flexibility, enterprise compliance, ecosystem access.
-**Cons:** Complex configuration, potential conflicts.
+Source priority determines which version wins when a plugin is available from multiple sources — an internal fork of a public plugin takes precedence over the public version. Different scopes can have different permission ceilings: a public-scope plugin might be limited to a subset of SDK APIs regardless of what it declares in its manifest. This layered model gives organisations the benefit of a community ecosystem without surrendering governance control over what runs inside their systems.
 
 ---
 
 ## 15.2 Version Management Strategies
 
-A healthy plugin ecosystem avoids **version chaos**.
+Versioning in a plugin ecosystem is not just a labelling convention — it is a coordination protocol between plugin authors, platform maintainers, and users. When it works well, users get automatic improvements without breakage. When it breaks down, ecosystems fragment into incompatible islands.
 
----
+### Semantic Versioning
 
-### Semantic Versioning (SemVer)
+SemVer's MAJOR.MINOR.PATCH scheme encodes API compatibility as a number. A PATCH release contains only bug fixes and is safe to apply automatically. A MINOR release adds capabilities without removing any existing ones — plugins compiled against v1.2.0 still work on v1.5.0. A MAJOR release may remove or change APIs, requiring plugin authors to update their code.
 
-Follow **MAJOR.MINOR.PATCH**:
-
-- **MAJOR** — Breaking changes to SDK integration or behavior.
-- **MINOR** — New features that are backward compatible.
-- **PATCH** — Bug fixes, security updates.
-
----
+The practical value of this commitment is in tooling: a package manager that understands `">=1.2.0 <2.0.0"` can automatically install the latest compatible version. A plugin marketplace that understands `compatibility: "^3.0.0"` can hide a plugin from users whose host is running v2.x. These automated decisions only work if the version numbers are honest — a MINOR release that silently breaks a behaviour is a contract violation that erodes trust in the entire version scheme.
 
 ### Backward Compatibility Planning
 
-- Keep deprecated APIs functional until the next major release.
-- Provide migration guides and codemods for breaking changes.
+Maintaining backward compatibility is harder than it sounds because it requires tracking not just the public API surface but the observable behaviour of every SDK method. A method that changed its error message format may technically have the same signature but break plugins that parse that message. A timing change — an event that previously fired synchronously now fires asynchronously — can break plugins that depended on the old timing without knowing it.
 
----
+The minimum commitment is: deprecated APIs remain functional until the next MAJOR version, with a `@deprecated` JSDoc comment and a runtime warning. Beyond that, contract tests — tests that verify the SDK's behaviour from a plugin's perspective rather than from the host's internals — provide the strongest guarantee. If the contract tests pass, the observable behaviour is unchanged, regardless of what changed internally.
 
-### Migration Strategy Design
+### Migration Strategy
 
-When a plugin updates:
+When a plugin updates, the host must handle three cases: the manifest is compatible and no migration is needed; the manifest declares a new version that includes data schema changes; or the update introduces breaking changes that require the plugin to be reinstalled rather than updated in place.
 
-1. Compare the new manifest against the old one.
-2. Run **data migrations** if schema changes occur.
-3. Rollback if initialization fails.
+The recommended approach for in-place updates:
 
----
+```typescript
+class PluginUpdateManager {
+  async applyUpdate(pluginId: string, newVersion: string): Promise<UpdateResult> {
+    const current = await this.registry.getPlugin(pluginId);
+    const update = await this.fetch(pluginId, newVersion);
+
+    // Compare manifests to detect schema changes
+    const schemaChanges = this.diffManifests(current.manifest, update.manifest);
+
+    const transaction = await this.db.beginTransaction();
+    try {
+      if (schemaChanges.hasMigrations) {
+        await this.runMigrations(pluginId, schemaChanges.migrations, transaction);
+      }
+
+      await this.registry.updatePlugin(pluginId, update, transaction);
+      await transaction.commit();
+
+      return { status: 'success', migrationsRun: schemaChanges.migrations.length };
+    } catch (error) {
+      await transaction.rollback();
+      return { status: 'rolled-back', reason: (error as Error).message };
+    }
+  }
+}
+```
+
+Wrapping the migration and registry update in a single database transaction means either both succeed or neither does. A failed migration leaves the plugin in its previous state rather than a half-migrated limbo.
 
 ### Breaking Change Communication
 
-For public marketplaces:
+For public marketplaces, users who update a plugin and find their workflow broken will blame the platform, not the plugin author. Breaking change communication is therefore a platform responsibility, not just a plugin author courtesy.
 
-- Notify users before updates that include breaking changes.
-- Include “Update Impact” summaries in release notes.
+Effective communication has two components: advance notice and accurate impact summaries. Advance notice means flagging breaking changes in the plugin's release notes before they ship, ideally in a dedicated "Migration Required" section. Impact summaries tell users specifically what will change — "The engraving widget will reset its saved text after this update due to a storage key change" — not just "breaking changes included." A platform that enforces this format in submission review catches the ambiguous "various improvements" changelogs before they reach users.
 
 ---
 
 ## 15.3 Deployment Automation
 
-Modern plugin ecosystems demand sophisticated CI/CD pipelines that ensure security, compatibility, and quality at scale.
-
----
+The path from a plugin developer's commit to a published, signed, CDN-distributed release should be automated end-to-end. Manual steps in a deployment pipeline are where security checks get skipped under deadline pressure and where human errors introduce inconsistencies between releases.
 
 ### Multi-Stage Pipeline Architecture
 
-**Comprehensive Build Pipeline** (inspired by VS Code Extensions and Backstage):
+The pipeline gates deployment on a sequence of checks that must all pass:
 
 ```yaml
 # .github/workflows/plugin-deploy.yml
@@ -265,13 +210,8 @@ jobs:
     steps:
       - name: Validate Plugin Manifest
         run: |
-          # Schema validation
           ajv validate -s plugin-schema.json -d manifest.json
-
-          # Dependency compatibility check
           npm run check-platform-compatibility
-
-          # License compliance scan
           npm run license-scan
 
   test:
@@ -290,7 +230,6 @@ jobs:
 
       - name: E2E Tests
         run: |
-          # Spin up host application with plugin
           npm run start:test-host &
           npm run test:e2e
 
@@ -307,10 +246,7 @@ jobs:
 
       - name: Bundle Analysis
         run: |
-          # Check for malicious patterns
           npm run malware-scan
-
-          # Verify bundle size limits
           npm run bundle-size-check
 
   build:
@@ -323,14 +259,11 @@ jobs:
         id: build
         run: |
           npm run build
-
-          # Generate content hash
           HASH=$(sha256sum dist/plugin.js | cut -d' ' -f1)
           echo "hash=$HASH" >> $GITHUB_OUTPUT
 
       - name: Sign Bundle
         run: |
-          # Digital signature for security
           gpg --detach-sign --armor dist/plugin.js
 
       - name: Upload Artifacts
@@ -346,32 +279,28 @@ jobs:
     steps:
       - name: Deploy to Registry
         run: |
-          # Update plugin registry
           curl -X POST $REGISTRY_URL/plugins \
             -H "Authorization: Bearer $REGISTRY_TOKEN" \
             -d @plugin-manifest.json
-            
-          # Deploy to CDN
+
           aws s3 cp dist/ s3://$CDN_BUCKET/$PLUGIN_NAME/$VERSION/ --recursive
 
       - name: Update Marketplace Index
         run: |
-          # Atomic index update
           npm run update-marketplace-index
 ```
 
----
+The matrix strategy in the `test` job runs the integration tests against three different platform versions simultaneously. A plugin that passes against v1.74.0 but fails against v1.85.0 is caught here rather than by a user report. The `build` job runs only after all three gates pass, and `deploy` runs only on tag pushes — pull requests get validation and testing but not publication.
 
-### Advanced Testing Strategies
+### Testing and Compatibility Checks
 
-**Platform Compatibility Matrix** (VS Code approach):
+The compatibility matrix test is one of the most valuable additions to a plugin pipeline. The expected behaviour at each platform version is declared explicitly, which means regressions in either direction — a feature that stops working in a new platform version, or a feature that unexpectedly starts working — are caught:
 
 ```typescript
-// tests/compatibility.test.ts
 interface CompatibilityTest {
   platformVersion: string;
   pluginFeatures: string[];
-  expectedBehavior: Record<string, any>;
+  expectedBehavior: Record<string, unknown>;
 }
 
 const compatibilityMatrix: CompatibilityTest[] = [
@@ -394,64 +323,41 @@ const compatibilityMatrix: CompatibilityTest[] = [
 ];
 ```
 
-**Performance Benchmarking** (Inspired by Babel plugin testing):
+Performance regression tests belong in the same pipeline. A plugin that processes large files should be benchmarked on every build; a regression that doubles processing time should fail the build before it ships:
 
 ```typescript
-// Performance regression tests
-interface PerformanceBenchmark {
-  testName: string;
-  maxExecutionTime: number;
-  maxMemoryUsage: number;
-  testPayload: any;
-}
-
 const performanceTests: PerformanceBenchmark[] = [
   {
     testName: 'large-file-processing',
-    maxExecutionTime: 2000, // 2 seconds
-    maxMemoryUsage: 50 * 1024 * 1024, // 50MB
-    testPayload: generateLargeCodeFile(100000),
+    maxExecutionTime: 2000,
+    maxMemoryUsage: 50 * 1024 * 1024,
+    testPayload: generateLargeCodeFile(100_000),
   },
 ];
 ```
 
-**Security Validation Pipeline**:
+Security validation runs in parallel with functional tests rather than sequentially, reducing total pipeline time without reducing coverage:
 
 ```typescript
-// Automated security checks
-interface SecurityCheck {
-  name: string;
-  validator: (plugin: PluginBundle) => Promise<SecurityResult>;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-}
-
 const securityChecks: SecurityCheck[] = [
   {
     name: 'malware-scan',
-    validator: async (plugin) => {
-      // Static analysis for malicious patterns
-      return await scanForMaliciousPatterns(plugin.code);
-    },
+    validator: async (plugin) => scanForMaliciousPatterns(plugin.code),
     severity: 'critical',
   },
   {
     name: 'dependency-vulnerability-scan',
-    validator: async (plugin) => {
-      return await auditDependencies(plugin.dependencies);
-    },
+    validator: async (plugin) => auditDependencies(plugin.dependencies),
     severity: 'high',
   },
 ];
 ```
 
----
+### Immutable Artefacts and Zero-Downtime Registry Updates
 
-### Release Management Architecture
-
-**Immutable Artifact Storage** (Inspired by enterprise plugin systems):
+Once a version is published, its build artefact must be immutable. A published `v1.2.3` bundle should never change — users and platform operators need to be able to verify that what they are running is what was reviewed and signed:
 
 ```typescript
-// Artifact management system
 interface PluginArtifact {
   pluginId: string;
   version: string;
@@ -472,199 +378,185 @@ interface PluginArtifact {
 
 class ArtifactRegistry {
   async publishArtifact(artifact: PluginArtifact): Promise<void> {
-    // Verify digital signature
     await this.verifySignature(artifact);
 
-    // Store in multiple locations for redundancy
-    await Promise.all([this.storePrimary(artifact), this.storeMirrors(artifact), this.updateIndex(artifact)]);
+    await Promise.all([
+      this.storePrimary(artifact),
+      this.storeMirrors(artifact),
+      this.updateIndex(artifact),
+    ]);
 
-    // Atomic registry update
     await this.atomicIndexUpdate(artifact);
   }
 }
 ```
 
-**Blue-Green Deployment for Plugin Registries**:
+Registry index updates — the JSON file or database record that tells the platform what plugins are available — should use a blue-green deployment pattern to avoid a window where the index is inconsistent:
 
 ```typescript
-// Zero-downtime registry updates
 class RegistryDeployment {
   async deployNewVersion(plugins: PluginArtifact[]): Promise<void> {
-    // Build new registry index
     const newIndex = await this.buildRegistryIndex(plugins);
 
-    // Deploy to staging environment
     await this.deployToStaging(newIndex);
-
-    // Run health checks
     await this.runHealthChecks();
-
-    // Atomic swap to production
     await this.atomicSwap(newIndex);
 
-    // Cleanup old version after verification
-    setTimeout(() => this.cleanupOldVersion(), 300000); // 5 minutes
+    setTimeout(() => this.cleanupOldVersion(), 300_000);
   }
 }
 ```
 
----
+The old version is kept for five minutes after the atomic swap, giving any in-flight requests that started against the old index time to complete before it is removed.
 
-### Monitoring and Rollback Systems
+### Health Monitoring and Rollback
 
-**Real-time Health Monitoring**:
+Automated rollback is the safety net that makes aggressive deployment cadences viable. A plugin that suddenly exhibits elevated error rates or crash counts after an update should revert to its previous version without waiting for a human to notice and act:
 
 ```typescript
-// Plugin health monitoring
-interface PluginHealthMetrics {
-  pluginId: string;
-  version: string;
-  metrics: {
-    activationTime: number;
-    errorRate: number;
-    memoryUsage: number;
-    crashCount: number;
-    userReports: {
-      positive: number;
-      negative: number;
-    };
-  };
-}
-
 class PluginHealthMonitor {
   async monitorPlugin(pluginId: string): Promise<void> {
     const metrics = await this.collectMetrics(pluginId);
 
     if (metrics.errorRate > 0.05 || metrics.crashCount > 10) {
-      // Automatic rollback for critical issues
       await this.triggerRollback(pluginId, 'high-error-rate');
     }
   }
 }
-```
 
-**Intelligent Rollback Procedures** (NocoBase-inspired):
-
-```typescript
 class AutomatedRollback {
   async rollbackPlugin(pluginId: string, reason: RollbackReason): Promise<void> {
-    // Find last stable version
     const lastStable = await this.findLastStableVersion(pluginId);
-
-    // Create rollback transaction
     const transaction = await this.db.beginTransaction();
 
     try {
-      // Restore previous version
       await this.restoreVersion(pluginId, lastStable.version);
-
-      // Notify affected users
       await this.notifyUsers(pluginId, reason);
-
-      // Update registry
       await this.updateRegistry(pluginId, lastStable);
 
       await transaction.commit();
     } catch (error) {
       await transaction.rollback();
-      throw new RollbackFailureError(error);
+      throw new RollbackFailureError(error as Error);
     }
   }
 }
 ```
 
+The rollback transaction wraps the version restoration, user notification, and registry update as a single atomic operation. If the registry update fails after the version has been restored, the transaction rolls back to the failed new version state — avoiding the scenario where users are notified of a rollback that did not actually complete.
+
 ---
 
 ## 15.4 Plugin Store Implementation
 
-A plugin marketplace isn’t just a list of plugins—it’s a **discovery, validation, and update platform**.
+A plugin marketplace is a discovery and trust system as much as a distribution system. The technical architecture serves the social function of helping users find plugins that solve their problems and verify that those plugins are safe to install.
 
----
+### Manifest Index and Search
 
-### Marketplace Architecture
+The index is the marketplace's authoritative record of available plugins. It is a structured document — JSON or a database — containing the metadata the host application needs to present search results, filter by compatibility, and resolve versions:
 
-- **Manifest Index** — JSON list of all available plugins with metadata.
-- **Search and Filter Engine** — by category, rating, compatibility.
-- **Version Resolver** — selects the right plugin version for the host’s SDK.
+```typescript
+interface MarketplaceIndex {
+  plugins: {
+    id: string;
+    name: string;
+    publisher: string;
+    description: string;
+    categories: string[];
+    compatibility: string;          // SemVer range for host version
+    latestVersion: string;
+    downloadCount: number;
+    averageRating: number;
+    reviewCount: number;
+    lastUpdated: Date;
+    verified: boolean;              // Publisher identity verified
+    securityReviewed: boolean;      // Manual security review completed
+  }[];
+  generatedAt: Date;
+  schemaVersion: string;
+}
+```
 
----
+The `compatibility` field is the index-level version filter. When a user opens the marketplace from a host running v3.2.0, the client filters the index to plugins whose compatibility range includes v3.2.0, hiding everything else. This is simpler and more reliable than showing all plugins and marking incompatible ones with a warning — users install what they see, and making incompatible plugins invisible prevents the support burden of "I installed it and now nothing works."
 
-### Review and Approval Process
+### Review and Approval Workflow
 
-- Automated validation (manifest schema, size limits, security scan).
-- Human review for UI quality and compliance.
+A two-stage review — automated then human — scales better than purely manual review as submission volume grows. Automated validation catches structural problems: malformed manifests, declared permissions that exceed the platform maximum, bundle sizes above the limit, known vulnerability patterns in the code, and licence conflicts. Human review focuses on what automation cannot catch: whether the plugin does what it claims to do, whether the user experience is consistent with platform standards, and whether the permission declarations are appropriate for the stated functionality.
 
----
+```typescript
+class MarketplaceReviewPipeline {
+  async submitForReview(submission: PluginSubmission): Promise<ReviewResult> {
+    // Automated gate — must pass before entering human review queue
+    const automated = await this.runAutomatedChecks(submission);
+    if (!automated.passed) {
+      return { status: 'rejected-automated', failures: automated.failures };
+    }
 
-### Payment Processing
+    // Assign to human reviewer based on category expertise
+    const reviewer = await this.assignReviewer(submission.categories);
 
-If the marketplace sells plugins:
+    return {
+      status: 'pending-review',
+      reviewerId: reviewer.id,
+      estimatedCompletion: this.estimateReviewTime(submission, reviewer),
+    };
+  }
+}
+```
 
-- Integrate payment APIs (Stripe, Paddle).
-- Handle licensing and entitlement checks inside the host.
+Publishers who pass human review for their first submission can be granted a "verified publisher" status that reduces subsequent submissions to automated-only review. This is how VS Code's marketplace scales: established publishers with a track record ship updates quickly; new publishers receive closer scrutiny.
 
----
+### Commercial Licensing and Entitlements
 
-### Analytics and Metrics
+Marketplaces that sell paid plugins need an entitlement layer that the host application can query at activation time. Checking entitlements at activation — not just at install — handles scenarios where a subscription lapses after the plugin was installed:
 
-For marketplace operators:
+```typescript
+class EntitlementService {
+  async checkEntitlement(pluginId: string, userId: string): Promise<EntitlementResult> {
+    const entitlement = await this.db.findEntitlement({ pluginId, userId });
 
-- Download counts.
-- Active installation numbers.
-- Error and performance telemetry per plugin.
+    if (!entitlement) {
+      return { granted: false, reason: 'no-purchase' };
+    }
+
+    if (entitlement.type === 'subscription' && entitlement.expiresAt < new Date()) {
+      return { granted: false, reason: 'subscription-expired', expiresAt: entitlement.expiresAt };
+    }
+
+    return { granted: true, licenceType: entitlement.type };
+  }
+}
+```
+
+The host calls this at the `start` lifecycle phase, after the plugin has been loaded but before it is made active. A plugin whose entitlement has lapsed is placed in a degraded state — visible but not functional — with a message directing the user to renew.
+
+### Usage Analytics
+
+Marketplace analytics serve both the platform operator and plugin authors. Download counts and active installation numbers help users gauge a plugin's adoption. Per-plugin error rates and performance telemetry help platform operators identify plugins that need attention. For plugin authors, aggregate usage data — which features are used most, which configurations are most common — informs where to invest development effort.
+
+The key is attribution: every telemetry event must carry the plugin identifier so that a spike in error rates can be traced to a specific plugin version. Aggregated "JavaScript errors on page X" without plugin attribution is nearly useless for marketplace operators.
 
 ---
 
 ## 15.5 Enterprise Considerations
 
-Enterprise environments demand **sophisticated governance, compliance, and operational excellence** that goes beyond basic marketplace functionality.
-
----
+Enterprise deployments layer governance, compliance, and operational requirements on top of the technical architecture. These requirements are not optional extras — in regulated industries, demonstrating control over third-party code running in production systems is a compliance obligation.
 
 ### Enterprise Plugin Development Lifecycle
 
-**Internal Development Framework** (Inspired by Backstage's enterprise model):
+Backstage's internal plugin model is instructive here: plugins are submitted through an approval workflow that verifies ownership, checks policy compliance, and conducts a security assessment before the plugin enters the internal registry:
 
 ```typescript
-// Enterprise plugin development standards
-interface EnterprisePluginStandards {
-  development: {
-    approvedSDKVersions: string[];
-    requiredTestCoverage: number; // 85% minimum
-    codeQualityGates: QualityGate[];
-    securityRequirements: SecurityRequirement[];
-  };
-
-  governance: {
-    ownershipModel: 'team' | 'product' | 'platform';
-    approvalWorkflow: ApprovalWorkflow;
-    changeManagement: ChangeManagementProcess;
-    retirementPolicy: RetirementPolicy;
-  };
-
-  compliance: {
-    dataHandling: DataHandlingPolicy;
-    auditRequirements: AuditRequirement[];
-    regulatoryCompliance: RegulatoryFramework[];
-  };
-}
-
-// Enterprise plugin registry with advanced governance
 class EnterprisePluginRegistry {
   async submitPlugin(plugin: PluginSubmission, context: EnterpriseContext): Promise<SubmissionResult> {
-    // Step 1: Ownership verification
     await this.verifyOwnership(plugin, context.submitter);
 
-    // Step 2: Policy compliance check
     const complianceResult = await this.validateCompliance(plugin);
     if (!complianceResult.passed) {
       return { status: 'rejected', reason: complianceResult.violations };
     }
 
-    // Step 3: Security assessment
     const securityAssessment = await this.performSecurityAssessment(plugin);
-
-    // Step 4: Approval workflow
     const approvalProcess = await this.initiateApprovalWorkflow(plugin, context);
 
     return {
@@ -676,80 +568,34 @@ class EnterprisePluginRegistry {
 }
 ```
 
-**Multi-Tenant Plugin Management**:
+Ownership verification — confirming that the submitter belongs to the team that owns the plugin — prevents one team from inadvertently updating another team's plugin. In a large organisation, two teams working on adjacent domains may both create a plugin named `data-export`; the registry needs a clear ownership model to determine which submission is authoritative.
+
+### Multi-Tenant Plugin Management
+
+For SaaS platforms serving multiple organisations from shared infrastructure, plugin configuration must be isolated per tenant. One tenant enabling a plugin with a specific API key should not affect another tenant's configuration:
 
 ```typescript
-// Enterprise multi-tenancy support
-interface TenantPluginConfiguration {
-  tenantId: string;
-  pluginConfigurations: {
-    [pluginId: string]: {
-      enabled: boolean;
-      version: string;
-      configuration: Record<string, any>;
-      permissions: PluginPermission[];
-      resourceLimits: ResourceLimits;
-    };
-  };
-  inheritanceRules: {
-    fromParent: boolean;
-    overridePolicy: 'allow' | 'deny' | 'restricted';
-  };
-}
-
 class MultiTenantPluginManager {
   async deployToTenant(
     tenantId: string,
     pluginId: string,
     configuration: PluginConfiguration,
   ): Promise<DeploymentResult> {
-    // Validate tenant permissions
     await this.validateTenantPermissions(tenantId, pluginId);
-
-    // Check resource quotas
     await this.validateResourceQuotas(tenantId, configuration.resourceLimits);
 
-    // Deploy with tenant isolation
     return this.deployWithIsolation(tenantId, pluginId, configuration);
   }
 }
 ```
 
----
+Resource quotas per tenant prevent a single tenant's plugin configuration from consuming disproportionate memory or CPU, which would degrade the platform for others. The quota check at deployment time is more reliable than enforcement at runtime because it catches the problem before it affects production behaviour.
 
-### Advanced Security and Compliance Framework
+### Security and Compliance Validation
 
-**Comprehensive Security Architecture**:
+Enterprise security validation runs in parallel across multiple dimensions — code signing, vulnerability scanning, permission analysis, dependency audit, and regulatory compliance assessment — because each catches a different class of problem:
 
 ```typescript
-// Enterprise security framework
-interface EnterpriseSecurity {
-  authentication: {
-    ssoIntegration: SSOConfiguration;
-    multiFactorAuth: boolean;
-    certificateBasedAuth: boolean;
-  };
-
-  authorization: {
-    roleBasedAccess: RBACConfiguration;
-    attributeBasedAccess: ABACConfiguration;
-    privilegedAccessManagement: PAMConfiguration;
-  };
-
-  cryptography: {
-    codeSigningRequirements: CodeSigningPolicy;
-    encryptionStandards: EncryptionStandard[];
-    keyManagement: KeyManagementPolicy;
-  };
-
-  monitoring: {
-    securityEventLogging: SecurityEventPolicy;
-    threatDetection: ThreatDetectionConfiguration;
-    incidentResponse: IncidentResponsePlan;
-  };
-}
-
-// Advanced plugin security validation
 class EnterpriseSecurityValidator {
   async validatePlugin(plugin: PluginBundle): Promise<SecurityValidationResult> {
     const results = await Promise.all([
@@ -769,7 +615,6 @@ class EnterpriseSecurityValidator {
   }
 
   private async validateCodeSigning(plugin: PluginBundle): Promise<ValidationResult> {
-    // Verify digital signatures
     const signature = await this.extractSignature(plugin);
     const certificate = await this.getCertificate(signature);
 
@@ -783,35 +628,17 @@ class EnterpriseSecurityValidator {
 }
 ```
 
-**Regulatory Compliance Framework** (Inspired by enterprise Kibana deployments):
+Regulatory compliance varies by industry and jurisdiction. A plugin handling personal data in a European deployment must meet GDPR data handling requirements. A plugin used in a financial services context may fall under SOX controls. A healthcare application plugin is subject to HIPAA. The compliance manager maps these regulatory requirements to specific technical checks:
 
 ```typescript
-// Compliance management system
-interface ComplianceFramework {
-  regulations: {
-    gdpr: GDPRCompliance;
-    sox: SOXCompliance;
-    hipaa: HIPAACompliance;
-    fedramp: FedRAMPCompliance;
-  };
-
-  auditTrails: {
-    pluginInstallations: AuditLog[];
-    configurationChanges: AuditLog[];
-    dataAccess: AuditLog[];
-    userActions: AuditLog[];
-  };
-
-  dataGovernance: {
-    dataClassification: DataClassificationPolicy;
-    retentionPolicies: DataRetentionPolicy[];
-    accessControls: DataAccessControl[];
-  };
-}
-
 class ComplianceManager {
-  async assessPluginCompliance(plugin: PluginManifest, regulations: RegulationType[]): Promise<ComplianceAssessment> {
-    const assessments = await Promise.all(regulations.map((reg) => this.assessRegulation(plugin, reg)));
+  async assessPluginCompliance(
+    plugin: PluginManifest,
+    regulations: RegulationType[]
+  ): Promise<ComplianceAssessment> {
+    const assessments = await Promise.all(
+      regulations.map((reg) => this.assessRegulation(plugin, reg))
+    );
 
     return {
       overallCompliance: this.calculateComplianceScore(assessments),
@@ -823,123 +650,11 @@ class ComplianceManager {
 }
 ```
 
----
+### Dependency Health and Automated Security Updates
 
-### Enterprise License and Asset Management
-
-**Comprehensive License Governance**:
+A plugin's dependencies are part of its attack surface. A plugin built on a library with a known CVE is a security risk even if the plugin's own code is clean. Continuous dependency scanning — not just at submission time but on an ongoing schedule — catches newly disclosed vulnerabilities in previously approved plugins:
 
 ```typescript
-// Enterprise license management
-interface EnterpriseLicenseManagement {
-  tracking: {
-    assetInventory: LicenseAsset[];
-    usageMonitoring: UsageMonitoring;
-    complianceTracking: ComplianceTracking;
-  };
-
-  automation: {
-    licenseHarvesting: boolean;
-    automaticRenewal: RenewalPolicy;
-    costOptimization: CostOptimizationRule[];
-  };
-
-  reporting: {
-    utilizationReports: ReportConfiguration[];
-    complianceReports: ComplianceReport[];
-    costAnalysis: CostAnalysisReport[];
-  };
-}
-
-class EnterpriseLicenseManager {
-  async analyzeLicenseCompliance(): Promise<LicenseComplianceReport> {
-    const allPlugins = await this.getAllInstalledPlugins();
-
-    const analysisResults = await Promise.all(allPlugins.map((plugin) => this.analyzePluginLicenses(plugin)));
-
-    return {
-      summary: {
-        totalPlugins: allPlugins.length,
-        compliantPlugins: analysisResults.filter((r) => r.compliant).length,
-        riskLevel: this.calculateOverallRisk(analysisResults),
-      },
-
-      findings: {
-        incompatibleLicenses: analysisResults.filter((r) => r.incompatible),
-        missingLicenses: analysisResults.filter((r) => r.missingLicense),
-        expiredLicenses: analysisResults.filter((r) => r.expired),
-      },
-
-      recommendations: this.generateLicenseRecommendations(analysisResults),
-    };
-  }
-}
-```
-
----
-
-### Enterprise Support and SLA Management
-
-**Service Level Agreement Framework**:
-
-```typescript
-// Enterprise SLA management
-interface EnterpriseSLA {
-  pluginSupport: {
-    responseTime: {
-      critical: number; // 2 hours
-      high: number; // 8 hours
-      medium: number; // 24 hours
-      low: number; // 72 hours
-    };
-
-    resolutionTime: {
-      critical: number; // 4 hours
-      high: number; // 24 hours
-      medium: number; // 72 hours
-      low: number; // 168 hours
-    };
-
-    availability: {
-      uptime: number; // 99.9%
-      maintenanceWindows: MaintenanceWindow[];
-    };
-  };
-
-  securitySupport: {
-    vulnerabilityResponse: number; // 4 hours for critical
-    securityPatching: number; // 24 hours for critical
-    incidentResponse: number; // 1 hour for critical
-  };
-}
-
-class EnterpriseSupportManager {
-  async monitorSLACompliance(): Promise<SLAComplianceReport> {
-    const activeIncidents = await this.getActiveIncidents();
-    const slaBreaches = await this.identifySLABreaches();
-
-    return {
-      currentCompliance: this.calculateCurrentCompliance(),
-      trends: await this.analyzeSLATrends(),
-      breaches: slaBreaches,
-      recommendations: this.generateSLARecommendations(),
-    };
-  }
-
-  async escalateIncident(incidentId: string): Promise<void> {
-    const incident = await this.getIncident(incidentId);
-    const escalationPath = this.determineEscalationPath(incident);
-
-    await this.notifyStakeholders(escalationPath);
-    await this.updateIncidentStatus(incidentId, 'escalated');
-  }
-}
-```
-
-**Automated Dependency Management**:
-
-```typescript
-// Enterprise dependency management
 class EnterpriseDependencyManager {
   async scanDependencyHealth(): Promise<DependencyHealthReport> {
     const allPlugins = await this.getAllPlugins();
@@ -948,7 +663,7 @@ class EnterpriseDependencyManager {
     return {
       vulnerabilities: await this.scanVulnerabilities(dependencyGraph),
       outdatedPackages: await this.findOutdatedPackages(dependencyGraph),
-      licenseIssues: await this.scanLicenseIssues(dependencyGraph),
+      licenceIssues: await this.scanLicenceIssues(dependencyGraph),
       securityAlerts: await this.generateSecurityAlerts(dependencyGraph),
       recommendations: this.generateUpdateRecommendations(dependencyGraph),
     };
@@ -969,19 +684,16 @@ class EnterpriseDependencyManager {
 }
 ```
 
----
-
-## Key Takeaways
-
-A sustainable plugin ecosystem:
-
-1. Chooses a **distribution model** that matches its audience.
-2. Manages versions with **SemVer and clear migration paths**.
-3. Uses **CI/CD pipelines** for safe, repeatable deployments.
-4. Operates a plugin store with **validation, analytics, and rollback support**.
-5. Meets **enterprise governance** needs without slowing innovation.
+Automated fixes apply when the vulnerability has a patch-level dependency update that does not require API changes — the common case for disclosed library CVEs. When the fix requires a breaking dependency change, a security incident is created for human review rather than applying an automated change that might break functionality.
 
 ---
 
-**Next up:**
-We’ll close out with the **Appendices**, where you’ll find complete TypeScript definitions, example implementations for different frameworks, build configuration samples, and checklists for security and performance audits—turning this book into a ready-to-use reference for your own plugin architecture.
+## Conclusion
+
+Distribution is where the plugin architecture meets the real world. The decisions made here — centralised vs private registry, rigid SemVer vs loose compatibility, manual review vs automated-only — shape who can participate in the ecosystem, how much the platform operator can trust what runs in it, and how quickly developers can ship improvements to users.
+
+The technical patterns in this chapter — immutable artefacts, atomic index updates, blue-green registry deployments, automated rollback based on error rate thresholds — exist to make the operational reality match the architectural promises. A plugin system that loads only signed, versioned, checksummed bundles is only as trustworthy as the pipeline that produces those bundles; a pipeline that can roll back automatically when a release goes wrong is more operationally confident than one that requires a human to notice and act.
+
+Enterprise requirements add governance and compliance layers that most open-source ecosystems do not need but that production SaaS platforms operating in regulated industries cannot avoid. The patterns here — ownership verification, per-tenant isolation, parallel compliance assessment, continuous dependency scanning — are the translation of those organisational requirements into code.
+
+The appendices that follow provide reference material: complete TypeScript interfaces, implementation checklists for security and performance audits, and configuration examples for the tooling discussed throughout the book.

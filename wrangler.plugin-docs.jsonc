@@ -1,0 +1,7 @@
+{
+  "name": "web-loom-plugin-architectures-book",
+  "compatibility_date": "2026-03-06",
+  "assets": {
+    "directory": "./apps/plugin-docs/out"
+  }
+}

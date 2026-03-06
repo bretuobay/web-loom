@@ -1,11 +1,15 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import LogoImg from '@/public/images/logo.svg';
+import { BrandLogo } from '@repo/docs-theme';
 
 export default function Logo() {
   return (
-    <Link className="inline-flex mb-2 md:mb-0" href="/" aria-label="Cruip">
-      <Image src={LogoImg} width={32} height={32} alt="Docs" />
-    </Link>
+    <BrandLogo
+      href="/"
+      imageSrc="/images/webloom.png"
+      imageAlt="Web Loom logo"
+      imageWidth={36}
+      imageHeight={36}
+      brandText="Web"
+      accentText=".loom"
+    />
   );
 }

@@ -1,38 +1,78 @@
-# Plugin Package Documentation
+# Building Extensible Web Applications
 
-This site provides documentation for the plugin package in this monorepo. It is built with [Next.js](https://nextjs.org/) and is not a starter template.
+**A Complete Guide to TypeScript Plugin Architecture**
 
-Use this documentation to learn about the available plugins, their APIs, usage examples, and integration guides.
+*By Festus Yeboah · Foreword by Evans Boateng Owusu*
 
-## Getting Started
+---
+
+This is the Next.js site that hosts the complete Plugin Architecture book. It is part of the [web-loom](https://github.com/bretuobay/web-loom) monorepo and is not a starter template.
+
+The book covers plugin system design from first principles through to production deployment, drawing patterns from real open-source systems: VS Code, Vite, Babel, Kibana, Backstage, Beekeeper Studio, NocoBase, TinaCMS, and Vendure.
+
+## Book Structure
+
+| Part | Chapters | Topic |
+|------|----------|-------|
+| I | 1–4 | Foundations and Theory |
+| II | 5–8 | Implementation and Architecture |
+| III | 9–10 | Security, Testing, and Best Practices |
+| IV | 11–13 | Real-World Applications |
+| V | 14–15 | Production and Optimisation |
+| — | Appendices A–E | Reference Material |
+
+Content lives in `content/docs/`. Each `.mdx` file maps to a chapter or appendix.
 
 ## Local Development
 
-To view or edit the documentation locally, run the development server:
+From the monorepo root:
+
+```bash
+nvm use 23
+npm install
+turbo run dev --filter=plugin-docs
+```
+
+Or from this directory:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the documentation site.
+The site runs at [http://localhost:3002](http://localhost:3002).
 
-Edit or add documentation pages in the `app/` or `content/` directories. The site auto-updates as you edit the files.
+## Editing Content
 
-This documentation site uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+All book content is in `content/docs/` as `.mdx` files. File names are prefixed with a two-digit chapter number:
 
-## Learn More
+```
+content/docs/
+  00-foreword.mdx
+  00-table-of-contents.mdx
+  01-foundations-of-plugin-architecture.mdx
+  ...
+  15-deployment-versioning-distribution.mdx
+  16-appendices-and-reference-material.mdx
+```
 
-## Learn More
+The site reads frontmatter from each file to build navigation (`nextTitle`, `nextSlug`, `topicTitle`, `topicSlug`).
 
-For more information about Next.js, see:
+## Building for Production
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Learn Next.js](https://nextjs.org/learn)
+```bash
+npm run build
+```
 
-## Deployment
+This produces a static export in `out/`. The site is deployed as a Cloudflare Workers static asset bundle using `wrangler.plugin-docs.jsonc` at the monorepo root.
 
-Deploy this documentation site using [Vercel](https://vercel.com/) or your preferred platform. See [Next.js deployment documentation](https://nextjs.org/docs/deployment) for details.
+```bash
+# Deploy (from monorepo root)
+wrangler deploy --config wrangler.plugin-docs.jsonc
+```
+
+## Tech Stack
+
+- [Next.js](https://nextjs.org/) with Turbopack
+- MDX for chapter content
+- Tailwind CSS for styling
+- Cloudflare Workers for hosting (static export)
