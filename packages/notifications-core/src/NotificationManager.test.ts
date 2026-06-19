@@ -4,7 +4,7 @@ import type { NotificationsConfig, ToastAdapter, PermissionState } from './types
 
 // Mock global Notification API
 const createNotificationMock = () => {
-  const mockNotification = vi.fn().mockImplementation((title: string, options?: NotificationOptions) => {
+  const mockNotification = vi.fn().mockImplementation(function (title: string, options?: NotificationOptions) {
     const notification = {
       title,
       ...options,
