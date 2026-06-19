@@ -172,6 +172,7 @@ describe('GlobalErrorService', () => {
       const tempWindow = global.window;
       if (!global.window) global.window = { addEventListener: vi.fn() } as any;
       mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
+      mockWindowAddEventListener.mockClear();
       service = new GlobalErrorService();
 
       const errorHandler = mockWindowAddEventListener?.mock.calls.find((call) => call[0] === 'error')?.[1];
@@ -198,6 +199,7 @@ describe('GlobalErrorService', () => {
       const tempWindow = global.window;
       if (!global.window) global.window = { addEventListener: vi.fn() } as any;
       mockWindowAddEventListener = vi.spyOn(global.window, 'addEventListener');
+      mockWindowAddEventListener.mockClear();
       service = new GlobalErrorService();
 
       const rejectionHandler = mockWindowAddEventListener?.mock.calls.find(

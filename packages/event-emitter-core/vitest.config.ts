@@ -5,7 +5,6 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
     coverage: {
-      enabled: true,
       reporter: ['text', 'html'],
       reportsDirectory: './coverage',
     },

@@ -5,6 +5,9 @@
   "license": "MIT",
   "private": false,
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "files": ["dist"],
   "bin": {
@@ -29,7 +32,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json && node scripts/make-executable.js",
     "dev": "tsc --project tsconfig.build.json --watch",
-    "test": "vitest --watch=false",
+    "test": "vitest --watch=false --passWithNoTests",
     "test:watch": "vitest --watch",
     "lint": "eslint . --ext .ts,.js",
     "check-types": "tsc --noEmit"
@@ -41,6 +44,6 @@
   "devDependencies": {
     "@types/node": "^20.x.x",
     "typescript": "~5.7.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.9"
   }
 }

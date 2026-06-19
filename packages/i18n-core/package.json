@@ -51,7 +51,7 @@
     "typescript": "~5.7.3",
     "vite": "^6.1.1",
     "vite-plugin-dts": "^3.9.1",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.9"
   },
   "dependencies": {
     "@web-loom/event-emitter-core": "*"
