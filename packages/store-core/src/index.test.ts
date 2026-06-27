@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
+import { existsSync, readFileSync } from 'fs';
+import { resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { createStore, State, Store, Actions } from './index';
 
 interface CounterState extends State {
@@ -174,5 +177,19 @@ describe('createStore', () => {
     expect(listener).not.toHaveBeenCalled();
     // Also check if getState still works (it should, but actions won't notify)
     expect(store.getState().count).toBe(1); // State was changed before listeners were cleared
+  });
+});
+
+describe('bundle isolation (requires prior build)', () => {
+  it('dist/index.es.js has no references to localStorage or indexedDB', () => {
+    const pkgDir = resolve(fileURLToPath(import.meta.url), '../../');
+    const distPath = resolve(pkgDir, 'dist/index.es.js');
+    if (!existsSync(distPath)) {
+      console.warn('Skipped: dist/index.es.js not found — run `npm run build` first');
+      return;
+    }
+    const bundle = readFileSync(distPath, 'utf-8');
+    expect(bundle).not.toMatch(/\blocalStorage\b/);
+    expect(bundle).not.toMatch(/\bindexedDB\b/);
   });
 });

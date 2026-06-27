@@ -4,20 +4,24 @@
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": false,
-  "version": "0.5.4",
+  "version": "0.5.5",
   "type": "module",
   "files": [
     "dist"
   ],
-  "main": "./dist/store-core.umd.js",
-  "module": "./dist/store-core.es.js",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/store-core.es.js",
-      "require": "./dist/store-core.umd.js",
-      "default": "./dist/store-core.es.js"
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js"
+    },
+    "./persist": {
+      "types": "./dist/persist.d.ts",
+      "import": "./dist/persist.es.js",
+      "require": "./dist/persist.cjs.js"
     }
   },
   "keywords": [

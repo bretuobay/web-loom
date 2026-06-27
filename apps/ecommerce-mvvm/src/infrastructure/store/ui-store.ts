@@ -1,4 +1,4 @@
-import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
+import { createStore, LocalStorageAdapter } from '@web-loom/store-core/persist';
 
 export type ThemeMode = 'light' | 'dark';
 

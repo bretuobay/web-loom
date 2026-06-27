@@ -8,7 +8,7 @@ import {
   LocalStorageAdapter,
   IndexedDBAdapter,
   PersistenceAdapter,
-} from './index';
+} from './persist';
 
 interface TestState extends State {
   count: number;

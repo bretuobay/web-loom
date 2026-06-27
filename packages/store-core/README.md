@@ -32,6 +32,23 @@ yarn add @web-loom/store-core
 pnpm add @web-loom/store-core
 ```
 
+## Entry Points
+
+The package ships two tree-shakeable entry points:
+
+| Import path | What you get |
+|---|---|
+| `@web-loom/store-core` | `createStore` (no persistence), core types (`State`, `Store`, `Actions`, `Listener`, `Selector`). **Zero browser-storage globals** — safe for SSR, workers, Node.js. |
+| `@web-loom/store-core/persist` | `createStore` (persistence overload), `LocalStorageAdapter`, `IndexedDBAdapter`, `MemoryAdapter`, `PersistedStore`, `PersistenceAdapter`, `PersistenceConfig`. Pulls in the core entry automatically. |
+
+```typescript
+// Core only — no persistence, no browser globals
+import { createStore } from '@web-loom/store-core';
+
+// With persistence — includes adapters and PersistedStore
+import { createStore, LocalStorageAdapter } from '@web-loom/store-core/persist';
+```
+
 ## Basic Usage
 
 ```typescript
@@ -115,7 +132,7 @@ The store-core package includes several persistence adapters out of the box:
 #### LocalStorage Persistence
 
 ```typescript
-import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
+import { createStore, LocalStorageAdapter } from '@web-loom/store-core/persist';
 
 interface UserPreferencesState {
   theme: 'light' | 'dark';
@@ -172,7 +189,7 @@ const preferencesStore = createStore<UserPreferencesState, UserPreferencesAction
 #### IndexedDB Persistence (for larger datasets)
 
 ```typescript
-import { createStore, IndexedDBAdapter } from '@web-loom/store-core';
+import { createStore, IndexedDBAdapter } from '@web-loom/store-core/persist';
 
 interface DocumentState {
   documents: { id: string; title: string; content: string; lastModified: Date }[];
@@ -235,7 +252,7 @@ const documentStore = createStore<DocumentState, DocumentActions>(
 #### Memory Adapter (for testing or temporary persistence)
 
 ```typescript
-import { createStore, MemoryAdapter } from '@web-loom/store-core';
+import { createStore, MemoryAdapter } from '@web-loom/store-core/persist';
 
 interface TestState {
   count: number;
@@ -272,7 +289,7 @@ memoryAdapter.clear(); // Clear all stored data
 #### Manual Persistence Control
 
 ```typescript
-import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
+import { createStore, LocalStorageAdapter } from '@web-loom/store-core/persist';
 
 interface AppState {
   drafts: { id: string; content: string }[];
