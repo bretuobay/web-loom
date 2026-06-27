@@ -3,30 +3,23 @@ import dts from 'vite-plugin-dts';
 
 export default defineConfig({
   build: {
-    outDir: 'dist', // Explicitly set outDir
+    outDir: 'dist',
     lib: {
-      entry: './src/index.ts',
-      formats: ['es', 'umd'],
-      name: 'StoreCore', // For UMD global variable
-      fileName: (format) => `store-core.${format}.js`,
+      entry: {
+        index: './src/index.ts',
+        persist: './src/persist.ts',
+      },
+      formats: ['es', 'cjs'],
+      fileName: (format, entryName) => `${entryName}.${format}.js`,
     },
     rollupOptions: {
-      // No external dependencies for QueryCore
-      output: {
-        // No globals needed as no externals
-      },
+      output: {},
     },
   },
-  plugins: [dts({ insertTypesEntry: true, outDir: 'dist', tsconfigPath: './tsconfig.json', rollupTypes: true })], // also specify for dts plugin
+  plugins: [dts({ outDir: 'dist', tsconfigPath: './tsconfig.json', rollupTypes: true })],
   server: {
-    // Expose tests directory for the custom runner
     fs: {
-      allow: ['.', 'tests'], // Allow serving files from root and tests directory
+      allow: ['.', 'tests'],
     },
-  },
-  test: {
-    globals: true, // Optional: to use vitest globals like describe, it without importing
-    environment: 'node', // Or 'jsdom'
-    testTimeout: 10000, // Global timeout of 10 seconds
   },
 });
