@@ -13,6 +13,7 @@
       "DOM.Iterable"
     ],
     "outDir": "dist",
+    "rootDir": "src",
     "declaration": true,
     "declarationMap": true,
     "strict": true,

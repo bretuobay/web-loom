@@ -28,6 +28,7 @@
     "noImplicitOverride": true,
     "noUnusedLocals": true,
     "outDir": "dist",
+    "rootDir": "src",
     "paths": {
       "@repo/models": [
         "../../packages/models/src"

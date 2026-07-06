@@ -18,6 +18,7 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "dist",
+    "rootDir": "src",
     "paths": {
       // "rxjs": ["../../node_modules/rxjs"], // Removed to allow standard node resolution
       // "rxjs/*": ["../../node_modules/rxjs/*"], // Removed
