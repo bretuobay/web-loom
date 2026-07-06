@@ -119,7 +119,7 @@ function baseCommandsTemplate(p: ViewModelTemplateParams): string {
       : `
   public readonly refreshCommand = this.registerCommand(
     new Command<void, void>(async () => {
-      // TODO: call the model method that refreshes ${name} data
+      await this.model.fetch();
     })
   );`;
 
