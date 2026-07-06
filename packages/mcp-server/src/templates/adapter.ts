@@ -1,29 +1,54 @@
+import type { ViewModelStyle } from "./viewmodel.js";
+
 export type Framework = "react" | "vue" | "vanilla" | "angular";
 
 export interface AdapterTemplateParams {
   name: string;
   framework: Framework;
+  viewModelStyle?: ViewModelStyle;
 }
 
 export function adapterTemplate(p: AdapterTemplateParams): string {
-  const { name, framework } = p;
+  const { name, framework, viewModelStyle = "restful-class" } = p;
   switch (framework) {
     case "react":
-      return reactAdapterTemplate(name);
+      return reactAdapterTemplate(name, viewModelStyle);
     case "vue":
-      return vueAdapterTemplate(name);
+      return vueAdapterTemplate(name, viewModelStyle);
     case "vanilla":
-      return vanillaAdapterTemplate(name);
+      return vanillaAdapterTemplate(name, viewModelStyle);
     case "angular":
-      return angularAdapterTemplate(name);
+      return angularAdapterTemplate(name, viewModelStyle);
   }
 }
 
-function reactAdapterTemplate(name: string): string {
+function loadCommandFor(style: ViewModelStyle): string {
+  if (style === "base-commands") {
+    return "refreshCommand";
+  }
+
+  if (style === "active-signals-list") {
+    return "loadCommand";
+  }
+
+  return "fetchCommand";
+}
+
+function classViewModelSetup(name: string): string {
+  return `import { ${name}Model } from "./${name}Model.js";
+import { ${name}ViewModel } from "./${name}ViewModel.js";`;
+}
+
+function factoryViewModelSetup(name: string): string {
+  return `import { create${name}ViewModel } from "./${name}ViewModel.js";`;
+}
+
+function reactAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
+  const usesFactory = viewModelStyle === "reactive-factory";
+  const loadCommand = loadCommandFor(viewModelStyle);
   return `import { useEffect, useState } from "react";
 import type { Observable } from "rxjs";
-import { ${name}Model } from "./${name}Model.js";
-import { ${name}ViewModel } from "./${name}ViewModel.js";
+${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
 
 function useObservable<T>(obs: Observable<T>, initial: T): T {
   const [value, setValue] = useState<T>(initial);
@@ -36,8 +61,8 @@ function useObservable<T>(obs: Observable<T>, initial: T): T {
 
 export function use${name}() {
   const [vm] = useState(() => {
-    const model = new ${name}Model();
-    return new ${name}ViewModel(model);
+${usesFactory ? `    return create${name}ViewModel();` : `    const model = new ${name}Model();
+    return new ${name}ViewModel(model);`}
   });
 
   const data = useObservable(vm.data$, null);
@@ -45,7 +70,7 @@ export function use${name}() {
   const error = useObservable(vm.error$, null);
 
   useEffect(() => {
-    vm.fetchCommand.execute();
+    vm.${loadCommand}.execute();
     return () => vm.dispose();
   }, [vm]);
 
@@ -54,14 +79,15 @@ export function use${name}() {
 `;
 }
 
-function vueAdapterTemplate(name: string): string {
+function vueAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
+  const usesFactory = viewModelStyle === "reactive-factory";
+  const loadCommand = loadCommandFor(viewModelStyle);
   return `import { ref, onMounted, onUnmounted } from "vue";
-import { ${name}Model } from "./${name}Model.js";
-import { ${name}ViewModel } from "./${name}ViewModel.js";
+${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
 
 export function use${name}() {
-  const model = new ${name}Model();
-  const vm = new ${name}ViewModel(model);
+${usesFactory ? `  const vm = create${name}ViewModel();` : `  const model = new ${name}Model();
+  const vm = new ${name}ViewModel(model);`}
 
   const data = ref(null);
   const isLoading = ref(false);
@@ -73,7 +99,7 @@ export function use${name}() {
     vm.error$.subscribe((v) => { error.value = v; }),
   ];
 
-  onMounted(() => { vm.fetchCommand.execute(); });
+  onMounted(() => { vm.${loadCommand}.execute(); });
   onUnmounted(() => {
     subscriptions.forEach((s) => s.unsubscribe());
     vm.dispose();
@@ -84,13 +110,14 @@ export function use${name}() {
 `;
 }
 
-function vanillaAdapterTemplate(name: string): string {
-  return `import { ${name}Model } from "./${name}Model.js";
-import { ${name}ViewModel } from "./${name}ViewModel.js";
+function vanillaAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
+  const usesFactory = viewModelStyle === "reactive-factory";
+  const loadCommand = loadCommandFor(viewModelStyle);
+  return `${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
 
 export function create${name}Controller() {
-  const model = new ${name}Model();
-  const vm = new ${name}ViewModel(model);
+${usesFactory ? `  const vm = create${name}ViewModel();` : `  const model = new ${name}Model();
+  const vm = new ${name}ViewModel(model);`}
 
   const subscriptions = [
     vm.data$.subscribe((data) => {
@@ -106,7 +133,7 @@ export function create${name}Controller() {
     }),
   ];
 
-  vm.fetchCommand.execute();
+  vm.${loadCommand}.execute();
 
   return {
     vm,
@@ -119,20 +146,21 @@ export function create${name}Controller() {
 `;
 }
 
-function angularAdapterTemplate(name: string): string {
+function angularAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
+  const usesFactory = viewModelStyle === "reactive-factory";
+  const loadCommand = loadCommandFor(viewModelStyle);
   return `import { Injectable, OnDestroy } from "@angular/core";
 import { Subscription } from "rxjs";
-import { ${name}Model } from "./${name}Model.js";
-import { ${name}ViewModel } from "./${name}ViewModel.js";
+${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
 
 @Injectable()
 export class ${name}Service implements OnDestroy {
-  private readonly _model = new ${name}Model();
-  readonly vm = new ${name}ViewModel(this._model);
+${usesFactory ? `  readonly vm = create${name}ViewModel();` : `  private readonly _model = new ${name}Model();
+  readonly vm = new ${name}ViewModel(this._model);`}
   private readonly _subs = new Subscription();
 
   constructor() {
-    this.vm.fetchCommand.execute();
+    this.vm.${loadCommand}.execute();
   }
 
   ngOnDestroy(): void {

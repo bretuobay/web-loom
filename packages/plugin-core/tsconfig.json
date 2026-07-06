@@ -9,7 +9,6 @@
     "target": "ES2022",
     "moduleResolution": "bundler",
     "rootDir": "src",
-    "baseUrl": ".",
     "paths": {}
   },
   "include": [

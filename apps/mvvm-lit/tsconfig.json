@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "rootDir": "src",
     "target": "ES2020",
     "useDefineForClassFields": false,
     "lib": [
@@ -19,7 +20,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "experimentalDecorators": true,
-    "baseUrl": ".",
     "paths": {
       "@repo/models/*": [
         "../../packages/models/src/*"

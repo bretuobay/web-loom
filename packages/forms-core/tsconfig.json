@@ -20,6 +20,7 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
+    "rootDir": "src",
     "declarationDir": "dist",
     /* Linting */
     "strict": true,

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { modelTemplate, type FieldDef } from "../templates/model.js";
-import { viewModelTemplate } from "../templates/viewmodel.js";
+import { MODEL_STYLES, modelTemplate, type FieldDef, type ModelStyle } from "../templates/model.js";
+import { VIEW_MODEL_STYLES, viewModelTemplate, type ViewModelStyle } from "../templates/viewmodel.js";
 import { adapterTemplate, type Framework } from "../templates/adapter.js";
 
 const FieldSchema = z.object({
@@ -10,11 +10,42 @@ const FieldSchema = z.object({
   optional: z.boolean().optional(),
 });
 
+function defaultModelStyleFor(viewModelStyle: ViewModelStyle): ModelStyle {
+  if (viewModelStyle === "reactive-factory") {
+    return "restful-config";
+  }
+
+  if (viewModelStyle === "base-commands") {
+    return "base-state";
+  }
+
+  if (viewModelStyle === "active-signals-list") {
+    return "query-cache";
+  }
+
+  return "restful-class";
+}
+
+function packageInstallHint(modelStyle: ModelStyle, viewModelStyle: ViewModelStyle): string {
+  const packages = new Set(["@web-loom/mvvm-core", "rxjs", "zod"]);
+
+  if (modelStyle === "query-cache") {
+    packages.add("@web-loom/query-core");
+  }
+
+  if (viewModelStyle === "active-signals-list") {
+    packages.add("@web-loom/mvvm-patterns");
+    packages.add("@web-loom/signals-core");
+  }
+
+  return `npm install ${Array.from(packages).join(" ")}`;
+}
+
 export function registerScaffoldFeatureTool(server: McpServer): void {
   server.registerTool(
     "scaffold_restful_feature",
     {
-      description: "Generate a complete MVVM feature: Zod schema + RestfulApiModel + RestfulApiViewModel + framework adapter (React hook / Vue composable / vanilla controller / Angular service). Returns a map of file names to file contents.",
+      description: "Generate a complete MVVM feature: Zod schema + model + ViewModel + framework adapter. Supports compatible model/viewmodel style pairs.",
       inputSchema: {
         name: z
           .string()
@@ -32,13 +63,38 @@ export function registerScaffoldFeatureTool(server: McpServer): void {
           .string()
           .optional()
           .describe("Base API URL (default: 'http://localhost:3000')"),
+        viewModelStyle: z
+          .enum(VIEW_MODEL_STYLES)
+          .optional()
+          .describe("ViewModel template style (default: 'restful-class')"),
+        modelStyle: z
+          .enum(MODEL_STYLES)
+          .optional()
+          .describe("Model template style. Defaults to a compatible style for the selected viewModelStyle."),
       },
     },
-    async ({ name, endpoint, fields, framework, apiBase }) => {
+    async ({ name, endpoint, fields, framework, apiBase, viewModelStyle, modelStyle }) => {
       const typedFields = fields as FieldDef[];
-      const modelCode = modelTemplate({ name, endpoint, fields: typedFields, apiBase });
-      const vmCode = viewModelTemplate({ name, modelClass: `${name}Model` });
-      const adapterCode = adapterTemplate({ name, framework: framework as Framework });
+      const selectedViewModelStyle = (viewModelStyle ?? "restful-class") as ViewModelStyle;
+      const selectedModelStyle = (modelStyle ?? defaultModelStyleFor(selectedViewModelStyle)) as ModelStyle;
+      const modelCode = modelTemplate({
+        name,
+        endpoint,
+        fields: typedFields,
+        apiBase,
+        style: selectedModelStyle,
+      });
+      const vmCode = viewModelTemplate({
+        name,
+        modelClass: `${name}Model`,
+        schemaModule: `./${name}Model.js`,
+        style: selectedViewModelStyle,
+      });
+      const adapterCode = adapterTemplate({
+        name,
+        framework: framework as Framework,
+        viewModelStyle: selectedViewModelStyle,
+      });
 
       const adapterFileName =
         framework === "react"
@@ -65,11 +121,12 @@ export function registerScaffoldFeatureTool(server: McpServer): void {
             type: "text" as const,
             text: [
               `# ${name} Feature — ${framework} adapter\n`,
+              `Model style: \`${selectedModelStyle}\` · ViewModel style: \`${selectedViewModelStyle}\`\n`,
               "Create these files in your feature directory:\n",
               sections,
               "\n## Setup",
-              "1. Install: `npm install @web-loom/mvvm-core rxjs zod`",
-              `2. Import \`${name}Model\` and \`${name}ViewModel\` from their files`,
+              `1. Install: \`${packageInstallHint(selectedModelStyle, selectedViewModelStyle)}\``,
+              `2. Import \`${name}Model\` and the generated \`${name}ViewModel\` export from their files`,
               framework === "react"
                 ? `3. Use the \`use${name}()\` hook in your component`
                 : framework === "vue"

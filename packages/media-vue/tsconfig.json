@@ -4,7 +4,6 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "baseUrl": ".",
     "paths": {
       "@web-loom/media-core": ["../media-core/src"]
     },
@@ -14,6 +13,7 @@
       "DOM.Iterable"
     ],
     "outDir": "dist",
+    "rootDir": "src",
     "declaration": true,
     "declarationMap": true,
     "strict": true,

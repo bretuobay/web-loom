@@ -20,7 +20,7 @@
     "@open-wc/testing": "^4.0.0",
     "@testing-library/jest-dom": "^6.4.6",
     "typescript": "^5.2.2",
-    "vite": "^5.3.1",
+    "vite": "^6.4.3",
     "vitest": "^4.1.9"
   }
 }

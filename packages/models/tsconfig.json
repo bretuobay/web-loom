@@ -8,7 +8,6 @@
     "module": "ESNext",
     "target": "ES2022",
     "moduleResolution": "bundler",
-    "baseUrl": ".",
     "rootDir": "src",
     "composite": true,
     "incremental": true,

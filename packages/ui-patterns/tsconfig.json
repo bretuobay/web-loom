@@ -17,6 +17,7 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
+    "rootDir": "src",
     /* Path mappings for monorepo packages */
     "paths": {
       "@web-loom/store-core": ["../store-core/src/index.ts"],

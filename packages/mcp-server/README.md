@@ -39,8 +39,8 @@ claude mcp add web-loom -- node packages/mcp-server/dist/index.js
 
 | Tool | What it generates |
 |------|-------------------|
-| `scaffold_model` | Zod schema + `RestfulApiModel` subclass |
-| `scaffold_viewmodel` | `RestfulApiViewModel` subclass with optional custom commands |
+| `scaffold_model` | Model templates: REST class, REST config, simple state model, or cached query model |
+| `scaffold_viewmodel` | ViewModel templates: REST CRUD class, reactive factory, command-focused class, or active searchable list |
 | `scaffold_restful_feature` | Full feature: model + viewmodel + framework adapter |
 | `scaffold_command` | Standalone `Command<P,R>` or `CompositeCommand` |
 | `scaffold_plugin` | `PluginManifest` + `PluginModule` with lifecycle hooks |
@@ -70,6 +70,45 @@ scaffold_restful_feature({
 ```
 
 Returns `ProductModel.ts`, `ProductViewModel.ts`, and `useProduct.ts` with correct types, Zod schema, dispose pattern, and `useObservable` wiring.
+
+`scaffold_model` supports a `style` option:
+
+| Style | Use it for |
+|-------|------------|
+| `restful-class` | Default `RestfulApiModel` subclass with schema and reusable config |
+| `restful-config` | Schema + config only, for `createReactiveViewModel` factory usage |
+| `base-state` | Simple `BaseModel` with explicit `fetch`, `replaceAll`, and `clear` methods |
+| `query-cache` | `BaseModel` backed by `QueryCore` caching and refresh behavior |
+
+`scaffold_viewmodel` supports a matching `style` option:
+
+| Style | Use it for |
+|-------|------------|
+| `restful-class` | Default `RestfulApiViewModel` subclass with built-in CRUD commands |
+| `reactive-factory` | Minimal `createReactiveViewModel` setup backed by a model config export |
+| `base-commands` | Domain-specific ViewModels with custom `Command` instances |
+| `active-signals-list` | Simple searchable list screens that refresh when activated |
+
+Example:
+
+```
+scaffold_viewmodel({
+  name: "Catalog",
+  modelClass: "CatalogModel",
+  style: "active-signals-list",
+  dataType: "CatalogProductDto[]",
+  itemType: "CatalogProductDto"
+})
+```
+
+`scaffold_restful_feature` accepts both `modelStyle` and `viewModelStyle`. If `modelStyle` is omitted, it chooses a compatible default:
+
+| ViewModel style | Default model style |
+|-----------------|---------------------|
+| `restful-class` | `restful-class` |
+| `reactive-factory` | `restful-config` |
+| `base-commands` | `base-state` |
+| `active-signals-list` | `query-cache` |
 
 **`explain_pattern`** supports these pattern names:
 
@@ -111,7 +150,7 @@ Guided prompt templates that instruct the AI through multi-step workflows.
 
 All scaffolding tools enforce the patterns from the live codebase:
 
-**Model** — Zod schema first, type inference second, class third:
+**Model** — choose the smallest style that fits. REST resources usually use `RestfulApiModel`; reactive factories can use config-only modules; custom workflows can use `BaseModel`; cached list screens can use `QueryCore`:
 ```typescript
 const ProductSchema = z.object({ id: z.string(), title: z.string(), price: z.number() });
 export type ProductData = z.infer<typeof ProductSchema>;
@@ -124,7 +163,7 @@ export class ProductModel extends RestfulApiModel<ProductListData, typeof Produc
 }
 ```
 
-**ViewModel** — extends `RestfulApiViewModel`, registers custom commands, always overrides `dispose`:
+**ViewModel** — choose the smallest style that fits. REST resources usually extend `RestfulApiViewModel`; domain workflows can extend `BaseViewModel`; simple list screens can use signals:
 ```typescript
 export class ProductViewModel extends RestfulApiViewModel<ProductListData, typeof ProductListSchema> {
   public readonly archiveCommand = this.registerCommand(

@@ -4,8 +4,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
+    "rootDir": "src",
     "types": [],
-    "baseUrl": ".",
     "paths": {
       "@repo/models": [
         "../../packages/models/src"
