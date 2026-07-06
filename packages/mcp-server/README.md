@@ -40,7 +40,7 @@ claude mcp add web-loom -- node packages/mcp-server/dist/index.js
 | Tool | What it generates |
 |------|-------------------|
 | `scaffold_model` | Zod schema + `RestfulApiModel` subclass |
-| `scaffold_viewmodel` | `RestfulApiViewModel` subclass with optional custom commands |
+| `scaffold_viewmodel` | ViewModel templates: REST CRUD class, reactive factory, command-focused class, or active searchable list |
 | `scaffold_restful_feature` | Full feature: model + viewmodel + framework adapter |
 | `scaffold_command` | Standalone `Command<P,R>` or `CompositeCommand` |
 | `scaffold_plugin` | `PluginManifest` + `PluginModule` with lifecycle hooks |
@@ -70,6 +70,27 @@ scaffold_restful_feature({
 ```
 
 Returns `ProductModel.ts`, `ProductViewModel.ts`, and `useProduct.ts` with correct types, Zod schema, dispose pattern, and `useObservable` wiring.
+
+`scaffold_viewmodel` supports a `style` option:
+
+| Style | Use it for |
+|-------|------------|
+| `restful-class` | Default `RestfulApiViewModel` subclass with built-in CRUD commands |
+| `reactive-factory` | Minimal `createReactiveViewModel` setup backed by a model config export |
+| `base-commands` | Domain-specific ViewModels with custom `Command` instances |
+| `active-signals-list` | Simple searchable list screens that refresh when activated |
+
+Example:
+
+```
+scaffold_viewmodel({
+  name: "Catalog",
+  modelClass: "CatalogModel",
+  style: "active-signals-list",
+  dataType: "CatalogProductDto[]",
+  itemType: "CatalogProductDto"
+})
+```
 
 **`explain_pattern`** supports these pattern names:
 
@@ -124,7 +145,7 @@ export class ProductModel extends RestfulApiModel<ProductListData, typeof Produc
 }
 ```
 
-**ViewModel** — extends `RestfulApiViewModel`, registers custom commands, always overrides `dispose`:
+**ViewModel** — choose the smallest style that fits. REST resources usually extend `RestfulApiViewModel`; domain workflows can extend `BaseViewModel`; simple list screens can use signals:
 ```typescript
 export class ProductViewModel extends RestfulApiViewModel<ProductListData, typeof ProductListSchema> {
   public readonly archiveCommand = this.registerCommand(

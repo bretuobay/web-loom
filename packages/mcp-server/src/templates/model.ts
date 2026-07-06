@@ -11,6 +11,10 @@ export interface ModelTemplateParams {
   apiBase?: string;
 }
 
+function lowerFirst(value: string): string {
+  return value.charAt(0).toLowerCase() + value.slice(1);
+}
+
 function zodFieldType(f: FieldDef): string {
   const base: Record<FieldDef["type"], string> = {
     string: "z.string()",
@@ -25,6 +29,7 @@ function zodFieldType(f: FieldDef): string {
 
 export function modelTemplate(p: ModelTemplateParams): string {
   const { name, endpoint, fields, apiBase = "http://localhost:3000" } = p;
+  const configName = `${lowerFirst(name)}Config`;
   const schemaFields = fields
     .map((f) => `  ${f.name}: ${zodFieldType(f)},`)
     .join("\n");
@@ -41,18 +46,23 @@ export type ${name}Data = z.infer<typeof ${name}Schema>;
 export const ${name}ListSchema = z.array(${name}Schema);
 export type ${name}ListData = z.infer<typeof ${name}ListSchema>;
 
+export const ${configName} = {
+  baseUrl: "${apiBase}",
+  endpoint: "${endpoint}",
+  fetcher: (url: string, options?: RequestInit) =>
+    fetch(url, options).then((r) => {
+      if (!r.ok) throw new Error(\`HTTP \${r.status}\`);
+      return r.json();
+    }),
+  initialData: [] as ${name}ListData,
+};
+
 export class ${name}Model extends RestfulApiModel<${name}ListData, typeof ${name}ListSchema> {
   constructor(apiBase: string = "${apiBase}") {
     super({
+      ...${configName},
       baseUrl: apiBase,
-      endpoint: "${endpoint}",
-      fetcher: (url, options) =>
-        fetch(url, options).then((r) => {
-          if (!r.ok) throw new Error(\`HTTP \${r.status}\`);
-          return r.json();
-        }),
       schema: ${name}ListSchema,
-      initialData: [],
     });
   }
 }
