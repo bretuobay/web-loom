@@ -18,7 +18,6 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
-    "baseUrl": ".",
     "paths": {
       "@web-loom/event-emitter-core": ["../event-emitter-core/src/index.ts"]
     },

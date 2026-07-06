@@ -10,7 +10,6 @@
     "moduleDetection": "force",
     "noEmit": true,
     "declaration": false,
-    "baseUrl": ".",
     "paths": {
       "@web-loom/mvvm-core": ["../mvvm-core/src"]
     },

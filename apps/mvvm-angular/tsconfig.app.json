@@ -5,7 +5,6 @@
   "compilerOptions": {
     "outDir": "./out-tsc/app",
     "types": [],
-    "baseUrl": ".",
     "paths": {
       "@repo/models": [
         "../../packages/models/src"

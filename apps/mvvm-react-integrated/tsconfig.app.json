@@ -17,7 +17,6 @@
     "noEmit": true,
     "jsx": "react-jsx",
     /* Path mappings for monorepo packages */
-    "baseUrl": ".",
     "paths": {
       "@web-loom/design-core": [
         "../../packages/design-core/src"

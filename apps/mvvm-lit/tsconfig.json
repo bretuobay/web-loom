@@ -19,7 +19,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "experimentalDecorators": true,
-    "baseUrl": ".",
     "paths": {
       "@repo/models/*": [
         "../../packages/models/src/*"
