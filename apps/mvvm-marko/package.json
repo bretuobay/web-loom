@@ -10,7 +10,7 @@
     "marko": "^6.0.132"
   },
   "devDependencies": {
-    "@marko/run": "^0.9.3",
+    "@marko/run": "^0.9.7",
     "typescript": "^5.8.3"
   },
   "private": true,

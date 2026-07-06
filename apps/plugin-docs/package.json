@@ -12,11 +12,11 @@
     "test": "echo \"No tests for plugin-docs\""
   },
   "dependencies": {
-    "@repo/docs-theme": "*",
     "@headlessui/react": "^2.1.1",
     "@mdx-js/loader": "^3.0.1",
     "@mdx-js/react": "^3.0.1",
     "@next/mdx": "15.1.6",
+    "@repo/docs-theme": "*",
     "@types/mdx": "^2.0.13",
     "@types/node": "^22.10.1",
     "@types/react": "19.1.8",
@@ -41,7 +41,7 @@
     "@typescript-eslint/parser": "^8.49.0",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.2.9",
-    "postcss": "^8.4.32",
+    "postcss": "^8.5.16",
     "tailwindcss": "^4.0.0"
   }
 }

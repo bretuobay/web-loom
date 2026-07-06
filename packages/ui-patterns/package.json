@@ -91,9 +91,9 @@
     "size": "npm run build && npm run test:tree-shaking"
   },
   "dependencies": {
-    "@web-loom/ui-core": "*",
+    "@web-loom/event-bus-core": "*",
     "@web-loom/store-core": "*",
-    "@web-loom/event-bus-core": "*"
+    "@web-loom/ui-core": "*"
   },
   "peerDependencies": {
     "@web-loom/mvvm-core": ">=0.0.1",
@@ -117,8 +117,8 @@
     "jsdom": "^26.1.0",
     "prettier": "^3.7.3",
     "typescript": "~5.7.3",
-    "vite": "^6.1.1",
-    "vite-plugin-dts": "^3.9.1",
+    "vite": "^6.4.3",
+    "vite-plugin-dts": "^5.0.3",
     "vitest": "^4.1.9"
   }
 }
