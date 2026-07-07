@@ -1,4 +1,5 @@
 import { createEmbed, type EmbedConfig, type EmbedRuntime, type MountOptions } from './host.js';
+import { type EmbedError, createEmbedError } from './protocol.js';
 
 export type GlobalCommandName =
   | 'init'
@@ -39,6 +40,10 @@ export interface GlobalEmbedFacade {
   l?: number;
   runtime?: EmbedRuntime;
 }
+
+type RuntimeWithErrorReporter = EmbedRuntime & {
+  __emitError?: (error: EmbedError) => void;
+};
 
 declare global {
   interface Window {
@@ -94,16 +99,36 @@ export function installGlobalEmbed(initialConfig: Partial<EmbedConfig> = parseSc
   const queued = existing?.q ? [...existing.q] : [];
   const pending: GlobalCommand[] = [];
   const readyCallbacks: Array<(runtime: EmbedRuntime) => void> = [];
-  let runtime: EmbedRuntime | undefined;
+  let runtime: RuntimeWithErrorReporter | undefined;
+  let runtimeConfig: EmbedConfig | undefined;
 
   const facade: GlobalEmbedFacade = (...command) => {
     const [name, ...args] = command;
     if (name === 'init') {
-      runtime = createEmbed({
+      const nextConfig = {
         ...initialConfig,
         ...(args[0] as Partial<EmbedConfig>),
         namespace,
-      } as EmbedConfig);
+      } as EmbedConfig;
+
+      if (runtime && runtimeConfig) {
+        if (isCompatibleInit(runtimeConfig, nextConfig)) {
+          return runtime;
+        }
+        reportError(
+          createEmbedError('CONFIG_INVALID', 'Embed runtime is already initialized with different config.'),
+        );
+        return runtime;
+      }
+
+      try {
+        runtime = createEmbed(nextConfig) as RuntimeWithErrorReporter;
+      } catch (error) {
+        reportError(error);
+        return undefined;
+      }
+
+      runtimeConfig = nextConfig;
       facade.runtime = runtime;
       runtime.defineCustomElement();
       runtime.scan();
@@ -123,7 +148,7 @@ export function installGlobalEmbed(initialConfig: Partial<EmbedConfig> = parseSc
       return undefined;
     }
 
-    return executeCommand(runtime, command);
+    return safeExecuteCommand(runtime, command, reportError);
   };
 
   facade.q = [];
@@ -145,7 +170,18 @@ export function installGlobalEmbed(initialConfig: Partial<EmbedConfig> = parseSc
       return;
     }
     for (const command of pending.splice(0)) {
-      executeCommand(runtime, command);
+      safeExecuteCommand(runtime, command, reportError);
+    }
+  }
+
+  function reportError(error: unknown): void {
+    const embedError =
+      error instanceof Error && 'code' in error
+        ? (error as EmbedError)
+        : createEmbedError('CONFIG_INVALID', error instanceof Error ? error.message : String(error));
+    runtime?.__emitError?.(embedError);
+    if (!runtime || runtime.config.debug) {
+      console.warn(`[embed-core] ${embedError.code}: ${embedError.message}`, embedError);
     }
   }
 }
@@ -180,6 +216,44 @@ export function executeCommand(runtime: EmbedRuntime, command: GlobalCommand): u
     default:
       return undefined;
   }
+}
+
+export function safeExecuteCommand(
+  runtime: EmbedRuntime,
+  command: GlobalCommand,
+  onError: (error: unknown) => void,
+): unknown {
+  try {
+    const result = executeCommand(runtime, command);
+    if (isPromiseLike(result)) {
+      return result.catch((error) => {
+        onError(error);
+        return undefined;
+      });
+    }
+    return result;
+  } catch (error) {
+    onError(error);
+    return undefined;
+  }
+}
+
+function isPromiseLike(value: unknown): value is Promise<unknown> {
+  return typeof value === 'object' && value !== null && 'catch' in value && typeof value.catch === 'function';
+}
+
+function isCompatibleInit(current: EmbedConfig, next: EmbedConfig): boolean {
+  const keys: Array<keyof EmbedConfig> = [
+    'clientId',
+    'projectId',
+    'environment',
+    'namespace',
+    'configEndpoint',
+    'runtimeUrl',
+    'consentMode',
+  ];
+
+  return keys.every((key) => current[key] === next[key] || next[key] === undefined);
 }
 
 function currentScript(): HTMLScriptElement | null {

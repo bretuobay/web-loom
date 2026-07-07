@@ -6,6 +6,7 @@ describe('loader', () => {
     document.head.innerHTML = '';
     document.body.innerHTML = '';
     delete window.wl;
+    vi.restoreAllMocks();
   });
 
   it('generates an async queue snippet with query identifiers', () => {
@@ -55,5 +56,49 @@ describe('loader', () => {
 
     expect(facade.runtime).toBeDefined();
     await facade.runtime!.ready();
+  });
+
+  it('keeps compatible init idempotent', () => {
+    const facade = installGlobalEmbed({
+      clientId: 'ck_live_1',
+      projectId: 'proj_1',
+    });
+    const first = facade.runtime;
+    const second = facade('init', {
+      clientId: 'ck_live_1',
+      projectId: 'proj_1',
+    });
+
+    expect(second).toBe(first);
+    expect(facade.runtime).toBe(first);
+  });
+
+  it('reports conflicting init without replacing the runtime', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const facade = installGlobalEmbed({
+      clientId: 'ck_live_1',
+      debug: true,
+    });
+    const error = vi.fn();
+    facade('on', 'error', error);
+    const first = facade.runtime;
+
+    expect(() => facade('init', { clientId: 'ck_live_2' })).not.toThrow();
+
+    expect(facade.runtime).toBe(first);
+    expect(error).toHaveBeenCalledWith(expect.objectContaining({ code: 'CONFIG_INVALID' }));
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it('does not throw synchronously for bad global init config', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const facade = installGlobalEmbed({ namespace: 'wl' });
+
+    expect(() => facade('init', { clientId: 'sk_live_secret' })).not.toThrow();
+    expect(facade.runtime).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('SECRET_KEY_REJECTED'),
+      expect.objectContaining({ code: 'SECRET_KEY_REJECTED' }),
+    );
   });
 });

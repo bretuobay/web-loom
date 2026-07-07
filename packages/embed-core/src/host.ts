@@ -148,6 +148,8 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
   let consentState: ConsentState = config.consentMode === 'manual' ? 'unknown' : 'granted';
   let destroyed = false;
   let observer: MutationObserver | undefined;
+  let scanScheduled = false;
+  const pendingScanRoots = new Set<ParentNode>();
 
   const resolved: ResolvedEmbedConfig = {
     ...config,
@@ -171,12 +173,15 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
       }
 
       resolved.disabled = remote.disabled === true;
-      resolved.theme = remote.theme ?? resolved.theme;
-      resolved.locale = remote.locale ?? resolved.locale;
-      resolved.metadata = { ...resolved.metadata, ...remote.metadata };
-      resolved.runtimeUrl = remote.runtimeUrl ?? resolved.runtimeUrl;
+      resolved.theme = resolved.theme ?? remote.theme;
+      resolved.locale = resolved.locale ?? remote.locale;
+      resolved.metadata = { ...remote.metadata, ...resolved.metadata };
+      resolved.runtimeUrl = resolved.runtimeUrl ?? remote.runtimeUrl;
 
       for (const entry of remote.widgets ?? []) {
+        registry.set(entry.name, entry);
+      }
+      for (const entry of config.widgets ?? []) {
         registry.set(entry.name, entry);
       }
       resolved.widgets = Array.from(registry.values());
@@ -210,9 +215,12 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
       registry.set(entry.name, entry);
       resolved.widgets = Array.from(registry.values());
     },
-    scan,
+    scan(root) {
+      scheduleScan(root ?? document);
+    },
     defineCustomElement: () => defineWidgetElement(runtime),
   };
+  Object.assign(runtime, { __emitError: emitError });
 
   return runtime;
 
@@ -303,12 +311,12 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
     handle.send(command, payload);
   }
 
-  function scan(root: ParentNode = document): void {
+  function scanNow(root: ParentNode = document): void {
     if (!isBrowser()) {
       return;
     }
 
-    for (const node of Array.from(root.querySelectorAll<HTMLElement>('[data-wl-widget]'))) {
+    for (const node of queryWithRoot(root, '[data-wl-widget]')) {
       if (node.dataset.wlMounted === 'true') {
         continue;
       }
@@ -323,7 +331,7 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
       });
     }
 
-    for (const trigger of Array.from(root.querySelectorAll<HTMLElement>('[data-wl-open]'))) {
+    for (const trigger of queryWithRoot(root, '[data-wl-open]')) {
       if (trigger.dataset.wlTriggerMounted === 'true') {
         continue;
       }
@@ -341,7 +349,7 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
         for (const record of records) {
           for (const node of Array.from(record.addedNodes)) {
             if (node instanceof HTMLElement) {
-              scan(node);
+              scheduleScan(node);
             }
           }
         }
@@ -350,11 +358,36 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
     }
   }
 
+  function scheduleScan(root: ParentNode): void {
+    if (!isBrowser()) {
+      return;
+    }
+
+    pendingScanRoots.add(root);
+    if (scanScheduled) {
+      return;
+    }
+    scanScheduled = true;
+    scheduleIdle(() => {
+      scanScheduled = false;
+      const roots = Array.from(pendingScanRoots);
+      pendingScanRoots.clear();
+      for (const pendingRoot of roots) {
+        scanNow(pendingRoot);
+      }
+    });
+  }
+
   async function mountShadow(handle: InternalHandle, options: MountOptions): Promise<void> {
     const spec = await loadWidgetSpec(handle.entry);
     const shadow = handle.element.attachShadow({ mode: 'open' });
     const ctx = createWidgetContext(handle, options.props ?? {});
     const cleanup = spec.mount(shadow, ctx);
+    if (resolved.debug && spec.storageKeys?.length && !cleanup) {
+      console.warn(
+        `[embed-core] Widget "${spec.name}" declares storageKeys but did not return a cleanup function.`,
+      );
+    }
     handle.cleanup = cleanup || undefined;
     handle.markState('mounted');
   }
@@ -673,23 +706,26 @@ function assertBrowserSafeConfig(config: EmbedConfig): void {
     throw createEmbedError('CONFIG_INVALID', 'clientId is required.');
   }
 
-  const values = flattenValues(config);
-  if (values.some((value) => /^sk_(live|test)?_/i.test(value) || /^sk_/i.test(value))) {
+  const credentialValues = [
+    config.clientId,
+    credentialField(config, 'apiKey'),
+    credentialField(config, 'accessToken'),
+    credentialField(config, 'token'),
+    credentialField(config, 'secretKey'),
+    credentialField(config, 'publishableKey'),
+  ].filter((value): value is string => typeof value === 'string');
+
+  if (credentialValues.some(isSecretLikeValue)) {
     throw createEmbedError('SECRET_KEY_REJECTED', 'Secret keys must not be passed to embed-core browser config.');
   }
 }
 
-function flattenValues(value: unknown): string[] {
-  if (typeof value === 'string') {
-    return [value];
-  }
-  if (Array.isArray(value)) {
-    return value.flatMap(flattenValues);
-  }
-  if (typeof value === 'object' && value !== null) {
-    return Object.values(value).flatMap(flattenValues);
-  }
-  return [];
+function credentialField(config: EmbedConfig, key: string): unknown {
+  return (config as EmbedConfig & Record<string, unknown>)[key];
+}
+
+function isSecretLikeValue(value: string): boolean {
+  return /^sk($|_)/i.test(value);
 }
 
 async function resolveRemoteConfig(
@@ -744,7 +780,7 @@ function chooseContainer(entry: WidgetRegistryEntry, placement: WidgetPlacement)
   if (entry.container && entry.container !== 'auto') {
     return entry.container;
   }
-  if (placement === 'inline' && entry.module) {
+  if (placement === 'inline') {
     return 'shadow';
   }
   return 'iframe';
@@ -760,7 +796,11 @@ function createHostElement(placement: WidgetPlacement, target?: string | HTMLEle
     if (!resolvedTarget) {
       throw createEmbedError('CONFIG_INVALID', 'Inline widgets require a target element.');
     }
-    return resolvedTarget;
+    const host = document.createElement('div');
+    host.dataset.wlPlacement = placement;
+    host.dataset.wlHost = 'inline';
+    resolvedTarget.append(host);
+    return host;
   }
 
   const host = document.createElement('div');
@@ -889,4 +929,21 @@ function addOrigin(target: Set<string>, value: string | undefined): void {
   }
 
   target.add(new URL(value, isBrowser() ? window.location.href : 'http://localhost').origin);
+}
+
+function queryWithRoot(root: ParentNode, selector: string): HTMLElement[] {
+  const matches: HTMLElement[] = [];
+  if (root instanceof HTMLElement && root.matches(selector)) {
+    matches.push(root);
+  }
+  matches.push(...Array.from(root.querySelectorAll<HTMLElement>(selector)));
+  return matches;
+}
+
+function scheduleIdle(callback: () => void): void {
+  if (window.requestIdleCallback) {
+    window.requestIdleCallback(callback);
+    return;
+  }
+  window.setTimeout(callback, 0);
 }

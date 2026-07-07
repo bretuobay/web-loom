@@ -115,6 +115,21 @@ export default defineWidget({
 
 Widgets receive in-memory `config`, `props`, `identity`, and `theme` through `ctx`. Core does not persist identity or transmit analytics.
 
+### Iframe Widgets
+
+Iframe-rendered widgets can use the same widget spec with an iframe-side runtime:
+
+```ts
+import { createIframeWidgetRuntime } from '@web-loom/embed-core/widget';
+import widget from './advisor-widget';
+
+const runtime = createIframeWidgetRuntime(widget);
+await runtime.ready;
+runtime.emit('loaded');
+```
+
+The helper sends the initial handshake, receives `handshake-ack`, validates the host origin, routes host commands to `ctx.onCommand`, and sends widget events back to the host.
+
 ## Consent and Privacy
 
 - Core sets no cookies and writes no browser storage by default.
@@ -152,3 +167,13 @@ frame-src https://widgets.example.com;
 - `CONSENT_REQUIRED`: call `consent('granted')` before mounting in manual mode.
 - `ORIGIN_REJECTED`: ensure iframe widget `origin` exactly matches the posted message origin.
 - `HANDSHAKE_TIMEOUT`: iframe widgets must send a protocol `handshake` message after loading.
+
+## Size Budgets
+
+After `npm run build --workspace=@web-loom/embed-core`, run:
+
+```bash
+npm run test:size --workspace=@web-loom/embed-core
+```
+
+The package checks gzip budgets for `loader`, `host`, and `widget` bundles.

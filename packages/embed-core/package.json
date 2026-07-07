@@ -68,6 +68,7 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --passWithNoTests",
+    "test:size": "node scripts/check-size.mjs",
     "lint": "eslint src --ext .ts --max-warnings 0",
     "lint:fix": "eslint src --ext .ts --fix",
     "check-types": "tsc --noEmit"
