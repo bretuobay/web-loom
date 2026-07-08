@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { defineProps, onMounted, computed, watch } from 'vue';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import BackArrow from '../assets/back-arrow.svg';
 
 const props = defineProps<{
@@ -47,8 +47,8 @@ const props = defineProps<{
   greenhouseId?: string;
 }>();
 
-const isLoading = useObservable(sensorReadingViewModel.isLoading$, true);
-const allReadings = useObservable(sensorReadingViewModel.data$, []);
+const isLoading = useSignal(sensorReadingViewModel.isLoading$);
+const allReadings = useSignal(sensorReadingViewModel.data$);
 
 const filteredReadings = computed(() => {
   if (!allReadings.value) return [];

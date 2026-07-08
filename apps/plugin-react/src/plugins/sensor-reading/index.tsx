@@ -2,11 +2,11 @@ import React, { useEffect } from 'react';
 import type { PluginModule, PluginSDK } from '@repo/plugin-core';
 import { registerManifestContributions, unregisterManifestContributions } from '../utils/manifestHelpers';
 import SensorReadingCard from '../../components/SensorReadingCard';
-import { sensorReadingViewModel, type SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
-import { useObservable } from '../../hooks/useObservable';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { useSignal } from '../../hooks/useSignal';
 
 const SensorReadingWidget: React.FC = () => {
-  const readings = useObservable(sensorReadingViewModel.data$, null as SensorReadingListData | null);
+  const readings = useSignal(sensorReadingViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {

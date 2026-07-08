@@ -37,7 +37,7 @@ class FormInstanceImpl<T extends Record<string, unknown> = Record<string, unknow
   private state: FormState<T>;
   private registeredFields = new Set<string>();
   private fieldValidators = new Map<string, (value: unknown) => Promise<string | null>>();
-  private validationTimeouts = new Map<string, NodeJS.Timeout>();
+  private validationTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   private destroyed = false;
 
   constructor(private config: FormConfig<any, T>) {

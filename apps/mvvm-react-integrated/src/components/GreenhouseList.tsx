@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import BackArrow from '../assets/back-arrow.svg';
 import { Link } from 'react-router-dom';
 
 const greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
 
 export function GreenhouseList() {
-  const greenHouses = useObservable(greenHouseViewModel.data$, []);
+  const greenHouses = useSignal(greenHouseViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {

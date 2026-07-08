@@ -37,7 +37,7 @@ const main = async () => {
 };
 
 // Check if running in a browser environment before executing example code
-if (typeof window !== 'undefined' && typeof process === 'undefined') {
+if (typeof window !== 'undefined' && typeof (globalThis as { process?: unknown }).process === 'undefined') {
   // Also check process to avoid running in Node for Vite build/dev server if not careful
   main().catch((error) => {
     console.error('Error in QueryCore example main function:', error);

@@ -21,7 +21,8 @@
   },
   "dependencies": {
     "@repo/models": "*",
-    "@web-loom/mvvm-core": "*"
+    "@web-loom/mvvm-core": "*",
+    "@web-loom/signals-core": "*"
   },
   "files": [
     "dist"

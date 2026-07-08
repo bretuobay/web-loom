@@ -1,5 +1,4 @@
-import { Observable, BehaviorSubject, combineLatest, Subscription } from 'rxjs';
-import { map, distinctUntilChanged } from 'rxjs/operators';
+import { signal, computed, type ReadonlySignal } from '@web-loom/signals-core';
 import type { ICommand } from './Command';
 import type { IDisposable } from '../models/BaseModel';
 
@@ -35,8 +34,12 @@ export interface ICompositeCommand<TParam = void, TResult = any[]> extends IComm
  *
  * Key behaviors:
  * - canExecute$ is false if ANY child cannot execute
- * - isExecuting$ is true if ANY child is executing
+ * - isExecuting$ is true if ANY child is executing (or the composite itself)
  * - execute() runs all child commands and returns aggregated results
+ *
+ * Both aggregate states are computed signals over the children's signals, so
+ * they track child changes automatically; registering/unregistering bumps a
+ * version signal to re-collect dependencies.
  *
  * @example
  * ```typescript
@@ -54,18 +57,15 @@ export class CompositeCommand<TParam = void, TResult = any[]>
   implements ICompositeCommand<TParam, TResult>, IDisposable
 {
   private readonly commands = new Set<ICommand<TParam, any>>();
-  private readonly _commands$ = new BehaviorSubject<ICommand<TParam, any>[]>([]);
-  private readonly _isExecuting$ = new BehaviorSubject<boolean>(false);
-  private readonly _executeError$ = new BehaviorSubject<any>(null);
+  private readonly _registryVersion = signal(0);
+  private readonly _selfExecuting = signal(false);
+  private readonly _executeError = signal<any>(null);
   private readonly options: Required<CompositeCommandOptions>;
-
-  private canExecuteSubscription: Subscription | null = null;
-  private isExecutingSubscription: Subscription | null = null;
-  private _canExecute$: Observable<boolean>;
   private _isDisposed = false;
 
-  public readonly isExecuting$: Observable<boolean> = this._isExecuting$.asObservable();
-  public readonly executeError$: Observable<any> = this._executeError$.asObservable();
+  public readonly isExecuting$: ReadonlySignal<boolean>;
+  public readonly executeError$: ReadonlySignal<any> = this._executeError.asReadonly();
+  public readonly canExecute$: ReadonlySignal<boolean>;
 
   constructor(options: CompositeCommandOptions = {}) {
     this.options = {
@@ -73,14 +73,18 @@ export class CompositeCommand<TParam = void, TResult = any[]>
       executionMode: options.executionMode ?? 'parallel',
     };
 
-    // Initialize canExecute$ - will be rebuilt when commands change
-    this._canExecute$ = new BehaviorSubject(true).asObservable();
+    this.canExecute$ = computed(() => {
+      this._registryVersion.get(); // re-collect deps when the registry changes
+      const children = Array.from(this.commands);
+      if (children.length === 0) return true;
+      return children.every((cmd) => cmd.canExecute$.get());
+    });
 
-    this.rebuildObservables();
-  }
-
-  get canExecute$(): Observable<boolean> {
-    return this._canExecute$;
+    this.isExecuting$ = computed(() => {
+      this._registryVersion.get();
+      const children = Array.from(this.commands);
+      return this._selfExecuting.get() || children.some((cmd) => cmd.isExecuting$.get());
+    });
   }
 
   get registeredCommands(): ReadonlyArray<ICommand<TParam, any>> {
@@ -106,8 +110,7 @@ export class CompositeCommand<TParam = void, TResult = any[]>
     }
 
     this.commands.add(command);
-    this._commands$.next(Array.from(this.commands));
-    this.rebuildObservables();
+    this._registryVersion.update((v) => v + 1);
   }
 
   /**
@@ -117,8 +120,7 @@ export class CompositeCommand<TParam = void, TResult = any[]>
    */
   unregister(command: ICommand<TParam, any>): void {
     this.commands.delete(command);
-    this._commands$.next(Array.from(this.commands));
-    this.rebuildObservables();
+    this._registryVersion.update((v) => v + 1);
   }
 
   /**
@@ -144,8 +146,8 @@ export class CompositeCommand<TParam = void, TResult = any[]>
       ? commandsArray.filter((cmd) => this.shouldExecuteCommand(cmd))
       : commandsArray;
 
-    this._isExecuting$.next(true);
-    this._executeError$.next(null);
+    this._selfExecuting.set(true);
+    this._executeError.set(null);
 
     try {
       let results: any[];
@@ -163,10 +165,10 @@ export class CompositeCommand<TParam = void, TResult = any[]>
 
       return results as TResult;
     } catch (error) {
-      this._executeError$.next(error);
+      this._executeError.set(error);
       throw error;
     } finally {
-      this._isExecuting$.next(false);
+      this._selfExecuting.set(false);
     }
   }
 
@@ -183,47 +185,12 @@ export class CompositeCommand<TParam = void, TResult = any[]>
   }
 
   /**
-   * Rebuild the canExecute$ and isExecuting$ observables when commands change
-   * @private
-   */
-  private rebuildObservables(): void {
-    // Clean up previous subscriptions
-    this.canExecuteSubscription?.unsubscribe();
-    this.isExecutingSubscription?.unsubscribe();
-
-    const commandsArray = Array.from(this.commands);
-
-    if (commandsArray.length === 0) {
-      this._canExecute$ = new BehaviorSubject(true).asObservable();
-      return;
-    }
-
-    // Combine all canExecute$ - ALL must be true
-    this._canExecute$ = combineLatest(commandsArray.map((cmd) => cmd.canExecute$)).pipe(
-      map((canExecuteStates) => canExecuteStates.every((can) => can)),
-      distinctUntilChanged(),
-    );
-
-    // Combine all isExecuting$ - ANY true means executing
-    this.isExecutingSubscription = combineLatest(commandsArray.map((cmd) => cmd.isExecuting$))
-      .pipe(map((isExecutingStates) => isExecutingStates.some((is) => is)))
-      .subscribe((isExecuting) => {
-        this._isExecuting$.next(isExecuting);
-      });
-  }
-
-  /**
    * Dispose of the composite command and clean up resources
    */
   dispose(): void {
     if (this._isDisposed) return;
-
-    this.canExecuteSubscription?.unsubscribe();
-    this.isExecutingSubscription?.unsubscribe();
-    this._commands$.complete();
-    this._isExecuting$.complete();
-    this._executeError$.complete();
     this.commands.clear();
+    this._registryVersion.update((v) => v + 1);
     this._isDisposed = true;
   }
 }

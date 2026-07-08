@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi, SpyInstance } from 'vitest';
 import { GlobalErrorService, HandledError } from './global-error-service';
-import { Subject, firstValueFrom } from 'rxjs'; // Keep firstValueFrom from rxjs directly
 
 describe('GlobalErrorService', () => {
   let service: GlobalErrorService;
@@ -93,9 +92,9 @@ describe('GlobalErrorService', () => {
     const testError = new Error('Observable test error');
     const testContext = 'ObservableContext';
 
-    const errorPromise = firstValueFrom(service.uncaughtErrors$); // Get a promise for the first emitted error
+    let handledError!: HandledError;
+    service.uncaughtErrors$.subscribe((err) => (handledError = err));
     service.handleError(testError, testContext);
-    const handledError = await errorPromise;
 
     expect(handledError.error).toBe(testError);
     expect(handledError.context).toBe(testContext);
@@ -105,33 +104,24 @@ describe('GlobalErrorService', () => {
 
   it('multiple subscribers should receive the error', async () => {
     const testError = new Error('Multi-subscriber test');
-    const errorPromise1 = firstValueFrom(service.uncaughtErrors$);
-    const errorPromise2 = firstValueFrom(service.uncaughtErrors$); // Subject will multicast
+    let handledError1!: HandledError;
+    let handledError2!: HandledError;
+    service.uncaughtErrors$.subscribe((err) => (handledError1 = err));
+    service.uncaughtErrors$.subscribe((err) => (handledError2 = err));
 
     service.handleError(testError, 'MultiContext');
-
-    const handledError1 = await errorPromise1;
-    const handledError2 = await errorPromise2;
 
     expect(handledError1.error).toBe(testError);
     expect(handledError2.error).toBe(testError);
   });
 
-  it('dispose should complete the uncaughtErrors$ observable', async () => {
-    let isCompleted = false;
-    const subscription = service.uncaughtErrors$.subscribe({
-      complete: () => {
-        isCompleted = true;
-      },
-    });
+  it('dispose should stop delivering errors to subscribers', () => {
+    const spy = vi.fn();
+    service.uncaughtErrors$.subscribe(spy);
     service.dispose();
 
-    // Check completion asynchronously if needed, or trust that .complete() works
-    // For a Subject, once complete, new subscriptions also complete immediately.
-    // We can test this by trying to subscribe after completion or checking a flag.
-    await new Promise((resolve) => setTimeout(resolve, 0)); // allow microtasks to run
-    expect(isCompleted).toBe(true);
-    subscription.unsubscribe();
+    service.handleError(new Error('after dispose'));
+    expect(spy).not.toHaveBeenCalled();
   });
 
   describe('Global Error Handler Setup', () => {

@@ -1,5 +1,5 @@
 import { RestfulApiModel, type Fetcher } from '@web-loom/mvvm-core';
-import { BehaviorSubject } from 'rxjs';
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
 import { apiRegistry, type ApiEndpoint } from './services/services';
 import { API_BASE_URL } from './config';
 import { nativeFetcher } from './utils/fetcher';
@@ -87,8 +87,8 @@ export interface ChangePasswordPayload {
 }
 
 export class AuthModel extends RestfulApiModel<UserData, typeof UserSchema> {
-  private readonly _token = new BehaviorSubject<string | null>(null);
-  public readonly token$ = this._token.asObservable();
+  private readonly _token = signal<string | null>(null);
+  public readonly token$: ReadonlySignal<string | null> = this._token.asReadonly();
   private readonly updateFetcherToken: (value?: string | null) => void;
   private readonly resolveHeaders: AuthHeadersResolver;
   private readonly readFetcherToken: () => string | null;
@@ -120,7 +120,7 @@ export class AuthModel extends RestfulApiModel<UserData, typeof UserSchema> {
 
   private updateTokenState(value: string | null) {
     this.updateFetcherToken(value);
-    this._token.next(value);
+    this._token.set(value);
     persistToken(value);
   }
 
@@ -200,6 +200,5 @@ export class AuthModel extends RestfulApiModel<UserData, typeof UserSchema> {
 
   public override dispose(): void {
     super.dispose();
-    this._token.complete();
   }
 }

@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { Subscription, combineLatest } from 'rxjs';
+import { computed, observe } from '@web-loom/signals-core';
 
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
@@ -18,18 +18,20 @@ export class DashboardView extends LitElement {
     return this;
   }
   @state() private isLoading = true;
-  private subscriptions: Subscription[] = [];
+  private teardowns: Array<() => void> = [];
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscriptions.push(
-      combineLatest([
-        greenHouseViewModel.isLoading$,
-        sensorViewModel.isLoading$,
-        sensorReadingViewModel.isLoading$,
-        thresholdAlertViewModel.isLoading$,
-      ]).subscribe(([gh, s, sr, ta]) => {
-        this.isLoading = gh || s || sr || ta;
+    const anyLoading$ = computed(
+      () =>
+        greenHouseViewModel.isLoading$.get() ||
+        sensorViewModel.isLoading$.get() ||
+        sensorReadingViewModel.isLoading$.get() ||
+        thresholdAlertViewModel.isLoading$.get(),
+    );
+    this.teardowns.push(
+      observe(anyLoading$, (loading) => {
+        this.isLoading = loading;
       }),
     );
     this.fetchData();
@@ -37,7 +39,7 @@ export class DashboardView extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscriptions.forEach((sub) => sub.unsubscribe());
+    this.teardowns.forEach((teardown) => teardown());
   }
 
   private async fetchData() {

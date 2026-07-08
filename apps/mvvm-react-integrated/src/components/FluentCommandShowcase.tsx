@@ -4,7 +4,7 @@ import { Command } from '@web-loom/mvvm-core';
 import { BehaviorSubject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 const FluentCommandShowcase = () => {
   const username$ = useMemo(() => new BehaviorSubject(''), []);
@@ -44,8 +44,8 @@ const FluentCommandShowcase = () => {
     };
   }, [acceptedPolicy$, email$, registerCommand, password$, username$, validationReset$]);
 
-  const canSubmit = useObservable(registerCommand.canExecute$, false);
-  const isSubmitting = useObservable(registerCommand.isExecuting$, false);
+  const canSubmit = useSignal(registerCommand.canExecute$);
+  const isSubmitting = useSignal(registerCommand.isExecuting$);
 
   const usernameValue = username;
   const emailValue = email;

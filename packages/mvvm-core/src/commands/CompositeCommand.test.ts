@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { firstValueFrom, BehaviorSubject } from 'rxjs';
+import { signal } from '@web-loom/signals-core';
 import { CompositeCommand } from './CompositeCommand';
 import { Command } from './Command';
 
@@ -64,14 +64,14 @@ describe('CompositeCommand', () => {
       composite.register(cmd1);
       composite.register(cmd2);
 
-      const canExecute = await firstValueFrom(composite.canExecute$);
+      const canExecute = composite.canExecute$.get();
       expect(canExecute).toBe(true);
     });
 
     it('should be false when any command cannot execute', async () => {
       const composite = new CompositeCommand();
-      const canExecute1$ = new BehaviorSubject(true);
-      const canExecute2$ = new BehaviorSubject(false);
+      const canExecute1$ = signal(true);
+      const canExecute2$ = signal(false);
 
       const cmd1 = new Command(async () => {}, canExecute1$);
       const cmd2 = new Command(async () => {}, canExecute2$);
@@ -81,50 +81,50 @@ describe('CompositeCommand', () => {
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const canExecute = await firstValueFrom(composite.canExecute$);
+      const canExecute = composite.canExecute$.get();
       expect(canExecute).toBe(false);
     });
 
     it('should be true when no commands registered', async () => {
       const composite = new CompositeCommand();
-      const canExecute = await firstValueFrom(composite.canExecute$);
+      const canExecute = composite.canExecute$.get();
       expect(canExecute).toBe(true);
     });
 
     it('should update when child command canExecute changes', async () => {
       const composite = new CompositeCommand();
-      const canExecute$ = new BehaviorSubject(true);
+      const canExecute$ = signal(true);
       const cmd = new Command(async () => {}, canExecute$);
 
       composite.register(cmd);
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      let canExecute = await firstValueFrom(composite.canExecute$);
+      let canExecute = composite.canExecute$.get();
       expect(canExecute).toBe(true);
 
-      canExecute$.next(false);
+      canExecute$.set(false);
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      canExecute = await firstValueFrom(composite.canExecute$);
+      canExecute = composite.canExecute$.get();
       expect(canExecute).toBe(false);
     });
 
     it('should update when commands are added/removed', async () => {
       const composite = new CompositeCommand();
-      const canExecute$ = new BehaviorSubject(false);
+      const canExecute$ = signal(false);
       const cmd = new Command(async () => {}, canExecute$);
 
       composite.register(cmd);
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      let canExecute = await firstValueFrom(composite.canExecute$);
+      let canExecute = composite.canExecute$.get();
       expect(canExecute).toBe(false);
 
       composite.unregister(cmd);
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      canExecute = await firstValueFrom(composite.canExecute$);
+      canExecute = composite.canExecute$.get();
       expect(canExecute).toBe(true); // No commands = can execute
     });
   });
@@ -209,7 +209,7 @@ describe('CompositeCommand', () => {
 
       await expect(composite.execute()).rejects.toThrow('Test error');
 
-      const executeError = await firstValueFrom(composite.executeError$);
+      const executeError = composite.executeError$.get();
       expect(executeError).toBe(error);
     });
 
@@ -251,20 +251,20 @@ describe('CompositeCommand', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Should be executing
-      const isExecuting = await firstValueFrom(composite.isExecuting$);
+      const isExecuting = composite.isExecuting$.get();
       expect(isExecuting).toBe(true);
 
       resolveCmd!();
       await executePromise;
 
       // Should no longer be executing
-      const isExecutingAfter = await firstValueFrom(composite.isExecuting$);
+      const isExecutingAfter = composite.isExecuting$.get();
       expect(isExecutingAfter).toBe(false);
     });
 
     it('should be false initially', async () => {
       const composite = new CompositeCommand();
-      const isExecuting = await firstValueFrom(composite.isExecuting$);
+      const isExecuting = composite.isExecuting$.get();
       expect(isExecuting).toBe(false);
     });
 
@@ -286,7 +286,7 @@ describe('CompositeCommand', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Composite should show as executing
-      const isExecuting = await firstValueFrom(composite.isExecuting$);
+      const isExecuting = composite.isExecuting$.get();
       expect(isExecuting).toBe(true);
 
       resolveCmd!();
@@ -365,15 +365,18 @@ describe('CompositeCommand', () => {
       expect(composite.registeredCommands).toHaveLength(0);
     });
 
-    it('should complete observables on dispose', () => {
+    it('should stop reacting after dispose', async () => {
       const composite = new CompositeCommand();
-      const completeSpy = vi.fn();
-
-      composite.isExecuting$.subscribe({ complete: completeSpy });
+      const cmd = new Command(async () => {});
+      composite.register(cmd);
 
       composite.dispose();
 
-      expect(completeSpy).toHaveBeenCalled();
+      // Executing after dispose is a no-op and does not flip isExecuting$
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await composite.execute();
+      expect(composite.isExecuting$.get()).toBe(false);
+      consoleSpy.mockRestore();
     });
 
     it('should not throw when disposing twice', () => {

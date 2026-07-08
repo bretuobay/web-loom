@@ -1,7 +1,7 @@
 import { Command } from '@web-loom/mvvm-core';
 import { ActiveAwareViewModel } from '@web-loom/mvvm-patterns';
 import { createMasterDetail, type MasterDetailBehavior } from '@web-loom/ui-patterns';
-import { computed, signal, type ReadonlySignal } from '@web-loom/signals-core';
+import { computed, observe, signal, type ReadonlySignal } from '@web-loom/signals-core';
 import type { CatalogProductDto } from '../../infrastructure/api/ports/ecommerce-api-port';
 import { CatalogModel } from './CatalogModel';
 
@@ -57,7 +57,7 @@ export class CatalogViewModel extends ActiveAwareViewModel<CatalogModel> {
     super(model);
 
     this.addSubscription(
-      this.model.data$.subscribe((products) => {
+      observe(this.model.data$, (products) => {
         const list = products ?? [];
         this.productsState.set(list);
         this.rebuildMasterDetail(list);

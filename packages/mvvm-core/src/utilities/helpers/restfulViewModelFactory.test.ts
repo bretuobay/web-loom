@@ -99,12 +99,7 @@ describe('createReactiveViewModel', () => {
       schema: TestItemSchema,
     };
     const viewModel = createReactiveViewModel(configWithInitialData);
-    return new Promise<void>((resolve) => {
-      viewModel.data$.subscribe((data) => {
-        expect(data).toEqual(initial);
-        resolve();
-      });
-    });
+    expect(viewModel.data$.get()).toEqual(initial);
   });
 
   it('ViewModel should expose data$, isLoading$, and error$ observables', () => {

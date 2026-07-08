@@ -8,13 +8,11 @@ vi.mock('@repo/view-models/GreenHouseViewModel', () => {
     { id: '2', name: 'Greenhouse 2', location: 'Location 2', size: '50sqm', cropType: 'Cucumbers' },
   ];
   const mockViewModel = {
+    // Signal-shaped mock: observe() reads peek() immediately, then subscribes
     data$: {
-      subscribe: (cb: (data: any) => void) => {
-        cb(mockData);
-        return {
-          unsubscribe: () => {},
-        };
-      },
+      get: () => mockData,
+      peek: () => mockData,
+      subscribe: (_cb: (data: any) => void) => () => {},
     },
     fetchCommand: { execute: () => Promise.resolve() },
     createCommand: { execute: () => Promise.resolve() },

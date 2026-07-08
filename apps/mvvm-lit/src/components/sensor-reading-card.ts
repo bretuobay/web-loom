@@ -1,7 +1,7 @@
 import { LitElement, html, type PropertyValues } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { sensorReadingViewModel, type SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 import { renderSensorReadingsChart } from './sensor-reading-chart';
 
 @customElement('sensor-reading-card')
@@ -10,18 +10,18 @@ export class SensorReadingCard extends LitElement {
     return this;
   }
   @state() private sensorReadings: SensorReadingListData = [];
-  private subscription: Subscription | null = null;
+  private unsubscribe: (() => void) | null = null;
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscription = sensorReadingViewModel.data$.subscribe((data: any) => {
+    this.unsubscribe = observe(sensorReadingViewModel.data$, (data: any) => {
       this.sensorReadings = data;
     });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscription?.unsubscribe();
+    this.unsubscribe?.();
   }
 
   updated(changedProperties: PropertyValues) {

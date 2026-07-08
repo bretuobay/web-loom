@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { z } from 'zod';
-import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { signal, observe } from '@web-loom/signals-core';
 import { QueryStateModel, TQueryStateModelConstructor } from './QueryStateModel';
 
 // Define a simple Zod schema for testing
@@ -38,7 +38,7 @@ interface QueryCore {
 // Mock QueryCore completely to avoid import issues in CI
 const createMockQueryCoreInstance = () => {
   // Create the BehaviorSubject when the mocked QueryCore is instantiated.
-  const instanceBehaviorSubject = new BehaviorSubject<MockEndpointState<any>>({
+  const instanceState = signal<MockEndpointState<any>>({
     data: undefined,
     isLoading: false,
     isError: false,
@@ -49,16 +49,16 @@ const createMockQueryCoreInstance = () => {
   return {
     defineEndpoint: vi.fn(async (endpointKey: string, fetcher: () => Promise<any>, options: any) => {}),
     subscribe: vi.fn((endpointKey: string, callback: (state: MockEndpointState<any>) => void) => {
-      const subscription = instanceBehaviorSubject.subscribe(callback);
-      callback(instanceBehaviorSubject.getValue());
-      return () => subscription.unsubscribe();
+      // observe delivers the current state immediately, then changes
+      const unsubscribe = observe(instanceState, callback);
+      return () => unsubscribe();
     }),
     refetch: vi.fn(async (endpointKey: string, force?: boolean) => {
-      const currentState = instanceBehaviorSubject.getValue();
-      instanceBehaviorSubject.next({ ...currentState, isLoading: true, isError: false, error: undefined });
+      const currentState = instanceState.peek();
+      instanceState.set({ ...currentState, isLoading: true, isError: false, error: undefined });
     }),
     invalidate: vi.fn(async (endpointKey: string) => {
-      instanceBehaviorSubject.next({
+      instanceState.set({
         data: undefined,
         isLoading: false,
         isError: false,
@@ -67,14 +67,14 @@ const createMockQueryCoreInstance = () => {
       });
     }),
     getState: vi.fn((endpointKey: string): MockEndpointState<any> => {
-      return instanceBehaviorSubject.getValue();
+      return instanceState.peek();
     }),
     // These helpers need to be part of the returned instance if tests use them on the instance
     _simulateStateChange: (newState: Partial<MockEndpointState<any>>) => {
-      instanceBehaviorSubject.next({ ...instanceBehaviorSubject.getValue(), ...newState });
+      instanceState.set({ ...instanceState.peek(), ...newState });
     },
     _resetMockState: () => {
-      instanceBehaviorSubject.next({
+      instanceState.set({
         data: undefined,
         isLoading: false,
         isError: false,
@@ -182,9 +182,9 @@ describe('QueryStateModel', () => {
     expect(mockQueryCoreInstance.subscribe).toHaveBeenCalledWith(endpointKey, expect.any(Function));
 
     // Check initial state propagation from QueryCore's mock
-    const initialData = await firstValueFrom(model.data$);
-    const initialLoading = await firstValueFrom(model.isLoading$);
-    const initialError = await firstValueFrom(model.error$);
+    const initialData = model.data$.get();
+    const initialLoading = model.isLoading$.get();
+    const initialError = model.error$.get();
 
     // BaseModel initializes _data$ with (undefined ?? null) = null.
     // Mock QueryCore subscribe callback is called synchronously with { data: undefined, ... }.
@@ -193,7 +193,7 @@ describe('QueryStateModel', () => {
     // QueryStateModel.setData(undefined) is called.
     // So _data$ in BaseModel is now BehaviorSubject(undefined).
     // firstValueFrom will get the current value, which should be undefined.
-    expect(await firstValueFrom(model.data$)).toBeNull();
+    expect(model.data$.get()).toBeNull();
     expect(initialLoading).toBe(false);
     expect(initialError).toBeNull();
     expect(model.store).toBe(mockStoreInstance); // Check if store is exposed
@@ -262,11 +262,11 @@ describe('QueryStateModel', () => {
     // expect(model.isError$).toBeDefined(); // Key check
 
     let dataHistory: (ItemArray | null)[] = [];
-    model.data$.subscribe((val) => dataHistory.push(val === undefined ? null : val)); // Normalize undefined to null for easier comparison
+    observe(model.data$, (val) => dataHistory.push(val === undefined ? null : val)); // Normalize undefined to null for easier comparison
 
     // Simulate loading
     mockQueryCoreSimulator._simulateStateChange({ isLoading: true });
-    expect(await firstValueFrom(model.isLoading$)).toBe(true);
+    expect(model.isLoading$.get()).toBe(true);
 
     // Simulate data received
     mockQueryCoreSimulator._simulateStateChange({
@@ -275,22 +275,22 @@ describe('QueryStateModel', () => {
       isError: false,
       error: undefined,
     });
-    expect(await firstValueFrom(model.isLoading$)).toBe(false);
-    expect(await firstValueFrom(model.data$)).toEqual(testItems);
-    expect(await firstValueFrom(model.error$)).toBeNull(); // error should be null
-    // expect(await firstValueFrom(model.isError$)).toBe(false); // isError should be false
+    expect(model.isLoading$.get()).toBe(false);
+    expect(model.data$.get()).toEqual(testItems);
+    expect(model.error$.get()).toBeNull(); // error should be null
+    // expect(model.isError$.get()).toBe(false); // isError should be false
     expect(dataHistory.pop()).toEqual(testItems);
 
     // Simulate error
     mockQueryCoreSimulator._simulateStateChange({ isLoading: false, data: undefined, isError: true, error: testError });
-    expect(await firstValueFrom(model.isLoading$)).toBe(false);
+    expect(model.isLoading$.get()).toBe(false);
 
     // expect(model.isError$).toBeDefined(); // Re-check before use
     // const isErrorObs = model.isError$;
     // expect(isErrorObs).toBeDefined(); // Ensure the observable itself is defined
 
-    // expect(await firstValueFrom(isErrorObs)).toBe(true);
-    expect(await firstValueFrom(model.error$)).toEqual(testError);
+    // expect(isErrorObs.get()).toBe(true);
+    expect(model.error$.get()).toEqual(testError);
 
     // Data becomes undefined in this error sim, which model converts to null
     expect(dataHistory.pop()).toEqual(null);
@@ -314,7 +314,7 @@ describe('QueryStateModel', () => {
     expect(mockQueryCoreInstance.invalidate).toHaveBeenCalledWith(endpointKey);
     // After invalidation, data should become null/undefined if QueryCore clears it
     mockQueryCoreSimulator._simulateStateChange({ data: undefined, lastUpdated: undefined }); // Simulate QueryCore's reaction
-    expect(await firstValueFrom(model.data$)).toBeNull();
+    expect(model.data$.get()).toBeNull();
     model.dispose();
   });
 
@@ -339,7 +339,7 @@ describe('QueryStateModel', () => {
     // QueryStateModel.setData(undefined) is called.
     // So _data$ in BaseModel is now BehaviorSubject(undefined).
     // firstValueFrom will get the current value, which should be undefined.
-    expect(await firstValueFrom(model.data$)).toBeNull();
+    expect(model.data$.get()).toBeNull();
 
     // If we wanted to test that initialData was briefly set, we'd need a more complex spy
     // or an async mock for QueryCore's callback. For now, this reflects the sync outcome.
@@ -363,7 +363,7 @@ describe('QueryStateModel', () => {
     // Wait for async constructor logic to settle
     await new Promise(process.nextTick);
 
-    // expect(await firstValueFrom(model.error$)).toBe(definitionError);
+    // expect(model.error$.get()).toBe(definitionError);
     model.dispose();
   });
 
@@ -375,32 +375,32 @@ describe('QueryStateModel', () => {
       const model = createModel();
       const initialItems: ItemArray = [{ id: '1', name: 'Original' }];
       mockQueryCoreSimulator._simulateStateChange({ data: initialItems, isLoading: false });
-      expect(await firstValueFrom(model.data$)).toEqual(initialItems);
+      expect(model.data$.get()).toEqual(initialItems);
 
       // Simulate external CREATE:
       // 1. External API call happens.
       // 2. Invalidate or refetch is called on the model.
       await model.invalidate(); // Invalidate the cache
       mockQueryCoreSimulator._simulateStateChange({ data: undefined, isLoading: false }); // QueryCore state after invalidation
-      expect(await firstValueFrom(model.data$)).toBeNull();
+      expect(model.data$.get()).toBeNull();
 
       const itemsAfterCreate: ItemArray = [...initialItems, { id: '2', name: 'Newly Created' }];
       // Simulate QueryCore fetching new data after invalidation + refetch (triggered by subscribe or manually)
       mockQueryCoreSimulator._simulateStateChange({ data: itemsAfterCreate, isLoading: false });
-      expect(await firstValueFrom(model.data$)).toEqual(itemsAfterCreate);
+      expect(model.data$.get()).toEqual(itemsAfterCreate);
 
       // Simulate external UPDATE:
       await model.refetch(true); // Force refetch
       const itemsAfterUpdate: ItemArray = [{ id: '1', name: 'Updated Name' }, itemsAfterCreate[1]];
       mockQueryCoreSimulator._simulateStateChange({ data: itemsAfterUpdate, isLoading: false }); // QueryCore gets updated data
-      expect(await firstValueFrom(model.data$)).toEqual(itemsAfterUpdate);
+      expect(model.data$.get()).toEqual(itemsAfterUpdate);
 
       // Simulate external DELETE:
       await model.invalidate();
       mockQueryCoreSimulator._simulateStateChange({ data: undefined, isLoading: false });
       const itemsAfterDelete: ItemArray = [itemsAfterUpdate[1]]; // Only item '2' remains
       mockQueryCoreSimulator._simulateStateChange({ data: itemsAfterDelete, isLoading: false });
-      expect(await firstValueFrom(model.data$)).toEqual(itemsAfterDelete);
+      expect(model.data$.get()).toEqual(itemsAfterDelete);
 
       model.dispose();
     });

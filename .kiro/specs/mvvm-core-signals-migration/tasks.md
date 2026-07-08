@@ -1,0 +1,83 @@
+# Implementation Plan
+
+This implementation plan migrates `@web-loom/mvvm-core` from RxJS to `@web-loom/signals-core` in five ship-green phases: signals-core prerequisites, the mvvm-core port, the view-models port, per-app bridge swaps, and documentation/version finalization. Run `npm run check-types && npm run lint && npm run test` at the end of each phase.
+
+- [x] 1. Signals Core 0.7 prerequisites
+  - [x] 1.1 Value-passing subscribe
+    - Change `subscribe(fn)` in `packages/signals-core/src/signal.ts` (and computed) to invoke listeners with the new current value
+    - Keep zero-argument callbacks working (extra argument is simply ignored)
+    - Update/extend `signal.test.ts` and `computed.test.ts` for value delivery
+    - _Requirements: 1.1, 1.6_
+  - [x] 1.2 `observe` helper
+    - Add `src/observe.ts`: call `fn(sig.peek())` immediately, then subscribe; return unsubscribe function
+    - Export from `src/index.ts`; add `observe.test.ts` (immediate call, change delivery, unsubscribe)
+    - _Requirements: 1.2, 1.6_
+  - [x] 1.3 `debouncedSignal` helper
+    - Add `src/debounced-signal.ts` returning a `ReadonlySignal<T>` that settles after `ms` of quiet
+    - Test with fake timers (rapid updates coalesce; trailing value wins; disposal clears pending timer)
+    - _Requirements: 1.3, 1.6_
+  - [x] 1.4 RxJS interop subpath
+    - Add `src/rxjs/index.ts` with `toObservable(signal)` (emit current value, then changes) and `fromObservable(obs, initial)`
+    - Configure `exports` map for `@web-loom/signals-core/rxjs`; declare `rxjs` as optional peer dependency; verify main entry stays zero-dependency
+    - Add interop tests; bump signals-core version to 0.7.0
+    - _Requirements: 1.4, 1.5, 1.6_
+
+- [x] 2. MVVM Core port (0.6.0)
+  - [x] 2.1 Port BaseModel
+    - Replace the three `BehaviorSubject`s in `src/models/BaseModel.ts` with `signal()`s; expose `data$/isLoading$/error$` as `ReadonlySignal`
+    - `getCurrentX()` delegates to `peek()`; `dispose()` clears subscribers; Zod validation untouched
+    - Port `BaseModel.test.ts` (`firstValueFrom` → `get()`, completion assertions → dispose semantics)
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 8.1, 8.2_
+  - [x] 2.2 Port Command and CompositeCommand
+    - Rewrite `src/commands/Command.ts` per the design: writable signals for `isExecuting`/`executeError`, `canExecute$` as `computed` with condition array + version signal, synchronous `peek()` guard in `execute()`
+    - Retain `observesProperty`/`observesCanExecute` (bump version signal on registration) and `raiseCanExecuteChanged()`
+    - Delete `rebuildCanExecute` machinery; port `CompositeCommand.ts` on the same surface
+    - Port both test files, preserving fluent-API and can-execute coverage
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 8.1, 8.4_
+  - [x] 2.3 Port ViewModels
+    - Port `src/viewmodels/BaseViewModel.ts`, `RestfulApiViewModel.ts`, `QueryStateModelView.ts` to signal-backed state, names unchanged
+    - Port `form-view-model.ts` (50ms validation debounce) and `queryable-collection-view-model.ts` (150ms filter debounce) using `debouncedSignal`
+    - Port co-located tests with fake timers for the debounce paths
+    - _Requirements: 4.1, 4.3, 8.1_
+  - [x] 2.4 Port Models, collections, state, and services
+    - Port `src/models/RestfulApiModel.ts` and `QueryStateModel.ts` (state containers only; CRUD/fetch stays promise-based)
+    - Port `src/collections/ObservableCollection.ts`, `src/state/BusyState.ts`, `src/services/notification-service.ts`, `src/services/global-error-service.ts`
+    - Use the signals-core rxjs interop where genuinely stream-shaped (timers/cancellation); leave `SimpleDIContainer` untouched
+    - Port co-located tests
+    - _Requirements: 4.2, 4.4, 4.5, 4.6, 8.1, 8.2_
+  - [x] 2.5 Dependency cleanup and examples
+    - Remove `rxjs` from mvvm-core `dependencies`; add `@web-loom/signals-core`; keep `zod` + `@web-loom/query-core`
+    - Update or prune `src/examples/*` so nothing imports RxJS state containers; bump version to 0.6.0
+    - Grep-verify: no `from 'rxjs'` outside interop-consuming Model-edge code
+    - Full quality gate: `npm run check-types && npm run lint && npm run test`
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 8.3_
+
+- [x] 3. View Models package port
+  - Replace `BehaviorSubject` in `packages/view-models/src/AuthViewModel.ts` with `signal()`; exported symbols unchanged
+  - Verify no other RxJS imports remain in the package; run its tests against mvvm-core 0.6.0
+  - _Requirements: 6.1, 6.2, 6.3_
+
+- [x] 4. Demo application bridges
+  - [x] 4.1 React apps
+    - Replace `apps/mvvm-react/src/hooks/useObservable.ts` with `useSignal` via `useSyncExternalStore(sig.subscribe, sig.get, sig.get)`; update call sites (drop `initialValue` args)
+    - Apply the same swap in `mvvm-react-integrated` and `mvvm-react-native`
+    - _Requirements: 7.1, 7.6_
+  - [x] 4.2 Angular app
+    - Add a `toAngularSignal` adapter (native Angular signal + `DestroyRef` cleanup); replace `async`-pipe bindings for ViewModel state, including the `.pipe(` usage in `greenhouse-list.component.ts`
+    - _Requirements: 7.2, 7.6_
+  - [x] 4.3 Vue app
+    - Add a `useSignal` composable (`shallowRef` + `observe`, unsubscribe in `onUnmounted`); update components
+    - _Requirements: 7.3, 7.6_
+  - [x] 4.4 Lit, Vanilla, and Marko apps
+    - Replace `.subscribe()` call sites with `observe(sig, fn)`; keep teardown/unsubscribe discipline
+    - _Requirements: 7.4, 7.6_
+  - [x] 4.5 Remaining consumers
+    - Audit and migrate `ui-patterns-playground` and `plugin-react` (both depend on `@repo/view-models`)
+    - _Requirements: 7.5, 7.6_
+
+- [x] 5. Documentation and finalization
+  - Update `packages/mvvm-core/README.md`: signal-based API, `$` = reactive-property convention, rxjs interop pattern
+  - Update `.claude/skills/architecture.md` patterns and per-framework bridge examples
+  - Annotate `docs/MVVM-CORE-PRISM-ENHANCEMENTS.md` (roadmap items now target signals)
+  - Final end-to-end check: run `npm run demo:start` and smoke-test at least mvvm-react and mvvm-angular against the live API; full monorepo quality gate
+  - _Requirements: 9.1, 9.2, 9.3, 8.3_

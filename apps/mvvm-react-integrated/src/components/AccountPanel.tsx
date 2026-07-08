@@ -1,11 +1,11 @@
 import { useState, memo, type ChangeEvent, type FormEvent } from 'react';
 import type { UserData } from '@repo/models';
 import { authViewModel } from '@repo/view-models/AuthViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import { useAuth } from '../providers/AuthProvider';
 
 export const AccountPanel = memo(function AccountPanel() {
-  const user = useObservable<UserData | null>(authViewModel.user$, null);
+  const user = useSignal<UserData | null>(authViewModel.user$);
   const { isLoading } = useAuth();
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '' });
   const [statusMessage, setStatusMessage] = useState<string | null>(null);

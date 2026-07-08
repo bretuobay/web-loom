@@ -26,6 +26,7 @@
     "vite-plugin-dts": "^5.0.3"
   },
   "dependencies": {
-    "@web-loom/mvvm-core": "*"
+    "@web-loom/mvvm-core": "*",
+    "@web-loom/signals-core": "*"
   }
 }

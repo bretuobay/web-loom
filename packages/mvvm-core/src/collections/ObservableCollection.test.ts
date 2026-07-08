@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ObservableCollection } from './ObservableCollection';
-import { first } from 'rxjs/operators';
 
 interface TestItem {
   id: string;
@@ -17,7 +16,7 @@ describe('ObservableCollection', () => {
   it('should initialize with an empty array and emit an empty array', async () => {
     expect(collection.toArray()).toEqual([]);
     expect(collection.length).toBe(0);
-    expect(await collection.items$.pipe(first()).toPromise()).toEqual([]);
+    expect(collection.items$.get()).toEqual([]);
   });
 
   it('should initialize with initial items and emit them', async () => {
@@ -28,7 +27,7 @@ describe('ObservableCollection', () => {
     collection = new ObservableCollection<TestItem>(initialItems);
     expect(collection.toArray()).toEqual(initialItems);
     expect(collection.length).toBe(2);
-    expect(await collection.items$.pipe(first()).toPromise()).toEqual(initialItems);
+    expect(collection.items$.get()).toEqual(initialItems);
   });
 
   describe('add method', () => {
@@ -41,15 +40,16 @@ describe('ObservableCollection', () => {
       //     .pipe(take(2), toArray())
       //     .toPromise();
 
-      const itemAddedPromise = collection.itemAdded$.pipe(first()).toPromise();
+      let itemAddedValue: TestItem | undefined;
+      collection.itemAdded$.subscribe((item) => (itemAddedValue = item));
 
       collection.add(addedItem);
 
       expect(collection.toArray()).toEqual([addedItem]);
       expect(collection.length).toBe(1);
-      expect(await itemAddedPromise).toEqual(addedItem);
+      expect(itemAddedValue).toEqual(addedItem);
       // Assert items$ reflects the new state
-      expect(await collection.items$.pipe(first()).toPromise()).toEqual([addedItem]);
+      expect(collection.items$.get()).toEqual([addedItem]);
 
       // Wait for all emissions for items$ and then check
       // For a single addition, items$ should emit initial empty then the new array
@@ -71,14 +71,15 @@ describe('ObservableCollection', () => {
     });
 
     it('should remove an item by predicate and emit on items$ and itemRemoved$', async () => {
-      const itemRemovedPromise = collection.itemRemoved$.pipe(first()).toPromise();
+      let itemRemovedValue: TestItem | undefined;
+      collection.itemRemoved$.subscribe((item) => (itemRemovedValue = item));
 
       collection.remove((item) => item.id === '2');
 
       expect(collection.toArray()).toEqual([item1, item3]);
       expect(collection.length).toBe(2);
-      expect(await itemRemovedPromise).toEqual(item2);
-      expect(await collection.items$.pipe(first()).toPromise()).toEqual([item1, item3]);
+      expect(itemRemovedValue).toEqual(item2);
+      expect(collection.items$.get()).toEqual([item1, item3]);
     });
 
     it('should remove multiple items by predicate', async () => {
@@ -90,7 +91,7 @@ describe('ObservableCollection', () => {
       expect(collection.toArray()).toEqual([item2]);
       expect(removedItems).toEqual([item1, item3]); // Order depends on internal iteration
       // Assert items$ reflects the new state
-      expect(await collection.items$.pipe(first()).toPromise()).toEqual([item2]);
+      expect(collection.items$.get()).toEqual([item2]);
     });
 
     it('should do nothing if no item matches the predicate', async () => {
@@ -102,7 +103,7 @@ describe('ObservableCollection', () => {
 
       expect(collection.toArray()).toEqual(initialItems);
       expect(itemRemovedSpy).not.toHaveBeenCalled();
-      expect(await collection.items$.pipe(first()).toPromise()).toEqual(initialItems);
+      expect(collection.items$.get()).toEqual(initialItems);
     });
   });
 
@@ -117,16 +118,17 @@ describe('ObservableCollection', () => {
 
     it('should update an item and emit on items$ and itemUpdated$', async () => {
       const updatedItem = { id: '2', value: 'B-Updated' };
-      const itemUpdatedPromise = collection.itemUpdated$.pipe(first()).toPromise();
+      let itemUpdatedValue: { oldItem: TestItem; newItem: TestItem } | undefined;
+      collection.itemUpdated$.subscribe((change) => (itemUpdatedValue = change));
 
       collection.update((item) => item.id === '2', updatedItem);
 
       expect(collection.toArray()).toEqual([item1, updatedItem, item3]);
-      expect(await itemUpdatedPromise).toEqual({
+      expect(itemUpdatedValue).toEqual({
         oldItem: item2,
         newItem: updatedItem,
       });
-      expect(await collection.items$.pipe(first()).toPromise()).toEqual([item1, updatedItem, item3]);
+      expect(collection.items$.get()).toEqual([item1, updatedItem, item3]);
     });
 
     it('should do nothing if no item matches the predicate', async () => {
@@ -139,7 +141,7 @@ describe('ObservableCollection', () => {
 
       expect(collection.toArray()).toEqual(initialItems);
       expect(itemUpdatedSpy).not.toHaveBeenCalled();
-      expect(await collection.items$.pipe(first()).toPromise()).toEqual(initialItems);
+      expect(collection.items$.get()).toEqual(initialItems);
     });
   });
 
@@ -159,7 +161,7 @@ describe('ObservableCollection', () => {
 
       expect(collection.toArray()).toEqual([]);
       expect(collection.length).toBe(0);
-      expect(await collection.items$.pipe(first()).toPromise()).toEqual([]);
+      expect(collection.items$.get()).toEqual([]);
       expect(itemRemovedSpy).toHaveBeenCalledTimes(2);
       expect(itemRemovedSpy).toHaveBeenCalledWith(item1);
       expect(itemRemovedSpy).toHaveBeenCalledWith(item2);
@@ -176,7 +178,7 @@ describe('ObservableCollection', () => {
       expect(collection.length).toBe(0);
       expect(itemRemovedSpy).not.toHaveBeenCalled();
       // Assert items$ reflects the current (empty) state
-      expect(await collection.items$.pipe(first()).toPromise()).toEqual([]);
+      expect(collection.items$.get()).toEqual([]);
     });
   });
 
@@ -196,14 +198,14 @@ describe('ObservableCollection', () => {
 
       expect(collection.toArray()).toEqual(newItems);
       expect(collection.length).toBe(2);
-      expect(await collection.items$.pipe(first()).toPromise()).toEqual(newItems);
+      expect(collection.items$.get()).toEqual(newItems);
     });
 
     it('should handle setting an empty array', async () => {
       collection.setItems([]);
       expect(collection.toArray()).toEqual([]);
       expect(collection.length).toBe(0);
-      expect(await collection.items$.pipe(first()).toPromise()).toEqual([]);
+      expect(collection.items$.get()).toEqual([]);
     });
   });
 

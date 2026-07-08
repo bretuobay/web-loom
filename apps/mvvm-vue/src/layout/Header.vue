@@ -23,10 +23,10 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import { navigationViewModel } from '@repo/shared/view-models/NavigationViewModel';
 
-const navigation = useObservable(navigationViewModel.navigationList.items$, []);
+const navigation = useSignal(navigationViewModel.navigationList.items$);
 const navigationList = computed(() => navigation.value.map((item) => item));
 </script>
 <style scoped>

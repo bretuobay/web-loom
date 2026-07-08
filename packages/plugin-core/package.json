@@ -20,7 +20,7 @@
     "dev": "tsc --watch",
     "build": "tsc",
     "diagnostics": "tsc --listFiles --diagnostics",
-    "test": "vitest run --coverage"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",

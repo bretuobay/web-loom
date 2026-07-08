@@ -12,3 +12,9 @@ export { effect } from './effect.js';
 export { batch, flush } from './batch.js';
 export { untracked } from './untracked.js';
 export { isSignal, isWritableSignal } from './guards.js';
+export { observe } from './observe.js';
+export { debouncedSignal } from './debounced-signal.js';
+export type { DebouncedSignal } from './debounced-signal.js';
+
+// RxJS interop is intentionally NOT exported here — import it from
+// '@web-loom/signals-core/rxjs' so the main entry stays zero-dependency.

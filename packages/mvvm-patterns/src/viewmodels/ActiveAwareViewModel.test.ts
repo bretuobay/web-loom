@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { firstValueFrom } from 'rxjs';
-import { take, toArray } from 'rxjs/operators';
+import { observe } from '@web-loom/signals-core';
 import { BaseModel } from '@web-loom/mvvm-core';
 import { ActiveAwareViewModel } from './ActiveAwareViewModel';
 import { isActiveAware } from '../lifecycle/IActiveAware';
@@ -33,9 +32,8 @@ describe('ActiveAwareViewModel', () => {
       expect(vm.isActive).toBe(false);
     });
 
-    it('should emit false initially on isActive$', async () => {
-      const value = await firstValueFrom(vm.isActive$);
-      expect(value).toBe(false);
+    it('should read false initially on isActive$', () => {
+      expect(vm.isActive$.get()).toBe(false);
     });
   });
 
@@ -45,18 +43,18 @@ describe('ActiveAwareViewModel', () => {
       expect(vm.isActive).toBe(true);
     });
 
-    it('should emit on isActive$', async () => {
-      const valuesPromise = firstValueFrom(vm.isActive$.pipe(take(2), toArray()));
+    it('should emit on isActive$', () => {
+      const values: boolean[] = [];
+      observe(vm.isActive$, (v) => values.push(v));
 
       vm.isActive = true;
 
-      const values = await valuesPromise;
       expect(values).toEqual([false, true]);
     });
 
     it('should not emit duplicate values', async () => {
       const emissions: boolean[] = [];
-      vm.isActive$.subscribe((v) => emissions.push(v));
+      observe(vm.isActive$, (v) => emissions.push(v));
 
       vm.isActive = true;
       vm.isActive = true; // Same value
@@ -116,18 +114,15 @@ describe('ActiveAwareViewModel', () => {
   });
 
   describe('dispose', () => {
-    it('should complete isActive$', async () => {
-      const completeSpy = vi.fn();
-      vm.isActive$.subscribe({ complete: completeSpy });
-
+    it('should ignore state changes after dispose', () => {
       vm.dispose();
-
-      expect(completeSpy).toHaveBeenCalled();
+      vm.isActive = true;
+      expect(vm.isActive).toBe(false);
     });
 
     it('should not emit after dispose', () => {
       const emissions: boolean[] = [];
-      vm.isActive$.subscribe((v) => emissions.push(v));
+      observe(vm.isActive$, (v) => emissions.push(v));
 
       vm.dispose();
       vm.isActive = true; // Should not emit
@@ -164,17 +159,17 @@ describe('ActiveAwareViewModel', () => {
 
   describe('integration with BaseViewModel', () => {
     it('should have access to data$', async () => {
-      const data = await firstValueFrom(vm.data$);
+      const data = vm.data$.get();
       expect(data).toEqual({ value: 'test' });
     });
 
     it('should have access to isLoading$', async () => {
-      const isLoading = await firstValueFrom(vm.isLoading$);
+      const isLoading = vm.isLoading$.get();
       expect(isLoading).toBe(false);
     });
 
     it('should have access to error$', async () => {
-      const error = await firstValueFrom(vm.error$);
+      const error = vm.error$.get();
       expect(error).toBeNull();
     });
 
@@ -189,7 +184,7 @@ describe('ActiveAwareViewModel', () => {
   describe('multiple state changes', () => {
     it('should handle rapid state changes correctly', async () => {
       const emissions: boolean[] = [];
-      vm.isActive$.subscribe((v) => emissions.push(v));
+      observe(vm.isActive$, (v) => emissions.push(v));
 
       vm.isActive = true;
       vm.isActive = false;

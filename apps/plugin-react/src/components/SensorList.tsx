@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import { Link } from '../router/Routing';
 import BackArrow from '../assets/back-arrow.svg';
 
 export function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {

@@ -59,6 +59,7 @@ class EffectImpl {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- reserved for future scheduler options
 export function effect(fn: EffectFn, _options?: EffectOptions): EffectHandle {
   const impl = new EffectImpl(fn);
   return { dispose: () => impl.dispose() };

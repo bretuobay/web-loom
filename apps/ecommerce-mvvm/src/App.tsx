@@ -6,7 +6,7 @@ import { createEcommerceApi } from './infrastructure/api/create-ecommerce-api';
 import { appBus } from './infrastructure/events/app-bus';
 import { uiStore } from './infrastructure/store/ui-store';
 import { initTheme } from './theme/init-theme';
-import { useObservable } from './hooks/useObservable';
+import { useSignal } from './hooks/useSignal';
 import { useSignalValue } from './hooks/useSignalValue';
 import { useUIStore } from './hooks/useUIStore';
 import { CatalogModel } from './features/catalog/CatalogModel';
@@ -54,8 +54,8 @@ function AppShell() {
   const cart = useSignalValue(cartViewModel.cart);
   const cartCount = useSignalValue(cartViewModel.itemCount);
 
-  const catalogLoading = useObservable(catalogViewModel.isLoading$, false);
-  const catalogError = useObservable<unknown>(catalogViewModel.error$, null);
+  const catalogLoading = useSignal(catalogViewModel.isLoading$);
+  const catalogError = useSignal<unknown>(catalogViewModel.error$);
 
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -132,9 +132,9 @@ function AppShell() {
     });
 
     return () => {
-      notificationSubscription.unsubscribe();
-      clearCartSubscription.unsubscribe();
-      checkoutSubscription.unsubscribe();
+      notificationSubscription();
+      clearCartSubscription();
+      checkoutSubscription();
     };
   }, [cartViewModel, pushToast]);
 

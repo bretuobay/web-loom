@@ -210,7 +210,7 @@ export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> extends Ba
 
     if (isPayloadArray && !Array.isArray(originalData) && originalData !== null) {
       this.setError(new Error('Cannot create multiple items when model data is a single item.'));
-      throw this._error$.getValue();
+      throw this.getCurrentError();
     }
 
     let optimisticData: TData | null = JSON.parse(JSON.stringify(originalData)); // Deep clone for safety
@@ -368,7 +368,7 @@ export class RestfulApiModel<TData, TSchema extends ZodSchema<TData>> extends Ba
     if (itemToUpdateOriginal === undefined) {
       // This case should ideally be caught by the checks above.
       this.setError(new Error(`Update failed: Item with id ${id} not found prior to optimistic update.`));
-      throw this._error$.getValue();
+      throw this.getCurrentError();
     }
 
     this.setData(optimisticData);

@@ -9,6 +9,7 @@ import { renderLayout, renderCard, renderTemplate } from './ui';
 import { renderSensorReadingsChart } from './chart';
 import { attachGreenhouseFormListeners } from './listeners';
 import { router } from './router';
+import { observe } from '@web-loom/signals-core';
 
 const app = document.getElementById('app')!;
 const DASHBOARD_VIEW = 'dashboard';
@@ -18,13 +19,13 @@ function getActiveView() {
 }
 
 export function subscribeToUpdates() {
-  navigationViewModel.navigationList.items$.subscribe((navigation) => {
+  observe(navigationViewModel.navigationList.items$, (navigation) => {
     console.log('Navigation data received:', navigation);
     state.navigation = navigation || [];
     renderLayout();
   });
 
-  greenHouseViewModel.data$.subscribe((greenHouses) => {
+  observe(greenHouseViewModel.data$, (greenHouses) => {
     state.greenHouses = greenHouses || [];
     const view = getActiveView();
     if (view === DASHBOARD_VIEW) {
@@ -37,7 +38,7 @@ export function subscribeToUpdates() {
     }
   });
 
-  sensorViewModel.data$.subscribe((sensors) => {
+  observe(sensorViewModel.data$, (sensors) => {
     state.sensors = sensors || [];
     const view = getActiveView();
     if (view === DASHBOARD_VIEW) {
@@ -47,7 +48,7 @@ export function subscribeToUpdates() {
     }
   });
 
-  sensorReadingViewModel.data$.subscribe((sensorReadings) => {
+  observe(sensorReadingViewModel.data$, (sensorReadings) => {
     state.sensorReadings = sensorReadings || [];
     const view = getActiveView();
     if (view === DASHBOARD_VIEW) {
@@ -59,7 +60,7 @@ export function subscribeToUpdates() {
     }
   });
 
-  thresholdAlertViewModel.data$.subscribe((thresholdAlerts) => {
+  observe(thresholdAlertViewModel.data$, (thresholdAlerts) => {
     state.thresholdAlerts = thresholdAlerts || [];
     const view = getActiveView();
     if (view === DASHBOARD_VIEW) {

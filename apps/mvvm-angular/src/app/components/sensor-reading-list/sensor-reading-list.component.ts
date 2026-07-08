@@ -1,7 +1,8 @@
-import { Component, AfterViewInit, ElementRef, ViewChild, OnInit, Inject, InjectionToken } from '@angular/core';
+import { Component, AfterViewInit, ElementRef, ViewChild, OnInit, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import { fromLoomSignal } from '../../utils/loom-signals';
+import { observe } from '@web-loom/signals-core';
 import { CommonModule } from '@angular/common'; // Includes NgFor, DatePipe, NgIf, AsyncPipe
 import { sensorReadingViewModel, SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
-import { Observable } from 'rxjs';
 import { Chart } from 'chart.js/auto';
 import { RouterLink } from '@angular/router';
 import { BackIconComponent } from '../back-icon/back-icon.component';
@@ -23,32 +24,36 @@ export const SENSOR_READING_VIEW_MODEL = new InjectionToken<typeof sensorReading
 })
 export class SensorReadingListComponent implements OnInit, AfterViewInit {
   public vm: typeof sensorReadingViewModel;
-  public data$!: Observable<SensorReadingListData | null>;
-  public loading$!: Observable<boolean>;
-  public error$!: Observable<any>;
+  public data$!: Signal<SensorReadingListData | null>;
+  public loading$!: Signal<boolean>;
+  public error$!: Signal<any>;
 
   @ViewChild('readingsListChart')
   readingsListChartRef?: ElementRef<HTMLCanvasElement>;
   private chartInstance?: Chart;
+
+  private destroyRef = inject(DestroyRef);
 
   constructor(@Inject(SENSOR_READING_VIEW_MODEL) vm: typeof sensorReadingViewModel) {
     this.vm = vm;
   }
 
   ngOnInit(): void {
-    this.data$ = this.vm.data$;
-    this.loading$ = this.vm.isLoading$;
-    this.error$ = this.vm.error$;
+    this.data$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+    this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+    this.error$ = fromLoomSignal(this.vm.error$, this.destroyRef);
 
     this.vm.fetchCommand.execute();
   }
 
   ngAfterViewInit(): void {
-    this.data$.subscribe((data) => {
+    this.destroyRef.onDestroy(
+      observe(this.vm.data$, (data) => {
       if (data && data.length > 0 && this.readingsListChartRef) {
         this.initChart(data);
       }
-    });
+      }),
+    );
   }
 
   private initChart(data: SensorReadingListData): void {

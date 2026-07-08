@@ -9,8 +9,7 @@ import {
   CategoryScale,
   Title,
   Tooltip,
-  Legend,
-} from 'chart.js';
+  Legend } from 'chart.js';
 import type { SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
 
 // Register Chart.js components

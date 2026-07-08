@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import { fromLoomSignal } from '../../utils/loom-signals';
+import { observe } from '@web-loom/signals-core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { GreenhouseData, greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { BackIconComponent } from '../back-icon/back-icon.component';
-import { Observable, Subscription, tap } from 'rxjs';
 import { RouterLink } from '@angular/router';
 
 export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>('GREENHOUSE_VIEW_MODEL');
@@ -21,16 +22,16 @@ export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewMod
     },
   ],
 })
-export class GreenhouseListComponent implements OnInit, OnDestroy {
+export class GreenhouseListComponent implements OnInit {
   public vm: typeof greenHouseViewModel;
-  public greenhouses$!: Observable<GreenhouseData[] | null>;
-  public loading$!: Observable<boolean>;
-  public error$!: Observable<any>;
+  public greenhouses$!: Signal<GreenhouseData[] | null>;
+  public loading$!: Signal<boolean>;
+  public error$!: Signal<any>;
 
   greenhouseForm: FormGroup;
   editingGreenhouseId: string | null | undefined = null;
   greenhouses: GreenhouseData[] = [];
-  private greenhousesSubscription: Subscription | undefined;
+  private destroyRef = inject(DestroyRef);
 
   greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
 
@@ -49,19 +50,12 @@ export class GreenhouseListComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // @ts-ignore
-    this.greenhouses$ = this.vm.data$.pipe(tap((ghs) => (this.greenhouses = ghs || [])));
-    this.loading$ = this.vm.isLoading$;
-    this.error$ = this.vm.error$;
+    this.greenhouses$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+    this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+    this.error$ = fromLoomSignal(this.vm.error$, this.destroyRef);
 
     this.vm.fetchCommand.execute();
-    this.greenhousesSubscription = this.greenhouses$.subscribe();
-  }
-
-  ngOnDestroy(): void {
-    if (this.greenhousesSubscription) {
-      this.greenhousesSubscription.unsubscribe();
-    }
+    this.destroyRef.onDestroy(observe(this.vm.data$, (ghs) => (this.greenhouses = ghs || [])));
   }
 
   handleSubmit(): void {

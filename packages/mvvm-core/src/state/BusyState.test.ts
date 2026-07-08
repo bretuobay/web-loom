@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { firstValueFrom } from 'rxjs';
-import { take, toArray } from 'rxjs/operators';
+import { observe } from '@web-loom/signals-core';
 import { BusyState } from './BusyState';
 
 describe('BusyState', () => {
@@ -19,14 +18,14 @@ describe('BusyState', () => {
 
     it('should set isBusy to true', async () => {
       busyState.setBusy('Test');
-      const isBusy = await firstValueFrom(busyState.isBusy$);
+      const isBusy = busyState.isBusy$.get();
       expect(isBusy).toBe(true);
     });
 
     it('should clear busy state when cleanup is called', async () => {
       const clearBusy = busyState.setBusy('Test');
       clearBusy();
-      const isBusy = await firstValueFrom(busyState.isBusy$);
+      const isBusy = busyState.isBusy$.get();
       expect(isBusy).toBe(false);
     });
 
@@ -54,7 +53,7 @@ describe('BusyState', () => {
 
     it('should use default reason when not provided', async () => {
       busyState.setBusy();
-      const reasons = await firstValueFrom(busyState.busyReasons$);
+      const reasons = busyState.busyReasons$.get();
       expect(reasons).toContain('Loading');
     });
   });
@@ -90,7 +89,7 @@ describe('BusyState', () => {
       let capturedReason: string | null = null;
 
       await busyState.executeBusy(async () => {
-        capturedReason = await firstValueFrom(busyState.currentReason$);
+        capturedReason = busyState.currentReason$.get();
       });
 
       expect(capturedReason).toBe('Loading');
@@ -115,26 +114,26 @@ describe('BusyState', () => {
 
   describe('isBusy$', () => {
     it('should emit false initially', async () => {
-      const isBusy = await firstValueFrom(busyState.isBusy$);
+      const isBusy = busyState.isBusy$.get();
       expect(isBusy).toBe(false);
     });
 
     it('should emit true when busy', async () => {
       busyState.setBusy('Test');
-      const isBusy = await firstValueFrom(busyState.isBusy$);
+      const isBusy = busyState.isBusy$.get();
       expect(isBusy).toBe(true);
     });
 
     it('should emit distinct values only', async () => {
       const values: boolean[] = [];
-      const subscription = busyState.isBusy$.subscribe((val) => values.push(val));
+      const unsubscribe = observe(busyState.isBusy$, (val) => values.push(val));
 
       const clear1 = busyState.setBusy('Op 1');
       const clear2 = busyState.setBusy('Op 2');
       clear1();
       clear2();
 
-      subscription.unsubscribe();
+      unsubscribe();
 
       // Should only emit: false (initial), true (first busy), false (all cleared)
       expect(values).toEqual([false, true, false]);
@@ -144,7 +143,7 @@ describe('BusyState', () => {
   describe('operations$', () => {
     it('should emit operation details', async () => {
       busyState.setBusy('Loading users');
-      const operations = await firstValueFrom(busyState.operations$);
+      const operations = busyState.operations$.get();
 
       expect(operations).toHaveLength(1);
       expect(operations[0].reason).toBe('Loading users');
@@ -153,7 +152,7 @@ describe('BusyState', () => {
     });
 
     it('should emit empty array initially', async () => {
-      const operations = await firstValueFrom(busyState.operations$);
+      const operations = busyState.operations$.get();
       expect(operations).toEqual([]);
     });
 
@@ -162,7 +161,7 @@ describe('BusyState', () => {
       busyState.setBusy('Op 2');
       busyState.setBusy('Op 3');
 
-      const operations = await firstValueFrom(busyState.operations$);
+      const operations = busyState.operations$.get();
       expect(operations).toHaveLength(3);
       expect(operations.map((op) => op.reason)).toEqual(['Op 1', 'Op 2', 'Op 3']);
     });
@@ -173,12 +172,12 @@ describe('BusyState', () => {
       busyState.setBusy('Op 1');
       busyState.setBusy('Op 2');
 
-      const reasons = await firstValueFrom(busyState.busyReasons$);
+      const reasons = busyState.busyReasons$.get();
       expect(reasons).toEqual(['Op 1', 'Op 2']);
     });
 
     it('should emit empty array when not busy', async () => {
-      const reasons = await firstValueFrom(busyState.busyReasons$);
+      const reasons = busyState.busyReasons$.get();
       expect(reasons).toEqual([]);
     });
   });
@@ -188,12 +187,12 @@ describe('BusyState', () => {
       busyState.setBusy('First');
       busyState.setBusy('Second');
 
-      const reason = await firstValueFrom(busyState.currentReason$);
+      const reason = busyState.currentReason$.get();
       expect(reason).toBe('Second');
     });
 
     it('should emit null when not busy', async () => {
-      const reason = await firstValueFrom(busyState.currentReason$);
+      const reason = busyState.currentReason$.get();
       expect(reason).toBeNull();
     });
 
@@ -203,7 +202,7 @@ describe('BusyState', () => {
 
       clear1();
 
-      const reason = await firstValueFrom(busyState.currentReason$);
+      const reason = busyState.currentReason$.get();
       expect(reason).toBe('Second');
     });
   });
@@ -260,19 +259,20 @@ describe('BusyState', () => {
       busyState.setBusy('Op 1');
       busyState.clearAll();
 
-      const isBusy = await firstValueFrom(busyState.isBusy$);
+      const isBusy = busyState.isBusy$.get();
       expect(isBusy).toBe(false);
     });
   });
 
   describe('dispose', () => {
-    it('should complete observables', async () => {
-      const completeSpy = vi.fn();
-      busyState.isBusy$.subscribe({ complete: completeSpy });
+    it('should stop emitting after dispose', () => {
+      const spy = vi.fn();
+      busyState.isBusy$.subscribe(spy);
 
       busyState.dispose();
+      busyState.setBusy('after dispose');
 
-      expect(completeSpy).toHaveBeenCalled();
+      expect(spy).not.toHaveBeenCalled();
     });
 
     it('should clear operations', () => {
@@ -309,7 +309,7 @@ describe('BusyState', () => {
 
     it('should handle empty reason string', async () => {
       busyState.setBusy('');
-      const reasons = await firstValueFrom(busyState.busyReasons$);
+      const reasons = busyState.busyReasons$.get();
       expect(reasons).toEqual(['']);
     });
   });

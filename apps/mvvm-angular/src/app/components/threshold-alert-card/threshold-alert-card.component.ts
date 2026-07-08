@@ -1,8 +1,8 @@
-import { Component, OnInit, Inject, InjectionToken } from '@angular/core';
+import { Component, OnInit, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import { fromLoomSignal } from '../../utils/loom-signals';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { thresholdAlertViewModel, ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
-import { Observable } from 'rxjs';
 
 export const THRESHOLD_ALERT_VIEW_MODEL = new InjectionToken<typeof thresholdAlertViewModel>(
   'THRESHOLD_ALERT_VIEW_MODEL',
@@ -23,18 +23,20 @@ export const THRESHOLD_ALERT_VIEW_MODEL = new InjectionToken<typeof thresholdAle
 })
 export class ThresholdAlertCardComponent implements OnInit {
   public vm: typeof thresholdAlertViewModel;
-  public data$!: Observable<ThresholdAlertListData | null>;
-  public loading$!: Observable<boolean>;
-  public error$!: Observable<any>;
+  public data$!: Signal<ThresholdAlertListData | null>;
+  public loading$!: Signal<boolean>;
+  public error$!: Signal<any>;
+
+  private destroyRef = inject(DestroyRef);
 
   constructor(@Inject(THRESHOLD_ALERT_VIEW_MODEL) vm: typeof thresholdAlertViewModel) {
     this.vm = vm;
   }
 
   ngOnInit(): void {
-    this.data$ = this.vm.data$;
-    this.loading$ = this.vm.isLoading$;
-    this.error$ = this.vm.error$;
+    this.data$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+    this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+    this.error$ = fromLoomSignal(this.vm.error$, this.destroyRef);
 
     this.vm.fetchCommand.execute();
   }

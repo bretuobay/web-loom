@@ -1,4 +1,4 @@
-import { Subject, Observable } from 'rxjs'; // filter removed
+import { EventSource, type EventSubscribable } from '../utilities/event-source';
 
 export interface HandledError {
   error: any;
@@ -8,31 +8,27 @@ export interface HandledError {
 }
 
 export class GlobalErrorService {
-  // Using a Subject because we only want to emit *new* errors after subscription.
-  // BehaviorSubject would replay the last error, which might not be desired for an error stream.
-  private _errorSubject$ = new Subject<HandledError>();
+  // An event source, not a signal: subscribers only receive *new* errors after
+  // subscription, and identical consecutive errors are still delivered.
+  private _errorSource = new EventSource<HandledError>();
 
   /**
-   * Observable stream of uncaught errors.
+   * Event stream of uncaught errors.
    * Subscribers will receive errors that occur *after* they subscribe.
    */
-  public readonly uncaughtErrors$: Observable<HandledError> = this._errorSubject$.asObservable();
+  public readonly uncaughtErrors$: EventSubscribable<HandledError> = this._errorSource;
 
   /**
-   * An alternative observable that also includes a "processed" flag,
+   * An alternative stream that also includes a "processed" flag,
    * useful if multiple handlers might see the same error but only one should "claim" it.
    * This is a more advanced use case. For most, uncaughtErrors$ is sufficient.
    */
-  public readonly processedErrors$: Observable<HandledError>;
+  public readonly processedErrors$: EventSubscribable<HandledError>;
 
   constructor() {
-    // This stream helps manage the 'processed' flag if needed.
-    // For simple cases, uncaughtErrors$ is often enough.
-    this.processedErrors$ = this._errorSubject$
-      .pipe
-      // Example: One handler could mark error as processed to prevent others from also showing a UI message.
-      // tap(error => { if (!error.processed) error.processed = true; })
-      ();
+    // For simple cases, uncaughtErrors$ is often enough; handlers can mark
+    // errors as processed via the shared HandledError object.
+    this.processedErrors$ = this._errorSource;
 
     // Optional: Setup global listeners for truly unhandled errors
     // This is environment-dependent (browser vs. Node.js) and might need careful consideration.
@@ -60,7 +56,7 @@ export class GlobalErrorService {
     }
 
     // Emit the error to subscribers.
-    this._errorSubject$.next(handledError);
+    this._errorSource.emit(handledError);
 
     // Here, you could also integrate with an external error tracking service:
     // e.g., Sentry.captureException(error, { extra: { context, timestamp: handledError.timestamp } });
@@ -68,6 +64,9 @@ export class GlobalErrorService {
   }
 
   private setupGlobalErrorHandlers(): void {
+    // Access the Node process object without requiring @types/node
+    const nodeProcess = (globalThis as { process?: { on?: (event: string, handler: (...args: any[]) => void) => void } })
+      .process;
     // --- Browser Environment ---
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       // Handles errors thrown synchronously in event handlers or promise chains not caught by .catch()
@@ -91,8 +90,8 @@ export class GlobalErrorService {
       });
     }
     // --- Node.js Environment (Basic Example) ---
-    else if (typeof process !== 'undefined' && typeof process.on === 'function') {
-      process.on('uncaughtException', (error: Error, origin: string) => {
+    else if (typeof nodeProcess !== 'undefined' && typeof nodeProcess?.on === 'function') {
+      nodeProcess.on('uncaughtException', (error: Error, origin: string) => {
         // It's critical to decide if the application should exit after an uncaughtException in Node.js.
         // Generally, the application state is unreliable. Logging and then exiting is common.
         this.handleError(error, `process.uncaughtException (origin: ${origin})`);
@@ -101,7 +100,7 @@ export class GlobalErrorService {
         // process.exit(1);
       });
 
-      process.on('unhandledRejection', (reason: any, _promise: Promise<any>) => {
+      nodeProcess.on('unhandledRejection', (reason: any, _promise: Promise<any>) => {
         this.handleError(reason, 'process.unhandledRejection');
         // Similar to uncaughtException, decide on application fate.
       });
@@ -112,7 +111,7 @@ export class GlobalErrorService {
    * Call this method when the service is no longer needed to clean up subscriptions.
    */
   public dispose(): void {
-    this._errorSubject$.complete();
+    this._errorSource.dispose();
     // Note: Removing global event listeners added in setupGlobalErrorHandlers
     // can be tricky if multiple instances of this service could exist or if
     // the application lifecycle is complex. For a singleton service, it might

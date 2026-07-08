@@ -1,5 +1,6 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { observe } from '@web-loom/signals-core';
 import { navigationViewModel, type NavigationListData } from '@repo/shared/view-models/NavigationViewModel';
 
 @customElement('app-header')
@@ -11,19 +12,19 @@ export class AppHeader extends LitElement {
   @state()
   private navigationItems: NavigationListData[] = [];
 
-  private subscription?: any;
+  private unsubscribe?: () => void;
 
   connectedCallback() {
     super.connectedCallback();
     // Subscribe to navigation items
-    this.subscription = navigationViewModel.navigationList.items$.subscribe((items) => {
+    this.unsubscribe = observe(navigationViewModel.navigationList.items$, (items) => {
       this.navigationItems = items;
     });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscription?.unsubscribe();
+    this.unsubscribe?.();
   }
 
   private handleNavigation(path: string) {

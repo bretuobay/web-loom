@@ -2,7 +2,7 @@
   <a class="header-item" routerLink="/" routerLinkActive="active">Dashboard </a>
   <ul class="flex-container">
     <nav className="flex-container">
-      <ng-container *ngIf="navigationList$ | async as navigationList">
+      <ng-container *ngIf="navigationList$() as navigationList">
         <a class="header-item" *ngFor="let item of navigationList" [routerLink]="['/', item.id]">
           {{ item.label }}
         </a>

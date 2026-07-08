@@ -1,23 +1,23 @@
-import { type Observable, firstValueFrom, skip } from 'rxjs';
+import { observe, type ReadonlySignal } from '@web-loom/signals-core';
 
 /**
- * Convert an Observable to a Promise for initial SSR rendering
- * This allows us to use Marko's <await> tag for progressive rendering
+ * Read a signal's current value as a Promise for initial SSR rendering.
+ * This allows us to use Marko's <await> tag for progressive rendering.
  */
-export function observableToPromise<T>(observable: Observable<T>): Promise<T> {
-  return firstValueFrom(observable);
+export function observableToPromise<T>(sig: ReadonlySignal<T>): Promise<T> {
+  return Promise.resolve(sig.peek());
 }
 
 /**
- * Subscribe to an Observable and update a Marko state variable
- * Returns cleanup function for effect
+ * Subscribe to a signal and update a Marko state variable.
+ * Returns cleanup function for effect.
+ *
+ * With skipFirst = false (default) the current value is delivered
+ * immediately, mirroring the previous BehaviorSubject behavior.
  */
-export function subscribeToObservable<T>(observable: Observable<T>, updateFn: (value: T) => void, skipFirst = false) {
-  const source = skipFirst ? observable.pipe(skip(1)) : observable;
-  const subscription = source.subscribe({
-    next: updateFn,
-    error: (err) => console.error('Observable error:', err),
-  });
-
-  return () => subscription.unsubscribe();
+export function subscribeToObservable<T>(sig: ReadonlySignal<T>, updateFn: (value: T) => void, skipFirst = false) {
+  if (skipFirst) {
+    return sig.subscribe(updateFn);
+  }
+  return observe(sig, updateFn);
 }

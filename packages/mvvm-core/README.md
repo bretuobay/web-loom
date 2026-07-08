@@ -1,25 +1,29 @@
 # @web-loom/mvvm-core
 
-Framework-agnostic MVVM library for building reactive web applications with RxJS and Zod validation.
+Framework-agnostic MVVM library for building reactive web applications with signals and Zod validation.
 
 ## Overview
 
-`@web-loom/mvvm-core` provides a complete MVVM (Model-View-ViewModel) implementation that works across React, Angular, Vue, and vanilla JavaScript. Built on RxJS for reactive data flow and Zod for type-safe validation, it simplifies state management and API interactions for client-heavy applications.
+`@web-loom/mvvm-core` provides a complete MVVM (Model-View-ViewModel) implementation that works across React, Angular, Vue, Lit, and vanilla JavaScript. Built on `@web-loom/signals-core` for reactive state and Zod for type-safe validation, it simplifies state management and API interactions for client-heavy applications.
+
+**Reactive property convention**: properties suffixed with `$` (e.g. `data$`, `canExecute$`) are reactive signals (`ReadonlySignal<T>`). Read them synchronously with `.get()` (auto-tracked inside `computed`/`effect`) or `.peek()` (untracked), and subscribe to changes with `.subscribe(fn)`, which returns an unsubscribe function. Use `observe(sig, fn)` from `@web-loom/signals-core` when you also want the current value delivered immediately.
+
+RxJS is no longer a dependency. For genuinely stream-shaped needs at the Model edge (websockets, retry/backoff, complex event streams), use the interop in `@web-loom/signals-core/rxjs` (`toObservable` / `fromObservable`), which keeps RxJS an optional peer dependency.
 
 ## Installation
 
 ```bash
-npm install @web-loom/mvvm-core rxjs zod
+npm install @web-loom/mvvm-core @web-loom/signals-core zod
 ```
 
 ## Features
 
 - **MVVM Pattern**: BaseModel, BaseViewModel, RestfulApiModel with clear separation of concerns
-- **Reactive**: RxJS-powered observables for `data$`, `isLoading$`, `error$`
+- **Reactive**: signal-powered reactive properties for `data$`, `isLoading$`, `error$`
 - **Type-Safe**: Zod schema validation at compile-time and runtime
 - **RESTful APIs**: Simplified CRUD with optimistic updates and auto state management
-- **Command Pattern**: Encapsulated UI actions with `canExecute` and `isExecuting` states
-- **Observable Collections**: Reactive lists with granular change notifications
+- **Command Pattern**: Encapsulated UI actions with auto-tracked `canExecute$` and `isExecuting$` states
+- **Observable Collections**: Reactive lists with granular change events
 - **Query Integration**: QueryStateModel for advanced caching with `@web-loom/query-core`
 - **Resource Management**: IDisposable pattern for proper cleanup
 - **Framework Agnostic**: No UI framework dependencies
@@ -50,16 +54,16 @@ class UserModel extends BaseModel<User, typeof UserSchema> {
 }
 
 const model = new UserModel();
-model.data$.subscribe((user) => console.log('User:', user));
+model.data$.subscribe((user) => console.log('User changed:', user));
 model.setData({ id: '123', name: 'Alice', email: 'alice@example.com' });
+console.log(model.data$.get()); // read synchronously
 ```
 
-**Key observables**:
+**Key reactive properties**:
 
 - `data$`: Current data state
 - `isLoading$`: Loading indicator
 - `error$`: Error state
-- `isError$`: Boolean error indicator
 
 ### RestfulApiModel
 
@@ -105,7 +109,6 @@ await api.delete('user-id');
 
 - Automatic loading state management
 - Optimistic updates with rollback on error
-- Error handling with retry logic
 - Validation via Zod schemas
 
 ### BaseViewModel
@@ -114,19 +117,22 @@ Connects Models to Views with presentation logic.
 
 ```typescript
 import { BaseViewModel } from '@web-loom/mvvm-core';
-import { map } from 'rxjs/operators';
+import { computed } from '@web-loom/signals-core';
 
 class UserViewModel extends BaseViewModel<UserModel> {
+  // Computed reactive properties
+  readonly displayName$ = computed(() => {
+    const user = this.data$.get();
+    return user ? `${user.name} (${user.email})` : 'No user';
+  });
+
   constructor(model: UserModel) {
     super(model);
   }
-
-  // Computed observables
-  get displayName$() {
-    return this.data$.pipe(map((user) => (user ? `${user.name} (${user.email})` : 'No user')));
-  }
 }
 ```
+
+`BaseViewModel` also derives `validationErrors$` (a `ReadonlySignal<ZodError | null>`) from the model's `error$`.
 
 ### RestfulApiViewModel
 
@@ -134,15 +140,13 @@ Extends BaseViewModel with CRUD commands for RESTful operations.
 
 ```typescript
 import { RestfulApiViewModel } from '@web-loom/mvvm-core';
+import { computed } from '@web-loom/signals-core';
 
 class UserListViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
+  readonly activeUsers$ = computed(() => this.data$.get()?.filter((u) => u.active));
+
   constructor() {
     super(new UserApiModel());
-  }
-
-  // Additional computed properties
-  get activeUsers$() {
-    return this.data$.pipe(map((users) => users?.filter((u) => u.active)));
   }
 }
 
@@ -151,8 +155,12 @@ const vm = new UserListViewModel();
 // Use commands
 await vm.fetchCommand.execute();
 await vm.createCommand.execute({ name: 'New User', email: 'new@example.com' });
-await vm.updateCommand.execute({ id: '123', name: 'Updated' });
+await vm.updateCommand.execute({ id: '123', payload: { name: 'Updated' } });
 await vm.deleteCommand.execute('123');
+
+// Selection helpers for collection data
+vm.selectItem('123');
+console.log(vm.selectedItem$.get());
 
 // Clean up
 vm.dispose();
@@ -160,16 +168,15 @@ vm.dispose();
 
 ### Command Pattern
 
-Encapsulates UI actions with execution control.
+Encapsulates UI actions with execution control. `canExecute$` is a computed signal: signal reads inside a condition function are auto-tracked, and a command is never executable while it is already executing.
 
 ```typescript
 import { Command } from '@web-loom/mvvm-core';
-import { BehaviorSubject } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { signal } from '@web-loom/signals-core';
 
 class AuthViewModel {
-  private _isLoggedIn = new BehaviorSubject(false);
-  isLoggedIn$ = this._isLoggedIn.asObservable();
+  private _isLoggedIn = signal(false);
+  readonly isLoggedIn$ = this._isLoggedIn.asReadonly();
 
   loginCommand: Command<string, boolean>;
 
@@ -179,18 +186,18 @@ class AuthViewModel {
         // Simulate API call
         await new Promise((resolve) => setTimeout(resolve, 1000));
         const success = password === 'secret';
-        this._isLoggedIn.next(success);
+        this._isLoggedIn.set(success);
         return success;
       },
-      // canExecute$ - only when not logged in
-      this.isLoggedIn$.pipe(map((loggedIn) => !loggedIn)),
+      // canExecute — only when not logged in (auto-tracked signal read)
+      () => !this._isLoggedIn.get(),
     );
   }
 }
 
 const auth = new AuthViewModel();
 
-// Subscribe to command state
+// Observe command state
 auth.loginCommand.isExecuting$.subscribe((executing) => console.log('Logging in:', executing));
 auth.loginCommand.canExecute$.subscribe((canExecute) => console.log('Can login:', canExecute));
 
@@ -198,16 +205,27 @@ auth.loginCommand.canExecute$.subscribe((canExecute) => console.log('Can login:'
 await auth.loginCommand.execute('secret');
 ```
 
+**Fluent conditions** (Prism-style):
+
+```typescript
+const submitCommand = new Command(() => submit())
+  .observesProperty(username$) // truthy check
+  .observesCanExecute(isFormValid$); // boolean signal
+
+// For can-execute logic reading non-signal state:
+submitCommand.raiseCanExecuteChanged();
+```
+
 **Command features**:
 
 - `isExecuting$`: Track execution state
-- `canExecute$`: Control when command can run
-- `result$`: Observable of command results
-- Automatic error handling
+- `canExecute$`: Control when command can run (computed, auto-tracked)
+- `executeError$`: Latest execution error (null when none)
+- Synchronous can-execute guard — no async race between check and run
 
 ### ObservableCollection
 
-Reactive collection with granular change notifications.
+Reactive collection with granular change events. `items$` is a signal holding the current items; `itemAdded$`, `itemRemoved$`, and `itemUpdated$` are event sources — they deliver every occurrence and have no current value.
 
 ```typescript
 import { ObservableCollection } from '@web-loom/mvvm-core';
@@ -223,19 +241,24 @@ const todos = new ObservableCollection<Todo>([
   { id: '2', text: 'Build app', completed: true },
 ]);
 
-// Subscribe to changes
+// Reactive current state
 todos.items$.subscribe((items) => console.log('Todos:', items));
-todos.changes$.subscribe((change) => console.log('Change:', change));
+
+// Occurrence events
+todos.itemAdded$.subscribe((todo) => console.log('Added:', todo));
+todos.itemRemoved$.subscribe((todo) => console.log('Removed:', todo));
 
 // Manipulate collection
 todos.add({ id: '3', text: 'Deploy', completed: false });
-todos.update((todo) => todo.id === '1', { ...todo, completed: true });
+todos.update(
+  (todo) => todo.id === '1',
+  { id: '1', text: 'Learn MVVM', completed: true },
+);
 todos.remove((todo) => todo.completed);
 
 // Query collection
 const array = todos.toArray();
-const count = todos.count();
-const firstUncompleted = todos.find((todo) => !todo.completed);
+const count = todos.length;
 ```
 
 ### QueryStateModel & QueryStateModelView
@@ -248,24 +271,20 @@ import QueryCore from '@web-loom/query-core';
 
 const queryCore = new QueryCore({ defaultRefetchAfter: 5 * 60 * 1000 });
 
-// Define endpoint
-queryCore.defineEndpoint<User[]>('users', async () => {
-  const res = await fetch('https://api.example.com/users');
-  return res.json();
-});
-
-// Create model
 class UsersQueryModel extends QueryStateModel<User[], typeof UserSchema> {
   constructor() {
     super({
       queryCore,
       endpointKey: 'users',
       schema: z.array(UserSchema),
+      fetcherFn: async () => {
+        const res = await fetch('https://api.example.com/users');
+        return res.json();
+      },
     });
   }
 }
 
-// Create ViewModel
 class UsersViewModel extends QueryStateModelView<User[], typeof UserSchema> {
   constructor() {
     super(new UsersQueryModel());
@@ -274,49 +293,30 @@ class UsersViewModel extends QueryStateModelView<User[], typeof UserSchema> {
 
 const vm = new UsersViewModel();
 
-// Subscribe to data
 vm.data$.subscribe((users) => console.log('Users:', users));
 
-// Refetch data
 await vm.refetchCommand.execute(true); // Force refetch
-
-// Invalidate cache
-await vm.invalidateCommand.execute();
+await vm.invalidateCommand.execute(); // Invalidate cache
 ```
-
-**Benefits**:
-
-- Shared cache across components
-- Automatic background refetching
-- Request deduplication
-- Stale-while-revalidate pattern
 
 ## Framework Integration
 
 ### React
 
 ```tsx
-import { useState, useEffect, useMemo } from 'react';
-import { Observable } from 'rxjs';
+import { useMemo, useEffect, useSyncExternalStore } from 'react';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 
-// Custom hook for RxJS observables
-function useObservable<T>(observable: Observable<T>, initialValue: T): T {
-  const [value, setValue] = useState<T>(initialValue);
-
-  useEffect(() => {
-    const subscription = observable.subscribe(setValue);
-    return () => subscription.unsubscribe();
-  }, [observable]);
-
-  return value;
+// Bind a signal to React — no initial value, no first-render flash
+function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 
-// Component
 function UserList() {
   const vm = useMemo(() => new UserListViewModel(), []);
-  const users = useObservable(vm.data$, null);
-  const isLoading = useObservable(vm.isLoading$, false);
-  const error = useObservable(vm.error$, null);
+  const users = useSignal(vm.data$);
+  const isLoading = useSignal(vm.isLoading$);
+  const error = useSignal(vm.error$);
 
   useEffect(() => {
     vm.fetchCommand.execute();
@@ -338,22 +338,36 @@ function UserList() {
 
 ### Angular
 
+Bridge to native Angular signals — no async pipe needed:
+
 ```typescript
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, type Signal, DestroyRef, inject } from '@angular/core';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 import { UserListViewModel } from './viewmodels/user-list.viewmodel';
+
+function fromLoomSignal<T>(source: ReadonlySignal<T>, destroyRef: DestroyRef): Signal<T> {
+  const mirror = signal<T>(source.peek());
+  destroyRef.onDestroy(source.subscribe((value) => mirror.set(value)));
+  return mirror.asReadonly();
+}
 
 @Component({
   selector: 'app-user-list',
   template: `
-    <div *ngIf="vm.isLoading$ | async">Loading...</div>
-    <div *ngIf="vm.error$ | async as error">Error: {{ error.message }}</div>
-    <ul *ngIf="vm.data$ | async as users">
-      <li *ngFor="let user of users">{{ user.name }}</li>
+    <div *ngIf="isLoading()">Loading...</div>
+    <div *ngIf="error() as err">Error: {{ err.message }}</div>
+    <ul *ngIf="users() as list">
+      <li *ngFor="let user of list">{{ user.name }}</li>
     </ul>
   `,
   providers: [UserListViewModel],
 })
 export class UserListComponent implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
+  users = fromLoomSignal(this.vm.data$, this.destroyRef);
+  isLoading = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+  error = fromLoomSignal(this.vm.error$, this.destroyRef);
+
   constructor(public vm: UserListViewModel) {}
 
   ngOnInit() {
@@ -370,34 +384,21 @@ export class UserListComponent implements OnInit, OnDestroy {
 
 ```vue
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { shallowRef, onMounted, onUnmounted, type ShallowRef } from 'vue';
+import { observe, type ReadonlySignal } from '@web-loom/signals-core';
 import { UserListViewModel } from './viewmodels/user-list.viewmodel';
 
+function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
+  const value = shallowRef<T>(sig.peek());
+  const unsubscribe = observe(sig, (next) => (value.value = next));
+  onUnmounted(unsubscribe);
+  return value;
+}
+
 const vm = new UserListViewModel();
-const users = ref([]);
-const isLoading = ref(false);
-const error = ref(null);
-
-watch(
-  () => vm.data$,
-  (obs) => {
-    obs.subscribe((data) => (users.value = data));
-  },
-);
-
-watch(
-  () => vm.isLoading$,
-  (obs) => {
-    obs.subscribe((loading) => (isLoading.value = loading));
-  },
-);
-
-watch(
-  () => vm.error$,
-  (obs) => {
-    obs.subscribe((err) => (error.value = err));
-  },
-);
+const users = useSignal(vm.data$);
+const isLoading = useSignal(vm.isLoading$);
+const error = useSignal(vm.error$);
 
 onMounted(() => {
   vm.fetchCommand.execute();
@@ -417,63 +418,64 @@ onUnmounted(() => {
 </template>
 ```
 
+### Lit / Vanilla
+
+```typescript
+import { observe } from '@web-loom/signals-core';
+
+// observe delivers the current value immediately, then every change
+const unsubscribe = observe(vm.data$, (users) => render(users));
+
+// Later (e.g. disconnectedCallback):
+unsubscribe();
+```
+
 ## Advanced Features
 
 ### FormViewModel
 
-Form state management with validation and dirty tracking.
+Form state management with debounced validation and dirty tracking.
 
 ```typescript
 import { FormViewModel } from '@web-loom/mvvm-core';
 
-const formVm = new FormViewModel({
-  initialValues: { email: '', password: '' },
-  validationSchema: z.object({
+const formVm = new FormViewModel(
+  { email: '', password: '' },
+  z.object({
     email: z.string().email(),
     password: z.string().min(8),
   }),
-  validateOnChange: true,
-  validateOnBlur: true,
-});
+  async (data) => api.submit(data), // optional Promise-based submit handler
+);
 
-// Subscribe to form state
+// Reactive form state
 formVm.isValid$.subscribe((valid) => console.log('Valid:', valid));
 formVm.isDirty$.subscribe((dirty) => console.log('Dirty:', dirty));
 formVm.errors$.subscribe((errors) => console.log('Errors:', errors));
 
 // Set field values
-formVm.setFieldValue('email', 'user@example.com');
+formVm.updateField('email', 'user@example.com');
 
 // Submit form
-formVm.submitCommand.execute();
+await formVm.submitCommand.execute();
 ```
 
 ### QueryableCollectionViewModel
 
-Advanced list management with filtering, sorting, and pagination.
+Advanced list management with debounced filtering, sorting, and pagination.
 
 ```typescript
 import { QueryableCollectionViewModel } from '@web-loom/mvvm-core';
 
-const vm = new QueryableCollectionViewModel({
-  items: users,
-  pageSize: 10,
-});
+const vm = new QueryableCollectionViewModel(users, 10);
 
-// Filter
-vm.setFilter((user) => user.active);
-
-// Sort
-vm.setSortBy('name', 'asc');
-
-// Paginate
+vm.setFilter('alice'); // debounced text search
+vm.setSort('name', 'asc');
 vm.nextPage();
-vm.previousPage();
 vm.goToPage(2);
 
-// Subscribe to results
-vm.filteredItems$.subscribe((items) => console.log('Filtered:', items));
-vm.currentPage$.subscribe((items) => console.log('Current page:', items));
+vm.paginatedItems$.subscribe((items) => console.log('Page items:', items));
+console.log(vm.totalPages$.get());
 ```
 
 ### Dependency Injection
@@ -483,40 +485,37 @@ import { DIContainer } from '@web-loom/mvvm-core';
 
 const container = new DIContainer();
 
-// Register singleton
 container.registerSingleton('UserService', () => new UserService());
-
-// Register transient
 container.registerTransient('UserViewModel', () => new UserViewModel());
 
-// Resolve
 const userService = container.resolve<UserService>('UserService');
-const userVm = container.resolve<UserViewModel>('UserViewModel');
 ```
 
 ## Best Practices
 
 1. **Always dispose ViewModels**: Call `dispose()` when components unmount
 2. **Use schemas for validation**: Define Zod schemas for all data types
-3. **Leverage computed observables**: Derive state with RxJS operators
-4. **Handle errors properly**: Subscribe to `error$` and display to users
-5. **Optimize subscriptions**: Use `takeUntil` pattern to prevent memory leaks
+3. **Leverage computed signals**: Derive state with `computed(() => ...)` — dependencies are tracked automatically
+4. **Handle errors properly**: Observe `error$` and display to users
+5. **Clean up subscriptions**: `subscribe()`/`observe()` return unsubscribe functions — call them on teardown
 6. **Test business logic**: ViewModels are framework-agnostic and easily testable
 
 ## Testing
 
+Signals make tests synchronous — read state directly with `.get()`:
+
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { UserViewModel } from './user.viewmodel';
+import { UserListViewModel } from './user-list.viewmodel';
 
-describe('UserViewModel', () => {
+describe('UserListViewModel', () => {
   it('should fetch users', async () => {
-    const vm = new UserViewModel();
+    const vm = new UserListViewModel();
 
     await vm.fetchCommand.execute();
 
-    expect(vm.getState().data).toBeDefined();
-    expect(vm.getState().isLoading).toBe(false);
+    expect(vm.data$.get()).toBeDefined();
+    expect(vm.isLoading$.get()).toBe(false);
 
     vm.dispose();
   });
@@ -527,43 +526,45 @@ describe('UserViewModel', () => {
 
 ### BaseModel
 
-- `data$`: BehaviorSubject<T | null>
-- `isLoading$`: BehaviorSubject<boolean>
-- `error$`: BehaviorSubject<Error | null>
-- `isError$`: Observable<boolean>
-- `setData(data: T): void`
+- `data$`: ReadonlySignal<T | null>
+- `isLoading$`: ReadonlySignal<boolean>
+- `error$`: ReadonlySignal<any>
+- `setData(data: T | null): void`
 - `setLoading(loading: boolean): void`
-- `setError(error: Error | null): void`
-- `dispose(): void`
+- `setError(error: any): void`
+- `clearError(): void`
+- `validate(data: unknown): T`
+- `getCurrentData() / getCurrentLoadingStatus() / getCurrentError()`
+- `dispose(): void` — setters no-op afterwards
 
 ### RestfulApiModel (extends BaseModel)
 
-- `fetch(): Promise<T>`
-- `create(data: Partial<T>): Promise<T | null>`
-- `update(id: string, data: Partial<T>): Promise<T | null>`
+- `fetch(id?: string | string[]): Promise<void>`
+- `create(payload): Promise<Item | Item[] | undefined>`
+- `update(id: string, payload): Promise<Item | undefined>`
 - `delete(id: string): Promise<void>`
 
 ### BaseViewModel
 
-- `data$`: Observable<T | null>
-- `isLoading$`: Observable<boolean>
-- `error$`: Observable<Error | null>
-- `getState(): ModelState<T>`
+- `data$` / `isLoading$` / `error$`: ReadonlySignal passthroughs from the model
+- `validationErrors$`: ReadonlySignal<ZodError | null>
 - `dispose(): void`
 
-### RestfulApiViewModel (extends BaseViewModel)
+### RestfulApiViewModel
 
-- `fetchCommand`: Command<void, T>
-- `createCommand`: Command<Partial<T>, T | null>
-- `updateCommand`: Command<{ id: string; data: Partial<T> }, T | null>
+- `fetchCommand`: Command<string | string[] | void, void>
+- `createCommand`: Command<Partial<Item> | Partial<Item>[], void>
+- `updateCommand`: Command<{ id: string; payload: Partial<Item> }, void>
 - `deleteCommand`: Command<string, void>
+- `selectedItem$`: ReadonlySignal<Item | null> + `selectItem(id | null)`
 
 ### Command
 
-- `isExecuting$`: Observable<boolean>
-- `canExecute$`: Observable<boolean>
-- `result$`: Observable<TResult>
-- `execute(param: TParam): Promise<TResult>`
+- `isExecuting$`: ReadonlySignal<boolean>
+- `canExecute$`: ReadonlySignal<boolean> (computed; false while executing)
+- `executeError$`: ReadonlySignal<any>
+- `execute(param: TParam): Promise<TResult | undefined>`
+- `observesProperty(sig)` / `observesCanExecute(sig | fn)` / `raiseCanExecuteChanged()`
 - `dispose(): void`
 
 ## TypeScript Support
@@ -571,32 +572,17 @@ describe('UserViewModel', () => {
 Full TypeScript support with comprehensive type definitions:
 
 ```typescript
-import type { IModel, IViewModel, ICommand, IDisposable, ModelState, Fetcher } from '@web-loom/mvvm-core';
+import type { ICommand, IDisposable, IBaseModel, Fetcher, CanExecuteSource } from '@web-loom/mvvm-core';
+import type { ReadonlySignal, WritableSignal } from '@web-loom/signals-core';
 ```
 
 ## Dependencies
 
-- **rxjs**: ^7.8.2 (reactive programming)
+- **@web-loom/signals-core**: reactive signals substrate
 - **zod**: ^3.25.0 (schema validation)
-- **@web-loom/query-core**: 0.0.3 (optional, for QueryStateModel)
+- **@web-loom/query-core**: (for QueryStateModel)
+- **rxjs**: not required — optional interop via `@web-loom/signals-core/rxjs`
 
 ## License
 
 MIT
-
-### From the root README:
-
-#### [@web-loom/mvvm-core](packages/mvvm-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
-
-Complete MVVM implementation with BaseModel, BaseViewModel, RestfulApiModel, QueryStateModel, and Command pattern. RxJS-powered with Zod validation.
-
-**Key features**: Reactive models, RESTful API integration, optimistic updates, disposable resources
-
-```typescript
-import { RestfulApiViewModel } from '@web-loom/mvvm-core';
-class UserViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
-  constructor() {
-    super(new UserApiModel());
-  }
-}
-```

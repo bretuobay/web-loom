@@ -4,8 +4,7 @@ import { BaseViewModel } from './BaseViewModel';
 import { BaseModel } from '../models/BaseModel';
 import { Command } from '../commands/Command';
 import { z, ZodError } from 'zod';
-import { first, skip, takeUntil } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import { signal } from '@web-loom/signals-core';
 
 // Define a test model and schema
 const TestSchema = z.object({
@@ -36,79 +35,72 @@ describe('BaseViewModel', () => {
     viewModel.dispose(); // Ensure dispose is called after each test
   });
 
-  it('should initialize with null data, not loading, and no error from model', async () => {
-    expect(await viewModel.data$.pipe(first()).toPromise()).toBeNull();
-    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(false);
-    expect(await viewModel.error$.pipe(first()).toPromise()).toBeNull();
-    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+  it('should initialize with null data, not loading, and no error from model', () => {
+    expect(viewModel.data$.get()).toBeNull();
+    expect(viewModel.isLoading$.get()).toBe(false);
+    expect(viewModel.error$.get()).toBeNull();
+    expect(viewModel.validationErrors$.get()).toBeNull();
   });
 
-  it('should expose data$ from the model', async () => {
+  it('should expose data$ from the model', () => {
     const testData = { id: '1', name: 'Test' };
     mockModel.setData(testData);
-    expect(await viewModel.data$.pipe(first()).toPromise()).toEqual(testData);
+    expect(viewModel.data$.get()).toEqual(testData);
   });
 
-  it('should expose isLoading$ from the model', async () => {
+  it('should expose isLoading$ from the model', () => {
     mockModel.setLoading(true);
-    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(true);
+    expect(viewModel.isLoading$.get()).toBe(true);
 
     mockModel.setLoading(false);
-    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(false);
+    expect(viewModel.isLoading$.get()).toBe(false);
   });
 
-  it('should expose error$ from the model', async () => {
+  it('should expose error$ from the model', () => {
     const testError = new Error('ViewModel error');
     mockModel.setError(testError);
-    expect(await viewModel.error$.pipe(first()).toPromise()).toEqual(testError);
+    expect(viewModel.error$.get()).toEqual(testError);
 
     mockModel.clearError();
-    expect(await viewModel.error$.pipe(first()).toPromise()).toBeNull();
+    expect(viewModel.error$.get()).toBeNull();
   });
 
-  it('should derive validationErrors$ from model error$ if it is a ZodError', async () => {
+  it('should derive validationErrors$ from model error$ if it is a ZodError', () => {
     const nonZodError = new Error('Generic error');
     const zodError = new ZodError([]); // Create a simple ZodError instance
 
     // Initially null
-    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+    expect(viewModel.validationErrors$.get()).toBeNull();
 
     // Set generic error, validationErrors$ should remain null
     mockModel.setError(nonZodError);
-    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+    expect(viewModel.validationErrors$.get()).toBeNull();
 
     // Set ZodError, validationErrors$ should update
     mockModel.setError(zodError);
-    expect(await viewModel.validationErrors$.pipe(skip(1), first()).toPromise()).toBe(zodError);
+    expect(viewModel.validationErrors$.get()).toBe(zodError);
 
     // Clear error, validationErrors$ should become null again
     mockModel.clearError();
-    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+    expect(viewModel.validationErrors$.get()).toBeNull();
   });
 
-  it('should call dispose and unsubscribe from all subscriptions', async () => {
-    const mockObservable = new Observable<string>((subscriber) => {
-      subscriber.next('value1');
-      subscriber.next('value2');
-      setTimeout(() => subscriber.next('value3'), 100);
-    });
-
+  it('should run registered teardowns on dispose', () => {
+    const source = signal('value1');
     const emittedValues: string[] = [];
-    const subscription = mockObservable
-      .pipe(takeUntil(viewModel['_destroy$']))
-      .subscribe((val) => emittedValues.push(val));
+    const unsubscribe = source.subscribe((val) => emittedValues.push(val));
 
-    // Add subscription to ViewModel for disposal
-    viewModel['addSubscription'](subscription);
+    // Register the teardown with the ViewModel for disposal
+    viewModel['addSubscription'](unsubscribe);
 
-    expect(emittedValues).toEqual(['value1', 'value2']);
+    source.set('value2');
+    expect(emittedValues).toEqual(['value2']);
 
     viewModel.dispose();
 
-    await new Promise((resolve) => setTimeout(resolve, 150));
-
-    expect(emittedValues).toEqual(['value1', 'value2']);
-    expect(subscription.closed).toBe(true);
+    // After dispose the subscription is torn down — no more deliveries
+    source.set('value3');
+    expect(emittedValues).toEqual(['value2']);
   });
 
   it('should throw an error if model is not provided to constructor', () => {
@@ -130,9 +122,9 @@ describe('BaseViewModel Command Registration', () => {
     constructor(model: MockBaseModel) {
       super(model);
 
-      this.cmd1 = this.registerCommand(new Command(async () => 'result1'));
+      this.cmd1 = this.registerCommand(new Command(async () => 'result1')) as Command<void, string>;
 
-      this.cmd2 = this.registerCommand(new Command(async () => 'result2'));
+      this.cmd2 = this.registerCommand(new Command(async () => 'result2')) as Command<void, string>;
     }
 
     // Expose for testing
@@ -219,40 +211,38 @@ describe('BaseViewModel Command Registration', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should dispose commands before completing observables', () => {
+    it('should dispose commands before running teardowns', () => {
       const disposeOrder: string[] = [];
 
       const disposeSpy = vi.spyOn(viewModel.cmd1 as any, 'dispose').mockImplementation(() => {
         disposeOrder.push('command');
       });
 
-      const destroySpy = vi.spyOn(viewModel['_destroy$'], 'next').mockImplementation(() => {
-        disposeOrder.push('destroy');
-      });
+      (viewModel as any).addSubscription(() => disposeOrder.push('teardown'));
 
       viewModel.dispose();
 
-      expect(disposeOrder).toEqual(['command', 'destroy']);
+      expect(disposeOrder).toEqual(['command', 'teardown']);
 
       disposeSpy.mockRestore();
-      destroySpy.mockRestore();
     });
   });
 
   describe('integration with existing disposal', () => {
-    it('should dispose both subscriptions and commands', () => {
-      const mockObservable = new Observable<string>((subscriber) => {
-        subscriber.next('value');
+    it('should dispose both teardowns and commands', () => {
+      const source = signal(0);
+      const teardownSpy = vi.fn();
+      const unsubscribe = source.subscribe(() => {});
+      (viewModel as any).addSubscription(() => {
+        unsubscribe();
+        teardownSpy();
       });
-
-      const subscription = mockObservable.subscribe();
-      (viewModel as any).addSubscription(subscription);
 
       const cmdDisposeSpy = vi.spyOn(viewModel.cmd1 as any, 'dispose');
 
       viewModel.dispose();
 
-      expect(subscription.closed).toBe(true);
+      expect(teardownSpy).toHaveBeenCalled();
       expect(cmdDisposeSpy).toHaveBeenCalled();
     });
   });

@@ -6,7 +6,7 @@ import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 const CompositeCommandPanel: FC = () => {
   const [statusMessage, setStatusMessage] = useState('Ready to orchestrate composite workflows.');
@@ -51,12 +51,12 @@ const CompositeCommandPanel: FC = () => {
     };
   }, [diagnosticSequenceCommand, parallelRefreshCommand]);
 
-  const parallelCanExecute = useObservable(parallelRefreshCommand.canExecute$, true);
-  const parallelIsExecuting = useObservable(parallelRefreshCommand.isExecuting$, false);
-  const sequentialCanExecute = useObservable(diagnosticSequenceCommand.canExecute$, true);
-  const sequentialIsExecuting = useObservable(diagnosticSequenceCommand.isExecuting$, false);
-  const parallelError = useObservable(parallelRefreshCommand.executeError$, null);
-  const sequentialError = useObservable(diagnosticSequenceCommand.executeError$, null);
+  const parallelCanExecute = useSignal(parallelRefreshCommand.canExecute$);
+  const parallelIsExecuting = useSignal(parallelRefreshCommand.isExecuting$);
+  const sequentialCanExecute = useSignal(diagnosticSequenceCommand.canExecute$);
+  const sequentialIsExecuting = useSignal(diagnosticSequenceCommand.isExecuting$);
+  const parallelError = useSignal(parallelRefreshCommand.executeError$);
+  const sequentialError = useSignal(diagnosticSequenceCommand.executeError$);
 
   const formatTimestamp = () => new Date().toLocaleTimeString();
 

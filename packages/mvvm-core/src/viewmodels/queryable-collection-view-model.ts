@@ -1,18 +1,24 @@
-import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
-import { map, distinctUntilChanged, startWith, debounceTime } from 'rxjs/operators';
+import {
+  signal,
+  computed,
+  debouncedSignal,
+  type ReadonlySignal,
+  type WritableSignal,
+} from '@web-loom/signals-core';
 
 export class QueryableCollectionViewModel<T extends Record<string, any>> {
-  private allItems$: BehaviorSubject<T[]>;
+  private allItems$: WritableSignal<T[]>;
+  private readonly _debouncedFilter: ReturnType<typeof debouncedSignal<string>>;
 
-  public currentPage$: BehaviorSubject<number>;
-  public pageSize$: BehaviorSubject<number>;
-  public filterBy$: BehaviorSubject<string>; // For simple text search
-  public sortBy$: BehaviorSubject<keyof T | null>;
-  public sortDirection$: BehaviorSubject<'asc' | 'desc'>;
+  public currentPage$: WritableSignal<number>;
+  public pageSize$: WritableSignal<number>;
+  public filterBy$: WritableSignal<string>; // For simple text search
+  public sortBy$: WritableSignal<keyof T | null>;
+  public sortDirection$: WritableSignal<'asc' | 'desc'>;
 
-  public readonly totalItems$: Observable<number>; // Total items after filtering
-  public readonly totalPages$: Observable<number>;
-  public readonly paginatedItems$: Observable<T[]>;
+  public readonly totalItems$: ReadonlySignal<number>; // Total items after filtering
+  public readonly totalPages$: ReadonlySignal<number>;
+  public readonly paginatedItems$: ReadonlySignal<T[]>;
 
   constructor(
     initialItems: T[] = [],
@@ -20,150 +26,142 @@ export class QueryableCollectionViewModel<T extends Record<string, any>> {
     initialSortBy: keyof T | null = null,
     initialSortDirection: 'asc' | 'desc' = 'asc',
   ) {
-    this.allItems$ = new BehaviorSubject<T[]>([...initialItems]);
-    this.currentPage$ = new BehaviorSubject<number>(1);
-    this.pageSize$ = new BehaviorSubject<number>(initialPageSize > 0 ? initialPageSize : 10);
-    this.filterBy$ = new BehaviorSubject<string>('');
-    this.sortBy$ = new BehaviorSubject<keyof T | null>(initialSortBy);
-    this.sortDirection$ = new BehaviorSubject<'asc' | 'desc'>(initialSortDirection);
+    this.allItems$ = signal<T[]>([...initialItems]);
+    this.currentPage$ = signal<number>(1);
+    this.pageSize$ = signal<number>(initialPageSize > 0 ? initialPageSize : 10);
+    this.filterBy$ = signal<string>('');
+    this.sortBy$ = signal<keyof T | null>(initialSortBy);
+    this.sortDirection$ = signal<'asc' | 'desc'>(initialSortDirection);
 
-    const processedItems$ = combineLatest([
-      this.allItems$,
-      this.filterBy$.pipe(debounceTime(150), distinctUntilChanged()), // Debounce filter input
-      this.sortBy$.pipe(distinctUntilChanged()),
-      this.sortDirection$.pipe(distinctUntilChanged()),
-    ]).pipe(
-      map(([items, filter, sortBy, sortDirection]) => {
-        let processed = [...items];
+    // Debounce filter input so rapid typing doesn't reprocess the collection
+    this._debouncedFilter = debouncedSignal(this.filterBy$, 150);
 
-        // Filtering (simple case-insensitive search on all string or number properties)
-        if (filter && filter.trim() !== '') {
-          const lowerFilter = filter.toLowerCase().trim();
-          processed = processed.filter((item) =>
-            Object.keys(item).some((key) => {
-              const value = item[key];
-              if (typeof value === 'string' || typeof value === 'number') {
-                return String(value).toLowerCase().includes(lowerFilter);
-              }
-              return false;
-            }),
-          );
-        }
+    const processedItems$ = computed(() => {
+      const items = this.allItems$.get();
+      const filter = this._debouncedFilter.get();
+      const sortBy = this.sortBy$.get();
+      const sortDirection = this.sortDirection$.get();
 
-        // Sorting
-        if (sortBy) {
-          processed.sort((a, b) => {
-            const valA = a[sortBy];
-            const valB = b[sortBy];
+      let processed = [...items];
 
-            if (valA === null || valA === undefined) return sortDirection === 'asc' ? -1 : 1;
-            if (valB === null || valB === undefined) return sortDirection === 'asc' ? 1 : -1;
+      // Filtering (simple case-insensitive search on all string or number properties)
+      if (filter && filter.trim() !== '') {
+        const lowerFilter = filter.toLowerCase().trim();
+        processed = processed.filter((item) =>
+          Object.keys(item).some((key) => {
+            const value = item[key];
+            if (typeof value === 'string' || typeof value === 'number') {
+              return String(value).toLowerCase().includes(lowerFilter);
+            }
+            return false;
+          }),
+        );
+      }
 
-            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-            return 0;
-          });
-        }
-        return processed;
-      }),
-    );
+      // Sorting
+      if (sortBy) {
+        processed.sort((a, b) => {
+          const valA = a[sortBy];
+          const valB = b[sortBy];
 
-    this.totalItems$ = processedItems$.pipe(
-      map((items) => items.length),
-      startWith(initialItems.length),
-      distinctUntilChanged(),
-    );
+          if (valA === null || valA === undefined) return sortDirection === 'asc' ? -1 : 1;
+          if (valB === null || valB === undefined) return sortDirection === 'asc' ? 1 : -1;
 
-    this.totalPages$ = combineLatest([this.totalItems$, this.pageSize$]).pipe(
-      map(([totalItems, pageSize]) => Math.max(1, Math.ceil(totalItems / pageSize))), // Ensure at least 1 page
-      distinctUntilChanged(),
-    );
+          if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+          if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+      return processed;
+    });
 
-    this.paginatedItems$ = combineLatest([
-      processedItems$,
-      this.currentPage$,
-      this.pageSize$,
-      this.totalPages$, // Include totalPages to react to its changes for current page adjustment
-    ]).pipe(
-      map(([items, currentPage, pageSize, totalPages]) => {
-        // Adjust current page if it's out of bounds due to filtering or page size change
-        const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
-        if (this.currentPage$.getValue() !== validCurrentPage) {
-          // Postpone the update to avoid synchronous emission issues within combineLatest
-          Promise.resolve().then(() => this.currentPage$.next(validCurrentPage));
-        }
+    this.totalItems$ = computed(() => processedItems$.get().length);
 
-        const startIndex = (validCurrentPage - 1) * pageSize;
-        return items.slice(startIndex, startIndex + pageSize);
-      }),
-      startWith(initialItems.slice(0, initialPageSize)), // Initial paginated view
-    );
+    this.totalPages$ = computed(() =>
+      Math.max(1, Math.ceil(this.totalItems$.get() / this.pageSize$.get())),
+    ); // Ensure at least 1 page
+
+    this.paginatedItems$ = computed(() => {
+      const items = processedItems$.get();
+      const currentPage = this.currentPage$.get();
+      const pageSize = this.pageSize$.get();
+      const totalPages = this.totalPages$.get();
+
+      // Adjust current page if it's out of bounds due to filtering or page size change
+      const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
+      if (this.currentPage$.peek() !== validCurrentPage) {
+        // Postpone the write to avoid mutating state inside a computed evaluation
+        Promise.resolve().then(() => {
+          if (this.currentPage$.peek() !== validCurrentPage) {
+            this.currentPage$.set(validCurrentPage);
+          }
+        });
+      }
+
+      const startIndex = (validCurrentPage - 1) * pageSize;
+      return items.slice(startIndex, startIndex + pageSize);
+    });
   }
 
   public loadItems(items: T[]): void {
-    this.allItems$.next([...items]);
+    this.allItems$.set([...items]);
     // Optionally reset to first page, or let current page adjust automatically
     // this.goToPage(1);
   }
 
   public addItem(item: T): void {
-    this.allItems$.next([...this.allItems$.getValue(), item]);
+    this.allItems$.set([...this.allItems$.peek(), item]);
   }
 
   public removeItem(identifier: keyof T, value: any): void {
-    this.allItems$.next(this.allItems$.getValue().filter((item) => item[identifier] !== value));
+    this.allItems$.set(this.allItems$.peek().filter((item) => item[identifier] !== value));
   }
 
   public updateItem(identifier: keyof T, value: any, updatedItem: Partial<T>): void {
-    this.allItems$.next(
-      this.allItems$.getValue().map((item) => (item[identifier] === value ? { ...item, ...updatedItem } : item)),
+    this.allItems$.set(
+      this.allItems$.peek().map((item) => (item[identifier] === value ? { ...item, ...updatedItem } : item)),
     );
   }
 
   public goToPage(page: number): void {
-    // Validation will be handled by the paginatedItems$ logic reacting to totalPages$
-    this.currentPage$.next(page);
+    // Validation is handled by the paginatedItems$ logic reacting to totalPages$
+    this.currentPage$.set(page);
   }
 
   public nextPage(): void {
-    // Access totalPages value directly or from an observable if needed for stricter check
-    // For simplicity, just increment. paginatedItems$ will clamp.
-    this.currentPage$.next(this.currentPage$.getValue() + 1);
+    // Just increment; paginatedItems$ will clamp.
+    this.currentPage$.set(this.currentPage$.peek() + 1);
   }
 
   public prevPage(): void {
-    this.currentPage$.next(Math.max(1, this.currentPage$.getValue() - 1));
+    this.currentPage$.set(Math.max(1, this.currentPage$.peek() - 1));
   }
 
   public setFilter(query: string): void {
-    this.filterBy$.next(query);
+    this.filterBy$.set(query);
     // No need to manually reset page to 1 here, paginatedItems$ logic will adjust if currentPage becomes invalid
   }
 
   public setSort(key: keyof T | null, direction?: 'asc' | 'desc'): void {
-    this.sortBy$.next(key);
+    const previousKey = this.sortBy$.peek();
+    this.sortBy$.set(key);
     if (direction) {
-      this.sortDirection$.next(direction);
-    } else if (this.sortBy$.getValue() === key) {
+      this.sortDirection$.set(direction);
+    } else if (previousKey === key) {
       // Toggle direction if same key
-      this.sortDirection$.next(this.sortDirection$.getValue() === 'asc' ? 'desc' : 'asc');
+      this.sortDirection$.set(this.sortDirection$.peek() === 'asc' ? 'desc' : 'asc');
     } else {
-      this.sortDirection$.next('asc'); // Default to 'asc' for new sort key
+      this.sortDirection$.set('asc'); // Default to 'asc' for new sort key
     }
     // No need to manually reset page to 1 here
   }
 
   public setPageSize(size: number): void {
-    this.pageSize$.next(size > 0 ? size : 1);
+    this.pageSize$.set(size > 0 ? size : 1);
     // No need to manually reset page to 1 here
   }
 
   public dispose(): void {
-    this.allItems$.complete();
-    this.currentPage$.complete();
-    this.pageSize$.complete();
-    this.filterBy$.complete();
-    this.sortBy$.complete();
-    this.sortDirection$.complete();
+    this._debouncedFilter.dispose();
   }
 }

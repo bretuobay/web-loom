@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 
 /**
  * Interface for objects that need to know if they are currently active.
@@ -17,10 +17,10 @@ export interface IActiveAware {
   isActive: boolean;
 
   /**
-   * Observable that emits when active state changes.
-   * Emits current value to new subscribers.
+   * Reactive signal of the active state. Read the current value with
+   * .get(); subscribe for change notifications.
    */
-  readonly isActive$: Observable<boolean>;
+  readonly isActive$: ReadonlySignal<boolean>;
 }
 
 /**

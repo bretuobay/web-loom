@@ -1,7 +1,7 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { sensorViewModel, type SensorListData } from '@repo/view-models/SensorViewModel';
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
 @customElement('sensor-list')
 export class SensorList extends LitElement {
@@ -9,11 +9,11 @@ export class SensorList extends LitElement {
     return this;
   }
   @state() private sensors: SensorListData = [];
-  private subscription: Subscription | null = null;
+  private unsubscribe: (() => void) | null = null;
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscription = sensorViewModel.data$.subscribe((data: any) => {
+    this.unsubscribe = observe(sensorViewModel.data$, (data: any) => {
       this.sensors = data;
     });
     sensorViewModel.fetchCommand.execute();
@@ -21,7 +21,7 @@ export class SensorList extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscription?.unsubscribe();
+    this.unsubscribe?.();
   }
 
   render() {

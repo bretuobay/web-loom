@@ -1,5 +1,5 @@
 import { EventEmitter } from '@web-loom/event-emitter-core';
-import { EventBus, EventMap, Listener, GenericListener } from './types';
+import type { EventBus, EventMap, Listener, GenericListener } from './types';
 
 class EventBusImpl<M extends EventMap> implements EventBus<M> {
   private emitter = new EventEmitter<M>();

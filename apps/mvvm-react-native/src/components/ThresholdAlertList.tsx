@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, FlatList, ScrollView } from 'react-native';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import { ThresholdAlertListData, thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
 import { styles } from '@repo/shared';
 
 export const ThresholdAlertList = () => {
-  const thresholdAlerts = useObservable(thresholdAlertViewModel.data$);
+  const thresholdAlerts = useSignal(thresholdAlertViewModel.data$);
 
   return (
     <ScrollView style={{ flex: 1 }}>

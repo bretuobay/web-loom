@@ -3,7 +3,7 @@
 </a>
 <div class="card">
   <h2 class="card-title">Sensor List</h2>
-  <ul class="list" *ngIf="data$ | async as sensors">
+  <ul class="list" *ngIf="data$() as sensors">
     <li *ngFor="let sensor of sensors" class="list-item">
       <h3>{{ sensor.status }} ({{ sensor.id }})</h3>
       <p>Type:{{ sensor.type }}</p>
@@ -14,5 +14,5 @@
       </p>
     </li>
   </ul>
-  <p *ngIf="loading$ | async">Loading.....</p>
+  <p *ngIf="loading$()">Loading.....</p>
 </div>

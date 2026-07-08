@@ -14,8 +14,12 @@ export interface ReadonlySignal<T> {
   get(): T;
   /** Read without tracking — never establishes a dependency. */
   peek(): T;
-  /** Subscribe to change notifications. Returns an unsubscribe function. */
-  subscribe(fn: () => void): () => void;
+  /**
+   * Subscribe to change notifications. The listener receives the current
+   * value at notification time (zero-argument callbacks remain valid).
+   * Returns an unsubscribe function.
+   */
+  subscribe(fn: (value: T) => void): () => void;
 }
 
 export interface WritableSignal<T> extends ReadonlySignal<T> {
@@ -64,9 +68,13 @@ class SignalImpl<T> implements WritableSignal<T>, Trackable {
     };
   }
 
-  subscribe(fn: () => void): () => void {
-    this._subs.add(fn);
-    return () => this._subs.delete(fn);
+  subscribe(fn: (value: T) => void): () => void {
+    // Stable wrapper: reads the value at call time (correct under batching,
+    // where notification is deferred to flush) and keeps Set-based dedupe
+    // working since the same wrapper is scheduled for repeated notifies.
+    const wrapped = () => fn(this._value);
+    this._subs.add(wrapped);
+    return () => this._subs.delete(wrapped);
   }
 
   /** @internal */

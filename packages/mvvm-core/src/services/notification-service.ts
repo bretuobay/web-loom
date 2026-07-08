@@ -1,4 +1,4 @@
-import { BehaviorSubject, Observable, timer, filter, takeUntil } from 'rxjs';
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
 
 export interface Notification {
   id: string;
@@ -11,8 +11,11 @@ export interface Notification {
 
 export class NotificationService {
   private notificationIdCounter = 0;
-  private readonly _notifications$ = new BehaviorSubject<Notification[]>([]);
-  public readonly notifications$: Observable<Notification[]> = this._notifications$.asObservable();
+  private readonly _notifications = signal<Notification[]>([]);
+  private readonly _dismissTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private _isDisposed = false;
+
+  public readonly notifications$: ReadonlySignal<Notification[]> = this._notifications.asReadonly();
 
   private generateId(): string {
     return `notif-${Date.now()}-${this.notificationIdCounter++}`;
@@ -24,6 +27,7 @@ export class NotificationService {
     duration?: number, // If duration is 0 or undefined, it's persistent
   ): string {
     const id = this.generateId();
+    if (this._isDisposed) return id;
     const isPersistent = duration === undefined || duration <= 0;
     const notification: Notification = {
       id,
@@ -34,23 +38,15 @@ export class NotificationService {
       isPersistent,
     };
 
-    this._notifications$.next([...this._notifications$.getValue(), notification]);
+    this._notifications.set([...this._notifications.peek(), notification]);
 
     if (!isPersistent && duration && duration > 0) {
-      timer(duration)
-        .pipe(
-          takeUntil(
-            this._notifications$.pipe(
-              // Stop the timer if the notification is manually dismissed before the duration.
-              // The condition for stopping is when the notification is NO LONGER found.
-              filter((notifications) => !notifications.some((n) => n.id === id)),
-            ),
-          ),
-        )
-        .subscribe(() => {
-          // This will only be called if takeUntil hasn't already completed the stream.
-          this.dismissNotification(id);
-        });
+      // Auto-dismiss after the duration; manual dismissal clears the timer.
+      const timer = setTimeout(() => {
+        this._dismissTimers.delete(id);
+        this.dismissNotification(id);
+      }, duration);
+      this._dismissTimers.set(id, timer);
     }
     return id;
   }
@@ -89,27 +85,44 @@ export class NotificationService {
   }
 
   public dismissNotification(id: string): void {
-    const currentNotifications = this._notifications$.getValue();
+    if (this._isDisposed) return;
+    const timer = this._dismissTimers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      this._dismissTimers.delete(id);
+    }
+    const currentNotifications = this._notifications.peek();
     const notificationExists = currentNotifications.some((n) => n.id === id);
     if (notificationExists) {
-      this._notifications$.next(currentNotifications.filter((n) => n.id !== id));
+      this._notifications.set(currentNotifications.filter((n) => n.id !== id));
     }
   }
 
   public clearAll(type?: Notification['type']): void {
+    if (this._isDisposed) return;
     if (type) {
-      this._notifications$.next(this._notifications$.getValue().filter((n) => n.type !== type));
+      const remaining = this._notifications.peek().filter((n) => n.type !== type);
+      // Cancel timers for the notifications being cleared
+      for (const n of this._notifications.peek()) {
+        if (n.type === type) {
+          const timer = this._dismissTimers.get(n.id);
+          if (timer) {
+            clearTimeout(timer);
+            this._dismissTimers.delete(n.id);
+          }
+        }
+      }
+      this._notifications.set(remaining);
     } else {
-      this._notifications$.next([]);
+      for (const timer of this._dismissTimers.values()) clearTimeout(timer);
+      this._dismissTimers.clear();
+      this._notifications.set([]);
     }
   }
 
   public dispose(): void {
-    // Complete the subject to clean up subscriptions to notifications$
-    this._notifications$.complete();
-    // Any active timers will complete on their own or when their takeUntil condition is met.
-    // For very robust cleanup of timers, you might need more complex management,
-    // e.g., storing subscriptions and unsubscribing them here, but for typical
-    // use cases with `timer` and `takeUntil`, this should be sufficient.
+    this._isDisposed = true;
+    for (const timer of this._dismissTimers.values()) clearTimeout(timer);
+    this._dismissTimers.clear();
   }
 }

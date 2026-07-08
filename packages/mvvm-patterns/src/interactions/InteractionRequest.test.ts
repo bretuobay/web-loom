@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { firstValueFrom } from 'rxjs';
 import {
   InteractionRequest,
   ConfirmationRequest,
@@ -21,20 +20,22 @@ describe('InteractionRequest', () => {
 
   describe('raise', () => {
     it('should emit event on requested$', async () => {
-      const eventPromise = firstValueFrom(request.requested$);
+      let capturedEvent: any;
+      request.requested$.subscribe((event) => (capturedEvent = event));
 
       request.raise({ content: 'Test message' });
 
-      const event = await eventPromise;
+      const event = capturedEvent;
       expect(event.context.content).toBe('Test message');
     });
 
     it('should emit event with title', async () => {
-      const eventPromise = firstValueFrom(request.requested$);
+      let capturedEvent: any;
+      request.requested$.subscribe((event) => (capturedEvent = event));
 
       request.raise({ title: 'Test Title', content: 'Test message' });
 
-      const event = await eventPromise;
+      const event = capturedEvent;
       expect(event.context.title).toBe('Test Title');
       expect(event.context.content).toBe('Test message');
     });
@@ -62,11 +63,12 @@ describe('InteractionRequest', () => {
     });
 
     it('should provide default no-op callback', async () => {
-      const eventPromise = firstValueFrom(request.requested$);
+      let capturedEvent: any;
+      request.requested$.subscribe((event) => (capturedEvent = event));
 
       request.raise({ content: 'Test' });
 
-      const event = await eventPromise;
+      const event = capturedEvent;
       expect(event.callback).toBeDefined();
       expect(typeof event.callback).toBe('function');
       expect(() => event.callback({ content: 'Test' })).not.toThrow();
@@ -181,13 +183,14 @@ describe('InteractionRequest', () => {
   });
 
   describe('dispose', () => {
-    it('should complete requested$ observable', async () => {
-      const completeSpy = vi.fn();
+    it('should drop subscribers on dispose', () => {
+      const spy = vi.fn();
 
-      request.requested$.subscribe({ complete: completeSpy });
+      request.requested$.subscribe(spy);
       request.dispose();
 
-      expect(completeSpy).toHaveBeenCalled();
+      request.raise({ title: 'After dispose', content: '' });
+      expect(spy).not.toHaveBeenCalled();
     });
 
     it('should not emit after dispose', () => {

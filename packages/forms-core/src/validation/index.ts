@@ -161,7 +161,7 @@ export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number,
 ): (...args: Parameters<T>) => Promise<ReturnType<T>> {
-  let timeout: NodeJS.Timeout | null = null;
+  let timeout: ReturnType<typeof setTimeout> | null = null;
   let latestResolve: ((value: ReturnType<T>) => void) | null = null;
   let latestReject: ((reason: any) => void) | null = null;
 

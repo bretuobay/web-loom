@@ -1,17 +1,25 @@
-import { BehaviorSubject, Observable, isObservable, of, Subscription, combineLatest, Subject } from 'rxjs';
-import { first, map, switchMap, distinctUntilChanged, startWith } from 'rxjs/operators';
+import { signal, computed, type ReadonlySignal } from '@web-loom/signals-core';
 import type { IDisposable } from '../models/BaseModel';
+
+/**
+ * A can-execute source: either a reactive signal or a plain function.
+ * Functions that read signals via .get() are auto-tracked by the
+ * canExecute$ computed; reads of non-signal state require a manual
+ * raiseCanExecuteChanged() call to re-evaluate.
+ */
+export type CanExecuteSource = ReadonlySignal<boolean> | (() => boolean);
 
 /**
  * @interface ICommand
  * Defines the public interface for a Command.
+ * The `$` suffix marks a reactive property (a ReadonlySignal).
  * @template TParam The type of the parameter passed to the command's execute function.
  * @template TResult The type of the result returned by the command's execute function.
  */
 export interface ICommand<TParam = void, TResult = void> extends IDisposable {
-  readonly canExecute$: Observable<boolean>;
-  readonly isExecuting$: Observable<boolean>;
-  readonly executeError$: Observable<any>;
+  readonly canExecute$: ReadonlySignal<boolean>;
+  readonly isExecuting$: ReadonlySignal<boolean>;
+  readonly executeError$: ReadonlySignal<any>;
 
   execute(param: TParam): Promise<TResult | undefined>;
 }
@@ -32,10 +40,10 @@ export interface ICommandBuilder<TParam, TResult> {
 
   /**
    * Sets the condition under which the command can execute.
-   * @param canExecuteObservable An observable that emits a boolean indicating if the command can execute.
+   * @param canExecute A boolean signal (or function reading signals) indicating if the command can execute.
    * @returns The builder instance for chaining.
    */
-  canExecuteWhen(canExecuteObservable: Observable<boolean>): ICommandBuilder<TParam, TResult>;
+  canExecuteWhen(canExecute: CanExecuteSource): ICommandBuilder<TParam, TResult>;
 
   /**
    * Builds and returns the configured Command instance.
@@ -44,32 +52,43 @@ export interface ICommandBuilder<TParam, TResult> {
   build(): ICommand<TParam, TResult>;
 }
 
+function readCanExecute(source: CanExecuteSource): boolean {
+  return typeof source === 'function' ? source() : source.get();
+}
+
 /**
  * @class Command
  * Implements the Command pattern, encapsulating an action that can be executed,
  * along with its execution status, whether it can be executed, and any errors.
  * Suitable for binding to UI elements like buttons.
+ *
+ * canExecute$ is a computed signal: conditions registered via the constructor,
+ * observesProperty(), or observesCanExecute() are auto-tracked, and the command
+ * is never executable while it is already executing.
+ *
  * Implements {@link IDisposable} for resource cleanup.
  * @template TParam The type of the parameter passed to the command's execute function.
  * @template TResult The type of the result returned by the command's execute function.
  */
 export class Command<TParam = void, TResult = void> implements ICommand<TParam, TResult>, IDisposable {
   private _isDisposed = false;
-  protected readonly _isExecuting$ = new BehaviorSubject<boolean>(false);
-  public readonly isExecuting$: Observable<boolean> = this._isExecuting$.asObservable();
 
-  protected _canExecute$: Observable<boolean>; // Mutable for fluent API rebuilding
-  protected readonly _executeError$ = new BehaviorSubject<any>(null);
-  public readonly executeError$: Observable<any> = this._executeError$.asObservable();
+  protected readonly _isExecuting = signal(false);
+  public readonly isExecuting$: ReadonlySignal<boolean> = this._isExecuting.asReadonly();
+
+  protected readonly _executeError = signal<any>(null);
+  public readonly executeError$: ReadonlySignal<any> = this._executeError.asReadonly();
+
+  public readonly canExecute$: ReadonlySignal<boolean>;
 
   private readonly _executeFn: (param: TParam) => Promise<TResult>;
-  private _canExecuteSubscription: Subscription | undefined;
+  private readonly _baseCanExecute: CanExecuteSource;
 
-  // Fluent API support
-  private readonly observedProperties: Observable<any>[] = [];
-  private readonly additionalCanExecuteConditions: Observable<boolean>[] = [];
-  private readonly _canExecuteChanged$ = new Subject<void>();
-  private baseCanExecute$: Observable<boolean>;
+  // Fluent API support: extra conditions registered after construction.
+  // _canExecuteVersion is bumped to force re-evaluation of the computed —
+  // both when the condition list changes and via raiseCanExecuteChanged().
+  private readonly _conditions: Array<() => boolean> = [];
+  private readonly _canExecuteVersion = signal(0);
 
   /**
    * Creates a new CommandBuilder instance to fluently construct a Command.
@@ -80,46 +99,41 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
   }
 
   /**
-   * @internal Use `Command.create()` to build a command.
    * @param executeFn The function to execute when the command is triggered.
    * It should return a Promise.
-   * @param canExecuteFn An optional function or Observable determining if the command can be executed.
-   * If a function, it's called with the parameter. If an Observable, it emits boolean.
-   * Defaults to always true if not provided.
+   * @param canExecute Optional can-execute source: a ReadonlySignal<boolean>
+   * or a function returning boolean (signal reads inside it are auto-tracked).
+   * Defaults to always true.
    */
-  constructor(
-    executeFn: (param: TParam) => Promise<TResult>,
-    canExecuteFn?: ((param: TParam) => Observable<boolean> | boolean) | Observable<boolean>,
-  ) {
+  constructor(executeFn: (param: TParam) => Promise<TResult>, canExecute?: CanExecuteSource) {
     if (typeof executeFn !== 'function') {
       throw new Error('Command requires an executeFn that is a function.');
     }
     this._executeFn = executeFn;
 
-    if (canExecuteFn === undefined) {
-      this._canExecute$ = of(true);
-    } else if (isObservable(canExecuteFn)) {
-      this._canExecute$ = canExecuteFn;
-    } else if (typeof canExecuteFn === 'function') {
-      this._canExecute$ = of(true);
-      console.warn(
-        "canExecuteFn as a function for Command's constructor is deprecated. Use an Observable<boolean> for reactive canExecute$.",
-      );
+    if (canExecute === undefined) {
+      this._baseCanExecute = () => true;
+    } else if (typeof canExecute === 'function' || typeof canExecute?.get === 'function') {
+      this._baseCanExecute = canExecute;
     } else {
-      throw new Error(
-        'canExecuteFn must be an Observable<boolean> or a function returning boolean/Observable<boolean>.',
-      );
+      throw new Error('canExecute must be a ReadonlySignal<boolean> or a function returning boolean.');
     }
 
-    // Store base canExecute for fluent API rebuilding
-    this.baseCanExecute$ = this._canExecute$;
+    this.canExecute$ = computed(() => {
+      this._canExecuteVersion.get(); // manual re-evaluation hook
+      return (
+        readCanExecute(this._baseCanExecute) &&
+        this._conditions.every((condition) => condition()) &&
+        !this._isExecuting.get()
+      );
+    });
   }
 
   /**
-   * Observes a property observable and re-evaluates canExecute$ when it changes.
+   * Observes a property signal and re-evaluates canExecute$ when it changes.
    * The property value must be truthy for canExecute to be true.
    *
-   * @param property$ Observable to observe
+   * @param property The signal to observe
    * @returns this (for fluent chaining)
    *
    * @example
@@ -129,14 +143,14 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
    *   .observesProperty(this.email$);
    * ```
    */
-  observesProperty<T>(property$: Observable<T>): this {
+  observesProperty<T>(property: ReadonlySignal<T>): this {
     if (this._isDisposed) {
       console.warn('Cannot observe property on disposed Command');
       return this;
     }
 
-    this.observedProperties.push(property$);
-    this.rebuildCanExecute();
+    this._conditions.push(() => !!property.get());
+    this._canExecuteVersion.update((v) => v + 1);
     return this;
   }
 
@@ -144,7 +158,7 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
    * Adds an additional canExecute condition.
    * All conditions must be true for canExecute$ to be true.
    *
-   * @param canExecute$ Observable<boolean> condition
+   * @param canExecute A boolean signal (or function reading signals)
    * @returns this (for fluent chaining)
    *
    * @example
@@ -154,20 +168,21 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
    *   .observesCanExecute(this.isNotBusy$);
    * ```
    */
-  observesCanExecute(canExecute$: Observable<boolean>): this {
+  observesCanExecute(canExecute: CanExecuteSource): this {
     if (this._isDisposed) {
       console.warn('Cannot add canExecute condition on disposed Command');
       return this;
     }
 
-    this.additionalCanExecuteConditions.push(canExecute$);
-    this.rebuildCanExecute();
+    this._conditions.push(() => readCanExecute(canExecute));
+    this._canExecuteVersion.update((v) => v + 1);
     return this;
   }
 
   /**
    * Manually triggers re-evaluation of canExecute$ and notifies subscribers.
-   * Useful when canExecute depends on external state not tracked by observables.
+   * Needed only when canExecute reads external state that is not held in
+   * signals (signal reads are auto-tracked).
    *
    * @example
    * ```typescript
@@ -179,75 +194,14 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
    */
   raiseCanExecuteChanged(): void {
     if (this._isDisposed) return;
-    this._canExecuteChanged$.next();
-  }
-
-  /**
-   * Rebuilds the canExecute$ observable combining all conditions
-   * @private
-   */
-  private rebuildCanExecute(): void {
-    const allConditions: Observable<boolean>[] = [this.baseCanExecute$];
-
-    // Add additional canExecute conditions
-    allConditions.push(...this.additionalCanExecuteConditions);
-
-    // Convert observed properties to boolean conditions (truthy check)
-    const propertyConditions = this.observedProperties.map((prop$) =>
-      prop$.pipe(
-        map((value) => !!value),
-        startWith(false), // Assume false until first emission
-        distinctUntilChanged(),
-      ),
-    );
-
-    allConditions.push(...propertyConditions);
-
-    // Combine all conditions with manual trigger
-    if (
-      allConditions.length === 1 &&
-      this.observedProperties.length === 0 &&
-      this.additionalCanExecuteConditions.length === 0
-    ) {
-      // No additional conditions, just use base with manual trigger
-      this._canExecute$ = combineLatest([
-        this.baseCanExecute$,
-        this._canExecuteChanged$.pipe(startWith(undefined)),
-      ]).pipe(
-        map(([canExecute]) => canExecute),
-        distinctUntilChanged(),
-      );
-    } else {
-      // Combine all conditions
-      this._canExecute$ = combineLatest([
-        combineLatest(allConditions).pipe(
-          map((results) => results.every((r) => r === true)),
-          distinctUntilChanged(),
-        ),
-        this._canExecuteChanged$.pipe(startWith(undefined)),
-      ]).pipe(
-        map(([canExecute]) => canExecute),
-        distinctUntilChanged(),
-      );
-    }
+    this._canExecuteVersion.update((v) => v + 1);
   }
 
   public dispose(): void {
     if (this._isDisposed) {
       return;
     }
-    this._isExecuting$.complete();
-    this._executeError$.complete();
-    this._canExecuteChanged$.complete();
-
-    if (this._canExecuteSubscription) {
-      this._canExecuteSubscription.unsubscribe();
-    }
     this._isDisposed = true;
-  }
-
-  public get canExecute$(): Observable<boolean> {
-    return this._canExecute$.pipe(switchMap((canExec) => this._isExecuting$.pipe(map((isExec) => canExec && !isExec))));
   }
 
   public async execute(param: TParam): Promise<TResult | undefined> {
@@ -256,24 +210,23 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
       return Promise.resolve(undefined);
     }
 
-    const canExecuteNow = await this.canExecute$.pipe(first()).toPromise();
-
-    if (!canExecuteNow) {
+    // Synchronous guard — signals make the awaited-stream read unnecessary.
+    if (!this.canExecute$.peek()) {
       console.log('Command cannot be executed.');
       return;
     }
 
-    this._isExecuting$.next(true);
-    this._executeError$.next(null);
+    this._isExecuting.set(true);
+    this._executeError.set(null);
 
     try {
       const result = await this._executeFn(param);
       return result;
     } catch (error) {
-      this._executeError$.next(error);
+      this._executeError.set(error);
       throw error;
     } finally {
-      this._isExecuting$.next(false);
+      this._isExecuting.set(false);
     }
   }
 }
@@ -286,7 +239,7 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
  */
 export class CommandBuilder<TParam, TResult> implements ICommandBuilder<TParam, TResult> {
   private _executeFn?: (param: TParam) => Promise<TResult>;
-  private _canExecute$?: Observable<boolean>;
+  private _canExecute?: CanExecuteSource;
 
   /**
    * Sets the execution function for the command.
@@ -300,11 +253,11 @@ export class CommandBuilder<TParam, TResult> implements ICommandBuilder<TParam, 
 
   /**
    * Sets the condition under which the command can execute.
-   * @param canExecuteObservable An observable that emits a boolean indicating if the command can execute.
+   * @param canExecute A boolean signal (or function reading signals).
    * @returns The builder instance for chaining.
    */
-  public canExecuteWhen(canExecuteObservable: Observable<boolean>): this {
-    this._canExecute$ = canExecuteObservable;
+  public canExecuteWhen(canExecute: CanExecuteSource): this {
+    this._canExecute = canExecute;
     return this;
   }
 
@@ -318,6 +271,6 @@ export class CommandBuilder<TParam, TResult> implements ICommandBuilder<TParam, 
       throw new Error('Command cannot be built without an execute function.');
     }
 
-    return new Command(this._executeFn, this._canExecute$ ?? of(true));
+    return new Command(this._executeFn, this._canExecute ?? (() => true));
   }
 }

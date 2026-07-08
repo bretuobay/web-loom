@@ -38,11 +38,22 @@ class ComputedImpl<T> implements ReadonlySignal<T>, Trackable {
     return this._value;
   }
 
-  subscribe(fn: () => void): () => void {
+  subscribe(fn: (value: T) => void): () => void {
     // Eagerly compute so we're subscribed to deps before any change arrives.
     if (this._dirty) this._recompute();
-    this._subs.add(fn);
-    return () => this._subs.delete(fn);
+    // peek() at call time recomputes if dirty, so value-listeners receive
+    // the fresh derived value. Per-subscriber dedupe: only deliver when the
+    // derived value actually changed (source changes that recompute to an
+    // equal value stay silent, mirroring signal notification semantics).
+    let last = this._value;
+    const wrapped = () => {
+      const next = this.peek();
+      if (this._equals(last, next)) return;
+      last = next;
+      fn(next);
+    };
+    this._subs.add(wrapped);
+    return () => this._subs.delete(wrapped);
   }
 
   /** @internal */

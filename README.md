@@ -67,7 +67,7 @@ We are excited to have you on this journey with us. Welcome to the future of UI 
 
 ## Architecture
 
-Web Loom is built on a solid foundation of architectural patterns that have been adapted and enhanced for the modern web. Our architecture is heavily inspired by the C# Prism framework, but has been reimagined to leverage the power of RxJS and TypeScript.
+Web Loom is built on a solid foundation of architectural patterns that have been adapted and enhanced for the modern web. Our architecture is heavily inspired by the C# Prism framework, but has been reimagined to leverage the power of reactive signals (@web-loom/signals-core) and TypeScript.
 
 ### MVVM (Model-View-ViewModel)
 
@@ -78,12 +78,12 @@ The core of our architecture is the Model-View-ViewModel (MVVM) pattern. This pa
 │                         View Layer                       │
 │  (React / Angular / Vue / Vanilla JS - Framework UI)    │
 └────────────────────┬────────────────────────────────────┘
-                     │ Binds to observables
+                     │ Binds to signals
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │                      ViewModel Layer                     │
 │    (packages/view-models - Shared Business Logic)       │
-│    • Exposes data$ / isLoading$ / error$ observables    │
+│    • Exposes data$ / isLoading$ / error$ signals        │
 │    • Handles user interactions                          │
 │    • Framework-agnostic                                 │
 └────────────────────┬────────────────────────────────────┘
@@ -94,7 +94,7 @@ The core of our architecture is the Model-View-ViewModel (MVVM) pattern. This pa
 │         (packages/mvvm-core - Data & Logic)             │
 │    • BaseModel / RestfulApiModel                        │
 │    • Zod validation                                     │
-│    • RxJS reactive state                                │
+│    • Signal-based reactive state                        │
 └─────────────────────────────────────────────────────────┘
 ```
 
