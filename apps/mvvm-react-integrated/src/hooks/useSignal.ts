@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
 
 /**
@@ -7,5 +7,8 @@ import type { ReadonlySignal } from '@web-loom/signals-core';
  * every change via useSyncExternalStore.
  */
 export function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onStoreChange: () => void) => sig.subscribe(onStoreChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

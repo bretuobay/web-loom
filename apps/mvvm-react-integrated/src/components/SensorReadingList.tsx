@@ -5,13 +5,15 @@ import { useAppContext } from '../providers/AppProvider';
 import { type SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
 import { type EndpointState } from '@web-loom/query-core';
 import { useListSelection, useDialogBehavior } from '@web-loom/ui-core/adapters/react';
+import { API_BASE_URL } from '@repo/models/config';
+import { apiRegistry } from '@repo/models/services/services';
 
-export const READINGS_ENDPOINT_KEY = 'posts';
+export const READINGS_ENDPOINT_KEY = 'readings';
 
 async function fetchReadings(): Promise<SensorReadingListData> {
-  const response = await fetch('http://localhost:3700/api/readings');
+  const response = await fetch(`${API_BASE_URL}${apiRegistry.reading.list.path}`);
   if (!response.ok) {
-    throw new Error('Network response was not ok for posts');
+    throw new Error('Network response was not ok for sensor readings');
   }
   return response.json();
 }

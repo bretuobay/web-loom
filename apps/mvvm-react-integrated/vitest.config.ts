@@ -11,6 +11,7 @@ export default defineConfig({
       '@web-loom/mvvm-core': resolve(__dirname, '../../packages/mvvm-core/src'),
       '@web-loom/query-core': resolve(__dirname, '../../packages/query-core/src'),
       '@web-loom/event-bus-core': resolve(__dirname, '../../packages/event-bus-core/src'),
+      '@web-loom/signals-core': resolve(__dirname, '../../packages/signals-core/src'),
       '@web-loom/ui-core': resolve(__dirname, '../../packages/ui-core/src'),
       '@web-loom/ui-patterns': resolve(__dirname, '../../packages/ui-patterns/src'),
       '@repo/shared': resolve(__dirname, '../../packages/shared/src'),
