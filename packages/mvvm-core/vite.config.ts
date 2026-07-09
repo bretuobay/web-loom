@@ -6,6 +6,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@web-loom/query-core': resolve(__dirname, '../query-core/src/index.ts'),
+      '@web-loom/signals-core': resolve(__dirname, '../signals-core/src/index.ts'),
     },
   },
   build: {
@@ -18,12 +19,13 @@ export default defineConfig({
       fileName: 'index',
     },
     rollupOptions: {
-      external: ['rxjs', 'zod', '@web-loom/query-core'],
+      external: ['rxjs', 'zod', '@web-loom/query-core', '@web-loom/signals-core'],
       output: {
         globals: {
           rxjs: 'rxjs',
           zod: 'Zod',
           '@web-loom/query-core': 'QueryCore',
+          '@web-loom/signals-core': 'SignalsCore',
         },
       },
     },
