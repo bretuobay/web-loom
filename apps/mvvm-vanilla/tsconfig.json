@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": "../..",
     "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
@@ -13,12 +13,25 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
+    "paths": {
+      "@repo/models": ["../../packages/models/src"],
+      "@repo/models/*": ["../../packages/models/src/*"],
+      "@repo/shared": ["../../packages/shared/src"],
+      "@repo/shared/*": ["../../packages/shared/src/*"],
+      "@repo/view-models": ["../../packages/view-models/src"],
+      "@repo/view-models/*": ["../../packages/view-models/src/*"],
+      "@web-loom/mvvm-core": ["../../packages/mvvm-core/src"],
+      "@web-loom/mvvm-core/*": ["../../packages/mvvm-core/src/*"],
+      "@web-loom/query-core": ["../../packages/query-core/src"],
+      "@web-loom/query-core/*": ["../../packages/query-core/src/*"],
+      "@web-loom/signals-core": ["../../packages/signals-core/src"],
+      "@web-loom/signals-core/*": ["../../packages/signals-core/src/*"]
+    },
 
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },

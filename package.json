@@ -62,5 +62,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "sequelize": "^6.37.8"
+  }
 }

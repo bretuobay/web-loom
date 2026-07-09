@@ -1,13 +1,12 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": "../..",
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
@@ -22,26 +21,15 @@
       "@repo/shared/*": ["../../packages/shared/src/*"],
       "@web-loom/mvvm-core": ["../../packages/mvvm-core/src"],
       "@web-loom/mvvm-core/*": ["../../packages/mvvm-core/src/*"],
+      "@web-loom/query-core": ["../../packages/query-core/src"],
+      "@web-loom/query-core/*": ["../../packages/query-core/src/*"],
+      "@web-loom/signals-core": ["../../packages/signals-core/src"],
+      "@web-loom/signals-core/*": ["../../packages/signals-core/src/*"],
       "@web-loom/ui-core": ["../../packages/ui-core/src"],
       "@web-loom/ui-core/*": ["../../packages/ui-core/src/*"],
       "@web-loom/ui-patterns": ["../../packages/ui-patterns/src"],
       "@web-loom/ui-patterns/*": ["../../packages/ui-patterns/src/*"]
-    },
-    "composite": true
-  },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "references": [
-    {
-      "path": "../../packages/models"
-    },
-    {
-      "path": "../../packages/view-models"
-    },
-    {
-      "path": "../../packages/shared"
-    },
-    {
-      "path": "../../packages/mvvm-core"
     }
-  ]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
 }

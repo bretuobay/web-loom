@@ -17,6 +17,8 @@
       "@web-loom/design-core/*": ["../../packages/design-core/src/*"],
       "@web-loom/event-bus-core": ["../../packages/event-bus-core/src"],
       "@web-loom/event-bus-core/*": ["../../packages/event-bus-core/src/*"],
+      "@web-loom/event-emitter-core": ["../../packages/event-emitter-core/src"],
+      "@web-loom/event-emitter-core/*": ["../../packages/event-emitter-core/src/*"],
       "@web-loom/mvvm-core": ["../../packages/mvvm-core/src"],
       "@web-loom/mvvm-core/*": ["../../packages/mvvm-core/src/*"],
       "@web-loom/mvvm-patterns": ["../../packages/mvvm-patterns/src"],

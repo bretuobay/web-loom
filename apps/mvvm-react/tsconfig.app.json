@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": "../..",
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2020",
     "useDefineForClassFields": true,
@@ -18,11 +18,24 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "paths": {
+      "@repo/models": ["../../packages/models/src"],
+      "@repo/models/*": ["../../packages/models/src/*"],
+      "@repo/view-models": ["../../packages/view-models/src"],
+      "@repo/view-models/*": ["../../packages/view-models/src/*"],
+      "@repo/shared": ["../../packages/shared/src"],
+      "@repo/shared/*": ["../../packages/shared/src/*"],
+      "@web-loom/mvvm-core": ["../../packages/mvvm-core/src"],
+      "@web-loom/mvvm-core/*": ["../../packages/mvvm-core/src/*"],
+      "@web-loom/query-core": ["../../packages/query-core/src"],
+      "@web-loom/query-core/*": ["../../packages/query-core/src/*"],
+      "@web-loom/signals-core": ["../../packages/signals-core/src"],
+      "@web-loom/signals-core/*": ["../../packages/signals-core/src/*"]
+    },
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },

@@ -1,24 +1,23 @@
 import '../styles/FluentCommandShowcase.css';
 
 import { Command } from '@web-loom/mvvm-core';
-import { BehaviorSubject } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { computed, signal, type WritableSignal } from '@web-loom/signals-core';
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { useSignal } from '../hooks/useSignal';
 
 const FluentCommandShowcase = () => {
-  const username$ = useMemo(() => new BehaviorSubject(''), []);
-  const email$ = useMemo(() => new BehaviorSubject(''), []);
-  const password$ = useMemo(() => new BehaviorSubject(''), []);
-  const acceptedPolicy$ = useMemo(() => new BehaviorSubject(false), []);
-  const validationReset$ = useMemo(() => new BehaviorSubject(0), []);
+  const username$ = useMemo(() => signal(''), []);
+  const email$ = useMemo(() => signal(''), []);
+  const password$ = useMemo(() => signal(''), []);
+  const acceptedPolicy$ = useMemo(() => signal(false), []);
+  const validationReset$ = useMemo(() => signal(0), []);
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [acceptedPolicy, setAcceptedPolicy] = useState(false);
 
-  const emailValid$ = useMemo(() => email$.pipe(map((value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))), [email$]);
+  const emailValid$ = useMemo(() => computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email$.get())), [email$]);
 
   const registerCommand = useMemo(() => {
     const command = new Command(async () => {
@@ -28,7 +27,7 @@ const FluentCommandShowcase = () => {
       .observesProperty(password$)
       .observesCanExecute(emailValid$)
       .observesCanExecute(acceptedPolicy$)
-      .observesCanExecute(validationReset$.pipe(map(() => true)));
+      .observesCanExecute(() => validationReset$.get() >= 0);
 
     return command;
   }, [acceptedPolicy$, emailValid$, password$, username$, validationReset$]);
@@ -36,13 +35,8 @@ const FluentCommandShowcase = () => {
   useEffect(() => {
     return () => {
       registerCommand.dispose();
-      username$.complete();
-      email$.complete();
-      password$.complete();
-      acceptedPolicy$.complete();
-      validationReset$.complete();
     };
-  }, [acceptedPolicy$, email$, registerCommand, password$, username$, validationReset$]);
+  }, [registerCommand]);
 
   const canSubmit = useSignal(registerCommand.canExecute$);
   const isSubmitting = useSignal(registerCommand.isExecuting$);
@@ -57,22 +51,22 @@ const FluentCommandShowcase = () => {
   };
 
   const handleInput =
-    (subject: BehaviorSubject<string>, setter: (value: string) => void) => (event: ChangeEvent<HTMLInputElement>) => {
+    (field: WritableSignal<string>, setter: (value: string) => void) => (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
       setter(value);
-      subject.next(value);
+      field.set(value);
       raiseCanExecute();
     };
 
   const handleCheckbox = (event: ChangeEvent<HTMLInputElement>) => {
     const checked = event.target.checked;
     setAcceptedPolicy(checked);
-    acceptedPolicy$.next(checked);
+    acceptedPolicy$.set(checked);
     raiseCanExecute();
   };
 
   const handleResetValidation = () => {
-    validationReset$.next(validationReset$.value + 1);
+    validationReset$.update((value) => value + 1);
     registerCommand.raiseCanExecuteChanged();
   };
 

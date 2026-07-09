@@ -28,11 +28,13 @@ import { resolve } from 'path';
 /** All @web-loom/* workspace packages */
 export const webLoomPackages = [
   '@web-loom/mvvm-core',
+  '@web-loom/mvvm-patterns',
   '@web-loom/design-core',
   '@web-loom/store-core',
   '@web-loom/query-core',
   '@web-loom/event-bus-core',
   '@web-loom/event-emitter-core',
+  '@web-loom/signals-core',
   '@web-loom/ui-core',
   '@web-loom/ui-patterns',
   '@web-loom/forms-core',
@@ -68,11 +70,13 @@ export const workspacePackages = [...webLoomPackages, ...repoPackages] as const;
 const packagePaths: Record<string, string> = {
   // @web-loom packages
   '@web-loom/mvvm-core': 'packages/mvvm-core/src',
+  '@web-loom/mvvm-patterns': 'packages/mvvm-patterns/src',
   '@web-loom/design-core': 'packages/design-core/src',
   '@web-loom/store-core': 'packages/store-core/src',
   '@web-loom/query-core': 'packages/query-core/src',
   '@web-loom/event-bus-core': 'packages/event-bus-core/src',
   '@web-loom/event-emitter-core': 'packages/event-emitter-core/src',
+  '@web-loom/signals-core': 'packages/signals-core/src',
   '@web-loom/ui-core': 'packages/ui-core/src',
   '@web-loom/ui-patterns': 'packages/ui-patterns/src',
   '@web-loom/forms-core': 'packages/forms-core/src',
@@ -179,6 +183,7 @@ export const libraryGlobals: Record<string, string> = {
   'react/jsx-runtime': 'jsxRuntime',
   vue: 'Vue',
   '@web-loom/mvvm-core': 'MvvmCore',
+  '@web-loom/mvvm-patterns': 'MvvmPatterns',
   '@web-loom/design-core': 'DesignCore',
   '@web-loom/store-core': 'StoreCore',
   '@web-loom/query-core': 'QueryCore',
