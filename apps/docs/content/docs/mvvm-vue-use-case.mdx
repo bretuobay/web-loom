@@ -1,6 +1,6 @@
 ---
 title: 'MVVM in Vue'
-summary: "How Vue 3's Proxy-based reactivity system works, why RxJS observables need a composable bridge, and practical patterns for wiring ViewModels into Vue components — with real examples from the Web Loom Greenhouse app."
+summary: "How Vue 3's Proxy-based reactivity system works, why @web-loom/signals-core signals need a composable bridge, and practical patterns for wiring ViewModels into Vue components — with real examples from the Web Loom Greenhouse app."
 topicTitle: 'MVVM Core'
 topicSlug: 'mvvm-core'
 prevTitle: 'MVVM in React'
@@ -11,7 +11,7 @@ nextSlug: '/docs/mvvm-angular-use-case'
 
 # MVVM in Vue
 
-Vue 3 and RxJS are both reactive, but they track and propagate changes in completely different ways. Understanding that difference is what makes the integration feel intentional rather than patched together. This page explains Vue's reactivity system, why observable subscriptions need a composable bridge, and the concrete patterns Web Loom uses throughout the Greenhouse app.
+Vue 3 and `@web-loom/signals-core` are both reactive, but they track and propagate changes in completely different ways. Understanding that difference is what makes the integration feel intentional rather than patched together. This page explains Vue's reactivity system, why signal reads need a composable bridge, and the concrete patterns Web Loom uses throughout the Greenhouse app.
 
 ---
 
@@ -92,60 +92,58 @@ In the Composition API, lifecycle hooks are plain functions you call inside `<sc
 
 ---
 
-## The Mismatch with RxJS
+## The Mismatch with Signals
 
-Vue's reactivity works by **intercepting reads and writes** through Proxies. RxJS observables and `BehaviorSubject`s are plain JavaScript objects — Vue's Proxy has no way to intercept a `.subscribe()` callback or track when `.next()` is called.
+Vue's reactivity works by **intercepting reads and writes** through Proxies. A `@web-loom/signals-core` signal is a plain JavaScript object with `.get()`/`.peek()`/`.subscribe()` methods — Vue's Proxy has no way to intercept a `.subscribe()` callback or track when `.set()` is called on it.
 
-If you read a BehaviorSubject's current value directly in a template, Vue records no dependency on it:
+If you read a signal's current value directly in a template, Vue records no dependency on it:
 
 ```typescript
-// ❌ Vue tracks nothing here — template never re-renders on emissions
+// ❌ Vue tracks nothing here — template never re-renders on changes
 const vm = greenHouseViewModel;
-// In template: {{ vm.data$.getValue() }}  ← stale forever
+// In template: {{ vm.data$.peek() }}  ← stale forever
 ```
 
-The fix is to convert observable emissions into Vue `ref` updates — values that Vue *does* track. The bridge is a `useObservable` composable.
+The fix is to mirror signal changes into a Vue `ref` — a value that Vue *does* track. The bridge is a `useSignal` composable.
 
 ---
 
-## The useObservable Composable
+## The useSignal Composable
 
-From `apps/mvvm-vue/src/hooks/useObservable.ts` — the single pattern used throughout the Web Loom Vue app:
+From `apps/mvvm-vue/src/hooks/useSignal.ts` — the single pattern used throughout the Web Loom Vue app:
 
 ```typescript
-import { ref, onUnmounted } from 'vue';
-import type { Observable } from 'rxjs';
+import { shallowRef, onUnmounted, type ShallowRef } from 'vue';
+import { observe, type ReadonlySignal } from '@web-loom/signals-core';
 
-export function useObservable<T>(observable: Observable<T>, initialValue: T) {
-  const value = ref<T>(initialValue);
-
-  const subscription = observable.subscribe({
-    next: (val) => {
-      value.value = val;   // writing to ref.value → Vue reactivity kicks in
-    },
+/**
+ * Bind a Web Loom signal to Vue reactivity. Seeds the ref with the current
+ * value (observe delivers immediately) and mirrors every change; the
+ * subscription is torn down on component unmount.
+ */
+export function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
+  const value = shallowRef<T>(sig.peek());
+  const unsubscribe = observe(sig, (next) => {
+    value.value = next;
   });
-
-  onUnmounted(() => {
-    subscription.unsubscribe(); // close the subscription when component is destroyed
-  });
-
+  onUnmounted(unsubscribe);
   return value;
 }
 ```
 
 How it works step by step:
 
-- `ref(initialValue)` creates a reactive container. Vue tracks every template expression that reads `.value` on it.
-- `observable.subscribe()` is called **immediately** when the composable runs (inside `<script setup>`). There is no `onMounted` guard — the subscription starts before the component renders, which means the initial value from a `BehaviorSubject` arrives before the first paint.
-- Each `next` emission writes to `value.value`. Writing to a `ref` triggers Vue's reactivity system, scheduling a re-render for any template or `computed` that depends on it.
-- `onUnmounted(() => subscription.unsubscribe())` ensures the subscription is cleaned up when the component leaves the DOM, preventing memory leaks.
+- `shallowRef(sig.peek())` creates a reactive container seeded with the signal's *current* value. Vue tracks every template expression that reads `.value` on it. `shallowRef` (not `ref`) is used because the signal's own value — often an array or object from a Model — shouldn't be made deeply reactive a second time.
+- `observe(sig, fn)` — from `@web-loom/signals-core` — is called **immediately** when the composable runs (inside `<script setup>`). Unlike plain `sig.subscribe(fn)` (which only fires on future changes), `observe` calls `fn` once synchronously with the current value first, then subscribes for future changes. That's what makes the initial `shallowRef` seed and every subsequent update consistent.
+- Each change writes to `value.value`. Writing to a `ref` triggers Vue's reactivity system, scheduling a re-render for any template or `computed` that depends on it.
+- `onUnmounted(unsubscribe)` ensures the subscription is cleaned up when the component leaves the DOM, preventing memory leaks. `unsubscribe` is a plain function — no `Subscription` object.
 
-Usage is one line per observable:
+Usage is one line per signal:
 
 ```typescript
-const greenhouses = useObservable(greenHouseViewModel.data$, []);
-const isLoading   = useObservable(greenHouseViewModel.isLoading$, true);
-const error       = useObservable(greenHouseViewModel.error$, null);
+const greenhouses = useSignal(greenHouseViewModel.data$);
+const isLoading   = useSignal(greenHouseViewModel.isLoading$);
+const error       = useSignal(greenHouseViewModel.error$);
 ```
 
 `greenhouses`, `isLoading`, and `error` are now plain Vue refs. Use them in templates without `.value`, and in `<script setup>` with `.value`.
@@ -172,10 +170,10 @@ export const greenHouseViewModel = createReactiveViewModel({
 ```vue
 <script setup lang="ts">
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
-const greenhouses = useObservable(greenHouseViewModel.data$, []);
-const isLoading   = useObservable(greenHouseViewModel.isLoading$, true);
+const greenhouses = useSignal(greenHouseViewModel.data$);
+const isLoading   = useSignal(greenHouseViewModel.isLoading$);
 </script>
 ```
 
@@ -203,13 +201,13 @@ export function useTaskViewModel(taskId: string) {
 ```vue
 <script setup lang="ts">
 import { useTaskViewModel } from '../composables/useTaskViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 const props = defineProps<{ taskId: string }>();
 const vm    = useTaskViewModel(props.taskId);
 
-const task      = useObservable(vm.data$, null);
-const isLoading = useObservable(vm.isLoading$, true);
+const task      = useSignal(vm.data$);
+const isLoading = useSignal(vm.isLoading$);
 
 onMounted(() => vm.fetchCommand.execute());
 </script>
@@ -235,7 +233,7 @@ provide('authViewModel', authViewModel);
 import { inject } from 'vue';
 
 const authVm = inject('authViewModel');
-const isAuthenticated = useObservable(authVm.isAuthenticated$, false);
+const isAuthenticated = useSignal(authVm.isAuthenticated$);
 ```
 
 For type safety, use an `InjectionKey`:
@@ -280,21 +278,21 @@ For multiple parallel fetches on a dashboard — from `apps/mvvm-vue/src/compone
 ```vue
 <script setup lang="ts">
 import { onMounted, computed } from 'vue';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import { greenHouseViewModel }    from '@repo/view-models/GreenHouseViewModel';
 import { sensorViewModel }        from '@repo/view-models/SensorViewModel';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
 
-const greenHouses    = useObservable(greenHouseViewModel.data$, []);
-const sensors        = useObservable(sensorViewModel.data$, []);
-const sensorReadings = useObservable(sensorReadingViewModel.data$, []);
-const thresholdAlerts = useObservable(thresholdAlertViewModel.data$, []);
+const greenHouses    = useSignal(greenHouseViewModel.data$);
+const sensors        = useSignal(sensorViewModel.data$);
+const sensorReadings = useSignal(sensorReadingViewModel.data$);
+const thresholdAlerts = useSignal(thresholdAlertViewModel.data$);
 
-const isLoadingGreenHouses    = useObservable(greenHouseViewModel.isLoading$, true);
-const isLoadingSensors        = useObservable(sensorViewModel.isLoading$, true);
-const isLoadingSensorReadings = useObservable(sensorReadingViewModel.isLoading$, true);
-const isLoadingAlerts         = useObservable(thresholdAlertViewModel.isLoading$, true);
+const isLoadingGreenHouses    = useSignal(greenHouseViewModel.isLoading$);
+const isLoadingSensors        = useSignal(sensorViewModel.isLoading$);
+const isLoadingSensorReadings = useSignal(sensorReadingViewModel.isLoading$);
+const isLoadingAlerts         = useSignal(thresholdAlertViewModel.isLoading$);
 
 // computed() derives a combined loading flag from four reactive refs
 const isLoading = computed(
@@ -321,17 +319,17 @@ onMounted(async () => {
 
 ## computed() for Derived State
 
-`computed()` is the natural fit for transforming or filtering observable-sourced refs. From `apps/mvvm-vue/src/components/SensorList.vue`:
+`computed()` is the natural fit for transforming or filtering signal-sourced refs. From `apps/mvvm-vue/src/components/SensorList.vue`:
 
 ```vue
 <script setup lang="ts">
 import { onMounted, computed } from 'vue';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 const props = defineProps<{ greenhouseId?: string }>();
 
-const allSensors = useObservable(sensorViewModel.data$, []);
+const allSensors = useSignal(sensorViewModel.data$);
 
 // Filter client-side based on a prop — recomputes whenever allSensors or greenhouseId changes
 const filteredSensors = computed(() => {
@@ -420,7 +418,7 @@ From `apps/mvvm-vue/src/components/GreenhouseList.vue` — a complete CRUD form 
       <button type="submit">{{ editingId ? 'Update' : 'Create' }}</button>
     </form>
 
-    <!-- List: renders from ViewModel observable -->
+    <!-- List: renders from ViewModel signal -->
     <div class="card">
       <h1>Greenhouses</h1>
       <p v-if="isLoading">Loading…</p>
@@ -440,11 +438,11 @@ From `apps/mvvm-vue/src/components/GreenhouseList.vue` — a complete CRUD form 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
-// Subscribe to ViewModel observables → reactive Vue refs
-const greenhouses = useObservable(greenHouseViewModel.data$, []);
-const isLoading   = useObservable(greenHouseViewModel.isLoading$, true);
+// Read ViewModel signals → reactive Vue refs
+const greenhouses = useSignal(greenHouseViewModel.data$);
+const isLoading   = useSignal(greenHouseViewModel.isLoading$);
 
 // Local form state — reactive() suits objects mutated in-place
 const formData = reactive({ name: '', location: '', size: '', cropType: '' });
@@ -499,15 +497,15 @@ All of that lives in `RestfulApiViewModel` and `RestfulApiModel`. The template i
 
 ## Binding Command State to the Template
 
-Commands expose `isExecuting$` and `canExecute$` observables. Subscribe to them with `useObservable` and bind to the template:
+Commands expose `isExecuting$` and `canExecute$` signals. Read them with `useSignal` and bind to the template:
 
 ```vue
 <script setup lang="ts">
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
-const isSaving  = useObservable(vm.saveCommand.isExecuting$, false);
-const canSave   = useObservable(vm.saveCommand.canExecute$, false);
-const saveError = useObservable(vm.saveCommand.executeError$, null);
+const isSaving  = useSignal(vm.saveCommand.isExecuting$);
+const canSave   = useSignal(vm.saveCommand.canExecute$);
+const saveError = useSignal(vm.saveCommand.executeError$);
 </script>
 
 <template>
@@ -613,11 +611,11 @@ This is the Vue equivalent of React's `useEffect` cleanup function. Use it whene
 
 ## Template Directives and the MVVM Pattern
 
-Vue's template directives map cleanly to ViewModel observables:
+Vue's template directives map cleanly to ViewModel signals:
 
-- **`v-if="isLoading"`** — conditional on a ref from `useObservable(vm.isLoading$, true)`
-- **`v-else-if="error"`** — conditional on a ref from `useObservable(vm.error$, null)`
-- **`v-for="item in items"`** — iterates a ref from `useObservable(vm.data$, [])`
+- **`v-if="isLoading"`** — conditional on a ref from `useSignal(vm.isLoading$)`
+- **`v-else-if="error"`** — conditional on a ref from `useSignal(vm.error$)`
+- **`v-for="item in items"`** — iterates a ref from `useSignal(vm.data$)`
 - **`@click="vm.deleteCommand.execute(item.id)"`** — calls a ViewModel command
 - **`@submit.prevent="handleSubmit"`** — calls a function that delegates to ViewModel commands
 - **`:disabled="!canExecute || isExecuting"`** — binds command state refs to button attributes
@@ -651,14 +649,14 @@ The template does no logic — it only reflects reactive state. All decisions li
 
 ```typescript
 import { mount } from '@vue/test-utils';
-import { BehaviorSubject } from 'rxjs';
+import { signal } from '@web-loom/signals-core';
 import { describe, it, expect, vi } from 'vitest';
 import GreenhouseCard from './GreenhouseCard.vue';
 
 const mockVm = {
-  data$:      new BehaviorSubject([{ id: '1', name: 'Alpha', location: 'Zone A' }]),
-  isLoading$: new BehaviorSubject(false),
-  error$:     new BehaviorSubject(null),
+  data$:      signal([{ id: '1', name: 'Alpha', location: 'Zone A' }]),
+  isLoading$: signal(false),
+  error$:     signal(null),
   fetchCommand: { execute: vi.fn().mockResolvedValue(undefined) },
 };
 
@@ -669,17 +667,17 @@ it('renders greenhouse names from ViewModel data', async () => {
   expect(wrapper.text()).toContain('Alpha');
 });
 
-it('shows loading state when isLoading$ emits true', async () => {
-  mockVm.isLoading$.next(true);
+it('shows loading state when isLoading$ changes to true', async () => {
+  mockVm.isLoading$.set(true);
   const wrapper = mount(GreenhouseCard, { props: { vm: mockVm } });
   await wrapper.vm.$nextTick();
   expect(wrapper.text()).toContain('Loading');
 });
 
-it('updates when data$ emits new value', async () => {
+it('updates when data$ changes', async () => {
   const wrapper = mount(GreenhouseCard, { props: { vm: mockVm } });
 
-  mockVm.data$.next([
+  mockVm.data$.set([
     { id: '1', name: 'Alpha', location: 'Zone A' },
     { id: '2', name: 'Beta',  location: 'Zone B' },
   ]);
@@ -712,48 +710,48 @@ it('calls deleteCommand when Delete clicked', async () => {
 
 ### Testing Composables Directly
 
-Test `useObservable` independently of any component:
+Test `useSignal` independently of any component:
 
 ```typescript
 import { mount } from '@vue/test-utils';
-import { defineComponent, ref } from 'vue';
-import { BehaviorSubject } from 'rxjs';
-import { useObservable } from './useObservable';
+import { defineComponent } from 'vue';
+import { signal } from '@web-loom/signals-core';
+import { useSignal } from './useSignal';
 
-it('useObservable returns initial value synchronously', () => {
-  const subject = new BehaviorSubject('hello');
+it('useSignal returns the current value synchronously', () => {
+  const source = signal('hello');
   const TestComponent = defineComponent({
     setup() {
-      const value = useObservable(subject, 'default');
+      const value = useSignal(source);
       return { value };
     },
     template: '<span>{{ value }}</span>',
   });
 
   const wrapper = mount(TestComponent);
-  expect(wrapper.text()).toBe('hello'); // BehaviorSubject emits immediately
+  expect(wrapper.text()).toBe('hello'); // observe() delivers the current value immediately
 });
 
-it('useObservable updates on new emission', async () => {
-  const subject = new BehaviorSubject('hello');
+it('useSignal updates on change', async () => {
+  const source = signal('hello');
   const TestComponent = defineComponent({
-    setup() { return { value: useObservable(subject, '') }; },
+    setup() { return { value: useSignal(source) }; },
     template: '<span>{{ value }}</span>',
   });
 
   const wrapper = mount(TestComponent);
-  subject.next('world');
+  source.set('world');
   await wrapper.vm.$nextTick();
   expect(wrapper.text()).toBe('world');
 });
 
-it('useObservable unsubscribes on unmount', async () => {
-  const subject = new BehaviorSubject(0);
+it('useSignal unsubscribes on unmount', async () => {
+  const source = signal(0);
   const wrapper = mount(/* TestComponent */);
   wrapper.unmount();
 
   // Should not throw; subscription should be cleaned up
-  expect(() => subject.next(1)).not.toThrow();
+  expect(() => source.set(1)).not.toThrow();
 });
 ```
 
@@ -761,12 +759,12 @@ it('useObservable unsubscribes on unmount', async () => {
 
 ## Dos and Don'ts
 
-### Do: Use useObservable to Read Every Observable
+### Do: Use useSignal to Read Every Signal
 
 ```vue
 <!-- ✅ Good — Vue reactivity tracks the ref -->
 <script setup>
-const items = useObservable(vm.data$, []);
+const items = useSignal(vm.data$);
 </script>
 <template>
   <li v-for="item in items" :key="item.id">{{ item.name }}</li>
@@ -776,7 +774,7 @@ const items = useObservable(vm.data$, []);
 ```vue
 <!-- ❌ Bad — Vue tracks nothing, template never updates -->
 <script setup>
-const items = vm.data$.getValue();
+const items = vm.data$.peek();
 </script>
 ```
 
@@ -819,7 +817,7 @@ onUnmounted(() => vm.dispose());
 ```
 
 ```typescript
-// ❌ Memory leak — ViewModel BehaviorSubjects never close
+// ❌ Memory leak — registered Commands and manual subscriptions never torn down
 const vm = new TaskViewModel(new TaskModel(props.id));
 // nothing disposes it
 ```
@@ -857,26 +855,26 @@ const { setup } = defineComponent({
 onMounted(() => vm.fetchCommand.execute());
 ```
 
-### Don't: Mutate Observable-Sourced Refs Directly
+### Don't: Mutate Signal-Sourced Refs Directly
 
 ```typescript
-// ❌ Bad — next emission from the ViewModel overwrites your mutation
-const greenhouses = useObservable(vm.data$, []);
+// ❌ Bad — the next change from the ViewModel overwrites your mutation
+const greenhouses = useSignal(vm.data$);
 greenhouses.value.push(newItem); // ← don't mutate the ref directly
 ```
 
 ```typescript
-// ✅ Good — let the ViewModel command handle mutation; ref updates via observable
+// ✅ Good — let the ViewModel command handle mutation; ref updates via the signal
 await vm.createCommand.execute(newItem);
-// ViewModel updates data$ → useObservable updates the ref automatically
+// ViewModel updates data$ → useSignal updates the ref automatically
 ```
 
 ---
 
 ## Where to Go Next
 
-- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular services, async pipe, and the `OnPush` change detection strategy
+- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular services, signal bridging, and the `OnPush` change detection strategy
 - [MVVM in React](/docs/mvvm-react-use-case) — React's virtual DOM model and useSyncExternalStore integration
-- [ViewModels](/docs/viewmodels) — Commands, derived observables, and disposal patterns
-- [Models](/docs/models) — The data layer that ViewModels subscribe to
-- [Signals Core](/docs/signals-core) — A lighter alternative to RxJS for simple reactive state in Vue
+- [ViewModels](/docs/viewmodels) — Commands, derived signals, and disposal patterns
+- [Models](/docs/models) — The data layer that ViewModels read signals from
+- [Signals Core](/docs/signals-core) — the `signal`/`computed`/`effect` primitives underlying mvvm-core

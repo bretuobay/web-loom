@@ -230,7 +230,7 @@ Use these when you need fine-grained control (e.g., when restoring from a backup
 
 ## Pairing with MVVM Core
 
-Use `store-core` for UI state that should live beside your MVVM Core view models rather than inside a single observable stream or BehaviorSubject. For example, a `TaskBoardViewModel` can create a small store to hold `statusFilter`, expose `store.actions` for filter buttons, and replay the latest setting into an RxJS `BehaviorSubject` that drives the task filtering pipeline.
+Use `store-core` for UI state that should live beside your MVVM Core view models rather than inside a single Model signal. For example, a `TaskBoardViewModel` can create a small store to hold `statusFilter`, expose `store.actions` for filter buttons, and mirror the latest setting into a `@web-loom/signals-core` `signal()` that drives a `computed()` task-filtering pipeline.
 
 Avoid mixing business data and UI state inside the same store. MVVM Core view models already provide `data$`, `isLoading$`, and the domain mutations you need. Layer a `store-core` store on top when you need to remember which tab is active, whether a drawer is open, or the selected filter in a table, and feed that UI state back into your view model logic via `store.subscribe` or `store.getState()`.
 
@@ -300,23 +300,22 @@ const actions = counterStore.actions;
 ### Angular
 
 ```ts
-import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { Injectable, OnDestroy, signal } from '@angular/core';
 import { counterStore } from './store';
 
 @Injectable({ providedIn: 'root' })
 export class CounterService implements OnDestroy {
-  private state$ = new BehaviorSubject(counterStore.getState());
+  private _state = signal(counterStore.getState());
   private unsubscribe: (() => void) | null = null;
 
   constructor() {
     this.unsubscribe = counterStore.subscribe((newState) => {
-      this.state$.next(newState);
+      this._state.set(newState);
     });
   }
 
   get state() {
-    return this.state$.asObservable();
+    return this._state.asReadonly();
   }
 
   get actions() {

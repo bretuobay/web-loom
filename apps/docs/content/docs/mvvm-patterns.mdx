@@ -15,7 +15,7 @@ topicSlug: 'packages'
 ## Installation
 
 ```bash
-npm install @web-loom/mvvm-patterns @web-loom/mvvm-core rxjs
+npm install @web-loom/mvvm-patterns @web-loom/mvvm-core
 ```
 
 ---
@@ -26,7 +26,7 @@ npm install @web-loom/mvvm-patterns @web-loom/mvvm-core rxjs
 
 ViewModels should not know about dialogs, toasts, or any UI chrome. But sometimes a ViewModel needs to ask the user a question — "Are you sure you want to delete this?" — before proceeding. The naive solution is to call a UI component method directly, which creates a coupling that breaks testability.
 
-The Interaction Request pattern solves this by inverting control: the ViewModel raises a request through an observable, and the View subscribes to that observable and handles it using whatever UI components it chooses.
+The Interaction Request pattern solves this by inverting control: the ViewModel raises a request through an event stream (`EventSubscribable`, from `@web-loom/mvvm-core`), and the View subscribes to that stream and handles it using whatever UI components it chooses.
 
 ```
 ViewModel  →  raises InteractionRequest
@@ -77,12 +77,10 @@ export function ItemView() {
   const vm = itemViewModel;
 
   useEffect(() => {
-    const sub = vm.deleteRequest.requested$.subscribe(({ context, callback }) => {
+    return vm.deleteRequest.requested$.subscribe(({ context, callback }) => {
       const confirmed = window.confirm(`Delete "${context.itemName}"?`);
       callback({ ...context, confirmed });
     });
-
-    return () => sub.unsubscribe();
   }, []);
 
   return (
@@ -101,16 +99,16 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import { itemViewModel } from './ItemViewModel';
 
 const vm = itemViewModel;
-let sub: any;
+let unsubscribe: (() => void) | undefined;
 
 onMounted(() => {
-  sub = vm.deleteRequest.requested$.subscribe(({ context, callback }) => {
+  unsubscribe = vm.deleteRequest.requested$.subscribe(({ context, callback }) => {
     const confirmed = window.confirm(`Delete "${context.itemName}"?`);
     callback({ ...context, confirmed });
   });
 });
 
-onUnmounted(() => sub?.unsubscribe());
+onUnmounted(() => unsubscribe?.());
 </script>
 ```
 
@@ -118,22 +116,21 @@ onUnmounted(() => sub?.unsubscribe());
 
 ```typescript
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
 import { itemViewModel } from './ItemViewModel';
 
 @Component({ selector: 'app-item', template: `<button (click)="vm.deleteCommand.execute('my-item')">Delete</button>` })
 export class ItemComponent implements OnInit, OnDestroy {
   vm = itemViewModel;
-  private sub?: Subscription;
+  private unsubscribe?: () => void;
 
   ngOnInit() {
-    this.sub = this.vm.deleteRequest.requested$.subscribe(({ context, callback }) => {
+    this.unsubscribe = this.vm.deleteRequest.requested$.subscribe(({ context, callback }) => {
       const confirmed = confirm(`Delete "${context.itemName}"?`);
       callback({ ...context, confirmed });
     });
   }
 
-  ngOnDestroy() { this.sub?.unsubscribe(); }
+  ngOnDestroy() { this.unsubscribe?.(); }
 }
 ```
 
@@ -323,36 +320,35 @@ class ThemeViewModel extends BaseViewModel<ThemeModel> {
 
 Some ViewModels should behave differently when their view is not visible. A ViewModel that polls an API every 30 seconds should pause when the user switches to another tab. A ViewModel driving an animation should stop when its view is hidden. Without a lifecycle hook, these ViewModels keep running and wasting resources.
 
-`ActiveAwareViewModel` extends `BaseViewModel` with an `isActive` property and an `isActive$` observable, plus an `onIsActiveChanged` lifecycle hook you can override.
+`ActiveAwareViewModel` extends `BaseViewModel` with an `isActive` property and an `isActive$` signal, plus an `onIsActiveChanged` lifecycle hook you can override.
 
 ### Usage
 
+`onIsActiveChanged` already fires on every transition, so the simplest polling implementation starts/stops an interval directly from that hook rather than composing it from `isActive$`:
+
 ```typescript
 import { ActiveAwareViewModel } from '@web-loom/mvvm-patterns';
-import { Subscription, interval } from 'rxjs';
-import { switchMap, EMPTY } from 'rxjs';
 import { DashboardModel } from './DashboardModel';
 
 export class DashboardViewModel extends ActiveAwareViewModel<DashboardModel> {
-  private pollingSub?: Subscription;
+  private pollingHandle?: ReturnType<typeof setInterval>;
 
   constructor() {
     super(new DashboardModel());
-    // Subscribe to active state changes
-    this.pollingSub = this.isActive$
-      .pipe(switchMap((active) => (active ? interval(30_000) : EMPTY)))
-      .subscribe(() => this.model.refresh());
   }
 
   protected override onIsActiveChanged(isActive: boolean): void {
     if (isActive) {
-      // Immediately refresh when becoming active
-      this.model.refresh();
+      this.model.refresh(); // immediately refresh when becoming active
+      this.pollingHandle = setInterval(() => this.model.refresh(), 30_000);
+    } else {
+      clearInterval(this.pollingHandle);
+      this.pollingHandle = undefined;
     }
   }
 
   override dispose() {
-    this.pollingSub?.unsubscribe();
+    clearInterval(this.pollingHandle);
     super.dispose();
   }
 }
@@ -399,7 +395,7 @@ if (isActiveAware(someViewModel)) {
 ```typescript
 interface IActiveAware {
   isActive: boolean;
-  readonly isActive$: Observable<boolean>;
+  readonly isActive$: ReadonlySignal<boolean>;
 }
 ```
 
@@ -458,19 +454,19 @@ class TabShellViewModel extends BaseViewModel<TabModel> {
 
 | Member | Type | Description |
 |--------|------|-------------|
-| `requested$` | `Observable<InteractionRequestedEvent<T>>` | Emits when `raiseAsync` is called. Subscribe in the View. |
+| `requested$` | `EventSubscribable<InteractionRequestedEvent<T>>` | Fires when `raiseAsync` is called. Subscribe in the View; `.subscribe(fn)` returns a plain unsubscribe function. |
 | `raiseAsync(context)` | `Promise<T>` | Emits a request event and awaits the View callback. Resolves with the (mutated) context. |
 
 ### ActiveAwareViewModel
 
 | Member | Type | Description |
 |--------|------|-------------|
-| `isActive` | `boolean` | Gets or sets the current active state. |
-| `isActive$` | `Observable<boolean>` | Emits on active state changes (distinct until changed). |
+| `isActive` | `boolean` | Gets or sets the current active state. Setting it triggers `onIsActiveChanged` when the value actually changes. |
+| `isActive$` | `ReadonlySignal<boolean>` | The reactive form of `isActive`. Signals only notify on actual changes, so no distinct-until-changed handling is needed. |
 | `activate()` | `void` | Convenience method — sets `isActive = true`. |
 | `deactivate()` | `void` | Convenience method — sets `isActive = false`. |
 | `onIsActiveChanged(isActive, wasActive)` | `void` | Override this to react to state transitions. |
-| `dispose()` | `void` | Completes `isActive$` and calls `super.dispose()`. |
+| `dispose()` | `void` | Marks the ViewModel disposed (further `isActive` writes become no-ops) and calls `super.dispose()`. |
 
 ---
 
@@ -481,7 +477,6 @@ Because ViewModels never import UI components, interaction requests are straight
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
 import { DocumentViewModel } from './DocumentViewModel';
-import { firstValueFrom } from 'rxjs';
 
 describe('DocumentViewModel', () => {
   it('does not discard when confirmation is rejected', async () => {
@@ -521,4 +516,4 @@ describe('DocumentViewModel', () => {
 - Keep the View's subscription handler thin — it should only translate the context into a UI interaction and call the callback with the result. No business logic.
 - Always unsubscribe from `requested$` when the View unmounts to prevent memory leaks and ghost dialogs.
 - For `ActiveAwareViewModel`, pair `activate()` with the View's mount lifecycle and `deactivate()` with unmount. This prevents the ViewModel from running when the View is not on screen.
-- Prefer `isActive$` with RxJS operators (e.g., `switchMap` to `EMPTY`) for reactive pause/resume over imperative checks in `onIsActiveChanged`.
+- Start/stop side effects (polling, animation frames) directly from `onIsActiveChanged` rather than composing `isActive$` through ad-hoc subscriptions — the hook already fires exactly on each true/false transition.

@@ -11,9 +11,9 @@ nextSlug: '/docs/viewmodels'
 
 # Models
 
-The Model is the data layer of the MVVM pattern. It owns raw data, communicates with APIs, and exposes reactive streams that ViewModels subscribe to. A well-designed Model has no knowledge of the UI — no framework imports, no presentation logic.
+The Model is the data layer of the MVVM pattern. It owns raw data, communicates with APIs, and exposes reactive signals that ViewModels read. A well-designed Model has no knowledge of the UI — no framework imports, no presentation logic.
 
-`@web-loom/mvvm-core` ships three model base classes that cover the most common data patterns.
+`@web-loom/mvvm-core` ships model base classes that cover the most common data patterns, built on [`@web-loom/signals-core`](/docs/signals-core).
 
 ---
 
@@ -21,17 +21,18 @@ The Model is the data layer of the MVVM pattern. It owns raw data, communicates 
 
 ```
 BaseModel<TData, TSchema>
-  ├── RestfulApiModel<TData, TSchema>   — fetch + CRUD via HTTP
-  └── QueryStateModel<TData, TSchema>  — read via QueryCore cache
+  └── RestfulApiModel<TData, TSchema>   — fetch + CRUD via HTTP
 ```
 
-All three expose the same reactive observables and implement `IDisposable`.
+> `QueryStateModel<TData, TSchema>` (reading via a `@web-loom/query-core` cache) exists in `mvvm-core`'s source but isn't exported from its public entry point yet — see the note in the [QueryStateModel](#querystatemodel-internal-not-yet-exported) section below.
+
+Both classes expose the same reactive signals and implement `IDisposable`.
 
 ---
 
 ## BaseModel
 
-`BaseModel` is the foundation for every model in the system. It wraps three `BehaviorSubject` streams and provides methods to update them safely.
+`BaseModel` is the foundation for every model in the system. It wraps three signals (from `@web-loom/signals-core`) and provides methods to update them safely.
 
 ### Constructor
 
@@ -60,15 +61,15 @@ Constructor options:
 - **`initialData`** — the starting value for `data$`. Use `null` for a single resource that hasn't loaded yet, or `[]` for an empty list.
 - **`schema`** — a Zod schema used by `validate()` to check incoming data at runtime. Pass `undefined` to skip validation entirely.
 
-### Reactive Observables
+### Reactive Signals
 
-Every `BaseModel` exposes three public observables:
+Every `BaseModel` exposes three public signals:
 
-- **`data$`** — `BehaviorSubject<TData | null>` holding the current value
-- **`isLoading$`** — `BehaviorSubject<boolean>` for loading state
-- **`error$`** — `BehaviorSubject<Error | null>` for the last error
+- **`data$`** — `ReadonlySignal<TData | null>` holding the current value
+- **`isLoading$`** — `ReadonlySignal<boolean>` for loading state
+- **`error$`** — `ReadonlySignal<any>` for the last error
 
-These are `BehaviorSubject`s, meaning subscribers receive the current value immediately on subscription — no need to wait for the next emission.
+Read the current value synchronously with `.get()` (tracked, for use inside `computed()`/`effect()`) or `.peek()` (untracked). `.subscribe(fn)` only fires on *future* changes — it does not replay the current value to a new subscriber. If you need BehaviorSubject-style "deliver now, then on every change" semantics, use `observe(sig, fn)` from `@web-loom/signals-core` instead of `.subscribe()`.
 
 ### Protected Methods
 
@@ -94,7 +95,7 @@ For non-reactive reads (e.g. inside imperative methods):
 model.dispose();
 ```
 
-Calls `.complete()` on all three BehaviorSubjects, closing all subscriptions and preventing memory leaks. Always call this when the model is no longer needed — typically in the ViewModel's `dispose()` method.
+Marks the model disposed: `setData`/`setLoading`/`setError`/`clearError` all become no-ops afterward, so nothing can push further updates through `data$`/`isLoading$`/`error$`. It does **not** call `.complete()` on anything (signals don't have that concept) and does not itself unsubscribe existing subscribers — subscribers simply stop receiving updates because nothing will call the setters again. Always call this when the model is no longer needed.
 
 ### Manual Model Example
 
@@ -293,8 +294,8 @@ const UserSchema = z.object({
 });
 
 export class AuthModel extends RestfulApiModel<UserData, typeof UserSchema> {
-  private readonly _token = new BehaviorSubject<string | null>(null);
-  public readonly token$ = this._token.asObservable();
+  private readonly _token = signal<string | null>(null);
+  public readonly token$ = this._token.asReadonly();
 
   constructor() {
     const storedToken = readTokenFromStorage();  // restore session from localStorage
@@ -314,7 +315,7 @@ export class AuthModel extends RestfulApiModel<UserData, typeof UserSchema> {
     this.setLoading(true);
     try {
       const response = await callSignIn(payload);
-      this._token.next(response.token);
+      this._token.set(response.token);
       persistToken(response.token);
       await this.fetch();  // load the user profile after sign in
     } catch (err) {
@@ -325,17 +326,17 @@ export class AuthModel extends RestfulApiModel<UserData, typeof UserSchema> {
   }
 
   async signOut() {
-    this._token.next(null);
+    this._token.set(null);
     clearToken();
     this.setData(null);
   }
 
   get isAuthenticated(): boolean {
-    return this._token.getValue() !== null;
+    return this._token.peek() !== null;
   }
 
   get token(): string | null {
-    return this._token.getValue();
+    return this._token.peek();
   }
 }
 ```
@@ -344,49 +345,11 @@ export class AuthModel extends RestfulApiModel<UserData, typeof UserSchema> {
 
 ---
 
-## QueryStateModel
+## QueryStateModel (internal, not yet exported)
 
-`QueryStateModel` extends `BaseModel` to integrate with `@web-loom/query-core` for caching and stale-while-revalidate patterns. Instead of managing its own HTTP calls, it subscribes to QueryCore's endpoint state.
+`mvvm-core`'s source includes a `QueryStateModel` that extends `BaseModel` to integrate with `@web-loom/query-core` for caching and stale-while-revalidate patterns — instead of managing its own HTTP calls, it would read from QueryCore's endpoint state (`refetch(force?)` to trigger a refetch, `invalidate()` to mark cached data stale). It is **not exported from `mvvm-core`'s public entry point**, so `import { QueryStateModel } from '@web-loom/mvvm-core'` does not currently compile — treat it as internal/unstable.
 
-### Constructor
-
-```typescript
-import { QueryStateModel } from '@web-loom/mvvm-core';
-
-const queryStateModel = new QueryStateModel({
-  queryCore,          // QueryCore instance
-  endpointKey: 'users',
-  schema: UserSchema,
-  initialData: null,
-  // fetcher is optional — if provided, QueryCore registers the endpoint
-  fetcher: async () => api.getUsers(),
-});
-```
-
-### Methods
-
-- **`refetch(force?)`** — trigger a QueryCore refetch. Pass `true` to bypass cache.
-- **`invalidate()`** — mark the cached data as stale so the next consumer triggers a fresh fetch.
-
-### When to Use QueryStateModel
-
-Use `QueryStateModel` when:
-- Multiple ViewModels need the same data and should share a cache
-- You want stale-while-revalidate behavior without manual coordination
-- You're coordinating with `@web-loom/query-core` for background refetching
-
-For mutations (create/update/delete), call the underlying HTTP client directly in the ViewModel, then call `refetch()` or `invalidate()` to keep the cache in sync.
-
-```typescript
-class UserViewModel extends BaseViewModel {
-  readonly model = new QueryStateModel({ queryCore, endpointKey: 'users', schema: UserListSchema });
-
-  readonly deleteUserCommand = new Command(async (id: string) => {
-    await api.deleteUser(id);
-    await this.model.invalidate(); // bust cache, triggers background refetch
-  });
-}
-```
+Until it's exported, compose `BaseModel` with `@web-loom/query-core` directly: subscribe to the QueryCore endpoint's state yourself inside a `BaseModel` subclass, calling `setData`/`setLoading`/`setError` from that subscription. See [Query Core](/docs/query-core) for the QueryCore API itself.
 
 ---
 
@@ -475,7 +438,7 @@ Schema patterns used consistently across Web Loom:
 ```
 Constructor called
   ↓
-Observables initialized with initialData
+Signals initialized with initialData
   ↓
 ViewModel calls fetch() / refetch()
   ↓
@@ -487,29 +450,29 @@ Model validates response, updates data$
   ↓
 Model sets isLoading$ = false
   ↓
-ViewModel subscribes, derives state, renders
+ViewModel reads signals, derives state via computed(), renders
   ↓
 Component unmounts → ViewModel.dispose() called
   ↓
-ViewModel calls model.dispose()
-  ↓
-All BehaviorSubjects completed → subscriptions close
+Model disposed explicitly (see below) → setters become no-ops
 ```
 
-Always dispose in the ViewModel's `dispose()` method:
+`BaseViewModel.dispose()` does **not** automatically dispose an injected Model — it only disposes registered Commands and runs teardowns added via `addSubscription()` (there is no `addDisposable()` method). If your ViewModel constructs its own Model internally, dispose it explicitly in an overridden `dispose()`:
 
 ```typescript
-class UserListViewModel extends BaseViewModel {
-  private readonly model = new GreenHouseModel();
-
+class UserListViewModel extends BaseViewModel<GreenHouseModel> {
   constructor() {
-    super();
-    this.addDisposable(this.model); // BaseViewModel calls model.dispose() for you
+    super(new GreenHouseModel());
+  }
+
+  dispose() {
+    super.dispose();   // registered commands + addSubscription teardowns
+    this.model.dispose();
   }
 }
 ```
 
-`addDisposable()` registers any `IDisposable` (including models) to be cleaned up when `vm.dispose()` is called.
+If the Model is injected from outside (the more common pattern — see [Don't: Create Models Inside the ViewModel](/docs/viewmodels#dont-create-models-inside-the-viewmodel)), dispose it wherever it was constructed instead.
 
 ---
 
@@ -521,7 +484,6 @@ Models are plain TypeScript — test them with Vitest directly, no DOM setup nee
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { firstValueFrom } from 'rxjs';
 import { z } from 'zod';
 import { BaseModel } from '@web-loom/mvvm-core';
 
@@ -534,10 +496,10 @@ class TestModel extends BaseModel<z.infer<typeof Schema>, typeof Schema> {
 }
 
 describe('TestModel', () => {
-  it('starts with null data and false loading', async () => {
+  it('starts with null data and false loading', () => {
     const model = new TestModel();
-    expect(await firstValueFrom(model.data$)).toBeNull();
-    expect(await firstValueFrom(model.isLoading$)).toBe(false);
+    expect(model.data$.peek()).toBeNull();
+    expect(model.isLoading$.peek()).toBe(false);
     model.dispose();
   });
 
@@ -557,7 +519,6 @@ Mock the fetcher to avoid real HTTP calls:
 
 ```typescript
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { firstValueFrom } from 'rxjs';
 import { RestfulTodoListModel } from '@web-loom/mvvm-core/examples';
 
 const mockFetcher = vi.fn();
@@ -580,8 +541,8 @@ describe('RestfulTodoListModel', () => {
     const model = createModel();
     await model.fetch();
 
-    expect(await firstValueFrom(model.data$)).toEqual(items);
-    expect(await firstValueFrom(model.isLoading$)).toBe(false);
+    expect(model.data$.peek()).toEqual(items);
+    expect(model.isLoading$.peek()).toBe(false);
     model.dispose();
   });
 
@@ -591,7 +552,7 @@ describe('RestfulTodoListModel', () => {
     const model = createModel();
     await model.fetch();
 
-    expect(await firstValueFrom(model.error$)).toBeInstanceOf(Error);
+    expect(model.error$.peek()).toBeInstanceOf(Error);
     model.dispose();
   });
 
@@ -605,7 +566,7 @@ describe('RestfulTodoListModel', () => {
     await model.create({ text: 'New todo', isCompleted: false });
 
     // Should be rolled back to before the create
-    const data = await firstValueFrom(model.data$);
+    const data = model.data$.peek();
     expect(data).toHaveLength(1);
     expect(data?.[0].text).toBe('Existing');
     model.dispose();
@@ -615,19 +576,19 @@ describe('RestfulTodoListModel', () => {
 
 ### Testing State Transitions
 
-Use `.subscribe()` to capture intermediate states:
+`.subscribe()` only fires on *future* changes, not the value present when you subscribe — keep that in mind when asserting a sequence:
 
 ```typescript
-it('emits loading=true then loading=false during fetch', async () => {
+it('sets loading=true then loading=false during fetch', async () => {
   const loadingStates: boolean[] = [];
   mockFetcher.mockResolvedValue([]);
 
   const model = createModel();
-  const sub = model.isLoading$.subscribe(v => loadingStates.push(v));
+  const unsubscribe = model.isLoading$.subscribe(v => loadingStates.push(v));
   await model.fetch();
-  sub.unsubscribe();
+  unsubscribe();
 
-  expect(loadingStates).toEqual([false, true, false]); // initial, during, after
+  expect(loadingStates).toEqual([true, false]); // during, then after — no replay of the initial false
   model.dispose();
 });
 ```
@@ -644,10 +605,8 @@ class TaskModel extends RestfulApiModel<Task[], typeof TaskListSchema> {
   constructor() { super({ ...config }); }
 }
 
-class TaskListViewModel extends BaseViewModel {
-  readonly incompleteTasks$ = this.model.data$.pipe(
-    map(tasks => tasks?.filter(t => !t.done) ?? [])
-  );
+class TaskListViewModel extends BaseViewModel<TaskModel> {
+  readonly incompleteTasks$ = computed(() => (this.data$.get() ?? []).filter((t) => !t.done));
 }
 ```
 
@@ -711,31 +670,36 @@ const model = new RestfulApiModel({
 const model = new RestfulApiModel({ ...config, schema: UserSchema, validateSchema: false });
 ```
 
-### Do: Dispose Models in ViewModel Teardown
+### Do: Dispose Models You Construct Internally
 
 ```typescript
-// ✅ Good
-class UserViewModel extends BaseViewModel {
-  private readonly model = new UserModel();
-
+// ✅ Good — ViewModel owns the Model it created, so it disposes it explicitly
+class UserViewModel extends BaseViewModel<UserModel> {
   constructor() {
-    super();
-    this.addDisposable(this.model);
+    super(new UserModel());
+  }
+
+  dispose() {
+    super.dispose();  // registered commands + addSubscription teardowns
+    this.model.dispose();
   }
 }
 
 // In the View (React)
 useEffect(() => {
   vm.fetchCommand.execute();
-  return () => vm.dispose(); // closes model subscriptions too
+  return () => vm.dispose();
 }, []);
 ```
 
 ```typescript
-// ❌ Bad — memory leak, BehaviorSubjects never complete
-class UserViewModel {
-  readonly model = new UserModel();
-  // no dispose()
+// ❌ Bad — super.dispose() alone never touches the Model; setData/setLoading/
+// setError silently keep working forever, and nothing marks it disposed
+class UserViewModel extends BaseViewModel<UserModel> {
+  constructor() {
+    super(new UserModel());
+  }
+  // no dispose() override — model.dispose() never called
 }
 ```
 
@@ -745,9 +709,7 @@ These are protected methods for the Model to manage its own internals. ViewModel
 
 ```typescript
 // ❌ Bad
-class UserViewModel extends BaseViewModel {
-  constructor(private model: UserModel) { super(); }
-
+class UserViewModel extends BaseViewModel<UserModel> {
   loadUser() {
     this.model.setLoading(true);  // ← Model should manage its own loading
     this.model.setData(user);     // ← Model should control its own data
@@ -757,12 +719,12 @@ class UserViewModel extends BaseViewModel {
 
 ```typescript
 // ✅ Good
-class UserViewModel extends BaseViewModel {
-  constructor(private model: UserModel) { super(); }
-
-  readonly loadCommand = new Command(async () => {
-    await this.model.fetch(); // model handles loading + error internally
-  });
+class UserViewModel extends BaseViewModel<UserModel> {
+  readonly loadCommand = this.registerCommand(
+    new Command(async () => {
+      await this.model.fetch(); // model handles loading + error internally
+    }),
+  );
 }
 ```
 
@@ -782,12 +744,12 @@ class TaskModel extends RestfulApiModel<Task[], ...> {
 
 ```typescript
 // ✅ Good — ViewModel computes derived/formatted values
-class TaskViewModel extends BaseViewModel {
-  readonly formattedTasks$ = this.model.data$.pipe(
-    map(tasks => tasks?.map(t => ({
+class TaskViewModel extends BaseViewModel<TaskModel> {
+  readonly formattedTasks$ = computed(() =>
+    (this.data$.get() ?? []).map((t) => ({
       ...t,
       label: `${t.title} (${t.done ? 'done' : 'pending'})`,
-    })) ?? [])
+    })),
   );
 }
 ```
@@ -798,12 +760,12 @@ class TaskViewModel extends BaseViewModel {
 
 - **`BaseModel`** — local-only state, WebSocket feeds, in-memory collections, anything that isn't REST
 - **`RestfulApiModel`** — standard CRUD resources where you want optimistic updates out of the box
-- **`QueryStateModel`** — read-heavy data shared across multiple ViewModels; mutations handled separately
+- Read-heavy data shared across multiple ViewModels? See [QueryStateModel (internal, not yet exported)](#querystatemodel-internal-not-yet-exported) above for the current recommended approach.
 
 ---
 
 ## Where to Go Next
 
-- [ViewModels](/docs/viewmodels) — how ViewModels consume Model observables and expose commands
-- [ViewModels](/docs/viewmodels) — Commands, derived state, and lifecycle patterns
+- [ViewModels](/docs/viewmodels) — how ViewModels consume Model signals, derive state, and expose commands
+- [Signals Core](/docs/signals-core) — the `signal`/`computed`/`effect` primitives underlying all of this
 - [Query Core](/docs/query-core) — caching and stale-while-revalidate with `@web-loom/query-core`

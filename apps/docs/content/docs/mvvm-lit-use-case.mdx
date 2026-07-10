@@ -35,7 +35,7 @@ Lit patches only the changed parts of the DOM
 Lit schedules and runs a minimal re-render
 ```
 
-RxJS observables are invisible to this system until you connect them to a `@state()` field — exactly as you would connect them to `useState` in React or `ref()` in Vue.
+`@web-loom/signals-core` signals are invisible to this system until you connect them to a `@state()` field — exactly as you would connect them to `useState` in React or `ref()` in Vue.
 
 ---
 
@@ -44,14 +44,14 @@ RxJS observables are invisible to this system until you connect them to a `@stat
 The pattern in every Lit component in the Web Loom app is:
 
 1. Declare `@state()` private fields for every value rendered from the ViewModel
-2. Subscribe to ViewModel observables in `connectedCallback`, storing the `Subscription` references
-3. In each subscription callback, assign the emitted value to the corresponding `@state()` field
-4. Unsubscribe all stored subscriptions in `disconnectedCallback`
+2. Subscribe to ViewModel signals in `connectedCallback` with `observe()` (from `@web-loom/signals-core`), storing the returned unsubscribe functions
+3. In each `observe()` callback, assign the value to the corresponding `@state()` field
+4. Call all stored unsubscribe functions in `disconnectedCallback`
 
 ```typescript
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 import { myViewModel } from './MyViewModel';
 
 @customElement('my-component')
@@ -59,14 +59,14 @@ export class MyComponent extends LitElement {
   @state() private items: Item[] = [];
   @state() private isLoading = false;
 
-  private subscriptions: Subscription[] = [];
+  private teardowns: Array<() => void> = [];
 
   connectedCallback() {
     super.connectedCallback();
 
-    this.subscriptions.push(
-      myViewModel.data$.subscribe(data => { this.items = data ?? []; }),
-      myViewModel.isLoading$.subscribe(v  => { this.isLoading = v; }),
+    this.teardowns.push(
+      observe(myViewModel.data$, data => { this.items = data ?? []; }),
+      observe(myViewModel.isLoading$, v  => { this.isLoading = v; }),
     );
 
     myViewModel.fetchCommand.execute();
@@ -74,7 +74,7 @@ export class MyComponent extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscriptions.forEach(s => s.unsubscribe());
+    this.teardowns.forEach(teardown => teardown());
   }
 
   render() {
@@ -88,7 +88,7 @@ export class MyComponent extends LitElement {
 }
 ```
 
-When `this.items` is assigned inside the subscription callback, Lit detects the `@state()` change and schedules a re-render. The ViewModel never knows it's driving a web component.
+`observe(sig, fn)` calls `fn` immediately with the signal's current value, then again on every future change — that's what makes `this.items`/`this.isLoading` correct from the very first render, not just after the first update. When `this.items` is assigned inside the callback, Lit detects the `@state()` change and schedules a re-render. The ViewModel never knows it's driving a web component.
 
 ---
 
@@ -101,18 +101,18 @@ This is the actual `greenhouse-list` component from the Web Loom Lit app:
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
 @customElement('greenhouse-list')
 export class GreenhouseList extends LitElement {
   createRenderRoot() { return this; }  // use light DOM (no shadow root)
 
   @state() private greenhouses: GreenhouseData[] = [];
-  private dataSubscription: Subscription | null = null;
+  private unsubscribeData: (() => void) | null = null;
 
   connectedCallback() {
     super.connectedCallback();
-    this.dataSubscription = greenHouseViewModel.data$.subscribe((data: any) => {
+    this.unsubscribeData = observe(greenHouseViewModel.data$, (data: any) => {
       this.greenhouses = data;
     });
     greenHouseViewModel.fetchCommand.execute();
@@ -120,7 +120,7 @@ export class GreenhouseList extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.dataSubscription?.unsubscribe();
+    this.unsubscribeData?.();
   }
 
   private handleSubmit(event: SubmitEvent) {
@@ -194,41 +194,51 @@ Several things to note:
 
 ---
 
-## Dashboard: Combining Multiple Streams
+## Dashboard: Combining Multiple Signals
 
-When a component needs to coordinate loading state across multiple ViewModels, use RxJS `combineLatest`. The result feeds into a single `@state()` field:
+When a component needs to coordinate loading state across multiple ViewModels, compose a `computed()` over each `isLoading$` signal, then `observe()` the result into a single `@state()` field. From `apps/mvvm-lit/src/components/dashboard-view.ts`:
 
 ```typescript
-import { combineLatest, Subscription } from 'rxjs';
+import { computed, observe } from '@web-loom/signals-core';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { sensorViewModel }      from '@repo/view-models/SensorViewModel';
+import { sensorViewModel } from '@repo/view-models/SensorViewModel';
+import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
 
 @customElement('dashboard-view')
 export class DashboardView extends LitElement {
+  createRenderRoot() { return this; }
+
   @state() private isLoading = true;
-  private subscriptions: Subscription[] = [];
+  private teardowns: Array<() => void> = [];
 
   connectedCallback() {
     super.connectedCallback();
 
-    this.subscriptions.push(
-      combineLatest([
-        greenHouseViewModel.isLoading$,
-        sensorViewModel.isLoading$,
-      ]).subscribe(([gh, s]) => {
-        this.isLoading = gh || s;
+    const anyLoading$ = computed(
+      () =>
+        greenHouseViewModel.isLoading$.get() ||
+        sensorViewModel.isLoading$.get() ||
+        sensorReadingViewModel.isLoading$.get() ||
+        thresholdAlertViewModel.isLoading$.get(),
+    );
+    this.teardowns.push(
+      observe(anyLoading$, (loading) => {
+        this.isLoading = loading;
       }),
     );
 
     Promise.all([
       greenHouseViewModel.fetchCommand.execute(),
       sensorViewModel.fetchCommand.execute(),
+      sensorReadingViewModel.fetchCommand.execute(),
+      thresholdAlertViewModel.fetchCommand.execute(),
     ]);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscriptions.forEach(s => s.unsubscribe());
+    this.teardowns.forEach((teardown) => teardown());
   }
 
   render() {
@@ -241,7 +251,7 @@ export class DashboardView extends LitElement {
 }
 ```
 
-The `combineLatest` composition is RxJS — it works identically in React, Vue, Angular, and Lit. Only the assignment target (`this.isLoading` vs `setValue` vs `loading.value`) differs.
+`computed()` auto-tracks every signal read inside it (all four `isLoading$.get()` calls here), so `anyLoading$` recomputes whenever any one of them changes — no manual coordination logic needed. This composition works identically in React, Vue, Angular, and Lit; only the assignment target (`this.isLoading` vs `setValue` vs `loading.value`) differs.
 
 ---
 
@@ -298,13 +308,13 @@ ${this.items.map(item => html`
 LitElement components can be tested with `@web/test-runner` or `@open-wc/testing`. But because the ViewModel has no Lit imports, ViewModel logic is tested independently with plain Vitest — no element registration, no DOM:
 
 ```typescript
-it('filters greenhouses correctly', async () => {
+it('filters greenhouses correctly', () => {
   const vm = new GreenHouseViewModel(mockModel);
-  (mockModel.data$ as BehaviorSubject<any>).next([
+  (mockModel.data$ as WritableSignal<any>).set([
     { id: '1', name: 'Ventura North', size: '25sqm' },
     { id: '2', name: 'Eastfield', size: '100sqm' },
   ]);
-  const data = await firstValueFrom(vm.data$);
+  const data = vm.data$.peek();
   expect(data).toHaveLength(2);
   vm.dispose();
 });
@@ -316,9 +326,9 @@ it('filters greenhouses correctly', async () => {
 
 The Lit integration maps directly onto the web component lifecycle:
 
-- **Subscribe to observables** — `connectedCallback`
+- **Subscribe to signals** — `observe()` in `connectedCallback`
 - **Trigger re-render on data change** — assign to `@state()` field
-- **Unsubscribe and clean up** — `disconnectedCallback`
+- **Unsubscribe and clean up** — call the stored teardown functions in `disconnectedCallback`
 - **Call ViewModel Commands** — `@event=${this.handler}` or inline arrow function
 - **Render template** — `html\`` tagged template literal in `render()`
 

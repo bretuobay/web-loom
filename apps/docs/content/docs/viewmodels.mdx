@@ -11,9 +11,9 @@ nextSlug: '/docs/mvvm-react-use-case'
 
 # ViewModels
 
-The ViewModel sits between the Model and the View. It subscribes to Model observables, derives presentation state, and exposes **Commands** that the View calls on user interaction. ViewModels contain no framework imports — they are plain TypeScript and can be unit-tested without a DOM.
+The ViewModel sits between the Model and the View. It reads Model signals, derives presentation state with `computed()`, and exposes **Commands** that the View calls on user interaction. ViewModels contain no framework imports — they are plain TypeScript and can be unit-tested without a DOM.
 
-`@web-loom/mvvm-core` ships several ViewModel base classes covering the most common UI patterns.
+`@web-loom/mvvm-core` ships ViewModel base classes covering the most common UI patterns, built on [`@web-loom/signals-core`](/docs/signals-core).
 
 ---
 
@@ -22,17 +22,15 @@ The ViewModel sits between the Model and the View. It subscribes to Model observ
 ```
 BaseViewModel<TModel>
   └── RestfulApiViewModel<TData, TSchema>   — CRUD commands for REST resources
-
-FormViewModel<TData>                        — form state, field validation, submit
-
-QueryableCollectionViewModel<T>             — client-side filter, sort, paginate
 ```
+
+> `FormViewModel<TData>` and `QueryableCollectionViewModel<T>` also exist in `mvvm-core`'s source, but aren't exported from its public entry point yet — see the note near the bottom of this page before relying on them.
 
 ---
 
 ## BaseViewModel
 
-`BaseViewModel<TModel>` is the root class for all domain ViewModels. It accepts a Model, re-exposes its observables, manages subscriptions, and disposes everything cleanly when the ViewModel is destroyed.
+`BaseViewModel<TModel>` is the root class for all domain ViewModels. It accepts a Model, re-exposes its signals, manages subscriptions, and disposes everything cleanly when the ViewModel is destroyed.
 
 ### Constructor
 
@@ -49,31 +47,36 @@ class UserProfileViewModel extends BaseViewModel<UserModel> {
 const vm = new UserProfileViewModel(new UserModel());
 ```
 
-### Exposed Observables
+### Exposed Signals
 
-`BaseViewModel` re-exposes the injected model's core streams:
+`BaseViewModel` re-exposes the injected model's core signals (the same `ReadonlySignal` instances, not copies):
 
 - **`data$`** — the model's current data
 - **`isLoading$`** — `true` while a fetch or mutation is in flight
 - **`error$`** — the last error from the model, or `null`
-- **`validationErrors$`** — derived from `error$`; emits a `ZodError` when the model receives invalid API data, `null` otherwise
+- **`validationErrors$`** — a `computed()` from `error$`; resolves to a `ZodError` when the model receives invalid API data, `null` otherwise
 
-These let the View subscribe directly to the ViewModel without reaching into the Model.
+These let the View read directly from the ViewModel without reaching into the Model.
 
 ### Subscription Lifecycle
 
-`BaseViewModel` internally uses a `_destroy$` Subject and the `takeUntil` operator to close all subscriptions when `dispose()` is called:
+Because `data$`/`isLoading$`/`error$` are the same signal instances the Model owns, there's nothing to unsubscribe on them specifically when the ViewModel disposes. Derived values built with `computed()` need no manual cleanup either — they're just functions of their inputs. What *does* need lifecycle tracking is any subscription you set up by hand (`sig.subscribe(fn)` / `observe(sig, fn)`) — register its returned unsubscribe function with `addSubscription()`:
 
 ```typescript
 class DashboardViewModel extends BaseViewModel<MetricsModel> {
-  readonly summary$ = this.model.data$.pipe(
-    takeUntil(this._destroy$),        // auto-closed on dispose()
-    map(data => computeSummary(data))
-  );
+  readonly summary$ = computed(() => computeSummary(this.model.data$.get()));
+
+  constructor(model: MetricsModel) {
+    super(model);
+    // Only needed for side effects that aren't plain derived state
+    this.addSubscription(
+      this.model.data$.subscribe((data) => this.logMetricsChange(data)),
+    );
+  }
 }
 ```
 
-Any observable you derive inside a ViewModel should be piped through `takeUntil(this._destroy$)` to prevent memory leaks.
+`computed()` values like `summary$` above need no `addSubscription()` call — only manual `.subscribe()`/`observe()` calls do.
 
 ### Registering Commands
 
@@ -95,9 +98,10 @@ class TaskViewModel extends BaseViewModel<TaskModel> {
 vm.dispose();
 ```
 
-- Completes `_destroy$`, closing all `takeUntil`-based subscriptions
 - Calls `dispose()` on every registered Command
-- Calls `dispose()` on the injected Model
+- Runs every teardown added via `addSubscription()`
+
+Note that `BaseViewModel.dispose()` does **not** dispose the injected Model — the ViewModel doesn't own the Model's lifecycle (it was injected, not constructed internally; see [Don't: Create Models Inside the ViewModel](#dont-create-models-inside-the-viewmodel)). If a Model needs disposal, dispose it wherever it was constructed.
 
 Always trigger disposal in the component teardown hook:
 
@@ -121,10 +125,10 @@ ngOnDestroy() { this.vm.dispose(); }
 
 `Command<TParam, TResult>` is the primary mechanism for user actions in Web Loom. It wraps an async operation and manages its own execution state reactively.
 
-### Observables
+### Signals
 
 - **`isExecuting$`** — `true` while the async function is running; use for spinners and button states
-- **`canExecute$`** — `true` when the command is allowed to run; bind to `disabled` on buttons
+- **`canExecute$`** — `true` when the command is allowed to run; bind to `disabled` on buttons. It's a `computed()`, so it re-evaluates automatically whenever a signal read inside a guard changes
 - **`executeError$`** — the last error thrown by the execute function, or `null`
 
 ### Basic Usage
@@ -154,14 +158,14 @@ In the View (React):
 
 ### canExecute Conditions
 
-Pass an Observable that emits `false` to disable the command while a condition isn't met:
+Pass a signal (or a `() => boolean` function) that reads `false` to disable the command while a condition isn't met:
 
 ```typescript
 // Disable while already loading
 readonly fetchCommand = this.registerCommand(
   new Command(
     async () => { await this.model.fetch(); },
-    this.model.isLoading$.pipe(map(loading => !loading))
+    computed(() => !this.model.isLoading$.get()),
   )
 );
 ```
@@ -171,16 +175,14 @@ Combine multiple conditions after construction with fluent methods:
 ```typescript
 readonly submitCommand = this.registerCommand(
   new Command(async () => { await this.submit(); })
-    .observesCanExecute(this.form.isValid$)           // must be valid
-    .observesProperty(this.model.isLoading$.pipe(     // must not be loading
-      map(loading => !loading)
-    ))
+    .observesCanExecute(this.form.isValid$)                          // must be valid
+    .observesProperty(computed(() => !this.model.isLoading$.get()))  // must not be loading
 );
 ```
 
-- **`.observesCanExecute(obs$)`** — adds a boolean condition; all conditions are AND-ed
-- **`.observesProperty(obs$)`** — checks that the emitted value is truthy
-- **`.raiseCanExecuteChanged()`** — manually re-evaluates all conditions
+- **`.observesCanExecute(sig)`** — adds a boolean condition; all conditions are AND-ed
+- **`.observesProperty(sig)`** — checks that the signal currently reads a truthy value
+- **`.raiseCanExecuteChanged()`** — manually force `canExecute$` to re-evaluate, for guards that read plain (non-signal) state
 
 ### Commands with Parameters
 
@@ -205,7 +207,7 @@ import { Command } from '@web-loom/mvvm-core';
 readonly signInCommand = Command.create<SignInPayload, AuthTokenResponse>()
   .withExecute(async (payload) => {
     const result = await this.model.signIn(payload);
-    this._sessionResult$.next(result);
+    this._sessionResult.set(result);
     return result;
   })
   .build();
@@ -228,7 +230,7 @@ readonly signInCommand = Command.create<SignInPayload, AuthTokenResponse>()
 
 `RestfulApiViewModel` also maintains a selection state for list-detail patterns:
 
-- **`selectedItem$`** — reactive observable of the currently selected item derived from `data$` and `_selectedItemId$`
+- **`selectedItem$`** — a `computed()` signal for the currently selected item, derived from `data$` and an internal selected-id signal
 - **`selectItem(id | null)`** — update the selection
 
 ```typescript
@@ -296,176 +298,17 @@ export class RestfulTodoViewModel extends RestfulApiViewModel<
 
 ---
 
-## FormViewModel
+## FormViewModel and QueryableCollectionViewModel (internal, not yet exported)
 
-`FormViewModel<TData>` manages form state independently of any Model. It handles field updates, real-time Zod validation, dirty tracking, and submit.
+`mvvm-core`'s source includes two additional ViewModel classes that aren't exported from the package's public entry point (`src/index.ts`) — they're internal/unstable, and code that tries to `import { FormViewModel } from '@web-loom/mvvm-core'` today will not compile:
 
-### Construction
+- **`FormViewModel<TData>`** — would manage form field state, dirty/valid tracking (debounced Zod validation), field-level errors, and a `submitCommand`, independent of any Model
+- **`QueryableCollectionViewModel<T>`** — would layer client-side text filtering (debounced via `debouncedSignal`), multi-key sorting, and pagination on top of a list signal, without talking to an API
 
-```typescript
-import { FormViewModel } from '@web-loom/mvvm-core';
-import { z } from 'zod';
+Until these are exported:
 
-const SignUpSchema = z.object({
-  email: z.string().email('Must be a valid email'),
-  password: z.string().min(8, 'At least 8 characters'),
-  firstName: z.string().min(1, 'Required'),
-});
-
-const form = new FormViewModel(
-  { email: '', password: '', firstName: '' }, // initial data
-  SignUpSchema,                                // Zod schema
-  async (data) => { await api.signUp(data); } // optional submit handler
-);
-```
-
-### Observables
-
-- **`formData$`** — current form values as `Partial<TData>`
-- **`isValid$`** — `true` when the current values pass the Zod schema (debounced)
-- **`isDirty$`** — `true` when values differ from the initial state
-- **`errors$`** — the full `ZodError`, or `null` when valid
-- **`fieldErrors$`** — `Record<keyof TData, string[] | undefined>` — per-field error arrays
-
-### Mutation Methods
-
-```typescript
-form.updateField('email', 'alice@example.com');
-form.updateField('password', 'hunter2');
-form.setFormData({ email: 'prefilled@example.com' }); // merge with initial
-form.resetForm(); // revert all fields to initial values
-```
-
-### Field-level Errors
-
-```typescript
-// Get errors for one field
-const emailErrors = form.getFieldErrors('email');
-// → ['Must be a valid email'] or []
-```
-
-### Submit Command
-
-```typescript
-// submitCommand.canExecute$ is automatically false when form is invalid
-form.submitCommand.canExecute$.subscribe(enabled => setButtonEnabled(enabled));
-
-await form.submitCommand.execute();
-```
-
-The submit flow: validates → if invalid, sets `errors$` → if valid, calls the submit handler.
-
-### FormViewModel in a ViewModel
-
-`FormViewModel` is typically composed inside a domain ViewModel:
-
-```typescript
-class SignUpViewModel extends BaseViewModel<AuthModel> {
-  readonly form = new FormViewModel(
-    { email: '', password: '' },
-    SignUpSchema
-  );
-
-  readonly signUpCommand = this.registerCommand(
-    new Command(
-      async () => {
-        const data = this.form.formData$.getValue() as SignUpPayload;
-        await this.model.signUp(data);
-        this.form.resetForm();
-      }
-    ).observesCanExecute(this.form.isValid$)
-  );
-
-  dispose() {
-    this.form.dispose();
-    super.dispose();
-  }
-}
-```
-
----
-
-## QueryableCollectionViewModel
-
-`QueryableCollectionViewModel<T>` provides client-side filtering, sorting, and pagination over an in-memory list. It does not talk to an API — use it in combination with a Model that loads the full dataset.
-
-### Construction
-
-```typescript
-import { QueryableCollectionViewModel } from '@web-loom/mvvm-core';
-
-const collection = new QueryableCollectionViewModel<User>(initialUsers);
-```
-
-### Loading Data
-
-```typescript
-collection.loadItems(users);    // replace all items
-collection.addItem(newUser);    // append
-collection.removeItem('id', '42');              // remove where item.id === '42'
-collection.updateItem('id', '42', updatedUser); // replace where item.id === '42'
-```
-
-### Filtering
-
-```typescript
-// Text search across all string and number properties
-collection.filterBy$.next('alice');
-
-// Subscribe to live results
-collection.paginatedItems$.subscribe(renderTable);
-```
-
-Filtering is debounced (150ms) and resets pagination to page 1 automatically.
-
-### Sorting
-
-```typescript
-collection.setSort('lastName', 'asc');
-collection.setSort('createdAt', 'desc');
-```
-
-### Pagination
-
-```typescript
-collection.pageSize$.next(20);     // items per page
-collection.goToPage(3);
-collection.nextPage();
-collection.prevPage();
-
-// Read
-collection.totalItems$.subscribe(n => setCount(n));
-collection.totalPages$.subscribe(n => setPageCount(n));
-collection.currentPage$.subscribe(p => setActivePage(p));
-```
-
-### Composed with a Model
-
-```typescript
-class UserListViewModel extends BaseViewModel<UserModel> {
-  readonly collection = new QueryableCollectionViewModel<User>([]);
-
-  constructor(model: UserModel) {
-    super(model);
-
-    // Feed model data into the collection
-    this.model.data$.pipe(takeUntil(this._destroy$)).subscribe(users => {
-      this.collection.loadItems(users ?? []);
-    });
-  }
-
-  readonly fetchCommand = this.registerCommand(
-    new Command(async () => { await this.model.fetch(); })
-  );
-
-  dispose() {
-    this.collection.dispose();
-    super.dispose();
-  }
-}
-```
-
-The View binds to `vm.collection.paginatedItems$` for the visible rows and `vm.collection.filterBy$` for the search input.
+- For form handling, use [`@web-loom/forms-core`](https://www.npmjs.com/package/@web-loom/forms-core) with its React/Vue/vanilla adapters.
+- For filter/sort/pagination, derive the state yourself with `computed()` and a `debouncedSignal()` over an `ObservableCollection`'s `items$`, or a plain `signal()` holding the current page/sort/filter parameters.
 
 ---
 
@@ -474,65 +317,73 @@ The View binds to `vm.collection.paginatedItems$` for the visible rows and `vm.c
 From `packages/view-models/src/AuthViewModel.ts` — a full authentication ViewModel built on `BaseViewModel`:
 
 ```typescript
-import { BaseViewModel } from '@web-loom/mvvm-core';
-import { Command } from '@web-loom/mvvm-core';
-import { AuthModel } from '@repo/models';
-import { BehaviorSubject, map } from 'rxjs';
+import { signal, observe, type ReadonlySignal } from '@web-loom/signals-core';
+import { BaseViewModel, Command, type ICommand } from '@web-loom/mvvm-core';
+import { AuthModel, type AuthTokenResponseData, type SignInPayload, type SignUpPayload, type UserData } from '@repo/models';
 
 export class AuthViewModel extends BaseViewModel<AuthModel> {
-  private readonly _sessionResult$ = new BehaviorSubject<AuthTokenResponseData | null>(null);
-  readonly sessionResult$ = this._sessionResult$.asObservable();
+  private readonly _sessionResult = signal<AuthTokenResponseData | null>(null);
+  readonly sessionResult$: ReadonlySignal<AuthTokenResponseData | null> = this._sessionResult.asReadonly();
+  readonly token$: ReadonlySignal<string | null>;
 
-  // Derived from model
-  readonly token$ = this.model.token$;
-  readonly isAuthenticated$ = this.model.token$.pipe(map(t => t !== null));
-  readonly user$ = this.data$;  // alias for model.data$
+  private readonly _authenticated = signal<boolean>(false);
+  readonly isAuthenticated$: ReadonlySignal<boolean> = this._authenticated.asReadonly();
+  readonly user$: ReadonlySignal<UserData | null>;
 
-  readonly signInCommand = Command.create<SignInPayload, AuthTokenResponseData>()
-    .withExecute(async (payload) => {
-      const result = await this.model.signIn(payload);
-      this._sessionResult$.next(result);
-      return result;
-    })
-    .build();
+  readonly signInCommand: ICommand<SignInPayload, AuthTokenResponseData>;
+  readonly signUpCommand: ICommand<SignUpPayload, AuthTokenResponseData>;
+  readonly signOutCommand: ICommand<void, void>;
 
-  readonly signUpCommand = Command.create<SignUpPayload, AuthTokenResponseData>()
-    .withExecute(async (payload) => {
-      const result = await this.model.signUp(payload);
-      this._sessionResult$.next(result);
-      return result;
-    })
-    .build();
+  constructor(model: AuthModel) {
+    super(model);
+    this.user$ = this.data$ as ReadonlySignal<UserData | null>;
+    this.token$ = model.token$;
 
-  readonly changePasswordCommand = Command.create<ChangePasswordPayload, AuthTokenResponseData>()
-    .withExecute(async (payload) => {
-      return await this.model.changePassword(payload);
-    })
-    .build();
+    // observe() delivers the stored token immediately, then on every change —
+    // isAuthenticated$ needs an initial value, not just future transitions
+    const unsubscribe = observe(this.token$, (token) => {
+      this._authenticated.set(Boolean(token));
+    });
+    this.addSubscription(unsubscribe);
 
-  readonly signOutCommand = Command.create<void, void>()
-    .withExecute(async () => {
-      await this.model.signOut();
-      this._sessionResult$.next(null);
-    })
-    .build();
+    this.signInCommand = Command.create<SignInPayload, AuthTokenResponseData>()
+      .withExecute(async (payload) => {
+        const result = await model.signIn(payload);
+        this._sessionResult.set(result);
+        return result;
+      })
+      .build();
 
-  dispose() {
-    this._sessionResult$.complete();
+    this.signUpCommand = Command.create<SignUpPayload, AuthTokenResponseData>()
+      .withExecute(async (payload) => {
+        const result = await model.signUp(payload);
+        this._sessionResult.set(result);
+        return result;
+      })
+      .build();
+
+    this.signOutCommand = Command.create<void, void>()
+      .withExecute(async () => {
+        await model.signOut();
+        this._sessionResult.set(null);
+      })
+      .build();
+  }
+
+  dispose(): void {
+    super.dispose();
     this.signInCommand.dispose();
     this.signUpCommand.dispose();
-    this.changePasswordCommand.dispose();
     this.signOutCommand.dispose();
-    super.dispose();
   }
 }
 ```
 
 Key patterns shown here:
 - Commands typed with `Command.create<TParam, TResult>()` for explicit payload and return types
-- Domain-specific observables (`isAuthenticated$`, `token$`) derived from the model
-- A local `_sessionResult$` BehaviorSubject for state that lives in the ViewModel, not the Model
-- Explicit disposal of every command and subject in `dispose()`
+- `isAuthenticated$` isn't a `computed()` of `token$` — it's a separate signal kept in sync via `observe()`, because it needs an *immediate* initial value derived from the token at construction time, not just future changes
+- A local `_sessionResult` signal for state that lives in the ViewModel, not the Model
+- `signInCommand`/`signUpCommand`/`signOutCommand` are plain fields (not wrapped in `registerCommand()`), so `dispose()` disposes each one explicitly — `super.dispose()` doesn't know about them
 
 ---
 
@@ -543,8 +394,7 @@ ViewModels have no framework imports, so they test as plain TypeScript with Vite
 ### Testing Commands
 
 ```typescript
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { firstValueFrom } from 'rxjs';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TaskViewModel } from './TaskViewModel';
 import { TaskModel } from './TaskModel';
 
@@ -567,23 +417,21 @@ describe('TaskViewModel', () => {
     expect(spy).toHaveBeenCalledOnce();
   });
 
-  it('fetchCommand is disabled while loading', async () => {
+  it('fetchCommand is disabled while loading', () => {
     // Simulate loading state
     model['setLoading'](true);
 
-    const canExecute = await firstValueFrom(vm.fetchCommand.canExecute$);
-    expect(canExecute).toBe(false);
+    expect(vm.fetchCommand.canExecute$.peek()).toBe(false);
   });
 });
 ```
 
-### Testing Derived Observables
+### Testing Derived Signals
 
 ```typescript
-it('isAuthenticated$ is false before sign in', async () => {
+it('isAuthenticated$ is false before sign in', () => {
   const vm = new AuthViewModel(new AuthModel());
-  const isAuth = await firstValueFrom(vm.isAuthenticated$);
-  expect(isAuth).toBe(false);
+  expect(vm.isAuthenticated$.peek()).toBe(false);
   vm.dispose();
 });
 
@@ -594,55 +442,14 @@ it('isAuthenticated$ is true after successful sign in', async () => {
   const vm = new AuthViewModel(model);
   await vm.signInCommand.execute({ email: 'a@b.com', password: 'pass' });
 
-  const isAuth = await firstValueFrom(vm.isAuthenticated$);
-  expect(isAuth).toBe(true);
+  expect(vm.isAuthenticated$.peek()).toBe(true);
   vm.dispose();
-});
-```
-
-### Testing FormViewModel
-
-```typescript
-it('submitCommand is disabled when form is invalid', async () => {
-  const form = new FormViewModel({ email: '' }, SignUpSchema);
-
-  const canSubmit = await firstValueFrom(form.submitCommand.canExecute$);
-  expect(canSubmit).toBe(false);
-
-  form.updateField('email', 'valid@example.com');
-  // Wait for debounced validation
-  await new Promise(resolve => setTimeout(resolve, 200));
-
-  const canSubmitNow = await firstValueFrom(form.submitCommand.canExecute$);
-  expect(canSubmitNow).toBe(true);
-
-  form.dispose();
-});
-```
-
-### Testing QueryableCollectionViewModel
-
-```typescript
-it('filters items by search term', async () => {
-  const collection = new QueryableCollectionViewModel([
-    { id: '1', name: 'Alice' },
-    { id: '2', name: 'Bob' },
-  ]);
-
-  collection.filterBy$.next('alice');
-  await new Promise(resolve => setTimeout(resolve, 200)); // debounce
-
-  const items = await firstValueFrom(collection.paginatedItems$);
-  expect(items).toHaveLength(1);
-  expect(items[0].name).toBe('Alice');
-
-  collection.dispose();
 });
 ```
 
 ### Testing State Transitions
 
-Track loading state across a command execution:
+Track executing state across a command execution:
 
 ```typescript
 it('isExecuting$ is true during command execution', async () => {
@@ -652,7 +459,7 @@ it('isExecuting$ is true during command execution', async () => {
 
   model.fetch = vi.fn(() => pending);
 
-  const sub = vm.fetchCommand.isExecuting$.subscribe(v => states.push(v));
+  const unsubscribe = vm.fetchCommand.isExecuting$.subscribe(v => states.push(v));
   vm.fetchCommand.execute(); // don't await
   await new Promise(r => setTimeout(r, 10));
 
@@ -660,7 +467,7 @@ it('isExecuting$ is true during command execution', async () => {
 
   resolve!();
   await vm.fetchCommand.execute();
-  sub.unsubscribe();
+  unsubscribe();
 
   expect(states.at(-1)).toBe(false); // finished
 });
@@ -675,8 +482,8 @@ it('isExecuting$ is true during command execution', async () => {
 ```typescript
 // ✅ Good — ViewModel owns all logic
 class TaskViewModel extends BaseViewModel<TaskModel> {
-  readonly hasOverdueTasks$ = this.model.data$.pipe(
-    map(tasks => tasks?.some(t => t.dueDate < new Date() && !t.done) ?? false)
+  readonly hasOverdueTasks$ = computed(() =>
+    (this.model.data$.get() ?? []).some((t) => t.dueDate < new Date() && !t.done),
   );
 
   readonly markDoneCommand = this.registerCommand(
@@ -724,41 +531,23 @@ async save() {
 }
 ```
 
-### Do: Derive Observables, Don't Duplicate State
+### Do: Derive with computed(), Don't Duplicate State
 
 ```typescript
 // ✅ Good — single source, derived automatically
-readonly isAuthenticated$ = this.model.token$.pipe(map(t => t !== null));
+readonly hasSession$ = computed(() => this.model.token$.get() !== null);
 ```
 
 ```typescript
 // ❌ Bad — two places to keep in sync
-private _isAuthenticated = false;
+private _hasSession = false;
 async signIn() {
   await this.model.signIn(...);
-  this._isAuthenticated = true; // ← can drift from model state
+  this._hasSession = true; // ← can drift from model state
 }
 ```
 
-### Do: Always Call super.dispose() Last
-
-```typescript
-// ✅ Good — child disposes its own resources first
-dispose() {
-  this._sessionResult$.complete(); // local subject
-  this.signInCommand.dispose();    // manually tracked command
-  this.form.dispose();             // nested FormViewModel
-  super.dispose();                 // model + registered commands
-}
-```
-
-```typescript
-// ❌ Bad — super.dispose() first closes _destroy$, then pipe operators stop working
-dispose() {
-  super.dispose();                 // closes _destroy$ too early
-  this._sessionResult$.complete(); // already dangling
-}
-```
+If a derived signal genuinely needs an *immediate* value on construction rather than only reacting to future changes (see the real `AuthViewModel.isAuthenticated$` above), use a plain `signal()` kept in sync via `observe()` instead of `computed()` — that's a deliberate exception, not the default.
 
 ### Do: Register Commands to Get Auto-Disposal
 
@@ -779,29 +568,33 @@ readonly fetchCommand = new Command(async () => { await this.model.fetch(); });
 
 dispose() {
   super.dispose();
-  // fetchCommand never disposed → BehaviorSubjects never complete
+  // fetchCommand.dispose() never called — its internal signals stay wired up
 }
 ```
 
-### Don't: Subscribe Inside ViewModels Without takeUntil
+`super.dispose()` only disposes commands registered via `registerCommand()` and runs teardowns added via `addSubscription()` — it does not know about plain fields. If you keep an unregistered `Command` or a signal you manage by hand (like `AuthViewModel`'s `_sessionResult`), dispose/clean it up explicitly in your own `dispose()` override; call order relative to `super.dispose()` doesn't matter since the two cleanup paths are independent.
+
+### Don't: Subscribe Inside ViewModels Without addSubscription
 
 ```typescript
 // ❌ Bad — subscription leaks after dispose()
-constructor() {
+constructor(model: MyModel) {
   super(model);
   this.model.data$.subscribe(data => this.doSomething(data));
 }
 ```
 
 ```typescript
-// ✅ Good — subscription closed when ViewModel is disposed
-constructor() {
+// ✅ Good — unsubscribe function registered, invoked when the ViewModel is disposed
+constructor(model: MyModel) {
   super(model);
-  this.model.data$
-    .pipe(takeUntil(this._destroy$))
-    .subscribe(data => this.doSomething(data));
+  this.addSubscription(
+    this.model.data$.subscribe(data => this.doSomething(data)),
+  );
 }
 ```
+
+Note this only applies to manual `.subscribe()`/`observe()` calls — `computed()` values need no such registration; they have no subscription to leak.
 
 ### Don't: Create Models Inside the ViewModel
 
@@ -838,12 +631,12 @@ class TaskModel extends BaseModel<Task[], ...> {
 ```typescript
 // ✅ Good — selection lives in ViewModel (or Store if cross-component)
 class TaskViewModel extends BaseViewModel<TaskModel> {
-  private readonly _selectedId$ = new BehaviorSubject<string | null>(null);
-  readonly selectedTask$ = combineLatest([this.model.data$, this._selectedId$]).pipe(
-    map(([tasks, id]) => tasks?.find(t => t.id === id) ?? null)
+  private readonly _selectedId = signal<string | null>(null);
+  readonly selectedTask$ = computed(() =>
+    this.model.data$.get()?.find((t) => t.id === this._selectedId.get()) ?? null,
   );
 
-  select(id: string) { this._selectedId$.next(id); }
+  select(id: string) { this._selectedId.set(id); }
 }
 ```
 
@@ -853,15 +646,14 @@ class TaskViewModel extends BaseViewModel<TaskModel> {
 
 - **`BaseViewModel`** — domain ViewModels with custom logic; use when `RestfulApiViewModel`'s CRUD commands don't match your API shape
 - **`RestfulApiViewModel`** — any standard REST resource (sensors, greenhouses, users); inherit for free CRUD + selection
-- **`FormViewModel`** — any form; compose inside a domain ViewModel alongside the submit command
-- **`QueryableCollectionViewModel`** — tables and lists that need client-side search, sort, and pagination
+- Need form state or client-side filter/sort/pagination? See [FormViewModel and QueryableCollectionViewModel (internal, not yet exported)](#formviewmodel-and-queryablecollectionviewmodel-internal-not-yet-exported) above for the current recommended alternative.
 
 ---
 
 ## Where to Go Next
 
-- [Models](/docs/models) — how Models own data and expose reactive observables
-- [Models](/docs/models) — how Models own data and expose reactive observables
+- [Models](/docs/models) — how Models own data and expose reactive signals
+- [Signals Core](/docs/signals-core) — the `signal`/`computed`/`effect` primitives underlying all of this
 - [MVVM in React](/docs/mvvm-react-use-case) — wiring ViewModels into React components
 - [MVVM in Vue](/docs/mvvm-vue-use-case) — Vue 3 Composition API integration
-- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular service + async pipe integration
+- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular DI + signal bridging
