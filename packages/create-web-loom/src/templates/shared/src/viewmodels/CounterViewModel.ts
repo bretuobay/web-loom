@@ -1,22 +1,27 @@
-import { computed, signal } from '@web-loom/signals-core';
+import { Command } from '@web-loom/mvvm-core';
+import { computed, signal, type ReadonlySignal } from '@web-loom/signals-core';
 
 export class CounterViewModel {
-  readonly count = signal(0);
+  private readonly countState = signal(0);
+
+  readonly count: ReadonlySignal<number> = this.countState.asReadonly();
   readonly doubled = computed(() => this.count.get() * 2);
 
-  increment(): void {
-    this.count.set(this.count.get() + 1);
-  }
+  readonly incrementCommand = new Command<void, void>(async () => {
+    this.countState.update((value) => value + 1);
+  });
 
-  decrement(): void {
-    this.count.set(this.count.get() - 1);
-  }
+  readonly decrementCommand = new Command<void, void>(async () => {
+    this.countState.update((value) => value - 1);
+  });
 
-  reset(): void {
-    this.count.set(0);
-  }
+  readonly resetCommand = new Command<void, void>(async () => {
+    this.countState.set(0);
+  });
 
   dispose(): void {
-    // Placeholder for future cleanup logic.
+    this.incrementCommand.dispose();
+    this.decrementCommand.dispose();
+    this.resetCommand.dispose();
   }
 }

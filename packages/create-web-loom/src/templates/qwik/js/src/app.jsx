@@ -1,17 +1,28 @@
 import { $, component$, useSignal, useTask$ } from '@builder.io/qwik';
 import { isBrowser } from '@builder.io/qwik/build';
+import { observe } from '@web-loom/signals-core';
 import { CounterViewModel } from './viewmodels/CounterViewModel';
 import './app.css';
 
 const STACK = ['Vite', 'JavaScript', 'Qwik', '@web-loom/mvvm-core', '@web-loom/signals-core'];
 
-const vmSnippet = `export class CounterViewModel {
-  count = signal(0);
+const vmSnippet = `import { Command } from "@web-loom/mvvm-core";
+import { computed, signal } from "@web-loom/signals-core";
+
+export class CounterViewModel {
+  countState = signal(0);
+  count = this.countState.asReadonly();
   doubled = computed(() => this.count.get() * 2);
 
-  increment() { this.count.set(this.count.get() + 1); }
-  decrement() { this.count.set(this.count.get() - 1); }
-  reset() { this.count.set(0); }
+  incrementCommand = new Command(async () => {
+    this.countState.update((value) => value + 1);
+  });
+  decrementCommand = new Command(async () => {
+    this.countState.update((value) => value - 1);
+  });
+  resetCommand = new Command(async () => {
+    this.countState.set(0);
+  });
 }`;
 
 const counterViewModel = new CounterViewModel();
@@ -25,24 +36,22 @@ export const App = component$(() => {
       return;
     }
 
-    const sync = () => {
-      count.value = counterViewModel.count.get();
-      doubled.value = counterViewModel.doubled.get();
-    };
-
-    sync();
-    const unsubscribeCount = counterViewModel.count.subscribe(sync);
-    const unsubscribeDoubled = counterViewModel.doubled.subscribe(sync);
+    const stopCount = observe(counterViewModel.count, (value) => {
+      count.value = value;
+    });
+    const stopDoubled = observe(counterViewModel.doubled, (value) => {
+      doubled.value = value;
+    });
 
     cleanup(() => {
-      unsubscribeCount();
-      unsubscribeDoubled();
+      stopCount();
+      stopDoubled();
     });
   });
 
-  const increment = $(() => counterViewModel.increment());
-  const decrement = $(() => counterViewModel.decrement());
-  const reset = $(() => counterViewModel.reset());
+  const increment = $(() => void counterViewModel.incrementCommand.execute());
+  const decrement = $(() => void counterViewModel.decrementCommand.execute());
+  const reset = $(() => void counterViewModel.resetCommand.execute());
 
   return (
     <main class="starter-root">

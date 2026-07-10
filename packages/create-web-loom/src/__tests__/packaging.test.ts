@@ -20,6 +20,9 @@ describe('build packaging', () => {
 
     expect(existsSync(join(packageRoot, 'dist/templates/shared/src/viewmodels/CounterViewModel.ts'))).toBe(true);
     expect(existsSync(join(packageRoot, 'dist/templates/react/ts/src/App.tsx'))).toBe(true);
+    expect(existsSync(join(packageRoot, 'dist/templates/react/ts/src/hooks/useSignal.ts'))).toBe(true);
+    expect(existsSync(join(packageRoot, 'dist/templates/vue/ts/src/composables/useSignal.ts'))).toBe(true);
+    expect(existsSync(join(packageRoot, 'dist/templates/solid/ts/src/hooks/useSignalValue.ts'))).toBe(true);
     expect(existsSync(join(packageRoot, 'dist/templates/qwik/ts/src/app.tsx'))).toBe(true);
     expect(existsSync(join(packageRoot, 'dist/templates/qwik/js/src/app.jsx'))).toBe(true);
   });

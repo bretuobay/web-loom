@@ -28,16 +28,16 @@ If the scaffold cannot be mapped to a supported framework template, the CLI exit
 
 | Framework | Variants | Overwritten runnable files |
 | --- | --- | --- |
-| React | TS, JS | `src/App.tsx` / `src/App.jsx` |
-| Preact | TS, JS | `src/app.tsx` / `src/app.jsx` |
-| Vue | TS, JS | `src/App.vue` |
-| Solid | TS, JS | `src/App.tsx` / `src/App.jsx` |
+| React | TS, JS | `src/App.tsx` / `src/App.jsx`, `src/hooks/useSignal.*` |
+| Preact | TS, JS | `src/app.tsx` / `src/app.jsx`, `src/hooks/useSignal.*` |
+| Vue | TS, JS | `src/App.vue`, `src/composables/useSignal.*` |
+| Solid | TS, JS | `src/App.tsx` / `src/App.jsx`, `src/hooks/useSignalValue.*` |
 | Svelte | TS, JS | `src/App.svelte` |
 | Lit | TS, JS | `src/my-element.ts` / `src/my-element.js` |
 | Vanilla | TS, JS | `src/main.ts` / `src/main.js` |
 | Qwik | TS-first | `src/routes/index.tsx` |
 
-Shared files are copied for every framework (for example `src/viewmodels/CounterViewModel.ts`).
+Shared files are copied for every framework (for example `src/viewmodels/CounterViewModel.ts`). The starter ViewModel exposes read-only signals and command-backed actions from `@web-loom/mvvm-core`.
 
 ## Template source of truth
 

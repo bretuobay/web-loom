@@ -1,17 +1,27 @@
 import { useEffect, useMemo } from 'preact/hooks';
-import { useSignal } from './hooks/useObservable';
+import { useSignal } from './hooks/useSignal';
 import { CounterViewModel } from './viewmodels/CounterViewModel';
 import './app.css';
 
 const STACK = ['Vite', 'TypeScript', 'Preact', '@web-loom/mvvm-core', '@web-loom/signals-core'];
 
-const vmSnippet = `export class CounterViewModel {
-  readonly count = signal(0);
-  readonly doubled = computed(() => this.count.get() * 2);
+const vmSnippet = `import { Command } from "@web-loom/mvvm-core";
+import { computed, signal } from "@web-loom/signals-core";
 
-  increment() { this.count.set(this.count.get() + 1); }
-  decrement() { this.count.set(this.count.get() - 1); }
-  reset() { this.count.set(0); }
+export class CounterViewModel {
+  countState = signal(0);
+  count = this.countState.asReadonly();
+  doubled = computed(() => this.count.get() * 2);
+
+  incrementCommand = new Command(async () => {
+    this.countState.update((value) => value + 1);
+  });
+  decrementCommand = new Command(async () => {
+    this.countState.update((value) => value - 1);
+  });
+  resetCommand = new Command(async () => {
+    this.countState.set(0);
+  });
 }`;
 
 export default function App() {
@@ -46,9 +56,9 @@ export default function App() {
             <div><span>Doubled</span><strong>{doubled}</strong></div>
           </div>
           <div className="controls">
-            <button onClick={() => vm.decrement()}>-</button>
-            <button onClick={() => vm.reset()}>Reset</button>
-            <button onClick={() => vm.increment()}>+</button>
+            <button onClick={() => void vm.decrementCommand.execute()}>-</button>
+            <button onClick={() => void vm.resetCommand.execute()}>Reset</button>
+            <button onClick={() => void vm.incrementCommand.execute()}>+</button>
           </div>
         </article>
 

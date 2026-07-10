@@ -1,31 +1,34 @@
 import { useEffect, useMemo } from 'react';
-import { useSignal } from './hooks/useObservable';
+import { useSignal } from './hooks/useSignal';
 import { CounterViewModel } from './viewmodels/CounterViewModel';
 import './App.css';
 
 const STACK = ['Vite', 'TypeScript', 'React', '@web-loom/mvvm-core', '@web-loom/signals-core'];
 
-const vmSnippet = `import { computed, signal } from '@web-loom/signals-core';
+const vmSnippet = `import { Command } from "@web-loom/mvvm-core";
+import { computed, signal } from "@web-loom/signals-core";
 
 export class CounterViewModel {
-  readonly count = signal(0);
-  readonly doubled = computed(() => this.count.get() * 2);
+  countState = signal(0);
+  count = this.countState.asReadonly();
+  doubled = computed(() => this.count.get() * 2);
 
-  increment() { this.count.set(this.count.get() + 1); }
-  decrement() { this.count.set(this.count.get() - 1); }
-  reset() { this.count.set(0); }
+  incrementCommand = new Command(async () => {
+    this.countState.update((value) => value + 1);
+  });
+  decrementCommand = new Command(async () => {
+    this.countState.update((value) => value - 1);
+  });
+  resetCommand = new Command(async () => {
+    this.countState.set(0);
+  });
 }`;
 
-const hookSnippet = `export function useSignal<T>(signal: SignalLike<T>): T {
-  const [value, setValue] = useState(() => signal.get());
+const hookSnippet = `import { useSyncExternalStore } from 'react';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 
-  useEffect(() => {
-    const sync = () => setValue(signal.get());
-    sync();
-    return signal.subscribe(sync);
-  }, [signal]);
-
-  return value;
+export function useSignal<T>(source: ReadonlySignal<T>): T {
+  return useSyncExternalStore(source.subscribe, source.get, source.get);
 }`;
 
 export default function App() {
@@ -70,9 +73,9 @@ export default function App() {
             </div>
           </div>
           <div className="controls">
-            <button onClick={() => vm.decrement()}>-</button>
-            <button onClick={() => vm.reset()}>Reset</button>
-            <button onClick={() => vm.increment()}>+</button>
+            <button onClick={() => void vm.decrementCommand.execute()}>-</button>
+            <button onClick={() => void vm.resetCommand.execute()}>Reset</button>
+            <button onClick={() => void vm.incrementCommand.execute()}>+</button>
           </div>
         </article>
 
@@ -85,7 +88,7 @@ export default function App() {
             <code>{vmSnippet}</code>
           </pre>
 
-          <h3>src/hooks/useObservable.ts</h3>
+          <h3>src/hooks/useSignal.ts</h3>
           <pre>
             <code>{hookSnippet}</code>
           </pre>
