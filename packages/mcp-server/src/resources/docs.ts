@@ -7,6 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const PACKAGES = [
   { pkg: "mvvm-core", description: "Core MVVM library — BaseModel, BaseViewModel, RestfulApiModel, Command, CompositeCommand, ObservableCollection" },
+  { pkg: "signals-core", description: "Reactive signal primitives — signal, computed, observe, ReadonlySignal" },
   { pkg: "query-core", description: "Data fetching and caching — QueryCore, EndpointOptions, CacheProviders" },
   { pkg: "store-core", description: "Minimal reactive state — createStore, PersistedStore, persistence adapters" },
   { pkg: "ui-core", description: "Headless UI behaviors — Dialog, Form, ListSelection, RovingFocus, DragDrop, UndoRedo" },

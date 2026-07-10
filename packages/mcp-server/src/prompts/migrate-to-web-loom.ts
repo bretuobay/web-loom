@@ -9,7 +9,7 @@ export function registerMigrateToWebLoomPrompt(server: McpServer): void {
       argsSchema: {
         code: z.string().describe("The existing code to migrate (React component, Vue SFC, plain JS module, etc.)"),
         framework: z
-          .enum(["react", "vue", "vanilla", "angular"])
+          .enum(["react", "vue", "vanilla", "angular", "lit"])
           .describe("The source framework of the code"),
       },
     },
@@ -38,7 +38,7 @@ export function registerMigrateToWebLoomPrompt(server: McpServer): void {
               "Find all event handlers, derived state, and orchestration. These become the **ViewModel**:",
               "- `onClick` handlers → `Command.execute()`",
               "- Loading guards (`if (isLoading) return`) → `canExecute$` on Commands",
-              "- Derived values (`const total = items.reduce(...)`) → computed observables with `map`/`combineLatest`",
+              "- Derived values (`const total = items.reduce(...)`) → `computed(() => ...)` signals",
               "- Multi-step operations → `CompositeCommand`",
               "",
               "### Step 3 — Scaffold the Files",
@@ -47,12 +47,14 @@ export function registerMigrateToWebLoomPrompt(server: McpServer): void {
               "### Step 4 — Rewrite the View",
               "The View keeps only rendering logic:",
               framework === "react"
-                ? "- Replace `useState` + `useEffect` with `useObservable(vm.data$, [])` and `useObservable(vm.isLoading$, false)`\n- Add `useEffect(() => { vm.fetchCommand.execute(); return () => vm.dispose(); }, [vm])`\n- Bind button `onClick` to `() => vm.yourCommand.execute(param)`\n- Disable buttons with `useObservable(vm.yourCommand.canExecute$, true)` negated"
+                ? "- Replace `useState` + `useEffect` data mirroring with a `useSignal` helper built on `useSyncExternalStore(vm.data$.subscribe, vm.data$.get, vm.data$.get)`\n- Add `useEffect(() => { vm.fetchCommand.execute(); return () => vm.dispose(); }, [vm])`\n- Bind button `onClick` to `() => vm.yourCommand.execute(param)`\n- Disable buttons with `!useSignal(vm.yourCommand.canExecute$)`"
                 : framework === "vue"
-                  ? "- Replace `ref`/`reactive` with subscriptions to `vm.data$`, `vm.isLoading$`\n- Call `vm.fetchCommand.execute()` in `onMounted`\n- Call `vm.dispose()` in `onUnmounted`\n- Bind `@click` to `() => vm.yourCommand.execute(param)`"
+                  ? "- Bridge `vm.data$` and `vm.isLoading$` into `shallowRef`s with `observe` from `@web-loom/signals-core`\n- Call `vm.fetchCommand.execute()` in `onMounted`\n- Call `vm.dispose()` in `onUnmounted`\n- Bind `@click` to `() => vm.yourCommand.execute(param)`"
                   : framework === "angular"
-                    ? "- Move data fetching to an `@Injectable` service holding the ViewModel\n- Use `async` pipe in templates with `vm.data$ | async`\n- Implement `OnDestroy` and call `vm.dispose()` in `ngOnDestroy`"
-                    : "- Subscribe to observables manually: `vm.data$.subscribe(data => renderList(data))`\n- Call `vm.fetchCommand.execute()` on init\n- Store unsubscribe functions and call them + `vm.dispose()` on cleanup",
+                    ? "- Move data fetching to an `@Injectable` service holding the ViewModel\n- Bridge Web Loom signals to Angular signals with `source.subscribe((value) => mirror.set(value))`\n- Implement `OnDestroy` and call `vm.dispose()` in `ngOnDestroy`"
+                    : framework === "lit"
+                      ? "- Store signal values in `@state()` fields\n- Mirror `vm.data$`, `vm.isLoading$`, and `vm.error$` with `observe` in `connectedCallback`\n- Run teardowns and `vm.dispose()` in `disconnectedCallback`"
+                      : "- Observe signals manually: `observe(vm.data$, data => renderList(data))`\n- Call `vm.fetchCommand.execute()` on init\n- Store teardown functions and call them + `vm.dispose()` on cleanup",
               "",
               "### Step 5 — Verify the Dispose Pattern",
               "Confirm the View's unmount hook calls `vm.dispose()`. This is the most commonly missed step.",

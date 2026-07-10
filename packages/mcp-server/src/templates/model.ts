@@ -53,11 +53,13 @@ function configBlock(name: string, endpoint: string, apiBase: string): string {
   return `export const ${configName} = {
   baseUrl: "${apiBase}",
   endpoint: "${endpoint}",
-  fetcher: (url: string, options?: RequestInit) =>
-    fetch(url, options).then((r) => {
-      if (!r.ok) throw new Error(\`HTTP \${r.status}\`);
-      return r.json();
-    }),
+  fetcher: async <TResponse = Response>(url: string, options?: RequestInit): Promise<TResponse> => {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error(\`HTTP \${response.status}\`);
+    }
+    return response as TResponse;
+  },
   initialData: [] as ${name}ListData,
 };`;
 }

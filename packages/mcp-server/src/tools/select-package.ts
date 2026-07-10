@@ -157,8 +157,18 @@ const USE_CASE_MAP: Array<{
     recommendations: [
       {
         package: "@web-loom/mvvm-core",
-        reason: "Command<TParam, TResult> encapsulates async actions with isExecuting$, canExecute$, and executeError$ observables. CompositeCommand orchestrates multiple commands.",
+        reason: "Command<TParam, TResult> encapsulates async actions with isExecuting$, canExecute$, and executeError$ signals. CompositeCommand orchestrates multiple commands.",
         example: "const saveCmd = new Command<FormData, void>(async (data) => { ... });",
+      },
+    ],
+  },
+  {
+    keywords: ["signal", "computed", "observe", "reactivity", "bridge", "adapter"],
+    recommendations: [
+      {
+        package: "@web-loom/signals-core",
+        reason: "signals-core provides signal(), computed(), observe(), and ReadonlySignal for framework adapters and derived reactive state.",
+        example: "const stop = observe(vm.data$, (data) => render(data));",
       },
     ],
   },

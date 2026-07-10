@@ -20,8 +20,10 @@ describe("viewModelTemplate", () => {
     });
 
     expect(code).toContain('import { RestfulApiViewModel, Command } from "@web-loom/mvvm-core";');
-    expect(code).toContain("public readonly archiveCommand = this.registerCommand");
+    expect(code).toContain("private registerCustomCommand<TParam, TResult>");
+    expect(code).toContain("public readonly archiveCommand = this.registerCustomCommand");
     expect(code).toContain("new Command<string, void>");
+    expect(code).toContain("this.customCommands.forEach((command) => command.dispose())");
   });
 
   it("generates a reactive factory ViewModel", () => {
@@ -85,5 +87,41 @@ describe("viewModelTemplate", () => {
     expect(reactiveCode).toContain("vm.fetchCommand.execute();");
     expect(activeCode).toContain("new CatalogViewModel(model)");
     expect(activeCode).toContain("vm.loadCommand.execute();");
+  });
+
+  it("generates framework adapters with signals-core bridges instead of RxJS subscriptions", () => {
+    const reactCode = adapterTemplate({
+      name: "Product",
+      framework: "react",
+    });
+    const vueCode = adapterTemplate({
+      name: "Product",
+      framework: "vue",
+    });
+    const angularCode = adapterTemplate({
+      name: "Product",
+      framework: "angular",
+    });
+    const vanillaCode = adapterTemplate({
+      name: "Product",
+      framework: "vanilla",
+    });
+    const litCode = adapterTemplate({
+      name: "Product",
+      framework: "lit",
+    });
+    const allCode = [reactCode, vueCode, angularCode, vanillaCode, litCode].join("\n");
+
+    expect(reactCode).toContain("useSyncExternalStore(sig.subscribe, sig.get, sig.get)");
+    expect(vueCode).toContain('import { observe, type ReadonlySignal } from "@web-loom/signals-core";');
+    expect(angularCode).toContain("function fromLoomSignal<T>");
+    expect(vanillaCode).toContain("teardowns.forEach((teardown) => teardown())");
+    expect(litCode).toContain('@customElement("product-view")');
+
+    expect(allCode).not.toContain("rxjs");
+    expect(allCode).not.toContain("Observable<T>");
+    expect(allCode).not.toContain("useObservable");
+    expect(allCode).not.toContain(".pipe(");
+    expect(allCode).not.toContain(".unsubscribe()");
   });
 });

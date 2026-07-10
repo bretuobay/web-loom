@@ -27,7 +27,7 @@ function defaultModelStyleFor(viewModelStyle: ViewModelStyle): ModelStyle {
 }
 
 function packageInstallHint(modelStyle: ModelStyle, viewModelStyle: ViewModelStyle): string {
-  const packages = new Set(["@web-loom/mvvm-core", "rxjs", "zod"]);
+  const packages = new Set(["@web-loom/mvvm-core", "@web-loom/signals-core", "zod"]);
 
   if (modelStyle === "query-cache") {
     packages.add("@web-loom/query-core");
@@ -57,7 +57,7 @@ export function registerScaffoldFeatureTool(server: McpServer): void {
           .array(FieldSchema)
           .describe("Entity fields (id is always included automatically)"),
         framework: z
-          .enum(["react", "vue", "vanilla", "angular"])
+          .enum(["react", "vue", "vanilla", "angular", "lit"])
           .describe("Target UI framework for the adapter layer"),
         apiBase: z
           .string()
@@ -103,7 +103,9 @@ export function registerScaffoldFeatureTool(server: McpServer): void {
             ? `use${name}.ts`
             : framework === "angular"
               ? `${name}.service.ts`
-              : `${name}Controller.ts`;
+              : framework === "lit"
+                ? `${name}ViewElement.ts`
+                : `${name}Controller.ts`;
 
       const files: Record<string, string> = {
         [`${name}Model.ts`]: modelCode,
@@ -133,7 +135,9 @@ export function registerScaffoldFeatureTool(server: McpServer): void {
                   ? `3. Call \`use${name}()\` inside your \`<script setup>\``
                   : framework === "angular"
                     ? `3. Provide \`${name}Service\` in your module providers`
-                    : `3. Call \`create${name}Controller()\` and hold the reference`,
+                    : framework === "lit"
+                      ? `3. Import \`${name}ViewElement.ts\` and render \`<${name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()}-view>\``
+                      : `3. Call \`create${name}Controller()\` and hold the reference`,
             ].join("\n"),
           },
         ],

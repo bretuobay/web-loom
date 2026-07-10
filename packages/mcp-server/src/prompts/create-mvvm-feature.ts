@@ -10,7 +10,7 @@ export function registerCreateMvvmFeaturePrompt(server: McpServer): void {
         featureName: z.string().describe("Feature/entity name in PascalCase (e.g. 'Product', 'Invoice')"),
         endpoint: z.string().describe("REST API endpoint (e.g. '/api/products')"),
         fields: z.string().describe("Comma-separated field names and types, e.g. 'name:string, price:number, active:boolean'"),
-        framework: z.enum(["react", "vue", "vanilla", "angular"]).describe("Target UI framework"),
+        framework: z.enum(["react", "vue", "vanilla", "angular", "lit"]).describe("Target UI framework"),
       },
     },
     async ({ featureName, endpoint, fields, framework }) => ({

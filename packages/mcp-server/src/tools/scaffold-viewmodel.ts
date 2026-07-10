@@ -68,7 +68,7 @@ export function registerScaffoldViewModelTool(server: McpServer): void {
               "- `createCommand` — create a new item",
               "- `updateCommand` — update by id",
               "- `deleteCommand` — delete by id",
-              "- `selectedItem$` — currently selected item observable",
+              "- `selectedItem$` — currently selected item signal",
             ]
           : selectedStyle === "reactive-factory"
             ? [

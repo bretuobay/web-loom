@@ -65,11 +65,11 @@ scaffold_restful_feature({
     { name: "price", type: "number" },
     { name: "inStock", type: "boolean", optional: true }
   ],
-  framework: "react"   // "react" | "vue" | "vanilla" | "angular"
+  framework: "react"   // "react" | "vue" | "vanilla" | "angular" | "lit"
 })
 ```
 
-Returns `ProductModel.ts`, `ProductViewModel.ts`, and `useProduct.ts` with correct types, Zod schema, dispose pattern, and `useObservable` wiring.
+Returns `ProductModel.ts`, `ProductViewModel.ts`, and a framework adapter with correct types, Zod schema, dispose pattern, and signal bridge wiring.
 
 `scaffold_model` supports a `style` option:
 
@@ -112,7 +112,7 @@ scaffold_viewmodel({
 
 **`explain_pattern`** supports these pattern names:
 
-`mvvm` · `command` · `observable` · `dispose-pattern` · `plugin` · `store` · `forms` · `query` · `composite-command`
+`mvvm` · `command` · `signal` · `observable` · `dispose-pattern` · `plugin` · `store` · `forms` · `query` · `composite-command`
 
 ### Resources
 
@@ -121,6 +121,7 @@ Resources expose live documentation that AI assistants can read as context.
 | URI | Content |
 |-----|---------|
 | `web-loom://docs/mvvm-core` | `@web-loom/mvvm-core` README |
+| `web-loom://docs/signals-core` | `@web-loom/signals-core` README |
 | `web-loom://docs/query-core` | `@web-loom/query-core` README |
 | `web-loom://docs/store-core` | `@web-loom/store-core` README |
 | `web-loom://docs/ui-core` | `@web-loom/ui-core` README |
@@ -158,7 +159,13 @@ export const ProductListSchema = z.array(ProductSchema);
 
 export class ProductModel extends RestfulApiModel<ProductListData, typeof ProductListSchema> {
   constructor(apiBase = "http://localhost:3000") {
-    super({ baseUrl: apiBase, endpoint: "/products", fetcher, schema: ProductListSchema, initialData: [] });
+    super({
+      baseUrl: apiBase,
+      endpoint: "/products",
+      fetcher: async (url, options) => fetch(url, options),
+      schema: ProductListSchema,
+      initialData: [],
+    });
   }
 }
 ```
@@ -174,12 +181,16 @@ export class ProductViewModel extends RestfulApiViewModel<ProductListData, typeo
 }
 ```
 
-**React adapter** — `useObservable`, single `useState` for the VM instance, dispose on unmount:
+**React adapter** — `useSyncExternalStore`, single `useState` for the VM instance, dispose on unmount:
 ```typescript
+function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+}
+
 export function useProduct() {
   const [vm] = useState(() => new ProductViewModel(new ProductModel()));
-  const data = useObservable(vm.data$, null);
-  const isLoading = useObservable(vm.isLoading$, false);
+  const data = useSignal(vm.data$);
+  const isLoading = useSignal(vm.isLoading$);
   useEffect(() => { vm.fetchCommand.execute(); return () => vm.dispose(); }, [vm]);
   return { data, isLoading, vm };
 }
@@ -198,7 +209,7 @@ npm run dev
 npm run check-types
 ```
 
-The server uses Node.js stdio transport (stdin/stdout MCP protocol). It has no dependency on RxJS or any `@web-loom/*` runtime — it only generates code strings, keeping the bundle small.
+The server uses Node.js stdio transport (stdin/stdout MCP protocol). It has no runtime dependency on `@web-loom/*` packages — it only generates code strings, keeping the bundle small.
 
 ## License
 

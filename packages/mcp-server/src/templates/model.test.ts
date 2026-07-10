@@ -13,6 +13,8 @@ describe("modelTemplate", () => {
 
     expect(code).toContain('import { RestfulApiModel } from "@web-loom/mvvm-core";');
     expect(code).toContain("export const productConfig =");
+    expect(code).toContain("fetcher: async <TResponse = Response>");
+    expect(code).toContain("return response as TResponse;");
     expect(code).toContain("export class ProductModel extends RestfulApiModel");
     expect(code).toContain("...productConfig");
   });

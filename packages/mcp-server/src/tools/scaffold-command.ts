@@ -6,7 +6,7 @@ export function registerScaffoldCommandTool(server: McpServer): void {
   server.registerTool(
     "scaffold_command",
     {
-      description: "Generate a standalone Command<TParam, TResult> or CompositeCommand. Commands encapsulate async actions with built-in isExecuting$, canExecute$, and executeError$ observables.",
+      description: "Generate a standalone Command<TParam, TResult> or CompositeCommand. Commands encapsulate async actions with built-in isExecuting$, canExecute$, and executeError$ signals.",
       inputSchema: {
         name: z.string().describe("Command name (camelCase, e.g. 'exportToCsvCommand')"),
         paramType: z
@@ -21,7 +21,7 @@ export function registerScaffoldCommandTool(server: McpServer): void {
           .string()
           .optional()
           .describe(
-            "Optional canExecute expression — an Observable<boolean> or boolean value. Example: 'this.isLoading$.pipe(map(l => !l))'"
+            "Optional canExecute expression — a ReadonlySignal<boolean> or function returning boolean. Example: '() => !this.isLoading$.get()'"
           ),
         description: z.string().optional().describe("Short description of the command's purpose"),
         composite: z

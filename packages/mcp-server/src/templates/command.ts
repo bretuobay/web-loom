@@ -23,7 +23,7 @@ export function commandTemplate(p: CommandTemplateParams): string {
 
   const paramArg = paramType === "void" ? "" : `param: ${paramType}`;
   const canExecuteArg = canExecuteLogic
-    ? `,\n  // canExecute: returns Observable<boolean> or boolean\n  ${canExecuteLogic}`
+    ? `,\n  // canExecute: returns ReadonlySignal<boolean> or a boolean function\n  ${canExecuteLogic}`
     : "";
 
   const descComment = description ? `// ${description}\n` : "";
@@ -38,9 +38,9 @@ ${descComment}export const ${name} = new Command<${paramType}, ${resultType}>(
 
 // Usage:
 // ${name}.execute(${paramType === "void" ? "" : "param"});
-// ${name}.isExecuting$  // Observable<boolean> — use for loading state
-// ${name}.canExecute$   // Observable<boolean> — use to enable/disable UI
-// ${name}.executeError$ // Observable<unknown> — last execution error
+// ${name}.isExecuting$  // ReadonlySignal<boolean> — use for loading state
+// ${name}.canExecute$   // ReadonlySignal<boolean> — use to enable/disable UI
+// ${name}.executeError$ // ReadonlySignal<unknown> — last execution error
 `;
 }
 
@@ -62,7 +62,7 @@ ${registrations}
 
 // Usage:
 // ${name}.execute();
-// ${name}.isExecuting$  // true while any child runs
-// ${name}.canExecute$   // true when ALL children can execute
+// ${name}.isExecuting$  // ReadonlySignal<boolean>, true while any child runs
+// ${name}.canExecute$   // ReadonlySignal<boolean>, true when ALL children can execute
 `;
 }

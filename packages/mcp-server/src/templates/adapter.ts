@@ -1,6 +1,6 @@
 import type { ViewModelStyle } from "./viewmodel.js";
 
-export type Framework = "react" | "vue" | "vanilla" | "angular";
+export type Framework = "react" | "vue" | "vanilla" | "angular" | "lit";
 
 export interface AdapterTemplateParams {
   name: string;
@@ -19,6 +19,8 @@ export function adapterTemplate(p: AdapterTemplateParams): string {
       return vanillaAdapterTemplate(name, viewModelStyle);
     case "angular":
       return angularAdapterTemplate(name, viewModelStyle);
+    case "lit":
+      return litAdapterTemplate(name, viewModelStyle);
   }
 }
 
@@ -46,17 +48,12 @@ function factoryViewModelSetup(name: string): string {
 function reactAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
   const usesFactory = viewModelStyle === "reactive-factory";
   const loadCommand = loadCommandFor(viewModelStyle);
-  return `import { useEffect, useState } from "react";
-import type { Observable } from "rxjs";
+  return `import { useEffect, useState, useSyncExternalStore } from "react";
+import type { ReadonlySignal } from "@web-loom/signals-core";
 ${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
 
-function useObservable<T>(obs: Observable<T>, initial: T): T {
-  const [value, setValue] = useState<T>(initial);
-  useEffect(() => {
-    const sub = obs.subscribe(setValue);
-    return () => sub.unsubscribe();
-  }, [obs]);
-  return value;
+function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 
 export function use${name}() {
@@ -65,9 +62,9 @@ ${usesFactory ? `    return create${name}ViewModel();` : `    const model = new 
     return new ${name}ViewModel(model);`}
   });
 
-  const data = useObservable(vm.data$, null);
-  const isLoading = useObservable(vm.isLoading$, false);
-  const error = useObservable(vm.error$, null);
+  const data = useSignal(vm.data$);
+  const isLoading = useSignal(vm.isLoading$);
+  const error = useSignal(vm.error$);
 
   useEffect(() => {
     vm.${loadCommand}.execute();
@@ -82,26 +79,29 @@ ${usesFactory ? `    return create${name}ViewModel();` : `    const model = new 
 function vueAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
   const usesFactory = viewModelStyle === "reactive-factory";
   const loadCommand = loadCommandFor(viewModelStyle);
-  return `import { ref, onMounted, onUnmounted } from "vue";
+  return `import { shallowRef, onMounted, onUnmounted, type ShallowRef } from "vue";
+import { observe, type ReadonlySignal } from "@web-loom/signals-core";
 ${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
+
+function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
+  const value = shallowRef<T>(sig.peek());
+  const stop = observe(sig, (next) => {
+    value.value = next;
+  });
+  onUnmounted(stop);
+  return value;
+}
 
 export function use${name}() {
 ${usesFactory ? `  const vm = create${name}ViewModel();` : `  const model = new ${name}Model();
   const vm = new ${name}ViewModel(model);`}
 
-  const data = ref(null);
-  const isLoading = ref(false);
-  const error = ref(null);
-
-  const subscriptions = [
-    vm.data$.subscribe((v) => { data.value = v; }),
-    vm.isLoading$.subscribe((v) => { isLoading.value = v; }),
-    vm.error$.subscribe((v) => { error.value = v; }),
-  ];
+  const data = useSignal(vm.data$);
+  const isLoading = useSignal(vm.isLoading$);
+  const error = useSignal(vm.error$);
 
   onMounted(() => { vm.${loadCommand}.execute(); });
   onUnmounted(() => {
-    subscriptions.forEach((s) => s.unsubscribe());
     vm.dispose();
   });
 
@@ -113,22 +113,23 @@ ${usesFactory ? `  const vm = create${name}ViewModel();` : `  const model = new 
 function vanillaAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
   const usesFactory = viewModelStyle === "reactive-factory";
   const loadCommand = loadCommandFor(viewModelStyle);
-  return `${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
+  return `import { observe } from "@web-loom/signals-core";
+${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
 
 export function create${name}Controller() {
 ${usesFactory ? `  const vm = create${name}ViewModel();` : `  const model = new ${name}Model();
   const vm = new ${name}ViewModel(model);`}
 
-  const subscriptions = [
-    vm.data$.subscribe((data) => {
+  const teardowns = [
+    observe(vm.data$, (data) => {
       // TODO: update DOM with data
       console.log("data:", data);
     }),
-    vm.isLoading$.subscribe((loading) => {
+    observe(vm.isLoading$, (loading) => {
       // TODO: show/hide loader
       console.log("loading:", loading);
     }),
-    vm.error$.subscribe((err) => {
+    observe(vm.error$, (err) => {
       if (err) console.error("error:", err);
     }),
   ];
@@ -138,7 +139,7 @@ ${usesFactory ? `  const vm = create${name}ViewModel();` : `  const model = new 
   return {
     vm,
     dispose() {
-      subscriptions.forEach((s) => s.unsubscribe());
+      teardowns.forEach((teardown) => teardown());
       vm.dispose();
     },
   };
@@ -149,23 +150,91 @@ ${usesFactory ? `  const vm = create${name}ViewModel();` : `  const model = new 
 function angularAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
   const usesFactory = viewModelStyle === "reactive-factory";
   const loadCommand = loadCommandFor(viewModelStyle);
-  return `import { Injectable, OnDestroy } from "@angular/core";
-import { Subscription } from "rxjs";
+  return `import { DestroyRef, Injectable, OnDestroy, inject, signal, type Signal } from "@angular/core";
+import type { ReadonlySignal } from "@web-loom/signals-core";
 ${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
+
+function fromLoomSignal<T>(source: ReadonlySignal<T>, destroyRef: DestroyRef): Signal<T> {
+  const mirror = signal<T>(source.peek());
+  const stop = source.subscribe((value) => mirror.set(value));
+  destroyRef.onDestroy(stop);
+  return mirror.asReadonly();
+}
 
 @Injectable()
 export class ${name}Service implements OnDestroy {
 ${usesFactory ? `  readonly vm = create${name}ViewModel();` : `  private readonly _model = new ${name}Model();
   readonly vm = new ${name}ViewModel(this._model);`}
-  private readonly _subs = new Subscription();
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly data = fromLoomSignal(this.vm.data$, this.destroyRef);
+  readonly isLoading = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+  readonly error = fromLoomSignal(this.vm.error$, this.destroyRef);
 
   constructor() {
     this.vm.${loadCommand}.execute();
   }
 
   ngOnDestroy(): void {
-    this._subs.unsubscribe();
     this.vm.dispose();
+  }
+}
+`;
+}
+
+function litAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
+  const usesFactory = viewModelStyle === "reactive-factory";
+  const loadCommand = loadCommandFor(viewModelStyle);
+  const elementName = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+
+  return `import { LitElement, html } from "lit";
+import { customElement, state } from "lit/decorators.js";
+import { observe } from "@web-loom/signals-core";
+${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
+
+@customElement("${elementName}-view")
+export class ${name}ViewElement extends LitElement {
+${usesFactory ? `  private readonly vm = create${name}ViewModel();` : `  private readonly model = new ${name}Model();
+  private readonly vm = new ${name}ViewModel(this.model);`}
+  private readonly teardowns: Array<() => void> = [];
+
+  @state()
+  private data = this.vm.data$.peek();
+
+  @state()
+  private isLoading = this.vm.isLoading$.peek();
+
+  @state()
+  private error = this.vm.error$.peek();
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.teardowns.push(
+      observe(this.vm.data$, (value) => {
+        this.data = value;
+      }),
+      observe(this.vm.isLoading$, (value) => {
+        this.isLoading = value;
+      }),
+      observe(this.vm.error$, (value) => {
+        this.error = value;
+      })
+    );
+    void this.vm.${loadCommand}.execute();
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.teardowns.splice(0).forEach((teardown) => teardown());
+    this.vm.dispose();
+  }
+
+  render() {
+    return html\`
+      \${this.isLoading ? html\`<p>Loading...</p>\` : null}
+      \${this.error ? html\`<p role="alert">\${String(this.error)}</p>\` : null}
+      <pre>\${JSON.stringify(this.data, null, 2)}</pre>
+    \`;
   }
 }
 `;

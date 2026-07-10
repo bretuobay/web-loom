@@ -32,7 +32,7 @@ function isNamedType(value: string): boolean {
   return /^[A-Za-z_$][\w$]*$/.test(value);
 }
 
-function customCommandBlock(cmd: CustomCommandDef): string {
+function customCommandBlock(cmd: CustomCommandDef, registerExpression = "this.registerCommand"): string {
   const pType = cmd.paramType ?? "void";
   const rType = cmd.resultType ?? "void";
   const executeFn =
@@ -40,7 +40,7 @@ function customCommandBlock(cmd: CustomCommandDef): string {
       ? `async () => {\n    // TODO: implement ${cmd.name}\n  }`
       : `async (_param: ${pType}) => {\n    // TODO: implement ${cmd.name}\n  }`;
   return `
-  public readonly ${cmd.name} = this.registerCommand(
+  public readonly ${cmd.name} = ${registerExpression}(
     new Command<${pType}, ${rType}>(${executeFn})
   );`;
 }
@@ -63,13 +63,28 @@ function restfulClassTemplate(p: ViewModelTemplateParams): string {
     ? `import { RestfulApiViewModel, Command } from "@web-loom/mvvm-core";`
     : `import { RestfulApiViewModel } from "@web-loom/mvvm-core";`;
 
-  const commandBlocks = customCommands.map(customCommandBlock).join("\n");
+  const commandBlocks = customCommands.map((cmd) => customCommandBlock(cmd, "this.registerCustomCommand")).join("\n");
+  const customCommandSupport = hasCustomCommands
+    ? `
+  private readonly customCommands: Command<any, any>[] = [];
+
+  private registerCustomCommand<TParam, TResult>(command: Command<TParam, TResult>): Command<TParam, TResult> {
+    this.customCommands.push(command);
+    return command;
+  }
+`
+    : "";
+  const customCommandDispose = hasCustomCommands
+    ? `
+    this.customCommands.forEach((command) => command.dispose());
+    this.customCommands.length = 0;`
+    : "";
 
   return `${commandImport}
 import type { ${dataType}, ${name}ListSchema } from "${schemaMod}";
 import { ${modelClass} } from "${modelMod}";
 
-export class ${name}ViewModel extends RestfulApiViewModel<${dataType}, typeof ${name}ListSchema> {${commandBlocks}
+export class ${name}ViewModel extends RestfulApiViewModel<${dataType}, typeof ${name}ListSchema> {${customCommandSupport}${commandBlocks}
 
   constructor(model: ${modelClass}) {
     super(model);
@@ -77,6 +92,7 @@ export class ${name}ViewModel extends RestfulApiViewModel<${dataType}, typeof ${
 
   public override dispose(): void {
     super.dispose();
+${customCommandDispose}
   }
 }
 `;
@@ -115,7 +131,7 @@ function baseCommandsTemplate(p: ViewModelTemplateParams): string {
   const modelMod = modelModuleFor(modelClass);
   const commands =
     customCommands.length > 0
-      ? customCommands.map(customCommandBlock).join("\n")
+      ? customCommands.map((cmd) => customCommandBlock(cmd)).join("\n")
       : `
   public readonly refreshCommand = this.registerCommand(
     new Command<void, void>(async () => {
