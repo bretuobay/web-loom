@@ -6,7 +6,7 @@ section: Framework Implementations
 
 # Chapter 11: Lit Web Components Implementation
 
-In the previous three chapters, we explored MVVM implementations in React, Vue, and Angular—three of the most popular frontend frameworks. Each required different approaches to integrate with ViewModels: React used custom hooks, Vue used composables, and Angular leveraged its native RxJS support with the async pipe. Now we turn to Lit—a library that takes a fundamentally different approach by building on **web standards**.
+In the previous three chapters, we explored MVVM implementations in React, Vue, and Angular—three of the most popular frontend frameworks. Each required a small bridge to mirror `@web-loom/signals-core` signals into its own reactivity system: React used a hook, Vue used a composable, Angular used `fromLoomSignal`. Now we turn to Lit—a library that takes a fundamentally different approach by building on **web standards**.
 
 Lit is a lightweight library for building fast, standards-based web components. Unlike React, Vue, and Angular, which create their own component models, Lit components are actual Custom Elements—part of the Web Components standard supported natively by browsers. This means Lit components can be used anywhere HTML can be used, regardless of framework.
 
@@ -15,8 +15,8 @@ Despite this standards-based approach, Lit integrates beautifully with MVVM arch
 ## 11.1 The Lit-MVVM Integration Approach
 
 Lit components need to:
-1. Subscribe to ViewModel observables
-2. Trigger re-renders when observable values change
+1. Read ViewModel signals
+2. Trigger re-renders when signal values change
 3. Clean up subscriptions when components disconnect
 4. Execute ViewModel commands in response to user actions
 
@@ -28,7 +28,7 @@ Lit provides several features that make MVVM integration straightforward:
 - **Lightweight**: No virtual DOM overhead—updates are applied directly to the real DOM
 
 
-Unlike React and Vue, Lit doesn't need a custom hook or composable. Instead, we subscribe directly to observables in `connectedCallback` and update `@state` properties, which automatically trigger re-renders.
+Unlike React and Vue, Lit doesn't need a custom hook or composable at all. Instead, we call `observe()` directly from `@web-loom/signals-core` in `connectedCallback` and update `@state` properties, which automatically trigger re-renders.
 
 ## 11.2 Lit Decorators and Reactive State
 
@@ -45,27 +45,27 @@ Here's a simple example showing how these decorators work with ViewModels:
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
 @customElement('greenhouse-card')
 export class GreenhouseCard extends LitElement {
   createRenderRoot() {
     return this;
   }
-  
+
   @state() private greenhouses: GreenhouseData[] = [];
-  private subscription: Subscription | null = null;
+  private unsubscribe: (() => void) | null = null;
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscription = greenHouseViewModel.data$.subscribe((data: any) => {
+    this.unsubscribe = observe(greenHouseViewModel.data$, (data: any) => {
       this.greenhouses = data;
     });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscription?.unsubscribe();
+    this.unsubscribe?.();
   }
 
   render() {
@@ -101,21 +101,21 @@ The `@state()` decorator marks `greenhouses` as reactive state. When this proper
 ```typescript
 connectedCallback() {
   super.connectedCallback();
-  this.subscription = greenHouseViewModel.data$.subscribe((data: any) => {
+  this.unsubscribe = observe(greenHouseViewModel.data$, (data: any) => {
     this.greenhouses = data;
   });
 }
 ```
-`connectedCallback` is a web component lifecycle method called when the element is added to the DOM. We subscribe to the ViewModel's `data$` observable and update the `@state` property when new data arrives. This triggers a re-render automatically.
+`connectedCallback` is a web component lifecycle method called when the element is added to the DOM. We call `observe()` on the ViewModel's `data$` signal and update the `@state` property when a value arrives. `observe()` invokes the callback immediately with the current value, then again on every future change, and it returns a plain unsubscribe function—no `Subscription` object to manage.
 
 **4. Cleanup in disconnectedCallback**:
 ```typescript
 disconnectedCallback() {
   super.disconnectedCallback();
-  this.subscription?.unsubscribe();
+  this.unsubscribe?.();
 }
 ```
-`disconnectedCallback` is called when the element is removed from the DOM. We unsubscribe to prevent memory leaks—the same pattern we saw in React and Vue.
+`disconnectedCallback` is called when the element is removed from the DOM. We call the unsubscribe function to prevent memory leaks—the same pattern we saw in React and Vue.
 
 **5. Declarative Template**:
 ```typescript
@@ -134,9 +134,9 @@ The `render()` method returns a template using Lit's `html` tagged template lite
 
 
 
-## 11.3 Building the Sensor List: Direct Observable Subscriptions
+## 11.3 Building the Sensor List: Direct Signal Subscriptions
 
-The Sensor List component demonstrates a complete CRUD interface with Lit. Unlike Angular's async pipe, Lit requires manual subscription management, but the pattern is straightforward and similar to React and Vue.
+The Sensor List component demonstrates a complete CRUD interface with Lit. Unlike Angular's `fromLoomSignal` bridge, Lit requires manual subscription management, but the pattern is straightforward and similar to React and Vue.
 
 Here's the complete implementation:
 
@@ -145,20 +145,20 @@ Here's the complete implementation:
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { sensorViewModel, type SensorListData } from '@repo/view-models/SensorViewModel';
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
 @customElement('sensor-list')
 export class SensorList extends LitElement {
   createRenderRoot() {
     return this;
   }
-  
+
   @state() private sensors: SensorListData = [];
-  private subscription: Subscription | null = null;
+  private unsubscribe: (() => void) | null = null;
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscription = sensorViewModel.data$.subscribe((data: any) => {
+    this.unsubscribe = observe(sensorViewModel.data$, (data: any) => {
       this.sensors = data;
     });
     sensorViewModel.fetchCommand.execute();
@@ -166,7 +166,7 @@ export class SensorList extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscription?.unsubscribe();
+    this.unsubscribe?.();
   }
 
   render() {
@@ -201,13 +201,13 @@ Key patterns in this component:
 ```typescript
 connectedCallback() {
   super.connectedCallback();
-  this.subscription = sensorViewModel.data$.subscribe((data: any) => {
+  this.unsubscribe = observe(sensorViewModel.data$, (data: any) => {
     this.sensors = data;
   });
   sensorViewModel.fetchCommand.execute();
 }
 ```
-After subscribing to the data observable, we immediately execute the `fetchCommand` to load sensor data. This is the same pattern we saw in React and Vue.
+After subscribing to the data signal, we immediately execute the `fetchCommand` to load sensor data. This is the same pattern we saw in React and Vue.
 
 **2. Conditional Rendering**:
 ```typescript
@@ -248,7 +248,7 @@ Here's the complete Dashboard implementation:
 // apps/mvvm-lit/src/components/dashboard-view.ts
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { Subscription, combineLatest } from 'rxjs';
+import { computed, observe } from '@web-loom/signals-core';
 
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
@@ -265,20 +265,22 @@ export class DashboardView extends LitElement {
   createRenderRoot() {
     return this;
   }
-  
+
   @state() private isLoading = true;
-  private subscriptions: Subscription[] = [];
+  private teardowns: Array<() => void> = [];
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscriptions.push(
-      combineLatest([
-        greenHouseViewModel.isLoading$,
-        sensorViewModel.isLoading$,
-        sensorReadingViewModel.isLoading$,
-        thresholdAlertViewModel.isLoading$,
-      ]).subscribe(([gh, s, sr, ta]) => {
-        this.isLoading = gh || s || sr || ta;
+    const anyLoading$ = computed(
+      () =>
+        greenHouseViewModel.isLoading$.get() ||
+        sensorViewModel.isLoading$.get() ||
+        sensorReadingViewModel.isLoading$.get() ||
+        thresholdAlertViewModel.isLoading$.get(),
+    );
+    this.teardowns.push(
+      observe(anyLoading$, (loading) => {
+        this.isLoading = loading;
       }),
     );
     this.fetchData();
@@ -286,7 +288,7 @@ export class DashboardView extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscriptions.forEach((sub) => sub.unsubscribe());
+    this.teardowns.forEach((teardown) => teardown());
   }
 
   private async fetchData() {
@@ -333,26 +335,28 @@ export class DashboardView extends LitElement {
 This component introduces several advanced patterns:
 
 
-**1. Multiple Subscriptions**:
+**1. Teardown Functions Instead of Subscription Objects**:
 ```typescript
-private subscriptions: Subscription[] = [];
+private teardowns: Array<() => void> = [];
 ```
-Instead of tracking individual subscriptions, we store them in an array. This makes cleanup simpler when dealing with multiple observables.
+Instead of tracking `Subscription` instances, we store plain unsubscribe functions in an array. This makes cleanup simpler when dealing with multiple signals.
 
-**2. combineLatest for Coordinated State**:
+**2. computed() for Coordinated State**:
 ```typescript
-this.subscriptions.push(
-  combineLatest([
-    greenHouseViewModel.isLoading$,
-    sensorViewModel.isLoading$,
-    sensorReadingViewModel.isLoading$,
-    thresholdAlertViewModel.isLoading$,
-  ]).subscribe(([gh, s, sr, ta]) => {
-    this.isLoading = gh || s || sr || ta;
+const anyLoading$ = computed(
+  () =>
+    greenHouseViewModel.isLoading$.get() ||
+    sensorViewModel.isLoading$.get() ||
+    sensorReadingViewModel.isLoading$.get() ||
+    thresholdAlertViewModel.isLoading$.get(),
+);
+this.teardowns.push(
+  observe(anyLoading$, (loading) => {
+    this.isLoading = loading;
   }),
 );
 ```
-RxJS's `combineLatest` operator combines multiple observables into a single stream. The dashboard shows a loading state if *any* ViewModel is loading. This is a powerful pattern for coordinating state across multiple ViewModels.
+`@web-loom/signals-core`'s `computed()` combines multiple signals into a single derived signal—the direct replacement for RxJS's `combineLatest`. The dashboard shows a loading state if *any* ViewModel is loading. We then `observe()` the computed signal once to mirror its value into `@state`. This is a powerful pattern for coordinating state across multiple ViewModels, and it reads more directly than a `combineLatest([...]).subscribe(([a, b, c, d]) => ...)` chain—it's just a boolean expression.
 
 **3. Parallel Command Execution**:
 ```typescript
@@ -375,10 +379,10 @@ We use `Promise.all()` to execute all fetch commands in parallel. This is more e
 ```typescript
 disconnectedCallback() {
   super.disconnectedCallback();
-  this.subscriptions.forEach((sub) => sub.unsubscribe());
+  this.teardowns.forEach((teardown) => teardown());
 }
 ```
-When the component disconnects, we unsubscribe from all subscriptions at once using `forEach()`. This ensures no memory leaks regardless of how many subscriptions we have.
+When the component disconnects, we call every teardown function at once using `forEach()`. This ensures no memory leaks regardless of how many subscriptions we have.
 
 **5. Composing Web Components**:
 ```typescript
@@ -402,20 +406,21 @@ Here's the implementation:
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
 @customElement('greenhouse-list')
 export class GreenhouseList extends LitElement {
   createRenderRoot() {
     return this;
   }
-  
-  @state() private greenhouses: GreenhouseData[] = [];
-  private dataSubscription: Subscription | null = null;
+  @state()
+  private greenhouses: GreenhouseData[] = [];
+
+  private unsubscribeData: (() => void) | null = null;
 
   connectedCallback() {
     super.connectedCallback();
-    this.dataSubscription = greenHouseViewModel.data$.subscribe((data: any) => {
+    this.unsubscribeData = observe(greenHouseViewModel.data$, (data: any) => {
       this.greenhouses = data;
     });
     greenHouseViewModel.fetchCommand.execute();
@@ -423,7 +428,7 @@ export class GreenhouseList extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.dataSubscription?.unsubscribe();
+    this.unsubscribeData?.();
   }
 
   private handleSubmit(event: SubmitEvent) {
@@ -691,61 +696,58 @@ The app shell listens for custom `navigate` events from child components (like t
 
 ## 11.7 Comparing Lit with React, Vue, and Angular
 
-Now that we've seen MVVM implementations in four frameworks, let's compare their approaches side by side. We'll focus on the key integration points: subscribing to observables, triggering re-renders, and cleanup.
+Now that we've seen MVVM implementations in four frameworks, let's compare their approaches side by side. We'll focus on the key integration points: reading signals, triggering re-renders, and cleanup.
 
-### 11.7.1 Observable Subscription Patterns
+### 11.7.1 Signal Subscription Patterns
 
-**React (Custom Hook)**:
+**React (useSignal hook)**:
 ```typescript
-const sensors = useObservable(sensorViewModel.data$, []);
-const isLoading = useObservable(sensorViewModel.isLoading$, true);
+const sensors = useSignal(sensorViewModel.data$);
+const isLoading = useSignal(sensorViewModel.isLoading$);
 
-// useObservable internally:
-// - Creates state with useState
-// - Subscribes in useEffect
-// - Returns cleanup function to unsubscribe
+// useSignal internally:
+// - Uses useSyncExternalStore(sig.subscribe, sig.get, sig.get)
+// - React manages subscribe/unsubscribe timing
 ```
 
-**Vue (Composable)**:
+**Vue (useSignal composable)**:
 ```typescript
-const sensors = useObservable(sensorViewModel.data$, []);
-const isLoading = useObservable(sensorViewModel.isLoading$, true);
+const sensors = useSignal(sensorViewModel.data$);
+const isLoading = useSignal(sensorViewModel.isLoading$);
 
-// useObservable internally:
-// - Creates ref with ref()
-// - Subscribes immediately
-// - Unsubscribes in onUnmounted
+// useSignal internally:
+// - Seeds a shallowRef with sig.peek()
+// - Subscribes via observe(), unsubscribes in onUnmounted
 ```
 
-**Angular (Async Pipe)**:
+**Angular (fromLoomSignal bridge)**:
 ```html
-<ul *ngIf="data$ | async as sensors">
+<ul *ngIf="data$() as sensors">
   <li *ngFor="let sensor of sensors">...</li>
 </ul>
-<p *ngIf="loading$ | async">Loading...</p>
+<p *ngIf="loading$()">Loading...</p>
 
-<!-- Async pipe internally:
-     - Subscribes when component renders
-     - Triggers change detection on new values
-     - Unsubscribes when component destroys
+<!-- fromLoomSignal internally:
+     - Seeds a native Angular signal with sig.peek()
+     - Subscribes via sig.subscribe(), tears down via DestroyRef
 -->
 ```
 
 **Lit (Direct Subscription)**:
 ```typescript
 @state() private sensors: SensorListData = [];
-private subscription: Subscription | null = null;
+private unsubscribe: (() => void) | null = null;
 
 connectedCallback() {
   super.connectedCallback();
-  this.subscription = sensorViewModel.data$.subscribe((data: any) => {
+  this.unsubscribe = observe(sensorViewModel.data$, (data: any) => {
     this.sensors = data;
   });
 }
 
 disconnectedCallback() {
   super.disconnectedCallback();
-  this.subscription?.unsubscribe();
+  this.unsubscribe?.();
 }
 ```
 
@@ -753,11 +755,11 @@ disconnectedCallback() {
 
 | Aspect | React | Vue | Angular | Lit |
 |--------|-------|-----|---------|-----|
-| **Integration** | Custom hook | Composable | Async pipe | Direct subscription |
-| **Boilerplate** | Medium | Medium | Low | Medium |
-| **Lifecycle** | useEffect | onMounted/onUnmounted | Automatic | connectedCallback/disconnectedCallback |
-| **Re-render Trigger** | setState | ref.value = | Change detection | @state property |
-| **Cleanup** | useEffect return | onUnmounted | Automatic | disconnectedCallback |
+| **Integration** | `useSignal` hook | `useSignal` composable | `fromLoomSignal` bridge | Direct `observe()` call |
+| **Boilerplate** | Low | Low | Low | Medium |
+| **Lifecycle** | useEffect | onMounted/onUnmounted | ngOnInit + DestroyRef | connectedCallback/disconnectedCallback |
+| **Re-render Trigger** | useSyncExternalStore | shallowRef.value = | native Angular signal `.set()` | @state property |
+| **Cleanup** | Managed by React | onUnmounted | DestroyRef.onDestroy | disconnectedCallback |
 | **Template Syntax** | JSX | Vue template | Angular template | Tagged template literals |
 | **Standards-Based** | No | No | No | Yes (Web Components) |
 | **Bundle Size** | Large | Medium | Large | Small |
@@ -796,16 +798,16 @@ export const sensorViewModel = new RestfulApiViewModel(
 );
 
 // Exposes:
-// - data$: Observable<SensorListData>
-// - isLoading$: Observable<boolean>
-// - error$: Observable<any>
+// - data$: ReadonlySignal<SensorListData>
+// - isLoading$: ReadonlySignal<boolean>
+// - error$: ReadonlySignal<any>
 // - fetchCommand, createCommand, updateCommand, deleteCommand
 ```
 
 **React Usage**:
 ```typescript
-const sensors = useObservable(sensorViewModel.data$, []);
-const isLoading = useObservable(sensorViewModel.isLoading$, true);
+const sensors = useSignal(sensorViewModel.data$);
+const isLoading = useSignal(sensorViewModel.isLoading$);
 
 useEffect(() => {
   sensorViewModel.fetchCommand.execute();
@@ -814,8 +816,8 @@ useEffect(() => {
 
 **Vue Usage**:
 ```typescript
-const sensors = useObservable(sensorViewModel.data$, []);
-const isLoading = useObservable(sensorViewModel.isLoading$, true);
+const sensors = useSignal(sensorViewModel.data$);
+const isLoading = useSignal(sensorViewModel.isLoading$);
 
 onMounted(() => {
   sensorViewModel.fetchCommand.execute();
@@ -824,8 +826,8 @@ onMounted(() => {
 
 **Angular Usage**:
 ```typescript
-public data$ = sensorViewModel.data$;
-public loading$ = sensorViewModel.isLoading$;
+data$ = fromLoomSignal(sensorViewModel.data$, this.destroyRef);
+loading$ = fromLoomSignal(sensorViewModel.isLoading$, this.destroyRef);
 
 ngOnInit() {
   sensorViewModel.fetchCommand.execute();
@@ -835,11 +837,11 @@ ngOnInit() {
 **Lit Usage**:
 ```typescript
 @state() private sensors: SensorListData = [];
-private subscription: Subscription | null = null;
+private unsubscribe: (() => void) | null = null;
 
 connectedCallback() {
   super.connectedCallback();
-  this.subscription = sensorViewModel.data$.subscribe((data) => {
+  this.unsubscribe = observe(sensorViewModel.data$, (data) => {
     this.sensors = data;
   });
   sensorViewModel.fetchCommand.execute();
@@ -873,6 +875,7 @@ Lit provides just enough abstraction to make web components ergonomic, but it do
 - Native form APIs (`FormData`, `HTMLFormElement`)
 - Native event APIs (`CustomEvent`, `dispatchEvent`)
 - Native lifecycle callbacks (`connectedCallback`, `disconnectedCallback`)
+- `@web-loom/signals-core`'s `observe()`/`.subscribe()`, which are themselves plain functions with no library-specific ceremony
 
 This means less to learn and less framework-specific knowledge required.
 
@@ -914,7 +917,7 @@ This flexibility is unique to Lit and web components.
 
 1. **Lit is standards-based**: Lit components are actual Custom Elements that work anywhere HTML works, making them the most portable option for MVVM components.
 
-2. **Direct observable subscriptions**: Unlike Angular's async pipe, Lit requires manual subscription management in `connectedCallback` and cleanup in `disconnectedCallback`, similar to React and Vue.
+2. **Direct signal subscriptions**: Unlike Angular's `fromLoomSignal` bridge, Lit calls `observe()` directly in `connectedCallback` and cleans up in `disconnectedCallback`, similar in shape to React and Vue's bridges but without a hook/composable wrapper.
 
 3. **Reactive properties with decorators**: The `@state()` and `@property()` decorators make properties reactive—when they change, Lit automatically re-renders the component.
 
@@ -930,7 +933,7 @@ This flexibility is unique to Lit and web components.
 
 9. **Optional Shadow DOM**: Lit supports both Shadow DOM (for style encapsulation) and light DOM (for global styles), giving you flexibility based on your needs.
 
-10. **Framework-agnostic MVVM**: Lit proves that MVVM architecture works beautifully with web standards—no framework required, just the platform.
+10. **Framework-agnostic MVVM**: Lit proves that MVVM architecture works beautifully with web standards—no framework required, just the platform and `@web-loom/signals-core`'s plain-function API.
 
 ## 11.11 What's Next
 
@@ -939,4 +942,3 @@ We've now seen MVVM implementations in React, Vue, Angular, and Lit—four very 
 In the next chapter, we'll explore a vanilla JavaScript implementation of GreenWatch that uses the same ViewModels but with zero framework dependencies. We'll see how MVVM works with direct DOM manipulation, EJS templates, and pure JavaScript—proving that MVVM is truly framework-agnostic.
 
 After that, we'll shift focus from framework implementations to **framework-agnostic patterns**—exploring reactive state management, event-driven communication, data fetching strategies, and UI behavior patterns that support MVVM architecture regardless of which framework (or no framework) you choose.
-

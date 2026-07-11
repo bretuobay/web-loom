@@ -1,10 +1,11 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 const PACKAGE_CATALOG = `# @web-loom/* Package Catalog
 
 | Package | Description | Key Exports | When to Use |
 |---------|-------------|-------------|-------------|
 | \`@web-loom/mvvm-core\` | Core MVVM library | \`BaseModel\`, \`RestfulApiModel\`, \`BaseViewModel\`, \`RestfulApiViewModel\`, \`Command\`, \`CompositeCommand\`, \`ObservableCollection\` | Always — the foundation of any web-loom app |
+| \`@web-loom/signals-core\` | Reactive signal primitives | \`signal\`, \`computed\`, \`observe\`, \`ReadonlySignal\` | Bridge web-loom state into React, Vue, Angular, Lit, or vanilla views |
 | \`@web-loom/query-core\` | Data fetching & caching | \`QueryCore\`, \`InMemoryCacheProvider\`, \`LocalStorageCacheProvider\`, \`IndexedDBCacheProvider\` | Need stale-while-revalidate caching, background refetch, or request deduplication |
 | \`@web-loom/store-core\` | Minimal reactive state | \`createStore\`, \`PersistedStore\`, \`MemoryAdapter\`, \`LocalStorageAdapter\`, \`IndexedDBAdapter\` | UI-only state: theme, sidebar open/closed, active modal |
 | \`@web-loom/ui-core\` | Headless UI behaviors | \`createDialogBehavior\`, \`createFormBehavior\`, \`createListSelection\`, \`createRovingFocus\`, \`createDragDropBehavior\`, \`createUndoRedoStack\`, \`createKeyboardShortcuts\` | Accessible, framework-agnostic UI primitives without styling |
@@ -27,14 +28,14 @@ const PACKAGE_CATALOG = `# @web-loom/* Package Catalog
 ## Minimum Install for a New App
 
 \`\`\`bash
-npm install @web-loom/mvvm-core rxjs zod
+npm install @web-loom/mvvm-core @web-loom/signals-core zod
 \`\`\`
 
 ## Typical App Stack
 
 \`\`\`bash
 # Core MVVM
-npm install @web-loom/mvvm-core @web-loom/query-core rxjs zod
+npm install @web-loom/mvvm-core @web-loom/signals-core @web-loom/query-core zod
 
 # UI state
 npm install @web-loom/store-core
@@ -49,12 +50,12 @@ npm install @web-loom/event-bus-core
 
 export function registerListPackagesTool(server: McpServer): void {
   server.registerTool(
-    "list_packages",
+    'list_packages',
     {
-      description: "List all @web-loom/* packages with descriptions, key exports, and guidance on when to use each.",
+      description: 'List all @web-loom/* packages with descriptions, key exports, and guidance on when to use each.',
     },
     async () => ({
-      content: [{ type: "text" as const, text: PACKAGE_CATALOG }],
-    })
+      content: [{ type: 'text' as const, text: PACKAGE_CATALOG }],
+    }),
   );
 }

@@ -10,12 +10,7 @@ interface SearchModalProps {
   featuredHrefs?: string[];
 }
 
-export default function SearchModal({
-  isOpen,
-  setIsOpen,
-  entries = [],
-  featuredHrefs = [],
-}: SearchModalProps) {
+export default function SearchModal({ isOpen, setIsOpen, entries = [], featuredHrefs = [] }: SearchModalProps) {
   return (
     <BrandSearchModal
       isOpen={isOpen}

@@ -398,7 +398,7 @@ export class AdvancedFieldManager {
 export class FieldFocusManager {
   private focusedField: string | null = null;
   private focusHistory: string[] = [];
-  private blurTimeouts = new Map<string, NodeJS.Timeout>();
+  private blurTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(private formInstance: FormInstance) {}
 

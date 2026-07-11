@@ -4,7 +4,7 @@
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": false,
-  "version": "0.5.4",
+  "version": "0.8.0",
   "type": "module",
   "files": [
     "dist"
@@ -21,7 +21,7 @@
   },
   "keywords": [
     "mvvm",
-    "rxjs",
+    "signals",
     "zod",
     "web-framework",
     "frontend",
@@ -47,7 +47,7 @@
   },
   "dependencies": {
     "@web-loom/query-core": "*",
-    "rxjs": "^7.8.2",
+    "@web-loom/signals-core": "*",
     "zod": "^3.25.67"
   }
 }

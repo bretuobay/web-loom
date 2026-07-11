@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { fromLoomSignal } from '../../utils/loom-signals';
 import { RouterModule } from '@angular/router';
 import { navigationViewModel } from '@repo/shared/view-models/NavigationViewModel';
 
@@ -10,7 +11,7 @@ import { navigationViewModel } from '@repo/shared/view-models/NavigationViewMode
   styleUrl: './header.component.scss',
 })
 export class HeaderComponent {
-  public navigationList$ = navigationViewModel.navigationList.items$;
+  public navigationList$ = fromLoomSignal(navigationViewModel.navigationList.items$);
 
   constructor() {}
 }

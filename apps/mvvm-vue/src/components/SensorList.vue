@@ -39,15 +39,15 @@
 <script setup lang="ts">
 import { onMounted, defineProps, watch, computed } from 'vue';
 import { sensorViewModel as importedSensorVMInstance } from '@repo/view-models/SensorViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import BackArrow from '../assets/back-arrow.svg';
 
 const props = defineProps<{
   greenhouseId?: string;
 }>();
 
-const isLoading = useObservable(importedSensorVMInstance.isLoading$, true);
-const allSensors = useObservable(importedSensorVMInstance.data$, []);
+const isLoading = useSignal(importedSensorVMInstance.isLoading$);
+const allSensors = useSignal(importedSensorVMInstance.data$);
 
 const filteredSensors = computed(() => {
   if (!allSensors.value) return [];

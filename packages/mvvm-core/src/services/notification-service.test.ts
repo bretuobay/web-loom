@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { NotificationService } from './notification-service';
-import { firstValueFrom, skip, Observable, take, filter } from 'rxjs'; // Added filter
-
-// Helper to get the next emitted value from an observable
-const nextValue = <T>(obs: Observable<T>): Promise<T> => {
-  return firstValueFrom(obs.pipe(skip(1), take(1))); // Ensure it takes only one after skipping
-};
 
 describe('NotificationService', () => {
   let service: NotificationService;
@@ -22,13 +16,13 @@ describe('NotificationService', () => {
   });
 
   it('should initialize with an empty array of notifications', async () => {
-    const notifications = await firstValueFrom(service.notifications$);
+    const notifications = service.notifications$.get();
     expect(notifications).toEqual([]);
   });
 
   it('showSuccess should add a success notification', async () => {
     service.showSuccess('Test success');
-    const notifications = await firstValueFrom(service.notifications$);
+    const notifications = service.notifications$.get();
     expect(notifications.length).toBe(1);
     expect(notifications[0].message).toBe('Test success');
     expect(notifications[0].type).toBe('success');
@@ -37,7 +31,7 @@ describe('NotificationService', () => {
 
   it('showError should add an error notification', async () => {
     service.showError('Test error');
-    const notifications = await firstValueFrom(service.notifications$);
+    const notifications = service.notifications$.get();
     expect(notifications.length).toBe(1);
     expect(notifications[0].message).toBe('Test error');
     expect(notifications[0].type).toBe('error');
@@ -45,7 +39,7 @@ describe('NotificationService', () => {
 
   it('showInfo should add an info notification', async () => {
     service.showInfo('Test info');
-    const notifications = await firstValueFrom(service.notifications$);
+    const notifications = service.notifications$.get();
     expect(notifications.length).toBe(1);
     expect(notifications[0].message).toBe('Test info');
     expect(notifications[0].type).toBe('info');
@@ -53,7 +47,7 @@ describe('NotificationService', () => {
 
   it('showWarning should add a warning notification', async () => {
     service.showWarning('Test warning');
-    const notifications = await firstValueFrom(service.notifications$);
+    const notifications = service.notifications$.get();
     expect(notifications.length).toBe(1);
     expect(notifications[0].message).toBe('Test warning');
     expect(notifications[0].type).toBe('warning');
@@ -61,7 +55,7 @@ describe('NotificationService', () => {
 
   it('showPersistentSuccess should add a persistent success notification', async () => {
     service.showPersistentSuccess('Persistent success');
-    const notifications = await firstValueFrom(service.notifications$);
+    const notifications = service.notifications$.get();
     expect(notifications.length).toBe(1);
     expect(notifications[0].type).toBe('success');
     expect(notifications[0].isPersistent).toBe(true);
@@ -70,14 +64,14 @@ describe('NotificationService', () => {
 
   it('showNotification with 0 duration should be persistent', async () => {
     service.showNotification('Persistent zero duration', 'info', 0);
-    const notifications = await firstValueFrom(service.notifications$);
+    const notifications = service.notifications$.get();
     expect(notifications.length).toBe(1);
     expect(notifications[0].isPersistent).toBe(true);
   });
 
   it('showNotification with negative duration should be persistent', async () => {
     service.showNotification('Persistent negative duration', 'info', -100);
-    const notifications = await firstValueFrom(service.notifications$);
+    const notifications = service.notifications$.get();
     expect(notifications.length).toBe(1);
     expect(notifications[0].isPersistent).toBe(true);
   });
@@ -93,19 +87,14 @@ describe('NotificationService', () => {
     service.showSuccess('Success 1'); // Keep one notification
 
     // Wait for both notifications to be present
-    await firstValueFrom(
-      service.notifications$.pipe(
-        filter((n) => n.length === 2),
-        take(1),
-      ),
-    );
+    expect(service.notifications$.get().length).toBe(2);
 
     service.dismissNotification(id1);
     // _notifications$ is a BehaviorSubject. After dismissNotification, its value is updated.
     // We want the current value AFTER the dismissal.
     // No skip(1) needed here as dismissNotification should cause an emission with the new state.
     await Promise.resolve(); // Ensure any synchronous changes within dismissNotification propagate
-    const notificationsAfterDismiss = await firstValueFrom(service.notifications$);
+    const notificationsAfterDismiss = service.notifications$.get();
     expect(notificationsAfterDismiss.length).toBe(1);
     expect(notificationsAfterDismiss[0].type).toBe('success');
 
@@ -114,23 +103,18 @@ describe('NotificationService', () => {
     // Ensure no further emissions due to dismissing non-existent ID (can be tricky to test reliably without complex setup)
     // For now, just check current state after a small delay
     await Promise.resolve(); // allow microtasks to flush
-    const notificationsAfterNonExistentDismiss = await firstValueFrom(service.notifications$);
+    const notificationsAfterNonExistentDismiss = service.notifications$.get();
     expect(notificationsAfterNonExistentDismiss.length).toBe(1);
   });
 
   it('clearAll should remove all notifications', async () => {
     service.showInfo('Info 1');
     service.showSuccess('Success 1');
-    await firstValueFrom(
-      service.notifications$.pipe(
-        filter((n) => n.length === 2),
-        take(1),
-      ),
-    );
+    expect(service.notifications$.get().length).toBe(2);
 
     service.clearAll();
     await Promise.resolve(); // Ensure synchronous changes propagate
-    const notifications = await firstValueFrom(service.notifications$);
+    const notifications = service.notifications$.get();
     expect(notifications.length).toBe(0);
   });
 
@@ -139,16 +123,11 @@ describe('NotificationService', () => {
     service.showSuccess('Success 1');
     service.showInfo('Info 2');
     service.showError('Error 1');
-    await firstValueFrom(
-      service.notifications$.pipe(
-        filter((n) => n.length === 4),
-        take(1),
-      ),
-    );
+    expect(service.notifications$.get().length).toBe(4);
 
     service.clearAll('info');
     await Promise.resolve(); // Ensure synchronous changes propagate
-    const notifications = await firstValueFrom(service.notifications$);
+    const notifications = service.notifications$.get();
     expect(notifications.length).toBe(2);
     expect(notifications.find((n) => n.type === 'info')).toBeUndefined();
     expect(notifications.find((n) => n.type === 'success')).toBeDefined();
@@ -160,74 +139,51 @@ describe('NotificationService', () => {
       service.showSuccess('Auto-dismiss test', 100); // Duration 100ms
 
       // 1. Wait for the notification to be added
-      await firstValueFrom(
-        service.notifications$.pipe(
-          filter((n) => n.length === 1),
-          take(1),
-        ),
-      );
+      expect(service.notifications$.get().length).toBe(1);
 
-      // 2. Setup promise to wait for the dismissal (next emission after adding)
-      const dismissedPromise = firstValueFrom(service.notifications$.pipe(skip(1), take(1)));
-
-      // 3. Advance timers to trigger dismissal
+      // 2. Advance timers to trigger dismissal
       vi.runAllTimers(); // This should execute the 100ms timer
 
-      // 4. Await the dismissal
-      const finalNotifications = await dismissedPromise;
-      expect(finalNotifications.length).toBe(0);
+      // 3. The signal reflects the dismissal synchronously
+      expect(service.notifications$.get().length).toBe(0);
     }, 7000);
 
     it('persistent notifications should not auto-dismiss', async () => {
       service.showPersistentError('Persistent test');
-      await firstValueFrom(
-        service.notifications$.pipe(
-          filter((n) => n.length === 1),
-          take(1),
-        ),
-      );
+      expect(service.notifications$.get().length).toBe(1);
 
       vi.advanceTimersByTime(10000);
       await Promise.resolve(); // Flush microtasks
 
-      const notifications = await firstValueFrom(service.notifications$); // Get current state
+      const notifications = service.notifications$.get(); // Get current state
       expect(notifications.length).toBe(1);
     });
 
     it('manually dismissing a notification should cancel its auto-dismiss timer', async () => {
       const id = service.showInfo('Manual dismiss test', 100); // Auto-dismiss in 100ms
-      await firstValueFrom(
-        service.notifications$.pipe(
-          filter((n) => n.length === 1),
-          take(1),
-        ),
-      ); // Wait for it to appear
+      expect(service.notifications$.get().length).toBe(1);
 
       service.dismissNotification(id); // Manually dismiss it
       await Promise.resolve(); // Allow microtasks to flush
-      const notificationsAfterDismiss = await firstValueFrom(service.notifications$); // Get current state
+      const notificationsAfterDismiss = service.notifications$.get(); // Get current state
       expect(notificationsAfterDismiss.length).toBe(0);
 
       vi.advanceTimersByTime(100); // Advance time past when auto-dismiss would have fired
       await Promise.resolve();
       // If timer wasn't cancelled, it might try to dismiss again.
       // We check that the state remains 0 notifications.
-      const notificationsAfterTimerWouldHaveFired = await firstValueFrom(service.notifications$);
+      const notificationsAfterTimerWouldHaveFired = service.notifications$.get();
       expect(notificationsAfterTimerWouldHaveFired.length).toBe(0);
     });
   });
 
-  it('dispose should complete the notifications$ subject', async () => {
-    let isCompleted = false;
-    const subscription = service.notifications$.subscribe({
-      complete: () => {
-        isCompleted = true;
-      },
-    });
+  it('dispose should stop further notification updates', () => {
+    const spy = vi.fn();
+    const unsubscribe = service.notifications$.subscribe(spy);
     service.dispose();
     vi.runAllTimers();
-    await Promise.resolve();
-    expect(isCompleted).toBe(true);
-    subscription.unsubscribe();
+    service.showInfo('after dispose');
+    expect(spy).not.toHaveBeenCalled();
+    unsubscribe();
   });
 });

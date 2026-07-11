@@ -1,6 +1,6 @@
 {
   "name": "@web-loom/embed-core",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "Framework-agnostic embeddable widget SDK and host integration layer for Web Loom products.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",

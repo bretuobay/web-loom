@@ -8,7 +8,8 @@ import type { Metadata } from 'next';
 
 const GITHUB_URL = 'https://github.com/bretuobay/web-loom';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
-const PLUGIN_DOCS_URL = process.env.NEXT_PUBLIC_PLUGIN_DOCS_URL ?? 'https://plugin-architectures-book.webloomframework.com';
+const PLUGIN_DOCS_URL =
+  process.env.NEXT_PUBLIC_PLUGIN_DOCS_URL ?? 'https://plugin-architectures-book.webloomframework.com';
 
 export const metadata: Metadata = {
   title: {
@@ -106,7 +107,12 @@ const spokes = [
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-blue-400">
         <circle cx="10" cy="10" r="3" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M10 3v2M10 15v2M3 10h2M15 10h2M5.05 5.05l1.41 1.41M13.54 13.54l1.41 1.41M5.05 14.95l1.41-1.41M13.54 6.46l1.41-1.41" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path
+          d="M10 3v2M10 15v2M3 10h2M15 10h2M5.05 5.05l1.41 1.41M13.54 13.54l1.41 1.41M5.05 14.95l1.41-1.41M13.54 6.46l1.41-1.41"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
       </svg>
     ),
   },
@@ -116,7 +122,13 @@ const spokes = [
     href: '/docs/packages-roadmap',
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-blue-400">
-        <path d="M3 10h14M10 3l7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d="M3 10h14M10 3l7 7-7 7"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     ),
   },
@@ -125,16 +137,16 @@ const spokes = [
 // ─── Supported frameworks ─────────────────────────────────────────────────────
 
 const frameworks = [
-  { name: 'React',         href: '/docs/mvvm-react-use-case' },
-  { name: 'Vue',           href: '/docs/mvvm-vue-use-case' },
-  { name: 'Angular',       href: '/docs/mvvm-angular-use-case' },
-  { name: 'Lit',           href: '/docs/mvvm-lit-use-case' },
-  { name: 'Marko',         href: '/docs/mvvm-marko-use-case' },
-  { name: 'Svelte',        href: '/docs/mvvm-svelte-use-case' },
-  { name: 'Solid',         href: '/docs/mvvm-solid-use-case' },
-  { name: 'Qwik',          href: '/docs/mvvm-qwik-use-case' },
-  { name: 'React Native',  href: '/docs/mvvm-react-native-use-case' },
-  { name: 'Vanilla TS',    href: '/docs/mvvm-vanilla-use-case' },
+  { name: 'React', href: '/docs/mvvm-react-use-case' },
+  { name: 'Vue', href: '/docs/mvvm-vue-use-case' },
+  { name: 'Angular', href: '/docs/mvvm-angular-use-case' },
+  { name: 'Lit', href: '/docs/mvvm-lit-use-case' },
+  { name: 'Marko', href: '/docs/mvvm-marko-use-case' },
+  { name: 'Svelte', href: '/docs/mvvm-svelte-use-case' },
+  { name: 'Solid', href: '/docs/mvvm-solid-use-case' },
+  { name: 'Qwik', href: '/docs/mvvm-qwik-use-case' },
+  { name: 'React Native', href: '/docs/mvvm-react-native-use-case' },
+  { name: 'Vanilla TS', href: '/docs/mvvm-vanilla-use-case' },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -147,8 +159,7 @@ const jsonLd = {
       '@id': `${SITE_URL}/#website`,
       url: SITE_URL,
       name: 'Web Loom',
-      description:
-        'Framework-agnostic MVVM architecture for the modern web.',
+      description: 'Framework-agnostic MVVM architecture for the modern web.',
     },
     {
       '@type': 'Organization',
@@ -163,10 +174,7 @@ const jsonLd = {
 export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* ── Navbar ──────────────────────────────────────────────────────── */}
       <header className="fixed top-0 inset-x-0 z-30">
@@ -218,7 +226,6 @@ export default function HomePage() {
       </header>
 
       <main className="grow">
-
         {/* ── Hero ────────────────────────────────────────────────────────── */}
         <section className="relative bg-slate-950 text-slate-100 pt-36 pb-24 overflow-hidden">
           {/* Ambient radial glow */}
@@ -226,8 +233,7 @@ export default function HomePage() {
             className="absolute inset-0 pointer-events-none"
             aria-hidden="true"
             style={{
-              background:
-                'radial-gradient(ellipse 80% 50% at 50% -5%, rgba(0,191,255,0.13) 0%, transparent 70%)',
+              background: 'radial-gradient(ellipse 80% 50% at 50% -5%, rgba(0,191,255,0.13) 0%, transparent 70%)',
             }}
           />
           {/* Subtle grid */}
@@ -265,10 +271,9 @@ export default function HomePage() {
             </h1>
 
             <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-              MVVM is the architectural discipline. The browser is the platform.
-              Web Loom packages give you clean, typed APIs over mature browser primitives —
-              fetch, storage, routing, events — without heavy abstractions or framework lock-in.
-              Your business logic runs anywhere.
+              MVVM is the architectural discipline. The browser is the platform. Web Loom packages give you clean, typed
+              APIs over mature browser primitives — fetch, storage, routing, events — without heavy abstractions or
+              framework lock-in. Your business logic runs anywhere.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-3 mb-14">
@@ -278,7 +283,13 @@ export default function HomePage() {
               >
                 Get started
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                  <path d="M3 7h8M7.5 4l3.5 3-3.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M3 7h8M7.5 4l3.5 3-3.5 3"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </Link>
               <a
@@ -299,14 +310,15 @@ export default function HomePage() {
                 Scaffold a full Web Loom app in one command
               </h3>
               <p className="text-sm text-slate-400 mb-4 leading-relaxed">
-                `create-web-loom` runs Vite, installs Web Loom packages, and replaces runnable starter files with a polished MVVM starter UI.
-                It supports npm, pnpm, yarn, and bun.
+                `create-web-loom` runs Vite, installs Web Loom packages, and replaces runnable starter files with a
+                polished MVVM starter UI. It supports npm, pnpm, yarn, and bun.
               </p>
               <pre className="max-w-full rounded-xl bg-slate-950 border border-slate-700/80 p-4 mb-4 overflow-x-auto text-sm text-slate-200">
                 <code className="font-mono">npm create web-loom@latest my-app</code>
               </pre>
               <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                Supports Vite starters for React, Vue, Preact, Solid, Svelte, Lit, Vanilla, and Qwik in both TypeScript and JavaScript variants.
+                Supports Vite starters for React, Vue, Preact, Solid, Svelte, Lit, Vanilla, and Qwik in both TypeScript
+                and JavaScript variants.
               </p>
               <Link
                 href="/docs/create-web-loom"
@@ -314,7 +326,13 @@ export default function HomePage() {
               >
                 See create-web-loom docs
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                  <path d="M3 7h8M7.5 4l3.5 3-3.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M3 7h8M7.5 4l3.5 3-3.5 3"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </Link>
             </div>
@@ -334,14 +352,16 @@ export default function HomePage() {
                   The pattern
                 </p>
                 <h2 className="text-2xl sm:text-3xl font-[650] text-slate-800 dark:text-slate-100 mb-4 leading-tight">
-                  One ViewModel.<br />Every framework.
+                  One ViewModel.
+                  <br />
+                  Every framework.
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
-                  The ViewModel is plain TypeScript — no framework imports, no heavy runtime.
-                  Infrastructure packages sit directly on mature browser APIs: <code className="text-blue-400 text-[11px]">fetch</code> for
-                  HTTP, <code className="text-blue-400 text-[11px]">localStorage</code> for
-                  persistence, <code className="text-blue-400 text-[11px]">History API</code> for
-                  routing. Typed interfaces over what the platform already provides — not replacements for it.
+                  The ViewModel is plain TypeScript — no framework imports, no heavy runtime. Infrastructure packages
+                  sit directly on mature browser APIs: <code className="text-blue-400 text-[11px]">fetch</code> for
+                  HTTP, <code className="text-blue-400 text-[11px]">localStorage</code> for persistence,{' '}
+                  <code className="text-blue-400 text-[11px]">History API</code> for routing. Typed interfaces over what
+                  the platform already provides — not replacements for it.
                 </p>
                 <ul className="space-y-3 mb-8">
                   {[
@@ -364,7 +384,13 @@ export default function HomePage() {
                 >
                   Deep dive into core concepts
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                    <path d="M3 7h8M7.5 4l3.5 3-3.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M3 7h8M7.5 4l3.5 3-3.5 3"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </Link>
               </div>
@@ -386,11 +412,13 @@ export default function HomePage() {
               <h2 className="text-2xl sm:text-3xl font-[650] text-slate-800 dark:text-slate-100 mb-4 leading-tight">
                 The browser has matured.
                 <br />
-                <span className="text-slate-500 dark:text-slate-400 font-[400]">Web Loom works with it, not around it.</span>
+                <span className="text-slate-500 dark:text-slate-400 font-[400]">
+                  Web Loom works with it, not around it.
+                </span>
               </h2>
               <p className="text-slate-600 dark:text-slate-400 text-sm max-w-xl mx-auto leading-relaxed">
-                Every infrastructure package is a thin, typed wrapper over a stable browser primitive.
-                No proprietary runtimes. No invented protocols. Full tree-shaking.
+                Every infrastructure package is a thin, typed wrapper over a stable browser primitive. No proprietary
+                runtimes. No invented protocols. Full tree-shaking.
               </p>
             </div>
 
@@ -425,10 +453,25 @@ export default function HomePage() {
                     <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[11px] font-mono text-slate-700 dark:text-slate-300">
                       {api}
                     </span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-slate-400 dark:text-slate-600 shrink-0" aria-hidden="true">
-                      <path d="M2 6h8M6.5 3.5l3 2.5-3 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      className="text-slate-400 dark:text-slate-600 shrink-0"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M2 6h8M6.5 3.5l3 2.5-3 2.5"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
-                    <span className="text-[11px] font-mono text-blue-500 dark:text-blue-400 truncate">{pkg.replace('@web-loom/', '')}</span>
+                    <span className="text-[11px] font-mono text-blue-500 dark:text-blue-400 truncate">
+                      {pkg.replace('@web-loom/', '')}
+                    </span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-500 leading-relaxed">{desc}</p>
                 </div>
@@ -460,17 +503,19 @@ export default function HomePage() {
                     {spoke.icon}
                   </div>
                   <div>
-                    <h3 className="text-sm font-[500] text-slate-800 dark:text-slate-100 mb-1">
-                      {spoke.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                      {spoke.description}
-                    </p>
+                    <h3 className="text-sm font-[500] text-slate-800 dark:text-slate-100 mb-1">{spoke.title}</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{spoke.description}</p>
                   </div>
                   <span className="mt-auto inline-flex items-center gap-1 text-xs text-blue-500 dark:text-blue-400 group-hover:gap-1.5 transition-all">
                     Read docs
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                      <path d="M2 6h8M6.5 3.5l3 2.5-3 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M2 6h8M6.5 3.5l3 2.5-3 2.5"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   </span>
                 </Link>
@@ -484,7 +529,13 @@ export default function HomePage() {
               >
                 View all documentation
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                  <path d="M3 7h8M7.5 4l3.5 3-3.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M3 7h8M7.5 4l3.5 3-3.5 3"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </Link>
             </div>
@@ -498,7 +549,10 @@ export default function HomePage() {
               {/* Book visual */}
               <div className="relative">
                 <div className="relative rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-8 shadow-xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-2xl" aria-hidden="true" />
+                  <div
+                    className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-2xl"
+                    aria-hidden="true"
+                  />
                   <div className="relative">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xl font-[650]">
@@ -508,26 +562,25 @@ export default function HomePage() {
                         <div className="text-xs font-[500] uppercase tracking-widest text-blue-500 dark:text-blue-400">
                           Technical Book
                         </div>
-                        <div className="text-sm font-[500] text-slate-700 dark:text-slate-300">
-                          23 Chapters
-                        </div>
+                        <div className="text-sm font-[500] text-slate-700 dark:text-slate-300">23 Chapters</div>
                       </div>
                     </div>
-                    <h3 className="text-2xl font-[650] text-slate-800 dark:text-slate-100 mb-3">
-                      MVVM in Practice
-                    </h3>
+                    <h3 className="text-2xl font-[650] text-slate-800 dark:text-slate-100 mb-3">MVVM in Practice</h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-                      A practical, code-first guide to Model-View-ViewModel architecture for modern frontend development.
+                      A practical, code-first guide to Model-View-ViewModel architecture for modern frontend
+                      development.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      {['Foundations', 'Core Patterns', 'Framework Implementations', 'Advanced Topics'].map((section) => (
-                        <span
-                          key={section}
-                          className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-400"
-                        >
-                          {section}
-                        </span>
-                      ))}
+                      {['Foundations', 'Core Patterns', 'Framework Implementations', 'Advanced Topics'].map(
+                        (section) => (
+                          <span
+                            key={section}
+                            className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-400"
+                          >
+                            {section}
+                          </span>
+                        ),
+                      )}
                     </div>
                   </div>
                 </div>
@@ -542,8 +595,8 @@ export default function HomePage() {
                   Master framework-agnostic architecture
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
-                  Learn MVVM patterns that work across React, Vue, Angular, Lit, and vanilla JavaScript.
-                  Every example is extracted from real, production-ready code in the Web Loom monorepo.
+                  Learn MVVM patterns that work across React, Vue, Angular, Lit, and vanilla JavaScript. Every example
+                  is extracted from real, production-ready code in the Web Loom monorepo.
                 </p>
                 <ul className="space-y-3 mb-8">
                   {[
@@ -553,8 +606,19 @@ export default function HomePage() {
                     'Apply patterns like reactive state, event-driven communication, and design systems',
                   ].map((item) => (
                     <li key={item} className="flex gap-3 text-sm">
-                      <svg className="shrink-0 w-5 h-5 text-blue-500 dark:text-blue-400 mt-0.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                        <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <svg
+                        className="shrink-0 w-5 h-5 text-blue-500 dark:text-blue-400 mt-0.5"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M7 10l2 2 4-4"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                         <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
                       </svg>
                       <span className="text-slate-600 dark:text-slate-400">{item}</span>
@@ -567,7 +631,13 @@ export default function HomePage() {
                 >
                   Start reading
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                    <path d="M3 7h8M7.5 4l3.5 3-3.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M3 7h8M7.5 4l3.5 3-3.5 3"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </Link>
               </div>
@@ -585,8 +655,8 @@ export default function HomePage() {
               Works with every major framework
             </h2>
             <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto mb-10 text-sm leading-relaxed">
-              The ViewModel has no framework imports. Connecting it to a new framework means writing
-              one thin subscription bridge — typically under 20 lines.
+              The ViewModel has no framework imports. Connecting it to a new framework means writing one thin
+              subscription bridge — typically under 20 lines.
             </p>
 
             <AnimatedFrameworks frameworks={frameworks} variant="adaptive" />
@@ -601,8 +671,7 @@ export default function HomePage() {
                 className="h-px w-full"
                 aria-hidden="true"
                 style={{
-                  background:
-                    'linear-gradient(90deg, transparent, #00bfff 35%, #818cf8 65%, transparent)',
+                  background: 'linear-gradient(90deg, transparent, #00bfff 35%, #818cf8 65%, transparent)',
                 }}
               />
               <div className="p-8 sm:p-10">
@@ -620,20 +689,16 @@ export default function HomePage() {
                     <p className="text-xs font-[500] uppercase tracking-widest text-blue-500 dark:text-blue-400 mb-1">
                       The author
                     </p>
-                    <h2 className="text-xl font-[650] text-slate-800 dark:text-slate-100 mb-0.5">
-                      Festus Yeboah
-                    </h2>
+                    <h2 className="text-xl font-[650] text-slate-800 dark:text-slate-100 mb-0.5">Festus Yeboah</h2>
                     <p className="text-sm text-slate-400 mb-5">Framework Architect</p>
                     <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4">
-                      Festus is a frontend architect who has spent years watching teams rewrite the
-                      same business logic every time the framework pendulum swings. Web Loom is his
-                      attempt to give the web the same architectural continuity that Android, iOS,
-                      and .NET have enjoyed for twenty years.
+                      Festus is a frontend architect who has spent years watching teams rewrite the same business logic
+                      every time the framework pendulum swings. Web Loom is his attempt to give the web the same
+                      architectural continuity that Android, iOS, and .NET have enjoyed for twenty years.
                     </p>
                     <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
-                      The project is open-source and driven by the conviction that the 80% of an
-                      application that is not rendering code should be portable, testable, and immune
-                      to framework churn.
+                      The project is open-source and driven by the conviction that the 80% of an application that is not
+                      rendering code should be portable, testable, and immune to framework churn.
                     </p>
                     <a
                       href={GITHUB_URL}
@@ -656,9 +721,7 @@ export default function HomePage() {
         {/* ── Final CTA ───────────────────────────────────────────────────── */}
         <section className="bg-slate-950 py-20">
           <div className="max-w-3xl mx-auto px-6 text-center">
-            <h2 className="text-2xl sm:text-3xl font-[650] text-slate-100 mb-4">
-              Ready to scaffold and ship faster?
-            </h2>
+            <h2 className="text-2xl sm:text-3xl font-[650] text-slate-100 mb-4">Ready to scaffold and ship faster?</h2>
             <p className="text-slate-400 text-sm mb-8 max-w-md mx-auto leading-relaxed">
               Start with the CLI starter, then evolve your ViewModels without framework lock-in.
             </p>
@@ -686,20 +749,13 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
       </main>
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <footer className="bg-slate-950 border-t border-slate-800 py-8">
         <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Image
-              src="/images/webloom.png"
-              width={22}
-              height={22}
-              alt="Web Loom"
-              className="rounded opacity-60"
-            />
+            <Image src="/images/webloom.png" width={22} height={22} alt="Web Loom" className="rounded opacity-60" />
             <span className="text-sm text-slate-500">
               Web<span className="text-slate-400">.loom</span>
               <span className="ml-2">— open source, MIT</span>
@@ -715,10 +771,7 @@ export default function HomePage() {
             <Link href="/docs/packages-roadmap" className="hover:text-slate-300 transition-colors">
               Roadmap
             </Link>
-            <a
-              href={PLUGIN_DOCS_URL}
-              className="hover:text-slate-300 transition-colors"
-            >
+            <a href={PLUGIN_DOCS_URL} className="hover:text-slate-300 transition-colors">
               Plugin Architecture Book
             </a>
             <a
@@ -732,7 +785,6 @@ export default function HomePage() {
           </nav>
         </div>
       </footer>
-
     </div>
   );
 }

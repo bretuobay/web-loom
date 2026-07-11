@@ -3,7 +3,7 @@ import { describe, it, beforeEach, expect, afterEach, vi } from 'vitest';
 import { RestfulApiModel, Fetcher, ExtractItemType } from './RestfulApiModel';
 import { BaseModel } from './BaseModel'; // Import BaseModel
 import { z, ZodError, ZodIssueCode } from 'zod'; // Consolidated Zod import
-import { first } from 'rxjs/operators'; // Removed skip
+import { observe } from '@web-loom/signals-core';
 
 // Define a simple Zod schema for testing
 const UserSchema = z.object({
@@ -52,9 +52,9 @@ describe('RestfulApiModel', () => {
   });
 
   it('should initialize correctly with base properties', async () => {
-    expect(await model.data$.pipe(first()).toPromise()).toBeNull();
-    expect(await model.isLoading$.pipe(first()).toPromise()).toBe(false);
-    expect(await model.error$.pipe(first()).toPromise()).toBeNull();
+    expect(await model.data$.get()).toBeNull();
+    expect(await model.isLoading$.get()).toBe(false);
+    expect(await model.error$.get()).toBeNull();
   });
 
   it('should throw error if baseUrl, endpoint, or fetcher are missing', () => {
@@ -111,7 +111,7 @@ describe('RestfulApiModel', () => {
       } as Response);
 
       const isLoadingHistory: boolean[] = [];
-      const subscription = model.isLoading$.subscribe((value) => {
+      const subscription = observe(model.isLoading$, (value) => {
         isLoadingHistory.push(value);
       });
 
@@ -124,7 +124,7 @@ describe('RestfulApiModel', () => {
 
       // data$ is a BehaviorSubject. After fetch, its current value should be the fetched users.
       // pipe(first()) gets the current value of the BehaviorSubject after fetch has completed.
-      expect(await model.data$.pipe(first()).toPromise()).toEqual(users);
+      expect(await model.data$.get()).toEqual(users);
 
       // isLoading$ sequence:
       // 1. Initial `false` (from BehaviorSubject construction, captured on subscription)
@@ -132,9 +132,9 @@ describe('RestfulApiModel', () => {
       // 3. `false` (when fetch ends in finally block)
       expect(isLoadingHistory).toEqual([false, true, false]);
 
-      expect(await model.error$.pipe(first()).toPromise()).toBeNull();
+      expect(await model.error$.get()).toBeNull();
 
-      subscription.unsubscribe(); // Clean up subscription
+      subscription(); // Clean up subscription
     }, 10000); // Timeout
 
     it('should fetch a single user by ID and update data$', async () => {
@@ -149,7 +149,7 @@ describe('RestfulApiModel', () => {
       expect(mockFetcher).toHaveBeenCalledWith(`${baseUrl}/${endpoint}/1`, {
         method: 'GET',
       });
-      expect(await model.data$.pipe(first()).toPromise()).toEqual(user);
+      expect(await model.data$.get()).toEqual(user);
     });
 
     it('should set error$ if fetch fails', async () => {
@@ -158,8 +158,8 @@ describe('RestfulApiModel', () => {
 
       await expect(model.fetch()).rejects.toThrow('Network error');
 
-      expect(await model.error$.pipe(first()).toPromise()).toBe(fetchError);
-      expect(await model.isLoading$.pipe(first()).toPromise()).toBe(false); // Loading should be false after error
+      expect(await model.error$.get()).toBe(fetchError);
+      expect(await model.isLoading$.get()).toBe(false); // Loading should be false after error
     });
 
     it('should throw ZodError if fetched data is invalid', async () => {
@@ -171,7 +171,7 @@ describe('RestfulApiModel', () => {
 
       await expect(model.fetch()).rejects.toThrowError(ZodError);
 
-      const error = await model.error$.pipe(first()).toPromise();
+      const error = await model.error$.get();
       expect(error).toBeInstanceOf(ZodError); // Assuming ZodError is correctly imported
 
       const zodError = error as ZodError;
@@ -189,7 +189,7 @@ describe('RestfulApiModel', () => {
         // as the .validation check wouldn't make sense otherwise.
         throw new Error('Test expectation failed: Expected ZodIssueCode.invalid_string, but got ' + firstIssue.code);
       }
-      expect(await model.data$.pipe(first()).toPromise()).toBeNull(); // Data should not be set
+      expect(await model.data$.get()).toBeNull(); // Data should not be set
     });
 
     it('should throw ZodError if fetched data is invalid and validateSchema is true (explicit)', async () => {
@@ -210,8 +210,8 @@ describe('RestfulApiModel', () => {
       } as Response);
 
       await expect(modelValidateTrue.fetch('1')).rejects.toThrowError(ZodError);
-      expect(await modelValidateTrue.error$.pipe(first()).toPromise()).toBeInstanceOf(ZodError);
-      expect(await modelValidateTrue.data$.pipe(first()).toPromise()).toBeNull();
+      expect(await modelValidateTrue.error$.get()).toBeInstanceOf(ZodError);
+      expect(await modelValidateTrue.data$.get()).toBeNull();
       modelValidateTrue.dispose();
     });
 
@@ -233,8 +233,8 @@ describe('RestfulApiModel', () => {
       } as Response);
 
       await expect(modelValidateFalse.fetch('1')).resolves.not.toThrow();
-      expect(await modelValidateFalse.error$.pipe(first()).toPromise()).toBeNull();
-      expect(await modelValidateFalse.data$.pipe(first()).toPromise()).toEqual(technicallyInvalidUserData);
+      expect(await modelValidateFalse.error$.get()).toBeNull();
+      expect(await modelValidateFalse.data$.get()).toEqual(technicallyInvalidUserData);
       modelValidateFalse.dispose();
     });
   });
@@ -314,7 +314,7 @@ describe('RestfulApiModel', () => {
       model.setData(initialData); // Ensure fresh data for this test
 
       const dataEmissions: (User[] | null)[] = [];
-      model.data$.subscribe((data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
+      observe(model.data$, (data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
 
       const singleUserPayload: Partial<User> = { name: 'Charlie Temp', email: 'temp@example.com' };
       const serverResponseUser: User = { id: 'server-gen-id-1', ...singleUserPayload } as User;
@@ -329,9 +329,7 @@ describe('RestfulApiModel', () => {
       const promise = model.create(singleUserPayload); // Pass single Partial<User>
 
       // Optimistic update
-      const optimisticData = await model.data$
-        .pipe(first((data) => (data as User[]).length > initialData.length))
-        .toPromise();
+      const optimisticData = await model.data$.get();
       expect((optimisticData as User[]).length).toBe(initialData.length + 1);
       const tempItem = (optimisticData as User[]).find((u) => u.name === singleUserPayload.name);
       expect(tempItem).toBeDefined();
@@ -341,9 +339,7 @@ describe('RestfulApiModel', () => {
       expect(createdItem).toEqual(serverResponseUser);
 
       // Final update from server
-      const finalData = (await model.data$
-        .pipe(first((data) => (data as User[]).some((u) => u.id === serverResponseUser.id)))
-        .toPromise()) as User[];
+      const finalData = (await model.data$.get()) as User[];
       expect(finalData.length).toBe(initialData.length + 1);
       expect(finalData.find((u) => u.id === serverResponseUser.id)).toEqual(serverResponseUser);
       expect(finalData.find((u) => u.id === tempItem!.id)).toBeUndefined();
@@ -383,9 +379,7 @@ describe('RestfulApiModel', () => {
 
       const promise = model.create(usersPayload);
 
-      const optimisticData = (await model.data$
-        .pipe(first((data) => (data as User[]).length === initialData.length + usersPayload.length))
-        .toPromise()) as User[];
+      const optimisticData = (await model.data$.get()) as User[];
       expect(optimisticData.length).toBe(initialData.length + usersPayload.length);
       usersPayload.forEach((payloadUser) => {
         const tempItem = optimisticData.find((u) => u.name === payloadUser.name);
@@ -396,9 +390,7 @@ describe('RestfulApiModel', () => {
       const createdItems = (await promise) as User[];
       expect(createdItems).toEqual(serverResponseUsers);
 
-      const finalData = (await model.data$
-        .pipe(first((data) => serverResponseUsers.every((su) => (data as User[]).some((u) => u.id === su.id))))
-        .toPromise()) as User[];
+      const finalData = (await model.data$.get()) as User[];
       expect(finalData.length).toBe(initialData.length + usersPayload.length);
       serverResponseUsers.forEach((serverUser) => {
         expect(finalData.find((u) => u.id === serverUser.id)).toEqual(serverUser);
@@ -421,7 +413,7 @@ describe('RestfulApiModel', () => {
 
       const createdItem = await model.create(singleUserPayload);
       expect(createdItem).toEqual(serverResponseUser);
-      expect(await model.data$.pipe(first()).toPromise()).toEqual(serverResponseUser);
+      expect(await model.data$.get()).toEqual(serverResponseUser);
     });
 
     it('should replace data$ with an array of server responses if initial data was null and creating multiple items (TData is User[])', async () => {
@@ -451,7 +443,7 @@ describe('RestfulApiModel', () => {
 
       const createdItems = await model.create(usersPayload);
       expect(createdItems).toEqual(serverResponseUsers);
-      expect(await model.data$.pipe(first()).toPromise()).toEqual(serverResponseUsers);
+      expect(await model.data$.get()).toEqual(serverResponseUsers);
     });
 
     it('should revert optimistic add from collection if create of single item fails (TData is User[])', async () => {
@@ -460,7 +452,7 @@ describe('RestfulApiModel', () => {
       model.setData(initialData);
 
       const dataEmissions: (User[] | null)[] = [];
-      model.data$.subscribe((data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
+      observe(model.data$, (data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
 
       const createError = new Error('Creation failed');
       mockFetcher.mockRejectedValueOnce(createError);
@@ -477,7 +469,7 @@ describe('RestfulApiModel', () => {
 
       const finalData = dataEmissions[dataEmissions.length - 1] as User[];
       expect(finalData).toEqual(initialData);
-      expect(await model.error$.pipe(first()).toPromise()).toBe(createError);
+      expect(await model.error$.get()).toBe(createError);
     });
 
     it('should revert optimistic add from collection if create of multiple items fails (TData is User[])', async () => {
@@ -486,7 +478,7 @@ describe('RestfulApiModel', () => {
       model.setData(initialData);
 
       const dataEmissions: (User[] | null)[] = [];
-      model.data$.subscribe((data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
+      observe(model.data$, (data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
 
       const usersPayloadFail: Partial<User>[] = [
         { name: 'Batch Fail 1', email: 'bf1@example.com' },
@@ -512,7 +504,7 @@ describe('RestfulApiModel', () => {
 
       const finalData = dataEmissions[dataEmissions.length - 1] as User[];
       expect(finalData).toEqual(initialData); // Should be fully reverted
-      expect(await model.error$.pipe(first()).toPromise()).toBe(createError);
+      expect(await model.error$.get()).toBe(createError);
     });
 
     // Original tests for single item model (TData = User)
@@ -528,7 +520,7 @@ describe('RestfulApiModel', () => {
       singleItemModel.setData(null);
 
       const dataEmissionsSingle: (User | null)[] = [];
-      singleItemModel.data$.subscribe((data) =>
+      observe(singleItemModel.data$, (data) =>
         dataEmissionsSingle.push(data ? JSON.parse(JSON.stringify(data)) : null),
       );
       const createPayload: Partial<User> = { name: 'Test', email: 'test@example.com' };
@@ -553,9 +545,7 @@ describe('RestfulApiModel', () => {
       const specificPayload = { name: serverUser.name, email: serverUser.email };
       const created = await singleItemModel.create(specificPayload); // This call uses the new mock
 
-      expect(await singleItemModel.data$.pipe(first((d) => d?.id === expectedServerUser.id)).toPromise()).toEqual(
-        expectedServerUser,
-      );
+      expect(await singleItemModel.data$.get()).toEqual(expectedServerUser);
     });
 
     it('ORIGINAL: should revert optimistic set of single item if create fails (TData is User)', async () => {
@@ -571,7 +561,7 @@ describe('RestfulApiModel', () => {
       mockFetcher.mockRejectedValueOnce(createError);
 
       const dataEmissionsSingleFail: (User | null)[] = [];
-      singleItemModelFail.data$.subscribe((data) =>
+      observe(singleItemModelFail.data$, (data) =>
         dataEmissionsSingleFail.push(data ? JSON.parse(JSON.stringify(data)) : null),
       );
       const payloadToFail: Partial<User> = { name: 'payload to fail', email: 'fail@example.com' };
@@ -581,8 +571,8 @@ describe('RestfulApiModel', () => {
       const optimisticSingleFailed = dataEmissionsSingleFail[dataEmissionsSingleFail.length - 2] as User;
       expect(optimisticSingleFailed.name).toBe(payloadToFail.name);
 
-      expect(await singleItemModelFail.data$.pipe(first()).toPromise()).toEqual(initialSingleUser);
-      expect(await singleItemModelFail.error$.pipe(first()).toPromise()).toBe(createError);
+      expect(await singleItemModelFail.data$.get()).toEqual(initialSingleUser);
+      expect(await singleItemModelFail.error$.get()).toBe(createError);
     });
 
     it('should throw ZodError on create if server response is invalid (TData is User[])', async () => {
@@ -600,8 +590,8 @@ describe('RestfulApiModel', () => {
       const createPayload: Partial<User> = { name: 'Test', email: 'test@example.com' };
       // Test with validateSchema: true (default)
       await expect(modelToValidate.create(createPayload)).rejects.toThrowError(ZodError);
-      expect(await modelToValidate.error$.pipe(first()).toPromise()).toBeInstanceOf(ZodError);
-      expect(await modelToValidate.data$.pipe(first()).toPromise()).toEqual([]); // Reverted
+      expect(await modelToValidate.error$.get()).toBeInstanceOf(ZodError);
+      expect(await modelToValidate.data$.get()).toEqual([]); // Reverted
     });
 
     it('should create and set invalid created item if validateSchema is false (TData is User[])', async () => {
@@ -625,11 +615,9 @@ describe('RestfulApiModel', () => {
 
       const createdItem = await modelValidateFalse.create(createPayload);
       expect(createdItem).toEqual(invalidServerResponse);
-      expect(await modelValidateFalse.error$.pipe(first()).toPromise()).toBeNull();
+      expect(await modelValidateFalse.error$.get()).toBeNull();
 
-      const currentData = (await modelValidateFalse.data$
-        .pipe(first((d) => (d as User[]).some((u) => u.id === invalidServerResponse.id)))
-        .toPromise()) as User[];
+      const currentData = (await modelValidateFalse.data$.get()) as User[];
       expect(currentData).toEqual(expect.arrayContaining([invalidServerResponse]));
       modelValidateFalse.dispose();
     });
@@ -695,14 +683,12 @@ describe('RestfulApiModel', () => {
     it('should optimistically update item in collection (TData is User[]), then confirm with server response', async () => {
       const modelToTest = modelForUserArray; // Using TData = User[] model
       const dataEmissions: (User[] | null)[] = [];
-      modelToTest.data$.subscribe((data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
+      observe(modelToTest.data$, (data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
 
       const promise = modelToTest.update('1', updatePayload); // updatePayload is Partial<User>
 
       // Optimistic
-      const optimisticData = (await modelToTest.data$
-        .pipe(first((d) => (d as User[]).find((u) => u.id === '1')?.name === updatePayload.name))
-        .toPromise()) as User[];
+      const optimisticData = (await modelToTest.data$.get()) as User[];
       const updatedOptimisticItem = optimisticData.find((u) => u.id === '1');
       expect(updatedOptimisticItem?.name).toBe(updatePayload.name);
       expect(updatedOptimisticItem?.email).toBe(originalUserInCollection.email); // Email not in payload
@@ -711,9 +697,7 @@ describe('RestfulApiModel', () => {
       expect(updatedItem).toEqual(serverUpdatedUser);
 
       // Server confirmed
-      const finalData = (await modelToTest.data$
-        .pipe(first((d) => (d as User[]).find((u) => u.id === '1')?.email === serverUpdatedUser.email))
-        .toPromise()) as User[];
+      const finalData = (await modelToTest.data$.get()) as User[];
       expect(finalData.find((u) => u.id === '1')).toEqual(serverUpdatedUser);
 
       expect(mockFetcher).toHaveBeenCalledWith(
@@ -725,7 +709,7 @@ describe('RestfulApiModel', () => {
     it('should revert optimistic update in collection (TData is User[]) if update fails', async () => {
       const modelToTest = modelForUserArray;
       const dataEmissions: (User[] | null)[] = [];
-      modelToTest.data$.subscribe((data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
+      observe(modelToTest.data$, (data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
 
       const updateError = new Error('Update failed');
       mockFetcher.mockRejectedValueOnce(updateError);
@@ -736,7 +720,7 @@ describe('RestfulApiModel', () => {
       expect(dataEmissions.length).toBeGreaterThanOrEqual(3); // Initial, Optimistic, Reverted
       const revertedData = dataEmissions[dataEmissions.length - 1] as User[];
       expect(revertedData.find((u) => u.id === '1')).toEqual(originalUserInCollection);
-      expect(await modelToTest.error$.pipe(first()).toPromise()).toBe(updateError);
+      expect(await modelToTest.error$.get()).toBe(updateError);
     });
 
     // Tests for TData = User model (single item model)
@@ -756,21 +740,19 @@ describe('RestfulApiModel', () => {
       } as Response);
 
       const dataEmissions: (User | null)[] = [];
-      modelToTest.data$.subscribe((data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
+      observe(modelToTest.data$, (data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
 
       const promise = modelToTest.update(initialSingleUser.id, singleUpdatePayload);
 
       // Optimistic
-      const optimisticData = await modelToTest.data$
-        .pipe(first((d) => (d as User)?.name === singleUpdatePayload.name))
-        .toPromise();
+      const optimisticData = await modelToTest.data$.get();
       expect((optimisticData as User)?.name).toBe(singleUpdatePayload.name);
 
       const updatedItem = await promise;
       expect(updatedItem).toEqual(serverSingleUpdated);
 
       // Server confirmed
-      expect(await modelToTest.data$.pipe(first()).toPromise()).toEqual(serverSingleUpdated);
+      expect(await modelToTest.data$.get()).toEqual(serverSingleUpdated);
     });
 
     it('should revert optimistic update of single item (TData is User) if update fails', async () => {
@@ -783,7 +765,7 @@ describe('RestfulApiModel', () => {
       mockFetcher.mockRejectedValueOnce(updateError);
 
       const dataEmissions: (User | null)[] = [];
-      modelToTest.data$.subscribe((data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
+      observe(modelToTest.data$, (data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
 
       await expect(modelToTest.update(initialSingleUserToFail.id, singleUpdatePayloadFail)).rejects.toThrow(
         updateError,
@@ -792,7 +774,7 @@ describe('RestfulApiModel', () => {
       expect(dataEmissions.length).toBeGreaterThanOrEqual(3); // Initial, Optimistic, Reverted
       const revertedData = dataEmissions[dataEmissions.length - 1];
       expect(revertedData).toEqual(initialSingleUserToFail);
-      expect(await modelToTest.error$.pipe(first()).toPromise()).toBe(updateError);
+      expect(await modelToTest.error$.get()).toBe(updateError);
     });
 
     it('should throw ZodError on update if server response is invalid (TData is User[])', async () => {
@@ -810,10 +792,10 @@ describe('RestfulApiModel', () => {
       const updatePayloadAttempt: Partial<User> = { name: 'Attempted Update' };
       // Expect ZodError because the server response for the item being updated is invalid
       await expect(modelToTest.update('1', updatePayloadAttempt)).rejects.toThrowError(ZodError);
-      expect(await modelToTest.error$.pipe(first()).toPromise()).toBeInstanceOf(ZodError);
+      expect(await modelToTest.error$.get()).toBeInstanceOf(ZodError);
 
       // Optimistic update should have been reverted
-      const currentData = (await modelToTest.data$.pipe(first()).toPromise()) as User[];
+      const currentData = (await modelToTest.data$.get()) as User[];
       expect(currentData.find((u) => u.id === '1')).toEqual(originalUserInCollection);
     });
 
@@ -831,8 +813,8 @@ describe('RestfulApiModel', () => {
 
       const updatePayloadAttempt: Partial<User> = { name: 'Attempted Update' };
       await expect(modelToTest.update(initialUser.id, updatePayloadAttempt)).rejects.toThrowError(ZodError);
-      expect(await modelToTest.error$.pipe(first()).toPromise()).toBeInstanceOf(ZodError);
-      expect(await modelToTest.data$.pipe(first()).toPromise()).toEqual(initialUser); // Reverted
+      expect(await modelToTest.error$.get()).toBeInstanceOf(ZodError);
+      expect(await modelToTest.data$.get()).toEqual(initialUser); // Reverted
     });
 
     it('should update and set invalid updated item if validateSchema is false (TData is User[])', async () => {
@@ -855,11 +837,9 @@ describe('RestfulApiModel', () => {
       const updatePayloadAttempt: Partial<User> = { name: 'Attempted Update False' };
       const updatedItem = await modelValidateFalse.update('1', updatePayloadAttempt);
       expect(updatedItem).toEqual(invalidServerResponse);
-      expect(await modelValidateFalse.error$.pipe(first()).toPromise()).toBeNull();
+      expect(await modelValidateFalse.error$.get()).toBeNull();
 
-      const currentData = (await modelValidateFalse.data$
-        .pipe(first((d) => (d as User[]).some((u) => u.id === '1' && u.name === invalidServerResponse.name)))
-        .toPromise()) as User[];
+      const currentData = (await modelValidateFalse.data$.get()) as User[];
       expect(currentData.find((u) => u.id === '1')).toEqual(invalidServerResponse);
       modelValidateFalse.dispose();
     });
@@ -885,8 +865,8 @@ describe('RestfulApiModel', () => {
       const updatePayloadAttempt: Partial<User> = { name: 'Attempted Update False' };
       const updatedItem = await modelValidateFalse.update(initialUser.id, updatePayloadAttempt);
       expect(updatedItem).toEqual(invalidServerResponse);
-      expect(await modelValidateFalse.error$.pipe(first()).toPromise()).toBeNull();
-      expect(await modelValidateFalse.data$.pipe(first()).toPromise()).toEqual(invalidServerResponse);
+      expect(await modelValidateFalse.error$.get()).toBeNull();
+      expect(await modelValidateFalse.data$.get()).toEqual(invalidServerResponse);
       modelValidateFalse.dispose();
     });
   });
@@ -913,7 +893,7 @@ describe('RestfulApiModel', () => {
 
     it('should optimistically delete item from collection and confirm', async () => {
       const dataEmissions: (User[] | null)[] = [];
-      model.data$.subscribe((data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
+      observe(model.data$, (data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
 
       const promise = model.delete(userToDeleteId);
 
@@ -928,16 +908,16 @@ describe('RestfulApiModel', () => {
         method: 'DELETE',
       });
       // Final state should be the same as optimistic for delete
-      const finalData = (await model.data$.pipe(first()).toPromise()) as User[];
+      const finalData = (await model.data$.get()) as User[];
       expect(finalData.find((u) => u.id === userToDeleteId)).toBeUndefined();
       expect(finalData.length).toBe(initialCollectionDataDelete.length - 1);
-      expect(await model.isLoading$.pipe(first()).toPromise()).toBe(false);
-      expect(await model.error$.pipe(first()).toPromise()).toBeNull();
+      expect(await model.isLoading$.get()).toBe(false);
+      expect(await model.error$.get()).toBeNull();
     });
 
     it('should revert optimistic delete from collection if delete fails', async () => {
       const dataEmissions: (User[] | null)[] = [];
-      model.data$.subscribe((data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
+      observe(model.data$, (data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
 
       const deleteError = new Error('Deletion failed');
       mockFetcher.mockRejectedValue(deleteError);
@@ -947,7 +927,7 @@ describe('RestfulApiModel', () => {
       expect(dataEmissions.length).toBeGreaterThanOrEqual(3); // Initial, Optimistic, Reverted
       const revertedData = dataEmissions[dataEmissions.length - 1] as User[];
       expect(revertedData).toEqual(initialCollectionDataDelete);
-      expect(await model.error$.pipe(first()).toPromise()).toBe(deleteError);
+      expect(await model.error$.get()).toBe(deleteError);
     });
 
     it('should optimistically set single item to null and confirm', async () => {
@@ -972,14 +952,14 @@ describe('RestfulApiModel', () => {
       );
 
       const dataEmissions: (User | null)[] = [];
-      singleItemModel.data$.subscribe((data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
+      observe(singleItemModel.data$, (data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
 
       await singleItemModel.delete(initialSingleUser.id);
 
       // Emissions: Initial, Optimistic (which is also final for successful delete)
       expect(dataEmissions.length).toBeGreaterThanOrEqual(2);
       expect(dataEmissions[dataEmissions.length - 1]).toBeNull(); // Optimistic & Final state
-      expect(await singleItemModel.data$.pipe(first()).toPromise()).toBeNull();
+      expect(await singleItemModel.data$.get()).toBeNull();
       singleItemModel.dispose();
     });
 
@@ -1008,20 +988,20 @@ describe('RestfulApiModel', () => {
       mockFetcher.mockRejectedValue(deleteError); // Mock failure
 
       const dataEmissions: (User | null)[] = [];
-      singleItemModelFail.data$.subscribe((data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
+      observe(singleItemModelFail.data$, (data) => dataEmissions.push(data ? JSON.parse(JSON.stringify(data)) : null));
 
       await expect(singleItemModelFail.delete(initialSingleUserFail.id)).rejects.toThrow(deleteError);
 
       expect(dataEmissions.length).toBeGreaterThanOrEqual(3); // Initial, Optimistic(null), Reverted
       expect(dataEmissions[dataEmissions.length - 2]).toBeNull(); // Optimistic state was null
-      expect(await singleItemModelFail.data$.pipe(first()).toPromise()).toEqual(initialSingleUserFail); // Reverted
-      expect(await singleItemModelFail.error$.pipe(first()).toPromise()).toBe(deleteError);
+      expect(await singleItemModelFail.data$.get()).toEqual(initialSingleUserFail); // Reverted
+      expect(await singleItemModelFail.error$.get()).toBe(deleteError);
       singleItemModelFail.dispose();
     });
   });
 
   describe('dispose method', () => {
-    it('should call super.dispose and complete BaseModel observables', () => {
+    it('should call super.dispose and stop further emissions', () => {
       const baseModelDisposeSpy = vi.spyOn(BaseModel.prototype, 'dispose');
 
       // Create a new model instance for this test to avoid interference
@@ -1036,28 +1016,26 @@ describe('RestfulApiModel', () => {
         },
       );
 
-      const dataCompleteSpy = vi.fn();
-      const isLoadingCompleteSpy = vi.fn();
-      const errorCompleteSpy = vi.fn();
+      const dataSpy = vi.fn();
+      const isLoadingSpy = vi.fn();
+      const errorSpy = vi.fn();
 
-      disposeModel.data$.subscribe({ complete: dataCompleteSpy });
-      disposeModel.isLoading$.subscribe({ complete: isLoadingCompleteSpy });
-      disposeModel.error$.subscribe({ complete: errorCompleteSpy });
+      disposeModel.data$.subscribe(dataSpy);
+      disposeModel.isLoading$.subscribe(isLoadingSpy);
+      disposeModel.error$.subscribe(errorSpy);
 
       disposeModel.dispose();
 
       expect(baseModelDisposeSpy).toHaveBeenCalledTimes(1);
-      expect(dataCompleteSpy).toHaveBeenCalledTimes(1);
-      expect(isLoadingCompleteSpy).toHaveBeenCalledTimes(1);
-      expect(errorCompleteSpy).toHaveBeenCalledTimes(1);
 
       // Attempt to use methods that change state to ensure no further actions
-      disposeModel.setData(null); // Should not emit on data$
+      disposeModel.setData([]); // Should not emit on data$
       disposeModel.setLoading(true); // Should not emit on isLoading$
       disposeModel.setError(new Error('test')); // Should not emit on error$
 
-      // Verify no new next emissions after dispose (spies would have been called again)
-      // This is implicitly tested by checking complete was called, as completed subjects don't emit.
+      expect(dataSpy).not.toHaveBeenCalled();
+      expect(isLoadingSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
 
       baseModelDisposeSpy.mockRestore(); // Clean up the spy
     });

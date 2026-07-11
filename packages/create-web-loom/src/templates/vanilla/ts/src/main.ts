@@ -1,13 +1,24 @@
 import './style.css';
+import { observe } from '@web-loom/signals-core';
 import { CounterViewModel } from './viewmodels/CounterViewModel';
 
-const vmSnippet = `export class CounterViewModel {
-  readonly count = signal(0);
-  readonly doubled = computed(() => this.count.get() * 2);
+const vmSnippet = `import { Command } from "@web-loom/mvvm-core";
+import { computed, signal } from "@web-loom/signals-core";
 
-  increment() { this.count.set(this.count.get() + 1); }
-  decrement() { this.count.set(this.count.get() - 1); }
-  reset() { this.count.set(0); }
+export class CounterViewModel {
+  countState = signal(0);
+  count = this.countState.asReadonly();
+  doubled = computed(() => this.count.get() * 2);
+
+  incrementCommand = new Command(async () => {
+    this.countState.update((value) => value + 1);
+  });
+  decrementCommand = new Command(async () => {
+    this.countState.update((value) => value - 1);
+  });
+  resetCommand = new Command(async () => {
+    this.countState.set(0);
+  });
 }`;
 
 const app = document.querySelector<HTMLDivElement>('#app');
@@ -67,24 +78,21 @@ if (!countEl || !doubledEl || !snippetEl) {
 
 snippetEl.textContent = vmSnippet;
 
-const render = () => {
-  countEl.textContent = String(vm.count.get());
-  doubledEl.textContent = String(vm.doubled.get());
-};
+const stopCount = observe(vm.count, (count) => {
+  countEl.textContent = String(count);
+});
+const stopDoubled = observe(vm.doubled, (doubled) => {
+  doubledEl.textContent = String(doubled);
+});
 
-const unsubscribeCount = vm.count.subscribe(render);
-const unsubscribeDoubled = vm.doubled.subscribe(render);
-
-render();
-
-app.querySelector<HTMLButtonElement>('#inc')?.addEventListener('click', () => vm.increment());
-app.querySelector<HTMLButtonElement>('#dec')?.addEventListener('click', () => vm.decrement());
-app.querySelector<HTMLButtonElement>('#reset')?.addEventListener('click', () => vm.reset());
+app.querySelector<HTMLButtonElement>('#dec')?.addEventListener('click', () => void vm.decrementCommand.execute());
+app.querySelector<HTMLButtonElement>('#reset')?.addEventListener('click', () => void vm.resetCommand.execute());
+app.querySelector<HTMLButtonElement>('#inc')?.addEventListener('click', () => void vm.incrementCommand.execute());
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    unsubscribeCount();
-    unsubscribeDoubled();
+    stopCount();
+    stopDoubled();
     vm.dispose();
   });
 }

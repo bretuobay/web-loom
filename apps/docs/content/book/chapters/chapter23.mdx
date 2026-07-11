@@ -12,7 +12,7 @@ We started this book with a crisis: frontend codebases collapsing under their ow
 
 You've learned how to build framework-agnostic Models that encapsulate business logic, reactive ViewModels that manage presentation state, and framework-specific Views that remain purely presentational. You've seen these patterns applied across React, Vue, Angular, Lit, and vanilla JavaScript—the same ViewModels powering five different implementations.
 
-You've explored supporting patterns: reactive state management with signals and observables, event-driven communication, data fetching and caching strategies, headless UI behaviors, and design systems. You've studied complete applications—GreenWatch's monitoring system and e-commerce workflows—seeing how patterns scale from components to full-featured systems.
+You've explored supporting patterns: reactive state management with `@web-loom/signals-core` signals (with RxJS available as opt-in interop), event-driven communication, data fetching and caching strategies, headless UI behaviors, and design systems. You've studied complete applications—GreenWatch's monitoring system and e-commerce workflows—seeing how patterns scale from components to full-featured systems.
 
 Now it's time to synthesize everything into actionable guidance. This chapter distills the core principles, provides decision-making frameworks, and offers best practices for building maintainable MVVM applications. Consider this your field guide for applying MVVM to real-world projects.
 
@@ -59,7 +59,7 @@ class SensorComponent {
 
 **The Principle**: Business logic should not depend on framework-specific APIs.
 
-ViewModels use framework-agnostic patterns (RxJS observables, plain TypeScript classes) so they work identically across React, Vue, Angular, and any other framework.
+ViewModels use framework-agnostic patterns (`@web-loom/signals-core` signals, plain TypeScript classes) so they work identically across React, Vue, Angular, and any other framework.
 
 **Why It Matters**: Framework independence provides:
 - **Portability**: Share logic between web and mobile
@@ -71,8 +71,8 @@ ViewModels use framework-agnostic patterns (RxJS observables, plain TypeScript c
 ```typescript
 // Good: Framework-agnostic ViewModel
 export class GreenHouseViewModel {
-  private _data$ = new BehaviorSubject<Greenhouse[]>([]);
-  public readonly data$ = this._data$.asObservable();
+  private _data = signal<Greenhouse[]>([]);
+  public readonly data$ = this._data.asReadonly();
   
   // Works in React, Vue, Angular, Lit, Vanilla JS
 }
@@ -87,28 +87,24 @@ export class GreenHouseViewModel {
 
 ### Reactive State Management
 
-**The Principle**: State changes propagate automatically through observable streams.
+**The Principle**: State changes propagate automatically through reactive signals.
 
-ViewModels expose observables that Views subscribe to. When state changes, all subscribers receive updates automatically—no manual synchronization required.
+ViewModels expose signals that Views read. When state changes, all subscribers receive updates automatically—no manual synchronization required.
 
 **Why It Matters**: Reactive state eliminates entire classes of bugs:
 - No stale data (Views always reflect current state)
-- No manual update coordination (observables handle it)
+- No manual update coordination (signals handle it)
 - No forgotten state updates (one source of truth)
 
 **In Practice**:
 ```typescript
-// ViewModel exposes observables
-public readonly total$ = combineLatest([
-  this.subtotal$,
-  this.tax$,
-  this.shipping$
-]).pipe(
-  map(([subtotal, tax, shipping]) => subtotal + tax + shipping)
+// ViewModel exposes signals
+public readonly total$ = computed(() =>
+  this.subtotal$.get() + this.tax$.get() + this.shipping$.get()
 );
 
-// View subscribes (React example)
-const total = useObservable(cartViewModel.total$, 0);
+// View reads it (React example)
+const total = useSignal(cartViewModel.total$);
 
 // When subtotal, tax, or shipping changes, total updates automatically
 ```
@@ -132,12 +128,11 @@ MVVM's separation of concerns means you can test each layer independently:
 ```typescript
 // Test ViewModel without any framework
 describe('CartViewModel', () => {
-  it('calculates total correctly', async () => {
+  it('calculates total correctly', () => {
     const vm = new CartViewModel();
     vm.addItem({ id: '1', name: 'Product', price: 10, imageUrl: '' });
     
-    const total = await firstValueFrom(vm.total$);
-    expect(total).toBe(10.80); // 10 + 8% tax
+    expect(vm.total$.get()).toBe(10.80); // 10 + 8% tax
   });
 });
 ```
@@ -147,7 +142,7 @@ describe('CartViewModel', () => {
 
 **The Principle**: Each piece of state has exactly one authoritative source.
 
-Don't duplicate state across Models, ViewModels, and Views. State flows in one direction: Model → ViewModel → View. Derived state is computed from source state using observables.
+Don't duplicate state across Models, ViewModels, and Views. State flows in one direction: Model → ViewModel → View. Derived state is computed from source state using `computed()`.
 
 **Why It Matters**: Multiple sources of truth lead to:
 - Synchronization bugs (state gets out of sync)
@@ -158,11 +153,11 @@ Don't duplicate state across Models, ViewModels, and Views. State flows in one d
 ```typescript
 // Good: Single source, derived values
 class CartViewModel {
-  private _items$ = new BehaviorSubject<CartItem[]>([]);
+  private _items = signal<CartItem[]>([]);
   
-  // Derived from _items$, not stored separately
-  public itemCount$ = this._items$.pipe(
-    map(items => items.reduce((sum, item) => sum + item.quantity, 0))
+  // Derived from _items, not stored separately
+  public itemCount$ = computed(() =>
+    this._items.get().reduce((sum, item) => sum + item.quantity, 0)
   );
 }
 
@@ -221,7 +216,7 @@ Early-stage prototypes benefit from speed over structure. Don't introduce MVVM u
 
 **3. The Team Lacks Experience**
 
-MVVM requires understanding reactive programming, observables, and architectural patterns. If your team is new to these concepts, the learning curve might slow development. Start with simpler patterns and introduce MVVM gradually.
+MVVM requires understanding reactive programming, signals, and architectural patterns. If your team is new to these concepts, the learning curve might slow development. Start with simpler patterns and introduce MVVM gradually.
 
 **4. Framework-Specific Features Are Critical**
 
@@ -229,7 +224,7 @@ If your application heavily relies on framework-specific features (React Suspens
 
 **5. Performance Is Paramount**
 
-MVVM introduces a thin abstraction layer (observables, ViewModels). For most applications, this overhead is negligible. But if you're building a high-performance game, real-time graphics editor, or other performance-critical application, the abstraction might not be worth it.
+MVVM introduces a thin abstraction layer (signals, ViewModels). For most applications, this overhead is negligible. But if you're building a high-performance game, real-time graphics editor, or other performance-critical application, the abstraction might not be worth it.
 
 
 ### The Pragmatic Middle Ground
@@ -293,7 +288,7 @@ export const sensorViewModel = createReactiveViewModel({
 export const cartViewModel = new CartViewModel();
 
 // All components use the same instance
-const items = useObservable(cartViewModel.items$);
+const items = useSignal(cartViewModel.items$);
 ```
 
 **Instance Approach**:
@@ -306,7 +301,7 @@ function ProductList() {
     return () => viewModel.dispose();
   }, []);
   
-  const products = useObservable(viewModel.data$);
+  const products = useSignal(viewModel.data$);
 }
 ```
 
@@ -322,31 +317,39 @@ function ProductList() {
 
 **Recommendation**: Use singletons for application-level state (cart, auth, global data). Use instances for component-level state (forms, local filters, temporary UI state).
 
-### Decision 3: RxJS vs Signals vs Other Reactive Libraries
+### Decision 3: Signals by Default, RxJS as Opt-In Interop
 
-**RxJS Observables**:
+Every ViewModel and Model in this book is built on `@web-loom/signals-core`—it's not one option among equals, it's the reactive layer `mvvm-core` itself is built on:
+
 ```typescript
-private _data$ = new BehaviorSubject<Data[]>([]);
-public readonly data$ = this._data$.asObservable();
+// The default: signals-core
+private _data = signal<Data[]>([]);
+public readonly data$ = this._data.asReadonly();
+public readonly count$ = computed(() => this._data.get().length);
 ```
 
-**Signals (signals-core)**:
+RxJS is still available, but as a deliberate, scoped choice at a Model-edge boundary—not a parallel default. `@web-loom/signals-core/rxjs` bridges the two:
+
 ```typescript
-const data = writable<Data[]>([]);
-const count = computed(() => data.value.length);
+import { fromObservable, toObservable } from '@web-loom/signals-core/rxjs';
+
+// Bring a genuinely stream-shaped source (websocket, debounced search) into
+// a signal your ViewModel can expose normally:
+const results$ = fromObservable(searchResultsObservable$, []);
+
+// Or expose a signal to external RxJS-based code that needs it:
+const asObservable = toObservable(viewModel.data$);
 ```
 
-**When to Use RxJS**:
-- You need complex stream operations (debounce, throttle, combineLatest)
-- You're already using RxJS in your project
-- You need mature ecosystem and extensive operators
+**When to reach for plain signals (the default)**:
+- Any Model or ViewModel state—this is what every framework bridge in this book (`useSignal`, `fromLoomSignal`, `observe()`) expects
+- You want zero required dependencies and a minimal API (`get`/`peek`/`set`/`subscribe`/`computed`)
 
-**When to Use Signals**:
-- You want simpler, more intuitive API
-- You don't need complex stream operations
-- You want zero dependencies and smaller bundle size
+**When to reach for RxJS interop**:
+- You're integrating with something genuinely stream-shaped: a WebSocket feed, a debounced search pipeline, a retry/backoff HTTP client
+- The complexity is scoped to one Model-edge boundary, and you bridge back to a signal (`fromObservable`) once the stream settles into a value
 
-**Recommendation**: RxJS for complex applications with sophisticated reactive patterns. Signals for simpler applications or when bundle size matters. Both work with MVVM—choose based on your needs.
+**Recommendation**: Default to signals for all ViewModel and Model state. Reach for `@web-loom/signals-core/rxjs` only at the specific edges where RxJS's operator library earns its keep—and bridge back to a signal immediately after, so the rest of the ViewModel never has to know RxJS was involved.
 
 
 ### Decision 4: Validation in Model vs ViewModel
@@ -365,10 +368,10 @@ class SensorModel extends BaseModel<SensorData, typeof SensorSchema> {
 class CheckoutViewModel {
   setShippingAddress(address: ShippingAddress) {
     if (!this.isValidAddress(address)) {
-      this._error$.next('Invalid address');
+      this._error.set('Invalid address');
       return;
     }
-    this._shippingAddress$.next(address);
+    this._shippingAddress.set(address);
   }
 }
 ```
@@ -490,67 +493,63 @@ model.update(sensorId, { status: 'inactive' }); // What does this do?
 
 ### ViewModel Layer Best Practices
 
-**1. Expose Observables, Not Subjects**
+**1. Expose ReadonlySignals, Not Writable Signals**
 
-ViewModels should expose read-only observables to Views. Keep BehaviorSubjects private to prevent Views from bypassing ViewModel logic.
+ViewModels should expose read-only signals to Views. Keep the writable `signal()` private to prevent Views from bypassing ViewModel logic.
 
 ```typescript
 // Good: Encapsulated state
 class CartViewModel {
-  private _items$ = new BehaviorSubject<CartItem[]>([]);
-  public readonly items$ = this._items$.asObservable(); // Read-only
+  private _items = signal<CartItem[]>([]);
+  public readonly items$ = this._items.asReadonly(); // Read-only
   
   addItem(item: CartItem) {
     // Controlled mutation through method
-    this._items$.next([...this._items$.value, item]);
+    this._items.set([...this._items.peek(), item]);
   }
 }
 
 // Bad: Exposed mutable state
 class CartViewModel {
-  public items$ = new BehaviorSubject<CartItem[]>([]); // Views can mutate directly!
+  public items$ = signal<CartItem[]>([]); // Views can call .set() directly!
 }
 ```
 
-**2. Use Derived Observables**
+**2. Use Derived Signals**
 
-Compute derived state using RxJS operators rather than storing it separately.
+Compute derived state using `computed()` rather than storing it separately.
 
 ```typescript
 // Good: Derived from source
-public readonly total$ = combineLatest([
-  this.subtotal$,
-  this.tax$,
-  this.shipping$
-]).pipe(
-  map(([subtotal, tax, shipping]) => subtotal + tax + shipping)
+public readonly total$ = computed(() =>
+  this.subtotal$.get() + this.tax$.get() + this.shipping$.get()
 );
 
 // Bad: Manually synchronized
-private _total$ = new BehaviorSubject<number>(0);
+private _total = signal<number>(0);
 updateTotal() {
-  const subtotal = this._subtotal$.value;
-  const tax = this._tax$.value;
-  const shipping = this._shipping$.value;
-  this._total$.next(subtotal + tax + shipping); // Easy to forget
+  const subtotal = this._subtotal.peek();
+  const tax = this._tax.peek();
+  const shipping = this._shipping.peek();
+  this._total.set(subtotal + tax + shipping); // Easy to forget
 }
 ```
 
 **3. Handle Errors Gracefully**
 
-Expose error observables and handle errors at the ViewModel level, not in Views.
+Expose an error signal and handle errors at the ViewModel level, not in Views.
 
 ```typescript
 class SensorViewModel {
-  private _error$ = new BehaviorSubject<string | null>(null);
-  public readonly error$ = this._error$.asObservable();
+  private _error = signal<string | null>(null);
+  public readonly error$ = this._error.asReadonly();
   
   async fetchSensors() {
     try {
       await this.model.fetch();
-      this._error$.next(null);
+      this._error.set(null);
     } catch (error) {
-      this._error$.next(error instanceof Error ? error.message : 'Unknown error');
+      this._error.set(error instanceof Error ? error.message : 'Unknown error');
     }
   }
 }
@@ -558,21 +557,22 @@ class SensorViewModel {
 
 **4. Implement Proper Cleanup**
 
-Always implement `dispose()` methods to complete observables and prevent memory leaks.
+Always implement `dispose()` methods, and register any manually-created subscriptions with `addSubscription()` so they're torn down automatically.
 
 ```typescript
-class SensorViewModel {
-  private _destroy$ = new Subject<void>();
-  
+class SensorViewModel extends BaseViewModel<SensorModel> {
   constructor(model: SensorModel) {
-    this.model.data$
-      .pipe(takeUntil(this._destroy$))
-      .subscribe(/* ... */);
+    super(model);
+
+    // addSubscription registers the teardown for automatic cleanup —
+    // the direct replacement for RxJS's takeUntil(this._destroy$) pattern
+    this.addSubscription(
+      observe(this.model.data$, (data) => this.handleDataChange(data))
+    );
   }
-  
-  dispose() {
-    this._destroy$.next();
-    this._destroy$.complete();
+
+  private handleDataChange(data: SensorData[] | null) {
+    /* ... */
   }
 }
 ```
@@ -599,12 +599,12 @@ class ECommerceViewModel {
 
 **1. Keep Views Thin**
 
-Views should subscribe to observables, render UI, and invoke ViewModel methods. No business logic.
+Views should read signals, render UI, and invoke ViewModel methods. No business logic.
 
 ```typescript
 // Good: Thin View
 function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
   
   return (
     <ul>
@@ -617,7 +617,7 @@ function SensorList() {
 
 // Bad: Business logic in View
 function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
   
   // Business logic doesn't belong here!
   const activeSensors = sensors.filter(s => s.status === 'active');
@@ -631,30 +631,25 @@ function SensorList() {
 
 **2. Use Framework-Specific Adapters**
 
-Create thin adapter hooks/composables to bridge ViewModels to framework-specific patterns.
+Create thin adapter hooks/composables to bridge ViewModel signals to framework-specific patterns.
 
 ```typescript
 // React adapter
-function useObservable<T>(observable: Observable<T>, initialValue: T): T {
-  const [value, setValue] = useState<T>(initialValue);
-  
-  useEffect(() => {
-    const subscription = observable.subscribe(setValue);
-    return () => subscription.unsubscribe();
-  }, [observable]);
-  
-  return value;
+import { useSyncExternalStore } from 'react';
+import type { ReadonlySignal } from '@web-loom/signals-core';
+
+function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 
 // Vue adapter
-function useObservable<T>(observable: Observable<T>, initialValue: T) {
-  const value = ref<T>(initialValue);
-  
-  onMounted(() => {
-    const subscription = observable.subscribe(v => value.value = v);
-    onUnmounted(() => subscription.unsubscribe());
-  });
-  
+import { shallowRef, onUnmounted, type ShallowRef } from 'vue';
+import { observe, type ReadonlySignal } from '@web-loom/signals-core';
+
+function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
+  const value = shallowRef<T>(sig.peek());
+  const unsubscribe = observe(sig, (next) => { value.value = next; });
+  onUnmounted(unsubscribe);
   return value;
 }
 ```
@@ -666,9 +661,9 @@ Always handle loading and error states in Views. Don't assume data is always ava
 
 ```typescript
 function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, []);
-  const isLoading = useObservable(sensorViewModel.isLoading$, false);
-  const error = useObservable(sensorViewModel.error$, null);
+  const sensors = useSignal(sensorViewModel.data$);
+  const isLoading = useSignal(sensorViewModel.isLoading$);
+  const error = useSignal(sensorViewModel.error$);
   
   if (isLoading) return <Spinner />;
   if (error) return <ErrorMessage message={error} />;
@@ -730,23 +725,21 @@ ViewModels should be testable without rendering any UI.
 
 ```typescript
 describe('CartViewModel', () => {
-  it('calculates total with tax', async () => {
+  it('calculates total with tax', () => {
     const vm = new CartViewModel();
     vm.addItem({ id: '1', name: 'Product', price: 100, imageUrl: '' });
     
-    const total = await firstValueFrom(vm.total$);
-    expect(total).toBe(108); // 100 + 8% tax
+    expect(vm.total$.get()).toBe(108); // 100 + 8% tax
     
     vm.dispose();
   });
   
-  it('removes items correctly', async () => {
+  it('removes items correctly', () => {
     const vm = new CartViewModel();
     vm.addItem({ id: '1', name: 'Product', price: 100, imageUrl: '' });
     vm.removeItem('1');
     
-    const items = await firstValueFrom(vm.items$);
-    expect(items).toHaveLength(0);
+    expect(vm.items$.get()).toHaveLength(0);
     
     vm.dispose();
   });
@@ -760,17 +753,17 @@ When testing Views, mock the ViewModel's dependencies (Models, services), not th
 ```typescript
 // Good: Mock Model, test real ViewModel
 const mockModel = {
-  data$: of([{ id: '1', name: 'Sensor 1' }]),
-  isLoading$: of(false),
-  error$: of(null),
+  data$: signal([{ id: '1', name: 'Sensor 1' }]).asReadonly(),
+  isLoading$: signal(false).asReadonly(),
+  error$: signal(null).asReadonly(),
 };
 
 const viewModel = new SensorViewModel(mockModel);
 
 // Bad: Mock entire ViewModel
 const mockViewModel = {
-  data$: of([...]),
-  fetchSensors: jest.fn(),
+  data$: signal([...]).asReadonly(),
+  fetchSensors: vi.fn(),
   // You're not testing anything real!
 };
 ```
@@ -783,15 +776,14 @@ Don't just test happy paths. Test error handling, edge cases, and failure modes.
 describe('SensorViewModel error handling', () => {
   it('handles fetch errors gracefully', async () => {
     const mockModel = {
-      fetch: jest.fn().mockRejectedValue(new Error('Network error')),
-      error$: new BehaviorSubject(null),
+      fetch: vi.fn().mockRejectedValue(new Error('Network error')),
+      error$: signal<string | null>(null),
     };
     
     const vm = new SensorViewModel(mockModel);
     await vm.fetchSensors();
     
-    const error = await firstValueFrom(vm.error$);
-    expect(error).toBe('Network error');
+    expect(vm.error$.get()).toBe('Network error');
   });
 });
 ```
@@ -817,8 +809,8 @@ describe('CartViewModel properties', () => {
           const vm = new CartViewModel();
           items.forEach(item => vm.addItem(item));
           
-          const subtotal = vm.subtotal$.value;
-          const total = vm.total$.value;
+          const subtotal = vm.subtotal$.get();
+          const total = vm.total$.get();
           
           expect(total).toBeGreaterThanOrEqual(subtotal);
           vm.dispose();
@@ -832,57 +824,55 @@ describe('CartViewModel properties', () => {
 
 ### Performance Best Practices
 
-**1. Memoize Expensive Computations**
+**1. Let computed() Do the Memoization**
 
-Use RxJS operators like `distinctUntilChanged()` and `shareReplay()` to avoid redundant computations.
+`computed()` signals are lazy and automatically deduplicate: they only recompute when a dependency's value actually changes, and multiple readers share the same cached result between changes—no `distinctUntilChanged()`/`shareReplay()` operator pair needed.
 
 ```typescript
-// Avoid recomputing if data hasn't changed
-public readonly expensiveComputation$ = this.data$.pipe(
-  distinctUntilChanged(),
-  map(data => this.performExpensiveOperation(data)),
-  shareReplay(1) // Cache result for multiple subscribers
+// Recomputes only when `data$` changes; every reader shares the same value
+public readonly expensiveComputation$ = computed(() =>
+  this.performExpensiveOperation(this.data$.get())
 );
 ```
 
 **2. Debounce User Input**
 
-Debounce search queries and other frequent user inputs to reduce unnecessary API calls.
+Debounce search queries and other frequent user inputs to reduce unnecessary API calls. `debouncedSignal` from `@web-loom/signals-core` does this without pulling in RxJS:
 
 ```typescript
+import { signal, computed, debouncedSignal } from '@web-loom/signals-core';
+
 class SearchViewModel {
-  private _searchQuery$ = new BehaviorSubject<string>('');
-  
-  public readonly searchResults$ = this._searchQuery$.pipe(
-    debounceTime(300), // Wait 300ms after user stops typing
-    distinctUntilChanged(),
-    switchMap(query => this.searchAPI(query))
-  );
-  
+  private _searchQuery = signal<string>('');
+  private _debouncedQuery = debouncedSignal(this._searchQuery.asReadonly(), 300);
+
+  public readonly searchResults$ = computed(() => {
+    const query = this._debouncedQuery.get();
+    // Trigger the actual fetch as a side effect elsewhere (e.g. an effect
+    // watching _debouncedQuery), or bridge to RxJS's switchMap via
+    // @web-loom/signals-core/rxjs if you need cancellation semantics.
+    return this.currentResults;
+  });
+
   setSearchQuery(query: string) {
-    this._searchQuery$.next(query);
+    this._searchQuery.set(query);
   }
 }
 ```
 
 **3. Unsubscribe Properly**
 
-Always unsubscribe from observables to prevent memory leaks. Use `takeUntil()` pattern consistently.
+Always tear down subscriptions to prevent memory leaks. Use the `addSubscription()` pattern consistently.
 
 ```typescript
-class SensorViewModel {
-  private _destroy$ = new Subject<void>();
-  
+class SensorViewModel extends BaseViewModel<SensorModel> {
   constructor(model: SensorModel) {
-    // All subscriptions use takeUntil
-    model.data$
-      .pipe(takeUntil(this._destroy$))
-      .subscribe(/* ... */);
-  }
-  
-  dispose() {
-    this._destroy$.next();
-    this._destroy$.complete();
+    super(model);
+
+    // Registered teardowns run automatically on dispose()
+    this.addSubscription(
+      observe(model.data$, (data) => this.handleDataChange(data))
+    );
   }
 }
 ```
@@ -915,7 +905,7 @@ Let's address the most common mistakes developers make when implementing MVVM.
 **The Mistake**:
 ```typescript
 function ProductList() {
-  const products = useObservable(productViewModel.data$, []);
+  const products = useSignal(productViewModel.data$);
   
   // Business logic in View!
   const discountedProducts = products.map(p => ({
@@ -933,17 +923,17 @@ function ProductList() {
 **The Fix**: Move business logic to ViewModel.
 ```typescript
 class ProductViewModel {
-  public readonly discountedProducts$ = this.products$.pipe(
-    map(products => products.map(p => ({
+  public readonly discountedProducts$ = computed(() =>
+    this.products$.get().map(p => ({
       ...p,
       price: p.price * 0.9,
       isOnSale: p.price > 100,
-    })))
+    }))
   );
 }
 
 function ProductList() {
-  const products = useObservable(productViewModel.discountedProducts$, []);
+  const products = useSignal(productViewModel.discountedProducts$);
   return <ProductGrid products={products} />;
 }
 ```
@@ -963,14 +953,14 @@ class CartViewModel {
 
 **Why It's Wrong**: Views can bypass ViewModel logic by mutating state directly, breaking encapsulation and validation.
 
-**The Fix**: Expose observables, keep state private.
+**The Fix**: Expose `ReadonlySignal`s, keep the writable signal private.
 ```typescript
 class CartViewModel {
-  private _items$ = new BehaviorSubject<CartItem[]>([]);
-  public readonly items$ = this._items$.asObservable(); // Read-only
+  private _items = signal<CartItem[]>([]);
+  public readonly items$ = this._items.asReadonly(); // Read-only
   
   addItem(item: CartItem) {
-    this._items$.next([...this._items$.value, item]);
+    this._items.set([...this._items.peek(), item]);
   }
 }
 ```
@@ -1000,16 +990,16 @@ function SensorList() {
   const [sensors, setSensors] = useState([]);
   
   useEffect(() => {
-    const subscription = sensorViewModel.data$.subscribe(setSensors);
-    return () => subscription.unsubscribe(); // Cleanup!
+    const unsubscribe = sensorViewModel.data$.subscribe(setSensors);
+    return unsubscribe; // Cleanup!
   }, []);
   
   return <ul>{/* ... */}</ul>;
 }
 
-// Or use a custom hook that handles cleanup
+// Or use a hook that handles cleanup for you
 function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
   return <ul>{/* ... */}</ul>;
 }
 ```
@@ -1030,15 +1020,15 @@ class ProductViewModel {
 
 **Why It's Wrong**: Framework-specific APIs in ViewModels destroy framework independence. You can't reuse this ViewModel in other frameworks.
 
-**The Fix**: Use framework-agnostic patterns (observables, plain TypeScript).
+**The Fix**: Use framework-agnostic patterns (`@web-loom/signals-core`, plain TypeScript).
 ```typescript
 class ProductViewModel {
-  private _products$ = new BehaviorSubject<Product[]>([]);
-  public readonly products$ = this._products$.asObservable();
+  private _products = signal<Product[]>([]);
+  public readonly products$ = this._products.asReadonly();
   
   async fetchProducts() {
     const data = await api.getProducts();
-    this._products$.next(data); // Works everywhere
+    this._products.set(data); // Works everywhere
   }
 }
 ```
@@ -1050,11 +1040,11 @@ class ProductViewModel {
 ```typescript
 // For a simple static page
 class AboutPageViewModel {
-  private _title$ = new BehaviorSubject<string>('About Us');
-  public readonly title$ = this._title$.asObservable();
+  private _title = signal<string>('About Us');
+  public readonly title$ = this._title.asReadonly();
   
-  private _content$ = new BehaviorSubject<string>('We are a company...');
-  public readonly content$ = this._content$.asObservable();
+  private _content = signal<string>('We are a company...');
+  public readonly content$ = this._content.asReadonly();
   
   // Overkill for static content!
 }
@@ -1084,24 +1074,22 @@ class CheckoutViewModel {
   
   placeOrder() {
     // Directly accessing another ViewModel's internals
-    const items = this.cartViewModel._items$.value; // Accessing private state!
+    const items = this.cartViewModel._items.peek(); // Accessing private state!
   }
 }
 ```
 
 **Why It's Wrong**: Tight coupling makes ViewModels hard to test and change independently.
 
-**The Fix**: Use public observables and clear interfaces.
+**The Fix**: Use public signals and clear interfaces.
 ```typescript
 class CheckoutViewModel {
   constructor(private cartViewModel: CartViewModel) {}
   
-  public readonly orderSummary$ = combineLatest([
-    this.cartViewModel.items$, // Public observable
-    this.cartViewModel.total$,
-  ]).pipe(
-    map(([items, total]) => ({ items, total }))
-  );
+  public readonly orderSummary$ = computed(() => ({
+    items: this.cartViewModel.items$.get(), // Public signal
+    total: this.cartViewModel.total$.get(),
+  }));
 }
 ```
 
@@ -1112,7 +1100,7 @@ class CheckoutViewModel {
 class SensorViewModel {
   async fetchSensors() {
     const data = await api.getSensors(); // What if this fails?
-    this._data$.next(data);
+    this._data.set(data);
   }
 }
 ```
@@ -1122,16 +1110,16 @@ class SensorViewModel {
 **The Fix**: Always handle errors explicitly.
 ```typescript
 class SensorViewModel {
-  private _error$ = new BehaviorSubject<string | null>(null);
-  public readonly error$ = this._error$.asObservable();
+  private _error = signal<string | null>(null);
+  public readonly error$ = this._error.asReadonly();
   
   async fetchSensors() {
     try {
-      this._error$.next(null);
+      this._error.set(null);
       const data = await api.getSensors();
-      this._data$.next(data);
+      this._data.set(data);
     } catch (error) {
-      this._error$.next(error instanceof Error ? error.message : 'Unknown error');
+      this._error.set(error instanceof Error ? error.message : 'Unknown error');
     }
   }
 }
@@ -1175,30 +1163,30 @@ function CheckoutPage() {
 ```typescript
 // Extract to ViewModel
 class CheckoutViewModel {
-  private _step$ = new BehaviorSubject('shipping');
-  private _shippingAddress$ = new BehaviorSubject(null);
-  private _paymentMethod$ = new BehaviorSubject(null);
-  private _isProcessing$ = new BehaviorSubject(false);
-  private _error$ = new BehaviorSubject(null);
+  private _step = signal<'shipping' | 'payment' | 'review'>('shipping');
+  private _shippingAddress = signal<ShippingAddress | null>(null);
+  private _paymentMethod = signal<PaymentMethod | null>(null);
+  private _isProcessing = signal(false);
+  private _error = signal<string | null>(null);
   
-  public readonly step$ = this._step$.asObservable();
-  public readonly shippingAddress$ = this._shippingAddress$.asObservable();
-  public readonly paymentMethod$ = this._paymentMethod$.asObservable();
-  public readonly isProcessing$ = this._isProcessing$.asObservable();
-  public readonly error$ = this._error$.asObservable();
+  public readonly step$ = this._step.asReadonly();
+  public readonly shippingAddress$ = this._shippingAddress.asReadonly();
+  public readonly paymentMethod$ = this._paymentMethod.asReadonly();
+  public readonly isProcessing$ = this._isProcessing.asReadonly();
+  public readonly error$ = this._error.asReadonly();
   
   async placeOrder() {
-    this._isProcessing$.next(true);
-    this._error$.next(null);
+    this._isProcessing.set(true);
+    this._error.set(null);
     try {
       await api.placeOrder({
-        shippingAddress: this._shippingAddress$.value,
-        paymentMethod: this._paymentMethod$.value,
+        shippingAddress: this._shippingAddress.peek(),
+        paymentMethod: this._paymentMethod.peek(),
       });
     } catch (e) {
-      this._error$.next(e.message);
+      this._error.set(e.message);
     } finally {
-      this._isProcessing$.next(false);
+      this._isProcessing.set(false);
     }
   }
 }
@@ -1206,9 +1194,9 @@ class CheckoutViewModel {
 // Simplified component
 function CheckoutPage() {
   const [viewModel] = useState(() => new CheckoutViewModel());
-  const step = useObservable(viewModel.step$, 'shipping');
-  const isProcessing = useObservable(viewModel.isProcessing$, false);
-  const error = useObservable(viewModel.error$, null);
+  const step = useSignal(viewModel.step$);
+  const isProcessing = useSignal(viewModel.isProcessing$);
+  const error = useSignal(viewModel.error$);
   
   return <CheckoutFlow viewModel={viewModel} />;
 }
@@ -1245,12 +1233,12 @@ function ProductCard() {
 export const cartViewModel = new CartViewModel();
 
 function Header() {
-  const cartCount = useObservable(cartViewModel.itemCount$, 0);
+  const cartCount = useSignal(cartViewModel.itemCount$);
   return <div>Cart ({cartCount})</div>;
 }
 
 function CartWidget() {
-  const cartCount = useObservable(cartViewModel.itemCount$, 0);
+  const cartCount = useSignal(cartViewModel.itemCount$);
   return <div>{cartCount} items</div>;
 }
 
@@ -1299,14 +1287,14 @@ class ProductModel {
 class ProductViewModel {
   constructor(private model: ProductModel) {}
   
-  public readonly discountedProducts$ = this.products$.pipe(
-    map(products => products.map(p => this.model.applyDiscount(p)))
+  public readonly discountedProducts$ = computed(() =>
+    this.products$.get().map(p => this.model.applyDiscount(p))
   );
 }
 
 // Component is simple
 function ProductList() {
-  const products = useObservable(productViewModel.discountedProducts$, []);
+  const products = useSignal(productViewModel.discountedProducts$);
   return products.map(p => <ProductCard product={p} />);
 }
 ```
@@ -1365,9 +1353,9 @@ As AI-assisted development matures, architectural patterns that provide clear bo
 
 ### Trend 4: Reactive Programming Mainstream Adoption
 
-Reactive programming (observables, signals, streams) is becoming mainstream. React's upcoming "React Forget" compiler, Vue's reactivity system, Angular's signals, Solid's fine-grained reactivity—all embrace reactive patterns.
+Reactive programming (signals, streams) is becoming mainstream. React's compiler direction, Vue's reactivity system, Angular's own Signals, Solid's fine-grained reactivity—all embrace reactive patterns, and increasingly that means **signals** specifically, not just observables. This book's own migration—from RxJS-based `BehaviorSubject`s to `@web-loom/signals-core` signals—tracks exactly this industry shift.
 
-MVVM has always been reactive at its core. As frameworks converge on reactive patterns, MVVM becomes more natural to implement, not less.
+MVVM has always been reactive at its core. As frameworks converge on signal-based reactive patterns, MVVM becomes more natural to implement, not less—and the framework bridges get smaller, not bigger, since more of the ecosystem is speaking the same "signal" primitive.
 
 ### Trend 5: TypeScript Ubiquity
 
@@ -1382,7 +1370,7 @@ As TypeScript becomes the default, MVVM's type-safe boundaries become more valua
 
 The frontend community is finally taking testing seriously. Property-based testing, mutation testing, and comprehensive test coverage are no longer niche practices.
 
-MVVM's testability is a perfect fit for this culture shift. As teams demand higher test coverage and faster test execution, MVVM's ability to test business logic without rendering components becomes essential.
+MVVM's testability is a perfect fit for this culture shift. As teams demand higher test coverage and faster test execution, MVVM's ability to test business logic without rendering components becomes essential—and signals make it even easier: most assertions are a synchronous `.get()` call away, no async operator chains required.
 
 ### The Path Forward
 
@@ -1403,13 +1391,13 @@ You've learned the patterns. You've seen the code. You've studied complete appli
 
 **1. Separation of Concerns**: Models handle business logic, ViewModels manage presentation state, Views render UI. Keep these boundaries clear.
 
-**2. Framework Independence**: Business logic should work in any framework. Use framework-agnostic patterns (observables, plain TypeScript) in ViewModels and Models.
+**2. Framework Independence**: Business logic should work in any framework. Use framework-agnostic patterns (`@web-loom/signals-core` signals, plain TypeScript) in ViewModels and Models.
 
-**3. Reactive State**: Expose observables, not mutable state. Let state changes propagate automatically through reactive streams.
+**3. Reactive State**: Expose `ReadonlySignal`s, not mutable state. Let state changes propagate automatically through signals.
 
 **4. Testability**: Test ViewModels without rendering components. Test Models without ViewModels. Test Views with mocked ViewModels.
 
-**5. Single Source of Truth**: Each piece of state has one authoritative source. Derive everything else using observables.
+**5. Single Source of Truth**: Each piece of state has one authoritative source. Derive everything else using `computed()`.
 
 **6. Pragmatism Over Dogma**: Use MVVM where it provides value. Don't force it everywhere. Simple features can use simpler patterns.
 
@@ -1429,7 +1417,7 @@ The best way to learn MVVM is to work with real implementations. The Web Loom mo
 
 - **Complete ViewModels**: `packages/view-models/src/`
 - **Framework implementations**: `apps/mvvm-react/`, `apps/mvvm-vue/`, `apps/mvvm-angular/`, `apps/mvvm-lit/`, `apps/mvvm-vanilla/`
-- **Supporting libraries**: `packages/mvvm-core/`, `packages/store-core/`, `packages/event-bus-core/`, `packages/query-core/`
+- **Supporting libraries**: `packages/mvvm-core/`, `packages/signals-core/`, `packages/store-core/`, `packages/event-bus-core/`, `packages/query-core/`
 - **Real applications**: GreenWatch monitoring system, e-commerce workflows, plugin architecture
 
 Clone the repository. Run the applications. Modify the ViewModels. See how changes propagate across frameworks. There's no substitute for hands-on experience.
@@ -1465,7 +1453,7 @@ Go build something great.
 **Core Principles**:
 - Separation of concerns: Models, ViewModels, Views
 - Framework independence: Business logic works everywhere
-- Reactive state: Observables propagate changes automatically
+- Reactive state: Signals propagate changes automatically
 - Testability: Test each layer independently
 - Single source of truth: Derive state, don't duplicate it
 
@@ -1486,15 +1474,15 @@ Go build something great.
 
 **Best Practices**:
 - Keep Models pure (business logic only)
-- Expose observables, not subjects (encapsulation)
-- Use derived observables (avoid duplicate state)
-- Handle errors gracefully (expose error observables)
-- Implement proper cleanup (dispose methods)
+- Expose `ReadonlySignal`s, not writable signals (encapsulation)
+- Use derived signals via `computed()` (avoid duplicate state)
+- Handle errors gracefully (expose an error signal)
+- Implement proper cleanup (`dispose()` + `addSubscription()`)
 - Keep Views thin (no business logic)
-- Test ViewModels in isolation (no DOM)
-- Memoize expensive computations (distinctUntilChanged, shareReplay)
-- Debounce user input (reduce API calls)
-- Unsubscribe properly (prevent memory leaks)
+- Test ViewModels in isolation (no DOM, synchronous `.get()` assertions)
+- Let `computed()` handle memoization (no manual `distinctUntilChanged`/`shareReplay`)
+- Debounce user input (`debouncedSignal`, or RxJS interop for cancellation-heavy cases)
+- Tear down subscriptions properly (prevent memory leaks)
 
 **Common Pitfalls**:
 - Business logic in Views
@@ -1515,7 +1503,7 @@ Go build something great.
 - Framework fatigue drives portability needs
 - Cross-platform development becomes standard
 - AI-assisted development benefits from clear structure
-- Reactive programming goes mainstream
+- Reactive programming goes mainstream, and increasingly means signals specifically
 - TypeScript ubiquity strengthens type-safe boundaries
 - Testing culture matures
 
@@ -1526,4 +1514,3 @@ Go build something great.
 Now go apply these principles. Build something you're proud of. And when you do, remember: architecture matters. Separation of concerns matters. Testability matters. Framework independence matters.
 
 MVVM gives you all of these. Use it wisely.
-

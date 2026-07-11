@@ -54,10 +54,7 @@ dialog.getState(); // → { isOpen: boolean, id: string }
 
 // Subscribe
 dialog.subscribe((state) => {
-  document.getElementById('my-dialog')?.setAttribute(
-    'aria-hidden',
-    String(!state.isOpen)
-  );
+  document.getElementById('my-dialog')?.setAttribute('aria-hidden', String(!state.isOpen));
 });
 ```
 
@@ -94,11 +91,11 @@ You own the markup. You choose where to put the `<div>`, what classes to apply, 
 import { createListSelectionBehavior } from '@web-loom/ui-core';
 
 const list = createListSelectionBehavior({
-  mode: 'single',  // or 'multiple'
+  mode: 'single', // or 'multiple'
   items: products,
   getId: (p) => p.id,
   onSelectionChange: (selected) => {
-    vm.selectedProducts$.next(selected);
+    vm.selectedProducts$.set(selected);
   },
 });
 
@@ -153,7 +150,7 @@ function TabBar({ tabs }: { tabs: Tab[] }) {
           aria-selected={roving.activeId === tab.id}
           onKeyDown={(e) => {
             if (e.key === 'ArrowRight') roving.moveNext();
-            if (e.key === 'ArrowLeft')  roving.movePrevious();
+            if (e.key === 'ArrowLeft') roving.movePrevious();
           }}
           onClick={() => roving.setActive(tab.id)}
         >
@@ -176,7 +173,7 @@ const form = createFormBehavior({
   validate: (values) => {
     const errors: Record<string, string> = {};
     if (!values.email.includes('@')) errors.email = 'Invalid email';
-    if (values.password.length < 8)  errors.password = 'Too short';
+    if (values.password.length < 8) errors.password = 'Too short';
     return errors;
   },
 });
@@ -223,9 +220,9 @@ import { createTable } from '@web-loom/ui-core';
 const table = createTable({
   data: products,
   columns: [
-    { id: 'name',  accessor: p => p.name,  sortable: true },
-    { id: 'price', accessor: p => p.price, sortable: true },
-    { id: 'stock', accessor: p => p.stock, sortable: false },
+    { id: 'name', accessor: (p) => p.name, sortable: true },
+    { id: 'price', accessor: (p) => p.price, sortable: true },
+    { id: 'stock', accessor: (p) => p.stock, sortable: false },
   ],
   pageSize: 25,
 });
@@ -247,7 +244,7 @@ This covers the table interaction state that's tedious to implement correctly an
 Behaviours compose naturally because they're independent stores. A `MasterDetail` view might combine list selection with a roving focus manager and a disclosure for the detail panel:
 
 ```typescript
-const selection  = createListSelectionBehavior({ mode: 'single', items, getId });
+const selection = createListSelectionBehavior({ mode: 'single', items, getId });
 const rovingFocus = createRovingFocusBehavior({ orientation: 'vertical' });
 const detailPanel = createDisclosureBehavior({ open: false });
 

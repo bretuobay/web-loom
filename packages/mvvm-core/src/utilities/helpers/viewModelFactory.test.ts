@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { z, ZodError } from 'zod';
-import { take } from 'rxjs/operators';
+import { observe } from '@web-loom/signals-core';
 import { BaseModel } from '../../models/BaseModel';
 import { BaseViewModel } from '../../viewmodels/BaseViewModel';
 import { createGenericViewModel, GenericViewModelFactoryConfig } from './viewModelFactory';
@@ -77,7 +77,7 @@ describe('createGenericViewModel', () => {
       expect(viewModel).toBeInstanceOf(ExampleViewModel);
       expect(viewModel.model).toBeInstanceOf(ExampleModel);
 
-      viewModel.data$.subscribe((data) => {
+      observe(viewModel.data$, (data) => {
         expect(data).toEqual(navItemsData);
         done();
       });
@@ -107,7 +107,7 @@ describe('createGenericViewModel', () => {
 
       // Subscribe first to catch the change
       let callCount = 0;
-      viewModel.data$.subscribe((data) => {
+      observe(viewModel.data$, (data) => {
         callCount++;
         if (callCount === 1) {
           // Initial data
@@ -171,7 +171,7 @@ describe('createGenericViewModel', () => {
         }
       };
 
-      viewModel.error$.subscribe((error) => {
+      observe(viewModel.error$, (error) => {
         if (error) {
           // Ignore initial null emission
           expect(error).toBeInstanceOf(ZodError);
@@ -184,7 +184,7 @@ describe('createGenericViewModel', () => {
         }
       });
 
-      viewModel.validationErrors$.subscribe((validationError) => {
+      observe(viewModel.validationErrors$, (validationError) => {
         if (validationError) {
           // Ignore initial null emission
           expect(validationError).toBeInstanceOf(ZodError);
@@ -199,20 +199,11 @@ describe('createGenericViewModel', () => {
 
       // Check initial state: data should be null, error should be null
       // For data$
-      viewModel.data$.pipe(take(1)).subscribe((initialData) => {
-        expect(initialData).toBeNull(); // As per modelConstructorInputForErrorTest
-      });
+      // data$ was initialized with null and never updated in this test
+      expect(viewModel.data$.get()).toBeNull(); // As per modelConstructorInputForErrorTest
       // For error$ - check it's null before the setError call above takes effect
-      viewModel.error$.pipe(take(1)).subscribe((initialError) => {
-        // This will catch the initial null. If setError has already been called
-        // and emitted a ZodError before this subscription happens (less likely for BehaviorSubject),
-        // this check might be on the ZodError itself.
-        // The primary check for ZodError is in the other subscriptions.
-        if (!errorCallbackCalled) {
-          // Check only if the main error check hasn't run
-          expect(initialError).toBeNull();
-        }
-      });
+      // The error was set before the observers above ran, so the immediate
+      // delivery already carried the ZodError — nothing further to check here.
     });
   });
 });

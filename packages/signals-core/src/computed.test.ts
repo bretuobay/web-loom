@@ -107,14 +107,30 @@ describe('computed', () => {
     expect(callsAfterInit).toBeGreaterThan(0); // guard
   });
 
-  it('double-invalidation is a no-op (guard against re-notification)', () => {
-    const s = signal(0);
-    const c = computed(() => s.get());
+  it('does not re-notify when the derived value is unchanged', () => {
+    const s = signal(1);
+    const c = computed(() => s.get() > 0);
     const fn = vi.fn();
     c.subscribe(fn);
 
-    s.set(1); // marks dirty, notifies once
-    s.set(2); // computed is already dirty — guard fires, no duplicate notification
+    s.set(2); // derived value stays true — no notification
+    s.set(3); // still true — no notification
+    expect(fn).not.toHaveBeenCalled();
+
+    s.set(-1); // derived value flips to false — one notification
     expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('delivers the new derived value to subscribers', () => {
+    const s = signal(2);
+    const c = computed(() => s.get() * 10);
+    const fn = vi.fn();
+    c.subscribe(fn);
+
+    s.set(3);
+    expect(fn).toHaveBeenCalledWith(30);
+    s.set(4);
+    expect(fn).toHaveBeenLastCalledWith(40);
+    expect(fn).toHaveBeenCalledTimes(2);
   });
 });

@@ -15,15 +15,18 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 ## Rewrite Plan Documents
 
 ### 1. Foundations Section (Chapters 1-3)
+
 **File:** `rewrite-plans-foundations.md`  
 **Status:** ✅ Complete (Task 3.1)
 
 **Chapters Covered:**
+
 - Chapter 1: The Frontend Architecture Crisis
 - Chapter 2: Why MVVM Matters for Modern Frontend
 - Chapter 3: MVVM Pattern Fundamentals
 
 **Key Focus:**
+
 - Identifying frontend architectural problems
 - Introducing MVVM as the solution
 - Explaining the three MVVM layers
@@ -32,16 +35,19 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 ---
 
 ### 2. Core Patterns Section (Chapters 4-7)
+
 **File:** `rewrite-plans-core-patterns.md`  
 **Status:** ✅ Complete (Task 3.2)
 
 **Chapters Covered:**
+
 - Chapter 4: Building Framework-Agnostic Models
 - Chapter 5: ViewModels and Reactive State
 - Chapter 6: The View Layer Contract
 - Chapter 7: Dependency Injection and Lifecycle Management
 
 **Key Focus:**
+
 - Model layer with BaseModel and RestfulApiModel
 - ViewModel layer with reactive state (RxJS)
 - View layer and "dumb view" philosophy
@@ -51,10 +57,12 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 ---
 
 ### 3. Framework Implementations Section (Chapters 8-12)
+
 **File:** `rewrite-plans-all-sections.md` (Section 3)  
 **Status:** ✅ Complete (Task 3.3)
 
 **Chapters Covered:**
+
 - Chapter 8: React Implementation with Hooks
 - Chapter 9: Vue Implementation with Composition API
 - Chapter 10: Angular Implementation with DI
@@ -62,6 +70,7 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 - Chapter 12: Vanilla JavaScript Implementation
 
 **Key Focus:**
+
 - Same ViewModels across all frameworks
 - Framework-specific View patterns
 - Custom hooks, composables, DI, reactive controllers
@@ -71,10 +80,12 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 ---
 
 ### 4. Framework-Agnostic Patterns Section (Chapters 13-17)
+
 **File:** `rewrite-plans-all-sections.md` (Section 4)  
 **Status:** ✅ Complete (Task 3.4)
 
 **Chapters Covered:**
+
 - Chapter 13: Reactive State Management Patterns
 - Chapter 14: Event-Driven Communication
 - Chapter 15: Data Fetching and Caching Strategies
@@ -82,6 +93,7 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 - Chapter 17: Composed UI Patterns
 
 **Key Focus:**
+
 - Patterns taught first, libraries as examples
 - Web Loom libraries (signals-core, store-core, event-bus-core, query-core, ui-core, ui-patterns)
 - Alternative implementations shown
@@ -91,16 +103,19 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 ---
 
 ### 5. Advanced Topics Section (Chapters 18-21)
+
 **File:** `rewrite-plans-all-sections.md` (Section 5)  
 **Status:** ✅ Complete (Task 3.5)
 
 **Chapters Covered:**
+
 - Chapter 18: Domain-Driven Design for Frontend
 - Chapter 19: Testing MVVM Applications
 - Chapter 20: Plugin Architecture and Extensibility
 - Chapter 21: Design Systems and Theming
 
 **Key Focus:**
+
 - DDD principles applied to GreenWatch
 - Testing strategies for MVVM layers
 - Plugin architecture with plugin-core
@@ -110,14 +125,17 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 ---
 
 ### 6. Real-World Applications Section (Chapters 22-23)
+
 **File:** `rewrite-plans-all-sections.md` (Section 6)  
 **Status:** ✅ Complete (Task 3.6)
 
 **Chapters Covered:**
+
 - Chapter 22: Complete Case Studies
 - Chapter 23: Conclusion and Best Practices
 
 **Key Focus:**
+
 - Complete GreenWatch implementation across all frameworks
 - E-commerce application as secondary case study
 - All patterns integrated
@@ -129,18 +147,21 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 ## Key Principles Across All Plans
 
 ### 1. Real Code Only
+
 - All examples extracted from Web Loom monorepo
 - No hypothetical or made-up code
 - GreenWatch as primary case study throughout
 - E-commerce as secondary case study
 
 ### 2. Framework-Agnostic Approach
+
 - Business logic (Models, ViewModels) framework-independent
 - Same ViewModels work across React, Vue, Angular, Lit, Vanilla JS
 - Framework-specific only in View layer
 - Patterns over libraries philosophy
 
 ### 3. Patterns Over Libraries
+
 - Teach general patterns and principles first
 - Use Web Loom libraries as concrete examples
 - Show alternative implementations
@@ -148,12 +169,14 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 - Readers can apply patterns with any library
 
 ### 4. Pedagogical Progression
+
 - Foundations → Core Patterns → Framework Implementations → Framework-Agnostic Patterns → Advanced Topics → Real-World Applications
 - Each chapter builds on previous chapters
 - Simple concepts before complex
 - Progressive learning from beginner to advanced
 
 ### 5. Comprehensive Coverage
+
 - All MVVM layers covered (Model, ViewModel, View)
 - All frameworks covered (React, Vue, Angular, Lit, Vanilla JS)
 - All supporting patterns covered (reactive state, events, data fetching, UI behaviors, design systems)
@@ -164,17 +187,21 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 ## Real Implementations Referenced
 
 ### Core MVVM
+
 - `packages/mvvm-core/src/models/` - BaseModel, RestfulApiModel
 - `packages/mvvm-core/src/viewmodels/` - BaseViewModel, RestfulApiViewModel
 - `packages/mvvm-core/src/core/di-container.ts` - DI container
 
 ### Domain Models
+
 - `packages/models/src/` - GreenHouse, Sensor, SensorReading, ThresholdAlert
 
 ### ViewModels
+
 - `packages/view-models/src/` - GreenHouseViewModel, SensorViewModel, SensorReadingViewModel, ThresholdAlertViewModel
 
 ### Framework Implementations
+
 - `apps/mvvm-react/` - React implementation
 - `apps/mvvm-vue/` - Vue implementation
 - `apps/mvvm-angular/` - Angular implementation
@@ -182,6 +209,7 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 - `apps/mvvm-vanilla/` - Vanilla JS implementation
 
 ### Framework-Agnostic Libraries
+
 - `packages/signals-core/` - Signals pattern
 - `packages/store-core/` - Observable store pattern
 - `packages/event-bus-core/` - Pub/sub pattern
@@ -191,6 +219,7 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 - `packages/design-core/` - Design token system
 
 ### Plugin Architecture
+
 - `packages/plugin-core/` - Plugin system
 - `apps/plugin-react/` - React plugin host
 
@@ -199,20 +228,24 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 ## Chapter Dependencies
 
 ### Foundations (1-3)
+
 - Chapter 1 → Chapter 2 → Chapter 3
 - No external dependencies
 
 ### Core Patterns (4-7)
+
 - Chapter 4 depends on: 3
 - Chapter 5 depends on: 4
 - Chapter 6 depends on: 5
 - Chapter 7 depends on: 5, 6
 
 ### Framework Implementations (8-12)
+
 - All depend on: 5, 6, 7
 - Chapters 9-12 also reference Chapter 8 for comparison
 
 ### Framework-Agnostic Patterns (13-17)
+
 - Chapter 13 depends on: 5
 - Chapter 14 depends on: 5
 - Chapter 15 depends on: 5
@@ -220,12 +253,14 @@ This document summarizes the complete rewrite plans for all 23 chapters of the M
 - Chapter 17 depends on: 16
 
 ### Advanced Topics (18-21)
+
 - Chapter 18 depends on: 4, 5, 14
 - Chapter 19 depends on: 4, 5, 6
 - Chapter 20 depends on: 5, 7
 - Chapter 21 depends on: 6
 
 ### Real-World Applications (22-23)
+
 - Both depend on: All previous chapters
 
 ---
@@ -282,6 +317,7 @@ With all rewrite plans complete, the next phase is:
 **Phase 4: Chapter Rewriting (Tasks 5.x - 11.x)**
 
 ### Recommended Approach:
+
 1. Start with Foundations section (Chapters 1-3)
 2. Proceed to Core Patterns (Chapters 4-7)
 3. Continue with Framework Implementations (Chapters 8-12)
@@ -290,6 +326,7 @@ With all rewrite plans complete, the next phase is:
 6. Finish with Real-World Applications (Chapters 22-23)
 
 ### For Each Chapter:
+
 1. Review the rewrite plan
 2. Extract code examples from monorepo
 3. Write explanatory text
@@ -315,7 +352,7 @@ The rewrite plans are considered successful because they:
 ✅ Provide clear learning objectives  
 ✅ Include content structure outlines  
 ✅ Specify chapter dependencies  
-✅ Include key teaching points  
+✅ Include key teaching points
 
 ---
 
@@ -358,6 +395,7 @@ Phase 3 (Rewrite Plan Generation) is now complete. All 23 chapters have detailed
 - Dependencies
 
 The plans provide a clear roadmap for Phase 4 (Chapter Rewriting), ensuring that all chapters will:
+
 - Use real code from the Web Loom monorepo
 - Follow the framework-agnostic, patterns-first approach
 - Build on each other coherently

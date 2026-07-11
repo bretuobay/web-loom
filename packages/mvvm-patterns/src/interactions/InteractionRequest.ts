@@ -1,4 +1,4 @@
-import { Observable, Subject } from 'rxjs';
+import { EventSource, type EventSubscribable } from '@web-loom/mvvm-core';
 import { INotification, InteractionRequestedEvent } from './types';
 
 /**
@@ -28,22 +28,22 @@ import { INotification, InteractionRequestedEvent } from './types';
  *
  * // In View (React)
  * useEffect(() => {
- *   const sub = vm.confirmDelete.requested$.subscribe(event => {
+ *   const unsubscribe = vm.confirmDelete.requested$.subscribe(event => {
  *     showDialog(event.context, (confirmed) => {
  *       event.callback({ ...event.context, confirmed });
  *     });
  *   });
- *   return () => sub.unsubscribe();
+ *   return unsubscribe;
  * }, []);
  */
 export class InteractionRequest<T extends INotification> {
-  private readonly _requested$ = new Subject<InteractionRequestedEvent<T>>();
+  private readonly _requested = new EventSource<InteractionRequestedEvent<T>>();
 
   /**
-   * Observable that Views subscribe to for handling interaction requests.
+   * Event stream that Views subscribe to for handling interaction requests.
    * Each emission contains the context and a callback for the response.
    */
-  public readonly requested$: Observable<InteractionRequestedEvent<T>> = this._requested$.asObservable();
+  public readonly requested$: EventSubscribable<InteractionRequestedEvent<T>> = this._requested;
 
   /**
    * Raise an interaction request with a callback.
@@ -52,7 +52,7 @@ export class InteractionRequest<T extends INotification> {
    * @param callback Optional callback for the response
    */
   raise(context: T, callback?: (response: T) => void): void {
-    this._requested$.next({
+    this._requested.emit({
       context,
       callback: callback || (() => {}),
     });
@@ -82,6 +82,6 @@ export class InteractionRequest<T extends INotification> {
    * Clean up resources
    */
   dispose(): void {
-    this._requested$.complete();
+    this._requested.dispose();
   }
 }

@@ -1,5 +1,12 @@
 # MVVM-Core Enhancement Roadmap: Prism-Inspired Features
 
+> **Note (2026-07):** mvvm-core's reactive substrate has migrated from RxJS to
+> `@web-loom/signals-core` (see `.kiro/specs/mvvm-core-signals-migration/`).
+> Observable-oriented roadmap items below now target signals — read
+> "Observable" as "ReadonlySignal", and "adapted for RxJS rather than
+> INotifyPropertyChanged" as "adapted for signals". RxJS remains available for
+> Model-edge stream orchestration via `@web-loom/signals-core/rxjs`.
+
 This document outlines Prism Library features that could enhance `mvvm-core` to make it a more complete standalone MVVM library for web/mobile applications. While other Web Loom packages handle concerns like DI, navigation, and plugins at the application level, these features would strengthen the core MVVM patterns within `mvvm-core` itself.
 
 > **Context**: Prism Library is a mature MVVM framework for desktop applications (WPF, Xamarin, MAUI). This analysis focuses on core MVVM patterns that translate well to web/mobile development, adapted for RxJS-based reactive programming rather than INotifyPropertyChanged.

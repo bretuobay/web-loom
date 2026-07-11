@@ -15,6 +15,7 @@ This document provides a high-level summary of the new chapter structure for the
 ## Six-Section Structure
 
 ### Section 1: Foundations (Chapters 1-3)
+
 **Purpose:** Introduce the frontend architecture crisis and MVVM fundamentals
 
 1. **The Frontend Architecture Crisis** - Why we need architectural patterns
@@ -22,6 +23,7 @@ This document provides a high-level summary of the new chapter structure for the
 3. **MVVM Pattern Fundamentals** - The three layers and their responsibilities
 
 ### Section 2: Core Patterns (Chapters 4-7)
+
 **Purpose:** Cover Models, ViewModels, Views, and reactive state management
 
 4. **Building Framework-Agnostic Models** - Model layer in detail
@@ -30,6 +32,7 @@ This document provides a high-level summary of the new chapter structure for the
 7. **Dependency Injection and Lifecycle Management** - DI patterns and lifecycle
 
 ### Section 3: Framework Implementations (Chapters 8-12)
+
 **Purpose:** Demonstrate MVVM across React, Vue, Angular, Lit, and Vanilla JS
 
 8. **React Implementation with Hooks** - MVVM in React
@@ -39,6 +42,7 @@ This document provides a high-level summary of the new chapter structure for the
 12. **Vanilla JavaScript Implementation** - MVVM without frameworks (NEW)
 
 ### Section 4: Framework-Agnostic Patterns (Chapters 13-17)
+
 **Purpose:** Cover reactive state, events, data fetching, UI behaviors, and design systems
 
 **Teaching Approach:** Patterns taught in general terms first, then Web Loom libraries shown as concrete examples
@@ -50,6 +54,7 @@ This document provides a high-level summary of the new chapter structure for the
 17. **Composed UI Patterns** - Master-Detail, Wizard, Modal, etc. (NEW)
 
 ### Section 5: Advanced Topics (Chapters 18-21)
+
 **Purpose:** Cover DDD, testing, plugin architecture, and design systems
 
 18. **Domain-Driven Design for Frontend** - DDD principles applied to frontend
@@ -58,6 +63,7 @@ This document provides a high-level summary of the new chapter structure for the
 21. **Design Systems and Theming** - Design tokens and theming (NEW)
 
 ### Section 6: Real-World Applications (Chapters 22-23)
+
 **Purpose:** Complete case studies and best practices
 
 22. **Complete Case Studies** - GreenWatch and e-commerce implementations
@@ -87,29 +93,29 @@ This document provides a high-level summary of the new chapter structure for the
 
 ## Chapter Mapping: Old → New
 
-| Old # | Old Title | New # | New Title | Action |
-|-------|-----------|-------|-----------|--------|
-| 1 | The Frontend Architecture Crisis | 1 | The Frontend Architecture Crisis | Keep |
-| 2 | The Crisis in Contemporary Frontend Development | 2 | Why MVVM Matters for Modern Frontend | Rename |
-| 3 | The MVVM Pattern Fundamentals | 3 | MVVM Pattern Fundamentals | Keep |
-| 4 | Domain-Driven Design for Frontend Applications | 18 | Domain-Driven Design for Frontend | Move |
-| 5 | Domain Events & Cross-Context Communication | 14 | Event-Driven Communication | Rename |
-| 6 | Reactive State Management with RxJS | 5 | ViewModels and Reactive State | Rename |
-| 7 | Implementing the View Layer – React Edition | 8 | React Implementation with Hooks | Rename |
-| 8 | Testing ViewModels and Domain Logic | 19 | Testing MVVM Applications | Rename |
-| 9 | Dependency Injection and Service Architecture | 7 | Dependency Injection and Lifecycle Management | Rename |
-| 10 | The Dumb View Philosophy and View Layer Contracts | 6 | The View Layer Contract | Rename |
-| 11 | Vue Implementation — Proving Framework Independence | 9 | Vue Implementation with Composition API | Rename |
-| 12 | Angular Implementation – Native RxJS Integration | 10 | Angular Implementation with DI | Rename |
-| 13 | Vue Implementation (duplicate) | - | - | Remove |
-| 14 | Cross-Platform | - | - | Remove |
-| 15 | GreenWatch Architecture and Bounded Contexts | 22 | Complete Case Studies | Rename |
-| 16 | Pragmatic Architecture in the Real World | - | - | Remove |
-| 17 | Multi-Framework Implementation Showcase | - | - | Remove |
-| 18 | Comprehensive Testing Strategy at Scale | - | - | Remove |
-| 19 | The Scalable Monolith | - | - | Remove |
-| 20 | The Future - AI Automation | - | - | Remove |
-| 21 | Tradeoffs, Discipline, and the Architect's Path | 23 | Conclusion and Best Practices | Keep |
+| Old # | Old Title                                           | New # | New Title                                     | Action |
+| ----- | --------------------------------------------------- | ----- | --------------------------------------------- | ------ |
+| 1     | The Frontend Architecture Crisis                    | 1     | The Frontend Architecture Crisis              | Keep   |
+| 2     | The Crisis in Contemporary Frontend Development     | 2     | Why MVVM Matters for Modern Frontend          | Rename |
+| 3     | The MVVM Pattern Fundamentals                       | 3     | MVVM Pattern Fundamentals                     | Keep   |
+| 4     | Domain-Driven Design for Frontend Applications      | 18    | Domain-Driven Design for Frontend             | Move   |
+| 5     | Domain Events & Cross-Context Communication         | 14    | Event-Driven Communication                    | Rename |
+| 6     | Reactive State Management with RxJS                 | 5     | ViewModels and Reactive State                 | Rename |
+| 7     | Implementing the View Layer – React Edition         | 8     | React Implementation with Hooks               | Rename |
+| 8     | Testing ViewModels and Domain Logic                 | 19    | Testing MVVM Applications                     | Rename |
+| 9     | Dependency Injection and Service Architecture       | 7     | Dependency Injection and Lifecycle Management | Rename |
+| 10    | The Dumb View Philosophy and View Layer Contracts   | 6     | The View Layer Contract                       | Rename |
+| 11    | Vue Implementation — Proving Framework Independence | 9     | Vue Implementation with Composition API       | Rename |
+| 12    | Angular Implementation – Native RxJS Integration    | 10    | Angular Implementation with DI                | Rename |
+| 13    | Vue Implementation (duplicate)                      | -     | -                                             | Remove |
+| 14    | Cross-Platform                                      | -     | -                                             | Remove |
+| 15    | GreenWatch Architecture and Bounded Contexts        | 22    | Complete Case Studies                         | Rename |
+| 16    | Pragmatic Architecture in the Real World            | -     | -                                             | Remove |
+| 17    | Multi-Framework Implementation Showcase             | -     | -                                             | Remove |
+| 18    | Comprehensive Testing Strategy at Scale             | -     | -                                             | Remove |
+| 19    | The Scalable Monolith                               | -     | -                                             | Remove |
+| 20    | The Future - AI Automation                          | -     | -                                             | Remove |
+| 21    | Tradeoffs, Discipline, and the Architect's Path     | 23    | Conclusion and Best Practices                 | Keep   |
 
 ## Framework-Agnostic Teaching Approach
 
@@ -132,18 +138,21 @@ The book takes a **principles-first, library-agnostic** approach:
 The **GreenWatch greenhouse monitoring system** serves as the primary thread throughout the book:
 
 **Domain Model:**
+
 - **Greenhouse** - Container entity with environmental zones
 - **Sensor** - Device measuring environmental conditions
 - **SensorReading** - Time-series data point from a sensor
 - **ThresholdAlert** - Alert triggered when readings exceed thresholds
 
 **ViewModels:**
+
 - `GreenHouseViewModel` - Manages greenhouse state and operations
 - `SensorViewModel` - Manages individual sensor state
 - `SensorReadingViewModel` - Manages sensor reading streams
 - `ThresholdAlertViewModel` - Manages alert configuration
 
 **Framework Implementations:**
+
 - React (apps/mvvm-react)
 - Vue (apps/mvvm-vue)
 - Angular (apps/mvvm-angular)
@@ -155,20 +164,25 @@ The **GreenWatch greenhouse monitoring system** serves as the primary thread thr
 The book uses several framework-agnostic libraries from Web Loom as concrete examples:
 
 **Reactive State:**
+
 - **signals-core** - Demonstrates signals pattern
 - **store-core** - Demonstrates observable store pattern
 
 **Communication:**
+
 - **event-bus-core** - Demonstrates pub/sub pattern
 
 **Data Management:**
+
 - **query-core** - Demonstrates data fetching and caching
 
 **UI Patterns:**
+
 - **ui-core** - Demonstrates headless UI behaviors
 - **ui-patterns** - Demonstrates composed UI patterns
 
 **Design System:**
+
 - **design-core** - Demonstrates design tokens and theming
 
 ## Learning Progression

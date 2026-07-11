@@ -1,6 +1,6 @@
 ---
 title: 'MVVM in Marko'
-summary: 'How Marko combines server-streaming HTML with client-side reactivity, and how Web Loom ViewModels integrate via reactive let variables and a lightweight subscribeToObservable utility.'
+summary: 'How Marko combines server-streaming HTML with client-side reactivity, and how Web Loom ViewModels integrate via reactive let variables and a lightweight subscribeToObservable utility built on @web-loom/signals-core.'
 topicTitle: 'MVVM Core'
 topicSlug: 'mvvm-core'
 prevTitle: 'MVVM in Lit'
@@ -13,7 +13,7 @@ nextSlug: '/docs/mvvm-svelte-use-case'
 
 Marko is a server-first, streaming UI framework developed at eBay. It compiles components to highly optimised streaming HTML for the initial render, then hydrates just the interactive parts on the client. It is one of the few frameworks designed from the ground up for partial hydration and fine-grained reactivity without a virtual DOM.
 
-The Web Loom Marko app uses the same ViewModels as every other framework demo — the integration requires only a thin utility to bridge RxJS subscriptions to Marko's reactive state variables.
+The Web Loom Marko app uses the same ViewModels as every other framework demo — the integration requires only a thin utility to bridge `@web-loom/signals-core` signals to Marko's reactive state variables.
 
 ---
 
@@ -42,29 +42,30 @@ Marko's `<script>` block runs on mount (after the component connects to the clie
 
 ## The Observable Bridge Utility
 
-The Marko app includes a small utility that translates RxJS subscriptions into Marko-compatible state updates:
+The Marko app includes a small utility that translates `@web-loom/signals-core` signals into Marko-compatible state updates. It kept its original RxJS-era name (`subscribeToObservable`) since Marko templates already reference it, but it's signal-based internally:
 
 ```typescript
 // apps/mvvm-marko/src/utils/marko-observable.ts
-import { type Observable, skip } from 'rxjs';
+import { observe, type ReadonlySignal } from '@web-loom/signals-core';
 
-export function subscribeToObservable<T>(
-  observable: Observable<T>,
-  updateFn: (value: T) => void,
-  skipFirst = false,
-) {
-  const source = skipFirst ? observable.pipe(skip(1)) : observable;
-  const subscription = source.subscribe({
-    next: updateFn,
-    error: (err) => console.error('Observable error:', err),
-  });
-  return () => subscription.unsubscribe();
+/**
+ * Subscribe to a signal and update a Marko state variable.
+ * Returns cleanup function for effect.
+ *
+ * With skipFirst = false (default) the current value is delivered
+ * immediately, mirroring the previous BehaviorSubject behavior.
+ */
+export function subscribeToObservable<T>(sig: ReadonlySignal<T>, updateFn: (value: T) => void, skipFirst = false) {
+  if (skipFirst) {
+    return sig.subscribe(updateFn);
+  }
+  return observe(sig, updateFn);
 }
 ```
 
 `subscribeToObservable` returns an unsubscribe function, which integrates naturally with the `<script>` cleanup pattern.
 
-The `skipFirst` option skips the initial emission from `BehaviorSubject`. This is useful when the server has already rendered the initial state from a promise-based fetch and you only want to react to subsequent client-side updates.
+The `skipFirst` option skips delivering the signal's current value immediately, using plain `sig.subscribe()` (future changes only) instead of `observe()`. This is useful when the server has already rendered the initial state from a promise-based fetch and you only want to react to subsequent client-side changes.
 
 ---
 
@@ -113,7 +114,7 @@ import { subscribeToObservable } from '../../utils/marko-observable';
   }
 }>
 
-<!-- Mount: subscribe to observables, return cleanup -->
+<!-- Mount: subscribe to signals, return cleanup -->
 <script>
   greenHouseViewModel.fetchCommand.execute();
 
@@ -189,18 +190,17 @@ Marko's `<script>` block is the mount hook. Code runs after the component connec
 This is conceptually identical to React's:
 ```typescript
 useEffect(() => {
-  const sub = vm.data$.subscribe(setValue);
-  return () => sub.unsubscribe();
+  return vm.data$.subscribe(setValue);
 }, []);
 ```
 
 Or Vue's:
 ```typescript
-const sub = vm.data$.subscribe(v => (ref.value = v));
-onUnmounted(() => sub.unsubscribe());
+const unsubscribe = observe(vm.data$, v => (ref.value = v));
+onUnmounted(unsubscribe);
 ```
 
-The pattern is universal. Only the syntax differs.
+The pattern is universal — subscribe (or `observe`) on mount, call the returned unsubscribe function on unmount. Only the syntax differs.
 
 ---
 
@@ -221,7 +221,7 @@ The pattern is universal. Only the syntax differs.
 Marko's primary advantage over purely client-side frameworks is streaming HTML to the browser before JavaScript loads. You can use `<await>` to progressively render async data:
 
 ```marko
-<!-- Convert the initial BehaviorSubject value to a Promise for SSR -->
+<!-- Convert the current signal value to a Promise for SSR -->
 import { observableToPromise } from '../../utils/marko-observable';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 
@@ -239,18 +239,18 @@ import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 </await>
 ```
 
-The `observableToPromise` utility uses `firstValueFrom` to resolve the current BehaviorSubject value as a Promise, which Marko's `<await>` tag can stream to the client progressively.
+The `observableToPromise` utility resolves the signal's *current* value (`.peek()`) as a Promise, which Marko's `<await>` tag can stream to the client progressively.
 
 ```typescript
 // apps/mvvm-marko/src/utils/marko-observable.ts
-import { firstValueFrom, type Observable } from 'rxjs';
+import { type ReadonlySignal } from '@web-loom/signals-core';
 
-export function observableToPromise<T>(observable: Observable<T>): Promise<T> {
-  return firstValueFrom(observable);
+export function observableToPromise<T>(sig: ReadonlySignal<T>): Promise<T> {
+  return Promise.resolve(sig.peek());
 }
 ```
 
-This is one of the places where Marko's architecture is genuinely different from the SPA frameworks — the server renders real HTML that the browser can paint before any JavaScript executes. The ViewModel's `BehaviorSubject` provides the initial value synchronously (since `BehaviorSubject` always holds a current value), making it compatible with this pattern.
+This is one of the places where Marko's architecture is genuinely different from the SPA frameworks — the server renders real HTML that the browser can paint before any JavaScript executes. Every Web Loom signal always holds a current value synchronously (readable via `.peek()`), the same way a `BehaviorSubject` did before the migration, making it compatible with this pattern.
 
 ---
 
@@ -260,16 +260,15 @@ ViewModels have no Marko imports and test identically to every other framework i
 
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
-import { firstValueFrom } from 'rxjs';
-import { BehaviorSubject } from 'rxjs';
+import type { WritableSignal } from '@web-loom/signals-core';
 import { GreenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 
-it('data$ emits the fetched list', async () => {
+it('data$ reflects the fetched list', () => {
   const vm = new GreenHouseViewModel(mockModel);
-  (mockModel.data$ as BehaviorSubject<any>).next([
+  (mockModel.data$ as WritableSignal<any>).set([
     { id: '1', name: 'Ventura North', location: 'CA', size: '25sqm', cropType: 'Lettuce' },
   ]);
-  const data = await firstValueFrom(vm.data$);
+  const data = vm.data$.peek();
   expect(data).toHaveLength(1);
   vm.dispose();
 });
@@ -280,7 +279,7 @@ it('data$ emits the fetched list', async () => {
 ## Summary
 
 - **Declare reactive state** — `<let/name=initialValue>`
-- **Subscribe to observables** — `<script>` block (mount hook)
+- **Subscribe to signals** — `<script>` block (mount hook)
 - **Update state from subscription** — reassign the `<let>` variable inside the callback
 - **Unsubscribe** — return a cleanup function from `<script>`
 - **Render template** — Marko HTML with `<if>`, `<for>`, `${expr}`

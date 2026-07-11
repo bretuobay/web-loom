@@ -36,9 +36,9 @@ pnpm add @web-loom/store-core
 
 The package ships two tree-shakeable entry points:
 
-| Import path | What you get |
-|---|---|
-| `@web-loom/store-core` | `createStore` (no persistence), core types (`State`, `Store`, `Actions`, `Listener`, `Selector`). **Zero browser-storage globals** — safe for SSR, workers, Node.js. |
+| Import path                    | What you get                                                                                                                                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@web-loom/store-core`         | `createStore` (no persistence), core types (`State`, `Store`, `Actions`, `Listener`, `Selector`). **Zero browser-storage globals** — safe for SSR, workers, Node.js.                                  |
 | `@web-loom/store-core/persist` | `createStore` (persistence overload), `LocalStorageAdapter`, `IndexedDBAdapter`, `MemoryAdapter`, `PersistedStore`, `PersistenceAdapter`, `PersistenceConfig`. Pulls in the core entry automatically. |
 
 ```typescript

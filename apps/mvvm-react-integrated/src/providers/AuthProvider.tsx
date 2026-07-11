@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { authViewModel } from '@repo/view-models/AuthViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -10,8 +10,8 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const isAuthenticated = useObservable(authViewModel.isAuthenticated$, false);
-  const isLoading = useObservable(authViewModel.isLoading$, false);
+  const isAuthenticated = useSignal(authViewModel.isAuthenticated$);
+  const isLoading = useSignal(authViewModel.isLoading$);
 
   return <AuthContext.Provider value={{ isAuthenticated, isLoading }}>{children}</AuthContext.Provider>;
 }

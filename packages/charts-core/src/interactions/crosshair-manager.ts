@@ -41,7 +41,7 @@ export class CrosshairManager {
 
   constructor(
     private container: SVGGElement,
-    private config: CrosshairConfig
+    private config: CrosshairConfig,
   ) {}
 
   show(x: number, y: number, nearestPoints: Map<string, ChartDataPoint>): void {

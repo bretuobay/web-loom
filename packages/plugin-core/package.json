@@ -1,7 +1,7 @@
 {
   "name": "@repo/plugin-core",
   "description": "Core plugin functionality for Web Loom",
-  "version": "0.5.3",
+  "version": "0.8.0",
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,7 +20,7 @@
     "dev": "tsc --watch",
     "build": "tsc",
     "diagnostics": "tsc --listFiles --diagnostics",
-    "test": "vitest run --coverage"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",

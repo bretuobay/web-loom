@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { z } from 'zod';
-import { BehaviorSubject, firstValueFrom } from 'rxjs';
-import { skip, filter, take } from 'rxjs/operators';
+import { signal, observe } from '@web-loom/signals-core';
 import { IQueryStateModel } from '../models/QueryStateModel';
 import { QueryStateModelView } from './QueryStateModelView';
 
@@ -19,55 +18,50 @@ class MockQueryStateModel<TData, TModelSchema extends ZodSchema<TData>> implemen
   TData,
   TModelSchema
 > {
-  public _data$ = new BehaviorSubject<TData | null>(null);
-  public _isLoading$ = new BehaviorSubject<boolean>(false);
-  public _error$ = new BehaviorSubject<any>(null);
-  public _isError$ = new BehaviorSubject<boolean>(false); // from BaseModel
+  public _data$ = signal<TData | null>(null);
+  public _isLoading$ = signal<boolean>(false);
+  public _error$ = signal<any>(null);
+  public _isError$ = signal<boolean>(false); // from BaseModel
 
-  public readonly data$ = this._data$.asObservable();
-  public readonly isLoading$ = this._isLoading$.asObservable();
-  public readonly error$ = this._error$.asObservable();
-  public readonly isError$ = this._isError$.asObservable(); // from BaseModel
+  public readonly data$ = this._data$.asReadonly();
+  public readonly isLoading$ = this._isLoading$.asReadonly();
+  public readonly error$ = this._error$.asReadonly();
+  public readonly isError$ = this._isError$.asReadonly(); // from BaseModel
 
   // Explicitly define schema property
   public schema: TModelSchema;
 
   constructor(initialData: TData | null, schema: TModelSchema) {
     // Schema is now required and typed
-    this._data$.next(initialData);
+    this._data$.set(initialData);
     this.schema = schema;
   }
 
   refetch = vi.fn(async (force?: boolean) => {
-    this._isLoading$.next(true);
+    this._isLoading$.set(true);
     // Simulate some data fetching
-    this._data$.next(this._data$.value); // Or new data
-    this._isLoading$.next(false);
+    this._data$.set(this._data$.peek()); // Or new data
+    this._isLoading$.set(false);
   });
 
   invalidate = vi.fn(async () => {
-    this._isLoading$.next(true);
-    this._data$.next(null); // Simulate data being cleared
-    this._isLoading$.next(false);
+    this._isLoading$.set(true);
+    this._data$.set(null); // Simulate data being cleared
+    this._isLoading$.set(false);
   });
 
-  dispose = vi.fn(() => {
-    this._data$.complete();
-    this._isLoading$.complete();
-    this._error$.complete();
-    this._isError$.complete();
-  });
+  dispose = vi.fn();
 
   // Mocked BaseModel methods if necessary for type compatibility
-  setData = vi.fn((data: TData | null) => this._data$.next(data));
-  setLoading = vi.fn((loading: boolean) => this._isLoading$.next(loading));
+  setData = vi.fn((data: TData | null) => this._data$.set(data));
+  setLoading = vi.fn((loading: boolean) => this._isLoading$.set(loading));
   setError = vi.fn((error: any) => {
-    this._error$.next(error);
-    this._isError$.next(!!error);
+    this._error$.set(error);
+    this._isError$.set(!!error);
   });
   clearError = vi.fn(() => {
-    this._error$.next(null);
-    this._isError$.next(false);
+    this._error$.set(null);
+    this._isError$.set(false);
   });
   validate = vi.fn((data: TData) => {
     // Schema should directly handle array or single item
@@ -105,32 +99,32 @@ describe('QueryStateModelView', () => {
 
   it('should expose data$, isLoading$, and error$ from the model', async () => {
     const testData: ItemArray = [{ id: 'test1', name: 'Test Item 1' }];
-    mockModel._data$.next(testData);
-    mockModel._isLoading$.next(true);
-    mockModel._error$.next(new Error('Test Error'));
+    mockModel._data$.set(testData);
+    mockModel._isLoading$.set(true);
+    mockModel._error$.set(new Error('Test Error'));
 
-    expect(await firstValueFrom(viewModel.data$)).toEqual(testData);
-    expect(await firstValueFrom(viewModel.isLoading$)).toBe(true);
-    expect(await firstValueFrom(viewModel.error$)).toEqual(new Error('Test Error'));
+    expect(viewModel.data$.get()).toEqual(testData);
+    expect(viewModel.isLoading$.get()).toBe(true);
+    expect(viewModel.error$.get()).toEqual(new Error('Test Error'));
   });
 
   describe('refetchCommand', () => {
     it('should call model.refetch with force=undefined when executed without parameter', async () => {
       await viewModel.refetchCommand.execute(undefined); // Explicitly pass undefined
       expect(mockModel.refetch).toHaveBeenCalledWith(undefined);
-      expect(await firstValueFrom(viewModel.refetchCommand.isExecuting$)).toBe(false);
+      expect(viewModel.refetchCommand.isExecuting$.get()).toBe(false);
     });
 
     it('should call model.refetch with force=false when executed with force=false parameter', async () => {
       await viewModel.refetchCommand.execute(false);
       expect(mockModel.refetch).toHaveBeenCalledWith(false);
-      expect(await firstValueFrom(viewModel.refetchCommand.isExecuting$)).toBe(false);
+      expect(viewModel.refetchCommand.isExecuting$.get()).toBe(false);
     });
 
     it('should call model.refetch with force=true when executed with force=true parameter', async () => {
       await viewModel.refetchCommand.execute(true);
       expect(mockModel.refetch).toHaveBeenCalledWith(true);
-      expect(await firstValueFrom(viewModel.refetchCommand.isExecuting$)).toBe(false);
+      expect(viewModel.refetchCommand.isExecuting$.get()).toBe(false);
     });
 
     it('should set error$ on command if model.refetch fails', async () => {
@@ -150,8 +144,8 @@ describe('QueryStateModelView', () => {
       await expect(viewModel.refetchCommand.execute()).rejects.toThrow(refetchError);
 
       expect(errorSpy).toHaveBeenCalledWith(refetchError);
-      expect(await firstValueFrom(viewModel.refetchCommand.isExecuting$)).toBe(false);
-      errorSubscription.unsubscribe();
+      expect(viewModel.refetchCommand.isExecuting$.get()).toBe(false);
+      errorSubscription();
     });
   });
 
@@ -159,7 +153,7 @@ describe('QueryStateModelView', () => {
     it('should call model.invalidate when executed', async () => {
       await viewModel.invalidateCommand.execute();
       expect(mockModel.invalidate).toHaveBeenCalledTimes(1);
-      expect(await firstValueFrom(viewModel.invalidateCommand.isExecuting$)).toBe(false);
+      expect(viewModel.invalidateCommand.isExecuting$.get()).toBe(false);
     });
 
     it('should set error$ on command if model.invalidate fails', async () => {
@@ -177,8 +171,8 @@ describe('QueryStateModelView', () => {
       await expect(viewModel.invalidateCommand.execute()).rejects.toThrow(invalidateError);
 
       expect(errorSpy).toHaveBeenCalledWith(invalidateError);
-      expect(await firstValueFrom(viewModel.invalidateCommand.isExecuting$)).toBe(false);
-      errorSubscription.unsubscribe();
+      expect(viewModel.invalidateCommand.isExecuting$.get()).toBe(false);
+      errorSubscription();
     });
   });
 
@@ -195,39 +189,23 @@ describe('QueryStateModelView', () => {
     });
 
     it('should emit null initially for selectedItem$', async () => {
-      expect(await firstValueFrom(viewModel.selectedItem$)).toBeNull();
+      expect(viewModel.selectedItem$.get()).toBeNull();
     });
 
     it('should update selectedItem$ when selectItem is called with a valid ID', async () => {
       viewModel.selectItem('b');
-      // Skip the initial `null` from startWith(null)
-      expect(await firstValueFrom(viewModel.selectedItem$.pipe(skip(1)))).toEqual(items[1]);
+      expect(viewModel.selectedItem$.get()).toEqual(items[1]);
     });
 
     it('should clear selection when selectItem is called with null', async () => {
       // Initial state of selectedItem$ is null (due to startWith(null)).
       // Select 'a'
       viewModel.selectItem('a');
-      // Wait for selectedItem$ to become items[0] and then check it
-      const selectedA = await firstValueFrom(
-        viewModel.selectedItem$.pipe(
-          filter((item) => !!item && item.id === items[0].id),
-          take(1),
-        ),
-      );
-      expect(selectedA).toEqual(items[0]);
+      expect(viewModel.selectedItem$.get()).toEqual(items[0]);
 
       // Select null (clear selection)
       viewModel.selectItem(null);
-      // Wait for selectedItem$ to become null again.
-      // The previous value was items[0], so this new null is a distinct emission.
-      const selectedNull = await firstValueFrom(
-        viewModel.selectedItem$.pipe(
-          filter((item) => item === null),
-          take(1),
-        ),
-      );
-      expect(selectedNull).toBeNull();
+      expect(viewModel.selectedItem$.get()).toBeNull();
     });
   });
 
@@ -257,7 +235,7 @@ describe('QueryStateModelView', () => {
 
     it('selectedItem$ should be null if data is not an array', async () => {
       singleItemViewModel.selectItem('single'); // Attempt to select
-      expect(await firstValueFrom(singleItemViewModel.selectedItem$)).toBeNull();
+      expect(singleItemViewModel.selectedItem$.get()).toBeNull();
     });
   });
 
@@ -277,11 +255,10 @@ describe('QueryStateModelView', () => {
       expect(invalidateDisposeSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('should complete the _selectedItemId$ subject', () => {
-      const selectedItemIdSubject = (viewModel as any)._selectedItemId$ as BehaviorSubject<string | null>;
-      const completeSpy = vi.spyOn(selectedItemIdSubject, 'complete');
+    it('should clear selection and ignore new selections after dispose', () => {
       viewModel.dispose();
-      expect(completeSpy).toHaveBeenCalledTimes(1);
+      viewModel.selectItem('a');
+      expect(viewModel.selectedItem$.get()).toBeNull();
     });
   });
 
@@ -289,19 +266,19 @@ describe('QueryStateModelView', () => {
   // as they pertain to a cached context (refetch/invalidate)
   describe('Verification of command functionality (simulating "skipped tests" context)', () => {
     it('refetchCommand should be executable and update loading state (simulates a test for fetch-like ops)', async () => {
-      mockModel._isLoading$.next(false); // Start not loading
+      mockModel._isLoading$.set(false); // Start not loading
 
       let resolveRefetch: () => void;
       const refetchPromise = new Promise<void>((r) => {
         resolveRefetch = () => r();
       });
       mockModel.refetch.mockImplementationOnce(() => {
-        mockModel._isLoading$.next(true); // Simulate model starting to load
+        mockModel._isLoading$.set(true); // Simulate model starting to load
         return refetchPromise;
       });
 
       const executionStates: boolean[] = [];
-      const sub = viewModel.refetchCommand.isExecuting$.subscribe((state) => executionStates.push(state));
+      const sub = observe(viewModel.refetchCommand.isExecuting$, (state) => executionStates.push(state));
 
       const execPromise = viewModel.refetchCommand.execute();
 
@@ -309,35 +286,35 @@ describe('QueryStateModelView', () => {
         expect(executionStates).toContain(true);
       });
       expect(executionStates[executionStates.length - 1]).toBe(true);
-      expect(mockModel._isLoading$.getValue()).toBe(true); // Access underlying BehaviorSubject
+      expect(mockModel._isLoading$.peek()).toBe(true); // Access underlying BehaviorSubject
 
       resolveRefetch!();
       await execPromise;
-      mockModel._isLoading$.next(false); // Simulate model finishing loading
+      mockModel._isLoading$.set(false); // Simulate model finishing loading
 
       expect(executionStates[executionStates.length - 1]).toBe(false);
-      expect(mockModel._isLoading$.getValue()).toBe(false);
+      expect(mockModel._isLoading$.peek()).toBe(false);
       expect(mockModel.refetch).toHaveBeenCalled();
-      sub.unsubscribe();
+      sub();
     });
 
     it('invalidateCommand should be executable and potentially clear data (simulates a test for CUD-related cache ops)', async () => {
       const initialData: ItemArray = [{ id: '1', name: 'Cache Me' }];
-      mockModel._data$.next(initialData);
-      expect(await firstValueFrom(viewModel.data$)).toEqual(initialData);
+      mockModel._data$.set(initialData);
+      expect(viewModel.data$.get()).toEqual(initialData);
 
       let resolveInvalidate: () => void;
       const invalidatePromise = new Promise<void>((r) => {
         resolveInvalidate = () => r();
       });
       mockModel.invalidate.mockImplementationOnce(() => {
-        mockModel._isLoading$.next(true); // Simulate model starting to load
-        mockModel._data$.next(null); // Simulate data clearing as per original mock's intent
+        mockModel._isLoading$.set(true); // Simulate model starting to load
+        mockModel._data$.set(null); // Simulate data clearing as per original mock's intent
         return invalidatePromise;
       });
 
       const executionStates: boolean[] = [];
-      const sub = viewModel.invalidateCommand.isExecuting$.subscribe((state) => executionStates.push(state));
+      const sub = observe(viewModel.invalidateCommand.isExecuting$, (state) => executionStates.push(state));
 
       const execPromise = viewModel.invalidateCommand.execute();
 
@@ -345,17 +322,17 @@ describe('QueryStateModelView', () => {
         expect(executionStates).toContain(true);
       });
       expect(executionStates[executionStates.length - 1]).toBe(true);
-      expect(mockModel._isLoading$.getValue()).toBe(true); // Access underlying BehaviorSubject
+      expect(mockModel._isLoading$.peek()).toBe(true); // Access underlying BehaviorSubject
 
       resolveInvalidate!();
       await execPromise;
-      mockModel._isLoading$.next(false); // Simulate model finishing loading
+      mockModel._isLoading$.set(false); // Simulate model finishing loading
 
       expect(executionStates[executionStates.length - 1]).toBe(false);
-      expect(mockModel._isLoading$.getValue()).toBe(false);
+      expect(mockModel._isLoading$.peek()).toBe(false);
       expect(mockModel.invalidate).toHaveBeenCalled();
-      expect(await firstValueFrom(viewModel.data$)).toBeNull(); // Mock invalidate sets data to null
-      sub.unsubscribe();
+      expect(viewModel.data$.get()).toBeNull(); // Mock invalidate sets data to null
+      sub();
     });
   });
 });

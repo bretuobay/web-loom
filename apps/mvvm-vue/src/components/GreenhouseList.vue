@@ -131,11 +131,11 @@
 <script setup lang="ts">
 import { onMounted, ref, reactive } from 'vue';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import BackArrow from '../assets/back-arrow.svg';
 
-const isLoading = useObservable(greenHouseViewModel.isLoading$, true);
-const greenhouses = useObservable(greenHouseViewModel.data$, []);
+const isLoading = useSignal(greenHouseViewModel.isLoading$);
+const greenhouses = useSignal(greenHouseViewModel.data$);
 
 const greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
 

@@ -14,9 +14,7 @@ export async function generateStaticParams() {
   return getBookPages().map((post) => ({ slug: post.slug }));
 }
 
-export async function generateMetadata(
-  props: { params: Promise<{ slug: string }> },
-): Promise<Metadata | undefined> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata | undefined> {
   const { slug } = await props.params;
   const post = getBookPage(slug);
 
@@ -63,9 +61,7 @@ export default async function BookChapterPage(props: { params: Promise<{ slug: s
 
           <div>
             <header className="mb-6">
-              <div className="text-xs font-[650] text-blue-600 dark:text-blue-400 uppercase mb-2">
-                {post.topic}
-              </div>
+              <div className="text-xs font-[650] text-blue-600 dark:text-blue-400 uppercase mb-2">{post.topic}</div>
               <h1 className="text-2xl font-[650] text-slate-800 mb-2 dark:text-slate-200">{post.metadata.title}</h1>
               {post.metadata.summary && (
                 <p className="text-base text-slate-600 dark:text-slate-400">{post.metadata.summary}</p>

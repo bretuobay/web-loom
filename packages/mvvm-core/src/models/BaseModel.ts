@@ -1,4 +1,4 @@
-import { BehaviorSubject, Observable } from 'rxjs';
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
 import { ZodSchema } from 'zod';
 
 /**
@@ -11,14 +11,15 @@ export interface IDisposable {
 
 /**
  * @interface IBaseModel
- * Defines the core observables and methods for a BaseModel.
+ * Defines the core reactive properties and methods for a BaseModel.
+ * The `$` suffix marks a reactive property (a ReadonlySignal).
  * @template TData The type of data managed by the model.
  * @template TSchema The Zod schema type for validating the data.
  */
 export interface IBaseModel<TData, TSchema extends ZodSchema<TData>> extends IDisposable {
-  readonly data$: Observable<TData | null>;
-  readonly isLoading$: Observable<boolean>;
-  readonly error$: Observable<any>;
+  readonly data$: ReadonlySignal<TData | null>;
+  readonly isLoading$: ReadonlySignal<boolean>;
+  readonly error$: ReadonlySignal<any>;
   readonly schema?: TSchema;
 
   setData(newData: TData | null): void;
@@ -40,38 +41,39 @@ export type TConstructorInput<TData, TSchema extends ZodSchema<TData>> = {
  * @class BaseModel
  * A base class for models in an MVVM architecture, providing core functionalities
  * for data management, loading states, error handling, and Zod validation.
- * Implements {@link IDisposable} to manage resource cleanup by completing its observables.
+ * Reactive state is exposed as signals (see @web-loom/signals-core); subscribe
+ * via `data$.subscribe(fn)` or read synchronously via `data$.get()`.
+ * Implements {@link IDisposable}: after dispose(), setters become no-ops so no
+ * further notifications are delivered.
  * @template TData The type of data managed by the model.
  * @template TSchema The Zod schema type for validating the data.
  */
 export class BaseModel<TData, TSchema extends ZodSchema<TData>> implements IBaseModel<TData, TSchema> {
-  protected _data$ = new BehaviorSubject<TData | null>(null);
-  public readonly data$: Observable<TData | null> = this._data$.asObservable();
+  protected _data = signal<TData | null>(null);
+  public readonly data$: ReadonlySignal<TData | null> = this._data.asReadonly();
 
-  protected _isLoading$ = new BehaviorSubject<boolean>(false);
-  public readonly isLoading$: Observable<boolean> = this._isLoading$.asObservable();
+  protected _isLoading = signal<boolean>(false);
+  public readonly isLoading$: ReadonlySignal<boolean> = this._isLoading.asReadonly();
 
-  protected _error$ = new BehaviorSubject<any>(null);
-  public readonly error$: Observable<any> = this._error$.asObservable();
+  protected _error = signal<any>(null);
+  public readonly error$: ReadonlySignal<any> = this._error.asReadonly();
 
   public readonly schema?: TSchema;
 
+  private _isDisposed = false;
+
   /**
-   * Cleans up resources used by the model.
-   * This method completes the observables, preventing further emissions
-   * and signaling to subscribers that the observables are closed.
+   * Cleans up resources used by the model. After disposal, setters no-op,
+   * preventing further notifications to subscribers.
    */
   public dispose(): void {
-    this._data$.complete();
-    this._isLoading$.complete();
-    this._error$.complete();
+    this._isDisposed = true;
   }
 
   constructor(input: TConstructorInput<TData, TSchema>) {
     const { initialData = null, schema } = input;
-    // Initialize the data observable with the provided initial data
     if (initialData !== null) {
-      this._data$.next(initialData);
+      this._data.set(initialData);
     }
     this.schema = schema;
   }
@@ -81,7 +83,8 @@ export class BaseModel<TData, TSchema extends ZodSchema<TData>> implements IBase
    * @param newData The new data to set.
    */
   public setData(newData: TData | null): void {
-    this._data$.next(newData);
+    if (this._isDisposed) return;
+    this._data.set(newData);
   }
 
   /**
@@ -89,7 +92,8 @@ export class BaseModel<TData, TSchema extends ZodSchema<TData>> implements IBase
    * @param status True if loading, false otherwise.
    */
   public setLoading(status: boolean): void {
-    this._isLoading$.next(status);
+    if (this._isDisposed) return;
+    this._isLoading.set(status);
   }
 
   /**
@@ -97,14 +101,16 @@ export class BaseModel<TData, TSchema extends ZodSchema<TData>> implements IBase
    * @param err The error object.
    */
   public setError(err: any): void {
-    this._error$.next(err);
+    if (this._isDisposed) return;
+    this._error.set(err);
   }
 
   /**
    * Clears any active error in the model.
    */
   public clearError(): void {
-    this._error$.next(null);
+    if (this._isDisposed) return;
+    this._error.set(null);
   }
 
   /**
@@ -122,11 +128,11 @@ export class BaseModel<TData, TSchema extends ZodSchema<TData>> implements IBase
   }
 
   /**
-   * Gets the current value of the data observable.
+   * Gets the current value of the data signal.
    * @returns The current data value.
    */
   public getCurrentData(): TData | null {
-    return this._data$.getValue();
+    return this._data.peek();
   }
 
   /**
@@ -134,7 +140,7 @@ export class BaseModel<TData, TSchema extends ZodSchema<TData>> implements IBase
    * @returns The current loading status.
    */
   public getCurrentLoadingStatus(): boolean {
-    return this._isLoading$.getValue();
+    return this._isLoading.peek();
   }
 
   /**
@@ -142,6 +148,6 @@ export class BaseModel<TData, TSchema extends ZodSchema<TData>> implements IBase
    * @returns The current error value.
    */
   public getCurrentError(): any {
-    return this._error$.getValue();
+    return this._error.peek();
   }
 }

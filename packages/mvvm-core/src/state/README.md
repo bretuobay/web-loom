@@ -253,21 +253,17 @@ Number of active operations.
 
 ```typescript
 import { BusyState } from '@web-loom/mvvm-core';
-import { firstValueFrom } from 'rxjs';
 
 describe('MyViewModel', () => {
   it('should set busy during load', async () => {
     const vm = new MyViewModel();
 
     const loadPromise = vm.loadCommand.execute();
-    const isBusy = await firstValueFrom(vm.busyState.isBusy$);
-
-    expect(isBusy).toBe(true);
+    expect(vm.busyState.isBusy$.get()).toBe(true);
 
     await loadPromise;
 
-    const isBusyAfter = await firstValueFrom(vm.busyState.isBusy$);
-    expect(isBusyAfter).toBe(false);
+    expect(vm.busyState.isBusy$.get()).toBe(false);
   });
 });
 ```

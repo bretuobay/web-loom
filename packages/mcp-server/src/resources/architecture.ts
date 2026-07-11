@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 const MVVM_ARCHITECTURE_DOC = `# Web-Loom MVVM Architecture Reference
 
@@ -6,7 +6,7 @@ const MVVM_ARCHITECTURE_DOC = `# Web-Loom MVVM Architecture Reference
 
 \`\`\`
 View (framework-specific)
-  ↓ subscribes to observables
+  ↓ observes signals
 ViewModel (framework-agnostic business logic)
   ↓ uses
 Model (data & API layer)
@@ -53,7 +53,7 @@ class TodoModel extends BaseModel<TodoData[], typeof TodoListSchema> {
 }
 \`\`\`
 
-Key observables: \`data$\`, \`isLoading$\`, \`error$\`, \`validationErrors$\`
+Key signals: \`data$\`, \`isLoading$\`, \`error$\`, \`validationErrors$\`
 
 ---
 
@@ -121,7 +121,6 @@ class TodoListViewModel extends RestfulApiViewModel<TodoData[], typeof TodoListS
 
 \`\`\`typescript
 import { Command } from "@web-loom/mvvm-core";
-import { map } from "rxjs";
 
 // Basic
 const saveCommand = new Command<FormData, void>(
@@ -131,14 +130,14 @@ const saveCommand = new Command<FormData, void>(
 // With canExecute tied to loading state
 const deleteCommand = new Command<string, void>(
   async (id) => { await api.delete(id); },
-  this.isLoading$.pipe(map(loading => !loading)) // disable while loading
+  () => !this.isLoading$.get() // disable while loading
 );
 
 // Usage
 await saveCommand.execute(formData);
-saveCommand.isExecuting$   // Observable<boolean>
-saveCommand.canExecute$    // Observable<boolean>
-saveCommand.executeError$  // Observable<unknown>
+saveCommand.isExecuting$   // ReadonlySignal<boolean>
+saveCommand.canExecute$    // ReadonlySignal<boolean>
+saveCommand.executeError$  // ReadonlySignal<unknown>
 \`\`\`
 
 ---
@@ -188,8 +187,8 @@ items.add({ id: "1", text: "Buy milk", done: false });
 items.update("1", { done: true });
 items.remove("1");
 
-items.items$      // Observable<Todo[]>
-items.count$      // Observable<number>
+items.items$      // ReadonlySignal<Todo[]>
+items.count$      // ReadonlySignal<number>
 items.toArray()   // Todo[] snapshot
 \`\`\`
 
@@ -216,21 +215,22 @@ items.toArray()   // Todo[] snapshot
 1. **Calling dispose in the wrong place** — always dispose in the View's unmount hook, not in the ViewModel itself.
 2. **Business data in Store** — Store is for UI state only (sidebar open, current theme). Entity data belongs in Models.
 3. **Missing registerCommand** — custom commands MUST be registered via \`this.registerCommand()\` so they are disposed automatically.
-4. **Subscribing without unsubscribing** — use \`this.addSubscription()\` in ViewModels so subscriptions are cleaned up on dispose.
+4. **Observing without teardown** — use \`this.addSubscription()\` in ViewModels or keep teardown functions in Views so subscriptions are cleaned up on dispose/unmount.
 5. **Creating ViewModel inside render** — instantiate ViewModels once (useState, @Injectable, module-level), not on every render cycle.
 `;
 
 export function registerArchitectureResource(server: McpServer): void {
-  const uri = "web-loom://architecture/mvvm";
+  const uri = 'web-loom://architecture/mvvm';
   server.registerResource(
-    "architecture-mvvm",
+    'architecture-mvvm',
     uri,
     {
-      description: "MVVM layer reference — BaseModel, BaseViewModel, RestfulApiModel, Command, dispose pattern, package selection guide",
-      mimeType: "text/markdown",
+      description:
+        'MVVM layer reference — BaseModel, BaseViewModel, RestfulApiModel, Command, dispose pattern, package selection guide',
+      mimeType: 'text/markdown',
     },
     async (_uri) => ({
-      contents: [{ uri, text: MVVM_ARCHITECTURE_DOC, mimeType: "text/markdown" }],
-    })
+      contents: [{ uri, text: MVVM_ARCHITECTURE_DOC, mimeType: 'text/markdown' }],
+    }),
   );
 }

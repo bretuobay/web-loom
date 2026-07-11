@@ -1,8 +1,8 @@
-import { Component, OnInit, Inject, InjectionToken } from '@angular/core';
+import { Component, OnInit, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import { fromLoomSignal } from '../../utils/loom-signals';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { sensorViewModel, SensorListData } from '@repo/view-models/SensorViewModel';
-import { Observable } from 'rxjs';
 
 export const SENSOR_VIEW_MODEL = new InjectionToken<typeof sensorViewModel>('SENSOR_VIEW_MODEL');
 
@@ -21,18 +21,20 @@ export const SENSOR_VIEW_MODEL = new InjectionToken<typeof sensorViewModel>('SEN
 })
 export class SensorCardComponent implements OnInit {
   public vm: typeof sensorViewModel;
-  public data$!: Observable<SensorListData | null>;
-  public loading$!: Observable<boolean>;
-  public error$!: Observable<any>;
+  public data$!: Signal<SensorListData | null>;
+  public loading$!: Signal<boolean>;
+  public error$!: Signal<any>;
+
+  private destroyRef = inject(DestroyRef);
 
   constructor(@Inject(SENSOR_VIEW_MODEL) vm: typeof sensorViewModel) {
     this.vm = vm;
   }
 
   ngOnInit(): void {
-    this.data$ = this.vm.data$;
-    this.loading$ = this.vm.isLoading$;
-    this.error$ = this.vm.error$;
+    this.data$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+    this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+    this.error$ = fromLoomSignal(this.vm.error$, this.destroyRef);
 
     this.vm.fetchCommand.execute();
   }

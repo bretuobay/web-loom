@@ -1,15 +1,26 @@
 import { css, html, LitElement } from 'lit';
+import { observe } from '@web-loom/signals-core';
 import { CounterViewModel } from './viewmodels/CounterViewModel';
 
 const STACK = ['Vite', 'JavaScript', 'Lit', '@web-loom/mvvm-core', '@web-loom/signals-core'];
 
-const vmSnippet = `export class CounterViewModel {
-  count = signal(0);
+const vmSnippet = `import { Command } from "@web-loom/mvvm-core";
+import { computed, signal } from "@web-loom/signals-core";
+
+export class CounterViewModel {
+  countState = signal(0);
+  count = this.countState.asReadonly();
   doubled = computed(() => this.count.get() * 2);
 
-  increment() { this.count.set(this.count.get() + 1); }
-  decrement() { this.count.set(this.count.get() - 1); }
-  reset() { this.count.set(0); }
+  incrementCommand = new Command(async () => {
+    this.countState.update((value) => value + 1);
+  });
+  decrementCommand = new Command(async () => {
+    this.countState.update((value) => value - 1);
+  });
+  resetCommand = new Command(async () => {
+    this.countState.set(0);
+  });
 }`;
 
 export class MyElement extends LitElement {
@@ -189,8 +200,7 @@ export class MyElement extends LitElement {
   };
 
   vm = new CounterViewModel();
-  unsubscribeCount = () => {};
-  unsubscribeDoubled = () => {};
+  teardowns = [];
 
   constructor() {
     super();
@@ -201,20 +211,19 @@ export class MyElement extends LitElement {
   connectedCallback() {
     super.connectedCallback();
 
-    const sync = () => {
-      this.count = this.vm.count.get();
-      this.doubled = this.vm.doubled.get();
-    };
-
-    sync();
-    this.unsubscribeCount = this.vm.count.subscribe(sync);
-    this.unsubscribeDoubled = this.vm.doubled.subscribe(sync);
+    this.teardowns.push(
+      observe(this.vm.count, (value) => {
+        this.count = value;
+      }),
+      observe(this.vm.doubled, (value) => {
+        this.doubled = value;
+      }),
+    );
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.unsubscribeCount();
-    this.unsubscribeDoubled();
+    this.teardowns.splice(0).forEach((teardown) => teardown());
     this.vm.dispose();
   }
 
@@ -239,9 +248,9 @@ export class MyElement extends LitElement {
               <div><span>Doubled</span><strong>${this.doubled}</strong></div>
             </div>
             <div class="controls">
-              <button @click=${() => this.vm.decrement()}>-</button>
-              <button @click=${() => this.vm.reset()}>Reset</button>
-              <button @click=${() => this.vm.increment()}>+</button>
+              <button @click=${() => void this.vm.decrementCommand.execute()}>-</button>
+              <button @click=${() => void this.vm.resetCommand.execute()}>Reset</button>
+              <button @click=${() => void this.vm.incrementCommand.execute()}>+</button>
             </div>
           </article>
 

@@ -1,17 +1,27 @@
 import { onCleanup } from 'solid-js';
 import { CounterViewModel } from './viewmodels/CounterViewModel';
-import { useSignalValue } from './hooks/useObservable';
+import { useSignalValue } from './hooks/useSignalValue';
 import './App.css';
 
 const STACK = ['Vite', 'TypeScript', 'Solid', '@web-loom/mvvm-core', '@web-loom/signals-core'];
 
-const vmSnippet = `export class CounterViewModel {
-  readonly count = signal(0);
-  readonly doubled = computed(() => this.count.get() * 2);
+const vmSnippet = `import { Command } from "@web-loom/mvvm-core";
+import { computed, signal } from "@web-loom/signals-core";
 
-  increment() { this.count.set(this.count.get() + 1); }
-  decrement() { this.count.set(this.count.get() - 1); }
-  reset() { this.count.set(0); }
+export class CounterViewModel {
+  countState = signal(0);
+  count = this.countState.asReadonly();
+  doubled = computed(() => this.count.get() * 2);
+
+  incrementCommand = new Command(async () => {
+    this.countState.update((value) => value + 1);
+  });
+  decrementCommand = new Command(async () => {
+    this.countState.update((value) => value - 1);
+  });
+  resetCommand = new Command(async () => {
+    this.countState.set(0);
+  });
 }`;
 
 export default function App() {
@@ -29,7 +39,9 @@ export default function App() {
         <p class="lead">Fine-grained updates from a framework-agnostic ViewModel layer.</p>
         <div class="stack" role="list" aria-label="Starter technologies">
           {STACK.map((item) => (
-            <span role="listitem" class="chip">{item}</span>
+            <span role="listitem" class="chip">
+              {item}
+            </span>
           ))}
         </div>
       </section>
@@ -39,13 +51,19 @@ export default function App() {
           <h2>Live Counter Demo</h2>
           <p class="meta">CounterViewModel + reactive signal bridge</p>
           <div class="metrics">
-            <div><span>Count</span><strong>{count()}</strong></div>
-            <div><span>Doubled</span><strong>{doubled()}</strong></div>
+            <div>
+              <span>Count</span>
+              <strong>{count()}</strong>
+            </div>
+            <div>
+              <span>Doubled</span>
+              <strong>{doubled()}</strong>
+            </div>
           </div>
           <div class="controls">
-            <button onClick={() => vm.decrement()}>-</button>
-            <button onClick={() => vm.reset()}>Reset</button>
-            <button onClick={() => vm.increment()}>+</button>
+            <button onClick={() => void vm.decrementCommand.execute()}>-</button>
+            <button onClick={() => void vm.resetCommand.execute()}>Reset</button>
+            <button onClick={() => void vm.incrementCommand.execute()}>+</button>
           </div>
         </article>
 
@@ -53,7 +71,9 @@ export default function App() {
           <h2>MVVM Wiring</h2>
           <p class="meta">Generated starter files in src/</p>
           <h3>src/viewmodels/CounterViewModel.ts</h3>
-          <pre><code>{vmSnippet}</code></pre>
+          <pre>
+            <code>{vmSnippet}</code>
+          </pre>
         </article>
       </section>
     </main>

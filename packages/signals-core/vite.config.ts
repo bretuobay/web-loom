@@ -5,12 +5,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     lib: {
-      entry: './src/index.ts',
-      formats: ['es', 'umd'],
-      name: 'SignalsCore',
-      fileName: (format) => `signals-core.${format}.js`,
+      entry: {
+        index: './src/index.ts',
+        rxjs: './src/rxjs.ts',
+      },
+      formats: ['es', 'cjs'],
+      fileName: (format, entryName) => `${entryName}.${format}.js`,
     },
     rollupOptions: {
+      external: ['rxjs'],
       output: {},
     },
   },
@@ -20,6 +23,7 @@ export default defineConfig({
       outDir: 'dist',
       tsconfigPath: './tsconfig.json',
       rollupTypes: true,
+      exclude: ['src/**/*.test.ts'],
     }),
   ],
 });

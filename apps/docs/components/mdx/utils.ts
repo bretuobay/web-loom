@@ -72,14 +72,14 @@ function parseBlogContent(rawContent: string, filename: string) {
 
   // Title: first # heading (strip backtick code-formatting for plain display)
   const titleLineIdx = lines.findIndex((l) => l.startsWith('# '));
-  const rawTitle =
-    titleLineIdx >= 0
-      ? lines[titleLineIdx].replace(/^#\s+/, '').trim()
-      : path.basename(filename, '.md');
+  const rawTitle = titleLineIdx >= 0 ? lines[titleLineIdx].replace(/^#\s+/, '').trim() : path.basename(filename, '.md');
   const title = rawTitle.replace(/`/g, '');
 
   // Content: everything after the title line, leading --- stripped
-  const afterTitle = lines.slice(titleLineIdx + 1).join('\n').trim();
+  const afterTitle = lines
+    .slice(titleLineIdx + 1)
+    .join('\n')
+    .trim();
   const content = afterTitle.replace(/^\s*---\s*\n/, '').trim();
 
   // Summary: first substantive paragraph (not a heading, separator, or code block)
@@ -88,17 +88,10 @@ function parseBlogContent(rawContent: string, filename: string) {
     paragraphs.find((p) => {
       const t = p.trim();
       return (
-        t &&
-        !t.startsWith('#') &&
-        !t.startsWith('---') &&
-        !t.startsWith('```') &&
-        !t.startsWith('|') &&
-        t.length > 30
+        t && !t.startsWith('#') && !t.startsWith('---') && !t.startsWith('```') && !t.startsWith('|') && t.length > 30
       );
     }) || '';
-  const summary =
-    firstPara.replace(/\n/g, ' ').substring(0, 220) +
-    (firstPara.length > 220 ? '…' : '');
+  const summary = firstPara.replace(/\n/g, ' ').substring(0, 220) + (firstPara.length > 220 ? '…' : '');
 
   // Article number from filename prefix (e.g. "01-mvvm-core.md" → 1)
   const numMatch = filename.match(/^(\d+)-/);
@@ -131,8 +124,14 @@ function parseBookChapterFrontmatter(raw: string): { title?: string; section?: s
   if (!match) return { content: raw };
   const block = match[1];
   const content = trimmed.slice(match[0].length).trim();
-  const title = block.match(/^title:\s*(.+)$/m)?.[1]?.trim().replace(/^['"]|['"]$/g, '');
-  const section = block.match(/^section:\s*(.+)$/m)?.[1]?.trim().replace(/^['"]|['"]$/g, '');
+  const title = block
+    .match(/^title:\s*(.+)$/m)?.[1]
+    ?.trim()
+    .replace(/^['"]|['"]$/g, '');
+  const section = block
+    .match(/^section:\s*(.+)$/m)?.[1]
+    ?.trim()
+    .replace(/^['"]|['"]$/g, '');
   return { title, section, content };
 }
 

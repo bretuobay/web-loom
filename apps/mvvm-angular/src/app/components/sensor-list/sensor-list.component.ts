@@ -1,7 +1,7 @@
-import { Component, OnInit, Inject, InjectionToken } from '@angular/core';
+import { Component, OnInit, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import { fromLoomSignal } from '../../utils/loom-signals';
 import { CommonModule } from '@angular/common'; // Replaced NgFor, NgClass
 import { sensorViewModel, SensorListData, SensorViewModel } from '@repo/view-models/SensorViewModel';
-import { Observable } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { BackIconComponent } from '../back-icon/back-icon.component';
 
@@ -22,9 +22,11 @@ export const SENSOR_VIEW_MODEL = new InjectionToken<SensorViewModel>('SensorView
   styleUrl: './sensor-list.component.scss',
 })
 export class SensorListComponent implements OnInit {
-  public data$!: Observable<SensorListData | null>;
-  public loading$!: Observable<boolean>;
-  public error$!: Observable<any>;
+  public data$!: Signal<SensorListData | null>;
+  public loading$!: Signal<boolean>;
+  public error$!: Signal<any>;
+
+  private destroyRef = inject(DestroyRef);
 
   constructor(@Inject(SENSOR_VIEW_MODEL) public readonly vm: SensorViewModel) {
     // Constructor only for dependency injection
@@ -32,9 +34,9 @@ export class SensorListComponent implements OnInit {
 
   ngOnInit(): void {
     // Initialize observables in ngOnInit
-    this.data$ = this.vm.data$;
-    this.loading$ = this.vm.isLoading$;
-    this.error$ = this.vm.error$;
+    this.data$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+    this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+    this.error$ = fromLoomSignal(this.vm.error$, this.destroyRef);
 
     // Execute commands and side effects
     this.vm.fetchCommand.execute();

@@ -2,11 +2,11 @@ import React, { useEffect } from 'react';
 import type { PluginModule, PluginSDK } from '@repo/plugin-core';
 import { registerManifestContributions, unregisterManifestContributions } from '../utils/manifestHelpers';
 import GreenhouseCard from '../../components/GreenhouseCard';
-import { greenHouseViewModel, type GreenhouseListData } from '@repo/view-models/GreenHouseViewModel';
-import { useObservable } from '../../hooks/useObservable';
+import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { useSignal } from '../../hooks/useSignal';
 
 const GreenhouseWidget: React.FC = () => {
-  const greenHouses = useObservable(greenHouseViewModel.data$, [] as GreenhouseListData);
+  const greenHouses = useSignal(greenHouseViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {

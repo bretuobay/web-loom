@@ -495,11 +495,11 @@ import type { PluginModule, PluginSDK } from '@repo/plugin-core';
 import { registerManifestContributions, unregisterManifestContributions } from '../utils/manifestHelpers';
 import GreenhouseCard from '../../components/GreenhouseCard';
 import { greenHouseViewModel, type GreenhouseListData } from '@repo/view-models/GreenHouseViewModel';
-import { useObservable } from '../../hooks/useObservable';
+import { useSignal } from '../../hooks/useSignal';
 
 // The widget component that will be rendered
 const GreenhouseWidget: React.FC = () => {
-  const greenHouses = useObservable(greenHouseViewModel.data$, [] as GreenhouseListData);
+  const greenHouses = useSignal(greenHouseViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -545,7 +545,7 @@ export default greenhouseModule;
 
 Notice how this plugin:
 
-1. **Uses MVVM**: The widget subscribes to `greenHouseViewModel.data$` using the `useObservable` hook
+1. **Uses MVVM**: The widget subscribes to `greenHouseViewModel.data$` using the `useSignal` hook
 2. **Implements Lifecycle**: Provides `init`, `mount`, and `unmount` methods
 3. **Registers Contributions**: Uses the SDK to register routes and widgets
 4. **Maintains State**: Tracks the active SDK for cleanup
@@ -818,7 +818,7 @@ Plugins can use the same ViewModels as the host application:
 ```typescript
 // Plugin component uses shared ViewModel
 const GreenhouseWidget: React.FC = () => {
-  const greenHouses = useObservable(greenHouseViewModel.data$, []);
+  const greenHouses = useSignal(greenHouseViewModel.data$);
   
   useEffect(() => {
     greenHouseViewModel.fetchCommand.execute();
@@ -837,16 +837,13 @@ Because ViewModels are framework-agnostic, plugins can use them regardless of th
 ```typescript
 // Same ViewModel works in React plugin
 const reactPlugin = () => {
-  const data = useObservable(sensorViewModel.data$);
+  const data = useSignal(sensorViewModel.data$);
   return <div>{data}</div>;
 };
 
 // And in Vue plugin
 const vuePlugin = () => {
-  const data = ref([]);
-  watchEffect(() => {
-    sensorViewModel.data$.subscribe(value => data.value = value);
-  });
+  const data = useSignal(sensorViewModel.data$);
   return () => <div>{data.value}</div>;
 };
 ```
@@ -858,7 +855,7 @@ Plugins should contribute Views (UI components) while using shared ViewModels fo
 ```typescript
 // ✅ Good: Plugin provides View, uses shared ViewModel
 const SensorWidget = () => {
-  const sensors = useObservable(sensorViewModel.data$);
+  const sensors = useSignal(sensorViewModel.data$);
   return <SensorList sensors={sensors} />;
 };
 

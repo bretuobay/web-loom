@@ -31,7 +31,7 @@
 
 <script setup lang="ts">
 import { onMounted, computed } from 'vue';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
@@ -43,17 +43,17 @@ import SensorCard from './SensorCard.vue';
 import SensorReadingCard from './SensorReadingCard.vue';
 import ThresholdAlertCard from './ThresholdAlertCard.vue';
 
-const greenHouses = useObservable(greenHouseViewModel.data$, []);
-const isLoadingGreenHouses = useObservable(greenHouseViewModel.isLoading$, true);
+const greenHouses = useSignal(greenHouseViewModel.data$);
+const isLoadingGreenHouses = useSignal(greenHouseViewModel.isLoading$);
 
-const sensors = useObservable(sensorViewModel.data$, []);
-const isLoadingSensors = useObservable(sensorViewModel.isLoading$, true);
+const sensors = useSignal(sensorViewModel.data$);
+const isLoadingSensors = useSignal(sensorViewModel.isLoading$);
 
-const sensorReadings = useObservable(sensorReadingViewModel.data$, []);
-const isLoadingSensorReadings = useObservable(sensorReadingViewModel.isLoading$, true);
+const sensorReadings = useSignal(sensorReadingViewModel.data$);
+const isLoadingSensorReadings = useSignal(sensorReadingViewModel.isLoading$);
 
-const thresholdAlerts = useObservable(thresholdAlertViewModel.data$, []);
-const isLoadingThresholdAlerts = useObservable(thresholdAlertViewModel.isLoading$, true);
+const thresholdAlerts = useSignal(thresholdAlertViewModel.data$);
+const isLoadingThresholdAlerts = useSignal(thresholdAlertViewModel.isLoading$);
 
 const isLoading = computed(
   () =>

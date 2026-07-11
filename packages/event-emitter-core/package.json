@@ -1,6 +1,6 @@
 {
   "name": "@web-loom/event-emitter-core",
-  "version": "0.5.4",
+  "version": "0.8.0",
   "description": "Tiny, type-safe event emitter shared across Web Loom packages.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",

@@ -1055,20 +1055,31 @@ When activated, the entire GreenWatch UI switches to dark mode—across all fram
 ViewModels can access design tokens when they need to compute styles dynamically:
 
 ```typescript
+import { signal, effect, type ReadonlySignal } from '@web-loom/signals-core';
 import { getTokenValue } from '@web-loom/design-core/utils';
 
 class SensorViewModel extends BaseViewModel {
-  readonly statusColor$ = this.reading$.pipe(
-    map(async (reading) => {
-      if (reading.temperature > this.criticalThreshold) {
-        return await getTokenValue('color.sensor.temperature.critical');
-      } else if (reading.temperature > this.warningThreshold) {
-        return await getTokenValue('color.sensor.temperature.warning');
-      } else {
-        return await getTokenValue('color.sensor.temperature.normal');
-      }
-    })
-  );
+  private readonly _statusColor = signal<string | null>(null);
+  readonly statusColor$: ReadonlySignal<string | null> = this._statusColor.asReadonly();
+
+  constructor(model: SensorModel) {
+    super(model);
+
+    // getTokenValue is async, so we resolve it in an effect and push the
+    // result into a signal rather than trying to derive it with computed()
+    const statusColorEffect = effect(() => {
+      const reading = this.reading$.get();
+      const tokenKey =
+        reading.temperature > this.criticalThreshold
+          ? 'color.sensor.temperature.critical'
+          : reading.temperature > this.warningThreshold
+            ? 'color.sensor.temperature.warning'
+            : 'color.sensor.temperature.normal';
+
+      getTokenValue(tokenKey).then((color) => this._statusColor.set(color));
+    });
+    this.addSubscription(() => statusColorEffect.dispose());
+  }
 }
 ```
 

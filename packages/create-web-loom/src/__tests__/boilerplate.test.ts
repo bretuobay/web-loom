@@ -1,11 +1,14 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { injectBoilerplate } from '../boilerplate.js';
 import type { Framework, TemplateVariant } from '../detect.js';
 
 const tempDirs: string[] = [];
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const templateRoot = join(packageRoot, 'src/templates');
 
 function createProject(entryFile: string): string {
   const dir = mkdtempSync(join(tmpdir(), 'create-web-loom-inject-'));
@@ -17,6 +20,21 @@ function createProject(entryFile: string): string {
   writeFileSync(join(dir, 'package.json'), '{"name":"fixture"}\n', 'utf8');
 
   return dir;
+}
+
+function listFiles(dir: string): string[] {
+  const files: string[] = [];
+
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listFiles(path));
+    } else {
+      files.push(path);
+    }
+  }
+
+  return files;
 }
 
 afterEach(() => {
@@ -62,10 +80,47 @@ describe('injectBoilerplate', () => {
 
       const entryText = readFileSync(entryPath, 'utf8');
       expect(entryText).toContain('Web Loom starter');
+      expect(entryText).not.toContain('useObservable');
 
       expect(existsSync(join(projectDir, 'src/viewmodels/CounterViewModel.ts'))).toBe(true);
     });
   }
+
+  it('copies renamed signal bridge files for framework templates', () => {
+    const reactDir = createProject('src/App.tsx');
+    injectBoilerplate(reactDir, { framework: 'react', variant: 'ts' });
+    expect(existsSync(join(reactDir, 'src/hooks/useSignal.ts'))).toBe(true);
+
+    const vueDir = createProject('src/App.vue');
+    injectBoilerplate(vueDir, { framework: 'vue', variant: 'ts' });
+    expect(existsSync(join(vueDir, 'src/composables/useSignal.ts'))).toBe(true);
+
+    const solidDir = createProject('src/App.tsx');
+    injectBoilerplate(solidDir, { framework: 'solid', variant: 'ts' });
+    expect(existsSync(join(solidDir, 'src/hooks/useSignalValue.ts'))).toBe(true);
+  });
+
+  it('keeps source templates free of stale observable bridge patterns', () => {
+    const stalePatterns = [
+      'useObservable',
+      'Observable',
+      'rxjs',
+      '.pipe(',
+      '.unsubscribe(',
+      'const sync =',
+      'this.count.set',
+      'readonly count = signal',
+    ];
+
+    const violations = listFiles(templateRoot).flatMap((file) => {
+      const text = readFileSync(file, 'utf8');
+      return stalePatterns
+        .filter((pattern) => text.includes(pattern))
+        .map((pattern) => `${file.replace(`${packageRoot}/`, '')}: ${pattern}`);
+    });
+
+    expect(violations).toEqual([]);
+  });
 
   it('throws a clear error for unknown template targets', () => {
     const projectDir = createProject('src/main.ts');

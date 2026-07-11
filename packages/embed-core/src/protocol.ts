@@ -1,13 +1,7 @@
 export const EMBED_PROTOCOL_VERSION = 1 as const;
 export const DEFAULT_HANDSHAKE_TIMEOUT_MS = 10_000;
 
-export type EmbedMessageKind =
-  | 'handshake'
-  | 'handshake-ack'
-  | 'command'
-  | 'event'
-  | 'error'
-  | 'destroy';
+export type EmbedMessageKind = 'handshake' | 'handshake-ack' | 'command' | 'event' | 'error' | 'destroy';
 
 export type EmbedErrorCode =
   | 'INIT_REQUIRED'
@@ -110,10 +104,7 @@ export function validateEmbedMessage(value: unknown): EmbedMessage {
   }
 
   if (value.wl !== EMBED_PROTOCOL_VERSION) {
-    throw createEmbedError(
-      'PROTOCOL_VERSION_UNSUPPORTED',
-      `Unsupported embed protocol version: ${String(value.wl)}.`,
-    );
+    throw createEmbedError('PROTOCOL_VERSION_UNSUPPORTED', `Unsupported embed protocol version: ${String(value.wl)}.`);
   }
 
   if (!isEmbedMessage(value)) {

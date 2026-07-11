@@ -1,15 +1,15 @@
 import { memo } from 'react';
 import { navigationViewModel } from '@repo/shared/view-models/NavigationViewModel';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import type { UserData } from '@repo/models';
 import { authViewModel } from '@repo/view-models/AuthViewModel';
 import { useAuth } from '../providers/AuthProvider';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 export const Header = memo(function Header() {
-  const navigation = useObservable(navigationViewModel.navigationList.items$, []);
-  const user = useObservable<UserData | null>(authViewModel.user$, null);
+  const navigation = useSignal(navigationViewModel.navigationList.items$);
+  const user = useSignal<UserData | null>(authViewModel.user$);
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
 

@@ -941,13 +941,13 @@ function usePattern<S>(p: { getState(): S; subscribe(fn: (s: S) => void): () => 
 @Injectable({ providedIn: 'root' })
 export class ToastService implements OnDestroy {
   private queue = createToastQueue({ maxVisible: 4 });
-  private _state$ = new BehaviorSubject(this.queue.getState());
+  private _state = signal(this.queue.getState());
 
   constructor() {
-    this.queue.subscribe((s) => this._state$.next(s));
+    this.queue.subscribe((s) => this._state.set(s));
   }
 
-  get state$() { return this._state$.asObservable(); }
+  get state() { return this._state.asReadonly(); }
   get actions()  { return this.queue.actions; }
 
   ngOnDestroy() { this.queue.destroy(); }

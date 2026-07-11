@@ -3,7 +3,7 @@
 </a>
 <div class="card">
   <h2 class="card-title">Sensor Reading List</h2>
-  <ul class="card-content list" *ngIf="data$ | async as readings">
+  <ul class="card-content list" *ngIf="data$() as readings">
     <li *ngFor="let reading of readings" class="list-item">
       <h3>Reading ID: {{ reading.id }}</h3>
       <p><strong>Sensor ID:</strong> {{ reading.sensorId }}</p>

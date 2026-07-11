@@ -69,9 +69,9 @@ View           →   framework-specific rendering and subscriptions
 
 Each layer has a strict responsibility:
 
-- **Model** — fetches, persists, and owns raw data. Exposes it through reactive observables or signals. Never knows the UI exists.
+- **Model** — fetches, persists, and owns raw data. Exposes it through reactive signals. Never knows the UI exists.
 - **ViewModel** — computes what the View needs (formatted values, loading flags, derived lists) and exposes commands for actions. Orchestrates one or more Models. No framework imports.
-- **View** — subscribes to ViewModel state, renders it, and calls ViewModel commands on user interaction. The only framework-specific code.
+- **View** — reads ViewModel signals, renders them, and calls ViewModel commands on user interaction. The only framework-specific code.
 
 ---
 
@@ -80,12 +80,12 @@ Each layer has a strict responsibility:
 ```
 ┌─────────────────────────────────┐
 │  View (framework-specific)      │  React / Vue / Angular / Lit / Vanilla
-│  subscribes to observables      │
+│  reads signals via a bridge     │
 ├─────────────────────────────────┤
 │  ViewModel (framework-agnostic) │  Commands, derived state, orchestration
 │  uses Models, exposes state     │
 ├─────────────────────────────────┤
-│  Model (framework-agnostic)     │  Data, API calls, reactive streams
+│  Model (framework-agnostic)     │  Data, API calls, reactive signals
 │  calls infrastructure           │
 ├─────────────────────────────────┤
 │  Infrastructure                 │  HTTP, Storage, i18n, Router, EventBus
@@ -96,7 +96,7 @@ Each layer has a strict responsibility:
 
 - **Event Bus** — typed pub/sub for cross-feature communication without coupling
 - **Store** — UI-only ephemeral state (sidebar open, active tab, theme)
-- **Signals / Observables** — reactive primitives that propagate changes through the graph
+- **Signals** — the reactive primitives (from `@web-loom/signals-core`) that propagate changes through the graph; RxJS is available as an optional interop, not a core dependency
 - **Notifications** — user-facing feedback (toasts, alerts)
 
 ---
@@ -117,17 +117,19 @@ When a new framework emerges, you write a new adapter. The Models and ViewModels
 
 ## Installation
 
-Install the packages you need. At minimum, `mvvm-core` and `rxjs`:
+Install the packages you need. At minimum, `mvvm-core` (which pulls in `@web-loom/signals-core` as a dependency) and `zod`:
 
 ```bash
-npm install @web-loom/mvvm-core rxjs
+npm install @web-loom/mvvm-core zod
 ```
 
 For data fetching, UI state, and headless behaviors, add the rest:
 
 ```bash
-npm install @web-loom/query-core @web-loom/store-core @web-loom/ui-core @web-loom/event-bus-core @web-loom/signals-core zod
+npm install @web-loom/query-core @web-loom/store-core @web-loom/ui-core @web-loom/event-bus-core zod
 ```
+
+RxJS is not required — reach for it only if you're integrating with an existing RxJS-based codebase (see [Reactive State](#reactive-state) below).
 
 ---
 
@@ -137,44 +139,44 @@ This example wires up a complete Model → ViewModel → View flow using `@web-l
 
 ### 1. Define the Model
 
-The Model owns data and API calls. It exposes reactive streams but never imports anything from a UI framework.
+The Model owns data and API calls. It exposes reactive signals but never imports anything from a UI framework.
 
 ```typescript
 import { BaseModel } from '@web-loom/mvvm-core';
-import { BehaviorSubject } from 'rxjs';
+import { z } from 'zod';
 
-interface Task {
-  id: string;
-  title: string;
-  done: boolean;
-}
+const TaskSchema = z.object({ id: z.string(), title: z.string(), done: z.boolean() });
+const TaskListSchema = z.array(TaskSchema);
+type Task = z.infer<typeof TaskSchema>;
 
-export class TaskModel extends BaseModel {
-  readonly tasks$      = new BehaviorSubject<Task[]>([]);
-  readonly isLoading$  = new BehaviorSubject(false);
-  readonly error$      = new BehaviorSubject<Error | null>(null);
+export class TaskModel extends BaseModel<Task[], typeof TaskListSchema> {
+  constructor() {
+    super({ initialData: [], schema: TaskListSchema });
+  }
 
   async fetchAll() {
-    this.isLoading$.next(true);
-    this.error$.next(null);
+    this.setLoading(true);
+    this.clearError();
     try {
       const res  = await fetch('/api/tasks');
       const data = await res.json();
-      this.tasks$.next(data);
+      this.setData(data);
     } catch (err) {
-      this.error$.next(err as Error);
+      this.setError(err as Error);
     } finally {
-      this.isLoading$.next(false);
+      this.setLoading(false);
     }
   }
 
   async create(title: string) {
     const res  = await fetch('/api/tasks', { method: 'POST', body: JSON.stringify({ title }) });
     const task = await res.json();
-    this.tasks$.next([...this.tasks$.getValue(), task]);
+    this.setData([...(this.getCurrentData() ?? []), task]);
   }
 }
 ```
+
+`data$`, `isLoading$`, and `error$` — inherited from `BaseModel` — are `ReadonlySignal<T>` from `@web-loom/signals-core`.
 
 ### 2. Create the ViewModel
 
@@ -182,63 +184,52 @@ The ViewModel derives what the View needs from the Model and exposes Commands fo
 
 ```typescript
 import { BaseViewModel, Command } from '@web-loom/mvvm-core';
-import { map } from 'rxjs/operators';
+import { computed } from '@web-loom/signals-core';
 import { TaskModel } from './TaskModel';
 
-export class TaskListViewModel extends BaseViewModel {
-  private model = new TaskModel();
-
-  // Expose model streams directly
-  readonly tasks$     = this.model.tasks$;
-  readonly isLoading$ = this.model.isLoading$;
-  readonly error$     = this.model.error$;
-
+export class TaskListViewModel extends BaseViewModel<TaskModel> {
   // Derived state — count of incomplete tasks
-  readonly pendingCount$ = this.model.tasks$.pipe(
-    map((tasks) => tasks.filter((t) => !t.done).length),
+  readonly pendingCount$ = computed(() => (this.data$.get() ?? []).filter((t) => !t.done).length);
+
+  // Commands — wrap async operations, expose isExecuting$ and canExecute$
+  readonly fetchCommand = this.registerCommand(
+    new Command(async () => { await this.model.fetchAll(); }),
   );
 
-  // Commands — wrap async operations, expose isExecuting$ and error$
-  readonly fetchCommand = new Command(async () => {
-    await this.model.fetchAll();
-  });
+  readonly addCommand = this.registerCommand(
+    new Command(async (title: string) => { await this.model.create(title); }),
+  );
 
-  readonly addCommand = new Command(async (title: string) => {
-    await this.model.create(title);
-  });
-
-  override dispose() {
-    super.dispose();
+  constructor() {
+    super(new TaskModel());
   }
 }
 
 export const taskListViewModel = new TaskListViewModel();
 ```
 
+`data$`/`isLoading$`/`error$` don't need to be redeclared — `BaseViewModel` already re-exposes the Model's signals directly.
+
 ### 3. Connect to a View
 
-The View subscribes to ViewModel observables and calls Commands. This is the only framework-specific code.
+The View reads ViewModel signals (through a small per-framework bridge, since each framework has its own way to trigger a re-render) and calls Commands. This is the only framework-specific code.
 
 **React**
 
 ```tsx
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore, useEffect, useMemo } from 'react';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 import { taskListViewModel } from './TaskListViewModel';
 
-function useObservable<T>(obs: import('rxjs').Observable<T>, initial: T) {
-  const [value, setValue] = useState(initial);
-  useEffect(() => {
-    const sub = obs.subscribe(setValue);
-    return () => sub.unsubscribe();
-  }, [obs]);
-  return value;
+function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 
 export function TaskList() {
   const vm       = taskListViewModel;
-  const tasks    = useObservable(vm.tasks$, []);
-  const loading  = useObservable(vm.isLoading$, false);
-  const pending  = useObservable(vm.pendingCount$, 0);
+  const tasks    = useSignal(vm.data$);
+  const loading  = useSignal(vm.isLoading$);
+  const pending  = useSignal(vm.pendingCount$);
 
   useEffect(() => {
     vm.fetchCommand.execute();
@@ -250,7 +241,7 @@ export function TaskList() {
       <h1>Tasks ({pending} pending)</h1>
       {loading && <p>Loading…</p>}
       <ul>
-        {tasks.map((t) => <li key={t.id}>{t.title}</li>)}
+        {tasks?.map((t) => <li key={t.id}>{t.title}</li>)}
       </ul>
       <button onClick={() => vm.addCommand.execute('New task')}>Add</button>
     </div>
@@ -262,25 +253,24 @@ export function TaskList() {
 
 ```vue
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { onMounted, onUnmounted, shallowRef, type ShallowRef } from 'vue';
+import { observe, type ReadonlySignal } from '@web-loom/signals-core';
 import { taskListViewModel } from './TaskListViewModel';
 
+function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
+  const value = shallowRef<T>(sig.peek());
+  const unsubscribe = observe(sig, (next) => { value.value = next; });
+  onUnmounted(unsubscribe);
+  return value;
+}
+
 const vm = taskListViewModel;
-const tasks   = ref([] as any[]);
-const loading = ref(false);
-
-const subscriptions = [
-  vm.tasks$.subscribe((v)    => (tasks.value = v)),
-  vm.isLoading$.subscribe((v) => (loading.value = v)),
-];
-
-const pending = computed(() => tasks.value.filter((t) => !t.done).length);
+const tasks   = useSignal(vm.data$);
+const loading = useSignal(vm.isLoading$);
+const pending = useSignal(vm.pendingCount$);
 
 onMounted(() => vm.fetchCommand.execute());
-onUnmounted(() => {
-  subscriptions.forEach((s) => s.unsubscribe());
-  vm.dispose();
-});
+onUnmounted(() => vm.dispose());
 </script>
 
 <template>
@@ -300,6 +290,7 @@ onUnmounted(() => {
 ```typescript
 import { Component, OnInit, OnDestroy, InjectionToken, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { fromLoomSignal } from './utils/loom-signals';
 import { taskListViewModel } from './TaskListViewModel';
 
 export const TASK_VM = new InjectionToken('TASK_VM');
@@ -309,9 +300,9 @@ export const TASK_VM = new InjectionToken('TASK_VM');
   imports: [CommonModule],
   providers: [{ provide: TASK_VM, useValue: taskListViewModel }],
   template: `
-    <div *ngIf="loading$ | async">Loading…</div>
+    <div *ngIf="loading()">Loading…</div>
     <ul>
-      <li *ngFor="let t of tasks$ | async">{{ t.title }}</li>
+      <li *ngFor="let t of tasks()">{{ t.title }}</li>
     </ul>
     <button (click)="vm.addCommand.execute('New task')">Add</button>
   `,
@@ -319,42 +310,25 @@ export const TASK_VM = new InjectionToken('TASK_VM');
 export class TaskListComponent implements OnInit, OnDestroy {
   constructor(@Inject(TASK_VM) public vm: typeof taskListViewModel) {}
 
-  tasks$   = this.vm.tasks$;
-  loading$ = this.vm.isLoading$;
+  tasks   = fromLoomSignal(this.vm.data$);
+  loading = fromLoomSignal(this.vm.isLoading$);
 
   ngOnInit()    { this.vm.fetchCommand.execute(); }
   ngOnDestroy() { this.vm.dispose(); }
 }
 ```
 
-The ViewModel class is the same in all three cases. Only the subscription syntax differs.
+`fromLoomSignal` bridges a Web Loom signal into a native Angular signal, torn down via `DestroyRef` — see [MVVM in Angular](/docs/mvvm-angular-use-case) for the full implementation.
+
+The ViewModel class is the same in all three cases. Only the bridge syntax differs.
 
 ---
 
 ## Reactive State
 
-Web Loom supports two reactive primitives that can be used together or independently.
-
-### RxJS Observables
-
-`@web-loom/mvvm-core` is built on RxJS. Models expose `BehaviorSubject` streams; ViewModels compose them with operators. Best for complex async pipelines, multicasting, and integration with Angular.
-
-```typescript
-class TaskModel extends BaseModel {
-  readonly tasks$     = new BehaviorSubject<Task[]>([]);
-  readonly isLoading$ = new BehaviorSubject(false);
-
-  async fetchAll() {
-    this.isLoading$.next(true);
-    this.tasks$.next(await api.getTasks());
-    this.isLoading$.next(false);
-  }
-}
-```
-
 ### Signals
 
-`@web-loom/signals-core` provides synchronous, pull-based reactive values with automatic dependency tracking. Zero dependencies, no scheduler — perfect for ViewModels that don't need RxJS.
+`@web-loom/mvvm-core` is built on [`@web-loom/signals-core`](/docs/signals-core) — every `data$`/`isLoading$`/`error$`/`canExecute$`/`isExecuting$` you'll see throughout these docs is a `ReadonlySignal<T>`: synchronous, pull-based, with automatic dependency tracking. Zero dependencies, no scheduler.
 
 ```typescript
 import { signal, computed } from '@web-loom/signals-core';
@@ -368,7 +342,17 @@ class CounterViewModel {
 }
 ```
 
-Both work with any framework adapter. Use Signals for straightforward reactive state, Observables for advanced stream composition or when integrating with Angular's async pipe.
+### RxJS (optional interop)
+
+RxJS is not a dependency of `mvvm-core` — the package doesn't use it internally. If you're integrating with an existing RxJS-based codebase, or want RxJS operators (debounce pipelines, retry/backoff, websocket streams) at the edge of a Model, bridge via the optional `@web-loom/signals-core/rxjs` subpath (requires `rxjs` as a peer dependency):
+
+```typescript
+import { toObservable, fromObservable } from '@web-loom/signals-core/rxjs';
+
+const count$ = toObservable(counterViewModel.count); // Signal -> Observable (BehaviorSubject semantics)
+```
+
+See [Signals Core: RxJS Interop](/docs/signals-core#rxjs-interop) for the full API.
 
 ---
 
@@ -404,7 +388,7 @@ Commands keep the View dumb — it never contains `try/catch`, loading flags, or
 
 **Unidirectional data flow** — state flows down (Model → ViewModel → View), actions flow up (View calls ViewModel commands). No two-way data binding at the architecture level.
 
-**Always dispose** — ViewModels subscribe to observables and effects. Call `vm.dispose()` in the component teardown hook to prevent memory leaks.
+**Always dispose** — ViewModels register Commands and manual signal subscriptions. Call `vm.dispose()` in the component teardown hook to prevent memory leaks.
 
 ```typescript
 // React
@@ -421,11 +405,11 @@ useEffect(() => {
 ```typescript
 it('counts pending tasks correctly', () => {
   const vm = new TaskListViewModel();
-  vm['model'].tasks$.next([
+  vm['model'].setData([
     { id: '1', title: 'Buy milk', done: false },
     { id: '2', title: 'Write tests', done: true },
   ]);
-  expect(vm['pendingCount$'].getValue?.() ?? 0).toBe(1);
+  expect(vm.pendingCount$.peek()).toBe(1);
   vm.dispose();
 });
 ```
@@ -437,7 +421,7 @@ it('counts pending tasks correctly', () => {
 Web Loom ships packages across several categories:
 
 ### Core architecture
-- [`@web-loom/mvvm-core`](/docs/models) — BaseModel, BaseViewModel, Commands, RxJS integration
+- [`@web-loom/mvvm-core`](/docs/models) — BaseModel, BaseViewModel, Commands, built on signals-core
 - [`@web-loom/signals-core`](/docs/signals-core) — Lightweight reactive signals and computed values
 - [`@web-loom/store-core`](/docs/store-core) — Minimal UI-state store with persistence adapters
 
@@ -467,8 +451,8 @@ Web Loom ships packages across several categories:
 - [Core Concepts](/docs/core-concepts) — deeper dive into architecture patterns and how packages relate
 - [Models](/docs/models) — the Model layer in detail: RestfulApiModel, schemas, reactive streams
 - [ViewModels](/docs/viewmodels) — Commands, RestfulApiViewModel, FormViewModel, lifecycle
-- [Signals Core](/docs/signals-core) — reactive signals as an alternative to RxJS
+- [Signals Core](/docs/signals-core) — the `signal`/`computed`/`effect` primitives underlying mvvm-core
 - [MVVM in React](/docs/mvvm-react-use-case) — React-specific integration patterns
 - [MVVM in Vue](/docs/mvvm-vue-use-case) — Vue 3 composable-based integration
-- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular async pipe and Signals integration
+- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular DI and signal bridging integration
 - [MVVM in Vanilla TS](/docs/mvvm-vanilla-use-case) — framework-free integration with manual DOM rendering

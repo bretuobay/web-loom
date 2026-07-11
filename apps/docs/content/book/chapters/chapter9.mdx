@@ -6,7 +6,7 @@ section: Framework Implementations
 
 # Chapter 9: Vue Implementation with Composition API
 
-In the previous chapter, we explored how React's hooks integrate seamlessly with MVVM architecture through the `useObservable` pattern. Now we'll see something remarkable: Vue 3's Composition API provides a strikingly similar approach to consuming ViewModels, yet the framework itself is completely different.
+In the previous chapter, we explored how React's hooks integrate seamlessly with MVVM architecture through the `useSignal` pattern. Now we'll see something remarkable: Vue 3's Composition API provides a strikingly similar approach to consuming ViewModels, yet the framework itself is completely different.
 
 This chapter demonstrates one of MVVM's most powerful benefits—**framework independence**. The ViewModels we used in React (`sensorViewModel`, `greenHouseViewModel`, etc.) work identically in Vue without any modifications. Only the View layer changes, adapting to Vue's reactive system and template syntax.
 
@@ -14,38 +14,35 @@ We'll continue using the GreenWatch greenhouse monitoring system, extracting rea
 
 ## 9.1 The Vue-MVVM Integration Challenge
 
-Vue 3's Composition API introduced a hooks-like pattern that maps naturally to observable consumption. Vue components need to:
+Vue 3's Composition API introduced a hooks-like pattern that maps naturally to signal consumption. Vue components need to:
 
-1. Subscribe to ViewModel observables
-2. Trigger reactivity when observable values change
+1. Read ViewModel signals
+2. Trigger reactivity when signal values change
 3. Clean up subscriptions when components unmount
 4. Execute ViewModel commands in response to user actions
 
-The challenge is similar to React: Vue's reactivity is based on `ref` and `reactive`, while our ViewModels expose RxJS observables. We need a bridge between these two systems.
+The challenge is similar to React: Vue's reactivity is based on `ref` and `reactive`, while our ViewModels expose `@web-loom/signals-core` signals. We need a bridge between these two systems.
 
-The solution is a composable: `useObservable`.
+The solution is a composable: `useSignal`.
 
 
-## 9.2 The useObservable Composable: Bridging Observables and Vue Reactivity
+## 9.2 The useSignal Composable: Bridging Signals and Vue Reactivity
 
-The `useObservable` composable is the cornerstone of Vue-MVVM integration. It subscribes to an RxJS observable, converts its values into Vue reactive state, and handles cleanup automatically. Here's the complete implementation from the GreenWatch Vue app:
+The `useSignal` composable is the cornerstone of Vue-MVVM integration. It reads a `@web-loom/signals-core` signal, mirrors its value into a Vue `shallowRef`, and handles cleanup automatically. Here's the complete implementation from the GreenWatch Vue app:
 
 ```typescript
-// apps/mvvm-vue/src/hooks/useObservable.ts
-import { ref, onUnmounted } from 'vue';
-import { Observable } from 'rxjs';
+// apps/mvvm-vue/src/hooks/useSignal.ts
+import { shallowRef, onUnmounted, type ShallowRef } from 'vue';
+import { observe, type ReadonlySignal } from '@web-loom/signals-core';
 
-export function useObservable<T>(observable: Observable<T>, initialValue: any) {
-  const value = ref<T | undefined>(initialValue);
-  const subscription = observable.subscribe({
-    next: (val) => {
-      value.value = val;
-    },
+export function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
+  const value = shallowRef<T>(sig.peek());
+
+  const unsubscribe = observe(sig, (next) => {
+    value.value = next;
   });
 
-  onUnmounted(() => {
-    subscription.unsubscribe();
-  });
+  onUnmounted(unsubscribe);
 
   return value;
 }
@@ -54,47 +51,43 @@ export function useObservable<T>(observable: Observable<T>, initialValue: any) {
 
 Let's break down what's happening here:
 
-**1. Reactive State**: `ref` creates a reactive reference initialized with `initialValue`. When `value.value` changes, Vue's reactivity system triggers component re-renders.
+**1. Reactive State**: `shallowRef` creates a reactive reference seeded with `sig.peek()`, the signal's current value. When `value.value` changes, Vue's reactivity system triggers component re-renders. `shallowRef` (not `ref`) is used because the signal's own value shouldn't be made deeply reactive a second time.
 
-**2. Subscription**: The observable is subscribed immediately (not inside a lifecycle hook). When the observable emits, we update `value.value`, which triggers Vue's reactivity.
+**2. Subscription**: `observe()` is called immediately (not inside a lifecycle hook). It delivers the current value synchronously first, then subscribes for future changes — matching the "seed then update" behavior a `BehaviorSubject` would have given you, without needing one.
 
-**3. Cleanup**: `onUnmounted` registers a cleanup function that unsubscribes when the component unmounts. This prevents memory leaks.
+**3. Cleanup**: `onUnmounted` registers the unsubscribe function `observe()` returned, so it runs when the component unmounts. This prevents memory leaks.
 
-**4. Return Value**: We return the `ref` itself, which can be used directly in templates or accessed via `.value` in script.
+**4. Return Value**: We return the `shallowRef` itself, which can be used directly in templates or accessed via `.value` in script.
 
-### 9.2.1 Comparing with React's useObservable
+### 9.2.1 Comparing with React's useSignal
 
 Let's compare the Vue and React implementations side by side:
 
 **React:**
 ```typescript
-// apps/mvvm-react/src/hooks/useObservable.ts
-export function useObservable<T>(observable: Observable<T>, initialValue: T) {
-  const [value, setValue] = useState<T>(initialValue);
+// apps/mvvm-react/src/hooks/useSignal.ts
+import { useSyncExternalStore } from 'react';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 
-  useEffect(() => {
-    const subscription = observable.subscribe(setValue);
-    return () => subscription.unsubscribe();
-  }, [observable]);
-
-  return value;
+export function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 ```
 
 **Vue:**
 ```typescript
-// apps/mvvm-vue/src/hooks/useObservable.ts
-export function useObservable<T>(observable: Observable<T>, initialValue: any) {
-  const value = ref<T | undefined>(initialValue);
-  const subscription = observable.subscribe({
-    next: (val) => {
-      value.value = val;
-    },
+// apps/mvvm-vue/src/hooks/useSignal.ts
+import { shallowRef, onUnmounted, type ShallowRef } from 'vue';
+import { observe, type ReadonlySignal } from '@web-loom/signals-core';
+
+export function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
+  const value = shallowRef<T>(sig.peek());
+
+  const unsubscribe = observe(sig, (next) => {
+    value.value = next;
   });
 
-  onUnmounted(() => {
-    subscription.unsubscribe();
-  });
+  onUnmounted(unsubscribe);
 
   return value;
 }
@@ -102,12 +95,12 @@ export function useObservable<T>(observable: Observable<T>, initialValue: any) {
 
 **Key Differences:**
 
-1. **State Management**: React uses `useState`, Vue uses `ref`
-2. **Subscription Timing**: React subscribes in `useEffect`, Vue subscribes immediately
-3. **Cleanup**: React returns cleanup from `useEffect`, Vue uses `onUnmounted`
-4. **Return Value**: React returns the value directly, Vue returns a `ref` (accessed via `.value` in script, automatically unwrapped in templates)
+1. **State Management**: React uses `useSyncExternalStore` directly, Vue seeds a `shallowRef` and mirrors into it
+2. **Subscription Timing**: React lets `useSyncExternalStore` manage subscribe/unsubscribe internally, Vue subscribes immediately via `observe()`
+3. **Cleanup**: React's cleanup is implicit in `useSyncExternalStore`, Vue uses `onUnmounted`
+4. **Return Value**: React returns the value directly, Vue returns a `ShallowRef` (accessed via `.value` in script, automatically unwrapped in templates)
 
-**Key Similarity**: Both patterns achieve the same goal—converting RxJS observables into framework-native reactive state with automatic cleanup.
+**Key Similarity**: Both patterns achieve the same goal—bridging a `@web-loom/signals-core` signal into framework-native reactive state with automatic cleanup.
 
 
 ## 9.3 Building the Dashboard: Multi-ViewModel Coordination
@@ -151,7 +144,7 @@ Here's the complete Dashboard implementation:
 
 <script setup lang="ts">
 import { onMounted, computed } from 'vue';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
@@ -163,17 +156,17 @@ import SensorCard from './SensorCard.vue';
 import SensorReadingCard from './SensorReadingCard.vue';
 import ThresholdAlertCard from './ThresholdAlertCard.vue';
 
-const greenHouses = useObservable(greenHouseViewModel.data$, []);
-const isLoadingGreenHouses = useObservable(greenHouseViewModel.isLoading$, true);
+const greenHouses = useSignal(greenHouseViewModel.data$);
+const isLoadingGreenHouses = useSignal(greenHouseViewModel.isLoading$);
 
-const sensors = useObservable(sensorViewModel.data$, []);
-const isLoadingSensors = useObservable(sensorViewModel.isLoading$, true);
+const sensors = useSignal(sensorViewModel.data$);
+const isLoadingSensors = useSignal(sensorViewModel.isLoading$);
 
-const sensorReadings = useObservable(sensorReadingViewModel.data$, []);
-const isLoadingSensorReadings = useObservable(sensorReadingViewModel.isLoading$, true);
+const sensorReadings = useSignal(sensorReadingViewModel.data$);
+const isLoadingSensorReadings = useSignal(sensorReadingViewModel.isLoading$);
 
-const thresholdAlerts = useObservable(thresholdAlertViewModel.data$, []);
-const isLoadingThresholdAlerts = useObservable(thresholdAlertViewModel.isLoading$, true);
+const thresholdAlerts = useSignal(thresholdAlertViewModel.data$);
+const isLoadingThresholdAlerts = useSignal(thresholdAlertViewModel.isLoading$);
 
 const isLoading = computed(
   () =>
@@ -220,16 +213,16 @@ import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 
 **These are the exact same ViewModels used in React.** The imports are identical. The ViewModels are framework-agnostic singleton instances that work in any JavaScript environment.
 
-**3. Observable Subscriptions with useObservable**
+**3. Signal Subscriptions with useSignal**
 
 ```typescript
-const greenHouses = useObservable(greenHouseViewModel.data$, []);
-const isLoadingGreenHouses = useObservable(greenHouseViewModel.isLoading$, true);
+const greenHouses = useSignal(greenHouseViewModel.data$);
+const isLoadingGreenHouses = useSignal(greenHouseViewModel.isLoading$);
 ```
 
-Each `useObservable` call creates a subscription that:
-- Starts with an initial value (`[]` for data, `true` for loading)
-- Updates the Vue `ref` when the observable emits
+Each `useSignal` call creates a subscription that:
+- Seeds the Vue `shallowRef` with the signal's current value via `.peek()` (`[]` for data, `true` for loading)
+- Updates the `shallowRef` when the signal changes
 - Automatically unsubscribes when the component unmounts
 
 Notice we subscribe to both `data$` and `isLoading$` from each ViewModel. This gives us fine-grained control over what we display.
@@ -291,8 +284,8 @@ Let's compare the Vue and React Dashboard implementations:
 **React:**
 ```tsx
 const Dashboard: React.FC = () => {
-  const greenHouses = useObservable(greenHouseViewModel.data$, []);
-  const isLoadingGreenHouses = useObservable(greenHouseViewModel.isLoading$, true);
+  const greenHouses = useSignal(greenHouseViewModel.data$);
+  const isLoadingGreenHouses = useSignal(greenHouseViewModel.isLoading$);
   // ... more subscriptions
 
   useEffect(() => {
@@ -326,8 +319,8 @@ const Dashboard: React.FC = () => {
 **Vue:**
 ```vue
 <script setup lang="ts">
-const greenHouses = useObservable(greenHouseViewModel.data$, []);
-const isLoadingGreenHouses = useObservable(greenHouseViewModel.isLoading$, true);
+const greenHouses = useSignal(greenHouseViewModel.data$);
+const isLoadingGreenHouses = useSignal(greenHouseViewModel.isLoading$);
 // ... more subscriptions
 
 onMounted(async () => {
@@ -356,7 +349,7 @@ const isLoading = computed(
 **Key Similarities:**
 
 1. **Same ViewModels**: Both import and use identical ViewModels
-2. **Same Pattern**: Both use `useObservable` to subscribe to observables
+2. **Same Pattern**: Both use `useSignal` to subscribe to signals
 3. **Same Lifecycle**: Both fetch data on mount (`useEffect` vs `onMounted`)
 4. **Same Logic**: Both combine loading states and conditionally render
 
@@ -417,15 +410,15 @@ Let's look at a more complex component that demonstrates filtering. The `SensorL
 <script setup lang="ts">
 import { onMounted, defineProps, watch, computed } from 'vue';
 import { sensorViewModel as importedSensorVMInstance } from '@repo/view-models/SensorViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import BackArrow from '../assets/back-arrow.svg';
 
 const props = defineProps<{
   greenhouseId?: string;
 }>();
 
-const isLoading = useObservable(importedSensorVMInstance.isLoading$, true);
-const allSensors = useObservable(importedSensorVMInstance.data$, []);
+const isLoading = useSignal(importedSensorVMInstance.isLoading$);
+const allSensors = useSignal(importedSensorVMInstance.data$);
 
 const filteredSensors = computed(() => {
   if (!allSensors.value) return [];
@@ -539,8 +532,8 @@ This `watch` is currently a no-op (empty callback), but it demonstrates how to r
 **React:**
 ```tsx
 export function SensorList({ greenhouseId }: { greenhouseId?: string }) {
-  const sensors = useObservable(sensorViewModel.data$, []);
-  const isLoading = useObservable(sensorViewModel.isLoading$, false);
+  const sensors = useSignal(sensorViewModel.data$);
+  const isLoading = useSignal(sensorViewModel.isLoading$);
 
   useEffect(() => {
     sensorViewModel.fetchCommand.execute();
@@ -574,8 +567,8 @@ export function SensorList({ greenhouseId }: { greenhouseId?: string }) {
 ```vue
 <script setup lang="ts">
 const props = defineProps<{ greenhouseId?: string }>();
-const sensors = useObservable(sensorViewModel.data$, []);
-const isLoading = useObservable(sensorViewModel.isLoading$, false);
+const sensors = useSignal(sensorViewModel.data$);
+const isLoading = useSignal(sensorViewModel.isLoading$);
 
 onMounted(() => {
   sensorViewModel.fetchCommand.execute();
@@ -604,7 +597,7 @@ const filteredSensors = computed(() =>
 **Key Similarities:**
 
 1. **Same ViewModel**: Both use `sensorViewModel`
-2. **Same Pattern**: Both use `useObservable` for subscriptions
+2. **Same Pattern**: Both use `useSignal` for subscriptions
 3. **Same Logic**: Both filter sensors based on `greenhouseId`
 4. **Same Lifecycle**: Both fetch on mount
 
@@ -743,15 +736,15 @@ As your Vue application grows, you might want to create custom composables that 
 ```typescript
 // src/hooks/useViewModel.ts
 import { onMounted } from 'vue';
-import { useObservable } from './useObservable';
+import { useSignal } from './useSignal';
 import type { RestfulApiViewModel } from '@web-loom/mvvm-core';
 
 export function useViewModel<TData>(
   viewModel: RestfulApiViewModel<TData, any>
 ) {
-  const data = useObservable(viewModel.data$, null);
-  const isLoading = useObservable(viewModel.isLoading$, false);
-  const error = useObservable(viewModel.error$, null);
+  const data = useSignal(viewModel.data$);
+  const isLoading = useSignal(viewModel.isLoading$);
+  const error = useSignal(viewModel.error$);
 
   onMounted(() => {
     viewModel.fetchCommand.execute();
@@ -855,28 +848,25 @@ This composable provides local loading and error state for individual command ex
 
 Vue 3's Composition API provides clear lifecycle hooks that integrate naturally with MVVM:
 
-### 9.8.1 Automatic Cleanup with useObservable
+### 9.8.1 Automatic Cleanup with useSignal
 
-The `useObservable` composable handles subscription cleanup automatically:
+The `useSignal` composable handles subscription cleanup automatically:
 
 ```typescript
-export function useObservable<T>(observable: Observable<T>, initialValue: any) {
-  const value = ref<T | undefined>(initialValue);
-  const subscription = observable.subscribe({
-    next: (val) => {
-      value.value = val;
-    },
+export function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
+  const value = shallowRef<T>(sig.peek());
+
+  const unsubscribe = observe(sig, (next) => {
+    value.value = next;
   });
 
-  onUnmounted(() => {
-    subscription.unsubscribe(); // Cleanup on unmount
-  });
+  onUnmounted(unsubscribe); // Cleanup on unmount
 
   return value;
 }
 ```
 
-When the component unmounts, Vue calls the `onUnmounted` callback, which unsubscribes from the observable. You don't need to manually manage subscriptions in your components.
+When the component unmounts, Vue calls the `onUnmounted` callback, which unsubscribes from the signal. You don't need to manually manage subscriptions in your components.
 
 ### 9.8.2 When to Dispose ViewModels
 
@@ -899,7 +889,7 @@ onUnmounted(() => {
   viewModel.value.dispose();
 });
 
-const sensor = useObservable(viewModel.value.sensor$, null);
+const sensor = useSignal(viewModel.value.sensor$);
 </script>
 
 <template>
@@ -908,8 +898,8 @@ const sensor = useObservable(viewModel.value.sensor$, null);
 ```
 
 The `dispose()` method:
-- Completes all observables (via `_destroy$`)
-- Unsubscribes all internal subscriptions
+- Runs all teardowns registered via `addSubscription`
+- Unsubscribes all internal signal subscriptions
 - Disposes all registered commands
 - Prevents memory leaks
 
@@ -923,12 +913,12 @@ Vue components should always handle loading and error states from ViewModels. He
 ```vue
 <script setup lang="ts">
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import { onMounted } from 'vue';
 
-const sensors = useObservable(sensorViewModel.data$, null);
-const isLoading = useObservable(sensorViewModel.isLoading$, false);
-const error = useObservable(sensorViewModel.error$, null);
+const sensors = useSignal(sensorViewModel.data$);
+const isLoading = useSignal(sensorViewModel.isLoading$);
+const error = useSignal(sensorViewModel.error$);
 
 onMounted(() => {
   sensorViewModel.fetchCommand.execute();
@@ -988,7 +978,7 @@ Vue automatically unwraps refs in templates:
 
 ```vue
 <script setup lang="ts">
-const sensors = useObservable(sensorViewModel.data$, []); // Returns a ref
+const sensors = useSignal(sensorViewModel.data$); // Returns a ref
 </script>
 
 <template>
@@ -1002,7 +992,7 @@ const sensors = useObservable(sensorViewModel.data$, []); // Returns a ref
 But in script, you must use `.value`:
 
 ```typescript
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 console.log(sensors.value); // Must use .value in script
 ```
 
@@ -1012,13 +1002,13 @@ Use `computed` for derived values instead of plain variables:
 
 **❌ Bad:**
 ```typescript
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 const activeSensors = sensors.value.filter(s => s.status === 'active'); // Not reactive!
 ```
 
 **✅ Good:**
 ```typescript
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 const activeSensors = computed(() => 
   sensors.value.filter(s => s.status === 'active')
 ); // Reactive!
@@ -1031,7 +1021,7 @@ Use `watch` or `watchEffect` for side effects based on reactive state:
 ```typescript
 import { watch } from 'vue';
 
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 
 // Watch for changes and perform side effects
 watch(sensors, (newSensors, oldSensors) => {
@@ -1061,7 +1051,7 @@ One of the greatest benefits of MVVM is testability. Vue components that use Vie
 ```typescript
 // __tests__/SensorList.spec.ts
 import { mount } from '@vue/test-utils';
-import { BehaviorSubject } from 'rxjs';
+import { signal } from '@web-loom/signals-core';
 import SensorList from '../SensorList.vue';
 import * as viewModels from '@repo/view-models/SensorViewModel';
 
@@ -1069,13 +1059,13 @@ import * as viewModels from '@repo/view-models/SensorViewModel';
 vi.mock('@repo/view-models/SensorViewModel');
 
 describe('SensorList', () => {
-  let mockData$: BehaviorSubject<any[]>;
-  let mockIsLoading$: BehaviorSubject<boolean>;
+  let mockData$: ReturnType<typeof signal<any[]>>;
+  let mockIsLoading$: ReturnType<typeof signal<boolean>>;
   let mockFetchCommand: { execute: vi.Mock };
 
   beforeEach(() => {
-    mockData$ = new BehaviorSubject([]);
-    mockIsLoading$ = new BehaviorSubject(false);
+    mockData$ = signal([]);
+    mockIsLoading$ = signal(false);
     mockFetchCommand = { execute: vi.fn() };
 
     // Mock the ViewModel
@@ -1087,7 +1077,7 @@ describe('SensorList', () => {
   });
 
   it('displays loading state initially', () => {
-    mockIsLoading$.next(true);
+    mockIsLoading$.set(true);
     const wrapper = mount(SensorList);
     expect(wrapper.text()).toContain('Loading');
   });
@@ -1101,7 +1091,7 @@ describe('SensorList', () => {
     const wrapper = mount(SensorList);
     
     // Simulate data loading
-    mockData$.next(sensors);
+    mockData$.set(sensors);
     await wrapper.vm.$nextTick();
 
     expect(wrapper.text()).toContain('Sensor 1');
@@ -1116,7 +1106,7 @@ describe('SensorList', () => {
 ```
 
 This test demonstrates:
-- Mocking the ViewModel with BehaviorSubjects
+- Mocking the ViewModel with plain signals
 - Testing loading states
 - Testing data rendering
 - Verifying command execution
@@ -1133,13 +1123,13 @@ Let's compare the complete patterns for consuming ViewModels in React and Vue:
 ```tsx
 // React Component
 import { useEffect } from 'react';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 
 export function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, []);
-  const isLoading = useObservable(sensorViewModel.isLoading$, false);
-  const error = useObservable(sensorViewModel.error$, null);
+  const sensors = useSignal(sensorViewModel.data$);
+  const isLoading = useSignal(sensorViewModel.isLoading$);
+  const error = useSignal(sensorViewModel.error$);
 
   useEffect(() => {
     sensorViewModel.fetchCommand.execute();
@@ -1164,12 +1154,12 @@ export function SensorList() {
 <!-- Vue Component -->
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 
-const sensors = useObservable(sensorViewModel.data$, []);
-const isLoading = useObservable(sensorViewModel.isLoading$, false);
-const error = useObservable(sensorViewModel.error$, null);
+const sensors = useSignal(sensorViewModel.data$);
+const isLoading = useSignal(sensorViewModel.isLoading$);
+const error = useSignal(sensorViewModel.error$);
 
 onMounted(() => {
   sensorViewModel.fetchCommand.execute();
@@ -1191,8 +1181,8 @@ onMounted(() => {
 
 **What's Identical:**
 1. The ViewModel import (`sensorViewModel`)
-2. The `useObservable` pattern
-3. The observables subscribed to (`data$`, `isLoading$`, `error$`)
+2. The `useSignal` pattern
+3. The signals subscribed to (`data$`, `isLoading$`, `error$`)
 4. The command execution (`fetchCommand.execute()`)
 5. The business logic
 
@@ -1211,26 +1201,26 @@ onMounted(() => {
 
 Based on the real implementations in the GreenWatch Vue app, here are the patterns that work:
 
-### 1. Use useObservable for All Observable Subscriptions
+### 1. Use useSignal for All Signal Subscriptions
 
-Don't manually subscribe in lifecycle hooks. Use the `useObservable` composable:
+Don't manually subscribe in lifecycle hooks. Use the `useSignal` composable:
 
 **❌ Bad:**
 ```vue
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 
-const sensors = ref([]);
-let subscription;
+const sensors = ref(sensorViewModel.data$.peek());
+let unsubscribe: (() => void) | undefined;
 
 onMounted(() => {
-  subscription = sensorViewModel.data$.subscribe(data => {
+  unsubscribe = sensorViewModel.data$.subscribe(data => {
     sensors.value = data;
   });
 });
 
 onUnmounted(() => {
-  subscription?.unsubscribe();
+  unsubscribe?.();
 });
 </script>
 ```
@@ -1238,7 +1228,7 @@ onUnmounted(() => {
 **✅ Good:**
 ```vue
 <script setup lang="ts">
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 </script>
 ```
 
@@ -1248,14 +1238,14 @@ const sensors = useObservable(sensorViewModel.data$, []);
 ```vue
 <script setup lang="ts">
 sensorViewModel.fetchCommand.execute(); // Runs immediately, might run multiple times
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 </script>
 ```
 
 **✅ Good:**
 ```vue
 <script setup lang="ts">
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 
 onMounted(() => {
   sensorViewModel.fetchCommand.execute(); // Runs once on mount
@@ -1270,7 +1260,7 @@ Always use `computed` for values derived from reactive state:
 **❌ Bad:**
 ```vue
 <script setup lang="ts">
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 const activeSensors = sensors.value.filter(s => s.status === 'active'); // Not reactive!
 </script>
 ```
@@ -1278,7 +1268,7 @@ const activeSensors = sensors.value.filter(s => s.status === 'active'); // Not r
 **✅ Good:**
 ```vue
 <script setup lang="ts">
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 const activeSensors = computed(() => 
   sensors.value.filter(s => s.status === 'active')
 ); // Reactive!
@@ -1291,9 +1281,9 @@ Always subscribe to `data$`, `isLoading$`, and `error$`:
 
 ```vue
 <script setup lang="ts">
-const data = useObservable(viewModel.data$, null);
-const isLoading = useObservable(viewModel.isLoading$, false);
-const error = useObservable(viewModel.error$, null);
+const data = useSignal(viewModel.data$);
+const isLoading = useSignal(viewModel.isLoading$);
+const error = useSignal(viewModel.error$);
 </script>
 
 <template>
@@ -1311,7 +1301,7 @@ If you find yourself writing complex logic in a component, move it to the ViewMo
 **❌ Bad:**
 ```vue
 <script setup lang="ts">
-const sensor = useObservable(sensorViewModel.currentSensor$, null);
+const sensor = useSignal(sensorViewModel.currentSensor$);
 
 const isOverThreshold = computed(() => 
   sensor.value && sensor.value.value > sensor.value.threshold
@@ -1332,18 +1322,19 @@ const statusMessage = computed(() =>
 <script setup lang="ts">
 // In ViewModel
 class SensorViewModel {
-  public readonly displayStatus$ = this.currentSensor$.pipe(
-    map(sensor => ({
+  public readonly displayStatus$ = computed(() => {
+    const sensor = this.currentSensor$.get();
+    return {
       color: sensor.value > sensor.threshold ? 'red' : 'green',
       message: sensor.value > sensor.threshold
         ? `Alert: ${sensor.value - sensor.threshold} over threshold`
-        : 'Normal'
-    }))
-  );
+        : 'Normal',
+    };
+  });
 }
 
 // In Component
-const status = useObservable(sensorViewModel.displayStatus$, null);
+const status = useSignal(sensorViewModel.displayStatus$);
 </script>
 
 <template>
@@ -1402,7 +1393,7 @@ Let's preview what's coming in the next chapters by comparing how the same ViewM
 
 ### React (Chapter 8)
 ```tsx
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 
 useEffect(() => {
   sensorViewModel.fetchCommand.execute();
@@ -1418,7 +1409,7 @@ return (
 ### Vue (This Chapter)
 ```vue
 <script setup>
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 
 onMounted(() => {
   sensorViewModel.fetchCommand.execute();
@@ -1435,7 +1426,7 @@ onMounted(() => {
 ### Angular (Chapter 10)
 ```typescript
 export class SensorListComponent {
-  public data$ = sensorViewModel.data$;
+  public data = fromLoomSignal(sensorViewModel.data$, inject(DestroyRef));
 
   ngOnInit() {
     sensorViewModel.fetchCommand.execute();
@@ -1445,7 +1436,7 @@ export class SensorListComponent {
 
 ```html
 <ul>
-  <li *ngFor="let s of data$ | async">{{ s.name }}</li>
+  <li *ngFor="let s of data()">{{ s.name }}</li>
 </ul>
 ```
 
@@ -1471,7 +1462,7 @@ class SensorList extends LitElement {
 
 ### Vanilla JS (Chapter 12)
 ```typescript
-sensorViewModel.data$.subscribe(sensors => {
+observe(sensorViewModel.data$, sensors => {
   const ul = document.querySelector('#sensor-list');
   ul.innerHTML = sensors.map(s => `<li>${s.name}</li>`).join('');
 });
@@ -1481,7 +1472,7 @@ sensorViewModel.fetchCommand.execute();
 
 **What's the same:**
 - The ViewModel (`sensorViewModel`)
-- The observables (`data$`)
+- The signals (`data$`)
 - The commands (`fetchCommand.execute()`)
 - The business logic
 
@@ -1495,11 +1486,11 @@ This is the power of MVVM: **write the business logic once, adapt the View layer
 
 ## 9.15 Key Takeaways
 
-Vue 3's Composition API integrates naturally with MVVM architecture through the `useObservable` pattern, providing a remarkably similar approach to React hooks while maintaining Vue's unique strengths.
+Vue 3's Composition API integrates naturally with MVVM architecture through the `useSignal` pattern, providing a remarkably similar approach to React hooks while maintaining Vue's unique strengths.
 
 **Core Patterns:**
 
-1. **useObservable Composable**: Converts RxJS observables into Vue reactive refs with automatic cleanup
+1. **useSignal Composable**: Bridges `@web-loom/signals-core` signals into Vue reactive refs with automatic cleanup
 2. **onMounted for Commands**: Execute ViewModel commands on mount
 3. **Direct ViewModel Imports**: Import singleton ViewModels directly for global state
 4. **Command Pattern**: Use ViewModel commands for all user actions (CRUD operations)
@@ -1515,7 +1506,7 @@ Vue 3's Composition API integrates naturally with MVVM architecture through the 
 
 **Testing Benefits:**
 
-- Mock ViewModels with BehaviorSubjects
+- Mock ViewModels with plain signals
 - Test components without complex setup
 - Test ViewModels separately without rendering components
 - Verify command execution and state updates
@@ -1526,10 +1517,10 @@ The ViewModels used in this chapter (`sensorViewModel`, `greenHouseViewModel`, e
 
 **Comparing React and Vue:**
 
-While React and Vue have different philosophies (JSX vs templates, hooks vs Composition API), the MVVM integration pattern is remarkably similar. Both use a `useObservable` pattern to bridge RxJS observables with framework-native reactivity. Both execute commands in lifecycle hooks. Both achieve clean separation of concerns.
+While React and Vue have different philosophies (JSX vs templates, hooks vs Composition API), the MVVM integration pattern is remarkably similar. Both use a `useSignal` pattern to bridge `@web-loom/signals-core` signals with framework-native reactivity. Both execute commands in lifecycle hooks. Both achieve clean separation of concerns.
 
 The differences are syntactic, not architectural. The same ViewModels work in both frameworks without modification.
 
 ---
 
-**Next Steps**: Chapter 10 will show you how to implement the same GreenWatch application in Angular using dependency injection and the async pipe. You'll see that Angular's native RxJS integration provides an even more streamlined approach to consuming observables—yet the ViewModels remain unchanged. The business logic you write once works everywhere.
+**Next Steps**: Chapter 10 will show you how to implement the same GreenWatch application in Angular using dependency injection. You'll see that Angular's own Signals system gives us `fromLoomSignal`, an even more streamlined bridge for consuming Web Loom signals—yet the ViewModels remain unchanged. The business logic you write once works everywhere.

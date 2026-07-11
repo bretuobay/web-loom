@@ -1,13 +1,7 @@
-import { Observable } from 'rxjs';
+import { signal, computed, type ReadonlySignal } from '@web-loom/signals-core';
 import { IQueryStateModel, ExtractItemType } from '../models/QueryStateModel';
 import { Command } from '../commands/Command';
 import { ZodSchema } from 'zod';
-
-// We might not need selectedItem$ and selectItem functionality if CUD operations
-// are handled differently or are not a primary concern for this cached view model.
-// For now, let's include it for feature parity if data is an array.
-import { BehaviorSubject, combineLatest } from 'rxjs';
-import { map, startWith } from 'rxjs/operators';
 
 // Helper type to check if TData is an array and extract item type
 type ItemWithId = { id: string; [key: string]: any };
@@ -25,17 +19,17 @@ export class QueryStateModelView<TData, TModelSchema extends ZodSchema<TData>> {
   /**
    * Exposes the current data from the QueryStateModel.
    */
-  public readonly data$: Observable<TData | null>;
+  public readonly data$: ReadonlySignal<TData | null>;
 
   /**
    * Exposes the loading state of the QueryStateModel.
    */
-  public readonly isLoading$: Observable<boolean>;
+  public readonly isLoading$: ReadonlySignal<boolean>;
 
   /**
    * Exposes any error encountered by the QueryStateModel.
    */
-  public readonly error$: Observable<any>;
+  public readonly error$: ReadonlySignal<any>;
 
   // Commands for cache operations
   /**
@@ -51,8 +45,8 @@ export class QueryStateModelView<TData, TModelSchema extends ZodSchema<TData>> {
   public readonly invalidateCommand: Command<void, void>;
 
   // Optional: Selected item logic if TData is an array
-  public readonly selectedItem$: Observable<ExtractItemType<TData> | null>;
-  protected readonly _selectedItemId$ = new BehaviorSubject<string | null>(null);
+  public readonly selectedItem$: ReadonlySignal<ExtractItemType<TData> | null>;
+  protected readonly _selectedItemId = signal<string | null>(null);
 
   /**
    * @param model An instance of QueryStateModel that this ViewModel will manage.
@@ -82,24 +76,23 @@ export class QueryStateModelView<TData, TModelSchema extends ZodSchema<TData>> {
     });
 
     // Selected item logic (similar to RestfulApiViewModel)
-    this.selectedItem$ = combineLatest([this.model.data$, this._selectedItemId$]).pipe(
-      map(([data, selectedId]) => {
-        if (Array.isArray(data) && selectedId) {
-          const itemWithId = data.find((item: unknown): item is ItemWithId => {
-            return (
-              typeof item === 'object' &&
-              item !== null &&
-              'id' in item &&
-              typeof (item as any).id === 'string' &&
-              (item as any).id === selectedId
-            );
-          });
-          return (itemWithId as ExtractItemType<TData>) || null;
-        }
-        return null;
-      }),
-      startWith(null),
-    );
+    this.selectedItem$ = computed(() => {
+      const data = this.model.data$.get();
+      const selectedId = this._selectedItemId.get();
+      if (Array.isArray(data) && selectedId) {
+        const itemWithId = data.find((item: unknown): item is ItemWithId => {
+          return (
+            typeof item === 'object' &&
+            item !== null &&
+            'id' in item &&
+            typeof (item as any).id === 'string' &&
+            (item as any).id === selectedId
+          );
+        });
+        return (itemWithId as ExtractItemType<TData>) || null;
+      }
+      return null;
+    });
   }
 
   /**
@@ -107,17 +100,21 @@ export class QueryStateModelView<TData, TModelSchema extends ZodSchema<TData>> {
    * @param id The ID of the item to select. Pass null to clear selection.
    */
   public selectItem(id: string | null): void {
-    this._selectedItemId$.next(id);
+    if (this._isDisposed) return;
+    this._selectedItemId.set(id);
   }
+
+  private _isDisposed = false;
 
   /**
    * Disposes of resources held by the ViewModel.
    * This includes disposing of the underlying model and any commands.
    */
   public dispose(): void {
+    this._isDisposed = true;
+    this._selectedItemId.set(null);
     this.model.dispose();
     this.refetchCommand.dispose();
     this.invalidateCommand.dispose();
-    this._selectedItemId$.complete();
   }
 }

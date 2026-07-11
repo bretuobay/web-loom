@@ -106,7 +106,7 @@ describe('ChartManager (integration)', () => {
 
     // Verify chart rendered
     expect(container.querySelector('svg')).toBeTruthy();
-    
+
     // Get the scales to verify they exist
     const xScale = chart.getScale('x-scale');
     const yScale = chart.getScale('y-scale');

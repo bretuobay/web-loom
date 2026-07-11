@@ -7,18 +7,19 @@ import { navigationViewModel } from '@repo/shared/view-models/NavigationViewMode
 import { state } from './state';
 import { renderLayout, renderCard, renderTemplate } from './ui';
 import { renderSensorReadingsChart } from './chart';
+import { observe } from '@web-loom/signals-core';
 
 const app = document.getElementById('app')!;
 const greenHouseSizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
 
 export function subscribeToUpdates() {
-  navigationViewModel.navigationList.items$.subscribe((navigation) => {
+  observe(navigationViewModel.navigationList.items$, (navigation) => {
     console.log('Navigation data received:', navigation);
     state.navigation = navigation || [];
     renderLayout();
   });
 
-  greenHouseViewModel.data$.subscribe((greenHouses) => {
+  observe(greenHouseViewModel.data$, (greenHouses) => {
     state.greenHouses = greenHouses || [];
     const path = window.location.pathname;
     if (path === '/' || path === '/dashboard') {
@@ -31,7 +32,7 @@ export function subscribeToUpdates() {
     }
   });
 
-  sensorViewModel.data$.subscribe((sensors) => {
+  observe(sensorViewModel.data$, (sensors) => {
     state.sensors = sensors || [];
     const path = window.location.pathname;
     if (path === '/' || path === '/dashboard') {
@@ -41,7 +42,7 @@ export function subscribeToUpdates() {
     }
   });
 
-  sensorReadingViewModel.data$.subscribe((sensorReadings) => {
+  observe(sensorReadingViewModel.data$, (sensorReadings) => {
     state.sensorReadings = sensorReadings || [];
     const path = window.location.pathname;
     if (path === '/' || path === '/dashboard') {
@@ -53,7 +54,7 @@ export function subscribeToUpdates() {
     }
   });
 
-  thresholdAlertViewModel.data$.subscribe((thresholdAlerts) => {
+  observe(thresholdAlertViewModel.data$, (thresholdAlerts) => {
     state.thresholdAlerts = thresholdAlerts || [];
     const path = window.location.pathname;
     if (path === '/' || path === '/dashboard') {

@@ -11,11 +11,11 @@ nextSlug: '/docs/event-bus-core'
 
 # Signals Core
 
-`@web-loom/signals-core` is a zero-dependency, framework-agnostic reactive signals library. It provides fine-grained reactivity through signals, derived computed values, and side effects — making it a natural fit for the ViewModel layer in MVVM applications.
+`@web-loom/signals-core` is a zero-dependency, framework-agnostic reactive signals library. It provides fine-grained reactivity through signals, derived computed values, and side effects — and it's the actual reactive engine [`@web-loom/mvvm-core`](/docs/mvvm-core) is built on: every `data$`/`isLoading$`/`error$`/`canExecute$`/`isExecuting$` you'll see across the MVVM Core docs is a `ReadonlySignal<T>` from this package.
 
 ## Overview
 
-Unlike RxJS Observables, signals are synchronous, pull-based values with automatic dependency tracking. You read a signal inside a `computed` or `effect` and the library records that dependency automatically — no manual subscription management required.
+Signals are synchronous, pull-based values with automatic dependency tracking. You read a signal inside a `computed` or `effect` and the library records that dependency automatically — no manual subscription management required. This is different from RxJS Observables (which `mvvm-core` used prior to mid-2026, and which this package can still bridge to via the optional [`@web-loom/signals-core/rxjs`](#rxjs-interop) subpath): observables are push-based streams with no synchronous "current value" concept unless you reach for a `BehaviorSubject`, whereas every signal always has one, readable via `.get()`/`.peek()`.
 
 Key characteristics:
 
@@ -228,6 +228,34 @@ isWritableSignal(signal(0));              // true
 isWritableSignal(signal(0).asReadonly()); // false
 isWritableSignal(computed(() => 1));      // false
 ```
+
+---
+
+## RxJS Interop
+
+The main `@web-loom/signals-core` entry point is zero-dependency — no RxJS. If you're integrating with an existing RxJS-based codebase, or want RxJS operators (debounce pipelines, retry/backoff, websocket streams) at the edge of a Model, import from the optional `/rxjs` subpath instead. It requires `rxjs` as an installed peer dependency.
+
+```bash
+npm install rxjs
+```
+
+```ts
+import { signal } from '@web-loom/signals-core';
+import { toObservable, fromObservable } from '@web-loom/signals-core/rxjs';
+
+// Signal -> Observable (BehaviorSubject semantics: current value first, then every change)
+const count = signal(0);
+const count$ = toObservable(count);
+count$.subscribe((v) => console.log(v)); // logs 0 immediately, then on every count.set(...)
+
+// Observable -> Signal (holds `initial` until the source's first emission)
+import { interval } from 'rxjs';
+const ticks = fromObservable(interval(1000), 0);
+ticks.get(); // 0, then 0, 1, 2, ... as the interval emits
+ticks.dispose(); // unsubscribes from the source observable
+```
+
+`fromObservable` takes an optional third `onError` callback — signals have no error channel of their own, so observable errors are routed there instead of thrown.
 
 ---
 

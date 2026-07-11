@@ -11,7 +11,7 @@ describe('CrosshairManager', () => {
     // Create a mock SVG container
     container = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     document.body.appendChild(container);
-    
+
     config = createDefaultCrosshairConfig();
     crosshairManager = new CrosshairManager(container, config);
   });
@@ -19,7 +19,7 @@ describe('CrosshairManager', () => {
   describe('createDefaultCrosshairConfig', () => {
     it('should create config with correct styling (1px, rgba(100, 116, 139, 0.4), dashed)', () => {
       const defaultConfig = createDefaultCrosshairConfig();
-      
+
       expect(defaultConfig.style.strokeWidth).toBe(1);
       expect(defaultConfig.style.stroke).toBe('rgba(100, 116, 139, 0.4)');
       expect(defaultConfig.style.strokeDasharray).toBe('4 4');
@@ -43,7 +43,7 @@ describe('CrosshairManager', () => {
 
     it('should apply correct styling to crosshair lines', () => {
       const nearestPoints = new Map<string, ChartDataPoint>();
-      
+
       crosshairManager.show(150, 250, nearestPoints);
 
       const lines = container.querySelectorAll('line');
@@ -59,12 +59,12 @@ describe('CrosshairManager', () => {
     it('should position vertical line at correct x coordinate', () => {
       const nearestPoints = new Map<string, ChartDataPoint>();
       const x = 150;
-      
+
       crosshairManager.show(x, 250, nearestPoints);
 
       const lines = container.querySelectorAll('line');
       const verticalLine = Array.from(lines).find(
-        (line) => line.getAttribute('y1') === '0' && line.getAttribute('y2') === '100%'
+        (line) => line.getAttribute('y1') === '0' && line.getAttribute('y2') === '100%',
       );
 
       expect(verticalLine).toBeDefined();
@@ -75,12 +75,12 @@ describe('CrosshairManager', () => {
     it('should position horizontal line at correct y coordinate', () => {
       const nearestPoints = new Map<string, ChartDataPoint>();
       const y = 250;
-      
+
       crosshairManager.show(150, y, nearestPoints);
 
       const lines = container.querySelectorAll('line');
       const horizontalLine = Array.from(lines).find(
-        (line) => line.getAttribute('x1') === '0' && line.getAttribute('x2') === '100%'
+        (line) => line.getAttribute('x1') === '0' && line.getAttribute('x2') === '100%',
       );
 
       expect(horizontalLine).toBeDefined();
@@ -131,10 +131,10 @@ describe('CrosshairManager', () => {
   describe('hide', () => {
     it('should hide crosshair lines by setting opacity to 0', () => {
       const nearestPoints = new Map<string, ChartDataPoint>();
-      
+
       // First show the crosshair
       crosshairManager.show(150, 250, nearestPoints);
-      
+
       // Then hide it
       crosshairManager.hide();
 
@@ -147,10 +147,10 @@ describe('CrosshairManager', () => {
     it('should hide highlight circles by setting opacity to 0', () => {
       const nearestPoints = new Map<string, ChartDataPoint>();
       nearestPoints.set('series1', { x: 100, y: 200 });
-      
+
       // First show the crosshair
       crosshairManager.show(150, 250, nearestPoints);
-      
+
       // Then hide it
       crosshairManager.hide();
 
@@ -165,14 +165,14 @@ describe('CrosshairManager', () => {
     it('should remove all crosshair elements from DOM', () => {
       const nearestPoints = new Map<string, ChartDataPoint>();
       nearestPoints.set('series1', { x: 100, y: 200 });
-      
+
       crosshairManager.show(150, 250, nearestPoints);
-      
+
       expect(container.querySelectorAll('line').length).toBeGreaterThan(0);
       expect(container.querySelectorAll('circle').length).toBeGreaterThan(0);
-      
+
       crosshairManager.destroy();
-      
+
       expect(container.querySelectorAll('line').length).toBe(0);
       expect(container.querySelectorAll('circle').length).toBe(0);
     });
@@ -187,10 +187,10 @@ describe('CrosshairManager', () => {
           stroke: 'rgba(255, 0, 0, 0.5)',
         },
       };
-      
+
       const customCrosshair = new CrosshairManager(container, customConfig);
       const nearestPoints = new Map<string, ChartDataPoint>();
-      
+
       customCrosshair.show(150, 250, nearestPoints);
 
       const lines = container.querySelectorAll('line');
@@ -207,10 +207,10 @@ describe('CrosshairManager', () => {
           strokeWidth: 2,
         },
       };
-      
+
       const customCrosshair = new CrosshairManager(container, customConfig);
       const nearestPoints = new Map<string, ChartDataPoint>();
-      
+
       customCrosshair.show(150, 250, nearestPoints);
 
       const lines = container.querySelectorAll('line');
@@ -227,10 +227,10 @@ describe('CrosshairManager', () => {
           strokeDasharray: '8 8',
         },
       };
-      
+
       const customCrosshair = new CrosshairManager(container, customConfig);
       const nearestPoints = new Map<string, ChartDataPoint>();
-      
+
       customCrosshair.show(150, 250, nearestPoints);
 
       const lines = container.querySelectorAll('line');

@@ -6,7 +6,7 @@ section: Framework Implementations
 
 # Chapter 12: Vanilla JavaScript Implementation
 
-In the previous four chapters, we explored MVVM implementations in React, Vue, Angular, and Lit—each demonstrating how ViewModels integrate with different frameworks and libraries. React used custom hooks, Vue used composables, Angular leveraged dependency injection with the async pipe, and Lit used reactive controllers with web components. Now we arrive at the ultimate proof of framework independence: **Vanilla JavaScript with no framework at all**.
+In the previous four chapters, we explored MVVM implementations in React, Vue, Angular, and Lit—each demonstrating how ViewModels integrate with different frameworks and libraries. React used a `useSignal` hook, Vue used a `useSignal` composable, Angular used the `fromLoomSignal` bridge, and Lit called `observe()` directly from web component lifecycle callbacks. Now we arrive at the ultimate proof of framework independence: **Vanilla JavaScript with no framework at all**.
 
 This chapter demonstrates that MVVM architecture doesn't require any framework. The same ViewModels we've been using throughout this book—`GreenHouseViewModel`, `SensorViewModel`, `SensorReadingViewModel`, and `ThresholdAlertViewModel`—work perfectly with plain JavaScript, direct DOM manipulation, and EJS templates. We'll extract real implementations from `apps/mvvm-vanilla/` in the Web Loom monorepo.
 
@@ -16,10 +16,10 @@ By the end of this chapter, you'll understand that MVVM is fundamentally about *
 
 Building MVVM applications without a framework requires us to handle manually what frameworks do automatically:
 
-1. **Direct Observable Subscriptions**: Subscribe to ViewModel observables using RxJS `.subscribe()` directly
+1. **Direct Signal Subscriptions**: Call `observe()` from `@web-loom/signals-core` directly on ViewModel signals
 2. **Manual DOM Manipulation**: Update the DOM imperatively when data changes
 3. **Template Rendering**: Use EJS templates to generate HTML from data
-4. **Subscription Cleanup**: Track and unsubscribe from observables to prevent memory leaks
+4. **Subscription Cleanup**: Track and unsubscribe from signals to prevent memory leaks
 5. **Event Handling**: Attach event listeners manually to DOM elements
 
 The vanilla JavaScript implementation is more verbose than framework-based approaches, but it's also more explicit. Every step is visible, making it an excellent learning tool for understanding what frameworks abstract away.
@@ -29,7 +29,7 @@ Here's the high-level architecture:
 ```
 ViewModels (framework-agnostic)
        ↓
-Direct .subscribe() calls
+Direct observe() calls
        ↓
 Update application state
        ↓
@@ -110,20 +110,20 @@ export const state = {
 };
 ```
 
-This state object serves as a cache of the latest data from ViewModels. When ViewModel observables emit new values, we update this state and trigger re-renders.
+This state object serves as a cache of the latest data from ViewModels. When ViewModel signals change, we update this state and trigger re-renders.
 
 **Why We Need This**:
 
-- **Synchronous Access**: EJS templates need synchronous data access, but observables are asynchronous
+- **Synchronous Access**: EJS templates need synchronous data access; reading `.peek()` on demand would work too, but caching the last-seen value in one place keeps the rendering code simple
 - **Routing Integration**: The router needs to access current data when rendering views
 - **Centralized State**: A single source of truth for the current application state
 
 This pattern is similar to what frameworks do internally—they maintain a state tree and re-render when it changes. We're just doing it manually.
 
 
-## 12.4 Direct Observable Subscriptions
+## 12.4 Direct Signal Subscriptions
 
-The heart of the vanilla JavaScript MVVM implementation is the subscription module. This is where we subscribe directly to ViewModel observables and update the DOM when data changes:
+The heart of the vanilla JavaScript MVVM implementation is the subscription module. This is where we call `observe()` directly on ViewModel signals and update the DOM when data changes:
 
 ```typescript
 // apps/mvvm-vanilla/src/app/subscriptions.ts
@@ -138,6 +138,7 @@ import { renderLayout, renderCard, renderTemplate } from './ui';
 import { renderSensorReadingsChart } from './chart';
 import { attachGreenhouseFormListeners } from './listeners';
 import { router } from './router';
+import { observe } from '@web-loom/signals-core';
 
 const app = document.getElementById('app')!;
 const DASHBOARD_VIEW = 'dashboard';
@@ -147,13 +148,13 @@ function getActiveView() {
 }
 
 export function subscribeToUpdates() {
-  navigationViewModel.navigationList.items$.subscribe((navigation) => {
+  observe(navigationViewModel.navigationList.items$, (navigation) => {
     console.log('Navigation data received:', navigation);
     state.navigation = navigation || [];
     renderLayout();
   });
 
-  greenHouseViewModel.data$.subscribe((greenHouses) => {
+  observe(greenHouseViewModel.data$, (greenHouses) => {
     state.greenHouses = greenHouses || [];
     const view = getActiveView();
     if (view === DASHBOARD_VIEW) {
@@ -166,7 +167,7 @@ export function subscribeToUpdates() {
     }
   });
 
-  sensorViewModel.data$.subscribe((sensors) => {
+  observe(sensorViewModel.data$, (sensors) => {
     state.sensors = sensors || [];
     const view = getActiveView();
     if (view === DASHBOARD_VIEW) {
@@ -176,7 +177,7 @@ export function subscribeToUpdates() {
     }
   });
 
-  sensorReadingViewModel.data$.subscribe((sensorReadings) => {
+  observe(sensorReadingViewModel.data$, (sensorReadings) => {
     state.sensorReadings = sensorReadings || [];
     const view = getActiveView();
     if (view === DASHBOARD_VIEW) {
@@ -188,7 +189,7 @@ export function subscribeToUpdates() {
     }
   });
 
-  thresholdAlertViewModel.data$.subscribe((thresholdAlerts) => {
+  observe(thresholdAlertViewModel.data$, (thresholdAlerts) => {
     state.thresholdAlerts = thresholdAlerts || [];
     const view = getActiveView();
     if (view === DASHBOARD_VIEW) {
@@ -203,14 +204,14 @@ export function subscribeToUpdates() {
 
 Let's break down the subscription pattern:
 
-**1. Direct Observable Subscription**:
+**1. Direct Signal Subscription**:
 ```typescript
-greenHouseViewModel.data$.subscribe((greenHouses) => {
+observe(greenHouseViewModel.data$, (greenHouses) => {
   state.greenHouses = greenHouses || [];
   // ... trigger re-render
 });
 ```
-We call `.subscribe()` directly on the ViewModel's `data$` observable. No hooks, no composables, no async pipe—just the raw RxJS subscription. This is the most explicit form of ViewModel consumption we've seen.
+We call `observe()` directly on the ViewModel's `data$` signal. No hooks, no composables, no bridge utility—just the raw `@web-loom/signals-core` function. `observe()` invokes the callback immediately with the current value, then again on every future change, so the dashboard renders right away with whatever data is already there (even before the first fetch completes) and again every time it changes. This is the most explicit form of ViewModel consumption we've seen.
 
 **2. State Update**:
 ```typescript
@@ -601,7 +602,7 @@ export function initRouter() {
 3. **Link Interception**: We intercept clicks on `<a>` tags and use the router instead of full page reloads
 4. **History API**: The router uses the browser's History API for client-side navigation
 
-This demonstrates that routing, like ViewModels, is a pattern that transcends frameworks. The `@web-loom/router-core` library provides framework-agnostic routing that works with vanilla JavaScript, React, Vue, or any other framework.
+This demonstrates that routing, like ViewModels, is a pattern that transcends frameworks. The `@web-loom/router-core` library provides framework-agnostic routing that works with vanilla JavaScript, React, Vue, or any other framework. Note that `router.subscribe(...)` here is `@web-loom/router-core`'s own subscription API for route changes—an unrelated concept from `@web-loom/signals-core`'s `.subscribe()`, though the plain-callback shape looks similar.
 
 
 ## 12.8 Comparing All Five Implementations
@@ -611,30 +612,30 @@ We've now seen the same GreenWatch application implemented in five different way
 | Aspect | React | Vue | Angular | Lit | Vanilla JS |
 |--------|-------|-----|---------|-----|------------|
 | **ViewModel Import** | Direct import | Direct import | DI with InjectionToken | Direct import | Direct import |
-| **Observable Subscription** | `useEffect` + `.subscribe()` | `watchEffect` + `.subscribe()` | `async` pipe (no manual subscription) | `connectedCallback` + `.subscribe()` | Direct `.subscribe()` |
-| **State Management** | `useState` hook | `ref` / `reactive` | Component properties | `@state` decorator | Plain object |
-| **Re-render Trigger** | `setState` call | Ref assignment | Change detection | Property assignment | Manual `innerHTML` |
-| **Subscription Cleanup** | `useEffect` return function | `watchEffect` return function | `async` pipe auto-cleanup | `disconnectedCallback` | Manual (not shown) |
+| **Signal Subscription** | `useSignal` hook | `useSignal` composable | `fromLoomSignal` bridge | `connectedCallback` + `observe()` | Direct `observe()` |
+| **State Management** | `useState`/`useSyncExternalStore` | `shallowRef` | native Angular `Signal` | `@state` decorator | Plain object |
+| **Re-render Trigger** | React re-render | Ref assignment | Signal `.set()` | Property assignment | Manual `innerHTML` |
+| **Subscription Cleanup** | Managed by React | `onUnmounted` | `DestroyRef` | `disconnectedCallback` | Manual (see 12.11) |
 | **Template Syntax** | JSX | Vue template | Angular template | Tagged template literal | EJS template |
 | **Event Handling** | JSX event props | `@event` directive | `(event)` binding | `@event` attribute | `addEventListener` |
 | **Command Execution** | `viewModel.command.execute()` | `viewModel.command.execute()` | `viewModel.command.execute()` | `viewModel.command.execute()` | `viewModel.command.execute()` |
 | **Type Safety** | Full TypeScript | Full TypeScript | Full TypeScript | Full TypeScript | Full TypeScript |
 | **Bundle Size Impact** | React runtime | Vue runtime | Angular runtime | Lit runtime (~5KB) | No framework |
-| **Learning Curve** | Hooks concepts | Composition API | DI + RxJS | Web Components | DOM APIs |
+| **Learning Curve** | Hooks concepts | Composition API | DI + native Signals | Web Components | DOM APIs |
 
 **Key Observations**:
 
 1. **ViewModel API is Identical**: Every framework calls `viewModel.command.execute()` the same way. The ViewModel layer is truly framework-agnostic.
 
-2. **Subscription Patterns Vary**: Each framework has its own way to subscribe to observables, but they all achieve the same result—reactive UI updates.
+2. **Subscription Patterns Vary**: Each framework has its own way to bridge signals into its rendering model, but they all achieve the same result—reactive UI updates—with a comparably small amount of code.
 
-3. **Angular is Most Concise**: The `async` pipe eliminates manual subscription management, making Angular code the most concise for RxJS-based ViewModels.
+3. **All Bridges Are Now Similarly Sized**: With signals-core as the shared reactive layer, no framework has an outsized advantage or disadvantage bridging it—Angular's `fromLoomSignal` and Lit's direct `observe()` call are both just a few lines, same as React's hook and Vue's composable.
 
 4. **Vanilla JS is Most Explicit**: Every step is visible—subscriptions, DOM updates, event listeners. This makes it an excellent learning tool.
 
 5. **Lit is Most Standards-Based**: Lit components are actual web components that work anywhere, with minimal runtime overhead.
 
-6. **React and Vue are Most Popular**: Despite requiring more boilerplate than Angular, React and Vue are widely adopted and have large ecosystems.
+6. **React and Vue are Most Popular**: Despite requiring comparable boilerplate to the others now, React and Vue are widely adopted and have large ecosystems.
 
 
 ## 12.9 The Dashboard View: Putting It All Together
@@ -654,11 +655,11 @@ Let's see how all these pieces come together in the dashboard view. The dashboar
 </div>
 ```
 
-This template defines empty containers that will be filled by the subscription handlers. When ViewModel observables emit new data, the subscription code renders the appropriate card template into each container:
+This template defines empty containers that will be filled by the subscription handlers. When ViewModel signals change, the subscription code renders the appropriate card template into each container:
 
 ```typescript
 // From subscriptions.ts
-greenHouseViewModel.data$.subscribe((greenHouses) => {
+observe(greenHouseViewModel.data$, (greenHouses) => {
   state.greenHouses = greenHouses || [];
   const view = getActiveView();
   if (view === DASHBOARD_VIEW) {
@@ -666,7 +667,7 @@ greenHouseViewModel.data$.subscribe((greenHouses) => {
   }
 });
 
-sensorViewModel.data$.subscribe((sensors) => {
+observe(sensorViewModel.data$, (sensors) => {
   state.sensors = sensors || [];
   const view = getActiveView();
   if (view === DASHBOARD_VIEW) {
@@ -692,8 +693,8 @@ Each card template is simple and focused:
 **The Data Flow**:
 
 1. **Initial Load**: `init()` calls `fetchCommand.execute()` on all ViewModels
-2. **ViewModel Fetches Data**: Each ViewModel makes an API request and updates its `data$` observable
-3. **Subscription Fires**: The subscription handler receives the new data
+2. **ViewModel Fetches Data**: Each ViewModel makes an API request and updates its `data$` signal
+3. **observe() Callback Fires**: The subscription handler receives the new data (and once immediately, at registration time, with whatever value was already there)
 4. **State Update**: The application state object is updated
 5. **Template Render**: The appropriate EJS template is rendered with the data
 6. **DOM Update**: The rendered HTML is inserted into the container using `innerHTML`
@@ -775,27 +776,27 @@ Now that we've seen a complete vanilla JavaScript MVVM implementation, let's dis
 
 ## 12.11 Memory Management and Subscription Cleanup
 
-One critical aspect we haven't fully addressed is subscription cleanup. In the current implementation, subscriptions are created in `subscribeToUpdates()` but never unsubscribed. For a long-running application, this could lead to memory leaks.
+One critical aspect we haven't fully addressed is subscription cleanup. In the current implementation, `observe()` subscriptions are created in `subscribeToUpdates()` but never unsubscribed. For a long-running application, this could lead to memory leaks.
 
 Here's how to properly manage subscriptions in vanilla JavaScript:
 
 ```typescript
 // Improved subscription management
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
-const subscriptions: Subscription[] = [];
+const teardowns: Array<() => void> = [];
 
 export function subscribeToUpdates() {
-  // Store each subscription
-  subscriptions.push(
-    greenHouseViewModel.data$.subscribe((greenHouses) => {
+  // Store each unsubscribe function
+  teardowns.push(
+    observe(greenHouseViewModel.data$, (greenHouses) => {
       state.greenHouses = greenHouses || [];
       // ... render logic
     })
   );
 
-  subscriptions.push(
-    sensorViewModel.data$.subscribe((sensors) => {
+  teardowns.push(
+    observe(sensorViewModel.data$, (sensors) => {
       state.sensors = sensors || [];
       // ... render logic
     })
@@ -805,9 +806,9 @@ export function subscribeToUpdates() {
 }
 
 export function cleanup() {
-  // Unsubscribe from all subscriptions
-  subscriptions.forEach(sub => sub.unsubscribe());
-  subscriptions.length = 0;
+  // Run every stored teardown
+  teardowns.forEach((teardown) => teardown());
+  teardowns.length = 0;
 }
 
 // Call cleanup when the application is destroyed
@@ -816,14 +817,14 @@ window.addEventListener('beforeunload', cleanup);
 
 **Key Points**:
 
-1. **Store Subscriptions**: Keep references to all subscriptions in an array
-2. **Cleanup Function**: Provide a function to unsubscribe from all subscriptions
+1. **Store Teardowns**: `observe()` returns a plain unsubscribe function—keep references to all of them in an array
+2. **Cleanup Function**: Provide a function to call every stored teardown
 3. **Lifecycle Hook**: Call cleanup when the application is destroyed (e.g., `beforeunload` event)
 
 In frameworks, this cleanup happens automatically:
-- React: `useEffect` cleanup function
-- Vue: `watchEffect` cleanup function
-- Angular: `async` pipe auto-unsubscribes
+- React: managed internally by `useSyncExternalStore`
+- Vue: `onUnmounted` callback
+- Angular: `DestroyRef.onDestroy`
 - Lit: `disconnectedCallback`
 
 In vanilla JavaScript, we must manage it manually. This is another example of the tradeoff between explicitness and convenience.
@@ -839,14 +840,14 @@ The same ViewModels work identically in React, Vue, Angular, Lit, and vanilla Ja
 **2. Frameworks Provide Convenience, Not Capability**
 Everything frameworks do—reactive rendering, event handling, routing—can be done manually with vanilla JavaScript. Frameworks automate these tasks and provide better developer experience, but they're not strictly necessary.
 
-**3. Direct Observable Subscriptions are Simple**
-Subscribing to ViewModel observables with `.subscribe()` is straightforward. Frameworks add abstractions (hooks, composables, async pipe) for convenience and cleanup management, but the core pattern is simple.
+**3. Direct Signal Subscriptions are Simple**
+Calling `observe()` on a ViewModel signal is a single function call. Frameworks add abstractions (hooks, composables, bridge utilities) for convenience and cleanup management, but the core pattern is simple.
 
 **4. Manual DOM Manipulation is Explicit**
 Using `innerHTML` and `addEventListener` makes every step visible. This explicitness is valuable for learning, but it becomes tedious at scale. Frameworks abstract this away with declarative templates and automatic event binding.
 
 **5. Subscription Cleanup Matters**
-Memory leaks from uncleaned subscriptions are a real concern. Frameworks handle this automatically, but in vanilla JavaScript, you must manage it manually. Always unsubscribe when components are destroyed.
+Memory leaks from uncleaned subscriptions are a real concern. Frameworks handle this automatically, but in vanilla JavaScript, you must manage it manually—store the unsubscribe function `observe()` returns and call it when you're done.
 
 **6. EJS Templates are Functional**
 EJS provides a simple templating solution for vanilla JavaScript. It's not as powerful as JSX or Vue templates, but it's sufficient for many applications and has zero runtime overhead.
@@ -868,17 +869,17 @@ Regardless of whether you use React, Vue, Angular, Lit, or vanilla JavaScript, t
 
 We've now completed our tour of framework implementations. We've seen the same GreenWatch application built with:
 
-- **React** (Chapter 8): Custom hooks for ViewModel integration
-- **Vue** (Chapter 9): Composition API with composables
-- **Angular** (Chapter 10): Dependency injection with async pipe
-- **Lit** (Chapter 11): Web components with reactive controllers
-- **Vanilla JavaScript** (Chapter 12): Direct subscriptions with EJS templates
+- **React** (Chapter 8): `useSignal` hook for ViewModel integration
+- **Vue** (Chapter 9): Composition API with a `useSignal` composable
+- **Angular** (Chapter 10): Dependency injection with the `fromLoomSignal` bridge
+- **Lit** (Chapter 11): Web components with direct `observe()` calls
+- **Vanilla JavaScript** (Chapter 12): Direct `observe()` subscriptions with EJS templates
 
 Each implementation demonstrates the same core principle: **ViewModels are framework-agnostic**. The business logic—data fetching, validation, state management, command execution—is identical across all five implementations. Only the View layer changes.
 
 In the next section (Chapters 13-17), we'll explore **Framework-Agnostic Patterns** that support MVVM architecture:
 
-- **Chapter 13: Reactive State Management Patterns** - Signals, observables, and stores
+- **Chapter 13: Reactive State Management Patterns** - Signals as the default, with RxJS as opt-in interop
 - **Chapter 14: Event-Driven Communication** - Pub/sub patterns for cross-component communication
 - **Chapter 15: Data Fetching and Caching Strategies** - Async state management
 - **Chapter 16: Headless UI Behaviors** - Separating behavior from presentation
@@ -890,4 +891,4 @@ The vanilla JavaScript implementation we explored in this chapter demonstrates t
 
 ---
 
-**Next Chapter**: [Chapter 13: Reactive State Management Patterns](./chapter13.mdx) - Learn how signals, observables, and stores enable reactive MVVM architecture, with examples from `signals-core`, `store-core`, and RxJS.
+**Next Chapter**: [Chapter 13: Reactive State Management Patterns](./chapter13.mdx) - Learn how `@web-loom/signals-core` signals and `store-core` enable reactive MVVM architecture, with RxJS covered as an optional interop layer.

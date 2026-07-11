@@ -29,9 +29,9 @@ View           →   framework-specific rendering and subscriptions
 
 Each layer has a strict responsibility:
 
-- **Model** — fetches, persists, and owns raw data. Exposes it through reactive observables or signals. Never knows the UI exists.
+- **Model** — fetches, persists, and owns raw data. Exposes it through reactive signals. Never knows the UI exists.
 - **ViewModel** — computes what the View needs (formatted values, loading flags, derived lists) and exposes commands for actions. Orchestrates one or more Models. No framework imports.
-- **View** — subscribes to ViewModel state, renders it, and calls ViewModel commands on user interaction. The only framework-specific code.
+- **View** — reads ViewModel signals, renders them, and calls ViewModel commands on user interaction. The only framework-specific code.
 
 ---
 
@@ -54,12 +54,12 @@ When a new framework emerges, you write a new adapter. The Models and ViewModels
 ```
 ┌─────────────────────────────────┐
 │  View (framework-specific)      │  React / Vue / Angular / Lit / Vanilla
-│  subscribes to observables      │
+│  reads signals via a bridge     │
 ├─────────────────────────────────┤
 │  ViewModel (framework-agnostic) │  Commands, derived state, orchestration
 │  uses Models, exposes state     │
 ├─────────────────────────────────┤
-│  Model (framework-agnostic)     │  Data, API calls, reactive streams
+│  Model (framework-agnostic)     │  Data, API calls, reactive signals
 │  calls infrastructure           │
 ├─────────────────────────────────┤
 │  Infrastructure                 │  HTTP, Storage, i18n, Router, EventBus
@@ -70,35 +70,16 @@ When a new framework emerges, you write a new adapter. The Models and ViewModels
 
 - **Event Bus** — typed pub/sub for cross-feature communication without coupling
 - **Store** — UI-only ephemeral state (sidebar open, active tab, theme)
-- **Signals / Observables** — reactive primitives that propagate changes through the graph
+- **Signals** — the reactive primitives (from `@web-loom/signals-core`) that propagate changes through the graph; RxJS is available as an optional interop, not a core dependency
 - **Notifications** — user-facing feedback (toasts, alerts)
 
 ---
 
 ## Reactive State
 
-Web Loom supports two reactive primitives, which can be used together or independently:
-
-### RxJS Observables (mvvm-core)
-
-`@web-loom/mvvm-core` is built on RxJS. Models expose `BehaviorSubject` streams; ViewModels compose them with operators. Best for complex async pipelines, multicasting, and integration with Angular.
-
-```ts
-class TaskModel extends BaseModel {
-  readonly tasks$ = new BehaviorSubject<Task[]>([]);
-  readonly isLoading$ = new BehaviorSubject(false);
-
-  async fetchAll() {
-    this.isLoading$.next(true);
-    this.tasks$.next(await api.getTasks());
-    this.isLoading$.next(false);
-  }
-}
-```
-
 ### Signals (signals-core)
 
-`@web-loom/signals-core` provides synchronous, pull-based reactive values with automatic dependency tracking. Zero dependencies, no scheduler — perfect for ViewModels that don't need RxJS.
+`@web-loom/mvvm-core` is built on [`@web-loom/signals-core`](/docs/signals-core) — every `data$`/`isLoading$`/`error$` you'll see throughout these docs is a `ReadonlySignal<T>`: synchronous, pull-based, with automatic dependency tracking. Zero dependencies, no scheduler.
 
 ```ts
 class CounterViewModel {
@@ -110,7 +91,9 @@ class CounterViewModel {
 }
 ```
 
-Both work with any framework adapter. Choose based on complexity: Signals for straightforward reactive state, Observables for advanced stream composition.
+### RxJS (optional interop)
+
+RxJS is not a dependency of `mvvm-core`. If you're integrating with an existing RxJS-based codebase, or want RxJS operators (debounce pipelines, retry/backoff, websocket streams) at the edge of a Model, bridge via the optional `@web-loom/signals-core/rxjs` subpath (requires `rxjs` as a peer dependency) — see [Signals Core: RxJS Interop](/docs/signals-core#rxjs-interop).
 
 ---
 
@@ -147,7 +130,7 @@ Commands keep the View dumb — it never contains `try/catch`, loading flags, or
 Web Loom ships 34 packages across several categories:
 
 ### Core architecture
-- [`@web-loom/mvvm-core`](/docs/models) — BaseModel, BaseViewModel, Commands, RxJS integration
+- [`@web-loom/mvvm-core`](/docs/models) — BaseModel, BaseViewModel, Commands, built on signals-core
 - [`@web-loom/signals-core`](/docs/signals-core) — Lightweight reactive signals and computed values
 - [`@web-loom/store-core`](/docs/store-core) — Minimal UI-state store with persistence adapters
 
@@ -176,7 +159,7 @@ Web Loom ships 34 packages across several categories:
 
 **Unidirectional data flow** — state flows down (Model → ViewModel → View), actions flow up (View calls ViewModel commands). No two-way data binding at the architecture level.
 
-**Always dispose** — ViewModels subscribe to observables and effects. Call `vm.dispose()` in the component teardown hook to prevent memory leaks.
+**Always dispose** — ViewModels register Commands and manual signal subscriptions. Call `vm.dispose()` in the component teardown hook to prevent memory leaks.
 
 ```ts
 // React
@@ -206,5 +189,4 @@ it('filters tasks correctly', () => {
 - [Getting Started](/docs/getting-started) — install the packages and build your first ViewModel
 - [Models](/docs/models) — deep dive into the Model layer
 - [ViewModels](/docs/viewmodels) — commands, derived state, and lifecycle
-- [Models](/docs/models) — full documentation for the Model and ViewModel layers
-- [Signals Core](/docs/signals-core) — reactive signals as an alternative to RxJS
+- [Signals Core](/docs/signals-core) — the `signal`/`computed`/`effect` primitives underlying mvvm-core

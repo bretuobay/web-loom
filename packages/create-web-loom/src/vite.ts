@@ -19,9 +19,7 @@ export function buildViteArgs(pm: string, projectName?: string): string[] {
 
 function inferCreatedDir(before: string[]): string | undefined {
   const after = readdirSync(process.cwd());
-  const newDirs = after.filter(
-    (d) => !before.includes(d) && !d.startsWith('.'),
-  );
+  const newDirs = after.filter((d) => !before.includes(d) && !d.startsWith('.'));
   return newDirs[0];
 }
 

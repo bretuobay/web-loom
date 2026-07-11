@@ -23,9 +23,11 @@ All rewrite plans for chapters 1-23 have been validated against the Web Loom mon
 ## Validation Criteria
 
 ### Requirement 14.2: Rewrite Plan Completeness
+
 **Status:** ✅ PASSED
 
 All chapter rewrite plans include:
+
 - ✅ Learning objectives
 - ✅ Core concepts to teach
 - ✅ Real implementations to reference
@@ -34,18 +36,22 @@ All chapter rewrite plans include:
 - ✅ Content structure outline
 
 ### Requirement 14.3: Implementation References
+
 **Status:** ✅ PASSED
 
 All rewrite plans identify:
+
 - ✅ Which ViewModels to reference
 - ✅ Which Models to reference
 - ✅ Which framework implementations to use
 - ✅ Which supporting libraries to demonstrate
 
 ### Requirement 2.1.1: Framework-Agnostic Teaching
+
 **Status:** ✅ PASSED
 
 The rewrite plans follow the framework-agnostic approach:
+
 - ✅ Patterns taught before libraries (Chapters 13-17)
 - ✅ General concepts before specific implementations
 - ✅ Multiple implementation approaches shown
@@ -58,64 +64,69 @@ The rewrite plans follow the framework-agnostic approach:
 ### 1. File Reference Validation
 
 #### Core MVVM Classes
+
 **Status:** ✅ ALL EXIST
 
-| File | Location | Status |
-|------|----------|--------|
-| BaseModel | `packages/mvvm-core/src/models/BaseModel.ts` | ✅ Verified |
-| RestfulApiModel | `packages/mvvm-core/src/models/RestfulApiModel.ts` | ✅ Verified |
-| QueryStateModel | `packages/mvvm-core/src/models/QueryStateModel.ts` | ✅ Verified |
-| BaseViewModel | `packages/mvvm-core/src/viewmodels/BaseViewModel.ts` | ✅ Verified |
+| File                | Location                                                   | Status      |
+| ------------------- | ---------------------------------------------------------- | ----------- |
+| BaseModel           | `packages/mvvm-core/src/models/BaseModel.ts`               | ✅ Verified |
+| RestfulApiModel     | `packages/mvvm-core/src/models/RestfulApiModel.ts`         | ✅ Verified |
+| QueryStateModel     | `packages/mvvm-core/src/models/QueryStateModel.ts`         | ✅ Verified |
+| BaseViewModel       | `packages/mvvm-core/src/viewmodels/BaseViewModel.ts`       | ✅ Verified |
 | RestfulApiViewModel | `packages/mvvm-core/src/viewmodels/RestfulApiViewModel.ts` | ✅ Verified |
 
 #### ViewModels
+
 **Status:** ✅ ALL EXIST
 
-| ViewModel | Location | Status |
-|-----------|----------|--------|
-| GreenHouseViewModel | `packages/view-models/src/GreenHouseViewModel.ts` | ✅ Verified |
-| SensorViewModel | `packages/view-models/src/SensorViewModel.ts` | ✅ Verified |
-| SensorReadingViewModel | `packages/view-models/src/SensorReadingViewModel.ts` | ✅ Verified |
+| ViewModel               | Location                                              | Status      |
+| ----------------------- | ----------------------------------------------------- | ----------- |
+| GreenHouseViewModel     | `packages/view-models/src/GreenHouseViewModel.ts`     | ✅ Verified |
+| SensorViewModel         | `packages/view-models/src/SensorViewModel.ts`         | ✅ Verified |
+| SensorReadingViewModel  | `packages/view-models/src/SensorReadingViewModel.ts`  | ✅ Verified |
 | ThresholdAlertViewModel | `packages/view-models/src/ThresholdAlertViewModel.ts` | ✅ Verified |
-| AuthViewModel | `packages/view-models/src/AuthViewModel.ts` | ✅ Verified |
+| AuthViewModel           | `packages/view-models/src/AuthViewModel.ts`           | ✅ Verified |
 
 #### Framework Implementations
+
 **Status:** ✅ ALL EXIST
 
-| Framework | Key Files | Status |
-|-----------|-----------|--------|
-| React | `apps/mvvm-react/src/components/Dashboard.tsx` | ✅ Verified |
-| React | `apps/mvvm-react/src/hooks/useObservable.ts` | ✅ Verified |
-| Vue | `apps/mvvm-vue/src/components/Dashboard.vue` | ✅ Verified |
-| Vue | `apps/mvvm-vue/src/hooks/useObservable.ts` | ✅ Verified |
-| Angular | `apps/mvvm-angular/src/app/components/sensor-list/` | ✅ Verified |
-| Angular | InjectionToken usage | ✅ Verified |
-| Lit | `apps/mvvm-lit/src/components/dashboard-view.ts` | ✅ Verified |
-| Vanilla JS | `apps/mvvm-vanilla/src/views/Dashboard.ejs` | ✅ Verified |
+| Framework  | Key Files                                           | Status      |
+| ---------- | --------------------------------------------------- | ----------- |
+| React      | `apps/mvvm-react/src/components/Dashboard.tsx`      | ✅ Verified |
+| React      | `apps/mvvm-react/src/hooks/useObservable.ts`        | ✅ Verified |
+| Vue        | `apps/mvvm-vue/src/components/Dashboard.vue`        | ✅ Verified |
+| Vue        | `apps/mvvm-vue/src/hooks/useObservable.ts`          | ✅ Verified |
+| Angular    | `apps/mvvm-angular/src/app/components/sensor-list/` | ✅ Verified |
+| Angular    | InjectionToken usage                                | ✅ Verified |
+| Lit        | `apps/mvvm-lit/src/components/dashboard-view.ts`    | ✅ Verified |
+| Vanilla JS | `apps/mvvm-vanilla/src/views/Dashboard.ejs`         | ✅ Verified |
 
 #### Framework-Agnostic Libraries
+
 **Status:** ✅ ALL EXIST
 
-| Library | Package Name | Status |
-|---------|--------------|--------|
-| signals-core | `@web-loom/signals-core` | ✅ Verified |
-| store-core | `@web-loom/store-core` | ✅ Verified |
+| Library        | Package Name               | Status      |
+| -------------- | -------------------------- | ----------- |
+| signals-core   | `@web-loom/signals-core`   | ✅ Verified |
+| store-core     | `@web-loom/store-core`     | ✅ Verified |
 | event-bus-core | `@web-loom/event-bus-core` | ✅ Verified |
-| query-core | `@web-loom/query-core` | ✅ Verified |
-| ui-core | `@web-loom/ui-core` | ✅ Verified |
-| ui-patterns | `@web-loom/ui-patterns` | ✅ Verified |
-| design-core | `@web-loom/design-core` | ✅ Verified |
+| query-core     | `@web-loom/query-core`     | ✅ Verified |
+| ui-core        | `@web-loom/ui-core`        | ✅ Verified |
+| ui-patterns    | `@web-loom/ui-patterns`    | ✅ Verified |
+| design-core    | `@web-loom/design-core`    | ✅ Verified |
 
 #### Domain Models
+
 **Status:** ✅ ALL EXIST
 
-| Model | Location | Status |
-|-------|----------|--------|
-| GreenHouseModel | `packages/models/src/GreenHouseModel.ts` | ✅ Verified |
-| SensorModel | `packages/models/src/SensorModel.ts` | ✅ Verified |
-| SensorReadingModel | `packages/models/src/SensorReadingModel.ts` | ✅ Verified |
+| Model               | Location                                     | Status      |
+| ------------------- | -------------------------------------------- | ----------- |
+| GreenHouseModel     | `packages/models/src/GreenHouseModel.ts`     | ✅ Verified |
+| SensorModel         | `packages/models/src/SensorModel.ts`         | ✅ Verified |
+| SensorReadingModel  | `packages/models/src/SensorReadingModel.ts`  | ✅ Verified |
 | ThresholdAlertModel | `packages/models/src/ThresholdAlertModel.ts` | ✅ Verified |
-| AuthModel | `packages/models/src/AuthModel.ts` | ✅ Verified |
+| AuthModel           | `packages/models/src/AuthModel.ts`           | ✅ Verified |
 
 ---
 
@@ -126,6 +137,7 @@ The rewrite plans follow the framework-agnostic approach:
 All ViewModels are used in multiple frameworks as required by Requirements 4.7 and 5.6.
 
 #### GreenHouseViewModel
+
 - ✅ React: `apps/mvvm-react/src/components/Dashboard.tsx`
 - ✅ Vue: `apps/mvvm-vue/src/components/Dashboard.vue`
 - ✅ Lit: Referenced in rewrite plans
@@ -133,6 +145,7 @@ All ViewModels are used in multiple frameworks as required by Requirements 4.7 a
 - **Frameworks:** 4+ ✅
 
 #### SensorViewModel
+
 - ✅ React: `apps/mvvm-react/src/components/SensorList.tsx`
 - ✅ Vue: `apps/mvvm-vue/src/components/SensorCard.vue`
 - ✅ Angular: `apps/mvvm-angular/src/app/components/sensor-list/`
@@ -141,6 +154,7 @@ All ViewModels are used in multiple frameworks as required by Requirements 4.7 a
 - **Frameworks:** 5 ✅
 
 #### SensorReadingViewModel
+
 - ✅ React: `apps/mvvm-react/src/components/SensorReadingList.tsx`
 - ✅ Vue: Referenced in rewrite plans
 - ✅ Lit: Referenced in rewrite plans
@@ -148,6 +162,7 @@ All ViewModels are used in multiple frameworks as required by Requirements 4.7 a
 - **Frameworks:** 4+ ✅
 
 #### ThresholdAlertViewModel
+
 - ✅ React: `apps/mvvm-react/src/components/ThresholdAlertList.tsx`
 - ✅ Vue: `apps/mvvm-vue/src/components/ThresholdAlertList.vue`
 - ✅ Angular: `apps/mvvm-angular/src/app/components/threshold-alert-list/`
@@ -156,6 +171,7 @@ All ViewModels are used in multiple frameworks as required by Requirements 4.7 a
 - **Frameworks:** 5 ✅
 
 #### AuthViewModel
+
 - ✅ React Integrated: `apps/mvvm-react-integrated/`
 - ⚠️ Only used in one framework (acceptable for specialized ViewModel)
 - **Frameworks:** 1 (specialized use case)
@@ -171,51 +187,57 @@ All ViewModels are used in multiple frameworks as required by Requirements 4.7 a
 All chapters have their prerequisites covered before they are introduced.
 
 #### Foundations Section (Chapters 1-3)
-| Chapter | Prerequisites | Status |
-|---------|---------------|--------|
-| 1: Frontend Architecture Crisis | None | ✅ Valid |
-| 2: Why MVVM Matters | Chapter 1 | ✅ Valid |
-| 3: MVVM Fundamentals | Chapters 1, 2 | ✅ Valid |
+
+| Chapter                         | Prerequisites | Status   |
+| ------------------------------- | ------------- | -------- |
+| 1: Frontend Architecture Crisis | None          | ✅ Valid |
+| 2: Why MVVM Matters             | Chapter 1     | ✅ Valid |
+| 3: MVVM Fundamentals            | Chapters 1, 2 | ✅ Valid |
 
 #### Core Patterns Section (Chapters 4-7)
-| Chapter | Prerequisites | Status |
-|---------|---------------|--------|
-| 4: Framework-Agnostic Models | Chapter 3 | ✅ Valid |
-| 5: ViewModels and Reactive State | Chapter 4 | ✅ Valid |
-| 6: The View Layer Contract | Chapter 5 | ✅ Valid |
-| 7: DI and Lifecycle Management | Chapters 5, 6 | ✅ Valid |
+
+| Chapter                          | Prerequisites | Status   |
+| -------------------------------- | ------------- | -------- |
+| 4: Framework-Agnostic Models     | Chapter 3     | ✅ Valid |
+| 5: ViewModels and Reactive State | Chapter 4     | ✅ Valid |
+| 6: The View Layer Contract       | Chapter 5     | ✅ Valid |
+| 7: DI and Lifecycle Management   | Chapters 5, 6 | ✅ Valid |
 
 #### Framework Implementations (Chapters 8-12)
-| Chapter | Prerequisites | Status |
-|---------|---------------|--------|
-| 8: React Implementation | Chapters 5, 6, 7 | ✅ Valid |
-| 9: Vue Implementation | Chapters 5, 6, 7, 8 | ✅ Valid |
-| 10: Angular Implementation | Chapters 5, 6, 7, 8, 9 | ✅ Valid |
-| 11: Lit Implementation | Chapters 5, 6, 7, 8, 9, 10 | ✅ Valid |
+
+| Chapter                       | Prerequisites                  | Status   |
+| ----------------------------- | ------------------------------ | -------- |
+| 8: React Implementation       | Chapters 5, 6, 7               | ✅ Valid |
+| 9: Vue Implementation         | Chapters 5, 6, 7, 8            | ✅ Valid |
+| 10: Angular Implementation    | Chapters 5, 6, 7, 8, 9         | ✅ Valid |
+| 11: Lit Implementation        | Chapters 5, 6, 7, 8, 9, 10     | ✅ Valid |
 | 12: Vanilla JS Implementation | Chapters 5, 6, 7, 8, 9, 10, 11 | ✅ Valid |
 
 #### Framework-Agnostic Patterns (Chapters 13-17)
-| Chapter | Prerequisites | Status |
-|---------|---------------|--------|
-| 13: Reactive State Patterns | Chapter 5 | ✅ Valid |
-| 14: Event-Driven Communication | Chapter 5 | ✅ Valid |
-| 15: Data Fetching Strategies | Chapter 5 | ✅ Valid |
-| 16: Headless UI Behaviors | Chapter 6 | ✅ Valid |
-| 17: Composed UI Patterns | Chapter 16 | ✅ Valid |
+
+| Chapter                        | Prerequisites | Status   |
+| ------------------------------ | ------------- | -------- |
+| 13: Reactive State Patterns    | Chapter 5     | ✅ Valid |
+| 14: Event-Driven Communication | Chapter 5     | ✅ Valid |
+| 15: Data Fetching Strategies   | Chapter 5     | ✅ Valid |
+| 16: Headless UI Behaviors      | Chapter 6     | ✅ Valid |
+| 17: Composed UI Patterns       | Chapter 16    | ✅ Valid |
 
 #### Advanced Topics (Chapters 18-21)
-| Chapter | Prerequisites | Status |
-|---------|---------------|--------|
-| 18: Domain-Driven Design | Chapters 4, 5, 14 | ✅ Valid |
-| 19: Testing MVVM Applications | Chapters 4, 5, 6 | ✅ Valid |
-| 20: Plugin Architecture | Chapters 5, 7 | ✅ Valid |
-| 21: Design Systems and Theming | Chapter 6 | ✅ Valid |
+
+| Chapter                        | Prerequisites     | Status   |
+| ------------------------------ | ----------------- | -------- |
+| 18: Domain-Driven Design       | Chapters 4, 5, 14 | ✅ Valid |
+| 19: Testing MVVM Applications  | Chapters 4, 5, 6  | ✅ Valid |
+| 20: Plugin Architecture        | Chapters 5, 7     | ✅ Valid |
+| 21: Design Systems and Theming | Chapter 6         | ✅ Valid |
 
 #### Real-World Applications (Chapters 22-23)
-| Chapter | Prerequisites | Status |
-|---------|---------------|--------|
-| 22: Complete Case Studies | All previous | ✅ Valid |
-| 23: Conclusion and Best Practices | All previous | ✅ Valid |
+
+| Chapter                           | Prerequisites | Status   |
+| --------------------------------- | ------------- | -------- |
+| 22: Complete Case Studies         | All previous  | ✅ Valid |
+| 23: Conclusion and Best Practices | All previous  | ✅ Valid |
 
 **Conclusion:** All prerequisite dependencies are valid. No circular dependencies detected. ✅
 
@@ -228,6 +250,7 @@ All chapters have their prerequisites covered before they are introduced.
 The book structure correctly teaches framework-agnostic patterns before specific implementations.
 
 #### Teaching Progression
+
 1. **Foundations (Chapters 1-3)**: General MVVM concepts ✅
 2. **Core Patterns (Chapters 4-7)**: Framework-agnostic MVVM layers ✅
 3. **Framework Implementations (Chapters 8-12)**: Specific framework usage ✅
@@ -237,14 +260,14 @@ The book structure correctly teaches framework-agnostic patterns before specific
 
 #### Pattern-Before-Library Validation
 
-| Pattern | General Concept Chapter | Library Example Chapter | Order Valid? |
-|---------|-------------------------|-------------------------|--------------|
-| Reactive State | Chapter 5 (ViewModels) | Chapter 13 (signals-core, store-core) | ✅ Yes |
-| Event-Driven | Chapter 5 (ViewModels) | Chapter 14 (event-bus-core) | ✅ Yes |
-| Data Fetching | Chapter 4 (Models) | Chapter 15 (query-core) | ✅ Yes |
-| Headless UI | Chapter 6 (Views) | Chapter 16 (ui-core) | ✅ Yes |
-| Composed Patterns | Chapter 16 (Headless UI) | Chapter 17 (ui-patterns) | ✅ Yes |
-| Design Systems | Chapter 6 (Views) | Chapter 21 (design-core) | ✅ Yes |
+| Pattern           | General Concept Chapter  | Library Example Chapter               | Order Valid? |
+| ----------------- | ------------------------ | ------------------------------------- | ------------ |
+| Reactive State    | Chapter 5 (ViewModels)   | Chapter 13 (signals-core, store-core) | ✅ Yes       |
+| Event-Driven      | Chapter 5 (ViewModels)   | Chapter 14 (event-bus-core)           | ✅ Yes       |
+| Data Fetching     | Chapter 4 (Models)       | Chapter 15 (query-core)               | ✅ Yes       |
+| Headless UI       | Chapter 6 (Views)        | Chapter 16 (ui-core)                  | ✅ Yes       |
+| Composed Patterns | Chapter 16 (Headless UI) | Chapter 17 (ui-patterns)              | ✅ Yes       |
+| Design Systems    | Chapter 6 (Views)        | Chapter 21 (design-core)              | ✅ Yes       |
 
 **Conclusion:** Framework-agnostic patterns are taught before specific implementations. ✅
 
@@ -264,6 +287,7 @@ The book structure correctly teaches framework-agnostic patterns before specific
 4. ✅ **Domain Models Verified**: All domain models exist in `packages/models/src/`
 
 **Domain Models Confirmed:**
+
 - `packages/models/src/GreenHouseModel.ts` ✅
 - `packages/models/src/SensorModel.ts` ✅
 - `packages/models/src/SensorReadingModel.ts` ✅
@@ -299,15 +323,15 @@ The book structure correctly teaches framework-agnostic patterns before specific
 
 ### Coverage Statistics
 
-| Category | Total | Verified | Percentage |
-|----------|-------|----------|------------|
-| Core MVVM Classes | 5 | 5 | 100% ✅ |
-| ViewModels | 5 | 5 | 100% ✅ |
-| Framework Implementations | 5 | 5 | 100% ✅ |
-| Supporting Libraries | 7 | 7 | 100% ✅ |
-| Domain Models | 5 | 5 | 100% ✅ |
-| Chapter Prerequisites | 23 | 23 | 100% ✅ |
-| Pattern Teaching Order | 6 | 6 | 100% ✅ |
+| Category                  | Total | Verified | Percentage |
+| ------------------------- | ----- | -------- | ---------- |
+| Core MVVM Classes         | 5     | 5        | 100% ✅    |
+| ViewModels                | 5     | 5        | 100% ✅    |
+| Framework Implementations | 5     | 5        | 100% ✅    |
+| Supporting Libraries      | 7     | 7        | 100% ✅    |
+| Domain Models             | 5     | 5        | 100% ✅    |
+| Chapter Prerequisites     | 23    | 23       | 100% ✅    |
+| Pattern Teaching Order    | 6     | 6        | 100% ✅    |
 
 ### Overall Validation Score
 
@@ -348,17 +372,21 @@ The rewrite plans for all 23 chapters have been validated and are **READY FOR PH
 ### Verified File Paths for Rewrite Plans
 
 **Vue Framework:**
+
 - Composable: `apps/mvvm-vue/src/hooks/useObservable.ts` (not `composables/`)
 
 **Lit Framework:**
+
 - Dashboard: `apps/mvvm-lit/src/components/dashboard-view.ts`
 - All components verified in `apps/mvvm-lit/src/components/`
 
 **Vanilla JS Framework:**
+
 - Views: `apps/mvvm-vanilla/src/views/*.ejs`
 - Controllers: `apps/mvvm-vanilla/src/app/*.ts`
 
 **Domain Models:**
+
 - All models in `packages/models/src/` (GreenHouseModel, SensorModel, etc.)
 
 ---

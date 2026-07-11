@@ -1,7 +1,7 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { thresholdAlertViewModel, type ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
 @customElement('threshold-alert-list')
 export class ThresholdAlertList extends LitElement {
@@ -9,11 +9,11 @@ export class ThresholdAlertList extends LitElement {
     return this;
   }
   @state() private thresholdAlerts: ThresholdAlertListData = [];
-  private subscription: Subscription | null = null;
+  private unsubscribe: (() => void) | null = null;
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscription = thresholdAlertViewModel.data$.subscribe((data: any) => {
+    this.unsubscribe = observe(thresholdAlertViewModel.data$, (data: any) => {
       this.thresholdAlerts = data;
     });
     thresholdAlertViewModel.fetchCommand.execute();
@@ -21,7 +21,7 @@ export class ThresholdAlertList extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscription?.unsubscribe();
+    this.unsubscribe?.();
   }
 
   render() {

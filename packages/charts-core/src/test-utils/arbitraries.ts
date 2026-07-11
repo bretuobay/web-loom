@@ -14,19 +14,14 @@ export const chartDataPointArbitrary = (): fc.Arbitrary<ChartDataPoint> =>
 /**
  * Arbitrary for generating arrays of chart data points
  */
-export const chartDataArrayArbitrary = (
-  minLength = 1,
-  maxLength = 100
-): fc.Arbitrary<ChartDataPoint[]> =>
+export const chartDataArrayArbitrary = (minLength = 1, maxLength = 100): fc.Arbitrary<ChartDataPoint[]> =>
   fc.array(chartDataPointArbitrary(), { minLength, maxLength });
 
 /**
  * Arbitrary for generating color strings (hex format)
  */
 export const colorArbitrary = (): fc.Arbitrary<string> =>
-  fc
-    .integer({ min: 0, max: 0xffffff })
-    .map((num) => `#${num.toString(16).padStart(6, '0')}`);
+  fc.integer({ min: 0, max: 0xffffff }).map((num) => `#${num.toString(16).padStart(6, '0')}`);
 
 /**
  * Arbitrary for generating margin objects
@@ -69,7 +64,7 @@ export const partialThemeArbitrary = (): fc.Arbitrary<Partial<ChartTheme>> =>
           axis: colorArbitrary(),
           text: colorArbitrary(),
         }),
-        { nil: undefined }
+        { nil: undefined },
       ),
       typography: fc.option(
         fc.record({
@@ -80,41 +75,39 @@ export const partialThemeArbitrary = (): fc.Arbitrary<Partial<ChartTheme>> =>
             legend: fc.integer({ min: 8, max: 20 }),
           }),
         }),
-        { nil: undefined }
+        { nil: undefined },
       ),
       spacing: fc.option(
         fc.record({
           margin: marginArbitrary(),
           padding: fc.integer({ min: 0, max: 50 }),
         }),
-        { nil: undefined }
+        { nil: undefined },
       ),
       animation: fc.option(
         fc.record({
           duration: fc.integer({ min: 100, max: 1000 }),
           easing: fc.constantFrom('linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out'),
         }),
-        { nil: undefined }
+        { nil: undefined },
       ),
       shadows: fc.option(
         fc.record({
           marker: fc.string(),
           tooltip: fc.string(),
         }),
-        { nil: undefined }
+        { nil: undefined },
       ),
     },
-    { requiredKeys: [] }
+    { requiredKeys: [] },
   );
 
 /**
  * Arbitrary for generating point counts for performance testing
  */
-export const pointCountArbitrary = (): fc.Arbitrary<number> =>
-  fc.integer({ min: 1, max: 20000 });
+export const pointCountArbitrary = (): fc.Arbitrary<number> => fc.integer({ min: 1, max: 20000 });
 
 /**
  * Arbitrary for generating aspect ratios
  */
-export const aspectRatioArbitrary = (): fc.Arbitrary<number> =>
-  fc.float({ min: 0.5, max: 3.0 });
+export const aspectRatioArbitrary = (): fc.Arbitrary<number> => fc.float({ min: 0.5, max: 3.0 });

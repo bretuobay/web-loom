@@ -455,10 +455,6 @@ const UserList: FC = () => {
 
 ## MVVM Core integration
 
-`@web-loom/mvvm-core` provides `QueryStateModel` and `QueryStateModelView` to wrap Query Core endpoints inside viewmodels. These helpers:
+`@web-loom/mvvm-core`'s source includes a `QueryStateModel`/`QueryStateModelView` pair intended to wrap Query Core endpoints inside viewmodels — mapping `endpointState` into `@web-loom/signals-core` signals (`data$`, `isLoading$`, `error$`) and exposing commands (`refetchCommand`, `invalidateCommand`) for UI actions. These are **not currently exported** from `mvvm-core`'s public entry point, so treat them as internal/unstable — see [Models: QueryStateModel](/docs/models#querystatemodel-internal-not-yet-exported).
 
-1. Define an endpoint and start observing it within the model.
-2. Map `endpointState` into RxJS observables like `data$`, `isLoading$`, and `error$`.
-3. Expose commands (`refetchCommand`, `invalidateCommand`) for UI actions.
-
-This keeps the viewmodel as the boundary between UI components and the shared cache, while Query Core handles caching and deduplication.
+Until they're exported, compose `BaseModel` with Query Core directly: subscribe to the endpoint's state inside a `BaseModel` subclass and call `setData`/`setLoading`/`setError` from that subscription, then call `refetch()`/`invalidate()` on the underlying `QueryCore` instance from your ViewModel's commands. This keeps the viewmodel as the boundary between UI components and the shared cache, while Query Core handles caching and deduplication.

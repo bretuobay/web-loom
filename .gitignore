@@ -47,6 +47,7 @@ yarn-error.log*
 # Generated reports
 loc-report.json
 loc-report.html
+PHILOSOPHY-REVIEW.md
 
 # Playwright
 /test-results/

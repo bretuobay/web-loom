@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import BackArrow from '../assets/back-arrow.svg';
 import { Link } from '../router/Routing';
 
 export function ThresholdAlertList() {
-  const thresholds = useObservable(thresholdAlertViewModel.data$, []);
+  const thresholds = useSignal(thresholdAlertViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {

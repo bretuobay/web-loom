@@ -18,7 +18,7 @@ I've been thinking about why this happens so consistently, and whether there's a
 
 ## This Isn't a New Problem
 
-The architectural question — how do you separate what your application *knows* from how it *looks* — is not new. It was solved, in a reasonably durable form, in 2005.
+The architectural question — how do you separate what your application _knows_ from how it _looks_ — is not new. It was solved, in a reasonably durable form, in 2005.
 
 John Gossman was an architect at Microsoft working on WPF (Windows Presentation Foundation). He wrote a blog post introducing Model–View–ViewModel as the pattern for WPF applications. The insight at its core was modest but important: the logic that decides what to display — loading states, derived values, formatted data — has nothing inherently to do with the rendering layer. You can write it as a plain class, test it in isolation, and connect it to any UI that knows how to subscribe to its output.
 
@@ -58,7 +58,7 @@ It currently has 34 packages in the monorepo, 10 of which are published to npm. 
 
 The monorepo demonstrates this across React, Vue, Angular, Lit, Marko, vanilla JavaScript, and React Native. The ViewModels are the same in every case. Only the subscription syntax in the View differs.
 
-I want to be direct about what this is and isn't. It's an experiment and a demonstration. It's not production-proven at scale. Some of the packages are still rough. The RxJS learning curve is real. There are architectural tradeoffs I'll get to.
+I want to be direct about what this is and isn't. It's an experiment and a demonstration. It's not production-proven at scale. Some of the packages are still rough. There are architectural tradeoffs I'll get to.
 
 But I think the underlying question it's asking is worth asking: can the web adopt the same architectural discipline that Android and iOS and .NET have been quietly benefiting from for twenty years?
 
@@ -68,9 +68,9 @@ But I think the underlying question it's asking is worth asking: can the web ado
 
 The pattern is three layers, with strict responsibilities at each boundary.
 
-**The Model** knows about data. It talks to APIs, holds raw state, and exposes it through reactive streams — observables or signals. It does not know the UI exists. It has no React imports, no Vue imports, no Angular imports. If you test it, you mock `fetch` and assert on the state it emits. That's it.
+**The Model** knows about data. It talks to APIs, holds raw state, and exposes it through reactive signals. It does not know the UI exists. It has no React imports, no Vue imports, no Angular imports. If you test it, you mock `fetch` and assert on the state it holds. That's it.
 
-**The ViewModel** knows what the View needs to display. It takes the raw data from the Model, derives the presentation state from it — formatted values, loading flags, counts, filtered lists — and exposes it as observable properties. It also exposes Commands: objects that wrap async operations and manage their own loading and error state. The ViewModel has no framework imports either.
+**The ViewModel** knows what the View needs to display. It takes the raw data from the Model, derives the presentation state from it — formatted values, loading flags, counts, filtered lists — and exposes it as reactive signal properties. It also exposes Commands: objects that wrap async operations and manage their own loading and error state. The ViewModel has no framework imports either.
 
 **The View** is thin. It subscribes to ViewModel properties and renders them. When a user acts, it calls a ViewModel Command. The View contains no `try/catch`, no loading flags, no business logic of any kind. It's the only place where React or Vue or Angular code lives.
 
@@ -79,27 +79,23 @@ Here's a small example of what the same ViewModel looks like wired to React and 
 ```typescript
 // This ViewModel class is identical in both cases.
 class TaskListViewModel extends BaseViewModel<TaskModel> {
-  readonly fetchCommand = this.registerCommand(
-    new Command(async () => this.model.fetchAll())
-  );
-  readonly pendingCount$ = this.data$.pipe(
-    map(tasks => (tasks ?? []).filter(t => !t.done).length)
-  );
+  readonly fetchCommand = this.registerCommand(new Command(async () => this.model.fetchAll()));
+  readonly pendingCount$ = computed(() => (this.data$.get() ?? []).filter((t) => !t.done).length);
 }
 ```
 
 ```tsx
 // React View
-const tasks   = useObservable(vm.tasks$, []);
-const pending = useObservable(vm.pendingCount$, 0);
+const tasks = useSignal(vm.tasks$);
+const pending = useSignal(vm.pendingCount$);
 // ...
-<button onClick={() => vm.fetchCommand.execute()}>Refresh</button>
+<button onClick={() => vm.fetchCommand.execute()}>Refresh</button>;
 ```
 
 ```vue
 <!-- Vue View -->
 <script setup>
-vm.tasks$.subscribe(v => tasks.value = v);
+observe(vm.tasks$, (v) => (tasks.value = v));
 onMounted(() => vm.fetchCommand.execute());
 </script>
 ```
@@ -153,13 +149,13 @@ I want to end honestly rather than with a pitch.
 
 The patterns in Web Loom are not new. That's actually the point. MVVM has been quietly solving the same problems on Android, iOS, and .NET for two decades. The proposition is not that Web Loom invented something clever — it's that the web might benefit from borrowing something that has already proven itself elsewhere.
 
-But there are real tradeoffs. RxJS has a learning curve, and for teams not already familiar with it, the entry cost is non-trivial. MVVM is more verbose than putting everything in a component — you're maintaining separate classes where a simple app might only need a hook. Not every project needs this level of structure. A prototype, a landing page, a small tool built for personal use — adding a ViewModel layer would be overhead, not benefit.
+But there are real tradeoffs. The signals mental model — reading with `.get()`, writing with `.set()`, deriving with `computed()` — is a small but real learning curve for teams used to `useState` and nothing else. MVVM is more verbose than putting everything in a component — you're maintaining separate classes where a simple app might only need a hook. Not every project needs this level of structure. A prototype, a landing page, a small tool built for personal use — adding a ViewModel layer would be overhead, not benefit.
 
 The 80/20 split — only 20% of a codebase is framework-specific — is an architectural goal, not a promise. It requires discipline to maintain, and discipline costs effort. The benefit compounds over time, especially across migrations and growing teams, but it's not free.
 
 I'm also aware that I'm one person with one perspective. The web's pattern diversity partly reflects genuine disagreement about what the right approach is. Reasonable engineers have built good products with every state management library I mentioned earlier. The "right" architecture is context-dependent, and I don't think Web Loom is the right choice for every context.
 
-What I do think is that the question is underasked: *should the web have the same architectural continuity that mobile and desktop platforms achieved?* Not "should everyone use MVVM specifically" — but "is there value in a stable, cross-framework layer of business logic that survives when the rendering layer changes?"
+What I do think is that the question is underasked: _should the web have the same architectural continuity that mobile and desktop platforms achieved?_ Not "should everyone use MVVM specifically" — but "is there value in a stable, cross-framework layer of business logic that survives when the rendering layer changes?"
 
 The monorepo is open. The docs are live. If you've had similar frustrations, or if you think I'm wrong about where web architecture has landed, I'd genuinely like to hear it.
 

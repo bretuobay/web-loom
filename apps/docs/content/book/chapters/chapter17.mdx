@@ -1356,9 +1356,13 @@ Composed patterns provide **workflow orchestration** that ViewModels can leverag
 
 ```typescript
 // ViewModel uses composed pattern for sensor configuration workflow
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
+
 class SensorConfigurationViewModel extends BaseViewModel {
   private wizard: WizardBehavior<SensorConfig>;
-  
+  private readonly _wizardState = signal<WizardState<SensorConfig> | null>(null);
+  public readonly wizardState$: ReadonlySignal<WizardState<SensorConfig> | null> = this._wizardState.asReadonly();
+
   constructor(private sensorModel: SensorModel) {
     super();
     
@@ -1372,12 +1376,9 @@ class SensorConfigurationViewModel extends BaseViewModel {
         await this.sensorModel.updateConfiguration(data);
       },
     });
-  }
-  
-  get wizardState$() {
-    return new Observable((subscriber) => {
-      return this.wizard.subscribe((state) => subscriber.next(state));
-    });
+
+    // Keep the signal in sync with the wizard behavior's own subscription
+    this.addSubscription(this.wizard.subscribe((state) => this._wizardState.set(state)));
   }
   
   goToNextStep = async () => {
@@ -1391,7 +1392,7 @@ class SensorConfigurationViewModel extends BaseViewModel {
 }
 ```
 
-The ViewModel wraps the pattern, exposing it to Views through observables. This keeps the ViewModel focused on domain logic while delegating workflow orchestration to the pattern.
+The ViewModel wraps the pattern, mirroring the wizard behavior's own subscription into a signal and exposing it to Views through `wizardState$`. This keeps the ViewModel focused on domain logic while delegating workflow orchestration to the pattern, and it means every View layer in this book (`useSignal`, `fromLoomSignal`, `observe()`) can consume `wizardState$` the same way it consumes any other ViewModel signal.
 
 
 ## Pattern Libraries: ui-patterns and Beyond

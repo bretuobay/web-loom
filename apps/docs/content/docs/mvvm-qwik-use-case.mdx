@@ -1,6 +1,6 @@
 ---
 title: 'MVVM in Qwik'
-summary: 'How to integrate Web Loom ViewModels with Qwik using useSignal and useTask$ for client-side RxJS subscriptions, and what to watch for given Qwik's resumability constraints.'
+summary: "How to integrate Web Loom ViewModels with Qwik using useSignal and useTask$ to bridge @web-loom/signals-core signals, and what to watch for given Qwik's resumability constraints."
 topicTitle: 'MVVM Core'
 topicSlug: 'mvvm-core'
 prevTitle: 'MVVM in Solid'
@@ -13,7 +13,7 @@ prevSlug: '/docs/mvvm-solid-use-case'
 
 Qwik is a **resumable** framework. Where traditional SSR frameworks hydrate the entire component tree on the client before becoming interactive, Qwik serialises the application state into the HTML itself. The client resumes from exactly where the server left off without re-executing component code. This makes Qwik's time-to-interactive near-instant regardless of application size.
 
-This architecture imposes a key constraint: **state that crosses the server/client boundary must be serialisable**. RxJS `BehaviorSubject` and ViewModel class instances are not serialisable — they cannot be included in Qwik's state snapshot. The integration therefore keeps ViewModels in the client-only portion of the application.
+This architecture imposes a key constraint: **state that crosses the server/client boundary must be serialisable**. `@web-loom/signals-core` signal instances and ViewModel class instances are not serialisable — they cannot be included in Qwik's state snapshot. The integration therefore keeps ViewModels in the client-only portion of the application, mirroring their *values* into Qwik's own `useSignal`.
 
 ---
 
@@ -48,7 +48,6 @@ Use `useTask$` with `{ eagerness: 'load' }` for client-side-only subscription se
 import { component$, useSignal, useTask$, $ } from '@builder.io/qwik';
 import { isBrowser } from '@builder.io/qwik/build';
 import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
-import type { Subscription } from 'rxjs';
 
 export const GreenhouseList = component$(() => {
   const greenhouses = useSignal<GreenhouseData[]>([]);
@@ -58,16 +57,20 @@ export const GreenhouseList = component$(() => {
     // isBrowser guard ensures this only runs on the client
     if (!isBrowser) return;
 
-    const subs: Subscription[] = [
-      greenHouseViewModel.data$.subscribe(data => { greenhouses.value = data ?? []; }),
-      greenHouseViewModel.isLoading$.subscribe(v   => { isLoading.value = v; }),
-    ];
+    // sig.subscribe() only fires on future changes, so sync once up front
+    const syncData = () => { greenhouses.value = greenHouseViewModel.data$.get() ?? []; };
+    const syncLoading = () => { isLoading.value = greenHouseViewModel.isLoading$.get(); };
+    syncData();
+    syncLoading();
+
+    const unsubscribeData = greenHouseViewModel.data$.subscribe(syncData);
+    const unsubscribeLoading = greenHouseViewModel.isLoading$.subscribe(syncLoading);
 
     greenHouseViewModel.fetchCommand.execute();
 
     cleanup(() => {
-      subs.forEach(s => s.unsubscribe());
-      greenHouseViewModel.dispose();
+      unsubscribeData();
+      unsubscribeLoading();
     });
   });
 
@@ -92,7 +95,7 @@ export const GreenhouseList = component$(() => {
 });
 ```
 
-The `isBrowser` guard is critical: `useTask$` runs during SSR to collect async data, and ViewModel subscriptions must not execute server-side where there is no RxJS scheduler and no browser APIs.
+The `isBrowser` guard is critical: `useTask$` runs during SSR to collect async data, and ViewModel subscriptions must not execute server-side where there are no browser APIs to update.
 
 ---
 
@@ -127,10 +130,10 @@ const isExecuting = useSignal(false);
 
 useTask$(({ cleanup }) => {
   if (!isBrowser) return;
-  const sub = greenHouseViewModel.fetchCommand.isExecuting$.subscribe(
-    v => { isExecuting.value = v; }
-  );
-  cleanup(() => sub.unsubscribe());
+  const sync = () => { isExecuting.value = greenHouseViewModel.fetchCommand.isExecuting$.get(); };
+  sync();
+  const unsubscribe = greenHouseViewModel.fetchCommand.isExecuting$.subscribe(sync);
+  cleanup(unsubscribe);
 });
 
 // In the template
@@ -146,7 +149,7 @@ useTask$(({ cleanup }) => {
 
 ## What Cannot Be Serialised
 
-Qwik serialises `useSignal` and `useStore` values into the HTML. RxJS objects — `BehaviorSubject`, `Subscription`, ViewModel class instances — cannot be serialised. Do not store them in `useSignal` or `useStore`:
+Qwik serialises `useSignal` and `useStore` values into the HTML. Web Loom objects — `ReadonlySignal` instances, unsubscribe functions, ViewModel class instances — cannot be serialised. Do not store them in `useSignal` or `useStore`:
 
 ```typescript
 // ✗ Not serialisable — will error or behave unexpectedly
@@ -182,11 +185,12 @@ export default component$(() => {
 
   useTask$(({ cleanup }) => {
     if (!isBrowser) return;
-    // Subscribe for client-side updates after initial load
-    const sub = greenHouseViewModel.data$.subscribe(
+    // Subscribe for client-side updates after initial load — no sync() call
+    // here since serverData already seeded greenhouses with the initial value
+    const unsubscribe = greenHouseViewModel.data$.subscribe(
       data => { greenhouses.value = data ?? greenhouses.value; }
     );
-    cleanup(() => sub.unsubscribe());
+    cleanup(unsubscribe);
   });
 
   // ...
@@ -200,11 +204,11 @@ This hybrid pattern uses Qwik City's server loader for instant initial HTML, the
 ## Summary
 
 - **Reactive scalar** — `useSignal(initialValue)`
-- **Subscribe to ViewModel** — `useTask$({ cleanup })` with `isBrowser` guard
+- **Subscribe to ViewModel** — `useTask$({ cleanup })` with `isBrowser` guard, syncing once via `.get()` before `.subscribe()`
 - **Update signal from subscription** — `signal.value = newValue`
-- **Unsubscribe on unmount** — `cleanup(() => sub.unsubscribe())`
+- **Unsubscribe on unmount** — `cleanup(unsubscribe)` — `sig.subscribe()` returns a plain function
 - **Event handler** — `onClick$={$(() => vm.command.execute())}`
 - **Server-loaded initial data** — `routeLoader$` + initialise signal from the result
-- **What not to serialise** — ViewModel instances, Subscriptions, BehaviorSubjects
+- **What not to serialise** — ViewModel instances, `ReadonlySignal` instances, unsubscribe functions
 
-The key constraint unique to Qwik is the serialisability boundary: ViewModels live in `useTask$` (client-only), their emitted values live in `useSignal` (serialisable). Commands remain plain async calls wrapped in Qwik's `$()` lazy boundary.
+The key constraint unique to Qwik is the serialisability boundary: ViewModels live in `useTask$` (client-only), their current values live in `useSignal` (serialisable). Commands remain plain async calls wrapped in Qwik's `$()` lazy boundary.

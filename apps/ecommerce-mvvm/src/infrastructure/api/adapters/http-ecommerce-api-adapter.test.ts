@@ -58,7 +58,12 @@ describe('HttpEcommerceApiAdapter', () => {
 
       if (url.endsWith('/checkout')) {
         return new Response(
-          JSON.stringify({ orderId: 'ORDER-1', totalCents: 12900, currency: 'USD', placedAtIso: new Date().toISOString() }),
+          JSON.stringify({
+            orderId: 'ORDER-1',
+            totalCents: 12900,
+            currency: 'USD',
+            placedAtIso: new Date().toISOString(),
+          }),
           { status: 200 },
         );
       }
@@ -88,6 +93,8 @@ describe('HttpEcommerceApiAdapter', () => {
 
     const api = new HttpEcommerceApiAdapter('http://localhost:3000', mockFetch as typeof fetch);
 
-    await expect(api.checkout({ email: 'a@b.com', shippingAddress: 'x', notes: '' })).rejects.toThrow('Checkout failed');
+    await expect(api.checkout({ email: 'a@b.com', shippingAddress: 'x', notes: '' })).rejects.toThrow(
+      'Checkout failed',
+    );
   });
 });

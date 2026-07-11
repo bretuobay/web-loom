@@ -4,7 +4,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
-    "rootDir": "src",
+    "rootDir": "../..",
     "types": [],
     "paths": {
       "@repo/models": [
@@ -21,6 +21,12 @@
       ],
       "@web-loom/mvvm-core": [
         "../../packages/mvvm-core/src"
+      ],
+      "@web-loom/query-core": [
+        "../../packages/query-core/src"
+      ],
+      "@web-loom/signals-core": [
+        "../../packages/signals-core/src"
       ],
       "@repo/shared": [
         "../../packages/shared/src"

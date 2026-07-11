@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, FlatList, ScrollView } from 'react-native';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
 import { styles } from '@repo/shared';
 
 export const SensorReadingList = () => {
-  const sensorReadings = useObservable(sensorReadingViewModel.data$);
+  const sensorReadings = useSignal(sensorReadingViewModel.data$);
 
   return (
     <ScrollView style={{ flex: 1 }}>

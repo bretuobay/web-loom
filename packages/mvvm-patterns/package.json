@@ -1,6 +1,6 @@
 {
   "name": "@web-loom/mvvm-patterns",
-  "version": "0.0.1",
+  "version": "0.8.0",
   "description": "Application-level MVVM patterns for Web Loom",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,13 +24,11 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@web-loom/mvvm-core": "*"
+    "@web-loom/mvvm-core": "*",
+    "@web-loom/signals-core": "*"
   },
-  "peerDependencies": {
-    "rxjs": "^7.8.0"
-  },
+  "peerDependencies": {},
   "devDependencies": {
-    "rxjs": "^7.8.0",
     "typescript": "^5.8.2",
     "vite": "^6.4.3",
     "vite-plugin-dts": "^5.0.3",

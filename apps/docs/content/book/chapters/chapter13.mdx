@@ -6,9 +6,9 @@ section: Framework-Agnostic Patterns
 
 # Chapter 13: Reactive State Management Patterns
 
-In the previous chapters, we've built ViewModels that expose state through RxJS observables. We've seen how React components subscribe to these observables with `useEffect`, how Vue components use `watchEffect`, and how Angular components leverage the `async` pipe. But we haven't yet explored *why* reactive state management is fundamental to MVVM architecture, or what alternatives exist beyond RxJS.
+In the previous chapters, we've built ViewModels that expose state through `@web-loom/signals-core` signals. We've seen how React components read them with `useSignal`, how Vue components read them with a `useSignal` composable, how Angular components bridge them with `fromLoomSignal`, and how Lit and vanilla JavaScript read them directly with `observe()`. But we haven't yet explored *why* reactive state management is fundamental to MVVM architecture, how signals actually work under the hood, or when you'd reach for something else—like RxJS or a plain store—alongside them.
 
-This chapter steps back from framework-specific implementations to examine reactive state patterns in general terms. We'll explore the core concepts—signals, observables, and stores—and see how different libraries implement these patterns. The goal isn't to prescribe a specific library, but to teach you the underlying principles so you can choose the right approach for your application or even build your own implementation.
+This chapter steps back from framework-specific implementations to examine reactive state patterns in general terms. Signals are the reactive primitive that powers every ViewModel in this book, so we'll start there and go deep. Then we'll look at two complementary patterns—observables (RxJS, used as an *opt-in interop* layer, not the default) and stores (`store-core`)—and see where each still earns its place. The goal isn't to prescribe a specific library for every situation, but to teach you the underlying principles so you can choose the right tool for a given problem.
 
 ## Why Reactive State Matters for MVVM
 
@@ -22,13 +22,13 @@ Consider what happens without reactive state:
 // ❌ Without reactive state: manual updates required
 class SensorViewModel {
   private temperature: number = 0;
-  
+
   setTemperature(value: number): void {
     this.temperature = value;
     // Now what? How do Views know to update?
     // You'd need to manually call update methods on every View
   }
-  
+
   getTemperature(): number {
     return this.temperature;
   }
@@ -44,21 +44,23 @@ setInterval(() => {
 
 This approach breaks down quickly. You need polling, manual update calls, or complex callback systems. It's fragile and doesn't scale.
 
-Now consider reactive state:
+Now consider reactive state, using the same `@web-loom/signals-core` primitive every ViewModel in this book is built on:
 
 ```typescript
 // ✅ With reactive state: automatic updates
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
+
 class SensorViewModel {
-  private readonly _temperature$ = new BehaviorSubject<number>(0);
-  public readonly temperature$ = this._temperature$.asObservable();
-  
+  private readonly _temperature = signal<number>(0);
+  public readonly temperature$: ReadonlySignal<number> = this._temperature.asReadonly();
+
   setTemperature(value: number): void {
-    this._temperature$.next(value);
+    this._temperature.set(value);
     // That's it! All subscribers are automatically notified
   }
 }
 
-// Views subscribe once and receive all updates automatically
+// Views subscribe once and receive all future updates automatically
 const viewModel = new SensorViewModel();
 viewModel.temperature$.subscribe(temp => {
   updateUI(temp); // Automatic update on every change
@@ -69,50 +71,57 @@ The reactive approach is declarative: you describe *what* should happen when sta
 
 ## Core Reactive State Patterns
 
-There are three primary patterns for reactive state management, each with different characteristics and use cases:
+There are three primary patterns for reactive state management, each with different characteristics and use cases. Signals are the pattern this book's ViewModels are built on by default; observables and stores are tools you reach for in specific situations.
 
-### 1. The Signals Pattern
+### 1. The Signals Pattern (the default in this book)
 
-**Signals** are the simplest reactive primitive. A signal is a container for a value that notifies subscribers when the value changes. Signals typically support:
+**Signals** are the reactive primitive Web Loom's `mvvm-core` is built on. A signal is a container for a value that notifies subscribers when the value changes. `@web-loom/signals-core` provides:
 
-- **Writable signals**: Direct value updates
-- **Computed signals**: Derived values that automatically update when dependencies change
-- **Effects**: Side effects that run when signals change
+- **Writable signals**: `signal(initialValue)`, updated via `.set()`/`.update()`
+- **Computed signals**: `computed(() => ...)`, derived values that automatically update when dependencies change
+- **Effects**: `effect(() => ...)`, side effects that run when signals change
+- **`.subscribe(fn)`**: fires on every *future* change, returns a plain unsubscribe function
+- **`observe(sig, fn)`**: fires immediately with the current value, then on every future change—the signals-core equivalent of what a `BehaviorSubject` subscription gives you
+- **`.get()`** (tracked, for use inside `computed`/`effect`) and **`.peek()`** (untracked, for one-off reads)
 
-Here's the conceptual model:
+Here's the real API in action:
 
 ```typescript
-// Conceptual signals API (not tied to any specific library)
-const temperature = signal(20);           // Writable signal
-const fahrenheit = computed(() =>         // Computed signal
-  temperature.value * 9/5 + 32
+import { signal, computed, effect } from '@web-loom/signals-core';
+
+const temperature = signal(20);              // Writable signal
+const fahrenheit = computed(() =>             // Computed signal
+  temperature.get() * 9 / 5 + 32
 );
 
-effect(() => {                            // Effect
-  console.log(`Temperature: ${temperature.value}°C`);
+effect(() => {                                // Effect
+  console.log(`Temperature: ${temperature.get()}°C`);
 });
 
-temperature.set(25);  // Triggers effect, updates computed value
+temperature.set(25);  // Triggers the effect, updates the computed value
 ```
 
-Signals are **synchronous** and **fine-grained**. When you update a signal, effects run immediately, and only the specific computations that depend on that signal are re-evaluated. This makes signals very efficient for local state management.
+Signals are **synchronous** and **fine-grained**. When you update a signal, effects run immediately, and only the specific computations that depend on that signal are re-evaluated. This makes signals efficient for both local UI state and ViewModel-level state—which is why every Model and ViewModel in this book is built on them, not just "simple" cases.
 
-### 2. The Observable Pattern
+### 2. The Observable Pattern (opt-in interop)
 
-**Observables** represent streams of values over time. Unlike signals, which hold a single current value, observables can emit multiple values asynchronously. Observables support:
+**Observables** represent streams of values over time. Unlike signals, which hold a single current value, observables can emit multiple values asynchronously and compose through operators. RxJS observables support:
 
 - **Operators**: Transform, filter, combine, and control streams
 - **Backpressure**: Handle fast producers and slow consumers
 - **Cancellation**: Unsubscribe to stop receiving values
 
-Here's the conceptual model:
+`@web-loom/signals-core` does not depend on RxJS, and mvvm-core's Models and ViewModels don't use it internally. But `@web-loom/signals-core/rxjs` is an optional subpath export for the specific case where you're integrating with something that's genuinely stream-shaped—a WebSocket feed, a debounced search-as-you-type pipeline, a retry/backoff HTTP client—and RxJS's operator library is the better tool for that one piece:
 
 ```typescript
-// Conceptual observable API (RxJS-style)
+// Conceptual observable API (RxJS)
+import { BehaviorSubject } from 'rxjs';
+import { map } from 'rxjs/operators';
+
 const temperature$ = new BehaviorSubject(20);  // Observable with current value
 
 const fahrenheit$ = temperature$.pipe(         // Transformed observable
-  map(c => c * 9/5 + 32)
+  map(c => c * 9 / 5 + 32)
 );
 
 const subscription = temperature$.subscribe(   // Subscription
@@ -123,7 +132,7 @@ temperature$.next(25);  // Emit new value
 subscription.unsubscribe();  // Stop receiving updates
 ```
 
-Observables are **asynchronous** and **stream-oriented**. They excel at handling time-based operations like debouncing, throttling, and combining multiple async data sources. This makes observables ideal for ViewModels that manage complex async state.
+Observables are **asynchronous** and **stream-oriented**. They excel at handling time-based operations like debouncing, throttling, and combining multiple async data sources. In this book's architecture, that's a Model-edge concern, not a ViewModel-wide default—see the interop section below for how the two worlds meet.
 
 ### 3. The Store Pattern
 
@@ -134,7 +143,7 @@ Observables are **asynchronous** and **stream-oriented**. They excel at handling
 - **Selectors**: Derived state computations
 - **Middleware**: Intercept and augment state changes
 
-Here's the conceptual model:
+Here's the conceptual model, matching Web Loom's own `store-core`:
 
 ```typescript
 // Conceptual store API
@@ -142,9 +151,9 @@ const store = createStore({
   temperature: 20,
   humidity: 65
 }, (set, get) => ({
-  setTemperature: (value: number) => 
+  setTemperature: (value: number) =>
     set(state => ({ ...state, temperature: value })),
-  
+
   setHumidity: (value: number) =>
     set(state => ({ ...state, humidity: value }))
 }));
@@ -156,62 +165,64 @@ store.subscribe((newState, oldState) => {
 store.actions.setTemperature(25);  // Update via action
 ```
 
-Stores are **centralized** and **action-oriented**. They work well for application-level state that multiple components need to access, and they make state changes explicit through actions.
+Stores are **centralized** and **action-oriented**. They work well for application-level state that multiple components need to access, and they make state changes explicit through actions. In Web Loom, `store-core` is reserved for UI-only state (theme, sidebar open/closed)—business data still belongs in signals-based Models, per the layering rules in this book's architecture chapters.
 
-## Implementation Example: RxJS Observables in BaseModel
+## Implementation Example: Signals in BaseModel
 
-Let's examine how the Web Loom monorepo implements reactive state using RxJS observables in the `BaseModel` class. This is a concrete example of the observable pattern applied to MVVM.
+Let's examine how the Web Loom monorepo implements reactive state using `@web-loom/signals-core` in the `BaseModel` class—the real foundation every Model in this book is built on.
 
 ```typescript
 // From packages/mvvm-core/src/models/BaseModel.ts
-export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
-  // Private subjects for internal state management
-  protected _data$ = new BehaviorSubject<TData | null>(null);
-  protected _isLoading$ = new BehaviorSubject<boolean>(false);
-  protected _error$ = new BehaviorSubject<any>(null);
-  
-  // Public observables for external consumption
-  public readonly data$: Observable<TData | null> = this._data$.asObservable();
-  public readonly isLoading$: Observable<boolean> = this._isLoading$.asObservable();
-  public readonly error$: Observable<any> = this._error$.asObservable();
-  
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
+import { ZodSchema } from 'zod';
+
+export class BaseModel<TData, TSchema extends ZodSchema<TData>> implements IBaseModel<TData, TSchema> {
+  protected _data = signal<TData | null>(null);
+  public readonly data$: ReadonlySignal<TData | null> = this._data.asReadonly();
+
+  protected _isLoading = signal<boolean>(false);
+  public readonly isLoading$: ReadonlySignal<boolean> = this._isLoading.asReadonly();
+
+  protected _error = signal<any>(null);
+  public readonly error$: ReadonlySignal<any> = this._error.asReadonly();
+
   public readonly schema?: TSchema;
-  
+
+  private _isDisposed = false;
+
   constructor(input: TConstructorInput<TData, TSchema>) {
     const { initialData = null, schema } = input;
     if (initialData !== null) {
-      this._data$.next(initialData);
+      this._data.set(initialData);
     }
     this.schema = schema;
   }
-  
+
   public setData(newData: TData | null): void {
-    this._data$.next(newData);
+    this._data.set(newData);
   }
-  
+
   public setLoading(status: boolean): void {
-    this._isLoading$.next(status);
+    this._isLoading.set(status);
   }
-  
+
   public setError(err: any): void {
-    this._error$.next(err);
+    this._error.set(err);
   }
-  
+
   public dispose(): void {
-    this._data$.complete();
-    this._isLoading$.complete();
-    this._error$.complete();
+    this._isDisposed = true;
   }
 }
 ```
 
 This implementation demonstrates several key patterns:
 
-**Encapsulation**: Private `BehaviorSubject` instances (`_data$`, `_isLoading$`, `_error$`) hold the mutable state, while public `Observable` properties expose read-only streams. External code can subscribe to changes but cannot directly modify the subjects.
+**Encapsulation**: Private writable `signal()` instances (`_data`, `_isLoading`, `_error`) hold the mutable state, while public `ReadonlySignal` properties (via `.asReadonly()`) expose read-only views. External code can `.get()`/`.peek()`/`.subscribe()` but cannot directly call `.set()`.
 
-**Current Value Semantics**: `BehaviorSubject` is used instead of plain `Subject` because it holds the current value and immediately emits it to new subscribers. This is crucial for UI—when a component mounts, it needs the current state immediately, not just future updates.
+**Current Value Semantics**: A signal always holds its current value—`.peek()` and `.get()` read it synchronously at any time, with no need for a `BehaviorSubject`-style "replay" trick. This is crucial for UI—when a component mounts, it needs the current state immediately, and `.peek()` (or `observe()`, which seeds the callback with the current value before subscribing to future ones) gives it that directly.
 
-**Lifecycle Management**: The `dispose()` method completes all subjects, signaling to subscribers that no more values will be emitted. This prevents memory leaks when Models are no longer needed.
+**Lifecycle Management**: The `dispose()` method marks the Model as disposed; subsequent setter calls become no-ops, so no further notifications reach subscribers. This prevents surprising updates after a Model is meant to be finished.
 
 **Type Safety**: TypeScript generics ensure that `data$` emits values of type `TData | null`, providing compile-time safety for consumers.
 
@@ -221,44 +232,52 @@ ViewModels build on Models by adding presentation logic and derived state. Let's
 
 ```typescript
 // From packages/mvvm-core/src/viewmodels/BaseViewModel.ts
+import { computed, type ReadonlySignal } from '@web-loom/signals-core';
+import { ZodError } from 'zod';
+
+/** A teardown function returned by signal subscriptions. */
+export type Teardown = () => void;
+
 export class BaseViewModel<TModel extends BaseModel<any, any>> {
-  protected readonly _destroy$ = new Subject<void>();
-  protected readonly model: TModel;
-  
-  // Expose observables from the model
-  public readonly data$: Observable<TModel['data']>;
-  public readonly isLoading$: Observable<boolean>;
-  public readonly error$: Observable<any>;
-  
+  private readonly _teardowns: Teardown[] = [];
+
+  // Expose reactive properties directly from the injected model
+  public readonly data$: ReadonlySignal<any>;
+  public readonly isLoading$: ReadonlySignal<boolean>;
+  public readonly error$: ReadonlySignal<any>;
+
   // Derived state: validation errors extracted from general errors
-  public readonly validationErrors$: Observable<ZodError | null>;
-  
+  public readonly validationErrors$: ReadonlySignal<ZodError | null>;
+  protected readonly model: TModel;
+
   constructor(model: TModel) {
     this.model = model;
-    
-    // Pipe model observables through takeUntil for automatic cleanup
-    this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
-    this.isLoading$ = this.model.isLoading$.pipe(takeUntil(this._destroy$));
-    this.error$ = this.model.error$.pipe(takeUntil(this._destroy$));
-    
-    // Derive validation errors from the error stream
-    this.validationErrors$ = this.model.error$.pipe(
-      map(err => err instanceof ZodError ? err : null),
-      startWith(null),
-      takeUntil(this._destroy$)
-    );
+
+    this.data$ = this.model.data$;
+    this.isLoading$ = this.model.isLoading$;
+    this.error$ = this.model.error$;
+
+    // Derive validationErrors$ from the model's error$: only ZodError instances
+    // surface here; anything else maps to null.
+    this.validationErrors$ = computed(() => {
+      const err = this.model.error$.get();
+      return err instanceof ZodError ? err : null;
+    });
   }
-  
-  public dispose(): void {
-    this._destroy$.next();
-    this._destroy$.complete();
+
+  /**
+   * Adds a teardown (e.g. a signal unsubscribe function) to the ViewModel's
+   * internal lifecycle management. It runs automatically when dispose() is called.
+   */
+  protected addSubscription(teardown: Teardown): void {
+    this._teardowns.push(teardown);
   }
 }
 ```
 
-This demonstrates **state derivation**—creating new observables from existing ones. The `validationErrors$` observable is computed from `error$` using the `map` operator. When `error$` emits, `validationErrors$` automatically updates. This is the observable equivalent of computed signals.
+This demonstrates **state derivation**—creating new signals from existing ones. The `validationErrors$` signal is computed from `error$` using `computed()`. When `error$` changes, `validationErrors$` automatically recomputes, and only recomputes—no manual re-wiring needed.
 
-The `takeUntil(this._destroy$)` pattern is crucial for preventing memory leaks. When `dispose()` is called, `_destroy$` emits, causing all piped observables to complete and unsubscribe from their sources.
+`data$`/`isLoading$`/`error$` are simply re-exposed straight from the Model here, because `ReadonlySignal`s don't need `takeUntil`-style piping to be safely shared—there's no subscription to leak just by referencing them. The `addSubscription(teardown)` method exists for the case where a ViewModel *does* create its own subscription (e.g. `observe()`-ing another signal, or listening to an event bus)—that teardown function gets registered and is run automatically by `dispose()`, replacing what RxJS's `takeUntil(this._destroy$)` pattern used to do.
 
 ## Advanced Reactive Patterns in RestfulApiViewModel
 
@@ -266,147 +285,108 @@ The `RestfulApiViewModel` shows more sophisticated reactive patterns:
 
 ```typescript
 // From packages/mvvm-core/src/viewmodels/RestfulApiViewModel.ts
+import { signal, computed, type ReadonlySignal } from '@web-loom/signals-core';
+
 export class RestfulApiViewModel<TData, TSchema extends ZodSchema<TData>> {
   protected model: RestfulApiModel<TData, TSchema>;
-  
-  public readonly data$: Observable<TData | null>;
-  public readonly isLoading$: Observable<boolean>;
-  public readonly error$: Observable<any>;
-  
+
+  public readonly data$: ReadonlySignal<TData | null>;
+  public readonly isLoading$: ReadonlySignal<boolean>;
+  public readonly error$: ReadonlySignal<any>;
+
   // View-specific state for item selection
-  protected readonly _selectedItemId$ = new BehaviorSubject<string | null>(null);
-  public readonly selectedItem$: Observable<ExtractItemType<TData> | null>;
-  
+  protected readonly _selectedItemId = signal<string | null>(null);
+  public readonly selectedItem$: ReadonlySignal<ExtractItemType<TData> | null>;
+
   constructor(model: RestfulApiModel<TData, TSchema>) {
     this.model = model;
     this.data$ = this.model.data$;
     this.isLoading$ = this.model.isLoading$;
     this.error$ = this.model.error$;
-    
-    // Combine two observables to derive selected item
-    this.selectedItem$ = combineLatest([
-      this.model.data$,
-      this._selectedItemId$
-    ]).pipe(
-      map(([data, selectedId]) => {
-        if (Array.isArray(data) && selectedId) {
-          const item = data.find((item: any) => item.id === selectedId);
-          return item || null;
-        }
-        return null;
-      }),
-      startWith(null)
-    );
+
+    // Combine two signals to derive the selected item
+    this.selectedItem$ = computed(() => {
+      const data = this.model.data$.get();
+      const selectedId = this._selectedItemId.get();
+      if (Array.isArray(data) && selectedId) {
+        const item = data.find((item: any) => item.id === selectedId);
+        return item || null;
+      }
+      return null;
+    });
   }
-  
+
   public selectItem(id: string | null): void {
-    this._selectedItemId$.next(id);
+    this._selectedItemId.set(id);
   }
 }
 ```
 
-This demonstrates **state composition**—combining multiple observables with `combineLatest`. Whenever either `data$` or `_selectedItemId$` emits, the `selectedItem$` observable recomputes the selected item. This is declarative: you describe the relationship between observables, and RxJS handles the updates.
+This demonstrates **state composition**—combining multiple signals with `computed()`. Whenever either `data$` or `_selectedItemId` changes, the `selectedItem$` signal recomputes the selected item. This is the direct replacement for RxJS's `combineLatest([...]).pipe(map(...))` pattern, and it reads as plainly as the underlying logic: read two signals, compute a value.
 
-## RxJS Operators for State Management
+## Optional Interop: Bridging Signals and RxJS
 
-RxJS provides powerful operators for transforming and controlling reactive state. Here are the most important ones for MVVM:
-
-### Transformation Operators
+Sometimes a piece of state genuinely is a *stream*, not a value—a WebSocket feed, a debounced search-as-you-type pipeline, an HTTP client with retry/backoff. RxJS's operator library is still an excellent tool for exactly that kind of Model-edge orchestration. `@web-loom/signals-core/rxjs` is a small, optional subpath export (requiring the `rxjs` peer dependency, which the main `@web-loom/signals-core` entry point does not need) that bridges the two worlds in both directions:
 
 ```typescript
-// map: Transform each emitted value
-const fahrenheit$ = celsius$.pipe(
-  map(c => c * 9/5 + 32)
-);
+// packages/signals-core/src/rxjs.ts (real source)
+import { Observable, type Subscription } from 'rxjs';
+import { signal, type ReadonlySignal } from './signal.js';
+import { observe } from './observe.js';
 
-// filter: Only emit values that pass a predicate
-const highTemperatures$ = temperature$.pipe(
-  filter(temp => temp > 30)
-);
+// Expose a signal as an RxJS Observable. Mirrors BehaviorSubject semantics:
+// each subscriber immediately receives the current value, then every change.
+export function toObservable<T>(sig: ReadonlySignal<T>): Observable<T> {
+  return new Observable<T>((subscriber) => observe(sig, (value) => subscriber.next(value)));
+}
 
-// scan: Accumulate values over time (like Array.reduce)
-const temperatureHistory$ = temperature$.pipe(
-  scan((history, temp) => [...history, temp], [] as number[])
-);
+// Mirror an RxJS Observable into a signal. Subscribes immediately; the signal
+// holds `initial` until the observable's first emission.
+export function fromObservable<T>(
+  source: Observable<T>,
+  initial: T,
+  onError?: (err: unknown) => void,
+): ReadonlySignal<T> & { dispose(): void } {
+  const out = signal(initial);
+  const subscription: Subscription = source.subscribe({
+    next: (value) => out.set(value),
+    error: (err) => onError?.(err),
+  });
+
+  return {
+    get: () => out.get(),
+    peek: () => out.peek(),
+    subscribe: (fn) => out.subscribe(fn),
+    dispose: () => subscription.unsubscribe(),
+  };
+}
 ```
 
-### Combination Operators
+A typical use: build the debounced search pipeline in RxJS (where `debounceTime`, `switchMap`, and friends genuinely earn their complexity), then bring the result back into the signal world your ViewModel and View already speak with `fromObservable`, so the rest of your ViewModel—and every framework bridge from Chapters 8–12—doesn't need to know RxJS was ever involved:
 
 ```typescript
-// combineLatest: Emit when any source emits (requires all to have emitted once)
-const environmental$ = combineLatest([
-  temperature$,
-  humidity$,
-  soilMoisture$
-]).pipe(
-  map(([temp, humidity, moisture]) => ({ temp, humidity, moisture }))
+import { fromObservable } from '@web-loom/signals-core/rxjs';
+import { fromEvent } from 'rxjs';
+import { map, debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+
+const searchInput$ = fromEvent<InputEvent>(inputEl, 'input').pipe(
+  map((e) => (e.target as HTMLInputElement).value),
+  debounceTime(300),
+  distinctUntilChanged(),
+  switchMap((query) => searchApi(query)),
 );
 
-// merge: Emit from any source as soon as it emits
-const allSensorReadings$ = merge(
-  sensor1.readings$,
-  sensor2.readings$,
-  sensor3.readings$
-);
-
-// withLatestFrom: Combine with latest value from other observables
-const alertsWithContext$ = alerts$.pipe(
-  withLatestFrom(temperature$, humidity$),
-  map(([alert, temp, humidity]) => ({
-    ...alert,
-    context: { temp, humidity }
-  }))
-);
+// Now it's a signal, like everything else in the ViewModel:
+class SearchViewModel {
+  public readonly results$ = fromObservable(searchInput$, []);
+}
 ```
 
-### Timing Operators
+This is the shape RxJS takes in this architecture now: a deliberate, scoped choice at a Model boundary—not the default reactive layer every ViewModel is implicitly built on.
 
-```typescript
-// debounceTime: Wait for silence before emitting
-const searchQuery$ = userInput$.pipe(
-  debounceTime(300),  // Wait 300ms after user stops typing
-  distinctUntilChanged()
-);
+## The Store Pattern with store-core
 
-// throttleTime: Emit at most once per time period
-const scrollPosition$ = scrollEvents$.pipe(
-  throttleTime(100),  // At most once per 100ms
-  map(event => event.target.scrollTop)
-);
-
-// delay: Delay emissions by a specified time
-const delayedNotification$ = notification$.pipe(
-  delay(2000)  // Show notification 2 seconds later
-);
-```
-
-### Error Handling Operators
-
-```typescript
-// catchError: Handle errors and return a fallback observable
-const safeData$ = apiCall$.pipe(
-  catchError(error => {
-    console.error('API call failed:', error);
-    return of(null);  // Return null on error
-  })
-);
-
-// retry: Retry on error
-const resilientApiCall$ = apiCall$.pipe(
-  retry(3),  // Retry up to 3 times
-  catchError(error => of(null))
-);
-
-// timeout: Error if no emission within time limit
-const timedApiCall$ = apiCall$.pipe(
-  timeout(5000),  // Error if no response in 5 seconds
-  catchError(error => of(null))
-);
-```
-
-## Alternative Approach: Store Pattern with store-core
-
-While RxJS observables work well for ViewModels, sometimes you need simpler state management for application-level state. The Web Loom monorepo includes `store-core`, a minimal store implementation that demonstrates the store pattern.
+Sometimes you need simpler state management than either signals or observables for application-level UI state—theme, sidebar visibility, modal open/closed. The Web Loom monorepo includes `store-core`, a minimal store implementation for exactly that.
 
 ```typescript
 // From packages/store-core/src/index.ts
@@ -420,13 +400,13 @@ export function createStore<S extends State, A extends Actions<S, A>>(
 ): Store<S, A> {
   let state: S = initialState;
   const listeners: Set<Listener<S>> = new Set();
-  
+
   const getState = (): S => state;
-  
+
   const setState = (updater: (state: S) => S): void => {
     const oldState = state;
     const newState = updater(state);
-    
+
     // Shallow comparison to detect changes
     let hasChanged = false;
     if (newState !== oldState) {
@@ -443,33 +423,33 @@ export function createStore<S extends State, A extends Actions<S, A>>(
         }
       }
     }
-    
+
     if (hasChanged) {
       state = newState;
       listeners.forEach(listener => listener(newState, oldState));
     }
   };
-  
+
   const subscribe = (listener: Listener<S>): (() => void) => {
     listeners.add(listener);
     return () => listeners.delete(listener);
   };
-  
+
   const destroy = (): void => {
     listeners.clear();
   };
-  
+
   // Create actions
   const tempActions = {} as A;
   const createdActions = createActions(setState, getState, tempActions);
-  
+
   // Populate actions
   for (const key in createdActions) {
     if (Object.prototype.hasOwnProperty.call(createdActions, key)) {
       tempActions[key] = createdActions[key];
     }
   }
-  
+
   return {
     getState,
     setState,
@@ -480,72 +460,100 @@ export function createStore<S extends State, A extends Actions<S, A>>(
 }
 ```
 
-This store implementation is much simpler than RxJS but still provides reactive state. Here's how you'd use it:
+Here's how you'd use it:
 
 ```typescript
-// Example: Greenhouse monitoring store
-interface GreenhouseState {
-  temperature: number;
-  humidity: number;
-  alerts: Alert[];
+// Example: Greenhouse monitoring UI store (theme/sidebar-style state, not business data)
+interface UiState {
+  theme: 'light' | 'dark';
+  sidebarOpen: boolean;
 }
 
-const greenhouseStore = createStore<GreenhouseState, any>(
+const uiStore = createStore<UiState, any>(
   {
-    temperature: 20,
-    humidity: 65,
-    alerts: []
+    theme: 'light',
+    sidebarOpen: true,
   },
   (set, get) => ({
-    setTemperature: (value: number) =>
-      set(state => ({ ...state, temperature: value })),
-    
-    setHumidity: (value: number) =>
-      set(state => ({ ...state, humidity: value })),
-    
-    addAlert: (alert: Alert) =>
-      set(state => ({ ...state, alerts: [...state.alerts, alert] })),
-    
-    clearAlerts: () =>
-      set(state => ({ ...state, alerts: [] }))
+    setTheme: (value: 'light' | 'dark') =>
+      set(state => ({ ...state, theme: value })),
+
+    toggleSidebar: () =>
+      set(state => ({ ...state, sidebarOpen: !state.sidebarOpen })),
   })
 );
 
 // Subscribe to state changes
-const unsubscribe = greenhouseStore.subscribe((newState, oldState) => {
-  console.log('Temperature changed:', newState.temperature);
+const unsubscribe = uiStore.subscribe((newState, oldState) => {
+  console.log('Theme changed:', newState.theme);
 });
 
 // Update state via actions
-greenhouseStore.actions.setTemperature(25);
-greenhouseStore.actions.addAlert({
-  id: '1',
-  message: 'Temperature high',
-  severity: 'warning'
-});
+uiStore.actions.setTheme('dark');
+uiStore.actions.toggleSidebar();
 
 // Cleanup
 unsubscribe();
-greenhouseStore.destroy();
+uiStore.destroy();
 ```
 
-The store pattern is **simpler** than RxJS for basic state management but **less powerful** for complex async operations. It's a good choice for application-level state that doesn't need sophisticated stream transformations.
+Notice the example deliberately models UI-only state (theme, sidebar), not business data like sensor readings. Web Loom's own layering guidance is explicit about this boundary: business data belongs in signals-based Models with reactive observables; `store-core` is reserved for state that's purely about the UI shell itself.
 
 ## Comparing Reactive Approaches
 
-Let's compare the three approaches for a concrete scenario: managing sensor readings with derived state.
+Let's compare signals, observables, and a store for the same scenario: managing sensor readings with derived state.
 
-### Using RxJS Observables
+### Using Signals (the default choice)
 
 ```typescript
+import { signal, computed } from '@web-loom/signals-core';
+
+class SensorViewModel {
+  private readonly _temperature = signal<number>(20);
+  private readonly _humidity = signal<number>(65);
+
+  public readonly temperature$ = this._temperature.asReadonly();
+  public readonly humidity$ = this._humidity.asReadonly();
+
+  // Derived state: comfort level based on temperature and humidity
+  public readonly comfortLevel$ = computed(() => {
+    const temp = this._temperature.get();
+    const humidity = this._humidity.get();
+    if (temp >= 20 && temp <= 26 && humidity >= 40 && humidity <= 60) {
+      return 'comfortable';
+    } else if (temp >= 18 && temp <= 28 && humidity >= 30 && humidity <= 70) {
+      return 'acceptable';
+    } else {
+      return 'uncomfortable';
+    }
+  });
+
+  setTemperature(value: number): void {
+    this._temperature.set(value);
+  }
+
+  setHumidity(value: number): void {
+    this._humidity.set(value);
+  }
+}
+```
+
+**Pros**: Zero dependencies, synchronous reads via `.get()`/`.peek()`, minimal API surface, exactly what every framework bridge in this book expects
+**Cons**: No built-in operators for timing/backpressure—reach for RxJS interop (previous section) when you genuinely need those
+
+### Using RxJS (opt-in, for stream-heavy state)
+
+```typescript
+import { BehaviorSubject, combineLatest } from 'rxjs';
+import { map } from 'rxjs/operators';
+
 class SensorViewModel {
   private readonly _temperature$ = new BehaviorSubject<number>(20);
   private readonly _humidity$ = new BehaviorSubject<number>(65);
-  
+
   public readonly temperature$ = this._temperature$.asObservable();
   public readonly humidity$ = this._humidity$.asObservable();
-  
-  // Derived state: comfort level based on temperature and humidity
+
   public readonly comfortLevel$ = combineLatest([
     this.temperature$,
     this.humidity$
@@ -560,19 +568,19 @@ class SensorViewModel {
       }
     })
   );
-  
+
   setTemperature(value: number): void {
     this._temperature$.next(value);
   }
-  
+
   setHumidity(value: number): void {
     this._humidity$.next(value);
   }
 }
 ```
 
-**Pros**: Powerful operators, excellent for async operations, fine-grained control
-**Cons**: Steeper learning curve, more verbose for simple cases
+**Pros**: Powerful operators (`debounceTime`, `retry`, `switchMap`, etc.) for genuinely async, time-based, or multi-source stream orchestration
+**Cons**: An extra dependency and mental model on top of signals; in this architecture, it only shows up at Model-edge boundaries via `fromObservable`/`toObservable`, not throughout the ViewModel
 
 ### Using a Store
 
@@ -587,10 +595,10 @@ const sensorStore = createStore<SensorState, any>(
   (set, get) => ({
     setTemperature: (value: number) =>
       set(state => ({ ...state, temperature: value })),
-    
+
     setHumidity: (value: number) =>
       set(state => ({ ...state, humidity: value })),
-    
+
     // Derived state as a method
     getComfortLevel: () => {
       const { temperature, humidity } = get();
@@ -607,84 +615,47 @@ const sensorStore = createStore<SensorState, any>(
 ```
 
 **Pros**: Simple API, centralized state, easy to understand
-**Cons**: Derived state requires manual computation, less powerful for async
-
-### Using Native Proxy-Based Reactivity
-
-```typescript
-// Simplified reactive system using Proxy
-function createReactive<T extends object>(target: T, onChange: () => void): T {
-  return new Proxy(target, {
-    set(obj, prop, value) {
-      const oldValue = obj[prop as keyof T];
-      if (oldValue !== value) {
-        obj[prop as keyof T] = value;
-        onChange();
-      }
-      return true;
-    }
-  });
-}
-
-const sensorState = createReactive(
-  { temperature: 20, humidity: 65 },
-  () => console.log('State changed')
-);
-
-sensorState.temperature = 25;  // Triggers onChange
-```
-
-**Pros**: No dependencies, simple for basic cases, native JavaScript
-**Cons**: Limited functionality, no built-in derived state, manual effect management
+**Cons**: Derived state requires manual computation (no automatic re-derivation like `computed()`), reserved in this architecture for UI-only state rather than business data
 
 ## When to Use Each Approach
 
 Choose your reactive state approach based on your application's needs:
 
-**Use RxJS Observables when:**
-- You need sophisticated async operations (debouncing, throttling, retries)
-- You're building ViewModels that manage complex state transformations
-- You need fine-grained control over subscription lifecycle
-- You're already using RxJS elsewhere in your application
-- You need powerful composition of multiple data streams
+**Use Signals (`@web-loom/signals-core`) by default when:**
+- You're building a Model or ViewModel—this is the reactive layer mvvm-core is built on
+- You want synchronous, predictable, fine-grained updates
+- You want zero required dependencies beyond signals-core itself
+- You want every framework bridge in this book (`useSignal`, `fromLoomSignal`, `observe()`) to work without extra adapters
+
+**Reach for RxJS (via `@web-loom/signals-core/rxjs`) when:**
+- You need sophisticated async operations (debouncing, throttling, retries, websockets)
+- You're integrating with an external system that's already stream-shaped
+- The complexity is genuinely at a Model-edge boundary, not spread across the ViewModel
+- Bridge back to a signal with `fromObservable` once the stream settles into a value your ViewModel can expose normally
 
 **Use a Store (like store-core) when:**
-- You need centralized application state
+- You need centralized, UI-only application state (theme, sidebar, modal visibility)
 - State changes should be explicit through actions
-- You want simple, predictable state updates
-- You don't need complex async transformations
-- You want minimal dependencies
-
-**Use Native Reactivity (Proxy) when:**
-- You're building a simple application with minimal state
-- You want zero dependencies
-- You don't need sophisticated derived state
-- You're comfortable implementing your own reactive primitives
-
-**Use Signals (if available in your framework) when:**
-- You're using a framework with built-in signals (Angular, Solid, Preact)
-- You need fine-grained reactivity with minimal overhead
-- You want synchronous, predictable updates
-- You're building UI-focused reactive state
+- You want simple, predictable state updates outside the Model/ViewModel data layer
 
 ## Patterns Are Transferable
 
-The most important lesson from this chapter is that **reactive state patterns are transferable**. Whether you use RxJS, store-core, signals, or build your own solution, the core concepts remain the same:
+The most important lesson from this chapter is that **reactive state patterns are transferable**. Whether you use signals, RxJS, store-core, or build your own solution, the core concepts remain the same:
 
 1. **State is observable**: Changes can be subscribed to
 2. **Derived state is automatic**: Computed values update when dependencies change
 3. **Effects are declarative**: You describe what should happen, not how to propagate changes
 4. **Cleanup is essential**: Subscriptions must be disposed to prevent memory leaks
 
-These principles enable MVVM architecture regardless of the specific library you choose. The ViewModel exposes reactive state, and the View subscribes to it. The implementation details—whether you use observables, signals, or stores—are secondary to the pattern itself.
+These principles enable MVVM architecture regardless of the specific library you choose. The ViewModel exposes reactive state, and the View subscribes to it. In this book, that reactive state is a signal by default—RxJS and stores are additional tools for specific edges of the system, not competing defaults.
 
 ## Key Takeaways
 
 - **Reactive state is fundamental to MVVM**: It enables automatic View updates when ViewModel state changes
-- **Three core patterns exist**: Signals (fine-grained, synchronous), Observables (stream-oriented, async), and Stores (centralized, action-based)
-- **RxJS observables are powerful**: They excel at complex async operations and state transformations
-- **Stores are simpler**: They work well for centralized application state with explicit actions
-- **Patterns are transferable**: The concepts apply regardless of the specific library you use
-- **Choose based on needs**: Consider your application's complexity, async requirements, and team familiarity
+- **Signals are the default**: `@web-loom/signals-core` is the reactive layer every Model and ViewModel in this book is built on—synchronous, fine-grained, and dependency-free
+- **RxJS is opt-in interop**: `@web-loom/signals-core/rxjs` bridges signals and observables for the specific cases (debounce pipelines, retries, websockets) where streams are the better tool—not a parallel default
+- **Stores are for UI-only state**: `store-core` centralizes application-shell state like theme and sidebar visibility; business data still belongs in signals-based Models
+- **Patterns are transferable**: The concepts—observable state, automatic derivation, declarative effects, disposable subscriptions—apply regardless of which of these three tools you're using at a given moment
+- **Choose based on where the complexity lives**: Model/ViewModel state defaults to signals; genuinely stream-shaped I/O reaches for RxJS interop; UI-shell state reaches for a store
 
 In the next chapter, we'll explore event-driven communication patterns—another framework-agnostic technique that complements reactive state management for building decoupled MVVM applications.

@@ -14,7 +14,7 @@ Web Loom implements a strict MVVM (Model-View-ViewModel) separation of concerns 
 
 Centralizes reactive state with Zod validation:
 
-- Exposes `data$`, `isLoading$`, `error$` observables
+- Exposes `data$`, `isLoading$`, `error$` reactive signals (`ReadonlySignal` from `@web-loom/signals-core`; the `$` suffix means "reactive property")
 - Provides `setData`, `setLoading`, `setError`, and `validate` helpers
 - Pass Zod schema to constructor for automatic validation
 
@@ -36,13 +36,13 @@ Extends BaseModel with RESTful operations:
 
 ### BaseViewModel
 
-- Exposes underlying model's observables
-- Maps `error$` into `validationErrors$` stream
-- Use `addSubscription` + `dispose()` for subscription management
+- Exposes underlying model's reactive signals
+- Maps `error$` into a `validationErrors$` computed signal
+- Use `addSubscription(teardown)` + `dispose()` for teardown management
 
 ### RestfulApiViewModel
 
-- Wires `RestfulApiModel` into consumable observables
+- Wires `RestfulApiModel` into consumable signals
 - Exposes `data$`, `isLoading$`, `error$`, `selectedItem$`
 - CRUD Commands: `fetch`, `create`, `update`, `delete`
 
@@ -50,10 +50,10 @@ Extends BaseModel with RESTful operations:
 
 Commands expose:
 
-- `execute()` - Trigger the action
+- `execute()` - Trigger the action (guarded synchronously by `canExecute$.peek()`)
 - `isExecuting$` - For loading spinners
-- `canExecute$` - For button enablement
-- `result$` - For accessing results
+- `canExecute$` - For button enablement (computed; signal reads in conditions are auto-tracked)
+- `executeError$` - Latest execution error
 
 ## CRUD Flow Example
 
@@ -85,8 +85,8 @@ export const greenHouseViewModel = createReactiveViewModel({
 
 ```typescript
 // Dashboard.tsx
-const data = useObservable(vm.data$, []);
-const isLoading = useObservable(vm.isLoading$, false);
+const data = useSignal(vm.data$);
+const isLoading = useSignal(vm.isLoading$);
 
 useEffect(() => {
   vm.fetchCommand.execute();
@@ -98,37 +98,37 @@ useEffect(() => {
 
 ### React
 
-- `useObservable` hook bridges RxJS to React state
+- `useSignal` hook (built on `useSyncExternalStore(sig.subscribe, sig.get, sig.get)`) bridges signals to React — no initial-value parameter needed
 - Call `fetchCommand.execute()` in `useEffect`
 - Dispose ViewModel on unmount
 
 ### Angular
 
-- Use `async` pipe in templates
+- Bridge to native Angular signals (`fromLoomSignal` helper mirrors via `DestroyRef`); templates call `data$()` instead of using the `async` pipe
 - Inject ViewModels via DI container
 
 ### Vue
 
-- Use `watchEffect` or Composition API
-- Subscribe in `onMounted`, unsubscribe in `onUnmounted`
+- `useSignal` composable: `shallowRef` seeded with `sig.peek()` + `observe` for updates
+- Unsubscribe in `onUnmounted`
 
 ### Lit
 
-- Use `@state` decorators with subscriptions
-- Subscribe in `connectedCallback`
+- Use `@state` decorators with `observe(sig, fn)` in `connectedCallback` (delivers the current value immediately)
+- Call the returned unsubscribe function in `disconnectedCallback`
 
 ### Vanilla JS
 
-- Direct `.subscribe()` calls
-- Manual cleanup on teardown
+- `observe(sig, fn)` for subscribe-with-current-value; `.subscribe(fn)` for changes only
+- Call the returned unsubscribe function on teardown
 
 ## Best Practices
 
 1. **Always call `dispose()`** on ViewModels when component unmounts
 2. **Define Zod schemas** for every model for compile-time and runtime validation
 3. **Keep UI logic in ViewModels** - components only subscribe and render
-4. **Wire UI states to Command observables** - `canExecute$` for disabled buttons, `isExecuting$` for spinners
-5. **Test ViewModels directly** - mock fetchers or stub observables
+4. **Wire UI states to Command signals** - `canExecute$` for disabled buttons, `isExecuting$` for spinners
+5. **Test ViewModels directly** - mock fetchers; signals make assertions synchronous (`vm.data$.get()`)
 
 ## Extending the Pattern
 

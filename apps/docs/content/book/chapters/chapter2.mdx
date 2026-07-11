@@ -86,7 +86,7 @@ export const sensorViewModel = new SensorViewModel(sensorModel);
 export type { SensorListData };
 ```
 
-This ViewModel is **completely framework-agnostic**. It doesn't import React, Vue, or any UI framework. It exposes reactive observables (`data$`, `isLoading$`, `error$`) that any framework can consume.
+This ViewModel is **completely framework-agnostic**. It doesn't import React, Vue, or any UI framework. It exposes reactive signals (`data$`, `isLoading$`, `error$`, all `ReadonlySignal<T>` from `@web-loom/signals-core`) that any framework can consume.
 
 ### Using the Same ViewModel in React
 
@@ -96,10 +96,10 @@ Here's how the React implementation consumes the ViewModel:
 // apps/mvvm-react/src/components/SensorList.tsx
 import { useEffect } from 'react';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 export function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -159,10 +159,10 @@ Here's the exact same ViewModel used in Vue:
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
-const isLoading = useObservable(sensorViewModel.isLoading$, true);
-const allSensors = useObservable(sensorViewModel.data$, []);
+const isLoading = useSignal(sensorViewModel.isLoading$);
+const allSensors = useSignal(sensorViewModel.data$);
 
 onMounted(() => {
   sensorViewModel.fetchCommand.execute();
@@ -172,13 +172,13 @@ onMounted(() => {
 
 **Notice what's identical:**
 - Same `sensorViewModel` import
-- Same `data$` and `isLoading$` observables
+- Same `data$` and `isLoading$` signals
 - Same `fetchCommand.execute()` method
 - Zero business logic duplication
 
 **What's different:**
 - Only the UI rendering (JSX vs Vue template)
-- Framework-specific subscription patterns (`useObservable` hook)
+- Framework-specific subscription patterns (`useSignal` hook)
 
 This is the power of MVVM: **write business logic once, use it in any framework**.
 
@@ -216,13 +216,15 @@ This test is slow, brittle, and tightly coupled to React.
 With MVVM, you test the ViewModel directly—no UI rendering required:
 
 ```typescript
+import { observe } from '@web-loom/signals-core';
+
 // Testing the ViewModel: Fast and framework-agnostic
 test('SensorViewModel loads sensor data', async () => {
   const viewModel = new SensorViewModel(mockSensorModel);
   
-  // Subscribe to observables
+  // observe() delivers the current value immediately, then every change
   const dataValues: any[] = [];
-  viewModel.data$.subscribe(data => dataValues.push(data));
+  observe(viewModel.data$, data => dataValues.push(data));
   
   // Execute command
   await viewModel.fetchCommand.execute();
@@ -257,78 +259,73 @@ function updateSensor(id, newData) {
 
 ### MVVM's Reactive Foundation
 
-MVVM uses reactive observables at its core. Here's the `BaseModel` that powers all GreenWatch models:
+MVVM uses reactive signals at its core. Here's the `BaseModel` that powers all GreenWatch models:
 
 ```typescript
 // packages/mvvm-core/src/models/BaseModel.ts
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
+
 export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
-  protected _data$ = new BehaviorSubject<TData | null>(null);
-  public readonly data$: Observable<TData | null> = this._data$.asObservable();
+  protected _data = signal<TData | null>(null);
+  public readonly data$: ReadonlySignal<TData | null> = this._data.asReadonly();
 
-  protected _isLoading$ = new BehaviorSubject<boolean>(false);
-  public readonly isLoading$: Observable<boolean> = this._isLoading$.asObservable();
+  protected _isLoading = signal<boolean>(false);
+  public readonly isLoading$: ReadonlySignal<boolean> = this._isLoading.asReadonly();
 
-  protected _error$ = new BehaviorSubject<any>(null);
-  public readonly error$: Observable<any> = this._error$.asObservable();
+  protected _error = signal<any>(null);
+  public readonly error$: ReadonlySignal<any> = this._error.asReadonly();
 
   public setData(newData: TData | null): void {
-    this._data$.next(newData);
+    this._data.set(newData);
   }
 
   public setLoading(status: boolean): void {
-    this._isLoading$.next(status);
+    this._isLoading.set(status);
   }
 
   public setError(err: any): void {
-    this._error$.next(err);
+    this._error.set(err);
   }
 }
 ```
 
 **Key features:**
-- **BehaviorSubject**: Holds current state and emits to new subscribers
-- **Observable**: Read-only stream that Views subscribe to
+- **`signal()`**: Holds current state and can be read synchronously with `.get()`/`.peek()`
+- **`ReadonlySignal`**: Read-only view that Views subscribe to (via `.subscribe()`) or read (via `.get()`)
 - **Automatic updates**: When `setData()` is called, all subscribers update automatically
 
 ### Framework-Specific Subscription Patterns
 
-Each framework subscribes to these observables using its own patterns:
+Each framework reads these signals using its own patterns:
 
 **React with hooks:**
 ```typescript
-// apps/mvvm-react/src/hooks/useObservable.ts
-export function useObservable<T>(observable: Observable<T>, initialValue: T) {
-  const [value, setValue] = useState<T>(initialValue);
+// apps/mvvm-react/src/hooks/useSignal.ts
+import { useSyncExternalStore } from 'react';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 
-  useEffect(() => {
-    const subscription = observable.subscribe(setValue);
-    return () => subscription.unsubscribe();
-  }, [observable]);
-
-  return value;
+export function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 ```
 
 **Vue with Composition API:**
 ```typescript
-// apps/mvvm-vue/src/hooks/useObservable.ts
-export function useObservable<T>(observable: Observable<T>, initialValue: any) {
-  const value = ref<T | undefined>(initialValue);
-  const subscription = observable.subscribe({
-    next: (val) => {
-      value.value = val;
-    },
-  });
+// apps/mvvm-vue/src/hooks/useSignal.ts
+import { shallowRef, onUnmounted, type ShallowRef } from 'vue';
+import { observe, type ReadonlySignal } from '@web-loom/signals-core';
 
-  onUnmounted(() => {
-    subscription.unsubscribe();
+export function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
+  const value = shallowRef<T>(sig.peek());
+  const unsubscribe = observe(sig, (next) => {
+    value.value = next;
   });
-
+  onUnmounted(unsubscribe);
   return value;
 }
 ```
 
-Both hooks do the same thing—subscribe to an observable and update local state—but use framework-specific APIs. The ViewModel remains unchanged.
+Both hooks do the same thing—read a signal and keep local state in sync—but use framework-specific APIs. The ViewModel remains unchanged.
 
 ## Problem 4: Validation and Error Handling
 
@@ -420,7 +417,7 @@ MVVM adds architectural overhead. Consider simpler patterns for:
 1. **MVVM separates concerns**: Model (data), View (UI), ViewModel (presentation logic)
 2. **Framework independence**: Write business logic once, use it in any framework
 3. **Testability**: Test business logic without rendering UI (10-100x faster)
-4. **Reactive state**: Observables provide automatic UI updates
+4. **Reactive state**: Signals provide automatic UI updates
 5. **Centralized validation**: Zod schemas in Models ensure data integrity
 6. **Real-world proven**: GreenWatch demonstrates MVVM across React, Vue, Angular, Lit, and Vanilla JS
 
@@ -435,5 +432,5 @@ Now that you understand *why* MVVM matters, the next chapter dives deep into the
 - `apps/mvvm-react/src/components/SensorList.tsx` - React implementation
 - `apps/mvvm-vue/src/components/SensorList.vue` - Vue implementation
 - `packages/mvvm-core/src/models/BaseModel.ts` - Reactive Model foundation
-- `apps/mvvm-react/src/hooks/useObservable.ts` - React observable hook
-- `apps/mvvm-vue/src/hooks/useObservable.ts` - Vue observable composable
+- `apps/mvvm-react/src/hooks/useSignal.ts` - React signal hook
+- `apps/mvvm-vue/src/hooks/useSignal.ts` - Vue signal composable

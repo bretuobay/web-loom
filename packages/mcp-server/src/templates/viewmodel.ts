@@ -5,12 +5,7 @@ export interface CustomCommandDef {
   description?: string;
 }
 
-export const VIEW_MODEL_STYLES = [
-  "restful-class",
-  "reactive-factory",
-  "base-commands",
-  "active-signals-list",
-] as const;
+export const VIEW_MODEL_STYLES = ['restful-class', 'reactive-factory', 'base-commands', 'active-signals-list'] as const;
 
 export type ViewModelStyle = (typeof VIEW_MODEL_STYLES)[number];
 
@@ -32,15 +27,15 @@ function isNamedType(value: string): boolean {
   return /^[A-Za-z_$][\w$]*$/.test(value);
 }
 
-function customCommandBlock(cmd: CustomCommandDef): string {
-  const pType = cmd.paramType ?? "void";
-  const rType = cmd.resultType ?? "void";
+function customCommandBlock(cmd: CustomCommandDef, registerExpression = 'this.registerCommand'): string {
+  const pType = cmd.paramType ?? 'void';
+  const rType = cmd.resultType ?? 'void';
   const executeFn =
-    pType === "void"
+    pType === 'void'
       ? `async () => {\n    // TODO: implement ${cmd.name}\n  }`
       : `async (_param: ${pType}) => {\n    // TODO: implement ${cmd.name}\n  }`;
   return `
-  public readonly ${cmd.name} = this.registerCommand(
+  public readonly ${cmd.name} = ${registerExpression}(
     new Command<${pType}, ${rType}>(${executeFn})
   );`;
 }
@@ -63,13 +58,28 @@ function restfulClassTemplate(p: ViewModelTemplateParams): string {
     ? `import { RestfulApiViewModel, Command } from "@web-loom/mvvm-core";`
     : `import { RestfulApiViewModel } from "@web-loom/mvvm-core";`;
 
-  const commandBlocks = customCommands.map(customCommandBlock).join("\n");
+  const commandBlocks = customCommands.map((cmd) => customCommandBlock(cmd, 'this.registerCustomCommand')).join('\n');
+  const customCommandSupport = hasCustomCommands
+    ? `
+  private readonly customCommands: Command<any, any>[] = [];
+
+  private registerCustomCommand<TParam, TResult>(command: Command<TParam, TResult>): Command<TParam, TResult> {
+    this.customCommands.push(command);
+    return command;
+  }
+`
+    : '';
+  const customCommandDispose = hasCustomCommands
+    ? `
+    this.customCommands.forEach((command) => command.dispose());
+    this.customCommands.length = 0;`
+    : '';
 
   return `${commandImport}
 import type { ${dataType}, ${name}ListSchema } from "${schemaMod}";
 import { ${modelClass} } from "${modelMod}";
 
-export class ${name}ViewModel extends RestfulApiViewModel<${dataType}, typeof ${name}ListSchema> {${commandBlocks}
+export class ${name}ViewModel extends RestfulApiViewModel<${dataType}, typeof ${name}ListSchema> {${customCommandSupport}${commandBlocks}
 
   constructor(model: ${modelClass}) {
     super(model);
@@ -77,6 +87,7 @@ export class ${name}ViewModel extends RestfulApiViewModel<${dataType}, typeof ${
 
   public override dispose(): void {
     super.dispose();
+${customCommandDispose}
   }
 }
 `;
@@ -115,7 +126,7 @@ function baseCommandsTemplate(p: ViewModelTemplateParams): string {
   const modelMod = modelModuleFor(modelClass);
   const commands =
     customCommands.length > 0
-      ? customCommands.map(customCommandBlock).join("\n")
+      ? customCommands.map((cmd) => customCommandBlock(cmd)).join('\n')
       : `
   public readonly refreshCommand = this.registerCommand(
     new Command<void, void>(async () => {
@@ -147,8 +158,8 @@ function activeSignalsListTemplate(p: ViewModelTemplateParams): string {
   const schemaMod = schemaModuleFor(p);
   const modelMod = modelModuleFor(modelClass);
   const dataTypeName = isNamedType(dataType) ? dataType : `${name}ListData`;
-  const dataTypeImport = isNamedType(dataType) ? `${dataType}, ` : "";
-  const dataTypeAlias = isNamedType(dataType) ? "" : `type ${dataTypeName} = ${dataType};\n`;
+  const dataTypeImport = isNamedType(dataType) ? `${dataType}, ` : '';
+  const dataTypeAlias = isNamedType(dataType) ? '' : `type ${dataTypeName} = ${dataType};\n`;
 
   return `import { Command } from "@web-loom/mvvm-core";
 import { ActiveAwareViewModel } from "@web-loom/mvvm-patterns";
@@ -233,14 +244,14 @@ export type { ${dataTypeName}, ${itemType} };
 }
 
 export function viewModelTemplate(p: ViewModelTemplateParams): string {
-  switch (p.style ?? "restful-class") {
-    case "reactive-factory":
+  switch (p.style ?? 'restful-class') {
+    case 'reactive-factory':
       return reactiveFactoryTemplate(p);
-    case "base-commands":
+    case 'base-commands':
       return baseCommandsTemplate(p);
-    case "active-signals-list":
+    case 'active-signals-list':
       return activeSignalsListTemplate(p);
-    case "restful-class":
+    case 'restful-class':
       return restfulClassTemplate(p);
   }
 }

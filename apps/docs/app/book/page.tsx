@@ -14,8 +14,7 @@ export const metadata: Metadata = {
     type: 'website',
     url: `${SITE_URL}/book`,
     title: 'MVVM in Practice',
-    description:
-      'A practical, code-first guide to Model-View-ViewModel architecture for modern frontend development.',
+    description: 'A practical, code-first guide to Model-View-ViewModel architecture for modern frontend development.',
     siteName: 'Web Loom',
   },
 };
@@ -50,15 +49,21 @@ export default function BookIndex() {
             Home
           </Link>
           <svg className="w-4 h-4 text-slate-400 dark:text-slate-600 shrink-0" viewBox="0 0 16 16" fill="none">
-            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M6 4l4 4-4 4"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
           <span className="text-slate-800 dark:text-slate-200 font-medium">Book</span>
         </div>
 
         <h1 className="text-3xl font-[650] text-slate-800 dark:text-slate-200 mb-3">MVVM in Practice</h1>
         <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
-          A practical, code-first guide to Model-View-ViewModel architecture for modern frontend
-          development — framework-agnostic patterns that survive React, Vue, and Angular.
+          A practical, code-first guide to Model-View-ViewModel architecture for modern frontend development —
+          framework-agnostic patterns that survive React, Vue, and Angular.
         </p>
 
         <div className="mt-6 flex items-center gap-3">
@@ -68,7 +73,13 @@ export default function BookIndex() {
           >
             Start reading
             <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M3 8h10M9 4l4 4-4 4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </Link>
           <span className="text-sm text-slate-500 dark:text-slate-400">{pages.length} chapters</span>
@@ -100,7 +111,13 @@ export default function BookIndex() {
                     viewBox="0 0 16 16"
                     fill="none"
                   >
-                    <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M6 4l4 4-4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </Link>
               ))}

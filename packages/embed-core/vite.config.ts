@@ -14,8 +14,7 @@ export default defineConfig({
         testing: './src/testing.ts',
       },
       formats: ['es', 'cjs'],
-      fileName: (format, entryName) =>
-        format === 'es' ? `${entryName}.js` : `${entryName}.cjs`,
+      fileName: (format, entryName) => (format === 'es' ? `${entryName}.js` : `${entryName}.cjs`),
     },
     rollupOptions: {
       external: ['@web-loom/event-emitter-core'],

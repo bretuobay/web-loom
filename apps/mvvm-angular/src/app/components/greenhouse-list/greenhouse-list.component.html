@@ -74,10 +74,10 @@
 
   <div class="card" style="max-width: 600px">
     <h1 class="card-title">Greenhouses</h1>
-    <div *ngIf="loading$ | async" class="card-content">
+    <div *ngIf="loading$()" class="card-content">
       <p>Loading greenhouses...</p>
     </div>
-    <ng-container *ngIf="greenhouses$ | async as greenhouseList">
+    <ng-container *ngIf="greenhouses$() as greenhouseList">
       <div *ngIf="greenhouseList && greenhouseList.length > 0; else noGreenhouses">
         <ul class="card-content list">
           <li
@@ -95,7 +95,7 @@
       </div>
     </ng-container>
     <ng-template #noGreenhouses>
-      <p *ngIf="!(loading$ | async)" class="card-content">No greenhouses found.</p>
+      <p *ngIf="!(loading$())" class="card-content">No greenhouses found.</p>
     </ng-template>
   </div>
 </section>

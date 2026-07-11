@@ -1,6 +1,6 @@
 ---
 title: 'MVVM in Vanilla TypeScript'
-summary: "How to wire Web Loom ViewModels into a framework-free TypeScript app — manual DOM rendering, RxJS subscriptions as the only reactive layer, EJS templates, a client-side router, and imperative event listeners."
+summary: "How to wire Web Loom ViewModels into a framework-free TypeScript app — manual DOM rendering, @web-loom/signals-core signals as the only reactive layer, EJS templates, a client-side router, and imperative event listeners."
 topicTitle: 'MVVM Core'
 topicSlug: 'mvvm-core'
 prevTitle: 'MVVM in Angular'
@@ -13,7 +13,7 @@ nextSlug: '/docs/mvvm-react-native-use-case'
 
 Without a framework there is no component lifecycle, no virtual DOM, no reactivity system, no dependency injection container. The browser gives you a DOM, event listeners, and `fetch`. Everything else — rendering, routing, subscriptions, state snapshots — you wire up yourself.
 
-This makes the vanilla case the most explicit illustration of how Web Loom's architecture actually works. The ViewModel is a plain TypeScript object with RxJS `BehaviorSubject` streams and Commands. Your code subscribes to those streams, turns the emitted data into HTML strings, and injects them into the DOM. There is no magic in between.
+This makes the vanilla case the most explicit illustration of how Web Loom's architecture actually works. The ViewModel is a plain TypeScript object with `@web-loom/signals-core` signals and Commands. Your code subscribes to those signals, turns the current data into HTML strings, and injects them into the DOM. There is no magic in between.
 
 ---
 
@@ -44,7 +44,7 @@ Because `innerHTML` replaces the entire subtree, any event listeners attached to
 The vanilla app splits concerns across five small modules:
 
 - **`state.ts`** — a plain mutable object holding the latest snapshot of each ViewModel's data
-- **`subscriptions.ts`** — subscribes to ViewModel observables; updates state and re-renders on change
+- **`subscriptions.ts`** — subscribes to ViewModel signals; updates state and re-renders on change
 - **`ui.ts`** — template rendering helpers (`renderTemplate`, `renderCard`, `renderLayout`)
 - **`router.ts`** — client-side routing using `@web-loom/router-core`; maps routes to view renderers
 - **`listeners.ts`** — imperative event handlers attached after each render
@@ -206,7 +206,7 @@ Data (`greenHouses`) is passed as a plain object at render time. The template ha
 
 ## Subscriptions — The Reactive Layer
 
-`subscriptions.ts` is the only place where ViewModel observables are consumed. It connects the reactive ViewModel layer to the imperative DOM layer:
+`subscriptions.ts` is the only place where ViewModel signals are consumed. It connects the reactive ViewModel layer to the imperative DOM layer. From `apps/mvvm-vanilla/src/app/subscriptions.ts`:
 
 ```typescript
 // src/app/subscriptions.ts
@@ -215,6 +215,7 @@ import { sensorViewModel }        from '@repo/view-models/SensorViewModel';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
 import { navigationViewModel }    from '@repo/shared/view-models/NavigationViewModel';
+import { observe }                from '@web-loom/signals-core';
 
 import { state }                       from './state';
 import { renderLayout, renderCard, renderTemplate } from './ui';
@@ -223,6 +224,7 @@ import { attachGreenhouseFormListeners } from './listeners';
 import { router }                      from './router';
 
 const app = document.getElementById('app')!;
+const DASHBOARD_VIEW = 'dashboard';
 
 function getActiveView() {
   return (router.currentRoute.meta?.view as string | undefined) ?? router.currentRoute.path;
@@ -230,17 +232,17 @@ function getActiveView() {
 
 export function subscribeToUpdates() {
   // Navigation
-  navigationViewModel.navigationList.items$.subscribe((navigation) => {
+  observe(navigationViewModel.navigationList.items$, (navigation) => {
     state.navigation = navigation ?? [];
     renderLayout();
   });
 
   // Greenhouses
-  greenHouseViewModel.data$.subscribe((greenHouses) => {
+  observe(greenHouseViewModel.data$, (greenHouses) => {
     state.greenHouses = greenHouses ?? [];
     const view = getActiveView();
 
-    if (view === 'dashboard') {
+    if (view === DASHBOARD_VIEW) {
       renderCard('greenhouse-card-container', '/src/views/GreenhouseCard.ejs', { greenHouses });
     } else if (view === 'greenhouses') {
       renderTemplate('/src/views/GreenhouseList.ejs', { greenHouses }).then((html) => {
@@ -251,11 +253,11 @@ export function subscribeToUpdates() {
   });
 
   // Sensor readings (includes chart)
-  sensorReadingViewModel.data$.subscribe((sensorReadings) => {
+  observe(sensorReadingViewModel.data$, (sensorReadings) => {
     state.sensorReadings = sensorReadings ?? [];
     const view = getActiveView();
 
-    if (view === 'dashboard') {
+    if (view === DASHBOARD_VIEW) {
       renderCard('sensor-reading-card-container', '/src/views/SensorReadingCard.ejs', { sensorReadings })
         .then(() => renderSensorReadingsChart(sensorReadings ?? []));
     } else if (view === 'sensor-readings') {
@@ -268,12 +270,14 @@ export function subscribeToUpdates() {
 }
 ```
 
-Each subscription does the same three things:
+`observe(sig, fn)` — not plain `sig.subscribe(fn)` — is used throughout: it calls `fn` immediately with the signal's current value, then again on every future change. That matters here because `renderLayout()`/the card renderers need to run on the very first call too, not just on subsequent updates.
+
+Each callback does the same three things:
 1. Update the `state` snapshot
 2. Check which view is currently active
 3. Re-render only the relevant portion of the DOM
 
-There is no diffing. A new emission replaces the entire container's `innerHTML`. This is intentionally simple — in a small app the cost is negligible.
+There is no diffing. A new value replaces the entire container's `innerHTML`. This is intentionally simple — in a small app the cost is negligible.
 
 ---
 
@@ -517,11 +521,11 @@ Tracing one complete cycle — a user creates a new greenhouse:
          ↓
 4. Command sets isExecuting$ = true, calls the API via the Model
          ↓
-5. API responds — Model updates its BehaviorSubject with new list
+5. API responds — Model calls setData() with the new list
          ↓
-6. greenHouseViewModel.data$ emits the updated list
+6. greenHouseViewModel.data$ signal updates to the new list
          ↓
-7. subscriptions.ts subscriber fires:
+7. subscriptions.ts observer fires:
      state.greenHouses = updatedList
      renderTemplate('/src/views/GreenhouseList.ejs', { greenHouses: updatedList })
        .then(html => {
@@ -562,14 +566,14 @@ export function destroyRouter() {
 
 ### ViewModel subscriptions
 
-Subscriptions in `subscriptions.ts` run for the lifetime of the page and are intentionally never unsubscribed in the Greenhouse app — the page has no teardown. In a more complex app, or for testing, collect and dispose them:
+Subscriptions in `subscriptions.ts` run for the lifetime of the page and are intentionally never unsubscribed in the Greenhouse app — the page has no teardown. In a more complex app, or for testing, collect and dispose them. `observe()`/`sig.subscribe()` both return a plain unsubscribe function (no `Subscription` object), so a flat array of functions is all you need:
 
 ```typescript
-const subscriptions: Array<{ unsubscribe: () => void }> = [];
+const teardowns: Array<() => void> = [];
 
 export function subscribeToUpdates() {
-  subscriptions.push(
-    greenHouseViewModel.data$.subscribe((greenHouses) => {
+  teardowns.push(
+    observe(greenHouseViewModel.data$, (greenHouses) => {
       state.greenHouses = greenHouses ?? [];
       // ... render
     }),
@@ -577,8 +581,8 @@ export function subscribeToUpdates() {
 }
 
 export function unsubscribeAll() {
-  subscriptions.forEach((s) => s.unsubscribe());
-  subscriptions.length = 0;
+  teardowns.forEach((teardown) => teardown());
+  teardowns.length = 0;
 }
 ```
 
@@ -595,12 +599,11 @@ Because the ViewModel is plain TypeScript with no DOM or browser dependencies, i
 ```typescript
 // Test the ViewModel in isolation
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { firstValueFrom } from 'rxjs';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 
 describe('GreenHouseViewModel', () => {
-  it('starts with null data', async () => {
-    const data = await firstValueFrom(greenHouseViewModel.data$);
+  it('starts with null data', () => {
+    const data = greenHouseViewModel.data$.peek();
     expect(data).toBeNull();
   });
 
@@ -621,13 +624,13 @@ export default { test: { environment: 'jsdom' } };
 ```typescript
 // subscriptions.test.ts
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BehaviorSubject } from 'rxjs';
+import { signal, type WritableSignal } from '@web-loom/signals-core';
 
 // Mock the ViewModel module
 vi.mock('@repo/view-models/GreenHouseViewModel', () => ({
   greenHouseViewModel: {
-    data$: new BehaviorSubject(null),
-    isLoading$: new BehaviorSubject(false),
+    data$: signal(null),
+    isLoading$: signal(false),
     fetchCommand: { execute: vi.fn() },
     createCommand: { execute: vi.fn() },
   },
@@ -643,9 +646,9 @@ describe('subscribeToUpdates', () => {
     subscribeToUpdates();
   });
 
-  it('updates state.greenHouses when data$ emits', () => {
+  it('updates state.greenHouses when data$ changes', () => {
     const data = [{ id: '1', name: 'Alpine House', location: 'Zone A', size: '50sqm' }];
-    (greenHouseViewModel.data$ as BehaviorSubject<any>).next(data);
+    (greenHouseViewModel.data$ as WritableSignal<any>).set(data);
     expect(state.greenHouses).toEqual(data);
   });
 });
@@ -699,15 +702,15 @@ describe('attachGreenhouseFormListeners', () => {
 
 ## Dos and Don'ts
 
-**Do** subscribe to ViewModel observables before calling `fetchCommand.execute()`. If you subscribe after the first emission, you miss it.
+**Do** subscribe to ViewModel signals before calling `fetchCommand.execute()`. `sig.subscribe()` only fires on future changes — if you subscribe after the fetch resolves, you miss that change entirely.
 
 ```typescript
 // Correct order
 subscribeToUpdates();       // subscriptions registered
-await fetchCommand.execute(); // first emission received by subscriber
+await fetchCommand.execute(); // resulting change received by subscriber
 
 // Wrong order
-await fetchCommand.execute(); // emits — nobody listening yet
+await fetchCommand.execute(); // data$ changes — nobody listening yet
 subscribeToUpdates();       // subscriber registered too late
 ```
 
@@ -762,7 +765,7 @@ greenHouseViewModel.deleteCommand.execute(id);
 
 ---
 
-**Don't** subscribe to the same observable multiple times. `subscribeToUpdates()` is called once in `main.ts`. Calling it again creates duplicate subscriptions that fire the same handlers twice.
+**Don't** subscribe to the same signal multiple times. `subscribeToUpdates()` is called once in `main.ts`. Calling it again creates duplicate subscriptions that fire the same handlers twice.
 
 ```typescript
 // Wrong — called twice means double renders
@@ -780,15 +783,15 @@ export function subscribeToUpdates() {
 
 ---
 
-**Don't** read from ViewModel observables imperatively with `.getValue()` for rendering. Subscribe so the UI automatically updates when data changes.
+**Don't** read from ViewModel signals imperatively with `.peek()` for rendering. Use `observe()` so the UI automatically updates when data changes.
 
 ```typescript
 // Wrong — stale snapshot, won't update when data changes
-const greenHouses = greenHouseViewModel.data$.getValue();
+const greenHouses = greenHouseViewModel.data$.peek();
 app.innerHTML = renderGreenhouseList(greenHouses);
 
-// Correct — subscribe and re-render on change
-greenHouseViewModel.data$.subscribe((greenHouses) => {
+// Correct — observe and re-render on change (and on the initial value)
+observe(greenHouseViewModel.data$, (greenHouses) => {
   state.greenHouses = greenHouses ?? [];
   renderTemplate(path, { greenHouses }).then((html) => (app.innerHTML = html));
 });
@@ -800,6 +803,6 @@ greenHouseViewModel.data$.subscribe((greenHouses) => {
 
 - [ViewModels](/docs/viewmodels) — the full ViewModel API: Commands, RestfulApiViewModel, lifecycle
 - [Models](/docs/models) — how Models fetch, cache, and own reactive data
-- [MVVM in React](/docs/mvvm-react-use-case) — React integration with `useObservable` and `useSyncExternalStore`
+- [MVVM in React](/docs/mvvm-react-use-case) — React integration with `useSignal` and `useSyncExternalStore`
 - [MVVM in Vue](/docs/mvvm-vue-use-case) — Vue 3 composable-based integration
-- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular async pipe and Signals integration
+- [MVVM in Angular](/docs/mvvm-angular-use-case) — Angular DI and signal bridging

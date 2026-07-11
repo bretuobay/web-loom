@@ -26,7 +26,7 @@ export class LegendManager {
   constructor(
     private config: LegendConfig,
     private onToggle: (seriesId: string, visible: boolean) => void,
-    private onHover: (seriesId: string | null) => void
+    private onHover: (seriesId: string | null) => void,
   ) {}
 
   render(parentContainer: HTMLElement, series: SeriesConfig[]): void {

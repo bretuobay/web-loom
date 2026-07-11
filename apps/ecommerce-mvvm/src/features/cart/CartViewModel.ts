@@ -1,6 +1,6 @@
 import { Command } from '@web-loom/mvvm-core';
 import { ActiveAwareViewModel, ConfirmationRequest, NotificationRequest } from '@web-loom/mvvm-patterns';
-import { computed, signal, type ReadonlySignal } from '@web-loom/signals-core';
+import { computed, observe, signal, type ReadonlySignal } from '@web-loom/signals-core';
 import { createFormBehavior, type FormBehavior } from '@web-loom/ui-core';
 import type { CartDto, CheckoutRequestDto } from '../../infrastructure/api/ports/ecommerce-api-port';
 import { emptyCart } from '../../infrastructure/api/ports/ecommerce-api-port';
@@ -162,7 +162,7 @@ export class CartViewModel extends ActiveAwareViewModel<CartModel> {
     super(model);
 
     this.addSubscription(
-      this.model.data$.subscribe((cart) => {
+      observe(this.model.data$, (cart) => {
         this.cartState.set(cart ?? emptyCart());
       }),
     );

@@ -1,9 +1,9 @@
 import { navigationViewModel } from '@repo/shared/view-models/NavigationViewModel';
 import { Link } from 'react-router-dom';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 export const Header = () => {
-  const navigation = useObservable(navigationViewModel.navigationList.items$, []);
+  const navigation = useSignal(navigationViewModel.navigationList.items$);
   return (
     <header className="header">
       <Link to="/" className="header-item">

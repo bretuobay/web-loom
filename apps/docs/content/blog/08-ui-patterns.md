@@ -53,12 +53,14 @@ masterDetail.destroy();
 ```
 
 The pattern handles:
+
 - Which item is selected
 - Previous/next navigation (keyboard arrow keys, navigation buttons)
 - Whether there's a previous or next item (for disabling navigation buttons)
 - Emitting typed events when selection changes
 
 You handle:
+
 - Rendering the list
 - Rendering the detail panel
 - The layout (two-column, overlay, drawer, etc.)
@@ -67,21 +69,22 @@ You handle:
 ```tsx
 // React example
 function ProductBrowser() {
-  const products = useObservable(vm.products$, []);
+  const products = useSignal(vm.products$);
   const [detail, setDetail] = useState<Product | null>(null);
-  const masterDetail = useMemo(() =>
-    createMasterDetail({ items: products, getId: p => p.id }), [products]
-  );
+  const masterDetail = useMemo(() => createMasterDetail({ items: products, getId: (p) => p.id }), [products]);
 
   useEffect(() => {
     const unsub = masterDetail.eventBus.on('item:selected', setDetail);
-    return () => { unsub(); masterDetail.destroy(); };
+    return () => {
+      unsub();
+      masterDetail.destroy();
+    };
   }, [masterDetail]);
 
   return (
     <div className="flex">
       <aside className="w-64 border-r">
-        {products.map(p => (
+        {products.map((p) => (
           <button
             key={p.id}
             className={detail?.id === p.id ? 'bg-blue-50' : ''}
@@ -92,9 +95,7 @@ function ProductBrowser() {
         ))}
       </aside>
 
-      <main className="flex-1 p-6">
-        {detail ? <ProductDetail product={detail} /> : <EmptyState />}
-      </main>
+      <main className="flex-1 p-6">{detail ? <ProductDetail product={detail} /> : <EmptyState />}</main>
     </div>
   );
 }
@@ -111,10 +112,10 @@ import { createWizard } from '@web-loom/ui-patterns';
 
 const wizard = createWizard({
   steps: [
-    { id: 'account',  label: 'Account Details',  canSkip: false },
-    { id: 'profile',  label: 'Profile',           canSkip: true  },
-    { id: 'billing',  label: 'Payment',           canSkip: false },
-    { id: 'review',   label: 'Review & Submit',   canSkip: false },
+    { id: 'account', label: 'Account Details', canSkip: false },
+    { id: 'profile', label: 'Profile', canSkip: true },
+    { id: 'billing', label: 'Payment', canSkip: false },
+    { id: 'review', label: 'Review & Submit', canSkip: false },
   ],
   onComplete: async (collectedData) => {
     await api.onboard(collectedData);
@@ -125,25 +126,17 @@ const wizard = createWizard({
 });
 
 // Navigation
-await wizard.actions.next();          // validates current step, advances if valid
-await wizard.actions.previous();      // always goes back
-wizard.actions.goToStep('profile');   // jump navigation (if allowed)
-wizard.actions.skip();                // skip current step (if canSkip)
+await wizard.actions.next(); // validates current step, advances if valid
+await wizard.actions.previous(); // always goes back
+wizard.actions.goToStep('profile'); // jump navigation (if allowed)
+wizard.actions.skip(); // skip current step (if canSkip)
 
 // Data collection
 wizard.actions.setStepData('account', { email: 'user@example.com', password: '...' });
 
 // State
-const {
-  currentStep,
-  steps,
-  currentIndex,
-  isFirstStep,
-  isLastStep,
-  completedSteps,
-  collectedData,
-  isCompleting,
-} = wizard.getState();
+const { currentStep, steps, currentIndex, isFirstStep, isLastStep, completedSteps, collectedData, isCompleting } =
+  wizard.getState();
 ```
 
 The validation hook:
@@ -196,7 +189,7 @@ const palette = createCommandPalette({
       action: () => themeStore.actions.toggleMode(),
     },
   ],
-  onOpen:  () => analytics.track('command_palette_opened'),
+  onOpen: () => analytics.track('command_palette_opened'),
   onClose: () => {},
 });
 
@@ -205,10 +198,10 @@ palette.actions.open();
 palette.actions.close();
 
 // Navigation (keyboard integration)
-palette.actions.setQuery('new');    // fuzzy filter
+palette.actions.setQuery('new'); // fuzzy filter
 palette.actions.moveDown();
 palette.actions.moveUp();
-palette.actions.execute();          // execute selected command
+palette.actions.execute(); // execute selected command
 
 // State
 const { isOpen, query, filteredCommands, selectedIndex } = palette.getState();
@@ -224,16 +217,19 @@ function CommandPaletteOverlay() {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50" onClick={palette.close}>
-      <div className="mx-auto mt-20 w-full max-w-lg bg-white rounded-xl shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div
+        className="mx-auto mt-20 w-full max-w-lg bg-white rounded-xl shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <input
           autoFocus
           value={palette.query}
-          onChange={e => palette.setQuery(e.target.value)}
-          onKeyDown={e => {
+          onChange={(e) => palette.setQuery(e.target.value)}
+          onKeyDown={(e) => {
             if (e.key === 'ArrowDown') palette.moveDown();
-            if (e.key === 'ArrowUp')   palette.moveUp();
-            if (e.key === 'Enter')     palette.execute();
-            if (e.key === 'Escape')    palette.close();
+            if (e.key === 'ArrowUp') palette.moveUp();
+            if (e.key === 'Enter') palette.execute();
+            if (e.key === 'Escape') palette.close();
           }}
           placeholder="Type a command..."
           className="w-full px-4 py-3 border-b outline-none"
@@ -300,7 +296,7 @@ import { createTabbedInterface } from '@web-loom/ui-patterns';
 
 const tabs = createTabbedInterface({
   tabs: [
-    { id: 'details',  label: 'Details'  },
+    { id: 'details', label: 'Details' },
     { id: 'activity', label: 'Activity' },
     { id: 'settings', label: 'Settings' },
   ],
@@ -345,13 +341,13 @@ Patterns are UI behaviour — they belong in the View layer or in a ViewModel th
 They communicate through the ViewModel when business actions need to happen:
 
 ```typescript
+import { computed } from '@web-loom/signals-core';
+
 class ProductBrowserViewModel extends BaseViewModel<ProductModel> {
   // Business logic
-  readonly products$ = this.data$.pipe(map(data => data ?? []));
+  readonly products$ = computed(() => this.data$.get() ?? []);
   readonly loadCommand = this.registerCommand(new Command(() => this.model.fetchAll()));
-  readonly deleteCommand = this.registerCommand(
-    new Command((id: string) => this.model.delete(id))
-  );
+  readonly deleteCommand = this.registerCommand(new Command((id: string) => this.model.delete(id)));
 
   // UI pattern — created once, lives with the ViewModel
   readonly masterDetail = createMasterDetail({
@@ -364,9 +360,9 @@ class ProductBrowserViewModel extends BaseViewModel<ProductModel> {
 
     // Keep the pattern's items in sync with the model's data
     this.addSubscription(
-      this.products$.subscribe(products => {
+      this.products$.subscribe((products) => {
         this.masterDetail.actions.setItems(products);
-      })
+      }),
     );
   }
 

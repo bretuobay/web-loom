@@ -93,4 +93,26 @@ describe('signal', () => {
     s.set(1);
     expect(fn).toHaveBeenCalledTimes(1);
   });
+
+  it('delivers the new value to subscribers', () => {
+    const s = signal('a');
+    const fn = vi.fn();
+    s.subscribe(fn);
+    s.set('b');
+    expect(fn).toHaveBeenCalledWith('b');
+    s.set('c');
+    expect(fn).toHaveBeenLastCalledWith('c');
+  });
+
+  it('unsubscribing one value listener does not affect another', () => {
+    const s = signal(0);
+    const a = vi.fn();
+    const b = vi.fn();
+    const unsubA = s.subscribe(a);
+    s.subscribe(b);
+    unsubA();
+    s.set(1);
+    expect(a).not.toHaveBeenCalled();
+    expect(b).toHaveBeenCalledWith(1);
+  });
 });

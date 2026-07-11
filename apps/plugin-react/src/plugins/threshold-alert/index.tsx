@@ -2,11 +2,11 @@ import React, { useEffect } from 'react';
 import type { PluginModule, PluginSDK } from '@repo/plugin-core';
 import { registerManifestContributions, unregisterManifestContributions } from '../utils/manifestHelpers';
 import ThresholdAlertCard from '../../components/ThresholdAlertCard';
-import { thresholdAlertViewModel, type ThresholdAlertListData } from '@repo/view-models/ThresholdAlertViewModel';
-import { useObservable } from '../../hooks/useObservable';
+import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
+import { useSignal } from '../../hooks/useSignal';
 
 const ThresholdAlertWidget: React.FC = () => {
-  const alerts = useObservable(thresholdAlertViewModel.data$, null as ThresholdAlertListData | null);
+  const alerts = useSignal(thresholdAlertViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {

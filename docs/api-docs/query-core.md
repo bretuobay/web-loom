@@ -69,6 +69,7 @@ The main class that manages all defined endpoints and global configurations.
 **Purpose**: Central hub for endpoint definitions, cache management, and subscriptions.
 
 **Key Responsibilities**:
+
 - Endpoint registration and lifecycle management
 - Cache provider orchestration
 - Subscription management
@@ -82,6 +83,7 @@ Unique keys that represent data sources with associated fetcher functions.
 **Purpose**: Define where and how data is fetched.
 
 **Characteristics**:
+
 - Unique string identifier
 - Async fetcher function
 - Optional configuration (refetchAfter, cacheProvider)
@@ -94,6 +96,7 @@ The current state of an endpoint including data, loading, error, and metadata.
 **Purpose**: Reactive state that drives UI updates.
 
 **Properties**:
+
 - `data`: The fetched data (undefined if not yet fetched)
 - `isLoading`: True during fetch operations
 - `isError`: True if last fetch failed
@@ -107,6 +110,7 @@ Storage mechanisms for persisting endpoint data between sessions.
 **Purpose**: Enable offline support and reduce redundant network requests.
 
 **Built-in Providers**:
+
 - **InMemoryCacheProvider**: Fast, volatile cache (default)
 - **LocalStorageCacheProvider**: Persistent browser storage
 - **IndexedDBCacheProvider**: Large-scale persistent storage
@@ -118,15 +122,18 @@ Storage mechanisms for persisting endpoint data between sessions.
 QueryCore automatically handles common data synchronization patterns.
 
 **Stale-while-revalidate**:
+
 - Return cached data immediately
 - Refetch in background if stale
 - Update subscribers with fresh data
 
 **Window Focus Refetch**:
+
 - Refetch observed endpoints when tab gains focus
 - Keep data fresh for active users
 
 **Network Reconnect**:
+
 - Refetch all observed endpoints on reconnection
 - Recover from offline periods
 
@@ -145,16 +152,18 @@ constructor(options?: QueryCoreOptions)
 ```
 
 **Parameters**:
+
 - `options.cacheProvider?: 'inMemory' | 'localStorage' | 'indexedDB' | CacheProvider`
   - Default cache provider for all endpoints (default: 'inMemory')
 - `options.defaultRefetchAfter?: number`
   - Global default for staleness threshold in milliseconds
 
 **Example**:
+
 ```typescript
 const queryCore = new QueryCore({
   cacheProvider: 'indexedDB',
-  defaultRefetchAfter: 5 * 60 * 1000 // 5 minutes
+  defaultRefetchAfter: 5 * 60 * 1000, // 5 minutes
 });
 ```
 
@@ -173,14 +182,16 @@ async defineEndpoint<TData>(
 ```
 
 **Parameters**:
+
 - `endpointKey: string` - Unique identifier for the endpoint
 - `fetcher: () => Promise<TData>` - Async function returning data
 - `options?: EndpointOptions` - Endpoint-specific configuration
 
 **EndpointOptions**:
+
 ```typescript
 interface EndpointOptions {
-  refetchAfter?: number;        // Staleness threshold (ms)
+  refetchAfter?: number; // Staleness threshold (ms)
   cacheProvider?: 'inMemory' | 'localStorage' | 'indexedDB' | CacheProvider;
 }
 ```
@@ -188,23 +199,30 @@ interface EndpointOptions {
 **Returns**: `Promise<void>` (async due to cache initialization)
 
 **Example**:
+
 ```typescript
-await queryCore.defineEndpoint('users', async () => {
-  const response = await fetch('https://api.example.com/users');
-  if (!response.ok) throw new Error('Failed to fetch users');
-  return response.json();
-}, {
-  refetchAfter: 10 * 60 * 1000, // 10 minutes
-  cacheProvider: 'localStorage'
-});
+await queryCore.defineEndpoint(
+  'users',
+  async () => {
+    const response = await fetch('https://api.example.com/users');
+    if (!response.ok) throw new Error('Failed to fetch users');
+    return response.json();
+  },
+  {
+    refetchAfter: 10 * 60 * 1000, // 10 minutes
+    cacheProvider: 'localStorage',
+  },
+);
 ```
 
 **Behavior**:
+
 - If endpoint exists, replaces the fetcher and options
 - Loads initial state from cache if available
 - Does NOT automatically fetch data (use subscribe or refetch)
 
 **Best Practices**:
+
 - Define endpoints early in application lifecycle
 - Use descriptive, unique endpoint keys
 - Include error handling in fetcher functions
@@ -224,18 +242,21 @@ subscribe<TData>(
 ```
 
 **Parameters**:
+
 - `endpointKey: string` - The endpoint to subscribe to
 - `callback: (state: EndpointState<TData>) => void` - Function called on state changes
 
 **Returns**: `() => void` - Unsubscribe function
 
 **Behavior**:
+
 - Immediately invokes callback with current state
 - Automatically refetches if data is stale or missing
 - Adds endpoint to "observed" set for automatic refetching
 - Returns function to unsubscribe
 
 **Example**:
+
 ```typescript
 const unsubscribe = queryCore.subscribe('users', (state) => {
   if (state.isLoading) {
@@ -253,6 +274,7 @@ unsubscribe();
 ```
 
 **State Properties**:
+
 ```typescript
 interface EndpointState<TData> {
   data: TData | undefined;
@@ -264,6 +286,7 @@ interface EndpointState<TData> {
 ```
 
 **Best Practices**:
+
 - Always call unsubscribe when component unmounts
 - Handle all state conditions (loading, error, success)
 - Use TypeScript generics for type safety
@@ -283,18 +306,21 @@ async refetch<TData>(
 ```
 
 **Parameters**:
+
 - `endpointKey: string` - The endpoint to refetch
 - `forceRefetch: boolean` - If true, refetch regardless of staleness (default: false)
 
 **Returns**: `Promise<void>`
 
 **Behavior**:
+
 - If `forceRefetch` is true, always fetches fresh data
 - If `forceRefetch` is false, only fetches if data is stale or missing
 - Ignores concurrent refetch requests for same endpoint
 - Updates cache and notifies all subscribers
 
 **Example**:
+
 ```typescript
 // Refetch only if stale
 await queryCore.refetch('users');
@@ -304,12 +330,14 @@ await queryCore.refetch('users', true);
 ```
 
 **Use Cases**:
+
 - Manual refresh buttons
 - Pull-to-refresh gestures
 - After mutations that affect endpoint data
 - Periodic background updates
 
 **Error Handling**:
+
 ```typescript
 try {
   await queryCore.refetch('users', true);
@@ -330,29 +358,34 @@ async invalidate(endpointKey: string): Promise<void>
 ```
 
 **Parameters**:
+
 - `endpointKey: string` - The endpoint to invalidate
 
 **Returns**: `Promise<void>` (async due to cache operations)
 
 **Behavior**:
+
 - Clears data from cache provider
 - Resets endpoint state to initial (no data, no error)
 - Does NOT automatically refetch data
 - Notifies all subscribers of state change
 
 **Example**:
+
 ```typescript
 await queryCore.invalidate('users');
 console.log('User cache cleared');
 ```
 
 **Use Cases**:
+
 - After logout (clear all user data)
 - After critical errors requiring fresh data
 - Clearing stale data on app start
 - Testing and debugging
 
 **Best Practice**:
+
 ```typescript
 // Invalidate and refetch
 await queryCore.invalidate('users');
@@ -370,17 +403,20 @@ getState<TData>(endpointKey: string): EndpointState<TData>
 ```
 
 **Parameters**:
+
 - `endpointKey: string` - The endpoint key
 
 **Returns**: `EndpointState<TData>` - Current state snapshot
 
 **Behavior**:
+
 - Returns a copy of the current state
 - Does NOT subscribe to changes
 - Does NOT trigger refetch
 - Returns default initial state if endpoint not defined
 
 **Example**:
+
 ```typescript
 const state = queryCore.getState<User[]>('users');
 if (state.data) {
@@ -389,6 +425,7 @@ if (state.data) {
 ```
 
 **Default State** (if endpoint not defined):
+
 ```typescript
 {
   data: undefined,
@@ -400,6 +437,7 @@ if (state.data) {
 ```
 
 **Use Cases**:
+
 - Conditional logic based on current state
 - Debugging and logging
 - One-time state checks
@@ -414,23 +452,26 @@ if (state.data) {
 Fast, volatile cache stored in JavaScript memory.
 
 **Characteristics**:
+
 - Fastest performance
 - Lost on page refresh
 - No size limits (within memory constraints)
 - Default provider
 
 **Example**:
+
 ```typescript
 import { InMemoryCacheProvider } from '@web-loom/query-core';
 
 const cache = new InMemoryCacheProvider();
 
 const queryCore = new QueryCore({
-  cacheProvider: cache
+  cacheProvider: cache,
 });
 ```
 
 **Use Cases**:
+
 - Short-lived data
 - High-frequency reads
 - Testing environments
@@ -442,36 +483,40 @@ const queryCore = new QueryCore({
 Persistent storage using browser localStorage.
 
 **Characteristics**:
+
 - Persists across sessions
 - ~5-10MB storage limit (browser dependent)
 - Synchronous API (fast)
 - JSON serialization
 
 **Example**:
+
 ```typescript
 import { LocalStorageCacheProvider } from '@web-loom/query-core';
 
 const cache = new LocalStorageCacheProvider();
 
 const queryCore = new QueryCore({
-  cacheProvider: cache
+  cacheProvider: cache,
 });
 
 // Or per-endpoint
 await queryCore.defineEndpoint('users', fetchUsers, {
-  cacheProvider: 'localStorage'
+  cacheProvider: 'localStorage',
 });
 ```
 
 **Storage Key Format**: `querycore:${endpointKey}`
 
 **Use Cases**:
+
 - User preferences
 - Authentication tokens
 - Small datasets
 - Cross-tab synchronization
 
 **Limitations**:
+
 - Storage quota errors if full
 - Synchronous blocking on large data
 - String-only storage (JSON serialization overhead)
@@ -483,39 +528,45 @@ await queryCore.defineEndpoint('users', fetchUsers, {
 Large-scale persistent storage using IndexedDB.
 
 **Characteristics**:
+
 - Persists across sessions
 - ~50MB+ storage (can request more)
 - Asynchronous API
 - Supports complex data types
 
 **Example**:
+
 ```typescript
 import { IndexedDBCacheProvider } from '@web-loom/query-core';
 
 const cache = new IndexedDBCacheProvider('my-app-db');
 
 const queryCore = new QueryCore({
-  cacheProvider: cache
+  cacheProvider: cache,
 });
 ```
 
 **Constructor**:
+
 ```typescript
 constructor(databaseName: string = 'QueryCoreDB')
 ```
 
 **Database Structure**:
+
 - Database name: Provided or 'QueryCoreDB'
 - Object store: 'cache'
 - Key path: endpoint key
 
 **Use Cases**:
+
 - Large datasets (images, documents)
 - Offline-first applications
 - Complex data structures
 - High-volume caching
 
 **Best Practices**:
+
 - Use unique database names per application
 - Handle quota errors gracefully
 - Consider cleanup strategies for old data
@@ -527,6 +578,7 @@ constructor(databaseName: string = 'QueryCoreDB')
 Implement custom storage by adhering to the `CacheProvider` interface.
 
 **Interface**:
+
 ```typescript
 interface CachedItem<TData> {
   data: TData;
@@ -585,7 +637,7 @@ class CompressionCacheProvider implements CacheProvider {
     const json = pako.inflate(compressed.data, { to: 'string' });
     return {
       data: JSON.parse(json),
-      lastUpdated: compressed.lastUpdated
+      lastUpdated: compressed.lastUpdated,
     };
   }
 
@@ -595,7 +647,7 @@ class CompressionCacheProvider implements CacheProvider {
 
     await this.baseProvider.set(key, {
       data: compressed,
-      lastUpdated: item.lastUpdated
+      lastUpdated: item.lastUpdated,
     });
   }
 
@@ -619,11 +671,13 @@ When a component subscribes to an endpoint:
 4. **Update subscribers** once fresh data arrives
 
 **Benefits**:
+
 - Instant UI updates with cached data
 - Fresh data without loading spinners
 - Optimal user experience
 
 **Example**:
+
 ```typescript
 // First subscription - no cache
 queryCore.subscribe('users', (state) => {
@@ -651,22 +705,25 @@ When the browser window regains focus:
 3. **Update subscribers** with fresh data
 
 **Configuration**:
+
 ```typescript
 await queryCore.defineEndpoint('users', fetchUsers, {
-  refetchAfter: 60 * 1000 // Refetch if older than 1 minute
+  refetchAfter: 60 * 1000, // Refetch if older than 1 minute
 });
 ```
 
 **Behavior**:
+
 - User switches to another tab for 2 minutes
 - Returns to your app
 - QueryCore automatically refetches stale data
 - UI updates with fresh data
 
 **Disable for specific endpoints**:
+
 ```typescript
 await queryCore.defineEndpoint('static-data', fetchData, {
-  refetchAfter: Infinity // Never consider stale
+  refetchAfter: Infinity, // Never consider stale
 });
 ```
 
@@ -681,11 +738,13 @@ When the browser goes from offline to online:
 3. **Update subscribers** with fresh data
 
 **Use Cases**:
+
 - Mobile apps with spotty connections
 - Offline-first applications
 - Recovery from network failures
 
 **Example**:
+
 ```typescript
 // App goes offline
 // ... user actions cached locally
@@ -707,13 +766,8 @@ When the browser goes from offline to online:
 import { useState, useEffect } from 'react';
 import QueryCore, { EndpointState } from '@web-loom/query-core';
 
-function useQuery<TData>(
-  queryCore: QueryCore,
-  endpointKey: string
-): EndpointState<TData> {
-  const [state, setState] = useState<EndpointState<TData>>(
-    () => queryCore.getState<TData>(endpointKey)
-  );
+function useQuery<TData>(queryCore: QueryCore, endpointKey: string): EndpointState<TData> {
+  const [state, setState] = useState<EndpointState<TData>>(() => queryCore.getState<TData>(endpointKey));
 
   useEffect(() => {
     const unsubscribe = queryCore.subscribe<TData>(endpointKey, setState);
@@ -727,6 +781,7 @@ export default useQuery;
 ```
 
 **Usage**:
+
 ```typescript
 import { FC } from 'react';
 import useQuery from './hooks/useQuery';
@@ -812,13 +867,8 @@ const UserList: FC = () => {
 import { ref, onMounted, onUnmounted } from 'vue';
 import QueryCore, { EndpointState } from '@web-loom/query-core';
 
-export function useQuery<TData>(
-  queryCore: QueryCore,
-  endpointKey: string
-) {
-  const state = ref<EndpointState<TData>>(
-    queryCore.getState<TData>(endpointKey)
-  );
+export function useQuery<TData>(queryCore: QueryCore, endpointKey: string) {
+  const state = ref<EndpointState<TData>>(queryCore.getState<TData>(endpointKey));
 
   let unsubscribe: (() => void) | undefined;
 
@@ -838,12 +888,13 @@ export function useQuery<TData>(
   return {
     state,
     refetch,
-    invalidate
+    invalidate,
   };
 }
 ```
 
 **Usage**:
+
 ```vue
 <script setup lang="ts">
 import { useQuery } from './composables/useQuery';
@@ -886,20 +937,15 @@ import QueryCore, { EndpointState } from '@web-loom/query-core';
 
 @Injectable()
 export class QueryService<TData> implements OnDestroy {
-  private state$ = new BehaviorSubject<EndpointState<TData>>(
-    this.queryCore.getState<TData>(this.endpointKey)
-  );
+  private state$ = new BehaviorSubject<EndpointState<TData>>(this.queryCore.getState<TData>(this.endpointKey));
 
   private unsubscribe?: () => void;
 
   constructor(
     private queryCore: QueryCore,
-    private endpointKey: string
+    private endpointKey: string,
   ) {
-    this.unsubscribe = this.queryCore.subscribe<TData>(
-      this.endpointKey,
-      (state) => this.state$.next(state)
-    );
+    this.unsubscribe = this.queryCore.subscribe<TData>(this.endpointKey, (state) => this.state$.next(state));
   }
 
   get state(): Observable<EndpointState<TData>> {
@@ -921,6 +967,7 @@ export class QueryService<TData> implements OnDestroy {
 ```
 
 **Component**:
+
 ```typescript
 import { Component, OnInit } from '@angular/core';
 import { QueryService } from './query.service';
@@ -930,14 +977,12 @@ import { QueryService } from './query.service';
   template: `
     <button (click)="refetch()">Refresh</button>
     <div *ngIf="(queryService.state | async)?.isLoading">Loading...</div>
-    <div *ngIf="(queryService.state | async)?.isError as error">
-      Error: {{ error.message }}
-    </div>
+    <div *ngIf="(queryService.state | async)?.isError as error">Error: {{ error.message }}</div>
     <ul *ngIf="(queryService.state | async)?.data as users">
       <li *ngFor="let user of users">{{ user.name }}</li>
     </ul>
   `,
-  providers: [QueryService]
+  providers: [QueryService],
 })
 export class UserListComponent {
   constructor(public queryService: QueryService<User[]>) {}
@@ -955,7 +1000,7 @@ export class UserListComponent {
 ```javascript
 const queryCore = new QueryCore({
   cacheProvider: 'localStorage',
-  defaultRefetchAfter: 5 * 60 * 1000
+  defaultRefetchAfter: 5 * 60 * 1000,
 });
 
 // Define endpoint
@@ -973,9 +1018,7 @@ const unsubscribe = queryCore.subscribe('users', (state) => {
   } else if (state.isError) {
     container.innerHTML = `<div>Error: ${state.error.message}</div>`;
   } else if (state.data) {
-    container.innerHTML = state.data
-      .map(user => `<li>${user.name}</li>`)
-      .join('');
+    container.innerHTML = state.data.map((user) => `<li>${user.name}</li>`).join('');
   }
 });
 
@@ -1021,7 +1064,7 @@ unsubscribe();
 
 ```typescript
 const queryCore = new QueryCore({
-  defaultRefetchAfter: 5 * 60 * 1000
+  defaultRefetchAfter: 5 * 60 * 1000,
 });
 
 // User endpoint
@@ -1037,12 +1080,16 @@ await queryCore.defineEndpoint('posts', async () => {
 });
 
 // Comments endpoint with longer cache
-await queryCore.defineEndpoint('comments', async () => {
-  const res = await fetch('/api/comments');
-  return res.json();
-}, {
-  refetchAfter: 30 * 60 * 1000 // 30 minutes
-});
+await queryCore.defineEndpoint(
+  'comments',
+  async () => {
+    const res = await fetch('/api/comments');
+    return res.json();
+  },
+  {
+    refetchAfter: 30 * 60 * 1000, // 30 minutes
+  },
+);
 
 // Subscribe to all
 const unsubUsers = queryCore.subscribe('users', handleUsers);
@@ -1132,7 +1179,7 @@ async function addTodo(title: string): Promise<void> {
   const optimisticTodo: Todo = {
     id: `temp-${Date.now()}`,
     title,
-    completed: false
+    completed: false,
   };
 
   // Update cache optimistically
@@ -1143,7 +1190,7 @@ async function addTodo(title: string): Promise<void> {
     const res = await fetch('/api/todos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title })
+      body: JSON.stringify({ title }),
     });
 
     if (!res.ok) throw new Error('Failed to add todo');
@@ -1167,10 +1214,7 @@ await addTodo('New task');
 
 ```typescript
 // Poll endpoint every 10 seconds
-function pollEndpoint(
-  endpointKey: string,
-  intervalMs: number
-): () => void {
+function pollEndpoint(endpointKey: string, intervalMs: number): () => void {
   const intervalId = setInterval(() => {
     queryCore.refetch(endpointKey, true);
   }, intervalMs);
@@ -1207,7 +1251,7 @@ async function loadNextPage() {
 
     return {
       items: allData,
-      hasMore: page.nextCursor !== null
+      hasMore: page.nextCursor !== null,
     };
   });
 
@@ -1260,15 +1304,15 @@ initializeQueryCore();
 ```typescript
 // ✅ Good - Match cache to data characteristics
 await queryCore.defineEndpoint('user-profile', fetchProfile, {
-  cacheProvider: 'localStorage' // Small, important data
+  cacheProvider: 'localStorage', // Small, important data
 });
 
 await queryCore.defineEndpoint('images', fetchImages, {
-  cacheProvider: 'indexedDB' // Large binary data
+  cacheProvider: 'indexedDB', // Large binary data
 });
 
 await queryCore.defineEndpoint('live-data', fetchLiveData, {
-  cacheProvider: 'inMemory' // Volatile, real-time data
+  cacheProvider: 'inMemory', // Volatile, real-time data
 });
 ```
 
@@ -1279,15 +1323,15 @@ await queryCore.defineEndpoint('live-data', fetchLiveData, {
 ```typescript
 // ✅ Good - Tune refetchAfter based on data volatility
 await queryCore.defineEndpoint('stock-prices', fetchStocks, {
-  refetchAfter: 30 * 1000 // 30 seconds - highly volatile
+  refetchAfter: 30 * 1000, // 30 seconds - highly volatile
 });
 
 await queryCore.defineEndpoint('user-settings', fetchSettings, {
-  refetchAfter: 30 * 60 * 1000 // 30 minutes - rarely changes
+  refetchAfter: 30 * 60 * 1000, // 30 minutes - rarely changes
 });
 
 await queryCore.defineEndpoint('app-config', fetchConfig, {
-  refetchAfter: Infinity // Never refetch automatically
+  refetchAfter: Infinity, // Never refetch automatically
 });
 ```
 
@@ -1372,7 +1416,7 @@ async function deleteUser(userId: string) {
 // Even better - use optimistic updates
 async function deleteUserOptimistic(userId: string) {
   const currentState = queryCore.getState<User[]>('users');
-  const newData = currentState.data?.filter(u => u.id !== userId);
+  const newData = currentState.data?.filter((u) => u.id !== userId);
 
   try {
     await fetch(`/api/users/${userId}`, { method: 'DELETE' });
@@ -1479,14 +1523,8 @@ async function prefetchUserProfile(userId: string) {
 ### Pattern 3: Conditional Fetching
 
 ```typescript
-function useConditionalQuery<TData>(
-  queryCore: QueryCore,
-  endpointKey: string,
-  enabled: boolean
-): EndpointState<TData> {
-  const [state, setState] = useState<EndpointState<TData>>(
-    () => queryCore.getState<TData>(endpointKey)
-  );
+function useConditionalQuery<TData>(queryCore: QueryCore, endpointKey: string, enabled: boolean): EndpointState<TData> {
+  const [state, setState] = useState<EndpointState<TData>>(() => queryCore.getState<TData>(endpointKey));
 
   useEffect(() => {
     if (!enabled) return;
@@ -1499,11 +1537,7 @@ function useConditionalQuery<TData>(
 }
 
 // Usage: Only fetch when userId is available
-const { data } = useConditionalQuery(
-  queryCore,
-  'user-profile',
-  !!userId
-);
+const { data } = useConditionalQuery(queryCore, 'user-profile', !!userId);
 ```
 
 ---
@@ -1517,10 +1551,7 @@ interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-function usePaginatedQuery<T>(
-  baseKey: string,
-  page: number
-) {
+function usePaginatedQuery<T>(baseKey: string, page: number) {
   const endpointKey = `${baseKey}:page:${page}`;
 
   useEffect(() => {
@@ -1548,7 +1579,7 @@ class QueryCoreWithErrorHandling extends QueryCore {
   async defineEndpoint<TData>(
     endpointKey: string,
     fetcher: () => Promise<TData>,
-    options?: EndpointOptions
+    options?: EndpointOptions,
   ): Promise<void> {
     const wrappedFetcher = async () => {
       try {
@@ -1570,25 +1601,20 @@ class QueryCoreWithErrorHandling extends QueryCore {
 ### Retry Logic
 
 ```typescript
-async function fetchWithRetry<T>(
-  fetcher: () => Promise<T>,
-  maxRetries = 3
-): Promise<T> {
+async function fetchWithRetry<T>(fetcher: () => Promise<T>, maxRetries = 3): Promise<T> {
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await fetcher();
     } catch (error) {
       if (i === maxRetries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)));
     }
   }
   throw new Error('Max retries exceeded');
 }
 
 // Usage
-await queryCore.defineEndpoint('users', () =>
-  fetchWithRetry(() => fetch('/api/users').then(r => r.json()))
-);
+await queryCore.defineEndpoint('users', () => fetchWithRetry(() => fetch('/api/users').then((r) => r.json())));
 ```
 
 ---
@@ -1596,9 +1622,7 @@ await queryCore.defineEndpoint('users', () =>
 ### Middleware Pattern
 
 ```typescript
-type FetcherMiddleware = <T>(
-  fetcher: () => Promise<T>
-) => () => Promise<T>;
+type FetcherMiddleware = <T>(fetcher: () => Promise<T>) => () => Promise<T>;
 
 const loggingMiddleware: FetcherMiddleware = (fetcher) => {
   return async () => {
@@ -1618,10 +1642,7 @@ const cacheBustingMiddleware: FetcherMiddleware = (fetcher) => {
 };
 
 // Apply middleware
-await queryCore.defineEndpoint(
-  'users',
-  cacheBustingMiddleware(loggingMiddleware(fetchUsers))
-);
+await queryCore.defineEndpoint('users', cacheBustingMiddleware(loggingMiddleware(fetchUsers)));
 ```
 
 ---
@@ -1635,7 +1656,7 @@ await queryCore.defineEndpoint(
 ```typescript
 // Check cache provider
 const queryCore = new QueryCore({
-  cacheProvider: 'localStorage' // Explicitly set
+  cacheProvider: 'localStorage', // Explicitly set
 });
 ```
 
@@ -1647,7 +1668,7 @@ const queryCore = new QueryCore({
 
 ```typescript
 await queryCore.defineEndpoint('data', fetchData, {
-  refetchAfter: 10 * 60 * 1000 // 10 minutes instead of default
+  refetchAfter: 10 * 60 * 1000, // 10 minutes instead of default
 });
 ```
 
@@ -1671,6 +1692,7 @@ useEffect(() => {
 `@web-loom/query-core` provides a powerful, lightweight solution for data fetching and caching in modern web applications. Its zero-dependency design, automatic cache management, and framework-agnostic API make it an excellent choice for applications of any size.
 
 For more information:
+
 - [GitHub Repository](https://github.com/bretuobay/web-loom)
 - [Live Examples](https://web-loom.dev/examples/query-core)
 

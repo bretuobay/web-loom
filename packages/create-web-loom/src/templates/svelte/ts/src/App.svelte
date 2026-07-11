@@ -1,16 +1,27 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { observe } from '@web-loom/signals-core';
   import { CounterViewModel } from './viewmodels/CounterViewModel';
 
   const STACK = ['Vite', 'TypeScript', 'Svelte', '@web-loom/mvvm-core', '@web-loom/signals-core'];
 
-  const vmSnippet = `export class CounterViewModel {
-  readonly count = signal(0);
-  readonly doubled = computed(() => this.count.get() * 2);
+  const vmSnippet = `import { Command } from "@web-loom/mvvm-core";
+import { computed, signal } from "@web-loom/signals-core";
 
-  increment() { this.count.set(this.count.get() + 1); }
-  decrement() { this.count.set(this.count.get() - 1); }
-  reset() { this.count.set(0); }
+export class CounterViewModel {
+  countState = signal(0);
+  count = this.countState.asReadonly();
+  doubled = computed(() => this.count.get() * 2);
+
+  incrementCommand = new Command(async () => {
+    this.countState.update((value) => value + 1);
+  });
+  decrementCommand = new Command(async () => {
+    this.countState.update((value) => value - 1);
+  });
+  resetCommand = new Command(async () => {
+    this.countState.set(0);
+  });
 }`;
 
   const vm = new CounterViewModel();
@@ -19,18 +30,16 @@
   let doubled = 0;
 
   onMount(() => {
-    const sync = () => {
-      count = vm.count.get();
-      doubled = vm.doubled.get();
-    };
-
-    sync();
-    const unsubscribeCount = vm.count.subscribe(sync);
-    const unsubscribeDoubled = vm.doubled.subscribe(sync);
+    const stopCount = observe(vm.count, (value) => {
+      count = value;
+    });
+    const stopDoubled = observe(vm.doubled, (value) => {
+      doubled = value;
+    });
 
     return () => {
-      unsubscribeCount();
-      unsubscribeDoubled();
+      stopCount();
+      stopDoubled();
       vm.dispose();
     };
   });
@@ -57,9 +66,9 @@
         <div><span>Doubled</span><strong>{doubled}</strong></div>
       </div>
       <div class="controls">
-        <button on:click={() => vm.decrement()}>-</button>
-        <button on:click={() => vm.reset()}>Reset</button>
-        <button on:click={() => vm.increment()}>+</button>
+        <button on:click={() => void vm.decrementCommand.execute()}>-</button>
+        <button on:click={() => void vm.resetCommand.execute()}>Reset</button>
+        <button on:click={() => void vm.incrementCommand.execute()}>+</button>
       </div>
     </article>
 

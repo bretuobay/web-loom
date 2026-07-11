@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { GreenhouseCard } from './GreenhouseCard';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
@@ -12,10 +12,10 @@ import { ThresholdAlertCard } from './ThresholdAlertCard';
 import { styles } from '@repo/shared';
 
 const Dashboard = ({ navigation }: { navigation: any }) => {
-  const greenHouses = useObservable(greenHouseViewModel.data$);
-  const sensors = useObservable(sensorReadingViewModel.data$);
-  const sensorReadings = useObservable(sensorReadingViewModel.data$);
-  const thresholdAlerts = useObservable(thresholdAlertViewModel.data$);
+  const greenHouses = useSignal(greenHouseViewModel.data$);
+  const sensors = useSignal(sensorReadingViewModel.data$);
+  const sensorReadings = useSignal(sensorReadingViewModel.data$);
+  const thresholdAlerts = useSignal(thresholdAlertViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {

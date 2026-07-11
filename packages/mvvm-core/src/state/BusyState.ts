@@ -1,5 +1,4 @@
-import { Observable, BehaviorSubject } from 'rxjs';
-import { map, distinctUntilChanged } from 'rxjs/operators';
+import { signal, computed, type ReadonlySignal } from '@web-loom/signals-core';
 import type { IDisposable } from '../models/BaseModel';
 
 /**
@@ -36,33 +35,34 @@ export interface BusyOperation {
  */
 export class BusyState implements IDisposable {
   private readonly operations: Map<string, BusyOperation> = new Map();
-  private readonly _operations$ = new BehaviorSubject<BusyOperation[]>([]);
+  private readonly _operations = signal<BusyOperation[]>([]);
   private operationCounter = 0;
+  private _isDisposed = false;
 
   /**
-   * Observable of all currently active operations
+   * Reactive list of all currently active operations
    */
-  public readonly operations$: Observable<BusyOperation[]> = this._operations$.asObservable();
+  public readonly operations$: ReadonlySignal<BusyOperation[]> = this._operations.asReadonly();
 
   /**
-   * Observable indicating if any operation is in progress
+   * Reactive flag indicating if any operation is in progress
    */
-  public readonly isBusy$: Observable<boolean> = this._operations$.pipe(
-    map((ops) => ops.length > 0),
-    distinctUntilChanged(),
+  public readonly isBusy$: ReadonlySignal<boolean> = computed(() => this._operations.get().length > 0);
+
+  /**
+   * Reactive list of current busy reasons (for UI display)
+   */
+  public readonly busyReasons$: ReadonlySignal<string[]> = computed(() =>
+    this._operations.get().map((op) => op.reason),
   );
 
   /**
-   * Observable of current busy reasons (for UI display)
+   * Reactive most recent busy reason (for single indicator UI)
    */
-  public readonly busyReasons$: Observable<string[]> = this._operations$.pipe(map((ops) => ops.map((op) => op.reason)));
-
-  /**
-   * Observable of the most recent busy reason (for single indicator UI)
-   */
-  public readonly currentReason$: Observable<string | null> = this._operations$.pipe(
-    map((ops) => (ops.length > 0 ? ops[ops.length - 1].reason : null)),
-  );
+  public readonly currentReason$: ReadonlySignal<string | null> = computed(() => {
+    const ops = this._operations.get();
+    return ops.length > 0 ? ops[ops.length - 1].reason : null;
+  });
 
   /**
    * Check if currently busy (synchronous)
@@ -152,11 +152,12 @@ export class BusyState implements IDisposable {
    * Clean up resources
    */
   dispose(): void {
-    this._operations$.complete();
+    this._isDisposed = true;
     this.operations.clear();
   }
 
   private emitOperations(): void {
-    this._operations$.next(Array.from(this.operations.values()));
+    if (this._isDisposed) return;
+    this._operations.set(Array.from(this.operations.values()));
   }
 }

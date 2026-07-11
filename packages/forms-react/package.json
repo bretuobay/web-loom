@@ -1,6 +1,6 @@
 {
   "name": "@web-loom/forms-react",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "React adapter for @web-loom/forms-core",
   "type": "module",
   "main": "dist/index.js",

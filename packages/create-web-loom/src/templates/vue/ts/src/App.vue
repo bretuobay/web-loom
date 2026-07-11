@@ -1,17 +1,27 @@
 <script setup lang="ts">
 import { onUnmounted } from 'vue';
-import { useSignal } from './composables/useObservable';
+import { useSignal } from './composables/useSignal';
 import { CounterViewModel } from './viewmodels/CounterViewModel';
 
 const STACK = ['Vite', 'TypeScript', 'Vue', '@web-loom/mvvm-core', '@web-loom/signals-core'];
 
-const vmSnippet = `export class CounterViewModel {
-  readonly count = signal(0);
-  readonly doubled = computed(() => this.count.get() * 2);
+const vmSnippet = `import { Command } from "@web-loom/mvvm-core";
+import { computed, signal } from "@web-loom/signals-core";
 
-  increment() { this.count.set(this.count.get() + 1); }
-  decrement() { this.count.set(this.count.get() - 1); }
-  reset() { this.count.set(0); }
+export class CounterViewModel {
+  countState = signal(0);
+  count = this.countState.asReadonly();
+  doubled = computed(() => this.count.get() * 2);
+
+  incrementCommand = new Command(async () => {
+    this.countState.update((value) => value + 1);
+  });
+  decrementCommand = new Command(async () => {
+    this.countState.update((value) => value - 1);
+  });
+  resetCommand = new Command(async () => {
+    this.countState.set(0);
+  });
 }`;
 
 const vm = new CounterViewModel();
@@ -41,9 +51,9 @@ onUnmounted(() => vm.dispose());
           <div><span>Doubled</span><strong>{{ doubled }}</strong></div>
         </div>
         <div class="controls">
-          <button @click="vm.decrement()">-</button>
-          <button @click="vm.reset()">Reset</button>
-          <button @click="vm.increment()">+</button>
+          <button @click="vm.decrementCommand.execute()">-</button>
+          <button @click="vm.resetCommand.execute()">Reset</button>
+          <button @click="vm.incrementCommand.execute()">+</button>
         </div>
       </article>
 

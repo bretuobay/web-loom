@@ -31,12 +31,12 @@ import { createEventBus } from '@web-loom/event-bus-core';
 
 // Define the application's event contract â€” typically in a shared file
 interface AppEventMap {
-  'cart:item-added':   { productId: string; quantity: number; price: number };
+  'cart:item-added': { productId: string; quantity: number; price: number };
   'cart:item-removed': { productId: string };
-  'cart:cleared':       void;
-  'user:logged-in':    { userId: string; name: string };
-  'user:logged-out':    void;
-  'order:placed':      { orderId: string; total: number };
+  'cart:cleared': void;
+  'user:logged-in': { userId: string; name: string };
+  'user:logged-out': void;
+  'order:placed': { orderId: string; total: number };
   'notification:show': { message: string; type: 'info' | 'success' | 'error' };
 }
 
@@ -76,12 +76,9 @@ class NavbarViewModel extends BaseViewModel<NavbarModel> {
 
   constructor(model: NavbarModel) {
     super(model);
-    this.addSubscription(
-      // Using RxJS Subscription for lifecycle management
-      new Subscription(() =>
-        appBus.on('cart:item-added', () => this.refreshCartCount())
-      )
-    );
+    const handleItemAdded = () => this.refreshCartCount();
+    appBus.on('cart:item-added', handleItemAdded);
+    this.addSubscription(() => appBus.off('cart:item-added', handleItemAdded));
   }
 }
 ```
@@ -93,15 +90,15 @@ import { appBus } from '../events/app-bus';
 appBus.on('cart:item-added', (event) => {
   analytics.track('add_to_cart', {
     product_id: event.productId,
-    quantity:   event.quantity,
-    value:      event.price * event.quantity,
+    quantity: event.quantity,
+    value: event.price * event.quantity,
   });
 });
 
 appBus.on('order:placed', (event) => {
   analytics.track('purchase', {
     order_id: event.orderId,
-    revenue:  event.total,
+    revenue: event.total,
   });
 });
 ```
@@ -144,19 +141,19 @@ For larger applications, a single global bus can become a maintenance problem â€
 ```typescript
 // events/auth-bus.ts
 interface AuthEvents {
-  'login:success':  { userId: string; role: string };
-  'login:failed':   { reason: string; attempt: number };
-  'logout':          void;
+  'login:success': { userId: string; role: string };
+  'login:failed': { reason: string; attempt: number };
+  logout: void;
   'password:reset': { email: string };
 }
 export const authBus = createEventBus<AuthEvents>();
 
 // events/cart-bus.ts
 interface CartEvents {
-  'item:added':   { productId: string; quantity: number };
+  'item:added': { productId: string; quantity: number };
   'item:removed': { productId: string };
   'checkout:started': void;
-  'order:confirmed':  { orderId: string };
+  'order:confirmed': { orderId: string };
 }
 export const cartBus = createEventBus<CartEvents>();
 ```
@@ -190,7 +187,7 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
       // Publish for other features to react
       appBus.emit('order:placed', { orderId: order.id, total: order.total });
       appBus.emit('cart:cleared');
-    })
+    }),
   );
 }
 ```
@@ -201,11 +198,9 @@ class CartViewModel extends BaseViewModel<CartModel> {
     super(model);
 
     // React to order completion without importing OrderViewModel
-    this.addSubscription(
-      new Subscription(() =>
-        appBus.on('cart:cleared', () => this.model.clear())
-      )
-    );
+    const handleCartCleared = () => this.model.clear();
+    appBus.on('cart:cleared', handleCartCleared);
+    this.addSubscription(() => appBus.off('cart:cleared', handleCartCleared));
   }
 }
 ```
@@ -234,7 +229,7 @@ it('emits cart:item-added with correct payload', async () => {
 // Test that NavbarViewModel reacts to events
 it('updates cart count when item added', () => {
   const bus = createEventBus<AppEventMap>();
-  const vm  = new NavbarViewModel(new NavbarModel(), bus);
+  const vm = new NavbarViewModel(new NavbarModel(), bus);
 
   expect(vm.cartCount.get()).toBe(0);
 

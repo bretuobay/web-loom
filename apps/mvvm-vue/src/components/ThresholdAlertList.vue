@@ -37,11 +37,11 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import BackArrow from '../assets/back-arrow.svg';
 
-const isLoading = useObservable(thresholdAlertViewModel.isLoading$, true);
-const alertsData = useObservable(thresholdAlertViewModel.data$, []);
+const isLoading = useSignal(thresholdAlertViewModel.isLoading$);
+const alertsData = useSignal(thresholdAlertViewModel.data$);
 
 onMounted(() => {
   thresholdAlertViewModel.fetchCommand.execute();

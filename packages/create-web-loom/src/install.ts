@@ -2,12 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { detectPackageManager, type Framework } from './detect.js';
 import { getPackages } from './packages.js';
 
-function installBatch(
-  packageManager: string,
-  command: string,
-  projectDir: string,
-  packages: string[],
-): number | null {
+function installBatch(packageManager: string, command: string, projectDir: string, packages: string[]): number | null {
   const result = spawnSync(packageManager, [command, ...packages], {
     stdio: 'inherit',
     cwd: projectDir,

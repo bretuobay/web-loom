@@ -1,11 +1,10 @@
-import { BehaviorSubject, Observable, combineLatest, of } from 'rxjs';
-import { map, startWith, distinctUntilChanged, debounceTime } from 'rxjs/operators';
+import { signal, computed, debouncedSignal, type ReadonlySignal, type WritableSignal } from '@web-loom/signals-core';
 import { ZodError, ZodSchema, ZodIssue } from 'zod';
 
 // Minimal Command interface (can be expanded later)
 export interface Command<TParam, TResult> {
-  execute: (param?: TParam) => Observable<TResult>;
-  canExecute$: Observable<boolean>;
+  execute: (param?: TParam) => Promise<TResult>;
+  canExecute$: ReadonlySignal<boolean>;
 }
 
 export class FormViewModel<
@@ -15,147 +14,121 @@ export class FormViewModel<
 > {
   private readonly initialData: Readonly<Partial<TData>>;
   private readonly schema: TSchema;
-  private readonly submitHandler: (data: TData) => Observable<TResult>;
+  private readonly submitHandler: (data: TData) => Promise<TResult>;
+  private readonly _debouncedFormData: ReturnType<typeof debouncedSignal<Partial<TData>>>;
+  private readonly _unsubscribeValidation: () => void;
 
-  public formData$: BehaviorSubject<Partial<TData>>;
-  public errors$: BehaviorSubject<ZodError<TData> | null>;
-  public isValid$: Observable<boolean>;
-  public fieldErrors$: Observable<Record<keyof TData, string[] | undefined>>;
-  public isDirty$: Observable<boolean>;
+  public formData$: WritableSignal<Partial<TData>>;
+  public errors$: WritableSignal<ZodError<TData> | null>;
+  public isValid$: ReadonlySignal<boolean>;
+  public fieldErrors$: ReadonlySignal<Record<keyof TData, string[] | undefined>>;
+  public isDirty$: ReadonlySignal<boolean>;
   public submitCommand: Command<void, TResult>;
 
   constructor(
     initialData: Partial<TData>,
     schema: TSchema,
     // Allow a custom submit handler, e.g., for API calls
-    submitHandler?: (data: TData) => Observable<TResult>,
+    submitHandler?: (data: TData) => Promise<TResult>,
   ) {
     this.initialData = Object.freeze({ ...initialData }); // Deep freeze for nested objects if necessary
     this.schema = schema;
-    this.formData$ = new BehaviorSubject<Partial<TData>>({ ...this.initialData });
-    this.errors$ = new BehaviorSubject<ZodError<TData> | null>(null);
+    this.formData$ = signal<Partial<TData>>({ ...this.initialData });
+    this.errors$ = signal<ZodError<TData> | null>(null);
 
     // Default submit handler if none provided
-    this.submitHandler = submitHandler || ((data: TData) => of(data as unknown as TResult));
+    this.submitHandler = submitHandler || ((data: TData) => Promise.resolve(data as unknown as TResult));
 
-    this.isValid$ = this.formData$.pipe(
-      // Debounce to avoid excessive validation on rapid input changes
-      debounceTime(50), // Adjust as needed
-      map((data) => {
-        try {
-          this.schema.parse(data);
-          this.errors$.next(null);
-          return true;
-        } catch (error) {
-          if (error instanceof ZodError) {
-            this.errors$.next(error as ZodError<TData>);
-          } else {
-            // Handle unexpected errors if necessary
-            console.error('Unexpected validation error:', error);
-            this.errors$.next(
-              new ZodError([
-                {
-                  code: 'custom',
-                  message: 'An unexpected error occurred during validation.',
-                  path: [],
-                },
-              ]),
-            );
+    // Debounce to avoid excessive validation on rapid input changes
+    this._debouncedFormData = debouncedSignal(this.formData$, 50);
+
+    // isValid$ derives from the debounced data — pure, no side effects.
+    this.isValid$ = computed(() => this.schema.safeParse(this._debouncedFormData.get()).success);
+
+    // errors$ is populated as data settles (subscribe fires on change, not
+    // immediately — matching the previous behavior where the initial state
+    // showed no errors until the user edited the form).
+    this._unsubscribeValidation = this._debouncedFormData.subscribe((data) => {
+      try {
+        this.schema.parse(data);
+        this.errors$.set(null);
+      } catch (error) {
+        if (error instanceof ZodError) {
+          this.errors$.set(error as ZodError<TData>);
+        } else {
+          // Handle unexpected errors if necessary
+          console.error('Unexpected validation error:', error);
+          this.errors$.set(
+            new ZodError([
+              {
+                code: 'custom',
+                message: 'An unexpected error occurred during validation.',
+                path: [],
+              },
+            ]),
+          );
+        }
+      }
+    });
+
+    this.fieldErrors$ = computed(() => {
+      const zodError = this.errors$.get();
+      if (!zodError) {
+        return {} as Record<keyof TData, string[] | undefined>;
+      }
+      // Transform ZodError into a more usable field-specific error map
+      return zodError.issues.reduce(
+        (acc, issue: ZodIssue) => {
+          const path = issue.path[0] as keyof TData; // Assuming simple, non-nested paths for now
+          if (!acc[path]) {
+            acc[path] = [];
           }
-          return false;
-        }
-      }),
-      startWith(this.schema.safeParse(this.initialData).success), // Initial validation state
-      distinctUntilChanged(), // Only emit when validation status actually changes
-    );
+          acc[path]?.push(issue.message);
+          return acc;
+        },
+        {} as Record<keyof TData, string[] | undefined>,
+      );
+    });
 
-    this.fieldErrors$ = this.errors$.pipe(
-      map((zodError) => {
-        if (!zodError) {
-          return {} as Record<keyof TData, string[] | undefined>;
-        }
-        // Transform ZodError into a more usable field-specific error map
-        return zodError.issues.reduce(
-          (acc, issue: ZodIssue) => {
-            const path = issue.path[0] as keyof TData; // Assuming simple, non-nested paths for now
-            if (!acc[path]) {
-              acc[path] = [];
-            }
-            acc[path]?.push(issue.message);
-            return acc;
-          },
-          {} as Record<keyof TData, string[] | undefined>,
-        );
-      }),
-      startWith({} as Record<keyof TData, string[] | undefined>),
-    );
-
-    this.isDirty$ = this.formData$.pipe(
-      map((currentData) => JSON.stringify(currentData) !== JSON.stringify(this.initialData)),
-      startWith(false),
-      distinctUntilChanged(),
-    );
+    this.isDirty$ = computed(() => JSON.stringify(this.formData$.get()) !== JSON.stringify(this.initialData));
 
     this.submitCommand = this.createSubmitCommand();
   }
 
   public updateField<K extends keyof TData>(key: K, value: TData[K]): void {
-    const currentData = this.formData$.getValue();
-    this.formData$.next({ ...currentData, [key]: value });
+    const currentData = this.formData$.peek();
+    this.formData$.set({ ...currentData, [key]: value });
   }
 
   public setFormData(data: Partial<TData>): void {
-    this.formData$.next({ ...this.initialData, ...data });
+    this.formData$.set({ ...this.initialData, ...data });
   }
 
   public resetForm(): void {
-    this.formData$.next({ ...this.initialData });
-    this.errors$.next(null); // Clear errors on reset
+    this.formData$.set({ ...this.initialData });
+    this.errors$.set(null); // Clear errors on reset
   }
 
-  public getFieldErrors(fieldName: keyof TData): Observable<string[] | undefined> {
-    return this.fieldErrors$.pipe(
-      map((errors) => errors[fieldName]),
-      distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
-    );
+  public getFieldErrors(fieldName: keyof TData): ReadonlySignal<string[] | undefined> {
+    return computed(() => this.fieldErrors$.get()[fieldName], {
+      equals: (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
+    });
   }
 
   private createSubmitCommand(): Command<void, TResult> {
-    const canExecute$ = combineLatest([
-      this.isValid$,
-      // this.isDirty$ // Optional: only allow submit if dirty
-    ]).pipe(
-      map(([isValid]) => isValid), // map(([isValid, isDirty]) => isValid && isDirty),
-      startWith(false),
-    );
+    const canExecute$ = this.isValid$;
 
-    const execute = (): Observable<TResult> => {
-      const currentData = this.formData$.getValue();
+    const execute = async (): Promise<TResult> => {
+      const currentData = this.formData$.peek();
       const validationResult = this.schema.safeParse(currentData);
 
       if (!validationResult.success) {
-        this.errors$.next(validationResult.error as ZodError<TData>);
-        return of(new Error('Form is invalid') as unknown as TResult); // Or throw
+        this.errors$.set(validationResult.error as ZodError<TData>);
+        return new Error('Form is invalid') as unknown as TResult; // Or throw
       }
 
       // Proceed with the actual submission logic
-      return this.submitHandler(validationResult.data).pipe(
-        map((result) => {
-          // Optionally reset form or update initialData on successful submission
-          // For example, make the current data the new initial data
-          // this.initialData = Object.freeze({ ...validationResult.data });
-          // this.resetForm(); // This would clear dirtiness
-          return result;
-        }),
-        // catchError(error => {
-        //   // Handle submission errors (e.g., from API)
-        //   // This could also be a place to push to GlobalErrorService
-        //   console.error("Submission Error:", error);
-        //   // Potentially map to a ZodError or a specific error format for the form
-        //   this.errors$.next(new ZodError([{ code: 'custom', message: "Submission failed.", path: [] }]));
-        //   return throwError(() => error); // Re-throw for subscribers to handle
-        // })
-      );
+      return this.submitHandler(validationResult.data);
     };
 
     return { execute, canExecute$ };
@@ -164,11 +137,7 @@ export class FormViewModel<
   // Call this method to clean up subscriptions if the ViewModel is no longer needed.
   // This is important in environments where ViewModels are created and destroyed.
   public dispose(): void {
-    // Complete BehaviorSubjects to prevent memory leaks
-    this.formData$.complete();
-    this.errors$.complete();
-    // Add other subjects if they exist and need completion
-    // e.g. this.isDirty$.complete() if it were a Subject
-    // Observables derived from these will also complete.
+    this._unsubscribeValidation();
+    this._debouncedFormData.dispose();
   }
 }

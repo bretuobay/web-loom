@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": "../..",
     "target": "ES2020",
     "useDefineForClassFields": false,
     "lib": [
@@ -21,16 +21,43 @@
     "noFallthroughCasesInSwitch": true,
     "experimentalDecorators": true,
     "paths": {
+      "@repo/models": [
+        "../../packages/models/src"
+      ],
       "@repo/models/*": [
         "../../packages/models/src/*"
       ],
+      "@repo/shared": [
+        "../../packages/shared/src"
+      ],
+      "@repo/shared/*": [
+        "../../packages/shared/src/*"
+      ],
+      "@repo/view-models": [
+        "../../packages/view-models/src"
+      ],
+      "@repo/view-models/*": [
+        "../../packages/view-models/src/*"
+      ],
+      "@web-loom/mvvm-core": [
+        "../../packages/mvvm-core/src"
+      ],
       "@web-loom/mvvm-core/*": [
         "../../packages/mvvm-core/src/*"
+      ],
+      "@web-loom/query-core": [
+        "../../packages/query-core/src"
+      ],
+      "@web-loom/query-core/*": [
+        "../../packages/query-core/src/*"
+      ],
+      "@web-loom/signals-core": [
+        "../../packages/signals-core/src"
+      ],
+      "@web-loom/signals-core/*": [
+        "../../packages/signals-core/src/*"
       ]
     },
-    "composite": true,
-    "declaration": true,
-    "declarationMap": true,
     "sourceMap": true
   },
   "include": [

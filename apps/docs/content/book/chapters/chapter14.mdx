@@ -1044,12 +1044,12 @@ Let's see how event-driven communication fits into the MVVM architecture across 
 Models can emit domain events when important state changes occur:
 
 ```typescript
-import { BehaviorSubject, Observable } from 'rxjs';
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
 import { EventBus } from '@web-loom/event-bus-core';
 
 export class SensorModel {
-  private dataSubject = new BehaviorSubject<Sensor | null>(null);
-  readonly data$: Observable<Sensor | null> = this.dataSubject.asObservable();
+  private _data = signal<Sensor | null>(null);
+  readonly data$: ReadonlySignal<Sensor | null> = this._data.asReadonly();
 
   constructor(
     private sensorId: string,
@@ -1057,14 +1057,14 @@ export class SensorModel {
   ) {}
 
   async updateThreshold(newThreshold: number): Promise<void> {
-    const sensor = this.dataSubject.value;
+    const sensor = this._data.peek();
     if (!sensor) return;
 
     const oldThreshold = sensor.threshold;
     sensor.threshold = newThreshold;
 
     // Update the model state
-    this.dataSubject.next(sensor);
+    this._data.set(sensor);
 
     // Emit domain event
     this.eventBus.emit('sensor:threshold-changed', {
@@ -1079,7 +1079,7 @@ export class SensorModel {
   }
 
   processReading(reading: SensorReading): void {
-    const sensor = this.dataSubject.value;
+    const sensor = this._data.peek();
     if (!sensor) return;
 
     // Check if reading exceeds threshold
@@ -1112,14 +1112,14 @@ ViewModels can both emit and listen to events:
 
 ```typescript
 export class GreenHouseViewModel {
-  private greenhouseSubject = new BehaviorSubject<GreenHouse | null>(null);
-  readonly greenhouse$: Observable<GreenHouse | null>;
+  private _greenhouse = signal<GreenHouse | null>(null);
+  readonly greenhouse$: ReadonlySignal<GreenHouse | null>;
 
   constructor(
     private greenhouseId: string,
     private eventBus: EventBus
   ) {
-    this.greenhouse$ = this.greenhouseSubject.asObservable();
+    this.greenhouse$ = this._greenhouse.asReadonly();
     this.setupEventListeners();
   }
 
@@ -1143,10 +1143,10 @@ export class GreenHouseViewModel {
       const sensor = await this.api.createSensor(this.greenhouseId, sensorData);
 
       // Update local state
-      const greenhouse = this.greenhouseSubject.value;
+      const greenhouse = this._greenhouse.peek();
       if (greenhouse) {
         greenhouse.sensors.push(sensor);
-        this.greenhouseSubject.next(greenhouse);
+        this._greenhouse.set(greenhouse);
       }
 
       // Emit event
@@ -1173,7 +1173,7 @@ export class GreenHouseViewModel {
   }
 
   private belongsToGreenhouse(sensorId: string): boolean {
-    const greenhouse = this.greenhouseSubject.value;
+    const greenhouse = this._greenhouse.peek();
     return greenhouse?.sensors.some(s => s.id === sensorId) ?? false;
   }
 

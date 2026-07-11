@@ -1,10 +1,10 @@
 export interface FieldDef {
   name: string;
-  type: "string" | "number" | "boolean" | "string[]" | "number[]";
+  type: 'string' | 'number' | 'boolean' | 'string[]' | 'number[]';
   optional?: boolean;
 }
 
-export const MODEL_STYLES = ["restful-class", "restful-config", "base-state", "query-cache"] as const;
+export const MODEL_STYLES = ['restful-class', 'restful-config', 'base-state', 'query-cache'] as const;
 
 export type ModelStyle = (typeof MODEL_STYLES)[number];
 
@@ -21,21 +21,19 @@ function lowerFirst(value: string): string {
 }
 
 function zodFieldType(f: FieldDef): string {
-  const base: Record<FieldDef["type"], string> = {
-    string: "z.string()",
-    number: "z.number()",
-    boolean: "z.boolean()",
-    "string[]": "z.array(z.string())",
-    "number[]": "z.array(z.number())",
+  const base: Record<FieldDef['type'], string> = {
+    string: 'z.string()',
+    number: 'z.number()',
+    boolean: 'z.boolean()',
+    'string[]': 'z.array(z.string())',
+    'number[]': 'z.array(z.number())',
   };
-  const expr = base[f.type] ?? "z.string()";
+  const expr = base[f.type] ?? 'z.string()';
   return f.optional ? `${expr}.optional()` : expr;
 }
 
 function schemaBlock(name: string, fields: FieldDef[]): string {
-  const schemaFields = fields
-    .map((f) => `  ${f.name}: ${zodFieldType(f)},`)
-    .join("\n");
+  const schemaFields = fields.map((f) => `  ${f.name}: ${zodFieldType(f)},`).join('\n');
 
   return `const ${name}Schema = z.object({
   id: z.string(),
@@ -53,17 +51,19 @@ function configBlock(name: string, endpoint: string, apiBase: string): string {
   return `export const ${configName} = {
   baseUrl: "${apiBase}",
   endpoint: "${endpoint}",
-  fetcher: (url: string, options?: RequestInit) =>
-    fetch(url, options).then((r) => {
-      if (!r.ok) throw new Error(\`HTTP \${r.status}\`);
-      return r.json();
-    }),
+  fetcher: async <TResponse = Response>(url: string, options?: RequestInit): Promise<TResponse> => {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error(\`HTTP \${response.status}\`);
+    }
+    return response as TResponse;
+  },
   initialData: [] as ${name}ListData,
 };`;
 }
 
 function restfulClassModelTemplate(p: ModelTemplateParams): string {
-  const { name, endpoint, fields, apiBase = "http://localhost:3000" } = p;
+  const { name, endpoint, fields, apiBase = 'http://localhost:3000' } = p;
   const configName = `${lowerFirst(name)}Config`;
 
   return `import { z } from "zod";
@@ -86,7 +86,7 @@ export class ${name}Model extends RestfulApiModel<${name}ListData, typeof ${name
 }
 
 function restfulConfigModelTemplate(p: ModelTemplateParams): string {
-  const { name, endpoint, fields, apiBase = "http://localhost:3000" } = p;
+  const { name, endpoint, fields, apiBase = 'http://localhost:3000' } = p;
 
   return `import { z } from "zod";
 
@@ -97,7 +97,7 @@ ${configBlock(name, endpoint, apiBase)}
 }
 
 function baseStateModelTemplate(p: ModelTemplateParams): string {
-  const { name, endpoint, fields, apiBase = "http://localhost:3000" } = p;
+  const { name, endpoint, fields, apiBase = 'http://localhost:3000' } = p;
   const initialName = `${lowerFirst(name)}InitialData`;
 
   return `import { z } from "zod";
@@ -144,7 +144,7 @@ export class ${name}Model extends BaseModel<${name}ListData, typeof ${name}ListS
 }
 
 function queryCacheModelTemplate(p: ModelTemplateParams): string {
-  const { name, endpoint, fields, apiBase = "http://localhost:3000" } = p;
+  const { name, endpoint, fields, apiBase = 'http://localhost:3000' } = p;
   const endpointKey = `${lowerFirst(name)}:list`;
 
   return `import { z } from "zod";
@@ -224,14 +224,14 @@ export class ${name}Model extends BaseModel<${name}ListData, typeof ${name}ListS
 }
 
 export function modelTemplate(p: ModelTemplateParams): string {
-  switch (p.style ?? "restful-class") {
-    case "restful-config":
+  switch (p.style ?? 'restful-class') {
+    case 'restful-config':
       return restfulConfigModelTemplate(p);
-    case "base-state":
+    case 'base-state':
       return baseStateModelTemplate(p);
-    case "query-cache":
+    case 'query-cache':
       return queryCacheModelTemplate(p);
-    case "restful-class":
+    case 'restful-class':
       return restfulClassModelTemplate(p);
   }
 }

@@ -822,20 +822,19 @@ function useBehavior<S>(b: { getState(): S; subscribe(fn: (s: S) => void): () =>
 ### Angular
 
 ```typescript
-import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { Injectable, OnDestroy, signal } from '@angular/core';
 import { createDialogBehavior, type DialogState } from '@web-loom/ui-core';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsDialogService implements OnDestroy {
   private behavior = createDialogBehavior({ id: 'settings' });
-  private _state$ = new BehaviorSubject<DialogState>(this.behavior.getState());
+  private _state = signal<DialogState>(this.behavior.getState());
 
   constructor() {
-    this.behavior.subscribe((s) => this._state$.next(s));
+    this.behavior.subscribe((s) => this._state.set(s));
   }
 
-  get state$() { return this._state$.asObservable(); }
+  get state() { return this._state.asReadonly(); }
   get actions() { return this.behavior.actions; }
 
   ngOnDestroy() { this.behavior.destroy(); }

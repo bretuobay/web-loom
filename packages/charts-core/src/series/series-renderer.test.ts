@@ -10,13 +10,13 @@ describe('SeriesRenderer', () => {
 
   beforeEach(() => {
     renderer = new SeriesRenderer();
-    
+
     // Create SVG container
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     svg.appendChild(svgContainer);
     document.body.appendChild(svg);
-    
+
     // Create canvas
     canvas = document.createElement('canvas');
     canvas.width = 800;
@@ -42,17 +42,15 @@ describe('SeriesRenderer', () => {
       const xScale = scaleTime()
         .domain([new Date('2024-01-01'), new Date('2024-01-03')])
         .range([0, 800]);
-      
-      const yScale = scaleLinear()
-        .domain([0, 30])
-        .range([400, 0]);
+
+      const yScale = scaleLinear().domain([0, 30]).range([400, 0]);
 
       renderer.renderToSVG(series, svgContainer, xScale, yScale, 400);
 
       const paths = svgContainer.querySelectorAll('path');
       expect(paths.length).toBeGreaterThan(0);
-      
-      const linePath = Array.from(paths).find(p => p.getAttribute('stroke') === '#2563eb');
+
+      const linePath = Array.from(paths).find((p) => p.getAttribute('stroke') === '#2563eb');
       expect(linePath).toBeDefined();
       expect(linePath?.getAttribute('fill')).toBe('none');
     });
@@ -74,20 +72,18 @@ describe('SeriesRenderer', () => {
       const xScale = scaleTime()
         .domain([new Date('2024-01-01'), new Date('2024-01-02')])
         .range([0, 800]);
-      
-      const yScale = scaleLinear()
-        .domain([0, 30])
-        .range([400, 0]);
+
+      const yScale = scaleLinear().domain([0, 30]).range([400, 0]);
 
       renderer.renderToSVG(series, svgContainer, xScale, yScale, 400);
 
       const paths = svgContainer.querySelectorAll('path');
       expect(paths.length).toBeGreaterThan(0);
-      
+
       // Check for area path with gradient (now using class-based selection)
       const areaPath = svgContainer.querySelector('path.area-test-area');
       expect(areaPath).toBeDefined();
-      
+
       // Verify gradient is applied
       const fill = areaPath?.getAttribute('fill');
       expect(fill).toBeDefined();
@@ -112,10 +108,8 @@ describe('SeriesRenderer', () => {
       const xScale = scaleTime()
         .domain([new Date('2024-01-01'), new Date('2024-01-02')])
         .range([0, 800]);
-      
-      const yScale = scaleLinear()
-        .domain([0, 30])
-        .range([400, 0]);
+
+      const yScale = scaleLinear().domain([0, 30]).range([400, 0]);
 
       // Should not throw even if canvas context is not available
       expect(() => {
@@ -155,10 +149,8 @@ describe('SeriesRenderer', () => {
       const xScale = scaleTime()
         .domain([new Date('2024-01-01'), new Date('2024-01-02')])
         .range([0, 800]);
-      
-      const yScale = scaleLinear()
-        .domain([0, 30])
-        .range([400, 0]);
+
+      const yScale = scaleLinear().domain([0, 30]).range([400, 0]);
 
       expect(() => {
         renderer.renderToCanvas(series, canvas, xScale, yScale, 400);
@@ -176,7 +168,9 @@ describe('SeriesRenderer', () => {
         yAccessor: (d) => d.y,
       };
 
-      const xScale = scaleTime().domain([new Date('2024-01-01'), new Date('2024-01-02')]).range([0, 800]);
+      const xScale = scaleTime()
+        .domain([new Date('2024-01-01'), new Date('2024-01-02')])
+        .range([0, 800]);
       const yScale = scaleLinear().domain([0, 20]).range([400, 0]);
 
       renderer.renderSeries(series, svgContainer, xScale, yScale, false, 400);
@@ -204,7 +198,9 @@ describe('SeriesRenderer', () => {
         yAccessor: (d) => d.y,
       };
 
-      const xScale = scaleTime().domain([new Date('2024-01-01'), new Date('2024-01-02')]).range([0, 800]);
+      const xScale = scaleTime()
+        .domain([new Date('2024-01-01'), new Date('2024-01-02')])
+        .range([0, 800]);
       const yScale = scaleLinear().domain([0, 20]).range([400, 0]);
 
       expect(() => {
@@ -225,7 +221,9 @@ describe('SeriesRenderer', () => {
         area: true,
       };
 
-      const xScale = scaleTime().domain([new Date('2024-01-01'), new Date('2024-01-02')]).range([0, 800]);
+      const xScale = scaleTime()
+        .domain([new Date('2024-01-01'), new Date('2024-01-02')])
+        .range([0, 800]);
       const yScale = scaleLinear().domain([0, 20]).range([400, 0]);
 
       // Render twice
@@ -248,15 +246,17 @@ describe('SeriesRenderer', () => {
         area: true,
       };
 
-      const xScale = scaleTime().domain([new Date('2024-01-01'), new Date('2024-01-02')]).range([0, 800]);
+      const xScale = scaleTime()
+        .domain([new Date('2024-01-01'), new Date('2024-01-02')])
+        .range([0, 800]);
       const yScale = scaleLinear().domain([0, 20]).range([400, 0]);
 
       renderer.renderToSVG(series, svgContainer, xScale, yScale, 400);
       renderer.destroy();
-      
+
       // After destroy, rendering again should create new gradients
       renderer.renderToSVG(series, svgContainer, xScale, yScale, 400);
-      
+
       expect(renderer).toBeDefined();
     });
   });

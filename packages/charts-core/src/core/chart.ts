@@ -151,7 +151,7 @@ export class ChartManager {
    */
   updateSeries(seriesId: string, newData: ChartDataPoint[]): void {
     // Find the series to update
-    const seriesIndex = this.series.findIndex(s => (s.id ?? `${s.type}`) === seriesId);
+    const seriesIndex = this.series.findIndex((s) => (s.id ?? `${s.type}`) === seriesId);
     if (seriesIndex === -1) {
       console.warn(`Series with id "${seriesId}" not found`);
       return;
@@ -179,11 +179,12 @@ export class ChartManager {
 
     // Get theme and apply color
     const theme = this.themeManager.getTheme();
-    const seriesColor: string = series.color ?? theme.colors.series[seriesIndex % theme.colors.series.length] ?? '#2563eb';
-    
+    const seriesColor: string =
+      series.color ?? theme.colors.series[seriesIndex % theme.colors.series.length] ?? '#2563eb';
+
     // Filter data to only visible points
     const visibleData = this.getVisibleDataPoints(series, xScale, yScale);
-    const configWithColor: SeriesConfig = { 
+    const configWithColor: SeriesConfig = {
       type: series.type,
       data: visibleData,
       xAccessor: series.xAccessor,
@@ -217,10 +218,10 @@ export class ChartManager {
           const yScaleId = s.yScale ?? 'y';
           const yScale = this.scales.get(yScaleId);
           if (!yScale) return;
-          
+
           const color = s.color ?? theme.colors.series[idx % theme.colors.series.length] ?? '#2563eb';
           const visibleData = this.getVisibleDataPoints(s, xScale, yScale);
-          const config: SeriesConfig = { 
+          const config: SeriesConfig = {
             type: s.type,
             data: visibleData,
             xAccessor: s.xAccessor,
@@ -235,14 +236,14 @@ export class ChartManager {
             marker: s.marker,
             lineWidth: s.lineWidth,
           };
-          
+
           this.seriesRenderer.renderSeries(config, this.canvas!, xScale, yScale, true, innerHeight);
         });
       }
     } else if (this.chartGroup) {
       // For SVG, use the data join pattern which will update efficiently
       this.seriesRenderer.renderSeries(configWithColor, this.chartGroup, xScale, yScale, false, innerHeight);
-      
+
       // Update markers if enabled
       if (series.marker?.show) {
         this.createMarkers(configWithColor, xScale, yScale, seriesColor);
@@ -464,39 +465,42 @@ export class ChartManager {
     }
 
     const theme = this.themeManager.getTheme();
-    
+
     // Prepare series configurations with colors
-    const seriesConfigs = this.series.map((seriesConfig, index) => {
-      const yScaleId = seriesConfig.yScale ?? 'y';
-      const yScale = this.scales.get(yScaleId);
-      if (!yScale) {
-        return null;
-      }
+    const seriesConfigs = this.series
+      .map((seriesConfig, index) => {
+        const yScaleId = seriesConfig.yScale ?? 'y';
+        const yScale = this.scales.get(yScaleId);
+        if (!yScale) {
+          return null;
+        }
 
-      const seriesColor: string = seriesConfig.color ?? theme.colors.series[index % theme.colors.series.length] ?? '#2563eb';
-      
-      // Filter data to only visible points (progressive rendering)
-      const visibleData = this.getVisibleDataPoints(seriesConfig, xScale, yScale);
-      
-      // Apply color and filtered data to series config for renderer
-      const configWithColor: SeriesConfig = { 
-        type: seriesConfig.type,
-        data: visibleData,
-        xAccessor: seriesConfig.xAccessor,
-        yAccessor: seriesConfig.yAccessor,
-        color: seriesColor,
-        id: seriesConfig.id,
-        xScale: seriesConfig.xScale,
-        yScale: seriesConfig.yScale,
-        strokeWidth: seriesConfig.strokeWidth,
-        area: seriesConfig.area,
-        curve: seriesConfig.curve,
-        marker: seriesConfig.marker,
-        lineWidth: seriesConfig.lineWidth,
-      };
+        const seriesColor: string =
+          seriesConfig.color ?? theme.colors.series[index % theme.colors.series.length] ?? '#2563eb';
 
-      return { config: configWithColor, yScale, color: seriesColor };
-    }).filter((item): item is { config: SeriesConfig; yScale: ChartScale; color: string } => item !== null);
+        // Filter data to only visible points (progressive rendering)
+        const visibleData = this.getVisibleDataPoints(seriesConfig, xScale, yScale);
+
+        // Apply color and filtered data to series config for renderer
+        const configWithColor: SeriesConfig = {
+          type: seriesConfig.type,
+          data: visibleData,
+          xAccessor: seriesConfig.xAccessor,
+          yAccessor: seriesConfig.yAccessor,
+          color: seriesColor,
+          id: seriesConfig.id,
+          xScale: seriesConfig.xScale,
+          yScale: seriesConfig.yScale,
+          strokeWidth: seriesConfig.strokeWidth,
+          area: seriesConfig.area,
+          curve: seriesConfig.curve,
+          marker: seriesConfig.marker,
+          lineWidth: seriesConfig.lineWidth,
+        };
+
+        return { config: configWithColor, yScale, color: seriesColor };
+      })
+      .filter((item): item is { config: SeriesConfig; yScale: ChartScale; color: string } => item !== null);
 
     // Render in proper z-index order: areas → lines → markers (Requirement 2.6)
     // SeriesRenderer already handles areas before lines within each series
@@ -532,9 +536,10 @@ export class ChartManager {
     const containerSelection = select(this.chartGroup);
 
     // Bind data to markers using D3 data join
-    const markers = containerSelection
-      .selectAll<SVGCircleElement, ChartDataPoint>(`circle.marker-${seriesId}`)
-      .data(series.data.filter(d => d.y !== undefined && d.x !== undefined), (d: ChartDataPoint) => `${d.x}-${d.y}`);
+    const markers = containerSelection.selectAll<SVGCircleElement, ChartDataPoint>(`circle.marker-${seriesId}`).data(
+      series.data.filter((d) => d.y !== undefined && d.x !== undefined),
+      (d: ChartDataPoint) => `${d.x}-${d.y}`,
+    );
 
     // Enter: create new markers
     const markersEnter = markers
@@ -557,10 +562,8 @@ export class ChartManager {
     const markersMerge = markersEnter.merge(markers);
 
     // Apply transition to update positions and radius (only for updates, not initial render)
-    const transition = (markersMerge as any)
-      .transition()
-      .duration(TRANSITION_CONFIG.duration);
-    
+    const transition = (markersMerge as any).transition().duration(TRANSITION_CONFIG.duration);
+
     transition
       .attr('cx', (d: ChartDataPoint) => this.mapXValue(series, d, xScale))
       .attr('cy', (d: ChartDataPoint) => this.mapYValue(series, d, yScale))
@@ -569,13 +572,9 @@ export class ChartManager {
 
     // Exit: remove old markers with fade out
     const markersExit = markers.exit();
-    const exitTransition = (markersExit as any)
-      .transition()
-      .duration(TRANSITION_CONFIG.duration);
-    
-    exitTransition
-      .attr('r', 0)
-      .remove();
+    const exitTransition = (markersExit as any).transition().duration(TRANSITION_CONFIG.duration);
+
+    exitTransition.attr('r', 0).remove();
   }
 
   private createCanvas(innerWidth: number, innerHeight: number): void {
@@ -591,7 +590,7 @@ export class ChartManager {
     canvas.style.left = `${this.config.margin.left}px`;
     canvas.style.top = `${this.config.margin.top}px`;
     canvas.style.pointerEvents = 'none'; // Allow SVG overlay to handle interactions
-    
+
     this.canvas = canvas;
     if (this.svg) {
       this.container.insertBefore(canvas, this.svg);
@@ -852,7 +851,7 @@ export class ChartManager {
     // For now, return all data points to ensure rendering works
     // TODO: Re-enable filtering after debugging
     return series.data;
-    
+
     /* Original filtering logic - temporarily disabled for debugging
     // Get the current domain (visible range) from scales
     const xDomain = xScale.domain() as [Date | number, Date | number];

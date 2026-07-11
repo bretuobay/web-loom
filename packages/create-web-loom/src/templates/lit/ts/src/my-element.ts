@@ -1,15 +1,26 @@
 import { css, html, LitElement } from 'lit';
+import { observe } from '@web-loom/signals-core';
 import { CounterViewModel } from './viewmodels/CounterViewModel';
 
 const STACK = ['Vite', 'TypeScript', 'Lit', '@web-loom/mvvm-core', '@web-loom/signals-core'];
 
-const vmSnippet = `export class CounterViewModel {
-  readonly count = signal(0);
-  readonly doubled = computed(() => this.count.get() * 2);
+const vmSnippet = `import { Command } from "@web-loom/mvvm-core";
+import { computed, signal } from "@web-loom/signals-core";
 
-  increment() { this.count.set(this.count.get() + 1); }
-  decrement() { this.count.set(this.count.get() - 1); }
-  reset() { this.count.set(0); }
+export class CounterViewModel {
+  countState = signal(0);
+  count = this.countState.asReadonly();
+  doubled = computed(() => this.count.get() * 2);
+
+  incrementCommand = new Command(async () => {
+    this.countState.update((value) => value + 1);
+  });
+  decrementCommand = new Command(async () => {
+    this.countState.update((value) => value - 1);
+  });
+  resetCommand = new Command(async () => {
+    this.countState.set(0);
+  });
 }`;
 
 export class MyElement extends LitElement {
@@ -141,7 +152,9 @@ export class MyElement extends LitElement {
       color: #ffffff;
       background: linear-gradient(120deg, #0e5b9c, #297dbf);
       cursor: pointer;
-      transition: transform 120ms ease, filter 120ms ease;
+      transition:
+        transform 120ms ease,
+        filter 120ms ease;
     }
 
     .controls button:hover {
@@ -189,8 +202,7 @@ export class MyElement extends LitElement {
   };
 
   private readonly vm = new CounterViewModel();
-  private unsubscribeCount: () => void = () => {};
-  private unsubscribeDoubled: () => void = () => {};
+  private readonly teardowns: Array<() => void> = [];
 
   declare count: number;
   declare doubled: number;
@@ -204,20 +216,19 @@ export class MyElement extends LitElement {
   override connectedCallback(): void {
     super.connectedCallback();
 
-    const sync = () => {
-      this.count = this.vm.count.get();
-      this.doubled = this.vm.doubled.get();
-    };
-
-    sync();
-    this.unsubscribeCount = this.vm.count.subscribe(sync);
-    this.unsubscribeDoubled = this.vm.doubled.subscribe(sync);
+    this.teardowns.push(
+      observe(this.vm.count, (value) => {
+        this.count = value;
+      }),
+      observe(this.vm.doubled, (value) => {
+        this.doubled = value;
+      }),
+    );
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
-    this.unsubscribeCount();
-    this.unsubscribeDoubled();
+    this.teardowns.splice(0).forEach((teardown) => teardown());
     this.vm.dispose();
   }
 
@@ -242,9 +253,9 @@ export class MyElement extends LitElement {
               <div><span>Doubled</span><strong>${this.doubled}</strong></div>
             </div>
             <div class="controls">
-              <button @click=${() => this.vm.decrement()}>-</button>
-              <button @click=${() => this.vm.reset()}>Reset</button>
-              <button @click=${() => this.vm.increment()}>+</button>
+              <button @click=${() => void this.vm.decrementCommand.execute()}>-</button>
+              <button @click=${() => void this.vm.resetCommand.execute()}>Reset</button>
+              <button @click=${() => void this.vm.incrementCommand.execute()}>+</button>
             </div>
           </article>
 

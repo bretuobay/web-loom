@@ -37,12 +37,13 @@ import { QueryCore } from '@web-loom/query-core';
 
 // Create a QueryCore instance with a cache provider
 const query = new QueryCore({
-  cacheProvider: 'inMemory',       // default
+  cacheProvider: 'inMemory', // default
   defaultRefetchAfter: 5 * 60_000, // 5 minutes
 });
 ```
 
 Three cache providers are built in:
+
 - `'inMemory'` — lives as long as the `QueryCore` instance (default)
 - `'localStorage'` — survives page refreshes
 - `'indexedDB'` — larger storage, async, survives page refreshes
@@ -50,11 +51,11 @@ Three cache providers are built in:
 ### Defining an Endpoint
 
 ```typescript
-query.defineEndpoint('products', () => fetch('/api/products').then(r => r.json()), {
+query.defineEndpoint('products', () => fetch('/api/products').then((r) => r.json()), {
   refetchAfter: 2 * 60_000, // 2-minute stale time
 });
 
-query.defineEndpoint('user-profile', () => fetch('/api/me').then(r => r.json()), {
+query.defineEndpoint('user-profile', () => fetch('/api/me').then((r) => r.json()), {
   refetchAfter: 10 * 60_000,
   cacheProvider: 'localStorage', // persist this one across sessions
 });
@@ -68,8 +69,8 @@ The first argument is the cache key. The second is an async fetcher function. Th
 const unsubscribe = query.subscribe('products', (state) => {
   // state: { data, isLoading, isError, error, lastUpdated }
   if (state.isLoading) showSpinner();
-  if (state.isError)   showError(state.error);
-  if (state.data)      renderProducts(state.data);
+  if (state.isError) showError(state.error);
+  if (state.data) renderProducts(state.data);
 });
 
 // Trigger initial fetch
@@ -130,7 +131,7 @@ class ProductModel extends BaseModel<Product[], never> {
     queryCache.subscribe('products', (state) => {
       this.setLoading(state.isLoading);
       if (state.error) this.setError(state.error);
-      if (state.data)  this.setData(state.data);
+      if (state.data) this.setData(state.data);
     });
   }
 
@@ -156,11 +157,9 @@ Cache keys can be dynamic — include the parameters in the key:
 
 ```typescript
 function defineUserQuery(userId: string) {
-  queryCache.defineEndpoint(
-    `user:${userId}`,
-    () => fetch(`/api/users/${userId}`).then(r => r.json()),
-    { refetchAfter: 5 * 60_000 }
-  );
+  queryCache.defineEndpoint(`user:${userId}`, () => fetch(`/api/users/${userId}`).then((r) => r.json()), {
+    refetchAfter: 5 * 60_000,
+  });
 }
 
 defineUserQuery('u-123');

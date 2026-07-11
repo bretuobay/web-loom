@@ -1,15 +1,17 @@
 // vite.config.ts
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { createAliases } from '../../scripts/vite-alias';
 
 // https://vite.dev/config/
 export default defineConfig({
   server: {
-    port: 5180,
+    port: 5181,
     strictPort: true,
   },
   resolve: {
     alias: {
+      ...createAliases(__dirname),
       '@': resolve(__dirname, './src'),
     },
     // de-dupe if the plugin is linked during local dev

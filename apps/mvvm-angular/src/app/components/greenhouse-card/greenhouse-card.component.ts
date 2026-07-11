@@ -1,8 +1,8 @@
-import { Component, OnInit, Inject, InjectionToken } from '@angular/core';
+import { Component, OnInit, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import { fromLoomSignal } from '../../utils/loom-signals';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common'; // For async pipe, ngIf
 import { greenHouseViewModel, GreenhouseListData } from '@repo/view-models/GreenHouseViewModel'; // Adjusted import path
-import { Observable } from 'rxjs';
 import { BackIconComponent } from '../back-icon/back-icon.component';
 
 export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>('GREENHOUSE_VIEW_MODEL');
@@ -25,18 +25,20 @@ export class GreenhouseCardComponent implements OnInit {
   public vm: typeof greenHouseViewModel;
 
   // For cleaner template access if needed, though async pipe can access vm.data$ directly
-  public data$!: Observable<GreenhouseListData | null>;
-  public loading$!: Observable<boolean>;
-  public error$!: Observable<any>;
+  public data$!: Signal<GreenhouseListData | null>;
+  public loading$!: Signal<boolean>;
+  public error$!: Signal<any>;
+
+  private destroyRef = inject(DestroyRef);
 
   constructor(@Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel) {
     this.vm = vm;
   }
 
   ngOnInit(): void {
-    this.data$ = this.vm.data$;
-    this.loading$ = this.vm.isLoading$;
-    this.error$ = this.vm.error$;
+    this.data$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+    this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+    this.error$ = fromLoomSignal(this.vm.error$, this.destroyRef);
 
     // Initial data fetch if not done automatically by view model
     // Assuming a fetch method exists, or it fetches on instantiation.

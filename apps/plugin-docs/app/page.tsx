@@ -14,8 +14,7 @@ export default function HomePage() {
             className="pointer-events-none absolute inset-0"
             aria-hidden="true"
             style={{
-              background:
-                'radial-gradient(ellipse 75% 45% at 50% 0%, rgba(0,191,255,0.12) 0%, transparent 70%)',
+              background: 'radial-gradient(ellipse 75% 45% at 50% 0%, rgba(0,191,255,0.12) 0%, transparent 70%)',
             }}
           />
 
@@ -30,10 +29,9 @@ export default function HomePage() {
               A Complete Guide to TypeScript Plugin Architecture
             </p>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-600 dark:text-slate-400">
-              Fifteen chapters and a full reference appendix on designing plugin-based platforms
-              that scale — from core contracts and lifecycle management through security,
-              testing, real-world domain patterns, performance optimisation, and production
-              distribution. Patterns drawn from VS Code, Vite, Backstage, Kibana, Vendure,
+              Fifteen chapters and a full reference appendix on designing plugin-based platforms that scale — from core
+              contracts and lifecycle management through security, testing, real-world domain patterns, performance
+              optimisation, and production distribution. Patterns drawn from VS Code, Vite, Backstage, Kibana, Vendure,
               TinaCMS, and more.
             </p>
 
@@ -60,28 +58,25 @@ export default function HomePage() {
             <article className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
               <h2 className="text-lg font-[650] text-slate-900 dark:text-slate-100">What You Learn</h2>
               <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                Plugin contracts and lifecycle, SDK design, dynamic loading, event-driven
-                communication, sandboxing and security, testing strategies, e-commerce and CMS
-                plugin patterns, dashboard analytics, performance optimisation, and deployment
-                and distribution pipelines.
+                Plugin contracts and lifecycle, SDK design, dynamic loading, event-driven communication, sandboxing and
+                security, testing strategies, e-commerce and CMS plugin patterns, dashboard analytics, performance
+                optimisation, and deployment and distribution pipelines.
               </p>
             </article>
 
             <article className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
               <h2 className="text-lg font-[650] text-slate-900 dark:text-slate-100">Who It&apos;s For</h2>
               <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                Engineers, architects, and technical leads designing extensible platforms —
-                admin dashboards, e-commerce engines, CMS systems, analytics tools — where
-                the core product must grow without being rewritten.
+                Engineers, architects, and technical leads designing extensible platforms — admin dashboards, e-commerce
+                engines, CMS systems, analytics tools — where the core product must grow without being rewritten.
               </p>
             </article>
 
             <article className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
               <h2 className="text-lg font-[650] text-slate-900 dark:text-slate-100">What You Get</h2>
               <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                15 chapters across 5 parts, a complete TypeScript type reference, React, Vue,
-                Angular, and Vanilla JS plugin examples, build configurations, a security
-                checklist, and performance benchmarking guidance.
+                15 chapters across 5 parts, a complete TypeScript type reference, React, Vue, Angular, and Vanilla JS
+                plugin examples, build configurations, a security checklist, and performance benchmarking guidance.
               </p>
             </article>
           </div>
@@ -92,18 +87,48 @@ export default function HomePage() {
           <div className="mx-auto max-w-5xl px-4 sm:px-6">
             <h2 className="text-2xl font-[650] text-slate-900 dark:text-slate-100">Five parts. One coherent system.</h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-              Chapters progress from first principles to production deployment, so you can read
-              front to back or jump to the part that matches where you are right now.
+              Chapters progress from first principles to production deployment, so you can read front to back or jump to
+              the part that matches where you are right now.
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                { part: 'Part I', title: 'Foundations and Theory', chapters: 'Ch. 1–4', desc: 'What plugin architecture is, TypeScript fundamentals, framework-agnostic design, and core contracts.' },
-                { part: 'Part II', title: 'Implementation and Architecture', chapters: 'Ch. 5–8', desc: 'Registry design, dynamic loading, SDK API design, and event-driven inter-plugin communication.' },
-                { part: 'Part III', title: 'Security, Testing, and Best Practices', chapters: 'Ch. 9–10', desc: 'Sandboxing, permission models, CSP, and a full testing strategy from unit to end-to-end.' },
-                { part: 'Part IV', title: 'Real-World Applications', chapters: 'Ch. 11–13', desc: 'Plugin patterns for e-commerce platforms, CMS systems, and dashboard analytics ecosystems.' },
-                { part: 'Part V', title: 'Production and Optimisation', chapters: 'Ch. 14–15', desc: 'Bundle performance, lazy loading, and production distribution, versioning, and rollback strategies.' },
-                { part: 'Appendices', title: 'Reference Material', chapters: 'A–E', desc: 'Full TypeScript type definitions, cross-framework examples, build configs, and security and performance checklists.' },
+                {
+                  part: 'Part I',
+                  title: 'Foundations and Theory',
+                  chapters: 'Ch. 1–4',
+                  desc: 'What plugin architecture is, TypeScript fundamentals, framework-agnostic design, and core contracts.',
+                },
+                {
+                  part: 'Part II',
+                  title: 'Implementation and Architecture',
+                  chapters: 'Ch. 5–8',
+                  desc: 'Registry design, dynamic loading, SDK API design, and event-driven inter-plugin communication.',
+                },
+                {
+                  part: 'Part III',
+                  title: 'Security, Testing, and Best Practices',
+                  chapters: 'Ch. 9–10',
+                  desc: 'Sandboxing, permission models, CSP, and a full testing strategy from unit to end-to-end.',
+                },
+                {
+                  part: 'Part IV',
+                  title: 'Real-World Applications',
+                  chapters: 'Ch. 11–13',
+                  desc: 'Plugin patterns for e-commerce platforms, CMS systems, and dashboard analytics ecosystems.',
+                },
+                {
+                  part: 'Part V',
+                  title: 'Production and Optimisation',
+                  chapters: 'Ch. 14–15',
+                  desc: 'Bundle performance, lazy loading, and production distribution, versioning, and rollback strategies.',
+                },
+                {
+                  part: 'Appendices',
+                  title: 'Reference Material',
+                  chapters: 'A–E',
+                  desc: 'Full TypeScript type definitions, cross-framework examples, build configs, and security and performance checklists.',
+                },
               ].map(({ part, title, chapters, desc }) => (
                 <div
                   key={part}
@@ -131,8 +156,8 @@ export default function HomePage() {
                 Read from foundations to deployment.
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                Start at Chapter 1 for the full journey, or use the table of contents to jump
-                directly to the topic you need.
+                Start at Chapter 1 for the full journey, or use the table of contents to jump directly to the topic you
+                need.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link

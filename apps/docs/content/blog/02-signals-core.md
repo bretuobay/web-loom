@@ -39,10 +39,28 @@ import { signal } from '@web-loom/signals-core';
 
 const count = signal(0);
 
-count.get();        // → 0 (tracked — establishes dependency if in computed/effect)
-count.peek();       // → 0 (untracked — never establishes dependency)
-count.set(1);       // notify all dependents
-count.update(n => n + 1); // update from previous value → 2
+count.get(); // → 0 (tracked — establishes dependency if in computed/effect)
+count.peek(); // → 0 (untracked — never establishes dependency)
+count.set(1); // notify all dependents
+count.update((n) => n + 1); // update from previous value → 2
+```
+
+Every signal is also directly subscribable, without a framework or an `effect()`:
+
+```typescript
+const unsubscribe = count.subscribe((value) => console.log('count is now', value));
+
+count.set(5); // logs: 'count is now 5'
+unsubscribe();
+```
+
+`subscribe(fn)` only fires on _future_ changes — it doesn't replay the current value to a new subscriber. When you need that BehaviorSubject-style "deliver now, then on every change" behavior (the common case when wiring a signal into a framework's local state), use `observe(sig, fn)` instead:
+
+```typescript
+import { observe } from '@web-loom/signals-core';
+
+observe(count, (value) => console.log('count is', value)); // logs immediately: 'count is 5'
+count.set(6); // logs: 'count is 6'
 ```
 
 The `equals` option lets you control when a change triggers notification:
@@ -63,7 +81,9 @@ class CounterViewModel {
   private _count = signal(0);
   readonly count = this._count.asReadonly(); // consumers can read, not write
 
-  increment() { this._count.update(n => n + 1); }
+  increment() {
+    this._count.update((n) => n + 1);
+  }
 }
 ```
 
@@ -75,7 +95,7 @@ A derived value that's automatically recalculated when its dependencies change. 
 import { signal, computed } from '@web-loom/signals-core';
 
 const firstName = signal('Ada');
-const lastName  = signal('Lovelace');
+const lastName = signal('Lovelace');
 
 const fullName = computed(() => `${firstName.get()} ${lastName.get()}`);
 
@@ -90,18 +110,18 @@ Computed values are read-only — they don't have `set` or `update`. They're mem
 You can compose computeds:
 
 ```typescript
-const tasks      = signal<Task[]>([]);
-const filter     = signal<'all' | 'pending' | 'done'>('all');
+const tasks = signal<Task[]>([]);
+const filter = signal<'all' | 'pending' | 'done'>('all');
 
 const filtered = computed(() => {
   const all = tasks.get();
-  const f   = filter.get();
-  if (f === 'pending') return all.filter(t => !t.done);
-  if (f === 'done')    return all.filter(t => t.done);
+  const f = filter.get();
+  if (f === 'pending') return all.filter((t) => !t.done);
+  if (f === 'done') return all.filter((t) => t.done);
   return all;
 });
 
-const pendingCount = computed(() => filtered.get().filter(t => !t.done).length);
+const pendingCount = computed(() => filtered.get().filter((t) => !t.done).length);
 ```
 
 Changing `tasks` or `filter` recalculates `filtered`. Changing `filtered`'s output recalculates `pendingCount`. Nothing else runs.
@@ -167,24 +187,25 @@ Without `batch`, each `set` would trigger the effect independently. With `batch`
 
 ## Where This Fits in the Web Loom Architecture
 
-`@web-loom/signals-core` is designed for cases where RxJS is heavier than you need. RxJS is powerful — operators for debouncing, switching, combining streams, back-pressure — but it has a learning curve and a runtime cost. For ViewModels that only need to expose a few reactive values with simple derivations, signals are lighter and more readable.
+`@web-loom/signals-core` isn't a lightweight alternative sitting next to RxJS in `@web-loom/mvvm-core` — it's the reactive layer `mvvm-core` is actually built on. Every `data$`, `isLoading$`, `error$`, `canExecute$`, and `isExecuting$` you'll encounter across the ecosystem is a `ReadonlySignal<T>` from this package, not an RxJS `Observable`. RxJS isn't a dependency of `mvvm-core` at all.
 
-The two systems can coexist. A ViewModel might use RxJS for complex async orchestration and expose a few signals for simple UI state:
+That covers more than it might sound like at first — `computed()` handles derived state (what `.pipe(map(...))` and `combineLatest([...])` used to do), and `effect()` handles side effects. For debouncing a fast-changing input — the one case that reliably needed an RxJS operator before — `debouncedSignal` covers it directly:
 
 ```typescript
-class SearchViewModel extends BaseViewModel<SearchModel> {
-  // RxJS for async: debounce, switchMap, cancel in-flight requests
-  readonly results$ = this.query$.pipe(
-    debounceTime(300),
-    distinctUntilChanged(),
-    switchMap(q => this.model.search(q)),
-  );
+import { signal, observe, debouncedSignal } from '@web-loom/signals-core';
 
-  // Signal for simple UI state
-  readonly isFilterOpen = signal(false);
-  readonly sortOrder    = signal<'asc' | 'desc'>('asc');
+class SearchViewModel extends BaseViewModel<SearchModel> {
+  readonly query = signal('');
+  readonly debouncedQuery = debouncedSignal(this.query, 300);
+
+  constructor(model: SearchModel) {
+    super(model);
+    this.addSubscription(observe(this.debouncedQuery, (q) => this.model.search(q)));
+  }
 }
 ```
+
+If you're bridging into a codebase that's already genuinely RxJS-based elsewhere — an existing NgRx store, a complex retry/backoff pipeline, a websocket library that hands you Observables — `@web-loom/signals-core/rxjs` is an optional subpath (requires `rxjs` as a peer dependency) with `toObservable`/`fromObservable` helpers to cross that boundary. It's an escape hatch for integrating with other systems, not something `mvvm-core` itself needs.
 
 ---
 
@@ -215,17 +236,17 @@ This is the package's headline feature. You can use it in a Web Component, a van
 import { signal, computed, effect } from '@web-loom/signals-core';
 
 export function createCounter(initial = 0) {
-  const count    = signal(initial);
-  const doubled  = computed(() => count.get() * 2);
-  const isEven   = computed(() => count.get() % 2 === 0);
+  const count = signal(initial);
+  const doubled = computed(() => count.get() * 2);
+  const isEven = computed(() => count.get() % 2 === 0);
 
   return {
-    count:   count.asReadonly(),
+    count: count.asReadonly(),
     doubled: doubled,
-    isEven:  isEven,
-    increment: ()              => count.update(n => n + 1),
-    decrement: ()              => count.update(n => n - 1),
-    reset:     ()              => count.set(initial),
+    isEven: isEven,
+    increment: () => count.update((n) => n + 1),
+    decrement: () => count.update((n) => n - 1),
+    reset: () => count.set(initial),
   };
 }
 
@@ -271,7 +292,7 @@ describe('computed', () => {
     const derived = computed(fn);
 
     derived.get(); // first compute
-    b.set(200);    // unrelated
+    b.set(200); // unrelated
     derived.get(); // should use cached value
 
     expect(fn).toHaveBeenCalledTimes(1);

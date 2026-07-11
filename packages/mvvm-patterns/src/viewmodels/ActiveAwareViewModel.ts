@@ -1,5 +1,4 @@
-import { BehaviorSubject, Observable } from 'rxjs';
-import { distinctUntilChanged } from 'rxjs/operators';
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
 import { BaseViewModel, BaseModel } from '@web-loom/mvvm-core';
 import { IActiveAware } from '../lifecycle/IActiveAware';
 
@@ -24,19 +23,20 @@ export abstract class ActiveAwareViewModel<TModel extends BaseModel<any, any>>
   extends BaseViewModel<TModel>
   implements IActiveAware
 {
-  private readonly _isActive$ = new BehaviorSubject<boolean>(false);
+  private readonly _isActive = signal<boolean>(false);
+  private _isDisposed = false;
 
   /**
-   * Observable that emits when active state changes.
-   * New subscribers receive the current value immediately.
+   * Reactive signal of the active state. Signals only notify on actual
+   * changes, so no distinct-until-changed handling is needed.
    */
-  public readonly isActive$: Observable<boolean> = this._isActive$.pipe(distinctUntilChanged());
+  public readonly isActive$: ReadonlySignal<boolean> = this._isActive.asReadonly();
 
   /**
    * Gets the current active state
    */
   get isActive(): boolean {
-    return this._isActive$.value;
+    return this._isActive.peek();
   }
 
   /**
@@ -44,9 +44,10 @@ export abstract class ActiveAwareViewModel<TModel extends BaseModel<any, any>>
    * Triggers onIsActiveChanged() when value changes.
    */
   set isActive(value: boolean) {
-    if (this._isActive$.value !== value) {
-      const previousValue = this._isActive$.value;
-      this._isActive$.next(value);
+    if (this._isDisposed) return;
+    if (this._isActive.peek() !== value) {
+      const previousValue = this._isActive.peek();
+      this._isActive.set(value);
       this.onIsActiveChanged(value, previousValue);
     }
   }
@@ -88,7 +89,7 @@ export abstract class ActiveAwareViewModel<TModel extends BaseModel<any, any>>
   }
 
   public dispose(): void {
-    this._isActive$.complete();
+    this._isDisposed = true;
     super.dispose();
   }
 }

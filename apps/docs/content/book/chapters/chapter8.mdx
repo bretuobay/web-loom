@@ -15,48 +15,41 @@ We'll use the GreenWatch greenhouse monitoring system as our example, showing re
 ## 8.1 The React-MVVM Integration Challenge
 
 React components need to:
-1. Subscribe to ViewModel observables
-2. Trigger re-renders when observable values change
+1. Read ViewModel signals
+2. Trigger re-renders when signal values change
 3. Clean up subscriptions when components unmount
 4. Execute ViewModel commands in response to user actions
 
-The challenge is that React's state management is based on `useState` and `useReducer`, while our ViewModels expose RxJS observables. We need a bridge between these two worlds.
+The challenge is that React's state management is based on `useState` and `useReducer`, while our ViewModels expose `@web-loom/signals-core` signals. We need a bridge between these two worlds.
 
-The solution is a custom hook: `useObservable`.
+The solution is a custom hook: `useSignal`.
 
 
-## 8.2 The useObservable Hook: Bridging Observables and React State
+## 8.2 The useSignal Hook: Bridging Signals and React State
 
-The `useObservable` hook is the cornerstone of React-MVVM integration. It subscribes to an RxJS observable, converts its values into React state, and handles cleanup automatically. Here's the complete implementation from the GreenWatch React app:
+The `useSignal` hook is the cornerstone of React-MVVM integration. It reads a `@web-loom/signals-core` signal, converts its value into a React-tracked read, and handles cleanup automatically via `useSyncExternalStore`. Here's the complete implementation from the GreenWatch React app:
 
 ```typescript
-// apps/mvvm-react/src/hooks/useObservable.ts
-import { useState, useEffect } from 'react';
-import { Observable } from 'rxjs';
+// apps/mvvm-react/src/hooks/useSignal.ts
+import { useSyncExternalStore } from 'react';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 
-export function useObservable<T>(observable: Observable<T>, initialValue: T) {
-  const [value, setValue] = useState<T>(initialValue);
-
-  useEffect(() => {
-    const subscription = observable.subscribe(setValue);
-    return () => subscription.unsubscribe();
-  }, [observable]);
-
-  return value;
+export function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 ```
 
 Let's break down what's happening here:
 
-**1. State Management**: `useState` creates local component state initialized with `initialValue`. This state will trigger re-renders when updated.
+**1. Snapshot Reads**: `useSyncExternalStore` calls `sig.get` to read the current value synchronously — both for the client snapshot and the (identical, since this isn't SSR-hydration-sensitive) server snapshot. No `initialValue` parameter, no first-render flash of a placeholder.
 
-**2. Subscription**: `useEffect` subscribes to the observable when the component mounts. The `setValue` function is passed directly as the observer—when the observable emits, `setValue` is called, updating React state and triggering a re-render.
+**2. Subscription**: `useSyncExternalStore` calls `sig.subscribe` internally when the component mounts. `sig.subscribe` already has exactly the shape React expects — `(callback) => unsubscribeFunction` — so it's passed straight through with no wrapper.
 
-**3. Cleanup**: The cleanup function returned from `useEffect` unsubscribes when the component unmounts or when the `observable` dependency changes. This prevents memory leaks.
+**3. Cleanup**: React calls the unsubscribe function `sig.subscribe` returned when the component unmounts. This prevents memory leaks without any explicit cleanup code in the hook itself.
 
-**4. Dependency Array**: The `[observable]` dependency ensures that if the observable reference changes, we unsubscribe from the old one and subscribe to the new one.
+**4. Consistency**: `useSyncExternalStore` guarantees that all components reading the same signal see a consistent value within a single render pass — this is the API React 18+ recommends for exactly this kind of external-store integration.
 
-This simple hook is all you need to integrate RxJS observables with React. It's framework-agnostic in the sense that the same pattern works with any observable library—RxJS, Bacon.js, or even custom implementations.
+This simple hook is all you need to integrate Web Loom signals with React. The signal's own `.subscribe`/`.get` shape is what makes the hook this small — there's no adapter logic to write.
 
 
 ## 8.3 Building the Dashboard: Multi-ViewModel Coordination
@@ -72,7 +65,7 @@ import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
 import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 import GreenhouseCard from './GreenhouseCard';
 import SensorCard from './SensorCard';
@@ -80,18 +73,18 @@ import SensorReadingCard from './SensorReadingCard';
 import ThresholdAlertCard from './ThresholdAlertCard';
 
 const Dashboard: React.FC = () => {
-  // Subscribe to data observables
-  const greenHouses = useObservable(greenHouseViewModel.data$, []);
-  const isLoadingGreenHouses = useObservable(greenHouseViewModel.isLoading$, true);
+  // Read ViewModel signals
+  const greenHouses = useSignal(greenHouseViewModel.data$);
+  const isLoadingGreenHouses = useSignal(greenHouseViewModel.isLoading$);
 
-  const sensors = useObservable(sensorViewModel.data$, []);
-  const isLoadingSensors = useObservable(sensorViewModel.isLoading$, true);
+  const sensors = useSignal(sensorViewModel.data$);
+  const isLoadingSensors = useSignal(sensorViewModel.isLoading$);
 
-  const sensorReadings = useObservable(sensorReadingViewModel.data$, []);
-  const isLoadingSensorReadings = useObservable(sensorReadingViewModel.isLoading$, true);
+  const sensorReadings = useSignal(sensorReadingViewModel.data$);
+  const isLoadingSensorReadings = useSignal(sensorReadingViewModel.isLoading$);
 
-  const thresholdAlerts = useObservable(thresholdAlertViewModel.data$, []);
-  const isLoadingThresholdAlerts = useObservable(thresholdAlertViewModel.isLoading$, true);
+  const thresholdAlerts = useSignal(thresholdAlertViewModel.data$);
+  const isLoadingThresholdAlerts = useSignal(thresholdAlertViewModel.isLoading$);
 
   // Fetch data on mount
   useEffect(() => {
@@ -158,16 +151,16 @@ import { sensorViewModel } from '@repo/view-models/SensorViewModel';
 
 The ViewModels are imported directly as singleton instances. This works because the Dashboard shows global application state—all components see the same greenhouses, sensors, and alerts. We'll explore when to use singletons vs. transient instances later in this chapter.
 
-**2. Observable Subscriptions with useObservable**
+**2. Signal Reads with useSignal**
 
 ```tsx
-const greenHouses = useObservable(greenHouseViewModel.data$, []);
-const isLoadingGreenHouses = useObservable(greenHouseViewModel.isLoading$, true);
+const greenHouses = useSignal(greenHouseViewModel.data$);
+const isLoadingGreenHouses = useSignal(greenHouseViewModel.isLoading$);
 ```
 
-Each `useObservable` call creates a subscription that:
-- Starts with an initial value (`[]` for data, `true` for loading)
-- Updates React state when the observable emits
+Each `useSignal` call creates a subscription that:
+- Reads the current value synchronously on first render (no placeholder needed)
+- Updates React state when the signal changes
 - Automatically unsubscribes when the component unmounts
 
 Notice we subscribe to both `data$` and `isLoading$` from each ViewModel. This gives us fine-grained control over what we display—we can show loading spinners while data is being fetched.
@@ -228,12 +221,12 @@ Let's look at simpler components that display lists. The `SensorList` component 
 // apps/mvvm-react/src/components/SensorList.tsx
 import { useEffect } from 'react';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 import { Link } from 'react-router-dom';
 import BackArrow from '../assets/back-arrow.svg';
 
 export function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -268,15 +261,15 @@ export function SensorList() {
 
 This component demonstrates the minimal pattern for consuming a ViewModel:
 
-1. **Subscribe to data**: `useObservable(sensorViewModel.data$, [])`
+1. **Read the data signal**: `useSignal(sensorViewModel.data$)`
 2. **Fetch on mount**: `useEffect` with `fetchCommand.execute()`
 3. **Render the data**: Map over the array and render list items
 
 Notice what's NOT here:
 - No API calls
-- No state management beyond what `useObservable` provides
+- No state management beyond what `useSignal` provides
 - No business logic (the sensor status is already computed by the ViewModel)
-- No manual subscription cleanup (handled by `useObservable`)
+- No manual subscription cleanup (handled by `useSignal`)
 
 This is the "dumb view" philosophy in action. The component is purely presentational.
 
@@ -289,10 +282,10 @@ The `GreenhouseList` component is more complex—it handles Create, Read, Update
 // apps/mvvm-react/src/components/GreenhouseList.tsx (excerpt)
 import { useEffect } from 'react';
 import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 export function GreenhouseList() {
-  const greenHouses = useObservable(greenHouseViewModel.data$, [] as GreenhouseData[]);
+  const greenHouses = useSignal(greenHouseViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -395,7 +388,7 @@ That's it. No need to:
 - Handle errors
 - Refresh the list
 
-The ViewModel's `createCommand` handles all of that. When the command completes, the ViewModel's `data$` observable emits the updated list, and React automatically re-renders.
+The ViewModel's `createCommand` handles all of that. When the command completes, the ViewModel's `data$` signal updates to the new list, and React automatically re-renders.
 
 **Update Operation:**
 ```tsx
@@ -419,8 +412,8 @@ Again, one line. The ViewModel handles the API call, updates its internal state,
 1. **Consistency**: All CRUD operations follow the same pattern
 2. **Testability**: You can test the ViewModel's commands without rendering components
 3. **Reusability**: The same commands work in Vue, Angular, Lit, and vanilla JS
-4. **Error Handling**: Errors are captured in the ViewModel's `error$` observable
-5. **Loading States**: The ViewModel's `isLoading$` observable tracks command execution
+4. **Error Handling**: Errors are captured in the ViewModel's `error$` signal
+5. **Loading States**: The ViewModel's `isLoading$` signal tracks command execution
 
 The View layer is just wiring—it captures user input and calls commands. All the complexity lives in the ViewModel.
 
@@ -451,9 +444,9 @@ export type { SensorListData };
 ```
 
 This ViewModel extends `RestfulApiViewModel`, which provides:
-- `data$: Observable<SensorListData | null>` - The sensor list
-- `isLoading$: Observable<boolean>` - Loading state
-- `error$: Observable<any>` - Error state
+- `data$: ReadonlySignal<SensorListData | null>` - The sensor list
+- `isLoading$: ReadonlySignal<boolean>` - Loading state
+- `error$: ReadonlySignal<any>` - Error state
 - `fetchCommand` - Fetch sensors from API
 - `createCommand` - Create a new sensor
 - `updateCommand` - Update a sensor
@@ -483,7 +476,7 @@ export type { GreenhouseListData, GreenhouseData };
 
 This ViewModel uses a factory pattern (`createReactiveViewModel`) instead of manual instantiation. The factory creates both the Model and ViewModel from a configuration object. This approach reduces boilerplate when you have many similar ViewModels.
 
-The result is the same: a ViewModel that exposes observables and commands for CRUD operations.
+The result is the same: a ViewModel that exposes signals and commands for CRUD operations.
 
 
 ## 8.7 Advanced Patterns: Custom Hooks for ViewModels
@@ -495,15 +488,15 @@ As your application grows, you might want to create custom hooks that encapsulat
 ```typescript
 // src/hooks/useViewModel.ts
 import { useEffect } from 'react';
-import { useObservable } from './useObservable';
+import { useSignal } from './useSignal';
 import type { RestfulApiViewModel } from '@web-loom/mvvm-core';
 
 export function useViewModel<TData>(
   viewModel: RestfulApiViewModel<TData, any>
 ) {
-  const data = useObservable(viewModel.data$, null);
-  const isLoading = useObservable(viewModel.isLoading$, false);
-  const error = useObservable(viewModel.error$, null);
+  const data = useSignal(viewModel.data$);
+  const isLoading = useSignal(viewModel.isLoading$);
+  const error = useSignal(viewModel.error$);
 
   useEffect(() => {
     viewModel.fetchCommand.execute();
@@ -532,7 +525,7 @@ function SensorList() {
 }
 ```
 
-This hook bundles the common pattern of subscribing to data, loading, and error observables, plus fetching on mount.
+This hook bundles the common pattern of reading data, loading, and error signals, plus fetching on mount.
 
 ### 8.7.2 useCommand Hook
 
@@ -604,24 +597,17 @@ This hook provides local loading and error state for individual command executio
 
 One of React's strengths is its clear component lifecycle. With hooks, lifecycle management is straightforward:
 
-### 8.8.1 Automatic Cleanup with useObservable
+### 8.8.1 Automatic Cleanup with useSignal
 
-The `useObservable` hook handles subscription cleanup automatically:
+The `useSignal` hook handles subscription cleanup automatically via `useSyncExternalStore`:
 
 ```typescript
-export function useObservable<T>(observable: Observable<T>, initialValue: T) {
-  const [value, setValue] = useState<T>(initialValue);
-
-  useEffect(() => {
-    const subscription = observable.subscribe(setValue);
-    return () => subscription.unsubscribe(); // Cleanup on unmount
-  }, [observable]);
-
-  return value;
+export function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 ```
 
-When the component unmounts, React calls the cleanup function, which unsubscribes from the observable. You don't need to manually manage subscriptions in your components.
+When the component unmounts, React calls the unsubscribe function that `sig.subscribe` returned. You don't need to manually manage subscriptions in your components.
 
 ### 8.8.2 When to Dispose ViewModels
 
@@ -639,16 +625,15 @@ function SensorDetail({ sensorId }: { sensorId: string }) {
     return () => viewModel.dispose();
   }, [viewModel]);
 
-  const sensor = useObservable(viewModel.sensor$, null);
+  const sensor = useSignal(viewModel.sensor$);
 
   return <div>{sensor?.name}</div>;
 }
 ```
 
 The `dispose()` method:
-- Completes all observables (via `_destroy$`)
-- Unsubscribes all internal subscriptions
 - Disposes all registered commands
+- Runs every teardown registered via `addSubscription()`
 - Prevents memory leaks
 
 **Rule of thumb:** If you create it, dispose it. If you import it (singleton), don't dispose it.
@@ -660,9 +645,9 @@ React components should always handle loading and error states from ViewModels. 
 
 ```tsx
 function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, null);
-  const isLoading = useObservable(sensorViewModel.isLoading$, false);
-  const error = useObservable(sensorViewModel.error$, null);
+  const sensors = useSignal(sensorViewModel.data$);
+  const isLoading = useSignal(sensorViewModel.isLoading$);
+  const error = useSignal(sensorViewModel.error$);
 
   useEffect(() => {
     sensorViewModel.fetchCommand.execute();
@@ -737,7 +722,7 @@ React hooks can capture stale values in closures. Be careful when using ViewMode
 **Problem:**
 ```tsx
 function SensorCard({ sensor }) {
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
 
   const handleDelete = () => {
     // This might use a stale 'sensors' value
@@ -765,11 +750,11 @@ function SensorCard({ sensor }) {
 
 ### 8.10.2 Memoization for Performance
 
-If you're subscribing to the same observable in multiple places, consider memoizing the subscription:
+If you're reading the same signal in multiple places, consider memoizing the derived values:
 
 ```tsx
 function Dashboard() {
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
   
   // Derive values from the subscribed data, not by subscribing again
   const activeSensors = useMemo(
@@ -791,7 +776,7 @@ function Dashboard() {
 }
 ```
 
-Don't subscribe to `sensorViewModel.data$` multiple times. Subscribe once and derive values with `useMemo`.
+Don't call `useSignal(sensorViewModel.data$)` multiple times. Read it once and derive values with `useMemo`.
 
 ### 8.10.3 React.StrictMode and Double Rendering
 
@@ -813,7 +798,7 @@ One of the greatest benefits of MVVM is testability. React components that use V
 ```typescript
 // __tests__/SensorList.test.tsx
 import { render, screen, waitFor } from '@testing-library/react';
-import { BehaviorSubject } from 'rxjs';
+import { signal } from '@web-loom/signals-core';
 import { SensorList } from '../SensorList';
 import * as viewModels from '@repo/view-models/SensorViewModel';
 
@@ -821,13 +806,13 @@ import * as viewModels from '@repo/view-models/SensorViewModel';
 jest.mock('@repo/view-models/SensorViewModel');
 
 describe('SensorList', () => {
-  let mockData$: BehaviorSubject<any[]>;
-  let mockIsLoading$: BehaviorSubject<boolean>;
+  let mockData$: ReturnType<typeof signal<any[]>>;
+  let mockIsLoading$: ReturnType<typeof signal<boolean>>;
   let mockFetchCommand: { execute: jest.Mock };
 
   beforeEach(() => {
-    mockData$ = new BehaviorSubject([]);
-    mockIsLoading$ = new BehaviorSubject(false);
+    mockData$ = signal([]);
+    mockIsLoading$ = signal(false);
     mockFetchCommand = { execute: jest.fn() };
 
     // Mock the ViewModel
@@ -839,7 +824,7 @@ describe('SensorList', () => {
   });
 
   it('displays loading state initially', () => {
-    mockIsLoading$.next(true);
+    mockIsLoading$.set(true);
     render(<SensorList />);
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
@@ -853,7 +838,7 @@ describe('SensorList', () => {
     render(<SensorList />);
     
     // Simulate data loading
-    mockData$.next(sensors);
+    mockData$.set(sensors);
 
     await waitFor(() => {
       expect(screen.getByText(/Sensor 1/)).toBeInTheDocument();
@@ -869,7 +854,7 @@ describe('SensorList', () => {
 ```
 
 This test demonstrates:
-- Mocking the ViewModel with BehaviorSubjects
+- Mocking the ViewModel with plain `signal()` instances
 - Testing loading states
 - Testing data rendering
 - Verifying command execution
@@ -883,8 +868,8 @@ Here's the crucial insight: the ViewModels we've used in this chapter are **iden
 
 ### React (This Chapter)
 ```tsx
-// React: useObservable hook
-const sensors = useObservable(sensorViewModel.data$, []);
+// React: useSignal hook
+const sensors = useSignal(sensorViewModel.data$);
 
 useEffect(() => {
   sensorViewModel.fetchCommand.execute();
@@ -893,9 +878,9 @@ useEffect(() => {
 
 ### Vue (Chapter 9)
 ```vue
-<!-- Vue: useObservable composable -->
+<!-- Vue: useSignal composable -->
 <script setup>
-const sensors = useObservable(sensorViewModel.data$, []);
+const sensors = useSignal(sensorViewModel.data$);
 
 onMounted(() => {
   sensorViewModel.fetchCommand.execute();
@@ -905,9 +890,9 @@ onMounted(() => {
 
 ### Angular (Chapter 10)
 ```typescript
-// Angular: async pipe
+// Angular: fromLoomSignal bridge
 export class SensorListComponent {
-  public data$ = sensorViewModel.data$;
+  public data$ = fromLoomSignal(sensorViewModel.data$);
 
   ngOnInit() {
     sensorViewModel.fetchCommand.execute();
@@ -917,7 +902,7 @@ export class SensorListComponent {
 
 ```html
 <!-- Template -->
-<div *ngFor="let sensor of data$ | async">
+<div *ngFor="let sensor of data$()">
   {{ sensor.name }}
 </div>
 ```
@@ -951,7 +936,7 @@ sensorViewModel.fetchCommand.execute();
 
 **What's the same:**
 - The ViewModel (`sensorViewModel`)
-- The observables (`data$`, `isLoading$`, `error$`)
+- The signals (`data$`, `isLoading$`, `error$`)
 - The commands (`fetchCommand.execute()`)
 - The business logic
 
@@ -967,9 +952,9 @@ This is the power of MVVM: **write the business logic once, adapt the View layer
 
 Based on the real implementations in the GreenWatch React app, here are the patterns that work:
 
-### 1. Use useObservable for All Observable Subscriptions
+### 1. Use useSignal for All Signal Reads
 
-Don't manually subscribe in `useEffect`. Use the `useObservable` hook:
+Don't manually subscribe in `useEffect`. Use the `useSignal` hook:
 
 **❌ Bad:**
 ```tsx
@@ -977,8 +962,7 @@ function SensorList() {
   const [sensors, setSensors] = useState([]);
 
   useEffect(() => {
-    const sub = sensorViewModel.data$.subscribe(setSensors);
-    return () => sub.unsubscribe();
+    return sensorViewModel.data$.subscribe(setSensors);
   }, []);
 }
 ```
@@ -986,7 +970,7 @@ function SensorList() {
 **✅ Good:**
 ```tsx
 function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
 }
 ```
 
@@ -996,14 +980,14 @@ function SensorList() {
 ```tsx
 function SensorList() {
   sensorViewModel.fetchCommand.execute(); // Runs on every render!
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
 }
 ```
 
 **✅ Good:**
 ```tsx
 function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
 
   useEffect(() => {
     sensorViewModel.fetchCommand.execute();
@@ -1011,14 +995,14 @@ function SensorList() {
 }
 ```
 
-### 3. Handle All Observable States
+### 3. Handle All Signal States
 
-Always subscribe to `data$`, `isLoading$`, and `error$`:
+Always read `data$`, `isLoading$`, and `error$`:
 
 ```tsx
-const data = useObservable(viewModel.data$, null);
-const isLoading = useObservable(viewModel.isLoading$, false);
-const error = useObservable(viewModel.error$, null);
+const data = useSignal(viewModel.data$);
+const isLoading = useSignal(viewModel.isLoading$);
+const error = useSignal(viewModel.error$);
 
 if (isLoading) return <LoadingSpinner />;
 if (error) return <ErrorMessage error={error} />;
@@ -1048,19 +1032,20 @@ function SensorCard({ sensor }) {
 ```tsx
 // In ViewModel
 class SensorViewModel {
-  public readonly displayStatus$ = this.data$.pipe(
-    map(sensor => ({
+  public readonly displayStatus$ = computed(() => {
+    const sensor = this.data$.get();
+    return {
       color: sensor.value > sensor.threshold ? 'red' : 'green',
       message: sensor.value > sensor.threshold
         ? `Alert: ${sensor.value - sensor.threshold} over threshold`
         : 'Normal'
-    }))
-  );
+    };
+  });
 }
 
 // In Component
 function SensorCard() {
-  const status = useObservable(sensorViewModel.displayStatus$, null);
+  const status = useSignal(sensorViewModel.displayStatus$);
   return <div style={{ color: status.color }}>{status.message}</div>;
 }
 ```
@@ -1088,11 +1073,11 @@ const handleDelete = () => {
 
 ## 8.14 Key Takeaways
 
-React's hooks model integrates naturally with MVVM architecture through the `useObservable` pattern. By bridging RxJS observables with React state, we achieve clean separation of concerns while maintaining React's declarative programming model.
+React's hooks model integrates naturally with MVVM architecture through the `useSignal` pattern. By bridging `@web-loom/signals-core` signals with React state via `useSyncExternalStore`, we achieve clean separation of concerns while maintaining React's declarative programming model.
 
 **Core Patterns:**
 
-1. **useObservable Hook**: Converts RxJS observables into React state with automatic cleanup
+1. **useSignal Hook**: Converts Web Loom signals into React-tracked reads with automatic cleanup
 2. **useEffect for Commands**: Execute ViewModel commands on mount with empty dependency array
 3. **Direct ViewModel Imports**: Import singleton ViewModels directly for global state
 4. **Command Pattern**: Use ViewModel commands for all user actions (CRUD operations)
@@ -1101,13 +1086,13 @@ React's hooks model integrates naturally with MVVM architecture through the `use
 **React-Specific Considerations:**
 
 - Avoid stale closures by using ViewModels as source of truth
-- Memoize derived values with `useMemo` instead of multiple subscriptions
+- Memoize derived values with `useMemo` instead of multiple `useSignal` reads
 - Be aware of StrictMode double-rendering in development
 - Dispose transient ViewModels in `useEffect` cleanup
 
 **Testing Benefits:**
 
-- Mock ViewModels with BehaviorSubjects
+- Mock ViewModels with plain `signal()` instances
 - Test components without complex setup
 - Test ViewModels separately without rendering components
 - Verify command execution and state updates

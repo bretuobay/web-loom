@@ -41,10 +41,10 @@ import { EventEmitter } from '@web-loom/event-emitter-core';
 
 // Define your event map once — this is the contract
 interface AppEvents {
-  'user:login':  { id: string; email: string };
+  'user:login': { id: string; email: string };
   'user:logout': void;
   'data:loaded': { count: number; timestamp: number };
-  'error':       Error;
+  error: Error;
 }
 
 const emitter = new EventEmitter<AppEvents>();
@@ -124,8 +124,8 @@ const emitter = new EventEmitter<AppEvents>({
 
 ```typescript
 emitter.listenerCount('user:login'); // → number
-emitter.hasListeners('user:login');  // → boolean
-emitter.eventNames();                 // → Array<keyof AppEvents>
+emitter.hasListeners('user:login'); // → boolean
+emitter.eventNames(); // → Array<keyof AppEvents>
 ```
 
 These are useful for diagnostics and for building higher-level abstractions — `event-bus-core` uses them internally to avoid emitting on events with no subscribers.
@@ -177,9 +177,9 @@ The most useful pattern is the singleton emitter scoped to a domain or feature. 
 import { EventEmitter } from '@web-loom/event-emitter-core';
 
 export interface AuthEvents {
-  'login:success':  { userId: string; token: string };
-  'login:failed':   { reason: string };
-  'logout':          void;
+  'login:success': { userId: string; token: string };
+  'login:failed': { reason: string };
+  logout: void;
   'token:refreshed': { newToken: string };
 }
 
@@ -211,7 +211,7 @@ class SidebarViewModel {
   }
 
   dispose() {
-    this._unsub.forEach(f => f());
+    this._unsub.forEach((f) => f());
   }
 }
 ```
@@ -230,7 +230,7 @@ The `SidebarViewModel` knows about auth events without knowing about the `AuthMo
 
 **`eventemitter3`**: Popular, Node-compatible, performant. Not typed by design (TypeScript types are added by community packages). `event-emitter-core` is typed by design — the event map is the primary abstraction.
 
-**RxJS `Subject`**: Extremely powerful, but each event is a separate Subject — there's no shared event name registry. You'd need to build that yourself. Also introduces RxJS as a dependency. `event-emitter-core` has zero dependencies and doesn't assume you're using RxJS.
+**RxJS `Subject`**: Extremely powerful, but each event is a separate Subject — there's no shared event name registry. You'd need to build that yourself, and it pulls in RxJS as a dependency. `event-emitter-core` has zero dependencies; nothing in Web Loom requires RxJS.
 
 ---
 
@@ -243,10 +243,11 @@ The implementation uses a `Map<EventName, Set<Listener>>`. Each event name maps 
 The `EventArgs` type utility extracts the payload type from the event map:
 
 ```typescript
-type EventArgs<TEvents, TKey extends keyof TEvents> =
-  TEvents[TKey] extends undefined | void ? [] :
-  TEvents[TKey] extends unknown[]        ? TEvents[TKey] :
-  [TEvents[TKey]];
+type EventArgs<TEvents, TKey extends keyof TEvents> = TEvents[TKey] extends undefined | void
+  ? []
+  : TEvents[TKey] extends unknown[]
+    ? TEvents[TKey]
+    : [TEvents[TKey]];
 ```
 
 This allows `void` events to be emitted with no arguments, array payloads to be spread as variadic args, and single-value payloads to be wrapped in a tuple — all without the call site needing to care about which case applies.

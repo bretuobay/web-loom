@@ -1,7 +1,7 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
 @customElement('greenhouse-card')
 export class GreenhouseCard extends LitElement {
@@ -9,18 +9,18 @@ export class GreenhouseCard extends LitElement {
     return this;
   }
   @state() private greenhouses: GreenhouseData[] = [];
-  private subscription: Subscription | null = null;
+  private unsubscribe: (() => void) | null = null;
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscription = greenHouseViewModel.data$.subscribe((data: any) => {
+    this.unsubscribe = observe(greenHouseViewModel.data$, (data: any) => {
       this.greenhouses = data;
     });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscription?.unsubscribe();
+    this.unsubscribe?.();
   }
 
   render() {

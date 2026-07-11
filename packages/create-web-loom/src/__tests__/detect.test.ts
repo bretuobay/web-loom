@@ -6,11 +6,13 @@ import { detectFramework, detectScaffold, detectTemplateVariant, type Framework 
 
 const tempDirs: string[] = [];
 
-function createProject(config: {
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-  files?: Record<string, string>;
-} = {}): string {
+function createProject(
+  config: {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+    files?: Record<string, string>;
+  } = {},
+): string {
   const dir = mkdtempSync(join(tmpdir(), 'create-web-loom-detect-'));
   tempDirs.push(dir);
 

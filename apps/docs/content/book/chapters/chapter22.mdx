@@ -82,9 +82,9 @@ export type { GreenhouseListData, GreenhouseData };
 
 This ViewModel uses the factory pattern from `mvvm-core` to create a reactive ViewModel with built-in CRUD commands. The `createReactiveViewModel` function generates:
 
-- `data$`: Observable of greenhouse list
-- `isLoading$`: Observable of loading state
-- `error$`: Observable of error state
+- `data$`: `ReadonlySignal` of the greenhouse list
+- `isLoading$`: `ReadonlySignal` of loading state
+- `error$`: `ReadonlySignal` of error state
 - `fetchCommand`: Command to fetch greenhouses
 - `createCommand`: Command to create a greenhouse
 - `updateCommand`: Command to update a greenhouse
@@ -150,22 +150,22 @@ const thresholdAlertModel = new ThresholdAlertModel();
 export const thresholdAlertViewModel = new ThresholdAlertViewModel(thresholdAlertModel);
 ```
 
-The key insight: **these ViewModels are defined once and used everywhere**. They contain all the presentation logic, state management, and API coordination. The framework-specific Views simply subscribe to their observables and invoke their commands.
+The key insight: **these ViewModels are defined once and used everywhere**. They contain all the presentation logic, state management, and API coordination. The framework-specific Views simply read their signals and invoke their commands.
 
 
 ### React Implementation
 
-The React implementation (`apps/mvvm-react/`) uses hooks to subscribe to ViewModel observables. Let's examine the `GreenhouseList` component:
+The React implementation (`apps/mvvm-react/`) uses a `useSignal` hook to read ViewModel signals. Let's examine the `GreenhouseList` component:
 
 ```typescript
 // apps/mvvm-react/src/components/GreenhouseList.tsx
 import { useEffect } from 'react';
 import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 export function GreenhouseList() {
-  // Subscribe to ViewModel observables using custom hook
-  const greenHouses = useObservable(greenHouseViewModel.data$, [] as GreenhouseData[]);
+  // Read ViewModel signals using the useSignal hook
+  const greenHouses = useSignal(greenHouseViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -221,31 +221,24 @@ export function GreenhouseList() {
 }
 ```
 
-The `useObservable` hook bridges RxJS observables to React state:
+The `useSignal` hook bridges `@web-loom/signals-core` signals to React state via `useSyncExternalStore`:
 
 ```typescript
-// apps/mvvm-react/src/hooks/useObservable.ts
-import { useState, useEffect } from 'react';
-import { Observable } from 'rxjs';
+// apps/mvvm-react/src/hooks/useSignal.ts
+import { useSyncExternalStore } from 'react';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 
-export function useObservable<T>(observable: Observable<T>, initialValue: T) {
-  const [value, setValue] = useState<T>(initialValue);
-
-  useEffect(() => {
-    const subscription = observable.subscribe(setValue);
-    return () => subscription.unsubscribe();
-  }, [observable]);
-
-  return value;
+export function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 ```
 
-This pattern is clean and idiomatic React: hooks manage subscriptions, effects handle lifecycle, and the component remains purely presentational.
+This pattern is clean and idiomatic React: `useSyncExternalStore` manages subscription timing internally, and the component remains purely presentational.
 
 
 ### Vue Implementation
 
-The Vue implementation (`apps/mvvm-vue/`) uses the Composition API with a similar `useObservable` composable:
+The Vue implementation (`apps/mvvm-vue/`) uses the Composition API with a similar `useSignal` composable:
 
 ```vue
 <!-- apps/mvvm-vue/src/components/GreenhouseList.vue -->
@@ -289,10 +282,10 @@ The Vue implementation (`apps/mvvm-vue/`) uses the Composition API with a simila
 <script setup lang="ts">
 import { onMounted, reactive } from 'vue';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
-const isLoading = useObservable(greenHouseViewModel.isLoading$, true);
-const greenhouses = useObservable(greenHouseViewModel.data$, []);
+const isLoading = useSignal(greenHouseViewModel.isLoading$);
+const greenhouses = useSignal(greenHouseViewModel.data$);
 
 const formData = reactive({
   name: '',
@@ -317,20 +310,21 @@ const handleDelete = (id?: string) => {
 </script>
 ```
 
-The Vue implementation uses `v-model` for two-way binding and Vue's reactive system for form state, but the ViewModel interaction is identical to React: subscribe to observables, invoke commands, let the ViewModel handle the rest.
+The Vue implementation uses `v-model` for two-way binding and Vue's reactive system for form state, but the ViewModel interaction is identical to React: read signals, invoke commands, let the ViewModel handle the rest.
 
 
 ### Angular Implementation
 
-The Angular implementation (`apps/mvvm-angular/`) leverages dependency injection and the async pipe:
+The Angular implementation (`apps/mvvm-angular/`) leverages dependency injection and the `fromLoomSignal` bridge, which mirrors a Web Loom signal into Angular's own native `Signal`:
 
 ```typescript
 // apps/mvvm-angular/src/app/components/greenhouse-list/greenhouse-list.component.ts
-import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
+import { Component, OnInit, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import { fromLoomSignal } from '../../utils/loom-signals';
+import { observe } from '@web-loom/signals-core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { GreenhouseData, greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { Observable, Subscription } from 'rxjs';
 
 export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>('GREENHOUSE_VIEW_MODEL');
 
@@ -346,15 +340,15 @@ export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewMod
     },
   ],
 })
-export class GreenhouseListComponent implements OnInit, OnDestroy {
+export class GreenhouseListComponent implements OnInit {
   public vm: typeof greenHouseViewModel;
-  public greenhouses$!: Observable<GreenhouseData[] | null>;
-  public loading$!: Observable<boolean>;
-  public error$!: Observable<any>;
+  public greenhouses$!: Signal<GreenhouseData[] | null>;
+  public loading$!: Signal<boolean>;
+  public error$!: Signal<any>;
 
   greenhouseForm: FormGroup;
   greenhouses: GreenhouseData[] = [];
-  private greenhousesSubscription: Subscription | undefined;
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     private fb: FormBuilder,
@@ -370,18 +364,12 @@ export class GreenhouseListComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.greenhouses$ = this.vm.data$;
-    this.loading$ = this.vm.isLoading$;
-    this.error$ = this.vm.error$;
+    this.greenhouses$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+    this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+    this.error$ = fromLoomSignal(this.vm.error$, this.destroyRef);
 
     this.vm.fetchCommand.execute();
-    this.greenhousesSubscription = this.greenhouses$.subscribe(
-      (ghs) => (this.greenhouses = ghs || [])
-    );
-  }
-
-  ngOnDestroy(): void {
-    this.greenhousesSubscription?.unsubscribe();
+    this.destroyRef.onDestroy(observe(this.vm.data$, (ghs) => (this.greenhouses = ghs || [])));
   }
 
   handleSubmit(): void {
@@ -397,19 +385,19 @@ export class GreenhouseListComponent implements OnInit, OnDestroy {
 }
 ```
 
-Angular's approach is more verbose but provides strong typing and dependency injection. The ViewModel is injected via an `InjectionToken`, making it easy to mock for testing. The template uses the `async` pipe to subscribe to observables declaratively.
+Angular's approach is more verbose but provides strong typing and dependency injection. The ViewModel is injected via an `InjectionToken`, making it easy to mock for testing. The template calls the bridged signals as functions (`greenhouses$()`) to read their current values.
 
 
 ### Lit Web Components Implementation
 
-The Lit implementation (`apps/mvvm-lit/`) uses decorators and reactive properties:
+The Lit implementation (`apps/mvvm-lit/`) uses decorators, reactive properties, and `observe()` from `@web-loom/signals-core` directly:
 
 ```typescript
 // apps/mvvm-lit/src/components/greenhouse-list.ts
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { greenHouseViewModel, type GreenhouseData } from '@repo/view-models/GreenHouseViewModel';
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
 @customElement('greenhouse-list')
 export class GreenhouseList extends LitElement {
@@ -420,11 +408,11 @@ export class GreenhouseList extends LitElement {
   @state()
   private greenhouses: GreenhouseData[] = [];
 
-  private dataSubscription: Subscription | null = null;
+  private unsubscribe: (() => void) | null = null;
 
   connectedCallback() {
     super.connectedCallback();
-    this.dataSubscription = greenHouseViewModel.data$.subscribe((data: any) => {
+    this.unsubscribe = observe(greenHouseViewModel.data$, (data: any) => {
       this.greenhouses = data;
     });
     greenHouseViewModel.fetchCommand.execute();
@@ -432,7 +420,7 @@ export class GreenhouseList extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.dataSubscription?.unsubscribe();
+    this.unsubscribe?.();
   }
 
   private handleSubmit(event: SubmitEvent) {
@@ -486,12 +474,12 @@ export class GreenhouseList extends LitElement {
 }
 ```
 
-Lit's approach uses web component lifecycle methods (`connectedCallback`, `disconnectedCallback`) for subscription management. The `@state()` decorator makes properties reactive, triggering re-renders when they change. The template uses tagged template literals with the `html` function.
+Lit's approach uses web component lifecycle methods (`connectedCallback`, `disconnectedCallback`) for subscription management, calling `observe()` directly with no bridge utility in between. The `@state()` decorator makes properties reactive, triggering re-renders when they change. The template uses tagged template literals with the `html` function.
 
 
 ### Vanilla JavaScript Implementation
 
-The vanilla JavaScript implementation (`apps/mvvm-vanilla/`) uses EJS templates and direct DOM manipulation:
+The vanilla JavaScript implementation (`apps/mvvm-vanilla/`) uses EJS templates, direct DOM manipulation, and `observe()`:
 
 ```typescript
 // apps/mvvm-vanilla/src/main.ts
@@ -560,7 +548,7 @@ The EJS template for the greenhouse list:
 </section>
 ```
 
-The vanilla implementation requires more manual wiring—subscribing to observables, rendering templates, attaching event listeners—but the ViewModel interaction remains the same. The business logic is identical across all five implementations.
+The vanilla implementation requires more manual wiring—calling `observe()`, rendering templates, attaching event listeners—but the ViewModel interaction remains the same. The business logic is identical across all five implementations.
 
 
 ### Framework Comparison
@@ -569,14 +557,14 @@ Let's compare how each framework handles the same ViewModel operations:
 
 | Aspect | React | Vue | Angular | Lit | Vanilla JS |
 |--------|-------|-----|---------|-----|------------|
-| **Observable Subscription** | `useObservable` hook | `useObservable` composable | Direct subscription + async pipe | Direct subscription in lifecycle | Direct subscription |
+| **Signal Subscription** | `useSignal` hook | `useSignal` composable | `fromLoomSignal` bridge | Direct `observe()` in lifecycle | Direct `observe()` |
 | **Form Handling** | Controlled components | `v-model` two-way binding | Reactive Forms | FormData API | FormData API |
-| **Lifecycle Management** | `useEffect` cleanup | `onMounted` / `onUnmounted` | `ngOnInit` / `ngOnDestroy` | `connectedCallback` / `disconnectedCallback` | Manual setup/teardown |
+| **Lifecycle Management** | `useEffect` cleanup | `onMounted` / `onUnmounted` | `ngOnInit` / `DestroyRef` | `connectedCallback` / `disconnectedCallback` | Manual setup/teardown |
 | **Templating** | JSX | Vue template syntax | Angular templates | Tagged template literals | EJS templates |
-| **State Updates** | `useState` triggers re-render | Reactive refs trigger re-render | Change detection | `@state()` triggers re-render | Manual DOM updates |
+| **State Updates** | React re-render | Reactive refs trigger re-render | Signal `.set()` triggers change detection | `@state()` triggers re-render | Manual DOM updates |
 | **Dependency Injection** | Context API (optional) | `provide` / `inject` (optional) | Built-in DI system | None (direct imports) | None (direct imports) |
 
-Despite these differences, the **ViewModel code is identical**. Each framework subscribes to the same observables, invokes the same commands, and receives the same data. This is the power of MVVM: framework-specific concerns stay in the View layer, while business logic remains framework-agnostic.
+Despite these differences, the **ViewModel code is identical**. Each framework reads the same signals, invokes the same commands, and receives the same data. This is the power of MVVM: framework-specific concerns stay in the View layer, while business logic remains framework-agnostic.
 
 ### Key Architectural Patterns in GreenWatch
 
@@ -590,7 +578,7 @@ All frameworks import the same ViewModel instances:
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
 ```
 
-This ensures consistent state across the application. If multiple components subscribe to `greenHouseViewModel.data$`, they all receive the same updates.
+This ensures consistent state across the application. If multiple components read `greenHouseViewModel.data$`, they all receive the same updates.
 
 **2. Command Pattern for Actions**
 
@@ -604,9 +592,9 @@ greenHouseViewModel.deleteCommand.execute(id);
 
 This provides a clear API for actions and enables features like undo/redo, command queuing, and optimistic updates.
 
-**3. Observable Streams for State**
+**3. Signals for State**
 
-All state is exposed as RxJS observables:
+All state is exposed as `@web-loom/signals-core` `ReadonlySignal`s:
 
 ```typescript
 greenHouseViewModel.data$       // Current data
@@ -660,23 +648,23 @@ The e-commerce domain consists of:
 E-commerce applications typically use these ViewModels:
 
 **ProductCatalogViewModel**: Manages product browsing, filtering, and search
-- Observables: `products$`, `filters$`, `searchQuery$`, `isLoading$`
+- Signals: `products$`, `filters$`, `searchQuery$`, `isLoading$`
 - Commands: `fetchProducts`, `applyFilters`, `search`, `clearFilters`
 
 **ProductDetailViewModel**: Manages individual product details
-- Observables: `product$`, `selectedVariant$`, `reviews$`, `isLoading$`
+- Signals: `product$`, `selectedVariant$`, `reviews$`, `isLoading$`
 - Commands: `fetchProduct`, `selectVariant`, `addToCart`
 
 **CartViewModel**: Manages shopping cart state
-- Observables: `items$`, `subtotal$`, `total$`, `itemCount$`
+- Signals: `items$`, `subtotal$`, `total$`, `itemCount$`
 - Commands: `addItem`, `removeItem`, `updateQuantity`, `clearCart`
 
 **CheckoutViewModel**: Manages checkout flow
-- Observables: `shippingAddress$`, `paymentMethod$`, `orderSummary$`, `isProcessing$`
+- Signals: `shippingAddress$`, `paymentMethod$`, `orderSummary$`, `isProcessing$`
 - Commands: `setShippingAddress`, `setPaymentMethod`, `placeOrder`
 
 **OrderHistoryViewModel**: Manages past orders
-- Observables: `orders$`, `selectedOrder$`, `isLoading$`
+- Signals: `orders$`, `selectedOrder$`, `isLoading$`
 - Commands: `fetchOrders`, `fetchOrderDetails`, `cancelOrder`
 
 
@@ -685,8 +673,7 @@ E-commerce applications typically use these ViewModels:
 Let's examine a `CartViewModel` implementation:
 
 ```typescript
-import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { signal, computed, type ReadonlySignal } from '@web-loom/signals-core';
 
 interface CartItem {
   productId: string;
@@ -697,39 +684,35 @@ interface CartItem {
 }
 
 export class CartViewModel {
-  private _items$ = new BehaviorSubject<CartItem[]>([]);
+  private _items = signal<CartItem[]>([]);
   private _taxRate = 0.08; // 8% tax
 
-  // Public observables
-  public items$: Observable<CartItem[]> = this._items$.asObservable();
-  
-  public itemCount$: Observable<number> = this._items$.pipe(
-    map(items => items.reduce((sum, item) => sum + item.quantity, 0))
+  // Public signals
+  public items$: ReadonlySignal<CartItem[]> = this._items.asReadonly();
+
+  public itemCount$: ReadonlySignal<number> = computed(() =>
+    this._items.get().reduce((sum, item) => sum + item.quantity, 0)
   );
-  
-  public subtotal$: Observable<number> = this._items$.pipe(
-    map(items => items.reduce((sum, item) => sum + (item.price * item.quantity), 0))
+
+  public subtotal$: ReadonlySignal<number> = computed(() =>
+    this._items.get().reduce((sum, item) => sum + (item.price * item.quantity), 0)
   );
-  
-  public tax$: Observable<number> = this.subtotal$.pipe(
-    map(subtotal => subtotal * this._taxRate)
-  );
-  
-  public total$: Observable<number> = combineLatest([this.subtotal$, this.tax$]).pipe(
-    map(([subtotal, tax]) => subtotal + tax)
-  );
+
+  public tax$: ReadonlySignal<number> = computed(() => this.subtotal$.get() * this._taxRate);
+
+  public total$: ReadonlySignal<number> = computed(() => this.subtotal$.get() + this.tax$.get());
 
   // Commands
   addItem(product: { id: string; name: string; price: number; imageUrl: string }) {
-    const currentItems = this._items$.value;
+    const currentItems = this._items.peek();
     const existingItem = currentItems.find(item => item.productId === product.id);
-    
+
     if (existingItem) {
       // Increment quantity if item already in cart
       this.updateQuantity(product.id, existingItem.quantity + 1);
     } else {
       // Add new item
-      this._items$.next([
+      this._items.set([
         ...currentItems,
         {
           productId: product.id,
@@ -743,8 +726,8 @@ export class CartViewModel {
   }
 
   removeItem(productId: string) {
-    const currentItems = this._items$.value;
-    this._items$.next(currentItems.filter(item => item.productId !== productId));
+    const currentItems = this._items.peek();
+    this._items.set(currentItems.filter(item => item.productId !== productId));
   }
 
   updateQuantity(productId: string, quantity: number) {
@@ -752,9 +735,9 @@ export class CartViewModel {
       this.removeItem(productId);
       return;
     }
-    
-    const currentItems = this._items$.value;
-    this._items$.next(
+
+    const currentItems = this._items.peek();
+    this._items.set(
       currentItems.map(item =>
         item.productId === productId ? { ...item, quantity } : item
       )
@@ -762,11 +745,11 @@ export class CartViewModel {
   }
 
   clearCart() {
-    this._items$.next([]);
+    this._items.set([]);
   }
 
   dispose() {
-    this._items$.complete();
+    // Signals need no explicit teardown; nothing subscribes internally here.
   }
 }
 
@@ -775,7 +758,7 @@ export const cartViewModel = new CartViewModel();
 
 This ViewModel demonstrates several patterns:
 
-**1. Derived Observables**: `itemCount$`, `subtotal$`, `tax$`, and `total$` are computed from `items$` using RxJS operators. They automatically update when items change.
+**1. Derived Signals**: `itemCount$`, `subtotal$`, `tax$`, and `total$` are computed from `items$` using `computed()`. They automatically update when items change, and only recompute when their actual dependencies change.
 
 **2. Immutable Updates**: Commands like `addItem` and `updateQuantity` create new arrays rather than mutating existing ones, ensuring predictable state updates.
 
@@ -787,8 +770,7 @@ This ViewModel demonstrates several patterns:
 E-commerce checkout flows are multi-step processes that benefit from ViewModel coordination:
 
 ```typescript
-import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { signal, computed, type ReadonlySignal } from '@web-loom/signals-core';
 
 interface ShippingAddress {
   street: string;
@@ -815,28 +797,28 @@ interface OrderSummary {
 }
 
 export class CheckoutViewModel {
-  private _currentStep$ = new BehaviorSubject<'shipping' | 'payment' | 'review'>('shipping');
-  private _shippingAddress$ = new BehaviorSubject<ShippingAddress | null>(null);
-  private _paymentMethod$ = new BehaviorSubject<PaymentMethod | null>(null);
-  private _isProcessing$ = new BehaviorSubject<boolean>(false);
-  private _error$ = new BehaviorSubject<string | null>(null);
+  private _currentStep = signal<'shipping' | 'payment' | 'review'>('shipping');
+  private _shippingAddress = signal<ShippingAddress | null>(null);
+  private _paymentMethod = signal<PaymentMethod | null>(null);
+  private _isProcessing = signal<boolean>(false);
+  private _error = signal<string | null>(null);
 
-  // Public observables
-  public currentStep$ = this._currentStep$.asObservable();
-  public shippingAddress$ = this._shippingAddress$.asObservable();
-  public paymentMethod$ = this._paymentMethod$.asObservable();
-  public isProcessing$ = this._isProcessing$.asObservable();
-  public error$ = this._error$.asObservable();
+  // Public signals
+  public currentStep$ = this._currentStep.asReadonly();
+  public shippingAddress$ = this._shippingAddress.asReadonly();
+  public paymentMethod$ = this._paymentMethod.asReadonly();
+  public isProcessing$ = this._isProcessing.asReadonly();
+  public error$ = this._error.asReadonly();
 
   // Computed order summary
-  public orderSummary$: Observable<OrderSummary> = combineLatest([
-    cartViewModel.items$,
-    cartViewModel.subtotal$,
-    cartViewModel.tax$,
-    this._shippingAddress$,
-    this._paymentMethod$,
-  ]).pipe(
-    map(([items, subtotal, tax, shippingAddress, paymentMethod]) => ({
+  public orderSummary$: ReadonlySignal<OrderSummary> = computed(() => {
+    const items = cartViewModel.items$.get();
+    const subtotal = cartViewModel.subtotal$.get();
+    const tax = cartViewModel.tax$.get();
+    const shippingAddress = this._shippingAddress.get();
+    const paymentMethod = this._paymentMethod.get();
+
+    return {
       items,
       subtotal,
       tax,
@@ -844,59 +826,59 @@ export class CheckoutViewModel {
       total: subtotal + tax + this.calculateShipping(shippingAddress),
       shippingAddress,
       paymentMethod,
-    }))
-  );
+    };
+  });
 
-  // Validation observables
-  public canProceedToPayment$: Observable<boolean> = this._shippingAddress$.pipe(
-    map(address => address !== null && this.isValidAddress(address))
-  );
+  // Validation signals
+  public canProceedToPayment$: ReadonlySignal<boolean> = computed(() => {
+    const address = this._shippingAddress.get();
+    return address !== null && this.isValidAddress(address);
+  });
 
-  public canProceedToReview$: Observable<boolean> = combineLatest([
-    this._shippingAddress$,
-    this._paymentMethod$,
-  ]).pipe(
-    map(([address, payment]) => 
-      address !== null && payment !== null && 
+  public canProceedToReview$: ReadonlySignal<boolean> = computed(() => {
+    const address = this._shippingAddress.get();
+    const payment = this._paymentMethod.get();
+    return (
+      address !== null && payment !== null &&
       this.isValidAddress(address) && this.isValidPayment(payment)
-    )
-  );
+    );
+  });
 
   // Commands
   setShippingAddress(address: ShippingAddress) {
     if (!this.isValidAddress(address)) {
-      this._error$.next('Invalid shipping address');
+      this._error.set('Invalid shipping address');
       return;
     }
-    this._shippingAddress$.next(address);
-    this._error$.next(null);
+    this._shippingAddress.set(address);
+    this._error.set(null);
   }
 
   setPaymentMethod(payment: PaymentMethod) {
     if (!this.isValidPayment(payment)) {
-      this._error$.next('Invalid payment method');
+      this._error.set('Invalid payment method');
       return;
     }
-    this._paymentMethod$.next(payment);
-    this._error$.next(null);
+    this._paymentMethod.set(payment);
+    this._error.set(null);
   }
 
   goToStep(step: 'shipping' | 'payment' | 'review') {
-    this._currentStep$.next(step);
+    this._currentStep.set(step);
   }
 
   async placeOrder(): Promise<void> {
-    const address = this._shippingAddress$.value;
-    const payment = this._paymentMethod$.value;
-    const items = cartViewModel.items$.value;
+    const address = this._shippingAddress.peek();
+    const payment = this._paymentMethod.peek();
+    const items = cartViewModel.items$.peek();
 
     if (!address || !payment || items.length === 0) {
-      this._error$.next('Cannot place order: missing required information');
+      this._error.set('Cannot place order: missing required information');
       return;
     }
 
-    this._isProcessing$.next(true);
-    this._error$.next(null);
+    this._isProcessing.set(true);
+    this._error.set(null);
 
     try {
       // Call API to place order
@@ -916,12 +898,12 @@ export class CheckoutViewModel {
 
       // Clear cart on success
       cartViewModel.clearCart();
-      
+
       // Navigate to confirmation (handled by View)
-      this._isProcessing$.next(false);
+      this._isProcessing.set(false);
     } catch (error) {
-      this._error$.next(error instanceof Error ? error.message : 'Unknown error');
-      this._isProcessing$.next(false);
+      this._error.set(error instanceof Error ? error.message : 'Unknown error');
+      this._isProcessing.set(false);
     }
   }
 
@@ -940,11 +922,7 @@ export class CheckoutViewModel {
   }
 
   dispose() {
-    this._currentStep$.complete();
-    this._shippingAddress$.complete();
-    this._paymentMethod$.complete();
-    this._isProcessing$.complete();
-    this._error$.complete();
+    // Signals need no explicit teardown here.
   }
 }
 
@@ -953,11 +931,11 @@ export const checkoutViewModel = new CheckoutViewModel();
 
 This ViewModel demonstrates:
 
-**1. Multi-Step Flow Management**: The `currentStep$` observable tracks progress through the checkout flow.
+**1. Multi-Step Flow Management**: The `currentStep$` signal tracks progress through the checkout flow.
 
-**2. Cross-ViewModel Coordination**: The checkout ViewModel depends on the cart ViewModel for items and totals.
+**2. Cross-ViewModel Coordination**: The checkout ViewModel depends on the cart ViewModel for items and totals, reading `cartViewModel.items$.get()` directly inside a `computed()`.
 
-**3. Validation Observables**: `canProceedToPayment$` and `canProceedToReview$` enable/disable navigation based on validation rules.
+**3. Validation Signals**: `canProceedToPayment$` and `canProceedToReview$` enable/disable navigation based on validation rules.
 
 **4. Async Operations**: The `placeOrder` command handles API calls, loading states, and error handling.
 
@@ -996,12 +974,12 @@ sensorReadingViewModel.fetchCommand.execute();
 **E-Commerce**:
 ```typescript
 // ViewModels are tightly coordinated
-checkoutViewModel.orderSummary$ = combineLatest([
-  cartViewModel.items$,
-  cartViewModel.subtotal$,
-  cartViewModel.tax$,
+checkoutViewModel.orderSummary$ = computed(() => ({
+  items: cartViewModel.items$.get(),
+  subtotal: cartViewModel.subtotal$.get(),
+  tax: cartViewModel.tax$.get(),
   // ...
-]);
+}));
 
 // Checkout depends on cart state
 // Order history depends on user authentication state
@@ -1031,7 +1009,7 @@ E-commerce validation is more complex because it involves business rules, extern
 **GreenWatch**:
 ```typescript
 // Sensor reading errors are non-critical
-sensorReadingViewModel.error$.subscribe(error => {
+observe(sensorReadingViewModel.error$, error => {
   if (error) {
     console.warn('Failed to fetch sensor readings:', error);
     // Show warning banner, but don't block UI
@@ -1044,7 +1022,7 @@ sensorReadingViewModel.error$.subscribe(error => {
 **E-Commerce**:
 ```typescript
 // Payment errors are critical
-checkoutViewModel.error$.subscribe(error => {
+observe(checkoutViewModel.error$, error => {
   if (error) {
     // Block checkout flow
     // Show prominent error message
@@ -1101,8 +1079,8 @@ Both GreenWatch and e-commerce applications organize ViewModels around domain en
 ```typescript
 // Domain-focused ViewModel
 class ProductCatalogViewModel {
-  products$: Observable<Product[]>;
-  filters$: Observable<ProductFilters>;
+  products$: ReadonlySignal<Product[]>;
+  filters$: ReadonlySignal<ProductFilters>;
   applyFilters(filters: ProductFilters): void;
 }
 ```
@@ -1125,12 +1103,12 @@ Both applications use singleton ViewModel instances that are imported across com
 // Shared instance
 export const cartViewModel = new CartViewModel();
 
-// Multiple components subscribe to the same instance
+// Multiple components read the same instance
 // Component A
-const items = useObservable(cartViewModel.items$);
+const items = useSignal(cartViewModel.items$);
 
 // Component B (cart widget)
-const itemCount = useObservable(cartViewModel.itemCount$);
+const itemCount = useSignal(cartViewModel.itemCount$);
 ```
 
 This ensures all components see the same state without manual synchronization.
@@ -1148,22 +1126,20 @@ checkoutViewModel.placeOrder();
 
 This is better than exposing internal state setters, which would allow Views to bypass validation and business logic.
 
-### 4. Derived Observables Reduce Duplication
+### 4. Derived Signals Reduce Duplication
 
-Both applications use RxJS operators to derive state:
+Both applications use `computed()` to derive state:
 
 ```typescript
 // Derived from items$
-public itemCount$ = this._items$.pipe(
-  map(items => items.reduce((sum, item) => sum + item.quantity, 0))
+public itemCount$ = computed(() =>
+  this._items.get().reduce((sum, item) => sum + item.quantity, 0)
 );
 
-public total$ = combineLatest([this.subtotal$, this.tax$]).pipe(
-  map(([subtotal, tax]) => subtotal + tax)
-);
+public total$ = computed(() => this.subtotal$.get() + this.tax$.get());
 ```
 
-This eliminates the need to manually update multiple state properties when items change.
+This eliminates the need to manually update multiple state properties when items change—`computed()` recalculates automatically and only when its dependencies actually change.
 
 ### 5. Validation Belongs in ViewModels
 
@@ -1172,10 +1148,10 @@ Both applications validate data in ViewModels, not Views:
 ```typescript
 setShippingAddress(address: ShippingAddress) {
   if (!this.isValidAddress(address)) {
-    this._error$.next('Invalid shipping address');
+    this._error.set('Invalid shipping address');
     return;
   }
-  this._shippingAddress$.next(address);
+  this._shippingAddress.set(address);
 }
 ```
 
@@ -1185,7 +1161,7 @@ This ensures validation rules are consistent across all framework implementation
 ### 6. Framework-Specific Code Should Be Minimal
 
 The React, Vue, Angular, Lit, and Vanilla JS implementations of GreenWatch differ only in:
-- How they subscribe to observables (hooks, composables, async pipe, direct subscriptions)
+- How they read signals (`useSignal` hook, `useSignal` composable, `fromLoomSignal` bridge, direct `observe()`)
 - How they handle forms (controlled components, v-model, Reactive Forms, FormData)
 - How they render templates (JSX, Vue templates, Angular templates, tagged literals, EJS)
 
@@ -1205,14 +1181,15 @@ Consider user expectations when designing persistence strategies.
 
 ### 9. ViewModel Coordination Should Be Explicit
 
-E-commerce ViewModels use `combineLatest` to explicitly declare dependencies:
+E-commerce ViewModels use `computed()` to explicitly declare dependencies:
 
 ```typescript
-public orderSummary$ = combineLatest([
-  cartViewModel.items$,
-  cartViewModel.subtotal$,
-  this._shippingAddress$,
-]).pipe(map(/* ... */));
+public orderSummary$ = computed(() => ({
+  items: cartViewModel.items$.get(),
+  subtotal: cartViewModel.subtotal$.get(),
+  shippingAddress: this._shippingAddress.get(),
+  // ...
+}));
 ```
 
 This makes dependencies visible and ensures derived state updates correctly when any dependency changes.
@@ -1228,16 +1205,13 @@ describe('CartViewModel', () => {
     const vm = new CartViewModel();
     vm.addItem({ id: '1', name: 'Product', price: 10, imageUrl: '' });
     vm.addItem({ id: '2', name: 'Product 2', price: 20, imageUrl: '' });
-    
-    let total: number | undefined;
-    vm.total$.subscribe(value => total = value);
-    
-    expect(total).toBe(32.40); // 30 + 8% tax
+
+    expect(vm.total$.get()).toBe(32.40); // 30 + 8% tax
   });
 });
 ```
 
-No need to render components, mock frameworks, or manipulate the DOM. Just test the ViewModel logic directly.
+No need to render components, mock frameworks, or manipulate the DOM. Just read the signal's current value with `.get()` and assert on it.
 
 
 ## Key Takeaways
@@ -1259,11 +1233,11 @@ MVVM adapts to your domain without prescribing a one-size-fits-all solution.
 **3. ViewModels Are the Integration Layer**
 
 ViewModels coordinate between Models (business logic), Views (UI), and external systems (APIs, storage). They handle:
-- State management (observables)
+- State management (signals)
 - Action coordination (commands)
 - Validation (business rules)
 - Error handling (domain-appropriate strategies)
-- Cross-ViewModel dependencies (combineLatest)
+- Cross-ViewModel dependencies (`computed()`)
 
 This makes them the natural place for integration logic.
 
@@ -1282,7 +1256,7 @@ No need for complex integration tests or end-to-end tests for most scenarios.
 
 **6. Patterns Are Transferable**
 
-The patterns you've learned—reactive state, command pattern, derived observables, validation strategies—apply to any domain. Whether you're building monitoring dashboards, e-commerce sites, social networks, or productivity tools, these patterns scale.
+The patterns you've learned—reactive state, command pattern, derived signals, validation strategies—apply to any domain. Whether you're building monitoring dashboards, e-commerce sites, social networks, or productivity tools, these patterns scale.
 
 **7. MVVM Scales from Components to Applications**
 

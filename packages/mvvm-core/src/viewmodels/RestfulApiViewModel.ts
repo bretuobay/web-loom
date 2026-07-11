@@ -1,8 +1,7 @@
 // src/viewmodels/RestfulApiViewModel.ts
-import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
-import { map, startWith } from 'rxjs/operators';
+import { signal, computed, type ReadonlySignal } from '@web-loom/signals-core';
 import { RestfulApiModel } from '../models/RestfulApiModel';
-import { Command } from '../commands/Command'; // Assuming Command is in '../commands'
+import { Command } from '../commands/Command';
 import { ZodSchema } from 'zod';
 
 // Helper type to check if TData is an array and extract item type
@@ -14,7 +13,7 @@ type ExtractItemType<T> = T extends (infer U)[] ? U : T;
 /**
  * @class RestfulApiViewModel
  * A generic ViewModel to facilitate CRUD operations and state management for a specific
- * RestfulApiModel. It exposes data, loading states, and operations as observables and commands,
+ * RestfulApiModel. It exposes data, loading states, and operations as signals and commands,
  * making it easy to consume in frontend frameworks.
  * @template TData The type of data managed by the underlying RestfulApiModel (e.g., User, User[]).
  * @template TSchema The Zod schema type for validating the data.
@@ -26,19 +25,19 @@ export class RestfulApiViewModel<TData, TSchema extends ZodSchema<TData>> {
    * Exposes the current data from the RestfulApiModel.
    * Use this in your UI to bind to the list or single item.
    */
-  public readonly data$: Observable<TData | null>;
+  public readonly data$: ReadonlySignal<TData | null>;
 
   /**
    * Exposes the loading state of the RestfulApiModel.
    * Use this to show spinners or disable UI elements.
    */
-  public readonly isLoading$: Observable<boolean>;
+  public readonly isLoading$: ReadonlySignal<boolean>;
 
   /**
    * Exposes any error encountered by the RestfulApiModel.
    * Use this to display error messages to the user.
    */
-  public readonly error$: Observable<any>;
+  public readonly error$: ReadonlySignal<any>;
 
   // Commands for CRUD operations
   public readonly fetchCommand: Command<string | string[] | void, void>;
@@ -46,11 +45,9 @@ export class RestfulApiViewModel<TData, TSchema extends ZodSchema<TData>> {
   public readonly updateCommand: Command<{ id: string; payload: Partial<ExtractItemType<TData>> }, void>;
   public readonly deleteCommand: Command<string, void>;
 
-  // Optional: Example of view-specific state for a collection
-  // If TData is an array, you might want to manage selections, filters, etc.
-  // This example assumes TData can be an array where items have an 'id'
-  public readonly selectedItem$: Observable<ExtractItemType<TData> | null>;
-  protected readonly _selectedItemId$ = new BehaviorSubject<string | null>(null);
+  // View-specific state for a collection: selection by item id.
+  public readonly selectedItem$: ReadonlySignal<ExtractItemType<TData> | null>;
+  protected readonly _selectedItemId = signal<string | null>(null);
 
   /**
    * @param model An instance of RestfulApiModel that this ViewModel will manage.
@@ -66,10 +63,6 @@ export class RestfulApiViewModel<TData, TSchema extends ZodSchema<TData>> {
     this.error$ = this.model.error$;
 
     // Initialize Commands
-    /** Look into issue with TypeScript:
-     * Type 'string | void | string[]' is not assignable to type 'string | string[] | undefined'.
-    Type 'void' is not assignable to type 'string | string[] | undefined'.
-     */
     this.fetchCommand = new Command(async (id: string | string[] | void) => {
       // void parameter implies undefined
       const ids = Array.isArray(id) ? id : id ? [id] : undefined;
@@ -92,32 +85,25 @@ export class RestfulApiViewModel<TData, TSchema extends ZodSchema<TData>> {
       await this.model.delete(id);
     });
 
-    // Example for selected item (assumes TData is an array of objects with 'id')
-    this.selectedItem$ = combineLatest([
-      this.model.data$, // Use model.data$ directly for clarity
-      this._selectedItemId$,
-    ]).pipe(
-      map(([data, selectedId]) => {
-        if (Array.isArray(data) && selectedId) {
-          // Type guard to ensure items have an 'id' property of type string
-          const itemWithId = data.find((item: unknown): item is ItemWithId => {
-            return (
-              typeof item === 'object' &&
-              item !== null &&
-              'id' in item &&
-              typeof (item as any).id === 'string' &&
-              (item as any).id === selectedId
-            );
-          });
-          return (itemWithId as ExtractItemType<TData>) || null;
-        }
-        return null;
-      }),
-      startWith(null), // Ensure initial value
-    );
-    // Note: No explicit subscription to this.selectedItem$ is made *within* this class,
-    // so _selectedItemSubscription is not used for this specific observable.
-    // It's declared for good practice if other internal subscriptions were needed.
+    // Selected item (assumes TData is an array of objects with 'id')
+    this.selectedItem$ = computed(() => {
+      const data = this.model.data$.get();
+      const selectedId = this._selectedItemId.get();
+      if (Array.isArray(data) && selectedId) {
+        // Type guard to ensure items have an 'id' property of type string
+        const itemWithId = data.find((item: unknown): item is ItemWithId => {
+          return (
+            typeof item === 'object' &&
+            item !== null &&
+            'id' in item &&
+            typeof (item as any).id === 'string' &&
+            (item as any).id === selectedId
+          );
+        });
+        return (itemWithId as ExtractItemType<TData>) || null;
+      }
+      return null;
+    });
   }
 
   /**
@@ -126,24 +112,23 @@ export class RestfulApiViewModel<TData, TSchema extends ZodSchema<TData>> {
    * @param id The ID of the item to select. Pass null to clear selection.
    */
   public selectItem(id: string | null): void {
-    this._selectedItemId$.next(id);
+    if (this._isDisposed) return;
+    this._selectedItemId.set(id);
   }
+
+  private _isDisposed = false;
 
   /**
    * Disposes of resources held by the ViewModel.
    * This includes disposing of the underlying model and any commands.
    */
   public dispose(): void {
+    this._isDisposed = true;
+    this._selectedItemId.set(null);
     this.model.dispose();
     this.fetchCommand.dispose();
     this.createCommand.dispose();
     this.updateCommand.dispose();
     this.deleteCommand.dispose();
-    this._selectedItemId$.complete(); // Complete the subject
-
-    // If _selectedItemSubscription was used for an internal subscription:
-    // if (this._selectedItemSubscription) {
-    //   this._selectedItemSubscription.unsubscribe();
-    // }
   }
 }

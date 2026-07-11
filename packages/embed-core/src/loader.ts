@@ -115,9 +115,7 @@ export function installGlobalEmbed(initialConfig: Partial<EmbedConfig> = parseSc
         if (isCompatibleInit(runtimeConfig, nextConfig)) {
           return runtime;
         }
-        reportError(
-          createEmbedError('CONFIG_INVALID', 'Embed runtime is already initialized with different config.'),
-        );
+        reportError(createEmbedError('CONFIG_INVALID', 'Embed runtime is already initialized with different config.'));
         return runtime;
       }
 
@@ -192,7 +190,11 @@ export function executeCommand(runtime: EmbedRuntime, command: GlobalCommand): u
     case 'ready':
       return typeof args[0] === 'function' ? runtime.ready().then(() => (args[0] as () => void)()) : runtime.ready();
     case 'mount':
-      return runtime.mount(String(args[0]), args[1] as string | HTMLElement | undefined, args[2] as MountOptions | undefined);
+      return runtime.mount(
+        String(args[0]),
+        args[1] as string | HTMLElement | undefined,
+        args[2] as MountOptions | undefined,
+      );
     case 'open':
       return runtime.open(String(args[0]), args[1] as MountOptions | undefined);
     case 'close':

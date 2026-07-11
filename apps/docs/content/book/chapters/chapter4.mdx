@@ -17,7 +17,7 @@ A Model in MVVM represents your application's domain logic and data. It's respon
 - **Managing domain data**: Holding the current state of entities (sensors, greenhouses, readings)
 - **Enforcing business rules**: Validating data, ensuring consistency
 - **Communicating with data sources**: Fetching from APIs, persisting changes
-- **Exposing reactive state**: Publishing data changes through observables
+- **Exposing reactive state**: Publishing data changes through signals
 
 Here's what a Model is *not*:
 
@@ -33,40 +33,47 @@ Let's start with the foundation. The `BaseModel` class from `packages/mvvm-core/
 
 ```typescript
 // packages/mvvm-core/src/models/BaseModel.ts
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
+
 export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
-  protected _data$ = new BehaviorSubject<TData | null>(null);
-  public readonly data$: Observable<TData | null> = this._data$.asObservable();
+  protected _data = signal<TData | null>(null);
+  public readonly data$: ReadonlySignal<TData | null> = this._data.asReadonly();
 
-  protected _isLoading$ = new BehaviorSubject<boolean>(false);
-  public readonly isLoading$: Observable<boolean> = this._isLoading$.asObservable();
+  protected _isLoading = signal<boolean>(false);
+  public readonly isLoading$: ReadonlySignal<boolean> = this._isLoading.asReadonly();
 
-  protected _error$ = new BehaviorSubject<any>(null);
-  public readonly error$: Observable<any> = this._error$.asObservable();
+  protected _error = signal<any>(null);
+  public readonly error$: ReadonlySignal<any> = this._error.asReadonly();
 
   public readonly schema?: TSchema;
+  private _isDisposed = false;
 
   constructor(input: TConstructorInput<TData, TSchema>) {
     const { initialData = null, schema } = input;
     if (initialData !== null) {
-      this._data$.next(initialData);
+      this._data.set(initialData);
     }
     this.schema = schema;
   }
 
   public setData(newData: TData | null): void {
-    this._data$.next(newData);
+    if (this._isDisposed) return;
+    this._data.set(newData);
   }
 
   public setLoading(status: boolean): void {
-    this._isLoading$.next(status);
+    if (this._isDisposed) return;
+    this._isLoading.set(status);
   }
 
   public setError(err: any): void {
-    this._error$.next(err);
+    if (this._isDisposed) return;
+    this._error.set(err);
   }
 
   public clearError(): void {
-    this._error$.next(null);
+    if (this._isDisposed) return;
+    this._error.set(null);
   }
 
   public validate(data: any): TData {
@@ -78,35 +85,33 @@ export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
   }
 
   public dispose(): void {
-    this._data$.complete();
-    this._isLoading$.complete();
-    this._error$.complete();
+    this._isDisposed = true;
   }
 }
 ```
 
 **Key design decisions:**
 
-1. **RxJS Observables**: The Model uses `BehaviorSubject` internally and exposes read-only `Observable` streams. This provides reactive state that any framework can subscribe to.
+1. **Signals**: The Model uses `signal()` (from `@web-loom/signals-core`) internally and exposes read-only `ReadonlySignal` views via `.asReadonly()`. This provides reactive state that any framework can subscribe to.
 
 2. **Generic Types**: `TData` represents the domain data type, `TSchema` is the Zod schema for validation. This makes BaseModel reusable for any domain entity.
 
-3. **Three core observables**: Every Model exposes `data$`, `isLoading$`, and `error$`. This consistent interface makes Models predictable and easy to consume.
+3. **Three core signals**: Every Model exposes `data$`, `isLoading$`, and `error$`. This consistent interface makes Models predictable and easy to consume.
 
 4. **Validation with Zod**: The `validate()` method uses Zod schemas to ensure data integrity. Invalid data is rejected before it enters your domain.
 
-5. **Lifecycle management**: The `dispose()` method completes all observables, preventing memory leaks when Models are no longer needed.
+5. **Lifecycle management**: The `dispose()` method marks the Model disposed, so its setters become no-ops — preventing memory leaks when Models are no longer needed.
 
-## Framework Independence Through Observables
+## Framework Independence Through Signals
 
-Why use RxJS observables instead of framework-specific reactivity (React state, Vue refs, Angular signals)?
+Why use `@web-loom/signals-core` signals instead of framework-specific reactivity (React state, Vue refs, Angular's own signals)?
 
-**Observables are framework-agnostic.** Every major framework can consume observables:
+**Signals are framework-agnostic.** Every major framework can consume them through a small bridge:
 
-- **React**: Subscribe in `useEffect`, update local state
-- **Vue**: Use `watchEffect` or composables to bridge observables to refs
-- **Angular**: Use the `async` pipe directly in templates
-- **Vanilla JS**: Call `.subscribe()` directly
+- **React**: Read via `useSyncExternalStore` in a `useSignal` hook, no local state duplication needed
+- **Vue**: Bridge to a `shallowRef` via a `useSignal` composable
+- **Angular**: Bridge to a native Angular Signal via `fromLoomSignal`
+- **Vanilla JS**: Call `.subscribe()` or `observe()` directly
 
 This means you write your Model once, and it works everywhere. The same `SensorModel` that powers the React dashboard also powers the Vue dashboard, Angular dashboard, and even a Node.js background worker.
 
@@ -476,7 +481,7 @@ Let's clarify what Models do and don't do by examining a complete data flow:
 
 2. **Handle UI events**: Models don't respond to button clicks or form submissions. ViewModels orchestrate those interactions.
 
-3. **Know about frameworks**: Models don't import React, Vue, or Angular. They're pure TypeScript classes with RxJS.
+3. **Know about frameworks**: Models don't import React, Vue, or Angular. They're pure TypeScript classes with `@web-loom/signals-core`.
 
 4. **Manage presentation state**: Models don't track which item is selected, whether a modal is open, or if a form is dirty. ViewModels handle that.
 
@@ -518,13 +523,14 @@ describe('SensorModel', () => {
   it('sets loading state during fetch', async () => {
     const loadingStates: boolean[] = [];
     
+    // sig.subscribe() only fires on future changes, not the current value
     model.isLoading$.subscribe(loading => {
       loadingStates.push(loading);
     });
 
     await model.fetch();
     
-    expect(loadingStates).toEqual([false, true, false]);
+    expect(loadingStates).toEqual([true, false]);
   });
 });
 ```
@@ -552,10 +558,8 @@ export class SensorModel extends RestfulApiModel<...> {
   }
 
   // Custom computed property: get sensors by type
-  getSensorsByType(type: SensorType): Observable<SensorData[]> {
-    return this.data$.pipe(
-      map(sensors => sensors?.filter(s => s.type === type) ?? [])
-    );
+  getSensorsByType(type: SensorType): ReadonlySignal<SensorData[]> {
+    return computed(() => this.data$.get()?.filter(s => s.type === type) ?? []);
   }
 }
 ```
@@ -588,11 +592,11 @@ export class SensorViewModel {
 
 ## Key Takeaways
 
-1. **Models are framework-agnostic**: They use RxJS observables, not framework-specific reactivity. This makes them reusable across React, Vue, Angular, and beyond.
+1. **Models are framework-agnostic**: They use `@web-loom/signals-core` signals, not framework-specific reactivity. This makes them reusable across React, Vue, Angular, and beyond.
 
-2. **Models manage domain data**: They fetch from APIs, validate with Zod schemas, and expose reactive state through observables.
+2. **Models manage domain data**: They fetch from APIs, validate with Zod schemas, and expose reactive state through signals.
 
-3. **BaseModel provides the foundation**: Core observables (`data$`, `isLoading$`, `error$`), validation, and lifecycle management.
+3. **BaseModel provides the foundation**: Core signals (`data$`, `isLoading$`, `error$`), validation, and lifecycle management.
 
 4. **RestfulApiModel adds CRUD**: Fetch, create, update, delete operations with optimistic updates and error handling.
 

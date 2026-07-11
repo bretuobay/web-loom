@@ -1,4 +1,4 @@
-import { BehaviorSubject, type Observable } from 'rxjs';
+import { signal, observe, type ReadonlySignal } from '@web-loom/signals-core';
 import { BaseViewModel, Command, type ICommand } from '@web-loom/mvvm-core';
 import {
   AuthModel,
@@ -10,12 +10,12 @@ import {
 } from '@repo/models';
 
 export class AuthViewModel extends BaseViewModel<AuthModel> {
-  private readonly _sessionResult$ = new BehaviorSubject<AuthTokenResponseData | null>(null);
-  public readonly sessionResult$: Observable<AuthTokenResponseData | null> = this._sessionResult$.asObservable();
-  public readonly token$: Observable<string | null>;
-  private readonly _authenticated$ = new BehaviorSubject<boolean>(false);
-  public readonly isAuthenticated$: Observable<boolean> = this._authenticated$.asObservable();
-  public readonly user$: Observable<UserData | null>;
+  private readonly _sessionResult = signal<AuthTokenResponseData | null>(null);
+  public readonly sessionResult$: ReadonlySignal<AuthTokenResponseData | null> = this._sessionResult.asReadonly();
+  public readonly token$: ReadonlySignal<string | null>;
+  private readonly _authenticated = signal<boolean>(false);
+  public readonly isAuthenticated$: ReadonlySignal<boolean> = this._authenticated.asReadonly();
+  public readonly user$: ReadonlySignal<UserData | null>;
 
   public get token(): string | null {
     return this.model.token;
@@ -29,17 +29,18 @@ export class AuthViewModel extends BaseViewModel<AuthModel> {
 
   constructor(model: AuthModel) {
     super(model);
-    this.user$ = this.data$ as Observable<UserData | null>;
+    this.user$ = this.data$ as ReadonlySignal<UserData | null>;
     this.token$ = model.token$;
-    const subscription = this.token$.subscribe((token) => {
-      this._authenticated$.next(Boolean(token));
+    // observe delivers the stored token immediately, then on every change
+    const unsubscribe = observe(this.token$, (token) => {
+      this._authenticated.set(Boolean(token));
     });
-    this.addSubscription(subscription);
+    this.addSubscription(unsubscribe);
 
     this.signInCommand = Command.create<SignInPayload, AuthTokenResponseData>()
       .withExecute(async (payload: SignInPayload) => {
         const result = await model.signIn(payload);
-        this._sessionResult$.next(result);
+        this._sessionResult.set(result);
         return result;
       })
       .build();
@@ -47,7 +48,7 @@ export class AuthViewModel extends BaseViewModel<AuthModel> {
     this.signUpCommand = Command.create<SignUpPayload, AuthTokenResponseData>()
       .withExecute(async (payload: SignUpPayload) => {
         const result = await model.signUp(payload);
-        this._sessionResult$.next(result);
+        this._sessionResult.set(result);
         return result;
       })
       .build();
@@ -55,7 +56,7 @@ export class AuthViewModel extends BaseViewModel<AuthModel> {
     this.changePasswordCommand = Command.create<ChangePasswordPayload, AuthTokenResponseData>()
       .withExecute(async (payload: ChangePasswordPayload) => {
         const result = await model.changePassword(payload);
-        this._sessionResult$.next(result);
+        this._sessionResult.set(result);
         return result;
       })
       .build();
@@ -63,7 +64,7 @@ export class AuthViewModel extends BaseViewModel<AuthModel> {
     this.signOutCommand = Command.create<void, void>()
       .withExecute(async () => {
         await model.signOut();
-        this._sessionResult$.next(null);
+        this._sessionResult.set(null);
       })
       .build();
 
@@ -81,8 +82,6 @@ export class AuthViewModel extends BaseViewModel<AuthModel> {
     this.changePasswordCommand.dispose();
     this.signOutCommand.dispose();
     this.refreshSessionCommand.dispose();
-    this._sessionResult$.complete();
-    this._authenticated$.complete();
   }
 }
 

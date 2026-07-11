@@ -1,6 +1,6 @@
 ---
 title: 'MVVM in Angular'
-summary: "How Angular's Zone.js change detection works, why the async pipe is the natural bridge to RxJS observables, and practical patterns for wiring ViewModels into Angular components — with real examples from the Web Loom Greenhouse app."
+summary: "How Angular's change detection works, why fromLoomSignal is the natural bridge for @web-loom/signals-core signals, and practical patterns for wiring ViewModels into Angular components — with real examples from the Web Loom Greenhouse app."
 topicTitle: 'MVVM Core'
 topicSlug: 'mvvm-core'
 prevTitle: 'MVVM in Vue'
@@ -11,13 +11,13 @@ nextSlug: '/docs/mvvm-vanilla-use-case'
 
 # MVVM in Angular
 
-Angular and `@web-loom/mvvm-core` are a natural pairing — both lean on RxJS observables as their primary reactive primitive. The integration is lighter than React or Vue because Angular already understands observables. You don't need a custom bridge hook. You do need to understand *when* Angular checks for changes, how to feed observables into that cycle cleanly, and how to avoid the most common pitfalls around subscriptions and memory leaks. This page covers all of it.
+`@web-loom/mvvm-core` ViewModels expose `@web-loom/signals-core` signals — `data$`, `isLoading$`, `error$`, and Command state are all `ReadonlySignal<T>`. Angular has had its own native Signals system since v16 (stable and recommended since v19), so the integration is a small, one-line-per-property bridge rather than a subscription-management exercise. This page covers Angular's change detection model, the `fromLoomSignal` bridge Web Loom uses throughout its Angular app, and the surrounding component patterns (DI, forms, `@ViewChild`, testing).
 
 ---
 
 ## How Angular's Change Detection Works
 
-Angular uses a **zone-based change detection** model. The key mechanism is `Zone.js`, a library that patches every async browser API — `setTimeout`, `setInterval`, `fetch`, `XMLHttpRequest`, `Promise`, event listeners — so it can intercept when async operations complete and notify Angular to check the component tree.
+Angular uses a **zone-based change detection** model by default. The key mechanism is `Zone.js`, a library that patches every async browser API — `setTimeout`, `setInterval`, `fetch`, `XMLHttpRequest`, `Promise`, event listeners — so it can intercept when async operations complete and notify Angular to check the component tree.
 
 ```
 User event / async operation completes
@@ -51,90 +51,66 @@ export const appConfig: ApplicationConfig = {
 
 `eventCoalescing: true` batches multiple DOM events that fire in the same microtask into a single change detection pass, reducing unnecessary re-checks and improving performance.
 
-### Why RxJS Fits Naturally
+### Why Angular Signals Fit Naturally
 
-RxJS `BehaviorSubject` streams live outside Angular's zone — emitting values doesn't automatically trigger change detection. Angular solves this with the **`async` pipe**, which:
-
-1. Subscribes to an `Observable` or `Promise`
-2. Calls `markForCheck()` whenever a new value arrives (triggering change detection for that subtree)
-3. Automatically **unsubscribes** when the component is destroyed
-
-This makes the `async` pipe the cleanest, safest way to consume observables in templates — no manual subscription management, no memory leaks.
+`@web-loom/signals-core` signals — like Angular's own Signals — live outside Zone.js and don't automatically trigger change detection just by being read or written to from ViewModel code. Angular's Signals system solves this natively: any Signal a template reads (by calling it, `mySignal()`) is tracked directly by Angular's reactivity graph, independent of Zone.js. Since `data$`/`isLoading$`/`error$` are already signal-shaped (`.get()`/`.peek()`/`.subscribe()`), converting them into genuine Angular Signals is a one-line bridge — no `async` pipe, no manual `Subscription` bookkeeping required for the common case.
 
 ---
 
-## The `async` Pipe — Angular's Observable Bridge
+## The fromLoomSignal Bridge
 
-The `async` pipe is the primary mechanism for rendering observable values in Angular templates. It handles the full subscription lifecycle for you.
-
-### Basic pattern
+`fromLoomSignal` mirrors a Web Loom signal into a native Angular signal, torn down automatically via `DestroyRef`:
 
 ```typescript
-@Component({
-  standalone: true,
-  imports: [CommonModule],
-  template: `
-    <div *ngIf="loading$ | async">Loading…</div>
-    <ul *ngIf="items$ | async as items">
-      <li *ngFor="let item of items">{{ item.name }}</li>
-    </ul>
-    <p *ngIf="error$ | async as err" class="error">{{ err.message }}</p>
-  `,
-})
-export class ItemListComponent implements OnInit {
-  data$!: Observable<Item[]>;
-  loading$!: Observable<boolean>;
-  error$!: Observable<any>;
+// apps/mvvm-angular/src/app/utils/loom-signals.ts
+import { signal, type Signal, DestroyRef, inject } from '@angular/core';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 
-  ngOnInit(): void {
-    this.data$ = this.vm.data$;
-    this.loading$ = this.vm.isLoading$;
-    this.error$ = this.vm.error$;
-  }
+/**
+ * Bridge a Web Loom signal (from @web-loom/signals-core) to a native Angular
+ * signal. Reads the current value synchronously and mirrors every change;
+ * the subscription is torn down with the injector's DestroyRef.
+ *
+ * Must be called in an injection context (constructor / field initializer)
+ * unless a DestroyRef is passed explicitly.
+ */
+export function fromLoomSignal<T>(source: ReadonlySignal<T>, destroyRef?: DestroyRef): Signal<T> {
+  const mirror = signal<T>(source.peek());
+  const unsubscribe = source.subscribe((value) => mirror.set(value));
+  (destroyRef ?? inject(DestroyRef)).onDestroy(unsubscribe);
+  return mirror.asReadonly();
 }
 ```
 
-### The `as` alias syntax
+How it works:
 
-`*ngIf="items$ | async as items"` subscribes to `items$` and assigns the unwrapped value to the local template variable `items`. This avoids multiple subscriptions when the same stream is referenced in different parts of the template.
+- `signal(source.peek())` seeds a native Angular signal with the Web Loom signal's current value.
+- `source.subscribe(...)` mirrors every future change into the Angular signal. No `observe()` needed here since `signal()` is already seeded from `.peek()`.
+- `(destroyRef ?? inject(DestroyRef)).onDestroy(unsubscribe)` ties the teardown to Angular's own destroy lifecycle — the caller doesn't need `ngOnDestroy` at all for this.
+- The return type is `Signal<T>` (Angular's read-only signal type, via `.asReadonly()`), not `ReadonlySignal<T>` (the Web Loom type) — from this point on you're working entirely in Angular's own Signals API.
+
+Usage is one line per signal, typically inside `ngOnInit` (constructor runs before Angular has resolved `@Input()`s and injected dependencies fully, so `ngOnInit` is the conventional place):
+
+```typescript
+ngOnInit(): void {
+  this.greenhouses$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+  this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+  this.error$ = fromLoomSignal(this.vm.error$, this.destroyRef);
+
+  this.vm.fetchCommand.execute();
+}
+```
+
+Read them in the template by calling them as functions — `loading$()`, not `loading$` or `loading$ | async`:
 
 ```html
-<ng-container *ngIf="greenhouses$ | async as greenhouseList">
-  <div *ngIf="greenhouseList.length > 0; else noGreenhouses">
-    <ul>
-      <li *ngFor="let gh of greenhouseList">{{ gh.name }}</li>
-    </ul>
-  </div>
+<div *ngIf="loading$()">Loading…</div>
+<ng-container *ngIf="greenhouses$() as list">
+  <li *ngFor="let gh of list">{{ gh.name }}</li>
 </ng-container>
-
-<ng-template #noGreenhouses>
-  <p>No greenhouses found.</p>
-</ng-template>
 ```
 
-### When you must subscribe manually
-
-The `async` pipe only works in templates. When you need the latest value from an observable in a method (for example, to read the current list before a CRUD operation), you must maintain a manual subscription and store a snapshot:
-
-```typescript
-private subscription: Subscription | undefined;
-greenhouses: Greenhouse[] = [];
-
-ngOnInit(): void {
-  this.greenhouses$ = this.vm.data$.pipe(
-    tap((ghs) => (this.greenhouses = ghs ?? [])),
-  );
-  this.subscription = this.greenhouses$.subscribe(); // keep snapshot in sync
-}
-
-ngOnDestroy(): void {
-  this.subscription?.unsubscribe();
-}
-
-handleDelete(id: string): void {
-  this.vm.deleteCommand.execute(id); // greenhouses snapshot was needed for guards
-}
-```
+Angular's structural directives (`*ngIf`, `*ngFor`) work fine with signal function calls — you don't need the newer `@if`/`@for` control-flow syntax to benefit from signals, though it pairs well if you're already using Angular 17+.
 
 ---
 
@@ -205,56 +181,43 @@ For the Web Loom Greenhouse app, ViewModels are module-level singletons (created
 Angular's lifecycle hooks map directly onto the MVVM lifecycle:
 
 - **`constructor`** — inject ViewModel, set up `FormGroup`
-- **`ngOnInit`** — assign observables, trigger `fetchCommand`
+- **`ngOnInit`** — bridge signals with `fromLoomSignal`, trigger `fetchCommand`
 - **`ngAfterViewInit`** — access DOM refs (`@ViewChild`), initialize charts
-- **`ngOnDestroy`** — unsubscribe manual subscriptions
+- **`ngOnDestroy`** — rarely needed; `fromLoomSignal` and `DestroyRef.onDestroy` handle teardown for you
 
 ### ngOnInit — start reactive state
 
-Always assign observable properties and execute initial commands in `ngOnInit`, not the constructor. The constructor runs before inputs are resolved and before the component tree is established.
+Always bridge signals and execute initial commands in `ngOnInit`, not the constructor. The constructor runs before inputs are resolved and before the component tree is established.
 
 ```typescript
 ngOnInit(): void {
-  // Assign ViewModel observables to component properties
-  this.data$ = this.vm.data$;
-  this.loading$ = this.vm.isLoading$;
-  this.error$ = this.vm.error$;
+  // Bridge ViewModel signals to Angular signals
+  this.data$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+  this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+  this.error$ = fromLoomSignal(this.vm.error$, this.destroyRef);
 
   // Trigger initial fetch
   this.vm.fetchCommand.execute();
 }
 ```
 
-### ngOnDestroy — clean up manual subscriptions
+### Manual subscriptions — use observe() + DestroyRef.onDestroy
 
-The `async` pipe manages its own subscription. Only call `unsubscribe()` on subscriptions you created explicitly:
+`fromLoomSignal` handles the common case (mirror a signal into the template). For an imperative snapshot — reading the current list inside an event handler, for example — subscribe manually with `observe()` and register the teardown on `DestroyRef` instead of writing a `ngOnDestroy`:
 
 ```typescript
-ngOnDestroy(): void {
-  this.greenhousesSubscription?.unsubscribe();
+private destroyRef = inject(DestroyRef);
+greenhouses: GreenhouseData[] = []; // imperative snapshot
+
+ngOnInit(): void {
+  this.vm.fetchCommand.execute();
+  this.destroyRef.onDestroy(
+    observe(this.vm.data$, (ghs) => (this.greenhouses = ghs ?? [])),
+  );
 }
 ```
 
-### Modern alternative: DestroyRef + takeUntilDestroyed
-
-Angular 16+ provides `DestroyRef` and the `takeUntilDestroyed` operator as a cleaner alternative to the `ngOnDestroy` + `Subscription` pattern:
-
-```typescript
-import { DestroyRef, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
-@Component({ standalone: true })
-export class SensorListComponent implements OnInit {
-  private destroyRef = inject(DestroyRef);
-
-  ngOnInit(): void {
-    this.vm.data$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((data) => (this.snapshot = data ?? []));
-  }
-  // No ngOnDestroy needed — takeUntilDestroyed handles it
-}
-```
+`observe(sig, fn)` — from `@web-loom/signals-core` — calls `fn` immediately with the current value, then on every change, giving you a synchronously up-to-date snapshot without a separate `ngOnDestroy` method.
 
 ---
 
@@ -280,22 +243,24 @@ export type { GreenhouseListData, GreenhouseData };
 ```
 
 The ViewModel exposes:
-- `data$` — `BehaviorSubject<GreenhouseData[] | null>`
-- `isLoading$` — `BehaviorSubject<boolean>`
-- `error$` — `BehaviorSubject<any>`
+- `data$` — `ReadonlySignal<GreenhouseData[] | null>`
+- `isLoading$` — `ReadonlySignal<boolean>`
+- `error$` — `ReadonlySignal<any>`
 - `fetchCommand`, `createCommand`, `updateCommand`, `deleteCommand` — typed Commands
 
 No Angular imports. The ViewModel works identically in React, Vue, and Angular.
 
 ### The component
 
+From `apps/mvvm-angular/src/app/components/greenhouse-list/greenhouse-list.component.ts`:
+
 ```typescript
-// apps/mvvm-angular/src/app/components/greenhouse-list/greenhouse-list.component.ts
-import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
+import { Component, OnInit, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import { fromLoomSignal } from '../../utils/loom-signals';
+import { observe } from '@web-loom/signals-core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { GreenhouseData, greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { Observable, Subscription, tap } from 'rxjs';
 import { RouterLink } from '@angular/router';
 
 export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>(
@@ -309,16 +274,16 @@ export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewMod
   templateUrl: './greenhouse-list.component.html',
   providers: [{ provide: GREENHOUSE_VIEW_MODEL, useValue: greenHouseViewModel }],
 })
-export class GreenhouseListComponent implements OnInit, OnDestroy {
+export class GreenhouseListComponent implements OnInit {
   public vm: typeof greenHouseViewModel;
-  public greenhouses$!: Observable<GreenhouseData[] | null>;
-  public loading$!: Observable<boolean>;
-  public error$!: Observable<any>;
+  public greenhouses$!: Signal<GreenhouseData[] | null>;
+  public loading$!: Signal<boolean>;
+  public error$!: Signal<any>;
 
   greenhouseForm: FormGroup;
   editingGreenhouseId: string | null | undefined = null;
   greenhouses: GreenhouseData[] = []; // snapshot for imperative reads
-  private greenhousesSubscription: Subscription | undefined;
+  private destroyRef = inject(DestroyRef);
 
   readonly sizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
 
@@ -337,18 +302,12 @@ export class GreenhouseListComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.greenhouses$ = this.vm.data$.pipe(
-      tap((ghs) => (this.greenhouses = ghs ?? [])),
-    );
-    this.loading$ = this.vm.isLoading$;
-    this.error$ = this.vm.error$;
+    this.greenhouses$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+    this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+    this.error$ = fromLoomSignal(this.vm.error$, this.destroyRef);
 
     this.vm.fetchCommand.execute();
-    this.greenhousesSubscription = this.greenhouses$.subscribe();
-  }
-
-  ngOnDestroy(): void {
-    this.greenhousesSubscription?.unsubscribe();
+    this.destroyRef.onDestroy(observe(this.vm.data$, (ghs) => (this.greenhouses = ghs ?? [])));
   }
 
   handleSubmit(): void {
@@ -433,13 +392,13 @@ export class GreenhouseListComponent implements OnInit, OnDestroy {
     </button>
   </form>
 
-  <!-- List -->
+  <!-- List: loading$()/greenhouses$() are Angular Signals — call them as functions -->
   <div class="card">
     <h1>Greenhouses</h1>
 
-    <div *ngIf="loading$ | async">Loading…</div>
+    <div *ngIf="loading$()">Loading…</div>
 
-    <ng-container *ngIf="greenhouses$ | async as list">
+    <ng-container *ngIf="greenhouses$() as list">
       <ul *ngIf="list.length > 0; else empty" class="list">
         <li *ngFor="let gh of list" class="list-item">
           <span>{{ gh.name }}</span>
@@ -452,12 +411,14 @@ export class GreenhouseListComponent implements OnInit, OnDestroy {
     </ng-container>
 
     <ng-template #empty>
-      <p *ngIf="!(loading$ | async)">No greenhouses found.</p>
+      <p *ngIf="!loading$()">No greenhouses found.</p>
     </ng-template>
   </div>
 
 </section>
 ```
+
+No `async` pipe anywhere — `loading$()` and `greenhouses$()` are plain Angular signal reads.
 
 ---
 
@@ -497,38 +458,29 @@ ngOnInit(): void {
 
 ## Command Binding in Templates
 
-Commands expose observable flags directly on the instance. Bind them with the `async` pipe:
-
-```html
-<!-- Loading spinner from command state -->
-<button
-  (click)="vm.fetchCommand.execute()"
-  [disabled]="(vm.fetchCommand.isExecuting$ | async) === true"
->
-  <span *ngIf="vm.fetchCommand.isExecuting$ | async; else label">Loading…</span>
-  <ng-template #label>Refresh</ng-template>
-</button>
-
-<!-- Error from command -->
-<p *ngIf="vm.fetchCommand.executeError$ | async as err" class="error">
-  Failed: {{ err.message }}
-</p>
-```
-
-Or assign command observables to component properties in `ngOnInit` to keep templates clean:
+Commands expose signal flags directly on the instance. Bridge them with `fromLoomSignal` and read them by calling the signal:
 
 ```typescript
 ngOnInit(): void {
-  this.isSaving$ = this.vm.createCommand.isExecuting$;
-  this.canSave$ = this.vm.createCommand.canExecute$;
+  this.isSaving$ = fromLoomSignal(this.vm.createCommand.isExecuting$, this.destroyRef);
+  this.canSave$  = fromLoomSignal(this.vm.createCommand.canExecute$, this.destroyRef);
+  this.saveError$ = fromLoomSignal(this.vm.createCommand.executeError$, this.destroyRef);
 }
 ```
 
 ```html
-<button [disabled]="!(canSave$ | async)" (click)="vm.createCommand.execute(form.value)">
-  <ng-container *ngIf="isSaving$ | async; else saveLabel">Saving…</ng-container>
-  <ng-template #saveLabel>Save</ng-template>
+<!-- Loading spinner and disabled state from command signals -->
+<button
+  (click)="vm.createCommand.execute(form.value)"
+  [disabled]="!canSave$()"
+>
+  {{ isSaving$() ? 'Saving…' : 'Save' }}
 </button>
+
+<!-- Error from command -->
+<p *ngIf="saveError$() as err" class="error">
+  Failed: {{ err.message }}
+</p>
 ```
 
 ---
@@ -539,11 +491,14 @@ When a component needs to access a DOM element after Angular has rendered the te
 
 ### SensorReadingCardComponent example
 
+From `apps/mvvm-angular/src/app/components/sensor-reading-card/sensor-reading-card.component.ts`:
+
 ```typescript
-import { Component, AfterViewInit, ElementRef, ViewChild, OnInit, Inject, InjectionToken } from '@angular/core';
+import { Component, AfterViewInit, ElementRef, ViewChild, OnInit, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import { fromLoomSignal } from '../../utils/loom-signals';
+import { observe } from '@web-loom/signals-core';
 import { CommonModule } from '@angular/common';
 import { sensorReadingViewModel, SensorReadingListData } from '@repo/view-models/SensorReadingViewModel';
-import { Observable } from 'rxjs';
 import { Chart } from 'chart.js/auto';
 
 export const SENSOR_READING_VIEW_MODEL = new InjectionToken<typeof sensorReadingViewModel>(
@@ -556,39 +511,44 @@ export const SENSOR_READING_VIEW_MODEL = new InjectionToken<typeof sensorReading
   imports: [CommonModule],
   template: `
     <canvas #readingsChart></canvas>
-    <div *ngIf="loading$ | async">Loading readings…</div>
+    <div *ngIf="loading$()">Loading readings…</div>
   `,
   providers: [{ provide: SENSOR_READING_VIEW_MODEL, useValue: sensorReadingViewModel }],
 })
 export class SensorReadingCardComponent implements OnInit, AfterViewInit {
   public vm: typeof sensorReadingViewModel;
-  public data$!: Observable<SensorReadingListData | null>;
-  public loading$!: Observable<boolean>;
+  public data$!: Signal<SensorReadingListData | null>;
+  public loading$!: Signal<boolean>;
 
   @ViewChild('readingsChart') readingsChartRef?: ElementRef<HTMLCanvasElement>;
   private chartInstance?: Chart;
+  private destroyRef = inject(DestroyRef);
 
   constructor(@Inject(SENSOR_READING_VIEW_MODEL) vm: typeof sensorReadingViewModel) {
     this.vm = vm;
   }
 
   ngOnInit(): void {
-    this.data$ = this.vm.data$;
-    this.loading$ = this.vm.isLoading$;
+    this.data$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+    this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
     this.vm.fetchCommand.execute();
   }
 
   ngAfterViewInit(): void {
-    // Canvas is now in the DOM — safe to initialize the chart
-    this.data$.subscribe((data) => {
-      if (data && data.length > 0 && this.readingsChartRef) {
-        this.initChart(data);
-      }
-    });
+    // Canvas is now in the DOM — safe to initialize the chart.
+    // observe() delivers the current value immediately, then on every change.
+    this.destroyRef.onDestroy(
+      observe(this.vm.data$, (data) => {
+        if (data && data.length > 0 && this.readingsChartRef) {
+          this.initChart(data);
+        }
+      }),
+    );
   }
 
   private initChart(data: SensorReadingListData): void {
-    const canvas = this.readingsChartRef!.nativeElement;
+    if (!this.readingsChartRef) return;
+    const canvas = this.readingsChartRef.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -613,42 +573,74 @@ Key points:
 
 - `@ViewChild('readingsChart')` locates the `<canvas #readingsChart>` element
 - `ngAfterViewInit` is called after the first render — the canvas is in the DOM
-- The chart is destroyed and recreated on each data emission to avoid duplicate series
+- `observe()` (not `fromLoomSignal`) is used here because chart re-initialization is an imperative DOM side effect, not template-bound state — there's no Angular signal to read in a template for this
+- The chart is destroyed and recreated on each data change to avoid duplicate series
 - This chart initialization logic belongs in the component, not the ViewModel — it's a DOM concern
 
 ---
 
 ## Simplified Read-Only Components
 
-When a component only needs to display data (no forms, no mutations), the setup is minimal — just assign observables in `ngOnInit` and let the `async` pipe do the rest:
+When a component only needs to display data (no forms, no mutations), the setup is minimal — bridge one signal in a field initializer and let the template call it:
 
 ```typescript
 // apps/mvvm-angular/src/app/layout/header/header.component.ts
-import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
+import { fromLoomSignal } from '../../utils/loom-signals';
+import { RouterModule } from '@angular/router';
 import { navigationViewModel } from '@repo/shared/view-models/NavigationViewModel';
 
 @Component({
   selector: 'app-header',
-  standalone: true,
   imports: [RouterModule, CommonModule],
-  template: `
-    <nav *ngIf="navigationList$ | async as navItems">
-      <a
-        *ngFor="let item of navItems"
-        [routerLink]="item.path"
-        routerLinkActive="active"
-      >{{ item.label }}</a>
-    </nav>
-  `,
+  templateUrl: './header.component.html',
 })
 export class HeaderComponent {
-  public navigationList$ = navigationViewModel.navigationList.items$;
+  // Field initializer runs in an injection context — no explicit DestroyRef needed
+  public navigationList$ = fromLoomSignal(navigationViewModel.navigationList.items$);
 }
 ```
 
-No `ngOnInit`, no `ngOnDestroy`, no subscriptions. The `async` pipe handles everything.
+```html
+<nav *ngIf="navigationList$() as navItems">
+  <a *ngFor="let item of navItems" [routerLink]="item.path" routerLinkActive="active">{{ item.label }}</a>
+</nav>
+```
+
+No `ngOnInit`, no `ngOnDestroy`, no manual subscriptions. `fromLoomSignal` handles everything, including teardown via the injected `DestroyRef` it resolves internally when none is passed explicitly.
+
+---
+
+## computed() and effect() for Derived State
+
+Once ViewModel state is bridged into Angular Signals with `fromLoomSignal`, Angular's own `computed()` and `effect()` compose over it exactly like any other Angular signal — no extra subscriptions needed.
+
+```typescript
+import { computed, effect } from '@angular/core';
+
+export class GreenhouseListComponent implements OnInit {
+  greenhouses$!: Signal<GreenhouseData[] | null>;
+  loading$!: Signal<boolean>;
+
+  // Derived signals — lazy and memoized, re-evaluated only when a dependency changes
+  readonly count   = computed(() => this.greenhouses$()?.length ?? 0);
+  readonly hasData = computed(() => (this.greenhouses$()?.length ?? 0) > 0);
+
+  ngOnInit(): void {
+    this.greenhouses$ = fromLoomSignal(this.vm.data$, this.destroyRef);
+    this.loading$ = fromLoomSignal(this.vm.isLoading$, this.destroyRef);
+
+    // effect() runs whenever a signal it reads changes — replaces a manual .subscribe()
+    // for imperative side effects. Must be called in an injection context.
+    effect(() => {
+      console.log(`${this.count()} greenhouses loaded`);
+    });
+  }
+}
+```
+
+`effect()` cleans up automatically when the component is destroyed, the same way `fromLoomSignal`'s internal subscription does.
 
 ---
 
@@ -658,10 +650,10 @@ By default, Angular checks every component in the tree on every change detection
 
 1. An `@Input()` reference changes
 2. An event fires from inside the component
-3. An `Observable` piped through `async` emits a new value
+3. A `Signal` read in the template changes
 4. `markForCheck()` is called manually
 
-Because all ViewModel state is consumed through the `async` pipe, switching to `OnPush` works seamlessly with the MVVM pattern:
+Because all ViewModel state is consumed through Angular Signals (via `fromLoomSignal`), switching to `OnPush` works seamlessly with the MVVM pattern:
 
 ```typescript
 import { ChangeDetectionStrategy } from '@angular/core';
@@ -670,341 +662,18 @@ import { ChangeDetectionStrategy } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   // ... rest of decorator
 })
-export class GreenhouseListComponent implements OnInit, OnDestroy {
-  // No changes required — async pipe triggers markForCheck() automatically
+export class GreenhouseListComponent implements OnInit {
+  // No changes required — signal reads notify Angular automatically
 }
 ```
 
-`OnPush` is the recommended strategy for components consuming ViewModel observables. It avoids unnecessary checks and makes the component's update triggers explicit.
+`OnPush` is the recommended strategy for components consuming ViewModel signals. It avoids unnecessary checks and makes the component's update triggers explicit.
 
 ---
 
-## Angular Signals with Web Loom ViewModels
+## Zoneless Angular (Angular 19+)
 
-Angular Signals (introduced in Angular 16, stable and recommended in Angular 19) are a synchronous, push-based reactive primitive built directly into the framework. They complement Web Loom's architecture particularly well because:
-
-- The ViewModel stays **completely unchanged** — it still exposes `BehaviorSubject` streams
-- The `@angular/core/rxjs-interop` package provides `toSignal()`, a one-line bridge from any Observable to a Signal
-- Signal-based components can drop Zone.js entirely, reducing bundle size and improving performance
-- The new `@if` / `@for` template control flow (Angular 17+) reads signals without pipes
-
-```
-BehaviorSubject (ViewModel)
-      ↓
-  toSignal()           ← one-time bridge in the component
-      ↓
-Angular Signal         ← component reads it like a plain function call
-      ↓
-Template @if / @for    ← no async pipe, no structural directive noise
-```
-
-### toSignal() — the Observable-to-Signal bridge
-
-`toSignal()` from `@angular/core/rxjs-interop` subscribes to an Observable and returns a read-only Signal that always holds the latest emitted value. It automatically unsubscribes when the component is destroyed (tied to the injection context).
-
-```typescript
-import { toSignal } from '@angular/core/rxjs-interop';
-
-@Component({ standalone: true })
-export class GreenhouseListComponent implements OnInit {
-  private vm = inject_vm_here; // via @Inject or inject()
-
-  // Convert ViewModel observables to signals — one line each
-  readonly greenhouses = toSignal(this.vm.data$,    { initialValue: null });
-  readonly loading     = toSignal(this.vm.isLoading$, { initialValue: false });
-  readonly error       = toSignal(this.vm.error$,    { initialValue: null });
-}
-```
-
-The `initialValue` option sets the signal's value before the first emission — important when the observable is a cold one. For `BehaviorSubject`, you can omit it and Angular will use the current value synchronously:
-
-```typescript
-// BehaviorSubject emits synchronously — no initialValue needed
-readonly greenhouses = toSignal(this.vm.data$);
-readonly loading     = toSignal(this.vm.isLoading$);
-```
-
-### Signal-based template control flow
-
-With signals, the template uses Angular's new built-in control flow blocks (`@if`, `@for`, `@switch`) instead of `*ngIf` / `*ngFor` structural directives. No `async` pipe — signals are read by calling them like functions:
-
-```html
-<!-- Signals-based template — no async pipe, no CommonModule needed -->
-@if (loading()) {
-  <div>Loading…</div>
-}
-
-@if (greenhouses(); as list) {
-  @if (list && list.length > 0) {
-    <ul>
-      @for (gh of list; track gh.id) {
-        <li>
-          <span>{{ gh.name }}</span>
-          <button (click)="handleDelete(gh.id)">Delete</button>
-          <button (click)="handleUpdateForm(gh.id)">Edit</button>
-        </li>
-      }
-    </ul>
-  } @else {
-    <p>No greenhouses found.</p>
-  }
-}
-
-@if (error(); as err) {
-  <p class="error">{{ err.message }}</p>
-}
-```
-
-Because `greenhouses()` is a plain function call, Angular's template compiler knows exactly which signals a template reads. When a signal changes, only the components that read it are re-rendered — no zone patching required.
-
-### computed() — derived signal state
-
-Use Angular's `computed()` to derive display state from ViewModel signals without extra subscriptions. Computed signals are lazy (only evaluated when read) and memoized (only re-evaluated when a dependency changes):
-
-```typescript
-import { computed } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-
-@Component({ standalone: true })
-export class GreenhouseListComponent {
-  readonly greenhouses = toSignal(this.vm.data$, { initialValue: [] as GreenhouseData[] });
-  readonly loading     = toSignal(this.vm.isLoading$, { initialValue: false });
-
-  // Derived from the greenhouses signal — no extra subscription
-  readonly count        = computed(() => this.greenhouses()?.length ?? 0);
-  readonly hasData      = computed(() => (this.greenhouses()?.length ?? 0) > 0);
-  readonly isIdle       = computed(() => !this.loading() && this.hasData());
-  readonly sortedByName = computed(() =>
-    [...(this.greenhouses() ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
-  );
-}
-```
-
-In the template:
-
-```html
-<h2>Greenhouses ({{ count() }})</h2>
-
-@for (gh of sortedByName(); track gh.id) {
-  <li>{{ gh.name }}</li>
-}
-```
-
-### effect() — side effects without subscriptions
-
-`effect()` runs a function whenever any signal it reads changes. Use it for imperative side effects (logging, chart updates, notifications) that would previously require a manual `.subscribe()`:
-
-```typescript
-import { effect } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-
-@Component({ standalone: true })
-export class SensorReadingCardComponent implements AfterViewInit {
-  @ViewChild('readingsChart') chartRef?: ElementRef<HTMLCanvasElement>;
-
-  readonly readings = toSignal(this.vm.data$, { initialValue: null });
-
-  constructor() {
-    // effect() runs whenever readings() changes — replaces subscribe in ngAfterViewInit
-    effect(() => {
-      const data = this.readings();
-      if (data && this.chartRef) {
-        this.initChart(data);
-      }
-    });
-  }
-
-  private initChart(data: SensorReadingListData): void {
-    // ... Chart.js initialization
-  }
-}
-```
-
-`effect()` must be called in an injection context (constructor or field initializer). It cleans up automatically when the component is destroyed.
-
-### Full Greenhouse component — signals version
-
-Here is the complete Greenhouse CRUD component rewritten to use Signals and the new template control flow. The ViewModel is untouched.
-
-```typescript
-import {
-  Component, OnInit, OnDestroy, Inject, InjectionToken,
-  computed, effect, signal,
-} from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { GreenhouseData, greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { RouterLink } from '@angular/router';
-
-export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>(
-  'GREENHOUSE_VIEW_MODEL',
-);
-
-@Component({
-  selector: 'app-greenhouse-list',
-  standalone: true,
-  // CommonModule not needed — @if / @for are built-in, no async pipe required
-  imports: [ReactiveFormsModule, RouterLink],
-  providers: [{ provide: GREENHOUSE_VIEW_MODEL, useValue: greenHouseViewModel }],
-  template: `
-    <section class="flex-container flex-row">
-
-      <form [formGroup]="greenhouseForm" (ngSubmit)="handleSubmit()" class="form-container">
-        <div class="form-group">
-          <label for="name">Greenhouse Name:</label>
-          <input id="name" formControlName="name" class="input-field" />
-          @if (nameInvalid()) {
-            <div class="error-message">Name is required.</div>
-          }
-        </div>
-
-        <div class="form-group">
-          <label for="location">Location:</label>
-          <textarea id="location" formControlName="location" rows="3"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="size">Size:</label>
-          <select id="size" formControlName="size">
-            <option value="">Select size</option>
-            @for (s of sizeOptions; track s) {
-              <option [value]="s">{{ s }}</option>
-            }
-          </select>
-        </div>
-
-        <button type="submit" [disabled]="greenhouseForm.invalid">
-          {{ editingId() ? 'Update' : 'Create' }}
-        </button>
-      </form>
-
-      <div class="card">
-        <h1>Greenhouses ({{ count() }})</h1>
-
-        @if (loading()) {
-          <p>Loading…</p>
-        }
-
-        @if (hasData()) {
-          <ul class="list">
-            @for (gh of greenhouses()!; track gh.id) {
-              <li class="list-item">
-                <span>{{ gh.name }}</span>
-                <div>
-                  <button (click)="handleDelete(gh.id)" class="button-tiny">Delete</button>
-                  <button (click)="handleUpdateForm(gh.id)" class="button-tiny">Edit</button>
-                </div>
-              </li>
-            }
-          </ul>
-        } @else if (!loading()) {
-          <p>No greenhouses found.</p>
-        }
-
-        @if (error(); as err) {
-          <p class="error">{{ err.message }}</p>
-        }
-      </div>
-
-    </section>
-  `,
-})
-export class GreenhouseListSignalsComponent implements OnInit {
-  public vm: typeof greenHouseViewModel;
-
-  // ViewModel observables → Angular Signals (one line each)
-  readonly greenhouses = toSignal(this.vm.data$,     { initialValue: null });
-  readonly loading     = toSignal(this.vm.isLoading$, { initialValue: false });
-  readonly error       = toSignal(this.vm.error$,    { initialValue: null });
-
-  // Derived display state
-  readonly count   = computed(() => this.greenhouses()?.length ?? 0);
-  readonly hasData = computed(() => (this.greenhouses()?.length ?? 0) > 0);
-
-  // Local component UI state as signals
-  readonly editingId = signal<string | null>(null);
-
-  // Reactive form
-  greenhouseForm: FormGroup;
-  readonly sizeOptions = ['25sqm', '50sqm', '100sqm'] as const;
-
-  // Derived form validation signal
-  readonly nameInvalid = computed(() => {
-    const ctrl = this.greenhouseForm.get('name');
-    return ctrl?.invalid && (ctrl?.dirty || ctrl?.touched);
-  });
-
-  constructor(
-    private fb: FormBuilder,
-    @Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel,
-  ) {
-    this.vm = vm;
-    this.greenhouseForm = this.fb.group({
-      name:     ['', Validators.required],
-      location: ['', Validators.required],
-      size:     ['', Validators.required],
-      cropType: [''],
-    });
-  }
-
-  ngOnInit(): void {
-    this.vm.fetchCommand.execute();
-  }
-
-  handleSubmit(): void {
-    if (this.greenhouseForm.invalid) return;
-
-    const value = this.greenhouseForm.value;
-    const id = this.editingId();
-
-    if (id) {
-      const existing = this.greenhouses()?.find((gh) => gh.id === id);
-      if (existing) {
-        this.vm.updateCommand.execute({ id, payload: { ...existing, ...value } });
-      }
-    } else {
-      this.vm.createCommand.execute(value);
-    }
-
-    this.greenhouseForm.reset();
-    this.editingId.set(null);
-  }
-
-  handleUpdateForm(id?: string): void {
-    const gh = this.greenhouses()?.find((g) => g.id === id);
-    if (!gh) return;
-    this.editingId.set(gh.id ?? null);
-    this.greenhouseForm.patchValue({
-      name: gh.name, location: gh.location,
-      size: gh.size, cropType: gh.cropType ?? '',
-    });
-  }
-
-  handleDelete(id?: string): void {
-    if (!id) return;
-    this.vm.deleteCommand.execute(id);
-    if (this.editingId() === id) {
-      this.greenhouseForm.reset();
-      this.editingId.set(null);
-    }
-  }
-}
-```
-
-What changed compared to the classic version:
-
-- `import CommonModule` → not needed — `@if` / `@for` are built-in
-- `greenhouses$ | async as list` → `greenhouses()` — plain function call
-- `*ngIf` / `*ngFor` structural directives → `@if` / `@for` built-in blocks
-- `editingGreenhouseId: string | null` → `editingId = signal<string | null>(null)`
-- Manual `Subscription` + `ngOnDestroy` → `toSignal()` manages lifecycle automatically
-- Snapshot array for imperative reads → read `greenhouses()` directly in handlers
-
-The ViewModel (`greenHouseViewModel`) is identical in both versions.
-
-### Zoneless Angular (Angular 19+)
-
-Signals enable **zoneless** change detection — Angular updates the DOM only when a signal value changes, rather than after every async operation. To opt in, replace `provideZoneChangeDetection` in `app.config.ts`:
+Signals enable **zoneless** change detection — Angular updates the DOM only when a signal value changes, rather than after every async operation. Since `fromLoomSignal`-bridged state is already signal-based, it works unchanged in a zoneless app. To opt in, replace `provideZoneChangeDetection` in `app.config.ts`:
 
 ```typescript
 import { provideExperimentalZonelessChangeDetection } from '@angular/core';
@@ -1023,49 +692,37 @@ And remove `zone.js` from `angular.json` polyfills:
 "polyfills": []
 ```
 
-With zoneless enabled, Zone.js is gone from the bundle. Angular only re-renders when a Signal (or `async` pipe) notifies it. For ViewModel-based components using `toSignal()`, this works with zero further changes.
+With zoneless enabled, Zone.js is gone from the bundle. Angular only re-renders when a Signal notifies it. For ViewModel-based components using `fromLoomSignal`, this works with zero further changes.
 
 > `provideExperimentalZonelessChangeDetection` is available in Angular 18+ and stable for production use in Angular 19+. The `Experimental` prefix is a naming artifact and does not indicate instability.
 
-### toObservable() — going the other direction
+---
 
-If you need to pass an Angular Signal back into a ViewModel (for example, a route param or an `@Input()` that the ViewModel should react to), use `toObservable()`:
+## RxJS Interop (only if you need it)
+
+`@web-loom/mvvm-core` doesn't use RxJS at all, so most Angular apps built on it never need `@angular/core/rxjs-interop` or `@web-loom/signals-core/rxjs`. Reach for interop only when a *different* part of the app is genuinely RxJS-based — an existing NgRx store, a complex debounce/retry pipeline, a websocket library that returns Observables — and you need to connect that to a ViewModel or an Angular Signal.
+
+**Angular Signal ↔ RxJS Observable** (`@angular/core/rxjs-interop`, built into Angular):
 
 ```typescript
-import { input } from '@angular/core';
-import { toObservable } from '@angular/core/rxjs-interop';
-import { switchMap } from 'rxjs';
+import { toSignal, toObservable } from '@angular/core/rxjs-interop';
 
-@Component({ standalone: true })
-export class SensorDetailComponent implements OnInit {
-  // Angular 17+ signal input
-  readonly sensorId = input.required<string>();
+// Observable -> Signal
+const searchResults = toSignal(searchResults$, { initialValue: [] });
 
-  // Bridge signal → Observable → ViewModel
-  private readonly sensorId$ = toObservable(this.sensorId);
-
-  ngOnInit(): void {
-    // Re-fetch whenever the route param changes
-    this.sensorId$.pipe(
-      switchMap((id) => {
-        this.vm.setFilter(id);
-        return this.vm.fetchCommand.execute();
-      }),
-    ).subscribe();
-  }
-}
+// Signal -> Observable (e.g. to feed a signal input into an RxJS pipeline)
+const sensorId$ = toObservable(this.sensorId); // this.sensorId is a Signal input
 ```
 
-### When to use Signals vs the async pipe
+**Web Loom signal ↔ RxJS Observable** (`@web-loom/signals-core/rxjs`, optional peer dependency — see [Signals Core: RxJS Interop](/docs/signals-core#rxjs-interop)):
 
-- **New component in Angular 17+** — use Signals + `toSignal()` + `@if` / `@for`
-- **Existing component with `*ngIf` / `async` pipe** — leave it; both approaches work side by side
-- **Zoneless app target** — Signals are required for change detection; `async` pipe still works as a fallback
-- **Complex RxJS pipeline** (debounce, switchMap, retry) — keep as Observable; bridge to a Signal only at the template edge
-- **Local UI state** (editing ID, expanded row, active tab) — use `signal()`, it's simpler than a `BehaviorSubject`
-- **Side effects on data change** (chart updates, notifications) — prefer `effect()` over a manual `.subscribe()`
+```typescript
+import { toObservable, fromObservable } from '@web-loom/signals-core/rxjs';
 
-The key rule: **the bridge lives in the component, not the ViewModel**. Call `toSignal()` in the component when you want Signals syntax. The ViewModel exposes `BehaviorSubject` streams regardless of which Angular style the consumer uses.
+const data$ = toObservable(this.vm.data$); // Web Loom signal -> Observable
+```
+
+For ViewModel state itself, `fromLoomSignal` remains the right tool — it bridges directly from `@web-loom/signals-core` to Angular's native Signals with no RxJS in between.
 
 ---
 
@@ -1079,19 +736,19 @@ Because the ViewModel is provided via `InjectionToken`, tests can swap it for a 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
-import { BehaviorSubject } from 'rxjs';
+import { signal } from '@web-loom/signals-core';
 import { GreenhouseListComponent, GREENHOUSE_VIEW_MODEL } from './greenhouse-list.component';
 
 describe('GreenhouseListComponent', () => {
   let fixture: ComponentFixture<GreenhouseListComponent>;
   let component: GreenhouseListComponent;
 
-  const data$ = new BehaviorSubject<any[]>([]);
-  const isLoading$ = new BehaviorSubject(false);
-  const error$ = new BehaviorSubject<any>(null);
+  const data$ = signal<any[]>([]);
+  const isLoading$ = signal(false);
+  const error$ = signal<any>(null);
 
   const mockFetchCommand = { execute: jasmine.createSpy('execute'), isExecuting$: isLoading$ };
-  const mockCreateCommand = { execute: jasmine.createSpy('execute'), isExecuting$: new BehaviorSubject(false) };
+  const mockCreateCommand = { execute: jasmine.createSpy('execute'), isExecuting$: signal(false) };
   const mockDeleteCommand = { execute: jasmine.createSpy('execute') };
 
   const mockVm = { data$, isLoading$, error$, fetchCommand: mockFetchCommand, createCommand: mockCreateCommand, deleteCommand: mockDeleteCommand };
@@ -1114,7 +771,7 @@ describe('GreenhouseListComponent', () => {
   });
 
   it('renders greenhouse names', async () => {
-    data$.next([{ id: '1', name: 'Alpine House', location: 'Zone A' }]);
+    data$.set([{ id: '1', name: 'Alpine House', location: 'Zone A' }]);
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -1149,26 +806,23 @@ describe('GreenhouseListComponent', () => {
 Because ViewModels have no Angular imports, they can be tested with plain Vitest — no `TestBed`, no fixtures:
 
 ```typescript
-import { describe, it, expect, beforeEach } from 'vitest';
-import { firstValueFrom } from 'rxjs';
+import { describe, it, expect } from 'vitest';
 import { greenHouseViewModel } from './GreenHouseViewModel';
 
 describe('GreenHouseViewModel', () => {
-  it('starts with null data and not loading', async () => {
-    const data = await firstValueFrom(greenHouseViewModel.data$);
-    const loading = await firstValueFrom(greenHouseViewModel.isLoading$);
-    expect(data).toBeNull();
-    expect(loading).toBe(false);
+  it('starts with null data and not loading', () => {
+    expect(greenHouseViewModel.data$.peek()).toBeNull();
+    expect(greenHouseViewModel.isLoading$.peek()).toBe(false);
   });
 
   it('sets isLoading$ to true while fetch is in progress', () => {
     const states: boolean[] = [];
-    const sub = greenHouseViewModel.isLoading$.subscribe((v) => states.push(v));
+    const unsubscribe = greenHouseViewModel.isLoading$.subscribe((v) => states.push(v));
 
     greenHouseViewModel.fetchCommand.execute();
     expect(states).toContain(true);
 
-    sub.unsubscribe();
+    unsubscribe();
   });
 });
 ```
@@ -1177,28 +831,28 @@ describe('GreenHouseViewModel', () => {
 
 ## Dos and Don'ts
 
-**Do** assign ViewModel observables in `ngOnInit`, not the constructor.
+**Do** bridge ViewModel signals with `fromLoomSignal` in `ngOnInit`, not the constructor.
 
 ```typescript
 // Good
 ngOnInit(): void {
-  this.data$ = this.vm.data$;
+  this.data$ = fromLoomSignal(this.vm.data$, this.destroyRef);
   this.vm.fetchCommand.execute();
 }
 
 // Avoid — inputs aren't resolved yet in the constructor
 constructor(@Inject(VM_TOKEN) private vm: GreenhouseVM) {
-  this.data$ = this.vm.data$; // could work, but ngOnInit is the right place
+  this.data$ = fromLoomSignal(this.vm.data$); // could work, but ngOnInit is the right place
 }
 ```
 
 ---
 
-**Do** use the `async` pipe for all observable rendering. It unsubscribes automatically.
+**Do** call bridged signals as functions in templates. No `async` pipe is needed for ViewModel state.
 
 ```html
 <!-- Good -->
-<ul *ngIf="items$ | async as items">
+<ul *ngIf="items$() as items">
   <li *ngFor="let i of items">{{ i.name }}</li>
 </ul>
 
@@ -1223,27 +877,27 @@ constructor(private vm: GreenHouseViewModelClass) {}
 
 ---
 
-**Do** unsubscribe from every manual subscription in `ngOnDestroy`.
+**Do** pass `DestroyRef` explicitly to `fromLoomSignal` when bridging inside `ngOnInit` (rather than a field initializer), since `ngOnInit` is not itself an injection context.
 
 ```typescript
 // Good
-ngOnDestroy(): void {
-  this.subscription?.unsubscribe();
+private destroyRef = inject(DestroyRef);
+ngOnInit(): void {
+  this.data$ = fromLoomSignal(this.vm.data$, this.destroyRef);
 }
 
-// Better (Angular 16+) — no ngOnDestroy needed
-private destroyRef = inject(DestroyRef);
-this.vm.data$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(...);
+// Also fine — field initializers run in an injection context, so no explicit destroyRef needed
+readonly data$ = fromLoomSignal(this.vm.data$);
 ```
 
 ---
 
-**Do** use `ChangeDetectionStrategy.OnPush` for components that consume ViewModel observables via the `async` pipe.
+**Do** use `ChangeDetectionStrategy.OnPush` for components that consume ViewModel state via bridged signals.
 
 ```typescript
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  // All updates arrive through async pipe — OnPush is safe
+  // All updates arrive through bridged signals — OnPush is safe
 })
 ```
 
@@ -1288,7 +942,7 @@ class SensorViewModel {
 
 // Correct — DOM work belongs in the component's AfterViewInit hook
 ngAfterViewInit(): void {
-  this.data$.subscribe((data) => this.initChart(data));
+  this.destroyRef.onDestroy(observe(this.vm.data$, (data) => this.initChart(data)));
 }
 ```
 
@@ -1298,5 +952,6 @@ ngAfterViewInit(): void {
 
 - [ViewModels](/docs/viewmodels) — the full API for Commands, RestfulApiViewModel, and lifecycle
 - [Models](/docs/models) — how Models fetch, cache, and own reactive data
-- [MVVM in React](/docs/mvvm-react-use-case) — the React integration with `useObservable` and `useSyncExternalStore`
+- [Signals Core](/docs/signals-core) — the `signal`/`computed`/`effect` primitives underlying mvvm-core, plus the RxJS interop subpath
+- [MVVM in React](/docs/mvvm-react-use-case) — the React integration with `useSignal` and `useSyncExternalStore`
 - [MVVM in Vue](/docs/mvvm-vue-use-case) — the Vue 3 integration with composables and provide/inject

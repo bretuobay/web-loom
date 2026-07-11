@@ -23,7 +23,11 @@ export default function BrandLogo({
   className = '',
 }: BrandLogoProps) {
   return (
-    <Link className={`inline-flex items-center gap-2.5 ${className}`.trim()} href={href} aria-label={brandText ?? imageAlt}>
+    <Link
+      className={`inline-flex items-center gap-2.5 ${className}`.trim()}
+      href={href}
+      aria-label={brandText ?? imageAlt}
+    >
       <Image src={imageSrc} width={imageWidth} height={imageHeight} alt={imageAlt} />
       {brandText && (
         <span className="hidden sm:inline text-base font-semibold text-slate-800 dark:text-slate-100">

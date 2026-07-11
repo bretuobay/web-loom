@@ -1,15 +1,19 @@
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
+import { EventSource, type EventSubscribable } from '../utilities/event-source';
 
 /**
  * @interface IObservableCollection
  * Defines the public interface for an ObservableCollection.
+ * `items$` is a reactive signal holding the current items; the `itemAdded$`,
+ * `itemRemoved$`, and `itemUpdated$` streams are event sources — they deliver
+ * every occurrence and have no current value.
  * @template T The type of items in the collection.
  */
 export interface IObservableCollection<T> {
-  readonly items$: Observable<T[]>;
-  readonly itemAdded$: Observable<T>;
-  readonly itemRemoved$: Observable<T>;
-  readonly itemUpdated$: Observable<{ oldItem: T; newItem: T }>;
+  readonly items$: ReadonlySignal<T[]>;
+  readonly itemAdded$: EventSubscribable<T>;
+  readonly itemRemoved$: EventSubscribable<T>;
+  readonly itemUpdated$: EventSubscribable<{ oldItem: T; newItem: T }>;
 
   add(item: T): void;
   remove(predicate: (item: T) => boolean): void;
@@ -28,17 +32,17 @@ export interface IObservableCollection<T> {
  */
 export class ObservableCollection<T> implements IObservableCollection<T> {
   protected _items: T[] = [];
-  protected _items$ = new BehaviorSubject<T[]>([]);
-  public readonly items$: Observable<T[]> = this._items$.asObservable();
+  protected _items$ = signal<T[]>([]);
+  public readonly items$: ReadonlySignal<T[]> = this._items$.asReadonly();
 
-  protected _itemAdded$ = new Subject<T>();
-  public readonly itemAdded$: Observable<T> = this._itemAdded$.asObservable();
+  protected _itemAdded$ = new EventSource<T>();
+  public readonly itemAdded$: EventSubscribable<T> = this._itemAdded$;
 
-  protected _itemRemoved$ = new Subject<T>();
-  public readonly itemRemoved$: Observable<T> = this._itemRemoved$.asObservable();
+  protected _itemRemoved$ = new EventSource<T>();
+  public readonly itemRemoved$: EventSubscribable<T> = this._itemRemoved$;
 
-  protected _itemUpdated$ = new Subject<{ oldItem: T; newItem: T }>();
-  public readonly itemUpdated$: Observable<{ oldItem: T; newItem: T }> = this._itemUpdated$.asObservable();
+  protected _itemUpdated$ = new EventSource<{ oldItem: T; newItem: T }>();
+  public readonly itemUpdated$: EventSubscribable<{ oldItem: T; newItem: T }> = this._itemUpdated$;
 
   constructor(initialItems: T[] = []) {
     this.setItems(initialItems);
@@ -50,8 +54,8 @@ export class ObservableCollection<T> implements IObservableCollection<T> {
    */
   public add(item: T): void {
     this._items.push(item);
-    this._items$.next([...this._items]); // Emit a new array reference
-    this._itemAdded$.next(item);
+    this._items$.set([...this._items]); // Emit a new array reference
+    this._itemAdded$.emit(item);
   }
 
   /**
@@ -72,8 +76,8 @@ export class ObservableCollection<T> implements IObservableCollection<T> {
 
     if (itemsToRemove.length > 0) {
       this._items = remainingItems;
-      this._items$.next([...this._items]); // Emit new array reference
-      itemsToRemove.forEach((item) => this._itemRemoved$.next(item));
+      this._items$.set([...this._items]); // Emit new array reference
+      itemsToRemove.forEach((item) => this._itemRemoved$.emit(item));
     }
   }
 
@@ -90,8 +94,8 @@ export class ObservableCollection<T> implements IObservableCollection<T> {
     if (index > -1) {
       const oldItem = this._items[index];
       this._items[index] = newItem;
-      this._items$.next([...this._items]); // Emit a new array reference
-      this._itemUpdated$.next({ oldItem, newItem });
+      this._items$.set([...this._items]); // Emit a new array reference
+      this._itemUpdated$.emit({ oldItem, newItem });
     }
   }
 
@@ -101,8 +105,8 @@ export class ObservableCollection<T> implements IObservableCollection<T> {
   public clear(): void {
     const itemsToClear = [...this._items]; // Capture items before clearing
     this._items = [];
-    this._items$.next([]);
-    itemsToClear.forEach((item) => this._itemRemoved$.next(item)); // Emit removed for each item
+    this._items$.set([]);
+    itemsToClear.forEach((item) => this._itemRemoved$.emit(item)); // Emit removed for each item
   }
 
   /**
@@ -115,7 +119,7 @@ export class ObservableCollection<T> implements IObservableCollection<T> {
     // For simplicity, this implementation just emits a full replacement.
     // If granular events are needed, you'd iterate and call add/remove/update internally.
     this._items = [...newItems];
-    this._items$.next(this._items);
+    this._items$.set(this._items);
     // Note: This simplified setItems does not emit individual itemAdded/Removed/Updated.
     // If granular events are critical for setItems, more complex diffing logic is required.
   }

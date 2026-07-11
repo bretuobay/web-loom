@@ -1,30 +1,29 @@
-import { Observable, Subject, Subscription } from 'rxjs';
-import { map, startWith, takeUntil } from 'rxjs/operators';
+import { computed, type ReadonlySignal } from '@web-loom/signals-core';
 import { ZodError } from 'zod';
 import type { BaseModel, IDisposable } from '../models/BaseModel';
 import type { ICommand } from '../commands/Command';
 
+/** A teardown function returned by signal subscriptions. */
+export type Teardown = () => void;
+
 /**
  * @class BaseViewModel
  * A base class for ViewModels in an MVVM architecture.
- * It connects to a BaseModel and exposes its properties as observables.
- * It also handles validation errors and provides a mechanism for subscription disposal.
+ * It connects to a BaseModel and exposes its reactive properties as signals.
+ * It also handles validation errors and provides a mechanism for teardown management.
  * @template TModel The type of the BaseModel instance this ViewModel is connected to.
  */
 export class BaseViewModel<TModel extends BaseModel<any, any>> {
-  protected readonly _subscriptions = new Subscription();
-  protected readonly _destroy$ = new Subject<void>(); // Used with takeUntil for disposal
+  private readonly _teardowns: Teardown[] = [];
   private readonly _registeredCommands: ICommand<any, any>[] = [];
 
-  // Expose observables directly from the injected model
-  //    TODO: check for reason why we need to use @ts-ignore here
-  //   @ts-ignore
-  public readonly data$: Observable<TModel['data']>;
-  public readonly isLoading$: Observable<boolean>;
-  public readonly error$: Observable<any>;
+  // Expose reactive properties directly from the injected model
+  public readonly data$: ReadonlySignal<any>;
+  public readonly isLoading$: ReadonlySignal<boolean>;
+  public readonly error$: ReadonlySignal<any>;
 
-  // New: Observable for detailed Zod validation errors
-  public readonly validationErrors$: Observable<ZodError | null>;
+  // Reactive property for detailed Zod validation errors
+  public readonly validationErrors$: ReadonlySignal<ZodError | null>;
   protected readonly model: TModel;
 
   constructor(model: TModel) {
@@ -33,33 +32,25 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
       throw new Error('BaseViewModel requires an instance of BaseModel in its constructor.');
     }
 
-    this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
-    this.isLoading$ = this.model.isLoading$.pipe(takeUntil(this._destroy$));
-    this.error$ = this.model.error$.pipe(takeUntil(this._destroy$));
+    this.data$ = this.model.data$;
+    this.isLoading$ = this.model.isLoading$;
+    this.error$ = this.model.error$;
 
-    // Implement validationErrors$
-    // This assumes the model's error$ could emit ZodError, or that
-    // validation is triggered by the ViewModel or Model's internal logic.
-    // For now, we'll derive it from the model's error$ if it's a ZodError instance.
-    this.validationErrors$ = this.model.error$.pipe(
-      map((err) => (err instanceof ZodError ? err : null)),
-      startWith(null), // Ensure it always starts with null
-      takeUntil(this._destroy$),
-    );
-
-    // If the ViewModel needs to trigger validation based on changes to its own internal state,
-    // or a specific field, that logic would be added here or in derived ViewModels.
-    // For simplicity, this implementation assumes ZodError might come from the model's error$ directly.
-    // A more advanced setup might have a dedicated validateAndGetErrors() method on ViewModel.
+    // Derive validationErrors$ from the model's error$: only ZodError instances
+    // surface here; anything else maps to null.
+    this.validationErrors$ = computed(() => {
+      const err = this.model.error$.get();
+      return err instanceof ZodError ? err : null;
+    });
   }
 
   /**
-   * Adds an RxJS subscription to the ViewModel's internal subscription management.
-   * This subscription will be automatically unsubscribed when `dispose()` is called.
-   * @param subscription The subscription to add.
+   * Adds a teardown (e.g. a signal unsubscribe function) to the ViewModel's
+   * internal lifecycle management. It runs automatically when `dispose()` is called.
+   * @param teardown The teardown function to register.
    */
-  protected addSubscription(subscription: Subscription): void {
-    this._subscriptions.add(subscription);
+  protected addSubscription(teardown: Teardown): void {
+    this._teardowns.push(teardown);
   }
 
   /**
@@ -95,7 +86,7 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
   }
 
   /**
-   * Disposes of all RxJS subscriptions and registered commands managed by this ViewModel.
+   * Disposes of all teardowns and registered commands managed by this ViewModel.
    * This method should be called when the ViewModel is no longer needed
    * to prevent memory leaks.
    */
@@ -108,9 +99,7 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
     });
     this._registeredCommands.length = 0; // Clear array
 
-    this._destroy$.next();
-    this._destroy$.complete();
-    this._subscriptions.unsubscribe();
-    // console.log('BaseViewModel disposed.'); // For debugging
+    this._teardowns.forEach((teardown) => teardown());
+    this._teardowns.length = 0;
   }
 }

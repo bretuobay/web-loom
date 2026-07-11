@@ -18,6 +18,7 @@ This document provides comprehensive rewrite plans for the Framework Implementat
 ## Chapter 8: React Implementation with Hooks
 
 ### Metadata
+
 - **Chapter Number:** 8
 - **File Name:** `chapter8.mdx`
 - **Section:** Framework Implementations
@@ -26,6 +27,7 @@ This document provides comprehensive rewrite plans for the Framework Implementat
 - **Enables:** Chapters 9-12 (for comparison)
 
 ### Learning Objectives
+
 1. Implement MVVM in React using hooks
 2. Subscribe to ViewModel observables in React components
 3. Manage ViewModel lifecycle in React
@@ -40,24 +42,20 @@ This document provides comprehensive rewrite plans for the Framework Implementat
    - useState for local UI state
    - Custom hooks for ViewModel integration
    - Cleanup in useEffect return function
-   
 2. **useEffect for observable subscriptions**
    - Subscribing to ViewModel observables
    - Dependency array management
    - Cleanup function
    - Avoiding infinite loops
-   
 3. **Custom hooks for ViewModel integration**
    - useObservable hook
    - useViewModel hook
    - Reusable patterns
    - Type safety
-   
 4. **React component lifecycle with ViewModels**
    - Component mount → ViewModel initialization
    - Component unmount → ViewModel disposal
    - Re-renders and subscriptions
-   
 5. **GreenWatch React implementation**
    - Sensor dashboard
    - Sensor list and detail
@@ -67,20 +65,23 @@ This document provides comprehensive rewrite plans for the Framework Implementat
 ### Real Implementations to Reference
 
 **React App:**
+
 - `apps/mvvm-react/` - Complete React implementation
 
 **Key Components:**
+
 - `apps/mvvm-react/src/components/SensorDashboard.tsx`
 - `apps/mvvm-react/src/components/SensorList.tsx`
 - `apps/mvvm-react/src/components/SensorDetail.tsx`
 - `apps/mvvm-react/src/components/GreenHouseList.tsx`
 
 **Custom Hooks:**
+
 - `apps/mvvm-react/src/hooks/useObservable.ts`
 - `apps/mvvm-react/src/hooks/useViewModel.ts`
 
 **ViewModels Used:**
+
 - `packages/view-models/src/SensorViewModel.ts`
 - `packages/view-models/src/GreenHouseViewModel.ts`
 - `packages/view-models/src/SensorReadingViewModel.ts`
-
