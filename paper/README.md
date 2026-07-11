@@ -36,8 +36,8 @@ For LLM consumption or comprehensive reading, use the combine script:
 
 **Note:** All output files are created in the `paper/` directory.
 
-- **llm-context.md** - All paper folder files combined (~1474 lines)
-- **combined-documentation.md** - Paper files + main README (default output)
+- **llm-context.md** - All paper folder files combined (~680 lines)
+- **combined-documentation.md** - Same content, default output filename when no argument is given
 
 ### Script Features
 
