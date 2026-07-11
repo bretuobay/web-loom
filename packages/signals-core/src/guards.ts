@@ -1,11 +1,7 @@
 import type { ReadonlySignal, WritableSignal } from './signal.js';
 
 function hasMethod(value: unknown, name: string): boolean {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as Record<string, unknown>)[name] === 'function'
-  );
+  return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>)[name] === 'function';
 }
 
 /** Returns true if value is any kind of signal (readable or writable). */

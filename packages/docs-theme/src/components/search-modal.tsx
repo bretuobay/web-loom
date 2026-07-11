@@ -78,7 +78,10 @@ export default function SearchModal({
           transition
           className="max-h-full w-full max-w-2xl overflow-auto rounded-xl bg-white dark:bg-slate-800 shadow-lg duration-300 ease-out data-closed:translate-y-4 data-closed:opacity-0"
         >
-          <form className="border-b border-slate-200 dark:border-slate-700" onSubmit={(event) => event.preventDefault()}>
+          <form
+            className="border-b border-slate-200 dark:border-slate-700"
+            onSubmit={(event) => event.preventDefault()}
+          >
             <div className="flex items-center">
               <label htmlFor="search-modal">
                 <span className="sr-only">Search</span>

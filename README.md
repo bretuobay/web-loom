@@ -52,18 +52,18 @@ We are excited to have you on this journey with us. Welcome to the future of UI 
 
 ## Core Libraries
 
-| Package                        | Description                                      |
-| ------------------------------ | ------------------------------------------------ |
-| `@web-loom/mvvm-core`          | Core MVVM architecture library                   |
-| `@web-loom/ui-core`            | Headless UI behaviors                            |
-| `@web-loom/ui-patterns`        | Composed UI patterns                             |
-| `@web-loom/store-core`         | Reactive state management                        |
-| `@web-loom/query-core`         | Data fetching & caching                          |
-| `@web-loom/signals-core`       | Framework-agnostic reactive signals with computed values and effects |
-| `@web-loom/event-bus-core`     | Event bus for cross-component communication      |
-| `@web-loom/plugin-core`        | Plugin architecture                              |
-| `@web-loom/typography-core`    | Typography and coloring utilities                |
-| `@web-loom/design-core`        | Theme and CSS variable utilities                 |
+| Package                     | Description                                                          |
+| --------------------------- | -------------------------------------------------------------------- |
+| `@web-loom/mvvm-core`       | Core MVVM architecture library                                       |
+| `@web-loom/ui-core`         | Headless UI behaviors                                                |
+| `@web-loom/ui-patterns`     | Composed UI patterns                                                 |
+| `@web-loom/store-core`      | Reactive state management                                            |
+| `@web-loom/query-core`      | Data fetching & caching                                              |
+| `@web-loom/signals-core`    | Framework-agnostic reactive signals with computed values and effects |
+| `@web-loom/event-bus-core`  | Event bus for cross-component communication                          |
+| `@web-loom/plugin-core`     | Plugin architecture                                                  |
+| `@web-loom/typography-core` | Typography and coloring utilities                                    |
+| `@web-loom/design-core`     | Theme and CSS variable utilities                                     |
 
 ## Architecture
 

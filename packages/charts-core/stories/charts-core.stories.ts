@@ -268,7 +268,7 @@ const buildMultiSeriesWithAreaConfig = (): ChartConfig => ({
     {
       type: 'area',
       id: 'baseline',
-      data: generateTimeSeries(new Date('2024-01-01'), 60).map(d => ({ ...d, y: d.y * 0.7 })),
+      data: generateTimeSeries(new Date('2024-01-01'), 60).map((d) => ({ ...d, y: d.y * 0.7 })),
       xAccessor: (datum) => datum.x,
       yAccessor: (datum) => datum.y,
       yScale: 'value-y',
@@ -280,7 +280,7 @@ const buildMultiSeriesWithAreaConfig = (): ChartConfig => ({
     {
       type: 'line',
       id: 'target',
-      data: generateTimeSeries(new Date('2024-01-01'), 60).map(d => ({ ...d, y: d.y * 1.2 })),
+      data: generateTimeSeries(new Date('2024-01-01'), 60).map((d) => ({ ...d, y: d.y * 1.2 })),
       xAccessor: (datum) => datum.x,
       yAccessor: (datum) => datum.y,
       yScale: 'value-y',
@@ -337,7 +337,7 @@ const buildCustomThemeConfig = (): ChartConfig => ({
     {
       type: 'line',
       id: 'series-2',
-      data: generateTimeSeries(new Date('2024-01-01'), 30).map(d => ({ ...d, y: d.y * 0.8 })),
+      data: generateTimeSeries(new Date('2024-01-01'), 30).map((d) => ({ ...d, y: d.y * 0.8 })),
       xAccessor: (datum) => datum.x,
       yAccessor: (datum) => datum.y,
       yScale: 'value-y',
@@ -427,7 +427,7 @@ const buildDifferentCurvesConfig = (): ChartConfig => {
       {
         type: 'line',
         id: 'monotone',
-        data: baseData.map(d => ({ ...d, y: d.y + 20 })),
+        data: baseData.map((d) => ({ ...d, y: d.y + 20 })),
         xAccessor: (datum) => datum.x,
         yAccessor: (datum) => datum.y,
         yScale: 'value-y',
@@ -437,7 +437,7 @@ const buildDifferentCurvesConfig = (): ChartConfig => {
       {
         type: 'line',
         id: 'basis',
-        data: baseData.map(d => ({ ...d, y: d.y + 40 })),
+        data: baseData.map((d) => ({ ...d, y: d.y + 40 })),
         xAccessor: (datum) => datum.x,
         yAccessor: (datum) => datum.y,
         yScale: 'value-y',
@@ -447,7 +447,7 @@ const buildDifferentCurvesConfig = (): ChartConfig => {
       {
         type: 'line',
         id: 'step',
-        data: baseData.map(d => ({ ...d, y: d.y + 60 })),
+        data: baseData.map((d) => ({ ...d, y: d.y + 60 })),
         xAccessor: (datum) => datum.x,
         yAccessor: (datum) => datum.y,
         yScale: 'value-y',
@@ -502,7 +502,7 @@ const buildMarkerVariationsConfig = (): ChartConfig => {
       {
         type: 'line',
         id: 'large-markers',
-        data: baseData.map(d => ({ ...d, y: d.y + 30 })),
+        data: baseData.map((d) => ({ ...d, y: d.y + 30 })),
         xAccessor: (datum) => datum.x,
         yAccessor: (datum) => datum.y,
         yScale: 'value-y',
@@ -553,7 +553,7 @@ export const RealTimeUpdate = () => {
   const controls = document.createElement('div');
   controls.style.display = 'flex';
   controls.style.gap = '0.5rem';
-  
+
   const updateBtn = document.createElement('button');
   updateBtn.textContent = 'Update Data';
   updateBtn.style.padding = '0.5rem 1rem';
@@ -564,7 +564,7 @@ export const RealTimeUpdate = () => {
   updateBtn.style.cursor = 'pointer';
   updateBtn.style.fontSize = '0.875rem';
   updateBtn.style.fontWeight = '500';
-  
+
   controls.appendChild(updateBtn);
   host.appendChild(controls);
 

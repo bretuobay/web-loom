@@ -65,8 +65,9 @@ export class GlobalErrorService {
 
   private setupGlobalErrorHandlers(): void {
     // Access the Node process object without requiring @types/node
-    const nodeProcess = (globalThis as { process?: { on?: (event: string, handler: (...args: any[]) => void) => void } })
-      .process;
+    const nodeProcess = (
+      globalThis as { process?: { on?: (event: string, handler: (...args: any[]) => void) => void } }
+    ).process;
     // --- Browser Environment ---
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       // Handles errors thrown synchronously in event handlers or promise chains not caught by .catch()

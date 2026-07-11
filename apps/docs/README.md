@@ -10,18 +10,18 @@ Built with Next.js 15 + Turbopack, Tailwind CSS 4, and MDX. Part of the web-loom
 
 **Published packages** (10 on npm under `@web-loom/*`):
 
-| Package | Description |
-|---------|-------------|
-| `mvvm-core` | Base classes for Model, ViewModel, and Commands |
-| `mvvm-patterns` | Higher-level MVVM design patterns |
-| `signals-core` | Zero-dependency reactive primitives |
-| `query-core` | Typed caching layer over fetch |
-| `store-core` | Minimal reactive store for UI state |
-| `event-bus-core` | Typed pub/sub over EventTarget |
-| `event-emitter-core` | Strongly typed event emitter with disposal |
-| `ui-core` | Headless accessibility behaviors |
-| `ui-patterns` | Composed UI patterns (Wizard, MasterDetail, CommandPalette) |
-| `design-core` | Design tokens as CSS custom properties |
+| Package              | Description                                                 |
+| -------------------- | ----------------------------------------------------------- |
+| `mvvm-core`          | Base classes for Model, ViewModel, and Commands             |
+| `mvvm-patterns`      | Higher-level MVVM design patterns                           |
+| `signals-core`       | Zero-dependency reactive primitives                         |
+| `query-core`         | Typed caching layer over fetch                              |
+| `store-core`         | Minimal reactive store for UI state                         |
+| `event-bus-core`     | Typed pub/sub over EventTarget                              |
+| `event-emitter-core` | Strongly typed event emitter with disposal                  |
+| `ui-core`            | Headless accessibility behaviors                            |
+| `ui-patterns`        | Composed UI patterns (Wizard, MasterDetail, CommandPalette) |
+| `design-core`        | Design tokens as CSS custom properties                      |
 
 **Package roadmap** — 24 additional packages fully implemented in the monorepo but not yet published: forms, media, HTTP, storage, router, i18n, notifications, error handling, platform detection, and more.
 

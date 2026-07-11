@@ -39,27 +39,27 @@ import { signal } from '@web-loom/signals-core';
 
 const count = signal(0);
 
-count.get();        // → 0 (tracked — establishes dependency if in computed/effect)
-count.peek();       // → 0 (untracked — never establishes dependency)
-count.set(1);       // notify all dependents
-count.update(n => n + 1); // update from previous value → 2
+count.get(); // → 0 (tracked — establishes dependency if in computed/effect)
+count.peek(); // → 0 (untracked — never establishes dependency)
+count.set(1); // notify all dependents
+count.update((n) => n + 1); // update from previous value → 2
 ```
 
 Every signal is also directly subscribable, without a framework or an `effect()`:
 
 ```typescript
-const unsubscribe = count.subscribe(value => console.log('count is now', value));
+const unsubscribe = count.subscribe((value) => console.log('count is now', value));
 
 count.set(5); // logs: 'count is now 5'
 unsubscribe();
 ```
 
-`subscribe(fn)` only fires on *future* changes — it doesn't replay the current value to a new subscriber. When you need that BehaviorSubject-style "deliver now, then on every change" behavior (the common case when wiring a signal into a framework's local state), use `observe(sig, fn)` instead:
+`subscribe(fn)` only fires on _future_ changes — it doesn't replay the current value to a new subscriber. When you need that BehaviorSubject-style "deliver now, then on every change" behavior (the common case when wiring a signal into a framework's local state), use `observe(sig, fn)` instead:
 
 ```typescript
 import { observe } from '@web-loom/signals-core';
 
-observe(count, value => console.log('count is', value)); // logs immediately: 'count is 5'
+observe(count, (value) => console.log('count is', value)); // logs immediately: 'count is 5'
 count.set(6); // logs: 'count is 6'
 ```
 
@@ -81,7 +81,9 @@ class CounterViewModel {
   private _count = signal(0);
   readonly count = this._count.asReadonly(); // consumers can read, not write
 
-  increment() { this._count.update(n => n + 1); }
+  increment() {
+    this._count.update((n) => n + 1);
+  }
 }
 ```
 
@@ -93,7 +95,7 @@ A derived value that's automatically recalculated when its dependencies change. 
 import { signal, computed } from '@web-loom/signals-core';
 
 const firstName = signal('Ada');
-const lastName  = signal('Lovelace');
+const lastName = signal('Lovelace');
 
 const fullName = computed(() => `${firstName.get()} ${lastName.get()}`);
 
@@ -108,18 +110,18 @@ Computed values are read-only — they don't have `set` or `update`. They're mem
 You can compose computeds:
 
 ```typescript
-const tasks      = signal<Task[]>([]);
-const filter     = signal<'all' | 'pending' | 'done'>('all');
+const tasks = signal<Task[]>([]);
+const filter = signal<'all' | 'pending' | 'done'>('all');
 
 const filtered = computed(() => {
   const all = tasks.get();
-  const f   = filter.get();
-  if (f === 'pending') return all.filter(t => !t.done);
-  if (f === 'done')    return all.filter(t => t.done);
+  const f = filter.get();
+  if (f === 'pending') return all.filter((t) => !t.done);
+  if (f === 'done') return all.filter((t) => t.done);
   return all;
 });
 
-const pendingCount = computed(() => filtered.get().filter(t => !t.done).length);
+const pendingCount = computed(() => filtered.get().filter((t) => !t.done).length);
 ```
 
 Changing `tasks` or `filter` recalculates `filtered`. Changing `filtered`'s output recalculates `pendingCount`. Nothing else runs.
@@ -198,9 +200,7 @@ class SearchViewModel extends BaseViewModel<SearchModel> {
 
   constructor(model: SearchModel) {
     super(model);
-    this.addSubscription(
-      observe(this.debouncedQuery, (q) => this.model.search(q)),
-    );
+    this.addSubscription(observe(this.debouncedQuery, (q) => this.model.search(q)));
   }
 }
 ```
@@ -236,17 +236,17 @@ This is the package's headline feature. You can use it in a Web Component, a van
 import { signal, computed, effect } from '@web-loom/signals-core';
 
 export function createCounter(initial = 0) {
-  const count    = signal(initial);
-  const doubled  = computed(() => count.get() * 2);
-  const isEven   = computed(() => count.get() % 2 === 0);
+  const count = signal(initial);
+  const doubled = computed(() => count.get() * 2);
+  const isEven = computed(() => count.get() % 2 === 0);
 
   return {
-    count:   count.asReadonly(),
+    count: count.asReadonly(),
     doubled: doubled,
-    isEven:  isEven,
-    increment: ()              => count.update(n => n + 1),
-    decrement: ()              => count.update(n => n - 1),
-    reset:     ()              => count.set(initial),
+    isEven: isEven,
+    increment: () => count.update((n) => n + 1),
+    decrement: () => count.update((n) => n - 1),
+    reset: () => count.set(initial),
   };
 }
 
@@ -292,7 +292,7 @@ describe('computed', () => {
     const derived = computed(fn);
 
     derived.get(); // first compute
-    b.set(200);    // unrelated
+    b.set(200); // unrelated
     derived.get(); // should use cached value
 
     expect(fn).toHaveBeenCalledTimes(1);

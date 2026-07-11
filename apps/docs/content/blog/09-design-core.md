@@ -60,28 +60,28 @@ import type { ColorToken, SpacingToken, RadiusToken } from '@web-loom/design-cor
 
 // Define your tokens as typed constants
 const colors: Record<string, ColorToken> = {
-  'color-brand-primary':   { value: '#2563EB', type: 'color' },
+  'color-brand-primary': { value: '#2563EB', type: 'color' },
   'color-brand-secondary': { value: '#7C3AED', type: 'color' },
-  'color-surface':         { value: '#FFFFFF', type: 'color' },
-  'color-surface-raised':  { value: '#F8FAFC', type: 'color' },
-  'color-text-primary':    { value: '#0F172A', type: 'color' },
-  'color-text-secondary':  { value: '#64748B', type: 'color' },
-  'color-border':          { value: '#E2E8F0', type: 'color' },
+  'color-surface': { value: '#FFFFFF', type: 'color' },
+  'color-surface-raised': { value: '#F8FAFC', type: 'color' },
+  'color-text-primary': { value: '#0F172A', type: 'color' },
+  'color-text-secondary': { value: '#64748B', type: 'color' },
+  'color-border': { value: '#E2E8F0', type: 'color' },
 };
 
 const spacing: Record<string, SpacingToken> = {
-  'space-1': { value: '4px',   type: 'spacing' },
-  'space-2': { value: '8px',   type: 'spacing' },
-  'space-3': { value: '12px',  type: 'spacing' },
-  'space-4': { value: '16px',  type: 'spacing' },
-  'space-6': { value: '24px',  type: 'spacing' },
-  'space-8': { value: '32px',  type: 'spacing' },
+  'space-1': { value: '4px', type: 'spacing' },
+  'space-2': { value: '8px', type: 'spacing' },
+  'space-3': { value: '12px', type: 'spacing' },
+  'space-4': { value: '16px', type: 'spacing' },
+  'space-6': { value: '24px', type: 'spacing' },
+  'space-8': { value: '32px', type: 'spacing' },
 };
 
 const radii: Record<string, RadiusToken> = {
-  'radius-sm':   { value: '4px',  type: 'radius' },
-  'radius-md':   { value: '8px',  type: 'radius' },
-  'radius-lg':   { value: '12px', type: 'radius' },
+  'radius-sm': { value: '4px', type: 'radius' },
+  'radius-md': { value: '8px', type: 'radius' },
+  'radius-lg': { value: '12px', type: 'radius' },
   'radius-full': { value: '9999px', type: 'radius' },
 };
 ```
@@ -94,13 +94,13 @@ The tokens become CSS custom properties. You generate the CSS declaration block 
 
 ```css
 :root {
-  --color-brand-primary:   #2563EB;
-  --color-brand-secondary: #7C3AED;
-  --color-surface:         #FFFFFF;
-  --color-surface-raised:  #F8FAFC;
-  --color-text-primary:    #0F172A;
-  --color-text-secondary:  #64748B;
-  --color-border:          #E2E8F0;
+  --color-brand-primary: #2563eb;
+  --color-brand-secondary: #7c3aed;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f8fafc;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #64748b;
+  --color-border: #e2e8f0;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -109,9 +109,9 @@ The tokens become CSS custom properties. You generate the CSS declaration block 
   --space-6: 24px;
   --space-8: 32px;
 
-  --radius-sm:   4px;
-  --radius-md:   8px;
-  --radius-lg:   12px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
   --radius-full: 9999px;
 }
 ```
@@ -135,17 +135,17 @@ CSS custom properties cascade. The cleanest way to implement dark mode is to red
 
 ```css
 :root {
-  --color-surface:         #FFFFFF;
-  --color-surface-raised:  #F8FAFC;
-  --color-text-primary:    #0F172A;
-  --color-border:          #E2E8F0;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f8fafc;
+  --color-text-primary: #0f172a;
+  --color-border: #e2e8f0;
 }
 
 .dark {
-  --color-surface:         #0F172A;
-  --color-surface-raised:  #1E293B;
-  --color-text-primary:    #F1F5F9;
-  --color-border:          #334155;
+  --color-surface: #0f172a;
+  --color-surface-raised: #1e293b;
+  --color-text-primary: #f1f5f9;
+  --color-border: #334155;
 }
 ```
 
@@ -167,15 +167,15 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          primary:   'var(--color-brand-primary)',
+          primary: 'var(--color-brand-primary)',
           secondary: 'var(--color-brand-secondary)',
         },
         surface: {
           DEFAULT: 'var(--color-surface)',
-          raised:  'var(--color-surface-raised)',
+          raised: 'var(--color-surface-raised)',
         },
         text: {
-          primary:   'var(--color-text-primary)',
+          primary: 'var(--color-text-primary)',
           secondary: 'var(--color-text-secondary)',
         },
         border: 'var(--color-border)',
@@ -204,6 +204,7 @@ This question comes up whenever anyone ships a "design tokens" package. Why not 
 The answer is the same as the answer to "why not use a component library for behaviour?" — these systems bundle the tokens with the components. You can't easily use MUI's token system if you're not using MUI's components. Ant Design's design tokens are expressed as JavaScript objects consumed by Ant Design's style engine, not as CSS custom properties that work with any styling approach.
 
 `design-core` is a decoupled token system. It works with:
+
 - Tailwind CSS (via theme config extension)
 - CSS Modules (via `var()` references)
 - Styled Components (via `createGlobalStyle` or CSS variables)

@@ -13,13 +13,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         sidebar={<Sidebar />}
         illustration={
           <div className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none -z-10">
-            <Image
-              className="max-w-none"
-              src={Illustration}
-              priority
-              alt="Page illustration"
-              aria-hidden="true"
-            />
+            <Image className="max-w-none" src={Illustration} priority alt="Page illustration" aria-hidden="true" />
           </div>
         }
       >

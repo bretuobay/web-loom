@@ -26,6 +26,7 @@ The feature has these requirements:
 8. Have ViewModels that pause gracefully when their tab is not active
 
 The packages used:
+
 - `@web-loom/mvvm-core` — BaseModel, BaseViewModel, Command
 - `@web-loom/query-core` — caching layer
 - `@web-loom/event-bus-core` — cross-feature notifications
@@ -49,21 +50,21 @@ import type { ColorToken, SpacingToken, RadiusToken, TypographyToken } from '@we
 import { generateCSSCustomProperties } from '@web-loom/design-core';
 
 const colors: Record<string, ColorToken> = {
-  'color-brand':           { value: '#2563EB', type: 'color' },
-  'color-surface':         { value: '#FFFFFF', type: 'color' },
-  'color-surface-subtle':  { value: '#F8FAFC', type: 'color' },
-  'color-surface-raised':  { value: '#F1F5F9', type: 'color' },
-  'color-text-primary':    { value: '#0F172A', type: 'color' },
-  'color-text-secondary':  { value: '#64748B', type: 'color' },
-  'color-text-inverse':    { value: '#FFFFFF', type: 'color' },
-  'color-border':          { value: '#E2E8F0', type: 'color' },
-  'color-danger':          { value: '#DC2626', type: 'color' },
-  'color-success':         { value: '#16A34A', type: 'color' },
+  'color-brand': { value: '#2563EB', type: 'color' },
+  'color-surface': { value: '#FFFFFF', type: 'color' },
+  'color-surface-subtle': { value: '#F8FAFC', type: 'color' },
+  'color-surface-raised': { value: '#F1F5F9', type: 'color' },
+  'color-text-primary': { value: '#0F172A', type: 'color' },
+  'color-text-secondary': { value: '#64748B', type: 'color' },
+  'color-text-inverse': { value: '#FFFFFF', type: 'color' },
+  'color-border': { value: '#E2E8F0', type: 'color' },
+  'color-danger': { value: '#DC2626', type: 'color' },
+  'color-success': { value: '#16A34A', type: 'color' },
 };
 
 const spacing: Record<string, SpacingToken> = {
-  'space-1': { value: '4px',  type: 'spacing' },
-  'space-2': { value: '8px',  type: 'spacing' },
+  'space-1': { value: '4px', type: 'spacing' },
+  'space-2': { value: '8px', type: 'spacing' },
   'space-3': { value: '12px', type: 'spacing' },
   'space-4': { value: '16px', type: 'spacing' },
   'space-6': { value: '24px', type: 'spacing' },
@@ -71,24 +72,24 @@ const spacing: Record<string, SpacingToken> = {
 };
 
 const radii: Record<string, RadiusToken> = {
-  'radius-sm': { value: '4px',  type: 'radius' },
-  'radius-md': { value: '8px',  type: 'radius' },
+  'radius-sm': { value: '4px', type: 'radius' },
+  'radius-md': { value: '8px', type: 'radius' },
   'radius-lg': { value: '12px', type: 'radius' },
 };
 
 export const lightThemeCSS = generateCSSCustomProperties({ colors, spacing, radii });
 
 export const darkColors: Record<string, ColorToken> = {
-  'color-brand':           { value: '#3B82F6', type: 'color' },
-  'color-surface':         { value: '#0F172A', type: 'color' },
-  'color-surface-subtle':  { value: '#1E293B', type: 'color' },
-  'color-surface-raised':  { value: '#334155', type: 'color' },
-  'color-text-primary':    { value: '#F1F5F9', type: 'color' },
-  'color-text-secondary':  { value: '#94A3B8', type: 'color' },
-  'color-text-inverse':    { value: '#0F172A', type: 'color' },
-  'color-border':          { value: '#334155', type: 'color' },
-  'color-danger':          { value: '#F87171', type: 'color' },
-  'color-success':         { value: '#4ADE80', type: 'color' },
+  'color-brand': { value: '#3B82F6', type: 'color' },
+  'color-surface': { value: '#0F172A', type: 'color' },
+  'color-surface-subtle': { value: '#1E293B', type: 'color' },
+  'color-surface-raised': { value: '#334155', type: 'color' },
+  'color-text-primary': { value: '#F1F5F9', type: 'color' },
+  'color-text-secondary': { value: '#94A3B8', type: 'color' },
+  'color-text-inverse': { value: '#0F172A', type: 'color' },
+  'color-border': { value: '#334155', type: 'color' },
+  'color-danger': { value: '#F87171', type: 'color' },
+  'color-success': { value: '#4ADE80', type: 'color' },
 };
 
 export const darkThemeCSS = generateCSSCustomProperties({ colors: darkColors, spacing, radii });
@@ -122,7 +123,7 @@ interface AppEvents {
   'product:deleted': { productId: string; name: string };
   'product:updated': { productId: string };
   'cart:item-added': { productId: string; quantity: number };
-  'auth:logout':     void;
+  'auth:logout': void;
 }
 
 export const appBus = createEventBus<AppEvents>();
@@ -153,16 +154,16 @@ export const uiStore = createStore<UIState>(
     commandPaletteOpen: false,
   },
   (set) => ({
-    setTheme: (theme: UIState['theme']) => set(s => ({ ...s, theme })),
-    toggleSidebar: () => set(s => ({ ...s, sidebarOpen: !s.sidebarOpen })),
-    openPalette:  () => set(s => ({ ...s, commandPaletteOpen: true })),
-    closePalette: () => set(s => ({ ...s, commandPaletteOpen: false })),
+    setTheme: (theme: UIState['theme']) => set((s) => ({ ...s, theme })),
+    toggleSidebar: () => set((s) => ({ ...s, sidebarOpen: !s.sidebarOpen })),
+    openPalette: () => set((s) => ({ ...s, commandPaletteOpen: true })),
+    closePalette: () => set((s) => ({ ...s, commandPaletteOpen: false })),
   }),
   {
     key: 'app:ui',
     adapter: new LocalStorageAdapter(),
     merge: true,
-  }
+  },
 );
 
 // Apply theme to DOM whenever it changes
@@ -219,8 +220,8 @@ export class ProductModel extends BaseModel<Product[], never> {
     // Forward QueryCore state to BaseModel observables
     queryCache.subscribe('products', (state) => {
       this.setLoading(state.isLoading);
-      if (state.error)  this.setError(state.error);
-      if (state.data)   this.setData(state.data);
+      if (state.error) this.setError(state.error);
+      if (state.data) this.setData(state.data);
     });
   }
 
@@ -230,14 +231,14 @@ export class ProductModel extends BaseModel<Product[], never> {
 
   async delete(productId: string): Promise<void> {
     const current = this.data$.peek() ?? [];
-    const product = current.find(p => p.id === productId);
+    const product = current.find((p) => p.id === productId);
     if (!product) throw new Error(`Product ${productId} not found`);
 
     const res = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`Delete failed: HTTP ${res.status}`);
 
     // Update local cache optimistically
-    this.setData(current.filter(p => p.id !== productId));
+    this.setData(current.filter((p) => p.id !== productId));
     queryCache.invalidate('products');
 
     // Emit typed model event
@@ -275,19 +276,16 @@ export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
   // --- Signals for the View ---
   readonly products$ = computed(() => this.data$.get() ?? []);
   readonly isLoading$ = this.isLoading$;
-  readonly error$     = this.error$;
+  readonly error$ = this.error$;
 
   // --- Search signal (reactive, local UI state) ---
   private readonly _search = signal('');
   readonly search = this._search;
   readonly filteredProducts = computed(() => {
     const query = this._search.get().toLowerCase();
-    const all   = (this.data$.get() ?? []);
+    const all = this.data$.get() ?? [];
     if (!query) return all;
-    return all.filter(p =>
-      p.name.toLowerCase().includes(query) ||
-      p.category.toLowerCase().includes(query)
-    );
+    return all.filter((p) => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
   });
 
   // --- UI Pattern: MasterDetail ---
@@ -301,17 +299,17 @@ export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
   readonly notifyDeleted = new NotificationRequest();
 
   // --- Commands ---
-  readonly loadCommand   = this.registerCommand(new Command(() => this.model.fetchAll()));
+  readonly loadCommand = this.registerCommand(new Command(() => this.model.fetchAll()));
   readonly deleteCommand = this.registerCommand(
     new Command(async (productId: string) => {
-      const product = (this.data$.peek() ?? []).find(p => p.id === productId);
+      const product = (this.data$.peek() ?? []).find((p) => p.id === productId);
       if (!product) return;
 
       const response = await this.confirmDelete.raiseAsync({
-        title:       'Delete Product',
-        content:     `Remove "${product.name}" from the catalogue? This cannot be undone.`,
+        title: 'Delete Product',
+        content: `Remove "${product.name}" from the catalogue? This cannot be undone.`,
         confirmText: 'Delete',
-        cancelText:  'Cancel',
+        cancelText: 'Cancel',
       });
 
       if (!response.confirmed) return;
@@ -321,7 +319,7 @@ export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
       this.notifyDeleted.raise({
         content: `"${product.name}" has been removed.`,
       });
-    })
+    }),
   );
 
   constructor(model: ProductModel) {
@@ -329,9 +327,9 @@ export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
 
     // Keep MasterDetail in sync with filtered products
     this.addSubscription(
-      this.products$.subscribe(products => {
+      this.products$.subscribe((products) => {
         this.masterDetail.actions.setItems(products);
-      })
+      }),
     );
   }
 
@@ -373,35 +371,39 @@ import { uiStore } from '../../stores/ui-store';
 import { ProductViewModel } from './ProductViewModel';
 
 export function useProductPalette(vm: ProductViewModel) {
-  const palette = useMemo(() => createCommandPalette({
-    commands: [
-      {
-        id:      'reload',
-        label:   'Reload Products',
-        group:   'Products',
-        shortcut: 'R',
-        action:  () => vm.loadCommand.execute(),
-      },
-      {
-        id:      'toggle-theme',
-        label:   'Toggle Dark Mode',
-        group:   'Appearance',
-        keywords: ['dark', 'light', 'theme'],
-        action:  () => {
-          const { theme } = uiStore.getState();
-          uiStore.actions.setTheme(theme === 'dark' ? 'light' : 'dark');
-        },
-      },
-      {
-        id:      'toggle-sidebar',
-        label:   'Toggle Sidebar',
-        group:   'Layout',
-        action:  () => uiStore.actions.toggleSidebar(),
-      },
-    ],
-    onOpen:  () => uiStore.actions.openPalette(),
-    onClose: () => uiStore.actions.closePalette(),
-  }), [vm]);
+  const palette = useMemo(
+    () =>
+      createCommandPalette({
+        commands: [
+          {
+            id: 'reload',
+            label: 'Reload Products',
+            group: 'Products',
+            shortcut: 'R',
+            action: () => vm.loadCommand.execute(),
+          },
+          {
+            id: 'toggle-theme',
+            label: 'Toggle Dark Mode',
+            group: 'Appearance',
+            keywords: ['dark', 'light', 'theme'],
+            action: () => {
+              const { theme } = uiStore.getState();
+              uiStore.actions.setTheme(theme === 'dark' ? 'light' : 'dark');
+            },
+          },
+          {
+            id: 'toggle-sidebar',
+            label: 'Toggle Sidebar',
+            group: 'Layout',
+            action: () => uiStore.actions.toggleSidebar(),
+          },
+        ],
+        onOpen: () => uiStore.actions.openPalette(),
+        onClose: () => uiStore.actions.closePalette(),
+      }),
+    [vm],
+  );
 
   // Open palette on Ctrl+K
   useEffect(() => {
@@ -441,26 +443,33 @@ function useSignal<T>(sig: ReadonlySignal<T>): T {
 
 export function ProductBrowser() {
   const model = useMemo(() => new ProductModel(), []);
-  const vm    = useMemo(() => new ProductViewModel(model), [model]);
+  const vm = useMemo(() => new ProductViewModel(model), [model]);
   const palette = useProductPalette(vm);
 
   // Activate/deactivate with component lifecycle
   useEffect(() => {
     vm.activate();
-    return () => { vm.deactivate(); vm.dispose(); model.dispose(); };
+    return () => {
+      vm.deactivate();
+      vm.dispose();
+      model.dispose();
+    };
   }, [vm, model]);
 
   // Read ViewModel signals
-  const products  = useSignal(vm.products$);
+  const products = useSignal(vm.products$);
   const isLoading = useSignal(vm.isLoading$);
-  const error     = useSignal(vm.error$);
+  const error = useSignal(vm.error$);
   const filteredProducts = useSignal(vm.filteredProducts);
   const isDeleting = useSignal(vm.deleteCommand.isExecuting$);
 
   // UI store
   const uiState = useSyncExternalStore(
-    (cb) => { const unsub = uiStore.subscribe(cb); return unsub; },
-    () => uiStore.getState()
+    (cb) => {
+      const unsub = uiStore.subscribe(cb);
+      return unsub;
+    },
+    () => uiStore.getState(),
   );
 
   // Interaction request state
@@ -472,12 +481,15 @@ export function ProductBrowser() {
 
   useEffect(() => {
     const unsubscribeConfirm = vm.confirmDelete.requested$.subscribe(setConfirmation);
-    const unsubscribeNotify = vm.notifyDeleted.requested$.subscribe(event => {
+    const unsubscribeNotify = vm.notifyDeleted.requested$.subscribe((event) => {
       setNotification(event.context.content);
       setTimeout(() => setNotification(null), 3000);
       event.callback(event.context);
     });
-    return () => { unsubscribeConfirm(); unsubscribeNotify(); };
+    return () => {
+      unsubscribeConfirm();
+      unsubscribeNotify();
+    };
   }, [vm]);
 
   if (isLoading && !products.length) return <div>Loading…</div>;
@@ -485,17 +497,18 @@ export function ProductBrowser() {
 
   return (
     <div style={{ display: 'flex', background: 'var(--color-surface)', minHeight: '100vh' }}>
-
       {/* Sidebar */}
       {uiState.sidebarOpen && (
-        <aside style={{
-          width: '280px',
-          borderRight: '1px solid var(--color-border)',
-          padding: 'var(--space-4)',
-        }}>
+        <aside
+          style={{
+            width: '280px',
+            borderRight: '1px solid var(--color-border)',
+            padding: 'var(--space-4)',
+          }}
+        >
           <input
             value={vm.search.get()}
-            onChange={e => vm.setSearch(e.target.value)}
+            onChange={(e) => vm.setSearch(e.target.value)}
             placeholder="Search products…"
             style={{
               width: '100%',
@@ -508,16 +521,18 @@ export function ProductBrowser() {
           />
 
           <ul style={{ marginTop: 'var(--space-4)', listStyle: 'none', padding: 0 }}>
-            {filteredProducts.map(product => (
-              <li key={product.id}
+            {filteredProducts.map((product) => (
+              <li
+                key={product.id}
                 onClick={() => vm.masterDetail.actions.selectItem(product)}
                 style={{
                   padding: 'var(--space-3)',
                   borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
-                  background: vm.masterDetail.getState().selectedId === product.id
-                    ? 'var(--color-surface-raised)'
-                    : 'transparent',
+                  background:
+                    vm.masterDetail.getState().selectedId === product.id
+                      ? 'var(--color-surface-raised)'
+                      : 'transparent',
                   color: 'var(--color-text-primary)',
                 }}
               >
@@ -540,16 +555,12 @@ export function ProductBrowser() {
             isDeleting={isDeleting}
           />
         ) : (
-          <div style={{ color: 'var(--color-text-secondary)' }}>
-            Select a product from the list.
-          </div>
+          <div style={{ color: 'var(--color-text-secondary)' }}>Select a product from the list.</div>
         )}
       </main>
 
       {/* Command Palette */}
-      {uiState.commandPaletteOpen && (
-        <CommandPaletteOverlay palette={palette} />
-      )}
+      {uiState.commandPaletteOpen && <CommandPaletteOverlay palette={palette} />}
 
       {/* Confirmation Dialog */}
       {confirmation && (
@@ -571,15 +582,17 @@ export function ProductBrowser() {
 
       {/* Toast Notification */}
       {notification && (
-        <div style={{
-          position: 'fixed',
-          bottom: 'var(--space-6)',
-          right: 'var(--space-6)',
-          padding: 'var(--space-3) var(--space-4)',
-          background: 'var(--color-success)',
-          color: 'var(--color-text-inverse)',
-          borderRadius: 'var(--radius-md)',
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 'var(--space-6)',
+            right: 'var(--space-6)',
+            padding: 'var(--space-3) var(--space-4)',
+            background: 'var(--color-success)',
+            color: 'var(--color-text-inverse)',
+            borderRadius: 'var(--radius-md)',
+          }}
+        >
           {notification}
         </div>
       )}
@@ -605,7 +618,7 @@ class CartModel extends BaseModel<CartState, never> {
     // Remove deleted products from active carts
     appBus.on('product:deleted', ({ productId }) => {
       const items = this.data$.peek()?.items ?? [];
-      const updated = items.filter(item => item.productId !== productId);
+      const updated = items.filter((item) => item.productId !== productId);
       this.setData({ ...this.data$.peek(), items: updated });
     });
   }
@@ -620,18 +633,18 @@ The cart knows nothing about how products are displayed. The products feature kn
 
 Let's inventory what each package contributed:
 
-| Package | Role in this feature |
-|---|---|
-| `@web-loom/mvvm-core` | `BaseModel` (ProductModel), `BaseViewModel` (ProductViewModel), `Command` (loadCommand, deleteCommand) |
-| `@web-loom/query-core` | `QueryCore` caches product list, serves from cache on tab re-visit, auto-refreshes after 5 minutes |
-| `@web-loom/event-emitter-core` | `EventEmitter<ProductModelEvents>` on the Model for internal typed events |
-| `@web-loom/event-bus-core` | `appBus` carries `product:deleted` to the cart feature without coupling |
-| `@web-loom/store-core` | `uiStore` persists theme and sidebar state across sessions |
-| `@web-loom/ui-patterns` | `createMasterDetail` manages selection state; `createCommandPalette` provides Ctrl+K functionality |
-| `@web-loom/mvvm-patterns` | `ConfirmationRequest` decouples delete dialog from ViewModel; `ActiveAwareViewModel` pauses work when tab is inactive |
-| `@web-loom/design-core` | Token types and `generateCSSCustomProperties` create the CSS variable layer for theming |
-| `@web-loom/signals-core` | `signal` + `computed` power the search filter with minimal overhead |
-| `@web-loom/ui-core` | (Available for headless form behaviour on search field, table sorting — not shown in this example but a natural addition) |
+| Package                        | Role in this feature                                                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `@web-loom/mvvm-core`          | `BaseModel` (ProductModel), `BaseViewModel` (ProductViewModel), `Command` (loadCommand, deleteCommand)                    |
+| `@web-loom/query-core`         | `QueryCore` caches product list, serves from cache on tab re-visit, auto-refreshes after 5 minutes                        |
+| `@web-loom/event-emitter-core` | `EventEmitter<ProductModelEvents>` on the Model for internal typed events                                                 |
+| `@web-loom/event-bus-core`     | `appBus` carries `product:deleted` to the cart feature without coupling                                                   |
+| `@web-loom/store-core`         | `uiStore` persists theme and sidebar state across sessions                                                                |
+| `@web-loom/ui-patterns`        | `createMasterDetail` manages selection state; `createCommandPalette` provides Ctrl+K functionality                        |
+| `@web-loom/mvvm-patterns`      | `ConfirmationRequest` decouples delete dialog from ViewModel; `ActiveAwareViewModel` pauses work when tab is inactive     |
+| `@web-loom/design-core`        | Token types and `generateCSSCustomProperties` create the CSS variable layer for theming                                   |
+| `@web-loom/signals-core`       | `signal` + `computed` power the search filter with minimal overhead                                                       |
+| `@web-loom/ui-core`            | (Available for headless form behaviour on search field, table sorting — not shown in this example but a natural addition) |
 
 Notice what the View layer does not contain:
 
@@ -657,16 +670,14 @@ import { ProductViewModel } from './ProductViewModel';
 
 describe('Product delete flow', () => {
   let model: ProductModel;
-  let vm:    ProductViewModel;
+  let vm: ProductViewModel;
 
   beforeEach(() => {
     model = new ProductModel();
-    vm    = new ProductViewModel(model);
+    vm = new ProductViewModel(model);
 
     // Seed the model with test data
-    model['setData']([
-      { id: 'p1', name: 'Laptop', category: 'Electronics', price: 999, stock: 5, imageUrl: '' },
-    ]);
+    model['setData']([{ id: 'p1', name: 'Laptop', category: 'Electronics', price: 999, stock: 5, imageUrl: '' }]);
   });
 
   afterEach(() => {
@@ -677,7 +688,7 @@ describe('Product delete flow', () => {
   it('does not delete when user cancels', async () => {
     const deleteSpy = vi.spyOn(model, 'delete');
 
-    vm.confirmDelete.requested$.subscribe(event => {
+    vm.confirmDelete.requested$.subscribe((event) => {
       event.callback({ ...event.context, confirmed: false });
     });
 
@@ -690,12 +701,12 @@ describe('Product delete flow', () => {
     vi.spyOn(model, 'delete').mockResolvedValue(undefined);
     const notificationMessages: string[] = [];
 
-    vm.notifyDeleted.requested$.subscribe(event => {
+    vm.notifyDeleted.requested$.subscribe((event) => {
       notificationMessages.push(event.context.content);
       event.callback(event.context);
     });
 
-    vm.confirmDelete.requested$.subscribe(event => {
+    vm.confirmDelete.requested$.subscribe((event) => {
       event.callback({ ...event.context, confirmed: true });
     });
 
@@ -707,9 +718,9 @@ describe('Product delete flow', () => {
 
   it('filters products by search query', () => {
     model['setData']([
-      { id: 'p1', name: 'Laptop',     category: 'Electronics', price: 999, stock: 5, imageUrl: '' },
-      { id: 'p2', name: 'Headphones', category: 'Electronics', price: 79,  stock: 10, imageUrl: '' },
-      { id: 'p3', name: 'Notebook',   category: 'Stationery',  price: 5,   stock: 50, imageUrl: '' },
+      { id: 'p1', name: 'Laptop', category: 'Electronics', price: 999, stock: 5, imageUrl: '' },
+      { id: 'p2', name: 'Headphones', category: 'Electronics', price: 79, stock: 10, imageUrl: '' },
+      { id: 'p3', name: 'Notebook', category: 'Stationery', price: 5, stock: 50, imageUrl: '' },
     ]);
 
     vm.setSearch('note');
@@ -778,15 +789,16 @@ These packages are open. The monorepo is public. Feedback, questions, and critic
 
 ---
 
-*This article concludes the Web Loom series. Links to all articles in the series:*
-1. *`@web-loom/mvvm-core` — The Foundation*
-2. *`@web-loom/signals-core` — Reactivity Without a Framework*
-3. *`@web-loom/event-emitter-core` — Typed Events for TypeScript*
-4. *`@web-loom/event-bus-core` — Application-Level Pub/Sub*
-5. *`@web-loom/store-core` — UI State Belongs Somewhere Specific*
-6. *`@web-loom/query-core` — Data Fetching With a Memory*
-7. *`@web-loom/ui-core` — The Behaviour Layer Below Your Components*
-8. *`@web-loom/ui-patterns` — When Behaviours Become Patterns*
-9. *`@web-loom/design-core` — Design Tokens as the Contract Between Design and Code*
-10. *`@web-loom/mvvm-patterns` — The Conversations ViewModels Need to Have*
-11. *Putting It All Together — Building a Complete Feature With Web Loom*
+_This article concludes the Web Loom series. Links to all articles in the series:_
+
+1. _`@web-loom/mvvm-core` — The Foundation_
+2. _`@web-loom/signals-core` — Reactivity Without a Framework_
+3. _`@web-loom/event-emitter-core` — Typed Events for TypeScript_
+4. _`@web-loom/event-bus-core` — Application-Level Pub/Sub_
+5. _`@web-loom/store-core` — UI State Belongs Somewhere Specific_
+6. _`@web-loom/query-core` — Data Fetching With a Memory_
+7. _`@web-loom/ui-core` — The Behaviour Layer Below Your Components_
+8. _`@web-loom/ui-patterns` — When Behaviours Become Patterns_
+9. _`@web-loom/design-core` — Design Tokens as the Contract Between Design and Code_
+10. _`@web-loom/mvvm-patterns` — The Conversations ViewModels Need to Have_
+11. _Putting It All Together — Building a Complete Feature With Web Loom_

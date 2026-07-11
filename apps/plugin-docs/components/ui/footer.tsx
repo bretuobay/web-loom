@@ -14,11 +14,7 @@ export default function Footer() {
           Web Loom Framework Docs →
         </a>
       </div>
-      <BrandFooter
-        logo={<Logo />}
-        copyrightOwner="Web Loom"
-        githubHref="https://github.com/bretuobay/web-loom"
-      />
+      <BrandFooter logo={<Logo />} copyrightOwner="Web Loom" githubHref="https://github.com/bretuobay/web-loom" />
     </>
   );
 }

@@ -19,31 +19,20 @@ export interface PluginTemplateParams {
 }
 
 export function pluginTemplate(p: PluginTemplateParams): string {
-  const {
-    name,
-    id,
-    displayName = name,
-    routes = [],
-    menuItems = [],
-  } = p;
+  const { name, id, displayName = name, routes = [], menuItems = [] } = p;
 
   const routeDefs = routes.length
-    ? routes
-        .map(
-          (r) =>
-            `    { path: "${r.path}", component: () => import("./${r.componentName}.js") },`
-        )
-        .join("\n")
-    : "    // No routes defined";
+    ? routes.map((r) => `    { path: "${r.path}", component: () => import("./${r.componentName}.js") },`).join('\n')
+    : '    // No routes defined';
 
   const menuDefs = menuItems.length
     ? menuItems
         .map(
           (m) =>
-            `    { id: "${m.id}", label: "${m.label}"${m.icon ? `, icon: "${m.icon}"` : ""}${m.path ? `, path: "${m.path}"` : ""} },`
+            `    { id: "${m.id}", label: "${m.label}"${m.icon ? `, icon: "${m.icon}"` : ''}${m.path ? `, path: "${m.path}"` : ''} },`,
         )
-        .join("\n")
-    : "    // No menu items defined";
+        .join('\n')
+    : '    // No menu items defined';
 
   return `import type { PluginManifest, PluginModule, PluginSDK } from "@web-loom/plugin-core";
 

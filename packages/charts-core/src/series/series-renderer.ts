@@ -44,7 +44,7 @@ export class SeriesRenderer {
   ): void {
     const color = series.color ?? '#2563eb';
     const seriesId = series.id ?? `${series.type}`;
-    
+
     // Use D3 selection for data binding
     const containerSelection = select(container);
 
@@ -83,9 +83,7 @@ export class SeriesRenderer {
     const gradientId = this.createOrGetSVGGradient(series, containerSelection.node(), color);
 
     // Bind data to area path (single element array for single path)
-    const areaPath = containerSelection
-      .selectAll(`path.area-${seriesId}`)
-      .data([series.data]);
+    const areaPath = containerSelection.selectAll(`path.area-${seriesId}`).data([series.data]);
 
     // Enter: create new path if it doesn't exist
     const areaEnter = areaPath
@@ -101,24 +99,15 @@ export class SeriesRenderer {
     const areaMerge = areaEnter.merge(areaPath);
 
     // Apply transition to update (only for updates, not initial render)
-    const transition = (areaMerge as any)
-      .transition()
-      .duration(TRANSITION_CONFIG.duration);
-    
-    transition
-      .attr('d', pathData)
-      .attr('fill', `url(#${gradientId})`)
-      .attr('opacity', 0.4);
+    const transition = (areaMerge as any).transition().duration(TRANSITION_CONFIG.duration);
+
+    transition.attr('d', pathData).attr('fill', `url(#${gradientId})`).attr('opacity', 0.4);
 
     // Exit: remove old paths with fade out
     const areaExit = areaPath.exit();
-    const exitTransition = (areaExit as any)
-      .transition()
-      .duration(TRANSITION_CONFIG.duration);
-    
-    exitTransition
-      .attr('opacity', 0)
-      .remove();
+    const exitTransition = (areaExit as any).transition().duration(TRANSITION_CONFIG.duration);
+
+    exitTransition.attr('opacity', 0).remove();
   }
 
   /**
@@ -142,9 +131,7 @@ export class SeriesRenderer {
     if (!pathData) return;
 
     // Bind data to line path (single element array for single path)
-    const linePath = containerSelection
-      .selectAll(`path.line-${seriesId}`)
-      .data([series.data]);
+    const linePath = containerSelection.selectAll(`path.line-${seriesId}`).data([series.data]);
 
     // Enter: create new path if it doesn't exist
     const lineEnter = linePath
@@ -164,10 +151,8 @@ export class SeriesRenderer {
     const lineMerge = lineEnter.merge(linePath);
 
     // Apply transition to update (only for updates, not initial render)
-    const transition = (lineMerge as any)
-      .transition()
-      .duration(TRANSITION_CONFIG.duration);
-    
+    const transition = (lineMerge as any).transition().duration(TRANSITION_CONFIG.duration);
+
     transition
       .attr('d', pathData)
       .attr('stroke', color)
@@ -176,13 +161,9 @@ export class SeriesRenderer {
 
     // Exit: remove old paths with fade out
     const lineExit = linePath.exit();
-    const exitTransition = (lineExit as any)
-      .transition()
-      .duration(TRANSITION_CONFIG.duration);
-    
-    exitTransition
-      .attr('opacity', 0)
-      .remove();
+    const exitTransition = (lineExit as any).transition().duration(TRANSITION_CONFIG.duration);
+
+    exitTransition.attr('opacity', 0).remove();
   }
 
   /**

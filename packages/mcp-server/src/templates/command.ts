@@ -9,24 +9,18 @@ export interface CommandTemplateParams {
 export interface CompositeCommandTemplateParams {
   name: string;
   childCommands: string[];
-  mode?: "parallel" | "sequential";
+  mode?: 'parallel' | 'sequential';
 }
 
 export function commandTemplate(p: CommandTemplateParams): string {
-  const {
-    name,
-    paramType = "void",
-    resultType = "void",
-    canExecuteLogic,
-    description,
-  } = p;
+  const { name, paramType = 'void', resultType = 'void', canExecuteLogic, description } = p;
 
-  const paramArg = paramType === "void" ? "" : `param: ${paramType}`;
+  const paramArg = paramType === 'void' ? '' : `param: ${paramType}`;
   const canExecuteArg = canExecuteLogic
     ? `,\n  // canExecute: returns ReadonlySignal<boolean> or a boolean function\n  ${canExecuteLogic}`
-    : "";
+    : '';
 
-  const descComment = description ? `// ${description}\n` : "";
+  const descComment = description ? `// ${description}\n` : '';
 
   return `import { Command } from "@web-loom/mvvm-core";
 
@@ -37,7 +31,7 @@ ${descComment}export const ${name} = new Command<${paramType}, ${resultType}>(
 );
 
 // Usage:
-// ${name}.execute(${paramType === "void" ? "" : "param"});
+// ${name}.execute(${paramType === 'void' ? '' : 'param'});
 // ${name}.isExecuting$  // ReadonlySignal<boolean> — use for loading state
 // ${name}.canExecute$   // ReadonlySignal<boolean> — use to enable/disable UI
 // ${name}.executeError$ // ReadonlySignal<unknown> — last execution error
@@ -45,10 +39,8 @@ ${descComment}export const ${name} = new Command<${paramType}, ${resultType}>(
 }
 
 export function compositeCommandTemplate(p: CompositeCommandTemplateParams): string {
-  const { name, childCommands, mode = "parallel" } = p;
-  const registrations = childCommands
-    .map((cmd) => `${name}.register(${cmd});`)
-    .join("\n");
+  const { name, childCommands, mode = 'parallel' } = p;
+  const registrations = childCommands.map((cmd) => `${name}.register(${cmd});`).join('\n');
 
   return `import { CompositeCommand } from "@web-loom/mvvm-core";
 

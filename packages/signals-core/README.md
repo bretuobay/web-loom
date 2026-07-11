@@ -48,12 +48,12 @@ Creates a writable reactive value.
 ```ts
 const name = signal('Alice');
 
-name.get();              // read — tracked inside computed/effect
-name.peek();             // read without tracking (no dependency registered)
-name.set('Bob');         // write — notifies subscribers if value changed
-name.update(v => v + '!'); // update based on previous value
-name.asReadonly();       // returns a ReadonlySignal view (hides set/update)
-name.subscribe(fn);      // low-level subscription — returns unsubscribe fn
+name.get(); // read — tracked inside computed/effect
+name.peek(); // read without tracking (no dependency registered)
+name.set('Bob'); // write — notifies subscribers if value changed
+name.update((v) => v + '!'); // update based on previous value
+name.asReadonly(); // returns a ReadonlySignal view (hides set/update)
+name.subscribe(fn); // low-level subscription — returns unsubscribe fn
 ```
 
 #### `WritableSignal<T>` interface
@@ -105,8 +105,8 @@ Creates a lazy, memoized derived value. Recomputes only when a dependency change
 ```ts
 const greeting = computed(() => `Hello, ${name.get()}!`);
 
-greeting.get();       // 'Hello, Bob!' — tracked read
-greeting.peek();      // read without tracking
+greeting.get(); // 'Hello, Bob!' — tracked read
+greeting.peek(); // read without tracking
 greeting.subscribe(fn); // subscribe — returns unsubscribe fn
 ```
 
@@ -138,7 +138,9 @@ If `fn` returns a function, that function is called as cleanup before each rerun
 ```ts
 const handle = effect(() => {
   document.title = `Count: ${count.get()}`;
-  return () => { /* cleanup before next run */ };
+  return () => {
+    /* cleanup before next run */
+  };
 });
 
 handle.dispose(); // stop the effect, run final cleanup
@@ -160,7 +162,7 @@ interface EffectHandle {
 
 ```ts
 type CleanupFn = () => void;
-type EffectFn  = () => void | CleanupFn;
+type EffectFn = () => void | CleanupFn;
 ```
 
 #### `EffectOptions`
@@ -197,7 +199,7 @@ const a = signal(1);
 const b = signal(10);
 
 effect(() => {
-  const val = a.get();                    // tracked — effect reruns when a changes
+  const val = a.get(); // tracked — effect reruns when a changes
   const snapshot = untracked(() => b.get()); // NOT tracked — b changes won't rerun the effect
   console.log(val, snapshot);
 });
@@ -224,13 +226,13 @@ Type guards for duck-typing signal instances.
 ```ts
 import { isSignal, isWritableSignal } from '@web-loom/signals-core';
 
-isSignal(signal(0));           // true
-isSignal(computed(() => 1));   // true
-isSignal(42);                  // false
+isSignal(signal(0)); // true
+isSignal(computed(() => 1)); // true
+isSignal(42); // false
 
-isWritableSignal(signal(0));              // true
+isWritableSignal(signal(0)); // true
 isWritableSignal(signal(0).asReadonly()); // false
-isWritableSignal(computed(() => 1));      // false
+isWritableSignal(computed(() => 1)); // false
 ```
 
 ---

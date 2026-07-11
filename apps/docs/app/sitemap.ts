@@ -11,9 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const docPages = getDocPages().map((page) => ({
     url: `${SITE_URL}/docs/${page.slug}`,
-    lastModified: page.metadata.updatedAt
-      ? new Date(page.metadata.updatedAt)
-      : now,
+    lastModified: page.metadata.updatedAt ? new Date(page.metadata.updatedAt) : now,
     changeFrequency: 'monthly' as const,
     priority: 0.9,
   }));

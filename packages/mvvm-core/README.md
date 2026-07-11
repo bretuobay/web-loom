@@ -250,10 +250,7 @@ todos.itemRemoved$.subscribe((todo) => console.log('Removed:', todo));
 
 // Manipulate collection
 todos.add({ id: '3', text: 'Deploy', completed: false });
-todos.update(
-  (todo) => todo.id === '1',
-  { id: '1', text: 'Learn MVVM', completed: true },
-);
+todos.update((todo) => todo.id === '1', { id: '1', text: 'Learn MVVM', completed: true });
 todos.remove((todo) => todo.completed);
 
 // Query collection

@@ -42,7 +42,7 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
       if (confirmed) {
         await this.model.delete(id);
       }
-    })
+    }),
   );
 }
 ```
@@ -58,12 +58,12 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
     new Command(async (id: string) => {
       // ❌ Now the ViewModel depends on a specific UI mechanism
       const confirmed = await openModal('confirm', {
-        message: 'Delete this order?'
+        message: 'Delete this order?',
       });
       if (confirmed) {
         await this.model.delete(id);
       }
-    })
+    }),
   );
 }
 ```
@@ -97,7 +97,7 @@ class OrderViewModel extends BaseViewModel<OrderModel> {
       if (response.confirmed) {
         await this.model.delete(id);
       }
-    })
+    }),
   );
 }
 ```
@@ -224,9 +224,9 @@ const response = await selectPriority.raiseAsync({
   title: 'Set Priority',
   content: 'Choose a priority level for this task:',
   options: [
-    { label: 'High',   value: 'high'   },
+    { label: 'High', value: 'high' },
     { label: 'Medium', value: 'medium' },
-    { label: 'Low',    value: 'low'    },
+    { label: 'Low', value: 'low' },
   ],
 });
 
@@ -246,7 +246,7 @@ import { InteractionRequest } from '@web-loom/mvvm-patterns';
 
 interface IFilePicker {
   content: string;
-  accept?: string;     // e.g., '.csv,.xlsx'
+  accept?: string; // e.g., '.csv,.xlsx'
   multiple?: boolean;
   selectedFiles?: File[];
 }
@@ -402,7 +402,7 @@ function TabbedWorkspace() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const dashboardVM = useMemo(() => new DashboardViewModel(new DashboardModel()), []);
-  const settingsVM  = useMemo(() => new SettingsViewModel(new SettingsModel()),   []);
+  const settingsVM = useMemo(() => new SettingsViewModel(new SettingsModel()), []);
 
   useEffect(() => {
     if (activeTab === 'dashboard') {
@@ -425,7 +425,7 @@ function TabbedWorkspace() {
     <div>
       <TabBar active={activeTab} onChange={setActiveTab} />
       {activeTab === 'dashboard' && <DashboardPanel vm={dashboardVM} />}
-      {activeTab === 'settings'  && <SettingsPanel  vm={settingsVM}  />}
+      {activeTab === 'settings' && <SettingsPanel vm={settingsVM} />}
     </div>
   );
 }

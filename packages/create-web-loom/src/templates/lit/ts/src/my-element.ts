@@ -152,7 +152,9 @@ export class MyElement extends LitElement {
       color: #ffffff;
       background: linear-gradient(120deg, #0e5b9c, #297dbf);
       cursor: pointer;
-      transition: transform 120ms ease, filter 120ms ease;
+      transition:
+        transform 120ms ease,
+        filter 120ms ease;
     }
 
     .controls button:hover {
@@ -251,9 +253,9 @@ export class MyElement extends LitElement {
               <div><span>Doubled</span><strong>${this.doubled}</strong></div>
             </div>
             <div class="controls">
-              <button @click=${() => this.void vm.decrementCommand.execute()}>-</button>
-              <button @click=${() => this.void vm.resetCommand.execute()}>Reset</button>
-              <button @click=${() => this.void vm.incrementCommand.execute()}>+</button>
+              <button @click=${() => void this.vm.decrementCommand.execute()}>-</button>
+              <button @click=${() => void this.vm.resetCommand.execute()}>Reset</button>
+              <button @click=${() => void this.vm.incrementCommand.execute()}>+</button>
             </div>
           </article>
 

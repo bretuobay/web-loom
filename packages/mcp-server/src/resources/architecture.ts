@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 const MVVM_ARCHITECTURE_DOC = `# Web-Loom MVVM Architecture Reference
 
@@ -220,16 +220,17 @@ items.toArray()   // Todo[] snapshot
 `;
 
 export function registerArchitectureResource(server: McpServer): void {
-  const uri = "web-loom://architecture/mvvm";
+  const uri = 'web-loom://architecture/mvvm';
   server.registerResource(
-    "architecture-mvvm",
+    'architecture-mvvm',
     uri,
     {
-      description: "MVVM layer reference — BaseModel, BaseViewModel, RestfulApiModel, Command, dispose pattern, package selection guide",
-      mimeType: "text/markdown",
+      description:
+        'MVVM layer reference — BaseModel, BaseViewModel, RestfulApiModel, Command, dispose pattern, package selection guide',
+      mimeType: 'text/markdown',
     },
     async (_uri) => ({
-      contents: [{ uri, text: MVVM_ARCHITECTURE_DOC, mimeType: "text/markdown" }],
-    })
+      contents: [{ uri, text: MVVM_ARCHITECTURE_DOC, mimeType: 'text/markdown' }],
+    }),
   );
 }

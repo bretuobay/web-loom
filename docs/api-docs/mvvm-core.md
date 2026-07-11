@@ -90,6 +90,7 @@ The foundation for all models, providing reactive state management with RxJS obs
 **Purpose**: Manage data state, loading states, and error states in a reactive way.
 
 **Key Features**:
+
 - Reactive state with BehaviorSubjects
 - Zod schema validation
 - Type-safe data management
@@ -103,6 +104,7 @@ Extends BaseModel with CRUD operations and optimistic updates for RESTful APIs.
 **Purpose**: Simplify API interactions with automatic state management.
 
 **Key Features**:
+
 - Automatic loading state management
 - Optimistic updates with rollback
 - Error handling with retry logic
@@ -116,6 +118,7 @@ Connects Models to Views with presentation logic and computed observables.
 **Purpose**: Transform model data for display and handle UI interactions.
 
 **Key Features**:
+
 - Observable-based state
 - Computed properties with RxJS operators
 - Separation from UI framework
@@ -128,6 +131,7 @@ Extends BaseViewModel with built-in CRUD commands for RESTful operations.
 **Purpose**: Provide ready-to-use commands for common API operations.
 
 **Key Features**:
+
 - Pre-built CRUD commands
 - Automatic command state management
 - Command execution control
@@ -140,6 +144,7 @@ Encapsulates UI actions with execution control and state tracking.
 **Purpose**: Decouple UI actions from business logic with reactive state.
 
 **Key Features**:
+
 - isExecuting$ observable for loading states
 - canExecute$ for conditional execution
 - result$ for command results
@@ -153,6 +158,7 @@ Reactive collection with granular change notifications.
 **Purpose**: Manage lists with reactive updates for each modification.
 
 **Key Features**:
+
 - items$ observable for the entire collection
 - changes$ observable for individual changes
 - Array-like manipulation methods
@@ -174,6 +180,7 @@ constructor(config: BaseModelConfig<TData, TSchema>)
 ```
 
 **Parameters**:
+
 - `config.initialData: TData | null` - Initial data for the model
 - `config.schema?: TSchema` - Zod schema for validation
 
@@ -201,6 +208,7 @@ model.setData({ id: '123', name: 'John Doe' });
 ```
 
 **Behavior**:
+
 - Validates data against schema if provided
 - Updates data$ BehaviorSubject
 - Throws ValidationError on schema mismatch
@@ -237,6 +245,7 @@ const state = model.getState();
 ```
 
 **Returns**: `ModelState<TData>`
+
 ```typescript
 interface ModelState<TData> {
   data: TData | null;
@@ -279,6 +288,7 @@ constructor(config: RestfulApiModelConfig<TData, TSchema>)
 ```
 
 **Parameters**:
+
 - `config.baseUrl: string` - Base URL for API endpoints
 - `config.endpoint: string` - Specific endpoint path
 - `config.fetcher: Fetcher` - Function to make HTTP requests
@@ -286,6 +296,7 @@ constructor(config: RestfulApiModelConfig<TData, TSchema>)
 - `config.initialData: TData | null` - Initial data
 
 **Fetcher Type**:
+
 ```typescript
 type Fetcher = (url: string, options?: RequestInit) => Promise<Response>;
 ```
@@ -301,6 +312,7 @@ const data = await model.fetch();
 ```
 
 **Behavior**:
+
 - Sets isLoading$ to true
 - Makes GET request to `${baseUrl}/${endpoint}`
 - Validates response with schema
@@ -317,11 +329,12 @@ Creates a new resource with optimistic updates.
 ```typescript
 const newUser = await model.create({
   name: 'Jane Doe',
-  email: 'jane@example.com'
+  email: 'jane@example.com',
 });
 ```
 
 **Behavior**:
+
 - Optimistically adds data to current state
 - Makes POST request
 - Rolls back on failure
@@ -336,6 +349,7 @@ await model.update('user-123', { name: 'Updated Name' });
 ```
 
 **Behavior**:
+
 - Optimistically updates data in current state
 - Makes PUT/PATCH request
 - Rolls back on failure
@@ -350,6 +364,7 @@ await model.delete('user-123');
 ```
 
 **Behavior**:
+
 - Optimistically removes from current state
 - Makes DELETE request
 - Rolls back on failure
@@ -367,6 +382,7 @@ constructor(model: TModel)
 ```
 
 **Parameters**:
+
 - `model: TModel` - The model instance to wrap
 
 #### Properties
@@ -409,16 +425,12 @@ Use RxJS operators to create derived state:
 class UserViewModel extends BaseViewModel<UserModel> {
   // Computed property
   get displayName$(): Observable<string> {
-    return this.data$.pipe(
-      map(user => user ? `${user.firstName} ${user.lastName}` : 'Unknown')
-    );
+    return this.data$.pipe(map((user) => (user ? `${user.firstName} ${user.lastName}` : 'Unknown')));
   }
 
   // Filtered list
   get activeUsers$(): Observable<User[]> {
-    return this.data$.pipe(
-      map(users => users?.filter(u => u.active) || [])
-    );
+    return this.data$.pipe(map((users) => users?.filter((u) => u.active) || []));
   }
 }
 ```
@@ -462,7 +474,7 @@ await viewModel.createCommand.execute({ name: 'New Item' });
 // Update resource
 await viewModel.updateCommand.execute({
   id: '123',
-  data: { name: 'Updated' }
+  data: { name: 'Updated' },
 });
 
 // Delete resource
@@ -485,6 +497,7 @@ constructor(
 ```
 
 **Parameters**:
+
 - `execute: (param: TParam) => Promise<TResult>` - Async function to execute
 - `canExecute$?: Observable<boolean>` - Optional observable to control execution
 
@@ -508,6 +521,7 @@ const result = await command.execute(param);
 ```
 
 **Behavior**:
+
 - Checks canExecute$ before running
 - Sets isExecuting$ to true
 - Executes the function
@@ -541,7 +555,7 @@ class AuthViewModel {
         return success;
       },
       // Can only login when not already logged in
-      this.isLoggedIn$.pipe(map(loggedIn => !loggedIn))
+      this.isLoggedIn$.pipe(map((loggedIn) => !loggedIn)),
     );
   }
 }
@@ -549,7 +563,7 @@ class AuthViewModel {
 // Usage
 await authViewModel.loginCommand.execute({
   username: 'user',
-  password: 'pass'
+  password: 'pass',
 });
 ```
 
@@ -573,6 +587,7 @@ readonly changes$: Subject<CollectionChange<T>>  // Individual changes
 ```
 
 **CollectionChange<T>**:
+
 ```typescript
 type CollectionChange<T> =
   | { type: 'add'; item: T }
@@ -596,7 +611,7 @@ collection.add({ id: '1', name: 'Item 1' });
 Removes items matching the predicate.
 
 ```typescript
-collection.remove(item => item.id === '1');
+collection.remove((item) => item.id === '1');
 ```
 
 ##### update(predicate: (item: T) => boolean, updater: (item: T) => T): void
@@ -605,8 +620,8 @@ Updates items matching the predicate.
 
 ```typescript
 collection.update(
-  item => item.id === '1',
-  item => ({ ...item, name: 'Updated' })
+  (item) => item.id === '1',
+  (item) => ({ ...item, name: 'Updated' }),
 );
 ```
 
@@ -639,7 +654,7 @@ const total = collection.count();
 Finds the first matching item.
 
 ```typescript
-const item = collection.find(item => item.id === '1');
+const item = collection.find((item) => item.id === '1');
 ```
 
 ##### filter(predicate: (item: T) => boolean): T[]
@@ -647,7 +662,7 @@ const item = collection.find(item => item.id === '1');
 Returns filtered items.
 
 ```typescript
-const active = collection.filter(item => item.active);
+const active = collection.filter((item) => item.active);
 ```
 
 #### Example: Todo List
@@ -662,7 +677,7 @@ interface Todo {
 const todos = new ObservableCollection<Todo>();
 
 // Subscribe to changes
-todos.changes$.subscribe(change => {
+todos.changes$.subscribe((change) => {
   console.log('Change:', change);
 });
 
@@ -671,12 +686,12 @@ todos.add({ id: '1', text: 'Learn MVVM', completed: false });
 
 // Update todo
 todos.update(
-  todo => todo.id === '1',
-  todo => ({ ...todo, completed: true })
+  (todo) => todo.id === '1',
+  (todo) => ({ ...todo, completed: true }),
 );
 
 // Remove completed
-todos.remove(todo => todo.completed);
+todos.remove((todo) => todo.completed);
 ```
 
 ---
@@ -692,6 +707,7 @@ constructor(config: QueryStateModelConfig<TData, TSchema>)
 ```
 
 **Parameters**:
+
 - `config.queryCore: QueryCore` - QueryCore instance
 - `config.endpointKey: string` - Endpoint key in QueryCore
 - `config.schema: TSchema` - Zod schema for validation
@@ -733,14 +749,14 @@ import { z } from 'zod';
 const UserSchema = z.object({
   id: z.string(),
   name: z.string(),
-  email: z.string().email()
+  email: z.string().email(),
 });
 
 type User = z.infer<typeof UserSchema>;
 
 // Setup QueryCore
 const queryCore = new QueryCore({
-  defaultRefetchAfter: 5 * 60 * 1000 // 5 minutes
+  defaultRefetchAfter: 5 * 60 * 1000, // 5 minutes
 });
 
 await queryCore.defineEndpoint<User[]>('users', async () => {
@@ -754,7 +770,7 @@ class UsersQueryModel extends QueryStateModel<User[], typeof UserSchema> {
     super({
       queryCore,
       endpointKey: 'users',
-      schema: z.array(UserSchema)
+      schema: z.array(UserSchema),
     });
   }
 }
@@ -796,9 +812,7 @@ class UsersViewModel extends QueryStateModelView<User[], typeof UserSchema> {
 
   // Computed property
   get activeUsers$(): Observable<User[]> {
-    return this.data$.pipe(
-      map(users => users?.filter(u => u.active) || [])
-    );
+    return this.data$.pipe(map((users) => users?.filter((u) => u.active) || []));
   }
 }
 
@@ -825,6 +839,7 @@ constructor(config: FormViewModelConfig<TValues>)
 ```
 
 **Parameters**:
+
 - `config.initialValues: TValues` - Initial form values
 - `config.validationSchema?: ZodSchema` - Zod schema for validation
 - `config.validateOnChange?: boolean` - Validate on each change (default: false)
@@ -902,7 +917,7 @@ import { z } from 'zod';
 
 const LoginSchema = z.object({
   email: z.string().email('Invalid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters')
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 type LoginValues = z.infer<typeof LoginSchema>;
@@ -916,7 +931,7 @@ class LoginFormViewModel extends FormViewModel<LoginValues> {
       onSubmit: async (values) => {
         // Handle login
         await authService.login(values);
-      }
+      },
     });
   }
 }
@@ -945,6 +960,7 @@ constructor(config: QueryableCollectionConfig<T>)
 ```
 
 **Parameters**:
+
 - `config.items: T[]` - Initial items
 - `config.pageSize?: number` - Items per page (default: 10)
 
@@ -967,7 +983,7 @@ readonly sortBy$: BehaviorSubject<SortConfig<T> | null>
 Sets the filter predicate.
 
 ```typescript
-vm.setFilter(item => item.active);
+vm.setFilter((item) => item.active);
 ```
 
 ##### setSortBy(field: keyof T, order: 'asc' | 'desc' = 'asc'): void
@@ -1015,17 +1031,17 @@ interface Product {
 
 const vm = new QueryableCollectionViewModel<Product>({
   items: products,
-  pageSize: 20
+  pageSize: 20,
 });
 
 // Filter by category
-vm.setFilter(product => product.category === 'Electronics');
+vm.setFilter((product) => product.category === 'Electronics');
 
 // Sort by price
 vm.setSortBy('price', 'desc');
 
 // Subscribe to current page
-vm.currentPage$.subscribe(items => {
+vm.currentPage$.subscribe((items) => {
   console.log('Current page:', items);
 });
 
@@ -1042,7 +1058,7 @@ Manages multiple child commands and tracks their collective state.
 #### Constructor
 
 ```typescript
-constructor()
+constructor();
 ```
 
 #### Properties
@@ -1121,10 +1137,7 @@ class FormViewModel {
 import { useState, useEffect } from 'react';
 import { Observable } from 'rxjs';
 
-function useObservable<T>(
-  observable: Observable<T>,
-  initialValue: T
-): T {
+function useObservable<T>(observable: Observable<T>, initialValue: T): T {
   const [value, setValue] = useState<T>(initialValue);
 
   useEffect(() => {
@@ -1142,9 +1155,7 @@ function useObservable<T>(
 import { useMemo, useEffect } from 'react';
 import { IDisposable } from '@web-loom/mvvm-core';
 
-function useViewModel<T extends IDisposable>(
-  factory: () => T
-): T {
+function useViewModel<T extends IDisposable>(factory: () => T): T {
   const vm = useMemo(factory, []);
 
   useEffect(() => {
@@ -1220,20 +1231,32 @@ const isLoading = ref(false);
 const error = ref<Error | null>(null);
 
 // Subscribe to observables
-watch(() => vm.data$, (obs) => {
-  const sub = obs.subscribe(data => users.value = data || []);
-  onUnmounted(() => sub.unsubscribe());
-}, { immediate: true });
+watch(
+  () => vm.data$,
+  (obs) => {
+    const sub = obs.subscribe((data) => (users.value = data || []));
+    onUnmounted(() => sub.unsubscribe());
+  },
+  { immediate: true },
+);
 
-watch(() => vm.isLoading$, (obs) => {
-  const sub = obs.subscribe(loading => isLoading.value = loading);
-  onUnmounted(() => sub.unsubscribe());
-}, { immediate: true });
+watch(
+  () => vm.isLoading$,
+  (obs) => {
+    const sub = obs.subscribe((loading) => (isLoading.value = loading));
+    onUnmounted(() => sub.unsubscribe());
+  },
+  { immediate: true },
+);
 
-watch(() => vm.error$, (obs) => {
-  const sub = obs.subscribe(err => error.value = err);
-  onUnmounted(() => sub.unsubscribe());
-}, { immediate: true });
+watch(
+  () => vm.error$,
+  (obs) => {
+    const sub = obs.subscribe((err) => (error.value = err));
+    onUnmounted(() => sub.unsubscribe());
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   vm.fetchCommand.execute();
@@ -1275,13 +1298,10 @@ export function useViewModel<T extends IDisposable>(vm: T): T {
   return vm;
 }
 
-export function useObservable<T>(
-  observable: Observable<T>,
-  initialValue: T
-): Ref<T> {
+export function useObservable<T>(observable: Observable<T>, initialValue: T): Ref<T> {
   const value = ref<T>(initialValue) as Ref<T>;
 
-  const subscription = observable.subscribe(v => {
+  const subscription = observable.subscribe((v) => {
     value.value = v;
   });
 
@@ -1333,7 +1353,7 @@ import { UserService } from './user.service';
       </li>
     </ul>
   `,
-  providers: [UserService]
+  providers: [UserService],
 })
 export class UserListComponent implements OnInit {
   constructor(public vm: UserService['vm']) {}
@@ -1358,21 +1378,18 @@ import { UserListViewModel } from './viewmodels/user-list.js';
 const vm = new UserListViewModel();
 
 // Subscribe to data
-vm.data$.subscribe(users => {
+vm.data$.subscribe((users) => {
   const list = document.getElementById('user-list');
-  list.innerHTML = users
-    ? users.map(u => `<li>${u.name}</li>`).join('')
-    : '';
+  list.innerHTML = users ? users.map((u) => `<li>${u.name}</li>`).join('') : '';
 });
 
 // Subscribe to loading state
-vm.isLoading$.subscribe(loading => {
-  document.getElementById('loader').style.display =
-    loading ? 'block' : 'none';
+vm.isLoading$.subscribe((loading) => {
+  document.getElementById('loader').style.display = loading ? 'block' : 'none';
 });
 
 // Subscribe to errors
-vm.error$.subscribe(error => {
+vm.error$.subscribe((error) => {
   const errorDiv = document.getElementById('error');
   errorDiv.textContent = error ? error.message : '';
 });
@@ -1395,11 +1412,7 @@ window.addEventListener('beforeunload', () => {
 ### Example 1: Simple User Management
 
 ```typescript
-import {
-  RestfulApiModel,
-  RestfulApiViewModel,
-  type Fetcher
-} from '@web-loom/mvvm-core';
+import { RestfulApiModel, RestfulApiViewModel, type Fetcher } from '@web-loom/mvvm-core';
 import { z } from 'zod';
 
 // 1. Define schema
@@ -1407,7 +1420,7 @@ const UserSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
   email: z.string().email(),
-  role: z.enum(['admin', 'user'])
+  role: z.enum(['admin', 'user']),
 });
 
 type User = z.infer<typeof UserSchema>;
@@ -1427,7 +1440,7 @@ class UserModel extends RestfulApiModel<User[], typeof UserSchema> {
       endpoint: 'users',
       fetcher,
       schema: z.array(UserSchema),
-      initialData: null
+      initialData: null,
     });
   }
 }
@@ -1440,16 +1453,14 @@ class UserViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
 
   // Computed property
   get adminUsers$(): Observable<User[]> {
-    return this.data$.pipe(
-      map(users => users?.filter(u => u.role === 'admin') || [])
-    );
+    return this.data$.pipe(map((users) => users?.filter((u) => u.role === 'admin') || []));
   }
 
   // Custom method
   async promoteToAdmin(userId: string): Promise<void> {
     await this.updateCommand.execute({
       id: userId,
-      data: { role: 'admin' }
+      data: { role: 'admin' },
     });
   }
 }
@@ -1458,7 +1469,7 @@ class UserViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
 const vm = new UserViewModel();
 await vm.fetchCommand.execute();
 
-vm.adminUsers$.subscribe(admins => {
+vm.adminUsers$.subscribe((admins) => {
   console.log('Admin users:', admins);
 });
 
@@ -1474,20 +1485,24 @@ import { FormViewModel } from '@web-loom/mvvm-core';
 import { z } from 'zod';
 
 // Schema with custom validation
-const RegistrationSchema = z.object({
-  username: z.string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(20, 'Username must be less than 20 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain uppercase letter')
-    .regex(/[0-9]/, 'Password must contain a number'),
-  confirmPassword: z.string()
-}).refine(data => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword']
-});
+const RegistrationSchema = z
+  .object({
+    username: z
+      .string()
+      .min(3, 'Username must be at least 3 characters')
+      .max(20, 'Username must be less than 20 characters'),
+    email: z.string().email('Invalid email address'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Password must contain uppercase letter')
+      .regex(/[0-9]/, 'Password must contain a number'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 type RegistrationForm = z.infer<typeof RegistrationSchema>;
 
@@ -1498,13 +1513,13 @@ class RegistrationViewModel extends FormViewModel<RegistrationForm> {
         username: '',
         email: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
       },
       validationSchema: RegistrationSchema,
       validateOnChange: true,
       onSubmit: async (values) => {
         await this.authService.register(values);
-      }
+      },
     });
   }
 
@@ -1556,7 +1571,7 @@ class ProductListViewModel {
   constructor(products: Product[]) {
     this.collectionVm = new QueryableCollectionViewModel({
       items: products,
-      pageSize: 10
+      pageSize: 10,
     });
   }
 
@@ -1571,11 +1586,11 @@ class ProductListViewModel {
 
   // Filter methods
   filterByCategory(category: string): void {
-    this.collectionVm.setFilter(p => p.category === category);
+    this.collectionVm.setFilter((p) => p.category === category);
   }
 
   filterInStock(): void {
-    this.collectionVm.setFilter(p => p.inStock);
+    this.collectionVm.setFilter((p) => p.inStock);
   }
 
   clearFilters(): void {
@@ -1619,7 +1634,7 @@ vm.filterByCategory('Electronics');
 vm.sortByPrice('desc');
 
 // Subscribe to current page
-vm.currentPage$.subscribe(items => {
+vm.currentPage$.subscribe((items) => {
   console.log('Page items:', items);
 });
 
@@ -1645,9 +1660,7 @@ class OrderDetailViewModel extends BaseViewModel<OrderModel> {
       async () => {
         await this.model.update({ status: 'approved' });
       },
-      this.data$.pipe(
-        map(order => order?.status === 'pending')
-      )
+      this.data$.pipe(map((order) => order?.status === 'pending')),
     );
 
     // Reject command with reason
@@ -1655,12 +1668,10 @@ class OrderDetailViewModel extends BaseViewModel<OrderModel> {
       async (reason: string) => {
         await this.model.update({
           status: 'rejected',
-          rejectionReason: reason
+          rejectionReason: reason,
         });
       },
-      this.data$.pipe(
-        map(order => order?.status === 'pending')
-      )
+      this.data$.pipe(map((order) => order?.status === 'pending')),
     );
 
     // Cancel command - only when approved
@@ -1668,30 +1679,28 @@ class OrderDetailViewModel extends BaseViewModel<OrderModel> {
       async () => {
         await this.model.update({ status: 'cancelled' });
       },
-      this.data$.pipe(
-        map(order => order?.status === 'approved')
-      )
+      this.data$.pipe(map((order) => order?.status === 'approved')),
     );
   }
 
   get canModify$(): Observable<boolean> {
-    return this.data$.pipe(
-      map(order =>
-        order?.status === 'pending' || order?.status === 'approved'
-      )
-    );
+    return this.data$.pipe(map((order) => order?.status === 'pending' || order?.status === 'approved'));
   }
 
   get statusColor$(): Observable<string> {
     return this.data$.pipe(
-      map(order => {
+      map((order) => {
         switch (order?.status) {
-          case 'approved': return 'green';
-          case 'rejected': return 'red';
-          case 'cancelled': return 'gray';
-          default: return 'yellow';
+          case 'approved':
+            return 'green';
+          case 'rejected':
+            return 'red';
+          case 'cancelled':
+            return 'gray';
+          default:
+            return 'yellow';
         }
-      })
+      }),
     );
   }
 }
@@ -1700,7 +1709,7 @@ class OrderDetailViewModel extends BaseViewModel<OrderModel> {
 const vm = new OrderDetailViewModel(orderModel);
 
 // Subscribe to command states
-vm.approveCommand.canExecute$.subscribe(canApprove => {
+vm.approveCommand.canExecute$.subscribe((canApprove) => {
   document.getElementById('approve-btn').disabled = !canApprove;
 });
 
@@ -1746,7 +1755,7 @@ const UserSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(3),
   email: z.string().email(),
-  age: z.number().positive().optional()
+  age: z.number().positive().optional(),
 });
 
 // Use strict schemas
@@ -1759,22 +1768,16 @@ const StrictUserSchema = UserSchema.strict(); // No extra keys allowed
 class UserViewModel extends BaseViewModel<UserModel> {
   // Derive state with RxJS operators
   get fullName$(): Observable<string> {
-    return this.data$.pipe(
-      map(user => user ? `${user.firstName} ${user.lastName}` : '')
-    );
+    return this.data$.pipe(map((user) => (user ? `${user.firstName} ${user.lastName}` : '')));
   }
 
   get isAdmin$(): Observable<boolean> {
-    return this.data$.pipe(
-      map(user => user?.role === 'admin')
-    );
+    return this.data$.pipe(map((user) => user?.role === 'admin'));
   }
 
   // Combine multiple observables
   get canEdit$(): Observable<boolean> {
-    return combineLatest([this.isAdmin$, this.isLoading$]).pipe(
-      map(([isAdmin, isLoading]) => isAdmin && !isLoading)
-    );
+    return combineLatest([this.isAdmin$, this.isLoading$]).pipe(map(([isAdmin, isLoading]) => isAdmin && !isLoading));
   }
 }
 ```
@@ -1787,7 +1790,7 @@ class MyViewModel extends RestfulApiViewModel<Data, Schema> {
     super(new MyModel());
 
     // Subscribe to errors globally
-    this.error$.subscribe(error => {
+    this.error$.subscribe((error) => {
       if (error) {
         notificationService.showError(error.message);
       }
@@ -1818,11 +1821,9 @@ class MyComponent {
   private destroy$ = new Subject<void>();
 
   ngOnInit() {
-    vm.data$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(data => {
-        // Handle data
-      });
+    vm.data$.pipe(takeUntil(this.destroy$)).subscribe((data) => {
+      // Handle data
+    });
   }
 
   ngOnDestroy() {
@@ -1842,7 +1843,7 @@ describe('UserViewModel', () => {
     // Mock the fetcher
     const mockFetcher = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => [{ id: '1', name: 'John' }]
+      json: async () => [{ id: '1', name: 'John' }],
     });
 
     const model = new UserModel({ fetcher: mockFetcher });
@@ -1864,15 +1865,15 @@ describe('UserViewModel', () => {
 // ✅ Good - No framework dependencies
 class UserViewModel extends BaseViewModel<UserModel> {
   get sortedUsers$(): Observable<User[]> {
-    return this.data$.pipe(
-      map(users => users?.sort((a, b) => a.name.localeCompare(b.name)))
-    );
+    return this.data$.pipe(map((users) => users?.sort((a, b) => a.name.localeCompare(b.name))));
   }
 }
 
 // ❌ Bad - React-specific
 class UserViewModel extends BaseViewModel<UserModel> {
-  useState() { /* React hook */ }  // Don't do this!
+  useState() {
+    /* React hook */
+  } // Don't do this!
 }
 ```
 
@@ -1881,10 +1882,7 @@ class UserViewModel extends BaseViewModel<UserModel> {
 ```typescript
 class MyViewModel {
   // ✅ Good - Encapsulated with state
-  readonly saveCommand = new Command(
-    async () => this.save(),
-    this.canSave$
-  );
+  readonly saveCommand = new Command(async () => this.save(), this.canSave$);
 
   // ❌ Avoid - Direct methods lose reactive state
   async save() {
@@ -1937,10 +1935,7 @@ export interface ICommand<TParam, TResult> extends IDisposable {
 }
 
 // Fetcher
-export type Fetcher = (
-  url: string,
-  options?: RequestInit
-) => Promise<Response>;
+export type Fetcher = (url: string, options?: RequestInit) => Promise<Response>;
 
 // Collection Changes
 export type CollectionChange<T> =
@@ -1960,8 +1955,7 @@ export interface BaseModelConfig<TData, TSchema> {
   schema?: TSchema;
 }
 
-export interface RestfulApiModelConfig<TData, TSchema>
-  extends BaseModelConfig<TData, TSchema> {
+export interface RestfulApiModelConfig<TData, TSchema> extends BaseModelConfig<TData, TSchema> {
   baseUrl: string;
   endpoint: string;
   fetcher: Fetcher;
@@ -2028,21 +2022,19 @@ class TodoViewModel extends RestfulApiViewModel<Todo[], Schema> {
   async toggleTodo(id: string): Promise<void> {
     // Get current state
     const todos = this.getState().data || [];
-    const todo = todos.find(t => t.id === id);
+    const todo = todos.find((t) => t.id === id);
 
     if (!todo) return;
 
     // Optimistic update
     const updated = { ...todo, completed: !todo.completed };
-    this.model.setData(
-      todos.map(t => t.id === id ? updated : t)
-    );
+    this.model.setData(todos.map((t) => (t.id === id ? updated : t)));
 
     try {
       // Actual update
       await this.updateCommand.execute({
         id,
-        data: { completed: updated.completed }
+        data: { completed: updated.completed },
       });
     } catch (error) {
       // Rollback on error
@@ -2063,21 +2055,14 @@ class OrderViewModel {
   readonly approveCommand: Command<void, void>;
 
   constructor() {
-    this.fetchCommand = new Command(
-      async (id: string) => this.fetchOrder(id)
-    );
+    this.fetchCommand = new Command(async (id: string) => this.fetchOrder(id));
 
     // Approve only when order is fetched and pending
     this.approveCommand = new Command(
       async () => this.approve(),
-      combineLatest([
-        this.fetchCommand.result$,
-        this.fetchCommand.isExecuting$
-      ]).pipe(
-        map(([order, fetching]) =>
-          !fetching && order?.status === 'pending'
-        )
-      )
+      combineLatest([this.fetchCommand.result$, this.fetchCommand.isExecuting$]).pipe(
+        map(([order, fetching]) => !fetching && order?.status === 'pending'),
+      ),
     );
   }
 }
@@ -2098,9 +2083,7 @@ class SearchViewModel {
     this.results$ = this.searchQuery$.pipe(
       debounceTime(300),
       distinctUntilChanged(),
-      switchMap(query =>
-        query ? this.searchService.search(query) : of([])
-      )
+      switchMap((query) => (query ? this.searchService.search(query) : of([]))),
     );
   }
 
@@ -2124,13 +2107,8 @@ class MasterDetailViewModel {
   constructor(private listModel: ListModel) {
     this.masterList$ = listModel.data$;
 
-    this.selectedDetail$ = combineLatest([
-      this.masterList$,
-      this.selectedId$
-    ]).pipe(
-      map(([list, id]) =>
-        id ? list?.find(item => item.id === id) || null : null
-      )
+    this.selectedDetail$ = combineLatest([this.masterList$, this.selectedId$]).pipe(
+      map(([list, id]) => (id ? list?.find((item) => item.id === id) || null : null)),
     );
   }
 
@@ -2161,9 +2139,7 @@ describe('UserViewModel', () => {
   beforeEach(() => {
     mockFetcher = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => [
-        { id: '1', name: 'John', email: 'john@example.com' }
-      ]
+      json: async () => [{ id: '1', name: 'John', email: 'john@example.com' }],
     });
 
     const model = new UserModel({ fetcher: mockFetcher });
@@ -2199,8 +2175,8 @@ describe('UserViewModel', () => {
       ok: true,
       json: async () => [
         { id: '1', name: 'Admin', role: 'admin' },
-        { id: '2', name: 'User', role: 'user' }
-      ]
+        { id: '2', name: 'User', role: 'user' },
+      ],
     });
 
     await vm.fetchCommand.execute();
@@ -2225,7 +2201,7 @@ describe('LoginCommand', () => {
 
     await vm.loginCommand.execute({
       username: 'user',
-      password: 'pass'
+      password: 'pass',
     });
 
     expect(await firstValueFrom(vm.isLoggedIn$)).toBe(true);
@@ -2236,13 +2212,13 @@ describe('LoginCommand', () => {
     const vm = new AuthViewModel();
     const executionStates: boolean[] = [];
 
-    vm.loginCommand.isExecuting$.subscribe(executing => {
+    vm.loginCommand.isExecuting$.subscribe((executing) => {
       executionStates.push(executing);
     });
 
     await vm.loginCommand.execute({
       username: 'user',
-      password: 'pass'
+      password: 'pass',
     });
 
     expect(executionStates).toEqual([false, true, false]);
@@ -2285,9 +2261,7 @@ describe('RegistrationFormViewModel', () => {
   });
 
   it('should track dirty state', async () => {
-    const dirtyStates = await firstValueFrom(
-      formVm.isDirty$.pipe(take(2), toArray())
-    );
+    const dirtyStates = await firstValueFrom(formVm.isDirty$.pipe(take(2), toArray()));
 
     formVm.setFieldValue('email', 'user@example.com');
 
@@ -2315,9 +2289,7 @@ class PaginatedModel<T> extends BaseModel<PaginatedData<T>, any> {
 
   get totalPages$(): Observable<number> {
     return combineLatest([this.data$, this.pageSize$]).pipe(
-      map(([data, pageSize]) =>
-        data ? Math.ceil(data.total / pageSize) : 0
-      )
+      map(([data, pageSize]) => (data ? Math.ceil(data.total / pageSize) : 0)),
     );
   }
 
@@ -2338,7 +2310,7 @@ class PaginatedModel<T> extends BaseModel<PaginatedData<T>, any> {
 ```typescript
 type CommandMiddleware<TParam, TResult> = (
   execute: (param: TParam) => Promise<TResult>,
-  param: TParam
+  param: TParam,
 ) => Promise<TResult>;
 
 class CommandWithMiddleware<TParam, TResult> extends Command<TParam, TResult> {
@@ -2481,7 +2453,7 @@ readonly sharedData$ = this.data$.pipe(shareReplay(1));
 **Solution**: Check canExecute$ observable.
 
 ```typescript
-vm.myCommand.canExecute$.subscribe(can => {
+vm.myCommand.canExecute$.subscribe((can) => {
   console.log('Can execute:', can);
 });
 ```
@@ -2493,6 +2465,7 @@ vm.myCommand.canExecute$.subscribe(can => {
 `@web-loom/mvvm-core` provides a complete, production-ready MVVM framework for building reactive web applications. Its framework-agnostic design, powerful RxJS integration, and comprehensive type safety make it an excellent choice for scalable applications.
 
 For more information:
+
 - [GitHub Repository](https://github.com/bretuobay/web-loom)
 - [Examples Directory](https://github.com/bretuobay/web-loom/tree/main/packages/mvvm-core/src/examples)
 - [API Reference](https://web-loom.dev/docs/api/mvvm-core)

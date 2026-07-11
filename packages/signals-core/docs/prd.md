@@ -11,6 +11,7 @@
 Build a **lightweight, dependency-free signals core** for the Web Loom toolkit: reactive primitives for **state**, **derived values**, and **effects** that work in vanilla TS/JS and can be adapted to any UI framework.
 
 Inspired by:
+
 - **TC39 proposal-signals**: core graph/auto-tracking model as a foundation for frameworks.
 - **Angular Signals**: lazy + memoized computed, dynamic dependency tracking, `untracked`, `asReadonly`.
 - **Preact Signals**: `batch`, effect cleanup/disposal, `peek`, "read without subscribing" patterns.
@@ -137,10 +138,7 @@ export function computed<T>(derive: () => T, options?: ComputedOptions<T>): Comp
  * - If fn returns a cleanup function, that cleanup runs before the next re-run.
  * - Returns a handle with .dispose() to stop the effect and release dependencies.
  */
-export function effect(
-  fn: () => void | (() => void),
-  options?: EffectOptions
-): EffectHandle;
+export function effect(fn: () => void | (() => void), options?: EffectOptions): EffectHandle;
 ```
 
 ### 6.3 Control Utilities
@@ -318,8 +316,8 @@ const currentUser = signal('A');
 const counter = signal(0);
 
 effect(() => {
-  const u = currentUser.get();               // tracked
-  const c = untracked(() => counter.get());  // NOT tracked
+  const u = currentUser.get(); // tracked
+  const c = untracked(() => counter.get()); // NOT tracked
   console.log(u, c);
 });
 
@@ -418,11 +416,11 @@ class Store {
 
 ## 14. Rollout Plan
 
-| Version | Scope |
-|---------|-------|
+| Version  | Scope                                                                                         |
+| -------- | --------------------------------------------------------------------------------------------- |
 | **v0.1** | `signal`, `computed`, `effect`, `batch`, `untracked`, `flush`, `isSignal`, `isWritableSignal` |
-| **v0.2** | `subtle.watch` for adapters; optional `subtle.introspect` for devtools/testing |
-| **v1.0** | Stable semantics; publish adapter packages (`@web-loom/signals-react`, etc.) |
+| **v0.2** | `subtle.watch` for adapters; optional `subtle.introspect` for devtools/testing                |
+| **v1.0** | Stable semantics; publish adapter packages (`@web-loom/signals-react`, etc.)                  |
 
 ---
 
@@ -438,10 +436,10 @@ class Store {
 
 ## 16. Open Questions
 
-| Question | Options | Recommendation |
-|----------|---------|---------------|
-| Getter style: `.get()` vs `.value` property? | `.get()` (TC39-explicit) vs `.value` (Preact-ergonomic) | Start with `.get()` for clarity and future-proofing |
-| Effect scheduling: microtask vs synchronous? | Microtask (async, batched) vs sync-after-batch | Microtask by default; sync flush available via `flush()` |
-| Error handling in computed/effect? | Rethrow on `get()`, `onError` hook, or silent catch | Rethrow on `get()`; provide optional `onError` in EffectOptions |
-| Effect cleanup style: return fn vs `onCleanup` callback? | Return `() => void` (Preact) vs `onCleanup(fn)` param (Angular) | Return-based (simpler); `onCleanup` can be added in v0.2 |
-| Naming: `signals-core` vs `reactivity-core`? | `@web-loom/signals-core` vs `@web-loom/reactivity-core` | `signals-core` (aligns with ecosystem terminology) |
+| Question                                                 | Options                                                         | Recommendation                                                  |
+| -------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------- |
+| Getter style: `.get()` vs `.value` property?             | `.get()` (TC39-explicit) vs `.value` (Preact-ergonomic)         | Start with `.get()` for clarity and future-proofing             |
+| Effect scheduling: microtask vs synchronous?             | Microtask (async, batched) vs sync-after-batch                  | Microtask by default; sync flush available via `flush()`        |
+| Error handling in computed/effect?                       | Rethrow on `get()`, `onError` hook, or silent catch             | Rethrow on `get()`; provide optional `onError` in EffectOptions |
+| Effect cleanup style: return fn vs `onCleanup` callback? | Return `() => void` (Preact) vs `onCleanup(fn)` param (Angular) | Return-based (simpler); `onCleanup` can be added in v0.2        |
+| Naming: `signals-core` vs `reactivity-core`?             | `@web-loom/signals-core` vs `@web-loom/reactivity-core`         | `signals-core` (aligns with ecosystem terminology)              |

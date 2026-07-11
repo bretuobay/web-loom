@@ -18,7 +18,7 @@ I've been thinking about why this happens so consistently, and whether there's a
 
 ## This Isn't a New Problem
 
-The architectural question — how do you separate what your application *knows* from how it *looks* — is not new. It was solved, in a reasonably durable form, in 2005.
+The architectural question — how do you separate what your application _knows_ from how it _looks_ — is not new. It was solved, in a reasonably durable form, in 2005.
 
 John Gossman was an architect at Microsoft working on WPF (Windows Presentation Foundation). He wrote a blog post introducing Model–View–ViewModel as the pattern for WPF applications. The insight at its core was modest but important: the logic that decides what to display — loading states, derived values, formatted data — has nothing inherently to do with the rendering layer. You can write it as a plain class, test it in isolation, and connect it to any UI that knows how to subscribe to its output.
 
@@ -79,27 +79,23 @@ Here's a small example of what the same ViewModel looks like wired to React and 
 ```typescript
 // This ViewModel class is identical in both cases.
 class TaskListViewModel extends BaseViewModel<TaskModel> {
-  readonly fetchCommand = this.registerCommand(
-    new Command(async () => this.model.fetchAll())
-  );
-  readonly pendingCount$ = computed(() =>
-    (this.data$.get() ?? []).filter(t => !t.done).length
-  );
+  readonly fetchCommand = this.registerCommand(new Command(async () => this.model.fetchAll()));
+  readonly pendingCount$ = computed(() => (this.data$.get() ?? []).filter((t) => !t.done).length);
 }
 ```
 
 ```tsx
 // React View
-const tasks   = useSignal(vm.tasks$);
+const tasks = useSignal(vm.tasks$);
 const pending = useSignal(vm.pendingCount$);
 // ...
-<button onClick={() => vm.fetchCommand.execute()}>Refresh</button>
+<button onClick={() => vm.fetchCommand.execute()}>Refresh</button>;
 ```
 
 ```vue
 <!-- Vue View -->
 <script setup>
-observe(vm.tasks$, v => tasks.value = v);
+observe(vm.tasks$, (v) => (tasks.value = v));
 onMounted(() => vm.fetchCommand.execute());
 </script>
 ```
@@ -159,7 +155,7 @@ The 80/20 split — only 20% of a codebase is framework-specific — is an archi
 
 I'm also aware that I'm one person with one perspective. The web's pattern diversity partly reflects genuine disagreement about what the right approach is. Reasonable engineers have built good products with every state management library I mentioned earlier. The "right" architecture is context-dependent, and I don't think Web Loom is the right choice for every context.
 
-What I do think is that the question is underasked: *should the web have the same architectural continuity that mobile and desktop platforms achieved?* Not "should everyone use MVVM specifically" — but "is there value in a stable, cross-framework layer of business logic that survives when the rendering layer changes?"
+What I do think is that the question is underasked: _should the web have the same architectural continuity that mobile and desktop platforms achieved?_ Not "should everyone use MVVM specifically" — but "is there value in a stable, cross-framework layer of business logic that survives when the rendering layer changes?"
 
 The monorepo is open. The docs are live. If you've had similar frustrations, or if you think I'm wrong about where web architecture has landed, I'd genuinely like to hear it.
 

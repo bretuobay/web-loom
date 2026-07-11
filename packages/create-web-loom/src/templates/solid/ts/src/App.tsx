@@ -39,7 +39,9 @@ export default function App() {
         <p class="lead">Fine-grained updates from a framework-agnostic ViewModel layer.</p>
         <div class="stack" role="list" aria-label="Starter technologies">
           {STACK.map((item) => (
-            <span role="listitem" class="chip">{item}</span>
+            <span role="listitem" class="chip">
+              {item}
+            </span>
           ))}
         </div>
       </section>
@@ -49,8 +51,14 @@ export default function App() {
           <h2>Live Counter Demo</h2>
           <p class="meta">CounterViewModel + reactive signal bridge</p>
           <div class="metrics">
-            <div><span>Count</span><strong>{count()}</strong></div>
-            <div><span>Doubled</span><strong>{doubled()}</strong></div>
+            <div>
+              <span>Count</span>
+              <strong>{count()}</strong>
+            </div>
+            <div>
+              <span>Doubled</span>
+              <strong>{doubled()}</strong>
+            </div>
           </div>
           <div class="controls">
             <button onClick={() => void vm.decrementCommand.execute()}>-</button>
@@ -63,7 +71,9 @@ export default function App() {
           <h2>MVVM Wiring</h2>
           <p class="meta">Generated starter files in src/</p>
           <h3>src/viewmodels/CounterViewModel.ts</h3>
-          <pre><code>{vmSnippet}</code></pre>
+          <pre>
+            <code>{vmSnippet}</code>
+          </pre>
         </article>
       </section>
     </main>

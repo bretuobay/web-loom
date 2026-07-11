@@ -99,11 +99,7 @@ export interface EmbedRuntime {
   readonly version: string;
   readonly config: ResolvedEmbedConfig;
   ready(): Promise<void>;
-  mount(
-    name: string,
-    target?: string | HTMLElement,
-    options?: MountOptions,
-  ): Promise<WidgetHandle>;
+  mount(name: string, target?: string | HTMLElement, options?: MountOptions): Promise<WidgetHandle>;
   open(name: string, options?: MountOptions): Promise<WidgetHandle>;
   close(nameOrId?: string): void;
   destroy(nameOrId?: string): void;
@@ -224,11 +220,7 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
 
   return runtime;
 
-  async function mount(
-    name: string,
-    target?: string | HTMLElement,
-    options: MountOptions = {},
-  ): Promise<WidgetHandle> {
+  async function mount(name: string, target?: string | HTMLElement, options: MountOptions = {}): Promise<WidgetHandle> {
     await readyPromise;
     assertUsable();
     assertConsent();
@@ -248,7 +240,8 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
     }
 
     const id = createWidgetId(name);
-    const container = options.container === 'auto' || !options.container ? chooseContainer(entry, placement) : options.container;
+    const container =
+      options.container === 'auto' || !options.container ? chooseContainer(entry, placement) : options.container;
     const element = createHostElement(placement, target ?? options.target);
     const handle = createHandle(id, name, placement, entry, element);
     handles.set(id, handle);
@@ -265,7 +258,9 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
     } catch (cause) {
       handle.markState('error');
       handle.destroy();
-      throwAndEmit(createEmbedError('LOAD_FAILED', `Widget "${name}" failed to mount.`, { cause, widgetId: id, widgetName: name }));
+      throwAndEmit(
+        createEmbedError('LOAD_FAILED', `Widget "${name}" failed to mount.`, { cause, widgetId: id, widgetName: name }),
+      );
     }
   }
 
@@ -384,9 +379,7 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
     const ctx = createWidgetContext(handle, options.props ?? {});
     const cleanup = spec.mount(shadow, ctx);
     if (resolved.debug && spec.storageKeys?.length && !cleanup) {
-      console.warn(
-        `[embed-core] Widget "${spec.name}" declares storageKeys but did not return a cleanup function.`,
-      );
+      console.warn(`[embed-core] Widget "${spec.name}" declares storageKeys but did not return a cleanup function.`);
     }
     handle.cleanup = cleanup || undefined;
     handle.markState('mounted');
@@ -544,7 +537,9 @@ export function createEmbed(config: EmbedConfig): EmbedRuntime {
       },
       open() {
         if (state === 'destroyed') {
-          emitError(createEmbedError('DESTROYED', `Widget "${name}" has been destroyed.`, { widgetId: id, widgetName: name }));
+          emitError(
+            createEmbedError('DESTROYED', `Widget "${name}" has been destroyed.`, { widgetId: id, widgetName: name }),
+          );
           return;
         }
         element.hidden = false;
@@ -678,7 +673,9 @@ export function parsePlacement(value: string | undefined): WidgetPlacement | und
   return undefined;
 }
 
-export function createCspDirectives(config: Pick<EmbedConfig, 'runtimeUrl' | 'configEndpoint' | 'widgets'>): CspDirectives {
+export function createCspDirectives(
+  config: Pick<EmbedConfig, 'runtimeUrl' | 'configEndpoint' | 'widgets'>,
+): CspDirectives {
   const scriptSrc = new Set<string>();
   const connectSrc = new Set<string>();
   const frameSrc = new Set<string>();
@@ -844,7 +841,8 @@ function createIframeUrl(url: string, handle: WidgetHandle): string {
 }
 
 function createWidgetId(name: string): string {
-  const suffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+  const suffix =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2);
   return `${name}-${suffix}`;
 }
 

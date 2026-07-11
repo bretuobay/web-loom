@@ -1,10 +1,4 @@
-import {
-  signal,
-  computed,
-  debouncedSignal,
-  type ReadonlySignal,
-  type WritableSignal,
-} from '@web-loom/signals-core';
+import { signal, computed, debouncedSignal, type ReadonlySignal, type WritableSignal } from '@web-loom/signals-core';
 
 export class QueryableCollectionViewModel<T extends Record<string, any>> {
   private allItems$: WritableSignal<T[]>;
@@ -77,9 +71,7 @@ export class QueryableCollectionViewModel<T extends Record<string, any>> {
 
     this.totalItems$ = computed(() => processedItems$.get().length);
 
-    this.totalPages$ = computed(() =>
-      Math.max(1, Math.ceil(this.totalItems$.get() / this.pageSize$.get())),
-    ); // Ensure at least 1 page
+    this.totalPages$ = computed(() => Math.max(1, Math.ceil(this.totalItems$.get() / this.pageSize$.get()))); // Ensure at least 1 page
 
     this.paginatedItems$ = computed(() => {
       const items = processedItems$.get();

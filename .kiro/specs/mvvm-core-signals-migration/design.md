@@ -24,18 +24,18 @@ This design migrates `@web-loom/mvvm-core` from an RxJS substrate to `@web-loom/
 
 ## API Mapping
 
-| Today (RxJS) | After (signals) | Notes |
-| --- | --- | --- |
-| `protected _data$ = new BehaviorSubject<T>(v)` | `protected _data = signal<T>(v)` | 1:1 semantic swap |
-| `public readonly data$: Observable<T>` | `public readonly data$: ReadonlySignal<T>` | Name and `$` suffix preserved |
-| `subject.next(v)` | `sig.set(v)` / `sig.update(fn)` | |
-| `firstValueFrom(x$)` / `getCurrentX()` | `x$.get()` / `x$.peek()` | Synchronous — removes await points |
-| `x$.subscribe(fn)` → `Subscription` | `x$.subscribe(fn)` → unsubscribe function | `fn` receives the new value (Req 1.1) |
-| `subscription.unsubscribe()` | `unsubscribe()` | Bridges absorb this |
-| `subject.complete()` in `dispose()` | clear subscriber sets in `dispose()` | No completion semantic |
-| `combineLatest([...]).pipe(map, distinctUntilChanged)` | `computed(() => ...)` | Auto-tracked; `Object.is` dedup built in |
-| `pipe(debounceTime(ms))` | `debouncedSignal(source, ms)` | New signals-core helper |
-| Emit-on-subscribe (`BehaviorSubject`) | `observe(sig, fn)` — immediate call + subscribe | Key semantic delta, see below |
+| Today (RxJS)                                           | After (signals)                                 | Notes                                    |
+| ------------------------------------------------------ | ----------------------------------------------- | ---------------------------------------- |
+| `protected _data$ = new BehaviorSubject<T>(v)`         | `protected _data = signal<T>(v)`                | 1:1 semantic swap                        |
+| `public readonly data$: Observable<T>`                 | `public readonly data$: ReadonlySignal<T>`      | Name and `$` suffix preserved            |
+| `subject.next(v)`                                      | `sig.set(v)` / `sig.update(fn)`                 |                                          |
+| `firstValueFrom(x$)` / `getCurrentX()`                 | `x$.get()` / `x$.peek()`                        | Synchronous — removes await points       |
+| `x$.subscribe(fn)` → `Subscription`                    | `x$.subscribe(fn)` → unsubscribe function       | `fn` receives the new value (Req 1.1)    |
+| `subscription.unsubscribe()`                           | `unsubscribe()`                                 | Bridges absorb this                      |
+| `subject.complete()` in `dispose()`                    | clear subscriber sets in `dispose()`            | No completion semantic                   |
+| `combineLatest([...]).pipe(map, distinctUntilChanged)` | `computed(() => ...)`                           | Auto-tracked; `Object.is` dedup built in |
+| `pipe(debounceTime(ms))`                               | `debouncedSignal(source, ms)`                   | New signals-core helper                  |
+| Emit-on-subscribe (`BehaviorSubject`)                  | `observe(sig, fn)` — immediate call + subscribe | Key semantic delta, see below            |
 
 ## Semantic Deltas
 
@@ -59,8 +59,12 @@ export class BaseModel<TData, TSchema extends ZodSchema<TData>> implements IBase
   protected _error = signal<unknown>(null);
   public readonly error$: ReadonlySignal<unknown> = this._error.asReadonly();
 
-  public setData(newData: TData | null): void { this._data.set(newData); }
-  public getCurrentData(): TData | null { return this._data.peek(); }
+  public setData(newData: TData | null): void {
+    this._data.set(newData);
+  }
+  public getCurrentData(): TData | null {
+    return this._data.peek();
+  }
   // setLoading/setError/clearError/validate unchanged in shape; dispose() clears subscribers
 }
 ```
@@ -78,14 +82,10 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
   public readonly executeError$ = this._executeError.asReadonly();
   public readonly canExecute$: ReadonlySignal<boolean>;
 
-  constructor(
-    executeFn: (p: TParam) => Promise<TResult>,
-    canExecute?: ReadonlySignal<boolean> | (() => boolean),
-  ) {
+  constructor(executeFn: (p: TParam) => Promise<TResult>, canExecute?: ReadonlySignal<boolean> | (() => boolean)) {
     this.canExecute$ = computed(() => {
       this._canExecuteVersion.get(); // manual re-evaluation hook
-      const base = canExecute === undefined ? true
-        : typeof canExecute === 'function' ? canExecute() : canExecute.get();
+      const base = canExecute === undefined ? true : typeof canExecute === 'function' ? canExecute() : canExecute.get();
       return base && this._conditions.every((c) => c()) && !this._isExecuting.get();
     });
   }
@@ -100,15 +100,22 @@ export class Command<TParam = void, TResult = void> implements ICommand<TParam, 
     return this;
   }
 
-  raiseCanExecuteChanged(): void { this._canExecuteVersion.update((v) => v + 1); }
+  raiseCanExecuteChanged(): void {
+    this._canExecuteVersion.update((v) => v + 1);
+  }
 
   async execute(param: TParam): Promise<TResult | undefined> {
     if (!this.canExecute$.peek()) return; // synchronous guard — no awaited-stream race
     this._isExecuting.set(true);
     this._executeError.set(null);
-    try { return await this._executeFn(param); }
-    catch (err) { this._executeError.set(err); throw err; }
-    finally { this._isExecuting.set(false); }
+    try {
+      return await this._executeFn(param);
+    } catch (err) {
+      this._executeError.set(err);
+      throw err;
+    } finally {
+      this._isExecuting.set(false);
+    }
   }
 }
 ```
@@ -151,7 +158,9 @@ export function toAngularSignal<T>(sig: ReadonlySignal<T>, destroyRef: DestroyRe
 // Vue composable
 export function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
   const r = shallowRef(sig.peek());
-  const unsub = observe(sig, (v) => { r.value = v; });
+  const unsub = observe(sig, (v) => {
+    r.value = v;
+  });
   onUnmounted(unsub);
   return r;
 }
@@ -171,11 +180,11 @@ The React bridge is a strict improvement: no `initialValue` parameter and no fir
 
 ## Risks and Mitigations
 
-| Risk | Mitigation |
-| --- | --- |
-| Hidden operator usage in `src/examples` and tests beyond the audited sites | Grep-audit `rxjs` imports per module before porting it; prune or rewrite examples (Req 5.5) |
-| Consumers relying on emit-on-subscribe | `observe()` helper; bridges read `get()` synchronously; call out in README migration notes |
-| Tests asserting intermediate emissions or completion semantics | Adapt deliberately per Req 8.2; use `batch()` knowingly, never silently |
-| Fluent `observesProperty` after construction not re-evaluating `canExecute$` | Version-signal bump on registration (see Command design note) |
-| Marko / React Native bridge specifics differ from web React | React Native shares `useSyncExternalStore`; Marko uses `observe()` — verify both demos render and dispose correctly |
-| `queryable-collection-view-model` / `form-view-model` timing changes (50ms/150ms debounce) | `debouncedSignal` preserves the same delays; port their tests with fake timers |
+| Risk                                                                                       | Mitigation                                                                                                          |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Hidden operator usage in `src/examples` and tests beyond the audited sites                 | Grep-audit `rxjs` imports per module before porting it; prune or rewrite examples (Req 5.5)                         |
+| Consumers relying on emit-on-subscribe                                                     | `observe()` helper; bridges read `get()` synchronously; call out in README migration notes                          |
+| Tests asserting intermediate emissions or completion semantics                             | Adapt deliberately per Req 8.2; use `batch()` knowingly, never silently                                             |
+| Fluent `observesProperty` after construction not re-evaluating `canExecute$`               | Version-signal bump on registration (see Command design note)                                                       |
+| Marko / React Native bridge specifics differ from web React                                | React Native shares `useSyncExternalStore`; Marko uses `observe()` — verify both demos render and dispose correctly |
+| `queryable-collection-view-model` / `form-view-model` timing changes (50ms/150ms debounce) | `debouncedSignal` preserves the same delays; port their tests with fake timers                                      |

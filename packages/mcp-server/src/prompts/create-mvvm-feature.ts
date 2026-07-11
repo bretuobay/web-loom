@@ -1,24 +1,27 @@
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from 'zod';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 export function registerCreateMvvmFeaturePrompt(server: McpServer): void {
   server.registerPrompt(
-    "create-mvvm-feature",
+    'create-mvvm-feature',
     {
-      description: "Step-by-step guide for creating a complete MVVM feature using web-loom — from Zod schema through Model, ViewModel, to framework adapter.",
+      description:
+        'Step-by-step guide for creating a complete MVVM feature using web-loom — from Zod schema through Model, ViewModel, to framework adapter.',
       argsSchema: {
         featureName: z.string().describe("Feature/entity name in PascalCase (e.g. 'Product', 'Invoice')"),
         endpoint: z.string().describe("REST API endpoint (e.g. '/api/products')"),
-        fields: z.string().describe("Comma-separated field names and types, e.g. 'name:string, price:number, active:boolean'"),
-        framework: z.enum(["react", "vue", "vanilla", "angular", "lit"]).describe("Target UI framework"),
+        fields: z
+          .string()
+          .describe("Comma-separated field names and types, e.g. 'name:string, price:number, active:boolean'"),
+        framework: z.enum(['react', 'vue', 'vanilla', 'angular', 'lit']).describe('Target UI framework'),
       },
     },
     async ({ featureName, endpoint, fields, framework }) => ({
       messages: [
         {
-          role: "user" as const,
+          role: 'user' as const,
           content: {
-            type: "text" as const,
+            type: 'text' as const,
             text: `I want to create a web-loom MVVM feature called "${featureName}" that connects to "${endpoint}".
 
 **Fields**: ${fields}
@@ -58,6 +61,6 @@ Start with Step 1 now.`,
           },
         },
       ],
-    })
+    }),
   );
 }

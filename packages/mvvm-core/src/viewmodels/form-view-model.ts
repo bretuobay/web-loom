@@ -1,10 +1,4 @@
-import {
-  signal,
-  computed,
-  debouncedSignal,
-  type ReadonlySignal,
-  type WritableSignal,
-} from '@web-loom/signals-core';
+import { signal, computed, debouncedSignal, type ReadonlySignal, type WritableSignal } from '@web-loom/signals-core';
 import { ZodError, ZodSchema, ZodIssue } from 'zod';
 
 // Minimal Command interface (can be expanded later)
@@ -96,9 +90,7 @@ export class FormViewModel<
       );
     });
 
-    this.isDirty$ = computed(
-      () => JSON.stringify(this.formData$.get()) !== JSON.stringify(this.initialData),
-    );
+    this.isDirty$ = computed(() => JSON.stringify(this.formData$.get()) !== JSON.stringify(this.initialData));
 
     this.submitCommand = this.createSubmitCommand();
   }

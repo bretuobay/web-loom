@@ -44,18 +44,14 @@ export const uiStore = createStore<UIState, typeof actions>(
     searchQuery: '',
   },
   (set, get, actions) => ({
-    setTheme: (theme: UIState['theme']) =>
-      set(s => ({ ...s, theme })),
+    setTheme: (theme: UIState['theme']) => set((s) => ({ ...s, theme })),
 
-    toggleSidebar: () =>
-      set(s => ({ ...s, sidebarOpen: !s.sidebarOpen })),
+    toggleSidebar: () => set((s) => ({ ...s, sidebarOpen: !s.sidebarOpen })),
 
-    setActiveTab: (tab: string) =>
-      set(s => ({ ...s, activeTab: tab })),
+    setActiveTab: (tab: string) => set((s) => ({ ...s, activeTab: tab })),
 
-    setSearchQuery: (query: string) =>
-      set(s => ({ ...s, searchQuery: query })),
-  })
+    setSearchQuery: (query: string) => set((s) => ({ ...s, searchQuery: query })),
+  }),
 );
 
 // Export individual actions for convenient usage
@@ -129,7 +125,7 @@ export function useUIState<T>(selector: (s: UIState) => T) {
 }
 
 // Usage
-const isOpen = useUIState(s => s.sidebarOpen);
+const isOpen = useUIState((s) => s.sidebarOpen);
 ```
 
 **Vanilla / Web Components:**
@@ -162,18 +158,19 @@ import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
 const uiStore = createStore(
   { theme: 'light', sidebarOpen: false },
   (set) => ({
-    setTheme:       (t) => set(s => ({ ...s, theme: t })),
-    toggleSidebar:  ()  => set(s => ({ ...s, sidebarOpen: !s.sidebarOpen })),
+    setTheme: (t) => set((s) => ({ ...s, theme: t })),
+    toggleSidebar: () => set((s) => ({ ...s, sidebarOpen: !s.sidebarOpen })),
   }),
   {
     key: 'my-app:ui-state',
     adapter: new LocalStorageAdapter(),
-    merge: true,  // merge loaded state with initial state
-  }
+    merge: true, // merge loaded state with initial state
+  },
 );
 ```
 
 With persistence enabled, the store:
+
 1. Auto-hydrates from storage on creation (asynchronously)
 2. Auto-syncs to storage on every state change (fire-and-forget)
 
@@ -203,42 +200,34 @@ There's no reason to use a single global UI store. Splitting stores by feature d
 
 ```typescript
 // navigation-store.ts
-export const navStore = createStore(
-  { activeRoute: '/', breadcrumbs: [] as string[] },
-  (set) => ({
-    navigate: (route: string) =>
-      set(s => ({ ...s, activeRoute: route })),
-    setBreadcrumbs: (crumbs: string[]) =>
-      set(s => ({ ...s, breadcrumbs: crumbs })),
-  }),
-);
+export const navStore = createStore({ activeRoute: '/', breadcrumbs: [] as string[] }, (set) => ({
+  navigate: (route: string) => set((s) => ({ ...s, activeRoute: route })),
+  setBreadcrumbs: (crumbs: string[]) => set((s) => ({ ...s, breadcrumbs: crumbs })),
+}));
 
 // layout-store.ts
 export const layoutStore = createStore(
   { sidebarOpen: true, panelWidth: 320 },
   (set) => ({
-    toggleSidebar: () =>
-      set(s => ({ ...s, sidebarOpen: !s.sidebarOpen })),
-    setPanelWidth: (w: number) =>
-      set(s => ({ ...s, panelWidth: w })),
+    toggleSidebar: () => set((s) => ({ ...s, sidebarOpen: !s.sidebarOpen })),
+    setPanelWidth: (w: number) => set((s) => ({ ...s, panelWidth: w })),
   }),
   {
     key: 'layout',
     adapter: new LocalStorageAdapter(),
-  }
+  },
 );
 
 // theme-store.ts
 export const themeStore = createStore(
   { mode: 'system' as 'light' | 'dark' | 'system' },
   (set) => ({
-    setMode: (mode: 'light' | 'dark' | 'system') =>
-      set(s => ({ ...s, mode })),
+    setMode: (mode: 'light' | 'dark' | 'system') => set((s) => ({ ...s, mode })),
   }),
   {
     key: 'theme',
     adapter: new LocalStorageAdapter(),
-  }
+  },
 );
 ```
 
@@ -251,28 +240,25 @@ Each store is independent. They subscribe separately, persist separately, and ar
 The `actions` parameter in `createActions` is a forward reference — you can call other actions from within an action:
 
 ```typescript
-const store = createStore(
-  { isLoggedIn: false, username: '', cartItems: [] as string[] },
-  (set, get, actions) => ({
-    login: (username: string) => {
-      set(s => ({ ...s, isLoggedIn: true, username }));
-    },
-    logout: () => {
-      set(s => ({ ...s, isLoggedIn: false, username: '' }));
-      actions.clearCart(); // call another action
-    },
-    clearCart: () => {
-      set(s => ({ ...s, cartItems: [] }));
-    },
-    addToCart: (item: string) => {
-      if (!get().isLoggedIn) {
-        console.warn('Cannot add to cart while logged out');
-        return;
-      }
-      set(s => ({ ...s, cartItems: [...s.cartItems, item] }));
-    },
-  })
-);
+const store = createStore({ isLoggedIn: false, username: '', cartItems: [] as string[] }, (set, get, actions) => ({
+  login: (username: string) => {
+    set((s) => ({ ...s, isLoggedIn: true, username }));
+  },
+  logout: () => {
+    set((s) => ({ ...s, isLoggedIn: false, username: '' }));
+    actions.clearCart(); // call another action
+  },
+  clearCart: () => {
+    set((s) => ({ ...s, cartItems: [] }));
+  },
+  addToCart: (item: string) => {
+    if (!get().isLoggedIn) {
+      console.warn('Cannot add to cart while logged out');
+      return;
+    }
+    set((s) => ({ ...s, cartItems: [...s.cartItems, item] }));
+  },
+}));
 ```
 
 `get()` reads the current state synchronously inside an action — useful for conditional logic.
@@ -305,7 +291,7 @@ The store performs a shallow comparison on state updates. If your action returns
 uiStore.actions.setOpen(open);
 
 // Returning a spread with the same values fires NO subscribers
-set(s => ({ ...s })); // ← shallow comparison catches this, no notification
+set((s) => ({ ...s })); // ← shallow comparison catches this, no notification
 ```
 
 For nested state, you're responsible for returning new references at the changed level. The store does not perform deep equality — that would be too expensive for frequent updates.
@@ -315,7 +301,7 @@ For nested state, you're responsible for returning new references at the changed
 ## Cleanup
 
 ```typescript
-uiStore.destroy();  // clears all listeners, does NOT clear persisted storage
+uiStore.destroy(); // clears all listeners, does NOT clear persisted storage
 await uiStore.clearPersisted(); // clears storage (PersistedStore only)
 ```
 

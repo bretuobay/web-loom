@@ -255,9 +255,7 @@ class QueryCore {
     if (endpoint.state.isLoading) {
       if (forceRefetch) {
         endpoint.pendingForceRefetch = true;
-        console.warn(
-          `QueryCore: Refetch for "${endpointKey}" queued (force=true), a fetch is already in progress.`,
-        );
+        console.warn(`QueryCore: Refetch for "${endpointKey}" queued (force=true), a fetch is already in progress.`);
       } else {
         console.warn(`QueryCore: Refetch for "${endpointKey}" aborted, a fetch is already in progress.`);
       }

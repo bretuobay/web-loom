@@ -1,6 +1,6 @@
-import type { ViewModelStyle } from "./viewmodel.js";
+import type { ViewModelStyle } from './viewmodel.js';
 
-export type Framework = "react" | "vue" | "vanilla" | "angular" | "lit";
+export type Framework = 'react' | 'vue' | 'vanilla' | 'angular' | 'lit';
 
 export interface AdapterTemplateParams {
   name: string;
@@ -9,31 +9,31 @@ export interface AdapterTemplateParams {
 }
 
 export function adapterTemplate(p: AdapterTemplateParams): string {
-  const { name, framework, viewModelStyle = "restful-class" } = p;
+  const { name, framework, viewModelStyle = 'restful-class' } = p;
   switch (framework) {
-    case "react":
+    case 'react':
       return reactAdapterTemplate(name, viewModelStyle);
-    case "vue":
+    case 'vue':
       return vueAdapterTemplate(name, viewModelStyle);
-    case "vanilla":
+    case 'vanilla':
       return vanillaAdapterTemplate(name, viewModelStyle);
-    case "angular":
+    case 'angular':
       return angularAdapterTemplate(name, viewModelStyle);
-    case "lit":
+    case 'lit':
       return litAdapterTemplate(name, viewModelStyle);
   }
 }
 
 function loadCommandFor(style: ViewModelStyle): string {
-  if (style === "base-commands") {
-    return "refreshCommand";
+  if (style === 'base-commands') {
+    return 'refreshCommand';
   }
 
-  if (style === "active-signals-list") {
-    return "loadCommand";
+  if (style === 'active-signals-list') {
+    return 'loadCommand';
   }
 
-  return "fetchCommand";
+  return 'fetchCommand';
 }
 
 function classViewModelSetup(name: string): string {
@@ -46,7 +46,7 @@ function factoryViewModelSetup(name: string): string {
 }
 
 function reactAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
-  const usesFactory = viewModelStyle === "reactive-factory";
+  const usesFactory = viewModelStyle === 'reactive-factory';
   const loadCommand = loadCommandFor(viewModelStyle);
   return `import { useEffect, useState, useSyncExternalStore } from "react";
 import type { ReadonlySignal } from "@web-loom/signals-core";
@@ -58,8 +58,12 @@ function useSignal<T>(sig: ReadonlySignal<T>): T {
 
 export function use${name}() {
   const [vm] = useState(() => {
-${usesFactory ? `    return create${name}ViewModel();` : `    const model = new ${name}Model();
-    return new ${name}ViewModel(model);`}
+${
+  usesFactory
+    ? `    return create${name}ViewModel();`
+    : `    const model = new ${name}Model();
+    return new ${name}ViewModel(model);`
+}
   });
 
   const data = useSignal(vm.data$);
@@ -77,7 +81,7 @@ ${usesFactory ? `    return create${name}ViewModel();` : `    const model = new 
 }
 
 function vueAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
-  const usesFactory = viewModelStyle === "reactive-factory";
+  const usesFactory = viewModelStyle === 'reactive-factory';
   const loadCommand = loadCommandFor(viewModelStyle);
   return `import { shallowRef, onMounted, onUnmounted, type ShallowRef } from "vue";
 import { observe, type ReadonlySignal } from "@web-loom/signals-core";
@@ -93,8 +97,12 @@ function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
 }
 
 export function use${name}() {
-${usesFactory ? `  const vm = create${name}ViewModel();` : `  const model = new ${name}Model();
-  const vm = new ${name}ViewModel(model);`}
+${
+  usesFactory
+    ? `  const vm = create${name}ViewModel();`
+    : `  const model = new ${name}Model();
+  const vm = new ${name}ViewModel(model);`
+}
 
   const data = useSignal(vm.data$);
   const isLoading = useSignal(vm.isLoading$);
@@ -111,14 +119,18 @@ ${usesFactory ? `  const vm = create${name}ViewModel();` : `  const model = new 
 }
 
 function vanillaAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
-  const usesFactory = viewModelStyle === "reactive-factory";
+  const usesFactory = viewModelStyle === 'reactive-factory';
   const loadCommand = loadCommandFor(viewModelStyle);
   return `import { observe } from "@web-loom/signals-core";
 ${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
 
 export function create${name}Controller() {
-${usesFactory ? `  const vm = create${name}ViewModel();` : `  const model = new ${name}Model();
-  const vm = new ${name}ViewModel(model);`}
+${
+  usesFactory
+    ? `  const vm = create${name}ViewModel();`
+    : `  const model = new ${name}Model();
+  const vm = new ${name}ViewModel(model);`
+}
 
   const teardowns = [
     observe(vm.data$, (data) => {
@@ -148,7 +160,7 @@ ${usesFactory ? `  const vm = create${name}ViewModel();` : `  const model = new 
 }
 
 function angularAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
-  const usesFactory = viewModelStyle === "reactive-factory";
+  const usesFactory = viewModelStyle === 'reactive-factory';
   const loadCommand = loadCommandFor(viewModelStyle);
   return `import { DestroyRef, Injectable, OnDestroy, inject, signal, type Signal } from "@angular/core";
 import type { ReadonlySignal } from "@web-loom/signals-core";
@@ -163,8 +175,12 @@ function fromLoomSignal<T>(source: ReadonlySignal<T>, destroyRef: DestroyRef): S
 
 @Injectable()
 export class ${name}Service implements OnDestroy {
-${usesFactory ? `  readonly vm = create${name}ViewModel();` : `  private readonly _model = new ${name}Model();
-  readonly vm = new ${name}ViewModel(this._model);`}
+${
+  usesFactory
+    ? `  readonly vm = create${name}ViewModel();`
+    : `  private readonly _model = new ${name}Model();
+  readonly vm = new ${name}ViewModel(this._model);`
+}
   private readonly destroyRef = inject(DestroyRef);
 
   readonly data = fromLoomSignal(this.vm.data$, this.destroyRef);
@@ -183,9 +199,9 @@ ${usesFactory ? `  readonly vm = create${name}ViewModel();` : `  private readonl
 }
 
 function litAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
-  const usesFactory = viewModelStyle === "reactive-factory";
+  const usesFactory = viewModelStyle === 'reactive-factory';
   const loadCommand = loadCommandFor(viewModelStyle);
-  const elementName = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+  const elementName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 
   return `import { LitElement, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -194,8 +210,12 @@ ${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
 
 @customElement("${elementName}-view")
 export class ${name}ViewElement extends LitElement {
-${usesFactory ? `  private readonly vm = create${name}ViewModel();` : `  private readonly model = new ${name}Model();
-  private readonly vm = new ${name}ViewModel(this.model);`}
+${
+  usesFactory
+    ? `  private readonly vm = create${name}ViewModel();`
+    : `  private readonly model = new ${name}Model();
+  private readonly vm = new ${name}ViewModel(this.model);`
+}
   private readonly teardowns: Array<() => void> = [];
 
   @state()

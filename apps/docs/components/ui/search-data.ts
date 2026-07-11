@@ -91,8 +91,7 @@ export const DOCS_SEARCH_ENTRIES: SearchEntry[] = [
   },
   {
     title: 'Query Core',
-    summary:
-      'A minimal server state management library for managing asynchronous data fetching, caching, and state.',
+    summary: 'A minimal server state management library for managing asynchronous data fetching, caching, and state.',
     href: '/docs/query-core',
     topic: 'Published Packages',
   },

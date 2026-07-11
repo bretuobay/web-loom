@@ -329,8 +329,7 @@ describe('RestfulApiModel', () => {
       const promise = model.create(singleUserPayload); // Pass single Partial<User>
 
       // Optimistic update
-      const optimisticData = await model.data$
-        .get();
+      const optimisticData = await model.data$.get();
       expect((optimisticData as User[]).length).toBe(initialData.length + 1);
       const tempItem = (optimisticData as User[]).find((u) => u.name === singleUserPayload.name);
       expect(tempItem).toBeDefined();
@@ -340,8 +339,7 @@ describe('RestfulApiModel', () => {
       expect(createdItem).toEqual(serverResponseUser);
 
       // Final update from server
-      const finalData = (await model.data$
-        .get()) as User[];
+      const finalData = (await model.data$.get()) as User[];
       expect(finalData.length).toBe(initialData.length + 1);
       expect(finalData.find((u) => u.id === serverResponseUser.id)).toEqual(serverResponseUser);
       expect(finalData.find((u) => u.id === tempItem!.id)).toBeUndefined();
@@ -381,8 +379,7 @@ describe('RestfulApiModel', () => {
 
       const promise = model.create(usersPayload);
 
-      const optimisticData = (await model.data$
-        .get()) as User[];
+      const optimisticData = (await model.data$.get()) as User[];
       expect(optimisticData.length).toBe(initialData.length + usersPayload.length);
       usersPayload.forEach((payloadUser) => {
         const tempItem = optimisticData.find((u) => u.name === payloadUser.name);
@@ -393,8 +390,7 @@ describe('RestfulApiModel', () => {
       const createdItems = (await promise) as User[];
       expect(createdItems).toEqual(serverResponseUsers);
 
-      const finalData = (await model.data$
-        .get()) as User[];
+      const finalData = (await model.data$.get()) as User[];
       expect(finalData.length).toBe(initialData.length + usersPayload.length);
       serverResponseUsers.forEach((serverUser) => {
         expect(finalData.find((u) => u.id === serverUser.id)).toEqual(serverUser);
@@ -549,9 +545,7 @@ describe('RestfulApiModel', () => {
       const specificPayload = { name: serverUser.name, email: serverUser.email };
       const created = await singleItemModel.create(specificPayload); // This call uses the new mock
 
-      expect(await singleItemModel.data$.get()).toEqual(
-        expectedServerUser,
-      );
+      expect(await singleItemModel.data$.get()).toEqual(expectedServerUser);
     });
 
     it('ORIGINAL: should revert optimistic set of single item if create fails (TData is User)', async () => {
@@ -623,8 +617,7 @@ describe('RestfulApiModel', () => {
       expect(createdItem).toEqual(invalidServerResponse);
       expect(await modelValidateFalse.error$.get()).toBeNull();
 
-      const currentData = (await modelValidateFalse.data$
-        .get()) as User[];
+      const currentData = (await modelValidateFalse.data$.get()) as User[];
       expect(currentData).toEqual(expect.arrayContaining([invalidServerResponse]));
       modelValidateFalse.dispose();
     });
@@ -695,8 +688,7 @@ describe('RestfulApiModel', () => {
       const promise = modelToTest.update('1', updatePayload); // updatePayload is Partial<User>
 
       // Optimistic
-      const optimisticData = (await modelToTest.data$
-        .get()) as User[];
+      const optimisticData = (await modelToTest.data$.get()) as User[];
       const updatedOptimisticItem = optimisticData.find((u) => u.id === '1');
       expect(updatedOptimisticItem?.name).toBe(updatePayload.name);
       expect(updatedOptimisticItem?.email).toBe(originalUserInCollection.email); // Email not in payload
@@ -705,8 +697,7 @@ describe('RestfulApiModel', () => {
       expect(updatedItem).toEqual(serverUpdatedUser);
 
       // Server confirmed
-      const finalData = (await modelToTest.data$
-        .get()) as User[];
+      const finalData = (await modelToTest.data$.get()) as User[];
       expect(finalData.find((u) => u.id === '1')).toEqual(serverUpdatedUser);
 
       expect(mockFetcher).toHaveBeenCalledWith(
@@ -754,8 +745,7 @@ describe('RestfulApiModel', () => {
       const promise = modelToTest.update(initialSingleUser.id, singleUpdatePayload);
 
       // Optimistic
-      const optimisticData = await modelToTest.data$
-        .get();
+      const optimisticData = await modelToTest.data$.get();
       expect((optimisticData as User)?.name).toBe(singleUpdatePayload.name);
 
       const updatedItem = await promise;
@@ -849,8 +839,7 @@ describe('RestfulApiModel', () => {
       expect(updatedItem).toEqual(invalidServerResponse);
       expect(await modelValidateFalse.error$.get()).toBeNull();
 
-      const currentData = (await modelValidateFalse.data$
-        .get()) as User[];
+      const currentData = (await modelValidateFalse.data$.get()) as User[];
       expect(currentData.find((u) => u.id === '1')).toEqual(invalidServerResponse);
       modelValidateFalse.dispose();
     });

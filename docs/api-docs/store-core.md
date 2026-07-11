@@ -38,14 +38,11 @@ interface CounterActions {
   add: (amount: number) => void;
 }
 
-const store = createStore<CounterState, CounterActions>(
-  { count: 0 },
-  (set, get) => ({
-    increment: () => set(state => ({ ...state, count: state.count + 1 })),
-    decrement: () => set(state => ({ ...state, count: state.count - 1 })),
-    add: (amount) => set(state => ({ ...state, count: state.count + amount })),
-  })
-);
+const store = createStore<CounterState, CounterActions>({ count: 0 }, (set, get) => ({
+  increment: () => set((state) => ({ ...state, count: state.count + 1 })),
+  decrement: () => set((state) => ({ ...state, count: state.count - 1 })),
+  add: (amount) => set((state) => ({ ...state, count: state.count + amount })),
+}));
 
 // Use the store
 store.actions.increment();
@@ -64,19 +61,17 @@ const unsubscribe = store.subscribe((newState, oldState) => {
 Creates a new store instance.
 
 **Type Signature:**
+
 ```typescript
 function createStore<S extends State, A extends Actions<S, A>>(
   initialState: S,
-  createActions: (
-    set: (updater: (state: S) => S) => void,
-    get: () => S,
-    actions: A
-  ) => A,
-  persistence?: PersistenceConfig<S>
-): Store<S, A> | PersistedStore<S, A>
+  createActions: (set: (updater: (state: S) => S) => void, get: () => S, actions: A) => A,
+  persistence?: PersistenceConfig<S>,
+): Store<S, A> | PersistedStore<S, A>;
 ```
 
 **Parameters:**
+
 - `initialState: S` - The initial state object
 - `createActions` - Function that receives `set`, `get`, and `actions` and returns action implementations
 - `persistence` - Optional persistence configuration
@@ -99,7 +94,7 @@ console.log(currentState.count);
 Updates the state. Primarily for internal use by actions.
 
 ```typescript
-store.setState(state => ({ ...state, count: state.count + 1 }));
+store.setState((state) => ({ ...state, count: state.count + 1 }));
 ```
 
 #### `subscribe(listener: Listener<S>): () => void`
@@ -140,8 +135,8 @@ store.actions.add(5);
 interface PersistenceConfig<S> {
   adapter: PersistenceAdapter<S>;
   key: string;
-  autoSync?: boolean;  // default: true
-  merge?: boolean;     // default: false
+  autoSync?: boolean; // default: true
+  merge?: boolean; // default: false
   serialize?: (state: S) => string;
   deserialize?: (data: string) => S;
 }
@@ -156,15 +151,11 @@ Persists state to browser `localStorage`.
 ```typescript
 import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
 
-const store = createStore(
-  initialState,
-  createActions,
-  {
-    adapter: new LocalStorageAdapter(),
-    key: 'app-state',
-    autoSync: true,
-  }
-);
+const store = createStore(initialState, createActions, {
+  adapter: new LocalStorageAdapter(),
+  key: 'app-state',
+  autoSync: true,
+});
 ```
 
 #### IndexedDBAdapter
@@ -174,15 +165,11 @@ Persists state to browser `IndexedDB` for larger datasets.
 ```typescript
 import { createStore, IndexedDBAdapter } from '@web-loom/store-core';
 
-const store = createStore(
-  initialState,
-  createActions,
-  {
-    adapter: new IndexedDBAdapter('my-db-name'),
-    key: 'documents',
-    autoSync: true,
-  }
-);
+const store = createStore(initialState, createActions, {
+  adapter: new IndexedDBAdapter('my-db-name'),
+  key: 'documents',
+  autoSync: true,
+});
 ```
 
 #### MemoryAdapter
@@ -194,14 +181,10 @@ import { createStore, MemoryAdapter } from '@web-loom/store-core';
 
 const memoryAdapter = new MemoryAdapter<MyState>();
 
-const store = createStore(
-  initialState,
-  createActions,
-  {
-    adapter: memoryAdapter,
-    key: 'test-store',
-  }
-);
+const store = createStore(initialState, createActions, {
+  adapter: memoryAdapter,
+  key: 'test-store',
+});
 
 // Clear all data
 memoryAdapter.clear();
@@ -259,7 +242,7 @@ export function useStore<S, A>(store: Store<S, A>): [S, A] {
 // Usage
 function Counter() {
   const [state, actions] = useStore(counterStore);
-  
+
   return (
     <div>
       <p>Count: {state.count}</p>
@@ -283,7 +266,7 @@ onMounted(() => {
   const unsubscribe = counterStore.subscribe((newState) => {
     state.value = newState;
   });
-  
+
   onUnmounted(unsubscribe);
 });
 
@@ -347,28 +330,25 @@ interface ApiActions {
   clearError: () => void;
 }
 
-const apiStore = createStore<ApiState, ApiActions>(
-  { data: null, loading: false, error: null },
-  (set, get) => ({
-    fetchUsers: async () => {
-      set(state => ({ ...state, loading: true, error: null }));
-      
-      try {
-        const response = await fetch('/api/users');
-        const users = await response.json();
-        set(state => ({ ...state, data: users, loading: false }));
-      } catch (error) {
-        set(state => ({ 
-          ...state, 
-          loading: false, 
-          error: error.message 
-        }));
-      }
-    },
-    
-    clearError: () => set(state => ({ ...state, error: null })),
-  })
-);
+const apiStore = createStore<ApiState, ApiActions>({ data: null, loading: false, error: null }, (set, get) => ({
+  fetchUsers: async () => {
+    set((state) => ({ ...state, loading: true, error: null }));
+
+    try {
+      const response = await fetch('/api/users');
+      const users = await response.json();
+      set((state) => ({ ...state, data: users, loading: false }));
+    } catch (error) {
+      set((state) => ({
+        ...state,
+        loading: false,
+        error: error.message,
+      }));
+    }
+  },
+
+  clearError: () => set((state) => ({ ...state, error: null })),
+}));
 ```
 
 ### Selectors (Computed Values)
@@ -379,18 +359,18 @@ const todoSelectors = {
     const { todos, filter } = state;
     switch (filter) {
       case 'active':
-        return todos.filter(t => !t.completed);
+        return todos.filter((t) => !t.completed);
       case 'completed':
-        return todos.filter(t => t.completed);
+        return todos.filter((t) => t.completed);
       default:
         return todos;
     }
   },
-  
+
   getTodoStats: (state: TodoState) => ({
     total: state.todos.length,
-    completed: state.todos.filter(t => t.completed).length,
-    active: state.todos.filter(t => !t.completed).length,
+    completed: state.todos.filter((t) => t.completed).length,
+    active: state.todos.filter((t) => !t.completed).length,
   }),
 };
 
@@ -420,9 +400,7 @@ function createLogger<S, A>(storeName: string) {
 }
 
 // Usage
-const enhancedStore = createLogger('Counter')(
-  createStore(initialState, createActions)
-);
+const enhancedStore = createLogger('Counter')(createStore(initialState, createActions));
 ```
 
 ### Time Travel (Undo/Redo)
@@ -506,17 +484,19 @@ interface AppActions {
 const appStore: Store<AppState, AppActions> = createStore(
   { user: null, theme: 'light', sidebar: { isOpen: false, isPinned: false } },
   (set) => ({
-    setUser: (user) => set(state => ({ ...state, user })),
-    setTheme: (theme) => set(state => ({ ...state, theme })),
-    toggleSidebar: () => set(state => ({ 
-      ...state, 
-      sidebar: { ...state.sidebar, isOpen: !state.sidebar.isOpen } 
-    })),
-    pinSidebar: (pinned) => set(state => ({ 
-      ...state, 
-      sidebar: { ...state.sidebar, isPinned: pinned } 
-    })),
-  })
+    setUser: (user) => set((state) => ({ ...state, user })),
+    setTheme: (theme) => set((state) => ({ ...state, theme })),
+    toggleSidebar: () =>
+      set((state) => ({
+        ...state,
+        sidebar: { ...state.sidebar, isOpen: !state.sidebar.isOpen },
+      })),
+    pinSidebar: (pinned) =>
+      set((state) => ({
+        ...state,
+        sidebar: { ...state.sidebar, isPinned: pinned },
+      })),
+  }),
 );
 ```
 
@@ -542,13 +522,14 @@ Always return new objects:
 
 ```typescript
 // Good
-increment: () => set(state => ({ ...state, count: state.count + 1 }))
+increment: () => set((state) => ({ ...state, count: state.count + 1 }));
 
 // Bad - mutation
-increment: () => set(state => {
-  state.count++; // Mutates!
-  return state;
-})
+increment: () =>
+  set((state) => {
+    state.count++; // Mutates!
+    return state;
+  });
 ```
 
 ### 3. Use TypeScript
@@ -585,8 +566,8 @@ Create reusable selector functions:
 
 ```typescript
 const selectors = {
-  getActiveTodos: (state) => state.todos.filter(t => !t.completed),
-  getTodoById: (state, id) => state.todos.find(t => t.id === id),
+  getActiveTodos: (state) => state.todos.filter((t) => !t.completed),
+  getTodoById: (state, id) => state.todos.find((t) => t.id === id),
 };
 ```
 
@@ -605,6 +586,7 @@ interface AsyncState<T> {
 ### 7. Persistence Strategy
 
 Choose the right adapter:
+
 - `LocalStorageAdapter`: User preferences, small data
 - `IndexedDBAdapter`: Large datasets, documents
 - `MemoryAdapter`: Testing, temporary data
@@ -657,12 +639,16 @@ export default rootStore;
 **Problem**: UI doesn't update after calling action
 
 **Solution**: Ensure you're returning a new object:
+
 ```typescript
 // Wrong
-set(state => { state.count++; return state; })
+set((state) => {
+  state.count++;
+  return state;
+});
 
 // Correct
-set(state => ({ ...state, count: state.count + 1 }))
+set((state) => ({ ...state, count: state.count + 1 }));
 ```
 
 ### Memory Leaks
@@ -670,6 +656,7 @@ set(state => ({ ...state, count: state.count + 1 }))
 **Problem**: Memory usage grows over time
 
 **Solution**: Always cleanup subscriptions:
+
 ```typescript
 useEffect(() => {
   const unsub = store.subscribe(handleChange);
@@ -682,6 +669,7 @@ useEffect(() => {
 **Problem**: State not saving/loading
 
 **Solution**: Check adapter and key configuration:
+
 ```typescript
 {
   adapter: new LocalStorageAdapter(),
@@ -702,12 +690,9 @@ const reducer = (state = initial, action) => {
 };
 
 // Store-core
-const store = createStore(
-  { count: 0 },
-  (set) => ({
-    increment: () => set(state => ({ ...state, count: state.count + 1 })),
-  })
-);
+const store = createStore({ count: 0 }, (set) => ({
+  increment: () => set((state) => ({ ...state, count: state.count + 1 })),
+}));
 ```
 
 ## See Also

@@ -35,7 +35,7 @@ export function cleanupDOM(): void {
 export function generateTimeSeriesData(
   count: number,
   startDate: Date = new Date('2024-01-01'),
-  intervalMs: number = 3600000 // 1 hour
+  intervalMs: number = 3600000, // 1 hour
 ): ChartDataPoint[] {
   return Array.from({ length: count }, (_, i) => ({
     x: new Date(startDate.getTime() + i * intervalMs),
@@ -46,11 +46,7 @@ export function generateTimeSeriesData(
 /**
  * Generates numeric series data for testing
  */
-export function generateNumericSeriesData(
-  count: number,
-  minY: number = 0,
-  maxY: number = 100
-): ChartDataPoint[] {
+export function generateNumericSeriesData(count: number, minY: number = 0, maxY: number = 100): ChartDataPoint[] {
   return Array.from({ length: count }, (_, i) => ({
     x: i,
     y: minY + Math.random() * (maxY - minY),

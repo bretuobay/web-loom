@@ -11,15 +11,7 @@ interface CartDrawerProps {
   onCheckout: () => void;
 }
 
-export function CartDrawer({
-  open,
-  cart,
-  onClose,
-  onUpdateQuantity,
-  onRemove,
-  onClear,
-  onCheckout,
-}: CartDrawerProps) {
+export function CartDrawer({ open, cart, onClose, onUpdateQuantity, onRemove, onClear, onCheckout }: CartDrawerProps) {
   return (
     <>
       <div className={`drawer-backdrop ${open ? 'open' : ''}`} onClick={onClose} />

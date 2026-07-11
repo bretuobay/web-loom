@@ -18,9 +18,7 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata(
-  props: { params: Promise<{ slug: string }> },
-): Promise<Metadata | undefined> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata | undefined> {
   const { slug } = await props.params;
   const post = getDocPages().find((p) => p.slug === slug);
   if (!post) return;
@@ -48,9 +46,7 @@ export async function generateMetadata(
   };
 }
 
-export default async function SinglePost(props: {
-  params: Promise<{ topic: string; slug: string }>;
-}) {
+export default async function SinglePost(props: { params: Promise<{ topic: string; slug: string }> }) {
   const params = await props.params;
   const post = getDocPages().find((p) => p.slug === params.slug);
   if (!post) notFound();
@@ -81,14 +77,8 @@ export default async function SinglePost(props: {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
 
       {/* Page header */}
       {post.metadata.topicTitle && post.metadata.topicSlug && (
@@ -116,18 +106,14 @@ export default async function SinglePost(props: {
               >
                 <path d="M1 2 2.414.586 6.828 5 2.414 9.414 1 8l3-3z" />
               </svg>
-              <span className="text-slate-800 font-medium truncate dark:text-slate-200">
-                {post.metadata.title}
-              </span>
+              <span className="text-slate-800 font-medium truncate dark:text-slate-200">{post.metadata.title}</span>
             </div>
           </div>
 
           {/* Article content */}
           <div>
             <header className="mb-6">
-              <h1 className="text-2xl font-[650] text-slate-800 mb-2 dark:text-slate-200">
-                {post.metadata.title}
-              </h1>
+              <h1 className="text-2xl font-[650] text-slate-800 mb-2 dark:text-slate-200">{post.metadata.title}</h1>
               <p className="text-base text-slate-600 dark:text-slate-400">{post.metadata.summary}</p>
             </header>
             <article className="prose text-slate-600 dark:text-slate-400 max-w-none prose-p:leading-normal prose-headings:font-[650] prose-headings:text-slate-800 dark:prose-headings:text-slate-200 prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-h4:text-sm prose-a:font-medium prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-800 dark:prose-strong:text-slate-100 prose-code:text-slate-800 prose-code:bg-transparent dark:prose-code:bg-slate-800 dark:prose-code:text-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-[''] prose-code:after:content-[''] prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-700 [&_pre_code]:!text-slate-100 prose-headings:scroll-mt-24">

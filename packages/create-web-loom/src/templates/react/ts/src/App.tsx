@@ -47,7 +47,8 @@ export default function App() {
         <p className="kicker">Web Loom starter (React + TypeScript)</p>
         <h1>MVVM Starter Kit</h1>
         <p className="lead">
-          Build on a clean ViewModel-first architecture with signals, predictable state, and framework-agnostic domain logic.
+          Build on a clean ViewModel-first architecture with signals, predictable state, and framework-agnostic domain
+          logic.
         </p>
         <div className="stack" role="list" aria-label="Starter technologies">
           {STACK.map((item) => (

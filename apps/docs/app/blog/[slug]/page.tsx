@@ -11,9 +11,7 @@ export async function generateStaticParams() {
   return getBlogPages().map((post) => ({ slug: post.slug }));
 }
 
-export async function generateMetadata(
-  props: { params: Promise<{ slug: string }> },
-): Promise<Metadata | undefined> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata | undefined> {
   const { slug } = await props.params;
   const post = getBlogPages().find((p) => p.slug === slug);
   if (!post) return;
@@ -84,14 +82,8 @@ export default async function BlogPost(props: { params: Promise<{ slug: string }
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
 
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 mb-8 text-sm">
@@ -129,13 +121,9 @@ export default async function BlogPost(props: { params: Promise<{ slug: string }
           )}
         </div>
 
-        <h1 className="text-3xl font-[650] text-slate-800 dark:text-slate-200 leading-tight mb-4">
-          {post.title}
-        </h1>
+        <h1 className="text-3xl font-[650] text-slate-800 dark:text-slate-200 leading-tight mb-4">{post.title}</h1>
 
-        <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-          {post.summary}
-        </p>
+        <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">{post.summary}</p>
 
         <div className="mt-6 h-px bg-slate-200 dark:bg-slate-800" />
       </header>
@@ -159,7 +147,13 @@ export default async function BlogPost(props: { params: Promise<{ slug: string }
               >
                 <span className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
                   <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">
-                    <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M10 4L6 8l4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                   Previous
                 </span>
@@ -167,7 +161,9 @@ export default async function BlogPost(props: { params: Promise<{ slug: string }
                   {prev.title}
                 </span>
               </Link>
-            ) : <div />}
+            ) : (
+              <div />
+            )}
 
             {next && (
               <Link
@@ -177,7 +173,13 @@ export default async function BlogPost(props: { params: Promise<{ slug: string }
                 <span className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1 sm:justify-end">
                   Next
                   <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">
-                    <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M6 4l4 4-4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </span>
                 <span className="text-sm font-[650] text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug">

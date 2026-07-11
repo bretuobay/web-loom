@@ -1,5 +1,5 @@
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from 'zod';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 const PATTERNS: Record<string, string> = {
   mvvm: `# MVVM Pattern in Web-Loom
@@ -87,7 +87,7 @@ stop();
 
 **Key rule**: Always run teardowns. In ViewModels, use \`this.addSubscription()\`; in Views, keep the teardown returned by \`observe\` or \`signal.subscribe\`.`,
 
-  "dispose-pattern": `# Dispose Pattern in Web-Loom
+  'dispose-pattern': `# Dispose Pattern in Web-Loom
 
 Every ViewModel holds resources (signal subscriptions, Command instances) that must be explicitly released.
 
@@ -257,7 +257,7 @@ query.invalidate("products");
 
 Prefer \`@web-loom/query-core\` when you need caching and background refetching without the full MVVM stack. Use it inside Models for the data fetching layer.`,
 
-  "composite-command": `# CompositeCommand in Web-Loom
+  'composite-command': `# CompositeCommand in Web-Loom
 
 CompositeCommand orchestrates multiple commands as one unit.
 
@@ -285,32 +285,32 @@ Register composite commands in ViewModels with \`this.registerCommand(saveAll)\`
 
 export function registerExplainPatternTool(server: McpServer): void {
   server.registerTool(
-    "explain_pattern",
+    'explain_pattern',
     {
-      description: "Get an explanation and code example for a specific web-loom architectural pattern.",
+      description: 'Get an explanation and code example for a specific web-loom architectural pattern.',
       inputSchema: {
         pattern: z
           .enum([
-            "mvvm",
-            "command",
-            "observable",
-            "signal",
-            "dispose-pattern",
-            "plugin",
-            "store",
-            "forms",
-            "query",
-            "composite-command",
+            'mvvm',
+            'command',
+            'observable',
+            'signal',
+            'dispose-pattern',
+            'plugin',
+            'store',
+            'forms',
+            'query',
+            'composite-command',
           ])
-          .describe("The pattern to explain"),
+          .describe('The pattern to explain'),
       },
     },
     async ({ pattern }) => {
-      const lookupKey = pattern === "signal" ? "observable" : pattern;
+      const lookupKey = pattern === 'signal' ? 'observable' : pattern;
       const content = PATTERNS[lookupKey];
       return {
-        content: [{ type: "text" as const, text: content ?? `Unknown pattern: ${pattern}` }],
+        content: [{ type: 'text' as const, text: content ?? `Unknown pattern: ${pattern}` }],
       };
-    }
+    },
   );
 }

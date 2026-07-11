@@ -1,4 +1,15 @@
-import { Component, AfterViewInit, ElementRef, ViewChild, OnInit, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import {
+  Component,
+  AfterViewInit,
+  ElementRef,
+  ViewChild,
+  OnInit,
+  Inject,
+  InjectionToken,
+  Signal,
+  DestroyRef,
+  inject,
+} from '@angular/core';
 import { fromLoomSignal } from '../../utils/loom-signals';
 import { observe } from '@web-loom/signals-core';
 import { CommonModule } from '@angular/common'; // Includes NgFor, DatePipe, NgIf, AsyncPipe
@@ -49,9 +60,9 @@ export class SensorReadingListComponent implements OnInit, AfterViewInit {
   ngAfterViewInit(): void {
     this.destroyRef.onDestroy(
       observe(this.vm.data$, (data) => {
-      if (data && data.length > 0 && this.readingsListChartRef) {
-        this.initChart(data);
-      }
+        if (data && data.length > 0 && this.readingsListChartRef) {
+          this.initChart(data);
+        }
       }),
     );
   }

@@ -2,7 +2,7 @@
 
 **A Complete Guide to TypeScript Plugin Architecture**
 
-*By Festus Yeboah · Foreword by Evans Boateng Owusu*
+_By Festus Yeboah · Foreword by Evans Boateng Owusu_
 
 ---
 
@@ -12,14 +12,14 @@ The book covers plugin system design from first principles through to production
 
 ## Book Structure
 
-| Part | Chapters | Topic |
-|------|----------|-------|
-| I | 1–4 | Foundations and Theory |
-| II | 5–8 | Implementation and Architecture |
-| III | 9–10 | Security, Testing, and Best Practices |
-| IV | 11–13 | Real-World Applications |
-| V | 14–15 | Production and Optimisation |
-| — | Appendices A–E | Reference Material |
+| Part | Chapters       | Topic                                 |
+| ---- | -------------- | ------------------------------------- |
+| I    | 1–4            | Foundations and Theory                |
+| II   | 5–8            | Implementation and Architecture       |
+| III  | 9–10           | Security, Testing, and Best Practices |
+| IV   | 11–13          | Real-World Applications               |
+| V    | 14–15          | Production and Optimisation           |
+| —    | Appendices A–E | Reference Material                    |
 
 Content lives in `content/docs/`. Each `.mdx` file maps to a chapter or appendix.
 

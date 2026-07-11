@@ -53,22 +53,22 @@ export default function BlogIndex() {
           >
             Home
           </Link>
-          <svg
-            className="w-4 h-4 text-slate-400 dark:text-slate-600 shrink-0"
-            viewBox="0 0 16 16"
-            fill="none"
-          >
-            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg className="w-4 h-4 text-slate-400 dark:text-slate-600 shrink-0" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M6 4l4 4-4 4"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
           <span className="text-sm text-slate-800 dark:text-slate-200 font-medium">Blog</span>
         </div>
 
-        <h1 className="text-3xl font-[650] text-slate-800 dark:text-slate-200 mb-3">
-          The Web Loom Blog
-        </h1>
+        <h1 className="text-3xl font-[650] text-slate-800 dark:text-slate-200 mb-3">The Web Loom Blog</h1>
         <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
-          Deep-dives and tutorials on every published package — the history behind each
-          pattern, how other platforms handle it, and how Web Loom thinks about it.
+          Deep-dives and tutorials on every published package — the history behind each pattern, how other platforms
+          handle it, and how Web Loom thinks about it.
         </p>
       </header>
 
@@ -90,13 +90,17 @@ export default function BlogIndex() {
             <h2 className="text-xl font-[650] text-slate-800 dark:text-slate-200 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
               {last.title}
             </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3">
-              {last.summary}
-            </p>
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3">{last.summary}</p>
             <span className="inline-flex items-center gap-1 mt-4 text-sm font-medium text-blue-600 dark:text-blue-400">
               Read article
               <svg className="w-4 h-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 16 16" fill="none">
-                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M3 8h10M9 4l4 4-4 4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </span>
           </Link>
@@ -127,9 +131,7 @@ export default function BlogIndex() {
               <h2 className="text-base font-[650] text-slate-800 dark:text-slate-200 mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug">
                 {post.title}
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                {post.summary}
-              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{post.summary}</p>
             </div>
 
             {/* Arrow */}
@@ -138,7 +140,13 @@ export default function BlogIndex() {
               viewBox="0 0 16 16"
               fill="none"
             >
-              <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M6 4l4 4-4 4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </Link>
         ))}

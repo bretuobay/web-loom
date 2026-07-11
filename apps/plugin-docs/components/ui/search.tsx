@@ -10,12 +10,7 @@ type SearchProps = {
   className?: string;
 };
 
-export default function Search({
-  entries = [],
-  featuredHrefs = [],
-  compact = false,
-  className = '',
-}: SearchProps) {
+export default function Search({ entries = [], featuredHrefs = [], compact = false, className = '' }: SearchProps) {
   return (
     <BrandSearchTrigger
       entries={entries}

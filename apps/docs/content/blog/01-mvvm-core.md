@@ -4,7 +4,7 @@
 
 There's a moment most frontend engineers recognise. You've been asked to estimate how long a migration will take — React to Vue, web to React Native, monolith to micro-frontends. You open the codebase. Five minutes later you close your laptop and start drafting a longer estimate than anyone wanted to hear.
 
-The problem isn't the new framework. The problem is that there's no seam. Business logic is everywhere: inside `useEffect` blocks, inside Redux selectors, inside custom hooks that call other hooks that eventually reach an API. The logic isn't wrong. It's just not *located*. There's no place you can point to and say "that's the application, and this other thing is the presentation." It's one big tangled layer.
+The problem isn't the new framework. The problem is that there's no seam. Business logic is everywhere: inside `useEffect` blocks, inside Redux selectors, inside custom hooks that call other hooks that eventually reach an API. The logic isn't wrong. It's just not _located_. There's no place you can point to and say "that's the application, and this other thing is the presentation." It's one big tangled layer.
 
 `@web-loom/mvvm-core` is an attempt to give the web that seam.
 
@@ -89,7 +89,7 @@ The optional Zod schema integration means your data contract is enforced at the 
 
 `BaseViewModel<TModel>` accepts a Model instance and immediately exposes its three signals: `data$`, `isLoading$`, and `error$`. It provides a `dispose()` method that tears down all internal subscriptions when the View is unmounted.
 
-The important thing about the ViewModel is what it *doesn't* contain: no `import React from 'react'`, no `import { ref } from 'vue'`, no Angular decorator. It's a class.
+The important thing about the ViewModel is what it _doesn't_ contain: no `import React from 'react'`, no `import { ref } from 'vue'`, no Angular decorator. It's a class.
 
 ```typescript
 import { BaseViewModel } from '@web-loom/mvvm-core';
@@ -97,28 +97,20 @@ import { computed } from '@web-loom/signals-core';
 
 class TaskListViewModel extends BaseViewModel<TaskModel> {
   // Derived state: computed from data$, updated reactively
-  readonly pendingCount$ = computed(() =>
-    (this.data$.get() ?? []).filter(t => !t.done).length
-  );
+  readonly pendingCount$ = computed(() => (this.data$.get() ?? []).filter((t) => !t.done).length);
 
-  readonly completedTasks$ = computed(() =>
-    (this.data$.get() ?? []).filter(t => t.done)
-  );
+  readonly completedTasks$ = computed(() => (this.data$.get() ?? []).filter((t) => t.done));
 
   // Command: encapsulates the async operation + its state
-  readonly fetchCommand = this.registerCommand(
-    new Command(() => this.model.fetchAll())
-  );
+  readonly fetchCommand = this.registerCommand(new Command(() => this.model.fetchAll()));
 
   readonly toggleCommand = this.registerCommand(
     new Command(async (id: string) => {
       const current = this.model.getCurrentData() ?? [];
-      const updated = current.map(t =>
-        t.id === id ? { ...t, done: !t.done } : t
-      );
+      const updated = current.map((t) => (t.id === id ? { ...t, done: !t.done } : t));
       this.model.setData(updated);
       await fetch(`/api/tasks/${id}/toggle`, { method: 'POST' });
-    })
+    }),
   );
 }
 ```
@@ -135,9 +127,9 @@ const cmd = new Command(async (payload: CreateTaskInput) => {
 });
 
 // Three signals you get for free:
-cmd.isExecuting$  // → ReadonlySignal<boolean>
-cmd.canExecute$   // → ReadonlySignal<boolean>
-cmd.executeError$ // → ReadonlySignal<any>
+cmd.isExecuting$; // → ReadonlySignal<boolean>
+cmd.canExecute$; // → ReadonlySignal<boolean>
+cmd.executeError$; // → ReadonlySignal<any>
 
 // Execute it
 await cmd.execute({ title: 'Buy groceries', done: false });
@@ -148,13 +140,13 @@ await cmd.execute({ title: 'Buy groceries', done: false });
 ```typescript
 // Only executable when a selection exists
 const deleteCommand = new Command(() => this.deleteSelected())
-  .observesProperty(this.selectedItem$)        // truthy check
-  .observesCanExecute(this.isNotBusy$);         // explicit boolean
+  .observesProperty(this.selectedItem$) // truthy check
+  .observesCanExecute(this.isNotBusy$); // explicit boolean
 
 // Or using the canExecute constructor arg
 const submitCommand = new Command(
   () => this.submit(),
-  this.isFormValid$  // ReadonlySignal<boolean>
+  this.isFormValid$, // ReadonlySignal<boolean>
 );
 ```
 
@@ -165,6 +157,7 @@ const submitCommand = new Command(
 The ViewModel sits above the framework. Connecting it means writing one thin subscription bridge per framework — usually a hook or a composable.
 
 **React:**
+
 ```tsx
 import { useSyncExternalStore } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
@@ -175,9 +168,9 @@ function useSignal<T>(sig: ReadonlySignal<T>): T {
 
 function TaskList() {
   const vm = useMemo(() => new TaskListViewModel(new TaskModel()), []);
-  const tasks    = useSignal(vm.data$);
-  const pending  = useSignal(vm.pendingCount$);
-  const loading  = useSignal(vm.isLoading$);
+  const tasks = useSignal(vm.data$);
+  const pending = useSignal(vm.pendingCount$);
+  const loading = useSignal(vm.isLoading$);
 
   useEffect(() => {
     vm.fetchCommand.execute();
@@ -188,7 +181,7 @@ function TaskList() {
     <div>
       <p>{pending} tasks remaining</p>
       {loading && <Spinner />}
-      {tasks?.map(task => (
+      {tasks?.map((task) => (
         <button key={task.id} onClick={() => vm.toggleCommand.execute(task.id)}>
           {task.title}
         </button>
@@ -199,6 +192,7 @@ function TaskList() {
 ```
 
 **Vue 3:**
+
 ```vue
 <script setup>
 import { onMounted, onUnmounted, shallowRef } from 'vue';
@@ -206,13 +200,15 @@ import { observe } from '@web-loom/signals-core';
 
 function useSignal(sig) {
   const value = shallowRef(sig.peek());
-  const unsubscribe = observe(sig, (next) => { value.value = next; });
+  const unsubscribe = observe(sig, (next) => {
+    value.value = next;
+  });
   onUnmounted(unsubscribe);
   return value;
 }
 
 const vm = new TaskListViewModel(new TaskModel());
-const tasks   = useSignal(vm.data$);
+const tasks = useSignal(vm.data$);
 const pending = useSignal(vm.pendingCount$);
 const loading = useSignal(vm.isLoading$);
 
@@ -235,7 +231,7 @@ import { describe, it, expect, vi } from 'vitest';
 describe('TaskListViewModel', () => {
   it('derives pending count from model data', () => {
     const model = new TaskModel();
-    const vm    = new TaskListViewModel(model);
+    const vm = new TaskListViewModel(model);
 
     model.setData([
       { id: '1', title: 'A', done: false },
@@ -254,7 +250,7 @@ describe('TaskListViewModel', () => {
     const vm = new TaskListViewModel(model);
 
     const loadingStates: boolean[] = [];
-    vm.isLoading$.subscribe(v => loadingStates.push(v));
+    vm.isLoading$.subscribe((v) => loadingStates.push(v));
 
     await vm.fetchCommand.execute();
 
@@ -314,7 +310,7 @@ vm.fetchCommand.execute(); // loads data, manages loading/error state
 
 I've seen two objections to MVVM on the web. The first is "it's more code." That's true for a simple component. A to-do item with one toggle does not need a Model and a ViewModel. The pattern makes sense when the logic is real — when there are derived values, multiple async operations, conditional enable/disable logic, complex error states.
 
-The second objection is "we already have React Query / TanStack / SWR." Those tools are genuinely good at what they do: caching and deduplicating server state. But they don't provide the layer that decides *what the View needs*. They provide cache management. The ViewModel provides the computed properties, the formatted values, the filtered lists, the business rules about when an action is available. They can coexist — you can put a React Query cache behind a Model and expose ViewModel-derived state on top of it.
+The second objection is "we already have React Query / TanStack / SWR." Those tools are genuinely good at what they do: caching and deduplicating server state. But they don't provide the layer that decides _what the View needs_. They provide cache management. The ViewModel provides the computed properties, the formatted values, the filtered lists, the business rules about when an action is available. They can coexist — you can put a React Query cache behind a Model and expose ViewModel-derived state on top of it.
 
 The payoff is compounding. When you add a mobile app and need to share logic with the web, the ViewModel is already portable. When you migrate from React 18 to React 19 or the next thing after React, the ViewModel doesn't change. When you want to write a test for a business rule, you don't need to mount a component tree to do it.
 

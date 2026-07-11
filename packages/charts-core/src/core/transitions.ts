@@ -28,7 +28,7 @@ export const TRANSITION_CONFIG = {
  */
 export function createTransition<GElement extends Element, Datum>(
   selection: Selection<GElement, Datum, any, any>,
-  duration: number = TRANSITION_CONFIG.duration
+  duration: number = TRANSITION_CONFIG.duration,
 ) {
   // D3 selection has transition() method available at runtime
   // We use 'any' to bypass TypeScript checking since the types don't include it
@@ -41,16 +41,14 @@ export function createTransition<GElement extends Element, Datum>(
       const c1 = 0.4;
       const c3 = 0.2;
       const c4 = 1.0;
-      
+
       if (t === 0 || t === 1) return t;
-      
+
       // Cubic bezier approximation
       const t2 = t * t;
       const t3 = t2 * t;
-      
-      return 3 * c1 * (1 - t) * (1 - t) * t +
-             3 * c3 * (1 - t) * t2 +
-             c4 * t3;
+
+      return 3 * c1 * (1 - t) * (1 - t) * t + 3 * c3 * (1 - t) * t2 + c4 * t3;
     });
 }
 
@@ -63,12 +61,10 @@ export function createTransition<GElement extends Element, Datum>(
 export function applyCSSTransition(
   element: HTMLElement,
   properties: string[] = ['all'],
-  duration: number = TRANSITION_CONFIG.duration
+  duration: number = TRANSITION_CONFIG.duration,
 ): void {
-  const transitionValue = properties
-    .map(prop => `${prop} ${duration}ms ${TRANSITION_CONFIG.easing}`)
-    .join(', ');
-  
+  const transitionValue = properties.map((prop) => `${prop} ${duration}ms ${TRANSITION_CONFIG.easing}`).join(', ');
+
   element.style.transition = transitionValue;
 }
 
@@ -94,7 +90,7 @@ export function animateValue(
   to: number,
   duration: number = TRANSITION_CONFIG.duration,
   onUpdate: (value: number) => void,
-  onComplete?: () => void
+  onComplete?: () => void,
 ): () => void {
   const startTime = performance.now();
   let animationFrame: number;
@@ -105,11 +101,11 @@ export function animateValue(
 
     const elapsed = currentTime - startTime;
     const progress = Math.min(elapsed / duration, 1);
-    
+
     // Apply easing
     const easedProgress = easeInOutCubic(progress);
     const currentValue = from + (to - from) * easedProgress;
-    
+
     onUpdate(currentValue);
 
     if (progress < 1) {
@@ -137,17 +133,15 @@ export function animateValue(
  */
 function easeInOutCubic(t: number): number {
   if (t === 0 || t === 1) return t;
-  
+
   const c1 = 0.4;
   const c3 = 0.2;
   const c4 = 1.0;
-  
+
   const t2 = t * t;
   const t3 = t2 * t;
-  
-  return 3 * c1 * (1 - t) * (1 - t) * t +
-         3 * c3 * (1 - t) * t2 +
-         c4 * t3;
+
+  return 3 * c1 * (1 - t) * (1 - t) * t + 3 * c3 * (1 - t) * t2 + c4 * t3;
 }
 
 /**
@@ -156,10 +150,7 @@ function easeInOutCubic(t: number): number {
  * @param wait - Wait time in milliseconds
  * @returns Debounced function
  */
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
+export function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return function (this: any, ...args: Parameters<T>) {
@@ -182,10 +173,7 @@ export function debounce<T extends (...args: any[]) => any>(
  * @param limit - Minimum time between calls in milliseconds
  * @returns Throttled function
  */
-export function throttle<T extends (...args: any[]) => any>(
-  func: T,
-  limit: number
-): (...args: Parameters<T>) => void {
+export function throttle<T extends (...args: any[]) => any>(func: T, limit: number): (...args: Parameters<T>) => void {
   let inThrottle = false;
   let lastArgs: Parameters<T> | null = null;
   let lastContext: any = null;

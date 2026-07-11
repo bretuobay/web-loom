@@ -24,6 +24,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ## Chapter 4: Building Framework-Agnostic Models
 
 ### Metadata
+
 - **Chapter Number:** 4
 - **File Name:** `chapter4.mdx`
 - **Section:** Core Patterns
@@ -32,6 +33,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 - **Enables:** Chapters 5, 6, 18
 
 ### Learning Objectives
+
 1. Understand Model layer responsibilities in MVVM
 2. Learn how to build framework-agnostic Models
 3. Implement domain logic in Models
@@ -45,27 +47,22 @@ This document provides comprehensive rewrite plans for the Core Patterns section
    - Models encapsulate business rules and data
    - Framework-independent implementation
    - Single source of truth for domain logic
-   
 2. **Framework independence in Models**
    - No framework dependencies
    - Pure TypeScript/JavaScript
    - Reusable across all platforms
-   
 3. **Validation with Zod schemas**
    - Type-safe validation
    - Runtime type checking
    - Validation error handling
-   
 4. **BaseModel pattern with reactive state**
    - RxJS BehaviorSubject for state
    - Observable streams (data$, isLoading$, error$)
    - Subscription management
-   
 5. **RestfulApiModel for API operations**
    - CRUD operations
    - Pagination support
    - Error handling
-   
 6. **GreenWatch Model implementations**
    - Sensor, SensorReading, Greenhouse, ThresholdAlert
    - Domain-specific validation
@@ -74,22 +71,25 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ### Real Implementations to Reference
 
 **Core MVVM Models:**
+
 - `packages/mvvm-core/src/models/BaseModel.ts` - Base Model implementation
 - `packages/mvvm-core/src/models/RestfulApiModel.ts` - RESTful API Model
 - `packages/mvvm-core/src/models/QueryStateModel.ts` - Query state Model
 
 **GreenWatch Domain Models:**
+
 - `packages/models/src/GreenHouseModel.ts` - Greenhouse entity
 - `packages/models/src/SensorModel.ts` - Sensor entity
 - `packages/models/src/ThresholdAlertModel.ts` - ThresholdAlert entity
 
 **Zod Schemas:**
-- `packages/models/src/schemas/` - Validation schemas
 
+- `packages/models/src/schemas/` - Validation schemas
 
 ### Code Examples to Extract
 
 **Example 1: BaseModel - Core Pattern**
+
 ```typescript
 // File: packages/mvvm-core/src/models/BaseModel.ts
 // Extract: Complete BaseModel showing:
@@ -101,6 +101,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 2: RestfulApiModel - API Integration**
+
 ```typescript
 // File: packages/mvvm-core/src/models/RestfulApiModel.ts
 // Extract: RestfulApiModel showing:
@@ -111,6 +112,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 3: SensorModel - Domain Model**
+
 ```typescript
 // File: packages/models/src/SensorModel.ts
 // Extract: Complete Sensor model showing:
@@ -121,6 +123,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 4: Zod Validation in Action**
+
 ```typescript
 // File: packages/mvvm-core/src/models/BaseModel.ts
 // Extract: Validation logic showing:
@@ -192,6 +195,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 5. **Build progressively:** Start with BaseModel, then RestfulApiModel, then domain models
 
 ### Dependencies
+
 - **Prerequisites:** Chapter 3 (MVVM Fundamentals)
 - **Enables:** Chapter 5 (ViewModels), Chapter 18 (DDD)
 
@@ -200,6 +204,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ## Chapter 5: ViewModels and Reactive State
 
 ### Metadata
+
 - **Chapter Number:** 5
 - **File Name:** `chapter5.mdx`
 - **Section:** Core Patterns
@@ -208,6 +213,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 - **Enables:** Chapters 6, 7, 8-12, 13
 
 ### Learning Objectives
+
 1. Understand ViewModel layer responsibilities
 2. Learn how ViewModels connect Models to Views
 3. Implement reactive state with RxJS observables
@@ -222,37 +228,31 @@ This document provides comprehensive rewrite plans for the Core Patterns section
    - Transforms data for presentation
    - Handles user interactions
    - Manages UI state
-   
 2. **Reactive state with RxJS**
    - BehaviorSubject for state
    - Observable for read-only streams
    - Subscription management
    - takeUntil pattern for cleanup
-   
 3. **ViewModel lifecycle management**
    - Creation and initialization
    - Mounting and unmounting
    - Subscription cleanup
    - dispose() pattern
-   
 4. **BaseViewModel pattern**
    - Core ViewModel functionality
    - Observable state exposure
    - Lifecycle hooks
    - Framework-agnostic design
-   
 5. **RestfulApiViewModel with CRUD operations**
    - Extends BaseViewModel
    - CRUD method wrappers
    - Pagination support
    - Loading and error state
-   
 6. **GreenWatch ViewModel implementations**
    - GreenHouseViewModel
    - SensorViewModel
    - SensorReadingViewModel
    - ThresholdAlertViewModel
-   
 7. **Introduction to reactive state patterns**
    - Preview of Chapter 13
    - RxJS as one approach
@@ -261,11 +261,13 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ### Real Implementations to Reference
 
 **Core MVVM ViewModels:**
+
 - `packages/mvvm-core/src/viewmodels/BaseViewModel.ts` - Base ViewModel
 - `packages/mvvm-core/src/viewmodels/RestfulApiViewModel.ts` - RESTful API ViewModel
 - `packages/mvvm-core/src/viewmodels/QueryStateViewModel.ts` - Query state ViewModel
 
 **GreenWatch ViewModels:**
+
 - `packages/view-models/src/GreenHouseViewModel.ts` - Greenhouse ViewModel
 - `packages/view-models/src/SensorViewModel.ts` - Sensor ViewModel
 - `packages/view-models/src/SensorReadingViewModel.ts` - SensorReading ViewModel
@@ -274,6 +276,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ### Code Examples to Extract
 
 **Example 1: BaseViewModel - Core Pattern**
+
 ```typescript
 // File: packages/mvvm-core/src/viewmodels/BaseViewModel.ts
 // Extract: Complete BaseViewModel showing:
@@ -285,6 +288,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 2: SensorViewModel - Complete ViewModel**
+
 ```typescript
 // File: packages/view-models/src/SensorViewModel.ts
 // Extract: Complete ViewModel showing:
@@ -296,6 +300,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 3: RestfulApiViewModel - CRUD Operations**
+
 ```typescript
 // File: packages/mvvm-core/src/viewmodels/RestfulApiViewModel.ts
 // Extract: RestfulApiViewModel showing:
@@ -306,6 +311,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 4: Lifecycle Management**
+
 ```typescript
 // File: packages/view-models/src/SensorViewModel.ts
 // Extract: Lifecycle methods showing:
@@ -386,6 +392,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 5. **Build on Models:** Show how ViewModels use Models from Chapter 4
 
 ### Dependencies
+
 - **Prerequisites:** Chapter 4 (Models)
 - **Enables:** Chapter 6 (Views), Chapters 8-12 (Framework implementations), Chapter 13 (Reactive patterns)
 
@@ -394,6 +401,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ## Chapter 6: The View Layer Contract
 
 ### Metadata
+
 - **Chapter Number:** 6
 - **File Name:** `chapter6.mdx`
 - **Section:** Core Patterns
@@ -402,6 +410,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 - **Enables:** Chapters 7, 8-12
 
 ### Learning Objectives
+
 1. Understand View layer responsibilities
 2. Learn the "dumb view" philosophy
 3. Understand how Views consume ViewModels
@@ -416,31 +425,26 @@ This document provides comprehensive rewrite plans for the Core Patterns section
    - No business logic
    - No direct Model access
    - Framework-specific implementation
-   
 2. **Dumb view philosophy**
    - Views should be "dumb" (no logic)
    - All logic in ViewModels
    - Benefits for testing
    - Benefits for reusability
-   
 3. **View-ViewModel contract**
    - Views subscribe to ViewModel observables
    - Views call ViewModel methods
    - Unidirectional data flow
    - Clear boundaries
-   
 4. **Subscribing to ViewModel observables**
    - Framework-specific patterns
    - Subscription cleanup
    - Reactive rendering
-   
 5. **Framework-specific View patterns**
    - React: hooks and useEffect
    - Vue: Composition API and watchEffect
    - Angular: async pipe and DI
    - Lit: reactive controllers
    - Vanilla JS: direct subscriptions
-   
 6. **Comparison across frameworks**
    - Same ViewModel, different Views
    - Framework independence demonstrated
@@ -449,27 +453,33 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ### Real Implementations to Reference
 
 **React Views:**
+
 - `apps/mvvm-react/src/components/SensorDashboard.tsx`
 - `apps/mvvm-react/src/components/SensorList.tsx`
 - `apps/mvvm-react/src/components/SensorDetail.tsx`
 
 **Vue Views:**
+
 - `apps/mvvm-vue/src/components/SensorDashboard.vue`
 - `apps/mvvm-vue/src/components/SensorList.vue`
 
 **Angular Views:**
+
 - `apps/mvvm-angular/src/app/components/sensor-dashboard/`
 - `apps/mvvm-angular/src/app/components/sensor-list/`
 
 **Lit Views:**
+
 - `apps/mvvm-lit/src/components/sensor-dashboard.ts`
 
 **Vanilla JS Views:**
+
 - `apps/mvvm-vanilla/src/views/sensor-dashboard.ejs`
 
 ### Code Examples to Extract
 
 **Example 1: React View - Sensor Dashboard**
+
 ```typescript
 // File: apps/mvvm-react/src/components/SensorDashboard.tsx
 // Extract: Component showing:
@@ -481,6 +491,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 2: Vue View - Same Dashboard**
+
 ```typescript
 // File: apps/mvvm-vue/src/components/SensorDashboard.vue
 // Extract: Component showing:
@@ -491,6 +502,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 3: Angular View - Same Dashboard**
+
 ```typescript
 // File: apps/mvvm-angular/src/app/components/sensor-dashboard/
 // Extract: Component showing:
@@ -501,6 +513,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 4: Dumb View Example**
+
 ```typescript
 // File: apps/mvvm-react/src/components/SensorList.tsx
 // Extract: Simple component showing:
@@ -589,6 +602,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 5. **Preview framework chapters:** Mention Chapters 8-12 for deep dives
 
 ### Dependencies
+
 - **Prerequisites:** Chapter 5 (ViewModels)
 - **Enables:** Chapter 7 (DI and Lifecycle), Chapters 8-12 (Framework implementations)
 
@@ -597,6 +611,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ## Chapter 7: Dependency Injection and Lifecycle Management
 
 ### Metadata
+
 - **Chapter Number:** 7
 - **File Name:** `chapter7.mdx`
 - **Section:** Core Patterns
@@ -605,6 +620,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 - **Enables:** Chapters 8-12
 
 ### Learning Objectives
+
 1. Understand dependency injection patterns for ViewModels
 2. Learn ViewModel lifecycle management
 3. Implement DI container for MVVM
@@ -619,32 +635,27 @@ This document provides comprehensive rewrite plans for the Core Patterns section
    - Constructor injection
    - Service locator pattern
    - DI container implementation
-   
 2. **DI container implementation**
    - Simple DI container
    - Registration and resolution
    - Singleton vs transient
    - Framework-agnostic DI
-   
 3. **ViewModel lifecycle**
    - Creation and initialization
    - Mounting in Views
    - Unmounting and cleanup
    - dispose() pattern
-   
 4. **Subscription cleanup**
    - takeUntil pattern
    - Memory leak prevention
    - Proper disposal
    - Framework-specific cleanup
-   
 5. **Framework-specific DI**
    - Angular: Native DI system
    - React: Context API
    - Vue: provide/inject
    - Lit: Dependency injection patterns
    - Vanilla JS: Manual DI
-   
 6. **Service locator vs DI**
    - Tradeoffs
    - When to use each
@@ -653,21 +664,26 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ### Real Implementations to Reference
 
 **DI Container:**
+
 - `packages/mvvm-core/src/core/di-container.ts` - Simple DI container
 
 **Angular DI:**
+
 - `apps/mvvm-angular/src/app/services/` - Angular services
 - `apps/mvvm-angular/src/app/tokens/` - InjectionTokens
 
 **React Context:**
+
 - `apps/mvvm-react/src/contexts/` - React Context for ViewModels
 
 **Vue Provide/Inject:**
+
 - `apps/mvvm-vue/src/composables/` - Vue composables with provide/inject
 
 ### Code Examples to Extract
 
 **Example 1: DI Container Implementation**
+
 ```typescript
 // File: packages/mvvm-core/src/core/di-container.ts
 // Extract: Complete DI container showing:
@@ -678,6 +694,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 2: Angular DI for ViewModels**
+
 ```typescript
 // File: apps/mvvm-angular/src/app/tokens/viewmodel.tokens.ts
 // Extract: InjectionTokens showing:
@@ -687,6 +704,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 3: React Context for ViewModels**
+
 ```typescript
 // File: apps/mvvm-react/src/contexts/SensorContext.tsx
 // Extract: Context showing:
@@ -697,6 +715,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 ```
 
 **Example 4: Lifecycle Management**
+
 ```typescript
 // File: packages/view-models/src/SensorViewModel.ts
 // Extract: Lifecycle methods showing:
@@ -790,6 +809,7 @@ This document provides comprehensive rewrite plans for the Core Patterns section
 5. **Build on previous:** Connect to ViewModels from Chapter 5
 
 ### Dependencies
+
 - **Prerequisites:** Chapters 5 (ViewModels), 6 (Views)
 - **Enables:** Chapters 8-12 (Framework implementations)
 
@@ -810,6 +830,7 @@ For each chapter, code examples should be extracted from the monorepo following 
 ### File Paths Reference
 
 **Core MVVM:**
+
 - `packages/mvvm-core/src/models/BaseModel.ts`
 - `packages/mvvm-core/src/models/RestfulApiModel.ts`
 - `packages/mvvm-core/src/viewmodels/BaseViewModel.ts`
@@ -817,17 +838,20 @@ For each chapter, code examples should be extracted from the monorepo following 
 - `packages/mvvm-core/src/core/di-container.ts`
 
 **Domain Models:**
+
 - `packages/models/src/GreenHouseModel.ts`
 - `packages/models/src/SensorModel.ts`
 - `packages/models/src/ThresholdAlertModel.ts`
 
 **ViewModels:**
+
 - `packages/view-models/src/GreenHouseViewModel.ts`
 - `packages/view-models/src/SensorViewModel.ts`
 - `packages/view-models/src/SensorReadingViewModel.ts`
 - `packages/view-models/src/ThresholdAlertViewModel.ts`
 
 **Framework Views:**
+
 - `apps/mvvm-react/src/components/`
 - `apps/mvvm-vue/src/components/`
 - `apps/mvvm-angular/src/app/components/`
@@ -871,6 +895,7 @@ These rewrite plans provide a comprehensive roadmap for rewriting the Core Patte
 - Dependencies and relationships
 
 The plans ensure that the rewritten chapters will:
+
 - Use real GreenWatch code throughout
 - Follow a clear pedagogical progression
 - Build on each other coherently

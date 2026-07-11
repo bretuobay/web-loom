@@ -11,9 +11,7 @@ export async function generateStaticParams() {
   return getBookPages().map((ch) => ({ slug: ch.slug }));
 }
 
-export async function generateMetadata(
-  props: { params: Promise<{ slug: string }> },
-): Promise<Metadata | undefined> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata | undefined> {
   const { slug } = await props.params;
   const ch = getBookPages().find((p) => p.slug === slug);
   if (!ch) return;
@@ -86,9 +84,7 @@ export default async function BookChapter(props: { params: Promise<{ slug: strin
           <span className="text-xs text-slate-500 dark:text-slate-400">{chapter.section}</span>
         </div>
 
-        <h1 className="text-3xl font-[650] text-slate-800 dark:text-slate-200 leading-tight mb-4">
-          {chapter.title}
-        </h1>
+        <h1 className="text-3xl font-[650] text-slate-800 dark:text-slate-200 leading-tight mb-4">{chapter.title}</h1>
 
         <div className="mt-6 h-px bg-slate-200 dark:bg-slate-800" />
       </header>
@@ -112,7 +108,13 @@ export default async function BookChapter(props: { params: Promise<{ slug: strin
               >
                 <span className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
                   <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">
-                    <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M10 4L6 8l4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                   Chapter {prev.number}
                 </span>
@@ -132,7 +134,13 @@ export default async function BookChapter(props: { params: Promise<{ slug: strin
                 <span className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1 sm:justify-end">
                   Chapter {next.number}
                   <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">
-                    <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M6 4l4 4-4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </span>
                 <span className="text-sm font-[650] text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug">

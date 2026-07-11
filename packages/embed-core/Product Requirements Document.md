@@ -1,12 +1,12 @@
 # Product Requirements Document: Web Loom Embed Core
 
-| Field | Value |
-| --- | --- |
-| Package | `@web-loom/embed-core` |
-| Location | `packages/embed-core` |
-| Status | Draft v1.0 |
-| Product type | Framework-agnostic embeddable widget SDK and host integration layer |
-| Primary users | Web Loom product developers, third-party host integrators, platform operators |
+| Field            | Value                                                                                                |
+| ---------------- | ---------------------------------------------------------------------------------------------------- |
+| Package          | `@web-loom/embed-core`                                                                               |
+| Location         | `packages/embed-core`                                                                                |
+| Status           | Draft v1.0                                                                                           |
+| Product type     | Framework-agnostic embeddable widget SDK and host integration layer                                  |
+| Primary users    | Web Loom product developers, third-party host integrators, platform operators                        |
 | Related packages | `@web-loom/event-emitter-core`, `@web-loom/design-core`, `@web-loom/plugin-core`, `@web-loom/shared` |
 
 ## 1. Executive Summary
@@ -18,10 +18,7 @@ This package is not an analytics product, UI component library, or framework ada
 The intended developer experience is:
 
 ```html
-<script
-  async
-  src="https://cdn.example.com/embed/v1/embed.js?cid=ck_live_123&pid=proj_456">
-</script>
+<script async src="https://cdn.example.com/embed/v1/embed.js?cid=ck_live_123&pid=proj_456"></script>
 
 <button onclick="wl('open', 'advisor')">Open Advisor</button>
 ```
@@ -176,10 +173,18 @@ Example generated snippet:
 
 ```html
 <script>
-  (function(w,d,s,n,u){w[n]=w[n]||function(){(w[n].q=w[n].q||[]).push(arguments)};
-  w[n].l=+new Date;var e=d.createElement(s);e.async=1;e.src=u;
-  d.getElementsByTagName(s)[0].parentNode.insertBefore(e,d.getElementsByTagName(s)[0]);
-  })(window,document,'script','wl','https://cdn.example.com/embed/v1/embed.js?cid=CLIENT_ID&pid=PROJECT_ID');
+  (function (w, d, s, n, u) {
+    w[n] =
+      w[n] ||
+      function () {
+        (w[n].q = w[n].q || []).push(arguments);
+      };
+    w[n].l = +new Date();
+    var e = d.createElement(s);
+    e.async = 1;
+    e.src = u;
+    d.getElementsByTagName(s)[0].parentNode.insertBefore(e, d.getElementsByTagName(s)[0]);
+  })(window, document, 'script', 'wl', 'https://cdn.example.com/embed/v1/embed.js?cid=CLIENT_ID&pid=PROJECT_ID');
 </script>
 ```
 
@@ -271,12 +276,10 @@ Primary path for static pages, CMS sites, marketing sites, and tag managers.
   async
   src="https://cdn.example.com/embed/v1/embed.js?cid=ck_live_123&pid=proj_456"
   data-env="production"
-  data-consent="manual">
-</script>
+  data-consent="manual"
+></script>
 
-<button onclick="wl('open', 'advisor', { placement: 'modal' })">
-  Open Advisor
-</button>
+<button onclick="wl('open', 'advisor', { placement: 'modal' })">Open Advisor</button>
 ```
 
 Rules:
@@ -322,17 +325,9 @@ Rules:
 Primary path for CMS pages, tag managers, simple HTML integrations, and low-code contexts.
 
 ```html
-<div
-  data-wl-widget="advisor"
-  data-wl-placement="inline"
-  data-wl-prop-topic="pricing">
-</div>
+<div data-wl-widget="advisor" data-wl-placement="inline" data-wl-prop-topic="pricing"></div>
 
-<button
-  data-wl-open="advisor"
-  data-wl-placement="modal">
-  Open Advisor
-</button>
+<button data-wl-open="advisor" data-wl-placement="modal">Open Advisor</button>
 ```
 
 Rules:
@@ -347,11 +342,7 @@ Rules:
 Declarative component path for teams that prefer Web Components.
 
 ```html
-<wl-widget
-  name="advisor"
-  placement="inline"
-  topic="pricing">
-</wl-widget>
+<wl-widget name="advisor" placement="inline" topic="pricing"> </wl-widget>
 ```
 
 ```ts
@@ -373,20 +364,20 @@ Rules:
 
 The v1 API should stay small and additive.
 
-| Operation | Global command form | Method form | Description |
-| --- | --- | --- | --- |
-| Init | `wl('init', config)` | `createEmbed(config)` | Initialize config and consent state. |
-| Ready | `wl('ready', callback)` | `wl.ready()` | Resolve after init and config resolution. |
-| Mount | `wl('mount', name, target, options?)` | `wl.mount(name, target, options?)` | Mount a widget into a target. |
-| Open | `wl('open', name, options?)` | `wl.open(name, options?)` | Open or lazily mount a widget. |
-| Close | `wl('close', nameOrId?)` | `wl.close(nameOrId?)` | Hide a widget without destroying it. |
-| Destroy | `wl('destroy', nameOrId?)` | `wl.destroy(nameOrId?)` | Unmount one widget or all widgets. |
-| Send | `wl('send', nameOrId, command, payload?)` | `handle.send(command, payload?)` | Send a command to a widget. |
-| On | `wl('on', event, callback)` | `wl.on(event, callback)` / `handle.on(event, callback)` | Subscribe to events. |
-| Off | `wl('off', event, callback?)` | `wl.off(event, callback?)` / `handle.off(event, callback?)` | Unsubscribe from events. |
-| Once | `wl('once', event, callback)` | `wl.once(event, callback)` / `handle.once(event, callback)` | Subscribe once. |
-| Identify | `wl('identify', identity)` | `wl.identify(identity)` | Set host-provided identity context. |
-| Consent | `wl('consent', state)` | `wl.consent(state)` | Grant or deny runtime consent. |
+| Operation | Global command form                       | Method form                                                 | Description                               |
+| --------- | ----------------------------------------- | ----------------------------------------------------------- | ----------------------------------------- |
+| Init      | `wl('init', config)`                      | `createEmbed(config)`                                       | Initialize config and consent state.      |
+| Ready     | `wl('ready', callback)`                   | `wl.ready()`                                                | Resolve after init and config resolution. |
+| Mount     | `wl('mount', name, target, options?)`     | `wl.mount(name, target, options?)`                          | Mount a widget into a target.             |
+| Open      | `wl('open', name, options?)`              | `wl.open(name, options?)`                                   | Open or lazily mount a widget.            |
+| Close     | `wl('close', nameOrId?)`                  | `wl.close(nameOrId?)`                                       | Hide a widget without destroying it.      |
+| Destroy   | `wl('destroy', nameOrId?)`                | `wl.destroy(nameOrId?)`                                     | Unmount one widget or all widgets.        |
+| Send      | `wl('send', nameOrId, command, payload?)` | `handle.send(command, payload?)`                            | Send a command to a widget.               |
+| On        | `wl('on', event, callback)`               | `wl.on(event, callback)` / `handle.on(event, callback)`     | Subscribe to events.                      |
+| Off       | `wl('off', event, callback?)`             | `wl.off(event, callback?)` / `handle.off(event, callback?)` | Unsubscribe from events.                  |
+| Once      | `wl('once', event, callback)`             | `wl.once(event, callback)` / `handle.once(event, callback)` | Subscribe once.                           |
+| Identify  | `wl('identify', identity)`                | `wl.identify(identity)`                                     | Set host-provided identity context.       |
+| Consent   | `wl('consent', state)`                    | `wl.consent(state)`                                         | Grant or deny runtime consent.            |
 
 ### 10.1 Core Types
 
@@ -442,12 +433,12 @@ export interface WidgetHandle {
 
 Browser-visible identifiers are public by design.
 
-| Identifier | Example | Browser safe | Purpose |
-| --- | --- | --- | --- |
-| `clientId` | `ck_live_abc123` | Yes | Identifies the account or customer for config resolution. |
-| `projectId` | `proj_456` | Yes | Selects a project, workspace, or environment. |
-| publishable key | Same role as `clientId` | Yes | Public, origin-bound identifier. |
-| secret key | `sk_live_...` | No | Must never be accepted by this SDK. |
+| Identifier      | Example                 | Browser safe | Purpose                                                   |
+| --------------- | ----------------------- | ------------ | --------------------------------------------------------- |
+| `clientId`      | `ck_live_abc123`        | Yes          | Identifies the account or customer for config resolution. |
+| `projectId`     | `proj_456`              | Yes          | Selects a project, workspace, or environment.             |
+| publishable key | Same role as `clientId` | Yes          | Public, origin-bound identifier.                          |
+| secret key      | `sk_live_...`           | No           | Must never be accepted by this SDK.                       |
 
 Security must come from server-side origin allow-listing and scoped remote configuration, not secrecy of browser identifiers.
 
@@ -519,13 +510,7 @@ The protocol is internal but versioned because widgets and hosts may ship separa
 ```ts
 export interface EmbedMessage<T = unknown> {
   wl: 1;
-  kind:
-    | 'handshake'
-    | 'handshake-ack'
-    | 'command'
-    | 'event'
-    | 'error'
-    | 'destroy';
+  kind: 'handshake' | 'handshake-ack' | 'command' | 'event' | 'error' | 'destroy';
   widgetId: string;
   widgetName: string;
   name: string;
@@ -615,30 +600,30 @@ Requirements:
 
 Core error codes:
 
-| Code | Meaning |
-| --- | --- |
-| `INIT_REQUIRED` | A command requires initialization first. |
-| `CONFIG_INVALID` | Config validation failed. |
-| `SECRET_KEY_REJECTED` | A browser config value appears to contain a secret key. |
-| `WIDGET_NOT_FOUND` | Registry does not contain the requested widget. |
-| `PLACEMENT_UNSUPPORTED` | Widget does not support the requested placement. |
-| `HANDSHAKE_TIMEOUT` | Iframe widget did not complete handshake. |
-| `ORIGIN_REJECTED` | Message origin did not match registry expectations. |
-| `CONSENT_REQUIRED` | Operation is blocked by manual consent mode. |
-| `LOAD_FAILED` | Runtime or widget code failed to load. |
-| `DESTROYED` | Operation targeted a destroyed runtime or widget. |
+| Code                    | Meaning                                                 |
+| ----------------------- | ------------------------------------------------------- |
+| `INIT_REQUIRED`         | A command requires initialization first.                |
+| `CONFIG_INVALID`        | Config validation failed.                               |
+| `SECRET_KEY_REJECTED`   | A browser config value appears to contain a secret key. |
+| `WIDGET_NOT_FOUND`      | Registry does not contain the requested widget.         |
+| `PLACEMENT_UNSUPPORTED` | Widget does not support the requested placement.        |
+| `HANDSHAKE_TIMEOUT`     | Iframe widget did not complete handshake.               |
+| `ORIGIN_REJECTED`       | Message origin did not match registry expectations.     |
+| `CONSENT_REQUIRED`      | Operation is blocked by manual consent mode.            |
+| `LOAD_FAILED`           | Runtime or widget code failed to load.                  |
+| `DESTROYED`             | Operation targeted a destroyed runtime or widget.       |
 
 ## 17. Performance and Delivery
 
 Targets:
 
-| Artifact | Target |
-| --- | --- |
-| Inline stub | <= 0.5 KB minified |
-| Loader script | <= 2 KB min+gzip |
-| Host runtime | <= 8 KB min+gzip, excluding widgets |
-| Widget runtime helper | <= 6 KB min+gzip |
-| Boot work | No long task above 50 ms on mid-tier mobile |
+| Artifact              | Target                                      |
+| --------------------- | ------------------------------------------- |
+| Inline stub           | <= 0.5 KB minified                          |
+| Loader script         | <= 2 KB min+gzip                            |
+| Host runtime          | <= 8 KB min+gzip, excluding widgets         |
+| Widget runtime helper | <= 6 KB min+gzip                            |
+| Boot work             | No long task above 50 ms on mid-tier mobile |
 
 Requirements:
 
@@ -838,27 +823,27 @@ Exit criteria:
 
 ## 23. Success Metrics
 
-| Metric | Target |
-| --- | --- |
-| Time to first script integration | Under 5 minutes |
-| Public API size | 12 primary operations or fewer |
-| Host runtime size | <= 8 KB min+gzip, excluding widgets |
-| Widget code loading | Lazy, never on boot unless explicitly preloaded |
-| Protocol and host test coverage | >= 90% for core modules |
-| Consent default | No storage or backend transmission from core |
-| SSR safety | All entry points importable in Node |
+| Metric                           | Target                                          |
+| -------------------------------- | ----------------------------------------------- |
+| Time to first script integration | Under 5 minutes                                 |
+| Public API size                  | 12 primary operations or fewer                  |
+| Host runtime size                | <= 8 KB min+gzip, excluding widgets             |
+| Widget code loading              | Lazy, never on boot unless explicitly preloaded |
+| Protocol and host test coverage  | >= 90% for core modules                         |
+| Consent default                  | No storage or backend transmission from core    |
+| SSR safety                       | All entry points importable in Node             |
 
 ## 24. Risks and Mitigations
 
-| Risk | Impact | Mitigation |
-| --- | --- | --- |
-| Scope drifts into analytics or product events | Core becomes bloated and product-specific | Keep analytics, tracking, feature flags, surveys, and recommendations out of core. |
-| Host CSP blocks runtime or iframe | Widget fails to appear | Provide CSP docs, helper output, and typed `LOAD_FAILED` diagnostics. |
-| Namespace collision | Existing host global breaks integration | Namespace configurable; detect and warn before replacing incompatible globals. |
-| Origin validation mistakes | Security boundary weakens | Require explicit widget origin for iframe transport; test accepted and rejected origins. |
-| Shadow DOM styling issues | Widget appears broken in complex hosts | Use iframe as escape hatch; document placement tradeoffs. |
-| Protocol mismatch between host and widget | Widget fails at runtime | Major-version handshake check and clear `HANDSHAKE_TIMEOUT` or version errors. |
-| Consent semantics unclear | Privacy and compliance risk | Make core no-storage/no-transmission; document manual mode and widget `storageKeys`. |
+| Risk                                          | Impact                                    | Mitigation                                                                               |
+| --------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Scope drifts into analytics or product events | Core becomes bloated and product-specific | Keep analytics, tracking, feature flags, surveys, and recommendations out of core.       |
+| Host CSP blocks runtime or iframe             | Widget fails to appear                    | Provide CSP docs, helper output, and typed `LOAD_FAILED` diagnostics.                    |
+| Namespace collision                           | Existing host global breaks integration   | Namespace configurable; detect and warn before replacing incompatible globals.           |
+| Origin validation mistakes                    | Security boundary weakens                 | Require explicit widget origin for iframe transport; test accepted and rejected origins. |
+| Shadow DOM styling issues                     | Widget appears broken in complex hosts    | Use iframe as escape hatch; document placement tradeoffs.                                |
+| Protocol mismatch between host and widget     | Widget fails at runtime                   | Major-version handshake check and clear `HANDSHAKE_TIMEOUT` or version errors.           |
+| Consent semantics unclear                     | Privacy and compliance risk               | Make core no-storage/no-transmission; document manual mode and widget `storageKeys`.     |
 
 ## 25. Open Questions
 

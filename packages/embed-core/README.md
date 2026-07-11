@@ -74,11 +74,7 @@ Supported commands are `init`, `ready`, `mount`, `open`, `close`, `destroy`, `se
 Data attributes:
 
 ```html
-<div
-  data-wl-widget="advisor"
-  data-wl-placement="inline"
-  data-wl-prop-topic="pricing">
-</div>
+<div data-wl-widget="advisor" data-wl-placement="inline" data-wl-prop-topic="pricing"></div>
 
 <button data-wl-open="advisor" data-wl-placement="modal">Open Advisor</button>
 ```

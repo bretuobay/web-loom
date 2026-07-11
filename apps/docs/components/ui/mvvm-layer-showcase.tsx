@@ -77,7 +77,7 @@ const tokenizeLine = (line: string): CodeToken[] => {
       break;
     }
 
-    if (current === '\'' || current === '"' || current === '`') {
+    if (current === "'" || current === '"' || current === '`') {
       const quote = current;
       let end = index + 1;
       let escaped = false;
@@ -260,9 +260,7 @@ const renderHighlightedCode = (code: string, language: Layer['language']) => {
         const tokens = tokenizeLine(line);
         return (
           <span key={`${language}-line-${lineIndex}`} className="block whitespace-pre">
-            <span className="inline-block w-8 mr-4 text-right select-none text-slate-600">
-              {lineIndex + 1}
-            </span>
+            <span className="inline-block w-8 mr-4 text-right select-none text-slate-600">{lineIndex + 1}</span>
             {tokens.map((token, tokenIndex) => (
               <span key={`${lineIndex}-${token.kind}-${tokenIndex}`} className={tokenClassNames[token.kind]}>
                 {token.text}

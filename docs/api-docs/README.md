@@ -8,38 +8,43 @@ Web Loom provides a suite of framework-agnostic, TypeScript-first packages for b
 
 ## Published Packages
 
-| Package | Version | Description | Size |
-|---------|---------|-------------|------|
-| [@web-loom/mvvm-core](./mvvm-core.md) | 0.5.4 | Complete MVVM framework with RxJS and Zod validation | Core |
-| [@web-loom/query-core](./query-core.md) | 0.5.4 | Data fetching and caching library | Minimal |
-| [@web-loom/store-core](./store-core.md) | 0.5.4 | Reactive state management library | <1KB |
-| [@web-loom/event-bus-core](./event-bus-core.md) | 0.5.4 | Type-safe publish-subscribe event bus | <1KB |
-| [@web-loom/event-emitter-core](./event-emitter-core.md) | 0.5.4 | Type-safe event emitter utility | Tiny |
-| [@web-loom/ui-core](./ui-core.md) | 0.5.4 | Headless UI behaviors (Dialog, Form, List, etc.) | <2KB/behavior |
-| [@web-loom/ui-patterns](./ui-patterns.md) | 0.5.4 | Composed UI patterns (Wizard, Modal, etc.) | Varies |
-| [@web-loom/design-core](./design-core.md) | 0.5.6 | Design tokens and theming system | Minimal |
-| [@web-loom/charts-core](./charts-core.md) | 0.1.0 | D3-based charting library | Moderate |
-| [@web-loom/mvvm-patterns](./mvvm-patterns.md) | 0.0.1 | Advanced MVVM patterns (Interactions, Active Awareness) | Minimal |
+| Package                                                 | Version | Description                                             | Size          |
+| ------------------------------------------------------- | ------- | ------------------------------------------------------- | ------------- |
+| [@web-loom/mvvm-core](./mvvm-core.md)                   | 0.5.4   | Complete MVVM framework with RxJS and Zod validation    | Core          |
+| [@web-loom/query-core](./query-core.md)                 | 0.5.4   | Data fetching and caching library                       | Minimal       |
+| [@web-loom/store-core](./store-core.md)                 | 0.5.4   | Reactive state management library                       | <1KB          |
+| [@web-loom/event-bus-core](./event-bus-core.md)         | 0.5.4   | Type-safe publish-subscribe event bus                   | <1KB          |
+| [@web-loom/event-emitter-core](./event-emitter-core.md) | 0.5.4   | Type-safe event emitter utility                         | Tiny          |
+| [@web-loom/ui-core](./ui-core.md)                       | 0.5.4   | Headless UI behaviors (Dialog, Form, List, etc.)        | <2KB/behavior |
+| [@web-loom/ui-patterns](./ui-patterns.md)               | 0.5.4   | Composed UI patterns (Wizard, Modal, etc.)              | Varies        |
+| [@web-loom/design-core](./design-core.md)               | 0.5.6   | Design tokens and theming system                        | Minimal       |
+| [@web-loom/charts-core](./charts-core.md)               | 0.1.0   | D3-based charting library                               | Moderate      |
+| [@web-loom/mvvm-patterns](./mvvm-patterns.md)           | 0.0.1   | Advanced MVVM patterns (Interactions, Active Awareness) | Minimal       |
 
 ## Package Categories
 
 ### Core Architecture
+
 - **mvvm-core**: Foundation for MVVM architecture with Models, ViewModels, and Commands
 - **mvvm-patterns**: Advanced ViewModel patterns inspired by Prism
 
 ### State Management
+
 - **store-core**: Lightweight Redux-like state management
 - **query-core**: Server state management with caching and auto-refetching
 
 ### Events & Communication
+
 - **event-bus-core**: Pub-sub pattern for cross-component communication
 - **event-emitter-core**: Low-level event emitter for internal package use
 
 ### UI & Interaction
+
 - **ui-core**: Atomic headless UI behaviors
 - **ui-patterns**: Composed UI patterns built from ui-core behaviors
 
 ### Design & Theming
+
 - **design-core**: Design token system with CSS variables and theming
 - **charts-core**: Charting and data visualization
 
@@ -111,12 +116,9 @@ await vm.fetchCommand.execute();
 ```typescript
 import { createStore } from '@web-loom/store-core';
 
-const store = createStore(
-  { count: 0 },
-  (set) => ({
-    increment: () => set(state => ({ count: state.count + 1 })),
-  })
-);
+const store = createStore({ count: 0 }, (set) => ({
+  increment: () => set((state) => ({ count: state.count + 1 })),
+}));
 
 store.actions.increment();
 console.log(store.getState()); // { count: 1 }
@@ -143,8 +145,8 @@ import '@web-loom/design-core/design-system';
 const darkTheme = createTheme('dark', {
   colors: {
     background: { page: '#121212' },
-    text: { primary: '#E0E0E0' }
-  }
+    text: { primary: '#E0E0E0' },
+  },
 });
 
 await applyTheme(darkTheme);
@@ -246,8 +248,10 @@ import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
 
 const store = createStore(
   initialState,
-  (set) => ({ /* actions */ }),
-  { adapter: new LocalStorageAdapter(), key: 'app-state' }
+  (set) => ({
+    /* actions */
+  }),
+  { adapter: new LocalStorageAdapter(), key: 'app-state' },
 );
 ```
 
@@ -259,8 +263,12 @@ Use ui-core and ui-patterns for framework-agnostic UI logic:
 import { createWizard } from '@web-loom/ui-patterns';
 
 const wizard = createWizard({
-  steps: [/* ... */],
-  onComplete: async (data) => { /* ... */ }
+  steps: [
+    /* ... */
+  ],
+  onComplete: async (data) => {
+    /* ... */
+  },
 });
 ```
 

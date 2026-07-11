@@ -42,7 +42,9 @@ export default function App() {
         <p className="lead">Signals-powered ViewModel state with lightweight Preact rendering.</p>
         <div className="stack" role="list" aria-label="Starter technologies">
           {STACK.map((item) => (
-            <span key={item} role="listitem" className="chip">{item}</span>
+            <span key={item} role="listitem" className="chip">
+              {item}
+            </span>
           ))}
         </div>
       </section>
@@ -52,8 +54,14 @@ export default function App() {
           <h2>Live Counter Demo</h2>
           <p className="meta">CounterViewModel + useSignal bridge</p>
           <div className="metrics">
-            <div><span>Count</span><strong>{count}</strong></div>
-            <div><span>Doubled</span><strong>{doubled}</strong></div>
+            <div>
+              <span>Count</span>
+              <strong>{count}</strong>
+            </div>
+            <div>
+              <span>Doubled</span>
+              <strong>{doubled}</strong>
+            </div>
           </div>
           <div className="controls">
             <button onClick={() => void vm.decrementCommand.execute()}>-</button>
@@ -66,7 +74,9 @@ export default function App() {
           <h2>MVVM Wiring</h2>
           <p className="meta">Generated starter files in src/</p>
           <h3>src/viewmodels/CounterViewModel.ts</h3>
-          <pre><code>{vmSnippet}</code></pre>
+          <pre>
+            <code>{vmSnippet}</code>
+          </pre>
         </article>
       </section>
     </main>

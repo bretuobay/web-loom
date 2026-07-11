@@ -133,6 +133,7 @@ The following old chapters are marked for removal in chapter-mapping.json:
 ### Metadata Completeness ✓
 
 All 21 existing chapter files now have complete frontmatter with:
+
 - `id` field (kebab-case identifier)
 - `title` field (display title)
 - `section` field (section name)
@@ -140,6 +141,7 @@ All 21 existing chapter files now have complete frontmatter with:
 ### Section Consistency ✓
 
 All chapters are assigned to one of the six new sections:
+
 - **Foundations** (3 chapters: 1-3)
 - **Core Patterns** (4 chapters: 4-7)
 - **Framework Implementations** (5 chapters: 8-12)
@@ -150,12 +152,14 @@ All chapters are assigned to one of the six new sections:
 ### Chapter Numbering ✓
 
 Current state:
+
 - Existing files: chapter1.mdx through chapter21.mdx (21 files)
 - Files to be created: chapter4.mdx, chapter22.mdx, chapter23.mdx (3 files)
 - Files to be removed/consolidated: chapter11.mdx, chapter13.mdx (duplicates)
 - New chapters to be created: 9 new chapters for framework-agnostic patterns and advanced topics
 
 Note: Full sequential numbering (1-23) will be achieved after:
+
 1. Creating new chapter files (tasks 5-11)
 2. Removing duplicate chapters (task 13)
 3. Renaming chapter21.mdx to chapter23.mdx (task 13)
@@ -165,6 +169,7 @@ Note: Full sequential numbering (1-23) will be achieved after:
 ### Content Mismatch
 
 Several chapters have updated frontmatter but their content still reflects the old chapter topic:
+
 - chapter5.mdx: Frontmatter says "ViewModels and Reactive State" but content is about "Domain Events"
 - chapter8.mdx: Frontmatter says "React Implementation" but content is about "Testing ViewModels"
 - chapter14.mdx: Frontmatter says "Event-Driven Communication" but content is about "Cross-Platform"
@@ -187,6 +192,7 @@ Several chapters have updated frontmatter but their content still reflects the o
 ## Script Used
 
 Created `scripts/update-chapter-metadata.ts` to automate the metadata update process:
+
 - Reads chapter-mapping.json
 - Updates or adds frontmatter to all chapter files
 - Preserves existing chapter content
@@ -199,7 +205,8 @@ Task 2.3 is complete. All 21 existing chapter files now have consistent, correct
 
 **Next Task:** 2.4 Generate chapter mapping output (already complete - chapter-mapping.json exists)
 
-**Future Tasks:** 
+**Future Tasks:**
+
 - Phase 3: Generate rewrite plans for all chapters
 - Phase 4-11: Rewrite chapter content to match new metadata
 - Phase 13: Remove duplicate chapters and rename files as needed

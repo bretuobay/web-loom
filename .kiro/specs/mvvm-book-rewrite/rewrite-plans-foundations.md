@@ -24,6 +24,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ## Chapter 1: The Frontend Architecture Crisis
 
 ### Metadata
+
 - **Chapter Number:** 1
 - **File Name:** `chapter1.mdx`
 - **Section:** Foundations
@@ -32,32 +33,30 @@ This document provides comprehensive rewrite plans for the Foundations section (
 - **Enables:** Chapters 2, 3
 
 ### Learning Objectives
+
 1. Understand the challenges of modern frontend development
 2. Identify common architectural problems in frontend applications
 3. Recognize the need for structured architectural patterns
 4. Learn why separation of concerns matters in frontend code
 
 ### Core Concepts to Teach
+
 1. **Frontend complexity growth over time**
    - Evolution from simple jQuery scripts to complex SPAs
    - State management challenges
    - Component interdependencies
-   
 2. **Tight coupling between UI and business logic**
    - Business logic embedded in components
    - Difficulty extracting and reusing logic
    - Framework lock-in problems
-   
 3. **Testing challenges in tightly coupled code**
    - Cannot test business logic without rendering UI
    - Brittle tests that break with UI changes
    - Difficulty mocking dependencies
-   
 4. **Maintenance difficulties in unstructured applications**
    - Code duplication across components
    - Unclear data flow
    - Difficulty onboarding new developers
-   
 5. **The cost of technical debt in frontend projects**
    - Slowing velocity over time
    - Fear of refactoring
@@ -66,11 +65,13 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ### Real Implementations to Reference
 
 **Anti-patterns to demonstrate (create simplified examples based on common mistakes):**
+
 - Business logic embedded in React components
 - Duplicated state management across components
 - Tightly coupled API calls in UI code
 
 **GreenWatch examples showing problems:**
+
 - Hypothetical "before MVVM" version of sensor dashboard
 - Show what happens when sensor reading logic is in the component
 - Demonstrate testing difficulties
@@ -78,6 +79,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ### Code Examples to Extract
 
 **Example 1: Tightly Coupled Component (Anti-pattern)**
+
 ```typescript
 // Create a simplified example showing:
 // - API calls directly in component
@@ -89,6 +91,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ```
 
 **Example 2: Testing Challenges**
+
 ```typescript
 // Show how testing the tightly coupled component requires:
 // - Mocking the entire component tree
@@ -97,6 +100,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ```
 
 **Example 3: Code Duplication**
+
 ```typescript
 // Show how the same sensor reading logic appears in multiple components
 // because there's no shared business logic layer
@@ -152,10 +156,12 @@ This document provides comprehensive rewrite plans for the Foundations section (
 5. **Avoid preaching:** Present problems objectively, not judgmentally
 
 ### Dependencies
+
 - **Prerequisites:** None
 - **Enables:** Chapter 2 (Why MVVM Matters), Chapter 3 (MVVM Fundamentals)
 
 ### Content Changes from Original
+
 - Replace hypothetical examples with GreenWatch-based examples
 - Update section metadata from "The Crisis" to "Foundations"
 - Add more concrete code examples showing problems
@@ -166,6 +172,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ## Chapter 2: Why MVVM Matters for Modern Frontend
 
 ### Metadata
+
 - **Chapter Number:** 2
 - **File Name:** `chapter2.mdx`
 - **Section:** Foundations
@@ -174,32 +181,30 @@ This document provides comprehensive rewrite plans for the Foundations section (
 - **Enables:** Chapter 3
 
 ### Learning Objectives
+
 1. Understand what MVVM is and why it exists
 2. Learn how MVVM solves frontend architectural problems
 3. See concrete examples of problems MVVM addresses
 4. Understand the benefits of framework-agnostic business logic
 
 ### Core Concepts to Teach
+
 1. **MVVM as a solution to frontend complexity**
    - What MVVM stands for (Model-View-ViewModel)
    - High-level overview of the pattern
    - How it addresses problems from Chapter 1
-   
 2. **Separation of concerns in practice**
    - Business logic separated from UI
    - Presentation logic in ViewModels
    - Views as pure presentation
-   
 3. **Framework independence benefits**
    - Business logic not tied to any framework
    - Same ViewModels work across React, Vue, Angular, etc.
    - Easier migration and multi-platform support
-   
 4. **Testability improvements with MVVM**
    - Test business logic without rendering UI
    - Test ViewModels in isolation
    - More reliable, faster tests
-   
 5. **Reusability of business logic across frameworks**
    - Write once, use everywhere
    - Consistent behavior across platforms
@@ -208,21 +213,25 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ### Real Implementations to Reference
 
 **GreenWatch ViewModels:**
+
 - `packages/view-models/src/SensorViewModel.ts` - Show how sensor logic is framework-agnostic
 - `packages/view-models/src/SensorReadingViewModel.ts` - Show how reading logic is reusable
 
 **Framework Implementations:**
+
 - `apps/mvvm-react/src/components/SensorDashboard.tsx` - React using SensorViewModel
 - `apps/mvvm-vue/src/components/SensorDashboard.vue` - Vue using same ViewModel
 - `apps/mvvm-angular/src/app/components/sensor-dashboard/` - Angular using same ViewModel
 
 **Core MVVM Classes:**
+
 - `packages/mvvm-core/src/viewmodels/BaseViewModel.ts` - Show base ViewModel pattern
 - `packages/mvvm-core/src/models/BaseModel.ts` - Show base Model pattern
 
 ### Code Examples to Extract
 
 **Example 1: SensorViewModel (Framework-Agnostic)**
+
 ```typescript
 // File: packages/view-models/src/SensorViewModel.ts
 // Extract: Complete ViewModel showing:
@@ -233,6 +242,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ```
 
 **Example 2: React Component Using ViewModel**
+
 ```typescript
 // File: apps/mvvm-react/src/components/SensorDashboard.tsx
 // Extract: Component showing:
@@ -242,6 +252,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ```
 
 **Example 3: Vue Component Using Same ViewModel**
+
 ```typescript
 // File: apps/mvvm-vue/src/components/SensorDashboard.vue
 // Extract: Component showing:
@@ -251,6 +262,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ```
 
 **Example 4: Testing ViewModel Without UI**
+
 ```typescript
 // File: packages/view-models/src/SensorViewModel.test.ts (if exists)
 // Or create example showing:
@@ -316,10 +328,12 @@ This document provides comprehensive rewrite plans for the Foundations section (
 5. **Build excitement:** Make readers want to learn MVVM
 
 ### Dependencies
+
 - **Prerequisites:** Chapter 1 (understanding the problems)
 - **Enables:** Chapter 3 (detailed MVVM fundamentals)
 
 ### Content Changes from Original
+
 - Rename from "The Crisis in Contemporary Frontend Development" to "Why MVVM Matters for Modern Frontend"
 - Refocus from problem description to solution introduction
 - Add concrete GreenWatch examples showing MVVM benefits
@@ -331,6 +345,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ## Chapter 3: MVVM Pattern Fundamentals
 
 ### Metadata
+
 - **Chapter Number:** 3
 - **File Name:** `chapter3.mdx`
 - **Section:** Foundations
@@ -339,19 +354,20 @@ This document provides comprehensive rewrite plans for the Foundations section (
 - **Enables:** Chapters 4, 5, 6, 7
 
 ### Learning Objectives
+
 1. Understand the three layers of MVVM (Model, View, ViewModel)
 2. Learn the responsibilities of each layer
 3. Understand how data flows through MVVM layers
 4. See a complete MVVM example with GreenWatch domain
 
 ### Core Concepts to Teach
+
 1. **Model layer: domain logic and data**
    - Represents domain entities
    - Contains business rules and validation
    - Manages data persistence
    - Framework-agnostic
    - Exposes observable state
-   
 2. **ViewModel layer: presentation logic**
    - Connects Model to View
    - Transforms data for presentation
@@ -359,24 +375,20 @@ This document provides comprehensive rewrite plans for the Foundations section (
    - Manages UI state
    - Framework-agnostic
    - Exposes observables to View
-   
 3. **View layer: UI rendering**
    - Pure presentation
    - Subscribes to ViewModel observables
    - Renders UI based on ViewModel state
    - Calls ViewModel methods for user actions
    - Framework-specific
-   
 4. **Unidirectional data flow**
    - Data flows from Model → ViewModel → View
    - User actions flow from View → ViewModel → Model
    - Clear, predictable flow
-   
 5. **Layer boundaries and contracts**
    - What each layer can and cannot do
    - How layers communicate
    - Dependency direction (View depends on ViewModel, ViewModel depends on Model)
-   
 6. **Reactive state flow from Model → ViewModel → View**
    - Observable pattern with RxJS
    - BehaviorSubject for state
@@ -386,27 +398,32 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ### Real Implementations to Reference
 
 **Core MVVM Classes:**
+
 - `packages/mvvm-core/src/models/BaseModel.ts` - Base Model implementation
 - `packages/mvvm-core/src/viewmodels/BaseViewModel.ts` - Base ViewModel implementation
 
 **GreenWatch Domain Models:**
+
 - `packages/models/src/GreenHouseModel.ts` - Greenhouse entity
 - `packages/models/src/SensorModel.ts` - Sensor entity
 - `packages/models/src/SensorReadingModel.ts` - SensorReading entity
 - `packages/models/src/ThresholdAlertModel.ts` - ThresholdAlert entity
 
 **GreenWatch ViewModels:**
+
 - `packages/view-models/src/GreenHouseViewModel.ts` - Greenhouse ViewModel
 - `packages/view-models/src/SensorViewModel.ts` - Sensor ViewModel
 - `packages/view-models/src/SensorReadingViewModel.ts` - SensorReading ViewModel
 - `packages/view-models/src/ThresholdAlertViewModel.ts` - ThresholdAlert ViewModel
 
 **View Examples (one framework for now, more in later chapters):**
+
 - `apps/mvvm-react/src/components/SensorDashboard.tsx` - React View example
 
 ### Code Examples to Extract
 
 **Example 1: BaseModel - The Model Layer**
+
 ```typescript
 // File: packages/mvvm-core/src/models/BaseModel.ts
 // Extract: Key parts showing:
@@ -417,6 +434,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ```
 
 **Example 2: SensorModel - Domain Model**
+
 ```typescript
 // File: packages/models/src/SensorModel.ts
 // Extract: Complete model showing:
@@ -426,6 +444,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ```
 
 **Example 3: BaseViewModel - The ViewModel Layer**
+
 ```typescript
 // File: packages/mvvm-core/src/viewmodels/BaseViewModel.ts
 // Extract: Key parts showing:
@@ -436,6 +455,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ```
 
 **Example 4: SensorViewModel - Complete ViewModel**
+
 ```typescript
 // File: packages/view-models/src/SensorViewModel.ts
 // Extract: Complete ViewModel showing:
@@ -446,6 +466,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ```
 
 **Example 5: React View - The View Layer**
+
 ```typescript
 // File: apps/mvvm-react/src/components/SensorDashboard.tsx
 // Extract: Component showing:
@@ -456,6 +477,7 @@ This document provides comprehensive rewrite plans for the Foundations section (
 ```
 
 **Example 6: Complete Flow - Sensor Reading Feature**
+
 ```typescript
 // Show complete flow from Model → ViewModel → View:
 // 1. SensorReadingModel fetches data
@@ -555,16 +577,18 @@ This document provides comprehensive rewrite plans for the Foundations section (
 6. **Preview future chapters:** Mention that each layer will be explored in depth later
 
 ### Dependencies
-- **Prerequisites:** 
+
+- **Prerequisites:**
   - Chapter 1 (understanding the problems)
   - Chapter 2 (understanding why MVVM matters)
-- **Enables:** 
+- **Enables:**
   - Chapter 4 (Building Framework-Agnostic Models)
   - Chapter 5 (ViewModels and Reactive State)
   - Chapter 6 (The View Layer Contract)
   - Chapter 7 (Dependency Injection and Lifecycle Management)
 
 ### Content Changes from Original
+
 - Update section metadata from "The Crisis" to "Foundations"
 - Ensure all examples use real GreenWatch code from monorepo
 - Add clear explanation of Model-View-ViewModel layers with actual implementations
@@ -590,24 +614,28 @@ For each chapter, code examples should be extracted from the monorepo following 
 ### File Paths Reference
 
 **Core MVVM:**
+
 - `packages/mvvm-core/src/models/BaseModel.ts`
 - `packages/mvvm-core/src/models/RestfulApiModel.ts`
 - `packages/mvvm-core/src/viewmodels/BaseViewModel.ts`
 - `packages/mvvm-core/src/viewmodels/RestfulApiViewModel.ts`
 
 **Domain Models:**
+
 - `packages/models/src/GreenHouseModel.ts`
 - `packages/models/src/SensorModel.ts`
 - `packages/models/src/SensorReadingModel.ts`
 - `packages/models/src/ThresholdAlertModel.ts`
 
 **ViewModels:**
+
 - `packages/view-models/src/GreenHouseViewModel.ts`
 - `packages/view-models/src/SensorViewModel.ts`
 - `packages/view-models/src/SensorReadingViewModel.ts`
 - `packages/view-models/src/ThresholdAlertViewModel.ts`
 
 **React Views:**
+
 - `apps/mvvm-react/src/components/SensorDashboard.tsx`
 - `apps/mvvm-react/src/components/SensorList.tsx`
 - `apps/mvvm-react/src/components/SensorDetail.tsx`
@@ -676,6 +704,7 @@ These rewrite plans provide a comprehensive roadmap for rewriting the Foundation
 - Dependencies and relationships
 
 The plans ensure that the rewritten chapters will:
+
 - Use real GreenWatch code throughout
 - Follow a clear pedagogical progression
 - Build on each other coherently

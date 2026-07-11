@@ -102,10 +102,10 @@ describe('Canvas Integration - Requirement 2.1', () => {
     };
 
     const chart = new ChartManager(config);
-    
+
     // Mock canvas.getContext to avoid jsdom limitation
     const originalGetContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function() {
+    HTMLCanvasElement.prototype.getContext = function () {
       return {
         beginPath: () => {},
         moveTo: () => {},
@@ -171,14 +171,14 @@ describe('Canvas Integration - Requirement 2.1', () => {
     };
 
     const chart = new ChartManager(config);
-    
+
     // Mock canvas context
     const mockGradient = {
       addColorStop: () => {},
     };
-    
+
     const originalGetContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function() {
+    HTMLCanvasElement.prototype.getContext = function () {
       return {
         beginPath: () => {},
         moveTo: () => {},

@@ -72,7 +72,9 @@ export function ProductBrowser({
         <div className="product-list">
           {products.length === 0 ? (
             <div className="empty-card">
-              {searchQuery.trim().length > 0 ? 'No products found for this search.' : 'No products available right now.'}
+              {searchQuery.trim().length > 0
+                ? 'No products found for this search.'
+                : 'No products available right now.'}
             </div>
           ) : (
             products.map((product) => {

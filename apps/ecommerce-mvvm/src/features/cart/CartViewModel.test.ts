@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type {
-  CartDto,
-  CheckoutResultDto,
-  EcommerceApiPort,
-} from '../../infrastructure/api/ports/ecommerce-api-port';
+import type { CartDto, CheckoutResultDto, EcommerceApiPort } from '../../infrastructure/api/ports/ecommerce-api-port';
 import { CartModel } from './CartModel';
 import { CartViewModel } from './CartViewModel';
 

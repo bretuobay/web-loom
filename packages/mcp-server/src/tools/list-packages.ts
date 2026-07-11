@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 const PACKAGE_CATALOG = `# @web-loom/* Package Catalog
 
@@ -50,12 +50,12 @@ npm install @web-loom/event-bus-core
 
 export function registerListPackagesTool(server: McpServer): void {
   server.registerTool(
-    "list_packages",
+    'list_packages',
     {
-      description: "List all @web-loom/* packages with descriptions, key exports, and guidance on when to use each.",
+      description: 'List all @web-loom/* packages with descriptions, key exports, and guidance on when to use each.',
     },
     async () => ({
-      content: [{ type: "text" as const, text: PACKAGE_CATALOG }],
-    })
+      content: [{ type: 'text' as const, text: PACKAGE_CATALOG }],
+    }),
   );
 }

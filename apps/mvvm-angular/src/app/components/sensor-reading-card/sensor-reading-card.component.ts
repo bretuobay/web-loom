@@ -1,4 +1,15 @@
-import { Component, AfterViewInit, ElementRef, ViewChild, OnInit, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import {
+  Component,
+  AfterViewInit,
+  ElementRef,
+  ViewChild,
+  OnInit,
+  Inject,
+  InjectionToken,
+  Signal,
+  DestroyRef,
+  inject,
+} from '@angular/core';
 import { fromLoomSignal } from '../../utils/loom-signals';
 import { observe } from '@web-loom/signals-core';
 import { RouterModule } from '@angular/router';
@@ -47,9 +58,9 @@ export class SensorReadingCardComponent implements OnInit, AfterViewInit {
   ngAfterViewInit(): void {
     this.destroyRef.onDestroy(
       observe(this.vm.data$, (data) => {
-      if (data && data.length > 0 && this.readingsChartRef) {
-        this.initChart(data);
-      }
+        if (data && data.length > 0 && this.readingsChartRef) {
+          this.initChart(data);
+        }
       }),
     );
   }
