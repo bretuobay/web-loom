@@ -4,7 +4,7 @@
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": false,
-  "version": "0.5.4",
+  "version": "0.8.0",
   "type": "module",
   "files": [
     "dist"
@@ -51,6 +51,6 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
-    "@web-loom/event-emitter-core": "0.5.4"
+    "@web-loom/event-emitter-core": "*"
   }
 }

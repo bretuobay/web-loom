@@ -1,6 +1,6 @@
 {
   "name": "@web-loom/forms-vanilla",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "Vanilla JavaScript adapter for @web-loom/forms-core",
   "type": "module",
   "main": "dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@web-loom/media-react",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "React adapter for @web-loom/media-core.",
   "author": "Web Loom Team",
   "license": "MIT",
