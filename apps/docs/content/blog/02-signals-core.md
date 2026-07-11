@@ -45,6 +45,24 @@ count.set(1);       // notify all dependents
 count.update(n => n + 1); // update from previous value → 2
 ```
 
+Every signal is also directly subscribable, without a framework or an `effect()`:
+
+```typescript
+const unsubscribe = count.subscribe(value => console.log('count is now', value));
+
+count.set(5); // logs: 'count is now 5'
+unsubscribe();
+```
+
+`subscribe(fn)` only fires on *future* changes — it doesn't replay the current value to a new subscriber. When you need that BehaviorSubject-style "deliver now, then on every change" behavior (the common case when wiring a signal into a framework's local state), use `observe(sig, fn)` instead:
+
+```typescript
+import { observe } from '@web-loom/signals-core';
+
+observe(count, value => console.log('count is', value)); // logs immediately: 'count is 5'
+count.set(6); // logs: 'count is 6'
+```
+
 The `equals` option lets you control when a change triggers notification:
 
 ```typescript
@@ -167,24 +185,27 @@ Without `batch`, each `set` would trigger the effect independently. With `batch`
 
 ## Where This Fits in the Web Loom Architecture
 
-`@web-loom/signals-core` is designed for cases where RxJS is heavier than you need. RxJS is powerful — operators for debouncing, switching, combining streams, back-pressure — but it has a learning curve and a runtime cost. For ViewModels that only need to expose a few reactive values with simple derivations, signals are lighter and more readable.
+`@web-loom/signals-core` isn't a lightweight alternative sitting next to RxJS in `@web-loom/mvvm-core` — it's the reactive layer `mvvm-core` is actually built on. Every `data$`, `isLoading$`, `error$`, `canExecute$`, and `isExecuting$` you'll encounter across the ecosystem is a `ReadonlySignal<T>` from this package, not an RxJS `Observable`. RxJS isn't a dependency of `mvvm-core` at all.
 
-The two systems can coexist. A ViewModel might use RxJS for complex async orchestration and expose a few signals for simple UI state:
+That covers more than it might sound like at first — `computed()` handles derived state (what `.pipe(map(...))` and `combineLatest([...])` used to do), and `effect()` handles side effects. For debouncing a fast-changing input — the one case that reliably needed an RxJS operator before — `debouncedSignal` covers it directly:
 
 ```typescript
-class SearchViewModel extends BaseViewModel<SearchModel> {
-  // RxJS for async: debounce, switchMap, cancel in-flight requests
-  readonly results$ = this.query$.pipe(
-    debounceTime(300),
-    distinctUntilChanged(),
-    switchMap(q => this.model.search(q)),
-  );
+import { signal, observe, debouncedSignal } from '@web-loom/signals-core';
 
-  // Signal for simple UI state
-  readonly isFilterOpen = signal(false);
-  readonly sortOrder    = signal<'asc' | 'desc'>('asc');
+class SearchViewModel extends BaseViewModel<SearchModel> {
+  readonly query = signal('');
+  readonly debouncedQuery = debouncedSignal(this.query, 300);
+
+  constructor(model: SearchModel) {
+    super(model);
+    this.addSubscription(
+      observe(this.debouncedQuery, (q) => this.model.search(q)),
+    );
+  }
 }
 ```
+
+If you're bridging into a codebase that's already genuinely RxJS-based elsewhere — an existing NgRx store, a complex retry/backoff pipeline, a websocket library that hands you Observables — `@web-loom/signals-core/rxjs` is an optional subpath (requires `rxjs` as a peer dependency) with `toObservable`/`fromObservable` helpers to cross that boundary. It's an escape hatch for integrating with other systems, not something `mvvm-core` itself needs.
 
 ---
 

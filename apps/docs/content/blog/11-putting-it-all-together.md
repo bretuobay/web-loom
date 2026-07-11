@@ -229,7 +229,7 @@ export class ProductModel extends BaseModel<Product[], never> {
   }
 
   async delete(productId: string): Promise<void> {
-    const current = this.data$.value ?? [];
+    const current = this.data$.peek() ?? [];
     const product = current.find(p => p.id === productId);
     if (!product) throw new Error(`Product ${productId} not found`);
 
@@ -243,8 +243,8 @@ export class ProductModel extends BaseModel<Product[], never> {
     // Emit typed model event
     this.events.emit('deleted', { productId, name: product.name });
 
-    // Publish to app-wide event bus for cross-feature communication
-    appBus.publish('product:deleted', { productId, name: product.name });
+    // Emit to app-wide event bus for cross-feature communication
+    appBus.emit('product:deleted', { productId, name: product.name });
   }
 
   dispose(): void {
@@ -264,7 +264,6 @@ The ViewModel derives what the View needs from the Model. It composes UI pattern
 
 ```typescript
 // src/features/products/ProductViewModel.ts
-import { map } from 'rxjs/operators';
 import { Command } from '@web-loom/mvvm-core';
 import { ActiveAwareViewModel } from '@web-loom/mvvm-patterns';
 import { ConfirmationRequest, NotificationRequest } from '@web-loom/mvvm-patterns';
@@ -273,17 +272,17 @@ import { signal, computed } from '@web-loom/signals-core';
 import { ProductModel, Product } from './ProductModel';
 
 export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
-  // --- Observables for the View ---
-  readonly products$ = this.data$.pipe(map(data => data ?? []));
+  // --- Signals for the View ---
+  readonly products$ = computed(() => this.data$.get() ?? []);
   readonly isLoading$ = this.isLoading$;
   readonly error$     = this.error$;
 
-  // --- Search signal (reactive, no RxJS overhead for simple local state) ---
+  // --- Search signal (reactive, local UI state) ---
   private readonly _search = signal('');
   readonly search = this._search;
   readonly filteredProducts = computed(() => {
     const query = this._search.get().toLowerCase();
-    const all   = (this.data$.value ?? []);
+    const all   = (this.data$.get() ?? []);
     if (!query) return all;
     return all.filter(p =>
       p.name.toLowerCase().includes(query) ||
@@ -305,7 +304,7 @@ export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
   readonly loadCommand   = this.registerCommand(new Command(() => this.model.fetchAll()));
   readonly deleteCommand = this.registerCommand(
     new Command(async (productId: string) => {
-      const product = (this.data$.value ?? []).find(p => p.id === productId);
+      const product = (this.data$.peek() ?? []).find(p => p.id === productId);
       if (!product) return;
 
       const response = await this.confirmDelete.raiseAsync({
@@ -339,7 +338,7 @@ export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
   protected onIsActiveChanged(isActive: boolean): void {
     if (isActive) {
       // Load only if we have no data yet (cache will prevent re-fetching)
-      if (!this.data$.value) {
+      if (!this.data$.peek()) {
         this.loadCommand.execute();
       }
     }
@@ -428,21 +427,16 @@ The View is thin. It subscribes, renders, and calls commands.
 
 ```tsx
 // src/features/products/ProductBrowser.tsx
-import { useMemo, useEffect, useState } from 'react';
-import { useSyncExternalStore } from 'react';
+import { useMemo, useEffect, useState, useSyncExternalStore } from 'react';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 import { ProductViewModel } from './ProductViewModel';
 import { ProductModel, Product } from './ProductModel';
 import { useProductPalette } from './useProductPalette';
 import type { IConfirmation, INotification } from '@web-loom/mvvm-patterns';
 
-// --- Minimal hook to bridge RxJS observables to React ---
-function useObservable<T>(observable: { subscribe: (fn: (v: T) => void) => { unsubscribe: () => void } }, initial: T): T {
-  const [value, setValue] = useState<T>(initial);
-  useEffect(() => {
-    const sub = observable.subscribe(setValue);
-    return () => sub.unsubscribe();
-  }, [observable]);
-  return value;
+// --- Bridge a Web Loom signal to React ---
+function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 
 export function ProductBrowser() {
@@ -456,20 +450,12 @@ export function ProductBrowser() {
     return () => { vm.deactivate(); vm.dispose(); model.dispose(); };
   }, [vm, model]);
 
-  // Subscribe to observables
-  const products  = useObservable(vm.products$, []);
-  const isLoading = useObservable(vm.isLoading$, false);
-  const error     = useObservable(vm.error$, null);
-
-  // Reactive signal value (signals have their own subscription API)
-  const [filteredProducts, setFiltered] = useState<Product[]>([]);
-  useEffect(() => {
-    // In a real app you'd bind the computed signal directly; simplified here
-    const interval = setInterval(() => {
-      setFiltered(vm.filteredProducts.get());
-    }, 50);
-    return () => clearInterval(interval);
-  }, [vm]);
+  // Read ViewModel signals
+  const products  = useSignal(vm.products$);
+  const isLoading = useSignal(vm.isLoading$);
+  const error     = useSignal(vm.error$);
+  const filteredProducts = useSignal(vm.filteredProducts);
+  const isDeleting = useSignal(vm.deleteCommand.isExecuting$);
 
   // UI store
   const uiState = useSyncExternalStore(
@@ -485,13 +471,13 @@ export function ProductBrowser() {
   const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
-    const sub1 = vm.confirmDelete.requested$.subscribe(setConfirmation);
-    const sub2 = vm.notifyDeleted.requested$.subscribe(event => {
+    const unsubscribeConfirm = vm.confirmDelete.requested$.subscribe(setConfirmation);
+    const unsubscribeNotify = vm.notifyDeleted.requested$.subscribe(event => {
       setNotification(event.context.content);
       setTimeout(() => setNotification(null), 3000);
       event.callback(event.context);
     });
-    return () => { sub1.unsubscribe(); sub2.unsubscribe(); };
+    return () => { unsubscribeConfirm(); unsubscribeNotify(); };
   }, [vm]);
 
   if (isLoading && !products.length) return <div>Loading…</div>;
@@ -551,7 +537,7 @@ export function ProductBrowser() {
           <ProductDetail
             product={vm.masterDetail.getState().selectedItem!}
             onDelete={() => vm.deleteCommand.execute(vm.masterDetail.getState().selectedId!)}
-            isDeleting={vm.deleteCommand.isExecuting$.value}
+            isDeleting={isDeleting}
           />
         ) : (
           <div style={{ color: 'var(--color-text-secondary)' }}>
@@ -617,10 +603,10 @@ class CartModel extends BaseModel<CartState, never> {
     super({});
 
     // Remove deleted products from active carts
-    appBus.subscribe('product:deleted', ({ productId }) => {
-      const items = this.data$.value?.items ?? [];
+    appBus.on('product:deleted', ({ productId }) => {
+      const items = this.data$.peek()?.items ?? [];
       const updated = items.filter(item => item.productId !== productId);
-      this.setData({ ...this.data$.value, items: updated });
+      this.setData({ ...this.data$.peek(), items: updated });
     });
   }
 }

@@ -548,7 +548,7 @@ Let's see how to use QueryCore in a ViewModel for the GreenWatch greenhouse moni
 
 ```typescript
 // packages/view-models/src/SensorViewModel.ts
-import { BehaviorSubject, Observable } from 'rxjs';
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
 import QueryCore from '@web-loom/query-core';
 
 export interface Sensor {
@@ -561,21 +561,21 @@ export interface Sensor {
 
 export class SensorViewModel {
   private queryCore: QueryCore;
-  private sensorsSubject = new BehaviorSubject<Sensor[]>([]);
-  private loadingSubject = new BehaviorSubject<boolean>(true);
-  private errorSubject = new BehaviorSubject<Error | null>(null);
+  private _sensors = signal<Sensor[]>([]);
+  private _loading = signal<boolean>(true);
+  private _error = signal<Error | null>(null);
 
-  readonly sensors$: Observable<Sensor[]>;
-  readonly isLoading$: Observable<boolean>;
-  readonly error$: Observable<Error | null>;
+  readonly sensors$: ReadonlySignal<Sensor[]>;
+  readonly isLoading$: ReadonlySignal<boolean>;
+  readonly error$: ReadonlySignal<Error | null>;
 
   constructor(
     private readonly greenhouseId: string,
     private readonly apiClient: ApiClient
   ) {
-    this.sensors$ = this.sensorsSubject.asObservable();
-    this.isLoading$ = this.loadingSubject.asObservable();
-    this.error$ = this.errorSubject.asObservable();
+    this.sensors$ = this._sensors.asReadonly();
+    this.isLoading$ = this._loading.asReadonly();
+    this.error$ = this._error.asReadonly();
 
     this.queryCore = new QueryCore({
       cacheProvider: 'indexedDB',
@@ -597,11 +597,11 @@ export class SensorViewModel {
 
     // Subscribe to state changes
     this.queryCore.subscribe(`sensors-${this.greenhouseId}`, (state) => {
-      this.loadingSubject.next(state.isLoading);
-      this.errorSubject.next(state.error || null);
+      this._loading.set(state.isLoading);
+      this._error.set(state.error || null);
 
       if (state.data) {
-        this.sensorsSubject.next(state.data);
+        this._sensors.set(state.data);
       }
     });
   }
@@ -615,19 +615,18 @@ export class SensorViewModel {
   }
 
   dispose(): void {
-    this.sensorsSubject.complete();
-    this.loadingSubject.complete();
-    this.errorSubject.complete();
+    // Signals need no explicit teardown; the QueryCore subscription above
+    // is what would need unsubscribing in a longer-lived ViewModel.
   }
 }
 ```
 
 Notice how the ViewModel:
 
-1. **Encapsulates QueryCore**: The View doesn't know about QueryCore, it only sees RxJS observables
+1. **Encapsulates QueryCore**: The View doesn't know about QueryCore, it only sees `ReadonlySignal`s
 2. **Provides domain methods**: `refreshSensors()` and `invalidateCache()` expose business operations
 3. **Remains framework-agnostic**: No React, Vue, or Angular dependencies
-4. **Handles state mapping**: Converts QueryCore's state to RxJS observables for consistency with other ViewModels
+4. **Handles state mapping**: Converts QueryCore's state to signals for consistency with other ViewModels
 
 This is the MVVM pattern in action: the ViewModel manages data fetching and caching, exposing a clean interface to the View layer.
 
@@ -886,21 +885,21 @@ Let's see a complete example of data fetching in MVVM architecture using QueryCo
 // Step 1: Define the ViewModel with QueryCore
 export class GreenhouseViewModel {
   private queryCore: QueryCore;
-  private greenhouseSubject = new BehaviorSubject<Greenhouse | null>(null);
-  private sensorsSubject = new BehaviorSubject<Sensor[]>([]);
-  private loadingSubject = new BehaviorSubject<boolean>(true);
+  private _greenhouse = signal<Greenhouse | null>(null);
+  private _sensors = signal<Sensor[]>([]);
+  private _loading = signal<boolean>(true);
 
-  readonly greenhouse$: Observable<Greenhouse | null>;
-  readonly sensors$: Observable<Sensor[]>;
-  readonly isLoading$: Observable<boolean>;
+  readonly greenhouse$: ReadonlySignal<Greenhouse | null>;
+  readonly sensors$: ReadonlySignal<Sensor[]>;
+  readonly isLoading$: ReadonlySignal<boolean>;
 
   constructor(
     private readonly greenhouseId: string,
     private readonly apiClient: ApiClient
   ) {
-    this.greenhouse$ = this.greenhouseSubject.asObservable();
-    this.sensors$ = this.sensorsSubject.asObservable();
-    this.isLoading$ = this.loadingSubject.asObservable();
+    this.greenhouse$ = this._greenhouse.asReadonly();
+    this.sensors$ = this._sensors.asReadonly();
+    this.isLoading$ = this._loading.asReadonly();
 
     this.queryCore = new QueryCore({
       cacheProvider: 'indexedDB',
@@ -928,15 +927,15 @@ export class GreenhouseViewModel {
     // Subscribe to greenhouse state
     this.queryCore.subscribe(`greenhouse-${this.greenhouseId}`, (state) => {
       if (state.data) {
-        this.greenhouseSubject.next(state.data);
+        this._greenhouse.set(state.data);
       }
     });
 
     // Subscribe to sensors state
     this.queryCore.subscribe(`sensors-${this.greenhouseId}`, (state) => {
-      this.loadingSubject.next(state.isLoading);
+      this._loading.set(state.isLoading);
       if (state.data) {
-        this.sensorsSubject.next(state.data);
+        this._sensors.set(state.data);
       }
     });
   }
@@ -953,9 +952,8 @@ export class GreenhouseViewModel {
   }
 
   dispose(): void {
-    this.greenhouseSubject.complete();
-    this.sensorsSubject.complete();
-    this.loadingSubject.complete();
+    // Signals need no explicit teardown here beyond unsubscribing from
+    // QueryCore, which this simplified example omits for brevity.
   }
 }
 ```
@@ -967,9 +965,9 @@ function GreenhouseDashboard({ greenhouseId }: Props) {
     () => new GreenhouseViewModel(greenhouseId, apiClient)
   );
 
-  const greenhouse = useObservable(viewModel.greenhouse$, null);
-  const sensors = useObservable(viewModel.sensors$, []);
-  const isLoading = useObservable(viewModel.isLoading$, true);
+  const greenhouse = useSignal(viewModel.greenhouse$);
+  const sensors = useSignal(viewModel.sensors$);
+  const isLoading = useSignal(viewModel.isLoading$);
 
   useEffect(() => {
     return () => viewModel.dispose();
@@ -990,17 +988,17 @@ function GreenhouseDashboard({ greenhouseId }: Props) {
 ```typescript
 // Step 3: Use the same ViewModel in Vue
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
-import { useObservable } from '@/composables/useObservable';
+import { onUnmounted } from 'vue';
+import { useSignal } from '@/hooks/useSignal';
 import { GreenhouseViewModel } from '@/viewmodels/GreenhouseViewModel';
 
 const props = defineProps<{ greenhouseId: string }>();
 
 const viewModel = new GreenhouseViewModel(props.greenhouseId, apiClient);
 
-const greenhouse = useObservable(viewModel.greenhouse$, null);
-const sensors = useObservable(viewModel.sensors$, []);
-const isLoading = useObservable(viewModel.isLoading$, true);
+const greenhouse = useSignal(viewModel.greenhouse$);
+const sensors = useSignal(viewModel.sensors$);
+const isLoading = useSignal(viewModel.isLoading$);
 
 onUnmounted(() => {
   viewModel.dispose();
@@ -1033,13 +1031,13 @@ Optimistic updates improve perceived performance by updating the UI immediately,
 ```typescript
 export class SensorViewModel {
   async updateSensorName(sensorId: string, newName: string): Promise<void> {
-    const currentSensors = this.sensorsSubject.value;
+    const currentSensors = this._sensors.peek();
 
     // Optimistic update: update UI immediately
     const optimisticSensors = currentSensors.map(sensor =>
       sensor.id === sensorId ? { ...sensor, name: newName } : sensor
     );
-    this.sensorsSubject.next(optimisticSensors);
+    this._sensors.set(optimisticSensors);
 
     try {
       // Make server request
@@ -1049,7 +1047,7 @@ export class SensorViewModel {
       await this.queryCore.invalidate(`sensors-${this.greenhouseId}`);
     } catch (error) {
       // Rollback on error
-      this.sensorsSubject.next(currentSensors);
+      this._sensors.set(currentSensors);
       throw error;
     }
   }
@@ -1092,7 +1090,7 @@ export class SensorReadingsViewModel {
         // Subscribe to readings
         this.queryCore.subscribe(`readings-${this.sensorId}`, (readingsState) => {
           if (readingsState.data) {
-            this.readingsSubject.next(readingsState.data);
+            this._readings.set(readingsState.data);
           }
         });
       }
@@ -1107,25 +1105,23 @@ For paginated data, you need to track multiple pages:
 
 ```typescript
 export class SensorHistoryViewModel {
-  private pages = new BehaviorSubject<SensorReading[][]>([]);
-  private hasMoreSubject = new BehaviorSubject<boolean>(true);
+  private _pages = signal<SensorReading[][]>([]);
+  private _hasMore = signal<boolean>(true);
 
-  readonly allReadings$: Observable<SensorReading[]>;
-  readonly hasMore$: Observable<boolean>;
+  readonly allReadings$: ReadonlySignal<SensorReading[]>;
+  readonly hasMore$: ReadonlySignal<boolean>;
 
   constructor(
     private readonly sensorId: string,
     private readonly queryCore: QueryCore,
     private readonly apiClient: ApiClient
   ) {
-    this.allReadings$ = this.pages.pipe(
-      map(pages => pages.flat())
-    );
-    this.hasMore$ = this.hasMoreSubject.asObservable();
+    this.allReadings$ = computed(() => this._pages.get().flat());
+    this.hasMore$ = this._hasMore.asReadonly();
   }
 
   async loadNextPage(): Promise<void> {
-    const currentPages = this.pages.value;
+    const currentPages = this._pages.peek();
     const nextPage = currentPages.length;
 
     const pageKey = `sensor-readings-${this.sensorId}-page-${nextPage}`;
@@ -1141,11 +1137,11 @@ export class SensorHistoryViewModel {
     this.queryCore.subscribe(pageKey, (state) => {
       if (state.data) {
         const newPages = [...currentPages, state.data];
-        this.pages.next(newPages);
+        this._pages.set(newPages);
 
         // Check if there are more pages
         if (state.data.length < 50) {
-          this.hasMoreSubject.next(false);
+          this._hasMore.set(false);
         }
       }
     });
@@ -1191,7 +1187,6 @@ One major benefit of framework-agnostic data fetching is testability. You can te
 // SensorViewModel.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SensorViewModel } from './SensorViewModel';
-import { firstValueFrom } from 'rxjs';
 
 describe('SensorViewModel', () => {
   let viewModel: SensorViewModel;
@@ -1216,7 +1211,7 @@ describe('SensorViewModel', () => {
     // Wait for initial load
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    const sensors = await firstValueFrom(viewModel.sensors$);
+    const sensors = viewModel.sensors$.peek();
     expect(sensors).toEqual(mockSensors);
     expect(mockApiClient.getSensors).toHaveBeenCalledWith('greenhouse-1');
   });
@@ -1259,7 +1254,7 @@ describe('SensorViewModel', () => {
     // Wait for error
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    const error = await firstValueFrom(viewModel.error$);
+    const error = viewModel.error$.peek();
     expect(error).toEqual(mockError);
   });
 });
@@ -1335,15 +1330,15 @@ Always handle all possible states:
 ```typescript
 // ❌ Doesn't handle loading or error states
 function SensorList() {
-  const sensors = useObservable(viewModel.sensors$, []);
+  const sensors = useSignal(viewModel.sensors$);
   return <ul>{sensors.map(s => <li key={s.id}>{s.name}</li>)}</ul>;
 }
 
 // ✅ Handle all states
 function SensorList() {
-  const sensors = useObservable(viewModel.sensors$, []);
-  const isLoading = useObservable(viewModel.isLoading$, true);
-  const error = useObservable(viewModel.error$, null);
+  const sensors = useSignal(viewModel.sensors$);
+  const isLoading = useSignal(viewModel.isLoading$);
+  const error = useSignal(viewModel.error$);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage error={error} />;

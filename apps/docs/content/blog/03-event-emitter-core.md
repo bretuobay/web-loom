@@ -230,7 +230,7 @@ The `SidebarViewModel` knows about auth events without knowing about the `AuthMo
 
 **`eventemitter3`**: Popular, Node-compatible, performant. Not typed by design (TypeScript types are added by community packages). `event-emitter-core` is typed by design — the event map is the primary abstraction.
 
-**RxJS `Subject`**: Extremely powerful, but each event is a separate Subject — there's no shared event name registry. You'd need to build that yourself. Also introduces RxJS as a dependency. `event-emitter-core` has zero dependencies and doesn't assume you're using RxJS.
+**RxJS `Subject`**: Extremely powerful, but each event is a separate Subject — there's no shared event name registry. You'd need to build that yourself, and it pulls in RxJS as a dependency. `event-emitter-core` has zero dependencies; nothing in Web Loom requires RxJS.
 
 ---
 

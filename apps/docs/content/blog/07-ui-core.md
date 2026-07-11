@@ -98,7 +98,7 @@ const list = createListSelectionBehavior({
   items: products,
   getId: (p) => p.id,
   onSelectionChange: (selected) => {
-    vm.selectedProducts$.next(selected);
+    vm.selectedProducts$.set(selected);
   },
 });
 

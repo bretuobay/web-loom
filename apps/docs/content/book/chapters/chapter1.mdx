@@ -146,24 +146,28 @@ const sensorModel = new SensorModel();
 export const sensorViewModel = new SensorViewModel(sensorModel);
 ```
 
-This ViewModel extends `RestfulApiViewModel`, which provides reactive state management through RxJS observables. Let's look at what the base classes provide (we'll explore these in detail in [Chapter 4: Building Framework-Agnostic Models](#) and [Chapter 5: ViewModels and Reactive State](#)):
+This ViewModel extends `RestfulApiViewModel`, which provides reactive state management through `@web-loom/signals-core` signals. Let's look at what the base classes provide (we'll explore these in detail in [Chapter 4: Building Framework-Agnostic Models](#) and [Chapter 5: ViewModels and Reactive State](#)):
 
 ```typescript
 // File: packages/mvvm-core/src/models/BaseModel.ts (excerpt)
+import { signal, type ReadonlySignal } from '@web-loom/signals-core';
+
 export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
-  protected _data$ = new BehaviorSubject<TData | null>(null);
-  public readonly data$: Observable<TData | null> = this._data$.asObservable();
+  protected _data = signal<TData | null>(null);
+  public readonly data$: ReadonlySignal<TData | null> = this._data.asReadonly();
 
-  protected _isLoading$ = new BehaviorSubject<boolean>(false);
-  public readonly isLoading$: Observable<boolean> = this._isLoading$.asObservable();
+  protected _isLoading = signal<boolean>(false);
+  public readonly isLoading$: ReadonlySignal<boolean> = this._isLoading.asReadonly();
 
-  protected _error$ = new BehaviorSubject<any>(null);
-  public readonly error$: Observable<any> = this._error$.asObservable();
+  protected _error = signal<any>(null);
+  public readonly error$: ReadonlySignal<any> = this._error.asReadonly();
 
   public readonly schema?: TSchema;
+  private _isDisposed = false;
 
   public setData(newData: TData | null): void {
-    this._data$.next(newData);
+    if (this._isDisposed) return;
+    this._data.set(newData);
   }
 
   public validate(data: any): TData {
@@ -174,43 +178,56 @@ export class BaseModel<TData, TSchema extends ZodSchema<TData>> {
   }
 
   public dispose(): void {
-    this._data$.complete();
-    this._isLoading$.complete();
-    this._error$.complete();
+    // Marks the model disposed — setters become no-ops afterward
+    this._isDisposed = true;
   }
 }
 ```
 
 ```typescript
 // File: packages/mvvm-core/src/viewmodels/BaseViewModel.ts (excerpt)
+import { computed, type ReadonlySignal } from '@web-loom/signals-core';
+import { ZodError } from 'zod';
+
 export class BaseViewModel<TModel extends BaseModel<any, any>> {
-  protected readonly _destroy$ = new Subject<void>();
-  
-  public readonly data$: Observable<TModel['data']>;
-  public readonly isLoading$: Observable<boolean>;
-  public readonly error$: Observable<any>;
-  public readonly validationErrors$: Observable<ZodError | null>;
+  private readonly _teardowns: Array<() => void> = [];
+  private readonly _registeredCommands: ICommand<any, any>[] = [];
+
+  public readonly data$: ReadonlySignal<TModel['data']>;
+  public readonly isLoading$: ReadonlySignal<boolean>;
+  public readonly error$: ReadonlySignal<any>;
+  public readonly validationErrors$: ReadonlySignal<ZodError | null>;
 
   protected readonly model: TModel;
 
   constructor(model: TModel) {
     this.model = model;
-    
-    // Expose model observables with automatic cleanup
-    this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
-    this.isLoading$ = this.model.isLoading$.pipe(takeUntil(this._destroy$));
-    this.error$ = this.model.error$.pipe(takeUntil(this._destroy$));
-    
-    this.validationErrors$ = this.model.error$.pipe(
-      map((err) => (err instanceof ZodError ? err : null)),
-      startWith(null),
-      takeUntil(this._destroy$),
-    );
+
+    // Re-expose the model's own signals directly — no wrapping needed
+    this.data$ = this.model.data$;
+    this.isLoading$ = this.model.isLoading$;
+    this.error$ = this.model.error$;
+
+    this.validationErrors$ = computed(() => {
+      const err = this.model.error$.get();
+      return err instanceof ZodError ? err : null;
+    });
+  }
+
+  protected addSubscription(teardown: () => void): void {
+    this._teardowns.push(teardown);
+  }
+
+  protected registerCommand<TParam, TResult>(command: ICommand<TParam, TResult>): ICommand<TParam, TResult> {
+    this._registeredCommands.push(command);
+    return command;
   }
 
   public dispose(): void {
-    this._destroy$.next();
-    this._destroy$.complete();
+    this._registeredCommands.forEach((cmd) => cmd.dispose());
+    this._registeredCommands.length = 0;
+    this._teardowns.forEach((teardown) => teardown());
+    this._teardowns.length = 0;
   }
 }
 ```
@@ -221,10 +238,10 @@ Now look at how this same ViewModel is consumed in a React component:
 // File: apps/mvvm-react/src/components/SensorList.tsx
 import { useEffect } from 'react';
 import { sensorViewModel } from '@repo/view-models/SensorViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 export function SensorList() {
-  const sensors = useObservable(sensorViewModel.data$, []);
+  const sensors = useSignal(sensorViewModel.data$);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -252,22 +269,15 @@ export function SensorList() {
 }
 ```
 
-The `useObservable` hook is a simple adapter that bridges RxJS observables to React state:
+The `useSignal` hook is a simple adapter that bridges `@web-loom/signals-core` signals to React state via `useSyncExternalStore`:
 
 ```typescript
-// File: apps/mvvm-react/src/hooks/useObservable.ts
-import { useState, useEffect } from 'react';
-import { Observable } from 'rxjs';
+// File: apps/mvvm-react/src/hooks/useSignal.ts
+import { useSyncExternalStore } from 'react';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 
-export function useObservable<T>(observable: Observable<T>, initialValue: T) {
-  const [value, setValue] = useState<T>(initialValue);
-
-  useEffect(() => {
-    const subscription = observable.subscribe(setValue);
-    return () => subscription.unsubscribe();
-  }, [observable]);
-
-  return value;
+export function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 ```
 
@@ -277,12 +287,12 @@ Look at what we've gained:
 
 ```typescript
 describe("SensorViewModel", () => {
-  it("exposes sensor data through observables", async () => {
+  it("exposes sensor data through signals", () => {
     const mockModel = new SensorModel();
     const viewModel = new SensorViewModel(mockModel);
 
     // Test the ViewModel without any UI
-    const sensors = await firstValueFrom(viewModel.data$);
+    const sensors = viewModel.data$.peek();
     expect(sensors).toBeDefined();
     
     viewModel.dispose();
@@ -292,7 +302,7 @@ describe("SensorViewModel", () => {
 
 These tests run in milliseconds. No DOM. No component lifecycle. Just pure logic verification. We'll explore comprehensive testing strategies in [Chapter 19: Testing MVVM Applications](#).
 
-**2. The View becomes simple.** It observes state and renders. That's all. The `SensorList` component has zero business logic—it just subscribes to observables and displays data. If you need to change the UI, you're changing the View. If you need to change behavior, you're changing the ViewModel. Clear separation means clear responsibility.
+**2. The View becomes simple.** It observes state and renders. That's all. The `SensorList` component has zero business logic—it just reads signals and displays data. If you need to change the UI, you're changing the View. If you need to change behavior, you're changing the ViewModel. Clear separation means clear responsibility.
 
 **3. Framework portability is real.** That same `SensorViewModel`? It works identically in Vue, Angular, Lit, and even vanilla JavaScript. The business logic is written once and reused everywhere. We'll see this in action across [Chapters 8-12](#), where we implement the same ViewModels in five different frameworks.
 
@@ -304,7 +314,7 @@ This isn't a book about React, Vue, or Angular. It's a book about **architecture
 
 We're going to build the GreenWatch greenhouse monitoring system using MVVM principles that work across all major frameworks. You'll learn:
 
-- **How to structure TypeScript code for true framework independence.** We'll establish patterns using RxJS for reactive state management, dependency injection for testability, and clear boundaries between layers (Chapters 4-7).
+- **How to structure TypeScript code for true framework independence.** We'll establish patterns using `@web-loom/signals-core` for reactive state management, dependency injection for testability, and clear boundaries between layers (Chapters 4-7).
 
 - **How to implement ViewModels that drive real UI.** Not toy examples—actual, production-quality code that handles asynchronous data, complex state transitions, and user interactions (Chapter 5).
 
@@ -324,7 +334,7 @@ This book assumes you're comfortable with:
 
 - TypeScript fundamentals (types, interfaces, generics, async/await)
 - At least one modern framework (React, Vue, or Angular)
-- Basic reactive programming concepts (though we'll cover RxJS thoroughly)
+- Basic reactive programming concepts (though we'll cover signals thoroughly)
 - Testing principles (unit tests, mocks, test doubles)
 
 You don't need to be an expert in all frameworks. In fact, if you've only used one, you're the ideal reader—you'll see how architectural patterns let you transfer your knowledge across framework boundaries.

@@ -100,9 +100,9 @@ export class SensorViewModel extends BaseViewModel<SensorModel> {
 // View is now "dumb" - just renders ViewModel state
 function SensorDashboard() {
   const viewModel = useViewModel(SensorViewModel);
-  const sensors = useObservable(viewModel.sensors$);
-  const loading = useObservable(viewModel.isLoading$);
-  const error = useObservable(viewModel.error$);
+  const sensors = useSignal(viewModel.sensors$);
+  const loading = useSignal(viewModel.isLoading$);
+  const error = useSignal(viewModel.error$);
 
   if (loading) return <Spinner />;
   if (error) return <ErrorDisplay message={error} />;
@@ -142,9 +142,9 @@ Here's the actual test file from the monorepo (`packages/mvvm-core/src/models/Ba
 ```typescript
 // packages/mvvm-core/src/models/BaseModel.test.ts
 import { describe, it, beforeEach, expect, vi } from 'vitest';
+import { observe } from '@web-loom/signals-core';
 import { BaseModel } from './BaseModel';
 import { z } from 'zod';
-import { first } from 'rxjs/operators';
 
 describe('BaseModel', () => {
   // Define a simple Zod schema for testing
@@ -165,25 +165,25 @@ describe('BaseModel', () => {
     });
   });
 
-  it('should initialize with null data, not loading, and no error', async () => {
-    expect(await model.data$.pipe(first()).toPromise()).toBeNull();
-    expect(await model.isLoading$.pipe(first()).toPromise()).toBe(false);
-    expect(await model.error$.pipe(first()).toPromise()).toBeNull();
+  it('should initialize with null data, not loading, and no error', () => {
+    expect(model.data$.get()).toBeNull();
+    expect(model.isLoading$.get()).toBe(false);
+    expect(model.error$.get()).toBeNull();
   });
 
-  it('should set initial data correctly', async () => {
+  it('should set initial data correctly', () => {
     const initialData = { id: '1', name: 'Initial', age: 30 };
     const newModel = new BaseModel<TestDataType, typeof TestSchema>({
       initialData,
       schema: TestSchema,
     });
-    expect(await newModel.data$.pipe(first()).toPromise()).toEqual(initialData);
+    expect(newModel.data$.get()).toEqual(initialData);
   });
 
-  it('should update data using setData', async () => {
+  it('should update data using setData', () => {
     const newData = { id: '2', name: 'Updated', age: 25 };
     model.setData(newData);
-    expect(await model.data$.pipe(first()).toPromise()).toEqual(newData);
+    expect(model.data$.get()).toEqual(newData);
   });
 
   it('should validate data successfully using the provided schema', () => {
@@ -195,53 +195,74 @@ describe('BaseModel', () => {
     const invalidData = { id: 'def', name: 'Another User', age: -5 }; // Invalid age
     expect(() => model.validate(invalidData)).toThrow(z.ZodError);
   });
+
+  it('should emit changes to data$ when setData is called multiple times', () => {
+    const emittedData: (TestDataType | null)[] = [];
+    // observe() delivers the current value immediately, then every future
+    // change — the signals-core equivalent of a BehaviorSubject subscription.
+    observe(model.data$, (data) => emittedData.push(data));
+
+    model.setData({ id: 'a', name: 'A', age: 1 });
+    model.setData({ id: 'b', name: 'B', age: 2 });
+    model.setData(null);
+
+    expect(emittedData).toEqual([
+      null, // Initial state, delivered immediately by observe()
+      { id: 'a', name: 'A', age: 1 },
+      { id: 'b', name: 'B', age: 2 },
+      null,
+    ]);
+  });
 });
 ```
 
 **Key testing patterns:**
 
-1. **Test reactive state**: Use RxJS `first()` operator to get current observable values
+1. **Test reactive state**: Read signals synchronously with `.get()`—no async wrapper needed
 2. **Test validation**: Verify Zod schema validation works correctly
-3. **Test state transitions**: Verify `setData`, `setLoading`, `setError` update observables
+3. **Test state transitions**: Verify `setData`, `setLoading`, `setError` update the underlying signals
 4. **Test edge cases**: Invalid data, null data, schema violations
 
 ### Testing Model Disposal
 
-Models must clean up subscriptions when disposed. Here's the disposal test:
+Models must stop notifying subscribers when disposed. Here's the disposal test:
 
 ```typescript
 describe('dispose', () => {
-  it('should complete all observables and prevent further emissions', () => {
-    const dataNextSpy = vi.fn();
-    const dataCompleteSpy = vi.fn();
+  it('should prevent further emissions after dispose', () => {
+    const dataSpy = vi.fn();
+    const isLoadingSpy = vi.fn();
+    const errorSpy = vi.fn();
 
-    model.data$.subscribe({
-      next: dataNextSpy,
-      complete: dataCompleteSpy,
-    });
+    model.data$.subscribe(dataSpy);
+    model.isLoading$.subscribe(isLoadingSpy);
+    model.error$.subscribe(errorSpy);
 
     // Call dispose
     model.dispose();
 
-    // Verify that complete was called
-    expect(dataCompleteSpy).toHaveBeenCalledTimes(1);
-
-    // Reset spies to check if new values are emitted after dispose
-    dataNextSpy.mockClear();
-
-    // Attempt to emit new values
+    // Attempt to emit new values — setters no-op after dispose
     model.setData({ id: '3', name: 'Disposed', age: 50 });
+    model.setLoading(true);
+    model.setError(new Error('Disposed error'));
 
     // Verify that no new values were emitted
-    expect(dataNextSpy).not.toHaveBeenCalled();
+    expect(dataSpy).not.toHaveBeenCalled();
+    expect(isLoadingSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+
+    // Current values remain readable and unchanged
+    expect(model.data$.get()).toBeNull();
+    expect(model.isLoading$.get()).toBe(false);
+    expect(model.error$.get()).toBeNull();
   });
 });
 ```
 
 **This test verifies:**
-- Observables complete when `dispose()` is called
-- No new emissions occur after disposal
-- Subscriptions are properly cleaned up
+- Setters become no-ops once `dispose()` is called, so subscribers get no further notifications
+- Signal values remain synchronously readable (via `.get()`) even after disposal
+- No special "completion" event is needed—signals don't have a completed state, they just stop changing
 
 
 ## 19.3 Testing ViewModels in Isolation
@@ -255,10 +276,10 @@ Here's the actual test from `packages/mvvm-core/src/viewmodels/BaseViewModel.tes
 ```typescript
 // packages/mvvm-core/src/viewmodels/BaseViewModel.test.ts
 import { describe, it, beforeEach, expect, afterEach } from 'vitest';
+import { signal } from '@web-loom/signals-core';
 import { BaseViewModel } from './BaseViewModel';
 import { BaseModel } from '../models/BaseModel';
 import { z, ZodError } from 'zod';
-import { first, skip } from 'rxjs/operators';
 
 // Define a test model and schema
 const TestSchema = z.object({
@@ -289,42 +310,63 @@ describe('BaseViewModel', () => {
     viewModel.dispose(); // Ensure dispose is called after each test
   });
 
-  it('should initialize with null data, not loading, and no error from model', async () => {
-    expect(await viewModel.data$.pipe(first()).toPromise()).toBeNull();
-    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(false);
-    expect(await viewModel.error$.pipe(first()).toPromise()).toBeNull();
-    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+  it('should initialize with null data, not loading, and no error from model', () => {
+    expect(viewModel.data$.get()).toBeNull();
+    expect(viewModel.isLoading$.get()).toBe(false);
+    expect(viewModel.error$.get()).toBeNull();
+    expect(viewModel.validationErrors$.get()).toBeNull();
   });
 
-  it('should expose data$ from the model', async () => {
+  it('should expose data$ from the model', () => {
     const testData = { id: '1', name: 'Test' };
     mockModel.setData(testData);
-    expect(await viewModel.data$.pipe(first()).toPromise()).toEqual(testData);
+    expect(viewModel.data$.get()).toEqual(testData);
   });
 
-  it('should expose isLoading$ from the model', async () => {
+  it('should expose isLoading$ from the model', () => {
     mockModel.setLoading(true);
-    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(true);
+    expect(viewModel.isLoading$.get()).toBe(true);
 
     mockModel.setLoading(false);
-    expect(await viewModel.isLoading$.pipe(first()).toPromise()).toBe(false);
+    expect(viewModel.isLoading$.get()).toBe(false);
   });
 
-  it('should derive validationErrors$ from model error$ if it is a ZodError', async () => {
+  it('should derive validationErrors$ from model error$ if it is a ZodError', () => {
     const nonZodError = new Error('Generic error');
     const zodError = new ZodError([]);
 
+    // Initially null
+    expect(viewModel.validationErrors$.get()).toBeNull();
+
     // Set generic error, validationErrors$ should remain null
     mockModel.setError(nonZodError);
-    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+    expect(viewModel.validationErrors$.get()).toBeNull();
 
     // Set ZodError, validationErrors$ should update
     mockModel.setError(zodError);
-    expect(await viewModel.validationErrors$.pipe(skip(1), first()).toPromise()).toBe(zodError);
+    expect(viewModel.validationErrors$.get()).toBe(zodError);
 
     // Clear error, validationErrors$ should become null again
     mockModel.clearError();
-    expect(await viewModel.validationErrors$.pipe(first()).toPromise()).toBeNull();
+    expect(viewModel.validationErrors$.get()).toBeNull();
+  });
+
+  it('should run registered teardowns on dispose', () => {
+    const source = signal('value1');
+    const emittedValues: string[] = [];
+    const unsubscribe = source.subscribe((val) => emittedValues.push(val));
+
+    // Register the teardown with the ViewModel for disposal
+    viewModel['addSubscription'](unsubscribe);
+
+    source.set('value2');
+    expect(emittedValues).toEqual(['value2']);
+
+    viewModel.dispose();
+
+    // After dispose the subscription is torn down — no more deliveries
+    source.set('value3');
+    expect(emittedValues).toEqual(['value2']);
   });
 });
 ```
@@ -332,9 +374,10 @@ describe('BaseViewModel', () => {
 **Key testing patterns:**
 
 1. **Mock the Model**: Create a simple mock Model for testing
-2. **Test observable exposure**: Verify ViewModel exposes Model observables correctly
-3. **Test derived state**: Verify `validationErrors$` derives from `error$`
-4. **Clean up after tests**: Always call `dispose()` in `afterEach`
+2. **Test signal exposure**: Verify ViewModel exposes Model signals correctly, read synchronously via `.get()`
+3. **Test derived state**: Verify `validationErrors$` derives from `error$` via `computed()`
+4. **Test teardown registration**: Verify `addSubscription`-registered teardowns run on `dispose()`
+5. **Clean up after tests**: Always call `dispose()` in `afterEach`
 
 ### Testing ViewModel Command Registration
 
@@ -420,27 +463,29 @@ describe('BaseViewModel Command Registration', () => {
 describe('fetchCommand', () => {
   it('should call model.fetch without ID when executed without parameter', async () => {
     const loadingStates: boolean[] = [];
-    viewModel.isLoading$.pipe(take(3)).subscribe((val) => loadingStates.push(val));
+    // observe() delivers the current value immediately, then every future
+    // change — so this captures the full false → true → false transition.
+    observe(viewModel.isLoading$, (val) => loadingStates.push(val));
 
     const dataStates: (ItemArray | null)[] = [];
-    viewModel.data$.pipe(take(2)).subscribe((val) => dataStates.push(val));
+    observe(viewModel.data$, (val) => dataStates.push(val));
 
     await viewModel.fetchCommand.execute();
 
     expect(mockModel.fetch).toHaveBeenCalledWith(undefined);
-    expect(await firstValueFrom(viewModel.fetchCommand.isExecuting$)).toBe(false);
+    expect(viewModel.fetchCommand.isExecuting$.get()).toBe(false);
     expect(loadingStates).toEqual([false, true, false]);
     expect(dataStates[dataStates.length - 1]).toEqual([
       { id: '1', name: 'Item 1' },
       { id: '2', name: 'Item 2' },
     ]);
-    expect(await firstValueFrom(viewModel.error$)).toBeNull();
+    expect(viewModel.error$.get()).toBeNull();
   });
 
   it('should call model.fetch with ID when executed with a string parameter', async () => {
     await viewModel.fetchCommand.execute('item-id-3');
     expect(mockModel.fetch).toHaveBeenCalledWith(['item-id-3']);
-    expect(await firstValueFrom(viewModel.data$)).toEqual({
+    expect(viewModel.data$.get()).toEqual({
       id: 'item-id-3',
       name: 'Fetched item-id-3',
     });
@@ -449,16 +494,16 @@ describe('fetchCommand', () => {
   it('should set error$ if fetch fails', async () => {
     const fetchError = new Error('Fetch failed');
     mockModel.fetch.mockImplementation(async () => {
-      mockModel._isLoading$.next(true);
-      mockModel._error$.next(fetchError);
-      mockModel._isLoading$.next(false);
+      mockModel.setLoading(true);
+      mockModel.setError(fetchError);
+      mockModel.setLoading(false);
       throw fetchError;
     });
 
     await expect(viewModel.fetchCommand.execute()).rejects.toThrow(fetchError);
 
-    expect(await firstValueFrom(viewModel.error$)).toBe(fetchError);
-    expect(await firstValueFrom(viewModel.isLoading$)).toBe(false);
+    expect(viewModel.error$.get()).toBe(fetchError);
+    expect(viewModel.isLoading$.get()).toBe(false);
   });
 });
 ```
@@ -477,12 +522,12 @@ describe('createCommand', () => {
   const payload: Partial<Item> = { name: 'New Test Item' };
 
   it('should call model.create and update data', async () => {
-    mockModel._data$.next([]);
+    mockModel.setData([]);
     await viewModel.createCommand.execute(payload);
 
     expect(mockModel.create).toHaveBeenCalledWith(payload);
-    expect(await firstValueFrom(viewModel.createCommand.isExecuting$)).toBe(false);
-    const data = await firstValueFrom(viewModel.data$);
+    expect(viewModel.createCommand.isExecuting$.get()).toBe(false);
+    const data = viewModel.data$.get();
     expect(Array.isArray(data) && data.length).toBe(1);
     expect(Array.isArray(data) && data[0].name).toBe('New Test Item');
   });
@@ -490,14 +535,14 @@ describe('createCommand', () => {
   it('should set error$ if create fails', async () => {
     const createError = new Error('Create failed');
     mockModel.create.mockImplementation(async () => {
-      mockModel._isLoading$.next(true);
-      mockModel._error$.next(createError);
-      mockModel._isLoading$.next(false);
+      mockModel.setLoading(true);
+      mockModel.setError(createError);
+      mockModel.setLoading(false);
       throw createError;
     });
 
     await expect(viewModel.createCommand.execute(payload)).rejects.toThrow(createError);
-    expect(await firstValueFrom(viewModel.error$)).toBe(createError);
+    expect(viewModel.error$.get()).toBe(createError);
   });
 });
 
@@ -506,14 +551,14 @@ describe('updateCommand', () => {
   const payload: Partial<Item> = { name: 'Updated Name' };
 
   beforeEach(() => {
-    mockModel._data$.next([existingItem]);
+    mockModel.setData([existingItem]);
   });
 
   it('should call model.update and update data', async () => {
     await viewModel.updateCommand.execute({ id: existingItem.id, payload });
 
     expect(mockModel.update).toHaveBeenCalledWith(existingItem.id, payload);
-    const data = await firstValueFrom(viewModel.data$);
+    const data = viewModel.data$.get();
     expect(Array.isArray(data) && data[0].name).toBe('Updated Name');
   });
 });
@@ -522,14 +567,14 @@ describe('deleteCommand', () => {
   const itemToDelete: Item = { id: '1', name: 'To Be Deleted' };
 
   beforeEach(() => {
-    mockModel._data$.next([itemToDelete, { id: '2', name: 'Keep Me' }]);
+    mockModel.setData([itemToDelete, { id: '2', name: 'Keep Me' }]);
   });
 
   it('should call model.delete and update data', async () => {
     await viewModel.deleteCommand.execute(itemToDelete.id);
 
     expect(mockModel.delete).toHaveBeenCalledWith(itemToDelete.id);
-    const data = await firstValueFrom(viewModel.data$);
+    const data = viewModel.data$.get();
     expect(Array.isArray(data) && data.length).toBe(1);
     expect(Array.isArray(data) && data[0].id).toBe('2');
   });
@@ -555,42 +600,29 @@ describe('selectedItem$ and selectItem method', () => {
   ];
 
   beforeEach(() => {
-    mockModel._data$.next(items);
+    mockModel.setData(items);
   });
 
-  it('should emit null initially for selectedItem$', async () => {
-    expect(await firstValueFrom(viewModel.selectedItem$)).toBeNull();
+  it('should emit null initially for selectedItem$', () => {
+    expect(viewModel.selectedItem$.get()).toBeNull();
   });
 
-  it('should update selectedItem$ when selectItem is called with a valid ID', async () => {
-    const emittedValues: (Item | null)[] = [];
-    const subscription = viewModel.selectedItem$.subscribe((value) => {
-      emittedValues.push(value);
-    });
-    
+  it('should update selectedItem$ when selectItem is called with a valid ID', () => {
     viewModel.selectItem('b');
-    subscription.unsubscribe();
-    
-    expect(emittedValues.pop()).toEqual(items[1]);
+    expect(viewModel.selectedItem$.get()).toEqual(items[1]);
   });
 
-  it('should emit null for selectedItem$ if ID is not found', async () => {
+  it('should return null for selectedItem$ if ID is not found in the array', () => {
     viewModel.selectItem('non-existent-id');
-    await vi.waitFor(async () => {
-      expect(await firstValueFrom(viewModel.selectedItem$)).toBeNull();
-    });
+    expect(viewModel.selectedItem$.get()).toBeNull();
   });
 
-  it('should handle selectItem(null) to clear selection', async () => {
+  it('should react to changes in data$ and update selectedItem$', () => {
     viewModel.selectItem('a');
-    await vi.waitFor(async () => {
-      expect(await firstValueFrom(viewModel.selectedItem$.pipe(skip(1)))).toEqual(items[0]);
-    });
+    expect(viewModel.selectedItem$.get()).toEqual(items[0]);
 
     viewModel.selectItem(null);
-    await vi.waitFor(async () => {
-      expect(await firstValueFrom(viewModel.selectedItem$)).toBeNull();
-    });
+    expect(viewModel.selectedItem$.get()).toBeNull();
   });
 });
 ```
@@ -598,8 +630,9 @@ describe('selectedItem$ and selectItem method', () => {
 **This tests:**
 - Initial selection state is null
 - Selection updates when valid ID is provided
-- Selection clears when ID is not found
+- Selection resolves to null when ID is not found
 - Selection can be explicitly cleared with `null`
+- Because `selectedItem$` is a `computed()`, every assertion is a plain synchronous `.get()`—no waiting for an emission is needed
 
 ## 19.5 Integration Testing Across Layers
 
@@ -645,9 +678,11 @@ describe('RestfulApiViewModel with Real RestfulApiModel Integration', () => {
     const isLoadingEmissions: boolean[] = [];
     const errorEmissions: (Error | null)[] = [];
 
-    viewModel.data$.subscribe((data) => dataEmissions.push(data));
-    viewModel.isLoading$.subscribe((loading) => isLoadingEmissions.push(loading));
-    viewModel.error$.subscribe((error) => errorEmissions.push(error));
+    // observe() delivers the current value immediately, then every future
+    // change, so these arrays capture the full transition sequence.
+    observe(viewModel.data$, (data) => dataEmissions.push(data));
+    observe(viewModel.isLoading$, (loading) => isLoadingEmissions.push(loading));
+    observe(viewModel.error$, (error) => errorEmissions.push(error));
 
     await viewModel.fetchCommand.execute();
 
@@ -672,7 +707,7 @@ describe('RestfulApiViewModel with Real RestfulApiModel Integration', () => {
     mockFetcher.mockRejectedValue(apiError);
 
     const errorEmissions: (Error | null)[] = [];
-    viewModel.error$.subscribe((error) => errorEmissions.push(error));
+    observe(viewModel.error$, (error) => errorEmissions.push(error));
 
     await expect(viewModel.fetchCommand.execute()).rejects.toThrow(apiError);
 
@@ -756,15 +791,17 @@ viewModel.dispose();
 expect(disposeSpy).toHaveBeenCalled();
 ```
 
-**3. Async testing with `waitFor`:**
+**3. Synchronous assertions on signals:**
+
+Because `selectedItem$` is a `computed()` signal, its value updates the moment `selectItem()` runs—no `waitFor` or async wrapper needed:
 
 ```typescript
 viewModel.selectItem('a');
 
-await vi.waitFor(async () => {
-  expect(await firstValueFrom(viewModel.selectedItem$)).toEqual(items[0]);
-});
+expect(viewModel.selectedItem$.get()).toEqual(items[0]);
 ```
+
+`vi.waitFor` is still useful for genuinely async conditions—e.g. waiting on a `setTimeout`-driven side effect—but reading a signal's current value is never one of them.
 
 **4. Lifecycle hooks:**
 
@@ -800,9 +837,9 @@ Let's summarize testing strategies for each layer of MVVM architecture.
 
 **How to test:**
 - Create Model instances directly
-- Call methods and verify observable emissions
+- Call methods and verify signal changes
 - Test validation with valid and invalid data
-- Verify disposal completes observables
+- Verify disposal stops further notifications
 
 **Example:**
 
@@ -821,7 +858,7 @@ it('should throw ZodError for invalid data', () => {
 ### Testing ViewModels
 
 **What to test:**
-- Observable exposure from Model
+- Signal exposure from Model
 - Derived state (like `validationErrors$`)
 - Command registration and execution
 - Selection state management
@@ -830,17 +867,17 @@ it('should throw ZodError for invalid data', () => {
 **How to test:**
 - Create mock Models
 - Inject mocks into ViewModels
-- Verify ViewModel exposes correct observables
+- Verify ViewModel exposes correct signals
 - Test commands execute correctly
 - Verify disposal cleans up commands and subscriptions
 
 **Example:**
 
 ```typescript
-it('should expose data$ from the model', async () => {
+it('should expose data$ from the model', () => {
   const testData = { id: '1', name: 'Test' };
   mockModel.setData(testData);
-  expect(await viewModel.data$.pipe(first()).toPromise()).toEqual(testData);
+  expect(viewModel.data$.get()).toEqual(testData);
 });
 
 it('should dispose all registered commands', () => {
@@ -866,14 +903,16 @@ it('should dispose all registered commands', () => {
 **Example (React Testing Library):**
 
 ```typescript
+import { signal } from '@web-loom/signals-core';
+
 it('should display sensors when loaded', async () => {
   const mockViewModel = {
-    sensors$: of([
+    sensors$: signal([
       { id: '1', name: 'Sensor 1' },
       { id: '2', name: 'Sensor 2' },
-    ]),
-    isLoading$: of(false),
-    error$: of(null),
+    ]).asReadonly(),
+    isLoading$: signal(false).asReadonly(),
+    error$: signal(null).asReadonly(),
   };
 
   render(<SensorDashboard viewModel={mockViewModel} />);
@@ -885,9 +924,9 @@ it('should display sensors when loaded', async () => {
 it('should call calibrateSensor when button clicked', async () => {
   const calibrateSpy = vi.fn();
   const mockViewModel = {
-    sensors$: of([{ id: '1', name: 'Sensor 1' }]),
-    isLoading$: of(false),
-    error$: of(null),
+    sensors$: signal([{ id: '1', name: 'Sensor 1' }]).asReadonly(),
+    isLoading$: signal(false).asReadonly(),
+    error$: signal(null).asReadonly(),
     calibrateSensor: calibrateSpy,
   };
 
@@ -929,23 +968,23 @@ it('should complete full CRUD workflow', async () => {
   // Fetch items
   mockFetcher.mockResolvedValueOnce([{ id: '1', name: 'Item 1' }]);
   await viewModel.fetchCommand.execute();
-  expect(await firstValueFrom(viewModel.data$)).toHaveLength(1);
+  expect(viewModel.data$.get()).toHaveLength(1);
 
   // Create item
   mockFetcher.mockResolvedValueOnce({ id: '2', name: 'Item 2' });
   await viewModel.createCommand.execute({ name: 'Item 2' });
-  expect(await firstValueFrom(viewModel.data$)).toHaveLength(2);
+  expect(viewModel.data$.get()).toHaveLength(2);
 
   // Update item
   mockFetcher.mockResolvedValueOnce({ id: '1', name: 'Updated Item 1' });
   await viewModel.updateCommand.execute({ id: '1', payload: { name: 'Updated Item 1' } });
-  const data = await firstValueFrom(viewModel.data$);
+  const data = viewModel.data$.get();
   expect(data[0].name).toBe('Updated Item 1');
 
   // Delete item
   mockFetcher.mockResolvedValueOnce(undefined);
   await viewModel.deleteCommand.execute('1');
-  expect(await firstValueFrom(viewModel.data$)).toHaveLength(1);
+  expect(viewModel.data$.get()).toHaveLength(1);
 });
 ```
 
@@ -1030,10 +1069,10 @@ export class SensorViewModel extends RestfulApiViewModel<Sensor[], typeof Sensor
 
 // ✅ Dumb view component
 function SensorDashboard({ viewModel }: { viewModel: SensorViewModel }) {
-  const sensors = useObservable(viewModel.data$);
-  const loading = useObservable(viewModel.isLoading$);
-  const error = useObservable(viewModel.error$);
-  const selectedSensor = useObservable(viewModel.selectedItem$);
+  const sensors = useSignal(viewModel.data$);
+  const loading = useSignal(viewModel.isLoading$);
+  const error = useSignal(viewModel.error$);
+  const selectedSensor = useSignal(viewModel.selectedItem$);
 
   // ... rendering logic
 }
@@ -1043,7 +1082,7 @@ function SensorDashboard({ viewModel }: { viewModel: SensorViewModel }) {
 1. Create a mock Model
 2. Instantiate the ViewModel with the mock
 3. Call methods directly
-4. Verify observable emissions
+4. Verify signal changes with `.get()`
 
 **Test complexity: LOW**
 - Fast (no rendering, no DOM)
@@ -1068,7 +1107,7 @@ it('should calibrate sensor and refresh data', async () => {
   expect(mockModel.calibrate).toHaveBeenCalledWith('1');
   expect(mockModel.fetch).toHaveBeenCalled();
   
-  const data = await firstValueFrom(viewModel.data$);
+  const data = viewModel.data$.get();
   expect(data[0].calibrated).toBe(true);
 });
 ```
@@ -1097,24 +1136,25 @@ describe('SensorViewModel', () => {
 
 **Why:** ViewModels hold subscriptions. Failing to dispose causes memory leaks and test pollution.
 
-### Pattern 2: Use RxJS Operators for Testing Observables
+### Pattern 2: Read Signals Directly, or observe() a Sequence
 
 ```typescript
-import { first, skip, take } from 'rxjs/operators';
-import { firstValueFrom } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
-// Get current value
-const currentValue = await firstValueFrom(viewModel.data$);
+// Get current value — no operator needed, just read it
+const currentValue = viewModel.data$.get();
 
-// Skip initial value, get next
-const nextValue = await firstValueFrom(viewModel.data$.pipe(skip(1)));
-
-// Collect multiple emissions
+// Collect the current value plus every future change
 const emissions: boolean[] = [];
-viewModel.isLoading$.pipe(take(3)).subscribe(val => emissions.push(val));
+observe(viewModel.isLoading$, val => emissions.push(val));
+
+// If you only want *future* changes (skipping the value at subscribe time),
+// use .subscribe() instead of observe()
+const futureOnly: boolean[] = [];
+viewModel.isLoading$.subscribe(val => futureOnly.push(val));
 ```
 
-**Why:** RxJS operators make testing observables straightforward and readable.
+**Why:** Signals collapse what used to require `first()`, `skip()`, `take()`, and `firstValueFrom()` into two plain methods: `.get()` for a synchronous read, and `observe()`/`.subscribe()` for a sequence of changes—depending on whether you want the current value included.
 
 ### Pattern 3: Mock at the Right Boundary
 
@@ -1136,7 +1176,9 @@ const viewModel = new SensorViewModel(mockModel);
 ```typescript
 it('should transition through loading states', async () => {
   const loadingStates: boolean[] = [];
-  viewModel.isLoading$.subscribe(val => loadingStates.push(val));
+  // observe() delivers the current value immediately, then every future
+  // change — so the array below captures the full transition.
+  observe(viewModel.isLoading$, val => loadingStates.push(val));
 
   await viewModel.fetchCommand.execute();
 
@@ -1145,7 +1187,7 @@ it('should transition through loading states', async () => {
 });
 ```
 
-**Why:** State transitions reveal bugs that final state alone might miss.
+**Why:** State transitions reveal bugs that final state alone might miss. Note that if you use plain `.subscribe()` instead of `observe()`, the initial `false` won't be captured (subscribe only fires on future changes)—the expected sequence becomes `[true, false]`.
 
 ### Pattern 5: Test Error Paths, Not Just Happy Paths
 
@@ -1156,9 +1198,9 @@ it('should handle fetch errors gracefully', async () => {
 
   await expect(viewModel.fetchCommand.execute()).rejects.toThrow(fetchError);
 
-  expect(await firstValueFrom(viewModel.error$)).toBe(fetchError);
-  expect(await firstValueFrom(viewModel.isLoading$)).toBe(false);
-  expect(await firstValueFrom(viewModel.data$)).toBeNull();
+  expect(viewModel.error$.get()).toBe(fetchError);
+  expect(viewModel.isLoading$.get()).toBe(false);
+  expect(viewModel.data$.get()).toBeNull();
 });
 ```
 
@@ -1213,7 +1255,6 @@ export class SensorViewModel extends RestfulApiViewModel<Sensor[], typeof Sensor
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 import { SensorViewModel } from './SensorViewModel';
 import { SensorModel } from '../models/SensorModel';
-import { firstValueFrom, skip } from 'rxjs';
 
 class MockSensorModel extends SensorModel {
   fetch = vi.fn();
@@ -1244,7 +1285,7 @@ describe('SensorViewModel', () => {
       await viewModel.loadSensors('greenhouse-1');
 
       expect(mockModel.fetch).toHaveBeenCalledWith('greenhouse-1');
-      expect(await firstValueFrom(viewModel.data$)).toEqual(sensors);
+      expect(viewModel.data$.get()).toEqual(sensors);
     });
 
     it('should handle fetch errors', async () => {
@@ -1252,7 +1293,7 @@ describe('SensorViewModel', () => {
       mockModel.fetch.mockRejectedValue(error);
 
       await expect(viewModel.loadSensors('greenhouse-1')).rejects.toThrow(error);
-      expect(await firstValueFrom(viewModel.error$)).toBe(error);
+      expect(viewModel.error$.get()).toBe(error);
     });
   });
 
@@ -1276,7 +1317,7 @@ describe('SensorViewModel', () => {
       expect(mockModel.calibrate).toHaveBeenCalledWith('s1');
       expect(mockModel.fetch).toHaveBeenCalledTimes(2); // Initial load + refresh
       
-      const data = await firstValueFrom(viewModel.data$);
+      const data = viewModel.data$.get();
       expect(data[0].calibrated).toBe(true);
     });
   });
@@ -1292,8 +1333,7 @@ describe('SensorViewModel', () => {
 
       viewModel.selectSensor('s2');
 
-      const selected = await firstValueFrom(viewModel.selectedSensor$.pipe(skip(1)));
-      expect(selected).toEqual(sensors[1]);
+      expect(viewModel.selectedSensor$.get()).toEqual(sensors[1]);
     });
 
     it('should clear selection when null is passed', async () => {
@@ -1302,12 +1342,11 @@ describe('SensorViewModel', () => {
       await viewModel.loadSensors('greenhouse-1');
 
       viewModel.selectSensor('s1');
-      await firstValueFrom(viewModel.selectedSensor$.pipe(skip(1)));
+      expect(viewModel.selectedSensor$.get()).toEqual(sensors[0]);
 
       viewModel.selectSensor(null);
 
-      const selected = await firstValueFrom(viewModel.selectedSensor$);
-      expect(selected).toBeNull();
+      expect(viewModel.selectedSensor$.get()).toBeNull();
     });
   });
 });
@@ -1328,7 +1367,7 @@ describe('SensorViewModel', () => {
 
 2. **Test Models for domain logic and validation**. Use Zod schemas to validate data, and test that Models correctly manage reactive state (data, loading, error).
 
-3. **Test ViewModels in isolation** by mocking Models. Verify that ViewModels correctly expose Model observables, handle commands, manage selection state, and clean up on disposal.
+3. **Test ViewModels in isolation** by mocking Models. Verify that ViewModels correctly expose Model signals, handle commands, manage selection state, and clean up on disposal.
 
 4. **Integration tests verify layers work together**. Use real Models with mocked network boundaries to test complete workflows across Model → ViewModel.
 
@@ -1340,7 +1379,7 @@ describe('SensorViewModel', () => {
 
 8. **Mock at the right boundary**. Mock external dependencies (Models, APIs) rather than internal ViewModel methods. Test behavior, not implementation.
 
-9. **Use RxJS operators for testing observables**. `first()`, `skip()`, `take()`, and `firstValueFrom()` make observable testing straightforward.
+9. **Signals make observable testing nearly trivial**. `.get()` reads the current value synchronously; `observe()` captures the current value plus every future change; plain `.subscribe()` captures only future changes. No operator library required.
 
 10. **The testing pyramid applies to MVVM**:
     - **Many unit tests** for Models and ViewModels (fast, isolated)

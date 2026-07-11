@@ -74,7 +74,7 @@ The ViewModel now depends on how modals are implemented in your app. Change the 
 
 ## InteractionRequest
 
-`@web-loom/mvvm-patterns` exports `InteractionRequest<T>` — a thin Observable-based bridge. The ViewModel raises it; the View handles it.
+`@web-loom/mvvm-patterns` exports `InteractionRequest<T>` — a thin event-stream bridge (`EventSubscribable<T>`, from `@web-loom/mvvm-core`). The ViewModel raises it; the View handles it.
 
 ```typescript
 import { InteractionRequest, ConfirmationRequest } from '@web-loom/mvvm-patterns';
@@ -115,10 +115,9 @@ function OrderList({ vm }: { vm: OrderViewModel }) {
   } | null>(null);
 
   useEffect(() => {
-    const sub = vm.confirmDelete.requested$.subscribe((event) => {
+    return vm.confirmDelete.requested$.subscribe((event) => {
       setConfirmation(event);
     });
-    return () => sub.unsubscribe();
   }, [vm]);
 
   function handleConfirm() {
@@ -278,7 +277,6 @@ The cleanest benefit of this pattern shows up in tests. Because the ViewModel do
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { firstValueFrom } from 'rxjs';
 import { OrderViewModel } from './OrderViewModel';
 import { OrderModel } from '../models/OrderModel';
 
@@ -335,7 +333,7 @@ This is `ActiveAwareViewModel`.
 ```typescript
 interface IActiveAware {
   isActive: boolean;
-  isActive$: Observable<boolean>;
+  isActive$: ReadonlySignal<boolean>;
   activate(): void;
   deactivate(): void;
 }
@@ -345,12 +343,9 @@ interface IActiveAware {
 
 ```typescript
 import { ActiveAwareViewModel } from '@web-loom/mvvm-patterns';
-import type { Subscription } from 'rxjs';
-import { interval } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 
 class DashboardViewModel extends ActiveAwareViewModel<DashboardModel> {
-  private pollingSubscription?: Subscription;
+  private pollingHandle?: ReturnType<typeof setInterval>;
 
   protected onIsActiveChanged(isActive: boolean): void {
     if (isActive) {
@@ -361,14 +356,14 @@ class DashboardViewModel extends ActiveAwareViewModel<DashboardModel> {
   }
 
   private startPolling(): void {
-    this.pollingSubscription = interval(30_000).subscribe(() => {
+    this.pollingHandle = setInterval(() => {
       this.loadCommand.execute();
-    });
+    }, 30_000);
   }
 
   private stopPolling(): void {
-    this.pollingSubscription?.unsubscribe();
-    this.pollingSubscription = undefined;
+    clearInterval(this.pollingHandle);
+    this.pollingHandle = undefined;
   }
 
   dispose(): void {
@@ -458,7 +453,7 @@ function ProductsRoute() {
 
 When the user navigates to `/products`, `activate()` fires — the ViewModel starts loading, begins subscriptions, resumes polling. When they navigate away, `deactivate()` fires — work pauses but state is preserved. Navigate back: the View mounts, `activate()` fires, the ViewModel resumes from exactly where it was.
 
-### The isActive$ Observable
+### The isActive$ Signal
 
 For components that want to react to activation state — perhaps to start or stop their own animations, or show a "loading" state specifically for when the ViewModel becomes active for the first time:
 
@@ -467,8 +462,7 @@ function DashboardPanel({ vm }: { vm: DashboardViewModel }) {
   const [isActive, setIsActive] = useState(vm.isActive);
 
   useEffect(() => {
-    const sub = vm.isActive$.subscribe(setIsActive);
-    return () => sub.unsubscribe();
+    return vm.isActive$.subscribe(setIsActive);
   }, [vm]);
 
   if (!isActive) return <Skeleton />; // show while activating
@@ -486,7 +480,7 @@ Both patterns in this package solve the same category of problem: the moments wh
 
 `ActiveAwareViewModel` solves the coordination problem for lifecycle: the ViewModel needs to know whether its View is currently shown, without the View having to pass that information down through props or events.
 
-In both cases, the mechanism is Observable-based: the ViewModel exposes a stream, the View subscribes. The data flows in one direction; the ViewModel's independence from the View is preserved.
+In both cases, the mechanism is signal/event-stream-based: the ViewModel exposes a subscribable, the View subscribes. The data flows in one direction; the ViewModel's independence from the View is preserved.
 
 These two gaps — user interaction and lifecycle awareness — are the last things a clean ViewModel architecture needs to handle. With them addressed, the ViewModel can genuinely own all application behaviour, and the View can genuinely be a thin subscriber.
 
@@ -498,7 +492,7 @@ These two gaps — user interaction and lifecycle awareness — are the last thi
 npm install @web-loom/mvvm-patterns
 ```
 
-`@web-loom/mvvm-core` and RxJS are peer dependencies. Both `InteractionRequest` and `ActiveAwareViewModel` are exported from the package root.
+`@web-loom/mvvm-core` and `@web-loom/signals-core` are the only dependencies — no RxJS anywhere. Both `InteractionRequest` and `ActiveAwareViewModel` are exported from the package root.
 
 ---
 

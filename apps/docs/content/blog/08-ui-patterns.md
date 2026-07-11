@@ -67,7 +67,7 @@ You handle:
 ```tsx
 // React example
 function ProductBrowser() {
-  const products = useObservable(vm.products$, []);
+  const products = useSignal(vm.products$);
   const [detail, setDetail] = useState<Product | null>(null);
   const masterDetail = useMemo(() =>
     createMasterDetail({ items: products, getId: p => p.id }), [products]
@@ -345,9 +345,11 @@ Patterns are UI behaviour — they belong in the View layer or in a ViewModel th
 They communicate through the ViewModel when business actions need to happen:
 
 ```typescript
+import { computed } from '@web-loom/signals-core';
+
 class ProductBrowserViewModel extends BaseViewModel<ProductModel> {
   // Business logic
-  readonly products$ = this.data$.pipe(map(data => data ?? []));
+  readonly products$ = computed(() => this.data$.get() ?? []);
   readonly loadCommand = this.registerCommand(new Command(() => this.model.fetchAll()));
   readonly deleteCommand = this.registerCommand(
     new Command((id: string) => this.model.delete(id))

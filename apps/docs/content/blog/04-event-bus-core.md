@@ -76,12 +76,9 @@ class NavbarViewModel extends BaseViewModel<NavbarModel> {
 
   constructor(model: NavbarModel) {
     super(model);
-    this.addSubscription(
-      // Using RxJS Subscription for lifecycle management
-      new Subscription(() =>
-        appBus.on('cart:item-added', () => this.refreshCartCount())
-      )
-    );
+    const handleItemAdded = () => this.refreshCartCount();
+    appBus.on('cart:item-added', handleItemAdded);
+    this.addSubscription(() => appBus.off('cart:item-added', handleItemAdded));
   }
 }
 ```
@@ -201,11 +198,9 @@ class CartViewModel extends BaseViewModel<CartModel> {
     super(model);
 
     // React to order completion without importing OrderViewModel
-    this.addSubscription(
-      new Subscription(() =>
-        appBus.on('cart:cleared', () => this.model.clear())
-      )
-    );
+    const handleCartCleared = () => this.model.clear();
+    appBus.on('cart:cleared', handleCartCleared);
+    this.addSubscription(() => appBus.off('cart:cleared', handleCartCleared));
   }
 }
 ```

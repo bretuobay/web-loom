@@ -160,17 +160,16 @@ The `BaseViewModel` class from `packages/mvvm-core/src/viewmodels/BaseViewModel.
 // packages/mvvm-core/src/viewmodels/BaseViewModel.ts
 
 export class BaseViewModel<TModel extends BaseModel<any, any>> {
-  protected readonly _subscriptions = new Subscription();
-  protected readonly _destroy$ = new Subject<void>();
+  private readonly _teardowns: Array<() => void> = [];
   private readonly _registeredCommands: ICommand<any, any>[] = [];
 
   constructor(model: TModel) {
     this.model = model;
     
-    // All observables use takeUntil(this._destroy$) for automatic cleanup
-    this.data$ = this.model.data$.pipe(takeUntil(this._destroy$));
-    this.isLoading$ = this.model.isLoading$.pipe(takeUntil(this._destroy$));
-    this.error$ = this.model.error$.pipe(takeUntil(this._destroy$));
+    // Re-expose the model's own signals directly — same instances, no wrapping
+    this.data$ = this.model.data$;
+    this.isLoading$ = this.model.isLoading$;
+    this.error$ = this.model.error$;
   }
 
   /**
@@ -181,6 +180,14 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
   ): ICommand<TParam, TResult> {
     this._registeredCommands.push(command);
     return command;
+  }
+
+  /**
+   * Register a teardown (e.g. a signal unsubscribe function) for automatic
+   * cleanup when the ViewModel is disposed.
+   */
+  protected addSubscription(teardown: () => void): void {
+    this._teardowns.push(teardown);
   }
 
   /**
@@ -196,12 +203,9 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
     });
     this._registeredCommands.length = 0;
 
-    // Complete the destroy$ subject to trigger takeUntil cleanup
-    this._destroy$.next();
-    this._destroy$.complete();
-    
-    // Unsubscribe from any manually added subscriptions
-    this._subscriptions.unsubscribe();
+    // Run every teardown registered via addSubscription()
+    this._teardowns.forEach((teardown) => teardown());
+    this._teardowns.length = 0;
   }
 }
 ```
@@ -209,10 +213,10 @@ export class BaseViewModel<TModel extends BaseModel<any, any>> {
 **The lifecycle pattern:**
 
 1. **Creation**: ViewModel is instantiated with its dependencies
-2. **Active**: ViewModel manages subscriptions using `takeUntil(this._destroy$)`
+2. **Active**: ViewModel registers any manual subscriptions via `addSubscription()`
 3. **Disposal**: `dispose()` is called, triggering cleanup of all subscriptions and commands
 
-The `takeUntil` pattern is crucial. Every observable exposed by the ViewModel automatically completes when `_destroy$` emits. This prevents memory leaks even if the View forgets to unsubscribe.
+Unlike RxJS's `takeUntil` pattern, signals need no explicit "close this stream" step: `data$`/`isLoading$`/`error$` are just re-exposed signal references with nothing to tear down. What needs lifecycle tracking is anything you subscribe to by hand — `addSubscription()` covers that, and `dispose()` runs every registered teardown. This prevents memory leaks even if the View forgets to unsubscribe.
 
 ## Framework-Specific DI Approaches
 
@@ -225,8 +229,9 @@ Angular has a powerful built-in DI system. We can leverage it for ViewModels usi
 ```typescript
 // apps/mvvm-angular/src/app/components/greenhouse-list/greenhouse-list.component.ts
 
-import { Component, OnInit, OnDestroy, Inject, InjectionToken } from '@angular/core';
-import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { Component, OnInit, Inject, InjectionToken, Signal, DestroyRef, inject } from '@angular/core';
+import { greenHouseViewModel, GreenhouseListData } from '@repo/view-models/GreenHouseViewModel';
+import { fromLoomSignal } from '../../utils/loom-signals';
 
 // Create an InjectionToken for the ViewModel
 export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewModel>(
@@ -244,21 +249,21 @@ export const GREENHOUSE_VIEW_MODEL = new InjectionToken<typeof greenHouseViewMod
     },
   ],
 })
-export class GreenhouseListComponent implements OnInit, OnDestroy {
+export class GreenhouseListComponent implements OnInit {
   public vm: typeof greenHouseViewModel;
+  public data$!: Signal<GreenhouseListData | null>;
+
+  private destroyRef = inject(DestroyRef);
 
   constructor(@Inject(GREENHOUSE_VIEW_MODEL) vm: typeof greenHouseViewModel) {
     this.vm = vm;
   }
 
   ngOnInit(): void {
+    // fromLoomSignal ties teardown to DestroyRef internally —
+    // no ngOnDestroy needed for this
+    this.data$ = fromLoomSignal(this.vm.data$, this.destroyRef);
     this.vm.fetchCommand.execute();
-  }
-
-  ngOnDestroy(): void {
-    // Angular's subscription management handles cleanup,
-    // but if using manual subscriptions, call dispose() here
-    // this.vm.dispose();
   }
 }
 ```
@@ -267,21 +272,21 @@ export class GreenhouseListComponent implements OnInit, OnDestroy {
 
 - `InjectionToken` provides type-safe dependency injection
 - The `providers` array registers the ViewModel at the component level
-- Angular's lifecycle hooks (`ngOnInit`, `ngOnDestroy`) map naturally to ViewModel lifecycle
-- The `async` pipe in templates automatically handles subscription cleanup
+- Angular's lifecycle hooks (`ngOnInit`) map naturally to ViewModel lifecycle
+- `fromLoomSignal` bridges the Web Loom signal into a native Angular signal and handles subscription cleanup via `DestroyRef`
 
 **In the template:**
 
 ```html
 <!-- greenhouse-list.component.html -->
-<div *ngIf="vm.data$ | async as greenhouses">
+<div *ngIf="data$() as greenhouses">
   <div *ngFor="let greenhouse of greenhouses">
     {{ greenhouse.name }}
   </div>
 </div>
 ```
 
-The `async` pipe subscribes to `vm.data$` and automatically unsubscribes when the component is destroyed. This is Angular's idiomatic way of handling observables—no manual subscription management needed.
+`data$()` calls the bridged Angular signal directly — no `async` pipe needed, since the underlying value was never an RxJS Observable to begin with. This is Angular's idiomatic way of handling signals—no manual subscription management needed.
 
 ### React: Context and Hooks
 
@@ -292,14 +297,11 @@ React doesn't have built-in DI, but we can use Context API for ViewModel injecti
 
 import { useEffect } from 'react';
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { useObservable } from '../hooks/useObservable';
+import { useSignal } from '../hooks/useSignal';
 
 export function GreenhouseList() {
-  // Subscribe to ViewModel observables
-  const greenHouses = useObservable(
-    greenHouseViewModel.data$, 
-    [] as GreenhouseData[]
-  );
+  // Read the ViewModel's data signal
+  const greenHouses = useSignal(greenHouseViewModel.data$);
 
   // Fetch data on mount
   useEffect(() => {
@@ -313,11 +315,11 @@ export function GreenhouseList() {
     fetchData();
   }, []);
 
-  // Component cleanup happens automatically via useObservable hook
+  // Component cleanup happens automatically via useSignal hook
   
   return (
     <div>
-      {greenHouses.map((gh) => (
+      {greenHouses?.map((gh) => (
         <div key={gh.id}>{gh.name}</div>
       ))}
     </div>
@@ -325,37 +327,25 @@ export function GreenhouseList() {
 }
 ```
 
-The `useObservable` hook handles subscription lifecycle:
+The `useSignal` hook handles subscription lifecycle:
 
 ```typescript
-// apps/mvvm-react/src/hooks/useObservable.ts
+// apps/mvvm-react/src/hooks/useSignal.ts
 
-import { useEffect, useState } from 'react';
-import { Observable } from 'rxjs';
+import { useSyncExternalStore } from 'react';
+import type { ReadonlySignal } from '@web-loom/signals-core';
 
-export function useObservable<T>(
-  observable$: Observable<T>,
-  initialValue: T
-): T {
-  const [value, setValue] = useState<T>(initialValue);
-
-  useEffect(() => {
-    const subscription = observable$.subscribe(setValue);
-    
-    // Cleanup function runs when component unmounts
-    return () => subscription.unsubscribe();
-  }, [observable$]);
-
-  return value;
+export function useSignal<T>(sig: ReadonlySignal<T>): T {
+  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
 }
 ```
 
 **Key points:**
 
 - `useEffect` with an empty dependency array runs once on mount
-- The cleanup function returned from `useEffect` runs on unmount
-- `useObservable` automatically subscribes and unsubscribes
-- No manual `dispose()` call needed because `BaseViewModel` uses `takeUntil` internally
+- `useSyncExternalStore` manages subscribe/unsubscribe internally — no separate cleanup function to write
+- `useSignal` reads the current value synchronously via `sig.get`, so there's no first-render flash of a placeholder value
+- No manual `dispose()` call needed for `data$`/`isLoading$`/`error$` themselves — they're just re-exposed signal references with nothing to tear down
 
 For more complex scenarios, you can create a Context for ViewModel injection:
 
@@ -426,12 +416,12 @@ In a component:
 ```vue
 <!-- GreenhouseList.vue -->
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted } from 'vue';
 import { useGreenhouseViewModel } from '../composables/useGreenhouseViewModel';
-import { useObservable } from '../composables/useObservable';
+import { useSignal } from '../composables/useSignal';
 
 const vm = useGreenhouseViewModel();
-const greenhouses = useObservable(vm.data$, []);
+const greenhouses = useSignal(vm.data$);
 
 onMounted(async () => {
   await vm.fetchCommand.execute();
@@ -447,28 +437,24 @@ onMounted(async () => {
 </template>
 ```
 
-The `useObservable` composable for Vue:
+The `useSignal` composable for Vue:
 
 ```typescript
-// src/composables/useObservable.ts
+// src/composables/useSignal.ts
 
-import { ref, onUnmounted, Ref } from 'vue';
-import { Observable } from 'rxjs';
+import { shallowRef, onUnmounted, type ShallowRef } from 'vue';
+import { observe, type ReadonlySignal } from '@web-loom/signals-core';
 
-export function useObservable<T>(
-  observable$: Observable<T>,
-  initialValue: T
-): Ref<T> {
-  const value = ref<T>(initialValue) as Ref<T>;
+export function useSignal<T>(sig: ReadonlySignal<T>): ShallowRef<T> {
+  const value = shallowRef<T>(sig.peek());
 
-  const subscription = observable$.subscribe((newValue) => {
+  // observe() delivers the current value immediately, then every change
+  const unsubscribe = observe(sig, (newValue) => {
     value.value = newValue;
   });
 
   // Cleanup on component unmount
-  onUnmounted(() => {
-    subscription.unsubscribe();
-  });
+  onUnmounted(unsubscribe);
 
   return value;
 }
@@ -482,19 +468,19 @@ Without a framework, you manage lifecycle manually:
 // src/controllers/GreenhouseListController.ts
 
 import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { Subscription } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
 export class GreenhouseListController {
-  private subscriptions = new Subscription();
+  private teardowns: Array<() => void> = [];
 
   constructor(private containerElement: HTMLElement) {
     this.initialize();
   }
 
   private initialize(): void {
-    // Subscribe to ViewModel observables
-    this.subscriptions.add(
-      greenHouseViewModel.data$.subscribe((greenhouses) => {
+    // observe() delivers the current value immediately, then every change
+    this.teardowns.push(
+      observe(greenHouseViewModel.data$, (greenhouses) => {
         this.render(greenhouses);
       })
     );
@@ -511,7 +497,8 @@ export class GreenhouseListController {
 
   public destroy(): void {
     // Clean up subscriptions
-    this.subscriptions.unsubscribe();
+    this.teardowns.forEach((teardown) => teardown());
+    this.teardowns = [];
     
     // Optionally dispose ViewModel if it's not shared
     // greenHouseViewModel.dispose();
@@ -533,7 +520,7 @@ const controller = new GreenhouseListController(container);
 
 **Key principle:** Regardless of framework, the pattern is the same:
 
-1. Subscribe to ViewModel observables when the component mounts
+1. Subscribe to ViewModel signals when the component mounts
 2. Unsubscribe when the component unmounts
 3. Call `dispose()` on the ViewModel if it's not shared across components
 
@@ -614,7 +601,7 @@ describe('GreenhouseViewModel', () => {
     await viewModel.fetchCommand.execute();
 
     // Verify results
-    const data = await firstValueFrom(viewModel.data$);
+    const data = viewModel.data$.peek();
     expect(data).toHaveLength(2);
     expect(data[0].name).toBe('Greenhouse Alpha');
 
