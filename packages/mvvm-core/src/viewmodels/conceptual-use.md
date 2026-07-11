@@ -4,9 +4,9 @@
 
 The `RestfulApiModel` and `RestfulApiViewModel` are foundational classes within the MVVM (Model-View-ViewModel) core library, designed to streamline interactions with RESTful APIs and manage application state reactively.
 
-- **`RestfulApiModel`**: This class is responsible for the direct communication with your API endpoints. It handles fetching, creating, updating, and deleting resources, along with data validation using Zod schemas. It exposes the fetched data, loading status, and any errors as RxJS Observables.
+- **`RestfulApiModel`**: This class is responsible for the direct communication with your API endpoints. It handles fetching, creating, updating, and deleting resources, along with data validation using Zod schemas. It exposes the fetched data, loading status, and any errors as reactive signals (`ReadonlySignal<T>` from `@web-loom/signals-core`).
 
-- **`RestfulApiViewModel`**: This class acts as an intermediary between the `RestfulApiModel` and your UI (View). It consumes the observables from the model and exposes them, often directly, to the UI. More importantly, it provides `Command` objects for performing actions (like CRUD operations), encapsulating the execution logic and managing states like `isExecuting` or errors specific to that command. This makes the UI code cleaner and more declarative.
+- **`RestfulApiViewModel`**: This class acts as an intermediary between the `RestfulApiModel` and your UI (View). It consumes the signals from the model and exposes them, often directly, to the UI. More importantly, it provides `Command` objects for performing actions (like CRUD operations), encapsulating the execution logic and managing states like `isExecuting` or errors specific to that command. This makes the UI code cleaner and more declarative.
 
 Together, they provide a robust pattern for managing remote data, handling loading and error states, and performing operations in a structured and testable way.
 
@@ -198,9 +198,12 @@ This example demonstrates how to use the `UserListViewModel` in a React function
 ```typescript
 // src/components/UserList.tsx
 import React, { useEffect, useMemo } from 'react';
-// Hypothetical hook for easy RxJS observable consumption in React
-// Popular choices: 'react-rxjs', 'rxjs-hooks', or write a simple custom one.
-import { useObservable } from 'react-rxjs-hooks';
+// A signal is bound to React with useSyncExternalStore — no library needed.
+// See apps/mvvm-react/src/hooks/useSignal.ts for the reference implementation:
+//   export function useSignal<T>(sig: ReadonlySignal<T>): T {
+//     return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+//   }
+import { useSignal } from '../hooks/useSignal';
 
 import { UserCollectionApiModel } from '../models/user.api.model';
 import { UserListViewModel } from '../viewmodels/user-list.viewmodel';
@@ -212,12 +215,14 @@ const userListViewModel = new UserListViewModel(userCollectionApiModel);
 
 const UserListComponent: React.FC = () => {
   // --- Data Binding ---
-  const users = useObservable(userListViewModel.data$, null); // Default to null or initial state
-  const isLoading = useObservable(userListViewModel.isLoading$, true); // Assume loading initially
-  const error = useObservable(userListViewModel.error$, null);
+  // useSignal reads the current value synchronously (no default-value param,
+  // no first-render flash) and re-renders on every change.
+  const users = useSignal(userListViewModel.data$);
+  const isLoading = useSignal(userListViewModel.isLoading$);
+  const error = useSignal(userListViewModel.error$);
 
   // For collection view models, selectedItem$ can be used
-  const selectedUser = useObservable(userListViewModel.selectedItem$, null);
+  const selectedUser = useSignal(userListViewModel.selectedItem$);
 
   // --- Commands ---
   const {
@@ -228,10 +233,10 @@ const UserListComponent: React.FC = () => {
   } = userListViewModel;
 
   // Command states
-  const isFetching = useObservable(fetchCommand.isExecuting$, false);
-  const isCreating = useObservable(createCommand.isExecuting$, false);
-  // const canCreate = useObservable(createCommand.canExecute$, true); // Example
-  const createError = useObservable(createCommand.executeError$, null);
+  const isFetching = useSignal(fetchCommand.isExecuting$);
+  const isCreating = useSignal(createCommand.isExecuting$);
+  // const canCreate = useSignal(createCommand.canExecute$); // Example
+  const createError = useSignal(createCommand.executeError$);
 
 
   useEffect(() => {
@@ -285,7 +290,7 @@ const UserListComponent: React.FC = () => {
               {selectedUser?.id === user.id ? 'Selected' : 'View Details'}
             </button>
             <button onClick={() => handleUpdateUser(user)} style={{ marginLeft: '5px' }}>Update Name</button>
-            <button onClick={() => handleDeleteUser(user.id)} disabled={useObservable(deleteCommand.isExecuting$, false)} style={{ marginLeft: '5px' }}>
+            <button onClick={() => handleDeleteUser(user.id)} disabled={useSignal(deleteCommand.isExecuting$)} style={{ marginLeft: '5px' }}>
               Delete
             </button>
           </li>
@@ -310,16 +315,18 @@ export default UserListComponent;
 
 **Notes for other frameworks:**
 
-- **Angular:** You would typically inject the ViewModel into your component and use the `async` pipe in your templates to subscribe to observables (e.g., `*ngIf="viewModel.data$ | async as users"`).
-- **Vue:** You might use `ref` or `reactive` for state and update them from the ViewModel's observables using watchers or a setup function. Vue's reactivity system can often work well with RxJS observables with some adaptation.
+- **Angular:** Inject the ViewModel into your component and bridge signals with `fromLoomSignal` (see `apps/mvvm-angular/src/app/utils/loom-signals.ts`), which adapts a `ReadonlySignal` for Angular's own signal/`async` pipe machinery — e.g. `@if (data(); as users) { ... }`.
+- **Vue:** Use a small `useSignal` composable (`shallowRef` + `observe` from `@web-loom/signals-core`) to mirror a signal into a Vue `ref`. Vue's own reactivity primitives are conceptually the same shape as Web Loom's signals, so the bridge is thin.
 
 ### 4.1. Data Binding (`data$`, `isLoading$`, `error$`)
 
-These observables provide the core state from the `RestfulApiModel`:
+These signals provide the core state from the `RestfulApiModel`:
 
-- `viewModel.data$`: Emits the data fetched from the API (e.g., `User[]` or `UserProfile`). Initialize your UI with a default state (e.g., empty array, null) until the first emission.
-- `viewModel.isLoading$`: Emits `true` while an API request (fetch, create, update, delete via the model's direct methods) is in progress, and `false` otherwise. Useful for showing loading indicators.
-- `viewModel.error$`: Emits an error object if any operation on the `RestfulApiModel` fails (including Zod validation errors during parsing of fetched data or pre-send validation).
+- `viewModel.data$`: Holds the data fetched from the API (e.g., `User[]` or `UserProfile`). Read synchronously with `.get()`, or subscribe with `.subscribe(fn)`. Initialize your UI with a default state (e.g., empty array, null) until the first value arrives.
+- `viewModel.isLoading$`: `true` while an API request (fetch, create, update, delete via the model's direct methods) is in progress, `false` otherwise. Useful for showing loading indicators.
+- `viewModel.error$`: Holds an error object if any operation on the `RestfulApiModel` fails (including Zod validation errors during parsing of fetched data or pre-send validation).
+
+Note: signals do **not** emit on subscribe the way a `BehaviorSubject` does. `.subscribe(fn)` only fires on subsequent changes and returns an unsubscribe **function** (not a `Subscription` object). If you need the current value delivered immediately on subscribe (e.g. for non-React bridges like Lit or vanilla JS), use `observe(sig, fn)` from `@web-loom/signals-core` instead.
 
 ### 4.2. CRUD Operations using Commands
 
@@ -338,19 +345,19 @@ Commands encapsulate actions and their states.
 
 ### 4.3. Command States
 
-Each command instance (`fetchCommand`, `createCommand`, etc.) provides its own state observables:
+Each command instance (`fetchCommand`, `createCommand`, etc.) provides its own state signals:
 
-- `command.isExecuting$`: Emits `true` while this specific command is running, `false` otherwise. Ideal for disabling the button that triggered the command.
-- `command.canExecute$`: An observable that emits `true` if the command can currently be executed, `false` otherwise. (Note: The provided `Command` class has this property, but its behavior depends on whether a `canExecute` function was passed to its constructor, which is not shown in the basic PRD example. Assume it's generally available).
-- `command.executeError$`: Emits an error if the last execution of _this specific command_ failed. This is useful for showing errors right next to the UI element that triggered the command, as opposed to the general `viewModel.error$` which might reflect model-level errors too.
+- `command.isExecuting$`: `true` while this specific command is running, `false` otherwise. Ideal for disabling the button that triggered the command.
+- `command.canExecute$`: A computed signal that is `true` if the command can currently be executed, `false` otherwise (and always `false` while the command is already executing). Conditions passed to the constructor, `observesProperty()`, or `observesCanExecute()` are auto-tracked; call `raiseCanExecuteChanged()` to force re-evaluation when the condition reads non-signal state.
+- `command.executeError$`: Holds an error if the last execution of _this specific command_ failed. This is useful for showing errors right next to the UI element that triggered the command, as opposed to the general `viewModel.error$` which might reflect model-level errors too.
 
 ### 4.4. `selectedItem$` (for Collection ViewModels)
 
-When `TData` in `RestfulApiViewModel<TData, ...>` is an array type (e.g., `User[]`), the `selectedItem$` observable is particularly useful.
+When `TData` in `RestfulApiViewModel<TData, ...>` is an array type (e.g., `User[]`), the `selectedItem$` signal is particularly useful.
 
 - **Purpose**: It observes a single item from the collection currently held in `data$`, based on a selected ID.
 - **`viewModel.selectItem(id: string | null)`**: Call this method to change the selected ID. If `id` is `null`, the selection is cleared, and `selectedItem$` will emit `null`.
-- **Binding to `selectedItem$`**: Subscribe to this observable to display details of the selected item in your UI. If no item is selected or the selected ID is not found in the current `data$`, it emits `null`.
+- **Binding to `selectedItem$`**: Subscribe to this signal to display details of the selected item in your UI. If no item is selected or the selected ID is not found in the current `data$`, its value is `null`.
 
 ## 5. Validation
 
@@ -364,7 +371,7 @@ Your UI should monitor `viewModel.error$` and/or `command.executeError$` to disp
 
 ## 6. Lifecycle Management and `dispose()`
 
-**This is a critical aspect to prevent memory leaks in your application.** RxJS subscriptions, if not managed, can persist even after a component is no longer in use, leading to unexpected behavior and performance degradation.
+**This is a critical aspect to prevent memory leaks in your application.** Signal subscriptions, if not torn down, can persist even after a component is no longer in use, leading to unexpected behavior and performance degradation.
 
 Both `RestfulApiModel`, `RestfulApiViewModel`, and the `Command` class implement an `IDisposable`-like `dispose()` method.
 
@@ -374,11 +381,11 @@ Both `RestfulApiModel`, `RestfulApiViewModel`, and the `Command` class implement
   - `ViewModel.dispose()`:
     - Calls `dispose()` on the `RestfulApiModel` instance it holds.
     - Calls `dispose()` on each of its `Command` instances.
-    - Completes internal subjects (like `_selectedItemId$`) to release subscribers.
+    - Marks internal signals (like `_selectedItemId$`) disposed so no further updates are delivered.
   - `Model.dispose()`:
-    - Completes its internal `BehaviorSubject` instances (`_data$`, `_isLoading$`, `_error$`), which automatically unsubscribes most listeners.
+    - Marks its internal signals (`_data`, `_isLoading`, `_error`) disposed; subsequent setters become no-ops, so no further notifications reach subscribers.
   - `Command.dispose()`:
-    - Completes its internal `BehaviorSubject` instances (`_isExecuting$`, `_canExecute$`, `_error$`).
+    - Marks its internal signals (`_isExecuting`, `_executeError`) disposed for the same reason.
 
 **Example: Calling `dispose()` in a React `useEffect` cleanup:**
 

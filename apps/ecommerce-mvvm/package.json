@@ -23,8 +23,7 @@
     "@web-loom/ui-patterns": "*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.18.0",
-    "rxjs": "^7.8.1"
+    "react-router-dom": "^7.18.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
