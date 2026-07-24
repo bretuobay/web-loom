@@ -32,11 +32,6 @@ export class TemplateAppActions {
     await this.options.navigate(path);
   }
 
-  navigateFromClick(event: Event, path: string): void {
-    event.preventDefault();
-    void this.navigate(path);
-  }
-
   setSearchQuery(value: string): void {
     this.options.catalog.setSearchQuery(value);
   }
@@ -152,26 +147,6 @@ export class TemplateAppActions {
 
   setPaletteQuery(value: string): void {
     this.palette?.actions.setQuery(value);
-  }
-
-  handlePaletteKey(event: KeyboardEvent): void {
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.selectNextPaletteCommand();
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      this.selectPreviousPaletteCommand();
-    } else if (event.key === 'Enter') {
-      event.preventDefault();
-      this.executeSelectedPaletteCommand();
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      this.closePalette();
-    }
-  }
-
-  stopEvent(event: Event): void {
-    event.stopPropagation();
   }
 
   pushToast(message: string): void {

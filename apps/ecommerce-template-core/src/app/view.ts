@@ -11,8 +11,9 @@ import {
   toastTemplate,
 } from '../templates';
 import type { TemplateAppViewModel } from '../TemplateAppViewModel';
+import { TemplateAppBindings } from './bindings';
 
-type ViewTemplate = Template<TemplateAppViewModel>;
+type ViewTemplate = Template<TemplateAppBindings>;
 
 const routeTemplates: Record<string, ViewTemplate> = {
   '/': storefrontTemplate,
@@ -25,7 +26,8 @@ export class TemplateAppView {
   private stopRouteSubscription: (() => void) | null = null;
 
   mount(container: Element, viewModel: TemplateAppViewModel): Disposable {
-    const shell = appShellTemplate.mount(container, viewModel);
+    const bindings = new TemplateAppBindings(viewModel);
+    const shell = appShellTemplate.mount(container, bindings);
     this.mountedViews.push(shell);
 
     const slot = (name: string): Element => {
@@ -34,11 +36,11 @@ export class TemplateAppView {
       return element;
     };
 
-    this.mountedViews.push(headerTemplate.mount(slot('header'), viewModel));
-    this.mountedViews.push(cartDrawerTemplate.mount(slot('cart'), viewModel));
-    this.mountedViews.push(commandPaletteTemplate.mount(slot('palette'), viewModel));
-    this.mountedViews.push(confirmationDialogTemplate.mount(slot('confirmation'), viewModel));
-    this.mountedViews.push(toastTemplate.mount(slot('toast'), viewModel));
+    this.mountedViews.push(headerTemplate.mount(slot('header'), bindings));
+    this.mountedViews.push(cartDrawerTemplate.mount(slot('cart'), bindings));
+    this.mountedViews.push(commandPaletteTemplate.mount(slot('palette'), bindings));
+    this.mountedViews.push(confirmationDialogTemplate.mount(slot('confirmation'), bindings));
+    this.mountedViews.push(toastTemplate.mount(slot('toast'), bindings));
 
     const routeSlot = slot('route');
     const renderRoute = (path: string) => {
@@ -46,7 +48,7 @@ export class TemplateAppView {
       this.activeRouteView = null;
       routeSlot.replaceChildren();
       const template = routeTemplates[path] ?? notFoundTemplate;
-      this.activeRouteView = template.mount(routeSlot, viewModel);
+      this.activeRouteView = template.mount(routeSlot, bindings);
     };
 
     renderRoute(viewModel.state.route$.get());

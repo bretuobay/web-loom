@@ -19,6 +19,8 @@ export class TemplateAppViewModel {
   readonly catalog: CatalogViewModel;
   readonly cart: CartViewModel;
 
+  private readonly catalogModel: CatalogModel;
+  private readonly cartModel: CartModel;
   private subscriptions: Array<() => void> = [];
   private started = false;
 
@@ -26,6 +28,8 @@ export class TemplateAppViewModel {
     catalogModel: CatalogModel,
     cartModel: CartModel,
   ) {
+    this.catalogModel = catalogModel;
+    this.cartModel = cartModel;
     this.catalog = new CatalogViewModel(catalogModel);
     this.cart = new CartViewModel(cartModel);
     this.router = createRouter({
@@ -71,87 +75,6 @@ export class TemplateAppViewModel {
     await this.router.push(path);
   }
 
-  navigateFromClick(event: Event): void {
-    const anchor = event.currentTarget;
-    if (anchor instanceof HTMLAnchorElement) {
-      this.actions.navigateFromClick(event, anchor.getAttribute('href') ?? '/');
-    }
-  }
-
-  setSearchQueryFromEvent(event: Event): void {
-    this.actions.setSearchQuery(this.readInputValue(event));
-  }
-
-  selectProduct(event: Event): void {
-    const productId = this.readDataAttribute(event, 'product-id');
-    const product = this.catalog.filteredProducts.get().find((item) => item.id === productId);
-    if (product) this.actions.selectProduct(product);
-  }
-
-  addToCart(event: Event): void {
-    const productId = this.readDataAttribute(event, 'product-id');
-    const product = this.catalog.filteredProducts.get().find((item) => item.id === productId);
-    if (product) this.actions.addToCart(product);
-  }
-
-  formatMoney(value: unknown): string {
-    return this.actions.formatMoney(value);
-  }
-
-  setCheckoutEmailFromEvent(event: Event): void {
-    this.actions.setCheckoutEmail(this.readInputValue(event));
-  }
-
-  setCheckoutAddressFromEvent(event: Event): void {
-    this.actions.setCheckoutAddress(this.readInputValue(event));
-  }
-
-  setCheckoutNotesFromEvent(event: Event): void {
-    this.actions.setCheckoutNotes(this.readInputValue(event));
-  }
-
-  touchCheckoutEmail(): void {
-    this.actions.touchCheckoutField('email');
-  }
-
-  touchCheckoutAddress(): void {
-    this.actions.touchCheckoutField('shippingAddress');
-  }
-
-  touchCheckoutNotes(): void {
-    this.actions.touchCheckoutField('notes');
-  }
-
-  updateQuantity(event: Event): void {
-    const button = event.currentTarget;
-    if (!(button instanceof Element)) return;
-    const itemElement = button.closest<HTMLElement>('[data-product-id]');
-    const productId = itemElement?.dataset.productId;
-    const delta = Number(button.getAttribute('data-quantity-delta'));
-    const item = this.cart.cart.get().items.find((candidate) => candidate.productId === productId);
-    if (item && Number.isFinite(delta)) this.actions.updateQuantity(item, delta);
-  }
-
-  removeItem(event: Event): void {
-    const button = event.currentTarget;
-    if (!(button instanceof Element)) return;
-    const productId = button.closest<HTMLElement>('[data-product-id]')?.dataset.productId;
-    if (productId) this.actions.removeItem({ productId });
-  }
-
-  setPaletteQueryFromEvent(event: Event): void {
-    this.actions.setPaletteQuery(this.readInputValue(event));
-  }
-
-  handlePaletteKey(event: Event): void {
-    if (event instanceof KeyboardEvent) this.actions.handlePaletteKey(event);
-  }
-
-  executePaletteCommand(event: Event): void {
-    const commandId = this.readDataAttribute(event, 'command-id');
-    if (commandId) this.actions.executePaletteCommand(commandId);
-  }
-
   dispose(): void {
     this.subscriptions.splice(0).forEach((unsubscribe) => unsubscribe());
     this.actions.dispose();
@@ -162,16 +85,8 @@ export class TemplateAppViewModel {
     this.cart.deactivate();
     this.catalog.dispose();
     this.cart.dispose();
+    this.catalogModel.dispose();
+    this.cartModel.dispose();
     this.started = false;
-  }
-
-  private readInputValue(event: Event): string {
-    const target = event.target;
-    return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement ? target.value : '';
-  }
-
-  private readDataAttribute(event: Event, name: string): string | null {
-    const target = event.target ?? event.currentTarget;
-    return target instanceof Element ? target.closest<HTMLElement>(`[data-${name}]`)?.getAttribute(`data-${name}`) ?? null : null;
   }
 }

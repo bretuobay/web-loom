@@ -1,5 +1,5 @@
 import { fireEvent, waitFor } from '@testing-library/dom';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEcommerceApi } from './infrastructure/api/create-ecommerce-api';
 import { CatalogModel } from './features/catalog/CatalogModel';
 import { CartModel } from './features/cart/CartModel';
@@ -12,6 +12,8 @@ function mountApp() {
   const api = createEcommerceApi();
   const catalogModel = new CatalogModel(api);
   const cartModel = new CartModel(api);
+  const disposeCatalogModel = vi.spyOn(catalogModel, 'dispose');
+  const disposeCartModel = vi.spyOn(cartModel, 'dispose');
   const appViewModel = new TemplateAppViewModel(catalogModel, cartModel);
   const view = new TemplateAppView();
   const mounted = view.mount(container, appViewModel);
@@ -22,6 +24,8 @@ function mountApp() {
     ready,
     view: mounted,
     appViewModel,
+    disposeCatalogModel,
+    disposeCartModel,
   };
 }
 
@@ -67,6 +71,8 @@ describe('template-core ecommerce demo', () => {
     const beforeDispose = app.container.textContent;
     app.view.dispose();
     app.appViewModel.dispose();
+    expect(app.disposeCatalogModel).toHaveBeenCalledOnce();
+    expect(app.disposeCartModel).toHaveBeenCalledOnce();
     app.appViewModel.state.route$.set('/');
     expect(beforeDispose).toContain('Checkout');
     expect(app.container.textContent).toBe('');

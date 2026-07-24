@@ -13,8 +13,9 @@
 - `palette.ts` owns command-palette command registration.
 - `subscriptions.ts` owns router, store, form, notification, confirmation, app-bus, keyboard, and link subscriptions.
 - `view.ts` owns mounting persistent shell views and replacing the route view.
+- `bindings.ts` adapts template-core DOM events into typed action calls; it is the only app-layer module that knows about browser event/element APIs.
 
-`@web-loom/store-core` persists the durable preference (`theme`) through `ui-store.ts`; signals remain the clearer representation for ephemeral UI state. Catalog/cart domain operations remain in the copied models/view-models.
+`@web-loom/store-core` persists the durable preference (`theme`) through `ui-store.ts`; signals remain the clearer representation for ephemeral UI state. Catalog/cart domain operations remain in the copied models/view-models. The application ViewModel owns the injected models and disposes both models and child ViewModels together.
 
 ## Routing and Lifecycle
 
