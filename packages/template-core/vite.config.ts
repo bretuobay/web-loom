@@ -10,6 +10,7 @@ export default defineConfig({
       fileName: (format) => `index.${format}.js`,
     },
     rollupOptions: {
+      external: ['@web-loom/signals-core'],
       output: {},
     },
   },
