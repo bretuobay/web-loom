@@ -1,0 +1,62 @@
+{
+  "name": "@web-loom/template-core",
+  "description": "Signal-native reactive template engine — Web Loom's native, no-adapter-required rendering option for ViewModels built on signals-core/mvvm-core.",
+  "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
+  "license": "MIT",
+  "private": false,
+  "version": "0.8.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js",
+      "default": "./dist/index.es.js"
+    }
+  },
+  "keywords": [
+    "template",
+    "signals",
+    "reactive",
+    "rendering",
+    "mvvm",
+    "zero-vdom",
+    "framework-agnostic",
+    "typescript",
+    "web-loom"
+  ],
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "test": "vitest --watch=false",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts --max-warnings 0",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "check-types": "tsc --noEmit",
+    "size": "node scripts/check-size.mjs",
+    "bench": "vitest bench --run"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@types/node": "^22.15.3",
+    "@web-loom/mvvm-core": "*",
+    "eslint": "^9.39.1",
+    "jsdom": "^26.1.0",
+    "typescript": "5.8.2",
+    "vite": "^6.4.3",
+    "vite-plugin-dts": "^5.0.3",
+    "vitest": "^4.1.9",
+    "zod": "^3.25.67"
+  },
+  "dependencies": {
+    "@web-loom/signals-core": "*"
+  }
+}
