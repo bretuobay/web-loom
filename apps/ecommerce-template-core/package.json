@@ -1,0 +1,35 @@
+{
+  "name": "ecommerce-template-core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.app.json && vite build",
+    "preview": "vite preview",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit -p tsconfig.app.json"
+  },
+  "dependencies": {
+    "@web-loom/design-core": "*",
+    "@web-loom/event-bus-core": "*",
+    "@web-loom/mvvm-core": "*",
+    "@web-loom/mvvm-patterns": "*",
+    "@web-loom/query-core": "*",
+    "@web-loom/router-core": "*",
+    "@web-loom/signals-core": "*",
+    "@web-loom/store-core": "*",
+    "@web-loom/template-core": "*",
+    "@web-loom/ui-core": "*",
+    "@web-loom/ui-patterns": "*"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "jsdom": "^26.1.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.4.3",
+    "vitest": "^4.1.9"
+  }
+}

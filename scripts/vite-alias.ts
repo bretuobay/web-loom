@@ -50,6 +50,7 @@ export const webLoomPackages = [
   '@web-loom/notifications-core',
   '@web-loom/platform-core',
   '@web-loom/router-core',
+  '@web-loom/template-core',
   '@web-loom/storage-core',
   '@web-loom/typography-core',
 ] as const;
@@ -92,6 +93,7 @@ const packagePaths: Record<string, string> = {
   '@web-loom/notifications-core': 'packages/notifications-core/src',
   '@web-loom/platform-core': 'packages/platform-core/src',
   '@web-loom/router-core': 'packages/router-core/src',
+  '@web-loom/template-core': 'packages/template-core/src',
   '@web-loom/storage-core': 'packages/storage-core/src',
   '@web-loom/typography-core': 'packages/typography-core/src',
   // @repo packages
