@@ -20,3 +20,8 @@ export async function initTheme(): Promise<void> {
     }
   });
 }
+
+export function disposeTheme(): void {
+  stopThemeSync?.();
+  stopThemeSync = null;
+}
