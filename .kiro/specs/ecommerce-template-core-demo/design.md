@@ -6,14 +6,15 @@
 
 ## View Boundary
 
-`TemplateAppViewModel` composes the existing catalog and cart view-models and exposes the non-signal behavior required by templates as signals and explicit actions:
+`TemplateAppViewModel` composes the existing catalog and cart view-models and exposes the non-signal behavior required by templates as signals and explicit actions. The coordinator is split into focused modules:
 
-- route, theme, cart drawer, palette, confirmation, and toast state
-- checkout form values and errors mirrored from `FormBehavior`
-- command-palette state mirrored from `CommandPaletteBehavior`
-- navigation, form, cart, palette, theme, confirmation, and toast actions
+- `state.ts` owns render-facing transient state: route, cart drawer, palette, confirmation, toast, and checkout mirrors.
+- `actions.ts` owns domain/UI commands and action cleanup.
+- `palette.ts` owns command-palette command registration.
+- `subscriptions.ts` owns router, store, form, notification, confirmation, app-bus, keyboard, and link subscriptions.
+- `view.ts` owns mounting persistent shell views and replacing the route view.
 
-The HTML templates use `compile()` once and `mount()` once. Nested signals from the catalog/cart view-models remain directly consumable by template-core. The coordinator owns only View composition and lifecycle; domain operations remain in the copied models/view-models.
+`@web-loom/store-core` persists the durable preference (`theme`) through `ui-store.ts`; signals remain the clearer representation for ephemeral UI state. Catalog/cart domain operations remain in the copied models/view-models.
 
 ## Routing and Lifecycle
 
@@ -21,8 +22,12 @@ The HTML templates use `compile()` once and `mount()` once. Nested signals from 
 
 ## Template Organization
 
-Templates are stored as TypeScript string constants and compiled into a single app template. They use Phase 1 interpolation, `if/else`, keyed `each`, property/attribute/class bindings, and event bindings. Form controls use explicit coordinator actions because Phase 1 has no `bind:` or event modifiers.
+Templates are split by visual ownership under `src/templates/`: shell, header, storefront, checkout, cart drawer, command palette, confirmation dialog, toast, and not-found. Each module owns one compiled template. `TemplateAppView` mounts persistent templates into shell slots and mounts only the active route template, so route changes do not require one monolithic compiled tree.
+
+This is intentionally an application-level composition pattern: template-core Phase 1 has no partial/include primitive, so reusable pieces are composed by independent `compile()`/`mount()` calls. Templates use Phase 1 interpolation, `if/else`, keyed `each`, property/attribute/class bindings, and event bindings. Form controls use explicit coordinator adapters because Phase 1 has no `bind:` or event modifiers.
+
+Phase 1 call expressions accept a single identifier as the callee. Argument-bearing DOM handlers therefore use flat root adapters such as `addToCart`, `updateQuantity`, and `setCheckoutEmailFromEvent`; no-argument behavior can still use dotted paths such as `actions.openCart`. This keeps templates readable while isolating DOM/event-shape knowledge at the view-model boundary.
 
 ## Repository Integration
 
-Add `@web-loom/template-core` to the Vite workspace alias registry and add the new app/package metadata, Vite config, TypeScript config, test setup, entry point, coordinator, templates, and integration tests.
+Add `@web-loom/template-core` to the Vite workspace alias registry and add the new app/package metadata, Vite config, TypeScript config, test setup, entry point, composed view-model/view modules, split templates, and integration tests.
