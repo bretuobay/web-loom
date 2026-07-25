@@ -14,11 +14,42 @@ import type { NodePath, RenderContext, RootTemplate, Scope } from '../types.js';
 
 /** Resolves a NodePath (child-index address) against a persisted roots array. */
 export function getNodeAt(roots: ChildNode[], path: NodePath): Node {
-  let node: Node = roots[path[0]!]!;
+  const logicalChildren = (parent: ParentNode): ChildNode[] =>
+    Array.from(parent.childNodes).filter(
+      (child) => !(child.nodeType === Node.COMMENT_NODE && /^loom:item(?:-end)?$/.test((child as Comment).data)),
+    );
+  let node: Node = logicalChildren({ childNodes: roots } as unknown as ParentNode)[path[0]!]!;
   for (let i = 1; i < path.length; i++) {
-    node = node.childNodes[path[i]!]!;
+    node = logicalChildren(node as ParentNode)[path[i]!]!;
   }
   return node;
+}
+
+export function getExistingItemNodes(cursor: ChildNode): { nodes: ChildNode[]; cursor: ChildNode | null } | null {
+  let node = cursor.nextSibling;
+  while (node && !(node.nodeType === Node.COMMENT_NODE && (node as Comment).data === 'loom:item')) {
+    node = node.nextSibling;
+  }
+  if (!node) return null;
+  const start = node;
+  const nodes: ChildNode[] = [];
+  node = start.nextSibling;
+  while (node && !(node.nodeType === Node.COMMENT_NODE && (node as Comment).data === 'loom:item-end')) {
+    nodes.push(node);
+    node = node.nextSibling;
+  }
+  return node ? { nodes, cursor: node } : null;
+}
+
+/** Returns the existing top-level nodes immediately after a block anchor. */
+export function getExistingNodes(anchor: ChildNode, count: number): ChildNode[] {
+  const nodes: ChildNode[] = [];
+  let node = anchor.nextSibling;
+  while (node && nodes.length < count) {
+    nodes.push(node);
+    node = node.nextSibling;
+  }
+  return nodes;
 }
 
 export function cloneBlueprint(template: RootTemplate): DocumentFragment {

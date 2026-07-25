@@ -34,6 +34,7 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
       },
       partialDepth: 0,
       partialStack: [],
+      hydrating: false,
     };
   }
 
@@ -75,16 +76,26 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
         { kind: 'hydration-mismatch', template: this.options.name },
       );
     };
-    if (this.root.blocks.length > 0 || container.innerHTML !== expected) {
-      if (container.innerHTML !== expected) reportMismatch('Hydration markup mismatch; remounting the template.');
-      else reportMismatch('Hydration encountered dynamic blocks; remounting the template region.');
+    if (this.root.blocks.length === 0 && container.innerHTML !== expected) {
+      reportMismatch('Hydration markup mismatch; remounting the template.');
       container.replaceChildren();
       return this.mount(container, viewModel);
     }
     const bag = new DisposalBag();
     const scope: Scope = { parent: null, self: viewModel, locals: {} };
     const roots = Array.from(container.childNodes);
-    applyBindings(this.root, roots, scope, this.makeContext(), bag);
+    const context = this.makeContext();
+    context.hydrating = true;
+    try {
+      applyBindings(this.root, roots, scope, context, bag);
+    } catch (error) {
+      bag.dispose();
+      reportMismatch(
+        `Hydration structure mismatch; remounting the template. ${error instanceof Error ? error.message : String(error)}`,
+      );
+      container.replaceChildren();
+      return this.mount(container, viewModel);
+    }
     bag.add(() => roots.forEach((node) => node.remove()));
     return { dispose: () => bag.dispose() };
   }

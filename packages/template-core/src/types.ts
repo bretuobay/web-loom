@@ -115,6 +115,8 @@ export interface RenderContext {
   diagnostics?: Required<TemplateDiagnostics>;
   partialDepth?: number;
   partialStack?: string[];
+  /** True only during the first browser binding pass over SSR-created nodes. */
+  hydrating?: boolean;
 }
 
 /** An object with a `dispose(): void` method — the `mvvm-core` cleanup convention. */

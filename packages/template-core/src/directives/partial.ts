@@ -1,5 +1,5 @@
 import { effect } from '@web-loom/signals-core';
-import { instantiate } from '../runtime/bindings.js';
+import { getExistingNodes, instantiate, applyBindings } from '../runtime/bindings.js';
 import { compile, getTemplateRoot } from '../runtime/renderer.js';
 import { evaluate } from '../runtime/evaluate.js';
 import { DisposalBag } from '../runtime/disposal.js';
@@ -14,6 +14,7 @@ export function bindPartial(
 ): void {
   let child: DisposalBag | null = null,
     nodes: ChildNode[] = [];
+  let hydrateNext = ctx.hydrating === true;
   const handle = effect(() => {
     const source = ctx.partials?.[block.name] ?? ctx.registry?.get(block.name);
     if (!source) {
@@ -49,9 +50,17 @@ export function bindPartial(
     ctx.partialDepth = (ctx.partialDepth ?? 0) + 1;
     partialStack.push(block.name);
     try {
-      const x = instantiate(getTemplateRoot(template), partialScope, ctx, child);
-      nodes = x.roots;
-      anchor.after(x.fragment);
+      const root = getTemplateRoot(template);
+      const existing = hydrateNext ? getExistingNodes(anchor, root.blueprint.childNodes.length) : [];
+      hydrateNext = false;
+      if (existing.length === root.blueprint.childNodes.length) {
+        applyBindings(root, existing, partialScope, ctx, child);
+        nodes = existing;
+      } else {
+        const x = instantiate(root, partialScope, ctx, child);
+        nodes = x.roots;
+        anchor.after(x.fragment);
+      }
     } finally {
       partialStack.pop();
       ctx.partialDepth!--;

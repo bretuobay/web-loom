@@ -1,6 +1,6 @@
 import { signal, computed, effect, batch, type WritableSignal } from '@web-loom/signals-core';
 import { evaluate } from '../runtime/evaluate.js';
-import { instantiate, applyBindings } from '../runtime/bindings.js';
+import { getExistingItemNodes, getExistingNodes, instantiate, applyBindings } from '../runtime/bindings.js';
 import { DisposalBag } from '../runtime/disposal.js';
 import type { BlockRecord, RenderContext, Scope } from '../types.js';
 
@@ -13,6 +13,7 @@ interface ItemInstance {
   /** Set only until this instance's first insertion — see {@link instantiate}'s doc. */
   fragment: DocumentFragment | null;
   bag: DisposalBag;
+  hydrated: boolean;
 }
 
 /**
@@ -38,13 +39,15 @@ export function bindEach(
   const lengthSignal = signal(0);
   let emptyBag: DisposalBag | null = null;
   let emptyNodes: ChildNode[] = [];
+  let hydrateNext = ctx.hydrating === true;
+  let hydrationCursor: ChildNode | null = anchor;
 
   function keyOf(item: unknown, index: number): unknown {
     const itemScope: Scope = { parent: scope, self: item, locals: { '@index': index } };
     return evaluate(block.key, itemScope, ctx.helpers);
   }
 
-  function createInstance(item: unknown, key: unknown, index: number): ItemInstance {
+  function createInstance(item: unknown, key: unknown, index: number, existing: ChildNode[] = []): ItemInstance {
     const indexSignal = signal(index);
     const itemBag = bag.createChild();
     const itemScope: Scope = {
@@ -58,8 +61,21 @@ export function bindEach(
         '@odd': computed(() => indexSignal.get() % 2 !== 0),
       },
     };
+    if (existing.length >= block.template.blueprint.childNodes.length) {
+      applyBindings(block.template, existing, itemScope, ctx, itemBag);
+      return {
+        key,
+        itemRef: item,
+        scope: itemScope,
+        indexSignal,
+        nodes: existing,
+        fragment: null,
+        bag: itemBag,
+        hydrated: true,
+      };
+    }
     const { roots, fragment } = instantiate(block.template, itemScope, ctx, itemBag);
-    return { key, itemRef: item, scope: itemScope, indexSignal, nodes: roots, fragment, bag: itemBag };
+    return { key, itemRef: item, scope: itemScope, indexSignal, nodes: roots, fragment, bag: itemBag, hydrated: false };
   }
 
   function reconcile(items: unknown[]): void {
@@ -86,7 +102,13 @@ export function bindEach(
       let inst = instances.get(key);
 
       if (!inst) {
-        inst = createInstance(item, key, i);
+        const rootCount = block.template.blueprint.childNodes.length;
+        const delimited = hydrateNext && hydrationCursor ? getExistingItemNodes(hydrationCursor) : null;
+        const existing =
+          delimited?.nodes ?? (hydrateNext && hydrationCursor ? getExistingNodes(hydrationCursor, rootCount) : []);
+        if (delimited) hydrationCursor = delimited.cursor;
+        else if (existing.length > 0) hydrationCursor = existing[existing.length - 1]!;
+        inst = createInstance(item, key, i, existing);
         instances.set(key, inst);
       } else {
         if (inst.itemRef !== item) {
@@ -101,6 +123,11 @@ export function bindEach(
       }
 
       if (inst.nodes.length > 0) {
+        if (inst.hydrated) {
+          inst.hydrated = false;
+          refNode = inst.nodes[inst.nodes.length - 1]!;
+          continue;
+        }
         if (inst.fragment) {
           // First insertion: move the whole fragment, not just `nodes` — it
           // may also carry siblings a top-level nested {{#if}}/{{#each}}
@@ -117,9 +144,15 @@ export function bindEach(
     if (items.length === 0 && block.empty) {
       if (!emptyBag) {
         emptyBag = bag.createChild();
-        const { roots, fragment } = instantiate(block.empty, scope, ctx, emptyBag);
-        emptyNodes = roots;
-        anchor.after(fragment);
+        const existing = hydrateNext ? getExistingNodes(anchor, block.empty.blueprint.childNodes.length) : [];
+        if (existing.length === block.empty.blueprint.childNodes.length) {
+          applyBindings(block.empty, existing, scope, ctx, emptyBag);
+          emptyNodes = existing;
+        } else {
+          const { roots, fragment } = instantiate(block.empty, scope, ctx, emptyBag);
+          emptyNodes = roots;
+          anchor.after(fragment);
+        }
       }
     } else if (emptyBag) {
       emptyBag.dispose();
@@ -135,6 +168,8 @@ export function bindEach(
     batch(() => {
       reconcile(items);
     });
+    hydrateNext = false;
+    hydrationCursor = null;
   });
 
   bag.add(() => {

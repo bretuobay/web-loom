@@ -59,6 +59,26 @@ describe('browser hydration', () => {
     view.dispose();
   });
 
+  it('hydrates an existing keyed list without replacing its item nodes', () => {
+    const items$ = signal([
+      { id: 1, name: 'Keyboard' },
+      { id: 2, name: 'Mouse' },
+    ]);
+    const template = compileBrowser('<ul>{{#each items$ key=id}}<li>{{ name }}</li>{{/each}}</ul>');
+    const container = document.createElement('div');
+    container.innerHTML = template.renderToString({ items$ });
+    const existingItems = Array.from(container.querySelectorAll('li'));
+    const view = template.hydrate(container, { items$ });
+
+    expect(Array.from(container.querySelectorAll('li'))).toEqual(existingItems);
+    items$.set([
+      { id: 1, name: 'Updated keyboard' },
+      { id: 2, name: 'Mouse' },
+    ]);
+    expect(container.querySelector('li')?.textContent).toBe('Updated keyboard');
+    view.dispose();
+  });
+
   it('warns and recovers when markup does not match', () => {
     const warn = vi.fn();
     const template = compileBrowser('<p>{{ value$ }}</p>', { diagnostics: { warn } });

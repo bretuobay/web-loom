@@ -1,6 +1,6 @@
 import { effect } from '@web-loom/signals-core';
 import { evaluate, truthy } from '../runtime/evaluate.js';
-import { instantiate } from '../runtime/bindings.js';
+import { getExistingNodes, instantiate, applyBindings } from '../runtime/bindings.js';
 import { DisposalBag } from '../runtime/disposal.js';
 import type { BlockRecord, RenderContext, Scope } from '../types.js';
 
@@ -24,6 +24,7 @@ export function bindIf(
   let activeIndex = -1;
   let activeBag: DisposalBag | null = null;
   let activeNodes: ChildNode[] = [];
+  let hydrateNext = ctx.hydrating === true;
 
   const handle = effect(() => {
     const idx = block.branches.findIndex(
@@ -44,9 +45,16 @@ export function bindIf(
 
     const branch = block.branches[idx]!;
     const childBag = bag.createChild();
-    const { roots, fragment } = instantiate(branch.template, scope, ctx, childBag);
-    activeNodes = roots;
-    anchor.after(fragment);
+    const existing = hydrateNext ? getExistingNodes(anchor, branch.template.blueprint.childNodes.length) : [];
+    hydrateNext = false;
+    if (existing.length === branch.template.blueprint.childNodes.length) {
+      applyBindings(branch.template, existing, scope, ctx, childBag);
+      activeNodes = existing;
+    } else {
+      const { roots, fragment } = instantiate(branch.template, scope, ctx, childBag);
+      activeNodes = roots;
+      anchor.after(fragment);
+    }
     activeBag = childBag;
   });
 

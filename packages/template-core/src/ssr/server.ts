@@ -194,18 +194,19 @@ function renderBlock(
       html:
         anchor +
         list
-          .map((item, index) =>
-            renderNodes(
-              nodes.slice(start + 1, emptyIndex ?? close.end),
-              scopeFor(scope, item, {
-                '@index': index,
-                '@first': index === 0,
-                '@last': index === list.length - 1,
-                '@even': index % 2 === 0,
-                '@odd': index % 2 !== 0,
-              }),
-              ctx,
-            ),
+          .map(
+            (item, index) =>
+              `<!--loom:item-->${renderNodes(
+                nodes.slice(start + 1, emptyIndex ?? close.end),
+                scopeFor(scope, item, {
+                  '@index': index,
+                  '@first': index === 0,
+                  '@last': index === list.length - 1,
+                  '@even': index % 2 === 0,
+                  '@odd': index % 2 !== 0,
+                }),
+                ctx,
+              )}<!--loom:item-end-->`,
           )
           .join(''),
       next: close.end + 1,
