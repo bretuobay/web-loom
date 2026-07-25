@@ -23,7 +23,58 @@ export type BindingRecord =
   | { kind: 'prop-or-attr'; path: NodePath; name: string; expr: ExpressionNode }
   | { kind: 'class'; path: NodePath; name: string; expr: ExpressionNode }
   | { kind: 'style'; path: NodePath; prop: string; expr: ExpressionNode }
-  | { kind: 'event'; path: NodePath; event: string; handler: ExpressionNode };
+  | { kind: 'event'; path: NodePath; event: string; handler: ExpressionNode; modifiers?: EventModifier[] }
+  | {
+      kind: 'bind';
+      path: NodePath;
+      name: 'value' | 'checked';
+      target: ExpressionNode;
+      setter?: ExpressionNode;
+    }
+  | { kind: 'action'; path: NodePath; expr: ExpressionNode };
+
+export type EventModifier = 'prevent' | 'stop' | 'once' | 'capture' | 'passive' | 'enter' | 'escape';
+
+export type PartialSource = string | Template;
+
+export interface TemplateRegistry {
+  get(name: string): PartialSource | undefined;
+  set(name: string, source: PartialSource): void;
+  delete(name: string): void;
+  has(name: string): boolean;
+}
+
+export type DiagnosticSeverity = 'warning' | 'error';
+
+export interface TemplateDiagnostic {
+  code: string;
+  severity: DiagnosticSeverity;
+  message: string;
+  template?: string;
+  sourcePath?: string;
+  line?: number;
+  column?: number;
+  expression?: string;
+  nodePath?: NodePath;
+  details?: unknown;
+}
+
+export interface SourceLocation {
+  line: number;
+  column: number;
+  offset?: number;
+}
+
+export interface TemplateDiagnostics {
+  report?(diagnostic: TemplateDiagnostic): void;
+  warn?(message: string, details?: unknown): void;
+  error?(message: string, details?: unknown): void;
+}
+
+export interface ElementAction {
+  update?(): void;
+  dispose?(): void;
+}
 
 export interface IfBranch {
   condition: ExpressionNode | null;
@@ -39,7 +90,14 @@ export type BlockRecord =
       key: ExpressionNode;
       template: RootTemplate;
       empty?: RootTemplate;
-    };
+    }
+  | { kind: 'switch'; path: NodePath; source: ExpressionNode; branches: SwitchBranch[] }
+  | { kind: 'partial'; path: NodePath; name: string; context: ExpressionNode | null };
+
+export interface SwitchBranch {
+  value: ExpressionNode | null;
+  template: RootTemplate;
+}
 
 export interface RootTemplate {
   blueprint: DocumentFragment;
@@ -58,11 +116,35 @@ export interface TemplateOptions {
   escape?: boolean;
   /** Named functions resolvable from call-form expressions (`{{ formatDate(createdAt$) }}`). */
   helpers?: Record<string, (...args: unknown[]) => unknown>;
+  /** Named templates available to `{{> name}}` (local entries override globals). */
+  partials?: Record<string, PartialSource>;
+  /** Scoped partial registry used after local `partials` and before the global registry. */
+  registry?: TemplateRegistry;
+  /** Optional name included in diagnostics and runtime errors. */
+  name?: string;
+  /** Optional source path included in compiler and runtime diagnostics. */
+  sourcePath?: string;
+  sourceMap?: Record<string, SourceLocation>;
+  /** Throw instead of warning when a partial cannot be resolved. */
+  strictPartials?: boolean;
+  diagnostics?: TemplateDiagnostics;
 }
 
 export interface RenderContext {
   helpers: Record<string, (...args: unknown[]) => unknown>;
   escape: boolean;
+  partials?: Record<string, PartialSource>;
+  registry?: TemplateRegistry;
+  templateName?: string;
+  strictPartials?: boolean;
+  diagnostics?: TemplateDiagnostics;
+  sourcePath?: string;
+  sourceMap?: Record<string, SourceLocation>;
+  reportDiagnostic?: (diagnostic: TemplateDiagnostic) => void;
+  partialDepth?: number;
+  partialStack?: string[];
+  /** True only during the first browser binding pass over SSR-created nodes. */
+  hydrating?: boolean;
 }
 
 /** An object with a `dispose(): void` method — the `mvvm-core` cleanup convention. */
@@ -76,4 +158,70 @@ export interface Template<TVm extends object = object> {
   mount(container: Element, viewModel: TVm): Disposable;
   /** Builds a detached, already-reactive fragment for callers that manage insertion themselves. */
   render(viewModel: TVm): { node: DocumentFragment; dispose(): void };
+  /** Attaches bindings to matching SSR markup, recovering by remounting on mismatch. */
+  hydrate(container: Element, viewModel: TVm): Disposable;
+  /** Serializes the template using the browser renderer when available. */
+  renderToString(viewModel: TVm): string;
+}
+
+export interface TemplateOutlet extends Disposable {
+  show<TVm extends object>(template: Template<TVm>, viewModel: TVm): Disposable;
+  clear(): void;
+}
+
+export interface SerializableTemplatePlan {
+  version: 2;
+  source: string;
+  preprocessed: string;
+  name?: string;
+  sourcePath?: string;
+  sourceMap?: Record<string, SourceLocation>;
+  root?: SerializableRootTemplate;
+}
+
+export interface SerializableNode {
+  kind: 'element' | 'text' | 'comment' | 'doctype';
+  name?: string;
+  namespace?: string | null;
+  value?: string;
+  attributes?: Array<{ name: string; value: string }>;
+  children?: SerializableNode[];
+}
+
+export interface SerializableRootTemplate {
+  nodes: SerializableNode[];
+  bindings: BindingRecord[];
+  blocks: SerializableBlockRecord[];
+  compiled?: boolean;
+}
+
+export type SerializableBlockRecord =
+  | {
+      kind: 'if';
+      path: NodePath;
+      branches: Array<{ condition: ExpressionNode | null; template: SerializableRootTemplate }>;
+    }
+  | {
+      kind: 'each';
+      path: NodePath;
+      source: ExpressionNode;
+      key: ExpressionNode;
+      template: SerializableRootTemplate;
+      empty?: SerializableRootTemplate;
+    }
+  | {
+      kind: 'switch';
+      path: NodePath;
+      source: ExpressionNode;
+      branches: Array<{ value: ExpressionNode | null; template: SerializableRootTemplate }>;
+    }
+  | { kind: 'partial'; path: NodePath; name: string; context: ExpressionNode | null };
+
+export interface PrecompileOptions {
+  name?: string;
+  sourcePath?: string;
+}
+
+export interface PrecompiledTemplateModule {
+  plan: SerializableTemplatePlan;
 }

@@ -98,7 +98,9 @@ describe('MVVM integration: zero-bridge-code mount', () => {
     await pending.catch(() => {}); // Command surfaces the rejection; the ViewModel's error$ is what we assert on
 
     // {{ error$ }} stringifies via String(value) — Error.prototype.toString() prefixes "Error: ".
-    expect(container.querySelector('.status.error')?.textContent).toBe('Error: Network error: 500 Internal Server Error');
+    expect(container.querySelector('.status.error')?.textContent).toBe(
+      'Error: Network error: 500 Internal Server Error',
+    );
     expect(container.querySelector('ul')).toBeNull();
 
     view.dispose();

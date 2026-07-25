@@ -16,7 +16,13 @@ describe('bindEvent: bare-path form', () => {
     const el = document.createElement('button');
     const bag = new DisposalBag();
 
-    bindEvent({ kind: 'event', path: [0], event: 'click', handler: parseExpression('increment') }, el, scope, ctx(), bag);
+    bindEvent(
+      { kind: 'event', path: [0], event: 'click', handler: parseExpression('increment') },
+      el,
+      scope,
+      ctx(),
+      bag,
+    );
     const evt = new Event('click');
     el.dispatchEvent(evt);
     expect(handler).toHaveBeenCalledExactlyOnceWith(evt);
@@ -76,7 +82,13 @@ describe('bindEvent: bare-path form', () => {
     };
     const el = document.createElement('button');
     const bag = new DisposalBag();
-    bindEvent({ kind: 'event', path: [0], event: 'click', handler: parseExpression('increment') }, el, scope, ctx(), bag);
+    bindEvent(
+      { kind: 'event', path: [0], event: 'click', handler: parseExpression('increment') },
+      el,
+      scope,
+      ctx(),
+      bag,
+    );
     el.dispatchEvent(new Event('click'));
     expect(handler).toHaveBeenCalledOnce();
     bag.dispose();
@@ -87,7 +99,13 @@ describe('bindEvent: bare-path form', () => {
     const scope: Scope = { parent: null, self: { increment: handler }, locals: {} };
     const el = document.createElement('button');
     const bag = new DisposalBag();
-    bindEvent({ kind: 'event', path: [0], event: 'click', handler: parseExpression('increment') }, el, scope, ctx(), bag);
+    bindEvent(
+      { kind: 'event', path: [0], event: 'click', handler: parseExpression('increment') },
+      el,
+      scope,
+      ctx(),
+      bag,
+    );
     bag.dispose();
     el.dispatchEvent(new Event('click'));
     expect(handler).not.toHaveBeenCalled();
@@ -130,7 +148,13 @@ describe('bindEvent: call form', () => {
     };
     const el = document.createElement('button');
     const bag = new DisposalBag();
-    bindEvent({ kind: 'event', path: [0], event: 'click', handler: parseExpression('log($event)') }, el, scope, ctx(), bag);
+    bindEvent(
+      { kind: 'event', path: [0], event: 'click', handler: parseExpression('log($event)') },
+      el,
+      scope,
+      ctx(),
+      bag,
+    );
     el.dispatchEvent(new Event('click'));
     expect(capturedType).toBe('click');
     bag.dispose();

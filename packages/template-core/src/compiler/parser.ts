@@ -29,7 +29,20 @@ const SVG_TAGS = new Set([
   'image',
 ]);
 
-type MarkerType = 'open-if' | 'open-each' | 'else' | 'else-if' | 'close-if' | 'close-each';
+type MarkerType =
+  | 'open-if'
+  | 'open-each'
+  | 'open-switch'
+  | 'open-case'
+  | 'open-default'
+  | 'partial'
+  | 'else'
+  | 'else-if'
+  | 'close-if'
+  | 'close-each'
+  | 'close-switch'
+  | 'close-case'
+  | 'close-default';
 
 interface Marker {
   type: MarkerType;
@@ -43,10 +56,17 @@ function parseMarker(node: Node): Marker | null {
   const body = data.slice(5);
   if (body.startsWith('#if ')) return { type: 'open-if', raw: decodeURIComponent(body.slice(4)) };
   if (body.startsWith('#each ')) return { type: 'open-each', raw: decodeURIComponent(body.slice(6)) };
+  if (body.startsWith('#switch ')) return { type: 'open-switch', raw: decodeURIComponent(body.slice(8)) };
+  if (body.startsWith('#case ')) return { type: 'open-case', raw: decodeURIComponent(body.slice(6)) };
+  if (body === '#default') return { type: 'open-default', raw: '' };
+  if (body.startsWith('partial ')) return { type: 'partial', raw: decodeURIComponent(body.slice(8)) };
   if (body === 'else') return { type: 'else', raw: '' };
   if (body.startsWith('else-if ')) return { type: 'else-if', raw: decodeURIComponent(body.slice(8)) };
   if (body === '/if') return { type: 'close-if', raw: '' };
   if (body === '/each') return { type: 'close-each', raw: '' };
+  if (body === '/switch') return { type: 'close-switch', raw: '' };
+  if (body === '/case') return { type: 'close-case', raw: '' };
+  if (body === '/default') return { type: 'close-default', raw: '' };
   return null;
 }
 
@@ -87,7 +107,7 @@ function detectRootTagName(source: string): string | null {
   return match ? match[1]!.toLowerCase() : null;
 }
 
-function compileFragment(children: ChildNode[]): RootTemplate {
+export function compileFragment(children: ChildNode[]): RootTemplate {
   const blueprint = document.createDocumentFragment();
   const bindings: BindingRecord[] = [];
   const blocks: BlockRecord[] = [];
@@ -108,7 +128,18 @@ function compileInto(
     const marker = parseMarker(node);
 
     if (marker) {
-      if (marker.type === 'open-if' || marker.type === 'open-each') {
+      if (marker.type === 'partial') {
+        const currentPath = [...path, target.childNodes.length];
+        target.appendChild(document.createComment('loom:anchor'));
+        const bits = marker.raw.trim().split(/\s+/);
+        const name = bits.shift() ?? '';
+        if (!name || bits.length > 1)
+          throw new TemplateSyntaxError(`Malformed partial "${marker.raw}"; expected {{> name [context]}}.`);
+        blocks.push({ kind: 'partial', path: currentPath, name, context: bits[0] ? parseExpression(bits[0]) : null });
+        i++;
+        continue;
+      }
+      if (marker.type === 'open-if' || marker.type === 'open-each' || marker.type === 'open-switch') {
         const currentPath = [...path, target.childNodes.length];
         const { block, nextIndex } = extractBlock(sourceChildren, i, currentPath);
         const anchor = document.createComment('loom:anchor');
@@ -164,8 +195,8 @@ interface ScanResult {
   elseMarkers: Array<{ index: number; type: 'else' | 'else-if'; raw: string }>;
 }
 
-function scanBlock(children: ChildNode[], start: number, openType: 'if' | 'each'): ScanResult {
-  const stack: Array<'if' | 'each'> = [openType];
+function scanBlock(children: ChildNode[], start: number, openType: 'if' | 'each' | 'switch'): ScanResult {
+  const stack: Array<string> = [openType];
   const elseMarkers: ScanResult['elseMarkers'] = [];
 
   for (let i = start + 1; i < children.length; i++) {
@@ -176,8 +207,29 @@ function scanBlock(children: ChildNode[], start: number, openType: 'if' | 'each'
       stack.push('if');
     } else if (marker.type === 'open-each') {
       stack.push('each');
-    } else if (marker.type === 'close-if' || marker.type === 'close-each') {
-      const closingType = marker.type === 'close-if' ? 'if' : 'each';
+    } else if (marker.type === 'open-switch') {
+      stack.push('switch');
+    } else if (marker.type === 'open-case' || marker.type === 'open-default') {
+      if (openType !== 'switch' || stack[stack.length - 1] !== 'switch')
+        throw new TemplateSyntaxError('case/default markers are only valid directly inside switch.');
+      stack.push(marker.type === 'open-case' ? 'case' : 'default');
+    } else if (
+      marker.type === 'close-if' ||
+      marker.type === 'close-each' ||
+      marker.type === 'close-switch' ||
+      marker.type === 'close-case' ||
+      marker.type === 'close-default'
+    ) {
+      const closingType =
+        marker.type === 'close-if'
+          ? 'if'
+          : marker.type === 'close-each'
+            ? 'each'
+            : marker.type === 'close-switch'
+              ? 'switch'
+              : marker.type === 'close-case'
+                ? 'case'
+                : 'default';
       const top = stack[stack.length - 1];
       if (top !== closingType) {
         throw new TemplateSyntaxError(`Mismatched closing tag: expected {{/${top}}} but found {{/${closingType}}}`);
@@ -205,13 +257,9 @@ function scanBlock(children: ChildNode[], start: number, openType: 'if' | 'each'
   throw new TemplateSyntaxError(`Unclosed {{#${openType}}} block`);
 }
 
-function extractBlock(
-  children: ChildNode[],
-  start: number,
-  path: NodePath,
-): { block: BlockRecord; nextIndex: number } {
+function extractBlock(children: ChildNode[], start: number, path: NodePath): { block: BlockRecord; nextIndex: number } {
   const openMarker = parseMarker(children[start]!)!;
-  const openType = openMarker.type === 'open-if' ? 'if' : 'each';
+  const openType = openMarker.type === 'open-if' ? 'if' : openMarker.type === 'open-each' ? 'each' : 'switch';
   const { end, elseMarkers } = scanBlock(children, start, openType);
 
   if (openType === 'if') {
@@ -231,6 +279,34 @@ function extractBlock(
       template: compileFragment(children.slice(segStart, end)),
     });
     return { block: { kind: 'if', path, branches }, nextIndex: end + 1 };
+  }
+
+  if (openType === 'switch') {
+    const branches: { value: ExpressionNode | null; template: RootTemplate }[] = [];
+    let i = start + 1;
+    while (i < end) {
+      const m = parseMarker(children[i]!);
+      if (!m || (m.type !== 'open-case' && m.type !== 'open-default'))
+        throw new TemplateSyntaxError('{{#switch}} may contain only {{#case}} and {{#default}} branches.');
+      const close = m.type === 'open-case' ? 'close-case' : 'close-default';
+      let depth = 1;
+      let j = i + 1;
+      for (; j < end; j++) {
+        const x = parseMarker(children[j]!);
+        if (x?.type === m.type) depth++;
+        if (x?.type === close && --depth === 0) break;
+      }
+      if (j >= end)
+        throw new TemplateSyntaxError(`Unclosed ${m.type === 'open-case' ? '{{#case}}' : '{{#default}}'} block.`);
+      branches.push({
+        value: m.type === 'open-case' ? parseExpression(m.raw) : null,
+        template: compileFragment(children.slice(i + 1, j)),
+      });
+      i = j + 1;
+    }
+    if (!branches.length || branches.filter((b) => b.value === null).length > 1)
+      throw new TemplateSyntaxError('{{#switch}} requires branches and at most one {{#default}}.');
+    return { block: { kind: 'switch', path, source: parseExpression(openMarker.raw), branches }, nextIndex: end + 1 };
   }
 
   if (elseMarkers.length > 1) {

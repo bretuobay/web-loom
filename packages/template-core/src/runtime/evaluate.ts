@@ -50,6 +50,27 @@ export function resolveScopeValue(segments: string[], parentHops: number, scope:
   return { value: current, owner };
 }
 
+/** Resolves a path without unwrapping its final value; used by write bindings. */
+export function resolveWritableTarget(segments: string[], parentHops: number, scope: Scope): unknown {
+  let s: Scope | null = scope;
+  for (let i = 0; i < parentHops; i++) s = s?.parent ?? null;
+  if (!s || !segments.length) return undefined;
+  const head = segments[0]!;
+  let current: unknown =
+    head === 'this'
+      ? s.self
+      : head in s.locals
+        ? s.locals[head]
+        : s.self && typeof s.self === 'object'
+          ? (s.self as Record<string, unknown>)[head]
+          : undefined;
+  for (const seg of segments.slice(1)) {
+    if (current == null) return undefined;
+    current = (current as Record<string, unknown>)[seg];
+  }
+  return current;
+}
+
 /**
  * Resolves a single-segment name by walking *up* the Scope Chain (current
  * scope's `self`/`locals`, then each ancestor's) until it's found. Used only
@@ -82,7 +103,11 @@ export function truthy(value: unknown): boolean {
  * `effect()` for reactive bindings — every Signal read via
  * `resolveScopeValue` is auto-tracked by signals-core.
  */
-export function evaluate(node: ExpressionNode, scope: Scope, helpers: Record<string, (...args: unknown[]) => unknown>): unknown {
+export function evaluate(
+  node: ExpressionNode,
+  scope: Scope,
+  helpers: Record<string, (...args: unknown[]) => unknown>,
+): unknown {
   switch (node.kind) {
     case 'literal':
       return node.value;

@@ -28,7 +28,9 @@ describe('surgical updates: only the changed binding mutates the DOM', () => {
     const a$ = signal('a0');
     const b$ = signal('b0');
     const c$ = signal('c0');
-    const template = compile('<div><span id="a">{{ a$ }}</span><span id="b">{{ b$ }}</span><span id="c">{{ c$ }}</span></div>');
+    const template = compile(
+      '<div><span id="a">{{ a$ }}</span><span id="b">{{ b$ }}</span><span id="c">{{ c$ }}</span></div>',
+    );
     const container = document.createElement('div');
     const view = template.mount(container, { a$, b$, c$ });
 
@@ -88,7 +90,9 @@ describe('surgical updates: only the changed binding mutates the DOM', () => {
 
 describe('performance smoke test (generous, environment-tolerant — not the PRD §10 target itself)', () => {
   it('renders a 1,000-row keyed table well within a generous CI/jsdom budget', () => {
-    const template = compile('<table><tbody>{{#each rows$ key=id}}<tr><td>{{ id }}</td><td>{{ label }}</td></tr>{{/each}}</tbody></table>');
+    const template = compile(
+      '<table><tbody>{{#each rows$ key=id}}<tr><td>{{ id }}</td><td>{{ label }}</td></tr>{{/each}}</tbody></table>',
+    );
     const rows$ = signal(Array.from({ length: 1000 }, (_, i) => ({ id: i, label: `row ${i}` })));
     const container = document.createElement('div');
 

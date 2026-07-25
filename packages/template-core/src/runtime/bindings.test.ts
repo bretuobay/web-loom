@@ -44,9 +44,7 @@ describe('instantiate + applyBindings: end-to-end binding wiring', () => {
       isActive$,
       increment: () => count$.set(count$.peek() + 1),
     };
-    const root = parseTemplate(
-      '<button on:click="increment" class:active="isActive$">Count: {{ count$ }}</button>',
-    );
+    const root = parseTemplate('<button on:click="increment" class:active="isActive$">Count: {{ count$ }}</button>');
     const scope: Scope = { parent: null, self: vm, locals: {} };
     const bag = new DisposalBag();
 

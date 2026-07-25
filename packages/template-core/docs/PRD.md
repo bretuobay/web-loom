@@ -2,7 +2,7 @@
 
 ## `@web-loom/template-core` — Web Loom's native signal-driven template engine
 
-**Status:** Draft v1.0 (synthesized)
+**Status:** Phase 3 / v1.1 implemented; Phase 4 P0 implemented
 **Supersedes:** `docs/research/{chatgpt,deepseek,mistral,perplexity}-prd.md` (kept for provenance)
 **Depends on:** `@web-loom/signals-core`
 
@@ -43,8 +43,8 @@ service of proving that a `signals-core` ViewModel is genuinely render-target-ag
 3. Familiar syntax: Mustache/Handlebars-inspired, readable by anyone who has used either.
 4. Fine-grained updates: a signal change touches only the DOM nodes/attributes that read it.
 5. Small and dependency-free beyond `signals-core` (peer/runtime dependency only).
-6. No compiler/build step required (runtime parsing is acceptable for v1); precompilation is a later
-   optimization, not a v1 requirement.
+6. Runtime compilation remains available, while production builds may use a serializable render plan.
+7. Support DOM-free server rendering and recoverable browser hydration without introducing a VDOM.
 
 ## 3. Non-Goals
 
@@ -52,7 +52,7 @@ service of proving that a `signals-core` ViewModel is genuinely render-target-ag
 - Not a general-purpose templating library for non-Web-Loom projects.
 - Not a virtual DOM implementation.
 - Not a router, state manager, or CSS solution.
-- Not (in v1) a compiler with static analysis/precompilation — see Roadmap Phase 3.
+- The Phase 3 precompiler serializes a portable plan; deep static JavaScript type analysis is out of scope.
 - Two-way binding is not a separate reactive primitive (see §6.5) — it is sugar over explicit
   attribute + event bindings, keeping data flow traceable.
 - No `{{#await}}` block (present in the ChatGPT draft; deliberately cut, not overlooked):
@@ -340,7 +340,10 @@ view.dispose();
   detached, already-reactive DOM subtree for callers that manage insertion themselves. The
   `Disposable` is returned _alongside_ the node — a bare-`Node` return would leave the cleanup
   handle unreachable.
-- `Template.renderToString(viewModel: TVm): string` — Phase 3 (SSR), not required for v1.
+  - `Template.renderToString(viewModel: TVm): string` — browser serialization for hydration workflows.
+  - `Template.hydrate(container: Element, viewModel: TVm): Disposable` — attach or recover browser markup.
+  - `compile` from `@web-loom/template-core/ssr` — DOM-free server renderer using `parse5`.
+  - `precompile` from `@web-loom/template-core/compiler` — JSON-serializable render plan generation.
 
 ```ts
 interface TemplateOptions {
@@ -511,9 +514,13 @@ rendered with zero bridge code).
 (`on:keydown.enter`, `.prevent`, `.stop`, …), `use:` element actions (the `ui-core`/`charts-core`/
 `media-core` integration seam), partials (`{{> }}`), custom helpers.
 
-**Phase 3 — Production:** `renderToString` (SSR), hydration (reusing §8.1's comment anchors),
-precompilation/static analysis, dev-mode diagnostics (dependency inspection, unresolved-path and
-invalid-expression warnings), source maps for template debugging.
+**Phase 3 — Production (implemented):** `renderToString` (SSR), hydration (reusing §8.1's comment
+anchors), initial serializable precompilation, and development diagnostics.
+
+**Phase 4 P0 — Contract completion (implemented):** executable serialized node plans, Node-safe
+precompilation, structured diagnostic codes and source metadata, plan-version validation, and
+marker-aware region-scoped hydration recovery. Full static type analysis remains out of scope;
+Phase 4 P1/P2 cover production hardening and tooling.
 
 ## 12. Success Criteria
 

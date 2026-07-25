@@ -52,10 +52,7 @@ describe('bindIf: branch swap disposal and isolation', () => {
     const inner$ = signal('x');
     const clickSpy = vi.fn();
     const vm = { show$, inner$, onClick: clickSpy };
-    const { container } = mount(
-      '{{#if show$}}<button on:click="onClick">{{ inner$ }}</button>{{else}}gone{{/if}}',
-      vm,
-    );
+    const { container } = mount('{{#if show$}}<button on:click="onClick">{{ inner$ }}</button>{{else}}gone{{/if}}', vm);
     const button = container.querySelector('button')!;
     expect(button.textContent).toBe('x');
 

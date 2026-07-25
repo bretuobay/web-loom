@@ -3,18 +3,53 @@ import { bindAttrInterp, bindPropOrAttr } from '../directives/attributes.js';
 import { bindClass } from '../directives/classes.js';
 import { bindStyle } from '../directives/styles.js';
 import { bindEvent } from '../directives/events.js';
+import { bindInput } from '../directives/bind.js';
+import { bindAction } from '../directives/action.js';
 import { bindIf } from '../directives/if.js';
 import { bindEach } from '../directives/each.js';
+import { bindSwitch } from '../directives/switch.js';
+import { bindPartial } from '../directives/partial.js';
 import { DisposalBag } from './disposal.js';
 import type { NodePath, RenderContext, RootTemplate, Scope } from '../types.js';
 
 /** Resolves a NodePath (child-index address) against a persisted roots array. */
 export function getNodeAt(roots: ChildNode[], path: NodePath): Node {
-  let node: Node = roots[path[0]!]!;
+  const logicalChildren = (parent: ParentNode): ChildNode[] =>
+    Array.from(parent.childNodes).filter(
+      (child) => !(child.nodeType === Node.COMMENT_NODE && /^loom:item(?:-end)?$/.test((child as Comment).data)),
+    );
+  let node: Node = logicalChildren({ childNodes: roots } as unknown as ParentNode)[path[0]!]!;
   for (let i = 1; i < path.length; i++) {
-    node = node.childNodes[path[i]!]!;
+    node = logicalChildren(node as ParentNode)[path[i]!]!;
   }
   return node;
+}
+
+export function getExistingItemNodes(cursor: ChildNode): { nodes: ChildNode[]; cursor: ChildNode | null } | null {
+  let node = cursor.nextSibling;
+  while (node && !(node.nodeType === Node.COMMENT_NODE && (node as Comment).data === 'loom:item')) {
+    node = node.nextSibling;
+  }
+  if (!node) return null;
+  const start = node;
+  const nodes: ChildNode[] = [];
+  node = start.nextSibling;
+  while (node && !(node.nodeType === Node.COMMENT_NODE && (node as Comment).data === 'loom:item-end')) {
+    nodes.push(node);
+    node = node.nextSibling;
+  }
+  return node ? { nodes, cursor: node } : null;
+}
+
+/** Returns the existing top-level nodes immediately after a block anchor. */
+export function getExistingNodes(anchor: ChildNode, count: number): ChildNode[] {
+  const nodes: ChildNode[] = [];
+  let node = anchor.nextSibling;
+  while (node && nodes.length < count) {
+    nodes.push(node);
+    node = node.nextSibling;
+  }
+  return nodes;
 }
 
 export function cloneBlueprint(template: RootTemplate): DocumentFragment {
@@ -35,6 +70,7 @@ export function applyBindings(
   ctx: RenderContext,
   bag: DisposalBag,
 ): void {
+  assertTemplateShape(template, roots);
   for (const binding of template.bindings) {
     const node = getNodeAt(roots, binding.path);
     switch (binding.kind) {
@@ -59,6 +95,12 @@ export function applyBindings(
       case 'event':
         bindEvent(binding, node as Element, scope, ctx, bag);
         break;
+      case 'bind':
+        bindInput(binding, node as HTMLInputElement, scope, ctx, bag);
+        break;
+      case 'action':
+        bindAction(binding, node as Element, scope, ctx, bag);
+        break;
     }
   }
 
@@ -66,8 +108,37 @@ export function applyBindings(
     const anchor = getNodeAt(roots, block.path) as Comment;
     if (block.kind === 'if') {
       bindIf(block, anchor, scope, ctx, bag);
-    } else {
+    } else if (block.kind === 'each') {
       bindEach(block, anchor, scope, ctx, bag);
+    } else if (block.kind === 'switch') {
+      bindSwitch(block, anchor, scope, ctx, bag);
+    } else {
+      bindPartial(block, anchor, scope, ctx, bag);
+    }
+  }
+}
+
+/** Validates only the structural contract owned by this template region. */
+export function assertTemplateShape(template: RootTemplate, roots: ChildNode[]): void {
+  const expectedRoots = Array.from(template.blueprint.childNodes);
+  if (roots.length < expectedRoots.length || (template.blocks.length === 0 && roots.length !== expectedRoots.length)) {
+    throw new Error(`Expected ${expectedRoots.length} nodes but found ${roots.length}.`);
+  }
+  for (let index = 0; index < expectedRoots.length; index++) {
+    const expected = expectedRoots[index]!;
+    const actual = roots[index]!;
+    if (actual.nodeType !== expected.nodeType) throw new Error(`Node ${index} has an unexpected type.`);
+    if (actual.nodeType === Node.ELEMENT_NODE && (actual as Element).tagName !== (expected as Element).tagName) {
+      throw new Error(`Node ${index} expected <${(expected as Element).tagName.toLowerCase()}>.`);
+    }
+  }
+  for (const binding of template.bindings) {
+    const expected = getNodeAt(Array.from(template.blueprint.childNodes), binding.path);
+    const actual = getNodeAt(roots, binding.path);
+    if (actual.nodeType !== expected.nodeType)
+      throw new Error(`Binding at ${binding.path.join('.')} has an unexpected node type.`);
+    if (actual.nodeType === Node.ELEMENT_NODE && (actual as Element).tagName !== (expected as Element).tagName) {
+      throw new Error(`Binding at ${binding.path.join('.')} targets an unexpected element.`);
     }
   }
 }

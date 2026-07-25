@@ -5,12 +5,17 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     lib: {
-      entry: './src/index.ts',
+      entry: {
+        index: './src/index.ts',
+        compiler: './src/compiler/index.ts',
+        'compiler-node': './src/compiler/node.ts',
+        ssr: './src/ssr/index.ts',
+      },
       formats: ['es', 'cjs'],
-      fileName: (format) => `index.${format}.js`,
+      fileName: (format, entryName) => `${entryName}.${format}.js`,
     },
     rollupOptions: {
-      external: ['@web-loom/signals-core'],
+      external: ['@web-loom/signals-core', 'parse5'],
       output: {},
     },
   },

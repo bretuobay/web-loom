@@ -48,14 +48,17 @@ describe('compileAttributes: directive extraction', () => {
     ]);
   });
 
-  it('rejects event modifiers as not-yet-implemented', () => {
+  it('extracts event modifiers and rejects conflicts', () => {
     const e = el('<input on:keydown.enter="addTodo">');
-    expect(() => compileAttributes(e, [0])).toThrow(TemplateSyntaxError);
+    expect(compileAttributes(e, [0])[0]).toMatchObject({ kind: 'event', event: 'keydown', modifiers: ['enter'] });
+    expect(() => compileAttributes(el('<input on:scroll.passive.prevent="addTodo">'), [0])).toThrow(
+      TemplateSyntaxError,
+    );
   });
 
-  it('rejects use: and bind: as not-yet-implemented', () => {
-    expect(() => compileAttributes(el('<div use:tooltip="cfg"></div>'), [0])).toThrow(TemplateSyntaxError);
-    expect(() => compileAttributes(el('<input bind:value="name$">'), [0])).toThrow(TemplateSyntaxError);
+  it('extracts use: and bind:', () => {
+    expect(compileAttributes(el('<div use:tooltip="cfg"></div>'), [0])[0]).toMatchObject({ kind: 'action' });
+    expect(compileAttributes(el('<input bind:value="name$">'), [0])[0]).toMatchObject({ kind: 'bind', name: 'value' });
   });
 });
 
