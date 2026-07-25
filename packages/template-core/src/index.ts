@@ -1,4 +1,4 @@
-export { compile, registerPartial, unregisterPartial } from './runtime/renderer.js';
+export { compile, fromPrecompiled, registerPartial, unregisterPartial } from './runtime/renderer.js';
 export { createTemplateRegistry } from './runtime/registry.js';
 export { createTemplateOutlet } from './runtime/outlet.js';
 export { precompile } from './compiler/index.js';
@@ -8,10 +8,14 @@ export type {
   ElementAction,
   Template,
   TemplateDiagnostics,
+  TemplateDiagnostic,
+  SourceLocation,
   TemplateOptions,
   TemplateOutlet,
   TemplateRegistry,
   PrecompileOptions,
   PrecompiledTemplateModule,
   SerializableTemplatePlan,
+  SerializableRootTemplate,
+  SerializableNode,
 } from './types.js';

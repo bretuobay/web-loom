@@ -44,7 +44,29 @@ export interface TemplateRegistry {
   has(name: string): boolean;
 }
 
+export type DiagnosticSeverity = 'warning' | 'error';
+
+export interface TemplateDiagnostic {
+  code: string;
+  severity: DiagnosticSeverity;
+  message: string;
+  template?: string;
+  sourcePath?: string;
+  line?: number;
+  column?: number;
+  expression?: string;
+  nodePath?: NodePath;
+  details?: unknown;
+}
+
+export interface SourceLocation {
+  line: number;
+  column: number;
+  offset?: number;
+}
+
 export interface TemplateDiagnostics {
+  report?(diagnostic: TemplateDiagnostic): void;
   warn?(message: string, details?: unknown): void;
   error?(message: string, details?: unknown): void;
 }
@@ -100,6 +122,9 @@ export interface TemplateOptions {
   registry?: TemplateRegistry;
   /** Optional name included in diagnostics and runtime errors. */
   name?: string;
+  /** Optional source path included in compiler and runtime diagnostics. */
+  sourcePath?: string;
+  sourceMap?: Record<string, SourceLocation>;
   /** Throw instead of warning when a partial cannot be resolved. */
   strictPartials?: boolean;
   diagnostics?: TemplateDiagnostics;
@@ -112,7 +137,10 @@ export interface RenderContext {
   registry?: TemplateRegistry;
   templateName?: string;
   strictPartials?: boolean;
-  diagnostics?: Required<TemplateDiagnostics>;
+  diagnostics?: TemplateDiagnostics;
+  sourcePath?: string;
+  sourceMap?: Record<string, SourceLocation>;
+  reportDiagnostic?: (diagnostic: TemplateDiagnostic) => void;
   partialDepth?: number;
   partialStack?: string[];
   /** True only during the first browser binding pass over SSR-created nodes. */
@@ -142,12 +170,52 @@ export interface TemplateOutlet extends Disposable {
 }
 
 export interface SerializableTemplatePlan {
-  version: 1;
+  version: 2;
   source: string;
   preprocessed: string;
   name?: string;
   sourcePath?: string;
+  sourceMap?: Record<string, SourceLocation>;
+  root?: SerializableRootTemplate;
 }
+
+export interface SerializableNode {
+  kind: 'element' | 'text' | 'comment' | 'doctype';
+  name?: string;
+  namespace?: string | null;
+  value?: string;
+  attributes?: Array<{ name: string; value: string }>;
+  children?: SerializableNode[];
+}
+
+export interface SerializableRootTemplate {
+  nodes: SerializableNode[];
+  bindings: BindingRecord[];
+  blocks: SerializableBlockRecord[];
+  compiled?: boolean;
+}
+
+export type SerializableBlockRecord =
+  | {
+      kind: 'if';
+      path: NodePath;
+      branches: Array<{ condition: ExpressionNode | null; template: SerializableRootTemplate }>;
+    }
+  | {
+      kind: 'each';
+      path: NodePath;
+      source: ExpressionNode;
+      key: ExpressionNode;
+      template: SerializableRootTemplate;
+      empty?: SerializableRootTemplate;
+    }
+  | {
+      kind: 'switch';
+      path: NodePath;
+      source: ExpressionNode;
+      branches: Array<{ value: ExpressionNode | null; template: SerializableRootTemplate }>;
+    }
+  | { kind: 'partial'; path: NodePath; name: string; context: ExpressionNode | null };
 
 export interface PrecompileOptions {
   name?: string;

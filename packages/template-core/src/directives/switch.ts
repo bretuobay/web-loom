@@ -29,8 +29,16 @@ export function bindSwitch(
       const existing = hydrateNext ? getExistingNodes(anchor, template.blueprint.childNodes.length) : [];
       hydrateNext = false;
       if (existing.length === template.blueprint.childNodes.length) {
-        applyBindings(template, existing, scope, ctx, child);
-        nodes = existing;
+        try {
+          applyBindings(template, existing, scope, ctx, child);
+          nodes = existing;
+        } catch {
+          child.reset();
+          existing.forEach((node) => node.remove());
+          const x = instantiate(template, scope, ctx, child);
+          nodes = x.roots;
+          anchor.after(x.fragment);
+        }
       } else {
         const x = instantiate(template, scope, ctx, child);
         nodes = x.roots;

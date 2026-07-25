@@ -70,6 +70,7 @@ export function applyBindings(
   ctx: RenderContext,
   bag: DisposalBag,
 ): void {
+  assertTemplateShape(template, roots);
   for (const binding of template.bindings) {
     const node = getNodeAt(roots, binding.path);
     switch (binding.kind) {
@@ -113,6 +114,31 @@ export function applyBindings(
       bindSwitch(block, anchor, scope, ctx, bag);
     } else {
       bindPartial(block, anchor, scope, ctx, bag);
+    }
+  }
+}
+
+/** Validates only the structural contract owned by this template region. */
+export function assertTemplateShape(template: RootTemplate, roots: ChildNode[]): void {
+  const expectedRoots = Array.from(template.blueprint.childNodes);
+  if (roots.length < expectedRoots.length || (template.blocks.length === 0 && roots.length !== expectedRoots.length)) {
+    throw new Error(`Expected ${expectedRoots.length} nodes but found ${roots.length}.`);
+  }
+  for (let index = 0; index < expectedRoots.length; index++) {
+    const expected = expectedRoots[index]!;
+    const actual = roots[index]!;
+    if (actual.nodeType !== expected.nodeType) throw new Error(`Node ${index} has an unexpected type.`);
+    if (actual.nodeType === Node.ELEMENT_NODE && (actual as Element).tagName !== (expected as Element).tagName) {
+      throw new Error(`Node ${index} expected <${(expected as Element).tagName.toLowerCase()}>.`);
+    }
+  }
+  for (const binding of template.bindings) {
+    const expected = getNodeAt(Array.from(template.blueprint.childNodes), binding.path);
+    const actual = getNodeAt(roots, binding.path);
+    if (actual.nodeType !== expected.nodeType)
+      throw new Error(`Binding at ${binding.path.join('.')} has an unexpected node type.`);
+    if (actual.nodeType === Node.ELEMENT_NODE && (actual as Element).tagName !== (expected as Element).tagName) {
+      throw new Error(`Binding at ${binding.path.join('.')} targets an unexpected element.`);
     }
   }
 }

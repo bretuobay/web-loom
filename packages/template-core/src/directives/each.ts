@@ -62,17 +62,22 @@ export function bindEach(
       },
     };
     if (existing.length >= block.template.blueprint.childNodes.length) {
-      applyBindings(block.template, existing, itemScope, ctx, itemBag);
-      return {
-        key,
-        itemRef: item,
-        scope: itemScope,
-        indexSignal,
-        nodes: existing,
-        fragment: null,
-        bag: itemBag,
-        hydrated: true,
-      };
+      try {
+        applyBindings(block.template, existing, itemScope, ctx, itemBag);
+        return {
+          key,
+          itemRef: item,
+          scope: itemScope,
+          indexSignal,
+          nodes: existing,
+          fragment: null,
+          bag: itemBag,
+          hydrated: true,
+        };
+      } catch {
+        itemBag.reset();
+        existing.forEach((node) => node.remove());
+      }
     }
     const { roots, fragment } = instantiate(block.template, itemScope, ctx, itemBag);
     return { key, itemRef: item, scope: itemScope, indexSignal, nodes: roots, fragment, bag: itemBag, hydrated: false };
@@ -146,8 +151,16 @@ export function bindEach(
         emptyBag = bag.createChild();
         const existing = hydrateNext ? getExistingNodes(anchor, block.empty.blueprint.childNodes.length) : [];
         if (existing.length === block.empty.blueprint.childNodes.length) {
-          applyBindings(block.empty, existing, scope, ctx, emptyBag);
-          emptyNodes = existing;
+          try {
+            applyBindings(block.empty, existing, scope, ctx, emptyBag);
+            emptyNodes = existing;
+          } catch {
+            emptyBag.reset();
+            existing.forEach((node) => node.remove());
+            const { roots, fragment } = instantiate(block.empty, scope, ctx, emptyBag);
+            emptyNodes = roots;
+            anchor.after(fragment);
+          }
         } else {
           const { roots, fragment } = instantiate(block.empty, scope, ctx, emptyBag);
           emptyNodes = roots;

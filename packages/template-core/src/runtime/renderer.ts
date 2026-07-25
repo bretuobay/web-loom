@@ -2,6 +2,8 @@ import { parseTemplate } from '../compiler/parser.js';
 import { applyBindings, instantiate } from './bindings.js';
 import { DisposalBag } from './disposal.js';
 import { createTemplateRegistry } from './registry.js';
+import { deserializeRootTemplate } from '../compiler/plan.js';
+import { reportDiagnostic } from './diagnostics.js';
 import type {
   Disposable,
   RenderContext,
@@ -29,9 +31,12 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
       templateName: this.options.name,
       strictPartials: this.options.strictPartials ?? false,
       diagnostics: {
+        report: this.options.diagnostics?.report,
         warn: this.options.diagnostics?.warn ?? ((message) => console.warn(message)),
         error: this.options.diagnostics?.error ?? ((message) => console.error(message)),
       },
+      sourcePath: this.options.sourcePath,
+      sourceMap: this.options.sourceMap,
       partialDepth: 0,
       partialStack: [],
       hydrating: false,
@@ -69,16 +74,27 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
   }
 
   hydrate(container: Element, viewModel: TVm): Disposable {
-    const expected = this.renderToString(viewModel);
-    const reportMismatch = (message: string): void => {
-      (this.options.diagnostics?.warn ?? console.warn)(
-        `${this.options.name ? `[${this.options.name}] ` : ''}${message}`,
-        { kind: 'hydration-mismatch', template: this.options.name },
-      );
-    };
-    if (this.root.blocks.length === 0 && container.innerHTML !== expected) {
-      reportMismatch('Hydration markup mismatch; remounting the template.');
-      container.replaceChildren();
+    const existingRoots = Array.from(container.childNodes);
+    const expectedRoots = this.root.blueprint.childNodes;
+    const sameShape =
+      existingRoots.length === expectedRoots.length &&
+      existingRoots.every((node, index) => {
+        const expected = expectedRoots[index]!;
+        return (
+          node.nodeType === expected.nodeType &&
+          (node.nodeType !== Node.ELEMENT_NODE || (node as Element).tagName === (expected as Element).tagName)
+        );
+      });
+    if (!sameShape) {
+      reportDiagnostic(this.makeContext(), {
+        code: 'HYDRATION_ROOT_MISMATCH',
+        severity: 'warning',
+        message: 'Hydration markup mismatch; remounting the template. Rebuilding the root region only.',
+        template: this.options.name,
+        sourcePath: this.options.sourcePath,
+        details: { kind: 'hydration-mismatch' },
+      });
+      existingRoots.forEach((node) => node.remove());
       return this.mount(container, viewModel);
     }
     const bag = new DisposalBag();
@@ -90,10 +106,15 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
       applyBindings(this.root, roots, scope, context, bag);
     } catch (error) {
       bag.dispose();
-      reportMismatch(
-        `Hydration structure mismatch; remounting the template. ${error instanceof Error ? error.message : String(error)}`,
-      );
-      container.replaceChildren();
+      reportDiagnostic(context, {
+        code: 'HYDRATION_REGION_MISMATCH',
+        severity: 'warning',
+        message: `Hydration structure mismatch; rebuilding the template root region. ${error instanceof Error ? error.message : String(error)}`,
+        template: this.options.name,
+        sourcePath: this.options.sourcePath,
+        details: { kind: 'hydration-mismatch' },
+      });
+      roots.forEach((node) => node.remove());
       return this.mount(container, viewModel);
     }
     bag.add(() => roots.forEach((node) => node.remove()));
@@ -127,8 +148,62 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
  * `{{ }}` / `{{{ }}}`.
  */
 export function compile<TVm extends object = object>(source: string, options: TemplateOptions = {}): Template<TVm> {
-  const root = parseTemplate(source);
+  let root: RootTemplate;
+  try {
+    root = parseTemplate(source);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const position = /position (\d+)/.exec(message)?.[1];
+    const offset = position ? Number(position) : undefined;
+    const before = offset === undefined ? '' : source.slice(0, offset);
+    const diagnostic = {
+      code: message.includes('expression') ? 'INVALID_EXPRESSION' : 'INVALID_TEMPLATE',
+      severity: 'error' as const,
+      message,
+      template: options.name,
+      sourcePath: options.sourcePath,
+      ...(offset === undefined
+        ? {}
+        : { line: before.split('\n').length, column: offset - before.lastIndexOf('\n'), details: { offset } }),
+    };
+    options.diagnostics?.report?.(diagnostic);
+    options.diagnostics?.error?.(message, diagnostic);
+    throw error;
+  }
   return new TemplateImpl<TVm>(root, options);
+}
+
+export function fromPrecompiled<TVm extends object = object>(
+  module: {
+    plan: {
+      version: number;
+      root?: import('../types.js').SerializableRootTemplate;
+      name?: string;
+      source: string;
+      sourcePath?: string;
+      sourceMap?: Record<string, import('../types.js').SourceLocation>;
+    };
+  },
+  options: TemplateOptions = {},
+): Template<TVm> {
+  if (module.plan.version !== 2 || !module.plan.root) {
+    const message = 'Unsupported or incomplete precompiled template plan; regenerate it with template-core v1.2+.';
+    const diagnostic = {
+      code: 'PRECOMPILED_PLAN_VERSION',
+      severity: 'error' as const,
+      message,
+      template: options.name,
+    };
+    options.diagnostics?.report?.(diagnostic);
+    options.diagnostics?.error?.(message, diagnostic);
+    throw new Error(message);
+  }
+  return new TemplateImpl<TVm>(deserializeRootTemplate(module.plan.root), {
+    ...options,
+    name: options.name ?? module.plan.name,
+    sourcePath: options.sourcePath ?? module.plan.sourcePath,
+    sourceMap: options.sourceMap ?? module.plan.sourceMap,
+  });
 }
 
 export function getTemplateRoot(template: Template): RootTemplate {

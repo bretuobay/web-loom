@@ -3,6 +3,7 @@ import { getExistingNodes, instantiate, applyBindings } from '../runtime/binding
 import { compile, getTemplateRoot } from '../runtime/renderer.js';
 import { evaluate } from '../runtime/evaluate.js';
 import { DisposalBag } from '../runtime/disposal.js';
+import { reportDiagnostic } from '../runtime/diagnostics.js';
 import type { BlockRecord, RenderContext, Scope, Template } from '../types.js';
 const cache = new Map<string, Template>();
 export function bindPartial(
@@ -19,8 +20,16 @@ export function bindPartial(
     const source = ctx.partials?.[block.name] ?? ctx.registry?.get(block.name);
     if (!source) {
       const message = `${ctx.templateName ? `[${ctx.templateName}] ` : ''}Missing partial "${block.name}".`;
+      reportDiagnostic(ctx, {
+        code: 'MISSING_PARTIAL',
+        severity: ctx.strictPartials ? 'error' : 'warning',
+        message,
+        template: ctx.templateName,
+        sourcePath: ctx.sourcePath,
+        nodePath: block.path,
+        details: { partial: block.name },
+      });
       if (ctx.strictPartials) throw new Error(message);
-      (ctx.diagnostics?.warn ?? console.warn)(message, { partial: block.name, template: ctx.templateName });
       return;
     }
     let template: Template;
@@ -54,8 +63,16 @@ export function bindPartial(
       const existing = hydrateNext ? getExistingNodes(anchor, root.blueprint.childNodes.length) : [];
       hydrateNext = false;
       if (existing.length === root.blueprint.childNodes.length) {
-        applyBindings(root, existing, partialScope, ctx, child);
-        nodes = existing;
+        try {
+          applyBindings(root, existing, partialScope, ctx, child);
+          nodes = existing;
+        } catch {
+          child.reset();
+          existing.forEach((node) => node.remove());
+          const x = instantiate(root, partialScope, ctx, child);
+          nodes = x.roots;
+          anchor.after(x.fragment);
+        }
       } else {
         const x = instantiate(root, partialScope, ctx, child);
         nodes = x.roots;

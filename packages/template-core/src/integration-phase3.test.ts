@@ -52,6 +52,42 @@ describe('integration APIs', () => {
     expect(() => mount(compile('{{> missing}}', { strictPartials: true }), {})).toThrow('Missing partial "missing".');
   });
 
+  it('emits structured diagnostics with template and source metadata', () => {
+    const report = vi.fn();
+    const template = compile('{{> missing}}', {
+      name: 'Catalog',
+      sourcePath: 'src/catalog.html',
+      diagnostics: { report },
+    });
+    const { view } = mount(template, {});
+    expect(report).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'MISSING_PARTIAL',
+        severity: 'warning',
+        template: 'Catalog',
+        sourcePath: 'src/catalog.html',
+        nodePath: [0],
+      }),
+    );
+    view.dispose();
+  });
+
+  it('reports invalid expressions with source coordinates before throwing', () => {
+    const report = vi.fn();
+    expect(() =>
+      compile('<p>{{ count + 1 }}</p>', { name: 'Counter', sourcePath: 'src/counter.html', diagnostics: { report } }),
+    ).toThrow();
+    expect(report).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'INVALID_EXPRESSION',
+        severity: 'error',
+        template: 'Counter',
+        sourcePath: 'src/counter.html',
+        line: 1,
+      }),
+    );
+  });
+
   it('uses bind:set for plain form snapshots', () => {
     const updates: string[] = [];
     const template = compile('<input bind:value="form.email" bind:set="setEmail">');

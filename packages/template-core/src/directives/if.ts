@@ -48,8 +48,16 @@ export function bindIf(
     const existing = hydrateNext ? getExistingNodes(anchor, branch.template.blueprint.childNodes.length) : [];
     hydrateNext = false;
     if (existing.length === branch.template.blueprint.childNodes.length) {
-      applyBindings(branch.template, existing, scope, ctx, childBag);
-      activeNodes = existing;
+      try {
+        applyBindings(branch.template, existing, scope, ctx, childBag);
+        activeNodes = existing;
+      } catch {
+        childBag.reset();
+        existing.forEach((node) => node.remove());
+        const { roots, fragment } = instantiate(branch.template, scope, ctx, childBag);
+        activeNodes = roots;
+        anchor.after(fragment);
+      }
     } else {
       const { roots, fragment } = instantiate(branch.template, scope, ctx, childBag);
       activeNodes = roots;

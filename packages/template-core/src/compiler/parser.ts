@@ -107,7 +107,7 @@ function detectRootTagName(source: string): string | null {
   return match ? match[1]!.toLowerCase() : null;
 }
 
-function compileFragment(children: ChildNode[]): RootTemplate {
+export function compileFragment(children: ChildNode[]): RootTemplate {
   const blueprint = document.createDocumentFragment();
   const bindings: BindingRecord[] = [];
   const blocks: BlockRecord[] = [];
