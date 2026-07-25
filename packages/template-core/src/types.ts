@@ -23,7 +23,11 @@ export type BindingRecord =
   | { kind: 'prop-or-attr'; path: NodePath; name: string; expr: ExpressionNode }
   | { kind: 'class'; path: NodePath; name: string; expr: ExpressionNode }
   | { kind: 'style'; path: NodePath; prop: string; expr: ExpressionNode }
-  | { kind: 'event'; path: NodePath; event: string; handler: ExpressionNode };
+  | { kind: 'event'; path: NodePath; event: string; handler: ExpressionNode; modifiers?: EventModifier[] }
+  | { kind: 'bind'; path: NodePath; name: 'value' | 'checked'; target: ExpressionNode }
+  | { kind: 'action'; path: NodePath; expr: ExpressionNode };
+
+export type EventModifier = 'prevent' | 'stop' | 'once' | 'capture' | 'passive' | 'enter' | 'escape';
 
 export interface IfBranch {
   condition: ExpressionNode | null;
@@ -39,7 +43,14 @@ export type BlockRecord =
       key: ExpressionNode;
       template: RootTemplate;
       empty?: RootTemplate;
-    };
+    }
+  | { kind: 'switch'; path: NodePath; source: ExpressionNode; branches: SwitchBranch[] }
+  | { kind: 'partial'; path: NodePath; name: string; context: ExpressionNode | null };
+
+export interface SwitchBranch {
+  value: ExpressionNode | null;
+  template: RootTemplate;
+}
 
 export interface RootTemplate {
   blueprint: DocumentFragment;
@@ -58,11 +69,15 @@ export interface TemplateOptions {
   escape?: boolean;
   /** Named functions resolvable from call-form expressions (`{{ formatDate(createdAt$) }}`). */
   helpers?: Record<string, (...args: unknown[]) => unknown>;
+  /** Named templates available to `{{> name}}` (local entries override globals). */
+  partials?: Record<string, string | Template>;
 }
 
 export interface RenderContext {
   helpers: Record<string, (...args: unknown[]) => unknown>;
   escape: boolean;
+  partials?: Record<string, string | Template>;
+  partialDepth?: number;
 }
 
 /** An object with a `dispose(): void` method — the `mvvm-core` cleanup convention. */

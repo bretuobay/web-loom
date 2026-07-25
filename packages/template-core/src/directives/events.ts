@@ -27,6 +27,11 @@ export function bindEvent(
   bag: DisposalBag,
 ): void {
   const listener = (domEvent: Event) => {
+    const modifiers = record.modifiers ?? [];
+    if (modifiers.includes('enter') && (domEvent as KeyboardEvent).key !== 'Enter') return;
+    if (modifiers.includes('escape') && (domEvent as KeyboardEvent).key !== 'Escape') return;
+    if (modifiers.includes('prevent')) domEvent.preventDefault();
+    if (modifiers.includes('stop')) domEvent.stopPropagation();
     batch(() => {
       if (record.handler.kind === 'path') {
         const startScope = hopScope(scope, record.handler.parentHops);
@@ -48,6 +53,12 @@ export function bindEvent(
     });
   };
 
-  el.addEventListener(record.event, listener);
-  bag.add(() => el.removeEventListener(record.event, listener));
+  const modifiers = record.modifiers ?? [];
+  const options = {
+    once: modifiers.includes('once'),
+    capture: modifiers.includes('capture'),
+    passive: modifiers.includes('passive'),
+  };
+  el.addEventListener(record.event, listener, options);
+  bag.add(() => el.removeEventListener(record.event, listener, options));
 }

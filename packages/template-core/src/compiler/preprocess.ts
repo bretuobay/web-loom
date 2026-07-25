@@ -18,7 +18,9 @@
 // text tokenizer in the compile walk, not by this pre-pass.
 const COMMENT_RE = /\{\{!([^}]*)\}\}/g;
 
-const BLOCK_TAG_RE = /\{\{\s*(#if|#each|else if|else|\/if|\/each)\s*([^}]*)\}\}/g;
+const BLOCK_TAG_RE =
+  /\{\{\s*(#if|#each|#switch|#case|#default|else if|else|\/if|\/each|\/switch|\/case|\/default)\s*([^}]*)\}\}/g;
+const PARTIAL_RE = /\{\{\s*>\s*([^}]*)\}\}/g;
 
 function encode(raw: string): string {
   return encodeURIComponent(raw.trim());
@@ -39,12 +41,25 @@ export function preprocess(source: string): string {
         return `<!--loom:/if-->`;
       case '#each':
         return `<!--loom:#each ${encode(rest)}-->`;
+      case '#switch':
+        return `<!--loom:#switch ${encode(rest)}-->`;
+      case '#case':
+        return `<!--loom:#case ${encode(rest)}-->`;
+      case '#default':
+        return '<!--loom:#default-->';
       case '/each':
         return `<!--loom:/each-->`;
+      case '/switch':
+        return '<!--loom:/switch-->';
+      case '/case':
+        return '<!--loom:/case-->';
+      case '/default':
+        return '<!--loom:/default-->';
       default:
         return _match;
     }
   });
+  out = out.replace(PARTIAL_RE, (_match, raw: string) => `<!--loom:partial ${encode(raw)}-->`);
 
   return trimStandaloneLines(out);
 }

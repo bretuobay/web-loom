@@ -3,8 +3,12 @@ import { bindAttrInterp, bindPropOrAttr } from '../directives/attributes.js';
 import { bindClass } from '../directives/classes.js';
 import { bindStyle } from '../directives/styles.js';
 import { bindEvent } from '../directives/events.js';
+import { bindInput } from '../directives/bind.js';
+import { bindAction } from '../directives/action.js';
 import { bindIf } from '../directives/if.js';
 import { bindEach } from '../directives/each.js';
+import { bindSwitch } from '../directives/switch.js';
+import { bindPartial } from '../directives/partial.js';
 import { DisposalBag } from './disposal.js';
 import type { NodePath, RenderContext, RootTemplate, Scope } from '../types.js';
 
@@ -59,6 +63,12 @@ export function applyBindings(
       case 'event':
         bindEvent(binding, node as Element, scope, ctx, bag);
         break;
+      case 'bind':
+        bindInput(binding, node as HTMLInputElement, scope, ctx, bag);
+        break;
+      case 'action':
+        bindAction(binding, node as Element, scope, ctx, bag);
+        break;
     }
   }
 
@@ -66,8 +76,12 @@ export function applyBindings(
     const anchor = getNodeAt(roots, block.path) as Comment;
     if (block.kind === 'if') {
       bindIf(block, anchor, scope, ctx, bag);
-    } else {
+    } else if (block.kind === 'each') {
       bindEach(block, anchor, scope, ctx, bag);
+    } else if (block.kind === 'switch') {
+      bindSwitch(block, anchor, scope, ctx, bag);
+    } else {
+      bindPartial(block, anchor, scope, ctx, bag);
     }
   }
 }

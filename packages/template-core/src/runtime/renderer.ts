@@ -3,14 +3,20 @@ import { instantiate } from './bindings.js';
 import { DisposalBag } from './disposal.js';
 import type { Disposable, RenderContext, RootTemplate, Scope, Template, TemplateOptions } from '../types.js';
 
+export const globalPartials = new Map<string, string | Template>();
 class TemplateImpl<TVm extends object> implements Template<TVm> {
   constructor(
-    private readonly root: RootTemplate,
+    readonly root: RootTemplate,
     private readonly options: TemplateOptions,
   ) {}
 
   private makeContext(): RenderContext {
-    return { helpers: this.options.helpers ?? {}, escape: this.options.escape ?? true };
+    return {
+      helpers: this.options.helpers ?? {},
+      escape: this.options.escape ?? true,
+      partials: { ...Object.fromEntries(globalPartials), ...(this.options.partials ?? {}) },
+      partialDepth: 0,
+    };
   }
 
   mount(container: Element, viewModel: TVm): Disposable {
@@ -63,4 +69,11 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
 export function compile<TVm extends object = object>(source: string, options: TemplateOptions = {}): Template<TVm> {
   const root = parseTemplate(source);
   return new TemplateImpl<TVm>(root, options);
+}
+
+export function registerPartial(name: string, source: string | Template): void {
+  globalPartials.set(name, source);
+}
+export function unregisterPartial(name: string): void {
+  globalPartials.delete(name);
 }

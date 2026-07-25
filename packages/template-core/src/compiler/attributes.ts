@@ -1,9 +1,7 @@
 import { TemplateSyntaxError } from '../errors.js';
 import { parseExpression } from './expression.js';
 import { tokenizeText } from './text.js';
-import type { BindingRecord, NodePath } from '../types.js';
-
-const NOT_YET_SUPPORTED_PREFIXES = ['use:', 'bind:'];
+import type { BindingRecord, EventModifier, NodePath } from '../types.js';
 
 /**
  * Extracts directive/interpolated attributes from `el` into Binding Records
@@ -20,18 +18,41 @@ export function compileAttributes(el: Element, path: NodePath): BindingRecord[] 
 
     if (name.startsWith('on:')) {
       const eventName = name.slice(3);
-      if (eventName.includes('.')) {
-        throw new TemplateSyntaxError(
-          `Event modifiers ("${name}") are not implemented in Phase 1 — use a plain "on:${eventName.split('.')[0]}" binding. See PRD §11 Phase 2.`,
-        );
+      const [event, ...modifiers] = eventName.split('.');
+      const allowed = new Set(['prevent', 'stop', 'once', 'capture', 'passive', 'enter', 'escape']);
+      const seen = new Set<string>();
+      for (const modifier of modifiers) {
+        if (!allowed.has(modifier) || seen.has(modifier))
+          throw new TemplateSyntaxError(`Invalid or duplicate event modifier ".${modifier}" on "${name}".`);
+        seen.add(modifier);
       }
-      bindings.push({ kind: 'event', path, event: eventName, handler: parseExpression(value) });
+      if (seen.has('passive') && seen.has('prevent'))
+        throw new TemplateSyntaxError('Event modifiers .passive and .prevent cannot be combined.');
+      if ((seen.has('enter') || seen.has('escape')) && event !== 'keydown' && event !== 'keyup' && event !== 'keypress')
+        throw new TemplateSyntaxError(`Keyboard modifier requires a keyboard event (found "${name}").`);
+      bindings.push({
+        kind: 'event',
+        path,
+        event: event!,
+        handler: parseExpression(value),
+        ...(modifiers.length ? { modifiers: modifiers as EventModifier[] } : {}),
+      });
       el.removeAttribute(name);
       continue;
     }
 
-    if (NOT_YET_SUPPORTED_PREFIXES.some((prefix) => name.startsWith(prefix))) {
-      throw new TemplateSyntaxError(`"${name}" is not implemented in Phase 1. See PRD §11 Phase 2.`);
+    if (name.startsWith('bind:')) {
+      const bindName = name.slice(5);
+      if (bindName !== 'value' && bindName !== 'checked')
+        throw new TemplateSyntaxError(`Unsupported bind target "${bindName}"; use bind:value or bind:checked.`);
+      bindings.push({ kind: 'bind', path, name: bindName, target: parseExpression(value) });
+      el.removeAttribute(name);
+      continue;
+    }
+    if (name.startsWith('use:')) {
+      bindings.push({ kind: 'action', path, expr: parseExpression(value) });
+      el.removeAttribute(name);
+      continue;
     }
 
     if (name.startsWith('class:')) {
