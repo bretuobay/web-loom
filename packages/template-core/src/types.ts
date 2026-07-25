@@ -24,10 +24,35 @@ export type BindingRecord =
   | { kind: 'class'; path: NodePath; name: string; expr: ExpressionNode }
   | { kind: 'style'; path: NodePath; prop: string; expr: ExpressionNode }
   | { kind: 'event'; path: NodePath; event: string; handler: ExpressionNode; modifiers?: EventModifier[] }
-  | { kind: 'bind'; path: NodePath; name: 'value' | 'checked'; target: ExpressionNode }
+  | {
+      kind: 'bind';
+      path: NodePath;
+      name: 'value' | 'checked';
+      target: ExpressionNode;
+      setter?: ExpressionNode;
+    }
   | { kind: 'action'; path: NodePath; expr: ExpressionNode };
 
 export type EventModifier = 'prevent' | 'stop' | 'once' | 'capture' | 'passive' | 'enter' | 'escape';
+
+export type PartialSource = string | Template;
+
+export interface TemplateRegistry {
+  get(name: string): PartialSource | undefined;
+  set(name: string, source: PartialSource): void;
+  delete(name: string): void;
+  has(name: string): boolean;
+}
+
+export interface TemplateDiagnostics {
+  warn?(message: string, details?: unknown): void;
+  error?(message: string, details?: unknown): void;
+}
+
+export interface ElementAction {
+  update?(): void;
+  dispose?(): void;
+}
 
 export interface IfBranch {
   condition: ExpressionNode | null;
@@ -70,14 +95,26 @@ export interface TemplateOptions {
   /** Named functions resolvable from call-form expressions (`{{ formatDate(createdAt$) }}`). */
   helpers?: Record<string, (...args: unknown[]) => unknown>;
   /** Named templates available to `{{> name}}` (local entries override globals). */
-  partials?: Record<string, string | Template>;
+  partials?: Record<string, PartialSource>;
+  /** Scoped partial registry used after local `partials` and before the global registry. */
+  registry?: TemplateRegistry;
+  /** Optional name included in diagnostics and runtime errors. */
+  name?: string;
+  /** Throw instead of warning when a partial cannot be resolved. */
+  strictPartials?: boolean;
+  diagnostics?: TemplateDiagnostics;
 }
 
 export interface RenderContext {
   helpers: Record<string, (...args: unknown[]) => unknown>;
   escape: boolean;
-  partials?: Record<string, string | Template>;
+  partials?: Record<string, PartialSource>;
+  registry?: TemplateRegistry;
+  templateName?: string;
+  strictPartials?: boolean;
+  diagnostics?: Required<TemplateDiagnostics>;
   partialDepth?: number;
+  partialStack?: string[];
 }
 
 /** An object with a `dispose(): void` method — the `mvvm-core` cleanup convention. */
@@ -91,4 +128,9 @@ export interface Template<TVm extends object = object> {
   mount(container: Element, viewModel: TVm): Disposable;
   /** Builds a detached, already-reactive fragment for callers that manage insertion themselves. */
   render(viewModel: TVm): { node: DocumentFragment; dispose(): void };
+}
+
+export interface TemplateOutlet extends Disposable {
+  show<TVm extends object>(template: Template<TVm>, viewModel: TVm): Disposable;
+  clear(): void;
 }

@@ -11,10 +11,20 @@ import type { BindingRecord, EventModifier, NodePath } from '../types.js';
 export function compileAttributes(el: Element, path: NodePath): BindingRecord[] {
   const bindings: BindingRecord[] = [];
   const attrs = Array.from(el.attributes);
+  const setters = new Map<string, ReturnType<typeof parseExpression>>();
+  for (const attr of attrs) {
+    if (attr.name !== 'bind:set') continue;
+    if (setters.has('value')) throw new TemplateSyntaxError('Only one bind:set directive is allowed per element.');
+    setters.set('value', parseExpression(attr.value));
+    el.removeAttribute(attr.name);
+  }
+  let setterConsumed = false;
 
   for (const attr of attrs) {
     const name = attr.name;
     const value = attr.value;
+
+    if (name === 'bind:set') continue;
 
     if (name.startsWith('on:')) {
       const eventName = name.slice(3);
@@ -45,7 +55,14 @@ export function compileAttributes(el: Element, path: NodePath): BindingRecord[] 
       const bindName = name.slice(5);
       if (bindName !== 'value' && bindName !== 'checked')
         throw new TemplateSyntaxError(`Unsupported bind target "${bindName}"; use bind:value or bind:checked.`);
-      bindings.push({ kind: 'bind', path, name: bindName, target: parseExpression(value) });
+      setterConsumed = setters.has('value');
+      bindings.push({
+        kind: 'bind',
+        path,
+        name: bindName,
+        target: parseExpression(value),
+        setter: setters.get('value'),
+      });
       el.removeAttribute(name);
       continue;
     }
@@ -83,6 +100,10 @@ export function compileAttributes(el: Element, path: NodePath): BindingRecord[] 
       bindings.push({ kind: 'attr-interp', path, name, parts: token.parts });
       el.removeAttribute(name);
     }
+  }
+
+  if (setters.size > 0 && !setterConsumed) {
+    throw new TemplateSyntaxError('bind:set must be paired with bind:value or bind:checked on the same element.');
   }
 
   return bindings;

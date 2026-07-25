@@ -1,6 +1,6 @@
 import { batch, isWritableSignal } from '@web-loom/signals-core';
 import { effect } from '@web-loom/signals-core';
-import { evaluate, resolveWritableTarget } from '../runtime/evaluate.js';
+import { evaluate, resolveScopeValue, resolveWritableTarget } from '../runtime/evaluate.js';
 import type { BindingRecord, RenderContext, Scope } from '../types.js';
 import type { DisposalBag } from '../runtime/disposal.js';
 
@@ -16,21 +16,34 @@ export function bindInput(
       ? resolveWritableTarget(record.target.segments, record.target.parentHops, scope)
       : evaluate(record.target, scope, ctx.helpers);
   const render = effect(() => {
-    const target = resolve();
-    if (!isWritableSignal(target))
+    const target = record.setter ? evaluate(record.target, scope, ctx.helpers) : resolve();
+    if (!record.setter && !isWritableSignal(target))
       throw new TypeError(`bind:${record.name} target must resolve to a writable signal exposing set().`);
-    (el as unknown as Record<string, unknown>)[record.name] = target.get();
+    (el as unknown as Record<string, unknown>)[record.name] = record.setter
+      ? target
+      : (target as { get(): unknown }).get();
   });
   const event =
     record.name === 'value' && el.tagName.toLowerCase() !== 'select' && el.type !== 'checkbox' && el.type !== 'radio'
       ? 'input'
       : 'change';
-  const listener = () =>
+  const listener = (domEvent: Event) =>
     batch(() => {
+      const value = (el as unknown as Record<string, unknown>)[record.name];
+      if (record.setter) {
+        const resolved =
+          record.setter.kind === 'path'
+            ? resolveScopeValue(record.setter.segments, record.setter.parentHops, scope)
+            : { value: evaluate(record.setter, scope, ctx.helpers), owner: undefined };
+        if (typeof resolved.value !== 'function')
+          throw new TypeError(`bind:set for ${record.name} must resolve to a function.`);
+        (resolved.value as (nextValue: unknown, event: Event) => unknown).call(resolved.owner, value, domEvent);
+        return;
+      }
       const target = resolve();
       if (!isWritableSignal(target))
         throw new TypeError(`bind:${record.name} target must resolve to a writable signal exposing set().`);
-      target.set((el as unknown as Record<string, unknown>)[record.name]);
+      target.set(value);
     });
   el.addEventListener(event, listener);
   bag.add(() => {

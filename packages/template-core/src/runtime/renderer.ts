@@ -1,9 +1,19 @@
 import { parseTemplate } from '../compiler/parser.js';
 import { instantiate } from './bindings.js';
 import { DisposalBag } from './disposal.js';
-import type { Disposable, RenderContext, RootTemplate, Scope, Template, TemplateOptions } from '../types.js';
+import { createTemplateRegistry } from './registry.js';
+import type {
+  Disposable,
+  RenderContext,
+  RootTemplate,
+  Scope,
+  Template,
+  TemplateOptions,
+  TemplateRegistry,
+} from '../types.js';
 
-export const globalPartials = new Map<string, string | Template>();
+const globalRegistry = createTemplateRegistry();
+
 class TemplateImpl<TVm extends object> implements Template<TVm> {
   constructor(
     readonly root: RootTemplate,
@@ -14,8 +24,16 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
     return {
       helpers: this.options.helpers ?? {},
       escape: this.options.escape ?? true,
-      partials: { ...Object.fromEntries(globalPartials), ...(this.options.partials ?? {}) },
+      partials: this.options.partials,
+      registry: this.options.registry ?? globalRegistry,
+      templateName: this.options.name,
+      strictPartials: this.options.strictPartials ?? false,
+      diagnostics: {
+        warn: this.options.diagnostics?.warn ?? ((message) => console.warn(message)),
+        error: this.options.diagnostics?.error ?? ((message) => console.error(message)),
+      },
       partialDepth: 0,
+      partialStack: [],
     };
   }
 
@@ -71,9 +89,19 @@ export function compile<TVm extends object = object>(source: string, options: Te
   return new TemplateImpl<TVm>(root, options);
 }
 
+export function getTemplateRoot(template: Template): RootTemplate {
+  if (!(template instanceof TemplateImpl))
+    throw new TypeError('The supplied Template was not compiled by template-core.');
+  return template.root;
+}
+
 export function registerPartial(name: string, source: string | Template): void {
-  globalPartials.set(name, source);
+  globalRegistry.set(name, source);
 }
 export function unregisterPartial(name: string): void {
-  globalPartials.delete(name);
+  globalRegistry.delete(name);
+}
+
+export function getGlobalTemplateRegistry(): TemplateRegistry {
+  return globalRegistry;
 }
