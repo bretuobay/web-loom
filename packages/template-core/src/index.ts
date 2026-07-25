@@ -1,6 +1,7 @@
 export { compile, registerPartial, unregisterPartial } from './runtime/renderer.js';
 export { createTemplateRegistry } from './runtime/registry.js';
 export { createTemplateOutlet } from './runtime/outlet.js';
+export { precompile } from './compiler/index.js';
 export { TemplateSyntaxError } from './errors.js';
 export type {
   Disposable,
@@ -10,4 +11,7 @@ export type {
   TemplateOptions,
   TemplateOutlet,
   TemplateRegistry,
+  PrecompileOptions,
+  PrecompiledTemplateModule,
+  SerializableTemplatePlan,
 } from './types.js';

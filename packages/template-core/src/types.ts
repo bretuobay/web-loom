@@ -128,9 +128,30 @@ export interface Template<TVm extends object = object> {
   mount(container: Element, viewModel: TVm): Disposable;
   /** Builds a detached, already-reactive fragment for callers that manage insertion themselves. */
   render(viewModel: TVm): { node: DocumentFragment; dispose(): void };
+  /** Attaches bindings to matching SSR markup, recovering by remounting on mismatch. */
+  hydrate(container: Element, viewModel: TVm): Disposable;
+  /** Serializes the template using the browser renderer when available. */
+  renderToString(viewModel: TVm): string;
 }
 
 export interface TemplateOutlet extends Disposable {
   show<TVm extends object>(template: Template<TVm>, viewModel: TVm): Disposable;
   clear(): void;
+}
+
+export interface SerializableTemplatePlan {
+  version: 1;
+  source: string;
+  preprocessed: string;
+  name?: string;
+  sourcePath?: string;
+}
+
+export interface PrecompileOptions {
+  name?: string;
+  sourcePath?: string;
+}
+
+export interface PrecompiledTemplateModule {
+  plan: SerializableTemplatePlan;
 }
