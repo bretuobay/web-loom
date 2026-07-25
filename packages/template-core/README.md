@@ -128,6 +128,57 @@ for the Phase 2 composition model. Its shell is assembled from named partials, i
 uses a local product-card partial, and its search field, theme switch, event modifiers, and element
 action exercise the corresponding runtime features against a real ecommerce ViewModel.
 
+## Binding a ViewModel vs. binding a DTO snapshot
+
+`compile(...).mount(el, context)` renders whatever object graph you hand it as `context` —
+`{{ cart.items }}` only works if `context.cart.items` actually exists. Expression paths are plain
+strings evaluated at runtime (PRD §6.7); there is no compiler checking a template against the shape
+of `context`. A typo or a missing field doesn't throw — `{{#each}}`/`{{#if}}` just resolve to
+`undefined` and render nothing, silently.
+
+This bit the reference app. `apps/ecommerce-template-core`'s cart drawer binds the **live ViewModel
+instance** into the template context (`bindings.cart = viewModel.cart`, i.e. the `CartViewModel`
+itself), not an unwrapped data snapshot. `CartViewModel` exposed `cart` (a signal holding the full
+`CartDto`), plus hand-picked computed mirrors `itemCount` and `subtotalCents` — added because the
+header template needed them. Nobody had mirrored `items`, so `{{#each cart.items key=productId}}`
+silently iterated nothing, while `{{ cart.itemCount }}` and `{{ cart.subtotalCents }}` rendered fine
+because those specific fields happened to exist. The sibling React app (`apps/ecommerce-mvvm`) never
+hit this: its container does `useSignalValue(cartViewModel.cart)`, unwraps the signal to a plain
+`CartDto`, and passes that whole object as a typed prop, so `cart.items` is checked by `tsc` against
+the real DTO interface at compile time — `template-core` has no equivalent check.
+
+Two binding styles fall out of this, with different failure modes:
+
+| Style                                                                | What the template context holds                                             | Failure mode when a field is missing                                                                          |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Bind the ViewModel** (what `ecommerce-template-core` does today)    | The live VM instance; templates read whatever signals/computeds/methods it happens to expose | Silent empty render — no error, easy to miss in review                                                        |
+| **Bind an unwrapped DTO snapshot** (what `ecommerce-mvvm`'s React container does) | A plain data object (`cart.get()`), refreshed whenever the signal changes    | Still untyped at template-authoring time, but the *producing* side is a typed object `tsc`/your IDE can check |
+
+Binding the ViewModel directly is more convenient — no manual unwrap-and-resubscribe glue per DTO —
+which is why the reference app does it. But it means the ViewModel's public surface **is** the
+template's data contract, and every field a template touches has to be deliberately mirrored onto
+the ViewModel. Nothing keeps them in sync structurally.
+
+**Practical guidance when authoring templates against a live ViewModel:**
+
+- Before writing `{{ vm.someField }}` or `{{#each vm.someList}}`, open the actual ViewModel source
+  and confirm `someField`/`someList` exists on it — don't assume it mirrors the underlying
+  Model/DTO shape just because a sibling field (like `itemCount`) does.
+- When a ViewModel wraps a DTO-shaped signal (`cart: ReadonlySignal<CartDto>`), prefer exposing the
+  **whole DTO** as one bindable field over hand-picking individual computed mirrors (`items`,
+  `itemCount`, `subtotalCents`, …) one at a time as templates happen to need them — hand-picking is
+  exactly how this bug happened, and it will happen again for the next field a new template needs.
+- A missing or renamed field is invisible until you look at the rendered DOM — there is no
+  `tsc`/lint signal for it, since expressions are strings (see "Expressions are a small,
+  hand-rolled... subset" above). Cover new template bindings with a DOM-asserting test
+  (`@testing-library/dom` + `fireEvent`/`waitFor`, as in `apps/ecommerce-template-core/src/App.test.ts`)
+  rather than relying on visual review alone.
+- This risk is specific to the *view-binding* layer, not to MVVM portability itself: Models and
+  ViewModels can still be identical, framework-agnostic code shared across apps (as they are today
+  between `ecommerce-mvvm` and `ecommerce-template-core`, aside from the drift this bug introduced)
+  — the subtlety only shows up in how each View chooses to hand its ViewModel's data to the render
+  layer.
+
 ## SSR, hydration, and precompilation
 
 Server rendering is exposed from the DOM-free `@web-loom/template-core/ssr` entry point. It uses

@@ -3,7 +3,7 @@ import { createAliases } from '../../scripts/vite-alias';
 
 export default defineConfig({
   server: {
-    port: 5180,
+    port: 5182,
     strictPort: true,
   },
   resolve: {

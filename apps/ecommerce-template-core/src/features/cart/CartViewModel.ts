@@ -26,6 +26,7 @@ export class CartViewModel extends ActiveAwareViewModel<CartModel> {
   private readonly cartState = signal<CartDto>(emptyCart());
 
   readonly cart: ReadonlySignal<CartDto> = this.cartState.asReadonly();
+  readonly items = computed(() => this.cartState.get().items);
   readonly itemCount = computed(() => this.cartState.get().itemCount);
   readonly subtotalCents = computed(() => this.cartState.get().subtotalCents);
 
