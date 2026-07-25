@@ -68,7 +68,15 @@ function installGlobalKeyboardShortcuts(state: TemplateAppState, actions: Templa
 
 function installLinkInterception(actions: TemplateAppActions): () => void {
   const listener = (event: MouseEvent) => {
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
     const target = event.target;
     if (!(target instanceof Element)) return;
     const anchor = target.closest('a');

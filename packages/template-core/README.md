@@ -149,10 +149,10 @@ the real DTO interface at compile time — `template-core` has no equivalent che
 
 Two binding styles fall out of this, with different failure modes:
 
-| Style                                                                | What the template context holds                                             | Failure mode when a field is missing                                                                          |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Bind the ViewModel** (what `ecommerce-template-core` does today)    | The live VM instance; templates read whatever signals/computeds/methods it happens to expose | Silent empty render — no error, easy to miss in review                                                        |
-| **Bind an unwrapped DTO snapshot** (what `ecommerce-mvvm`'s React container does) | A plain data object (`cart.get()`), refreshed whenever the signal changes    | Still untyped at template-authoring time, but the *producing* side is a typed object `tsc`/your IDE can check |
+| Style                                                                             | What the template context holds                                                              | Failure mode when a field is missing                                                                          |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Bind the ViewModel** (what `ecommerce-template-core` does today)                | The live VM instance; templates read whatever signals/computeds/methods it happens to expose | Silent empty render — no error, easy to miss in review                                                        |
+| **Bind an unwrapped DTO snapshot** (what `ecommerce-mvvm`'s React container does) | A plain data object (`cart.get()`), refreshed whenever the signal changes                    | Still untyped at template-authoring time, but the _producing_ side is a typed object `tsc`/your IDE can check |
 
 Binding the ViewModel directly is more convenient — no manual unwrap-and-resubscribe glue per DTO —
 which is why the reference app does it. But it means the ViewModel's public surface **is** the
@@ -173,7 +173,7 @@ the ViewModel. Nothing keeps them in sync structurally.
   hand-rolled... subset" above). Cover new template bindings with a DOM-asserting test
   (`@testing-library/dom` + `fireEvent`/`waitFor`, as in `apps/ecommerce-template-core/src/App.test.ts`)
   rather than relying on visual review alone.
-- This risk is specific to the *view-binding* layer, not to MVVM portability itself: Models and
+- This risk is specific to the _view-binding_ layer, not to MVVM portability itself: Models and
   ViewModels can still be identical, framework-agnostic code shared across apps (as they are today
   between `ecommerce-mvvm` and `ecommerce-template-core`, aside from the drift this bug introduced)
   — the subtlety only shows up in how each View chooses to hand its ViewModel's data to the render

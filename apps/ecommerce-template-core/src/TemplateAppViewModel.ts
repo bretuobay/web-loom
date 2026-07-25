@@ -24,10 +24,7 @@ export class TemplateAppViewModel {
   private subscriptions: Array<() => void> = [];
   private started = false;
 
-  constructor(
-    catalogModel: CatalogModel,
-    cartModel: CartModel,
-  ) {
+  constructor(catalogModel: CatalogModel, cartModel: CartModel) {
     this.catalogModel = catalogModel;
     this.cartModel = cartModel;
     this.catalog = new CatalogViewModel(catalogModel);

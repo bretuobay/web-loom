@@ -85,7 +85,11 @@ async function sendDocument(
   }
 }
 
-async function serveStaticAsset(req: IncomingMessage, res: ServerResponse, options: TemplateCoreViteSsrOptions): Promise<boolean> {
+async function serveStaticAsset(
+  req: IncomingMessage,
+  res: ServerResponse,
+  options: TemplateCoreViteSsrOptions,
+): Promise<boolean> {
   const pathname = new URL(req.url ?? '/', 'http://template-core.local').pathname;
   if (pathname === '/' || !extname(pathname)) return false;
   const publicRoot = resolve(options.root, options.clientOutDir ?? 'dist/client');
