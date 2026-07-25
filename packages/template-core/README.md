@@ -191,6 +191,11 @@ const page = compile('<h1>{{ title$ }}</h1>', { name: 'Home' });
 const html = page.renderToString({ title$: 'Welcome' });
 ```
 
+For Vite applications, [`@web-loom/template-core-vite-ssr`](../template-core-vite-ssr/README.md)
+provides the reusable middleware-mode development server, production SSR entry loading, HTML
+outlet composition, and safe initial-state serialization. The application still owns request data,
+routing, ViewModels, and the decision about which part of the page is an SSR island.
+
 Browser templates can serialize and hydrate compatible markup:
 
 ```ts
