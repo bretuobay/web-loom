@@ -54,7 +54,7 @@ No build step — `compile()` parses at runtime via the browser's native HTML pa
 CSP-safe expression evaluator (no `eval`/`new Function`). See [`docs/PRD.md` §8.1](./docs/PRD.md) for
 how that works.
 
-## Grammar implemented in Phase 1
+## Grammar implemented in Phases 1 and 2
 
 ```html
 <div>
@@ -94,12 +94,39 @@ Phase 2 also supports `{{#switch expr}}` with `{{#case value}}`/`{{#default}}`,
 `{{> name context}}` partials. Use `registerPartial`/`unregisterPartial` for the global registry
 or `compile(..., { partials })` for local overrides.
 
+The integration APIs provide scoped composition for larger applications:
+
+```ts
+const registry = createTemplateRegistry({ card: cardTemplate });
+const page = compile('{{> card}}', { registry, name: 'ProductPage' });
+const outlet = createTemplateOutlet(document.querySelector('#route')!);
+outlet.show(page, viewModel);
+```
+
+Local `partials` override the scoped registry, which overrides global registrations. Missing partials
+warn by default; use `strictPartials: true` and `diagnostics` when unresolved composition should fail
+or be routed through application logging. For form libraries that expose snapshots plus setter
+actions, use explicit setter bindings:
+
+```html
+<input bind:value="form.email" bind:set="setEmail" />
+```
+
+`use:` actions may return `update()` and/or `dispose()` for reactive element behavior.
+
 - Expressions are a small, hand-rolled, CSP-safe subset (literals, scope paths, helper calls, `!`,
   `===`/`!==`/`<`/`<=`/`>`/`>=`, `&&`/`||`/`??`) — not JavaScript. See PRD §6.7.
 - Signal detection is duck-typed (`isSignal()`), never based on the `$` naming convention.
 - `:name` assigns a DOM property when `name` is one (`value`, `checked`, …), otherwise `setAttribute`.
 - `{{#each}}` requires `key=` (a path, or `key=this` for primitive arrays) and does keyed DOM-node-
   preserving reconciliation; items whose properties are themselves signals update with zero list diff.
+
+## Reference application
+
+[`apps/ecommerce-template-core`](../../apps/ecommerce-template-core) is the reference application
+for the Phase 2 composition model. Its shell is assembled from named partials, its product list
+uses a local product-card partial, and its search field, theme switch, event modifiers, and element
+action exercise the corresponding runtime features against a real ecommerce ViewModel.
 
 ## What's not here yet
 
