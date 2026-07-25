@@ -14,15 +14,26 @@ export class TemplateAppView {
   private readonly mountedViews: Disposable[] = [];
   private routeOutlet: TemplateOutlet | null = null;
   private stopRouteSubscription: (() => void) | null = null;
+  private hydratedRouteView: Disposable | null = null;
 
-  mount(container: Element, viewModel: TemplateAppViewModel): Disposable {
+  mount(container: Element, viewModel: TemplateAppViewModel, routeContainer?: Element): Disposable {
     const bindings = new TemplateAppBindings(viewModel);
     this.mountedViews.push(appShellTemplate.mount(container, bindings));
 
-    const routeSlot = container.querySelector<HTMLElement>('[data-template-slot="route"]');
-    if (!routeSlot) throw new Error('Template route slot was not found.');
+    const routeSlot =
+      routeContainer ??
+      container.querySelector<HTMLElement>('[data-template-slot="route"]') ??
+      this.createRouteSlot(container);
     this.routeOutlet = createTemplateOutlet(routeSlot);
+    let initialHydrationAvailable = routeSlot.childNodes.length > 0;
     const renderRoute = (path: string) => {
+      this.hydratedRouteView?.dispose();
+      this.hydratedRouteView = null;
+      if (path === '/' && initialHydrationAvailable) {
+        initialHydrationAvailable = false;
+        this.hydratedRouteView = storefrontTemplate.hydrate(routeSlot, bindings);
+        return;
+      }
       const template = routeTemplates[path] ?? notFoundTemplate;
       this.routeOutlet?.show(template, bindings);
     };
@@ -40,9 +51,18 @@ export class TemplateAppView {
     this.stopRouteSubscription = null;
     this.routeOutlet?.dispose();
     this.routeOutlet = null;
+    this.hydratedRouteView?.dispose();
+    this.hydratedRouteView = null;
     this.mountedViews
       .splice(0)
       .reverse()
       .forEach((view) => view.dispose());
+  }
+
+  private createRouteSlot(container: Element): HTMLElement {
+    const routeSlot = document.createElement('main');
+    routeSlot.dataset.templateSlot = 'route';
+    container.append(routeSlot);
+    return routeSlot;
   }
 }

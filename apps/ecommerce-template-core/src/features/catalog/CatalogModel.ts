@@ -10,9 +10,20 @@ export class CatalogModel extends BaseModel<CatalogProductDto[], any> {
   });
   private queryUnsubscribe: (() => void) | null = null;
   private initialized = false;
+  private seeded = false;
 
-  constructor(private readonly api: EcommerceApiPort) {
-    super({ initialData: [] });
+  constructor(
+    private readonly api: EcommerceApiPort,
+    initialProducts: CatalogProductDto[] = [],
+  ) {
+    super({ initialData: initialProducts });
+    this.seeded = initialProducts.length > 0;
+  }
+
+  consumeSeed(): boolean {
+    const wasSeeded = this.seeded;
+    this.seeded = false;
+    return wasSeeded;
   }
 
   async fetchAll(forceRefetch = false): Promise<void> {

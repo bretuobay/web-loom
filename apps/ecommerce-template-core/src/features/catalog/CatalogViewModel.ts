@@ -85,6 +85,7 @@ export class CatalogViewModel extends ActiveAwareViewModel<CatalogModel> {
   protected override onIsActiveChanged(isActive: boolean, _wasActive: boolean): void {
     if (isActive) {
       this.searchState.set('');
+      if (this.model.consumeSeed()) return;
       void this.refreshCatalogCommand.execute();
     }
   }

@@ -9,7 +9,6 @@ export const appShellTemplate = compile(
   `
   <div class="app-shell">
     {{> header}}
-    <main data-template-slot="route"></main>
     {{> cart}}
     {{> palette}}
     {{> confirmation}}
