@@ -1,6 +1,6 @@
 # @web-loom/template-core
 
-**Status: Phase 3 / v1.1 implemented.** See [`docs/PRD.md`](./docs/PRD.md) and
+**Status: Phase 3 / v1.1 implemented; Phase 4 P0 implemented.** See [`docs/PRD.md`](./docs/PRD.md) and
 [`.kiro/specs/template-core-phase3/`](../../.kiro/specs/template-core-phase3/) for the specification
 and traceability records.
 
@@ -213,12 +213,37 @@ import { precompile } from '@web-loom/template-core/compiler';
 const module = precompile(source, { name: 'Home', sourcePath: 'src/home.html' });
 ```
 
+The Node-safe compiler entry is used by the precompiler CLI and does not require browser globals:
+
+```ts
+import { precompileNode } from '@web-loom/template-core/compiler-node';
+const module = precompileNode(source, { name: 'Home', sourcePath: 'src/home.html' });
+```
+
 ```bash
 npx template-core-precompile --input src/home.html --output dist/home.plan.json --name Home
 ```
 
 The serialized plan is intentionally portable JSON; `@web-loom/template-core/ssr` can consume it
 with `fromPrecompiled`. Static JavaScript type analysis and full source maps remain future work.
+
+Phase 4 P0 plans include the executable node/element structure, stable plan version validation,
+structured diagnostics, source-location metadata, and region-scoped hydration recovery. Diagnostics
+can be collected without replacing the compatibility callbacks:
+
+```ts
+const template = compile(source, {
+  name: 'Catalog',
+  sourcePath: 'src/catalog.html',
+  diagnostics: {
+    report: (diagnostic) => telemetry.record(diagnostic),
+  },
+});
+```
+
+Hydration preserves matching DOM nodes and rebuilds only the mismatched root or dynamic block
+region. A full container replacement is reserved for callers that cannot provide a structurally
+compatible root.
 
 ## Development
 

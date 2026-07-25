@@ -2,7 +2,7 @@
 
 ## `@web-loom/template-core` — Web Loom's native signal-driven template engine
 
-**Status:** Phase 3 / v1.1 implemented
+**Status:** Phase 3 / v1.1 implemented; Phase 4 P0 implemented
 **Supersedes:** `docs/research/{chatgpt,deepseek,mistral,perplexity}-prd.md` (kept for provenance)
 **Depends on:** `@web-loom/signals-core`
 
@@ -514,9 +514,13 @@ rendered with zero bridge code).
 (`on:keydown.enter`, `.prevent`, `.stop`, …), `use:` element actions (the `ui-core`/`charts-core`/
 `media-core` integration seam), partials (`{{> }}`), custom helpers.
 
-**Phase 3 — Production:** `renderToString` (SSR), hydration (reusing §8.1's comment anchors),
-serializable precompilation, dev-mode diagnostics (dependency inspection, unresolved-path and
-invalid-expression warnings), source maps for template debugging.
+**Phase 3 — Production (implemented):** `renderToString` (SSR), hydration (reusing §8.1's comment
+anchors), initial serializable precompilation, and development diagnostics.
+
+**Phase 4 P0 — Contract completion (implemented):** executable serialized node plans, Node-safe
+precompilation, structured diagnostic codes and source metadata, plan-version validation, and
+marker-aware region-scoped hydration recovery. Full static type analysis remains out of scope;
+Phase 4 P1/P2 cover production hardening and tooling.
 
 ## 12. Success Criteria
 
