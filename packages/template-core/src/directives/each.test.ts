@@ -173,10 +173,7 @@ describe('bindEach: disposal', () => {
     const clickSpy = vi.fn();
     const items$ = signal([{ id: 1, text: 'A' }]);
     const vm = { items$, onClick: clickSpy };
-    const { container } = mount(
-      '<ul>{{#each items$ key=id}}<li on:click="onClick">{{ text }}</li>{{/each}}</ul>',
-      vm,
-    );
+    const { container } = mount('<ul>{{#each items$ key=id}}<li on:click="onClick">{{ text }}</li>{{/each}}</ul>', vm);
     const li = container.querySelector('li')!;
     items$.set([]);
     expect(container.querySelector('li')).toBeNull();

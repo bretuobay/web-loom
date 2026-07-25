@@ -68,9 +68,7 @@ export function bindEach(
     const newKeys = items.map((item, i) => keyOf(item, i));
     const newKeySet = new Set(newKeys);
     if (newKeySet.size !== newKeys.length) {
-      throw new Error(
-        `{{#each}} found duplicate keys among ${newKeys.length} items — "key=" values must be unique.`,
-      );
+      throw new Error(`{{#each}} found duplicate keys among ${newKeys.length} items — "key=" values must be unique.`);
     }
 
     for (const [key, inst] of instances) {

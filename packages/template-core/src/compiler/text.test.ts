@@ -18,11 +18,7 @@ describe('tokenizeText: double mustache', () => {
     const result = tokenizeText('Hello {{ name }}!');
     expect(result).toEqual({
       kind: 'text',
-      parts: [
-        { static: 'Hello ' },
-        { expr: { kind: 'path', segments: ['name'], parentHops: 0 } },
-        { static: '!' },
-      ],
+      parts: [{ static: 'Hello ' }, { expr: { kind: 'path', segments: ['name'], parentHops: 0 } }, { static: '!' }],
     });
   });
 

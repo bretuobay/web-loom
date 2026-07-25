@@ -1,7 +1,7 @@
 # @web-loom/template-core
 
-**Status: Phase 2 / v1.0 implemented.** See [`docs/PRD.md`](./docs/PRD.md) and
-[`.kiro/specs/template-core-phase2/`](../../.kiro/specs/template-core-phase2/) for the specification
+**Status: Phase 3 / v1.1 implemented.** See [`docs/PRD.md`](./docs/PRD.md) and
+[`.kiro/specs/template-core-phase3/`](../../.kiro/specs/template-core-phase3/) for the specification
 and traceability records.
 
 ## What this is
@@ -128,9 +128,41 @@ for the Phase 2 composition model. Its shell is assembled from named partials, i
 uses a local product-card partial, and its search field, theme switch, event modifiers, and element
 action exercise the corresponding runtime features against a real ecommerce ViewModel.
 
-## What's not here yet
+## SSR, hydration, and precompilation
 
-SSR, hydration, build-time precompilation, and expanded diagnostics remain Phase 3.
+Server rendering is exposed from the DOM-free `@web-loom/template-core/ssr` entry point. It uses
+`parse5`, so it can run in Node or an edge server without a browser global:
+
+```ts
+import { compile } from '@web-loom/template-core/ssr';
+
+const page = compile('<h1>{{ title$ }}</h1>', { name: 'Home' });
+const html = page.renderToString({ title$: 'Welcome' });
+```
+
+Browser templates can serialize and hydrate compatible markup:
+
+```ts
+const template = compile('<p>{{ title$ }}</p>');
+const html = template.renderToString(vm);
+container.innerHTML = html; // normally inserted by the server response
+const view = template.hydrate(container, vm);
+```
+
+Hydration reports mismatches through `diagnostics.warn` and remounts the affected template when
+recovery is needed. For build pipelines, use the compiler entry point or the CLI:
+
+```ts
+import { precompile } from '@web-loom/template-core/compiler';
+const module = precompile(source, { name: 'Home', sourcePath: 'src/home.html' });
+```
+
+```bash
+npx template-core-precompile --input src/home.html --output dist/home.plan.json --name Home
+```
+
+The serialized plan is intentionally portable JSON; `@web-loom/template-core/ssr` can consume it
+with `fromPrecompiled`. Static JavaScript type analysis and full source maps remain future work.
 
 ## Development
 

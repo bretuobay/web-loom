@@ -32,7 +32,13 @@ describe('bindPropOrAttr', () => {
     const el = document.createElement('input');
     const bag = new DisposalBag();
 
-    bindPropOrAttr({ kind: 'prop-or-attr', path: [0], name: 'value', expr: parseExpression('name$') }, el, scope, ctx(), bag);
+    bindPropOrAttr(
+      { kind: 'prop-or-attr', path: [0], name: 'value', expr: parseExpression('name$') },
+      el,
+      scope,
+      ctx(),
+      bag,
+    );
     expect(el.value).toBe('Ada');
     name$.set('Grace');
     expect(el.value).toBe('Grace');
@@ -100,7 +106,13 @@ describe('bindPropOrAttr', () => {
     const el = document.createElement('div');
     el.setAttribute('data-x', 'preexisting');
     const bag = new DisposalBag();
-    bindPropOrAttr({ kind: 'prop-or-attr', path: [0], name: 'data-x', expr: parseExpression('v') }, el, scope, ctx(), bag);
+    bindPropOrAttr(
+      { kind: 'prop-or-attr', path: [0], name: 'data-x', expr: parseExpression('v') },
+      el,
+      scope,
+      ctx(),
+      bag,
+    );
     expect(el.hasAttribute('data-x')).toBe(false);
     bag.dispose();
   });
