@@ -148,9 +148,9 @@ describe('parseTemplate: if/each block structure', () => {
   });
 });
 
-describe('parseTemplate: not-yet-supported directives', () => {
-  it('throws for use: and bind:', () => {
-    expect(() => parseTemplate('<div use:tooltip="cfg"></div>')).toThrow(TemplateSyntaxError);
-    expect(() => parseTemplate('<input bind:value="name$">')).toThrow(TemplateSyntaxError);
+describe('parseTemplate: Phase 2 directives', () => {
+  it('accepts use: and bind:', () => {
+    expect(() => parseTemplate('<div use:tooltip="cfg"></div>')).not.toThrow();
+    expect(() => parseTemplate('<input bind:value="name$">')).not.toThrow();
   });
 });
