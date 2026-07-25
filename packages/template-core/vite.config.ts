@@ -8,6 +8,7 @@ export default defineConfig({
       entry: {
         index: './src/index.ts',
         compiler: './src/compiler/index.ts',
+        'compiler-node': './src/compiler/node.ts',
         ssr: './src/ssr/index.ts',
       },
       formats: ['es', 'cjs'],

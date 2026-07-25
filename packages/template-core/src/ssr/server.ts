@@ -3,7 +3,8 @@ import { preprocess } from '../compiler/preprocess.js';
 import { tokenizeText } from '../compiler/text.js';
 import { parseExpression } from '../compiler/expression.js';
 import { evaluate, truthy } from '../runtime/evaluate.js';
-import type { RenderContext, Scope, TemplateOptions } from '../types.js';
+import { reportDiagnostic } from '../runtime/diagnostics.js';
+import type { RenderContext, Scope, SerializableNode, SerializableRootTemplate, TemplateOptions } from '../types.js';
 
 type Node = DefaultTreeAdapterTypes.ChildNode;
 type Element = DefaultTreeAdapterTypes.Element;
@@ -249,8 +250,15 @@ function renderNodes(nodes: Node[], scope: Scope, ctx: RenderContext): string {
       const source = ctx.partials?.[bits[0]!] ?? ctx.registry?.get(bits[0]!);
       if (!source) {
         const message = `Missing partial "${bits[0]}".`;
+        reportDiagnostic(ctx, {
+          code: 'MISSING_PARTIAL',
+          severity: ctx.strictPartials ? 'error' : 'warning',
+          message,
+          template: ctx.templateName,
+          sourcePath: ctx.sourcePath,
+          details: { partial: bits[0] },
+        });
         if (ctx.strictPartials) throw new Error(message);
-        (ctx.diagnostics?.warn ?? console.warn)(message);
         html += '<!--loom:anchor-->';
       } else if (ctx.partialStack?.includes(bits[0]!)) {
         throw new Error(`Recursive partial expansion: ${[...(ctx.partialStack ?? []), bits[0]!].join(' → ')}`);
@@ -279,6 +287,18 @@ function renderNodes(nodes: Node[], scope: Scope, ctx: RenderContext): string {
   return html;
 }
 
+function toServerNode(node: SerializableNode): Node {
+  if (node.kind === 'text') return { nodeName: '#text', value: node.value ?? '' } as Node;
+  if (node.kind === 'comment') return { nodeName: '#comment', data: node.value ?? '' } as Node;
+  if (node.kind === 'doctype') return { nodeName: '#documentType' } as Node;
+  return {
+    nodeName: node.name ?? 'div',
+    tagName: node.name ?? 'div',
+    attrs: node.attributes ?? [],
+    childNodes: (node.children ?? []).map(toServerNode),
+  } as unknown as Node;
+}
+
 function renderSource(source: string, viewModel: unknown, ctx: RenderContext, parent: Scope | null = null): string {
   const fragment = parseFragment(preprocess(source));
   const scope = scopeFor(parent ?? { parent: null, self: viewModel, locals: {} }, viewModel);
@@ -286,6 +306,10 @@ function renderSource(source: string, viewModel: unknown, ctx: RenderContext, pa
 }
 
 export function renderSourceToString(source: string, viewModel: unknown, options: TemplateOptions = {}): string {
+  return renderNodesFromContext(parseFragment(preprocess(source)).childNodes, viewModel, options);
+}
+
+function renderNodesFromContext(nodes: Node[], viewModel: unknown, options: TemplateOptions): string {
   const ctx: RenderContext = {
     helpers: options.helpers ?? {},
     escape: options.escape ?? true,
@@ -294,10 +318,20 @@ export function renderSourceToString(source: string, viewModel: unknown, options
     templateName: options.name,
     strictPartials: options.strictPartials ?? false,
     diagnostics: {
+      report: options.diagnostics?.report,
       warn: options.diagnostics?.warn ?? ((message) => console.warn(message)),
       error: options.diagnostics?.error ?? ((message) => console.error(message)),
     },
+    sourcePath: options.sourcePath,
     partialStack: [],
   };
-  return renderSource(source, viewModel, ctx);
+  return renderNodes(nodes, scopeFor({ parent: null, self: viewModel, locals: {} }, viewModel), ctx);
+}
+
+export function renderPlanToString(
+  plan: SerializableRootTemplate,
+  viewModel: unknown,
+  options: TemplateOptions = {},
+): string {
+  return renderNodesFromContext(plan.nodes.map(toServerNode), viewModel, options);
 }

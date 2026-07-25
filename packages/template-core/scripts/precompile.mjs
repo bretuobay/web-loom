@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { precompile } from '../dist/compiler.es.js';
+import { precompileNode } from '../dist/compiler-node.es.js';
 
 const args = process.argv.slice(2);
 const valueFor = (name) => {
@@ -16,7 +16,7 @@ if (!input || !output) {
   process.exitCode = 1;
 } else {
   const sourcePath = resolve(input);
-  const plan = precompile(await readFile(sourcePath, 'utf8'), {
+  const plan = precompileNode(await readFile(sourcePath, 'utf8'), {
     name: valueFor('--name'),
     sourcePath,
   });

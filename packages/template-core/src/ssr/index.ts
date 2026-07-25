@@ -1,16 +1,18 @@
-import { renderSourceToString } from './server.js';
+import { renderPlanToString, renderSourceToString } from './server.js';
 import type {
   Disposable,
   PrecompiledTemplateModule,
   SerializableTemplatePlan,
   Template,
   TemplateOptions,
+  SerializableRootTemplate,
 } from '../types.js';
 
 class ServerTemplate<TVm extends object> implements Template<TVm> {
   constructor(
     private readonly source: string,
     private readonly options: TemplateOptions,
+    private readonly plan?: SerializableRootTemplate,
   ) {}
 
   mount(): Disposable {
@@ -26,7 +28,9 @@ class ServerTemplate<TVm extends object> implements Template<TVm> {
   }
 
   renderToString(viewModel: TVm): string {
-    return renderSourceToString(this.source, viewModel, this.options);
+    return this.plan?.compiled === false
+      ? renderPlanToString(this.plan, viewModel, this.options)
+      : renderSourceToString(this.source, viewModel, this.options);
   }
 }
 
@@ -39,5 +43,26 @@ export function fromPrecompiled<TVm extends object = object>(
   options: TemplateOptions = {},
 ): Template<TVm> {
   const plan: SerializableTemplatePlan = module.plan;
-  return compile<TVm>(plan.source, { ...options, name: options.name ?? plan.name });
+  if (plan.version !== 2 || !plan.root) {
+    const message = 'Unsupported or incomplete precompiled template plan; regenerate it with template-core v1.2+.';
+    const diagnostic = {
+      code: 'PRECOMPILED_PLAN_VERSION',
+      severity: 'error' as const,
+      message,
+      template: options.name,
+    };
+    options.diagnostics?.report?.(diagnostic);
+    options.diagnostics?.error?.(message, diagnostic);
+    throw new Error(message);
+  }
+  return new ServerTemplate<TVm>(
+    plan.source,
+    {
+      ...options,
+      name: options.name ?? plan.name,
+      sourcePath: options.sourcePath ?? plan.sourcePath,
+      sourceMap: options.sourceMap ?? plan.sourceMap,
+    },
+    plan.root,
+  );
 }

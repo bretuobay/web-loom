@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { signal } from '@web-loom/signals-core';
-import { compile as compileBrowser } from '../index.js';
+import { compile as compileBrowser, fromPrecompiled as fromPrecompiledBrowser } from '../index.js';
 import { compile, fromPrecompiled } from './index.js';
 import { precompile } from '../compiler/index.js';
+import { precompileNode } from '../compiler/node.js';
 
 describe('server rendering', () => {
   it('renders Phase 1/2 expressions and blocks without browser DOM APIs', () => {
@@ -41,6 +42,27 @@ describe('server rendering', () => {
   it('renders precompiled plans through the SSR compiler', () => {
     const module = precompile('<p>{{ message }}</p>', { name: 'Precompiled' });
     expect(fromPrecompiled(module).renderToString({ message: 'hello' })).toBe('<p>hello</p>');
+    const nodeModule = precompileNode('<p>{{ message }}</p>', { name: 'NodePrecompiled' });
+    expect(fromPrecompiled(nodeModule).renderToString({ message: 'node hello' })).toBe('<p>node hello</p>');
+  });
+
+  it('serializes an executable browser plan and mounts it without reparsing HTML', () => {
+    const module = precompile('<p>{{ message }}</p>', { name: 'BrowserPlan' });
+    expect(module.plan.version).toBe(2);
+    expect(module.plan.root?.nodes[0]?.kind).toBe('element');
+    expect(module.plan.sourceMap?.['0']).toEqual(expect.objectContaining({ line: 1, column: 1 }));
+    const container = document.createElement('div');
+    const view = fromPrecompiledBrowser(module).mount(container, { message: 'hello' });
+    expect(container.innerHTML).toBe('<p>hello</p>');
+    view.dispose();
+  });
+
+  it('executes a Node-generated plan in the browser consumer', () => {
+    const module = precompileNode('<p>{{ message }}</p>', { name: 'NodePlan' });
+    const container = document.createElement('div');
+    const view = fromPrecompiledBrowser(module).mount(container, { message: 'from node' });
+    expect(container.textContent).toBe('from node');
+    view.dispose();
   });
 });
 
@@ -90,6 +112,19 @@ describe('browser hydration', () => {
       expect.anything(),
     );
     expect(container.querySelector('p')?.textContent).toBe('correct');
+    view.dispose();
+  });
+
+  it('recovers a mismatched nested branch without replacing its parent root', () => {
+    const show$ = signal(true);
+    const template = compileBrowser('<section>{{#if show$}}<p>ready</p>{{/if}}</section>');
+    const container = document.createElement('div');
+    container.innerHTML = template.renderToString({ show$ }).replace('<p>ready</p>', '<span>wrong</span>');
+    const section = container.firstElementChild;
+    const view = template.hydrate(container, { show$ });
+    expect(container.firstElementChild).toBe(section);
+    expect(container.querySelector('p')?.textContent).toBe('ready');
+    expect(container.querySelector('span')).toBeNull();
     view.dispose();
   });
 });

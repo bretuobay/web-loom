@@ -29,6 +29,12 @@
       "require": "./dist/compiler.cjs.js",
       "default": "./dist/compiler.es.js"
     },
+    "./compiler-node": {
+      "types": "./dist/compiler-node.d.ts",
+      "import": "./dist/compiler-node.es.js",
+      "require": "./dist/compiler-node.cjs.js",
+      "default": "./dist/compiler-node.es.js"
+    },
     "./ssr": {
       "types": "./dist/ssr.d.ts",
       "import": "./dist/ssr.es.js",
