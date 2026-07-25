@@ -1,9 +1,8 @@
 # @web-loom/template-core
 
-**Status: Phase 1 (MVP) implemented.** See [`docs/PRD.md`](./docs/PRD.md) for the full specification
-and [`.kiro/specs/template-core-phase1/`](../../.kiro/specs/template-core-phase1/) for the
-requirements/design/tasks this implementation was built against. Partials, `{{#switch}}`, event
-modifiers, `use:` actions, and SSR are Phase 2/3 — see [What's not here yet](#whats-not-here-yet).
+**Status: Phase 2 / v1.0 implemented.** See [`docs/PRD.md`](./docs/PRD.md) and
+[`.kiro/specs/template-core-phase2/`](../../.kiro/specs/template-core-phase2/) for the specification
+and traceability records.
 
 ## What this is
 
@@ -12,17 +11,17 @@ Web Loom's architectural claim is that a ViewModel built on `@web-loom/mvvm-core
 frameworks. Every existing demo app proves that claim by hand-writing a small bridge that subscribes
 its rendering model to the same signals:
 
-| App | How it bridges to the ViewModel's signals |
-|---|---|
-| `mvvm-react` | `useSignal(sig)` → `useSyncExternalStore(sig.subscribe, sig.get, sig.get)` |
-| `mvvm-vue` | `useSignal(sig)` → `shallowRef` seeded via `.peek()`, kept in sync via `observe()` |
-| `mvvm-angular` | `fromLoomSignal(sig, destroyRef)` → mirrors into a native Angular `signal()` |
-| `mvvm-lit` | manual `@state()` field updated via `observe()` in `connectedCallback` |
-| `mvvm-marko` | `subscribeToObservable(sig, updateFn)` wrapping `observe`/`subscribe` |
-| `mvvm-vanilla` | direct `observe(vm.data$, callback)` calls that manually patch the DOM |
+| App            | How it bridges to the ViewModel's signals                                          |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `mvvm-react`   | `useSignal(sig)` → `useSyncExternalStore(sig.subscribe, sig.get, sig.get)`         |
+| `mvvm-vue`     | `useSignal(sig)` → `shallowRef` seeded via `.peek()`, kept in sync via `observe()` |
+| `mvvm-angular` | `fromLoomSignal(sig, destroyRef)` → mirrors into a native Angular `signal()`       |
+| `mvvm-lit`     | manual `@state()` field updated via `observe()` in `connectedCallback`             |
+| `mvvm-marko`   | `subscribeToObservable(sig, updateFn)` wrapping `observe`/`subscribe`              |
+| `mvvm-vanilla` | direct `observe(vm.data$, callback)` calls that manually patch the DOM             |
 
 `@web-loom/template-core` is the "no bridge needed" View: a Mustache/Handlebars-flavored template
-syntax whose bindings *are* `signals-core` subscriptions. No virtual DOM, no component re-render, no
+syntax whose bindings _are_ `signals-core` subscriptions. No virtual DOM, no component re-render, no
 adapter code — a signal change updates exactly the DOM node/attribute that read it. `src/integration.test.ts`
 mounts a real `@web-loom/mvvm-core` `RestfulApiViewModel` (the same `data$`/`isLoading$`/`error$`/Command
 shape every demo app shares) with zero bridge code, as the concrete proof.
@@ -65,30 +64,35 @@ how that works.
 
   <!-- conditionals -->
   {{#if isLoading$}}
-    <p>Loading…</p>
+  <p>Loading…</p>
   {{else if error$}}
-    <p>{{ error$ }}</p>
+  <p>{{ error$ }}</p>
   {{else}}
-    <!-- keyed iteration, with an empty-state block and iteration helpers -->
-    <ul>
-      {{#each todos$ key=id}}
-        <li class:done="done" data-index="{{ @index }}">{{ text }}</li>
-      {{else}}
-        <li>Nothing to do</li>
-      {{/each}}
-    </ul>
+  <!-- keyed iteration, with an empty-state block and iteration helpers -->
+  <ul>
+    {{#each todos$ key=id}}
+    <li class:done="done" data-index="{{ @index }}">{{ text }}</li>
+    {{else}}
+    <li>Nothing to do</li>
+    {{/each}}
+  </ul>
   {{/if}}
 
   <!-- attribute / property / class / style bindings -->
-  <input :value="name$" :disabled="isSubmitting$">
+  <input :value="name$" :disabled="isSubmitting$" />
   <button on:click="save" class:primary="isPrimary$" style:color="theme$">Save</button>
 
   <!-- event bindings: bare path or call form (this/$event/@index available) -->
   {{#each items$ key=id}}
-    <button on:click="remove(this)">Remove {{ @index }}</button>
+  <button on:click="remove(this)">Remove {{ @index }}</button>
   {{/each}}
 </div>
 ```
+
+Phase 2 also supports `{{#switch expr}}` with `{{#case value}}`/`{{#default}}`,
+`bind:value`/`bind:checked`, chainable event modifiers, `use:action="expr"`, and
+`{{> name context}}` partials. Use `registerPartial`/`unregisterPartial` for the global registry
+or `compile(..., { partials })` for local overrides.
 
 - Expressions are a small, hand-rolled, CSP-safe subset (literals, scope paths, helper calls, `!`,
   `===`/`!==`/`<`/`<=`/`>`/`>=`, `&&`/`||`/`??`) — not JavaScript. See PRD §6.7.
@@ -99,10 +103,7 @@ how that works.
 
 ## What's not here yet
 
-Per the PRD roadmap — these throw a clear `TemplateSyntaxError` naming themselves as not-yet-supported
-rather than silently doing nothing: `{{#switch}}`/`{{#case}}`, `{{> partial }}`, `bind:` two-way sugar,
-event modifiers (`on:click.prevent`), `use:` element actions. `Template.renderToString` (SSR) and
-hydration are also not implemented.
+SSR, hydration, build-time precompilation, and expanded diagnostics remain Phase 3.
 
 ## Development
 
