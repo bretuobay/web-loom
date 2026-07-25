@@ -8,15 +8,15 @@ export const cartDrawerTemplate = compile(`
       {{#if cart.itemCount > 0}}
         <ul class="cart-items">
           {{#each cart.items key=productId}}
-            <li data-product-id="{{ productId }}">
+            <li>
               <img :src="imageUrl" :alt="name" loading="lazy">
               <div><h3>{{ name }}</h3><p>{{ formatMoney(unitPriceCents) }}</p></div>
               <div class="qty-controls">
-                <button type="button" data-quantity-delta="-1" on:click="updateQuantity" :aria-label="name">-</button>
+                <button type="button" on:click="updateQuantity(this, -1)" :aria-label="name">-</button>
                 <span>{{ quantity }}</span>
-                <button type="button" data-quantity-delta="1" on:click="updateQuantity" :aria-label="name">+</button>
+                <button type="button" on:click="updateQuantity(this, 1)" :aria-label="name">+</button>
               </div>
-              <button class="text-btn" type="button" on:click="removeItem">Remove</button>
+              <button class="text-btn" type="button" on:click="removeItem(this)">Remove</button>
             </li>
           {{/each}}
         </ul>

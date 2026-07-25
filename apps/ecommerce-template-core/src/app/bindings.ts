@@ -1,4 +1,5 @@
 import type { TemplateAppViewModel } from '../TemplateAppViewModel';
+import type { CartItemDto, CatalogProductDto } from '../infrastructure/api/ports/ecommerce-api-port';
 
 /**
  * Adapts template-core DOM events to the framework-agnostic app ViewModel.
@@ -24,36 +25,33 @@ export class TemplateAppBindings {
     void this.viewModel.navigate(anchor.getAttribute('href') ?? '/');
   }
 
-  setSearchQueryFromEvent(event: Event): void {
-    this.actions.setSearchQuery(this.readInputValue(event));
+  focusSearch(element: Element): void {
+    if (!(element instanceof HTMLInputElement)) return;
+    if (document.activeElement === document.body || document.activeElement == null) element.focus();
   }
 
-  selectProduct(event: Event): void {
-    const productId = this.readDataAttribute(event, 'product-id');
-    const product = this.catalog.filteredProducts.get().find((item) => item.id === productId);
-    if (product) this.actions.selectProduct(product);
+  setCheckoutEmail(value: string): void {
+    this.actions.setCheckoutEmail(value);
   }
 
-  addToCart(event: Event): void {
-    const productId = this.readDataAttribute(event, 'product-id');
-    const product = this.catalog.filteredProducts.get().find((item) => item.id === productId);
-    if (product) this.actions.addToCart(product);
+  setCheckoutAddress(value: string): void {
+    this.actions.setCheckoutAddress(value);
+  }
+
+  setCheckoutNotes(value: string): void {
+    this.actions.setCheckoutNotes(value);
+  }
+
+  selectProduct(product: CatalogProductDto): void {
+    this.actions.selectProduct(product);
+  }
+
+  addToCart(product: CatalogProductDto): void {
+    this.actions.addToCart(product);
   }
 
   formatMoney(value: unknown): string {
     return this.actions.formatMoney(value);
-  }
-
-  setCheckoutEmailFromEvent(event: Event): void {
-    this.actions.setCheckoutEmail(this.readInputValue(event));
-  }
-
-  setCheckoutAddressFromEvent(event: Event): void {
-    this.actions.setCheckoutAddress(this.readInputValue(event));
-  }
-
-  setCheckoutNotesFromEvent(event: Event): void {
-    this.actions.setCheckoutNotes(this.readInputValue(event));
   }
 
   touchCheckoutEmail(): void {
@@ -68,21 +66,12 @@ export class TemplateAppBindings {
     this.actions.touchCheckoutField('notes');
   }
 
-  updateQuantity(event: Event): void {
-    const button = event.currentTarget;
-    if (!(button instanceof Element)) return;
-    const itemElement = button.closest<HTMLElement>('[data-product-id]');
-    const productId = itemElement?.dataset.productId;
-    const delta = Number(button.getAttribute('data-quantity-delta'));
-    const item = this.cart.cart.get().items.find((candidate) => candidate.productId === productId);
-    if (item && Number.isFinite(delta)) this.actions.updateQuantity(item, delta);
+  updateQuantity(item: CartItemDto, delta: number): void {
+    this.actions.updateQuantity(item, delta);
   }
 
-  removeItem(event: Event): void {
-    const button = event.currentTarget;
-    if (!(button instanceof Element)) return;
-    const productId = button.closest<HTMLElement>('[data-product-id]')?.dataset.productId;
-    if (productId) this.actions.removeItem({ productId });
+  removeItem(item: CartItemDto): void {
+    this.actions.removeItem(item);
   }
 
   setPaletteQueryFromEvent(event: Event): void {
@@ -123,6 +112,8 @@ export class TemplateAppBindings {
 
   private readDataAttribute(event: Event, name: string): string | null {
     const target = event.target ?? event.currentTarget;
-    return target instanceof Element ? target.closest<HTMLElement>(`[data-${name}]`)?.getAttribute(`data-${name}`) ?? null : null;
+    return target instanceof Element
+      ? (target.closest<HTMLElement>(`[data-${name}]`)?.getAttribute(`data-${name}`) ?? null)
+      : null;
   }
 }

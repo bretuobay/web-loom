@@ -1,12 +1,28 @@
 import { compile } from '@web-loom/template-core';
+import { cartDrawerTemplate } from './cart-drawer';
+import { commandPaletteTemplate } from './command-palette';
+import { confirmationDialogTemplate } from './confirmation-dialog';
+import { headerTemplate } from './header';
+import { toastTemplate } from './toast';
 
-export const appShellTemplate = compile(`
+export const appShellTemplate = compile(
+  `
   <div class="app-shell">
-    <div data-template-slot="header"></div>
+    {{> header}}
     <main data-template-slot="route"></main>
-    <div data-template-slot="cart"></div>
-    <div data-template-slot="palette"></div>
-    <div data-template-slot="confirmation"></div>
-    <div data-template-slot="toast"></div>
+    {{> cart}}
+    {{> palette}}
+    {{> confirmation}}
+    {{> toast}}
   </div>
-`);
+`,
+  {
+    partials: {
+      header: headerTemplate,
+      cart: cartDrawerTemplate,
+      palette: commandPaletteTemplate,
+      confirmation: confirmationDialogTemplate,
+      toast: toastTemplate,
+    },
+  },
+);

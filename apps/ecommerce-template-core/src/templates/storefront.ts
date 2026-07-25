@@ -1,6 +1,23 @@
 import { compile } from '@web-loom/template-core';
 
-export const storefrontTemplate = compile(`
+const productCardTemplate = compile(`
+  <article class="product-card" class:selected="../catalog.selectedProduct.id === id" on:click="selectProduct(this)">
+    <img :src="imageUrl" :alt="name" loading="lazy">
+    <div class="product-content">
+      <h3>{{ name }}</h3>
+      <p class="product-category">{{ category }}</p>
+      <p class="product-description">{{ description }}</p>
+      <div class="product-row">
+        <strong>{{ formatMoney(priceCents) }}</strong>
+        <span>{{ stock }} in stock</span>
+      </div>
+      <button class="brand-btn" type="button" on:click.stop="addToCart(this)">Add to cart</button>
+    </div>
+  </article>
+`);
+
+export const storefrontTemplate = compile(
+  `
   <section class="product-browser">
     {{#if catalog.error$}}
       <p class="error-banner">{{ catalog.error$ }}</p>
@@ -14,7 +31,7 @@ export const storefrontTemplate = compile(`
     </div>
     <label class="field-label" for="search-products">Search products</label>
     <input id="search-products" class="text-input" autocomplete="off"
-      :value="catalog.searchQuery" on:input="setSearchQueryFromEvent"
+      bind:value="catalog.searchQuery" use:focusSearch="focusSearch"
       placeholder="Search by name, category, or description">
     {{#if catalog.isLoading$}}
       <p class="status-line">Refreshing products...</p>
@@ -22,22 +39,7 @@ export const storefrontTemplate = compile(`
     <div class="browser-grid">
       <div class="product-list">
         {{#if catalog.filteredProducts.length > 0}}
-          {{#each catalog.filteredProducts key=id}}
-            <article class="product-card" data-product-id="{{ id }}" class:selected="../catalog.selectedProduct.id === id"
-              on:click="selectProduct">
-              <img :src="imageUrl" :alt="name" loading="lazy">
-              <div class="product-content">
-                <h3>{{ name }}</h3>
-                <p class="product-category">{{ category }}</p>
-                <p class="product-description">{{ description }}</p>
-                <div class="product-row">
-                  <strong>{{ formatMoney(priceCents) }}</strong>
-                  <span>{{ stock }} in stock</span>
-                </div>
-                <button class="brand-btn" type="button" data-product-id="{{ id }}" on:click="addToCart">Add to cart</button>
-              </div>
-            </article>
-          {{/each}}
+          {{#each catalog.filteredProducts key=id}}{{> product-card this}}{{/each}}
         {{else}}
           {{#if catalog.searchQuery}}
             <div class="empty-card">No products found for this search.</div>
@@ -63,4 +65,6 @@ export const storefrontTemplate = compile(`
       </aside>
     </div>
   </section>
-`);
+`,
+  { partials: { 'product-card': productCardTemplate } },
+);

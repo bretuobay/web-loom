@@ -1,15 +1,5 @@
-import type { Disposable, Template } from '@web-loom/template-core';
-import {
-  appShellTemplate,
-  cartDrawerTemplate,
-  checkoutTemplate,
-  commandPaletteTemplate,
-  confirmationDialogTemplate,
-  headerTemplate,
-  notFoundTemplate,
-  storefrontTemplate,
-  toastTemplate,
-} from '../templates';
+import { createTemplateOutlet, type Disposable, type Template, type TemplateOutlet } from '@web-loom/template-core';
+import { appShellTemplate, checkoutTemplate, notFoundTemplate, storefrontTemplate } from '../templates';
 import type { TemplateAppViewModel } from '../TemplateAppViewModel';
 import { TemplateAppBindings } from './bindings';
 
@@ -22,33 +12,19 @@ const routeTemplates: Record<string, ViewTemplate> = {
 
 export class TemplateAppView {
   private readonly mountedViews: Disposable[] = [];
-  private activeRouteView: Disposable | null = null;
+  private routeOutlet: TemplateOutlet | null = null;
   private stopRouteSubscription: (() => void) | null = null;
 
   mount(container: Element, viewModel: TemplateAppViewModel): Disposable {
     const bindings = new TemplateAppBindings(viewModel);
-    const shell = appShellTemplate.mount(container, bindings);
-    this.mountedViews.push(shell);
+    this.mountedViews.push(appShellTemplate.mount(container, bindings));
 
-    const slot = (name: string): Element => {
-      const element = container.querySelector(`[data-template-slot="${name}"]`);
-      if (!element) throw new Error(`Template slot "${name}" was not found.`);
-      return element;
-    };
-
-    this.mountedViews.push(headerTemplate.mount(slot('header'), bindings));
-    this.mountedViews.push(cartDrawerTemplate.mount(slot('cart'), bindings));
-    this.mountedViews.push(commandPaletteTemplate.mount(slot('palette'), bindings));
-    this.mountedViews.push(confirmationDialogTemplate.mount(slot('confirmation'), bindings));
-    this.mountedViews.push(toastTemplate.mount(slot('toast'), bindings));
-
-    const routeSlot = slot('route');
+    const routeSlot = container.querySelector<HTMLElement>('[data-template-slot="route"]');
+    if (!routeSlot) throw new Error('Template route slot was not found.');
+    this.routeOutlet = createTemplateOutlet(routeSlot);
     const renderRoute = (path: string) => {
-      this.activeRouteView?.dispose();
-      this.activeRouteView = null;
-      routeSlot.replaceChildren();
       const template = routeTemplates[path] ?? notFoundTemplate;
-      this.activeRouteView = template.mount(routeSlot, bindings);
+      this.routeOutlet?.show(template, bindings);
     };
 
     renderRoute(viewModel.state.route$.get());
@@ -62,8 +38,11 @@ export class TemplateAppView {
   private dispose(): void {
     this.stopRouteSubscription?.();
     this.stopRouteSubscription = null;
-    this.activeRouteView?.dispose();
-    this.activeRouteView = null;
-    this.mountedViews.splice(0).reverse().forEach((view) => view.dispose());
+    this.routeOutlet?.dispose();
+    this.routeOutlet = null;
+    this.mountedViews
+      .splice(0)
+      .reverse()
+      .forEach((view) => view.dispose());
   }
 }

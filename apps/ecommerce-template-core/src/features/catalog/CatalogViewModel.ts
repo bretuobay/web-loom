@@ -1,7 +1,7 @@
 import { Command } from '@web-loom/mvvm-core';
 import { ActiveAwareViewModel } from '@web-loom/mvvm-patterns';
 import { createMasterDetail, type MasterDetailBehavior } from '@web-loom/ui-patterns';
-import { computed, observe, signal, type ReadonlySignal } from '@web-loom/signals-core';
+import { computed, observe, signal, type ReadonlySignal, type WritableSignal } from '@web-loom/signals-core';
 import type { CatalogProductDto } from '../../infrastructure/api/ports/ecommerce-api-port';
 import { CatalogModel } from './CatalogModel';
 
@@ -19,7 +19,7 @@ export class CatalogViewModel extends ActiveAwareViewModel<CatalogModel> {
     },
   });
 
-  readonly searchQuery: ReadonlySignal<string> = this.searchState.asReadonly();
+  readonly searchQuery: WritableSignal<string> = this.searchState;
   readonly selectedProduct: ReadonlySignal<CatalogProductDto | null> = this.selectedState.asReadonly();
   readonly masterDetailVersion: ReadonlySignal<number> = this.masterDetailVersionState.asReadonly();
   readonly totalProducts = computed(() => this.productsState.get().length);

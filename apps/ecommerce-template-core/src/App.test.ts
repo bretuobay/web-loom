@@ -48,7 +48,9 @@ describe('template-core ecommerce demo', () => {
     const addButton = app.container.querySelector<HTMLButtonElement>('.product-card .brand-btn');
     expect(addButton).not.toBeNull();
     fireEvent.click(addButton!);
-    await waitFor(() => expect(app.container.querySelector('.header-actions .brand-btn')?.textContent).toContain('Cart (1)'));
+    await waitFor(() =>
+      expect(app.container.querySelector('.header-actions .brand-btn')?.textContent).toContain('Cart (1)'),
+    );
 
     fireEvent.click(app.container.querySelector('.header-actions .brand-btn')!);
     expect(app.container.querySelector('.cart-drawer')).not.toBeNull();
@@ -67,6 +69,11 @@ describe('template-core ecommerce demo', () => {
     fireEvent.click(app.container.querySelector<HTMLAnchorElement>('a[href="/checkout"]')!);
     await waitFor(() => expect(app.appViewModel.state.route$.get()).toBe('/checkout'));
     expect(app.container.querySelector('.checkout-panel h2')?.textContent).toBe('Checkout');
+
+    const email = app.container.querySelector<HTMLInputElement>('#checkout-email');
+    expect(email?.value).toBe('');
+    fireEvent.input(email!, { target: { value: 'ada@example.com' } });
+    expect(app.appViewModel.cart.checkoutForm.getState().values.email).toBe('ada@example.com');
 
     const beforeDispose = app.container.textContent;
     app.view.dispose();

@@ -11,18 +11,18 @@ export const checkoutTemplate = compile(`
     <p><span>Total</span><strong>{{ formatMoney(cart.subtotalCents) }}</strong></p>
     </div>
     <label class="field-label" for="checkout-email">Email</label>
-    <input id="checkout-email" class="text-input" :value="state.checkoutState$.values.email"
-      on:input="setCheckoutEmailFromEvent" on:blur="touchCheckoutEmail"
+    <input id="checkout-email" class="text-input" bind:value="state.checkoutState$.values.email" bind:set="setCheckoutEmail"
+      on:blur="touchCheckoutEmail"
       placeholder="you@example.com">
     {{#if state.checkoutState$.errors.email}}<p class="field-error">{{ state.checkoutState$.errors.email }}</p>{{/if}}
     <label class="field-label" for="checkout-address">Shipping Address</label>
-    <textarea id="checkout-address" class="text-input text-area" :value="state.checkoutState$.values.shippingAddress"
-      on:input="setCheckoutAddressFromEvent" on:blur="touchCheckoutAddress"
+    <textarea id="checkout-address" class="text-input text-area" bind:value="state.checkoutState$.values.shippingAddress" bind:set="setCheckoutAddress"
+      on:blur="touchCheckoutAddress"
       placeholder="Street, city, state, zip"></textarea>
     {{#if state.checkoutState$.errors.shippingAddress}}<p class="field-error">{{ state.checkoutState$.errors.shippingAddress }}</p>{{/if}}
     <label class="field-label" for="checkout-notes">Notes (optional)</label>
-    <textarea id="checkout-notes" class="text-input text-area" :value="state.checkoutState$.values.notes"
-      on:input="setCheckoutNotesFromEvent" on:blur="touchCheckoutNotes"
+    <textarea id="checkout-notes" class="text-input text-area" bind:value="state.checkoutState$.values.notes" bind:set="setCheckoutNotes"
+      on:blur="touchCheckoutNotes"
       placeholder="Delivery instructions"></textarea>
     {{#if state.checkoutState$.errors.notes}}<p class="field-error">{{ state.checkoutState$.errors.notes }}</p>{{/if}}
     <button class="brand-btn" type="button" :disabled="cart.itemCount === 0" on:click="actions.submitCheckout">Place order</button>

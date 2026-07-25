@@ -7,13 +7,13 @@ export const headerTemplate = compile(`
       <h1>Loom Market</h1>
     </div>
     <nav class="header-nav" aria-label="Primary navigation">
-      <a href="/" on:click="navigateFromClick">Storefront</a>
-      <a href="/checkout" on:click="navigateFromClick">Checkout</a>
+      <a href="/" on:click.prevent="navigateFromClick">Storefront</a>
+      <a href="/checkout" on:click.prevent="navigateFromClick">Checkout</a>
     </nav>
     <div class="header-actions">
       <button class="ghost-btn" type="button" on:click="actions.openPalette">Command Menu</button>
       <button class="ghost-btn" type="button" on:click="actions.toggleTheme">
-        {{#if state.theme$ === "light"}}Dark{{else}}Light{{/if}} Theme
+        {{#switch state.theme$}}{{#case "light"}}Dark{{/case}}{{#default}}Light{{/default}}{{/switch}} Theme
       </button>
       <button class="brand-btn" type="button" on:click="actions.openCart">Cart ({{ cart.itemCount }})</button>
     </div>
