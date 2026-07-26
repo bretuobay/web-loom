@@ -6,20 +6,30 @@ priority rationale (P5-a/b/c) and `design.md` for the sequencing diagram.
 
 ## Preconditions (must be true before any item below starts)
 
-- [ ] Phase 4 P1 (production hardening) is complete —
+- [x] Phase 4 P1 (production hardening) is complete —
       see `template-core-phase4/tasks.md` P1 block.
-- [ ] Phase 4 P2's "Build a Vite precompile plugin on top of the canonical
+- [x] Phase 4 P2's "Build a Vite precompile plugin on top of the canonical
       compiler API" is complete — see `template-core-phase4/tasks.md:43`.
 
 ## P5-a — Editor syntax highlighting (cheapest validation step)
 
-- [ ] Write a TextMate grammar (or injection grammar) covering `{{ }}`,
+- [x] Write a TextMate grammar (or injection grammar) covering `{{ }}`,
       `{{#if}}/{{#each}}/{{#switch}}`, and `on:`/`:`/`class:`/`style:` attribute
-      forms, layered over `text.html.basic`.
-- [ ] Ship it as an injection grammar for `compile(\`...\`)` strings in `.ts`
+      forms, layered over `text.html.basic`. See
+      `packages/vscode-template-core-syntax/`. `on:`/`:`/`class:`/`style:`
+      attribute forms are verified to render sensibly via `text.html.basic`'s
+      own attribute tokenization rather than given bespoke scopes — see that
+      package's README "Known limitations" for why, and for the
+      attribute-*value* interpolation gap this implies.
+- [x] Ship it as an injection grammar for `compile(\`...\`)` strings in `.ts`
       files first — this requires no `.loom` file format and no build tooling.
+      Injects into `source.ts`/`.tsx`/`.js`/`.jsx`; not published to the
+      Marketplace (local/dev-install only — see package README).
 - [ ] Gather real usage signal (does this alone resolve the DX complaint that
-      motivated this phase?) before starting P5-b.
+      motivated this phase?) before starting P5-b. Not yet — this requires
+      real developer usage over time, not something satisfiable in the same
+      pass as writing the grammar. P5-b remains un-started until this is
+      revisited.
 
 ## P5-b — `.loom` Vite loader (contingent on P5-a signal)
 
