@@ -1,0 +1,44 @@
+{
+  "name": "web-loom-template-core-syntax",
+  "displayName": "Web Loom Template Core Syntax",
+  "description": "TextMate injection grammar that highlights Web Loom template syntax ({{ }}, {{#if}}/{{#each}}/{{#switch}}, {{> partial}}, on:/:/class:/style: attributes) inside compile(`...`) template-literal strings in .ts/.js source. No .loom file format, no build tooling.",
+  "version": "0.1.0",
+  "publisher": "web-loom",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "grammars": [
+      {
+        "scopeName": "inline.web-loom-template",
+        "path": "./syntaxes/web-loom-template.tmLanguage.json",
+        "injectTo": [
+          "source.ts",
+          "source.tsx",
+          "source.js",
+          "source.jsx"
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "test": "vitest --watch=false",
+    "lint": "eslint src --ext .ts --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@types/node": "^22.15.3",
+    "eslint": "^9.39.1",
+    "typescript": "5.8.2",
+    "vitest": "^4.1.9",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
+  }
+}
