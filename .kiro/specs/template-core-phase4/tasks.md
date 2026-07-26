@@ -24,15 +24,15 @@ P3 is explicitly experimental.
 
 ## P1 — Production hardening
 
-- [ ] Add request isolation tests for SSR partial registries, diagnostics, state, and ViewModels.
-- [ ] Document and test SSR status, headers, redirects, not-found responses, exceptions, and
+- [x] Add request isolation tests for SSR partial registries, diagnostics, state, and ViewModels.
+- [x] Document and test SSR status, headers, redirects, not-found responses, exceptions, and
       graceful shutdown in the Vite adapter.
-- [ ] Review static asset serving and production error responses for path and information leaks.
-- [ ] Add browser/SSR parity tests for text, attributes, URLs, raw HTML, boolean properties, forms,
+- [x] Review static asset serving and production error responses for path and information leaks.
+- [x] Add browser/SSR parity tests for text, attributes, URLs, raw HTML, boolean properties, forms,
       SVG, and custom elements.
-- [ ] Add Trusted Types/CSP integration guidance and development warnings for raw HTML and unsafe
+- [x] Add Trusted Types/CSP integration guidance and development warnings for raw HTML and unsafe
       URL schemes.
-- [ ] Keep sanitization application-owned; do not imply that the renderer sanitizes arbitrary HTML.
+- [x] Keep sanitization application-owned; do not imply that the renderer sanitizes arbitrary HTML.
 - [x] Add real-browser mount, update, keyed-list, hydration, and disposal benchmarks.
 - [x] Add SSR and precompiled execution benchmarks with recorded environments and thresholds.
 - [x] Add repeated mount/dispose and route/outlet replacement leak tests.
