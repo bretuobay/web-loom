@@ -33,10 +33,10 @@ P3 is explicitly experimental.
 - [ ] Add Trusted Types/CSP integration guidance and development warnings for raw HTML and unsafe
       URL schemes.
 - [ ] Keep sanitization application-owned; do not imply that the renderer sanitizes arbitrary HTML.
-- [ ] Add real-browser mount, update, keyed-list, hydration, and disposal benchmarks.
-- [ ] Add SSR and precompiled execution benchmarks with recorded environments and thresholds.
-- [ ] Add repeated mount/dispose and route/outlet replacement leak tests.
-- [ ] Validate browser, SSR, compiler, and Vite package dependency and bundle boundaries.
+- [x] Add real-browser mount, update, keyed-list, hydration, and disposal benchmarks.
+- [x] Add SSR and precompiled execution benchmarks with recorded environments and thresholds.
+- [x] Add repeated mount/dispose and route/outlet replacement leak tests.
+- [x] Validate browser, SSR, compiler, and Vite package dependency and bundle boundaries.
 
 ## P2 — Tooling and integration
 
@@ -47,6 +47,9 @@ P3 is explicitly experimental.
       HTML.
 - [ ] Add source-linked diagnostic output suitable for editor integrations.
 - [ ] Publish syntax-highlighting guidance or a compatible grammar.
+      (Dedicated `.loom` template files — a separate authoring surface from
+      this string-based tooling — are tracked as a deferred, optional track;
+      see `template-core-phase5/`.)
 - [ ] Define opt-in template context declarations and helper/partial contract checks.
 - [ ] Add integration examples for the ecommerce SSR island and a client-only route outlet.
 

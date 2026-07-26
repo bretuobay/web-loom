@@ -541,6 +541,14 @@ precompilation, structured diagnostic codes and source metadata, plan-version va
 marker-aware region-scoped hydration recovery. Full static type analysis remains out of scope;
 Phase 4 P1/P2 cover production hardening and tooling.
 
+**Phase 5 — Dedicated template files (proposed, deferred):** an optional `.loom` file format as a
+second authoring surface alongside today's `compile(\`...\`)` strings — same grammar, no new
+syntax, editor syntax highlighting as the first (and only unconditional) step, a Vite loader and a
+capped context-typing spike as contingent follow-ups. Not scheduled: gated behind Phase 4 P1
+landing and Phase 4 P2's generic Vite precompile plugin, and only pursued further if the cheap
+syntax-highlighting step demonstrates real developer demand. See
+`.kiro/specs/template-core-phase5/`.
+
 ## 12. Success Criteria
 
 - A ViewModel already used by `mvvm-react` (or another existing adapter) mounts via `template-core`
