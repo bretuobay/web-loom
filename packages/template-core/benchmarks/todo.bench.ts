@@ -7,19 +7,8 @@
  * the CI-safe, environment-tolerant smoke assertion).
  */
 import { bench, describe } from 'vitest';
-import { signal } from '@web-loom/signals-core';
 import { compile } from '../src/index.js';
-
-const TODO_TEMPLATE = `
-  <div>
-    <h1>{{ title$ }}</h1>
-    <ul>
-      {{#each todos$ key=id}}
-        <li class:done="done">{{ text }}</li>
-      {{/each}}
-    </ul>
-  </div>
-`;
+import { TODO_TEMPLATE, makeTodoViewModel } from './fixtures.js';
 
 describe('todo template', () => {
   bench('compile', () => {
@@ -29,14 +18,8 @@ describe('todo template', () => {
   const template = compile(TODO_TEMPLATE);
 
   bench('initial render (10 items)', () => {
-    const vm = {
-      title$: signal('Todos'),
-      todos$: signal(
-        Array.from({ length: 10 }, (_, i) => ({ id: String(i), text: `Task ${i}`, done: i % 3 === 0 })),
-      ),
-    };
     const container = document.createElement('div');
-    const view = template.mount(container, vm);
+    const view = template.mount(container, makeTodoViewModel(10));
     view.dispose();
   });
 });

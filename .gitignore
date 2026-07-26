@@ -54,6 +54,7 @@ PHILOSOPHY-REVIEW.md
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+packages/template-core/benchmarks/browser/.results/
 
 # Storybook
 /storybook-static
