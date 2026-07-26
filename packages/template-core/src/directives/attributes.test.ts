@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { signal } from '@web-loom/signals-core';
 import { DisposalBag } from '../runtime/disposal.js';
 import { parseExpression } from '../compiler/expression.js';
@@ -21,6 +21,45 @@ describe('bindAttrInterp', () => {
     expect(el.getAttribute('src')).toBe('a.jpg');
     photo$.set('b.jpg');
     expect(el.getAttribute('src')).toBe('b.jpg');
+    bag.dispose();
+  });
+
+  it('warns via diagnostics.report when a URL-bearing attribute resolves to an unsafe scheme', () => {
+    const report = vi.fn();
+    const scope: Scope = { parent: null, self: { url: 'javascript:alert(1)' }, locals: {} };
+    const el = document.createElement('a');
+    const bag = new DisposalBag();
+    const parts: TextPart[] = [{ expr: parseExpression('url') }];
+
+    bindAttrInterp(
+      { kind: 'attr-interp', path: [0], name: 'href', parts },
+      el,
+      scope,
+      { ...ctx(), diagnostics: { report } },
+      bag,
+    );
+
+    expect(report).toHaveBeenCalledTimes(1);
+    expect(report.mock.calls[0]![0]).toMatchObject({ code: 'UNSAFE_URL_SCHEME', severity: 'warning' });
+    bag.dispose();
+  });
+
+  it('does not warn for a safe URL scheme', () => {
+    const report = vi.fn();
+    const scope: Scope = { parent: null, self: { url: 'https://example.com' }, locals: {} };
+    const el = document.createElement('a');
+    const bag = new DisposalBag();
+    const parts: TextPart[] = [{ expr: parseExpression('url') }];
+
+    bindAttrInterp(
+      { kind: 'attr-interp', path: [0], name: 'href', parts },
+      el,
+      scope,
+      { ...ctx(), diagnostics: { report } },
+      bag,
+    );
+
+    expect(report).not.toHaveBeenCalled();
     bag.dispose();
   });
 });
@@ -114,6 +153,43 @@ describe('bindPropOrAttr', () => {
       bag,
     );
     expect(el.hasAttribute('data-x')).toBe(false);
+    bag.dispose();
+  });
+
+  it('warns via diagnostics.report when a URL-bearing property resolves to an unsafe scheme', () => {
+    const report = vi.fn();
+    const scope: Scope = { parent: null, self: { url: 'javascript:alert(1)' }, locals: {} };
+    const el = document.createElement('a');
+    const bag = new DisposalBag();
+
+    bindPropOrAttr(
+      { kind: 'prop-or-attr', path: [0], name: 'href', expr: parseExpression('url') },
+      el,
+      scope,
+      { ...ctx(), diagnostics: { report } },
+      bag,
+    );
+
+    expect(report).toHaveBeenCalledTimes(1);
+    expect(report.mock.calls[0]![0]).toMatchObject({ code: 'UNSAFE_URL_SCHEME', severity: 'warning' });
+    bag.dispose();
+  });
+
+  it('does not warn for a safe URL scheme or a non-URL-bearing property', () => {
+    const report = vi.fn();
+    const scope: Scope = { parent: null, self: { url: 'https://example.com' }, locals: {} };
+    const el = document.createElement('a');
+    const bag = new DisposalBag();
+
+    bindPropOrAttr(
+      { kind: 'prop-or-attr', path: [0], name: 'href', expr: parseExpression('url') },
+      el,
+      scope,
+      { ...ctx(), diagnostics: { report } },
+      bag,
+    );
+
+    expect(report).not.toHaveBeenCalled();
     bag.dispose();
   });
 });
