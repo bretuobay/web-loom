@@ -84,4 +84,28 @@ describe('instantiate + applyBindings: end-to-end binding wiring', () => {
 
     bag.dispose();
   });
+
+  it('resolves later sibling block paths correctly when an earlier sibling block inserts content (regression)', () => {
+    // Regression test: `{{#if}}` (or raw-html/each/switch/partial) synchronously inserts
+    // sibling nodes into its parent as soon as it's bound. Resolving a later sibling's path
+    // *after* that insertion — instead of resolving every path up front against the
+    // still-pristine tree — used to walk the mutated live DOM using stale compile-time
+    // indices and crash (or silently address the wrong node). See leak.test.ts for the
+    // full sibling-block leak coverage; this test pins the underlying correctness bug.
+    const root = parseTemplate(
+      '<div>{{#if a$}}<span>cond</span>{{/if}}<ul>{{#each items$ key=id}}<li>{{ text }}</li>{{/each}}</ul></div>',
+    );
+    const vm = { a$: signal(true), items$: signal([{ id: 1, text: 'one' }, { id: 2, text: 'two' }]) };
+    const scope: Scope = { parent: null, self: vm, locals: {} };
+    const bag = new DisposalBag();
+
+    const { fragment } = instantiate(root, scope, ctx(), bag);
+    const container = document.createElement('div');
+    container.append(fragment);
+
+    expect(container.querySelector('span')!.textContent).toBe('cond');
+    expect(Array.from(container.querySelectorAll('li')).map((li) => li.textContent)).toEqual(['one', 'two']);
+
+    bag.dispose();
+  });
 });
