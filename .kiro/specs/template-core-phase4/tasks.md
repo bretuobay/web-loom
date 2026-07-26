@@ -40,7 +40,7 @@ P3 is explicitly experimental.
 
 ## P2 — Tooling and integration
 
-- [ ] Build a Vite precompile plugin on top of the canonical compiler API.
+- [x] Build a Vite precompile plugin on top of the canonical compiler API.
 - [ ] Add incremental/watch compilation and stable generated-module output.
 - [ ] Add a formatter that preserves source locations and reports syntax errors through diagnostics.
 - [ ] Add lint rules for unsupported directives, modifier conflicts, missing partials, and unsafe raw
