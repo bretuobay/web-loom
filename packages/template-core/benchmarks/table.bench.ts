@@ -8,25 +8,7 @@
 import { bench, describe } from 'vitest';
 import { signal } from '@web-loom/signals-core';
 import { compile } from '../src/index.js';
-
-interface Row {
-  id: number;
-  label: string;
-}
-
-function buildRows(count: number): Row[] {
-  return Array.from({ length: count }, (_, i) => ({ id: i, label: `row ${i}` }));
-}
-
-const TABLE_TEMPLATE = `
-  <table>
-    <tbody>
-      {{#each rows$ key=id}}
-        <tr><td>{{ id }}</td><td>{{ label }}</td></tr>
-      {{/each}}
-    </tbody>
-  </table>
-`;
+import { TABLE_TEMPLATE, buildRows } from './fixtures.js';
 
 describe('keyed table (1,000 rows)', () => {
   const template = compile(TABLE_TEMPLATE);

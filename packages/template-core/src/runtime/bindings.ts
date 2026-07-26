@@ -71,8 +71,21 @@ export function applyBindings(
   bag: DisposalBag,
 ): void {
   assertTemplateShape(template, roots);
-  for (const binding of template.bindings) {
-    const node = getNodeAt(roots, binding.path);
+
+  // Resolve every binding's and block's target node against the still-pristine `roots` tree
+  // *before* invoking any bind function. Several directives (raw-html, if, each, switch,
+  // partial) synchronously insert new sibling nodes into their parent the instant they're
+  // bound (their `effect()` runs its callback on construction). A path is a fixed child-index
+  // address computed at compile time against the original, unmutated blueprint; resolving a
+  // later sibling's path *after* an earlier directive under the same parent has already
+  // inserted content would walk the now-mutated live DOM using stale indices and silently
+  // address the wrong node (or none at all) — see runtime/leak.test.ts's sibling-block
+  // regression test for a concrete repro (an `{{#if}}` immediately followed by a sibling
+  // `{{#each}}`).
+  const resolvedBindings = template.bindings.map((binding) => ({ binding, node: getNodeAt(roots, binding.path) }));
+  const resolvedBlocks = template.blocks.map((block) => ({ block, anchor: getNodeAt(roots, block.path) as Comment }));
+
+  for (const { binding, node } of resolvedBindings) {
     switch (binding.kind) {
       case 'text':
         bindText(binding, node as Text, scope, ctx, bag);
@@ -104,8 +117,7 @@ export function applyBindings(
     }
   }
 
-  for (const block of template.blocks) {
-    const anchor = getNodeAt(roots, block.path) as Comment;
+  for (const { block, anchor } of resolvedBlocks) {
     if (block.kind === 'if') {
       bindIf(block, anchor, scope, ctx, bag);
     } else if (block.kind === 'each') {

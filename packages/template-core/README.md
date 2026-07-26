@@ -252,11 +252,28 @@ cd packages/template-core
 npm run dev            # vite build --watch
 npm run build          # vite build
 npm run test           # vitest --watch=false
-npm run bench           # vitest bench --run — PRD §10 todo/table benchmarks (reports, not CI-gated; jsdom isn't a real browser)
+npm run bench           # vitest bench --run — PRD §10 todo/table/SSR/precompiled benchmarks (reports, not CI-gated; jsdom isn't a real browser)
+npm run bench:browser   # real-Chromium mount/update/keyed-swap/hydration/disposal benchmarks (via Playwright)
 npm run size            # gzip-size check against the 20KB budget
 npm run lint            # eslint src
 npm run check-types     # tsc --noEmit
 ```
+
+## Performance
+
+Snapshot from the last `npm run bench:browser` run (real Chromium, not jsdom — see PRD §10 targets).
+This is a point-in-time recording, not a live-tracked metric: re-run the command above and update this
+table if you want a fresh number; nothing here is enforced in CI.
+
+| Scenario                           | Median  | p95    | Budget | Result |
+| ----------------------------------- | ------- | ------ | ------ | ------ |
+| Mount (todo, 10 items)              | 0.7ms   | 1.0ms  | 50ms   | PASS   |
+| Update (single signal write)        | 0.6ms   | 1.3ms  | 16ms   | PASS   |
+| Keyed-list swap (2 of 1000 rows)    | 2.6ms   | 3.4ms  | 16ms   | PASS   |
+| Hydration (todo, 10 items)          | 0.3ms   | 0.5ms  | 50ms   | PASS   |
+| Disposal (table, 1000 rows)         | 1.6ms   | 3.9ms  | 16ms   | PASS   |
+
+Recorded 2026-07-26 · Chromium 151.0.7922.34 · Node v24.13.1 · Linux (WSL2) · Intel i5-1135G7.
 
 ## Package relationships
 

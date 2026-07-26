@@ -24,29 +24,32 @@ P3 is explicitly experimental.
 
 ## P1 — Production hardening
 
-- [ ] Add request isolation tests for SSR partial registries, diagnostics, state, and ViewModels.
-- [ ] Document and test SSR status, headers, redirects, not-found responses, exceptions, and
+- [x] Add request isolation tests for SSR partial registries, diagnostics, state, and ViewModels.
+- [x] Document and test SSR status, headers, redirects, not-found responses, exceptions, and
       graceful shutdown in the Vite adapter.
-- [ ] Review static asset serving and production error responses for path and information leaks.
-- [ ] Add browser/SSR parity tests for text, attributes, URLs, raw HTML, boolean properties, forms,
+- [x] Review static asset serving and production error responses for path and information leaks.
+- [x] Add browser/SSR parity tests for text, attributes, URLs, raw HTML, boolean properties, forms,
       SVG, and custom elements.
-- [ ] Add Trusted Types/CSP integration guidance and development warnings for raw HTML and unsafe
+- [x] Add Trusted Types/CSP integration guidance and development warnings for raw HTML and unsafe
       URL schemes.
-- [ ] Keep sanitization application-owned; do not imply that the renderer sanitizes arbitrary HTML.
-- [ ] Add real-browser mount, update, keyed-list, hydration, and disposal benchmarks.
-- [ ] Add SSR and precompiled execution benchmarks with recorded environments and thresholds.
-- [ ] Add repeated mount/dispose and route/outlet replacement leak tests.
-- [ ] Validate browser, SSR, compiler, and Vite package dependency and bundle boundaries.
+- [x] Keep sanitization application-owned; do not imply that the renderer sanitizes arbitrary HTML.
+- [x] Add real-browser mount, update, keyed-list, hydration, and disposal benchmarks.
+- [x] Add SSR and precompiled execution benchmarks with recorded environments and thresholds.
+- [x] Add repeated mount/dispose and route/outlet replacement leak tests.
+- [x] Validate browser, SSR, compiler, and Vite package dependency and bundle boundaries.
 
 ## P2 — Tooling and integration
 
-- [ ] Build a Vite precompile plugin on top of the canonical compiler API.
+- [x] Build a Vite precompile plugin on top of the canonical compiler API.
 - [ ] Add incremental/watch compilation and stable generated-module output.
 - [ ] Add a formatter that preserves source locations and reports syntax errors through diagnostics.
 - [ ] Add lint rules for unsupported directives, modifier conflicts, missing partials, and unsafe raw
       HTML.
 - [ ] Add source-linked diagnostic output suitable for editor integrations.
 - [ ] Publish syntax-highlighting guidance or a compatible grammar.
+      (Dedicated `.loom` template files — a separate authoring surface from
+      this string-based tooling — are tracked as a deferred, optional track;
+      see `template-core-phase5/`.)
 - [ ] Define opt-in template context declarations and helper/partial contract checks.
 - [ ] Add integration examples for the ecommerce SSR island and a client-only route outlet.
 

@@ -14,6 +14,17 @@ import type {
   TemplateRegistry,
 } from '../types.js';
 
+/**
+ * Browser-only default partial registry, used when `compile()` (this module's
+ * export, the `.` package entry) isn't given an explicit `registry` option.
+ *
+ * This is never consulted by `@web-loom/template-core/ssr` — `ServerTemplate`
+ * builds a fresh `RenderContext` per call with `registry: options.registry`
+ * and no fallback to this singleton (see `ssr/server.ts`'s
+ * `renderNodesFromContext`). Registering a partial here from server code has
+ * no effect on SSR output; SSR request isolation does not depend on this
+ * registry ever being empty or unused.
+ */
 const globalRegistry = createTemplateRegistry();
 
 class TemplateImpl<TVm extends object> implements Template<TVm> {
@@ -212,9 +223,11 @@ export function getTemplateRoot(template: Template): RootTemplate {
   return template.root;
 }
 
+/** Browser-only. Mutates the module-level {@link globalRegistry} — has no effect on SSR renders. */
 export function registerPartial(name: string, source: string | Template): void {
   globalRegistry.set(name, source);
 }
+/** Browser-only. Mutates the module-level {@link globalRegistry} — has no effect on SSR renders. */
 export function unregisterPartial(name: string): void {
   globalRegistry.delete(name);
 }

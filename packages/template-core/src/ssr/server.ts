@@ -4,6 +4,7 @@ import { tokenizeText } from '../compiler/text.js';
 import { parseExpression } from '../compiler/expression.js';
 import { evaluate, truthy } from '../runtime/evaluate.js';
 import { reportDiagnostic } from '../runtime/diagnostics.js';
+import { isDangerousUrlScheme, isUrlBearingAttribute } from '../runtime/url-safety.js';
 import type { RenderContext, Scope, SerializableNode, SerializableRootTemplate, TemplateOptions } from '../types.js';
 
 type Node = DefaultTreeAdapterTypes.ChildNode;
@@ -85,11 +86,38 @@ function findClose(
   throw new Error(`Unclosed SSR block {{#${open}}}.`);
 }
 
+function warnIfUnsafeUrl(ctx: RenderContext, name: string, value: string): void {
+  if (!isUrlBearingAttribute(name) || !isDangerousUrlScheme(value)) return;
+  reportDiagnostic(ctx, {
+    code: 'UNSAFE_URL_SCHEME',
+    severity: 'warning',
+    message:
+      `Attribute "${name}" was bound to a value with a potentially unsafe URL scheme. template-core does ` +
+      'not validate or sanitize URLs — allow-list http(s)/mailto/tel schemes in the ViewModel before ' +
+      'binding untrusted URLs. See docs/PRD.md §9 (Security).',
+    template: ctx.templateName,
+    sourcePath: ctx.sourcePath,
+    details: { attribute: name },
+  });
+}
+
 function renderParts(text: string, scope: Scope, ctx: RenderContext): string {
   const token = tokenizeText(text);
   if (token.kind === 'static') return escapeHtml(token.value);
-  if (token.kind === 'raw-html')
-    return `<${'!--loom:raw-html--'}>${stringify(evaluate(token.expr, scope, ctx.helpers))}`;
+  if (token.kind === 'raw-html') {
+    const html = stringify(evaluate(token.expr, scope, ctx.helpers));
+    reportDiagnostic(ctx, {
+      code: 'RAW_HTML_UNSANITIZED',
+      severity: 'warning',
+      message:
+        'A {{{ }}} raw-HTML binding rendered without sanitization. template-core does not sanitize HTML ' +
+        'content — sanitize untrusted values in the ViewModel before binding, and consider a Trusted Types ' +
+        'policy under CSP. See docs/PRD.md §9 (Security).',
+      template: ctx.templateName,
+      sourcePath: ctx.sourcePath,
+    });
+    return `<${'!--loom:raw-html--'}>${html}`;
+  }
   return token.parts
     .map((part) => ('static' in part ? escapeHtml(part.static) : escapeHtml(evaluate(part.expr, scope, ctx.helpers))))
     .join('');
@@ -116,7 +144,11 @@ function renderAttributes(element: Element, scope: Scope, ctx: RenderContext): s
       const valueResult = evaluate(parseExpression(value), scope, ctx.helpers);
       if (bindName === 'checked') {
         if (truthy(valueResult)) attrs.set('checked', '');
-      } else if (valueResult != null) attrs.set('value', String(valueResult));
+      } else if (valueResult != null) {
+        const stringValue = String(valueResult);
+        warnIfUnsafeUrl(ctx, 'value', stringValue);
+        attrs.set('value', stringValue);
+      }
       continue;
     }
     if (name.startsWith(':')) {
@@ -124,18 +156,24 @@ function renderAttributes(element: Element, scope: Scope, ctx: RenderContext): s
       const attrValue = evaluate(parseExpression(value), scope, ctx.helpers);
       if (typeof attrValue === 'boolean') {
         if (attrValue) attrs.set(attrName, '');
-      } else if (attrValue != null) attrs.set(attrName, String(attrValue));
+      } else if (attrValue != null) {
+        const stringValue = String(attrValue);
+        warnIfUnsafeUrl(ctx, attrName, stringValue);
+        attrs.set(attrName, stringValue);
+      }
       continue;
     }
     const token = tokenizeText(value);
     if (token.kind === 'text') {
-      attrs.set(
-        name,
-        token.parts
-          .map((part) => ('static' in part ? part.static : stringify(evaluate(part.expr, scope, ctx.helpers))))
-          .join(''),
-      );
+      const stringValue = token.parts
+        .map((part) => ('static' in part ? part.static : stringify(evaluate(part.expr, scope, ctx.helpers))))
+        .join('');
+      warnIfUnsafeUrl(ctx, name, stringValue);
+      attrs.set(name, stringValue);
     } else if (token.kind === 'static') {
+      // No {{ }} interpolation at all — literal, author-controlled markup, not a "binding" of
+      // potentially-untrusted data. Matches the browser path: bindAttrInterp only runs for
+      // attributes containing interpolation, so a purely-static attribute never warns there either.
       attrs.set(name, value);
     }
   }

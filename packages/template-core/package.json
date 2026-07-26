@@ -64,7 +64,8 @@
     "check-types": "tsc --noEmit",
     "size": "node scripts/check-size.mjs",
     "precompile": "node scripts/precompile.mjs",
-    "bench": "vitest bench --run"
+    "bench": "vitest bench --run",
+    "bench:browser": "npm run build && node benchmarks/browser/run.mjs"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
@@ -73,6 +74,7 @@
     "@web-loom/mvvm-core": "*",
     "eslint": "^9.39.1",
     "jsdom": "^26.1.0",
+    "playwright": "^1.62.0",
     "typescript": "5.8.2",
     "vite": "^6.4.3",
     "vite-plugin-dts": "^5.0.3",

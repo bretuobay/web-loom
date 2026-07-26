@@ -39,6 +39,30 @@ describe('server rendering', () => {
     expect(() => compile('{{> missing}}', { strictPartials: true }).renderToString({})).toThrow(/Missing partial/);
   });
 
+  it('warns on raw-HTML rendering without sanitizing it', () => {
+    const report = vi.fn();
+    const html = compile('<div>{{{ dangerousHtml }}}</div>', { diagnostics: { report } }).renderToString({
+      dangerousHtml: '<em>hi</em>',
+    });
+    expect(html).toContain('<em>hi</em>');
+    expect(report).toHaveBeenCalledWith(expect.objectContaining({ code: 'RAW_HTML_UNSANITIZED', severity: 'warning' }));
+  });
+
+  it('warns on an unsafe URL scheme bound into a URL-bearing attribute, without blocking it', () => {
+    const report = vi.fn();
+    const html = compile('<a href="{{ jsUrl }}">link</a>', { diagnostics: { report } }).renderToString({
+      jsUrl: 'javascript:alert(1)',
+    });
+    expect(html).toContain('href="javascript:alert(1)"');
+    expect(report).toHaveBeenCalledWith(expect.objectContaining({ code: 'UNSAFE_URL_SCHEME', severity: 'warning' }));
+  });
+
+  it('does not warn for a safe URL scheme', () => {
+    const report = vi.fn();
+    compile('<a :href="url">link</a>', { diagnostics: { report } }).renderToString({ url: 'https://example.com' });
+    expect(report).not.toHaveBeenCalled();
+  });
+
   it('renders precompiled plans through the SSR compiler', () => {
     const module = precompile('<p>{{ message }}</p>', { name: 'Precompiled' });
     expect(fromPrecompiled(module).renderToString({ message: 'hello' })).toBe('<p>hello</p>');

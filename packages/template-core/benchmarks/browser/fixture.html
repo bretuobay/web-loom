@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>template-core browser benchmarks</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@web-loom/template-core": "/template-core/index.es.js",
+          "@web-loom/signals-core": "/signals-core/index.es.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="container"></div>
+    <script type="module">
+      import { compile } from '@web-loom/template-core';
+      import { signal } from '@web-loom/signals-core';
+
+      const TODO_TEMPLATE = `
+        <div>
+          <h1>{{ title$ }}</h1>
+          <ul>
+            {{#each todos$ key=id}}
+              <li class:done="done">{{ text }}</li>
+            {{/each}}
+          </ul>
+        </div>
+      `;
+
+      function makeTodoItems(n) {
+        return Array.from({ length: n }, (_, i) => ({ id: String(i), text: `Task ${i}`, done: i % 3 === 0 }));
+      }
+
+      function makeTodoViewModel(n) {
+        return { title$: signal('Todos'), todos$: signal(makeTodoItems(n)) };
+      }
+
+      const TABLE_TEMPLATE = `
+        <table>
+          <tbody>
+            {{#each rows$ key=id}}
+              <tr><td>{{ id }}</td><td>{{ label }}</td></tr>
+            {{/each}}
+          </tbody>
+        </table>
+      `;
+
+      function buildRows(n) {
+        return Array.from({ length: n }, (_, i) => ({ id: i, label: `row ${i}` }));
+      }
+
+      const todoTemplate = compile(TODO_TEMPLATE);
+      const tableTemplate = compile(TABLE_TEMPLATE);
+      const container = document.getElementById('container');
+
+      const scenarios = {
+        mount() {
+          container.innerHTML = '';
+          const t0 = performance.now();
+          const view = todoTemplate.mount(container, makeTodoViewModel(10));
+          const t1 = performance.now();
+          view.dispose();
+          return t1 - t0;
+        },
+        update() {
+          container.innerHTML = '';
+          const rows$ = signal(buildRows(1000));
+          const view = tableTemplate.mount(container, { rows$ });
+          const rows = rows$.get();
+          const t0 = performance.now();
+          rows$.set(rows.map((row, i) => (i === 500 ? { ...row, label: `${row.label}!` } : row)));
+          const t1 = performance.now();
+          view.dispose();
+          return t1 - t0;
+        },
+        'keyed-list-swap'() {
+          container.innerHTML = '';
+          const rows = buildRows(1000);
+          const rows$ = signal(rows);
+          const view = tableTemplate.mount(container, { rows$ });
+          const swapped = rows.slice();
+          const tmp = swapped[1];
+          swapped[1] = swapped[998];
+          swapped[998] = tmp;
+          const t0 = performance.now();
+          rows$.set(swapped);
+          const t1 = performance.now();
+          view.dispose();
+          return t1 - t0;
+        },
+        disposal() {
+          container.innerHTML = '';
+          const rows$ = signal(buildRows(1000));
+          const view = tableTemplate.mount(container, { rows$ });
+          const t0 = performance.now();
+          view.dispose();
+          const t1 = performance.now();
+          return t1 - t0;
+        },
+        hydration(ssrHtml) {
+          container.innerHTML = ssrHtml;
+          const t0 = performance.now();
+          const view = todoTemplate.hydrate(container, makeTodoViewModel(10));
+          const t1 = performance.now();
+          view.dispose();
+          return t1 - t0;
+        },
+      };
+
+      window.__runScenario = async (name, payload) => {
+        const fn = scenarios[name];
+        if (!fn) throw new Error(`Unknown scenario: ${name}`);
+        return { ms: fn(payload) };
+      };
+
+      window.__ready = true;
+    </script>
+  </body>
+</html>

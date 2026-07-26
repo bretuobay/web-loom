@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { signal } from '@web-loom/signals-core';
 import { DisposalBag } from '../runtime/disposal.js';
 import { parseExpression } from '../compiler/expression.js';
@@ -98,5 +98,26 @@ describe('bindRawHtml', () => {
     expect(container.querySelector('span')).not.toBeNull();
     bag.dispose();
     expect(container.querySelector('span')).toBeNull();
+  });
+
+  it('warns via diagnostics.report on every raw-HTML render (no sanitization implied)', () => {
+    const report = vi.fn();
+    const scope: Scope = { parent: null, self: { html: '<span>x</span>' }, locals: {} };
+    const container = document.createElement('div');
+    const anchor = document.createComment('loom:raw-html');
+    container.appendChild(anchor);
+    const bag = new DisposalBag();
+
+    bindRawHtml(
+      { kind: 'raw-html', path: [0], expr: parseExpression('html') },
+      anchor,
+      scope,
+      { ...ctx(), diagnostics: { report } },
+      bag,
+    );
+
+    expect(report).toHaveBeenCalledTimes(1);
+    expect(report.mock.calls[0]![0]).toMatchObject({ code: 'RAW_HTML_UNSANITIZED', severity: 'warning' });
+    bag.dispose();
   });
 });

@@ -1,10 +1,27 @@
 import { effect } from '@web-loom/signals-core';
 import { evaluate } from '../runtime/evaluate.js';
+import { reportDiagnostic } from '../runtime/diagnostics.js';
+import { isDangerousUrlScheme, isUrlBearingAttribute } from '../runtime/url-safety.js';
 import type { DisposalBag } from '../runtime/disposal.js';
 import type { BindingRecord, RenderContext, Scope } from '../types.js';
 
 function stringify(value: unknown): string {
   return value == null ? '' : String(value);
+}
+
+function warnIfUnsafeUrl(ctx: RenderContext, name: string, value: string): void {
+  if (!isUrlBearingAttribute(name) || !isDangerousUrlScheme(value)) return;
+  reportDiagnostic(ctx, {
+    code: 'UNSAFE_URL_SCHEME',
+    severity: 'warning',
+    message:
+      `Attribute "${name}" was bound to a value with a potentially unsafe URL scheme. template-core does ` +
+      'not validate or sanitize URLs — allow-list http(s)/mailto/tel schemes in the ViewModel before ' +
+      'binding untrusted URLs. See docs/PRD.md §9 (Security).',
+    template: ctx.templateName,
+    sourcePath: ctx.sourcePath,
+    details: { attribute: name },
+  });
 }
 
 /** A plain attribute containing `{{ }}` interpolation, e.g. `src="{{ photo$ }}"`. */
@@ -19,6 +36,7 @@ export function bindAttrInterp(
     const value = record.parts
       .map((part) => ('static' in part ? part.static : stringify(evaluate(part.expr, scope, ctx.helpers))))
       .join('');
+    warnIfUnsafeUrl(ctx, record.name, value);
     el.setAttribute(record.name, value);
   });
   bag.add(handle.dispose);
@@ -38,7 +56,9 @@ export function bindPropOrAttr(
   bag: DisposalBag,
 ): void {
   const handle = effect(() => {
-    applyPropOrAttr(el, record.name, evaluate(record.expr, scope, ctx.helpers));
+    const value = evaluate(record.expr, scope, ctx.helpers);
+    if (typeof value === 'string') warnIfUnsafeUrl(ctx, record.name, value);
+    applyPropOrAttr(el, record.name, value);
   });
   bag.add(handle.dispose);
 }

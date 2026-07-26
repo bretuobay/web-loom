@@ -484,6 +484,25 @@ markup, so classic markup-injection vectors don't exist outside `{{{ }}}`. Two r
   engine runs under a strict CSP with no `unsafe-eval` — a concrete advantage over Alpine-style
   runtime engines.
 
+**Development warnings.** Both renderers emit a `warning`-severity diagnostic through the existing
+`diagnostics.warn`/`diagnostics.report` hooks (defaulting to `console.warn`) whenever a binding hits
+one of the two situations above: `RAW_HTML_UNSANITIZED` on every `{{{ }}}` evaluation, and
+`UNSAFE_URL_SCHEME` when a `javascript:`/`vbscript:`/`data:text/html` value is bound into a
+URL-bearing attribute (`href`, `src`, `action`, `formaction`, `poster`, `cite`, `background`,
+`xlink:href`, `data`). These are warnings, not blocks — the binding still renders exactly as
+authored, and template-core still does not sanitize or validate anything. An app that wants to
+silence a specific warning class can supply a custom `diagnostics.warn`/`report` that filters on
+`code`.
+
+**Trusted Types / CSP.** `{{{ }}}` assigns to `innerHTML`-equivalent DOM APIs, which a page running a
+Trusted Types–enforcing CSP policy will block unless the bound value is already a `TrustedHTML` (or
+the app registers a default policy). Sanitize/convert untrusted HTML to `TrustedHTML` in the
+ViewModel — e.g. via `DOMPurify.sanitize(input, { RETURN_TRUSTED_TYPE: true })` or a custom
+`trustedTypes.createPolicy(...)` — before it reaches the binding. template-core has no Trusted Types
+integration of its own, and none is planned: **template-core does not, and will not, sanitize
+arbitrary HTML** — this section is guidance for where that responsibility belongs, not a claim that
+the engine performs it.
+
 ## 10. Performance Targets
 
 | Metric                                | Target                                              |
@@ -521,6 +540,14 @@ anchors), initial serializable precompilation, and development diagnostics.
 precompilation, structured diagnostic codes and source metadata, plan-version validation, and
 marker-aware region-scoped hydration recovery. Full static type analysis remains out of scope;
 Phase 4 P1/P2 cover production hardening and tooling.
+
+**Phase 5 — Dedicated template files (proposed, deferred):** an optional `.loom` file format as a
+second authoring surface alongside today's `compile(\`...\`)` strings — same grammar, no new
+syntax, editor syntax highlighting as the first (and only unconditional) step, a Vite loader and a
+capped context-typing spike as contingent follow-ups. Not scheduled: gated behind Phase 4 P1
+landing and Phase 4 P2's generic Vite precompile plugin, and only pursued further if the cheap
+syntax-highlighting step demonstrates real developer demand. See
+`.kiro/specs/template-core-phase5/`.
 
 ## 12. Success Criteria
 
