@@ -14,6 +14,10 @@ export interface SsrRenderResult {
   head?: string;
   state?: unknown;
   status?: number;
+  /** Extra response headers to set. Applied after the default `Content-Type`, so these can override it. */
+  headers?: Record<string, string | string[]>;
+  /** When set, the response is a redirect and no document body is rendered. Status defaults to 302. */
+  redirect?: { location: string; status?: number };
 }
 
 export interface SsrEntryModule {
@@ -74,27 +78,49 @@ async function sendDocument(
     if (vite) template = await vite.transformIndexHtml(url, template);
     const entry = await loadEntry(options.root, options.entry, vite);
     const result = await entry.render({ url, method: req.method ?? 'GET', headers: req.headers });
+
+    if (result.redirect) {
+      res.statusCode = result.redirect.status ?? 302;
+      res.setHeader('Location', result.redirect.location);
+      res.end();
+      return;
+    }
+
     res.statusCode = result.status ?? 200;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    for (const [name, value] of Object.entries(result.headers ?? {})) res.setHeader(name, value);
     res.end(renderDocument(template, result));
   } catch (error) {
     if (vite && error instanceof Error) vite.ssrFixStacktrace(error);
+    const isProduction = (options.mode ?? 'development') === 'production';
+    console.error('[template-core-vite-ssr] SSR render failed:', error);
     res.statusCode = 500;
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.end(error instanceof Error ? (error.stack ?? error.message) : String(error));
+    res.end(
+      isProduction ? 'Internal Server Error' : error instanceof Error ? (error.stack ?? error.message) : String(error),
+    );
   }
 }
+
+/**
+ * 'served' — the asset was found and written to `res`.
+ * 'not-found' — the request looked like an asset request (had an extension) but no file matched;
+ * the caller should respond 404, not fall through to `sendDocument`.
+ * 'skip' — not an asset request at all (no extension, e.g. an app route); the caller should
+ * fall through to `sendDocument` as before.
+ */
+type StaticAssetResult = 'served' | 'not-found' | 'skip';
 
 async function serveStaticAsset(
   req: IncomingMessage,
   res: ServerResponse,
   options: TemplateCoreViteSsrOptions,
-): Promise<boolean> {
+): Promise<StaticAssetResult> {
   const pathname = new URL(req.url ?? '/', 'http://template-core.local').pathname;
-  if (pathname === '/' || !extname(pathname)) return false;
+  if (pathname === '/' || !extname(pathname)) return 'skip';
   const publicRoot = resolve(options.root, options.clientOutDir ?? 'dist/client');
   const assetPath = resolve(publicRoot, `.${pathname}`);
-  if (relative(publicRoot, assetPath).startsWith('..')) return false;
+  if (relative(publicRoot, assetPath).startsWith('..')) return 'not-found';
   try {
     const body = await readFile(assetPath);
     const contentTypes: Record<string, string> = {
@@ -109,9 +135,9 @@ async function serveStaticAsset(
     res.statusCode = 200;
     res.setHeader('Content-Type', contentTypes[extname(assetPath)] ?? 'application/octet-stream');
     res.end(body);
-    return true;
+    return 'served';
   } catch {
-    return false;
+    return 'not-found';
   }
 }
 
@@ -148,7 +174,16 @@ export async function createTemplateCoreViteSsrServer(
       });
       if (handled || res.writableEnded) return;
     }
-    if (!vite && (await serveStaticAsset(req, res, options))) return;
+    if (!vite) {
+      const assetResult = await serveStaticAsset(req, res, options);
+      if (assetResult === 'served') return;
+      if (assetResult === 'not-found') {
+        res.statusCode = 404;
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.end('Not Found');
+        return;
+      }
+    }
     await sendDocument(req, res, options, vite);
   });
 
@@ -169,5 +204,32 @@ export async function createTemplateCoreViteSsrServer(
         server.close((error) => (error ? reject(error) : resolveClose()));
       });
     },
+  };
+}
+
+/**
+ * Registers `SIGINT`/`SIGTERM` handlers that close the server (and the Vite dev server, if any)
+ * before exiting. Opt-in — not wired automatically by {@link createTemplateCoreViteSsrServer} —
+ * since a library must not unilaterally claim process signals for a process it doesn't own (e.g.
+ * an app running inside a supervisor with its own shutdown sequencing, or multiple servers in one
+ * process). Returns a function that removes the registered listeners.
+ */
+export function attachGracefulShutdown(
+  server: TemplateCoreViteSsrServer,
+  options: { signals?: NodeJS.Signals[] } = {},
+): () => void {
+  const signals = options.signals ?? ['SIGINT', 'SIGTERM'];
+  let shuttingDown = false;
+  const handler = (): void => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    void server
+      .close()
+      .catch((error: unknown) => console.error('[template-core-vite-ssr] error during graceful shutdown:', error))
+      .finally(() => process.exit(0));
+  };
+  for (const signal of signals) process.on(signal, handler);
+  return () => {
+    for (const signal of signals) process.off(signal, handler);
   };
 }
