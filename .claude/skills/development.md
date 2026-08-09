@@ -51,7 +51,6 @@ cd apps/mvvm-vanilla && npm run dev
 # Feature Apps
 cd apps/task-flow-ui && npm run dev      # Port 5178
 cd apps/plugin-react && npm run dev
-cd apps/ui-patterns-playground && npm run dev
 cd apps/mvvm-react-integrated && npm run dev
 ```
 

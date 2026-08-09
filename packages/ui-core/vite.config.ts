@@ -15,12 +15,17 @@ export default defineConfig({
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
         // Individual behavior entries for tree-shaking
+        'behaviors/index': resolve(__dirname, 'src/behaviors/index.ts'),
         'behaviors/dialog': resolve(__dirname, 'src/behaviors/dialog.ts'),
         'behaviors/disclosure': resolve(__dirname, 'src/behaviors/disclosure.ts'),
         'behaviors/form': resolve(__dirname, 'src/behaviors/form.ts'),
         'behaviors/list-selection': resolve(__dirname, 'src/behaviors/list-selection.ts'),
         'behaviors/roving-focus': resolve(__dirname, 'src/behaviors/roving-focus.ts'),
-        modal: resolve(__dirname, 'src/modal/index.ts'),
+        'behaviors/keyboard-shortcuts': resolve(__dirname, 'src/behaviors/keyboard-shortcuts.ts'),
+        'behaviors/drag-drop': resolve(__dirname, 'src/behaviors/drag-drop.ts'),
+        'behaviors/undo-redo-stack': resolve(__dirname, 'src/behaviors/undo-redo-stack.ts'),
+        'modal/index': resolve(__dirname, 'src/modal/index.ts'),
+        'table/index': resolve(__dirname, 'src/table/index.ts'),
         // Framework adapters
         'adapters/react': resolve(__dirname, 'src/adapters/react/index.ts'),
         'adapters/vue': resolve(__dirname, 'src/adapters/vue/index.ts'),
