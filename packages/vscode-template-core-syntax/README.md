@@ -61,9 +61,11 @@ work than this first pass — see "Known limitations" below.
   `template-core-phase5/requirements.md`); this grammar only covers the
   injection-into-`.ts`-strings case, which is explicitly the cheaper, first
   step.
-- **No in-editor diagnostics or go-to-definition.** Syntax highlighting only
-  — that tier would need a real language server and is out of scope for this
-  phase (see `template-core-phase5/design.md` §2).
+- **No in-editor diagnostics or go-to-definition** from syntax highlighting alone — use
+  **ESLint** (`@web-loom/template-core-lint`) for squiggles, or the **`template-core` problem
+  matcher** for Vite `dev: 'analyze'` terminal output (see
+  [`packages/template-core/docs/editor-diagnostics.md`](../template-core/docs/editor-diagnostics.md)).
+  Full LSP is out of scope for this phase.
 
 ## Try it locally
 
