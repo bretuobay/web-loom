@@ -2,12 +2,19 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import dts from 'vite-plugin-dts';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   resolve: {
-    alias: {
-      '@web-loom/query-core': resolve(__dirname, '../query-core/src/index.ts'),
-      '@web-loom/signals-core': resolve(__dirname, '../signals-core/src/index.ts'),
-    },
+    // Only alias to sibling source for dev/test (fast iteration without a
+    // prebuilt dist). The production build must resolve these as real
+    // external packages, or vite-plugin-dts bakes the aliased source path
+    // into the shipped .d.ts instead of the package's own type exports.
+    alias:
+      command === 'build'
+        ? {}
+        : {
+            '@web-loom/query-core': resolve(__dirname, '../query-core/src/index.ts'),
+            '@web-loom/signals-core': resolve(__dirname, '../signals-core/src/index.ts'),
+          },
   },
   build: {
     outDir: 'dist',
@@ -35,8 +42,8 @@ export default defineConfig({
       insertTypesEntry: true,
       outDir: 'dist',
       tsconfigPath: './tsconfig.json',
-      rollupTypes: true,
+      rollupTypes: false,
       exclude: ['**/*.test.ts', '**/*.spec.ts', '**/examples/**'],
     }),
   ],
-});
+}));
