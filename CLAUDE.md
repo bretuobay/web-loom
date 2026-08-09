@@ -56,7 +56,6 @@ apps/
   ├── task-flow-api/           # TaskFlow API backend
   ├── plugin-react/            # Plugin host application
   ├── plugin-docs/             # Plugin system documentation
-  ├── ui-patterns-playground/  # UI patterns playground
   ├── api/                     # Express + SQLite backend
   └── docs/                    # Next.js documentation site
 
