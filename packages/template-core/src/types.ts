@@ -222,6 +222,37 @@ export interface PrecompileOptions {
   sourcePath?: string;
 }
 
+/** Options for Node-safe {@link analyzeTemplate} — extends precompile metadata with static checks. */
+export interface AnalyzeOptions extends PrecompileOptions {
+  /** When provided, unresolved `{{> name }}` references emit `MISSING_PARTIAL` diagnostics. */
+  partials?: Record<string, PartialSource>;
+  /** Treat missing partials as errors instead of warnings during analysis. */
+  strictPartials?: boolean;
+}
+
+export interface AnalyzeResult {
+  /** False when any diagnostic has `severity: 'error'`. */
+  ok: boolean;
+  plan: SerializableTemplatePlan;
+  diagnostics: TemplateDiagnostic[];
+}
+
+/** Options for Node-safe {@link formatTemplate}. */
+export interface FormatTemplateOptions extends AnalyzeOptions {
+  /** Spaces per indent level (default 2). */
+  indent?: number;
+}
+
+export interface FormatTemplateResult {
+  /** False when any diagnostic has `severity: 'error'`. */
+  ok: boolean;
+  /** Present when {@link ok} is true. */
+  formatted?: string;
+  diagnostics: TemplateDiagnostic[];
+  /** True when formatted output equals input (after trailing newline normalization). */
+  unchanged?: boolean;
+}
+
 export interface PrecompiledTemplateModule {
   plan: SerializableTemplatePlan;
 }

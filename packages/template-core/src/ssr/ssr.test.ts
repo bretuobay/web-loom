@@ -4,6 +4,7 @@ import { compile as compileBrowser, fromPrecompiled as fromPrecompiledBrowser } 
 import { compile, fromPrecompiled } from './index.js';
 import { precompile } from '../compiler/index.js';
 import { precompileNode } from '../compiler/node.js';
+import { TemplateSyntaxError } from '../errors.js';
 
 describe('server rendering', () => {
   it('renders Phase 1/2 expressions and blocks without browser DOM APIs', () => {
@@ -83,10 +84,16 @@ describe('server rendering', () => {
 
   it('executes a Node-generated plan in the browser consumer', () => {
     const module = precompileNode('<p>{{ message }}</p>', { name: 'NodePlan' });
+    expect(module.plan.root?.compiled).toBe(true);
+    expect(module.plan.root?.bindings).toHaveLength(1);
     const container = document.createElement('div');
     const view = fromPrecompiledBrowser(module).mount(container, { message: 'from node' });
     expect(container.textContent).toBe('from node');
     view.dispose();
+  });
+
+  it('fails Node precompile on invalid expressions at build time', () => {
+    expect(() => precompileNode('<p>{{ count + 1 }}</p>')).toThrow(TemplateSyntaxError);
   });
 });
 

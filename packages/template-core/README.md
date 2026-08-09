@@ -1,8 +1,9 @@
 # @web-loom/template-core
 
-**Status: Phase 3 / v1.1 implemented; Phase 4 P0 implemented.** See [`docs/PRD.md`](./docs/PRD.md) and
-[`.kiro/specs/template-core-phase3/`](../../.kiro/specs/template-core-phase3/) for the specification
-and traceability records.
+**Status: Phase 4 P2 — Node-safe tooling (v1.2.0):** `analyzeTemplate`, dev analyze/precompile,
+ESLint lint, source-linked diagnostics (M4), context typing (M5), and template formatting (M3).
+Phase 3 / v1.1 and Phase 4 P0/P1 are implemented. See [`docs/PRD.md`](./docs/PRD.md) and
+[`.kiro/specs/template-core-phase4/`](../../.kiro/specs/template-core-phase4/) for traceability.
 
 ## What this is
 
@@ -179,6 +180,38 @@ the ViewModel. Nothing keeps them in sync structurally.
   — the subtlety only shows up in how each View chooses to hand its ViewModel's data to the render
   layer.
 
+### Opt-in TypeScript context typing (M5)
+
+`declareContext<T>()` types the object passed to `mount()` / `hydrate()` / `outlet.show()` — **not**
+expression paths inside template strings. See [`docs/typing-spike.md`](./docs/typing-spike.md) for the
+go/no-go on deeper checking.
+
+```ts
+import { declareContext } from '@web-loom/template-core';
+import type { PartialContexts } from '@web-loom/template-core';
+
+interface PageBindings {
+  catalog: CatalogViewModel;
+  formatMoney: (cents: number) => string;
+}
+
+type AppPartials = PartialContexts<{ 'product-card': CatalogProductDto }>;
+
+const page = declareContext<PageBindings>();
+export const storefrontTemplate = page.compile<AppPartials>(source, {
+  partials: { 'product-card': productCardTemplate },
+});
+
+// Call sites are type-checked:
+storefrontTemplate.mount(el, bindings); // bindings must satisfy PageBindings
+```
+
+Shorthand: `typedCompile<T>(source)` ≡ `compile<T>(source)`. SSR entry: `compile<T>(source)` from
+`@web-loom/template-core/ssr` (same generic, no separate factory required).
+
+Reference: [`apps/ecommerce-template-core/src/templates/`](../../apps/ecommerce-template-core/src/templates/)
+uses `declareContext<TemplateAppBindings>()`.
+
 ## SSR, hydration, and precompilation
 
 Server rendering is exposed from the DOM-free `@web-loom/template-core/ssr` entry point. It uses
@@ -213,15 +246,31 @@ import { precompile } from '@web-loom/template-core/compiler';
 const module = precompile(source, { name: 'Home', sourcePath: 'src/home.html' });
 ```
 
-The Node-safe compiler entry is used by the precompiler CLI and does not require browser globals:
+The Node-safe compiler entry is used by the precompiler CLI and Vite build plugin. It runs full
+template analysis (directives, expressions, blocks) without browser globals and returns a
+`compiled: true` plan:
 
 ```ts
-import { precompileNode } from '@web-loom/template-core/compiler-node';
+import { analyzeTemplate, formatTemplate, precompileNode } from '@web-loom/template-core/compiler-node';
+
+// Non-throwing — for lint/editor tooling
+const { ok, plan, diagnostics } = analyzeTemplate(source, {
+  name: 'Catalog',
+  sourcePath: 'src/catalog.ts',
+  partials: { card: cardSource }, // optional static partial check
+});
+if (!ok) diagnostics.forEach((d) => console.error(d));
+
+// Throwing — for build pipelines
 const module = precompileNode(source, { name: 'Home', sourcePath: 'src/home.html' });
+
+// Formatting — validate first, then pretty-print (preserves directives/expressions)
+const { ok: formatOk, formatted, unchanged } = formatTemplate(source, { indent: 2 });
 ```
 
 ```bash
 npx template-core-precompile --input src/home.html --output dist/home.plan.json --name Home
+npx template-core-format --input src/home.html --write
 ```
 
 The serialized plan is intentionally portable JSON; `@web-loom/template-core/ssr` can consume it
@@ -244,6 +293,21 @@ const template = compile(source, {
 Hydration preserves matching DOM nodes and rebuilds only the mismatched root or dynamic block
 region. A full container replacement is reserved for callers that cannot provide a structurally
 compatible root.
+
+## Tooling cookbook
+
+Step-by-step recipes for SSR islands, client outlets, Vite precompile, ESLint, dev analyze, and
+common anti-patterns: [`docs/template-core-tooling.md`](./docs/template-core-tooling.md). The
+reference implementation is [`apps/ecommerce-template-core`](../../apps/ecommerce-template-core).
+
+## Tooling docs
+
+| Guide | Contents |
+| ----- | -------- |
+| [`docs/template-core-tooling.md`](./docs/template-core-tooling.md) | Cookbook — Vite, ESLint, SSR, typing, formatting |
+| [`docs/template-formatting.md`](./docs/template-formatting.md) | M3 formatter — API, CLI, TS literal recipe, CI |
+| [`docs/editor-diagnostics.md`](./docs/editor-diagnostics.md) | M4 source-linked diagnostics — ESLint, Vite, VS Code |
+| [`docs/typing-spike.md`](./docs/typing-spike.md) | M5 `declareContext` / `PartialContexts` |
 
 ## Development
 

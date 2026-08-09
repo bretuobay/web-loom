@@ -4,14 +4,15 @@
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": false,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "files": [
     "dist",
     "scripts"
   ],
   "bin": {
-    "template-core-precompile": "./scripts/precompile.mjs"
+    "template-core-precompile": "./scripts/precompile.mjs",
+    "template-core-format": "./scripts/format.mjs"
   },
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.es.js",
@@ -70,10 +71,10 @@
   "devDependencies": {
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
+    "@types/jsdom": "^21.1.7",
     "@types/node": "^22.15.3",
     "@web-loom/mvvm-core": "*",
     "eslint": "^9.39.1",
-    "jsdom": "^26.1.0",
     "playwright": "^1.62.0",
     "typescript": "5.8.2",
     "vite": "^6.4.3",
@@ -83,6 +84,7 @@
   },
   "dependencies": {
     "@web-loom/signals-core": "*",
+    "jsdom": "^26.1.0",
     "parse5": "^7.3.0"
   }
 }

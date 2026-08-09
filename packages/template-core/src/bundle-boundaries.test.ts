@@ -9,7 +9,7 @@ const FORBIDDEN = [/from ['"]parse5['"]/, /from ['"]node:/, /require\(['"]node:/
 
 /** Node-only by design; excluded from the browser-boundary scan. */
 const EXCLUDED_DIRS = ['ssr'];
-const EXCLUDED_FILES = ['compiler/node.ts'];
+const EXCLUDED_FILES = ['compiler/node.ts', 'compiler/analyze.ts', 'compiler/dom-env.ts', 'compiler/format.ts'];
 
 function collectSourceFiles(dir: string, base = dir): string[] {
   const files: string[] = [];
