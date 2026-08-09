@@ -3,7 +3,7 @@
   "description": "Framework-agnostic form management library with Zod integration",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "version": "0.8.0",
   "type": "module",
   "files": [
