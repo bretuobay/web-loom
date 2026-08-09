@@ -2,21 +2,60 @@ import { describe, expect, it } from 'vitest';
 import { templateCorePrecompile } from './plugin.js';
 import type { Plugin } from 'vite';
 
-/** Minimal Rollup/Vite plugin-context stand-in — only `error` is used by this plugin. */
 function makeContext() {
+  const warnings: string[] = [];
   return {
+    warnings,
+    warn(message: string) {
+      warnings.push(message);
+    },
     error(message: string): never {
       throw new Error(message);
     },
   };
 }
 
-function runTransform(plugin: Plugin, code: string, id: string) {
-  const transform = plugin.transform as (this: ReturnType<typeof makeContext>, code: string, id: string) => unknown;
+function resolveApply(plugin: Plugin, command: 'build' | 'serve'): boolean {
+  const apply = plugin.apply;
+  if (typeof apply === 'function') {
+    return apply({} as never, { command, mode: command === 'build' ? 'production' : 'development' });
+  }
+  return Boolean(apply);
+}
+
+function runTransform(plugin: Plugin, code: string, id: string, command: 'build' | 'serve' = 'build') {
+  const configResolved = plugin.configResolved as ((config: { command: string }) => void) | undefined;
+  configResolved?.({ command });
+
+  const transform = plugin.transform as unknown as (
+    this: ReturnType<typeof makeContext>,
+    code: string,
+    id: string,
+  ) => unknown;
   return transform.call(makeContext(), code, id) as { code: string; map: unknown } | null;
 }
 
-describe('templateCorePrecompile plugin.transform', () => {
+describe('templateCorePrecompile plugin.apply', () => {
+  it('is active on build by default and inactive on serve', () => {
+    const plugin = templateCorePrecompile();
+    expect(resolveApply(plugin, 'build')).toBe(true);
+    expect(resolveApply(plugin, 'serve')).toBe(false);
+  });
+
+  it('is active on serve when dev analyze is enabled', () => {
+    const plugin = templateCorePrecompile({ dev: 'analyze' });
+    expect(resolveApply(plugin, 'serve')).toBe(true);
+    expect(resolveApply(plugin, 'build')).toBe(true);
+  });
+
+  it('is active on serve when dev precompile is enabled', () => {
+    const plugin = templateCorePrecompile({ dev: 'precompile' });
+    expect(resolveApply(plugin, 'serve')).toBe(true);
+    expect(resolveApply(plugin, 'build')).toBe(true);
+  });
+});
+
+describe('templateCorePrecompile plugin.transform — build', () => {
   it('rewrites a compile(`literal`) call into fromPrecompiled(plan) and adds the import', () => {
     const plugin = templateCorePrecompile();
     const code = `
@@ -83,8 +122,61 @@ export const t = compile(\`<p>{{ msg }}</p>\`);
     expect(runTransform(plugin, code, '/app/unrelated.ts')).toBeNull();
   });
 
-  it('only applies during build', () => {
+  it('fails the transform when a literal template contains an invalid expression', () => {
     const plugin = templateCorePrecompile();
-    expect(plugin.apply).toBe('build');
+    const code = `
+import { compile } from '@web-loom/template-core';
+export const broken = compile(\`<p>{{ count + 1 }}</p>\`);
+`;
+    expect(() => runTransform(plugin, code, '/app/broken.ts')).toThrow(/precompile|expression|INVALID_EXPRESSION/i);
+  });
+});
+
+describe('templateCorePrecompile plugin.transform — dev analyze', () => {
+  it('leaves source unchanged while reporting diagnostics', () => {
+    const plugin = templateCorePrecompile({ dev: 'analyze' });
+    const code = `
+import { compile } from '@web-loom/template-core';
+export const headerTemplate = compile(\`<h1>{{ title }}</h1>\`);
+`;
+    const ctx = makeContext();
+    const configResolved = plugin.configResolved as ((config: { command: string }) => void) | undefined;
+    configResolved?.({ command: 'serve' });
+    const transform = plugin.transform as unknown as (this: typeof ctx, code: string, id: string) => unknown;
+    const result = transform.call(ctx, code, '/app/header.ts');
+    expect(result).toBeNull();
+    expect(code).toContain('compile(`<h1>');
+  });
+
+  it('fails the transform for invalid expressions during dev analyze', () => {
+    const plugin = templateCorePrecompile({ dev: 'analyze' });
+    const code = `
+import { compile } from '@web-loom/template-core';
+export const broken = compile(\`<p>{{ count + 1 }}</p>\`);
+`;
+    expect(() => runTransform(plugin, code, '/app/broken.ts', 'serve')).toThrow(/INVALID_EXPRESSION/i);
+  });
+});
+
+describe('templateCorePrecompile plugin.transform — dev precompile', () => {
+  it('rewrites compile() to fromPrecompiled() during serve', () => {
+    const plugin = templateCorePrecompile({ dev: 'precompile' });
+    const code = `
+import { compile } from '@web-loom/template-core';
+export const headerTemplate = compile(\`<h1>{{ title }}</h1>\`);
+`;
+    const result = runTransform(plugin, code, '/app/header.ts', 'serve');
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('fromPrecompiled(');
+    expect(result!.code).not.toContain('compile(`<h1>');
+  });
+
+  it('fails the transform when a literal template contains an invalid expression', () => {
+    const plugin = templateCorePrecompile({ dev: 'precompile' });
+    const code = `
+import { compile } from '@web-loom/template-core';
+export const broken = compile(\`<p>{{ count + 1 }}</p>\`);
+`;
+    expect(() => runTransform(plugin, code, '/app/broken.ts', 'serve')).toThrow(/precompile|expression|INVALID_EXPRESSION/i);
   });
 });
