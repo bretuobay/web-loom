@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+set -e
+
+# Build formatter deps when dist is missing (turbo cache makes this a no-op after first run).
+if [ ! -f packages/template-core/dist/compiler-node.es.js ] || [ ! -f packages/template-core-tooling/dist/index.es.js ]; then
+  npx turbo run build \
+    --filter=@web-loom/template-core \
+    --filter=@web-loom/template-core-tooling \
+    --output-logs=errors-only
+fi
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '\.(ts|tsx)$' \
+  | grep -Ev '(^|/)(__fixtures__|__tests__|benchmarks)/|\.(test|spec)\.tsx?$' \
+  || true)
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+# shellcheck disable=SC2086
+npm run format:templates -- $STAGED
+
+for file in $STAGED; do
+  if [ -f "$file" ]; then
+    git add "$file"
+  fi
+done

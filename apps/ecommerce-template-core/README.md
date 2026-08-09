@@ -62,6 +62,7 @@ The app uses the mock ecommerce API by default, so no backend configuration is r
 ```bash
 npm test
 npm run type-check
+npm run lint
 npm run build
 npm run build:client
 npm run build:server
@@ -77,7 +78,7 @@ interaction, navigation, and disposal of the ViewModel and mounted template view
 | `src/TemplateAppViewModel.ts` | Composes state, catalog/cart ViewModels, actions, routing, and subscriptions |
 | `src/app/view.ts`             | Mounts the partial-composed shell and swaps route templates                  |
 | `src/app/bindings.ts`         | View-bound actions and element action callbacks                              |
-| `src/templates/`              | Compiled templates and Phase 2 partial composition                           |
+| `src/templates/`              | Compiled templates, `declareContext` typing, and partial composition         |
 | `src/features/catalog/`       | Product loading, filtering, and selection                                    |
 | `src/features/cart/`          | Cart state, checkout form, and cart commands                                 |
 | `src/infrastructure/`         | Mock API, event bus, and persisted UI preferences                            |
@@ -86,5 +87,7 @@ interaction, navigation, and disposal of the ViewModel and mounted template view
 | `server.ts`                   | Reusable Vite SSR server adapter entry                                       |
 
 See [`packages/template-core/README.md`](../../packages/template-core/README.md) for the complete
-template grammar and [`packages/template-core/docs/PRD.md`](../../packages/template-core/docs/PRD.md)
-for the engine design.
+template grammar, [`packages/template-core/docs/PRD.md`](../../packages/template-core/docs/PRD.md)
+for the engine design, and [`packages/template-core/docs/template-core-tooling.md`](../../packages/template-core/docs/template-core-tooling.md)
+for SSR/tooling recipes (this app is the reference implementation). Context typing:
+[`declareContext`](../../packages/template-core/docs/typing-spike.md) in `src/templates/`.

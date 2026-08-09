@@ -15,7 +15,7 @@ export default defineConfig({
       fileName: (format, entryName) => `${entryName}.${format}.js`,
     },
     rollupOptions: {
-      external: ['@web-loom/signals-core', 'parse5'],
+      external: ['@web-loom/signals-core', 'parse5', 'jsdom'],
       output: {},
     },
   },

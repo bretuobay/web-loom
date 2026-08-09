@@ -1,0 +1,45 @@
+{
+  "name": "@web-loom/template-core-lint",
+  "version": "0.1.0",
+  "description": "ESLint plugin for static analysis of @web-loom/template-core compile() templates.",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "files": ["dist"],
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js",
+      "default": "./dist/index.es.js"
+    }
+  },
+  "peerDependencies": {
+    "eslint": ">=9"
+  },
+  "dependencies": {
+    "@web-loom/template-core": "*",
+    "@web-loom/template-core-tooling": "*"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "test": "vitest --watch=false",
+    "lint": "eslint src --ext .ts --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@typescript-eslint/parser": "^8.46.0",
+    "eslint": "^9.39.1",
+    "jsdom": "^26.1.0",
+    "typescript": "5.8.2",
+    "vite": "^6.4.3",
+    "vite-plugin-dts": "^5.0.3",
+    "vitest": "^4.1.9"
+  }
+}

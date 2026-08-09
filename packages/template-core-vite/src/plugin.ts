@@ -1,82 +1,66 @@
 import { createFilter, type Plugin } from 'vite';
-import MagicString from 'magic-string';
-import { precompileNode } from '@web-loom/template-core/compiler-node';
-import { findCompileCalls } from './find-compile-calls.js';
+import { DEFAULT_SPECIFIERS, findCompileCalls } from '@web-loom/template-core-tooling';
+import { AnalyzeCache } from './analyze-cache.js';
+import { DEFAULT_EXCLUDE, DEFAULT_INCLUDE } from './constants.js';
+import { runDevAnalyze } from './dev-analyze.js';
+import { runDevPrecompile } from './dev-precompile.js';
+import { PrecompileCache } from './precompile-cache.js';
+import { transformPrecompile } from './precompile-transform.js';
 import type { TemplateCorePrecompilePluginOptions } from './types.js';
 
-const DEFAULT_INCLUDE = [/\.tsx?$/];
-const DEFAULT_EXCLUDE = [/\.(test|spec)\.tsx?$/, /__tests__\//, /__fixtures__\//, /benchmarks\//, /node_modules\//];
-const DEFAULT_SPECIFIERS = ['@web-loom/template-core', '@web-loom/template-core/ssr'];
-
-/** U+2028/U+2029 aren't escaped by JSON.stringify; some tooling in the bundle chain still chokes on them raw. */
-const LINE_SEPARATOR = String.fromCharCode(0x2028);
-const PARAGRAPH_SEPARATOR = String.fromCharCode(0x2029);
-
-function escapeJsonForEmbedding(json: string): string {
-  return json.split(LINE_SEPARATOR).join('\\u2028').split(PARAGRAPH_SEPARATOR).join('\\u2029');
-}
-
 /**
- * Vite build-time plugin: replaces `compile(\`literal\`, options?)` call sites imported
- * from `@web-loom/template-core`(/ssr) with `fromPrecompiled(plan, options?)`, embedding a
- * plan produced by `precompileNode()` so the runtime HTML parser never runs for that
- * template in the shipped bundle. Only applies during `vite build` (`apply: 'build'`) —
- * dev/serve is untouched, matching `compile()`'s existing runtime behavior. Only
- * `.tsx?` files matching a target specifier and having a literal (no `${}`) first
- * argument are rewritten; anything else (e.g. a source imported from another module) is
- * left as a normal runtime `compile()` call, not an error.
+ * Vite plugin for `@web-loom/template-core`:
  *
- * Known limitation: `precompileNode()` only parses HTML structure (parse5); it does not
- * validate `{{ }}` expressions, which are still parsed lazily on first render. A
- * malformed expression still won't fail the build — only first render, same as today.
+ * - **Build** (`vite build`): rewrites static `compile(\`...\`)` call sites to
+ *   `fromPrecompiled(plan)` via `precompileNode()`.
+ * - **Dev analyze** (`dev: 'analyze'`): runs `analyzeTemplate()` on changed files,
+ *   reports diagnostics to the terminal, and leaves source unchanged.
+ * - **Dev precompile** (`dev: 'precompile'`): same rewrite as build during `vite dev`,
+ *   with an in-memory cache for stable HMR output.
  */
 export function templateCorePrecompile(options: TemplateCorePrecompilePluginOptions = {}): Plugin {
   const include = options.include ?? DEFAULT_INCLUDE;
   const exclude = options.exclude ?? DEFAULT_EXCLUDE;
   const specifiers = options.specifiers ?? DEFAULT_SPECIFIERS;
   const filter = createFilter(include, exclude);
+  const analyzeCache = new AnalyzeCache();
+  const precompileCache = new PrecompileCache();
+
+  let devAnalyze = false;
+  let devPrecompile = false;
+  let buildMode = false;
 
   return {
-    name: 'template-core-precompile',
-    apply: 'build',
-    enforce: 'pre',
+    name: 'template-core-vite',
+    apply(_config, env) {
+      return env.command === 'build' || options.dev === 'analyze' || options.dev === 'precompile';
+    },
+    configResolved(config) {
+      devAnalyze = config.command === 'serve' && options.dev === 'analyze';
+      devPrecompile = config.command === 'serve' && options.dev === 'precompile';
+      buildMode = config.command === 'build';
+    },
     transform(code, id) {
       if (!filter(id)) return null;
       if (!specifiers.some((specifier) => code.includes(specifier))) return null;
 
-      const { matches, specifiersNeedingImport } = findCompileCalls(code, id, specifiers);
-      if (matches.length === 0) return null;
+      const found = findCompileCalls(code, id, specifiers);
+      if (found.matches.length === 0) return null;
 
-      const magicString = new MagicString(code);
-
-      for (const match of matches) {
-        let plan: unknown;
-        try {
-          plan = precompileNode(match.templateSource, { name: match.name, sourcePath: id }).plan;
-        } catch (error) {
-          this.error(
-            `template-core-precompile: failed to precompile template${match.name ? ` "${match.name}"` : ''} in ${id}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          );
-        }
-
-        const planText = escapeJsonForEmbedding(JSON.stringify({ plan }));
-        const replacement = match.optionsText
-          ? `fromPrecompiled(${planText}, ${match.optionsText})`
-          : `fromPrecompiled(${planText})`;
-
-        magicString.overwrite(match.start, match.end, replacement);
+      if (devAnalyze) {
+        runDevAnalyze(this, { cache: analyzeCache, sourcePath: id, code, matches: found.matches });
+        return null;
       }
 
-      for (const [specifier, { afterPos }] of specifiersNeedingImport) {
-        magicString.appendLeft(afterPos, `\nimport { fromPrecompiled } from '${specifier}';`);
+      if (devPrecompile) {
+        return runDevPrecompile(this, { cache: precompileCache, sourcePath: id, code, found });
       }
 
-      return {
-        code: magicString.toString(),
-        map: magicString.generateMap({ hires: true, source: id, includeContent: true }),
-      };
+      if (buildMode) {
+        return transformPrecompile(this, code, id, found);
+      }
+
+      return null;
     },
   };
 }

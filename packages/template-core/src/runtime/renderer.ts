@@ -1,4 +1,5 @@
 import { parseTemplate } from '../compiler/parser.js';
+import { syntaxErrorToDiagnostic } from '../compiler/syntax-diagnostic.js';
 import { applyBindings, instantiate } from './bindings.js';
 import { DisposalBag } from './disposal.js';
 import { createTemplateRegistry } from './registry.js';
@@ -150,9 +151,9 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
  * // later: view.dispose();
  * ```
  *
- * `TVm` documents the intended ViewModel shape at the call site; template
- * expressions are not statically checked against it (a known limitation of
- * string templates — see PRD §7).
+ * `TVm` documents the intended ViewModel shape at the call site; use
+ * {@link declareContext} for ergonomic typing. Template expression paths are not
+ * statically checked — see `docs/typing-spike.md`.
  *
  * `options.delimiters` is accepted for forward compatibility with the PRD's
  * public API but is not yet implemented in Phase 1 — templates always use
@@ -163,22 +164,9 @@ export function compile<TVm extends object = object>(source: string, options: Te
   try {
     root = parseTemplate(source);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const position = /position (\d+)/.exec(message)?.[1];
-    const offset = position ? Number(position) : undefined;
-    const before = offset === undefined ? '' : source.slice(0, offset);
-    const diagnostic = {
-      code: message.includes('expression') ? 'INVALID_EXPRESSION' : 'INVALID_TEMPLATE',
-      severity: 'error' as const,
-      message,
-      template: options.name,
-      sourcePath: options.sourcePath,
-      ...(offset === undefined
-        ? {}
-        : { line: before.split('\n').length, column: offset - before.lastIndexOf('\n'), details: { offset } }),
-    };
+    const diagnostic = syntaxErrorToDiagnostic(error, source, options);
     options.diagnostics?.report?.(diagnostic);
-    options.diagnostics?.error?.(message, diagnostic);
+    options.diagnostics?.error?.(diagnostic.message, diagnostic);
     throw error;
   }
   return new TemplateImpl<TVm>(root, options);

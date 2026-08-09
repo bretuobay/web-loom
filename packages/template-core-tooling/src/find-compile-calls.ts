@@ -5,6 +5,10 @@ export interface CompileCallMatch {
   start: number;
   /** End offset of the whole `compile(...)` call expression in the source text. */
   end: number;
+  /** Offset of the first character inside the template/string literal (after opening quote). */
+  templateContentStart: number;
+  /** Offset after the last character inside the template/string literal (before closing quote). */
+  templateContentEnd: number;
   /** Decoded template/string literal source text (the first argument). */
   templateSource: string;
   /** Verbatim source text of the second argument, if present — never parsed. */
@@ -17,7 +21,7 @@ export interface CompileCallMatch {
 
 export interface FindCompileCallsResult {
   matches: CompileCallMatch[];
-  /** Specifiers with >=1 staticizable match that don't already import `fromPrecompiled`, and where to splice the new import in after. */
+  /** Specifiers with >=1 static match that don't already import `fromPrecompiled`. */
   specifiersNeedingImport: Map<string, { afterPos: number }>;
 }
 
@@ -42,10 +46,8 @@ function inferName(call: ts.CallExpression): string | undefined {
 }
 
 /**
- * Pure AST scan (no Vite involvement) for `compile(...)` call sites imported from one of
- * `specifiers`, used by the plugin's `transform` hook. Matches on the imported local
- * binding name only — no full scope/type resolution, consistent with an "AST-scan" tool
- * rather than a type-checker.
+ * AST scan for static `compile(...)` call sites imported from target specifiers.
+ * Shared by the Vite plugin and ESLint rules — no type-checker, no Vite dependency.
  */
 export function findCompileCalls(code: string, id: string, specifiers: string[]): FindCompileCallsResult {
   const scriptKind = id.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
@@ -54,11 +56,14 @@ export function findCompileCalls(code: string, id: string, specifiers: string[])
   const bindingsByLocalName = new Map<string, CompileBinding>();
   const importDeclEndBySpecifier = new Map<string, number>();
   const hasFromPrecompiledBySpecifier = new Set<string>();
+  let primarySpecifier: string | undefined;
 
   for (const statement of sourceFile.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
     const specifier = statement.moduleSpecifier.text;
     if (!specifiers.includes(specifier)) continue;
+
+    primarySpecifier ??= specifier;
 
     const namedBindings = statement.importClause?.namedBindings;
     if (!namedBindings || !ts.isNamedImports(namedBindings)) continue;
@@ -74,25 +79,41 @@ export function findCompileCalls(code: string, id: string, specifiers: string[])
     }
   }
 
-  if (bindingsByLocalName.size === 0) return EMPTY_RESULT;
+  if (bindingsByLocalName.size === 0 && !primarySpecifier) return EMPTY_RESULT;
 
   const matches: CompileCallMatch[] = [];
 
   walk(sourceFile, (node) => {
-    if (!ts.isCallExpression(node) || !ts.isIdentifier(node.expression)) return;
-    const binding = bindingsByLocalName.get(node.expression.text);
-    if (!binding) return;
+    if (!ts.isCallExpression(node)) return;
 
     const arg0 = node.arguments[0];
-    if (!arg0 || !(ts.isStringLiteral(arg0) || ts.isNoSubstitutionTemplateLiteral(arg0))) return; // not staticizable, leave untouched
+    if (!arg0 || !(ts.isStringLiteral(arg0) || ts.isNoSubstitutionTemplateLiteral(arg0))) return;
+
+    let specifier: string | undefined;
+
+    if (ts.isIdentifier(node.expression)) {
+      specifier = bindingsByLocalName.get(node.expression.text)?.specifier;
+    } else if (
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === 'compile' &&
+      primarySpecifier
+    ) {
+      specifier = primarySpecifier;
+    }
+
+    if (!specifier) return;
 
     const arg1 = node.arguments[1];
+    const literalStart = arg0.getStart(sourceFile);
+    const literalEnd = arg0.getEnd();
     matches.push({
       start: node.getStart(sourceFile),
       end: node.getEnd(),
+      templateContentStart: literalStart + 1,
+      templateContentEnd: literalEnd - 1,
       templateSource: arg0.text,
       optionsText: arg1 ? code.slice(arg1.getStart(sourceFile), arg1.getEnd()) : undefined,
-      specifier: binding.specifier,
+      specifier,
       name: inferName(node),
     });
   });

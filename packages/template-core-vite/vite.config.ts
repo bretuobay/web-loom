@@ -10,7 +10,7 @@ export default defineConfig({
       fileName: (format) => `index.${format}.js`,
     },
     rollupOptions: {
-      external: ['vite', 'typescript', 'magic-string', '@web-loom/template-core', '@web-loom/template-core/compiler-node'],
+      external: ['vite', 'typescript', 'magic-string', '@web-loom/template-core', '@web-loom/template-core/compiler-node', '@web-loom/template-core-tooling', 'node:crypto'],
     },
   },
   plugins: [dts({ insertTypesEntry: true })],

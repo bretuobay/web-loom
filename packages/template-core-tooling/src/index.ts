@@ -1,0 +1,19 @@
+export { DEFAULT_SPECIFIERS } from './constants.js';
+export {
+  analyzeCompileMatches,
+  collectSourceLinkedDiagnostics,
+} from './collect-diagnostics.js';
+export type { CollectSourceLinkedDiagnosticsOptions } from './collect-diagnostics.js';
+export {
+  encodeTemplateLiteralContent,
+  formatCompileCallsInSource,
+} from './format-compile-calls.js';
+export type { FormatCompileCallsOptions, FormatCompileCallsResult } from './format-compile-calls.js';
+export { findCompileCalls } from './find-compile-calls.js';
+export type { CompileCallMatch, FindCompileCallsResult } from './find-compile-calls.js';
+export { lineColumnToOffset, offsetToLineColumn } from './source-position.js';
+export {
+  formatSourceLinkedDiagnostic,
+  linkTemplateDiagnosticToFile,
+} from './source-linked-diagnostic.js';
+export type { LinkTemplateDiagnosticOptions, SourceLinkedDiagnostic } from './source-linked-diagnostic.js';

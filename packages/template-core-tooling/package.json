@@ -1,0 +1,42 @@
+{
+  "name": "@web-loom/template-core-tooling",
+  "version": "0.2.0",
+  "description": "Shared AST utilities and source-linked diagnostics for @web-loom/template-core tooling.",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "files": ["dist", "scripts"],
+  "bin": {
+    "template-core-format-calls": "./scripts/format-compile-calls.mjs"
+  },
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js",
+      "default": "./dist/index.es.js"
+    }
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "test": "vitest --watch=false",
+    "lint": "eslint src --ext .ts --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@web-loom/template-core": "*",
+    "typescript": "5.8.2"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "eslint": "^9.39.1",
+    "vite": "^6.4.3",
+    "vite-plugin-dts": "^5.0.3",
+    "vitest": "^4.1.9"
+  }
+}

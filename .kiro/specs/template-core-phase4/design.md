@@ -116,6 +116,11 @@ plan and diagnostic APIs. None should parse template syntax independently.
 The first tooling slice should be a Vite precompile plugin and source-linked diagnostics. Formatter,
 linter, and editor support can then build on the same parser and source-span model.
 
+**Formatter (M3, implemented):** `formatTemplate()` in `@web-loom/template-core/compiler-node` calls
+`analyzeTemplate()` first; on success it pretty-prints by tokenizing the **original** source (not the
+serialized plan) so directives and expressions stay intact. CLI: `template-core-format`. Doc:
+[`packages/template-core/docs/template-formatting.md`](../../../packages/template-core/docs/template-formatting.md).
+
 ## 7. Deferred experiments
 
 Async/streaming SSR, hydration scheduling, and slots are intentionally isolated behind experimental

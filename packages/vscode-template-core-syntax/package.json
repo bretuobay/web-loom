@@ -25,6 +25,22 @@
           "source.jsx"
         ]
       }
+    ],
+    "problemMatchers": [
+      {
+        "name": "template-core",
+        "owner": "template-core",
+        "fileLocation": ["absolute"],
+        "severity": "error",
+        "pattern": {
+          "regexp": "^\\[template-core\\] (.+):(\\d+):(\\d+)(?: \\((.+)\\))?: (.+) \\[(.+)\\]$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 5,
+          "code": 6
+        }
+      }
     ]
   },
   "scripts": {
