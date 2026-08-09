@@ -41,17 +41,24 @@ P3 is explicitly experimental.
 ## P2 — Tooling and integration
 
 - [x] Build a Vite precompile plugin on top of the canonical compiler API.
-- [ ] Add incremental/watch compilation and stable generated-module output.
-- [ ] Add a formatter that preserves source locations and reports syntax errors through diagnostics.
-- [ ] Add lint rules for unsupported directives, modifier conflicts, missing partials, and unsafe raw
-      HTML.
-- [ ] Add source-linked diagnostic output suitable for editor integrations.
+- [x] Add Node-safe full template analysis (`analyzeTemplate`) and unify `precompileNode` on it.
+- [x] Add opt-in Vite dev analyze mode with in-memory incremental cache.
+- [x] Add ESLint plugin (`@web-loom/template-core-lint`) with five analyze-backed rules.
+- [x] Add incremental/watch compilation and stable generated-module output for dev precompile
+      (`templateCorePrecompile({ dev: 'precompile' })` + `PrecompileCache`).
+- [x] Add a formatter that preserves source locations and reports syntax errors through diagnostics
+      (`formatTemplate()` + `template-core-format` CLI; see `packages/template-core/docs/template-formatting.md`).
+- [x] Add source-linked diagnostic output suitable for editor integrations
+      (`@web-loom/template-core-tooling` `SourceLinkedDiagnostic`, ESLint + Vite wiring,
+      VS Code problem matcher — see `packages/template-core/docs/editor-diagnostics.md`).
 - [ ] Publish syntax-highlighting guidance or a compatible grammar.
       (Dedicated `.loom` template files — a separate authoring surface from
       this string-based tooling — are tracked as a deferred, optional track;
       see `template-core-phase5/`.)
-- [ ] Define opt-in template context declarations and helper/partial contract checks.
-- [ ] Add integration examples for the ecommerce SSR island and a client-only route outlet.
+- [x] Define opt-in template context declarations and helper/partial contract checks
+      (`declareContext`, `PartialContexts` in `@web-loom/template-core`; see `docs/typing-spike.md`).
+- [x] Add integration examples for the ecommerce SSR island and a client-only route outlet
+      (`packages/template-core/docs/template-core-tooling.md`).
 
 ## P3 — Explicit experiments, not release gates
 
@@ -67,11 +74,74 @@ P3 is explicitly experimental.
 
 ## Validation checklist
 
-- [ ] `@web-loom/template-core` lint, type-check, tests, benchmarks, and size budget pass.
-- [ ] `@web-loom/template-core-vite-ssr` lint, type-check, tests, and build pass.
+Run from repo root (WSL recommended).
+
+> **Note:** `npm run lint check-types test` does **not** run three scripts — npm passes
+> `check-types` and `test` as extra args to `lint`. Use separate `npm run` calls, `&&`, or
+> `turbo run` (multiple task names).
+
+```bash
+npm install
+
+# Build tooling chain first (downstream packages depend on these dist outputs)
+npm run build --workspace=@web-loom/template-core
+npm run build --workspace=@web-loom/template-core-tooling
+npm run build --workspace=@web-loom/template-core-lint
+npm run build --workspace=@web-loom/template-core-vite
+
+# template-core (turbo for lint/types/test; bench/size are package-only scripts)
+turbo run lint check-types test --filter=@web-loom/template-core
+npm run bench --workspace=@web-loom/template-core
+npm run size --workspace=@web-loom/template-core
+
+# vite-ssr
+turbo run lint check-types test build --filter=@web-loom/template-core-vite-ssr
+
+# vite + lint (P2 tooling)
+turbo run lint check-types test build --filter=@web-loom/template-core-vite
+turbo run lint check-types test --filter=@web-loom/template-core-lint
+
+# reference app (each script separately — no combined npm run)
+npm run type-check --workspace=ecommerce-template-core
+npm run lint --workspace=ecommerce-template-core
+npm run test --workspace=ecommerce-template-core
+npm run build:client --workspace=ecommerce-template-core
+npm run build:server --workspace=ecommerce-template-core
+```
+
+One-liner alternative (same steps):
+
+```bash
+npm install && \
+npm run build --workspace=@web-loom/template-core && \
+npm run build --workspace=@web-loom/template-core-tooling && \
+npm run build --workspace=@web-loom/template-core-lint && \
+npm run build --workspace=@web-loom/template-core-vite && \
+turbo run lint check-types test --filter=@web-loom/template-core && \
+npm run bench --workspace=@web-loom/template-core && \
+npm run size --workspace=@web-loom/template-core && \
+turbo run lint check-types test build --filter=@web-loom/template-core-vite-ssr && \
+turbo run lint check-types test build --filter=@web-loom/template-core-vite && \
+turbo run lint check-types test --filter=@web-loom/template-core-lint && \
+npm run type-check --workspace=ecommerce-template-core && \
+npm run lint --workspace=ecommerce-template-core && \
+npm run test --workspace=ecommerce-template-core && \
+npm run build:client --workspace=ecommerce-template-core && \
+npm run build:server --workspace=ecommerce-template-core
+```
+
+- [x] `@web-loom/template-core` lint, type-check, tests, benchmarks, and size budget pass.
+      (Verified 2026-08-08 — see `phase4-validation-output.log`.)
+- [x] `@web-loom/template-core-vite-ssr` lint, type-check, tests, and build pass.
+      (Verified 2026-08-08.)
+- [ ] `@web-loom/template-core-vite` lint, type-check, tests, and build pass.
+      (Blocked on `analyzeTemplate` DOM scope + tooling link — fixes in tree; re-run after rebuild.)
+- [ ] `@web-loom/template-core-lint` lint, type-check, tests pass.
+      (Same `analyzeTemplate` / build-deps fix.)
 - [ ] `ecommerce-template-core` type-check, tests, client build, server build, and SSR smoke test
-      pass.
-- [ ] Existing Phase 1/2 behavior and all public APIs remain backward-compatible unless an additive
+      pass. (type-check, test, builds pass; lint fixed via named `configs` import — re-run lint.)
+- [x] Existing Phase 1/2 behavior and all public APIs remain backward-compatible unless an additive
       migration is documented.
-- [ ] No P3 experiment is required for the stable Phase 4 release.
-- [ ] Final documentation explicitly labels implemented, experimental, and deferred capabilities.
+- [x] No P3 experiment is required for the stable Phase 4 release.
+- [x] Final documentation explicitly labels implemented, experimental, and deferred capabilities
+      (PRD §11, Phase 5 spec, `typing-spike.md`, cookbook §11).

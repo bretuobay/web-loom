@@ -46,15 +46,17 @@ priority rationale (P5-a/b/c) and `design.md` for the sequencing diagram.
 
 ## P5-c — Context-typing spike (exploratory, timeboxed, go/no-go)
 
-- [ ] Timebox a spike investigating a `declareContext<TVm>()`-style helper or
+- [x] Timebox a spike investigating a `declareContext<TVm>()`-style helper or
       `.loom.d.ts` stub that types a template module's *export* only.
-- [ ] Explicitly evaluate (and document the answer) whether shallow
+      **Outcome (2026-08): go** — shipped in `@web-loom/template-core` as `declareContext`,
+      `declarePartials`, `typedCompile`. See `packages/template-core/docs/typing-spike.md`.
+- [x] Explicitly evaluate (and document the answer) whether shallow
       expression-to-context property checking is worth pursuing — default
       answer is no unless the spike finds a low-risk way to bound it.
-- [ ] Whatever the outcome, update `packages/template-core/README.md`'s
+      **Outcome: no-go** — documented in `typing-spike.md`.
+- [x] Whatever the outcome, update `packages/template-core/README.md`'s
       "Binding a ViewModel vs. binding a DTO snapshot" section if this spike
-      changes the story described there — otherwise leave it as-is, since the
-      spike is not expected to change that failure mode.
+      changes the story described there — added M5 typing subsection; failure mode unchanged.
 
 ## Validation checklist
 
