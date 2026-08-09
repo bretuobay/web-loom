@@ -18,12 +18,22 @@ const PACKAGE_CATALOG = `# @web-loom/* Package Catalog
 | \`@web-loom/i18n-core\` | Internationalization | \`I18n\`, translation helpers | Multi-language support |
 | \`@web-loom/notifications-core\` | Notification system | \`NotificationService\` | Toast/alert notifications from ViewModels without direct DOM access |
 | \`@web-loom/platform-core\` | Platform detection | Platform guards | Conditionally run code only on browser or server |
+| \`@web-loom/design-core\` | Design tokens & CSS | Theme token utilities | Consistent spacing, color, and typography tokens |
+
+## Framework Adapters & Extensions (published from web-loom-extensions)
+
+Published under the same \`@web-loom/*\` scope and installed the same way, but sourced from the sibling
+[\`web-loom-extensions\`](https://github.com/bretuobay/web-loom-extensions) repo:
+
+| Package | Description | Key Exports | When to Use |
+|---------|-------------|-------------|-------------|
 | \`@web-loom/media-core\` | Media player core | Player state machine, plugin hooks | Audio/video player with extensible plugin hooks |
 | \`@web-loom/forms-react\` | React form adapter | \`useForm\`, React field components | Bind forms-core to React controlled inputs |
 | \`@web-loom/forms-vue\` | Vue form adapter | \`useForm\` composable | Bind forms-core to Vue controlled inputs |
-| \`@web-loom/ui-react\` | React UI adapters | React hooks for ui-core behaviors | Use headless ui-core behaviors as React hooks |
+| \`@web-loom/forms-vanilla\` | Vanilla JS form adapter | Field bindings | Bind forms-core without a framework |
 | \`@web-loom/media-react\` | React media player | \`useMediaPlayer\` | Audio/video player component in React |
-| \`@web-loom/design-core\` | Design tokens & CSS | Theme token utilities | Consistent spacing, color, and typography tokens |
+| \`@web-loom/media-vue\` | Vue media player | \`useMediaPlayer\` composable | Audio/video player component in Vue |
+| \`@web-loom/charts-core\` | Chart utilities | D3-based chart primitives | Configuration-driven charting |
 
 ## Minimum Install for a New App
 

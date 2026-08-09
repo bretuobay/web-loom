@@ -70,7 +70,6 @@ packages/ (34 total)
   UI & Interaction:
   ├── ui-core/              # Headless UI behaviors (Dialog, Form, List, RovingFocus)
   ├── ui-patterns/          # Composed UI patterns (Wizard, MasterDetail, CommandPalette)
-  ├── ui-react/             # React UI component adapters
 
   State & Data:
   ├── store-core/           # Minimal reactive state management
@@ -80,17 +79,11 @@ packages/ (34 total)
 
   Forms & Media:
   ├── forms-core/           # Framework-agnostic form logic
-  ├── forms-react/          # React form adapter
-  ├── forms-vue/            # Vue form adapter
-  ├── forms-vanilla/        # Vanilla JS form adapter
-  ├── media-core/           # Media player core with plugins
-  ├── media-react/          # React media player adapter
-  ├── media-vue/            # Vue media player adapter
 
   Design & Theming:
   ├── design-core/          # Theme tokens and CSS utilities
   ├── typography-core/      # Typography and coloring utilities
-  ├── charts-core/          # Chart utilities
+  ├── docs-theme/           # Next.js/React theme for the docs sites (@repo/docs-theme)
 
   Infrastructure:
   ├── plugin-core/          # Plugin architecture system
@@ -101,14 +94,14 @@ packages/ (34 total)
   ├── error-core/           # Error handling utilities
   ├── notifications-core/   # Notification system
   ├── platform-core/        # Platform detection utilities
-  ├── shared/               # Shared utilities
-  └── visdiff/              # Visual diff utilities
+  └── shared/               # Shared utilities
 
   Config:
   ├── eslint-config/        # Shared ESLint config (@repo/eslint-config)
-  ├── typescript-config/    # Shared TypeScript config (@repo/typescript-config)
-  └── turbo-analyse/        # Turbo analysis utilities
+  └── typescript-config/    # Shared TypeScript config (@repo/typescript-config)
 ```
+
+**Note:** `charts-core`, `ui-react`, `forms-react`, `forms-vue`, `forms-vanilla`, `media-core`, `media-react`, `media-vue`, `turbo-analyse`, and `visdiff` moved to the sibling repo [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) — framework-specific adapters and standalone tooling that consume this repo's `@web-loom/*` core packages as published npm dependencies rather than workspace siblings.
 
 ## Key Patterns
 
