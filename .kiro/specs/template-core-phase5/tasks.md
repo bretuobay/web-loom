@@ -33,16 +33,22 @@ priority rationale (P5-a/b/c) and `design.md` for the sequencing diagram.
 
 ## P5-b — `.loom` Vite loader (contingent on P5-a signal)
 
-- [ ] Design and implement `resolveId`/`load`/`transform` hooks for `.loom`
+- [x] Design and implement `resolveId`/`load`/`transform` hooks for `.loom`
       files: dev mode emits a virtual module calling `compile()`; build mode
       calls `precompileNode()` and emits a module consumed via
-      `fromPrecompiled()`.
-- [ ] Specify and test HMR behavior explicitly (no stale module state, no
+      `fromPrecompiled()` (`templateCoreLoom()` in `@web-loom/template-core-vite`).
+- [x] Specify and test HMR behavior explicitly (no stale module state, no
       double-mount, no lost component-local state across template-only edits).
-- [ ] Extend the P5-a grammar to cover standalone `.loom` files (not just the
-      injection-grammar case).
-- [ ] Write an authoring guide documenting when to use `.loom` vs. strings —
-      explicit that both remain valid indefinitely, no migration is required.
+      Dev module calls `import.meta.hot.accept()`; plugin `handleHotUpdate`
+      invalidates the virtual module. Manual mount/dispose remains app-owned —
+      see `docs/template-loom-authoring.md`.
+- [x] Extend the P5-a grammar to cover standalone `.loom` files (not just the
+      injection-grammar case) — `text.web-loom.template` in
+      `packages/vscode-template-core-syntax`.
+- [x] Write an authoring guide documenting when to use `.loom` vs. strings —
+      explicit that both remain valid indefinitely, no migration is required
+      (`packages/template-core/docs/template-loom-authoring.md`).
+- [x] Migrate one ecommerce template (`header.loom`) as a reference integration.
 
 ## P5-c — Context-typing spike (exploratory, timeboxed, go/no-go)
 
