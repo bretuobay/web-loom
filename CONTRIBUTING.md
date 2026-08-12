@@ -42,7 +42,7 @@ Thank you for your interest in contributing to Web Loom! We welcome contribution
 ### 1. Make Your Changes
 
 - **Core packages** (`packages/*-core`): Keep 100% framework-agnostic. No React, Vue, or Angular imports.
-- **Framework adapters**: Place framework-specific code in separate packages (`ui-react`, `forms-vue`, etc.)
+- **Framework adapters**: Framework-specific packages (React/Vue/vanilla adapters, media, charts) live in the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, which consumes this repo's `@web-loom/*` core packages as published npm dependencies. Contribute adapter code there, not here.
 - **Follow existing patterns**: Study similar implementations before adding new features.
 
 ### 2. Write Tests
@@ -463,8 +463,8 @@ export function createDialog(options?: DialogOptions): DialogBehavior {
 
 ### Framework Adapters
 
-- `ui-react`, `forms-react`, `forms-vue`, `forms-vanilla`, `media-react`, `media-vue`
-- Framework-specific implementations
+- `forms-react`, `forms-vue`, `forms-vanilla`, `media-core`, `media-react`, `media-vue`, `charts-core`
+- Published from the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, not this one
 - Must maintain same API as core
 - Test with framework's testing tools
 

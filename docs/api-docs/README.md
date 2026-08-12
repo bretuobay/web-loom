@@ -18,7 +18,6 @@ Web Loom provides a suite of framework-agnostic, TypeScript-first packages for b
 | [@web-loom/ui-core](./ui-core.md)                       | 0.5.4   | Headless UI behaviors (Dialog, Form, List, etc.)        | <2KB/behavior |
 | [@web-loom/ui-patterns](./ui-patterns.md)               | 0.5.4   | Composed UI patterns (Wizard, Modal, etc.)              | Varies        |
 | [@web-loom/design-core](./design-core.md)               | 0.5.6   | Design tokens and theming system                        | Minimal       |
-| [@web-loom/charts-core](./charts-core.md)               | 0.1.0   | D3-based charting library                               | Moderate      |
 | [@web-loom/mvvm-patterns](./mvvm-patterns.md)           | 0.0.1   | Advanced MVVM patterns (Interactions, Active Awareness) | Minimal       |
 
 ## Package Categories
@@ -46,7 +45,6 @@ Web Loom provides a suite of framework-agnostic, TypeScript-first packages for b
 ### Design & Theming
 
 - **design-core**: Design token system with CSS variables and theming
-- **charts-core**: Charting and data visualization
 
 ## Installation
 
@@ -71,7 +69,6 @@ npm install @web-loom/ui-patterns
 
 # Design & Theming
 npm install @web-loom/design-core
-npm install @web-loom/charts-core d3-array d3-axis d3-scale d3-selection d3-shape d3-transition
 ```
 
 ### Common Combinations
@@ -199,8 +196,6 @@ event-bus-core ──→ event-emitter-core
 
 mvvm-patterns ────→ mvvm-core
               └──→ RxJS
-
-charts-core ──────→ D3.js modules
 ```
 
 ### Peer Dependencies
@@ -209,7 +204,6 @@ Most packages have minimal or zero dependencies:
 
 - **mvvm-core**: Requires RxJS (^7.8.2) and Zod (^3.25.0)
 - **mvvm-patterns**: Requires RxJS (^7.8.0)
-- **charts-core**: Requires D3.js modules (d3-array, d3-axis, d3-scale, etc.)
 - **All other packages**: Zero dependencies or internal Web Loom packages only
 
 ## Architecture Philosophy
@@ -313,5 +307,4 @@ All Web Loom packages are licensed under the MIT License.
 - [ui-core API](./ui-core.md) - Headless UI behaviors
 - [ui-patterns API](./ui-patterns.md) - UI patterns library
 - [design-core API](./design-core.md) - Design tokens and theming
-- [charts-core API](./charts-core.md) - Charting library
 - [mvvm-patterns API](./mvvm-patterns.md) - Advanced MVVM patterns

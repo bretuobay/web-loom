@@ -1,15 +1,15 @@
 ---
 title: 'Package Roadmap'
-summary: 'The full Web Loom package ecosystem — packages that are implemented and used across the demo apps but not yet published to npm. Forms, Media, HTTP, Storage, Router, i18n, Notifications, Error handling, Platform detection, Typography, and Charts.'
+summary: 'The full Web Loom package ecosystem — core packages implemented in this monorepo but not yet published to npm (HTTP, Storage, Router, i18n, Notifications, Error handling, Platform detection, Typography), plus the framework adapters and charting library published from the sibling web-loom-extensions repo.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
 ---
 
 # Package Roadmap
 
-Web Loom is a larger ecosystem than what is currently on npm. The packages below are fully implemented — they power the demo applications in this monorepo — but have not yet been published to the npm registry. They follow the same architecture principles as the published packages: framework-agnostic cores, thin framework adapters, and zero coupling between layers.
+Web Loom is a larger ecosystem than what is currently on npm from this repo. The infrastructure packages below are fully implemented — they power the demo applications in this monorepo — but have not yet been published to the npm registry. They follow the same architecture principles as the published core packages: framework-agnostic, zero coupling between layers.
 
-This page documents what each package does, its key features, and what the API looks like so you can understand the intended design before the packages land on npm.
+Forms and Media adapters, and the charting library, are a separate case: their framework-specific code and the still-unstable chart library live in the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, which consumes this monorepo's `@web-loom/*` core packages as published npm dependencies. `@web-loom/forms-core` itself is already published from **this** repo — see the Forms section below.
 
 ---
 
@@ -17,7 +17,7 @@ This page documents what each package does, its key features, and what the API l
 
 ### @web-loom/forms-core
 
-Framework-agnostic form state management built on Zod. Manages field values, validation errors, dirty/touched tracking, field arrays, and submission state — without importing anything from a UI framework.
+Framework-agnostic form state management built on Zod. Manages field values, validation errors, dirty/touched tracking, field arrays, and submission state — without importing anything from a UI framework. **Published** from this repo (`npm install @web-loom/forms-core zod`).
 
 **Key features**
 
@@ -26,8 +26,6 @@ Framework-agnostic form state management built on Zod. Manages field values, val
 - Nested objects and field arrays (add, remove, move, swap)
 - Subscription model — subscribe to any field or the whole form
 - Lightweight and tree-shakeable; no runtime outside of Zod
-
-**Planned API sketch**
 
 ```typescript
 import { createForm } from '@web-loom/forms-core';
@@ -51,121 +49,39 @@ if (result.success) {
 }
 ```
 
-### @web-loom/forms-react
+### Framework adapters (published from web-loom-extensions)
 
-React adapter for `forms-core`. Provides hooks that connect form state to React's render cycle.
+`@web-loom/forms-react`, `@web-loom/forms-vue`, and `@web-loom/forms-vanilla` bind `forms-core` to a specific rendering target. They're published under the same `@web-loom/*` npm scope but sourced from `web-loom-extensions`:
 
 ```typescript
+// React
 import { useForm, useField } from '@web-loom/forms-react';
 
-function LoginForm() {
-  const form   = useForm({ schema });
-  const email  = useField(form, 'email');
-  const password = useField(form, 'password');
-
-  return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
-      <input {...email.inputProps} />
-      {email.error && <span>{email.error}</span>}
-      <input {...password.inputProps} type="password" />
-      <button disabled={form.isSubmitting}>Login</button>
-    </form>
-  );
-}
-```
-
-### @web-loom/forms-vue
-
-Vue 3 adapter for `forms-core`. Provides composables that bridge form state to Vue's reactivity system.
-
-```typescript
+// Vue 3
 import { useForm, useField } from '@web-loom/forms-vue';
 
-const form  = useForm({ schema });
-const email = useField(form, 'email');
-// email.value, email.error, email.touched are Vue refs
-```
-
-### @web-loom/forms-vanilla
-
-Vanilla TypeScript adapter for `forms-core`. Binds form state directly to DOM input elements and wires submit and reset events.
-
-```typescript
+// Vanilla TypeScript
 import { bindForm } from '@web-loom/forms-vanilla';
-
-bindForm(document.querySelector('form')!, { schema, onSubmit });
 ```
 
 ---
 
-## Media
+## Media (published from web-loom-extensions)
 
-### @web-loom/media-core
-
-Framework-agnostic media player engine. Mounts native `<video>`, `<audio>`, or `<img>` elements, manages playback state, and exposes a typed plugin and event system for extending behaviour.
-
-**Key features**
-
-- Controls native media elements without replacing them
-- Typed event system (play, pause, seek, ended, error, progress, timeupdate)
-- Plugin API — install/uninstall plugins at runtime
-- Lazy-load and preload strategies
-- No framework imports; works anywhere a DOM is available
-
-**Planned API sketch**
+`@web-loom/media-core`, `@web-loom/media-react`, and `@web-loom/media-vue` are a framework-agnostic media player engine plus React/Vue adapters, published from `web-loom-extensions`. `media-core` mounts native `<video>`/`<audio>`/`<img>` elements, manages playback state, and exposes a typed plugin and event system:
 
 ```typescript
 import { MediaCore } from '@web-loom/media-core';
 
-const player = new MediaCore({
-  src:      'https://example.com/video.mp4',
-  autoPlay: false,
-  muted:    true,
-});
-
+const player = new MediaCore({ src: 'https://example.com/video.mp4', autoPlay: false, muted: true });
 player.mount(document.getElementById('video-container')!);
-
-const cleanup = player.on('timeupdate', (currentTime, duration) => {
+player.on('timeupdate', (currentTime, duration) => {
   progressBar.style.width = `${(currentTime / duration) * 100}%`;
 });
-
 player.play();
-
-// Cleanup
-cleanup();
-player.destroy();
 ```
 
-### @web-loom/media-react
-
-React adapter. Provides a `useMediaPlayer` hook and an optional `<MediaPlayer>` component.
-
-```typescript
-import { useMediaPlayer } from '@web-loom/media-react';
-
-function VideoPlayer({ src }: { src: string }) {
-  const { ref, state, controls } = useMediaPlayer({ src });
-
-  return (
-    <div>
-      <video ref={ref} />
-      <button onClick={controls.togglePlay}>
-        {state.isPlaying ? 'Pause' : 'Play'}
-      </button>
-      <progress value={state.currentTime} max={state.duration} />
-    </div>
-  );
-}
-```
-
-### @web-loom/media-vue
-
-Vue 3 adapter. Provides a `useMediaPlayer` composable and a `<MediaPlayer>` component.
-
-```typescript
-const { videoRef, state, controls } = useMediaPlayer({ src });
-// state.isPlaying, state.currentTime, state.duration are Vue refs
-```
+The React and Vue adapters wrap this in a `useMediaPlayer` hook/composable — see the `web-loom-extensions` repo for details.
 
 ---
 
@@ -432,7 +348,7 @@ platform.viewport$.subscribe(({ width, height }) => {
 
 ---
 
-## UI & Visualisation
+## UI & Typography
 
 ### @web-loom/typography-core
 
@@ -467,13 +383,15 @@ const fluid = fluidType({ minPx: 16, maxPx: 20, minVw: 375, maxVw: 1440 });
 contrastRatio('#006fa3', '#ffffff'); // → 5.52 (AA pass)
 ```
 
+---
+
+## Charts (published from web-loom-extensions)
+
 ### @web-loom/charts-core
 
-A D3-based, configuration-driven charting toolkit. Currently **under active development**. Supports line, area, and scatter series with interactive legends, crosshair overlays, tooltip management, a zoom/pan plugin, and a deep-mergeable theme system.
+A D3-based, configuration-driven charting toolkit, published from `web-loom-extensions`. Supports line, area, and scatter series with interactive legends, crosshair overlays, tooltip management, a zoom/pan plugin, and a deep-mergeable theme system.
 
-This package is functional and used in the demo applications but is not yet stable enough for an npm release. The API may change between monorepo commits.
-
-**Expected features at release**
+**Features**
 
 - Line, area, and scatter series with marker and curve customisation
 - Time and linear D3 scales via `ScaleRegistry`
@@ -488,14 +406,14 @@ This package is functional and used in the demo applications but is not yet stab
 
 ---
 
-## When Will These Be Published?
+## When Will the Infrastructure Packages Be Published?
 
-There is no fixed release schedule. Packages are published when:
+There is no fixed release schedule for the still-unpublished infrastructure packages above (`http-core`, `storage-core`, `router-core`, `notifications-core`, `i18n-core`, `error-core`, `platform-core`, `typography-core`). They're published when:
 
 1. The public API is considered stable.
 2. Test coverage is sufficient.
 3. The package has been exercised in at least one real demo application.
 
-Watch the [GitHub repository](https://github.com/bretuobay/web-loom) and the npm `@web-loom` scope for new releases.
+Watch the [GitHub repository](https://github.com/bretuobay/web-loom) and the npm `@web-loom` scope for new releases. If you need one of these packages before it ships, its source is available in this monorepo and can be used directly via the workspace protocol.
 
-If you need one of these packages before it ships, the source is available in the monorepo and can be used directly via the workspace protocol.
+The Forms adapters, Media packages, and `charts-core` are already published — see the [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo for their source.

@@ -544,10 +544,10 @@ Do not put reactive objects inside `ref()` — Vue's reactivity handles the nest
 
 ## The MaybeRef Pattern (Advanced Composables)
 
-The `packages/media-vue` package shows a more advanced composable convention — accepting either a raw value or a `Ref<T>` as input:
+The `@web-loom/media-vue` package (published from the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo) shows a more advanced composable convention — accepting either a raw value or a `Ref<T>` as input:
 
 ```typescript
-// packages/media-vue/src/internal.ts
+// @web-loom/media-vue — internal.ts
 import { isRef, ref, type Ref } from 'vue';
 
 export type MaybeRef<T> = T | Ref<T>;
@@ -574,7 +574,7 @@ Use this pattern when writing composables that need to accept config that might 
 
 ## watch() with onCleanup (Advanced)
 
-In `packages/media-vue/src/useMediaState.ts`, the `watch()` callback receives an `onCleanup` argument — a function to register cleanup logic that runs before the next invocation or on unmount:
+In `@web-loom/media-vue`'s `useMediaState.ts`, the `watch()` callback receives an `onCleanup` argument — a function to register cleanup logic that runs before the next invocation or on unmount:
 
 ```typescript
 import { watch, ref } from 'vue';
