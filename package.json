@@ -13,6 +13,7 @@
     "format:templates:check": "node packages/template-core-tooling/scripts/format-compile-calls.mjs --check",
     "format:ecommerce-templates": "tsx scripts/format-ecommerce-templates.ts",
     "format:ecommerce-templates:check": "tsx scripts/format-ecommerce-templates.ts --check",
+    "package:vscode-syntax": "npm run package:vsix --workspace=web-loom-template-core-syntax",
     "check-types": "turbo run check-types",
     "check-versions": "node scripts/check-version-policy.mjs",
     "test": "turbo run test",

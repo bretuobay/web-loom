@@ -1,0 +1,13 @@
+.vscode/**
+src/**
+scripts/**
+node_modules/**
+**/../**
+.turbo/**
+**/*.test.ts
+tsconfig.json
+vitest.config.ts
+eslint.config.mjs
+.gitignore
+.vsix-stage/**
+*.vsix
