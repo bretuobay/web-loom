@@ -2,7 +2,7 @@
   "name": "web-loom-template-core-syntax",
   "displayName": "Web Loom Template Core Syntax",
   "description": "TextMate injection grammar that highlights Web Loom template syntax ({{ }}, {{#if}}/{{#each}}/{{#switch}}, {{> partial}}, on:/:/class:/style: attributes) inside compile(`...`) template-literal strings in .ts/.js source. No .loom file format, no build tooling.",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "publisher": "web-loom",
   "private": true,
   "license": "MIT",

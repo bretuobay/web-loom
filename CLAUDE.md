@@ -21,6 +21,7 @@ Detailed instructions are available in `.claude/skills/`:
 | **design-theming.md**        | Design Core tokens, flat/paper UI, theming                   |
 | **package-configuration.md** | Vite/Vitest/Turbo config, aliases, TypeScript                |
 | **cross-framework.md**       | React/Angular/Vue/Lit/Vanilla integration patterns           |
+| **versioning.md**            | Lockstep patch-only version policy for `packages/*/package.json` |
 
 ## Quick Reference
 

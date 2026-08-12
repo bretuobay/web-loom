@@ -82,24 +82,26 @@ npm run dev
 
 ## Packages
 
+All packages version in lockstep, gated at **0.8.0** until the API surface is ready to commit to 1.0.0 — no package's version exceeds `mvvm-core`/`signals-core`, the two most-exercised packages in the ecosystem, and releases between now and 1.0.0 are patch-only (see [Versioning Policy](#versioning-policy)).
+
 ### Published
 
 These are live on npm today.
 
-| Package | Version | Description |
-| --- | --- | --- |
-| [`@web-loom/mvvm-core`](packages/mvvm-core) | 0.8.0 | Signals-backed MVVM framework — `BaseModel`, `RestfulApiModel`, `BaseViewModel`, `Command` |
-| [`@web-loom/signals-core`](packages/signals-core) | 0.8.0 | Framework-agnostic reactive signals — `signal`, `computed`, `effect`, `batch` |
-| [`@web-loom/query-core`](packages/query-core) | 0.8.0 | Server state management with caching, deduplication, and background refetch |
-| [`@web-loom/store-core`](packages/store-core) | 0.8.0 | Minimal client state management for UI-only state |
-| [`@web-loom/ui-core`](packages/ui-core) | 0.8.0 | Headless UI behaviors — Dialog, Form, List Selection, Roving Focus, Drag & Drop |
-| [`@web-loom/ui-patterns`](packages/ui-patterns) | 0.8.0 | Composed UI patterns built on `ui-core` — Wizard, Master-Detail, Command Palette |
-| [`@web-loom/design-core`](packages/design-core) | 0.8.0 | Design tokens and theming system |
-| [`@web-loom/forms-core`](packages/forms-core) | 0.8.0 | Framework-agnostic form state management with Zod integration |
-| [`@web-loom/event-bus-core`](packages/event-bus-core) | 0.8.0 | Type-safe pub-sub event bus for cross-feature communication |
-| [`@web-loom/event-emitter-core`](packages/event-emitter-core) | 0.8.0 | Tiny type-safe event emitter shared across Web Loom packages |
-| [`@web-loom/mcp-server`](packages/mcp-server) | 0.2.0 | MCP server exposing scaffolding, docs, and guided patterns for `@web-loom/*` |
-| [`create-web-loom`](packages/create-web-loom) | 0.1.4 | CLI scaffolder — `npm create web-loom@latest` |
+| Package | Description |
+| --- | --- |
+| [`@web-loom/mvvm-core`](packages/mvvm-core) | Signals-backed MVVM framework — `BaseModel`, `RestfulApiModel`, `BaseViewModel`, `Command` |
+| [`@web-loom/signals-core`](packages/signals-core) | Framework-agnostic reactive signals — `signal`, `computed`, `effect`, `batch` |
+| [`@web-loom/query-core`](packages/query-core) | Server state management with caching, deduplication, and background refetch |
+| [`@web-loom/store-core`](packages/store-core) | Minimal client state management for UI-only state |
+| [`@web-loom/ui-core`](packages/ui-core) | Headless UI behaviors — Dialog, Form, List Selection, Roving Focus, Drag & Drop |
+| [`@web-loom/ui-patterns`](packages/ui-patterns) | Composed UI patterns built on `ui-core` — Wizard, Master-Detail, Command Palette |
+| [`@web-loom/design-core`](packages/design-core) | Design tokens and theming system |
+| [`@web-loom/forms-core`](packages/forms-core) | Framework-agnostic form state management with Zod integration |
+| [`@web-loom/event-bus-core`](packages/event-bus-core) | Type-safe pub-sub event bus for cross-feature communication |
+| [`@web-loom/event-emitter-core`](packages/event-emitter-core) | Tiny type-safe event emitter shared across Web Loom packages |
+| [`@web-loom/mcp-server`](packages/mcp-server) | MCP server exposing scaffolding, docs, and guided patterns for `@web-loom/*` |
+| [`create-web-loom`](packages/create-web-loom) | CLI scaffolder — `npm create web-loom@latest` |
 
 Framework-specific adapters (React/Vue/vanilla form bindings, media players, charts) live in the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, published under the same `@web-loom/*` npm scope.
 
@@ -107,19 +109,23 @@ Framework-specific adapters (React/Vue/vanilla form bindings, media players, cha
 
 Fully implemented and exercised in the demo apps, but not yet published to npm — use via the workspace in the meantime.
 
-| Package | Version | Description |
-| --- | --- | --- |
-| [`@web-loom/template-core`](packages/template-core) | 1.2.0 | Signal-native reactive template engine — no VDOM, no framework adapter |
-| [`@web-loom/template-core-vite`](packages/template-core-vite) | 0.3.0 | Vite plugin for `template-core` — build-time precompile, dev analyze/precompile modes |
-| [`@web-loom/template-core-vite-ssr`](packages/template-core-vite-ssr) | 0.1.0 | Reusable Vite SSR dev/production server for `template-core` apps |
-| [`@web-loom/template-core-lint`](packages/template-core-lint) | 0.1.0 | ESLint plugin with static-analysis rules for `template-core` templates |
-| [`@web-loom/template-core-tooling`](packages/template-core-tooling) | 0.2.0 | Shared AST utilities and source-linked diagnostics behind the two packages above |
-| [`@web-loom/mvvm-patterns`](packages/mvvm-patterns) | 0.8.0 | Application-level MVVM patterns — interaction requests, active-aware ViewModels |
-| [`@web-loom/embed-core`](packages/embed-core) | 0.8.0 | Framework-agnostic embeddable widget SDK and host integration layer |
+| Package | Description |
+| --- | --- |
+| [`@web-loom/template-core`](packages/template-core) | Signal-native reactive template engine — no VDOM, no framework adapter |
+| [`@web-loom/template-core-vite`](packages/template-core-vite) | Vite plugin for `template-core` — build-time precompile, dev analyze/precompile modes |
+| [`@web-loom/template-core-vite-ssr`](packages/template-core-vite-ssr) | Reusable Vite SSR dev/production server for `template-core` apps |
+| [`@web-loom/template-core-lint`](packages/template-core-lint) | ESLint plugin with static-analysis rules for `template-core` templates |
+| [`@web-loom/template-core-tooling`](packages/template-core-tooling) | Shared AST utilities and source-linked diagnostics behind the two packages above |
+| [`@web-loom/mvvm-patterns`](packages/mvvm-patterns) | Application-level MVVM patterns — interaction requests, active-aware ViewModels |
+| [`@web-loom/embed-core`](packages/embed-core) | Framework-agnostic embeddable widget SDK and host integration layer |
 
 ### Internal / workspace-only
 
 A supporting cast used by the demo apps and not meant for external installation: shared domain models and ViewModels (`@repo/models`, `@repo/view-models`, `@repo/shared`), the plugin registry (`@repo/plugin-core`), infrastructure libraries still maturing toward a first release (`http-core`, `storage-core`, `platform-core`, `notifications-core`, `router-core`, `error-core`, `i18n-core`, `typography-core`), the docs site theme (`@repo/docs-theme`), the editor extension (`vscode-template-core-syntax`), and internal tooling config (`@repo/eslint-config`, `@repo/typescript-config`).
+
+### Versioning Policy
+
+Every package in this repo — published, coming-soon, or internal — moves in **lockstep** and stays at or below `mvvm-core`/`signals-core`'s version. Until the ecosystem is ready to commit to a stable public API, releases are **patch-only**: no package's `major.minor` changes without a deliberate, repo-wide decision to cross into 1.0.0. A CI check enforces this on every pull request; see [`.claude/skills/versioning.md`](.claude/skills/versioning.md) for the full policy and rationale.
 
 ## Templating: `@web-loom/template-core`
 
