@@ -1,82 +1,154 @@
 <div align="center">
   <img src="webloom.png" alt="Web Loom Logo" width="200"/>
 
-# Web Loom - A Production-Ready, Framework-Agnostic UI Architecture Toolkit
+# Web Loom — A Framework-Agnostic UI Architecture Toolkit
 
-Welcome to Web Loom, a growing ecosystem of framework-agnostic patterns for the web. Our mission is to provide a comprehensive toolkit for building sustainable, maintainable, and scalable UI applications that stand the test of time.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/%40web-loom%2Fmvvm-core.svg?label=%40web-loom%2Fmvvm-core)](https://www.npmjs.com/package/@web-loom/mvvm-core)
+
+Web Loom is a growing ecosystem of framework-agnostic patterns for the web, built around **signals** and **MVVM**. Business logic lives in Models and ViewModels that don't import React, Vue, Angular, or anything else — only the View layer changes when you change your mind about a framework, and Web Loom now ships its own native View too, so you don't have to pick a framework at all.
 
 </div>
 
 ## Vision
 
-In an ever-evolving landscape of frontend frameworks, Web Loom champions a timeless approach to UI architecture. Inspired by the robust patterns of C#'s Prism framework, we have adapted and enhanced these concepts for the modern web. Our goal is to empower developers to build applications whose core logic is independent of any specific framework, ensuring that your investment in code pays dividends for years to come.
+In an ever-evolving landscape of frontend frameworks, Web Loom champions a timeless approach to UI architecture. Inspired by the robust patterns of C#'s Prism framework, we've adapted and enhanced these concepts for the modern web with reactive signals in place of RxJS/WPF-style dependency properties. The goal: your core logic — Models, ViewModels, Commands, validation — pays dividends for years, independent of whichever framework is fashionable this year.
 
-## Production-Ready Packages
+## Two Ways to Build
 
-All published npm packages are considered production-ready and are actively maintained. These packages form the stable foundation of the Web Loom ecosystem.
+Every Web Loom app starts the same way: a `@web-loom/mvvm-core` `BaseViewModel` exposing signal-backed state (`data$`, `isLoading$`, `error$`) and `Command`s from `@web-loom/signals-core`. What differs is the View.
 
-## Packages Under Development
+### 1. Bring your own framework
 
-We are constantly innovating and expanding the Web Loom ecosystem. Packages that are not yet published to npm are under active development and represent the future of our toolkit. We encourage the community to explore these packages and provide feedback to help shape their evolution.
+Write a thin bridge that subscribes your framework's rendering model to the ViewModel's signals. Every demo app in `apps/` does exactly this, in a few lines:
+
+| App | Framework | How it bridges to the ViewModel's signals |
+| --- | --- | --- |
+| [`apps/mvvm-react`](apps/mvvm-react) | React | `useSignal(sig)` → `useSyncExternalStore(sig.subscribe, sig.get, sig.get)` |
+| [`apps/mvvm-vue`](apps/mvvm-vue) | Vue 3 | `useSignal(sig)` → `shallowRef` seeded via `.peek()`, synced via `observe()` |
+| [`apps/mvvm-angular`](apps/mvvm-angular) | Angular | `fromLoomSignal(sig, destroyRef)` → mirrors into a native Angular `signal()` |
+| [`apps/mvvm-lit`](apps/mvvm-lit) | Lit | manual `@state()` field updated via `observe()` in `connectedCallback` |
+| [`apps/mvvm-marko`](apps/mvvm-marko) | Marko | `subscribeToObservable(sig, updateFn)` wrapping `observe`/`subscribe` |
+| [`apps/mvvm-vanilla`](apps/mvvm-vanilla) | Vanilla JS + EJS | direct `observe(vm.data$, callback)` calls that manually patch the DOM |
+| [`apps/mvvm-react-native`](apps/mvvm-react-native) | React Native | same bridge as `mvvm-react`, native components |
+| [`apps/mvvm-react-integrated`](apps/mvvm-react-integrated) | React | React + Design Core theming, integrated patterns |
+
+Reach for this path when you want a specific framework's ecosystem, tooling, or team familiarity.
+
+### 2. The complete Web Loom stack
+
+Or skip the bridge entirely: `@web-loom/template-core` renders the same ViewModels directly, because its bindings *are* signal subscriptions. No virtual DOM, no component re-render, no adapter code.
+
+```ts
+import { signal } from '@web-loom/signals-core';
+import { compile } from '@web-loom/template-core';
+
+const vm = { count$: signal(0), increment: () => vm.count$.update((n) => n + 1) };
+
+const template = compile(`<button on:click="increment">Count: {{ count$ }}</button>`);
+const view = template.mount(document.getElementById('app')!, vm);
+// later: view.dispose()
+```
+
+[`apps/ecommerce-template-core`](apps/ecommerce-template-core) is the proof: a full catalog/cart/checkout/SSR ecommerce app built with **zero** JS framework — only `signals-core`, `mvvm-core`, and `template-core`. [`apps/ecommerce-mvvm`](apps/ecommerce-mvvm) is the same product built with React, sharing the same Models and ViewModels — a direct, working demonstration that the View is the only thing that changed.
+
+> `template-core` and its tooling siblings are implemented and used across the demo apps but not yet published to npm — see [Packages](#packages) below. Use them today via the workspace; `npm install` support is coming.
 
 ## Core Principles
 
-- **Framework-Agnostic**: Our core libraries are designed to work with any frontend framework, or even with vanilla JavaScript.
-- **MVVM Architecture**: We provide a complete Model-View-ViewModel implementation, enabling a clean separation of concerns and testable business logic.
-- **Headless UI**: Our UI patterns are headless, meaning they provide the logic and behavior for common UI components without imposing any specific styling.
-- **Plugin System**: A dynamic plugin architecture allows for the creation of modular and extensible applications.
-- **Type-Safe**: The entire ecosystem is written in TypeScript, ensuring type safety and improved developer experience.
+- **Framework-Agnostic**: Core libraries work with any frontend framework, or with no framework at all.
+- **Signals-First Reactivity**: `@web-loom/signals-core` provides `signal`/`computed`/`effect` primitives with no virtual DOM required — the same signal graph drives every View option above.
+- **MVVM Architecture**: A complete Model-View-ViewModel implementation for clean separation of concerns and testable business logic.
+- **Headless UI**: UI patterns provide logic and behavior for common components without imposing any styling.
+- **Plugin System**: A dynamic plugin architecture for modular, extensible applications.
+- **Type-Safe**: The entire ecosystem is TypeScript, with Zod validation at the Model boundary.
 
 ## Getting Started
 
-To get started with Web Loom, simply clone the repository and install the dependencies:
+The fastest way to start a new project is the `create-web-loom` CLI, which scaffolds a Vite app and overlays a working, signals-backed MVVM starter:
+
+```bash
+npm create web-loom@latest
+```
+
+It detects your chosen framework (React, Preact, Vue, Solid, Svelte, Lit, Vanilla, or Qwik) and wires up a starter `ViewModel` plus the matching signal bridge automatically.
+
+To explore this monorepo itself — all the demo apps, `template-core`, and the ecommerce comparison — clone and install:
 
 ```bash
 npm install
-```
-
-Then, you can run the development servers for all the applications:
-
-```bash
 npm run dev
 ```
 
-## Learn More
+## Packages
 
-To learn more about the Web Loom ecosystem, please refer to the documentation in each individual package. You can also read more about our philosophy and architecture in the following documents:
+### Published
 
-- [Prism to Web Loom Feature Mapping](docs/PRISM-WEBLOOM-COMPARISON.md)
-- [MVVM-Core Enhancement Roadmap](docs/MVVM-CORE-PRISM-ENHANCEMENTS.md)
+These are live on npm today.
 
-We are excited to have you on this journey with us. Welcome to the future of UI architecture. Welcome to Web Loom.
+| Package | Version | Description |
+| --- | --- | --- |
+| [`@web-loom/mvvm-core`](packages/mvvm-core) | 0.8.0 | Signals-backed MVVM framework — `BaseModel`, `RestfulApiModel`, `BaseViewModel`, `Command` |
+| [`@web-loom/signals-core`](packages/signals-core) | 0.8.0 | Framework-agnostic reactive signals — `signal`, `computed`, `effect`, `batch` |
+| [`@web-loom/query-core`](packages/query-core) | 0.8.0 | Server state management with caching, deduplication, and background refetch |
+| [`@web-loom/store-core`](packages/store-core) | 0.8.0 | Minimal client state management for UI-only state |
+| [`@web-loom/ui-core`](packages/ui-core) | 0.8.0 | Headless UI behaviors — Dialog, Form, List Selection, Roving Focus, Drag & Drop |
+| [`@web-loom/ui-patterns`](packages/ui-patterns) | 0.8.0 | Composed UI patterns built on `ui-core` — Wizard, Master-Detail, Command Palette |
+| [`@web-loom/design-core`](packages/design-core) | 0.8.0 | Design tokens and theming system |
+| [`@web-loom/forms-core`](packages/forms-core) | 0.8.0 | Framework-agnostic form state management with Zod integration |
+| [`@web-loom/event-bus-core`](packages/event-bus-core) | 0.8.0 | Type-safe pub-sub event bus for cross-feature communication |
+| [`@web-loom/event-emitter-core`](packages/event-emitter-core) | 0.8.0 | Tiny type-safe event emitter shared across Web Loom packages |
+| [`@web-loom/mcp-server`](packages/mcp-server) | 0.2.0 | MCP server exposing scaffolding, docs, and guided patterns for `@web-loom/*` |
+| [`create-web-loom`](packages/create-web-loom) | 0.1.4 | CLI scaffolder — `npm create web-loom@latest` |
 
-## Core Libraries
+Framework-specific adapters (React/Vue/vanilla form bindings, media players, charts) live in the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, published under the same `@web-loom/*` npm scope.
 
-| Package                     | Description                                                          |
-| --------------------------- | -------------------------------------------------------------------- |
-| `@web-loom/mvvm-core`       | Core MVVM architecture library                                       |
-| `@web-loom/ui-core`         | Headless UI behaviors                                                |
-| `@web-loom/ui-patterns`     | Composed UI patterns                                                 |
-| `@web-loom/store-core`      | Reactive state management                                            |
-| `@web-loom/query-core`      | Data fetching & caching                                              |
-| `@web-loom/signals-core`    | Framework-agnostic reactive signals with computed values and effects |
-| `@web-loom/event-bus-core`  | Event bus for cross-component communication                          |
-| `@web-loom/plugin-core`     | Plugin architecture                                                  |
-| `@web-loom/typography-core` | Typography and coloring utilities                                    |
-| `@web-loom/design-core`     | Theme and CSS variable utilities                                     |
+### Coming soon
+
+Fully implemented and exercised in the demo apps, but not yet published to npm — use via the workspace in the meantime.
+
+| Package | Version | Description |
+| --- | --- | --- |
+| [`@web-loom/template-core`](packages/template-core) | 1.2.0 | Signal-native reactive template engine — no VDOM, no framework adapter |
+| [`@web-loom/template-core-vite`](packages/template-core-vite) | 0.3.0 | Vite plugin for `template-core` — build-time precompile, dev analyze/precompile modes |
+| [`@web-loom/template-core-vite-ssr`](packages/template-core-vite-ssr) | 0.1.0 | Reusable Vite SSR dev/production server for `template-core` apps |
+| [`@web-loom/template-core-lint`](packages/template-core-lint) | 0.1.0 | ESLint plugin with static-analysis rules for `template-core` templates |
+| [`@web-loom/template-core-tooling`](packages/template-core-tooling) | 0.2.0 | Shared AST utilities and source-linked diagnostics behind the two packages above |
+| [`@web-loom/mvvm-patterns`](packages/mvvm-patterns) | 0.8.0 | Application-level MVVM patterns — interaction requests, active-aware ViewModels |
+| [`@web-loom/embed-core`](packages/embed-core) | 0.8.0 | Framework-agnostic embeddable widget SDK and host integration layer |
+
+### Internal / workspace-only
+
+A supporting cast used by the demo apps and not meant for external installation: shared domain models and ViewModels (`@repo/models`, `@repo/view-models`, `@repo/shared`), the plugin registry (`@repo/plugin-core`), infrastructure libraries still maturing toward a first release (`http-core`, `storage-core`, `platform-core`, `notifications-core`, `router-core`, `error-core`, `i18n-core`, `typography-core`), the docs site theme (`@repo/docs-theme`), the editor extension (`vscode-template-core-syntax`), and internal tooling config (`@repo/eslint-config`, `@repo/typescript-config`).
+
+## Templating: `@web-loom/template-core`
+
+`template-core` is a Mustache/Handlebars-flavored HTML template engine whose bindings *are* `signals-core` subscriptions — a signal write updates exactly the DOM node or attribute that reads it, nothing else re-renders.
+
+```html
+<h1>{{ title$ }}</h1>
+{{#if isLoading$}}<p>Loading…</p>{{else if error$}}<p>{{ error$ }}</p>{{/if}}
+{{#each todos$ key=id}}<li on:click="remove(this)">{{ text }}</li>{{else}}<li>Nothing to do</li>{{/each}}
+<input bind:value="name$" />
+```
+
+Templates compile at runtime via the browser's native `<template>` parser plus a small CSP-safe expression evaluator (no `eval`/`new Function`), or precompile offline to a serializable render plan for production builds. It also supports SSR/hydration without a DOM, via `parse5`.
+
+It isn't meant to replace the React/Vue/Angular/Lit/Marko adapters in general — it's Web Loom's own reference View, the one that keeps the rest of the ecosystem honest about the ViewModel boundary. Its tooling packages (`template-core-vite`, `template-core-vite-ssr`, `template-core-lint`, `template-core-tooling`, `vscode-template-core-syntax`) round out the authoring experience with build-time precompilation, SSR, linting, and editor syntax highlighting.
+
+See [`packages/template-core/README.md`](packages/template-core/README.md) and its [PRD](packages/template-core/docs/PRD.md) for the full grammar and design rationale, or [`apps/ecommerce-template-core`](apps/ecommerce-template-core) for a complete reference app.
 
 ## Architecture
 
-Web Loom is built on a solid foundation of architectural patterns that have been adapted and enhanced for the modern web. Our architecture is heavily inspired by the C# Prism framework, but has been reimagined to leverage the power of reactive signals (@web-loom/signals-core) and TypeScript.
+Web Loom's architecture is heavily inspired by the C# Prism framework, reimagined around reactive signals (`@web-loom/signals-core`) and TypeScript. For the full package dependency graph, see [`paper/architecture-overview.md`](paper/architecture-overview.md).
 
 ### MVVM (Model-View-ViewModel)
-
-The core of our architecture is the Model-View-ViewModel (MVVM) pattern. This pattern provides a clean separation of concerns between the UI (View), the presentation logic (ViewModel), and the data and business logic (Model).
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                         View Layer                       │
-│  (React / Angular / Vue / Vanilla JS - Framework UI)    │
+│   Any framework (React/Vue/Angular/Lit/Marko/Vanilla)    │
+│              — or @web-loom/template-core                │
 └────────────────────┬────────────────────────────────────┘
                      │ Binds to signals
                      ▼
@@ -84,7 +156,7 @@ The core of our architecture is the Model-View-ViewModel (MVVM) pattern. This pa
 │                      ViewModel Layer                     │
 │    (packages/view-models - Shared Business Logic)       │
 │    • Exposes data$ / isLoading$ / error$ signals        │
-│    • Handles user interactions                          │
+│    • Handles user interactions via Commands              │
 │    • Framework-agnostic                                 │
 └────────────────────┬────────────────────────────────────┘
                      │ Uses
@@ -100,19 +172,15 @@ The core of our architecture is the Model-View-ViewModel (MVVM) pattern. This pa
 
 ### Headless UI Patterns
 
-Our UI patterns are headless, meaning they provide the logic and behavior for common UI components without imposing any specific styling. This allows you to build a design system that is truly your own, while still leveraging our powerful UI logic.
-
 ```
 Atomic Behaviors (@web-loom/ui-core)
        ↓
 Composed Patterns (@web-loom/ui-patterns)
        ↓
-Framework-Specific Components (Your App)
+Framework-Specific Components — or template-core, directly
 ```
 
 ### Plugin Architecture
-
-Web Loom features a dynamic plugin architecture that allows you to build modular and extensible applications. Plugins can contribute new routes, UI components, and even new application logic.
 
 ```
 ┌────────────────────────────────────────┐
@@ -131,3 +199,14 @@ Web Loom features a dynamic plugin architecture that allows you to build modular
 │Adapter  │ │Adapter  │ │Adapter  │
 └─────────┘ └─────────┘ └─────────┘
 ```
+
+## Learn More
+
+- [Prism to Web Loom Feature Mapping](docs/PRISM-WEBLOOM-COMPARISON.md)
+- [MVVM-Core Enhancement Roadmap](docs/MVVM-CORE-PRISM-ENHANCEMENTS.md)
+- [White Paper: the case for framework-agnostic MVVM](paper/white-paper.md)
+- [Architecture Overview](paper/architecture-overview.md)
+- [Contributing](CONTRIBUTING.md)
+- [License (MIT)](LICENSE)
+
+We are excited to have you on this journey with us. Welcome to the future of UI architecture. Welcome to Web Loom.

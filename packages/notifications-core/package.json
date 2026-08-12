@@ -1,6 +1,6 @@
 {
   "name": "@web-loom/notifications-core",
-  "description": "A lightweight, framework-agnostic Event Bus library.",
+  "description": "A lightweight, framework-agnostic browser notification and toast management library.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": true,
