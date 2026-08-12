@@ -7,12 +7,17 @@ export interface PrecompileTransformContext {
   error(message: string): never;
 }
 
+export type PrecompileTransformResult = {
+  code: string;
+  map: ReturnType<MagicString['generateMap']> | null;
+};
+
 export function transformPrecompile(
   ctx: PrecompileTransformContext,
   code: string,
   id: string,
   found: FindCompileCallsResult,
-): { code: string; map: ReturnType<MagicString['generateMap']> } {
+): PrecompileTransformResult {
   const magicString = new MagicString(code);
 
   for (const match of found.matches) {

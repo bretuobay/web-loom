@@ -1,12 +1,13 @@
 {
   "name": "@web-loom/template-core-vite",
-  "version": "0.8.0",
-  "description": "Vite plugin for @web-loom/template-core: build-time precompile, dev analyze, and dev precompile modes.",
+  "version": "0.9.0",
+  "description": "Vite plugin for @web-loom/template-core: build-time precompile, dev analyze, dev precompile, and `.loom` file loading.",
   "license": "MIT",
   "private": false,
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "loom.d.ts"
   ],
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.es.js",
@@ -17,6 +18,9 @@
       "import": "./dist/index.es.js",
       "require": "./dist/index.cjs.js",
       "default": "./dist/index.es.js"
+    },
+    "./loom": {
+      "types": "./loom.d.ts"
     }
   },
   "scripts": {
