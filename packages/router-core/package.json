@@ -1,6 +1,6 @@
 {
   "name": "@web-loom/router-core",
-  "description": "A lightweight, framework-agnostic Event Bus library.",
+  "description": "A lightweight, framework-agnostic routing library with reactive navigation state.",
   "author": "Festus Yeboah<festus.yeboah@hotmail.com>",
   "license": "MIT",
   "private": true,
