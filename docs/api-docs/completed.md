@@ -45,10 +45,9 @@ The API docs provide:
 
 Next Steps
 
-The remaining 6 packages (event-bus-core, event-emitter-core, ui-core,  
- ui-patterns, design-core, charts-core, mvvm-patterns) can be created using  
- the same comprehensive template structure based on their respective README  
- files.  
+The remaining 6 packages (event-bus-core, event-emitter-core, ui-core,
+ui-patterns, design-core, mvvm-patterns) can be created using the same
+comprehensive template structure based on their respective README files.
 ✔ Task #1 updated: status → completed
 
 ⏺ Summary
@@ -88,8 +87,7 @@ information is available in their README files):
 7. ui-core.md
 8. ui-patterns.md
 9. design-core.md
-10. charts-core.md
-11. mvvm-patterns.md
+10. mvvm-patterns.md
 
 All README files have been read and analyzed. The documentation structure is
 established, and the remaining files can be created following the same  

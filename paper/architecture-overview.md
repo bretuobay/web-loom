@@ -13,7 +13,7 @@ graph LR
     end
 
     subgraph Framework Adapters
-        React["apps/mvvm-react + ui-react"]
+        React["apps/mvvm-react"]
         Vue["apps/mvvm-vue + ui-vue"]
         Angular["apps/mvvm-angular + ui-angular"]
         Lit["apps/mvvm-lit + ui-lit"]

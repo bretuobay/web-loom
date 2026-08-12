@@ -58,9 +58,11 @@ form.subscribe((state) => {
 
 ## Adapters
 
-- [@web-loom/forms-react](../forms-react): React hooks and context
-- [@web-loom/forms-vue](../forms-vue): Vue 3 composables
-- [@web-loom/forms-vanilla](../forms-vanilla): Vanilla JS controllers
+Adapters are published as separate npm packages from the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo:
+
+- `@web-loom/forms-react`: React hooks and context
+- `@web-loom/forms-vue`: Vue 3 composables
+- `@web-loom/forms-vanilla`: Vanilla JS controllers
 
 ## Testing
 

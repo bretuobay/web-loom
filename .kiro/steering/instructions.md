@@ -49,7 +49,6 @@ cd apps/mvvm-vue && npm run dev
 cd apps/mvvm-lit && npm run dev
 cd apps/mvvm-vanilla && npm run dev
 cd apps/plugin-react && npm run dev
-cd apps/ui-patterns-playground && npm run dev
 ```
 
 ## Architecture
@@ -109,12 +108,7 @@ The `apps/plugin-react` app demonstrates this with React-based plugin host and a
 - **models**: Shared data models (used by API and apps)
 - **ui-core**: Headless UI behaviors (Dialog, Form, List Selection, Roving Focus, Disclosure)
 - **ui-patterns**: Composed UI patterns (Master-Detail, Wizard, Modal, Command Palette, etc.)
-- **ui-react**: React UI component adapters
-- **media-core**: Media player with plugins
-- **media-react**: React media player adapter
-- **media-vue**: Vue media player adapter
 - **forms-core**: Framework-agnostic form logic
-- **forms-react/forms-vue/forms-vanilla**: Framework-specific form adapters
 - **http-core**: HTTP utilities
 - **i18n-core**: Internationalization utilities
 - **storage-core**: Storage abstraction layer
@@ -122,7 +116,8 @@ The `apps/plugin-react` app demonstrates this with React-based plugin host and a
 - **router-core**: Routing utilities
 - **notifications-core**: Notification utilities
 - **platform-core**: Platform utilities
-- **visdiff**: Visual diff utilities
+
+**Note:** `charts-core`, `ui-react`, `forms-react`, `forms-vue`, `forms-vanilla`, `media-core`, `media-react`, `media-vue`, `turbo-analyse`, and `visdiff` moved to the sibling repo [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) — framework-specific adapters and standalone tooling that consume this repo's `@web-loom/*` core packages as published npm dependencies rather than workspace siblings.
 
 ## Key Technical Details
 
@@ -170,7 +165,6 @@ apps/
   ├── mvvm-book/               # MVVM documentation app
   ├── plugin-react/            # Plugin host application
   ├── plugin-docs/             # Plugin documentation
-  ├── ui-patterns-playground/  # UI patterns playground
   ├── api/                     # Express + SQLite backend
   └── docs/                    # Next.js documentation site
 
@@ -185,14 +179,7 @@ packages/
   ├── query-core/           # Data fetching/caching library
   ├── ui-core/              # Headless UI behaviors
   ├── ui-patterns/          # Composed UI patterns
-  ├── ui-react/             # React UI component adapters
-  ├── media-core/           # Media player core
-  ├── media-react/          # React media adapter
-  ├── media-vue/            # Vue media adapter
   ├── forms-core/           # Form logic core
-  ├── forms-react/          # React form adapter
-  ├── forms-vanilla/        # Vanilla JS form adapter
-  ├── forms-vue/            # Vue form adapter
   ├── http-core/            # HTTP utilities
   ├── i18n-core/            # Internationalization
   ├── storage-core/         # Storage abstraction
@@ -202,7 +189,6 @@ packages/
   ├── platform-core/        # Platform utilities
   ├── design-core/          # Theme utilities
   ├── typography-core/      # Typography & color utilities
-  ├── visdiff/              # Visual diff utilities
   ├── shared/               # Shared utilities and styles
   ├── eslint-config/        # Shared ESLint config
   └── typescript-config/    # Shared TypeScript config
