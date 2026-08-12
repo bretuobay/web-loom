@@ -1,0 +1,31 @@
+# .github/workflows/version-policy-guard.yml
+
+name: Version Policy Guard
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/*/package.json'
+
+jobs:
+  check_version_policy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check version policy
+        env:
+          BASE_REF: origin/${{ github.event.pull_request.base.ref }}
+          ALLOW_VERSION_JUMP: ${{ contains(github.event.pull_request.title, '[version-jump]') }}
+        run: node scripts/check-version-policy.mjs

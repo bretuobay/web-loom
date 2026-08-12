@@ -14,6 +14,7 @@
     "format:ecommerce-templates": "tsx scripts/format-ecommerce-templates.ts",
     "format:ecommerce-templates:check": "tsx scripts/format-ecommerce-templates.ts --check",
     "check-types": "turbo run check-types",
+    "check-versions": "node scripts/check-version-policy.mjs",
     "test": "turbo run test",
     "deploy:plugin-docs": "turbo run build --filter=plugin-docs && npm run cf:deploy --workspace=plugin-docs",
     "deploy:plugin-docs:preview": "turbo run build --filter=plugin-docs && npm run cf:upload --workspace=plugin-docs",
@@ -58,6 +59,7 @@
     "flatted": "^3.4.2",
     "js-cookie": "^3.0.6",
     "rollup": "^4.58.1",
+    "uuid": "14.0.1",
     "express": {
       "path-to-regexp": "0.1.13"
     }

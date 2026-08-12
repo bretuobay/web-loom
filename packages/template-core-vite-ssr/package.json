@@ -1,6 +1,6 @@
 {
   "name": "@web-loom/template-core-vite-ssr",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "Reusable Vite SSR server and document helpers for template-core applications.",
   "license": "MIT",
   "private": false,

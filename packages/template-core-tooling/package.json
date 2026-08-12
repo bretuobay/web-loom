@@ -1,6 +1,6 @@
 {
   "name": "@web-loom/template-core-tooling",
-  "version": "0.2.0",
+  "version": "0.8.0",
   "description": "Shared AST utilities and source-linked diagnostics for @web-loom/template-core tooling.",
   "license": "MIT",
   "private": false,
