@@ -59,6 +59,7 @@
     "flatted": "^3.4.2",
     "js-cookie": "^3.0.6",
     "rollup": "^4.58.1",
+    "uuid": "14.0.1",
     "express": {
       "path-to-regexp": "0.1.13"
     }
