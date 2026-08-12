@@ -1,6 +1,6 @@
 {
   "name": "@web-loom/template-core-vite",
-  "version": "0.9.0",
+  "version": "0.8.0",
   "description": "Vite plugin for @web-loom/template-core: build-time precompile, dev analyze, dev precompile, and `.loom` file loading.",
   "license": "MIT",
   "private": false,
