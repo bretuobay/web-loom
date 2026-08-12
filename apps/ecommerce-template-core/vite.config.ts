@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
+import { templateCoreLoom } from '@web-loom/template-core-vite';
 import { createAliases } from '../../scripts/vite-alias';
 
 export default defineConfig({
@@ -7,6 +8,7 @@ export default defineConfig({
     port: 5182,
     strictPort: true,
   },
+  plugins: [templateCoreLoom()],
   resolve: {
     alias: {
       ...createAliases(__dirname),

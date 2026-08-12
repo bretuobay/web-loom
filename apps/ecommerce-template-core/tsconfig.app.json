@@ -32,6 +32,7 @@
       "@web-loom/router-core/*": ["../../packages/router-core/src/*"],
       "@web-loom/template-core": ["../../packages/template-core/src"],
       "@web-loom/template-core/*": ["../../packages/template-core/src/*"],
+      "@web-loom/template-core-vite/loom": ["../../packages/template-core-vite/loom.d.ts"],
       "@web-loom/ui-core": ["../../packages/ui-core/src"],
       "@web-loom/ui-core/*": ["../../packages/ui-core/src/*"],
       "@web-loom/ui-patterns": ["../../packages/ui-patterns/src"],
