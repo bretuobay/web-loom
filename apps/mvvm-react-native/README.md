@@ -1,6 +1,6 @@
 # React Native MVVM App
 
-This is a React Native application built using the MVVM pattern, bootstrapped with Expo.
+This is a React Native application built using the MVVM pattern, bootstrapped with Expo (SDK 57).
 
 # MVVM in React Native
 
@@ -71,9 +71,9 @@ This approach keeps data logic out of the UI components and enables reactive upd
 
 ## Prerequisites
 
-- Node.js
-- npm or yarn
-- Expo CLI
+- Node.js **22.13+** (Expo SDK 57 minimum; Node 24.x works)
+- npm (npm@10.9.2 at repo root)
+- Expo CLI (`npx expo`)
 
 ## Getting Started
 
@@ -105,8 +105,11 @@ This approach keeps data logic out of the UI components and enables reactive upd
 
 ## Building the App
 
-To create a production build of the app, run the following command:
+Web export (smoke test without a device):
 
 ```bash
-npm run build
+cd apps/mvvm-react-native
+npx expo export --platform web
 ```
+
+For native builds, use [EAS Build](https://docs.expo.dev/build/introduction/) or `npx expo prebuild` + platform toolchains.
