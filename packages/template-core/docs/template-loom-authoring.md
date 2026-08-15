@@ -13,7 +13,10 @@ No new syntax, no second parser — only an authoring surface and Vite loader gl
 | Build should always precompile | Need `declareContext<T>()` wrapper in same file |
 
 Both styles remain valid indefinitely. The ecommerce demo uses **both**: `header.loom` plus
-string-based templates in other modules.
+string-based templates in other modules. The greenhouse demo
+[`apps/mvvm-template-core`](../../../apps/mvvm-template-core) is a **full `.loom` app** — every
+view is a standalone `.loom` file (dashboard, lists, cards, layout) with the same ViewModels as
+`mvvm-react`.
 
 ## Setup
 

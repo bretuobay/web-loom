@@ -47,6 +47,7 @@ cd apps/mvvm-angular && npm run dev
 cd apps/mvvm-vue && npm run dev
 cd apps/mvvm-lit && npm run dev
 cd apps/mvvm-vanilla && npm run dev
+cd apps/mvvm-template-core && npm run dev
 
 # Feature Apps
 cd apps/task-flow-ui && npm run dev      # Port 5178
@@ -152,6 +153,7 @@ rm -rf node_modules/.vite  # Clear Vite cache
 ### Port Conflicts
 
 - mvvm-react: 5173
+- mvvm-template-core: 5183
 - task-flow-ui: 5178
 - api: 3000
 - task-flow-api: 3001

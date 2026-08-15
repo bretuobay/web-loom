@@ -129,6 +129,11 @@ for the Phase 2 composition model. Its shell is assembled from named partials, i
 uses a local product-card partial, and its search field, theme switch, event modifiers, and element
 action exercise the corresponding runtime features against a real ecommerce ViewModel.
 
+[`apps/mvvm-template-core`](../../apps/mvvm-template-core) is the greenhouse dashboard from
+`mvvm-react`, rewritten as standalone `.loom` files against the same shared ViewModels. Use it to
+see `.loom` authoring, syntax highlighting, partial composition, routing outlets, and `use:`
+actions without a JS framework.
+
 ## Binding a ViewModel vs. binding a DTO snapshot
 
 `compile(...).mount(el, context)` renders whatever object graph you hand it as `context` —
