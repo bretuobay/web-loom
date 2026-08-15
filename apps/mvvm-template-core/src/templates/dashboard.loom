@@ -1,0 +1,21 @@
+<div class="dashboard-container">
+  {{#if dashboardLoading$}}
+    <p>Loading dashboard data...</p>
+  {{else}}
+    <h2>Dashboard</h2>
+    <div class="flex-container">
+      <div class="flex-item">
+        {{> greenhouse-card}}
+      </div>
+      <div class="flex-item">
+        {{> sensor-card}}
+      </div>
+      <div class="flex-item">
+        {{> threshold-alert-card}}
+      </div>
+      <div class="flex-item">
+        {{> sensor-reading-card}}
+      </div>
+    </div>
+  {{/if}}
+</div>

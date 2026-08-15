@@ -1,0 +1,8 @@
+{{#if sensors.data$}}
+  <div class="card">
+    <a href="/sensors" class="card-header-link" on:click.prevent="navigateFromClick">
+      <h3 class="card-title">Sensors</h3>
+    </a>
+    <p class="card-content">Total: {{ sensors.data$.length }}</p>
+  </div>
+{{/if}}
