@@ -27,7 +27,6 @@ export class GreenhouseAppView {
   private readonly mountedViews: Disposable[] = [];
   private routeOutlet: TemplateOutlet | null = null;
   private stopRouteSubscription: (() => void) | null = null;
-  private stopRouteDataSubscription: (() => void) | null = null;
 
   mount(container: Element, viewModel: GreenhouseAppViewModel): Disposable {
     registerAppPartials();
@@ -45,9 +44,6 @@ export class GreenhouseAppView {
 
     renderRoute(viewModel.route$.get());
     this.stopRouteSubscription = viewModel.route$.subscribe(renderRoute);
-    this.stopRouteDataSubscription = viewModel.router.subscribe((route) => {
-      void viewModel.loadRouteData(route.path);
-    });
 
     return {
       dispose: () => this.dispose(),
@@ -57,8 +53,6 @@ export class GreenhouseAppView {
   private dispose(): void {
     this.stopRouteSubscription?.();
     this.stopRouteSubscription = null;
-    this.stopRouteDataSubscription?.();
-    this.stopRouteDataSubscription = null;
     this.routeOutlet?.dispose();
     this.routeOutlet = null;
     this.mountedViews

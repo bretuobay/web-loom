@@ -47,6 +47,10 @@ export class GreenhouseAppBindings {
 
   readonly renderSensorReadingsChart = createSensorReadingsChartAction(() => this.sensorReadings.data$);
 
+  readonly loadCurrentRouteData = (): void => {
+    void this.viewModel.loadRouteData(this.viewModel.route$.get());
+  };
+
   constructor(private readonly viewModel: GreenhouseAppViewModel) {
     this.dashboardLoading$ = computed(
       () =>

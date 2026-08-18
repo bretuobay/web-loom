@@ -1,4 +1,4 @@
-<a href="/" class="back-button" on:click.prevent="navigateFromClick">
+<a href="/" class="back-button" on:click.prevent="navigateFromClick" use:loadCurrentRouteData="loadCurrentRouteData">
   <img src="/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
 </a>
 <section class="flex-container flex-row">
