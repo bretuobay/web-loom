@@ -51,14 +51,9 @@ export class GreenhouseAppViewModel {
   async start(): Promise<void> {
     if (this.started) return;
     this.started = true;
-    let initialLoad: Promise<void> | null = null;
     this.stopRouteSubscription = this.router.subscribe((route) => {
       this.route$.set(route.path);
-      const pending = this.loadRoute(route.path);
-      initialLoad ??= pending;
-      void pending;
     });
-    await initialLoad;
   }
 
   async navigate(path: string): Promise<void> {
@@ -72,7 +67,7 @@ export class GreenhouseAppViewModel {
     this.started = false;
   }
 
-  private async loadRoute(path: string): Promise<void> {
+  async loadRouteData(path: string): Promise<void> {
     try {
       if (path === '/' || path === '/dashboard') {
         await Promise.all([
