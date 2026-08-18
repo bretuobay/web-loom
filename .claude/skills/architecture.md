@@ -122,6 +122,19 @@ useEffect(() => {
 - `observe(sig, fn)` for subscribe-with-current-value; `.subscribe(fn)` for changes only
 - Call the returned unsubscribe function on teardown
 
+### Template Core (`.loom`)
+
+- No component tree, so no `useEffect`/`connectedCallback` to hook into — the `use:` action directive
+  (`<el use:name="expr">`, `@web-loom/template-core`) is the equivalent: its factory runs once when
+  the element mounts, and a returned `dispose()` runs on unmount
+- `TemplateOutlet.show()` fully disposes the outgoing route template and mounts the incoming one
+  fresh on every navigation, so a `use:` action on a route template's root element fires on every
+  route-enter/exit — same "View mount triggers `fetchCommand.execute()`" pattern as the frameworks
+  above, expressed declaratively in the `.loom` file instead of a manual subscription
+- Reference: `apps/mvvm-template-core/src/app/bindings.ts` (`loadCurrentRouteData`) wired via
+  `use:loadCurrentRouteData="loadCurrentRouteData"` on each route template's root element (e.g.
+  `dashboard.loom`)
+
 ## Best Practices
 
 1. **Always call `dispose()`** on ViewModels when component unmounts
