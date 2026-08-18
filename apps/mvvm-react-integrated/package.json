@@ -24,8 +24,8 @@
     "@web-loom/store-core": "*",
     "@web-loom/ui-core": "*",
     "chart.js": "^4.4.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-router-dom": "^7.18.0"
   },
   "devDependencies": {

@@ -48,6 +48,7 @@ apps/
   ├── mvvm-angular/            # Angular MVVM demo
   ├── mvvm-vue/                # Vue.js MVVM demo
   ├── mvvm-vanilla/            # Vanilla JS + EJS MVVM demo
+  ├── mvvm-template-core/      # Template Core (.loom) MVVM demo
   ├── mvvm-lit/                # Lit web components MVVM demo
   ├── mvvm-marko/              # Marko MVVM demo
   ├── mvvm-react-integrated/   # React with integrated patterns + theming
@@ -221,6 +222,7 @@ turbo run test --filter=mvvm-react
 ## Default Ports
 
 - `mvvm-react`: 5173
+- `mvvm-template-core`: 5183
 - `task-flow-ui`: 5178
 - `api`: 3000
 - `task-flow-api`: 3001

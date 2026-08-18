@@ -50,7 +50,7 @@ const view = template.mount(document.getElementById('app')!, vm);
 // later: view.dispose()
 ```
 
-[`apps/ecommerce-template-core`](apps/ecommerce-template-core) is the proof: a full catalog/cart/checkout/SSR ecommerce app built with **zero** JS framework — only `signals-core`, `mvvm-core`, and `template-core`. [`apps/ecommerce-mvvm`](apps/ecommerce-mvvm) is the same product built with React, sharing the same Models and ViewModels — a direct, working demonstration that the View is the only thing that changed.
+[`apps/ecommerce-template-core`](apps/ecommerce-template-core) is the ecommerce proof: a full catalog/cart/checkout/SSR app built with **zero** JS framework — only `signals-core`, `mvvm-core`, and `template-core`. [`apps/mvvm-template-core`](apps/mvvm-template-core) is the same idea for the greenhouse dashboard: it clones [`apps/mvvm-react`](apps/mvvm-react) with `.loom` templates instead of React components, sharing the same ViewModels. [`apps/ecommerce-mvvm`](apps/ecommerce-mvvm) is the React ecommerce sibling.
 
 > `template-core` and its tooling siblings are implemented and used across the demo apps but not yet published to npm — see [Packages](#packages) below. Use them today via the workspace; `npm install` support is coming.
 
@@ -142,7 +142,7 @@ Templates compile at runtime via the browser's native `<template>` parser plus a
 
 It isn't meant to replace the React/Vue/Angular/Lit/Marko adapters in general — it's Web Loom's own reference View, the one that keeps the rest of the ecosystem honest about the ViewModel boundary. Its tooling packages (`template-core-vite`, `template-core-vite-ssr`, `template-core-lint`, `template-core-tooling`, `vscode-template-core-syntax`) round out the authoring experience with build-time precompilation, SSR, linting, and editor syntax highlighting.
 
-See [`packages/template-core/README.md`](packages/template-core/README.md) and its [PRD](packages/template-core/docs/PRD.md) for the full grammar and design rationale, or [`apps/ecommerce-template-core`](apps/ecommerce-template-core) for a complete reference app.
+See [`packages/template-core/README.md`](packages/template-core/README.md) and its [PRD](packages/template-core/docs/PRD.md) for the full grammar and design rationale. [`apps/mvvm-template-core`](apps/mvvm-template-core) is the `.loom` greenhouse demo; [`apps/ecommerce-template-core`](apps/ecommerce-template-core) is the ecommerce/SSR reference.
 
 ## Architecture
 

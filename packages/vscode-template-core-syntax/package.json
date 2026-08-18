@@ -1,12 +1,17 @@
 {
   "name": "web-loom-template-core-syntax",
   "displayName": "Web Loom Template Core Syntax",
-  "description": "TextMate injection grammar that highlights Web Loom template syntax ({{ }}, {{#if}}/{{#each}}/{{#switch}}, {{> partial}}, on:/:/class:/style: attributes) inside compile(`...`) template-literal strings in .ts/.js source. No .loom file format, no build tooling.",
+  "description": "TextMate injection grammar that highlights Web Loom template syntax ({{ }}, {{#if}}/{{#each}}/{{#switch}}, {{> partial}}, on:/:/class:/style: attributes) inside compile(`...`) template-literal strings in .ts/.js source, plus standalone `.loom` template files.",
   "version": "0.8.0",
   "publisher": "web-loom",
-  "private": true,
   "license": "MIT",
   "type": "module",
+  "files": [
+    "syntaxes",
+    "language-configuration.json",
+    "LICENSE",
+    "README.md"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -14,7 +19,20 @@
     "Programming Languages"
   ],
   "contributes": {
+    "languages": [
+      {
+        "id": "web-loom",
+        "aliases": ["Web Loom Template", "loom"],
+        "extensions": [".loom"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
     "grammars": [
+      {
+        "language": "web-loom",
+        "scopeName": "text.web-loom.template",
+        "path": "./syntaxes/web-loom-file.tmLanguage.json"
+      },
       {
         "scopeName": "inline.web-loom-template",
         "path": "./syntaxes/web-loom-template.tmLanguage.json",
@@ -46,11 +64,13 @@
   "scripts": {
     "test": "vitest --watch=false",
     "lint": "eslint src --ext .ts --max-warnings 0",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "package:vsix": "node scripts/package-vsix.mjs"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
     "@types/node": "^22.15.3",
+    "@vscode/vsce": "^3.7.0",
     "eslint": "^9.39.1",
     "typescript": "5.8.2",
     "vitest": "^4.1.9",

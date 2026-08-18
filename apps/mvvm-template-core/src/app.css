@@ -1,0 +1,33 @@
+.dashboard-container {
+  padding: 20px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sensor-reading-card {
+  position: relative;
+  height: 200px;
+  width: 100%;
+}
+
+.sensor-reading-card canvas {
+  max-width: 100%;
+  max-height: 200px !important;
+}
+
+.back-arrow {
+  width: 36px;
+  height: 36px;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-template-slot='route'] {
+  flex: 1;
+}

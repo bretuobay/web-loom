@@ -80,6 +80,33 @@ without waiting for a production build. Pair with ESLint (`@web-loom/template-co
 
 `dev: 'analyze'` and `dev: 'precompile'` are mutually exclusive — pick one per config.
 
+## `.loom` files (Phase 5-b)
+
+Use `templateCoreLoom()` alongside (or instead of) string-based templates:
+
+```ts
+import { templateCoreLoom, templateCorePrecompile } from '@web-loom/template-core-vite';
+
+export default defineConfig({
+  plugins: [
+    templateCoreLoom(),
+    templateCorePrecompile(), // optional — still needed for compile() strings in .ts
+  ],
+});
+```
+
+```ts
+// header.ts
+export { default as headerTemplate } from './header.loom';
+```
+
+- **`vite dev`** — emits `compile(source, { name, sourcePath })` + HMR `accept()`
+- **`vite build`** — emits `fromPrecompiled(plan)` via `precompileNode()`
+
+TypeScript: `/// <reference types="@web-loom/template-core-vite/loom" />`
+
+Full guide: [`../template-core/docs/template-loom-authoring.md`](../template-core/docs/template-loom-authoring.md).
+
 ## What gets processed
 
 Only call sites where:
@@ -98,6 +125,11 @@ interface TemplateCorePrecompilePluginOptions {
   exclude?: string | RegExp | (string | RegExp)[]; // default: test/spec, __tests__, __fixtures__, benchmarks, node_modules
   specifiers?: string[]; // default: ['@web-loom/template-core', '@web-loom/template-core/ssr']
   dev?: 'analyze' | 'precompile'; // opt-in dev-server behavior
+}
+
+interface TemplateCoreLoomPluginOptions {
+  specifier?: string; // default: @web-loom/template-core (or ssr entry when ssr: true)
+  ssr?: boolean;
 }
 ```
 

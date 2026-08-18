@@ -1,6 +1,6 @@
 # MvvmAngular
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.12.
+This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.21.
 
 # MVVM in Angular
 
@@ -106,13 +106,19 @@ ng generate --help
 
 ## Building
 
+Angular 21 requires **TypeScript ≥5.9** and **Node.js ≥22.22** (or ≥24.13). The monorepo root hoists TypeScript `~5.9` for the CLI compiler.
+
 To build the project run:
 
 ```bash
-ng build
+# From repo root (build is skipped by default to save RAM)
+FORCE_MVVM_ANGULAR_BUILD=1 npm run build --workspace=mvvm-angular
+
+# Or from this app directory
+FORCE_MVVM_ANGULAR_BUILD=1 npm run build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+This compiles the application and writes artifacts to `dist/mvvm-angular/`. The default npm `build` script exits early unless `FORCE_MVVM_ANGULAR_BUILD=1` is set (see `scripts/build.js`).
 
 ## Running unit tests
 

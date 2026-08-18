@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run build --workspace=@web-loom/template-core-vite",
     "dev": "vite",
     "dev:ssr": "tsx server.ts",
     "build:client": "tsc --noEmit -p tsconfig.app.json && vite build --outDir dist/client",
@@ -35,6 +36,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@typescript-eslint/parser": "^8.46.0",
     "@web-loom/template-core-lint": "*",
+    "@web-loom/template-core-vite": "*",
     "eslint": "^9.39.1",
     "jsdom": "^26.1.0",
     "typescript": "~5.8.3",

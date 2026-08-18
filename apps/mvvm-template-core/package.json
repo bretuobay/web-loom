@@ -1,0 +1,39 @@
+{
+  "name": "mvvm-template-core",
+  "private": true,
+  "version": "0.5.2",
+  "type": "module",
+  "scripts": {
+    "predev": "npm run build --workspace=@web-loom/template-core-vite",
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.app.json && vite build",
+    "preview": "vite preview",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit -p tsconfig.app.json",
+    "check-types": "tsc --noEmit -p tsconfig.app.json",
+    "lint": "eslint src --max-warnings 0"
+  },
+  "dependencies": {
+    "@repo/shared": "*",
+    "@repo/view-models": "*",
+    "@web-loom/router-core": "*",
+    "@web-loom/signals-core": "*",
+    "@web-loom/template-core": "*",
+    "chart.js": "^4.5.0"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@types/node": "^22.15.3",
+    "@typescript-eslint/parser": "^8.46.0",
+    "@web-loom/template-core-lint": "*",
+    "@web-loom/template-core-vite": "*",
+    "eslint": "^9.39.1",
+    "jsdom": "^26.1.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.4.3",
+    "vitest": "^4.1.9"
+  }
+}

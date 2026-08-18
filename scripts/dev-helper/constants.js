@@ -89,6 +89,16 @@ const FRONTENDS = [
     command: 'npm run dev',
     recommended: true,
   },
+  {
+    id: 'mvvm-template-core',
+    displayName: 'mvvm-template-core',
+    path: 'apps/mvvm-template-core',
+    port: 5183,
+    framework: 'Vite + template-core (.loom)',
+    notes: 'Greenhouse dashboard cloned from mvvm-react using Web Loom templates.',
+    command: 'npm run dev',
+    recommended: true,
+  },
 ];
 
 const DEMO_API = {

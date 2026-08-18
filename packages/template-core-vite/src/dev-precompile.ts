@@ -1,6 +1,6 @@
 import type { FindCompileCallsResult } from '@web-loom/template-core-tooling';
 import type { PrecompileCache } from './precompile-cache.js';
-import { transformPrecompile, type PrecompileTransformContext } from './precompile-transform.js';
+import { transformPrecompile, type PrecompileTransformContext, type PrecompileTransformResult } from './precompile-transform.js';
 
 export interface DevPrecompileParams {
   cache: PrecompileCache;
@@ -16,7 +16,7 @@ export interface DevPrecompileParams {
 export function runDevPrecompile(
   ctx: PrecompileTransformContext,
   params: DevPrecompileParams,
-): ReturnType<typeof transformPrecompile> {
+): PrecompileTransformResult {
   const contentHash = params.cache.hash(params.code);
   const cached = params.cache.get(params.sourcePath, contentHash);
   if (cached) {

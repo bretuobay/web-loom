@@ -1,0 +1,18 @@
+<a href="/" class="back-button" on:click.prevent="navigateFromClick" use:loadCurrentRouteData="loadCurrentRouteData">
+  <img src="/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
+</a>
+<div class="card">
+  <h1 class="card-title">Threshold Alerts</h1>
+  {{#if thresholdAlerts.data$.length > 0}}
+    <ul class="card-content list">
+      {{#each thresholdAlerts.data$ key=id}}
+        <li class="list-item">
+          Alert ID: {{ id }}, Sensor ID: {{ sensorType }}, Message: Max: {{ maxValue }}, Min:
+          {{ minValue }}
+        </li>
+      {{/each}}
+    </ul>
+  {{else}}
+    <p>No threshold alerts found or still loading...</p>
+  {{/if}}
+</div>

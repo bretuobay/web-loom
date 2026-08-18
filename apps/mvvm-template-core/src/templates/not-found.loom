@@ -1,0 +1,7 @@
+<section class="card">
+  <h1 class="card-title">404 Not Found</h1>
+  <p>No route matches this page.</p>
+  <a href="/" class="card-header-link" on:click.prevent="navigateFromClick">
+    Back to dashboard
+  </a>
+</section>

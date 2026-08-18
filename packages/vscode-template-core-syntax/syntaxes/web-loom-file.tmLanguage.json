@@ -1,0 +1,56 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Web Loom Template",
+  "scopeName": "text.web-loom.template",
+  "patterns": [
+    { "include": "#raw-html" },
+    { "include": "#block-and-partial" },
+    { "include": "#interpolation" },
+    { "include": "text.html.basic" }
+  ],
+  "repository": {
+    "raw-html": {
+      "name": "meta.web-loom.raw-html",
+      "begin": "\\{\\{\\{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.template-expression.begin.web-loom" }
+      },
+      "end": "\\}\\}\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.template-expression.end.web-loom" }
+      },
+      "patterns": [{ "include": "#expression" }]
+    },
+    "block-and-partial": {
+      "match": "(\\{\\{)\\s*(#if|#each|#switch|#case|#default|else\\s+if|else|/if|/each|/switch|/case|/default|>)\\s*([^}]*?)\\s*(\\}\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.template-expression.begin.web-loom" },
+        "2": { "name": "keyword.control.web-loom" },
+        "3": { "patterns": [{ "include": "#expression" }] },
+        "4": { "name": "punctuation.definition.template-expression.end.web-loom" }
+      }
+    },
+    "interpolation": {
+      "name": "meta.web-loom.interpolation",
+      "begin": "\\{\\{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.template-expression.begin.web-loom" }
+      },
+      "end": "\\}\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.template-expression.end.web-loom" }
+      },
+      "patterns": [{ "include": "#expression" }]
+    },
+    "expression": {
+      "patterns": [
+        { "match": "@index\\b|@key\\b|\\$event\\b|\\bthis\\b", "name": "variable.language.web-loom" },
+        { "match": "'[^']*'|\"[^\"]*\"", "name": "string.quoted.web-loom" },
+        { "match": "\\b\\d+(\\.\\d+)?\\b", "name": "constant.numeric.web-loom" },
+        { "match": "===|!==|&&|\\|\\||\\?\\?|!|<=|>=|<|>", "name": "keyword.operator.web-loom" },
+        { "match": "\\bkey\\s*(?==)", "name": "entity.other.attribute-name.web-loom" },
+        { "match": "[A-Za-z_$][\\w$]*(\\.[A-Za-z_$][\\w$]*|\\(\\))*", "name": "variable.other.web-loom" }
+      ]
+    }
+  }
+}

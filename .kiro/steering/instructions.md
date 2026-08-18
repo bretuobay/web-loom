@@ -159,6 +159,7 @@ apps/
   ├── mvvm-angular/            # Angular MVVM demo
   ├── mvvm-vue/                # Vue.js MVVM demo
   ├── mvvm-vanilla/            # Vanilla JS + EJS MVVM demo
+  ├── mvvm-template-core/      # Template Core (.loom) MVVM demo
   ├── mvvm-lit/                # Lit web components MVVM demo
   ├── mvvm-react-integrated/   # React with integrated patterns
   ├── mvvm-react-native/       # React Native MVVM

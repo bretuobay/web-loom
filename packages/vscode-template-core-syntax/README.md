@@ -1,88 +1,95 @@
 # web-loom-template-core-syntax
 
-A minimal, local VS Code extension providing a TextMate **injection grammar**
-that highlights `@web-loom/template-core` template syntax — `{{ }}`,
-`{{{ }}}` (raw HTML), `{{#if}}/{{else if}}/{{else}}/{{/if}}`,
-`{{#each}}/{{/each}}`, `{{#switch}}/{{#case}}/{{#default}}/{{/switch}}`,
-`{{> partial}}` — inside `compile(\`...\`)` template-literal strings in
-`.ts`/`.tsx`/`.js`/`.jsx` source.
+VS Code / Cursor extension — TextMate grammars for `@web-loom/template-core`:
 
-This is Phase 5's P5-a: "Editor syntax highlighting (cheapest validation
-step)" — `.kiro/specs/template-core-phase5/tasks.md`. It requires **no
-`.loom` file format and no build tooling**; it works today, on the existing
-string-based `compile()` authoring style.
+- **Injection grammar** — highlights `compile(\`...\`)` template literals in `.ts`/`.tsx`/`.js`/`.jsx`
+- **Standalone `.loom` files** — full-file highlighting for Phase 5-b template modules
+- **Problem matcher** — `template-core` for Vite `dev: 'analyze'` terminal output
 
-## Scope
+Syntax covered: `{{ }}`, `{{{ }}}`, `{{#if}}/{{#each}}/{{#switch}}`, `{{> partial}}`, plus HTML via `text.html.basic`.
 
-Injects into `source.ts`/`source.tsx`/`source.js`/`source.jsx` wherever a
-`compile(` call is immediately followed by a template-literal (backtick)
-string. The literal's content is treated as embedded `text.html.basic`, with
-Web Loom's own mustache/block syntax layered on top.
+## Install locally (VSIX)
 
-**What gets tagged**, beyond ordinary HTML (which VS Code's built-in HTML
-grammar already handles):
+No Marketplace publish required. Build a `.vsix` and install it once:
 
-- `{{ expr }}` — plain interpolation
-- `{{{ expr }}}` — raw HTML (distinct scope from plain interpolation)
-- `{{#if}}` / `{{else if}}` / `{{else}}` / `{{/if}}`
-- `{{#each ... key=...}}` / `{{/each}}`
-- `{{#switch}}` / `{{#case}}` / `{{#default}}` / `{{/switch}}` (and their
-  matching `{{/case}}`/`{{/default}}` closes)
-- `{{> name}}` partial references
-- `@index` / `@key` / `$event` / `this` inside expressions, as language
-  variables
+```bash
+cd packages/vscode-template-core-syntax
+npm install
+npm run package:vsix
+```
 
-`on:`/`:`/`class:`/`style:`/`bind:`/`use:` attribute-form directives are
-**not** given a bespoke scope — they're ordinary HTML attribute names as far
-as VS Code's HTML grammar is concerned, and it already renders them
-sensibly (attribute-name + string-value coloring). Giving them a distinct
-color would require injecting into the HTML grammar's own internal
-attribute-name scope, which is a materially bigger, more fragile piece of
-work than this first pass — see "Known limitations" below.
+This writes `web-loom-template-core-syntax-0.8.0.vsix` (~10 KB) in this folder. Packaging uses an isolated staging directory so the monorepo root is **not** bundled (avoid running raw `vsce package` in a npm workspace — it can follow symlinks and produce a 1 GB VSIX).
+
+### VS Code
+
+**UI:** Extensions sidebar → `···` menu → **Install from VSIX…** → pick the `.vsix` file.
+
+**CLI (Windows):**
+
+```powershell
+code --install-extension .\packages\vscode-template-core-syntax\web-loom-template-core-syntax-0.8.0.vsix
+```
+
+**CLI (WSL / Linux):**
+
+```bash
+code --install-extension packages/vscode-template-core-syntax/web-loom-template-core-syntax-0.8.0.vsix
+```
+
+**Cursor:** Same flow — Extensions → Install from VSIX, or:
+
+```bash
+cursor --install-extension packages/vscode-template-core-syntax/web-loom-template-core-syntax-0.8.0.vsix
+```
+
+Reload the window after install. Open `header.loom` or `compile(\`...\`)` in a `.ts` file to verify highlighting.
+
+### Monorepo shortcut
+
+From repo root (after `npm install`):
+
+```bash
+npm run package:vscode-syntax
+```
+
+## Extension Development Host (F5)
+
+For grammar hacking without packaging:
+
+1. Open `packages/vscode-template-core-syntax/` in VS Code / Cursor.
+2. Run **Run Extension (Web Loom template syntax)** from `.vscode/launch.json` (F5).
+3. In the Extension Development Host window, open
+   `apps/ecommerce-template-core/src/templates/header.loom` or any `compile(\`...\`)` file.
+
+## What gets highlighted
+
+| Surface | Grammar |
+| ------- | ------- |
+| `compile(\`...\`)` in TS/JS | `inline.web-loom-template` (injection) |
+| `*.loom` files | `text.web-loom.template` |
+
+Tagged beyond built-in HTML:
+
+- `{{ expr }}`, `{{{ expr }}}` (raw HTML)
+- Block tags: `{{#if}}`, `{{#each}}`, `{{#switch}}`, `{{else}}`, partials `{{> name}}`
+- Expression helpers: `@index`, `@key`, `$event`, `this`
+
+`on:` / `:` / `class:` / `style:` directives use normal HTML attribute coloring (see limitations).
 
 ## Known limitations
 
-- **Lexical, not semantic.** The grammar matches on the literal text
-  `compile(` immediately preceding a backtick — it does not resolve imports.
-  An unrelated function also named `compile` (e.g. `pattern.compile(...)`)
-  won't trigger the injection because of a `.` immediately before it, but a
-  bare top-level `compile(\`...\`)` from any source would still match. This
-  is an inherent limitation of TextMate grammars (no cross-reference
-  capability), not specific to this implementation.
-- **Interpolations inside attribute *values*** (e.g.
-  `data-index="{{ @index }}"`) render as plain string content, without
-  special mustache coloring — only interpolations in text-node content
-  between tags get the full treatment. Once inside an HTML tag, VS Code's
-  HTML grammar owns tokenization of everything up to the closing `>`, and
-  our sibling patterns aren't consulted there. Fixing this would require a
-  second injection specifically targeting the HTML grammar's internal
-  attribute-value scope — out of scope for this first pass.
-- **No `.loom` file support.** That authoring surface doesn't exist (see
-  `template-core-phase5/requirements.md`); this grammar only covers the
-  injection-into-`.ts`-strings case, which is explicitly the cheaper, first
-  step.
-- **No in-editor diagnostics or go-to-definition** from syntax highlighting alone — use
-  **ESLint** (`@web-loom/template-core-lint`) for squiggles, or the **`template-core` problem
-  matcher** for Vite `dev: 'analyze'` terminal output (see
-  [`packages/template-core/docs/editor-diagnostics.md`](../template-core/docs/editor-diagnostics.md)).
-  Full LSP is out of scope for this phase.
-
-## Try it locally
-
-This extension isn't published to the Marketplace. To try it:
-
-1. Open `packages/vscode-template-core-syntax/` as its own VS Code workspace
-   folder (or open the monorepo root — either works, since VS Code resolves
-   `.vscode/launch.json` relative to the folder containing it).
-2. Run the "Run Extension (Web Loom template syntax)" launch config (F5). A
-   new Extension Development Host window opens with the grammar active.
-3. Open any file with a `compile(\`...\`)` call, e.g.
-   `apps/ecommerce-template-core/src/templates/header.ts`.
+- **Lexical, not semantic** — matches `compile(` before a backtick; does not resolve imports.
+- **Attribute-value interpolations** — `attr="{{ x }}"` may not color mustache inside the string.
+- **No LSP** — squiggles come from ESLint (`@web-loom/template-core-lint`) or Vite analyze + the bundled problem matcher.
 
 ## Testing
 
-`src/tokenize.test.ts` drives the grammar headlessly via `vscode-textmate` +
-`vscode-oniguruma` — the same tokenizer engine VS Code itself uses — against
-minimal stand-in `source.ts`/`text.html.basic` grammars (not the real,
-much larger VS Code TypeScript/HTML grammars, which aren't this package's
-responsibility to test). Run with `npm test`.
+```bash
+npm test
+```
+
+Headless grammar tests via `vscode-textmate` + `vscode-oniguruma`.
+
+## Publishing (optional)
+
+This repo ships VSIX for local install only. To publish to the [VS Code Marketplace](https://code.visualstudio.com/api/working-with-extensions/publishing-extension), create a publisher, add a PAT, and run `vsce publish` — not required for monorepo use.

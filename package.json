@@ -13,6 +13,7 @@
     "format:templates:check": "node packages/template-core-tooling/scripts/format-compile-calls.mjs --check",
     "format:ecommerce-templates": "tsx scripts/format-ecommerce-templates.ts",
     "format:ecommerce-templates:check": "tsx scripts/format-ecommerce-templates.ts --check",
+    "package:vscode-syntax": "npm run package:vsix --workspace=web-loom-template-core-syntax",
     "check-types": "turbo run check-types",
     "check-versions": "node scripts/check-version-policy.mjs",
     "test": "turbo run test",
@@ -21,7 +22,8 @@
     "count-loc": "node scripts/count-loc.js",
     "count-loc:json": "node scripts/count-loc.js --json",
     "count-loc:cloc": "bash scripts/count-loc.sh",
-    "count-loc:visualize": "node scripts/visualize-loc.js"
+    "count-loc:visualize": "node scripts/visualize-loc.js",
+    "dedupe:react": "node scripts/dedupe-react-deps.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.5.0",
@@ -39,7 +41,7 @@
     "tailwindcss": "^4.1.11",
     "tsx": "^4.19.2",
     "turbo": "^2.9.18",
-    "typescript": "5.8.2",
+    "typescript": "~5.9",
     "vite": "^6.4.3",
     "vite-plugin-dts": "^5.0.3",
     "vitest": "^4.1.9"
@@ -49,9 +51,9 @@
   },
   "overrides": {
     "tmp": "file:third_party/tmp-safe",
-    "@babel/traverse": "7.27.7",
-    "@babel/core": "7.27.7",
-    "@babel/types": "7.27.7",
+    "@babel/traverse": "7.29.7",
+    "@babel/core": "7.29.7",
+    "@babel/types": "7.29.7",
     "handlebars": "4.7.9",
     "shell-quote": "1.8.4",
     "ws": "^8.21.0",
@@ -62,7 +64,12 @@
     "uuid": "14.0.1",
     "express": {
       "path-to-regexp": "0.1.13"
-    }
+    },
+    "react-dom": "19.2.3",
+    "react": "19.2.3",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.2.4",
+    "@types/react-dom": "^19.2.4"
   },
   "packageManager": "npm@10.9.2",
   "workspaces": [
@@ -70,6 +77,8 @@
     "packages/*"
   ],
   "dependencies": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "sequelize": "^6.37.8"
   }
 }

@@ -1,0 +1,81 @@
+<a href="/" class="back-button" on:click.prevent="navigateFromClick" use:loadCurrentRouteData="loadCurrentRouteData">
+  <img src="/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
+</a>
+<section class="flex-container flex-row">
+  <form class="form-container" on:submit.prevent="submitGreenhouse">
+    <div class="form-group">
+      <label for="name">Greenhouse Name:</label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        required
+        class="input-field"
+        placeholder="Enter greenhouse name"
+        bind:value="form.name$"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="location">Location:</label>
+      <textarea
+        id="location"
+        name="location"
+        required
+        rows="3"
+        class="textarea-field"
+        placeholder="Location"
+        bind:value="form.location$"
+      ></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="size">Size:</label>
+      <select id="size" class="select-field" name="size" required bind:value="form.size$">
+        <option value="">Select size</option>
+        {{#each sizeOptions key=value}}
+          <option :value="value">{{ label }}</option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="cropType">Crop Type:</label>
+      <input
+        type="text"
+        name="cropType"
+        id="cropType"
+        class="input-field"
+        placeholder="Enter crop type"
+        bind:value="form.cropType$"
+      />
+    </div>
+
+    <button type="submit" class="button">
+      Submit
+    </button>
+  </form>
+
+  <div class="card" style="max-width: 600px;">
+    <h1 class="card-title">Greenhouses</h1>
+    {{#if greenHouses.data$.length > 0}}
+      <ul class="card-content list">
+        {{#each greenHouses.data$ key=id}}
+          <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
+            <span>{{ name }}</span>
+            <div class="button-group">
+              <button class="button-tiny button-tiny-delete" type="button" on:click="deleteGreenhouse(this)">
+                Delete
+              </button>
+              <button class="button-tiny button-tiny-edit" type="button" on:click="editGreenhouse(this)">
+                Edit
+              </button>
+            </div>
+          </li>
+        {{/each}}
+      </ul>
+    {{else}}
+      <p>No greenhouses found or still loading...</p>
+    {{/if}}
+  </div>
+</section>

@@ -16,7 +16,7 @@ describe('runDevAnalyze', () => {
 
   it('reports analysis errors without mutating source', () => {
     const cache = new AnalyzeCache();
-    const error = vi.fn(() => {
+    const error = vi.fn<(message: string) => never>(() => {
       throw new Error('analysis failed');
     });
     const warn = vi.fn();
@@ -34,7 +34,8 @@ describe('runDevAnalyze', () => {
     ).toThrow('analysis failed');
 
     expect(error).toHaveBeenCalled();
-    expect(String(error.mock.calls[0]?.[0])).toMatch(/INVALID_EXPRESSION/);
+    const firstCall = vi.mocked(error).mock.calls[0];
+    expect(String(firstCall?.[0])).toMatch(/INVALID_EXPRESSION/);
   });
 
   it('re-reports cached failures but skips work for clean cached files', () => {

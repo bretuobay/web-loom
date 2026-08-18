@@ -444,6 +444,7 @@ Keep the rendered HTML shape identical.
 | Dev/prod precompile parity in `vite dev` | `@web-loom/template-core-vite` `{ dev: 'precompile' }` |
 | CI / editor squiggles | `@web-loom/template-core-lint` + ESLint extension |
 | Format `.html` / extracted literals | `formatTemplate()` / `template-core-format` |
+| Standalone `.loom` template files | `templateCoreLoom()` — see [`docs/template-loom-authoring.md`](template-loom-authoring.md) |
 | Custom scripts / pre-commit | `formatCompileCallsInSource()` / `npm run format:templates` |
 | Partial SSR + document assembly | `@web-loom/template-core-vite-ssr` |
 | Learn by reading code | [`apps/ecommerce-template-core`](../../apps/ecommerce-template-core) |
@@ -455,6 +456,7 @@ Keep the rendered HTML shape identical.
 - Engine grammar & API: [`packages/template-core/README.md`](../README.md)
 - PRD & roadmap: [`packages/template-core/docs/PRD.md`](PRD.md)
 - Template formatting (M3): [`packages/template-core/docs/template-formatting.md`](template-formatting.md)
+- `.loom` authoring (P5-b): [`packages/template-core/docs/template-loom-authoring.md`](template-loom-authoring.md)
 - Editor diagnostics (M4): [`packages/template-core/docs/editor-diagnostics.md`](editor-diagnostics.md)
 - Context typing spike (go/no-go): [`packages/template-core/docs/typing-spike.md`](typing-spike.md)
 - Phase 4 traceability: [`.kiro/specs/template-core-phase4/`](../../.kiro/specs/template-core-phase4/)
@@ -559,3 +561,35 @@ Programmatic: `formatCompileCallsInSource()` from `@web-loom/template-core-tooli
 
 Full guide — API table, before/after examples, CI scripts, limitations:
 [`docs/template-formatting.md`](template-formatting.md).
+
+---
+
+## 14. `.loom` template files (Phase 5-b)
+
+Optional standalone files with the **same grammar** as `compile(\`...\`)` strings.
+
+```ts
+// vite.config.ts
+import { templateCoreLoom } from '@web-loom/template-core-vite';
+
+export default defineConfig({
+  plugins: [templateCoreLoom()],
+});
+```
+
+```ts
+// header.ts
+export { default as headerTemplate } from './header.loom';
+```
+
+```loom
+<!-- header.loom -->
+<header>{{> nav}}</header>
+```
+
+Dev → runtime `compile()`. Build → `fromPrecompiled(plan)`. TypeScript:
+`/// <reference types="@web-loom/template-core-vite/loom" />`.
+
+Reference: [`apps/ecommerce-template-core/src/templates/header.loom`](../../apps/ecommerce-template-core/src/templates/header.loom)
+
+Full guide: [`docs/template-loom-authoring.md`](template-loom-authoring.md).

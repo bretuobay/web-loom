@@ -73,7 +73,7 @@ const mdxComponents = {
   Td: TableTd,
 };
 
-export function CustomMDX(props: any) {
+export async function CustomMDX(props: any) {
   const rehypePrettyCodeOptions = {
     theme: 'one-dark-pro',
     keepBackground: false,
@@ -99,6 +99,8 @@ export function CustomMDX(props: any) {
       {...props}
       components={{ ...mdxComponents, ...(props.components || {}) }}
       options={{
+        // Repo-authored MDX uses JSX expressions (e.g. style={{ ... }}).
+        blockJS: false,
         mdxOptions: {
           rehypePlugins: [[rehypePrettyCode, rehypePrettyCodeOptions]],
         },

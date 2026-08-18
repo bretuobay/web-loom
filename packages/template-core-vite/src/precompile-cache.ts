@@ -1,10 +1,8 @@
 import { createHash } from 'node:crypto';
-import type MagicString from 'magic-string';
+import type { PrecompileTransformResult } from './precompile-transform.js';
 
-export interface PrecompileCacheEntry {
+export interface PrecompileCacheEntry extends PrecompileTransformResult {
   contentHash: string;
-  code: string;
-  map: ReturnType<MagicString['generateMap']>;
 }
 
 /** In-memory precompile transform cache keyed by file path and source content hash. */
