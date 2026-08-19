@@ -1,7 +1,7 @@
 import { declareContext } from '@web-loom/template-core';
-import type { TemplateAppBindings } from '../app/bindings';
+import type { AppContext } from '../app/context';
 
-const page = declareContext<TemplateAppBindings>();
+const page = declareContext<AppContext>();
 
 export const checkoutTemplate = page.compile(`<section class="checkout-panel">
   <div>

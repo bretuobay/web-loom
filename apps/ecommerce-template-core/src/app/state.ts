@@ -6,7 +6,6 @@ import type { CheckoutFormValues } from '../features/cart/CartViewModel';
 import type { PendingConfirmation } from './types';
 
 export interface TemplateAppState {
-  readonly route$: WritableSignal<string>;
   readonly theme$: WritableSignal<ThemeMode>;
   readonly cartOpen$: WritableSignal<boolean>;
   readonly paletteState$: WritableSignal<CommandPaletteState>;
@@ -17,11 +16,9 @@ export interface TemplateAppState {
 
 export function createTemplateAppState(
   initialTheme: ThemeMode,
-  initialRoute: string,
   initialCheckoutState: FormState<CheckoutFormValues>,
 ): TemplateAppState {
   return {
-    route$: signal(initialRoute),
     theme$: signal(initialTheme),
     cartOpen$: signal(false),
     paletteState$: signal<CommandPaletteState>({

@@ -18,7 +18,7 @@ export default [
     settings: {
       'template-core': {
         partials: {
-          header: 'src/templates/header.ts',
+          header: 'src/templates/header.loom',
           cart: 'src/templates/cart-drawer.ts',
           palette: 'src/templates/command-palette.ts',
           confirmation: 'src/templates/confirmation-dialog.ts',
