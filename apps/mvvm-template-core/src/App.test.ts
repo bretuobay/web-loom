@@ -1,7 +1,6 @@
 import { fireEvent, waitFor } from '@testing-library/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAppRouter } from './app/routes';
-import { mountGreenhouseApp } from './app/view';
+import { createApp } from './app';
 
 const greenhouses = [
   {
@@ -59,10 +58,10 @@ function jsonResponse(data: unknown): Promise<Response> {
 function mountApp() {
   const container = document.createElement('div');
   document.body.append(container);
-  const router = createAppRouter();
-  const view = mountGreenhouseApp(container, router);
+  const application = createApp();
+  application.mount(container);
 
-  return { container, view, router };
+  return { application, container };
 }
 
 describe('template-core greenhouse demo', () => {
@@ -92,8 +91,7 @@ describe('template-core greenhouse demo', () => {
     expect(app.container.textContent).toContain('Total Alerts: 1');
     expect(app.container.textContent).toContain('Total Readings: 1');
 
-    app.view.dispose();
-    app.router.destroy();
+    app.application.unmount();
     app.container.remove();
   });
 
@@ -102,15 +100,34 @@ describe('template-core greenhouse demo', () => {
     await waitFor(() => expect(app.container.querySelector('a[href="/greenhouses"]')).not.toBeNull());
 
     fireEvent.click(app.container.querySelector<HTMLAnchorElement>('a[href="/greenhouses"]')!);
-    await waitFor(() => expect(app.router.currentRoute.path).toBe('/greenhouses'));
+    await waitFor(() => expect(window.location.pathname).toBe('/greenhouses'));
     await waitFor(() => expect(app.container.querySelector('.form-container')).not.toBeNull());
     expect(app.container.textContent).toContain('North Wing');
 
     const beforeDispose = app.container.textContent;
-    app.view.dispose();
-    app.router.destroy();
+    app.application.unmount();
+    app.application.unmount();
     expect(beforeDispose).toContain('Greenhouses');
     expect(app.container.textContent).toBe('');
     app.container.remove();
+  });
+
+  it('can mount again after a complete teardown', async () => {
+    const app = createApp();
+    const firstContainer = document.createElement('div');
+    const secondContainer = document.createElement('div');
+    document.body.append(firstContainer, secondContainer);
+
+    app.mount(firstContainer);
+    await waitFor(() => expect(firstContainer.textContent).toContain('Total: 1'));
+    app.unmount();
+
+    app.mount(secondContainer);
+    await waitFor(() => expect(secondContainer.textContent).toContain('Total: 1'));
+    expect(firstContainer.textContent).toBe('');
+
+    app.unmount();
+    firstContainer.remove();
+    secondContainer.remove();
   });
 });

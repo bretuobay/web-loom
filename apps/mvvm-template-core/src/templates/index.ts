@@ -1,4 +1,4 @@
-import { registerPartial } from '@web-loom/template-core';
+import { registerPartial, unregisterPartial } from '@web-loom/template-core';
 import type { Template } from '@web-loom/template-core';
 import appShellTemplate from './app-shell.loom';
 import dashboardTemplate from './dashboard.loom';
@@ -23,10 +23,17 @@ const composedPartials: Record<string, Template> = {
   'threshold-alert-card': thresholdAlertCardTemplate,
 };
 
-export function registerAppPartials(): void {
+export function registerAppPartials(): () => void {
   for (const [name, template] of Object.entries(composedPartials)) {
     registerPartial(name, template);
   }
+
+  let registered = true;
+  return () => {
+    if (!registered) return;
+    registered = false;
+    for (const name of Object.keys(composedPartials)) unregisterPartial(name);
+  };
 }
 
 export {
