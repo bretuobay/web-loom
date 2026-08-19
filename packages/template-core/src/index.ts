@@ -1,6 +1,9 @@
 export { compile, fromPrecompiled, registerPartial, unregisterPartial } from './runtime/renderer.js';
 export { createTemplateRegistry } from './runtime/registry.js';
 export { createTemplateOutlet } from './runtime/outlet.js';
+export { anyLoading, composeContext, firstError } from './context.js';
+export { createEntityForm } from './entity-form.js';
+export type { EntityForm, EntityFormCommands, EntityFormOptions } from './entity-form.js';
 export { precompile } from './compiler/index.js';
 export { TemplateSyntaxError } from './errors.js';
 export {
