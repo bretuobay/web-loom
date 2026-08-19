@@ -17,7 +17,12 @@ export interface ResolvedValue {
  * its immediate owner so callers (event bindings) can invoke methods with the
  * correct `this`.
  */
-export function resolveScopeValue(segments: string[], parentHops: number, scope: Scope): ResolvedValue {
+export function resolveScopeValue(
+  segments: string[],
+  parentHops: number,
+  scope: Scope,
+  silent = false,
+): ResolvedValue {
   let s: Scope | null = scope;
   for (let i = 0; i < parentHops; i++) {
     s = s?.parent ?? null;
@@ -37,6 +42,7 @@ export function resolveScopeValue(segments: string[], parentHops: number, scope:
     current = (s.self as Record<string, unknown>)[head];
   } else {
     current = undefined;
+    if (!silent) reportUnresolvedRoot(s, head);
   }
 
   current = unwrapSignal(current);
@@ -48,6 +54,23 @@ export function resolveScopeValue(segments: string[], parentHops: number, scope:
   }
 
   return { value: current, owner };
+}
+
+/**
+ * Dev-mode only: a root-segment miss means the key exists on neither `locals`
+ * nor `self` — a genuine contract violation (a present key holding
+ * `null`/`undefined` takes the `in` branches above and never lands here). The
+ * reporter lives on the mount's root scope, so walk up to find it.
+ */
+function reportUnresolvedRoot(scope: Scope, head: string): void {
+  let s: Scope | null = scope;
+  while (s) {
+    if (s.onUnresolved) {
+      s.onUnresolved(head);
+      return;
+    }
+    s = s.parent;
+  }
 }
 
 /** Resolves a path without unwrapping its final value; used by write bindings. */
@@ -87,7 +110,7 @@ export function resolveWritableTarget(segments: string[], parentHops: number, sc
 export function resolveInChain(segments: string[], startScope: Scope): ResolvedValue {
   let s: Scope | null = startScope;
   while (s) {
-    const result = resolveScopeValue(segments, 0, s);
+    const result = resolveScopeValue(segments, 0, s, true);
     if (result.value !== undefined) return result;
     s = s.parent;
   }

@@ -18,6 +18,7 @@ export function collectTemplateLintIssues(
     specifiers: settings.specifiers,
     partials: settings.partials,
     strictPartials: settings.strictPartials,
+    contextKeys: settings.contextKeys,
   }).map((diagnostic) => ({
     ...diagnostic,
     diagnosticCode: diagnostic.code,

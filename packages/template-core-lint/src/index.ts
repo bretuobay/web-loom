@@ -14,6 +14,9 @@ const plugin = {
     }),
     'no-invalid-expression': createDiagnosticRule(RULE_CODES['no-invalid-expression']),
     'no-unsupported-modifier': createDiagnosticRule(RULE_CODES['no-unsupported-modifier']),
+    'no-unknown-context-path': createDiagnosticRule(RULE_CODES['no-unknown-context-path'], {
+      requiresContextKeys: true,
+    }),
   },
 };
 
@@ -23,6 +26,7 @@ const recommendedRules: Linter.RulesRecord = {
   'template-core/no-missing-partial': 'error',
   'template-core/no-invalid-expression': 'error',
   'template-core/no-unsupported-modifier': 'error',
+  'template-core/no-unknown-context-path': 'warn',
 };
 
 export default plugin;

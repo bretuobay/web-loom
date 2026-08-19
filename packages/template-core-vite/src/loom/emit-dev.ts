@@ -8,7 +8,7 @@ export function emitLoomDevModule(source: string, meta: LoomEmitMetadata): strin
   return [
     `import { compile } from '${meta.specifier}';`,
     `const source = ${sourceLiteral};`,
-    `const template = compile(source, { name: ${JSON.stringify(meta.name)}, sourcePath: ${JSON.stringify(meta.sourcePath)} });`,
+    `const template = compile(source, { name: ${JSON.stringify(meta.name)}, sourcePath: ${JSON.stringify(meta.sourcePath)}, dev: true });`,
     `export default template;`,
     `if (import.meta.hot) {`,
     `  import.meta.hot.accept();`,
