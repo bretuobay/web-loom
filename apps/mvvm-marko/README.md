@@ -26,7 +26,7 @@ All pages share the `Header` / `Footer` layout that reads navigation items from 
 
 ## How MVVM is wired
 
-1. ViewModels live inside `@repo/view-models` and wrap the shared models in reusable RxJS-powered observables.
+1. ViewModels live inside `@repo/view-models` and wrap the shared models in reusable signals (`@web-loom/signals-core`).
 2. The `<observable-data>` tag subscribes to `data$`, `isLoading$`, and `error$`, providing sensible loading / error slots for each view.
 3. Dashboard and list pages consume the same ViewModels that the React demo uses to ensure parity.
 

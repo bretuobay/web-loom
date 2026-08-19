@@ -106,15 +106,15 @@ npm test
 **✅ DO:**
 
 ```typescript
-// Framework-agnostic behavior using RxJS
-import { BehaviorSubject } from 'rxjs';
+// Framework-agnostic behavior using signals
+import { signal } from '@web-loom/signals-core';
 
 export function createDialog() {
-  const isOpen$ = new BehaviorSubject(false);
+  const isOpen$ = signal(false);
   return {
     isOpen$,
-    open: () => isOpen$.next(true),
-    close: () => isOpen$.next(false),
+    open: () => isOpen$.set(true),
+    close: () => isOpen$.set(false),
   };
 }
 ```
@@ -457,7 +457,7 @@ export function createDialog(options?: DialogOptions): DialogBehavior {
 
 - `mvvm-core`, `ui-core`, `ui-patterns`, `store-core`, `query-core`, `event-bus-core`, `plugin-core`, `router-core`, `forms-core`
 - **No framework imports allowed**
-- Use RxJS for reactivity
+- Use `@web-loom/signals-core` for reactivity (RxJS is legacy — only `platform-core` and parts of `forms-core` still depend on it; see [`docs/RXJS-MIGRATION-GAPS.md`](docs/RXJS-MIGRATION-GAPS.md))
 - Export plain objects/functions
 - Adapters go in separate packages
 

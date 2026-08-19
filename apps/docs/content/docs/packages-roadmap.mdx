@@ -89,7 +89,7 @@ The React and Vue adapters wrap this in a `useMediaPlayer` hook/composable — s
 
 ### @web-loom/http-core
 
-TypeScript-first HTTP client under 10 KB (gzipped) with zero dependencies outside of RxJS. Designed to be the HTTP layer across all Web Loom apps.
+TypeScript-first HTTP client under 10 KB (gzipped) with zero dependencies. Designed to be the HTTP layer across all Web Loom apps.
 
 **Key features**
 
@@ -166,7 +166,7 @@ Framework-agnostic routing with declarative route definitions, nested routes, dy
 - Dynamic segments (`:id`) and wildcard routes
 - Navigation guards: `beforeEach`, `afterEach`, `canActivate`, `onError`
 - Query string utilities
-- RxJS `currentRoute$` observable for reactive navigation state
+- `router.subscribe()` for reactive navigation state (plain callback-based pub-sub, no RxJS dependency)
 
 **Planned API sketch**
 

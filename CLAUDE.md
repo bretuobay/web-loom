@@ -17,7 +17,7 @@ Detailed instructions are available in `.claude/skills/`:
 | **development.md**           | Dev commands, Turbo pipelines, building, linting, formatting |
 | **testing.md**               | Vitest patterns, MVVM testing, mocking strategies            |
 | **api.md**                   | Express.js API backend, SQLite, seeding                      |
-| **architecture.md**          | MVVM patterns, Models, ViewModels, Commands, RxJS            |
+| **architecture.md**          | MVVM patterns, Models, ViewModels, Commands, signals-core     |
 | **design-theming.md**        | Design Core tokens, flat/paper UI, theming                   |
 | **package-configuration.md** | Vite/Vitest/Turbo config, aliases, TypeScript                |
 | **cross-framework.md**       | React/Angular/Vue/Lit/Vanilla integration patterns           |
@@ -215,7 +215,7 @@ turbo run test --filter=mvvm-react
 **Key testing patterns:**
 
 - Test ViewModels independently of UI by mocking fetchers
-- Use RxJS `firstValueFrom` for single emissions, `.subscribe()` for state transitions
+- `$`-props are `@web-loom/signals-core` signals: read `.get()`/`.peek()` for single values, `observe()` for state transitions
 - Always call `vm.dispose()` in test cleanup to prevent memory leaks
 - Tests are co-located with source: `*.test.ts` or `*.spec.ts` files in `src/`
 

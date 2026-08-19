@@ -8,7 +8,7 @@ Application-level MVVM patterns for Web Loom, providing advanced ViewModel capab
 - **Active Awareness Pattern**: Track whether ViewModels are currently active (visible/focused)
 - Framework-agnostic design
 - Full TypeScript support
-- RxJS-based reactive state management
+- Signals-based reactive state management (`@web-loom/signals-core`)
 
 ## Installation
 

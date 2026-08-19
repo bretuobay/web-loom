@@ -120,11 +120,19 @@
     "@web-loom/store-core": "*"
   },
   "peerDependencies": {
+    "@angular/core": ">=16.0.0",
     "react": ">=16.8.0",
+    "rxjs": "^7.8.0",
     "vue": ">=3.0.0"
   },
   "peerDependenciesMeta": {
+    "@angular/core": {
+      "optional": true
+    },
     "react": {
+      "optional": true
+    },
+    "rxjs": {
       "optional": true
     },
     "vue": {
