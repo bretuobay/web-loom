@@ -1,8 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
+import { templateCoreLoom } from '@web-loom/template-core-vite';
 import { createAliases } from '../../scripts/vite-alias';
 
 export default defineConfig({
+  plugins: [templateCoreLoom()],
   resolve: {
     alias: {
       ...createAliases(__dirname),
