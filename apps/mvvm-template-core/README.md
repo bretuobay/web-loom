@@ -39,6 +39,116 @@ remains the ecommerce/SSR reference; this app is the MVVM demo counterpart to `m
   `#app`, and unmounts it during HMR. `src/app/index.ts` is the composition root that owns the router,
   template context, shell, route outlet, partial registration, and teardown.
 
+## Application composition patterns
+
+The application is arranged around the same boundaries commonly found in React and Vue projects:
+a small browser entrypoint, one application composition root, a declarative router, a root shell,
+and independently-authored screen templates.
+
+### Keep the Vite entrypoint small
+
+`src/main.ts` is only responsible for browser bootstrap. It imports global styles, resolves the host
+element, creates the application, mounts it, and connects Vite HMR to the public teardown method.
+
+```ts
+import { createApp } from './app';
+
+const container = document.getElementById('app');
+if (!container) throw new Error('The application root was not found.');
+
+const app = createApp();
+app.mount(container);
+
+if (import.meta.hot) import.meta.hot.dispose(() => app.unmount());
+```
+
+Application services, routes, templates, and ViewModels should not be assembled in `main.ts`.
+
+### Use one composition root
+
+`src/app/index.ts` is the equivalent of the root application component and framework setup. Its
+`createApp()` factory owns every resource needed for one mounted application:
+
+1. Register the partials used by the template tree.
+2. Create the router.
+3. Compose the template context.
+4. Mount the application shell.
+5. Find the shell's route outlet and bind it with `createRouterView()`.
+
+If mounting fails partway through, the factory rolls back the resources already created. A mounted
+instance cannot be mounted a second time, but it can be mounted again after `unmount()` completes.
+
+### Treat the shell like a root layout
+
+`templates/app-shell.loom` owns persistent page chrome and declares the route outlet:
+
+```html
+<div class="app-shell" use:links="links">
+  {{> header}}
+  <main data-template-slot="route"></main>
+  {{> footer}}
+</div>
+```
+
+The shell is mounted once. `createRouterView()` owns only the contents of the route outlet, replacing
+and disposing the active screen when navigation changes. The delegated `use:links` action lets the
+templates keep ordinary `<a href>` elements while the router handles same-origin navigation.
+
+### Keep routing declarative
+
+`src/app/routes.ts` is the single route manifest. Each entry keeps the URL, route name, screen
+template, and route-entry data load together:
+
+```ts
+{
+  path: '/sensors',
+  name: 'sensors',
+  template: sensorListTemplate,
+  load: () => sensorViewModel.fetchCommand.execute(),
+}
+```
+
+`toRouteDefinitions(appRoutes)` derives the router configuration from that manifest. Adding a screen
+therefore requires one route entry rather than separate router, renderer, and fetch mappings.
+
+### Make the template context the view boundary
+
+`src/app/context.ts` creates the one object visible to `.loom` templates. `composeContext()` combines
+namespaced domain ViewModels with UI-specific state and behavior:
+
+- domain data and commands remain on their ViewModels;
+- derived signals such as `dashboardLoading$` are composed at the view boundary;
+- forms and element actions are created once per mount;
+- formatting helpers and template-friendly aliases stay out of domain models.
+
+When a template needs a new value, first decide whether it belongs to a domain ViewModel or is a
+view concern. Only view concerns should be added directly to `createAppContext()`.
+
+### Pair setup with teardown
+
+Every setup operation that creates listeners, bindings, or global registration has a matching cleanup:
+
+| Setup | Teardown |
+| --- | --- |
+| `registerAppPartials()` | returned unregister function |
+| `appShellTemplate.mount()` | shell `dispose()` |
+| `createRouterView()` | router-view `dispose()` |
+| `createAppRouter()` | router `destroy()` |
+
+`app.unmount()` releases these resources in reverse ownership order: routed screen, shell, partials,
+then router. It is safe to call more than once, which keeps HMR and test cleanup straightforward.
+
+### Adding another screen
+
+Follow this flow to preserve the composition boundaries:
+
+1. Add the screen and any reusable partials under `src/templates`.
+2. Export the template and register only the partials referenced by name.
+3. Add one typed entry to `appRoutes`, including its route-entry load when needed.
+4. Add view-only context values to `createAppContext()`; keep domain behavior in its ViewModel.
+5. Exercise the screen by mounting through `createApp()` in tests rather than constructing the router
+   or template view manually.
+
 ## Run it
 
 The demo API (`apps/api` on port 8000) must be running, same as the other `mvvm-*` apps.
