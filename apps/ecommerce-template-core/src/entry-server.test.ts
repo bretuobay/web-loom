@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render } from './entry-server';
-import { createEcommerceApi } from './infrastructure/api/create-ecommerce-api';
-import { CatalogModel } from './features/catalog/CatalogModel';
-import { CartModel } from './features/cart/CartModel';
-import { TemplateAppViewModel } from './TemplateAppViewModel';
-import { TemplateAppView } from './app/view';
+import { createApp } from './app';
 import type { CatalogProductDto } from './infrastructure/api/ports/ecommerce-api-port';
 
 describe('ecommerce SSR storefront island', () => {
@@ -24,16 +20,11 @@ describe('ecommerce SSR storefront island', () => {
     document.body.append(app, island);
 
     const existingCards = Array.from(island.querySelectorAll('.product-card'));
-    const viewModel = new TemplateAppViewModel(
-      new CatalogModel(createEcommerceApi(), products),
-      new CartModel(createEcommerceApi()),
-    );
-    const view = new TemplateAppView();
-    const mounted = view.mount(app, viewModel, island);
+    const clientApp = createApp({ initialProducts: products });
+    await clientApp.mount(app, island);
 
     expect(Array.from(island.querySelectorAll('.product-card'))).toEqual(existingCards);
-    mounted.dispose();
-    viewModel.dispose();
+    clientApp.unmount();
     app.remove();
     island.remove();
   });

@@ -9,7 +9,7 @@ Use this skill whenever MVVM is the primary pattern in play—new view models, m
 
 ## Core packages
 
-- `packages/mvvm-core` implements the foundational concepts (BaseModel, RestfulApiModel, BaseViewModel, commands, observable collections, QueryStateModel, DI container). Refer to [references/mvvm-core-overview.md](references/mvvm-core-overview.md) for the current shape of each export and the RxJS/Zod patterns the library enforces.
+- `packages/mvvm-core` implements the foundational concepts (BaseModel, RestfulApiModel, BaseViewModel, commands, observable collections, QueryStateModel, DI container). Refer to [references/mvvm-core-overview.md](references/mvvm-core-overview.md) for the current shape of each export and the signals-core/Zod patterns the library enforces.
 - `packages/models` and `packages/view-models` build on `mvvm-core` and publish workspace-friendly entry points (`@repo/models`, `@repo/view-models`). Whenever you create new data shapes or view logic, keep them under these packages so multiple apps can import from the same build outputs.
 
 ### Model helpers (`packages/mvvm-core/src/models`)
@@ -20,7 +20,7 @@ Use this skill whenever MVVM is the primary pattern in play—new view models, m
 
 ### ViewModel helpers (`packages/mvvm-core/src/viewmodels`)
 
-- `BaseViewModel` exposes the underlying model’s observables and maps `error$` into a `validationErrors$` stream. Use `addSubscription` + `dispose()` to keep RxJS subscriptions disciplined.
+- `BaseViewModel` exposes the underlying model's signals and maps `error$` into a `validationErrors$` computed signal. Use `addSubscription` + `dispose()` to keep signal subscriptions disciplined.
 - `RestfulApiViewModel` wires a `RestfulApiModel` into consumable `data$`, `isLoading$`, `error$`, `selectedItem$`, and CRUD `Command`s (`fetch`, `create`, `update`, `delete`). Each command already exposes `execute()`, `isExecuting$`, and `canExecute$`, so hook those observables to buttons/spinners.
 - The factory `createReactiveViewModel` (and `ViewModelFactoryConfig`) keeps view model setup consistent—feed it the same config object you use for the `RestfulApiModel`, and it instantiates the pair for you.
 
@@ -38,7 +38,7 @@ Every new feature should follow the pattern captured in [references/mvvm-crud-fl
 - Always call `dispose()` on view models when a component, page, or route is torn down to clean up subscriptions and commands.
 - Favor Zod schemas defined next to the model for compile-time and runtime validation; pass them into BaseModel/RestfulApiModel constructors to get automatic error handling.
 - Commands (`Command`, `fetchCommand`, `createCommand`, etc.) expose `canExecute$` and `isExecuting$`. Wire UI states (disabled buttons, loading spinners) directly to those observables for consistent UX.
-- For tests, rely on the workspace Vitest setup (`apps/mvvm-react/vitest.config.ts`) so the same alias map (React component → shared view models) is used in `vitest run`. Mock fetchers or provide stubbed RxJS subjects when exercising models/view models.
+- For tests, rely on the workspace Vitest setup (`apps/mvvm-react/vitest.config.ts`) so the same alias map (React component → shared view models) is used in `vitest run`. Mock fetchers or provide stubbed signals (`signal()` from `@web-loom/signals-core`) when exercising models/view models.
 
 ## When extending the pattern
 

@@ -12,6 +12,8 @@ export interface CollectSourceLinkedDiagnosticsOptions {
   /** Partial names available at this call site (keys only — values are documentation paths). */
   partials?: Record<string, string>;
   strictPartials?: boolean;
+  /** Top-level context keys templates mount against — enables `UNKNOWN_CONTEXT_PATH` analysis. */
+  contextKeys?: string[];
 }
 
 function analyzeMatch(
@@ -28,6 +30,7 @@ function analyzeMatch(
     sourcePath: filePath,
     partials,
     strictPartials: options.strictPartials ?? Boolean(partials),
+    contextKeys: options.contextKeys,
   });
 
   return result.diagnostics.map((diagnostic) =>

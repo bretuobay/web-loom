@@ -122,6 +122,36 @@ actions, use explicit setter bindings:
 - `{{#each}}` requires `key=` (a path, or `key=this` for primitive arrays) and does keyed DOM-node-
   preserving reconciliation; items whose properties are themselves signals update with zero list diff.
 
+## Lifecycle hooks: `use:` as mount/unmount
+
+There's no separate "component" concept with its own `onMount`/`onUnmount` — an element's `use:`
+action factory _is_ that hook. It runs once when the element mounts, and any `dispose()` the factory
+returns runs when the element is torn down:
+
+```html
+<div use:loadData="loadData">...</div>
+```
+
+```ts
+const bindings = {
+  loadData: () => {
+    const controller = new AbortController();
+    void fetchThing({ signal: controller.signal });
+    return { dispose: () => controller.abort() };
+  },
+};
+```
+
+Because `TemplateOutlet.show()` disposes the outgoing template and mounts the incoming one fresh on
+every call, a `use:` action on a route template's root element fires on every route-enter and
+disposes on every route-exit — the same "View mount triggers `fetchCommand.execute()`" pattern the
+framework adapters use (see the repo's `architecture.md` skill, Framework Integration Patterns),
+expressed declaratively instead of via a manual subscription. `apps/mvvm-template-core` uses exactly
+this to kick off each route's data fetch: `loadCurrentRouteData` in
+[`src/app/bindings.ts`](../../apps/mvvm-template-core/src/app/bindings.ts), wired via
+`use:loadCurrentRouteData="loadCurrentRouteData"` on each route template's root element (e.g.
+[`dashboard.loom`](../../apps/mvvm-template-core/src/templates/dashboard.loom)).
+
 ## Reference application
 
 [`apps/ecommerce-template-core`](../../apps/ecommerce-template-core) is the reference application

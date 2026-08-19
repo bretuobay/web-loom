@@ -58,9 +58,9 @@ cd apps/plugin-react && npm run dev
 The repository implements a strict separation of concerns:
 
 1. **Models** (`packages/mvvm-core/src/models/`): Data and business logic layer
-   - `BaseModel`: RxJS-powered reactive state with Zod validation
+   - `BaseModel`: signals-powered reactive state (`@web-loom/signals-core`) with Zod validation
    - `RestfulApiModel`: Extends BaseModel with RESTful API operations
-   - Exposes `data$`, `isLoading$`, `error$` observables
+   - Exposes `data$`, `isLoading$`, `error$` signals
 
 2. **ViewModels** (`packages/mvvm-core/src/viewmodels/`): Presentation logic layer
    - `BaseViewModel`: Connects to BaseModel, exposes observables to views
@@ -121,16 +121,16 @@ The `apps/plugin-react` app demonstrates this with React-based plugin host and a
 
 ## Key Technical Details
 
-### RxJS Usage
+### Signals Usage
 
-- All reactive state uses RxJS `BehaviorSubject` and `Observable`
-- ViewModels use `takeUntil(this._destroy$)` pattern for subscription cleanup
+- All reactive state uses `@web-loom/signals-core` signals (`signal()`/`computed()`/`effect()`), not RxJS — RxJS is legacy and only remains in `platform-core` and parts of `forms-core` (see `docs/RXJS-MIGRATION-GAPS.md`)
+- ViewModels use `addSubscription()` + `dispose()` for subscription cleanup, not `takeUntil`
 - Always call `dispose()` on ViewModels when unmounting components
 
 ### Validation
 
 - Zod schemas validate data at the Model layer
-- Validation errors flow through `error$` observable and are mapped to `validationErrors$` in ViewModels
+- Validation errors flow through the `error$` signal and are mapped to `validationErrors$` in ViewModels
 - Models reject invalid data; Views display validation errors reactively
 
 ### Dependency Injection

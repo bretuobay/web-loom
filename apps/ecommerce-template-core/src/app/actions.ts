@@ -162,4 +162,8 @@ export class TemplateAppActions {
   formatMoney(value: unknown): string {
     return formatMoney(Number(value ?? 0));
   }
+
+  stopEvent(event: Event): void {
+    event.stopPropagation();
+  }
 }

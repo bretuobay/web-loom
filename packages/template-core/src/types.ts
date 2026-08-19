@@ -10,6 +10,12 @@ export interface Scope {
   parent: Scope | null;
   self: unknown;
   locals: Record<string, unknown>;
+  /**
+   * Dev-mode reporter set on root scopes when `TemplateOptions.dev` is on.
+   * Called with the root segment of a data path that resolves against neither
+   * `locals` nor `self` — the silent-empty-render failure mode.
+   */
+  onUnresolved?: (rootSegment: string) => void;
 }
 
 export type NodePath = number[];
@@ -127,6 +133,12 @@ export interface TemplateOptions {
   sourceMap?: Record<string, SourceLocation>;
   /** Throw instead of warning when a partial cannot be resolved. */
   strictPartials?: boolean;
+  /**
+   * Enables development-only diagnostics, currently `UNRESOLVED_CONTEXT_PATH`
+   * warnings when a template path's root segment does not exist on the scope
+   * it resolves against. The Vite plugins turn this on in dev builds.
+   */
+  dev?: boolean;
   diagnostics?: TemplateDiagnostics;
 }
 
@@ -228,6 +240,13 @@ export interface AnalyzeOptions extends PrecompileOptions {
   partials?: Record<string, PartialSource>;
   /** Treat missing partials as errors instead of warnings during analysis. */
   strictPartials?: boolean;
+  /**
+   * Top-level keys of the context object the template mounts against. When
+   * provided, data-path roots outside those keys emit `UNKNOWN_CONTEXT_PATH`
+   * diagnostics. Only root-scope expressions are checked — `{{#each}}` bodies
+   * re-scope `self` to the item, whose shape static analysis cannot know.
+   */
+  contextKeys?: string[];
 }
 
 export interface AnalyzeResult {

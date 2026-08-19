@@ -1,4 +1,4 @@
-import { createRouter, type Router } from '@web-loom/router-core';
+import type { Router } from '@web-loom/router-core';
 import type { CommandPaletteBehavior } from '@web-loom/ui-patterns';
 import { uiStore } from './infrastructure/store/ui-store';
 import { disposeTheme, initTheme } from './theme/init-theme';
@@ -14,7 +14,6 @@ import { createTemplateAppSubscriptions } from './app/subscriptions';
 export class TemplateAppViewModel {
   readonly state: TemplateAppState;
   readonly actions: TemplateAppActions;
-  readonly router: Router;
   readonly palette: CommandPaletteBehavior;
   readonly catalog: CatalogViewModel;
   readonly cart: CartViewModel;
@@ -24,24 +23,17 @@ export class TemplateAppViewModel {
   private subscriptions: Array<() => void> = [];
   private started = false;
 
-  constructor(catalogModel: CatalogModel, cartModel: CartModel) {
+  /** `router` is owned and destroyed by the composition root (`app/index.ts`). */
+  constructor(
+    catalogModel: CatalogModel,
+    cartModel: CartModel,
+    private readonly router: Router,
+  ) {
     this.catalogModel = catalogModel;
     this.cartModel = cartModel;
     this.catalog = new CatalogViewModel(catalogModel);
     this.cart = new CartViewModel(cartModel);
-    this.router = createRouter({
-      mode: 'history',
-      routes: [
-        { path: '/', name: 'storefront', meta: { view: 'storefront' } },
-        { path: '/checkout', name: 'checkout', meta: { view: 'checkout' } },
-        { path: '/:pathMatch(.*)', name: 'not-found', matchStrategy: 'prefix', meta: { view: 'not-found' } },
-      ],
-    });
-    this.state = createTemplateAppState(
-      uiStore.getState().theme,
-      this.router.currentRoute.path,
-      this.cart.checkoutForm.getState(),
-    );
+    this.state = createTemplateAppState(uiStore.getState().theme, this.cart.checkoutForm.getState());
     this.actions = new TemplateAppActions({
       catalog: this.catalog,
       cart: this.cart,
@@ -62,7 +54,6 @@ export class TemplateAppViewModel {
     this.subscriptions = createTemplateAppSubscriptions({
       state: this.state,
       cart: this.cart,
-      router: this.router,
       palette: this.palette,
       actions: this.actions,
     });
@@ -76,7 +67,6 @@ export class TemplateAppViewModel {
     this.subscriptions.splice(0).forEach((unsubscribe) => unsubscribe());
     this.actions.dispose();
     this.palette.destroy();
-    this.router.destroy();
     disposeTheme();
     this.catalog.deactivate();
     this.cart.deactivate();

@@ -10,7 +10,7 @@
 
 **Best practices from the README**:
 
-1. Always call `dispose()` on view models to release RxJS subscriptions (`vm.dispose()`).
+1. Always call `dispose()` on view models to release signal subscriptions (`vm.dispose()`).
 2. Define Zod schemas for every model and pass them to the constructors that accept `schema`.
 3. Keep UI logic in view models; instantiate them inside frameworks/containers and subscribe to their observables rather than embedding business logic in React/Vue/Angular components.
 4. Tests should exercise view models and commands directly—mock fetchers or stub observables instead of hitting real endpoints.

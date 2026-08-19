@@ -1,6 +1,6 @@
 {{#if greenHouses.data$}}
   <div class="card">
-    <a href="/greenhouses" class="card-header-link" on:click.prevent="navigateFromClick">
+    <a href="/greenhouses" class="card-header-link">
       <h3 class="card-title">Greenhouses</h3>
     </a>
     <p class="card-content">Total: {{ greenHouses.data$.length }}</p>

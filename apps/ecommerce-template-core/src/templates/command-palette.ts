@@ -1,7 +1,7 @@
 import { declareContext } from '@web-loom/template-core';
-import type { TemplateAppBindings } from '../app/bindings';
+import type { AppContext } from '../app/context';
 
-const partial = declareContext<TemplateAppBindings>();
+const partial = declareContext<AppContext>();
 
 export const commandPaletteTemplate = partial.compile(`{{#if state.paletteState$.isOpen}}
   <div class="palette-backdrop" on:click="actions.closePalette">

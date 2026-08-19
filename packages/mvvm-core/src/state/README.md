@@ -8,7 +8,7 @@ The `BusyState` class provides centralized busy state management for ViewModels,
 - **Operation Reasons**: Each operation can have a descriptive reason for UI feedback
 - **Automatic Cleanup**: `executeBusy()` automatically manages busy state lifecycle
 - **Manual Control**: `setBusy()` returns a cleanup function for fine-grained control
-- **RxJS Observables**: Reactive streams for `isBusy$`, `operations$`, `busyReasons$`, and `currentReason$`
+- **Signals**: Reactive `@web-loom/signals-core` signals for `isBusy$`, `operations$`, `busyReasons$`, and `currentReason$`
 - **Memory Safe**: Implements `IDisposable` for proper cleanup
 
 ## Basic Usage

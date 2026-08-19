@@ -1,5 +1,5 @@
 <div class="card">
-  <a href="/sensor-readings" class="card-header-link" on:click.prevent="navigateFromClick">
+  <a href="/sensor-readings" class="card-header-link">
     <h3 class="card-title">Sensor Readings</h3>
   </a>
   <div class="card-content sensor-reading-card">

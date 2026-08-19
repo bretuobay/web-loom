@@ -1,8 +1,8 @@
-<a href="/" class="back-button" on:click.prevent="navigateFromClick" use:loadCurrentRouteData="loadCurrentRouteData">
+<a href="/" class="back-button">
   <img src="/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
 </a>
 <section class="flex-container flex-row">
-  <form class="form-container" on:submit.prevent="submitGreenhouse">
+  <form class="form-container" on:submit.prevent="greenhouseForm.submit">
     <div class="form-group">
       <label for="name">Greenhouse Name:</label>
       <input
@@ -12,7 +12,7 @@
         required
         class="input-field"
         placeholder="Enter greenhouse name"
-        bind:value="form.name$"
+        bind:value="greenhouseForm.fields.name"
       />
     </div>
 
@@ -25,13 +25,13 @@
         rows="3"
         class="textarea-field"
         placeholder="Location"
-        bind:value="form.location$"
+        bind:value="greenhouseForm.fields.location"
       ></textarea>
     </div>
 
     <div class="form-group">
       <label for="size">Size:</label>
-      <select id="size" class="select-field" name="size" required bind:value="form.size$">
+      <select id="size" class="select-field" name="size" required bind:value="greenhouseForm.fields.size">
         <option value="">Select size</option>
         {{#each sizeOptions key=value}}
           <option :value="value">{{ label }}</option>
@@ -47,7 +47,7 @@
         id="cropType"
         class="input-field"
         placeholder="Enter crop type"
-        bind:value="form.cropType$"
+        bind:value="greenhouseForm.fields.cropType"
       />
     </div>
 

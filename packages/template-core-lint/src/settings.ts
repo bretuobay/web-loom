@@ -5,6 +5,8 @@ export interface TemplateCoreLintSettings {
   specifiers?: string[];
   /** Treat missing partials as errors during analysis. Default: true when `partials` is set. */
   strictPartials?: boolean;
+  /** Top-level context keys templates mount against — enables the `no-unknown-context-path` rule. */
+  contextKeys?: string[];
 }
 
 export function getTemplateCoreSettings(settings: Record<string, unknown> | undefined): TemplateCoreLintSettings {

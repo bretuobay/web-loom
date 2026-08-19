@@ -55,10 +55,31 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
     };
   }
 
+  private makeRootScope(viewModel: TVm, ctx: RenderContext): Scope {
+    const scope: Scope = { parent: null, self: viewModel, locals: {} };
+    if (this.options.dev) {
+      const seen = new Set<string>();
+      scope.onUnresolved = (rootSegment) => {
+        if (seen.has(rootSegment)) return;
+        seen.add(rootSegment);
+        reportDiagnostic(ctx, {
+          code: 'UNRESOLVED_CONTEXT_PATH',
+          severity: 'warning',
+          message: `Template path root "${rootSegment}" does not exist on the scope it resolves against — a typo or missing context key renders as empty output.`,
+          template: this.options.name,
+          sourcePath: this.options.sourcePath,
+          details: { kind: 'unresolved-context-path', rootSegment },
+        });
+      };
+    }
+    return scope;
+  }
+
   mount(container: Element, viewModel: TVm): Disposable {
     const bag = new DisposalBag();
-    const scope: Scope = { parent: null, self: viewModel, locals: {} };
-    const { roots, fragment } = instantiate(this.root, scope, this.makeContext(), bag);
+    const ctx = this.makeContext();
+    const scope = this.makeRootScope(viewModel, ctx);
+    const { roots, fragment } = instantiate(this.root, scope, ctx, bag);
     container.append(fragment);
     bag.add(() => {
       for (const node of roots) node.remove();
@@ -68,8 +89,9 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
 
   render(viewModel: TVm): { node: DocumentFragment; dispose(): void } {
     const bag = new DisposalBag();
-    const scope: Scope = { parent: null, self: viewModel, locals: {} };
-    const { roots, fragment } = instantiate(this.root, scope, this.makeContext(), bag);
+    const ctx = this.makeContext();
+    const scope = this.makeRootScope(viewModel, ctx);
+    const { roots, fragment } = instantiate(this.root, scope, ctx, bag);
     bag.add(() => {
       for (const node of roots) node.remove();
     });
@@ -110,9 +132,9 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
       return this.mount(container, viewModel);
     }
     const bag = new DisposalBag();
-    const scope: Scope = { parent: null, self: viewModel, locals: {} };
-    const roots = Array.from(container.childNodes);
     const context = this.makeContext();
+    const scope = this.makeRootScope(viewModel, context);
+    const roots = Array.from(container.childNodes);
     context.hydrating = true;
     try {
       applyBindings(this.root, roots, scope, context, bag);

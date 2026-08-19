@@ -1,20 +1,11 @@
 import '@repo/shared/styles';
 import './app.css';
-import { GreenhouseAppViewModel } from './app/view-model';
-import { GreenhouseAppView } from './app/view';
+import { createApp } from './app';
 
 const appContainer = document.getElementById('app');
 if (!appContainer) throw new Error('The application root was not found.');
 
-const appViewModel = new GreenhouseAppViewModel();
-const mountedView = new GreenhouseAppView();
-const mounted = mountedView.mount(appContainer, appViewModel);
+const app = createApp();
+app.mount(appContainer);
 
-void appViewModel.start();
-
-function dispose(): void {
-  mounted.dispose();
-  appViewModel.dispose();
-}
-
-if (import.meta.hot) import.meta.hot.dispose(dispose);
+if (import.meta.hot) import.meta.hot.dispose(() => app.unmount());

@@ -1,4 +1,4 @@
-<div class="dashboard-container" use:loadCurrentRouteData="loadCurrentRouteData">
+<div class="dashboard-container">
   {{#if dashboardLoading$}}
     <p>Loading dashboard data...</p>
   {{else}}

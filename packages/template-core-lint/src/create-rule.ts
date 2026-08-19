@@ -20,7 +20,7 @@ export function getCachedTemplateIssues(context: Rule.RuleContext): TemplateLint
 
 export function createDiagnosticRule(
   codes: readonly string[],
-  options?: { requiresPartialsManifest?: boolean },
+  options?: { requiresPartialsManifest?: boolean; requiresContextKeys?: boolean },
 ): Rule.RuleModule {
   return {
     meta: {
@@ -38,6 +38,7 @@ export function createDiagnosticRule(
         Program() {
           const settings = getTemplateCoreSettings(context.settings);
           if (options?.requiresPartialsManifest && !settings.partials) return;
+          if (options?.requiresContextKeys && !settings.contextKeys) return;
 
           for (const issue of getCachedTemplateIssues(context)) {
             if (!codes.includes(issue.diagnosticCode)) continue;
@@ -68,4 +69,5 @@ export const RULE_CODES = {
   'no-missing-partial': ['MISSING_PARTIAL'],
   'no-invalid-expression': ['INVALID_EXPRESSION', 'INVALID_TEMPLATE'],
   'no-unsupported-modifier': ['MODIFIER_CONFLICT', 'UNSUPPORTED_DIRECTIVE'],
+  'no-unknown-context-path': ['UNKNOWN_CONTEXT_PATH'],
 } as const;

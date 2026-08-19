@@ -86,6 +86,126 @@ function unsafeUrlDiagnostic(
   };
 }
 
+/** Collects the roots of `parentHops: 0` data paths inside an expression tree. */
+function collectPathRoots(expr: ExpressionNode, roots: Set<string>): void {
+  switch (expr.kind) {
+    case 'path':
+      if (expr.parentHops === 0 && expr.segments[0] && expr.segments[0] !== 'this') {
+        roots.add(expr.segments[0]);
+      }
+      return;
+    case 'helper-call':
+      // The callee resolves through helpers or the scope chain — only its
+      // arguments read the current scope.
+      for (const arg of expr.args) collectPathRoots(arg, roots);
+      return;
+    case 'unary-not':
+      collectPathRoots(expr.operand, roots);
+      return;
+    case 'binary':
+    case 'logical':
+      collectPathRoots(expr.left, roots);
+      collectPathRoots(expr.right, roots);
+      return;
+    case 'literal':
+      return;
+  }
+}
+
+function collectContextPathDiagnostics(
+  root: RootTemplate,
+  sourceMap: Record<string, SourceLocation> | undefined,
+  options: AnalyzeOptions,
+  diagnostics: TemplateDiagnostic[],
+): void {
+  const known = new Set(options.contextKeys);
+
+  const report = (path: number[], roots: Set<string>): void => {
+    for (const rootSegment of roots) {
+      if (known.has(rootSegment)) continue;
+      diagnostics.push({
+        code: 'UNKNOWN_CONTEXT_PATH',
+        severity: 'warning',
+        message: `Path root "${rootSegment}" is not a declared context key — it will render as empty output.`,
+        template: options.name,
+        sourcePath: options.sourcePath,
+        nodePath: path,
+        details: { rootSegment },
+        ...locationForPath(sourceMap, path),
+      });
+    }
+  };
+
+  const checkExpr = (expr: ExpressionNode, path: number[]): void => {
+    const roots = new Set<string>();
+    collectPathRoots(expr, roots);
+    report(path, roots);
+  };
+
+  const checkParts = (parts: TextPart[], path: number[]): void => {
+    const roots = new Set<string>();
+    for (const part of parts) {
+      if ('expr' in part) collectPathRoots(part.expr, roots);
+    }
+    report(path, roots);
+  };
+
+  const walk = (template: RootTemplate): void => {
+    for (const binding of template.bindings) {
+      switch (binding.kind) {
+        case 'text':
+        case 'attr-interp':
+          checkParts(binding.parts, binding.path);
+          break;
+        case 'raw-html':
+        case 'prop-or-attr':
+        case 'class':
+        case 'style':
+          checkExpr(binding.expr, binding.path);
+          break;
+        case 'bind':
+          checkExpr(binding.target, binding.path);
+          if (binding.setter) checkExpr(binding.setter, binding.path);
+          break;
+        case 'event':
+          // A bare handler name resolves via the scope chain; only call-form
+          // arguments read the current scope.
+          if (binding.handler.kind === 'helper-call') checkExpr(binding.handler, binding.path);
+          break;
+        case 'action':
+          // Actions resolve like event handlers.
+          if (binding.expr.kind === 'helper-call') checkExpr(binding.expr, binding.path);
+          break;
+      }
+    }
+    for (const block of template.blocks) {
+      switch (block.kind) {
+        case 'if':
+          for (const branch of block.branches) {
+            if (branch.condition) checkExpr(branch.condition, block.path);
+            walk(branch.template);
+          }
+          break;
+        case 'each':
+          checkExpr(block.source, block.path);
+          // The body re-scopes `self` to the item, whose shape is unknown
+          // statically; the `{{else}}` branch keeps the outer scope.
+          if (block.empty) walk(block.empty);
+          break;
+        case 'switch':
+          checkExpr(block.source, block.path);
+          for (const branch of block.branches) walk(branch.template);
+          break;
+        case 'partial':
+          if (block.context) checkExpr(block.context, block.path);
+          break;
+      }
+    }
+  };
+
+  walk(root);
+}
+
 function collectBlockDiagnostics(
   blocks: BlockRecord[],
   sourceMap: Record<string, SourceLocation> | undefined,
@@ -135,6 +255,9 @@ export function collectStaticDiagnostics(
 ): TemplateDiagnostic[] {
   const diagnostics: TemplateDiagnostic[] = [];
   collectRootDiagnostics(root, sourceMap, options, diagnostics);
+  if (options.contextKeys) {
+    collectContextPathDiagnostics(root, sourceMap, options, diagnostics);
+  }
   return diagnostics;
 }
 

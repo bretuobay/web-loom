@@ -69,3 +69,26 @@ ruleTester.run('no-unsafe-url', plugin.rules['no-unsafe-url'], {
     },
   ],
 });
+
+ruleTester.run('no-unknown-context-path', plugin.rules['no-unknown-context-path'], {
+  valid: [
+    {
+      code: `${importPreamble}export const t = compile(\`<p>{{ sensors.data$ }}</p>\`);`,
+      settings: { 'template-core': { contextKeys: ['sensors'] } },
+    },
+    // Without a contextKeys manifest the rule stays inert.
+    `${importPreamble}export const t = compile(\`<p>{{ anything }}</p>\`);`,
+    {
+      // Each-item bodies are item-scoped and never checked.
+      code: `${importPreamble}export const t = compile(\`{{#each sensors.data$ key=id}}<p>{{ label }}</p>{{/each}}\`);`,
+      settings: { 'template-core': { contextKeys: ['sensors'] } },
+    },
+  ],
+  invalid: [
+    {
+      code: `${importPreamble}export const t = compile(\`<p>{{ sensrs.data$ }}</p>\`);`,
+      settings: { 'template-core': { contextKeys: ['sensors'] } },
+      errors: [{ messageId: 'reported' }],
+    },
+  ],
+});

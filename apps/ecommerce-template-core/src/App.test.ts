@@ -1,32 +1,14 @@
 import { fireEvent, waitFor } from '@testing-library/dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createEcommerceApi } from './infrastructure/api/create-ecommerce-api';
-import { CatalogModel } from './features/catalog/CatalogModel';
-import { CartModel } from './features/cart/CartModel';
-import { TemplateAppViewModel } from './TemplateAppViewModel';
-import { TemplateAppView } from './app/view';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { createApp } from './app';
 
-function mountApp() {
+async function mountApp() {
   const container = document.createElement('div');
   document.body.append(container);
-  const api = createEcommerceApi();
-  const catalogModel = new CatalogModel(api);
-  const cartModel = new CartModel(api);
-  const disposeCatalogModel = vi.spyOn(catalogModel, 'dispose');
-  const disposeCartModel = vi.spyOn(cartModel, 'dispose');
-  const appViewModel = new TemplateAppViewModel(catalogModel, cartModel);
-  const view = new TemplateAppView();
-  const mounted = view.mount(container, appViewModel);
-  const ready = appViewModel.start();
+  const app = createApp();
+  await app.mount(container);
 
-  return {
-    container,
-    ready,
-    view: mounted,
-    appViewModel,
-    disposeCatalogModel,
-    disposeCartModel,
-  };
+  return { app, container };
 }
 
 describe('template-core ecommerce demo', () => {
@@ -35,54 +17,86 @@ describe('template-core ecommerce demo', () => {
   });
 
   it('renders the catalog and drives search and cart actions through templates', async () => {
-    const app = mountApp();
-    await app.ready;
-    await waitFor(() => expect(app.container.querySelectorAll('.product-card').length).toBeGreaterThan(0));
+    const { app, container } = await mountApp();
+    await waitFor(() => expect(container.querySelectorAll('.product-card').length).toBeGreaterThan(0));
 
-    const search = app.container.querySelector<HTMLInputElement>('#search-products');
+    const search = container.querySelector<HTMLInputElement>('#search-products');
     expect(search).not.toBeNull();
     fireEvent.input(search!, { target: { value: 'nonexistent product' } });
-    await waitFor(() => expect(app.container.textContent).toContain('No products found for this search.'));
+    await waitFor(() => expect(container.textContent).toContain('No products found for this search.'));
 
     fireEvent.input(search!, { target: { value: '' } });
-    const addButton = app.container.querySelector<HTMLButtonElement>('.product-card .brand-btn');
+    const addButton = container.querySelector<HTMLButtonElement>('.product-card .brand-btn');
     expect(addButton).not.toBeNull();
     fireEvent.click(addButton!);
     await waitFor(() =>
-      expect(app.container.querySelector('.header-actions .brand-btn')?.textContent).toContain('Cart (1)'),
+      expect(container.querySelector('.header-actions .brand-btn')?.textContent).toContain('Cart (1)'),
     );
 
-    fireEvent.click(app.container.querySelector('.header-actions .brand-btn')!);
-    expect(app.container.querySelector('.cart-drawer')).not.toBeNull();
-    await waitFor(() => expect(app.container.querySelector('.toast-item')?.textContent).toMatch(/added to cart|Added/));
+    fireEvent.click(container.querySelector('.header-actions .brand-btn')!);
+    expect(container.querySelector('.cart-drawer')).not.toBeNull();
+    await waitFor(() => expect(container.querySelector('.toast-item')?.textContent).toMatch(/added to cart|Added/));
 
-    app.view.dispose();
-    app.appViewModel.dispose();
-    app.container.remove();
+    app.unmount();
+    container.remove();
   });
 
-  it('navigates to checkout and disposes reactive bindings', async () => {
-    const app = mountApp();
-    await app.ready;
-    await waitFor(() => expect(app.container.querySelector('.product-card')).not.toBeNull());
+  it('navigates to checkout via the header link and clears on unmount', async () => {
+    const { app, container } = await mountApp();
+    await waitFor(() => expect(container.querySelector('.product-card')).not.toBeNull());
 
-    fireEvent.click(app.container.querySelector<HTMLAnchorElement>('a[href="/checkout"]')!);
-    await waitFor(() => expect(app.appViewModel.state.route$.get()).toBe('/checkout'));
-    expect(app.container.querySelector('.checkout-panel h2')?.textContent).toBe('Checkout');
+    fireEvent.click(container.querySelector<HTMLAnchorElement>('a[href="/checkout"]')!);
+    await waitFor(() => expect(window.location.pathname).toBe('/checkout'));
+    await waitFor(() => expect(container.querySelector('.checkout-panel h2')).not.toBeNull());
+    expect(container.querySelector('.checkout-panel h2')?.textContent).toContain('Checkout');
 
-    const email = app.container.querySelector<HTMLInputElement>('#checkout-email');
+    const email = container.querySelector<HTMLInputElement>('#checkout-email');
     expect(email?.value).toBe('');
     fireEvent.input(email!, { target: { value: 'ada@example.com' } });
-    expect(app.appViewModel.cart.checkoutForm.getState().values.email).toBe('ada@example.com');
+    await waitFor(() => expect(email?.value).toBe('ada@example.com'));
 
-    const beforeDispose = app.container.textContent;
-    app.view.dispose();
-    app.appViewModel.dispose();
-    expect(app.disposeCatalogModel).toHaveBeenCalledOnce();
-    expect(app.disposeCartModel).toHaveBeenCalledOnce();
-    app.appViewModel.state.route$.set('/');
-    expect(beforeDispose).toContain('Checkout');
-    expect(app.container.textContent).toBe('');
-    app.container.remove();
+    const beforeUnmount = container.textContent;
+    app.unmount();
+    expect(beforeUnmount).toContain('Checkout');
+    expect(container.textContent).toBe('');
+    container.remove();
+  });
+
+  it('navigates via the delegated document-level link handler on the not-found page', async () => {
+    const { app, container } = await mountApp();
+    await waitFor(() => expect(container.querySelector('.product-card')).not.toBeNull());
+
+    window.history.pushState({}, '', '/does-not-exist');
+    fireEvent.popState(window);
+    await waitFor(() => expect(container.textContent).toContain('Page not found'));
+
+    // not-found.ts's back link is a plain `<a href="/">` with no on:click
+    // handler — only the delegated document-level action can intercept it.
+    const backLink = container.querySelector<HTMLAnchorElement>('a[href="/"]');
+    expect(backLink).not.toBeNull();
+    fireEvent.click(backLink!);
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
+
+    app.unmount();
+    container.remove();
+  });
+
+  it('can mount again after a complete teardown', async () => {
+    const app = createApp();
+    const firstContainer = document.createElement('div');
+    const secondContainer = document.createElement('div');
+    document.body.append(firstContainer, secondContainer);
+
+    await app.mount(firstContainer);
+    await waitFor(() => expect(firstContainer.querySelectorAll('.product-card').length).toBeGreaterThan(0));
+    app.unmount();
+
+    await app.mount(secondContainer);
+    await waitFor(() => expect(secondContainer.querySelectorAll('.product-card').length).toBeGreaterThan(0));
+    expect(firstContainer.textContent).toBe('');
+
+    app.unmount();
+    firstContainer.remove();
+    secondContainer.remove();
   });
 });

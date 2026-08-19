@@ -20,8 +20,6 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      // "rxjs": ["../../node_modules/rxjs"], // Removed to allow standard node resolution
-      // "rxjs/*": ["../../node_modules/rxjs/*"], // Removed
       "@web-loom/query-core": [
         "../query-core/dist"
       ]

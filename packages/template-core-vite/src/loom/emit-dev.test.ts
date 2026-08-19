@@ -10,7 +10,7 @@ describe('emitLoomDevModule', () => {
     });
 
     expect(code).toContain("import { compile } from '@web-loom/template-core';");
-    expect(code).toContain('compile(source, { name: "Header", sourcePath: "/app/header.loom" })');
+    expect(code).toContain('compile(source, { name: "Header", sourcePath: "/app/header.loom", dev: true })');
     expect(code).toContain('export default template;');
     expect(code).toContain('import.meta.hot.accept()');
   });

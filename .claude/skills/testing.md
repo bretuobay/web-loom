@@ -51,6 +51,8 @@ export default defineConfig({
 
 ### Testing ViewModels
 
+ViewModel `$`-props are `@web-loom/signals-core` signals (`ReadonlySignal<T>`), not RxJS observables. Read the current value synchronously with `.get()`/`.peek()`; there's no `.getValue()` or `firstValueFrom`.
+
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
 
@@ -62,7 +64,7 @@ describe('GreenHouseViewModel', () => {
     await vm.fetchCommand.execute();
 
     expect(mockFetcher).toHaveBeenCalled();
-    expect(vm.data$.getValue()).toHaveLength(1);
+    expect(vm.data$.get()).toHaveLength(1);
   });
 
   it('handles errors gracefully', async () => {
@@ -71,21 +73,24 @@ describe('GreenHouseViewModel', () => {
 
     await vm.fetchCommand.execute();
 
-    expect(vm.error$.getValue()).toBe('Network error');
+    expect(vm.error$.get()).toBe('Network error');
   });
 });
 ```
 
-### Testing with RxJS
+### Capturing state transitions
+
+For a single current value, `.get()` after `await` is enough — no subscription needed. To capture every intermediate value (e.g. a loading-state sequence), use `observe()` (emit-on-subscribe) or the signal's own `.subscribe()` (fires only on future changes):
 
 ```typescript
-import { firstValueFrom } from 'rxjs';
+import { observe } from '@web-loom/signals-core';
 
 it('emits loading state', async () => {
   const loadingStates: boolean[] = [];
-  vm.isLoading$.subscribe((state) => loadingStates.push(state));
+  const unsubscribe = observe(vm.isLoading$, (state) => loadingStates.push(state));
 
   await vm.fetchCommand.execute();
+  unsubscribe();
 
   expect(loadingStates).toEqual([false, true, false]);
 });
@@ -94,15 +99,13 @@ it('emits loading state', async () => {
 ### Testing Commands
 
 ```typescript
-it('disables command while executing', async () => {
-  const canExecute = await firstValueFrom(vm.fetchCommand.canExecute$);
-  expect(canExecute).toBe(true);
+it('disables command while executing', () => {
+  expect(vm.fetchCommand.canExecute$.get()).toBe(true);
 
   const executePromise = vm.fetchCommand.execute();
-  const isExecuting = await firstValueFrom(vm.fetchCommand.isExecuting$);
-  expect(isExecuting).toBe(true);
+  expect(vm.fetchCommand.isExecuting$.get()).toBe(true);
 
-  await executePromise;
+  return executePromise;
 });
 ```
 
@@ -140,17 +143,17 @@ const mockFetcher = vi.fn().mockImplementation(async (url) => {
 });
 ```
 
-### Stub RxJS Subjects
+### Stub signals
 
 ```typescript
-import { BehaviorSubject } from 'rxjs';
+import { signal } from '@web-loom/signals-core';
 
 const mockViewModel = {
-  data$: new BehaviorSubject([]),
-  isLoading$: new BehaviorSubject(false),
+  data$: signal([]),
+  isLoading$: signal(false),
   fetchCommand: {
     execute: vi.fn(),
-    isExecuting$: new BehaviorSubject(false),
+    isExecuting$: signal(false),
   },
 };
 ```
@@ -158,8 +161,8 @@ const mockViewModel = {
 ## Best Practices
 
 1. **Test ViewModels directly** - Mock fetchers, don't hit real endpoints
-2. **Use `firstValueFrom`** for single observable emissions
-3. **Subscribe to capture all emissions** when testing state transitions
+2. **Read `.get()`/`.peek()`** for a single current value — no subscription needed
+3. **Use `observe()` to capture all emissions** when testing state transitions
 4. **Mock at boundaries** - Fetchers, localStorage, timers
 5. **Dispose ViewModels** in test cleanup to prevent memory leaks
 6. **Keep alias maps in sync** between Vite and Vitest configs

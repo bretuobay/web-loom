@@ -48,7 +48,8 @@
     "@web-loom/storage-core": "*"
   },
   "dependencies": {
-    "@web-loom/event-emitter-core": "*"
+    "@web-loom/event-emitter-core": "*",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

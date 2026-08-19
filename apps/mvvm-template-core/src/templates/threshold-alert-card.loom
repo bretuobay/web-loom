@@ -1,5 +1,5 @@
 <div class="card">
-  <a href="/threshold-alerts" class="card-header-link" on:click.prevent="navigateFromClick">
+  <a href="/threshold-alerts" class="card-header-link">
     <h3 class="card-title">Alerts</h3>
   </a>
   <p class="card-content">Total Alerts: {{ thresholdAlerts.data$.length }}</p>

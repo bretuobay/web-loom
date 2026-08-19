@@ -21,8 +21,19 @@ The app is a practical Phase 2 and Phase 3 example of the template engine:
 - Product search uses `bind:value` directly against a writable signal.
 - Navigation and nested cart actions use event modifiers such as `.prevent` and `.stop`.
 - The search field uses a `use:` element action for mount-time DOM behavior.
-- Route content is managed by `createTemplateOutlet()`, so route changes dispose the previous route
-  view before mounting the next one.
+- Routing is one declarative table (`src/app/routes.ts`) driving
+  [`@web-loom/template-core-router`](../../packages/template-core-router/)'s `createRouterView()`,
+  so route changes dispose the previous route view before mounting the next one — with
+  `hydrate: true` so the first render hydrates the SSR storefront island instead of remounting it.
+- Navigation is a single delegated action (`createLinkAction`) attached to `document.documentElement`
+  in the composition root, so plain `<a href>` elements anywhere — including outside the app
+  shell, like the not-found page's back link — navigate through the router without per-anchor
+  wiring; `header.loom`'s two nav links still call `navigateFromClick` explicitly to demonstrate the
+  bound-handler form side by side with the delegated one.
+- The mount context is assembled with `composeContext()` (`src/app/context.ts`): the ViewModel's
+  `state`/`actions`/`catalog`/`cart` stay namespaced, and template call-form handlers
+  (`updateQuantity(this, -1)`) are flat aliases of `actions.*` methods, since template-core's
+  call-form expressions only resolve a single identifier.
 - The SSR storefront island is constrained by the same centered `1200px` content layout as the
   client-rendered routes; only the catalog island is server-rendered, not the browser-owned shell.
 - Checkout fields use `bind:value` with explicit `bind:set` callbacks, keeping form-library writes
@@ -75,9 +86,10 @@ interaction, navigation, and disposal of the ViewModel and mounted template view
 
 | Area                          | Responsibility                                                               |
 | ----------------------------- | ---------------------------------------------------------------------------- |
-| `src/TemplateAppViewModel.ts` | Composes state, catalog/cart ViewModels, actions, routing, and subscriptions |
-| `src/app/view.ts`             | Mounts the partial-composed shell and swaps route templates                  |
-| `src/app/bindings.ts`         | View-bound actions and element action callbacks                              |
+| `src/TemplateAppViewModel.ts` | Composes state, catalog/cart ViewModels, actions, and subscriptions (router is injected) |
+| `src/app/routes.ts`           | The route table (path + template) and the router derived from it            |
+| `src/app/context.ts`          | `composeContext()` of state/actions/catalog/cart plus view-boundary handlers |
+| `src/app/index.ts`            | `createApp()` composition root: mounts the shell and routes, then owns teardown |
 | `src/templates/`              | Compiled templates, `declareContext` typing, and partial composition         |
 | `src/features/catalog/`       | Product loading, filtering, and selection                                    |
 | `src/features/cart/`          | Cart state, checkout form, and cart commands                                 |
