@@ -35,6 +35,10 @@ const view = createRouterView(outletEl, {
 - `toRouteDefinitions(routes)` derives the router-core definitions from the same
   table so router and view cannot disagree about which paths exist.
 - Disposing unsubscribes from the router and tears down the mounted template.
+- `hydrate: true` makes the *first* render hydrate pre-existing markup in
+  `outletEl` (via `Template.hydrate()`, e.g. an SSR response) instead of
+  mounting; every render after that always mounts. Useful for SSR apps whose
+  route outlet is pre-populated on load. Default: `false`.
 
 ## createLinkAction
 

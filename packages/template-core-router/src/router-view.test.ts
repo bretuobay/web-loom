@@ -189,3 +189,98 @@ describe('toRouteDefinitions', () => {
     expect(definitions).toEqual([{ path: '/sensors', name: 'sensors', meta: { icon: 'gauge' } }]);
   });
 });
+
+describe('createRouterView hydrate option', () => {
+  it('hydrates pre-rendered markup on the first render instead of mounting', async () => {
+    const routes = makeRoutes();
+    const router = makeRouter(routes);
+    const outletEl = document.createElement('main');
+    outletEl.innerHTML = '<h1>home app</h1>';
+    const existingH1 = outletEl.querySelector('h1');
+
+    const hydrateSpy = vi.spyOn(routes[0]!.template, 'hydrate');
+    const mountSpy = vi.spyOn(routes[0]!.template, 'mount');
+
+    const view = createRouterView(outletEl, {
+      router,
+      routes,
+      notFound: compile<AppContext>('<h1>missing</h1>'),
+      context: { title: 'app' },
+      hydrate: true,
+    });
+
+    expect(hydrateSpy).toHaveBeenCalledTimes(1);
+    expect(mountSpy).not.toHaveBeenCalled();
+    expect(outletEl.querySelector('h1')).toBe(existingH1);
+
+    view.dispose();
+    router.destroy();
+  });
+
+  it('mounts fresh on the first render when the outlet has no existing markup', () => {
+    const routes = makeRoutes();
+    const router = makeRouter(routes);
+    const outletEl = document.createElement('main');
+
+    const hydrateSpy = vi.spyOn(routes[0]!.template, 'hydrate');
+    const view = createRouterView(outletEl, {
+      router,
+      routes,
+      notFound: compile<AppContext>('<h1>missing</h1>'),
+      context: { title: 'app' },
+      hydrate: true,
+    });
+
+    expect(hydrateSpy).not.toHaveBeenCalled();
+    expect(outletEl.textContent).toBe('home app');
+
+    view.dispose();
+    router.destroy();
+  });
+
+  it('mounts (not hydrates) on every navigation after the first render', async () => {
+    const routes = makeRoutes();
+    const router = makeRouter(routes);
+    const outletEl = document.createElement('main');
+    outletEl.innerHTML = '<h1>home app</h1>';
+
+    const mountSpy = vi.spyOn(routes[1]!.template, 'mount');
+    const view = createRouterView(outletEl, {
+      router,
+      routes,
+      notFound: compile<AppContext>('<h1>missing</h1>'),
+      context: { title: 'app' },
+      hydrate: true,
+    });
+
+    await router.push('/sensors');
+    expect(mountSpy).toHaveBeenCalledTimes(1);
+    expect(outletEl.textContent).toBe('sensors app');
+
+    view.dispose();
+    router.destroy();
+  });
+
+  it('behaves like a plain mount when hydrate is not set, even with existing markup', () => {
+    const routes = makeRoutes();
+    const router = makeRouter(routes);
+    const outletEl = document.createElement('main');
+    outletEl.innerHTML = '<h1>stale</h1>';
+
+    const hydrateSpy = vi.spyOn(routes[0]!.template, 'hydrate');
+    const mountSpy = vi.spyOn(routes[0]!.template, 'mount');
+    const view = createRouterView(outletEl, {
+      router,
+      routes,
+      notFound: compile<AppContext>('<h1>missing</h1>'),
+      context: { title: 'app' },
+    });
+
+    expect(hydrateSpy).not.toHaveBeenCalled();
+    expect(mountSpy).toHaveBeenCalledTimes(1);
+    expect(outletEl.textContent).toContain('home app');
+
+    view.dispose();
+    router.destroy();
+  });
+});

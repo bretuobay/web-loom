@@ -1,5 +1,5 @@
 import type { RouteDefinition, RouteMatch, Router } from '@web-loom/router-core';
-import { createTemplateOutlet, type Disposable, type Template } from '@web-loom/template-core';
+import type { Disposable, Template } from '@web-loom/template-core';
 
 /**
  * One row of the declarative route table: the single source of truth for
@@ -26,6 +26,13 @@ export interface RouterViewOptions<TContext extends object> {
   /** The context object mounted with every route template. */
   context: TContext;
   onLoadError?: (error: unknown, match: RouteMatch) => void;
+  /**
+   * When true, the first render hydrates pre-rendered markup already present
+   * in `outletEl` (e.g. from an SSR response) instead of mounting fresh —
+   * matching `Template.hydrate()`'s recovery behavior if the markup doesn't
+   * match. Every render after the first always mounts. Default: false.
+   */
+  hydrate?: boolean;
 }
 
 /**
@@ -53,13 +60,23 @@ export function createRouterView<TContext extends object>(
     byPath.set(route.path, route);
   }
 
-  const outlet = createTemplateOutlet(outletEl);
+  let current: Disposable | null = null;
+  let isFirstRender = true;
   let disposed = false;
 
   const showRoute = (match: RouteMatch): void => {
     if (disposed) return;
     const route = byPath.get(match.path);
-    outlet.show(route?.template ?? notFound, context);
+    const template = route?.template ?? notFound;
+
+    if (isFirstRender && options.hydrate && outletEl.childNodes.length > 0) {
+      current = template.hydrate(outletEl, context);
+    } else {
+      current?.dispose();
+      current = template.mount(outletEl, context);
+    }
+    isFirstRender = false;
+
     if (route?.load) {
       Promise.resolve()
         .then(() => route.load?.(match))
@@ -74,7 +91,8 @@ export function createRouterView<TContext extends object>(
       if (disposed) return;
       disposed = true;
       unsubscribe();
-      outlet.dispose();
+      current?.dispose();
+      current = null;
     },
   };
 }
