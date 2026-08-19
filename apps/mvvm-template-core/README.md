@@ -18,11 +18,23 @@ remains the ecommerce/SSR reference; this app is the MVVM demo counterpart to `m
   (`compile()` in dev, `fromPrecompiled()` in build).
 - The application shell composes header and footer with named partials. The dashboard composes the
   four summary cards the same way.
-- Route content is swapped with `createTemplateOutlet()`, matching `mvvm-react`'s router table:
-  `/`, `/dashboard`, `/greenhouses`, `/sensors`, `/sensor-readings`, `/threshold-alerts`.
+- Routing is one declarative table (`src/app/routes.ts`): each row names the path, its `.loom`
+  template, and the ViewModels to fetch on entry. `createRouterView()` from
+  [`@web-loom/template-core-router`](../../packages/template-core-router/) drives the outlet, and
+  the router itself is derived from the same table with `toRouteDefinitions()` — no separate route
+  map, fetch if-chain, or per-template `use:` fetch trigger.
+- Navigation is one `use:links` action on the app-shell root (`createLinkAction(router)`): plain
+  `<a href>` anchors everywhere, no per-anchor click wiring.
 - Templates bind live ViewModel signals (`data$`, `isLoading$`) — no `useSignal` bridge.
-- Greenhouse create/update/delete uses `bind:value` form fields and `on:click="deleteGreenhouse(this)"`.
+- The mount context is assembled with `composeContext()` (`src/app/context.ts`): namespaced
+  ViewModels, an `anyLoading(...)` dashboard signal, helpers, and actions — no hand-written
+  bindings class.
+- Greenhouse create/update/delete is one `createEntityForm(greenHouseViewModel, [...fields])` call;
+  templates bind `greenhouseForm.fields.name`, `greenhouseForm.submit`, and the
+  `editGreenhouse(this)` / `deleteGreenhouse(this)` aliases.
 - The readings card uses a `use:` element action to mount Chart.js against `sensorReadings.data$`.
+- Dev builds enable `UNRESOLVED_CONTEXT_PATH` console diagnostics: a misspelled template path warns
+  immediately instead of rendering empty output.
 
 ## Run it
 
@@ -62,10 +74,11 @@ npm run build
 | --- | --- |
 | `src/templates/*.loom` | View markup (dashboard, lists, layout, cards) |
 | `src/templates/index.ts` | `.loom` re-exports and partial registration |
-| `src/app/view.ts` | Mounts the shell and swaps route templates |
-| `src/app/bindings.ts` | View-bound actions (`navigateFromClick`, greenhouse CRUD, chart) |
-| `src/app/view-model.ts` | Routing plus the same fetch commands React calls on mount |
-| `src/main.ts` | Client entry: mount, start, dispose on HMR |
+| `src/app/routes.ts` | The route table (path + template + load) and the router derived from it |
+| `src/app/context.ts` | `composeContext()` of ViewModels, derived signals, form, helpers, actions |
+| `src/app/view.ts` | Mounts the shell and hands the outlet to `createRouterView()` |
+| `src/app/chart.ts` | Chart.js `use:` element action |
+| `src/main.ts` | Client entry: create router, mount, dispose on HMR |
 
 See [`packages/template-core/docs/template-loom-authoring.md`](../../packages/template-core/docs/template-loom-authoring.md)
 for `.loom` setup, and [`apps/mvvm-react`](../mvvm-react) for the React View this app replaces.

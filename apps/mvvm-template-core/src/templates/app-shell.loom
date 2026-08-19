@@ -1,4 +1,4 @@
-<div class="app-shell">
+<div class="app-shell" use:links="links">
   {{> header}}
   <main class="flex-container flex-column flex-app" data-template-slot="route" style="padding: 20px;"></main>
   {{> footer}}

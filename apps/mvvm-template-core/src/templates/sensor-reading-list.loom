@@ -1,4 +1,4 @@
-<a href="/" class="back-button" on:click.prevent="navigateFromClick" use:loadCurrentRouteData="loadCurrentRouteData">
+<a href="/" class="back-button">
   <img src="/back-arrow.svg" alt="Back to dashboard" class="back-arrow" />
 </a>
 <div class="card">

@@ -39,7 +39,7 @@ export interface EntityForm<TEntity, TField extends string> {
  * form-state class. All members are bound, so templates can reference them
  * directly (`on:submit.prevent="greenhouseForm.submit"`).
  */
-export function createEntityForm<TEntity extends { id: string }, TField extends string>(
+export function createEntityForm<TEntity extends { id?: string | null }, TField extends string>(
   vm: EntityFormCommands<TEntity>,
   fieldNames: readonly TField[],
   options: EntityFormOptions<TEntity, TField> = {},
@@ -98,6 +98,10 @@ export function createEntityForm<TEntity extends { id: string }, TField extends 
   };
 
   const edit = (entity: TEntity): void => {
+    if (!entity.id) {
+      onError(new Error('Cannot edit an entity without an id.'));
+      return;
+    }
     const values = fromEntity(entity);
     for (const name of fieldNames) {
       fields[name].set(values[name] ?? '');
@@ -106,6 +110,10 @@ export function createEntityForm<TEntity extends { id: string }, TField extends 
   };
 
   const remove = async (entity: TEntity): Promise<void> => {
+    if (!entity.id) {
+      onError(new Error('Cannot delete an entity without an id.'));
+      return;
+    }
     try {
       await vm.deleteCommand.execute(entity.id);
     } catch (error) {

@@ -1,7 +1,7 @@
 import { fireEvent, waitFor } from '@testing-library/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GreenhouseAppViewModel } from './app/view-model';
-import { GreenhouseAppView } from './app/view';
+import { createAppRouter } from './app/routes';
+import { mountGreenhouseApp } from './app/view';
 
 const greenhouses = [
   {
@@ -59,12 +59,10 @@ function jsonResponse(data: unknown): Promise<Response> {
 function mountApp() {
   const container = document.createElement('div');
   document.body.append(container);
-  const appViewModel = new GreenhouseAppViewModel();
-  const view = new GreenhouseAppView();
-  const mounted = view.mount(container, appViewModel);
-  const ready = appViewModel.start();
+  const router = createAppRouter();
+  const view = mountGreenhouseApp(container, router);
 
-  return { container, ready, view: mounted, appViewModel };
+  return { container, view, router };
 }
 
 describe('template-core greenhouse demo', () => {
@@ -89,30 +87,28 @@ describe('template-core greenhouse demo', () => {
 
   it('renders the dashboard from shared ViewModels and .loom templates', async () => {
     const app = mountApp();
-    await app.ready;
     await waitFor(() => expect(app.container.textContent).toContain('Total: 1'));
     expect(app.container.querySelector('.header')?.textContent).toContain('Greenhouses');
     expect(app.container.textContent).toContain('Total Alerts: 1');
     expect(app.container.textContent).toContain('Total Readings: 1');
 
     app.view.dispose();
-    app.appViewModel.dispose();
+    app.router.destroy();
     app.container.remove();
   });
 
   it('navigates to the greenhouse list and disposes mounted views', async () => {
     const app = mountApp();
-    await app.ready;
     await waitFor(() => expect(app.container.querySelector('a[href="/greenhouses"]')).not.toBeNull());
 
     fireEvent.click(app.container.querySelector<HTMLAnchorElement>('a[href="/greenhouses"]')!);
-    await waitFor(() => expect(app.appViewModel.route$.get()).toBe('/greenhouses'));
+    await waitFor(() => expect(app.router.currentRoute.path).toBe('/greenhouses'));
     await waitFor(() => expect(app.container.querySelector('.form-container')).not.toBeNull());
     expect(app.container.textContent).toContain('North Wing');
 
     const beforeDispose = app.container.textContent;
     app.view.dispose();
-    app.appViewModel.dispose();
+    app.router.destroy();
     expect(beforeDispose).toContain('Greenhouses');
     expect(app.container.textContent).toBe('');
     app.container.remove();

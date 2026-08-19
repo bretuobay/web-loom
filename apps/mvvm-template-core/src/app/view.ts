@@ -1,70 +1,37 @@
-import { createTemplateOutlet, type Disposable, type Template, type TemplateOutlet } from '@web-loom/template-core';
-import {
-  appShellTemplate,
-  dashboardTemplate,
-  greenhouseListTemplate,
-  notFoundTemplate,
-  registerAppPartials,
-  sensorListTemplate,
-  sensorReadingListTemplate,
-  thresholdAlertListTemplate,
-} from '../templates';
-import { GreenhouseAppBindings } from './bindings';
-import type { GreenhouseAppViewModel } from './view-model';
+import type { Disposable } from '@web-loom/template-core';
+import { createRouterView } from '@web-loom/template-core-router';
+import type { Router } from '@web-loom/router-core';
+import { appShellTemplate, notFoundTemplate, registerAppPartials } from '../templates';
+import { createAppContext } from './context';
+import { appRoutes } from './routes';
 
-type ViewTemplate = Template<GreenhouseAppBindings>;
+/**
+ * Mounts the app shell and binds the route outlet to the router. All route
+ * rendering, data loading, and link handling is driven by `appRoutes` and the
+ * composed context — there is no per-route wiring here.
+ */
+export function mountGreenhouseApp(container: Element, router: Router): Disposable {
+  registerAppPartials();
+  const context = createAppContext(router);
+  const shell = appShellTemplate.mount(container, context);
 
-const routeTemplates: Record<string, ViewTemplate> = {
-  '/': dashboardTemplate,
-  '/dashboard': dashboardTemplate,
-  '/greenhouses': greenhouseListTemplate,
-  '/sensors': sensorListTemplate,
-  '/sensor-readings': sensorReadingListTemplate,
-  '/threshold-alerts': thresholdAlertListTemplate,
-};
-
-export class GreenhouseAppView {
-  private readonly mountedViews: Disposable[] = [];
-  private routeOutlet: TemplateOutlet | null = null;
-  private stopRouteSubscription: (() => void) | null = null;
-
-  mount(container: Element, viewModel: GreenhouseAppViewModel): Disposable {
-    registerAppPartials();
-    const bindings = new GreenhouseAppBindings(viewModel);
-    this.mountedViews.push(appShellTemplate.mount(container, bindings));
-
-    const routeSlot =
-      container.querySelector<HTMLElement>('[data-template-slot="route"]') ?? this.createRouteSlot(container);
-    this.routeOutlet = createTemplateOutlet(routeSlot);
-
-    const renderRoute = (path: string) => {
-      const template = routeTemplates[path] ?? notFoundTemplate;
-      this.routeOutlet?.show(template, bindings);
-    };
-
-    renderRoute(viewModel.route$.get());
-    this.stopRouteSubscription = viewModel.route$.subscribe(renderRoute);
-
-    return {
-      dispose: () => this.dispose(),
-    };
+  const outletEl = container.querySelector('[data-template-slot="route"]');
+  if (!outletEl) {
+    shell.dispose();
+    throw new Error('The app shell template did not render a [data-template-slot="route"] element.');
   }
 
-  private dispose(): void {
-    this.stopRouteSubscription?.();
-    this.stopRouteSubscription = null;
-    this.routeOutlet?.dispose();
-    this.routeOutlet = null;
-    this.mountedViews
-      .splice(0)
-      .reverse()
-      .forEach((view) => view.dispose());
-  }
+  const routerView = createRouterView(outletEl, {
+    router,
+    routes: appRoutes,
+    notFound: notFoundTemplate,
+    context,
+  });
 
-  private createRouteSlot(container: Element): HTMLElement {
-    const routeSlot = document.createElement('main');
-    routeSlot.dataset.templateSlot = 'route';
-    container.append(routeSlot);
-    return routeSlot;
-  }
+  return {
+    dispose: () => {
+      routerView.dispose();
+      shell.dispose();
+    },
+  };
 }

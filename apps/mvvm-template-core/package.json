@@ -20,6 +20,7 @@
     "@web-loom/router-core": "*",
     "@web-loom/signals-core": "*",
     "@web-loom/template-core": "*",
+    "@web-loom/template-core-router": "*",
     "chart.js": "^4.5.0"
   },
   "devDependencies": {

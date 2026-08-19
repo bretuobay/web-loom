@@ -1,10 +1,10 @@
 <header class="header">
-  <a href="/" class="header-item" on:click.prevent="navigateFromClick">
+  <a href="/" class="header-item">
     Dashboard
   </a>
   <nav class="flex-container">
     {{#each navigationItems$ key=id}}
-      <a href="/{{ id }}" class="header-item" on:click.prevent="navigateFromClick">
+      <a href="/{{ id }}" class="header-item">
         <i class="icon-{{ icon }}"></i>
         {{ label }}
       </a>
