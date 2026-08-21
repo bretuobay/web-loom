@@ -26,6 +26,7 @@ Write a thin bridge that subscribes your framework's rendering model to the View
 | --- | --- | --- |
 | [`apps/mvvm-react`](apps/mvvm-react) | React | `useSignal(sig)` → `useSyncExternalStore(sig.subscribe, sig.get, sig.get)` |
 | [`apps/mvvm-vue`](apps/mvvm-vue) | Vue 3 | `useSignal(sig)` → `shallowRef` seeded via `.peek()`, synced via `observe()` |
+| [`apps/mvvm-solid`](apps/mvvm-solid) | SolidJS | `useSignal(sig)` → Solid `createSignal` seeded via `observe()`; view uses `<Show>`/`<For>` |
 | [`apps/mvvm-angular`](apps/mvvm-angular) | Angular | `fromLoomSignal(sig, destroyRef)` → mirrors into a native Angular `signal()` |
 | [`apps/mvvm-lit`](apps/mvvm-lit) | Lit | manual `@state()` field updated via `observe()` in `connectedCallback` |
 | [`apps/mvvm-marko`](apps/mvvm-marko) | Marko | `subscribeToObservable(sig, updateFn)` wrapping `observe`/`subscribe` |

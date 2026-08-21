@@ -47,6 +47,7 @@ apps/
   ├── mvvm-react/              # React MVVM demo
   ├── mvvm-angular/            # Angular MVVM demo
   ├── mvvm-vue/                # Vue.js MVVM demo
+  ├── mvvm-solid/              # SolidJS MVVM demo
   ├── mvvm-vanilla/            # Vanilla JS + EJS MVVM demo
   ├── mvvm-template-core/      # Template Core (.loom) MVVM demo
   ├── mvvm-lit/                # Lit web components MVVM demo
@@ -222,6 +223,7 @@ turbo run test --filter=mvvm-react
 ## Default Ports
 
 - `mvvm-react`: 5173
+- `mvvm-solid`: 5179
 - `mvvm-template-core`: 5183
 - `task-flow-ui`: 5178
 - `api`: 3000

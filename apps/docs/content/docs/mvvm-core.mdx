@@ -298,7 +298,7 @@ class OrderDetailViewModel extends BaseViewModel<OrderModel> {
 
 ## Framework Integration
 
-Each framework needs a small bridge to read a `ReadonlySignal<T>` reactively. See the dedicated [React](/docs/mvvm-react-use-case), [Vue](/docs/mvvm-vue-use-case), [Angular](/docs/mvvm-angular-use-case), [Lit](/docs/mvvm-lit-use-case), [vanilla JS](/docs/mvvm-vanilla-use-case), [Marko](/docs/mvvm-marko-use-case), and [React Native](/docs/mvvm-react-native-use-case) pages for deep dives; the essentials for each are below.
+Each framework needs a small bridge to read a `ReadonlySignal<T>` reactively. See the dedicated [React](/docs/mvvm-react-use-case), [Vue](/docs/mvvm-vue-use-case), [Angular](/docs/mvvm-angular-use-case), [Solid](/docs/mvvm-solid-use-case), [Lit](/docs/mvvm-lit-use-case), [vanilla JS](/docs/mvvm-vanilla-use-case), [Marko](/docs/mvvm-marko-use-case), and [React Native](/docs/mvvm-react-native-use-case) pages for deep dives; the essentials for each are below.
 
 ### React
 
@@ -402,4 +402,37 @@ onUnmounted(() => {
     <li v-for="user in users" :key="user.id">{{ user.name }}</li>
   </ul>
 </template>
+```
+
+### Solid
+
+`useSignal` mirrors a Web Loom signal into a Solid accessor. The two graphs stay separate — do not call loom `.get()` inside `createMemo`.
+
+```tsx
+import { For, Show, onMount, onCleanup } from 'solid-js';
+import { useSignal } from './hooks/useSignal';
+import { UserListViewModel } from './viewmodels/user-list.viewmodel';
+
+function UserList() {
+  const vm = new UserListViewModel();
+  onCleanup(() => vm.dispose());
+
+  const users = useSignal(vm.data$);
+  const isLoading = useSignal(vm.isLoading$);
+  const error = useSignal(vm.error$);
+
+  onMount(() => {
+    vm.fetchCommand.execute();
+  });
+
+  return (
+    <Show when={!isLoading()} fallback={<div>Loading...</div>}>
+      <Show when={!error()} fallback={<div>Error: {error()?.message}</div>}>
+        <ul>
+          <For each={users() ?? []}>{(user) => <li>{user.name}</li>}</For>
+        </ul>
+      </Show>
+    </Show>
+  );
+}
 ```

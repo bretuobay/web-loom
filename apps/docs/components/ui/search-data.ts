@@ -51,6 +51,13 @@ export const DOCS_SEARCH_ENTRIES: SearchEntry[] = [
     topic: 'MVVM Core',
   },
   {
+    title: 'MVVM in Solid',
+    summary:
+      'How Web Loom ViewModels connect to SolidJS: a useSignal bridge from @web-loom/signals-core into createSignal, plus Show/For/createMemo in the view.',
+    href: '/docs/mvvm-solid-use-case',
+    topic: 'MVVM Core',
+  },
+  {
     title: 'MVVM in Angular',
     summary:
       "How Angular's Zone.js change detection works, why the async pipe is the natural bridge to RxJS observables, and practical patterns for wiring ViewModels into Angular components.",
