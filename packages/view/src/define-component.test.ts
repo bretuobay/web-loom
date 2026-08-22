@@ -48,4 +48,24 @@ describe('defineComponent', () => {
     view.dispose();
     expect(disposed).toBe(2);
   });
+
+  it('resolves child partials from defineComponent.partials without a global registry', () => {
+    const inner = defineComponent<{ label: string }>({
+      name: 'inner',
+      props: ['label'],
+      template: compile('<em>{{ label }}</em>'),
+    });
+    const card = defineComponent<{ title: string }>({
+      name: 'card',
+      props: ['title'],
+      template: compile('<article>{{> inner label=title }}</article>'),
+      partials: { inner },
+    });
+
+    const root = document.createElement('div');
+    const view = compile('{{> card title=name}}', { partials: { card } }).mount(root, { name: 'Ada' });
+    expect(root.querySelector('em')?.textContent).toBe('Ada');
+    view.dispose();
+  });
 });
+

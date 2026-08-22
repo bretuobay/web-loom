@@ -21,6 +21,18 @@ export const greenhouseCard = defineComponent<{ count: number; href: string }>({
 
 The call site lists every value the card can read. The card does not inherit the application context bag.
 
+Pages import children the same way: wrap the compiled `.loom` with `withPartials` instead of a global `registerPartial` bag.
+
+```ts
+import { withPartials } from '@web-loom/view';
+import template from './dashboard.loom';
+import { greenhouseCard } from './greenhouse-card';
+
+export const dashboardTemplate = withPartials(template, {
+  'greenhouse-card': greenhouseCard,
+});
+```
+
 Block children use the engine's slot syntax:
 
 ```html

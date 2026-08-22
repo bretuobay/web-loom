@@ -1,4 +1,4 @@
-import type { Template } from '@web-loom/template-core';
+import type { PartialSource, Template } from '@web-loom/template-core';
 
 export interface ComponentSetupResult {
   dispose?(): void;
@@ -9,6 +9,8 @@ export interface DefineComponentOptions<TProps extends object> {
   name: string;
   props?: readonly (keyof TProps & string)[];
   template: Template;
+  /** Local children this component may `{{> name}}`. Overrides inherited maps. */
+  partials?: Record<string, PartialSource>;
   setup?(props: TProps): ComponentSetupResult | void;
 }
 
@@ -22,6 +24,9 @@ export function defineComponent<TProps extends object>(
 ): Template<TProps> {
   const template = options.template as Template<TProps>;
   template.isolated = true;
+  if (options.partials) {
+    template.partials = { ...template.partials, ...options.partials };
+  }
   template.createContext = (rawProps) => {
     const props = pickProps(rawProps, options.props) as TProps;
     const extras = options.setup?.(props);
