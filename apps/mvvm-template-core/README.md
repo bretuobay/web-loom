@@ -16,8 +16,9 @@ remains the ecommerce/SSR reference; this app is the MVVM demo counterpart to `m
   `{{ }}`, `{{#if}}`/`{{#each}}`, `{{> partial}}`, and `on:`/`bind:`/`use:` directives in-file.
 - The Vite plugin [`templateCoreLoom()`](../../packages/template-core-vite/) loads those files
   (`compile()` in dev, `fromPrecompiled()` in build).
-- The application shell composes header and footer with named partials. The dashboard composes the
-  four summary cards the same way.
+- The application shell composes header and footer with named partials. Dashboard cards are
+  `@web-loom/view` components: the call site passes `count` and `href`, and the card does not
+  read the application context bag.
 - Routing is one declarative table (`src/app/routes.ts`): each row names the path, its `.loom`
   template, and the ViewModels to fetch on entry. `createRouterView()` from
   [`@web-loom/template-core-router`](../../packages/template-core-router/) drives the outlet, and

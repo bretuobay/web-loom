@@ -5,16 +5,16 @@
     <h2>Dashboard</h2>
     <div class="flex-container">
       <div class="flex-item">
-        {{> greenhouse-card}}
+        {{> greenhouse-card count=greenHouses.data$.length href="/greenhouses"}}
       </div>
       <div class="flex-item">
-        {{> sensor-card}}
+        {{> sensor-card count=sensors.data$.length href="/sensors"}}
       </div>
       <div class="flex-item">
-        {{> threshold-alert-card}}
+        {{> threshold-alert-card count=thresholdAlerts.data$.length href="/threshold-alerts"}}
       </div>
       <div class="flex-item">
-        {{> sensor-reading-card}}
+        {{> sensor-reading-card count=sensorReadings.data$.length href="/sensor-readings" renderChart=renderSensorReadingsChart}}
       </div>
     </div>
   {{/if}}

@@ -3,24 +3,24 @@ import type { Template } from '@web-loom/template-core';
 import appShellTemplate from './app-shell.loom';
 import dashboardTemplate from './dashboard.loom';
 import footerTemplate from './footer.loom';
-import greenhouseCardTemplate from './greenhouse-card.loom';
+import { greenhouseCard } from './greenhouse-card';
 import greenhouseListTemplate from './greenhouse-list.loom';
 import headerTemplate from './header.loom';
 import notFoundTemplate from './not-found.loom';
-import sensorCardTemplate from './sensor-card.loom';
+import { sensorCard } from './sensor-card';
 import sensorListTemplate from './sensor-list.loom';
-import sensorReadingCardTemplate from './sensor-reading-card.loom';
+import { sensorReadingCard } from './sensor-reading-card';
 import sensorReadingListTemplate from './sensor-reading-list.loom';
-import thresholdAlertCardTemplate from './threshold-alert-card.loom';
+import { thresholdAlertCard } from './threshold-alert-card';
 import thresholdAlertListTemplate from './threshold-alert-list.loom';
 
 const composedPartials: Record<string, Template> = {
   header: headerTemplate,
   footer: footerTemplate,
-  'greenhouse-card': greenhouseCardTemplate,
-  'sensor-card': sensorCardTemplate,
-  'sensor-reading-card': sensorReadingCardTemplate,
-  'threshold-alert-card': thresholdAlertCardTemplate,
+  'greenhouse-card': greenhouseCard,
+  'sensor-card': sensorCard,
+  'sensor-reading-card': sensorReadingCard,
+  'threshold-alert-card': thresholdAlertCard,
 };
 
 export function registerAppPartials(): () => void {
@@ -40,14 +40,14 @@ export {
   appShellTemplate,
   dashboardTemplate,
   footerTemplate,
-  greenhouseCardTemplate,
+  greenhouseCard,
   greenhouseListTemplate,
   headerTemplate,
   notFoundTemplate,
-  sensorCardTemplate,
+  sensorCard,
   sensorListTemplate,
-  sensorReadingCardTemplate,
+  sensorReadingCard,
   sensorReadingListTemplate,
-  thresholdAlertCardTemplate,
+  thresholdAlertCard,
   thresholdAlertListTemplate,
 };
