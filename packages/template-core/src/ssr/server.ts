@@ -2,7 +2,9 @@ import { parseFragment, type DefaultTreeAdapterTypes } from 'parse5';
 import { preprocess } from '../compiler/preprocess.js';
 import { tokenizeText } from '../compiler/text.js';
 import { parseExpression } from '../compiler/expression.js';
+import { parsePartialInvocation } from '../compiler/partial-invocation.js';
 import { evaluate, truthy } from '../runtime/evaluate.js';
+import { resolvePartialContext } from '../runtime/partial-context.js';
 import { reportDiagnostic } from '../runtime/diagnostics.js';
 import { isDangerousUrlScheme, isUrlBearingAttribute } from '../runtime/url-safety.js';
 import type { RenderContext, Scope, SerializableNode, SerializableRootTemplate, TemplateOptions } from '../types.js';
@@ -49,6 +51,10 @@ function marker(node: Node): { kind: string; raw: string } | null {
   if (body.startsWith('#each ')) return { kind: 'each', raw: decodeURIComponent(body.slice(6)) };
   if (body.startsWith('#switch ')) return { kind: 'switch', raw: decodeURIComponent(body.slice(8)) };
   if (body.startsWith('partial ')) return { kind: 'partial', raw: decodeURIComponent(body.slice(8)) };
+  if (body.startsWith('open-partial ')) return { kind: 'open-partial', raw: decodeURIComponent(body.slice(13)) };
+  if (body.startsWith('close-partial ')) return { kind: 'close-partial', raw: decodeURIComponent(body.slice(14)) };
+  if (body.startsWith('open-slot ')) return { kind: 'open-slot', raw: decodeURIComponent(body.slice(10)) };
+  if (body === '/slot') return { kind: '/slot', raw: '' };
   if (body === 'else') return { kind: 'else', raw: '' };
   if (body.startsWith('else-if ')) return { kind: 'else-if', raw: decodeURIComponent(body.slice(8)) };
   if (body === '/if') return { kind: '/if', raw: '' };
@@ -283,32 +289,48 @@ function renderNodes(nodes: Node[], scope: Scope, ctx: RenderContext): string {
       i = block.next - 1;
       continue;
     }
+    if (current?.kind === 'open-partial') {
+      const block = renderBlockPartial(nodes, i, scope, ctx, current.raw);
+      html += block.html;
+      i = block.next - 1;
+      continue;
+    }
     if (current?.kind === 'partial') {
-      const bits = current.raw.trim().split(/\s+/);
-      const source = ctx.partials?.[bits[0]!] ?? ctx.registry?.get(bits[0]!);
+      const invocation = parsePartialInvocation(current.raw);
+      if (invocation.name === 'yield') {
+        html += '<!--loom:anchor-->' + renderYield(invocation, scope, ctx);
+        continue;
+      }
+      const source = ctx.partials?.[invocation.name] ?? ctx.registry?.get(invocation.name);
       if (!source) {
-        const message = `Missing partial "${bits[0]}".`;
+        const message = `Missing partial "${invocation.name}".`;
         reportDiagnostic(ctx, {
           code: 'MISSING_PARTIAL',
           severity: ctx.strictPartials ? 'error' : 'warning',
           message,
           template: ctx.templateName,
           sourcePath: ctx.sourcePath,
-          details: { partial: bits[0] },
+          details: { partial: invocation.name },
         });
         if (ctx.strictPartials) throw new Error(message);
         html += '<!--loom:anchor-->';
-      } else if (ctx.partialStack?.includes(bits[0]!)) {
-        throw new Error(`Recursive partial expansion: ${[...(ctx.partialStack ?? []), bits[0]!].join(' → ')}`);
+      } else if (ctx.partialStack?.includes(invocation.name)) {
+        throw new Error(`Recursive partial expansion: ${[...(ctx.partialStack ?? []), invocation.name].join(' → ')}`);
       } else {
-        const partialContext = bits[1] ? evaluate(parseExpression(bits[1]), scope, ctx.helpers) : scope.self;
+        const resolved = resolvePartialContext(
+          { context: invocation.context, args: invocation.args },
+          scope,
+          ctx.helpers,
+          typeof source === 'string' ? undefined : source,
+        );
         const stack = (ctx.partialStack ??= []);
-        stack.push(bits[0]!);
+        stack.push(invocation.name);
         html +=
           '<!--loom:anchor-->' +
           (typeof source === 'string'
-            ? renderSource(source, partialContext, ctx, scope)
-            : source.renderToString(partialContext as object));
+            ? renderSource(source, resolved.self, ctx, resolved.isolated ? null : scope, resolved.isolated)
+            : source.renderToString(resolved.self as object));
+        resolved.dispose?.();
         stack.pop();
       }
       continue;
@@ -337,9 +359,108 @@ function toServerNode(node: SerializableNode): Node {
   } as unknown as Node;
 }
 
-function renderSource(source: string, viewModel: unknown, ctx: RenderContext, parent: Scope | null = null): string {
+function renderYield(
+  invocation: ReturnType<typeof parsePartialInvocation>,
+  scope: Scope,
+  ctx: RenderContext,
+): string {
+  const frame = ctx.serverSlotStack?.[ctx.serverSlotStack.length - 1];
+  if (!frame) return '';
+  const rawName = invocation.args?.name ? evaluate(invocation.args.name, scope, ctx.helpers) : 'default';
+  const slotName = rawName == null || rawName === '' ? 'default' : String(rawName);
+  const nodes = frame.slots[slotName] as Node[] | undefined;
+  return nodes ? renderNodes(nodes, frame.callerScope, ctx) : '';
+}
+
+function renderBlockPartial(
+  nodes: Node[],
+  start: number,
+  scope: Scope,
+  ctx: RenderContext,
+  raw: string,
+): { html: string; next: number } {
+  const invocation = parsePartialInvocation(raw);
+  let depth = 1;
+  let end = start + 1;
+  for (; end < nodes.length; end++) {
+    const current = marker(nodes[end]!);
+    if (current?.kind === 'open-partial') depth++;
+    if (current?.kind === 'close-partial' && current.raw === invocation.name && --depth === 0) break;
+  }
+  if (end >= nodes.length) throw new Error(`Unclosed {{#> ${invocation.name}}} block`);
+
+  const slots = splitServerSlots(nodes.slice(start + 1, end));
+  const source = ctx.partials?.[invocation.name] ?? ctx.registry?.get(invocation.name);
+  if (!source) {
+    const message = `Missing partial "${invocation.name}".`;
+    reportDiagnostic(ctx, {
+      code: 'MISSING_PARTIAL',
+      severity: ctx.strictPartials ? 'error' : 'warning',
+      message,
+      template: ctx.templateName,
+      sourcePath: ctx.sourcePath,
+      details: { partial: invocation.name },
+    });
+    if (ctx.strictPartials) throw new Error(message);
+    return { html: '<!--loom:anchor-->', next: end + 1 };
+  }
+
+  const resolved = resolvePartialContext(
+    { context: invocation.context, args: invocation.args },
+    scope,
+    ctx.helpers,
+    typeof source === 'string' ? undefined : source,
+  );
+  (ctx.serverSlotStack ??= []).push({ slots, callerScope: scope });
+  const html =
+    '<!--loom:anchor-->' +
+    (typeof source === 'string'
+      ? renderSource(source, resolved.self, ctx, resolved.isolated ? null : scope, resolved.isolated)
+      : source.renderToString(resolved.self as object));
+  ctx.serverSlotStack.pop();
+  resolved.dispose?.();
+  return { html, next: end + 1 };
+}
+
+function splitServerSlots(nodes: Node[]): Record<string, Node[]> {
+  const slots: Record<string, Node[]> = {};
+  const defaultNodes: Node[] = [];
+  let i = 0;
+  while (i < nodes.length) {
+    const current = marker(nodes[i]!);
+    if (current?.kind === 'open-slot') {
+      const slotName = current.raw.trim() || 'default';
+      let depth = 1;
+      let j = i + 1;
+      for (; j < nodes.length; j++) {
+        const inner = marker(nodes[j]!);
+        if (inner?.kind === 'open-slot') depth++;
+        if (inner?.kind === '/slot' && --depth === 0) break;
+      }
+      slots[slotName] = nodes.slice(i + 1, j);
+      i = j + 1;
+      continue;
+    }
+    defaultNodes.push(nodes[i]!);
+    i++;
+  }
+  if (defaultNodes.some((node) => node.nodeName !== '#text' || Boolean((node as { value?: string }).value?.trim()))) {
+    slots.default ??= defaultNodes;
+  }
+  return slots;
+}
+
+function renderSource(
+  source: string,
+  viewModel: unknown,
+  ctx: RenderContext,
+  parent: Scope | null = null,
+  isolated = false,
+): string {
   const fragment = parseFragment(preprocess(source));
-  const scope = scopeFor(parent ?? { parent: null, self: viewModel, locals: {} }, viewModel);
+  const scope: Scope = isolated
+    ? { parent: null, self: viewModel, locals: {} }
+    : scopeFor(parent ?? { parent: null, self: viewModel, locals: {} }, viewModel);
   return renderNodes(fragment.childNodes, scope, ctx);
 }
 
@@ -362,6 +483,7 @@ function renderNodesFromContext(nodes: Node[], viewModel: unknown, options: Temp
     },
     sourcePath: options.sourcePath,
     partialStack: [],
+    serverSlotStack: [],
   };
   return renderNodes(nodes, scopeFor({ parent: null, self: viewModel, locals: {} }, viewModel), ctx);
 }

@@ -198,6 +198,12 @@ function collectContextPathDiagnostics(
           break;
         case 'partial':
           if (block.context) checkExpr(block.context, block.path);
+          if (block.args) {
+            for (const expr of Object.values(block.args)) checkExpr(expr, block.path);
+          }
+          if (block.slots) {
+            for (const slot of Object.values(block.slots)) walk(slot);
+          }
           break;
       }
     }
@@ -213,7 +219,12 @@ function collectBlockDiagnostics(
   diagnostics: TemplateDiagnostic[],
 ): void {
   for (const block of blocks) {
-    if (block.kind === 'partial' && options.partials !== undefined && !(block.name in options.partials)) {
+    if (
+      block.kind === 'partial' &&
+      block.name !== 'yield' &&
+      options.partials !== undefined &&
+      !(block.name in options.partials)
+    ) {
       diagnostics.push({
         code: 'MISSING_PARTIAL',
         severity: options.strictPartials ? 'error' : 'warning',
@@ -242,6 +253,12 @@ function collectBlockDiagnostics(
     if (block.kind === 'switch') {
       for (const branch of block.branches) {
         collectRootDiagnostics(branch.template, sourceMap, options, diagnostics);
+      }
+    }
+
+    if (block.kind === 'partial' && block.slots) {
+      for (const slot of Object.values(block.slots)) {
+        collectRootDiagnostics(slot, sourceMap, options, diagnostics);
       }
     }
   }

@@ -19,8 +19,11 @@
 const COMMENT_RE = /\{\{!([^}]*)\}\}/g;
 
 const BLOCK_TAG_RE =
-  /\{\{\s*(#if|#each|#switch|#case|#default|else if|else|\/if|\/each|\/switch|\/case|\/default)\s*([^}]*)\}\}/g;
+  /\{\{\s*(#if|#each|#switch|#case|#default|#slot|else if|else|\/if|\/each|\/switch|\/case|\/default|\/slot)\s*([^}]*)\}\}/g;
+const BLOCK_PARTIAL_OPEN_RE = /\{\{\s*#>\s*([^}]*)\}\}/g;
+const BLOCK_PARTIAL_CLOSE_RE = /\{\{\s*\/([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}/g;
 const PARTIAL_RE = /\{\{\s*>\s*([^}]*)\}\}/g;
+const RESERVED_CLOSES = new Set(['if', 'each', 'switch', 'case', 'default', 'slot']);
 
 function encode(raw: string): string {
   return encodeURIComponent(raw.trim());
@@ -47,6 +50,8 @@ export function preprocess(source: string): string {
         return `<!--loom:#case ${encode(rest)}-->`;
       case '#default':
         return '<!--loom:#default-->';
+      case '#slot':
+        return `<!--loom:open-slot ${encode(rest)}-->`;
       case '/each':
         return `<!--loom:/each-->`;
       case '/switch':
@@ -55,10 +60,16 @@ export function preprocess(source: string): string {
         return '<!--loom:/case-->';
       case '/default':
         return '<!--loom:/default-->';
+      case '/slot':
+        return '<!--loom:/slot-->';
       default:
         return _match;
     }
   });
+  out = out.replace(BLOCK_PARTIAL_OPEN_RE, (_match, raw: string) => `<!--loom:open-partial ${encode(raw)}-->`);
+  out = out.replace(BLOCK_PARTIAL_CLOSE_RE, (match: string, name: string) =>
+    RESERVED_CLOSES.has(name) ? match : `<!--loom:close-partial ${encode(name)}-->`,
+  );
   out = out.replace(PARTIAL_RE, (_match, raw: string) => `<!--loom:partial ${encode(raw)}-->`);
 
   return trimStandaloneLines(out);

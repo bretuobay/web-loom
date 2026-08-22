@@ -9,6 +9,13 @@ describe('preprocess: block tag rewriting', () => {
     );
   });
 
+  it('rewrites block partials and slots', () => {
+    const out = preprocess('{{#> card title=name}}Hi{{#slot footer}}Foot{{/slot}}{{/card}}');
+    expect(out).toBe(
+      `<!--loom:open-partial ${encodeURIComponent('card title=name')}-->Hi<!--loom:open-slot ${encodeURIComponent('footer')}-->Foot<!--loom:/slot--><!--loom:close-partial ${encodeURIComponent('card')}-->`,
+    );
+  });
+
   it('rewrites {{#each}} / {{/each}}', () => {
     const out = preprocess('{{#each todos$ key=id}}<li></li>{{/each}}');
     expect(out).toBe(`<!--loom:#each ${encodeURIComponent('todos$ key=id')}--><li></li><!--loom:/each-->`);

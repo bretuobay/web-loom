@@ -3,6 +3,7 @@ import { preprocess } from './preprocess.js';
 import { parseExpression } from './expression.js';
 import { tokenizeText } from './text.js';
 import { compileAttributes } from './attributes.js';
+import { parsePartialInvocation } from './partial-invocation.js';
 import type { BindingRecord, BlockRecord, ExpressionNode, IfBranch, NodePath, RootTemplate } from '../types.js';
 
 const SVG_TAGS = new Set([
@@ -35,6 +36,8 @@ type MarkerType =
   | 'open-switch'
   | 'open-case'
   | 'open-default'
+  | 'open-partial'
+  | 'open-slot'
   | 'partial'
   | 'else'
   | 'else-if'
@@ -42,7 +45,9 @@ type MarkerType =
   | 'close-each'
   | 'close-switch'
   | 'close-case'
-  | 'close-default';
+  | 'close-default'
+  | 'close-partial'
+  | 'close-slot';
 
 interface Marker {
   type: MarkerType;
@@ -60,6 +65,10 @@ function parseMarker(node: Node): Marker | null {
   if (body.startsWith('#case ')) return { type: 'open-case', raw: decodeURIComponent(body.slice(6)) };
   if (body === '#default') return { type: 'open-default', raw: '' };
   if (body.startsWith('partial ')) return { type: 'partial', raw: decodeURIComponent(body.slice(8)) };
+  if (body.startsWith('open-partial ')) return { type: 'open-partial', raw: decodeURIComponent(body.slice(13)) };
+  if (body.startsWith('close-partial ')) return { type: 'close-partial', raw: decodeURIComponent(body.slice(14)) };
+  if (body.startsWith('open-slot ')) return { type: 'open-slot', raw: decodeURIComponent(body.slice(10)) };
+  if (body === '/slot') return { type: 'close-slot', raw: '' };
   if (body === 'else') return { type: 'else', raw: '' };
   if (body.startsWith('else-if ')) return { type: 'else-if', raw: decodeURIComponent(body.slice(8)) };
   if (body === '/if') return { type: 'close-if', raw: '' };
@@ -131,12 +140,23 @@ function compileInto(
       if (marker.type === 'partial') {
         const currentPath = [...path, target.childNodes.length];
         target.appendChild(document.createComment('loom:anchor'));
-        const bits = marker.raw.trim().split(/\s+/);
-        const name = bits.shift() ?? '';
-        if (!name || bits.length > 1)
-          throw new TemplateSyntaxError(`Malformed partial "${marker.raw}"; expected {{> name [context]}}.`);
-        blocks.push({ kind: 'partial', path: currentPath, name, context: bits[0] ? parseExpression(bits[0]) : null });
+        const invocation = parsePartialInvocation(marker.raw);
+        blocks.push({
+          kind: 'partial',
+          path: currentPath,
+          name: invocation.name,
+          context: invocation.context,
+          args: invocation.args,
+        });
         i++;
+        continue;
+      }
+      if (marker.type === 'open-partial') {
+        const currentPath = [...path, target.childNodes.length];
+        const { block, nextIndex } = extractBlockPartial(sourceChildren, i, currentPath);
+        target.appendChild(document.createComment('loom:anchor'));
+        blocks.push(block);
+        i = nextIndex;
         continue;
       }
       if (marker.type === 'open-if' || marker.type === 'open-each' || marker.type === 'open-switch') {
@@ -328,6 +348,86 @@ function extractBlock(children: ChildNode[], start: number, path: NodePath): { b
     block: { kind: 'each', path, source, key, template: compileFragment(itemChildren), empty },
     nextIndex: end + 1,
   };
+}
+
+function extractBlockPartial(
+  children: ChildNode[],
+  start: number,
+  path: NodePath,
+): { block: BlockRecord; nextIndex: number } {
+  const openMarker = parseMarker(children[start]!)!;
+  const invocation = parsePartialInvocation(openMarker.raw);
+  const end = scanBlockPartial(children, start, invocation.name);
+  const slots = splitSlotTemplates(children.slice(start + 1, end));
+  return {
+    block: {
+      kind: 'partial',
+      path,
+      name: invocation.name,
+      context: invocation.context,
+      args: invocation.args,
+      slots,
+    },
+    nextIndex: end + 1,
+  };
+}
+
+function scanBlockPartial(children: ChildNode[], start: number, name: string): number {
+  const stack = [name];
+  for (let i = start + 1; i < children.length; i++) {
+    const marker = parseMarker(children[i]!);
+    if (!marker) continue;
+    if (marker.type === 'open-partial') {
+      stack.push(parsePartialInvocation(marker.raw).name);
+    } else if (marker.type === 'close-partial') {
+      const top = stack[stack.length - 1];
+      if (top !== marker.raw) {
+        throw new TemplateSyntaxError(`Mismatched closing tag: expected {{/${top}}} but found {{/${marker.raw}}}`);
+      }
+      stack.pop();
+      if (stack.length === 0) return i;
+    }
+  }
+  throw new TemplateSyntaxError(`Unclosed {{#> ${name}}} block`);
+}
+
+function splitSlotTemplates(children: ChildNode[]): Record<string, RootTemplate> {
+  const slots: Record<string, RootTemplate> = {};
+  const defaultNodes: ChildNode[] = [];
+  let i = 0;
+  while (i < children.length) {
+    const marker = parseMarker(children[i]!);
+    if (marker?.type === 'open-slot') {
+      const slotName = marker.raw.trim() || 'default';
+      if (slotName in slots) {
+        throw new TemplateSyntaxError(`Duplicate slot "${slotName}" in block partial.`);
+      }
+      let depth = 1;
+      let j = i + 1;
+      for (; j < children.length; j++) {
+        const inner = parseMarker(children[j]!);
+        if (inner?.type === 'open-slot') depth++;
+        if (inner?.type === 'close-slot' && --depth === 0) break;
+      }
+      if (j >= children.length) throw new TemplateSyntaxError(`Unclosed {{#slot ${slotName}}} block.`);
+      slots[slotName] = compileFragment(children.slice(i + 1, j));
+      i = j + 1;
+      continue;
+    }
+    defaultNodes.push(children[i]!);
+    i++;
+  }
+  if (defaultNodes.some((node) => !isIgnorableSlotNode(node))) {
+    if ('default' in slots) {
+      throw new TemplateSyntaxError('Block partial cannot have both implicit default content and {{#slot default}}.');
+    }
+    slots.default = compileFragment(defaultNodes);
+  }
+  return slots;
+}
+
+function isIgnorableSlotNode(node: ChildNode): boolean {
+  return node.nodeType === Node.TEXT_NODE && !((node.textContent ?? '').trim());
 }
 
 function parseEachHeader(raw: string): { source: ExpressionNode; key: ExpressionNode } {

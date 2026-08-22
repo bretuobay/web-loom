@@ -29,10 +29,16 @@ import type {
 const globalRegistry = createTemplateRegistry();
 
 class TemplateImpl<TVm extends object> implements Template<TVm> {
+  isolated?: boolean;
+  createContext?: Template['createContext'];
+
   constructor(
     readonly root: RootTemplate,
     private readonly options: TemplateOptions,
-  ) {}
+  ) {
+    this.isolated = options.isolated;
+    this.createContext = options.createContext;
+  }
 
   private makeContext(): RenderContext {
     return {

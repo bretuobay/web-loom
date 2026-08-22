@@ -33,6 +33,32 @@ describe('server rendering', () => {
     expect(template.renderToString({ title: '<safe>' })).not.toContain('on:click');
   });
 
+  it('renders block partial slots against the caller scope', () => {
+    const template = compile(
+      '{{#> card title=name}}Hello {{ name }}{{#slot footer}}{{ label }}{{/slot}}{{/card}}',
+      {
+        partials: {
+          card: '<article><h3>{{ title }}</h3><div>{{> yield}}</div><footer>{{> yield name="footer"}}</footer></article>',
+        },
+      },
+    );
+    const html = template.renderToString({ name: 'Ada', label: 'Go', secret: 'leaked' });
+    expect(html).toContain('<h3>Ada</h3>');
+    expect(html).toContain('Hello Ada');
+    expect(html).toContain('Go');
+    expect(html).not.toContain('leaked');
+  });
+
+  it('renders hash-arg partials without inheriting caller keys', () => {
+    const template = compile('{{> card count=n href="/list"}}', {
+      partials: { card: '<a href="{{ href }}">{{ count }}{{ secret }}</a>' },
+    });
+    const html = template.renderToString({ n: 2, href: '/wrong', secret: 'leaked' });
+    expect(html).toContain('href="/list"');
+    expect(html).toContain('>2</a>');
+    expect(html).not.toContain('leaked');
+  });
+
   it('supports diagnostics and strict missing partials', () => {
     const warn = vi.fn();
     expect(compile('{{> missing}}', { diagnostics: { warn } }).renderToString({})).toContain('loom:anchor');
@@ -79,6 +105,30 @@ describe('server rendering', () => {
     const container = document.createElement('div');
     const view = fromPrecompiledBrowser(module).mount(container, { message: 'hello' });
     expect(container.innerHTML).toBe('<p>hello</p>');
+    view.dispose();
+  });
+
+  it('round-trips hash-arg and slot plans through precompile', () => {
+    const source = '{{#> card title=name}}Hello{{#slot footer}}{{ label }}{{/slot}}{{/card}}';
+    const module = precompile(source, { name: 'SlotPlan' });
+    const partial = module.plan.root?.blocks.find((block) => block.kind === 'partial');
+    expect(partial).toMatchObject({
+      kind: 'partial',
+      name: 'card',
+      args: { title: { kind: 'path', segments: ['name'] } },
+    });
+    expect(partial && 'slots' in partial ? partial.slots?.default : undefined).toBeDefined();
+    expect(partial && 'slots' in partial ? partial.slots?.footer : undefined).toBeDefined();
+
+    const container = document.createElement('div');
+    const view = fromPrecompiledBrowser(module, {
+      partials: {
+        card: '<article><h3>{{ title }}</h3><div>{{> yield}}</div><footer>{{> yield name="footer"}}</footer></article>',
+      },
+    }).mount(container, { name: 'Ada', label: 'Go' });
+    expect(container.querySelector('h3')?.textContent).toBe('Ada');
+    expect(container.querySelector('div')?.textContent).toBe('Hello');
+    expect(container.querySelector('footer')?.textContent).toBe('Go');
     view.dispose();
   });
 

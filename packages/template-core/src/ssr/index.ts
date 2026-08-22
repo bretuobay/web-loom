@@ -9,11 +9,17 @@ import type {
 } from '../types.js';
 
 class ServerTemplate<TVm extends object> implements Template<TVm> {
+  isolated?: boolean;
+  createContext?: Template['createContext'];
+
   constructor(
     private readonly source: string,
     private readonly options: TemplateOptions,
     private readonly plan?: SerializableRootTemplate,
-  ) {}
+  ) {
+    this.isolated = options.isolated;
+    this.createContext = options.createContext;
+  }
 
   mount(): Disposable {
     throw new Error('Server templates cannot mount into a browser container; use the browser compile() entrypoint.');

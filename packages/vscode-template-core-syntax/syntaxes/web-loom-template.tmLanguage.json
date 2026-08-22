@@ -35,7 +35,7 @@
       "patterns": [{ "include": "#expression" }]
     },
     "block-and-partial": {
-      "match": "(\\{\\{)\\s*(#if|#each|#switch|#case|#default|else\\s+if|else|/if|/each|/switch|/case|/default|>)\\s*([^}]*?)\\s*(\\}\\})",
+      "match": "(\\{\\{)\\s*(#>|#slot|#if|#each|#switch|#case|#default|else\\s+if|else|/slot|/if|/each|/switch|/case|/default|>|/[A-Za-z_][A-Za-z0-9_-]*)\\s*([^}]*?)\\s*(\\}\\})",
       "captures": {
         "1": { "name": "punctuation.definition.template-expression.begin.web-loom" },
         "2": { "name": "keyword.control.web-loom" },
