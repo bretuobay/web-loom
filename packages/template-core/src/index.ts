@@ -22,6 +22,7 @@ export type {
 export type {
   Disposable,
   ElementAction,
+  PartialSource,
   Template,
   TemplateDiagnostics,
   TemplateDiagnostic,

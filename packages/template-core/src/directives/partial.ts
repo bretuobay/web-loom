@@ -88,9 +88,13 @@ export function bindPartial(
     }
     ctx.partialDepth = (ctx.partialDepth ?? 0) + 1;
     partialStack.push(block.name);
+    const childCtx: RenderContext =
+      typeof source === 'string' || !template.partials
+        ? ctx
+        : { ...ctx, partials: { ...ctx.partials, ...template.partials } };
     try {
       const root = getTemplateRoot(template);
-      nodes = mountRoot(root, anchor, partialScope, ctx, child, hydrateNext);
+      nodes = mountRoot(root, anchor, partialScope, childCtx, child, hydrateNext);
       hydrateNext = false;
     } finally {
       partialStack.pop();

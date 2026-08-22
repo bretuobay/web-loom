@@ -11,6 +11,7 @@ import type {
 class ServerTemplate<TVm extends object> implements Template<TVm> {
   isolated?: boolean;
   createContext?: Template['createContext'];
+  partials?: Template['partials'];
 
   constructor(
     private readonly source: string,
@@ -19,6 +20,7 @@ class ServerTemplate<TVm extends object> implements Template<TVm> {
   ) {
     this.isolated = options.isolated;
     this.createContext = options.createContext;
+    this.partials = options.partials;
   }
 
   mount(): Disposable {
@@ -34,9 +36,10 @@ class ServerTemplate<TVm extends object> implements Template<TVm> {
   }
 
   renderToString(viewModel: TVm): string {
+    const options = { ...this.options, partials: this.partials ?? this.options.partials };
     return this.plan?.compiled === false
-      ? renderPlanToString(this.plan, viewModel, this.options)
-      : renderSourceToString(this.source, viewModel, this.options);
+      ? renderPlanToString(this.plan, viewModel, options)
+      : renderSourceToString(this.source, viewModel, options);
   }
 }
 

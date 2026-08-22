@@ -102,4 +102,14 @@ describe('partial hash args and isolation', () => {
     view.dispose();
     expect(disposed).toBe(2);
   });
+
+  it('resolves children from template.partials without the global registry', () => {
+    const page = compile('{{> card}}');
+    page.partials = { card: '<span>{{ title }}</span>' };
+    const root = document.createElement('div');
+    const view = page.mount(root, { title: 'Loom' });
+    expect(root.textContent).toBe('Loom');
+    view.dispose();
+  });
 });
+

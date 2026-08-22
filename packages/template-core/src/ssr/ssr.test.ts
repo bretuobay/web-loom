@@ -49,6 +49,21 @@ describe('server rendering', () => {
     expect(html).not.toContain('leaked');
   });
 
+  it('resolves children from template.partials attached after compile', () => {
+    const template = compile('{{> card}}');
+    template.partials = { card: '<strong>{{ title }}</strong>' };
+    expect(template.renderToString({ title: 'Loom' })).toContain('<strong>Loom</strong>');
+  });
+
+  it('renders a child template.partials map without the parent map', () => {
+    const inner = compile('<em>{{ label }}</em>');
+    const card = compile('<article>{{> inner label=title }}</article>');
+    card.partials = { inner };
+    const page = compile('{{> card title=name}}');
+    page.partials = { card };
+    expect(page.renderToString({ name: 'Ada' })).toContain('<em>Ada</em>');
+  });
+
   it('renders hash-arg partials without inheriting caller keys', () => {
     const template = compile('{{> card count=n href="/list"}}', {
       partials: { card: '<a href="{{ href }}">{{ count }}{{ secret }}</a>' },

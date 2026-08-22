@@ -203,6 +203,12 @@ export interface Template<TVm extends object = object> {
   isolated?: boolean;
   /** See {@link TemplateOptions.createContext}. */
   createContext?(props: object): { context: object; dispose?(): void };
+  /**
+   * Local `{{> name}}` map for this template. Set at `compile()` or attached
+   * later (e.g. `withPartials`) so a page can import children without the
+   * global registry.
+   */
+  partials?: Record<string, PartialSource>;
 }
 
 export interface TemplateOutlet extends Disposable {

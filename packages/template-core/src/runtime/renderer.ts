@@ -31,6 +31,7 @@ const globalRegistry = createTemplateRegistry();
 class TemplateImpl<TVm extends object> implements Template<TVm> {
   isolated?: boolean;
   createContext?: Template['createContext'];
+  partials?: Template['partials'];
 
   constructor(
     readonly root: RootTemplate,
@@ -38,13 +39,14 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
   ) {
     this.isolated = options.isolated;
     this.createContext = options.createContext;
+    this.partials = options.partials;
   }
 
   private makeContext(): RenderContext {
     return {
       helpers: this.options.helpers ?? {},
       escape: this.options.escape ?? true,
-      partials: this.options.partials,
+      partials: this.partials,
       registry: this.options.registry ?? globalRegistry,
       templateName: this.options.name,
       strictPartials: this.options.strictPartials ?? false,

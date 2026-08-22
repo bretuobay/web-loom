@@ -549,6 +549,19 @@ landing and Phase 4 P2's generic Vite precompile plugin, and only pursued furthe
 syntax-highlighting step demonstrates real developer demand. See
 `.kiro/specs/template-core-phase5/`.
 
+**Phase 6 — Component composition (engine primitives):** named hash arguments
+(`{{> card count=n}}`), isolated scope, block partials (`{{#> card}}…{{/card}}`), and slots
+(`{{#slot}}` / `{{> yield}}`). template-core remains the engine. The component authoring API
+(`defineComponent`, setup/dispose) lives in `@web-loom/view`, not here. A visual widget kit is
+out of scope.
+
+**Phase 7 — Page and chrome components:** demo shells and list rows become isolated
+`defineComponent`s so call sites list every binding. Engine syntax does not change.
+
+**Phase 8 — Local composition:** `Template.partials` (set at `compile()` or attached later) is the
+import map for `{{> name}}`. Apps compose with `withPartials` / `defineComponent({ partials })`
+instead of the browser-only global registry.
+
 ## 12. Success Criteria
 
 - A ViewModel already used by `mvvm-react` (or another existing adapter) mounts via `template-core`

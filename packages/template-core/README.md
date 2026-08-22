@@ -92,8 +92,9 @@ how that works.
 
 Phase 2 also supports `{{#switch expr}}` with `{{#case value}}`/`{{#default}}`,
 `bind:value`/`bind:checked`, chainable event modifiers, `use:action="expr"`, and
-`{{> name context}}` partials. Use `registerPartial`/`unregisterPartial` for the global registry
-or `compile(..., { partials })` for local overrides.
+`{{> name context}}` partials. Prefer `compile(..., { partials })` or `template.partials` as the
+local import map. `registerPartial`/`unregisterPartial` remain for the optional browser-only
+global registry.
 
 The integration APIs provide scoped composition for larger applications:
 
@@ -124,9 +125,12 @@ actions, use explicit setter bindings:
 
 ## Lifecycle hooks: `use:` as mount/unmount
 
-There's no separate "component" concept with its own `onMount`/`onUnmount` — an element's `use:`
-action factory _is_ that hook. It runs once when the element mounts, and any `dispose()` the factory
-returns runs when the element is torn down:
+Reusable components with isolated props live in `@web-loom/view` (`defineComponent`). This
+package stays the engine: `{{> card count=n}}`, block partials, and `{{> yield}}` are the
+composition primitives.
+
+An element's `use:` action factory is still the element-level mount/unmount hook. It runs once
+when the element mounts, and any `dispose()` the factory returns runs when the element is torn down:
 
 ```html
 <div use:loadData="loadData">...</div>
