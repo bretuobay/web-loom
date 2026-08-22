@@ -16,7 +16,8 @@ The app is a practical Phase 2 and Phase 3 example of the template engine:
 
 - The application shell composes header, cart, command palette, confirmation, and toast views with
   named local partials.
-- The storefront renders each product with a local `product-card` partial and keyed `each` block.
+- The storefront renders each product with an isolated `product-card` component
+  (`{{> product-card product=this onSelect=../selectProduct …}}`) and a keyed `each` block.
 - The theme control uses `switch`/`case`/`default` rendering.
 - Product search uses `bind:value` directly against a writable signal.
 - Navigation and nested cart actions use event modifiers such as `.prevent` and `.stop`.
