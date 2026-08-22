@@ -16,9 +16,9 @@ remains the ecommerce/SSR reference; this app is the MVVM demo counterpart to `m
   `{{ }}`, `{{#if}}`/`{{#each}}`, `{{> partial}}`, and `on:`/`bind:`/`use:` directives in-file.
 - The Vite plugin [`templateCoreLoom()`](../../packages/template-core-vite/) loads those files
   (`compile()` in dev, `fromPrecompiled()` in build).
-- The application shell composes header and footer with named partials. Dashboard cards are
-  `@web-loom/view` components: the call site passes `count` and `href`, and the card does not
-  read the application context bag.
+- The application shell is a slotted frame. Header, footer, dashboard cards, and greenhouse
+  list rows are `@web-loom/view` components: the call site passes every value they read.
+  Pages import those children with `withPartials` — there is no global `registerPartial` bag.
 - Routing is one declarative table (`src/app/routes.ts`): each row names the path, its `.loom`
   template, and the ViewModels to fetch on entry. `createRouterView()` from
   [`@web-loom/template-core-router`](../../packages/template-core-router/) drives the outlet, and
@@ -38,7 +38,7 @@ remains the ecommerce/SSR reference; this app is the MVVM demo counterpart to `m
   immediately instead of rendering empty output.
 - The application follows a familiar Vite lifecycle: `src/main.ts` creates the app, mounts it into
   `#app`, and unmounts it during HMR. `src/app/index.ts` is the composition root that owns the router,
-  template context, shell, route outlet, partial registration, and teardown.
+  template context, shell, route outlet, and teardown.
 
 ## Application composition patterns
 
@@ -70,25 +70,24 @@ Application services, routes, templates, and ViewModels should not be assembled 
 `src/app/index.ts` is the equivalent of the root application component and framework setup. Its
 `createApp()` factory owns every resource needed for one mounted application:
 
-1. Register the partials used by the template tree.
-2. Create the router.
-3. Compose the template context.
-4. Mount the application shell.
-5. Find the shell's route outlet and bind it with `createRouterView()`.
+1. Create the router.
+2. Compose the template context.
+3. Mount the application shell (its `partials` map is already on the template).
+4. Find the shell's route outlet and bind it with `createRouterView()`.
 
 If mounting fails partway through, the factory rolls back the resources already created. A mounted
 instance cannot be mounted a second time, but it can be mounted again after `unmount()` completes.
 
 ### Treat the shell like a root layout
 
-`templates/app-shell.loom` owns persistent page chrome and declares the route outlet:
+`templates/app-shell.ts` owns persistent page chrome. It imports the frame, header, and footer
+locally and passes each binding at the call site:
 
 ```html
-<div class="app-shell" use:links="links">
-  {{> header}}
-  <main data-template-slot="route"></main>
-  {{> footer}}
-</div>
+{{#> app-frame links=links}}
+  {{#slot header}}{{> header items=navigationItems$}}{{/slot}}
+  {{#slot footer}}{{> footer year=currentYear}}{{/slot}}
+{{/app-frame}}
 ```
 
 The shell is mounted once. `createRouterView()` owns only the contents of the route outlet, replacing
@@ -131,20 +130,19 @@ Every setup operation that creates listeners, bindings, or global registration h
 
 | Setup | Teardown |
 | --- | --- |
-| `registerAppPartials()` | returned unregister function |
 | `appShellTemplate.mount()` | shell `dispose()` |
 | `createRouterView()` | router-view `dispose()` |
 | `createAppRouter()` | router `destroy()` |
 
-`app.unmount()` releases these resources in reverse ownership order: routed screen, shell, partials,
-then router. It is safe to call more than once, which keeps HMR and test cleanup straightforward.
+`app.unmount()` releases these resources in reverse ownership order: routed screen, shell, then
+router. It is safe to call more than once, which keeps HMR and test cleanup straightforward.
 
 ### Adding another screen
 
 Follow this flow to preserve the composition boundaries:
 
 1. Add the screen and any reusable partials under `src/templates`.
-2. Export the template and register only the partials referenced by name.
+2. Export the template from a sibling TS module that `withPartials`/`defineComponent` imports.
 3. Add one typed entry to `appRoutes`, including its route-entry load when needed.
 4. Add view-only context values to `createAppContext()`; keep domain behavior in its ViewModel.
 5. Exercise the screen by mounting through `createApp()` in tests rather than constructing the router
@@ -187,7 +185,7 @@ npm run build
 | Area | Responsibility |
 | --- | --- |
 | `src/templates/*.loom` | View markup (dashboard, lists, layout, cards) |
-| `src/templates/index.ts` | `.loom` re-exports and partial registration |
+| `src/templates/index.ts` | Page templates and components; each page owns its `partials` map |
 | `src/app/routes.ts` | The route table (path + template + load) and the router derived from it |
 | `src/app/context.ts` | `composeContext()` of ViewModels, derived signals, form, helpers, actions |
 | `src/app/index.ts` | `createApp()` composition root: mounts the shell and routes, then owns teardown |

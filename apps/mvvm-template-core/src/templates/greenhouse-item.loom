@@ -1,0 +1,11 @@
+<li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
+  <span>{{ item.name }}</span>
+  <div class="button-group">
+    <button class="button-tiny button-tiny-delete" type="button" on:click="onDelete(item)">
+      Delete
+    </button>
+    <button class="button-tiny button-tiny-edit" type="button" on:click="onEdit(item)">
+      Edit
+    </button>
+  </div>
+</li>

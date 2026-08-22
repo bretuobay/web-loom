@@ -3,7 +3,7 @@
     Dashboard
   </a>
   <nav class="flex-container">
-    {{#each navigationItems$ key=id}}
+    {{#each items key=id}}
       <a href="/{{ id }}" class="header-item">
         <i class="icon-{{ icon }}"></i>
         {{ label }}
