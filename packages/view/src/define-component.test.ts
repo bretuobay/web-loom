@@ -68,4 +68,3 @@ describe('defineComponent', () => {
     view.dispose();
   });
 });
-

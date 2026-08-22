@@ -17,9 +17,6 @@ export const appRoutes: TemplateRoute<AppContext>[] = [
 export function createAppRouter(): Router {
   return createRouter({
     mode: 'history',
-    routes: [
-      ...toRouteDefinitions(appRoutes),
-      { path: '/:pathMatch(.*)', name: 'not-found', matchStrategy: 'prefix' },
-    ],
+    routes: [...toRouteDefinitions(appRoutes), { path: '/:pathMatch(.*)', name: 'not-found', matchStrategy: 'prefix' }],
   });
 }

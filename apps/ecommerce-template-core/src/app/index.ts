@@ -50,7 +50,11 @@ export function createApp(options: CreateAppOptions = {}): App {
       try {
         router = createAppRouter();
         const api = createEcommerceApi();
-        viewModel = new TemplateAppViewModel(new CatalogModel(api, options.initialProducts), new CartModel(api), router);
+        viewModel = new TemplateAppViewModel(
+          new CatalogModel(api, options.initialProducts),
+          new CartModel(api),
+          router,
+        );
         const context = createAppContext(viewModel);
 
         shell = appShellTemplate.mount(container, context);

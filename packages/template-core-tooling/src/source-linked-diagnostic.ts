@@ -34,9 +34,7 @@ export interface LinkTemplateDiagnosticOptions {
 }
 
 /** Maps a template-relative diagnostic to a host-file line/column. */
-export function linkTemplateDiagnosticToFile(
-  options: LinkTemplateDiagnosticOptions,
-): SourceLinkedDiagnostic {
+export function linkTemplateDiagnosticToFile(options: LinkTemplateDiagnosticOptions): SourceLinkedDiagnostic {
   const { filePath, hostSource, match, diagnostic } = options;
   const templateLine = diagnostic.line;
   const templateColumn = diagnostic.column;

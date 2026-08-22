@@ -341,12 +341,12 @@ reference implementation is [`apps/ecommerce-template-core`](../../apps/ecommerc
 
 ## Tooling docs
 
-| Guide | Contents |
-| ----- | -------- |
-| [`docs/template-core-tooling.md`](./docs/template-core-tooling.md) | Cookbook — Vite, ESLint, SSR, typing, formatting |
-| [`docs/template-formatting.md`](./docs/template-formatting.md) | M3 formatter — API, CLI, TS literal recipe, CI |
-| [`docs/editor-diagnostics.md`](./docs/editor-diagnostics.md) | M4 source-linked diagnostics — ESLint, Vite, VS Code |
-| [`docs/typing-spike.md`](./docs/typing-spike.md) | M5 `declareContext` / `PartialContexts` |
+| Guide                                                              | Contents                                             |
+| ------------------------------------------------------------------ | ---------------------------------------------------- |
+| [`docs/template-core-tooling.md`](./docs/template-core-tooling.md) | Cookbook — Vite, ESLint, SSR, typing, formatting     |
+| [`docs/template-formatting.md`](./docs/template-formatting.md)     | M3 formatter — API, CLI, TS literal recipe, CI       |
+| [`docs/editor-diagnostics.md`](./docs/editor-diagnostics.md)       | M4 source-linked diagnostics — ESLint, Vite, VS Code |
+| [`docs/typing-spike.md`](./docs/typing-spike.md)                   | M5 `declareContext` / `PartialContexts`              |
 
 ## Development
 
@@ -368,13 +368,13 @@ Snapshot from the last `npm run bench:browser` run (real Chromium, not jsdom —
 This is a point-in-time recording, not a live-tracked metric: re-run the command above and update this
 table if you want a fresh number; nothing here is enforced in CI.
 
-| Scenario                           | Median  | p95    | Budget | Result |
-| ----------------------------------- | ------- | ------ | ------ | ------ |
-| Mount (todo, 10 items)              | 0.7ms   | 1.0ms  | 50ms   | PASS   |
-| Update (single signal write)        | 0.6ms   | 1.3ms  | 16ms   | PASS   |
-| Keyed-list swap (2 of 1000 rows)    | 2.6ms   | 3.4ms  | 16ms   | PASS   |
-| Hydration (todo, 10 items)          | 0.3ms   | 0.5ms  | 50ms   | PASS   |
-| Disposal (table, 1000 rows)         | 1.6ms   | 3.9ms  | 16ms   | PASS   |
+| Scenario                         | Median | p95   | Budget | Result |
+| -------------------------------- | ------ | ----- | ------ | ------ |
+| Mount (todo, 10 items)           | 0.7ms  | 1.0ms | 50ms   | PASS   |
+| Update (single signal write)     | 0.6ms  | 1.3ms | 16ms   | PASS   |
+| Keyed-list swap (2 of 1000 rows) | 2.6ms  | 3.4ms | 16ms   | PASS   |
+| Hydration (todo, 10 items)       | 0.3ms  | 0.5ms | 50ms   | PASS   |
+| Disposal (table, 1000 rows)      | 1.6ms  | 3.9ms | 16ms   | PASS   |
 
 Recorded 2026-07-26 · Chromium 151.0.7922.34 · Node v24.13.1 · Linux (WSL2) · Intel i5-1135G7.
 

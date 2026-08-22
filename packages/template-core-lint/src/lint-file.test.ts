@@ -17,9 +17,7 @@ describe('collectTemplateLintIssues', () => {
       partials: { header: 'src/header.ts' },
       strictPartials: true,
     });
-    expect(issues).toEqual([
-      expect.objectContaining({ diagnosticCode: 'MISSING_PARTIAL', severity: 'error' }),
-    ]);
+    expect(issues).toEqual([expect.objectContaining({ diagnosticCode: 'MISSING_PARTIAL', severity: 'error' })]);
   });
 
   it('skips non-literal compile sources', () => {

@@ -359,11 +359,7 @@ function toServerNode(node: SerializableNode): Node {
   } as unknown as Node;
 }
 
-function renderYield(
-  invocation: ReturnType<typeof parsePartialInvocation>,
-  scope: Scope,
-  ctx: RenderContext,
-): string {
+function renderYield(invocation: ReturnType<typeof parsePartialInvocation>, scope: Scope, ctx: RenderContext): string {
   const frame = ctx.serverSlotStack?.[ctx.serverSlotStack.length - 1];
   if (!frame) return '';
   const rawName = invocation.args?.name ? evaluate(invocation.args.name, scope, ctx.helpers) : 'default';

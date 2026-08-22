@@ -2,7 +2,7 @@
 
 Vite plugin for `@web-loom/template-core`:
 
-- **Build** — replaces static `compile(\`...\`)` call sites with `fromPrecompiled(plan)` so the
+- **Build** — replaces static `compile(\`...\`)`call sites with`fromPrecompiled(plan)` so the
   runtime HTML parser never runs for those templates in the shipped bundle.
 - **Dev analyze** (opt-in) — runs `analyzeTemplate()` on changed files, reports diagnostics to
   the terminal, and leaves source unchanged.

@@ -8,11 +8,7 @@ export function getCachedTemplateIssues(context: Rule.RuleContext): TemplateLint
   const { sourceCode } = context;
   let issues = issuesBySource.get(sourceCode);
   if (!issues) {
-    issues = collectTemplateLintIssues(
-      context.filename,
-      sourceCode.text,
-      getTemplateCoreSettings(context.settings),
-    );
+    issues = collectTemplateLintIssues(context.filename, sourceCode.text, getTemplateCoreSettings(context.settings));
     issuesBySource.set(sourceCode, issues);
   }
   return issues;

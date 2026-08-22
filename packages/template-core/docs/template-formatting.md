@@ -49,19 +49,25 @@ if (!ok) {
 The formatter is a **layout** tool, not a semantic rewriter. It tokenizes the **original source**
 so directives, expressions, and attribute values stay byte-for-byte identical inside each token.
 
-| Restructured | Preserved verbatim |
-| ------------ | ------------------ |
-| Line breaks before block tags (`{{#if}}`, `{{#each}}`, `{{else}}`, `{{/if}}`, …) | Expression text inside `{{ }}` / `{{{ }}}` |
-| Line breaks before partials (`{{> name}}`) | Directives: `on:click`, `:href`, `class:`, `style:`, `bind:`, `use:` |
-| Indentation of nested HTML tags | Tag attribute names and values (including modifier chains like `on:click.prevent`) |
-| Collapsed inter-tag whitespace in text nodes | `<script>` and `<style>` interiors (opaque regions) |
+| Restructured                                                                     | Preserved verbatim                                                                 |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Line breaks before block tags (`{{#if}}`, `{{#each}}`, `{{else}}`, `{{/if}}`, …) | Expression text inside `{{ }}` / `{{{ }}}`                                         |
+| Line breaks before partials (`{{> name}}`)                                       | Directives: `on:click`, `:href`, `class:`, `style:`, `bind:`, `use:`               |
+| Indentation of nested HTML tags                                                  | Tag attribute names and values (including modifier chains like `on:click.prevent`) |
+| Collapsed inter-tag whitespace in text nodes                                     | `<script>` and `<style>` interiors (opaque regions)                                |
 
 ### Before → after
 
 **Input (minified):**
 
 ```html
-<div>{{#if show}}<p>{{ title$ }}</p>{{else}}<p>Hidden</p>{{/if}}</div>
+<div>
+  {{#if show}}
+  <p>{{ title$ }}</p>
+  {{else}}
+  <p>Hidden</p>
+  {{/if}}
+</div>
 ```
 
 **Output (`indent: 2`):**
@@ -69,9 +75,9 @@ so directives, expressions, and attribute values stay byte-for-byte identical in
 ```html
 <div>
   {{#if show}}
-    <p>{{ title$ }}</p>
+  <p>{{ title$ }}</p>
   {{else}}
-    <p>Hidden</p>
+  <p>Hidden</p>
   {{/if}}
 </div>
 ```
@@ -91,32 +97,29 @@ becomes a multi-line layout; attribute strings are not reformatted or reordered.
 ### `formatTemplate(source, options?)`
 
 ```ts
-import type {
-  FormatTemplateOptions,
-  FormatTemplateResult,
-} from '@web-loom/template-core/compiler-node';
+import type { FormatTemplateOptions, FormatTemplateResult } from '@web-loom/template-core/compiler-node';
 ```
 
 #### `FormatTemplateOptions`
 
 Extends [`AnalyzeOptions`](./editor-diagnostics.md) (same as `analyzeTemplate`):
 
-| Field | Type | Default | Purpose |
-| ----- | ---- | ------- | ------- |
-| `indent` | `number` | `2` | Spaces per nesting level |
-| `name` | `string` | — | Diagnostic template name |
-| `sourcePath` | `string` | — | Diagnostic file path |
-| `partials` | `Record<string, string>` | — | Static partial manifest for `MISSING_PARTIAL` checks |
-| `strictPartials` | `boolean` | `false` | Promote missing partials to errors |
+| Field            | Type                     | Default | Purpose                                              |
+| ---------------- | ------------------------ | ------- | ---------------------------------------------------- |
+| `indent`         | `number`                 | `2`     | Spaces per nesting level                             |
+| `name`           | `string`                 | —       | Diagnostic template name                             |
+| `sourcePath`     | `string`                 | —       | Diagnostic file path                                 |
+| `partials`       | `Record<string, string>` | —       | Static partial manifest for `MISSING_PARTIAL` checks |
+| `strictPartials` | `boolean`                | `false` | Promote missing partials to errors                   |
 
 #### `FormatTemplateResult`
 
-| Field | When set | Meaning |
-| ----- | -------- | ------- |
-| `ok` | always | `false` when any diagnostic has `severity: 'error'` |
-| `formatted` | `ok === true` | Pretty-printed source (single trailing newline) |
-| `diagnostics` | always | Full analyzer output (errors **or** warnings) |
-| `unchanged` | `ok === true` | `true` when formatted output equals input after trailing-newline normalization |
+| Field         | When set      | Meaning                                                                        |
+| ------------- | ------------- | ------------------------------------------------------------------------------ |
+| `ok`          | always        | `false` when any diagnostic has `severity: 'error'`                            |
+| `formatted`   | `ok === true` | Pretty-printed source (single trailing newline)                                |
+| `diagnostics` | always        | Full analyzer output (errors **or** warnings)                                  |
+| `unchanged`   | `ok === true` | `true` when formatted output equals input after trailing-newline normalization |
 
 **Error path:** invalid syntax, bad expressions, modifier conflicts, or `strictPartials` failures →
 `{ ok: false, diagnostics }` with **no** `formatted` field. Same codes as ESLint / Vite analyze
@@ -134,13 +137,13 @@ separately if needed.
 template-core-format --input <path> [--write] [--check] [--indent N] [--name Name]
 ```
 
-| Flag | Behavior |
-| ---- | -------- |
-| _(none)_ | Print formatted source to **stdout** |
-| `--write` | Overwrite `--input` when output would change |
-| `--check` | Exit `1` if the file is not already formatted; no writes |
-| `--indent N` | Indent width (default `2`) |
-| `--name Name` | Passed through to analyzer diagnostics |
+| Flag          | Behavior                                                 |
+| ------------- | -------------------------------------------------------- |
+| _(none)_      | Print formatted source to **stdout**                     |
+| `--write`     | Overwrite `--input` when output would change             |
+| `--check`     | Exit `1` if the file is not already formatted; no writes |
+| `--indent N`  | Indent width (default `2`)                               |
+| `--name Name` | Passed through to analyzer diagnostics                   |
 
 On analyzer errors, prints `[severity] path:line:col CODE: message` lines to **stderr** and exits `1`.
 
@@ -160,8 +163,7 @@ On analyzer errors, prints `[severity] path:line:col CODE: message` lines to **s
 ## Formatting `compile(\`...\`)` literals in TypeScript
 
 Use **`formatCompileCallsInSource()`** from `@web-loom/template-core-tooling` (or the
-`template-core-format-calls` CLI). It scans static `compile(\`...\`)` and `context.compile(\`...\`)`
-sites via `findCompileCalls()`, then runs `formatTemplate()` on each literal.
+`template-core-format-calls` CLI). It scans static `compile(\`...\`)`and`context.compile(\`...\`)`sites via`findCompileCalls()`, then runs `formatTemplate()` on each literal.
 
 ### CLI (recommended)
 
@@ -266,10 +268,10 @@ Same diagnostic model as Phase 4 design §6 — no independent parser. See
 
 ## Related docs
 
-| Doc | Topic |
-| --- | ----- |
-| [`template-core-tooling.md`](./template-core-tooling.md) §13 | Cookbook recipe |
-| [`editor-diagnostics.md`](./editor-diagnostics.md) | Source-linked positions (M4) |
-| [`typing-spike.md`](./typing-spike.md) | Context typing at mount sites (M5) |
-| [`../README.md`](../README.md) | Engine API + precompile CLI |
-| [`.kiro/specs/template-core-phase4/`](../../.kiro/specs/template-core-phase4/) | R8 tooling requirements |
+| Doc                                                                            | Topic                              |
+| ------------------------------------------------------------------------------ | ---------------------------------- |
+| [`template-core-tooling.md`](./template-core-tooling.md) §13                   | Cookbook recipe                    |
+| [`editor-diagnostics.md`](./editor-diagnostics.md)                             | Source-linked positions (M4)       |
+| [`typing-spike.md`](./typing-spike.md)                                         | Context typing at mount sites (M5) |
+| [`../README.md`](../README.md)                                                 | Engine API + precompile CLI        |
+| [`.kiro/specs/template-core-phase4/`](../../.kiro/specs/template-core-phase4/) | R8 tooling requirements            |

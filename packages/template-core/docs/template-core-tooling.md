@@ -6,13 +6,13 @@ tooling packages, and partial SSR. Every pattern below is exercised in
 
 **Packages covered**
 
-| Package | Role |
-| ------- | ---- |
-| `@web-loom/template-core` | Runtime `compile()`, outlets, hydration |
-| `@web-loom/template-core-vite-ssr` | Vite SSR server + HTML document composition |
-| `@web-loom/template-core-vite` | Build precompile + optional dev analyze |
-| `@web-loom/template-core-lint` | ESLint rules for static template checks |
-| `@web-loom/template-core-tooling` | Shared `compile()` AST scanner (used by Vite + ESLint) |
+| Package                            | Role                                                   |
+| ---------------------------------- | ------------------------------------------------------ |
+| `@web-loom/template-core`          | Runtime `compile()`, outlets, hydration                |
+| `@web-loom/template-core-vite-ssr` | Vite SSR server + HTML document composition            |
+| `@web-loom/template-core-vite`     | Build precompile + optional dev analyze                |
+| `@web-loom/template-core-lint`     | ESLint rules for static template checks                |
+| `@web-loom/template-core-tooling`  | Shared `compile()` AST scanner (used by Vite + ESLint) |
 
 ---
 
@@ -140,11 +140,11 @@ Render **one region** on the server; mount the interactive shell on the client.
 
 `@web-loom/template-core-vite-ssr` replaces:
 
-| Marker | Purpose |
-| ------ | ------- |
-| `<!--ssr-head-->` | Optional injected `<title>`, meta, link tags |
-| `<!--ssr-outlet-->` | Server-rendered HTML fragment |
-| `<!--ssr-state-->` | Inert JSON bootstrap script (`__TEMPLATE_CORE_STATE__`) |
+| Marker              | Purpose                                                 |
+| ------------------- | ------------------------------------------------------- |
+| `<!--ssr-head-->`   | Optional injected `<title>`, meta, link tags            |
+| `<!--ssr-outlet-->` | Server-rendered HTML fragment                           |
+| `<!--ssr-state-->`  | Inert JSON bootstrap script (`__TEMPLATE_CORE_STATE__`) |
 
 Reference: [`apps/ecommerce-template-core/index.html`](../../apps/ecommerce-template-core/index.html)
 
@@ -164,7 +164,7 @@ export async function render(_request: SsrRequest): Promise<SsrRenderResult> {
   const products = await loadCatalogForRequest();
   return {
     head: '<title>My Store · SSR</title>',
-    html: storefrontServerTemplate.renderToString({ catalog: { filteredProducts: products, /* … */ } }),
+    html: storefrontServerTemplate.renderToString({ catalog: { filteredProducts: products /* … */ } }),
     state: { products },
   };
 }
@@ -261,8 +261,8 @@ export default defineConfig({
 });
 ```
 
-Static `compile(\`...\`)` call sites become `fromPrecompiled({ plan })` at build time. Invalid
-expressions **fail the build** (via `analyzeTemplate()` / M0).
+Static `compile(\`...\`)`call sites become`fromPrecompiled({ plan })`at build time. Invalid
+expressions **fail the build** (via`analyzeTemplate()` / M0).
 
 Dynamic sources stay as runtime `compile()`:
 
@@ -297,7 +297,7 @@ Useful for missing partials, raw HTML warnings, and hydration mismatches at runt
 
 ```ts
 // vite.config.ts
-templateCorePrecompile({ dev: 'analyze' })
+templateCorePrecompile({ dev: 'analyze' });
 ```
 
 Scans static templates on file change, prints `[template-core] path:line … [CODE]` to the terminal,
@@ -307,10 +307,10 @@ leaves source unchanged. See [`packages/template-core-vite/README.md`](../templa
 
 ```ts
 // vite.config.ts
-templateCorePrecompile({ dev: 'precompile' })
+templateCorePrecompile({ dev: 'precompile' });
 ```
 
-Rewrites static `compile(\`...\`)` call sites to `fromPrecompiled(plan)` during `vite dev` — same as
+Rewrites static `compile(\`...\`)`call sites to`fromPrecompiled(plan)`during`vite dev` — same as
 production build. Transformed output is cached by file content hash so unchanged modules skip
 re-precompilation on HMR. Invalid templates fail the transform.
 
@@ -346,13 +346,13 @@ export default [
 
 Rules (all backed by `analyzeTemplate()`):
 
-| Rule | Default |
-| ---- | ------- |
-| `template-core/no-invalid-expression` | error |
-| `template-core/no-unsupported-modifier` | error |
-| `template-core/no-missing-partial` | error (when partials manifest set) |
-| `template-core/no-raw-html` | warn |
-| `template-core/no-unsafe-url` | warn |
+| Rule                                    | Default                            |
+| --------------------------------------- | ---------------------------------- |
+| `template-core/no-invalid-expression`   | error                              |
+| `template-core/no-unsupported-modifier` | error                              |
+| `template-core/no-missing-partial`      | error (when partials manifest set) |
+| `template-core/no-raw-html`             | warn                               |
+| `template-core/no-unsafe-url`           | warn                               |
 
 Reference config: [`apps/ecommerce-template-core/eslint.config.mjs`](../../apps/ecommerce-template-core/eslint.config.mjs)
 
@@ -437,17 +437,17 @@ Keep the rendered HTML shape identical.
 
 ## 10. Quick reference: which tool when?
 
-| Goal | Tool |
-| ---- | ---- |
-| Ship without runtime parser | `@web-loom/template-core-vite` (build) |
-| Terminal feedback during `vite dev` | `@web-loom/template-core-vite` `{ dev: 'analyze' }` |
-| Dev/prod precompile parity in `vite dev` | `@web-loom/template-core-vite` `{ dev: 'precompile' }` |
-| CI / editor squiggles | `@web-loom/template-core-lint` + ESLint extension |
-| Format `.html` / extracted literals | `formatTemplate()` / `template-core-format` |
-| Standalone `.loom` template files | `templateCoreLoom()` — see [`docs/template-loom-authoring.md`](template-loom-authoring.md) |
-| Custom scripts / pre-commit | `formatCompileCallsInSource()` / `npm run format:templates` |
-| Partial SSR + document assembly | `@web-loom/template-core-vite-ssr` |
-| Learn by reading code | [`apps/ecommerce-template-core`](../../apps/ecommerce-template-core) |
+| Goal                                     | Tool                                                                                       |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Ship without runtime parser              | `@web-loom/template-core-vite` (build)                                                     |
+| Terminal feedback during `vite dev`      | `@web-loom/template-core-vite` `{ dev: 'analyze' }`                                        |
+| Dev/prod precompile parity in `vite dev` | `@web-loom/template-core-vite` `{ dev: 'precompile' }`                                     |
+| CI / editor squiggles                    | `@web-loom/template-core-lint` + ESLint extension                                          |
+| Format `.html` / extracted literals      | `formatTemplate()` / `template-core-format`                                                |
+| Standalone `.loom` template files        | `templateCoreLoom()` — see [`docs/template-loom-authoring.md`](template-loom-authoring.md) |
+| Custom scripts / pre-commit              | `formatCompileCallsInSource()` / `npm run format:templates`                                |
+| Partial SSR + document assembly          | `@web-loom/template-core-vite-ssr`                                                         |
+| Learn by reading code                    | [`apps/ecommerce-template-core`](../../apps/ecommerce-template-core)                       |
 
 ---
 
@@ -495,7 +495,7 @@ type AppPartials = PartialContexts<{
 
 const page = declareContext<TemplateAppBindings>();
 export const appShell = page.compile<AppPartials>(source, {
-  partials: { header: headerTemplate, cart: cartDrawerTemplate, /* … */ },
+  partials: { header: headerTemplate, cart: cartDrawerTemplate /* … */ },
 });
 ```
 
@@ -512,12 +512,12 @@ Reference: [`apps/ecommerce-template-core/src/templates/`](../../apps/ecommerce-
 
 Map analyzer output to **host file** line/column (inside `compile(\`...\`)` strings):
 
-| Integration | How |
-| ----------- | --- |
-| **ESLint** | `@web-loom/template-core-lint` — squiggles in VS Code via ESLint extension |
-| **Vite dev** | `templateCorePrecompile({ dev: 'analyze' })` — terminal + VS Code problem matcher |
-| **Programmatic** | `collectSourceLinkedDiagnostics()` from `@web-loom/template-core-tooling` |
-| **Format templates** | `formatTemplate()` from `compiler-node` or `template-core-format` CLI |
+| Integration          | How                                                                               |
+| -------------------- | --------------------------------------------------------------------------------- |
+| **ESLint**           | `@web-loom/template-core-lint` — squiggles in VS Code via ESLint extension        |
+| **Vite dev**         | `templateCorePrecompile({ dev: 'analyze' })` — terminal + VS Code problem matcher |
+| **Programmatic**     | `collectSourceLinkedDiagnostics()` from `@web-loom/template-core-tooling`         |
+| **Format templates** | `formatTemplate()` from `compiler-node` or `template-core-format` CLI             |
 
 Full guide: [`docs/editor-diagnostics.md`](editor-diagnostics.md).
 

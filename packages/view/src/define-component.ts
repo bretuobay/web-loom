@@ -19,9 +19,7 @@ export interface DefineComponentOptions<TProps extends object> {
  * hash arguments (`{{> card count=n}}`); the component never inherits the
  * caller scope. `setup` runs on each mount and its `dispose` runs on unmount.
  */
-export function defineComponent<TProps extends object>(
-  options: DefineComponentOptions<TProps>,
-): Template<TProps> {
+export function defineComponent<TProps extends object>(options: DefineComponentOptions<TProps>): Template<TProps> {
   const template = options.template as Template<TProps>;
   template.isolated = true;
   if (options.partials) {

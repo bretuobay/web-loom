@@ -3,14 +3,7 @@ import { Router, Route } from '@solidjs/router';
 import '@repo/shared/styles';
 import './index.css';
 import './App.css';
-import {
-  AppLayout,
-  Dashboard,
-  GreenhouseList,
-  SensorList,
-  SensorReadingList,
-  ThresholdAlertList,
-} from './App';
+import { AppLayout, Dashboard, GreenhouseList, SensorList, SensorReadingList, ThresholdAlertList } from './App';
 
 const root = document.getElementById('root');
 

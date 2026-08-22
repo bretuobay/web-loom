@@ -34,14 +34,11 @@ describe('server rendering', () => {
   });
 
   it('renders block partial slots against the caller scope', () => {
-    const template = compile(
-      '{{#> card title=name}}Hello {{ name }}{{#slot footer}}{{ label }}{{/slot}}{{/card}}',
-      {
-        partials: {
-          card: '<article><h3>{{ title }}</h3><div>{{> yield}}</div><footer>{{> yield name="footer"}}</footer></article>',
-        },
+    const template = compile('{{#> card title=name}}Hello {{ name }}{{#slot footer}}{{ label }}{{/slot}}{{/card}}', {
+      partials: {
+        card: '<article><h3>{{ title }}</h3><div>{{> yield}}</div><footer>{{> yield name="footer"}}</footer></article>',
       },
-    );
+    });
     const html = template.renderToString({ name: 'Ada', label: 'Go', secret: 'leaked' });
     expect(html).toContain('<h3>Ada</h3>');
     expect(html).toContain('Hello Ada');

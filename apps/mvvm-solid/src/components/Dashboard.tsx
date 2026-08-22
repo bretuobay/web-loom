@@ -23,11 +23,7 @@ export default function Dashboard() {
   const isLoadingThresholdAlerts = useSignal(thresholdAlertViewModel.isLoading$);
 
   const isLoading = createMemo(
-    () =>
-      isLoadingGreenHouses() ||
-      isLoadingSensors() ||
-      isLoadingSensorReadings() ||
-      isLoadingThresholdAlerts(),
+    () => isLoadingGreenHouses() || isLoadingSensors() || isLoadingSensorReadings() || isLoadingThresholdAlerts(),
   );
 
   onMount(() => {

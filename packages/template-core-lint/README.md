@@ -8,13 +8,13 @@ AST scanner from `@web-loom/template-core-tooling` — no second parser.
 
 ## Rules
 
-| Rule | Default | Diagnostic codes |
-|------|---------|------------------|
-| `template-core/no-raw-html` | warn | `RAW_HTML_UNSANITIZED` |
-| `template-core/no-unsafe-url` | warn | `UNSAFE_URL_SCHEME` |
-| `template-core/no-missing-partial` | error | `MISSING_PARTIAL` (only when `settings.template-core.partials` is set) |
-| `template-core/no-invalid-expression` | error | `INVALID_EXPRESSION`, `INVALID_TEMPLATE` |
-| `template-core/no-unsupported-modifier` | error | `MODIFIER_CONFLICT`, `UNSUPPORTED_DIRECTIVE` |
+| Rule                                    | Default | Diagnostic codes                                                       |
+| --------------------------------------- | ------- | ---------------------------------------------------------------------- |
+| `template-core/no-raw-html`             | warn    | `RAW_HTML_UNSANITIZED`                                                 |
+| `template-core/no-unsafe-url`           | warn    | `UNSAFE_URL_SCHEME`                                                    |
+| `template-core/no-missing-partial`      | error   | `MISSING_PARTIAL` (only when `settings.template-core.partials` is set) |
+| `template-core/no-invalid-expression`   | error   | `INVALID_EXPRESSION`, `INVALID_TEMPLATE`                               |
+| `template-core/no-unsupported-modifier` | error   | `MODIFIER_CONFLICT`, `UNSUPPORTED_DIRECTIVE`                           |
 
 Only **static** `compile(\`literal\`)` call sites are checked (same scope as the Vite plugin).
 

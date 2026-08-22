@@ -427,7 +427,7 @@ function splitSlotTemplates(children: ChildNode[]): Record<string, RootTemplate>
 }
 
 function isIgnorableSlotNode(node: ChildNode): boolean {
-  return node.nodeType === Node.TEXT_NODE && !((node.textContent ?? '').trim());
+  return node.nodeType === Node.TEXT_NODE && !(node.textContent ?? '').trim();
 }
 
 function parseEachHeader(raw: string): { source: ExpressionNode; key: ExpressionNode } {

@@ -7,9 +7,7 @@ import { computed, type ReadonlySignal } from '@web-loom/signals-core';
  * silently shadow each other — the failure mode a hand-grown bindings class
  * hides until a template renders the wrong data.
  */
-export function composeContext<TParts extends readonly object[]>(
-  ...parts: TParts
-): Intersect<TParts[number]> {
+export function composeContext<TParts extends readonly object[]>(...parts: TParts): Intersect<TParts[number]> {
   const merged: Record<string, unknown> = {};
   for (const part of parts) {
     for (const key of Object.keys(part)) {
@@ -22,9 +20,7 @@ export function composeContext<TParts extends readonly object[]>(
   return merged as Intersect<TParts[number]>;
 }
 
-type Intersect<U> = (U extends unknown ? (k: U) => void : never) extends (k: infer I) => void
-  ? I
-  : never;
+type Intersect<U> = (U extends unknown ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 
 /**
  * Derived "is anything still loading" signal over any set of ViewModels.
@@ -32,16 +28,12 @@ type Intersect<U> = (U extends unknown ? (k: U) => void : never) extends (k: inf
  * `a.isLoading$.get() || b.isLoading$.get() || …` chain that must otherwise be
  * edited every time a ViewModel joins a view.
  */
-export function anyLoading(
-  ...vms: ReadonlyArray<{ isLoading$: ReadonlySignal<unknown> }>
-): ReadonlySignal<boolean> {
+export function anyLoading(...vms: ReadonlyArray<{ isLoading$: ReadonlySignal<unknown> }>): ReadonlySignal<boolean> {
   return computed(() => vms.some((vm) => Boolean(vm.isLoading$.get())));
 }
 
 /** Derived signal holding the first truthy `error$` across the given ViewModels, or `null`. */
-export function firstError(
-  ...vms: ReadonlyArray<{ error$: ReadonlySignal<unknown> }>
-): ReadonlySignal<unknown> {
+export function firstError(...vms: ReadonlyArray<{ error$: ReadonlySignal<unknown> }>): ReadonlySignal<unknown> {
   return computed(() => {
     for (const vm of vms) {
       const error = vm.error$.get();

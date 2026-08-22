@@ -84,10 +84,8 @@ instance cannot be mounted a second time, but it can be mounted again after `unm
 locally and passes each binding at the call site:
 
 ```html
-{{#> app-frame links=links}}
-  {{#slot header}}{{> header items=navigationItems$}}{{/slot}}
-  {{#slot footer}}{{> footer year=currentYear}}{{/slot}}
-{{/app-frame}}
+{{#> app-frame links=links}} {{#slot header}}{{> header items=navigationItems$}}{{/slot}} {{#slot footer}}{{> footer
+year=currentYear}}{{/slot}} {{/app-frame}}
 ```
 
 The shell is mounted once. `createRouterView()` owns only the contents of the route outlet, replacing
@@ -128,11 +126,11 @@ view concern. Only view concerns should be added directly to `createAppContext()
 
 Every setup operation that creates listeners, bindings, or global registration has a matching cleanup:
 
-| Setup | Teardown |
-| --- | --- |
-| `appShellTemplate.mount()` | shell `dispose()` |
-| `createRouterView()` | router-view `dispose()` |
-| `createAppRouter()` | router `destroy()` |
+| Setup                      | Teardown                |
+| -------------------------- | ----------------------- |
+| `appShellTemplate.mount()` | shell `dispose()`       |
+| `createRouterView()`       | router-view `dispose()` |
+| `createAppRouter()`        | router `destroy()`      |
 
 `app.unmount()` releases these resources in reverse ownership order: routed screen, shell, then
 router. It is safe to call more than once, which keeps HMR and test cleanup straightforward.
@@ -182,15 +180,15 @@ npm run build
 
 ## Structure
 
-| Area | Responsibility |
-| --- | --- |
-| `src/templates/*.loom` | View markup (dashboard, lists, layout, cards) |
-| `src/templates/index.ts` | Page templates and components; each page owns its `partials` map |
-| `src/app/routes.ts` | The route table (path + template + load) and the router derived from it |
-| `src/app/context.ts` | `composeContext()` of ViewModels, derived signals, form, helpers, actions |
-| `src/app/index.ts` | `createApp()` composition root: mounts the shell and routes, then owns teardown |
-| `src/app/chart.ts` | Chart.js `use:` element action |
-| `src/main.ts` | Vite client entry: create, mount, and unmount the app during HMR |
+| Area                     | Responsibility                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `src/templates/*.loom`   | View markup (dashboard, lists, layout, cards)                                   |
+| `src/templates/index.ts` | Page templates and components; each page owns its `partials` map                |
+| `src/app/routes.ts`      | The route table (path + template + load) and the router derived from it         |
+| `src/app/context.ts`     | `composeContext()` of ViewModels, derived signals, form, helpers, actions       |
+| `src/app/index.ts`       | `createApp()` composition root: mounts the shell and routes, then owns teardown |
+| `src/app/chart.ts`       | Chart.js `use:` element action                                                  |
+| `src/main.ts`            | Vite client entry: create, mount, and unmount the app during HMR                |
 
 See [`packages/template-core/docs/template-loom-authoring.md`](../../packages/template-core/docs/template-loom-authoring.md)
 for `.loom` setup, and [`apps/mvvm-react`](../mvvm-react) for the React View this app replaces.

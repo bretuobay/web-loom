@@ -48,7 +48,8 @@ beforeAll(async () => {
     onigLib: Promise.resolve({ createOnigScanner, createOnigString }),
     loadGrammar: async (scopeName) => {
       if (scopeName === 'source.ts') return parseRawGrammar(JSON.stringify(STUB_TS_GRAMMAR), 'source.ts.json');
-      if (scopeName === 'text.html.basic') return parseRawGrammar(JSON.stringify(STUB_HTML_GRAMMAR), 'text.html.basic.json');
+      if (scopeName === 'text.html.basic')
+        return parseRawGrammar(JSON.stringify(STUB_HTML_GRAMMAR), 'text.html.basic.json');
       if (scopeName === WEB_LOOM_SCOPE) return parseRawGrammar(ourGrammarSource, 'web-loom-template.tmLanguage.json');
       return null;
     },
@@ -80,7 +81,8 @@ function tokenizeLines(lines: string[]) {
 
 function scopesFor(tokens: ReturnType<typeof tokenize>, text: string): string[] {
   const match = tokens.find((token) => token.text === text);
-  if (!match) throw new Error(`no token found for ${JSON.stringify(text)} among ${JSON.stringify(tokens.map((t) => t.text))}`);
+  if (!match)
+    throw new Error(`no token found for ${JSON.stringify(text)} among ${JSON.stringify(tokens.map((t) => t.text))}`);
   return match.scopes;
 }
 
@@ -124,7 +126,9 @@ describe('web-loom-template.tmLanguage.json', () => {
   });
 
   it('tags #switch/#case/#default and their close tags', () => {
-    const tokens = tokenize('compile(`{{#switch state.theme$}}{{#case "light"}}{{#default}}{{/default}}{{/case}}{{/switch}}`)');
+    const tokens = tokenize(
+      'compile(`{{#switch state.theme$}}{{#case "light"}}{{#default}}{{/default}}{{/case}}{{/switch}}`)',
+    );
     expect(scopesFor(tokens, '#switch')).toContain('keyword.control.web-loom');
     expect(scopesFor(tokens, '#case')).toContain('keyword.control.web-loom');
     expect(scopesFor(tokens, '#default')).toContain('keyword.control.web-loom');

@@ -14,9 +14,7 @@ describe('composeContext', () => {
   });
 
   it('throws on duplicate keys across parts', () => {
-    expect(() => composeContext({ nav: 1 }, { other: 2, nav: 3 })).toThrow(
-      /duplicate context key "nav"/,
-    );
+    expect(() => composeContext({ nav: 1 }, { other: 2, nav: 3 })).toThrow(/duplicate context key "nav"/);
   });
 });
 

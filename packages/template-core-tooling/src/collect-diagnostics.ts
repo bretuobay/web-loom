@@ -2,10 +2,7 @@ import { analyzeTemplate } from '@web-loom/template-core/compiler-node';
 import { DEFAULT_SPECIFIERS } from './constants.js';
 import type { CompileCallMatch } from './find-compile-calls.js';
 import { findCompileCalls } from './find-compile-calls.js';
-import {
-  linkTemplateDiagnosticToFile,
-  type SourceLinkedDiagnostic,
-} from './source-linked-diagnostic.js';
+import { linkTemplateDiagnosticToFile, type SourceLinkedDiagnostic } from './source-linked-diagnostic.js';
 
 export interface CollectSourceLinkedDiagnosticsOptions {
   specifiers?: string[];

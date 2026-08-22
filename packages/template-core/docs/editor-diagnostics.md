@@ -5,12 +5,12 @@ Source-linked diagnostics map template-core analyzer output to **positions insid
 
 All tooling shares one implementation in `@web-loom/template-core-tooling`:
 
-| API | Purpose |
-| --- | ------- |
-| `collectSourceLinkedDiagnostics(file, source, options?)` | Scan a file and return linked diagnostics |
-| `analyzeCompileMatches(file, source, matches, options?)` | Same, when Vite already found `compile()` calls |
-| `SourceLinkedDiagnostic` | `{ filePath, line, column, code, severity, message, templateName?, templateLine? }` |
-| `formatSourceLinkedDiagnostic(d)` | Stable terminal line for Vite + VS Code problem matchers |
+| API                                                      | Purpose                                                                             |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `collectSourceLinkedDiagnostics(file, source, options?)` | Scan a file and return linked diagnostics                                           |
+| `analyzeCompileMatches(file, source, matches, options?)` | Same, when Vite already found `compile()` calls                                     |
+| `SourceLinkedDiagnostic`                                 | `{ filePath, line, column, code, severity, message, templateName?, templateLine? }` |
+| `formatSourceLinkedDiagnostic(d)`                        | Stable terminal line for Vite + VS Code problem matchers                            |
 
 Template-relative spans from `analyzeTemplate()` are converted using `CompileCallMatch.templateContentStart`.
 
@@ -26,7 +26,7 @@ Requires the ESLint VS Code extension (or CI `npm run lint`).
 ## Vite dev analyze
 
 ```ts
-templateCorePrecompile({ dev: 'analyze' })
+templateCorePrecompile({ dev: 'analyze' });
 ```
 
 Terminal output uses the same `[template-core] path:line:col … [CODE]` format. Lines/columns refer to

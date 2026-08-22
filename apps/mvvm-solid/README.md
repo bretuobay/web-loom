@@ -10,11 +10,11 @@ That is the point of the demo: you can keep MVVM + `signals-core` for Models/Vie
 
 ## Two signal systems, one boundary
 
-| Layer | Reactive primitive | Why |
-| --- | --- | --- |
-| Model / ViewModel / Command | `@web-loom/signals-core` (`data$`, `isLoading$`, `canExecute$`) | Shared with React, Vue, Angular, Lit, Vanilla |
-| View | Solid `createSignal` / `createMemo` / JSX | Fine-grained updates; component functions run once |
-| Bridge | `useSignal(sig)` in `src/hooks/useSignal.ts` | `observe()` copies the current value, then every later change, into a Solid accessor |
+| Layer                       | Reactive primitive                                              | Why                                                                                  |
+| --------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Model / ViewModel / Command | `@web-loom/signals-core` (`data$`, `isLoading$`, `canExecute$`) | Shared with React, Vue, Angular, Lit, Vanilla                                        |
+| View                        | Solid `createSignal` / `createMemo` / JSX                       | Fine-grained updates; component functions run once                                   |
+| Bridge                      | `useSignal(sig)` in `src/hooks/useSignal.ts`                    | `observe()` copies the current value, then every later change, into a Solid accessor |
 
 Do **not** read a loom signal with `.get()` inside `createMemo` or JSX and expect Solid to re-run. Loom tracking only works inside loom `computed`/`effect` contexts. The bridge exists because the graphs do not compose.
 

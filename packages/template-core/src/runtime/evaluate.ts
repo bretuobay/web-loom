@@ -17,12 +17,7 @@ export interface ResolvedValue {
  * its immediate owner so callers (event bindings) can invoke methods with the
  * correct `this`.
  */
-export function resolveScopeValue(
-  segments: string[],
-  parentHops: number,
-  scope: Scope,
-  silent = false,
-): ResolvedValue {
+export function resolveScopeValue(segments: string[], parentHops: number, scope: Scope, silent = false): ResolvedValue {
   let s: Scope | null = scope;
   for (let i = 0; i < parentHops; i++) {
     s = s?.parent ?? null;

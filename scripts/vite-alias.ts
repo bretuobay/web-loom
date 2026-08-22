@@ -52,12 +52,7 @@ export const webLoomPackages = [
 ] as const;
 
 /** All @repo/* workspace packages */
-export const repoPackages = [
-  '@repo/models',
-  '@repo/view-models',
-  '@repo/shared',
-  '@repo/plugin-core',
-] as const;
+export const repoPackages = ['@repo/models', '@repo/view-models', '@repo/shared', '@repo/plugin-core'] as const;
 
 /** Combined list of all workspace packages for optimizeDeps.include */
 export const workspacePackages = [...webLoomPackages, ...repoPackages] as const;

@@ -23,7 +23,9 @@ const HASH_START_RE = /^[A-Za-z_][A-Za-z0-9_$]*\s*(=)(?!=)/;
 export function parsePartialInvocation(raw: string): PartialInvocation {
   const trimmed = raw.trim();
   if (!trimmed) {
-    throw new TemplateSyntaxError('Malformed partial; expected {{> name}}, {{> name context}}, or {{> name key=value}}.');
+    throw new TemplateSyntaxError(
+      'Malformed partial; expected {{> name}}, {{> name context}}, or {{> name key=value}}.',
+    );
   }
 
   const nameMatch = NAME_RE.exec(trimmed);

@@ -57,9 +57,7 @@ describe('analyzeTemplate', () => {
   it('warns on statically unsafe URL schemes in bound attributes', () => {
     const result = analyzeTemplate('<a :href="\'javascript:alert(1)\'">link</a>');
     expect(result.ok).toBe(true);
-    expect(result.diagnostics).toEqual([
-      expect.objectContaining({ code: 'UNSAFE_URL_SCHEME', severity: 'warning' }),
-    ]);
+    expect(result.diagnostics).toEqual([expect.objectContaining({ code: 'UNSAFE_URL_SCHEME', severity: 'warning' })]);
   });
 
   it('warns on missing partials when a partial manifest is provided', () => {

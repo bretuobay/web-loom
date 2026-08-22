@@ -30,7 +30,7 @@ scheduled follow-up unless requirements change).
 
 3. **ViewModel vs DTO binding** — The `cart.items` silent-empty bug documented in README § “Binding a
    ViewModel vs. binding a DTO snapshot” happens because templates read whatever the ViewModel
-   *exposes*, not the underlying DTO shape. Expression checking against `declareContext<T>` would
+   _exposes_, not the underlying DTO shape. Expression checking against `declareContext<T>` would
    imply false safety unless `T` mirrors every path templates use — which is the same manual work as
    today, but with a type checker that cannot see runtime signal shapes.
 
@@ -42,12 +42,12 @@ scheduled follow-up unless requirements change).
 
 ### What we recommend instead
 
-| Problem | Tool |
-| ------- | ---- |
-| Wrong object at mount site | `declareContext<T>()` (this spike) |
-| Syntax / modifier / partial name errors | `@web-loom/template-core-lint` + `analyzeTemplate()` |
-| Missing ViewModel fields used in templates | DOM tests + explicit bindings adapter review |
-| Partial name drift | ESLint `settings.template-core.partials` + `PartialContexts<T>` on `compile()` |
+| Problem                                    | Tool                                                                           |
+| ------------------------------------------ | ------------------------------------------------------------------------------ |
+| Wrong object at mount site                 | `declareContext<T>()` (this spike)                                             |
+| Syntax / modifier / partial name errors    | `@web-loom/template-core-lint` + `analyzeTemplate()`                           |
+| Missing ViewModel fields used in templates | DOM tests + explicit bindings adapter review                                   |
+| Partial name drift                         | ESLint `settings.template-core.partials` + `PartialContexts<T>` on `compile()` |
 
 ## Future reconsideration triggers
 

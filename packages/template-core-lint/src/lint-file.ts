@@ -1,7 +1,4 @@
-import {
-  collectSourceLinkedDiagnostics,
-  type SourceLinkedDiagnostic,
-} from '@web-loom/template-core-tooling';
+import { collectSourceLinkedDiagnostics, type SourceLinkedDiagnostic } from '@web-loom/template-core-tooling';
 import type { TemplateCoreLintSettings } from './settings.js';
 
 export type TemplateLintIssue = SourceLinkedDiagnostic & {

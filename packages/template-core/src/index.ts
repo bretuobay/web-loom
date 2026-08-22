@@ -6,11 +6,7 @@ export { createEntityForm } from './entity-form.js';
 export type { EntityForm, EntityFormCommands, EntityFormOptions } from './entity-form.js';
 export { precompile } from './compiler/index.js';
 export { TemplateSyntaxError } from './errors.js';
-export {
-  declareContext,
-  typedCompile,
-  typedFromPrecompiled,
-} from './typing.js';
+export { declareContext, typedCompile, typedFromPrecompiled } from './typing.js';
 export type {
   HelperMap,
   PartialContextSchema,

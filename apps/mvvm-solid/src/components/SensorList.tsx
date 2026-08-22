@@ -18,10 +18,7 @@ export function SensorList() {
       </A>
       <div class="card">
         <h1 class="card-title">Sensors</h1>
-        <Show
-          when={sensors() && sensors()!.length > 0}
-          fallback={<p>No sensors found or still loading...</p>}
-        >
+        <Show when={sensors() && sensors()!.length > 0} fallback={<p>No sensors found or still loading...</p>}>
           <ul class="card-content list">
             <For each={sensors() ?? []}>
               {(sensor) => (

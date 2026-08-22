@@ -36,17 +36,13 @@ export const dashboardTemplate = withPartials(template, {
 Block children use the engine's slot syntax:
 
 ```html
-{{#> card title=name}}
-  Default slot
-  {{#slot footer}}<button on:click="onEdit">Edit</button>{{/slot}}
-{{/card}}
+{{#> card title=name}} Default slot {{#slot footer}}<button on:click="onEdit">Edit</button>{{/slot}} {{/card}}
 ```
 
 ```html
 <article>
   <h3>{{ title }}</h3>
-  {{> yield}}
-  {{> yield name="footer"}}
+  {{> yield}} {{> yield name="footer"}}
 </article>
 ```
 

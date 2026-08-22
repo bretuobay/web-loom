@@ -85,19 +85,19 @@ interaction, navigation, and disposal of the ViewModel and mounted template view
 
 ## Structure
 
-| Area                          | Responsibility                                                               |
-| ----------------------------- | ---------------------------------------------------------------------------- |
+| Area                          | Responsibility                                                                           |
+| ----------------------------- | ---------------------------------------------------------------------------------------- |
 | `src/TemplateAppViewModel.ts` | Composes state, catalog/cart ViewModels, actions, and subscriptions (router is injected) |
-| `src/app/routes.ts`           | The route table (path + template) and the router derived from it            |
-| `src/app/context.ts`          | `composeContext()` of state/actions/catalog/cart plus view-boundary handlers |
-| `src/app/index.ts`            | `createApp()` composition root: mounts the shell and routes, then owns teardown |
-| `src/templates/`              | Compiled templates, `declareContext` typing, and partial composition         |
-| `src/features/catalog/`       | Product loading, filtering, and selection                                    |
-| `src/features/cart/`          | Cart state, checkout form, and cart commands                                 |
-| `src/infrastructure/`         | Mock API, event bus, and persisted UI preferences                            |
-| `src/entry-server.ts`         | Request-scoped SSR catalog render and initial-state payload                  |
-| `src/entry-client.ts`         | Client ViewModel seeding and storefront-island hydration                     |
-| `server.ts`                   | Reusable Vite SSR server adapter entry                                       |
+| `src/app/routes.ts`           | The route table (path + template) and the router derived from it                         |
+| `src/app/context.ts`          | `composeContext()` of state/actions/catalog/cart plus view-boundary handlers             |
+| `src/app/index.ts`            | `createApp()` composition root: mounts the shell and routes, then owns teardown          |
+| `src/templates/`              | Compiled templates, `declareContext` typing, and partial composition                     |
+| `src/features/catalog/`       | Product loading, filtering, and selection                                                |
+| `src/features/cart/`          | Cart state, checkout form, and cart commands                                             |
+| `src/infrastructure/`         | Mock API, event bus, and persisted UI preferences                                        |
+| `src/entry-server.ts`         | Request-scoped SSR catalog render and initial-state payload                              |
+| `src/entry-client.ts`         | Client ViewModel seeding and storefront-island hydration                                 |
+| `server.ts`                   | Reusable Vite SSR server adapter entry                                                   |
 
 See [`packages/template-core/README.md`](../../packages/template-core/README.md) for the complete
 template grammar, [`packages/template-core/docs/PRD.md`](../../packages/template-core/docs/PRD.md)

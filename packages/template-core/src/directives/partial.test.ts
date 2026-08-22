@@ -112,4 +112,3 @@ describe('partial hash args and isolation', () => {
     view.dispose();
   });
 });
-

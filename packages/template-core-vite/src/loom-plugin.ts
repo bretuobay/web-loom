@@ -49,8 +49,7 @@ function metadataFor(filePath: string, specifier: string): LoomEmitMetadata {
  * Grammar and diagnostics reuse the same compiler APIs as string-based templates.
  */
 export function templateCoreLoom(options: TemplateCoreLoomPluginOptions = {}): Plugin {
-  const specifier =
-    options.specifier ?? (options.ssr ? DEFAULT_SSR_LOOM_SPECIFIER : DEFAULT_LOOM_SPECIFIER);
+  const specifier = options.specifier ?? (options.ssr ? DEFAULT_SSR_LOOM_SPECIFIER : DEFAULT_LOOM_SPECIFIER);
 
   let buildMode = false;
 
