@@ -1,23 +1,51 @@
 import { declareContext } from '@web-loom/template-core';
-import type { AppContext } from '../app/context';
+import { defineComponent } from '@web-loom/view';
+import type { CartItemDto } from '../infrastructure/api/ports/ecommerce-api-port';
 
-const partial = declareContext<AppContext>();
+export interface CartDrawerProps {
+  open: boolean;
+  items: CartItemDto[];
+  itemCount: number;
+  subtotalCents: number;
+  formatMoney: (value: unknown) => string;
+  onClose: () => void;
+  onUpdateQuantity: (item: CartItemDto, delta: number) => void;
+  onRemove: (item: CartItemDto) => void;
+  onClear: () => void;
+  onCheckout: () => void;
+}
 
-export const cartDrawerTemplate = partial.compile(`{{#if state.cartOpen$}}
-  <div class="drawer-backdrop open" on:click="actions.closeCart">
+const card = declareContext<CartDrawerProps>();
+
+export const cartDrawerTemplate = defineComponent<CartDrawerProps>({
+  name: 'cart',
+  props: [
+    'open',
+    'items',
+    'itemCount',
+    'subtotalCents',
+    'formatMoney',
+    'onClose',
+    'onUpdateQuantity',
+    'onRemove',
+    'onClear',
+    'onCheckout',
+  ],
+  template: card.compile(`{{#if open}}
+  <div class="drawer-backdrop open" on:click="onClose">
   </div>
   <aside class="cart-drawer open">
     <div class="drawer-header">
       <h2>
         Cart
       </h2>
-      <button class="ghost-btn" type="button" on:click="actions.closeCart">
+      <button class="ghost-btn" type="button" on:click="onClose">
         Close
       </button>
     </div>
-    {{#if cart.itemCount > 0}}
+    {{#if itemCount > 0}}
       <ul class="cart-items">
-        {{#each cart.items key=productId}}
+        {{#each items key=productId}}
           <li>
             <img :src="imageUrl" :alt="name" loading="lazy">
             <div>
@@ -29,17 +57,17 @@ export const cartDrawerTemplate = partial.compile(`{{#if state.cartOpen$}}
               </p>
             </div>
             <div class="qty-controls">
-              <button type="button" on:click="updateQuantity(this, -1)" :aria-label="name">
+              <button type="button" on:click="onUpdateQuantity(this, -1)" :aria-label="name">
                 -
               </button>
               <span>
                 {{ quantity }}
               </span>
-              <button type="button" on:click="updateQuantity(this, 1)" :aria-label="name">
+              <button type="button" on:click="onUpdateQuantity(this, 1)" :aria-label="name">
                 +
               </button>
             </div>
-            <button class="text-btn" type="button" on:click="removeItem(this)">
+            <button class="text-btn" type="button" on:click="onRemove(this)">
               Remove
             </button>
           </li>
@@ -56,7 +84,7 @@ export const cartDrawerTemplate = partial.compile(`{{#if state.cartOpen$}}
           Items:
         </span>
         <strong>
-          {{ cart.itemCount }}
+          {{ itemCount }}
         </strong>
       </p>
       <p>
@@ -64,18 +92,19 @@ export const cartDrawerTemplate = partial.compile(`{{#if state.cartOpen$}}
           Subtotal:
         </span>
         <strong>
-          {{ formatMoney(cart.subtotalCents) }}
+          {{ formatMoney(subtotalCents) }}
         </strong>
       </p>
       <div class="drawer-actions">
-        <button class="ghost-btn" type="button" on:click="actions.clearCart">
+        <button class="ghost-btn" type="button" on:click="onClear">
           Clear cart
         </button>
-        <button class="brand-btn" type="button" :disabled="cart.itemCount === 0" on:click="actions.goToCheckout">
+        <button class="brand-btn" type="button" :disabled="itemCount === 0" on:click="onCheckout">
           Checkout
         </button>
       </div>
     </footer>
   </aside>
 {{/if}}
-`);
+`),
+});

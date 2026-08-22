@@ -14,8 +14,8 @@ makes the hydration boundary visible in the source.
 
 The app is a practical Phase 2 and Phase 3 example of the template engine:
 
-- The application shell composes header, cart, command palette, confirmation, and toast views with
-  named local partials.
+- The application shell is a slotted layout. Header, cart, palette, confirmation, and toast are
+  isolated components; the chrome call site passes every prop they read.
 - The storefront renders each product with an isolated `product-card` component
   (`{{> product-card product=this onSelect=../selectProduct …}}`) and a keyed `each` block.
 - The theme control uses `switch`/`case`/`default` rendering.

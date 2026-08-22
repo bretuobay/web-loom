@@ -5,10 +5,10 @@ import type { TemplateAppViewModel } from '../TemplateAppViewModel';
 /**
  * The single context every `.loom`/`compile()` template mounts against.
  * Domain state and commands stay on `state`/`actions`/`catalog`/`cart`; the
- * remaining members are view-boundary handlers — DOM event adapters and flat
- * aliases of nested `actions.*` methods, needed because template-core's
- * call-form expressions (`updateQuantity(this, 1)`) only resolve a single
- * identifier.
+ * remaining members are view-boundary handlers — DOM event adapters and
+ * `this`-safe aliases of `actions.*` methods. Hash-arg function props cannot
+ * keep the original method receiver, and call-form expressions only resolve a
+ * single identifier.
  */
 export function createAppContext(viewModel: TemplateAppViewModel) {
   const { state, actions, catalog, cart } = viewModel;
@@ -96,6 +96,46 @@ export function createAppContext(viewModel: TemplateAppViewModel) {
     return actions.formatMoney(value);
   }
 
+  function openCart(): void {
+    actions.openCart();
+  }
+
+  function closeCart(): void {
+    actions.closeCart();
+  }
+
+  function openPalette(): void {
+    actions.openPalette();
+  }
+
+  function closePalette(): void {
+    actions.closePalette();
+  }
+
+  function toggleTheme(): void {
+    actions.toggleTheme();
+  }
+
+  function clearCart(): void {
+    actions.clearCart();
+  }
+
+  function goToCheckout(): void {
+    actions.goToCheckout();
+  }
+
+  function stopEvent(event: Event): void {
+    actions.stopEvent(event);
+  }
+
+  function cancelPending(): void {
+    actions.cancelPending();
+  }
+
+  function confirmPending(): void {
+    actions.confirmPending();
+  }
+
   return composeContext(
     { state, actions, catalog, cart },
     {
@@ -115,6 +155,16 @@ export function createAppContext(viewModel: TemplateAppViewModel) {
       setPaletteQueryFromEvent,
       handlePaletteKey,
       executePaletteCommand,
+      openCart,
+      closeCart,
+      openPalette,
+      closePalette,
+      toggleTheme,
+      clearCart,
+      goToCheckout,
+      stopEvent,
+      cancelPending,
+      confirmPending,
     },
   );
 }
