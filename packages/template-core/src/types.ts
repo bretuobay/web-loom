@@ -152,6 +152,12 @@ export interface TemplateOptions {
    */
   createContext?(props: object): { context: object; dispose?(): void };
   /**
+   * Declared hash-arg names for this template when used as a partial.
+   * Analyze compares `{{> name count=n}}` against this list. Omitted means
+   * the call site is unchecked (legacy / open components).
+   */
+  props?: readonly string[];
+  /**
    * Enables development-only diagnostics, currently `UNRESOLVED_CONTEXT_PATH`
    * warnings when a template path's root segment does not exist on the scope
    * it resolves against. The Vite plugins turn this on in dev builds.
@@ -203,6 +209,8 @@ export interface Template<TVm extends object = object> {
   isolated?: boolean;
   /** See {@link TemplateOptions.createContext}. */
   createContext?(props: object): { context: object; dispose?(): void };
+  /** See {@link TemplateOptions.props}. */
+  props?: readonly string[];
   /**
    * Local `{{> name}}` map for this template. Set at `compile()` or attached
    * later (e.g. `withPartials`) so a page can import children without the
@@ -280,7 +288,13 @@ export interface PrecompileOptions {
 export interface AnalyzeOptions extends PrecompileOptions {
   /** When provided, unresolved `{{> name }}` references emit `MISSING_PARTIAL` diagnostics. */
   partials?: Record<string, PartialSource>;
-  /** Treat missing partials as errors instead of warnings during analysis. */
+  /**
+   * Declared hash-arg names per partial, used when the `partials` value is a
+   * string stub (lint/editor) or has no `Template.props`. Live `Template.props`
+   * wins when both are present.
+   */
+  partialProps?: Record<string, readonly string[]>;
+  /** Treat missing partials and prop mismatches as errors instead of warnings. */
   strictPartials?: boolean;
   /**
    * Top-level keys of the context object the template mounts against. When

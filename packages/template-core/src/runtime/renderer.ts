@@ -1,4 +1,5 @@
 import { parseTemplate } from '../compiler/parser.js';
+import { collectStaticDiagnostics } from '../compiler/static-diagnostics.js';
 import { syntaxErrorToDiagnostic } from '../compiler/syntax-diagnostic.js';
 import { applyBindings, instantiate } from './bindings.js';
 import { DisposalBag } from './disposal.js';
@@ -6,11 +7,13 @@ import { createTemplateRegistry } from './registry.js';
 import { deserializeRootTemplate } from '../compiler/plan.js';
 import { reportDiagnostic } from './diagnostics.js';
 import type {
+  AnalyzeOptions,
   Disposable,
   RenderContext,
   RootTemplate,
   Scope,
   Template,
+  TemplateDiagnostic,
   TemplateOptions,
   TemplateRegistry,
 } from '../types.js';
@@ -32,6 +35,7 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
   isolated?: boolean;
   createContext?: Template['createContext'];
   partials?: Template['partials'];
+  props?: readonly string[];
 
   constructor(
     readonly root: RootTemplate,
@@ -40,6 +44,18 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
     this.isolated = options.isolated;
     this.createContext = options.createContext;
     this.partials = options.partials;
+    this.props = options.props;
+  }
+
+  collectDiagnostics(options: AnalyzeOptions = {}): TemplateDiagnostic[] {
+    return collectStaticDiagnostics(this.root, this.options.sourceMap, {
+      name: options.name ?? this.options.name,
+      sourcePath: options.sourcePath ?? this.options.sourcePath,
+      partials: options.partials ?? this.partials,
+      partialProps: options.partialProps,
+      strictPartials: options.strictPartials ?? this.options.strictPartials,
+      contextKeys: options.contextKeys,
+    });
   }
 
   private makeContext(): RenderContext {
@@ -245,6 +261,16 @@ export function getTemplateRoot(template: Template): RootTemplate {
   if (!(template instanceof TemplateImpl))
     throw new TypeError('The supplied Template was not compiled by template-core.');
   return template.root;
+}
+
+/**
+ * Runs the same static checks as {@link analyzeTemplate} against an already
+ * compiled browser template — used when children are attached after compile
+ * (`defineComponent({ partials })`, `withPartials`).
+ */
+export function analyzeCompiledTemplate(template: Template, options: AnalyzeOptions = {}): TemplateDiagnostic[] {
+  if (!(template instanceof TemplateImpl)) return [];
+  return template.collectDiagnostics(options);
 }
 
 /** Browser-only. Mutates the module-level {@link globalRegistry} — has no effect on SSR renders. */

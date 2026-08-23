@@ -20,6 +20,16 @@ describe('collectTemplateLintIssues', () => {
     expect(issues).toEqual([expect.objectContaining({ diagnosticCode: 'MISSING_PARTIAL', severity: 'error' })]);
   });
 
+  it('reports missing hash-arg props when a props manifest is configured', () => {
+    const code = `${importPreamble}export const page = compile(\`{{> card count=n}}\`);`;
+    const issues = collectTemplateLintIssues('/app/page.ts', code, {
+      partials: { card: 'src/card.ts' },
+      partialProps: { card: ['count', 'href'] },
+      strictPartials: true,
+    });
+    expect(issues).toEqual([expect.objectContaining({ diagnosticCode: 'MISSING_PARTIAL_PROP', severity: 'error' })]);
+  });
+
   it('skips non-literal compile sources', () => {
     const code = `${importPreamble}import { source } from './source';\nexport const t = compile(source);`;
     expect(collectTemplateLintIssues('/app/dynamic.ts', code, {})).toEqual([]);

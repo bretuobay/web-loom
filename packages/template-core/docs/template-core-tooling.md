@@ -338,6 +338,9 @@ export default [
           header: 'src/templates/header.ts',
           cart: 'src/templates/cart-drawer.ts',
         },
+        partialProps: {
+          cart: ['open', 'items', 'onClose'],
+        },
       },
     },
   },
@@ -350,9 +353,10 @@ Rules (all backed by `analyzeTemplate()`):
 | --------------------------------------- | ---------------------------------- |
 | `template-core/no-invalid-expression`   | error                              |
 | `template-core/no-unsupported-modifier` | error                              |
-| `template-core/no-missing-partial`      | error (when partials manifest set) |
-| `template-core/no-raw-html`             | warn                               |
-| `template-core/no-unsafe-url`           | warn                               |
+| `template-core/no-missing-partial`       | error (when partials manifest set) |
+| `template-core/no-invalid-partial-props` | warn (when `partialProps` is set)  |
+| `template-core/no-raw-html`              | warn                               |
+| `template-core/no-unsafe-url`            | warn                               |
 
 Reference config: [`apps/ecommerce-template-core/eslint.config.mjs`](../../apps/ecommerce-template-core/eslint.config.mjs)
 
@@ -375,6 +379,7 @@ const { ok, diagnostics, plan } = analyzeTemplate(source, {
   name: 'Catalog',
   sourcePath: 'src/catalog.ts',
   partials: { card: '' }, // keys only — values unused for lint-style checks
+  partialProps: { card: ['count', 'href'] },
 });
 
 if (!ok) {

@@ -8,6 +8,8 @@ export interface CollectSourceLinkedDiagnosticsOptions {
   specifiers?: string[];
   /** Partial names available at this call site (keys only — values are documentation paths). */
   partials?: Record<string, string>;
+  /** Declared hash-arg names per partial — enables `MISSING_PARTIAL_PROP` / `UNKNOWN_PARTIAL_PROP`. */
+  partialProps?: Record<string, readonly string[]>;
   strictPartials?: boolean;
   /** Top-level context keys templates mount against — enables `UNKNOWN_CONTEXT_PATH` analysis. */
   contextKeys?: string[];
@@ -26,6 +28,7 @@ function analyzeMatch(
     name: match.name,
     sourcePath: filePath,
     partials,
+    partialProps: options.partialProps,
     strictPartials: options.strictPartials ?? Boolean(partials),
     contextKeys: options.contextKeys,
   });

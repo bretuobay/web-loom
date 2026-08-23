@@ -116,7 +116,8 @@ actions, use explicit setter bindings:
 
 `use:` actions may return `update()` and/or `dispose()` for reactive element behavior.
 
-- Expressions are a small, hand-rolled, CSP-safe subset (literals, scope paths, helper calls, `!`,
+- Expressions are a small, hand-rolled, CSP-safe subset (literals, scope paths, helper/method
+  calls including dotted callees like `actions.openCart()`, `!`,
   `===`/`!==`/`<`/`<=`/`>`/`>=`, `&&`/`||`/`??`) — not JavaScript. See PRD §6.7.
 - Signal detection is duck-typed (`isSignal()`), never based on the `$` naming convention.
 - `:name` assigns a DOM property when `name` is one (`value`, `checked`, …), otherwise `setAttribute`.
@@ -296,7 +297,8 @@ import { analyzeTemplate, formatTemplate, precompileNode } from '@web-loom/templ
 const { ok, plan, diagnostics } = analyzeTemplate(source, {
   name: 'Catalog',
   sourcePath: 'src/catalog.ts',
-  partials: { card: cardSource }, // optional static partial check
+  partials: { card: cardTemplate }, // optional static partial check
+  partialProps: { card: ['count', 'href'] }, // optional hash-arg vs props check
 });
 if (!ok) diagnostics.forEach((d) => console.error(d));
 

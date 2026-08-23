@@ -14,6 +14,7 @@ export function collectTemplateLintIssues(
   return collectSourceLinkedDiagnostics(filename, sourceText, {
     specifiers: settings.specifiers,
     partials: settings.partials,
+    partialProps: settings.partialProps,
     strictPartials: settings.strictPartials,
     contextKeys: settings.contextKeys,
   }).map((diagnostic) => ({

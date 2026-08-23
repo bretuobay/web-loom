@@ -1,4 +1,5 @@
 import type { PartialSource, Template } from '@web-loom/template-core';
+import { warnPartialPropDiagnostics } from './report-partial-props.js';
 
 export interface ComponentSetupResult {
   dispose?(): void;
@@ -23,9 +24,11 @@ export interface DefineComponentOptions<TProps extends object> {
 export function defineComponent<TProps extends object>(options: DefineComponentOptions<TProps>): Template<TProps> {
   const template = options.template as Template<TProps>;
   template.isolated = true;
+  template.props = options.props;
   if (options.partials) {
     template.partials = { ...template.partials, ...options.partials };
   }
+  warnPartialPropDiagnostics(template, options.name);
   template.createContext = (rawProps) => {
     const props = pickProps(rawProps, options.props) as TProps;
     const extras = options.setup?.(props);

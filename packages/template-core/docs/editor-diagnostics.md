@@ -56,7 +56,8 @@ Vite prints them to the integrated terminal.
 import { collectSourceLinkedDiagnostics } from '@web-loom/template-core-tooling';
 
 const diagnostics = collectSourceLinkedDiagnostics('src/templates/page.ts', source, {
-  partials: { header: 'src/templates/header.ts' },
+  partials: { header: 'src/templates/header.ts', card: 'src/templates/card.ts' },
+  partialProps: { card: ['count', 'href'] },
   strictPartials: true,
 });
 

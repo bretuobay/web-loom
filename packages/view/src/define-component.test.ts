@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { signal } from '@web-loom/signals-core';
 import { compile } from '@web-loom/template-core';
 import { defineComponent } from './define-component.js';
@@ -90,5 +90,23 @@ describe('defineComponent', () => {
     const view = compile('{{> card title=name}}', { partials: { card } }).mount(root, { name: 'Ada' });
     expect(root.querySelector('em')?.textContent).toBe('Ada');
     view.dispose();
+  });
+
+  it('stamps props and warns when a child call site is incomplete', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const inner = defineComponent<{ label: string }>({
+      name: 'inner',
+      props: ['label'],
+      template: compile('<em>{{ label }}</em>'),
+    });
+    defineComponent({
+      name: 'card',
+      template: compile('<article>{{> inner}}</article>'),
+      partials: { inner },
+    });
+
+    expect(inner.props).toEqual(['label']);
+    expect(warn).toHaveBeenCalledWith('[MISSING_PARTIAL_PROP] Missing prop "label" on partial "inner".');
+    warn.mockRestore();
   });
 });

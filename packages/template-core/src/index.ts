@@ -1,4 +1,10 @@
-export { compile, fromPrecompiled, registerPartial, unregisterPartial } from './runtime/renderer.js';
+export {
+  analyzeCompiledTemplate,
+  compile,
+  fromPrecompiled,
+  registerPartial,
+  unregisterPartial,
+} from './runtime/renderer.js';
 export { createTemplateRegistry } from './runtime/registry.js';
 export { createTemplateOutlet } from './runtime/outlet.js';
 export { anyLoading, composeContext, firstError } from './context.js';
@@ -23,6 +29,8 @@ export type {
   TemplateDiagnostics,
   TemplateDiagnostic,
   SourceLocation,
+  AnalyzeOptions,
+  AnalyzeResult,
   TemplateOptions,
   TemplateOutlet,
   TemplateRegistry,

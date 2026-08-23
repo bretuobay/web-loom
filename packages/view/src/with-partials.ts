@@ -1,4 +1,5 @@
 import type { PartialSource, Template } from '@web-loom/template-core';
+import { warnPartialPropDiagnostics } from './report-partial-props.js';
 
 /**
  * Attaches a local `{{> name}}` map to an already-compiled template.
@@ -10,5 +11,6 @@ export function withPartials<TVm extends object>(
   partials: Record<string, PartialSource>,
 ): Template<TVm> {
   template.partials = { ...template.partials, ...partials };
+  warnPartialPropDiagnostics(template);
   return template;
 }

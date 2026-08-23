@@ -301,13 +301,14 @@ not JavaScript. This is a foundational constraint, not an implementation detail:
   - Paths: dotted identifiers into the scope chain (`user.profile.name`), `this`, parent hops
     (`../title`), iteration helpers (`@index`, `@first`, …), and `$event` inside `on:` handlers.
     Signals encountered along a path are unwrapped per §5.
-  - Helper calls: `formatDate(createdAt$)` — the callee resolves through `options.helpers`, then the
-    scope chain; arguments are expressions.
+  - Helper / method calls: `formatDate(createdAt$)`, `actions.openCart()`, `greenhouseForm.edit(this)` —
+    a bare identifier or a dotted scope path. A bare name resolves through `options.helpers` first,
+    then the scope chain; dotted callees walk the scope chain and invoke with the owning object as
+    `this`. Arguments are expressions.
   - Unary `!`; comparisons `===`, `!==`, `<`, `<=`, `>`, `>=`; logical `&&`, `||`, `??`.
-- **What it cannot contain:** assignments, arithmetic chains, arbitrary method calls, `new`, template
-  literals, ternaries — anything beyond the list above. This is a feature, not a limitation: complex
-  logic belongs in a `computed()` on the ViewModel, where it is named, testable, and shared across
-  every view — which is the MVVM position this whole package exists to demonstrate.
+- **What it cannot contain:** assignments, arithmetic chains, `this.foo()`, `../remove()`, `new`,
+  template literals, ternaries — anything beyond the list above. Complex logic belongs in a
+  `computed()` on the ViewModel, where it is named, testable, and shared across every view.
 - **Whitespace:** lines containing only a block tag (`{{#each …}}`, `{{/if}}`, `{{else}}`) are
   trimmed (Mustache "standalone line" behavior), so block markers don't leave stray whitespace text
   nodes between list items.
@@ -560,6 +561,16 @@ out of scope.
 **Phase 8 — Local composition:** `Template.partials` (set at `compile()` or attached later) is the
 import map for `{{> name}}`. Apps compose with `withPartials` / `defineComponent({ partials })`
 instead of the browser-only global registry.
+
+**Phase 9 — Typed call sites:** analyze/precompile (and the ESLint plugin) compare
+`{{> card count=n href=path}}` to `defineComponent({ props })` / `Template.props`. Missing or
+unknown hash args warn by default and error under `strictPartials`. Components without a `props`
+list stay unchecked. Engine syntax does not change.
+
+**Phase 10 — Dotted callees:** call-form expressions accept a dotted scope path
+(`actions.openCart()`, `greenhouseForm.edit(this)`). Hash-arg function props bind the method to
+its owner so `onOpenCart=actions.openCart` does not drop `this`. Parent hops on a call
+(`../remove()`) and `this.foo()` stay rejected — callees already walk the scope chain.
 
 ## 12. Success Criteria
 

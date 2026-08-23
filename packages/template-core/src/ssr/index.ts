@@ -12,6 +12,7 @@ class ServerTemplate<TVm extends object> implements Template<TVm> {
   isolated?: boolean;
   createContext?: Template['createContext'];
   partials?: Template['partials'];
+  props?: readonly string[];
 
   constructor(
     private readonly source: string,
@@ -21,6 +22,7 @@ class ServerTemplate<TVm extends object> implements Template<TVm> {
     this.isolated = options.isolated;
     this.createContext = options.createContext;
     this.partials = options.partials;
+    this.props = options.props;
   }
 
   mount(): Disposable {

@@ -32,16 +32,16 @@ export const greenhouseCard = defineComponent<{ count: number; href: string }>({
 ```
 
 The call site lists every value the card can read. The card does not inherit the application context bag.
+`analyzeTemplate`, the ESLint plugin, and `defineComponent({ partials })` compare those hash args to
+`props` and warn (or error under `strictPartials`) on missing or unknown names.
 
-Pages import children the same way: wrap the compiled `.loom` with `withPartials` instead of a global `registerPartial` bag.
+Pages import children the same way: pass a local `partials` map instead of a global `registerPartial` bag.
 
 ```ts
-import { withPartials } from '@web-loom/view';
-import template from './dashboard.loom';
-import { greenhouseCard } from './greenhouse-card';
-
-export const dashboardTemplate = withPartials(template, {
-  'greenhouse-card': greenhouseCard,
+export const dashboard = defineComponent({
+  name: 'dashboard',
+  template,
+  partials: { 'greenhouse-card': greenhouseCard },
 });
 ```
 
