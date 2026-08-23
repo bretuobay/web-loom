@@ -1,5 +1,5 @@
 import type { ExpressionNode, Scope, Template } from '../types.js';
-import { evaluate } from './evaluate.js';
+import { bindResolvedFunction, evaluate, resolveScopeValue } from './evaluate.js';
 
 export interface PartialContextSpec {
   context: ExpressionNode | null;
@@ -32,7 +32,10 @@ export function resolvePartialContext(
   if (spec.args) {
     const args: Record<string, unknown> = {};
     for (const [key, expr] of Object.entries(spec.args)) {
-      args[key] = evaluate(expr, scope, helpers);
+      args[key] =
+        expr.kind === 'path'
+          ? bindResolvedFunction(resolveScopeValue(expr.segments, expr.parentHops, scope))
+          : evaluate(expr, scope, helpers);
     }
     props = args;
   } else if (spec.context) {

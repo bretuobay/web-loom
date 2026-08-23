@@ -93,14 +93,13 @@ export function resolveWritableTarget(segments: string[], parentHops: number, sc
  * Resolves a single-segment name by walking *up* the Scope Chain (current
  * scope's `self`/`locals`, then each ancestor's) until it's found. Used only
  * for resolving the *callable* in event handlers and call-form helper
- * callees — actions like `remove`/`increment` conventionally live on the
- * root ViewModel and should be reachable from inside `{{#each}}`/`{{#if}}`
- * without an author having to count `../` hops that would break if the
- * template were later nested one level deeper. Plain data paths do **not**
- * use this — `evaluate`/`resolveScopeValue` deliberately do not fall back to
- * an outer scope for a bare identifier (§5), since silently reading through
- * to a same-named outer property would be exactly the "hidden magic" this
- * engine avoids for data.
+ * callees — `remove`, `actions.openCart`, `greenhouseForm.edit` conventionally
+ * live on the root ViewModel and should be reachable from inside
+ * `{{#each}}`/`{{#if}}` without counting `../` hops. Plain data paths do
+ * **not** use this — `evaluate`/`resolveScopeValue` deliberately do not fall
+ * back to an outer scope for a bare identifier (§5), since silently reading
+ * through to a same-named outer property would be exactly the "hidden magic"
+ * this engine avoids for data.
  */
 export function resolveInChain(segments: string[], startScope: Scope): ResolvedValue {
   let s: Scope | null = startScope;
@@ -121,6 +120,18 @@ export function truthy(value: unknown): boolean {
  * `effect()` for reactive bindings — every Signal read via
  * `resolveScopeValue` is auto-tracked by signals-core.
  */
+/**
+ * Binds a resolved method to its owner so passing `actions.openCart` as a
+ * hash arg does not drop `this`. Already-bound functions stay callable.
+ */
+export function bindResolvedFunction(resolved: ResolvedValue): unknown {
+  const { value, owner } = resolved;
+  if (typeof value === 'function' && owner != null && typeof owner === 'object') {
+    return value.bind(owner);
+  }
+  return value;
+}
+
 export function evaluate(
   node: ExpressionNode,
   scope: Scope,
@@ -134,13 +145,14 @@ export function evaluate(
       return resolveScopeValue(node.segments, node.parentHops, scope).value;
 
     case 'helper-call': {
+      const calleePath = node.callee.split('.');
       let fn: unknown;
       let thisArg: unknown;
-      if (Object.prototype.hasOwnProperty.call(helpers, node.callee)) {
+      if (calleePath.length === 1 && Object.prototype.hasOwnProperty.call(helpers, node.callee)) {
         fn = helpers[node.callee];
         thisArg = undefined;
       } else {
-        const resolved = resolveInChain([node.callee], scope);
+        const resolved = resolveInChain(calleePath, scope);
         fn = resolved.value;
         thisArg = resolved.owner;
       }

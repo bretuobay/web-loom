@@ -125,6 +125,22 @@ describe('partial hash args and isolation', () => {
     expect(disposed).toBe(1);
   });
 
+  it('binds a method passed as a hash arg so the child keeps the owner this', () => {
+    const actions = {
+      prefix: '$',
+      format(this: { prefix: string }, value: unknown) {
+        return `${this.prefix}${value}`;
+      },
+    };
+    const root = document.createElement('div');
+    const view = compile('{{> card formatMoney=actions.format amount=n}}', {
+      partials: { card: '<span>{{ formatMoney(amount) }}</span>' },
+    }).mount(root, { actions, n: 12 });
+
+    expect(root.textContent).toBe('$12');
+    view.dispose();
+  });
+
   it('resolves children from template.partials without the global registry', () => {
     const page = compile('{{> card}}');
     page.partials = { card: '<span>{{ title }}</span>' };
