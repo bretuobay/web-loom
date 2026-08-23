@@ -35,8 +35,6 @@ export const greenhouseList = defineComponent<AppContext>({
     );
     return {
       greenhouseForm,
-      editGreenhouse: greenhouseForm.edit,
-      deleteGreenhouse: greenhouseForm.remove,
       sizeOptions: GREENHOUSE_SIZE_OPTIONS,
     };
   },

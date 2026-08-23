@@ -61,7 +61,7 @@
     {{#if greenHouses.data$.length > 0}}
       <ul class="card-content list">
         {{#each greenHouses.data$ key=id}}
-          {{> greenhouse-item item=this onEdit=../editGreenhouse onDelete=../deleteGreenhouse}}
+          {{> greenhouse-item item=this onEdit=../greenhouseForm.edit onDelete=../greenhouseForm.remove}}
         {{/each}}
       </ul>
     {{else}}

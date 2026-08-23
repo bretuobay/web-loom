@@ -32,8 +32,8 @@ remains the ecommerce/SSR reference; this app is the MVVM demo counterpart to `m
   ViewModels and the delegated `links` action. Screen-owned loading, forms, and helpers
   are created in that screen's `setup`.
 - Greenhouse create/update/delete is one `createEntityForm(...)` call in the list page
-  `setup`; templates bind `greenhouseForm.fields.name`, `greenhouseForm.submit`, and the
-  `editGreenhouse(this)` / `deleteGreenhouse(this)` aliases.
+  `setup`; templates bind `greenhouseForm.fields.name`, `greenhouseForm.submit`, and
+  `onEdit=../greenhouseForm.edit` / `onDelete=../greenhouseForm.remove`.
 - The readings card's `setup` builds the Chart.js `use:` action against `sensorReadings.data$`.
 - Dev builds enable `UNRESOLVED_CONTEXT_PATH` console diagnostics: a misspelled template path warns
   immediately instead of rendering empty output.
