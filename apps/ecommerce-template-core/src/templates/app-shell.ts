@@ -1,7 +1,6 @@
 import { declareContext } from '@web-loom/template-core';
 import type { PartialContexts } from '@web-loom/template-core';
 import { defineComponent } from '@web-loom/view';
-import type { CartItemDto } from '../infrastructure/api/ports/ecommerce-api-port';
 import type { AppContext } from '../app/context';
 import { cartDrawer, type CartDrawerProps } from './cart-drawer';
 import { commandPalette, type CommandPaletteProps } from './command-palette';
@@ -39,16 +38,16 @@ export const appShell = defineComponent<AppContext>({
   template: chrome.compile<AppShellPartials>(
     `{{#> app-shell}}
   {{#slot header}}
-    {{> header theme=state.theme$ cartCount=cart.itemCount onNavigate=navigateFromClick onOpenPalette=openPalette onToggleTheme=toggleTheme onOpenCart=openCart}}
+    {{> header theme=state.theme$ cartCount=cart.itemCount onNavigate=navigateFromClick onOpenPalette=actions.openPalette onToggleTheme=actions.toggleTheme onOpenCart=actions.openCart}}
   {{/slot}}
   {{#slot cart}}
-    {{> cart open=state.cartOpen$ items=cart.items itemCount=cart.itemCount subtotalCents=cart.subtotalCents formatMoney=formatMoney onClose=closeCart onUpdateQuantity=updateQuantity onRemove=removeItem onClear=clearCart onCheckout=goToCheckout}}
+    {{> cart open=state.cartOpen$ items=cart.items itemCount=cart.itemCount subtotalCents=cart.subtotalCents formatMoney=actions.formatMoney onClose=actions.closeCart onUpdateQuantity=actions.updateQuantity onRemove=actions.removeItem onClear=actions.clearCart onCheckout=actions.goToCheckout}}
   {{/slot}}
   {{#slot palette}}
-    {{> palette palette=state.paletteState$ onClose=closePalette onStop=stopEvent onQuery=setPaletteQueryFromEvent onKey=handlePaletteKey onExecute=executePaletteCommand}}
+    {{> palette palette=state.paletteState$ onClose=actions.closePalette onStop=actions.stopEvent onQuery=setPaletteQueryFromEvent onKey=handlePaletteKey onExecute=executePaletteCommand}}
   {{/slot}}
   {{#slot confirmation}}
-    {{> confirmation pending=state.pendingConfirmation$ onCancel=cancelPending onConfirm=confirmPending onStop=stopEvent}}
+    {{> confirmation pending=state.pendingConfirmation$ onCancel=actions.cancelPending onConfirm=actions.confirmPending onStop=actions.stopEvent}}
   {{/slot}}
   {{#slot toast}}
     {{> toast message=state.toastMessage$}}
@@ -68,15 +67,12 @@ export const appShell = defineComponent<AppContext>({
   ),
   setup({ actions }) {
     return {
-      formatMoney: (value: unknown) => actions.formatMoney(value),
       navigateFromClick(event: Event): void {
         const anchor = event.currentTarget;
         if (!(anchor instanceof HTMLAnchorElement)) return;
         event.preventDefault();
         void actions.navigate(anchor.getAttribute('href') ?? '/');
       },
-      updateQuantity: (item: CartItemDto, delta: number) => actions.updateQuantity(item, delta),
-      removeItem: (item: CartItemDto) => actions.removeItem(item),
       setPaletteQueryFromEvent: (event: Event) => actions.setPaletteQuery(readInputValue(event)),
       handlePaletteKey(event: Event): void {
         if (!(event instanceof KeyboardEvent)) return;
@@ -98,16 +94,6 @@ export const appShell = defineComponent<AppContext>({
         const commandId = readDataAttribute(event, 'command-id');
         if (commandId) actions.executePaletteCommand(commandId);
       },
-      openCart: () => actions.openCart(),
-      closeCart: () => actions.closeCart(),
-      openPalette: () => actions.openPalette(),
-      closePalette: () => actions.closePalette(),
-      toggleTheme: () => actions.toggleTheme(),
-      clearCart: () => actions.clearCart(),
-      goToCheckout: () => actions.goToCheckout(),
-      stopEvent: (event: Event) => actions.stopEvent(event),
-      cancelPending: () => actions.cancelPending(),
-      confirmPending: () => actions.confirmPending(),
     };
   },
 });

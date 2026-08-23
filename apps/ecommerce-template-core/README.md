@@ -17,7 +17,7 @@ The app is a practical Phase 2 and Phase 3 example of the template engine:
 - The application shell is a slotted layout. Header, cart, palette, confirmation, and toast are
   isolated components; the chrome call site passes every prop they read.
 - The storefront renders each product with an isolated `product-card` component
-  (`{{> product-card product=this onSelect=../selectProduct …}}`) and a keyed `each` block.
+  (`{{> product-card product=this onSelect=../actions.selectProduct …}}`) and a keyed `each` block.
 - The theme control uses `switch`/`case`/`default` rendering.
 - Product search uses `bind:value` directly against a writable signal.
 - Navigation and nested cart actions use event modifiers such as `.prevent` and `.stop`.
@@ -32,9 +32,9 @@ The app is a practical Phase 2 and Phase 3 example of the template engine:
   wiring; `header.loom`'s two nav links still call `navigateFromClick` explicitly to demonstrate the
   bound-handler form side by side with the delegated one.
 - The mount context is assembled with `composeContext()` (`src/app/context.ts`): the ViewModel's
-  `state`/`actions`/`catalog`/`cart` stay namespaced. Chrome and screen `setup` add `this`-safe
-  aliases of `actions.*` because hash-arg function props drop the method receiver and call-form
-  expressions only resolve a single identifier.
+  `state`/`actions`/`catalog`/`cart` stay namespaced. Templates call `actions.*` directly
+  (`{{ actions.formatMoney(price) }}`, `onOpenCart=actions.openCart`). `setup` keeps only
+  DOM adapters (read an input, map a key, prevent-and-navigate).
 - The SSR storefront island is constrained by the same centered `1200px` content layout as the
   client-rendered routes; only the catalog island is server-rendered, not the browser-owned shell.
 - Checkout fields use `bind:value` with explicit `bind:set` callbacks, keeping form-library writes

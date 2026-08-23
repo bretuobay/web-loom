@@ -36,7 +36,7 @@ export const storefrontTemplateSource = `
     <div class="browser-grid">
       <div class="product-list">
         {{#if catalog.filteredProducts.length > 0}}
-          {{#each catalog.filteredProducts key=id}}{{> product-card product=this formatMoney=../formatMoney onSelect=../selectProduct onAdd=../addToCart selected=../catalog.selectedProduct.id === id}}{{/each}}
+          {{#each catalog.filteredProducts key=id}}{{> product-card product=this formatMoney=../actions.formatMoney onSelect=../actions.selectProduct onAdd=../actions.addToCart selected=../catalog.selectedProduct.id === id}}{{/each}}
         {{else}}
           {{#if catalog.searchQuery}}
             <div class="empty-card">No products found for this search.</div>
@@ -52,7 +52,7 @@ export const storefrontTemplateSource = `
           <p>{{ catalog.selectedProduct.description }}</p>
           <dl>
             <div><dt>Category</dt><dd>{{ catalog.selectedProduct.category }}</dd></div>
-            <div><dt>Price</dt><dd>{{ formatMoney(catalog.selectedProduct.priceCents) }}</dd></div>
+            <div><dt>Price</dt><dd>{{ actions.formatMoney(catalog.selectedProduct.priceCents) }}</dd></div>
             <div><dt>Stock</dt><dd>{{ catalog.selectedProduct.stock }}</dd></div>
           </dl>
           <button class="brand-btn" type="button" on:click="actions.addSelectedToCart">Add selected item</button>

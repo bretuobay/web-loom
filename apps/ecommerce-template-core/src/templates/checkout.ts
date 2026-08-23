@@ -29,15 +29,15 @@ export const checkout = defineComponent<AppContext>({
         Total
       </span>
       <strong>
-        {{ formatMoney(cart.subtotalCents) }}
+        {{ actions.formatMoney(cart.subtotalCents) }}
       </strong>
     </p>
   </div>
   <label class="field-label" for="checkout-email">
     Email
   </label>
-  <input id="checkout-email" class="text-input" bind:value="state.checkoutState$.values.email" bind:set="setCheckoutEmail"
-      on:blur="touchCheckoutEmail"
+  <input id="checkout-email" class="text-input" bind:value="state.checkoutState$.values.email" bind:set="actions.setCheckoutEmail"
+      on:blur="actions.touchCheckoutField('email')"
       placeholder="you@example.com">
   {{#if state.checkoutState$.errors.email}}
     <p class="field-error">
@@ -47,8 +47,8 @@ export const checkout = defineComponent<AppContext>({
   <label class="field-label" for="checkout-address">
     Shipping Address
   </label>
-  <textarea id="checkout-address" class="text-input text-area" bind:value="state.checkoutState$.values.shippingAddress" bind:set="setCheckoutAddress"
-      on:blur="touchCheckoutAddress"
+  <textarea id="checkout-address" class="text-input text-area" bind:value="state.checkoutState$.values.shippingAddress" bind:set="actions.setCheckoutAddress"
+      on:blur="actions.touchCheckoutField('shippingAddress')"
       placeholder="Street, city, state, zip">
   </textarea>
   {{#if state.checkoutState$.errors.shippingAddress}}
@@ -59,8 +59,8 @@ export const checkout = defineComponent<AppContext>({
   <label class="field-label" for="checkout-notes">
     Notes (optional)
   </label>
-  <textarea id="checkout-notes" class="text-input text-area" bind:value="state.checkoutState$.values.notes" bind:set="setCheckoutNotes"
-      on:blur="touchCheckoutNotes"
+  <textarea id="checkout-notes" class="text-input text-area" bind:value="state.checkoutState$.values.notes" bind:set="actions.setCheckoutNotes"
+      on:blur="actions.touchCheckoutField('notes')"
       placeholder="Delivery instructions">
   </textarea>
   {{#if state.checkoutState$.errors.notes}}
@@ -73,15 +73,4 @@ export const checkout = defineComponent<AppContext>({
   </button>
 </section>
 `),
-  setup({ actions }) {
-    return {
-      formatMoney: (value: unknown) => actions.formatMoney(value),
-      setCheckoutEmail: (value: string) => actions.setCheckoutEmail(value),
-      setCheckoutAddress: (value: string) => actions.setCheckoutAddress(value),
-      setCheckoutNotes: (value: string) => actions.setCheckoutNotes(value),
-      touchCheckoutEmail: () => actions.touchCheckoutField('email'),
-      touchCheckoutAddress: () => actions.touchCheckoutField('shippingAddress'),
-      touchCheckoutNotes: () => actions.touchCheckoutField('notes'),
-    };
-  },
 });
