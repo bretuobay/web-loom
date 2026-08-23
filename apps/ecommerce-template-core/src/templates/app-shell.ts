@@ -1,12 +1,13 @@
 import { declareContext } from '@web-loom/template-core';
 import type { PartialContexts } from '@web-loom/template-core';
 import { defineComponent } from '@web-loom/view';
+import type { CartItemDto } from '../infrastructure/api/ports/ecommerce-api-port';
 import type { AppContext } from '../app/context';
-import { cartDrawerTemplate, type CartDrawerProps } from './cart-drawer';
-import { commandPaletteTemplate, type CommandPaletteProps } from './command-palette';
-import { confirmationDialogTemplate, type ConfirmationDialogProps } from './confirmation-dialog';
-import { headerTemplate, type HeaderProps } from './header';
-import { toastTemplate, type ToastProps } from './toast';
+import { cartDrawer, type CartDrawerProps } from './cart-drawer';
+import { commandPalette, type CommandPaletteProps } from './command-palette';
+import { confirmationDialog, type ConfirmationDialogProps } from './confirmation-dialog';
+import { header, type HeaderProps } from './header';
+import { toast, type ToastProps } from './toast';
 
 const frame = declareContext();
 const appFrame = defineComponent({
@@ -33,8 +34,10 @@ export type AppShellPartials = PartialContexts<{
   toast: ToastProps;
 }>;
 
-export const appShellTemplate = chrome.compile<AppShellPartials>(
-  `{{#> app-shell}}
+export const appShell = defineComponent<AppContext>({
+  name: 'app-chrome',
+  template: chrome.compile<AppShellPartials>(
+    `{{#> app-shell}}
   {{#slot header}}
     {{> header theme=state.theme$ cartCount=cart.itemCount onNavigate=navigateFromClick onOpenPalette=openPalette onToggleTheme=toggleTheme onOpenCart=openCart}}
   {{/slot}}
@@ -52,14 +55,71 @@ export const appShellTemplate = chrome.compile<AppShellPartials>(
   {{/slot}}
 {{/app-shell}}
 `,
-  {
-    partials: {
-      'app-shell': appFrame,
-      header: headerTemplate,
-      cart: cartDrawerTemplate,
-      palette: commandPaletteTemplate,
-      confirmation: confirmationDialogTemplate,
-      toast: toastTemplate,
+    {
+      partials: {
+        'app-shell': appFrame,
+        header,
+        cart: cartDrawer,
+        palette: commandPalette,
+        confirmation: confirmationDialog,
+        toast,
+      },
     },
+  ),
+  setup({ actions }) {
+    return {
+      formatMoney: (value: unknown) => actions.formatMoney(value),
+      navigateFromClick(event: Event): void {
+        const anchor = event.currentTarget;
+        if (!(anchor instanceof HTMLAnchorElement)) return;
+        event.preventDefault();
+        void actions.navigate(anchor.getAttribute('href') ?? '/');
+      },
+      updateQuantity: (item: CartItemDto, delta: number) => actions.updateQuantity(item, delta),
+      removeItem: (item: CartItemDto) => actions.removeItem(item),
+      setPaletteQueryFromEvent: (event: Event) => actions.setPaletteQuery(readInputValue(event)),
+      handlePaletteKey(event: Event): void {
+        if (!(event instanceof KeyboardEvent)) return;
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          actions.selectNextPaletteCommand();
+        } else if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          actions.selectPreviousPaletteCommand();
+        } else if (event.key === 'Enter') {
+          event.preventDefault();
+          actions.executeSelectedPaletteCommand();
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          actions.closePalette();
+        }
+      },
+      executePaletteCommand(event: Event): void {
+        const commandId = readDataAttribute(event, 'command-id');
+        if (commandId) actions.executePaletteCommand(commandId);
+      },
+      openCart: () => actions.openCart(),
+      closeCart: () => actions.closeCart(),
+      openPalette: () => actions.openPalette(),
+      closePalette: () => actions.closePalette(),
+      toggleTheme: () => actions.toggleTheme(),
+      clearCart: () => actions.clearCart(),
+      goToCheckout: () => actions.goToCheckout(),
+      stopEvent: (event: Event) => actions.stopEvent(event),
+      cancelPending: () => actions.cancelPending(),
+      confirmPending: () => actions.confirmPending(),
+    };
   },
-);
+});
+
+function readInputValue(event: Event): string {
+  const target = event.target;
+  return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement ? target.value : '';
+}
+
+function readDataAttribute(event: Event, name: string): string | null {
+  const target = event.target ?? event.currentTarget;
+  return target instanceof Element
+    ? (target.closest<HTMLElement>(`[data-${name}]`)?.getAttribute(`data-${name}`) ?? null)
+    : null;
+}

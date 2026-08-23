@@ -11,7 +11,7 @@ export interface ConfirmationDialogProps {
 
 const card = declareContext<ConfirmationDialogProps>();
 
-export const confirmationDialogTemplate = defineComponent<ConfirmationDialogProps>({
+export const confirmationDialog = defineComponent<ConfirmationDialogProps>({
   name: 'confirmation',
   props: ['pending', 'onCancel', 'onConfirm', 'onStop'],
   template: card.compile(`{{#if pending}}

@@ -7,7 +7,7 @@ export interface ToastProps {
 
 const card = declareContext<ToastProps>();
 
-export const toastTemplate = defineComponent<ToastProps>({
+export const toast = defineComponent<ToastProps>({
   name: 'toast',
   props: ['message'],
   template: card.compile(`<div class="toast-stack" aria-live="polite" aria-atomic="true">

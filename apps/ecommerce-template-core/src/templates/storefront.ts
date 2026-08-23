@@ -25,6 +25,19 @@ const page = declareContext<AppContext>();
 /** Partial context schema for storefront templates. */
 export type StorefrontPartials = PartialContexts<{ 'product-card': ProductCardProps }>;
 
-export const storefrontTemplate = page.compile<StorefrontPartials>(storefrontTemplateSource, {
+export const storefront = defineComponent<AppContext>({
+  name: 'storefront',
+  template: page.compile<StorefrontPartials>(storefrontTemplateSource),
   partials: { 'product-card': productCard },
+  setup({ actions }) {
+    return {
+      formatMoney: (value: unknown) => actions.formatMoney(value),
+      selectProduct: (product: CatalogProductDto) => actions.selectProduct(product),
+      addToCart: (product: CatalogProductDto) => actions.addToCart(product),
+      focusSearch(element: Element): void {
+        if (!(element instanceof HTMLInputElement)) return;
+        if (document.activeElement === document.body || document.activeElement == null) element.focus();
+      },
+    };
+  },
 });

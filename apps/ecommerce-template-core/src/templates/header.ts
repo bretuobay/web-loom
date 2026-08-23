@@ -10,7 +10,7 @@ export interface HeaderProps {
   onOpenCart: () => void;
 }
 
-export const headerTemplate = defineComponent<HeaderProps>({
+export const header = defineComponent<HeaderProps>({
   name: 'header',
   props: ['theme', 'cartCount', 'onNavigate', 'onOpenPalette', 'onToggleTheme', 'onOpenCart'],
   template,

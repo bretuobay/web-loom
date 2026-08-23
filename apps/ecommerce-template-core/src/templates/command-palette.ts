@@ -13,7 +13,7 @@ export interface CommandPaletteProps {
 
 const card = declareContext<CommandPaletteProps>();
 
-export const commandPaletteTemplate = defineComponent<CommandPaletteProps>({
+export const commandPalette = defineComponent<CommandPaletteProps>({
   name: 'palette',
   props: ['palette', 'onClose', 'onStop', 'onQuery', 'onKey', 'onExecute'],
   template: card.compile(`{{#if palette.isOpen}}

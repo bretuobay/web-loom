@@ -1,9 +1,12 @@
 import { declareContext } from '@web-loom/template-core';
+import { defineComponent } from '@web-loom/view';
 import type { AppContext } from '../app/context';
 
 const page = declareContext<AppContext>();
 
-export const checkoutTemplate = page.compile(`<section class="checkout-panel">
+export const checkout = defineComponent<AppContext>({
+  name: 'checkout',
+  template: page.compile(`<section class="checkout-panel">
   <div>
     <h2>
       Checkout
@@ -69,4 +72,16 @@ export const checkoutTemplate = page.compile(`<section class="checkout-panel">
     Place order
   </button>
 </section>
-`);
+`),
+  setup({ actions }) {
+    return {
+      formatMoney: (value: unknown) => actions.formatMoney(value),
+      setCheckoutEmail: (value: string) => actions.setCheckoutEmail(value),
+      setCheckoutAddress: (value: string) => actions.setCheckoutAddress(value),
+      setCheckoutNotes: (value: string) => actions.setCheckoutNotes(value),
+      touchCheckoutEmail: () => actions.touchCheckoutField('email'),
+      touchCheckoutAddress: () => actions.touchCheckoutField('shippingAddress'),
+      touchCheckoutNotes: () => actions.touchCheckoutField('notes'),
+    };
+  },
+});

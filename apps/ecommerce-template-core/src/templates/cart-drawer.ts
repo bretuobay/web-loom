@@ -17,7 +17,7 @@ export interface CartDrawerProps {
 
 const card = declareContext<CartDrawerProps>();
 
-export const cartDrawerTemplate = defineComponent<CartDrawerProps>({
+export const cartDrawer = defineComponent<CartDrawerProps>({
   name: 'cart',
   props: [
     'open',

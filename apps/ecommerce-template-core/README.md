@@ -2,8 +2,8 @@
 
 `ecommerce-template-core` is the Web Loom ecommerce reference app rendered with
 `@web-loom/template-core`. It uses the same MVVM-oriented models and signals as the other ecommerce
-demo surfaces, but keeps the view layer framework-free: templates mount directly against the
-ViewModel without React, Vue, Lit, or an adapter bridge.
+demo surfaces, but keeps the view layer framework-free: each screen is a `defineComponent`
+whose markup mounts directly against the ViewModel without React, Vue, Lit, or an adapter bridge.
 
 ## What it demonstrates
 
@@ -32,9 +32,9 @@ The app is a practical Phase 2 and Phase 3 example of the template engine:
   wiring; `header.loom`'s two nav links still call `navigateFromClick` explicitly to demonstrate the
   bound-handler form side by side with the delegated one.
 - The mount context is assembled with `composeContext()` (`src/app/context.ts`): the ViewModel's
-  `state`/`actions`/`catalog`/`cart` stay namespaced, and template call-form handlers
-  (`updateQuantity(this, -1)`) are flat aliases of `actions.*` methods, since template-core's
-  call-form expressions only resolve a single identifier.
+  `state`/`actions`/`catalog`/`cart` stay namespaced. Chrome and screen `setup` add `this`-safe
+  aliases of `actions.*` because hash-arg function props drop the method receiver and call-form
+  expressions only resolve a single identifier.
 - The SSR storefront island is constrained by the same centered `1200px` content layout as the
   client-rendered routes; only the catalog island is server-rendered, not the browser-owned shell.
 - Checkout fields use `bind:value` with explicit `bind:set` callbacks, keeping form-library writes
@@ -88,10 +88,10 @@ interaction, navigation, and disposal of the ViewModel and mounted template view
 | Area                          | Responsibility                                                                           |
 | ----------------------------- | ---------------------------------------------------------------------------------------- |
 | `src/TemplateAppViewModel.ts` | Composes state, catalog/cart ViewModels, actions, and subscriptions (router is injected) |
-| `src/app/routes.ts`           | The route table (path + template) and the router derived from it                         |
-| `src/app/context.ts`          | `composeContext()` of state/actions/catalog/cart plus view-boundary handlers             |
+| `src/app/routes.ts`           | The route table (path + screen) and the router derived from it                           |
+| `src/app/context.ts`          | Shared provider: namespaced `state`/`actions`/`catalog`/`cart`                           |
 | `src/app/index.ts`            | `createApp()` composition root: mounts the shell and routes, then owns teardown          |
-| `src/templates/`              | Compiled templates, `declareContext` typing, and partial composition                     |
+| `src/templates/`              | `defineComponent` screens and chrome; `.loom` / compile markup                           |
 | `src/features/catalog/`       | Product loading, filtering, and selection                                                |
 | `src/features/cart/`          | Cart state, checkout form, and cart commands                                             |
 | `src/infrastructure/`         | Mock API, event bus, and persisted UI preferences                                        |
