@@ -349,10 +349,10 @@ export default [
 
 Rules (all backed by `analyzeTemplate()`):
 
-| Rule                                    | Default                            |
-| --------------------------------------- | ---------------------------------- |
-| `template-core/no-invalid-expression`   | error                              |
-| `template-core/no-unsupported-modifier` | error                              |
+| Rule                                     | Default                            |
+| ---------------------------------------- | ---------------------------------- |
+| `template-core/no-invalid-expression`    | error                              |
+| `template-core/no-unsupported-modifier`  | error                              |
 | `template-core/no-missing-partial`       | error (when partials manifest set) |
 | `template-core/no-invalid-partial-props` | warn (when `partialProps` is set)  |
 | `template-core/no-raw-html`              | warn                               |

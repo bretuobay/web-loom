@@ -22,7 +22,7 @@ priority rationale (P5-a/b/c) and `design.md` for the sequencing diagram.
       package's README "Known limitations" for why, and for the
       attribute-_value_ interpolation gap this implies.
 - [x] Ship it as an injection grammar for `compile(\`...\`)`strings in`.ts`    files first — this requires no`.loom`file format and no build tooling.
-    Injects into`source.ts`/`.tsx`/`.js`/`.jsx`; not published to the
+  Injects into`source.ts`/`.tsx`/`.js`/`.jsx`; not published to the
       Marketplace (local/dev-install only — see package README).
 - [ ] Gather real usage signal (does this alone resolve the DX complaint that
       motivated this phase?) before starting P5-b. Not yet — this requires

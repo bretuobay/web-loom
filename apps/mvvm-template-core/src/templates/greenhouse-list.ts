@@ -26,9 +26,7 @@ export const greenhouseList = defineComponent<AppContext>({
         fromEntity: (greenhouse) => ({
           name: greenhouse.name,
           location: greenhouse.location,
-          size: GREENHOUSE_SIZE_OPTIONS.some((option) => option.value === greenhouse.size)
-            ? greenhouse.size
-            : '100sqm',
+          size: GREENHOUSE_SIZE_OPTIONS.some((option) => option.value === greenhouse.size) ? greenhouse.size : '100sqm',
           cropType: greenhouse.cropType || '',
         }),
       },
