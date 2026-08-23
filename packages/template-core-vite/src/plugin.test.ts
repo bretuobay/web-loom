@@ -177,6 +177,8 @@ export const headerTemplate = compile(\`<h1>{{ title }}</h1>\`);
 import { compile } from '@web-loom/template-core';
 export const broken = compile(\`<p>{{ count + 1 }}</p>\`);
 `;
-    expect(() => runTransform(plugin, code, '/app/broken.ts', 'serve')).toThrow(/precompile|expression|INVALID_EXPRESSION/i);
+    expect(() => runTransform(plugin, code, '/app/broken.ts', 'serve')).toThrow(
+      /precompile|expression|INVALID_EXPRESSION/i,
+    );
   });
 });

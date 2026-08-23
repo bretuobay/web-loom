@@ -1,7 +1,7 @@
 import type { Disposable } from '@web-loom/template-core';
 import { createRouterView } from '@web-loom/template-core-router';
 import type { Router } from '@web-loom/router-core';
-import { appShellTemplate, notFoundTemplate, registerAppPartials } from '../templates';
+import { appShell, notFound } from '../templates';
 import { createAppContext } from './context';
 import { createAppRouter, appRoutes } from './routes';
 
@@ -13,7 +13,6 @@ export interface App {
 interface MountedApp {
   routerView: Disposable;
   shell: Disposable;
-  unregisterPartials: () => void;
   router: Router;
 }
 
@@ -29,39 +28,35 @@ export function createApp(): App {
     mount(container): void {
       if (mounted) throw new Error('The application is already mounted.');
 
-      let unregisterPartials: (() => void) | null = null;
       let router: Router | null = null;
       let shell: Disposable | null = null;
       let routerView: Disposable | null = null;
 
       try {
-        unregisterPartials = registerAppPartials();
         router = createAppRouter();
         const context = createAppContext(router);
-        shell = appShellTemplate.mount(container, context);
+        shell = appShell.mount(container, context);
 
         const outlet = container.querySelector('[data-template-slot="route"]');
         if (!outlet) {
-          throw new Error('The app shell template did not render a [data-template-slot="route"] element.');
+          throw new Error('The app shell did not render a [data-template-slot="route"] element.');
         }
 
         routerView = createRouterView(outlet, {
           router,
           routes: appRoutes,
-          notFound: notFoundTemplate,
+          notFound,
           context,
         });
 
         mounted = {
           routerView,
           shell,
-          unregisterPartials,
           router,
         };
       } catch (error) {
         routerView?.dispose();
         shell?.dispose();
-        unregisterPartials?.();
         router?.destroy();
         throw error;
       }
@@ -74,7 +69,6 @@ export function createApp(): App {
       mounted = null;
       resources.routerView.dispose();
       resources.shell.dispose();
-      resources.unregisterPartials();
       resources.router.destroy();
     },
   };

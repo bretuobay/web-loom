@@ -22,22 +22,23 @@ Every Web Loom app starts the same way: a `@web-loom/mvvm-core` `BaseViewModel` 
 
 Write a thin bridge that subscribes your framework's rendering model to the ViewModel's signals. Every demo app in `apps/` does exactly this, in a few lines:
 
-| App | Framework | How it bridges to the ViewModel's signals |
-| --- | --- | --- |
-| [`apps/mvvm-react`](apps/mvvm-react) | React | `useSignal(sig)` → `useSyncExternalStore(sig.subscribe, sig.get, sig.get)` |
-| [`apps/mvvm-vue`](apps/mvvm-vue) | Vue 3 | `useSignal(sig)` → `shallowRef` seeded via `.peek()`, synced via `observe()` |
-| [`apps/mvvm-angular`](apps/mvvm-angular) | Angular | `fromLoomSignal(sig, destroyRef)` → mirrors into a native Angular `signal()` |
-| [`apps/mvvm-lit`](apps/mvvm-lit) | Lit | manual `@state()` field updated via `observe()` in `connectedCallback` |
-| [`apps/mvvm-marko`](apps/mvvm-marko) | Marko | `subscribeToObservable(sig, updateFn)` wrapping `observe`/`subscribe` |
-| [`apps/mvvm-vanilla`](apps/mvvm-vanilla) | Vanilla JS + EJS | direct `observe(vm.data$, callback)` calls that manually patch the DOM |
-| [`apps/mvvm-react-native`](apps/mvvm-react-native) | React Native | same bridge as `mvvm-react`, native components |
-| [`apps/mvvm-react-integrated`](apps/mvvm-react-integrated) | React | React + Design Core theming, integrated patterns |
+| App                                                        | Framework        | How it bridges to the ViewModel's signals                                                  |
+| ---------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------ |
+| [`apps/mvvm-react`](apps/mvvm-react)                       | React            | `useSignal(sig)` → `useSyncExternalStore(sig.subscribe, sig.get, sig.get)`                 |
+| [`apps/mvvm-vue`](apps/mvvm-vue)                           | Vue 3            | `useSignal(sig)` → `shallowRef` seeded via `.peek()`, synced via `observe()`               |
+| [`apps/mvvm-solid`](apps/mvvm-solid)                       | SolidJS          | `useSignal(sig)` → Solid `createSignal` seeded via `observe()`; view uses `<Show>`/`<For>` |
+| [`apps/mvvm-angular`](apps/mvvm-angular)                   | Angular          | `fromLoomSignal(sig, destroyRef)` → mirrors into a native Angular `signal()`               |
+| [`apps/mvvm-lit`](apps/mvvm-lit)                           | Lit              | manual `@state()` field updated via `observe()` in `connectedCallback`                     |
+| [`apps/mvvm-marko`](apps/mvvm-marko)                       | Marko            | `subscribeToObservable(sig, updateFn)` wrapping `observe`/`subscribe`                      |
+| [`apps/mvvm-vanilla`](apps/mvvm-vanilla)                   | Vanilla JS + EJS | direct `observe(vm.data$, callback)` calls that manually patch the DOM                     |
+| [`apps/mvvm-react-native`](apps/mvvm-react-native)         | React Native     | same bridge as `mvvm-react`, native components                                             |
+| [`apps/mvvm-react-integrated`](apps/mvvm-react-integrated) | React            | React + Design Core theming, integrated patterns                                           |
 
 Reach for this path when you want a specific framework's ecosystem, tooling, or team familiarity.
 
 ### 2. The complete Web Loom stack
 
-Or skip the bridge entirely: `@web-loom/template-core` renders the same ViewModels directly, because its bindings *are* signal subscriptions. No virtual DOM, no component re-render, no adapter code.
+Or skip the bridge entirely: `@web-loom/template-core` renders the same ViewModels directly, because its bindings _are_ signal subscriptions. No virtual DOM, no component re-render, no adapter code.
 
 ```ts
 import { signal } from '@web-loom/signals-core';
@@ -88,20 +89,20 @@ All packages version in lockstep, gated at **0.8.0** until the API surface is re
 
 These are live on npm today.
 
-| Package | Description |
-| --- | --- |
-| [`@web-loom/mvvm-core`](packages/mvvm-core) | Signals-backed MVVM framework — `BaseModel`, `RestfulApiModel`, `BaseViewModel`, `Command` |
-| [`@web-loom/signals-core`](packages/signals-core) | Framework-agnostic reactive signals — `signal`, `computed`, `effect`, `batch` |
-| [`@web-loom/query-core`](packages/query-core) | Server state management with caching, deduplication, and background refetch |
-| [`@web-loom/store-core`](packages/store-core) | Minimal client state management for UI-only state |
-| [`@web-loom/ui-core`](packages/ui-core) | Headless UI behaviors — Dialog, Form, List Selection, Roving Focus, Drag & Drop |
-| [`@web-loom/ui-patterns`](packages/ui-patterns) | Composed UI patterns built on `ui-core` — Wizard, Master-Detail, Command Palette |
-| [`@web-loom/design-core`](packages/design-core) | Design tokens and theming system |
-| [`@web-loom/forms-core`](packages/forms-core) | Framework-agnostic form state management with Zod integration |
-| [`@web-loom/event-bus-core`](packages/event-bus-core) | Type-safe pub-sub event bus for cross-feature communication |
-| [`@web-loom/event-emitter-core`](packages/event-emitter-core) | Tiny type-safe event emitter shared across Web Loom packages |
-| [`@web-loom/mcp-server`](packages/mcp-server) | MCP server exposing scaffolding, docs, and guided patterns for `@web-loom/*` |
-| [`create-web-loom`](packages/create-web-loom) | CLI scaffolder — `npm create web-loom@latest` |
+| Package                                                       | Description                                                                                |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [`@web-loom/mvvm-core`](packages/mvvm-core)                   | Signals-backed MVVM framework — `BaseModel`, `RestfulApiModel`, `BaseViewModel`, `Command` |
+| [`@web-loom/signals-core`](packages/signals-core)             | Framework-agnostic reactive signals — `signal`, `computed`, `effect`, `batch`              |
+| [`@web-loom/query-core`](packages/query-core)                 | Server state management with caching, deduplication, and background refetch                |
+| [`@web-loom/store-core`](packages/store-core)                 | Minimal client state management for UI-only state                                          |
+| [`@web-loom/ui-core`](packages/ui-core)                       | Headless UI behaviors — Dialog, Form, List Selection, Roving Focus, Drag & Drop            |
+| [`@web-loom/ui-patterns`](packages/ui-patterns)               | Composed UI patterns built on `ui-core` — Wizard, Master-Detail, Command Palette           |
+| [`@web-loom/design-core`](packages/design-core)               | Design tokens and theming system                                                           |
+| [`@web-loom/forms-core`](packages/forms-core)                 | Framework-agnostic form state management with Zod integration                              |
+| [`@web-loom/event-bus-core`](packages/event-bus-core)         | Type-safe pub-sub event bus for cross-feature communication                                |
+| [`@web-loom/event-emitter-core`](packages/event-emitter-core) | Tiny type-safe event emitter shared across Web Loom packages                               |
+| [`@web-loom/mcp-server`](packages/mcp-server)                 | MCP server exposing scaffolding, docs, and guided patterns for `@web-loom/*`               |
+| [`create-web-loom`](packages/create-web-loom)                 | CLI scaffolder — `npm create web-loom@latest`                                              |
 
 Framework-specific adapters (React/Vue/vanilla form bindings, media players, charts) live in the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, published under the same `@web-loom/*` npm scope.
 
@@ -109,15 +110,15 @@ Framework-specific adapters (React/Vue/vanilla form bindings, media players, cha
 
 Fully implemented and exercised in the demo apps, but not yet published to npm — use via the workspace in the meantime.
 
-| Package | Description |
-| --- | --- |
-| [`@web-loom/template-core`](packages/template-core) | Signal-native reactive template engine — no VDOM, no framework adapter |
-| [`@web-loom/template-core-vite`](packages/template-core-vite) | Vite plugin for `template-core` — build-time precompile, dev analyze/precompile modes |
-| [`@web-loom/template-core-vite-ssr`](packages/template-core-vite-ssr) | Reusable Vite SSR dev/production server for `template-core` apps |
-| [`@web-loom/template-core-lint`](packages/template-core-lint) | ESLint plugin with static-analysis rules for `template-core` templates |
-| [`@web-loom/template-core-tooling`](packages/template-core-tooling) | Shared AST utilities and source-linked diagnostics behind the two packages above |
-| [`@web-loom/mvvm-patterns`](packages/mvvm-patterns) | Application-level MVVM patterns — interaction requests, active-aware ViewModels |
-| [`@web-loom/embed-core`](packages/embed-core) | Framework-agnostic embeddable widget SDK and host integration layer |
+| Package                                                               | Description                                                                           |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [`@web-loom/template-core`](packages/template-core)                   | Signal-native reactive template engine — no VDOM, no framework adapter                |
+| [`@web-loom/template-core-vite`](packages/template-core-vite)         | Vite plugin for `template-core` — build-time precompile, dev analyze/precompile modes |
+| [`@web-loom/template-core-vite-ssr`](packages/template-core-vite-ssr) | Reusable Vite SSR dev/production server for `template-core` apps                      |
+| [`@web-loom/template-core-lint`](packages/template-core-lint)         | ESLint plugin with static-analysis rules for `template-core` templates                |
+| [`@web-loom/template-core-tooling`](packages/template-core-tooling)   | Shared AST utilities and source-linked diagnostics behind the two packages above      |
+| [`@web-loom/mvvm-patterns`](packages/mvvm-patterns)                   | Application-level MVVM patterns — interaction requests, active-aware ViewModels       |
+| [`@web-loom/embed-core`](packages/embed-core)                         | Framework-agnostic embeddable widget SDK and host integration layer                   |
 
 ### Internal / workspace-only
 
@@ -129,13 +130,19 @@ Every package in this repo — published, coming-soon, or internal — moves in 
 
 ## Templating: `@web-loom/template-core`
 
-`template-core` is a Mustache/Handlebars-flavored HTML template engine whose bindings *are* `signals-core` subscriptions — a signal write updates exactly the DOM node or attribute that reads it, nothing else re-renders.
+`template-core` is a Mustache/Handlebars-flavored HTML template engine whose bindings _are_ `signals-core` subscriptions — a signal write updates exactly the DOM node or attribute that reads it, nothing else re-renders.
 
 ```html
 <h1>{{ title$ }}</h1>
-{{#if isLoading$}}<p>Loading…</p>{{else if error$}}<p>{{ error$ }}</p>{{/if}}
-{{#each todos$ key=id}}<li on:click="remove(this)">{{ text }}</li>{{else}}<li>Nothing to do</li>{{/each}}
-<input bind:value="name$" />
+{{#if isLoading$}}
+<p>Loading…</p>
+{{else if error$}}
+<p>{{ error$ }}</p>
+{{/if}} {{#each todos$ key=id}}
+<li on:click="remove(this)">{{ text }}</li>
+{{else}}
+<li>Nothing to do</li>
+{{/each}} <input bind:value="name$" />
 ```
 
 Templates compile at runtime via the browser's native `<template>` parser plus a small CSP-safe expression evaluator (no `eval`/`new Function`), or precompile offline to a serializable render plan for production builds. It also supports SSR/hydration without a DOM, via `parse5`.

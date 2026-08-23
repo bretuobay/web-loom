@@ -20,10 +20,9 @@ priority rationale (P5-a/b/c) and `design.md` for the sequencing diagram.
       attribute forms are verified to render sensibly via `text.html.basic`'s
       own attribute tokenization rather than given bespoke scopes — see that
       package's README "Known limitations" for why, and for the
-      attribute-*value* interpolation gap this implies.
-- [x] Ship it as an injection grammar for `compile(\`...\`)` strings in `.ts`
-      files first — this requires no `.loom` file format and no build tooling.
-      Injects into `source.ts`/`.tsx`/`.js`/`.jsx`; not published to the
+      attribute-_value_ interpolation gap this implies.
+- [x] Ship it as an injection grammar for `compile(\`...\`)`strings in`.ts`    files first — this requires no`.loom`file format and no build tooling.
+  Injects into`source.ts`/`.tsx`/`.js`/`.jsx`; not published to the
       Marketplace (local/dev-install only — see package README).
 - [ ] Gather real usage signal (does this alone resolve the DX complaint that
       motivated this phase?) before starting P5-b. Not yet — this requires
@@ -53,7 +52,7 @@ priority rationale (P5-a/b/c) and `design.md` for the sequencing diagram.
 ## P5-c — Context-typing spike (exploratory, timeboxed, go/no-go)
 
 - [x] Timebox a spike investigating a `declareContext<TVm>()`-style helper or
-      `.loom.d.ts` stub that types a template module's *export* only.
+      `.loom.d.ts` stub that types a template module's _export_ only.
       **Outcome (2026-08): go** — shipped in `@web-loom/template-core` as `declareContext`,
       `declarePartials`, `typedCompile`. See `packages/template-core/docs/typing-spike.md`.
 - [x] Explicitly evaluate (and document the answer) whether shallow

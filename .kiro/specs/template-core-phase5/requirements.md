@@ -32,11 +32,11 @@ Every requirement below is P2/P3-equivalent in the Phase 4 priority scheme
 ("developer experience" / "exploratory") — this document defines no P0 or P1
 requirements, and none of it is a release gate for any other phase.
 
-| Priority | Meaning                        | Delivery rule                                             |
-| -------- | ------------------------------- | ----------------------------------------------------------- |
-| P5-a     | Cheapest validation step         | Only work that should start without further discussion      |
-| P5-b     | Loader, contingent on P5-a signal | Starts only if P5-a demonstrates real developer demand      |
-| P5-c     | Exploratory, timeboxed spike     | Explicit go/no-go; not a commitment to ship a type checker   |
+| Priority | Meaning                           | Delivery rule                                              |
+| -------- | --------------------------------- | ---------------------------------------------------------- |
+| P5-a     | Cheapest validation step          | Only work that should start without further discussion     |
+| P5-b     | Loader, contingent on P5-a signal | Starts only if P5-a demonstrates real developer demand     |
+| P5-c     | Exploratory, timeboxed spike      | Explicit go/no-go; not a commitment to ship a type checker |
 
 ## Guiding constraint
 
@@ -54,8 +54,7 @@ syntax — `{{ }}`, `{{#if}}/{{#each}}/{{#switch}}`, `on:`, `:attr`, `class:`,
 `style:` — SHALL be pursued first, independent of whether `.loom` files are ever
 introduced. It SHOULD work two ways:
 
-- As an injection grammar inside `compile(\`...\`)` template-literal strings in
-  `.ts`/`.js` source (works today, zero new file format, zero build tooling).
+- As an injection grammar inside `compile(\`...\`)`template-literal strings in`.ts`/`.js` source (works today, zero new file format, zero build tooling).
 - As a standalone grammar for a `.loom` file, if and when one exists.
 
 This requirement exists to let the cheapest, highest-leverage deliverable ship
@@ -92,7 +91,7 @@ of scope." This requirement SHALL NOT be read as a commitment to build a type
 checker. It exists only to scope what a bounded spike may investigate:
 
 - A `declareContext<TVm>()`-style helper (or `.loom.d.ts` stub) that types a
-  template *module's export* is in scope for a spike.
+  template _module's export_ is in scope for a spike.
 - Cross-referencing expression paths inside `{{ }}`/`on:`/`:attr` against a
   declared context type (shallow property-name checking) is speculative,
   genuinely new static-analysis work, and requires an explicit go/no-go before

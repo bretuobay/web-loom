@@ -17,6 +17,9 @@ const plugin = {
     'no-unknown-context-path': createDiagnosticRule(RULE_CODES['no-unknown-context-path'], {
       requiresContextKeys: true,
     }),
+    'no-invalid-partial-props': createDiagnosticRule(RULE_CODES['no-invalid-partial-props'], {
+      requiresPartialProps: true,
+    }),
   },
 };
 
@@ -27,6 +30,7 @@ const recommendedRules: Linter.RulesRecord = {
   'template-core/no-invalid-expression': 'error',
   'template-core/no-unsupported-modifier': 'error',
   'template-core/no-unknown-context-path': 'warn',
+  'template-core/no-invalid-partial-props': 'warn',
 };
 
 export default plugin;

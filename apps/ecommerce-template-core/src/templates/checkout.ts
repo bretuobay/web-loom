@@ -1,9 +1,12 @@
 import { declareContext } from '@web-loom/template-core';
+import { defineComponent } from '@web-loom/view';
 import type { AppContext } from '../app/context';
 
 const page = declareContext<AppContext>();
 
-export const checkoutTemplate = page.compile(`<section class="checkout-panel">
+export const checkout = defineComponent<AppContext>({
+  name: 'checkout',
+  template: page.compile(`<section class="checkout-panel">
   <div>
     <h2>
       Checkout
@@ -26,15 +29,15 @@ export const checkoutTemplate = page.compile(`<section class="checkout-panel">
         Total
       </span>
       <strong>
-        {{ formatMoney(cart.subtotalCents) }}
+        {{ actions.formatMoney(cart.subtotalCents) }}
       </strong>
     </p>
   </div>
   <label class="field-label" for="checkout-email">
     Email
   </label>
-  <input id="checkout-email" class="text-input" bind:value="state.checkoutState$.values.email" bind:set="setCheckoutEmail"
-      on:blur="touchCheckoutEmail"
+  <input id="checkout-email" class="text-input" bind:value="state.checkoutState$.values.email" bind:set="actions.setCheckoutEmail"
+      on:blur="actions.touchCheckoutField('email')"
       placeholder="you@example.com">
   {{#if state.checkoutState$.errors.email}}
     <p class="field-error">
@@ -44,8 +47,8 @@ export const checkoutTemplate = page.compile(`<section class="checkout-panel">
   <label class="field-label" for="checkout-address">
     Shipping Address
   </label>
-  <textarea id="checkout-address" class="text-input text-area" bind:value="state.checkoutState$.values.shippingAddress" bind:set="setCheckoutAddress"
-      on:blur="touchCheckoutAddress"
+  <textarea id="checkout-address" class="text-input text-area" bind:value="state.checkoutState$.values.shippingAddress" bind:set="actions.setCheckoutAddress"
+      on:blur="actions.touchCheckoutField('shippingAddress')"
       placeholder="Street, city, state, zip">
   </textarea>
   {{#if state.checkoutState$.errors.shippingAddress}}
@@ -56,8 +59,8 @@ export const checkoutTemplate = page.compile(`<section class="checkout-panel">
   <label class="field-label" for="checkout-notes">
     Notes (optional)
   </label>
-  <textarea id="checkout-notes" class="text-input text-area" bind:value="state.checkoutState$.values.notes" bind:set="setCheckoutNotes"
-      on:blur="touchCheckoutNotes"
+  <textarea id="checkout-notes" class="text-input text-area" bind:value="state.checkoutState$.values.notes" bind:set="actions.setCheckoutNotes"
+      on:blur="actions.touchCheckoutField('notes')"
       placeholder="Delivery instructions">
   </textarea>
   {{#if state.checkoutState$.errors.notes}}
@@ -69,4 +72,5 @@ export const checkoutTemplate = page.compile(`<section class="checkout-panel">
     Place order
   </button>
 </section>
-`);
+`),
+});

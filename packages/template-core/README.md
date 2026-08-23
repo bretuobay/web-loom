@@ -92,8 +92,9 @@ how that works.
 
 Phase 2 also supports `{{#switch expr}}` with `{{#case value}}`/`{{#default}}`,
 `bind:value`/`bind:checked`, chainable event modifiers, `use:action="expr"`, and
-`{{> name context}}` partials. Use `registerPartial`/`unregisterPartial` for the global registry
-or `compile(..., { partials })` for local overrides.
+`{{> name context}}` partials. Prefer `compile(..., { partials })` or `template.partials` as the
+local import map. `registerPartial`/`unregisterPartial` remain for the optional browser-only
+global registry.
 
 The integration APIs provide scoped composition for larger applications:
 
@@ -115,7 +116,8 @@ actions, use explicit setter bindings:
 
 `use:` actions may return `update()` and/or `dispose()` for reactive element behavior.
 
-- Expressions are a small, hand-rolled, CSP-safe subset (literals, scope paths, helper calls, `!`,
+- Expressions are a small, hand-rolled, CSP-safe subset (literals, scope paths, helper/method
+  calls including dotted callees like `actions.openCart()`, `!`,
   `===`/`!==`/`<`/`<=`/`>`/`>=`, `&&`/`||`/`??`) — not JavaScript. See PRD §6.7.
 - Signal detection is duck-typed (`isSignal()`), never based on the `$` naming convention.
 - `:name` assigns a DOM property when `name` is one (`value`, `checked`, …), otherwise `setAttribute`.
@@ -124,9 +126,12 @@ actions, use explicit setter bindings:
 
 ## Lifecycle hooks: `use:` as mount/unmount
 
-There's no separate "component" concept with its own `onMount`/`onUnmount` — an element's `use:`
-action factory _is_ that hook. It runs once when the element mounts, and any `dispose()` the factory
-returns runs when the element is torn down:
+Reusable components with isolated props live in `@web-loom/view` (`defineComponent`). This
+package stays the engine: `{{> card count=n}}`, block partials, and `{{> yield}}` are the
+composition primitives.
+
+An element's `use:` action factory is still the element-level mount/unmount hook. It runs once
+when the element mounts, and any `dispose()` the factory returns runs when the element is torn down:
 
 ```html
 <div use:loadData="loadData">...</div>
@@ -292,7 +297,8 @@ import { analyzeTemplate, formatTemplate, precompileNode } from '@web-loom/templ
 const { ok, plan, diagnostics } = analyzeTemplate(source, {
   name: 'Catalog',
   sourcePath: 'src/catalog.ts',
-  partials: { card: cardSource }, // optional static partial check
+  partials: { card: cardTemplate }, // optional static partial check
+  partialProps: { card: ['count', 'href'] }, // optional hash-arg vs props check
 });
 if (!ok) diagnostics.forEach((d) => console.error(d));
 
@@ -337,12 +343,12 @@ reference implementation is [`apps/ecommerce-template-core`](../../apps/ecommerc
 
 ## Tooling docs
 
-| Guide | Contents |
-| ----- | -------- |
-| [`docs/template-core-tooling.md`](./docs/template-core-tooling.md) | Cookbook — Vite, ESLint, SSR, typing, formatting |
-| [`docs/template-formatting.md`](./docs/template-formatting.md) | M3 formatter — API, CLI, TS literal recipe, CI |
-| [`docs/editor-diagnostics.md`](./docs/editor-diagnostics.md) | M4 source-linked diagnostics — ESLint, Vite, VS Code |
-| [`docs/typing-spike.md`](./docs/typing-spike.md) | M5 `declareContext` / `PartialContexts` |
+| Guide                                                              | Contents                                             |
+| ------------------------------------------------------------------ | ---------------------------------------------------- |
+| [`docs/template-core-tooling.md`](./docs/template-core-tooling.md) | Cookbook — Vite, ESLint, SSR, typing, formatting     |
+| [`docs/template-formatting.md`](./docs/template-formatting.md)     | M3 formatter — API, CLI, TS literal recipe, CI       |
+| [`docs/editor-diagnostics.md`](./docs/editor-diagnostics.md)       | M4 source-linked diagnostics — ESLint, Vite, VS Code |
+| [`docs/typing-spike.md`](./docs/typing-spike.md)                   | M5 `declareContext` / `PartialContexts`              |
 
 ## Development
 
@@ -364,13 +370,13 @@ Snapshot from the last `npm run bench:browser` run (real Chromium, not jsdom —
 This is a point-in-time recording, not a live-tracked metric: re-run the command above and update this
 table if you want a fresh number; nothing here is enforced in CI.
 
-| Scenario                           | Median  | p95    | Budget | Result |
-| ----------------------------------- | ------- | ------ | ------ | ------ |
-| Mount (todo, 10 items)              | 0.7ms   | 1.0ms  | 50ms   | PASS   |
-| Update (single signal write)        | 0.6ms   | 1.3ms  | 16ms   | PASS   |
-| Keyed-list swap (2 of 1000 rows)    | 2.6ms   | 3.4ms  | 16ms   | PASS   |
-| Hydration (todo, 10 items)          | 0.3ms   | 0.5ms  | 50ms   | PASS   |
-| Disposal (table, 1000 rows)         | 1.6ms   | 3.9ms  | 16ms   | PASS   |
+| Scenario                         | Median | p95   | Budget | Result |
+| -------------------------------- | ------ | ----- | ------ | ------ |
+| Mount (todo, 10 items)           | 0.7ms  | 1.0ms | 50ms   | PASS   |
+| Update (single signal write)     | 0.6ms  | 1.3ms | 16ms   | PASS   |
+| Keyed-list swap (2 of 1000 rows) | 2.6ms  | 3.4ms | 16ms   | PASS   |
+| Hydration (todo, 10 items)       | 0.3ms  | 0.5ms | 50ms   | PASS   |
+| Disposal (table, 1000 rows)      | 1.6ms  | 3.9ms | 16ms   | PASS   |
 
 Recorded 2026-07-26 · Chromium 151.0.7922.34 · Node v24.13.1 · Linux (WSL2) · Intel i5-1135G7.
 

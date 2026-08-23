@@ -21,7 +21,10 @@ export function makeTodoItems(count: number): TodoItem[] {
   return Array.from({ length: count }, (_, i) => ({ id: String(i), text: `Task ${i}`, done: i % 3 === 0 }));
 }
 
-export function makeTodoViewModel(count: number): { title$: WritableSignal<string>; todos$: WritableSignal<TodoItem[]> } {
+export function makeTodoViewModel(count: number): {
+  title$: WritableSignal<string>;
+  todos$: WritableSignal<TodoItem[]>;
+} {
   return { title$: signal('Todos'), todos$: signal(makeTodoItems(count)) };
 }
 

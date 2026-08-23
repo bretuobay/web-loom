@@ -22,7 +22,7 @@ export async function render(_request: SsrRequest): Promise<SsrRenderResult> {
         selectedProduct: null,
         searchQuery: '',
       },
-      formatMoney,
+      actions: { formatMoney },
     }),
     state: { products },
   };

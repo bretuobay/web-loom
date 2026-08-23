@@ -17,16 +17,12 @@ describe('UNKNOWN_CONTEXT_PATH static analysis', () => {
   });
 
   it('accepts declared keys, literals, and this-paths', () => {
-    expect(
-      unknownRoots('<p class:on="sensors.data$">{{ formatTimestamp(form.name$) }} {{ this }}</p>'),
-    ).toEqual([]);
+    expect(unknownRoots('<p class:on="sensors.data$">{{ formatTimestamp(form.name$) }} {{ this }}</p>')).toEqual([]);
   });
 
   it('checks if/switch conditions and branch bodies in root scope', () => {
     expect(unknownRoots('{{#if loadin$}}<p>{{ missing }}</p>{{/if}}')).toEqual(['loadin$', 'missing']);
-    expect(
-      unknownRoots('{{#switch sensors.mode}}{{#case "a"}}<p>{{ bad }}</p>{{/case}}{{/switch}}'),
-    ).toEqual(['bad']);
+    expect(unknownRoots('{{#switch sensors.mode}}{{#case "a"}}<p>{{ bad }}</p>{{/case}}{{/switch}}')).toEqual(['bad']);
   });
 
   it('checks the each source and else branch but not the item-scoped body', () => {

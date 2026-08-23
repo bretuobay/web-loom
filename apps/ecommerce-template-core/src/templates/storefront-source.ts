@@ -1,15 +1,15 @@
 export const productCardTemplateSource = `
-  <article class="product-card" class:selected="../catalog.selectedProduct.id === id" on:click="selectProduct(this)">
-    <img :src="imageUrl" :alt="name" loading="lazy">
+  <article class="product-card" class:selected="selected" on:click="onSelect(product)">
+    <img :src="product.imageUrl" :alt="product.name" loading="lazy">
     <div class="product-content">
-      <h3>{{ name }}</h3>
-      <p class="product-category">{{ category }}</p>
-      <p class="product-description">{{ description }}</p>
+      <h3>{{ product.name }}</h3>
+      <p class="product-category">{{ product.category }}</p>
+      <p class="product-description">{{ product.description }}</p>
       <div class="product-row">
-        <strong>{{ formatMoney(priceCents) }}</strong>
-        <span>{{ stock }} in stock</span>
+        <strong>{{ formatMoney(product.priceCents) }}</strong>
+        <span>{{ product.stock }} in stock</span>
       </div>
-      <button class="brand-btn" type="button" on:click.stop="addToCart(this)">Add to cart</button>
+      <button class="brand-btn" type="button" on:click.stop="onAdd(product)">Add to cart</button>
     </div>
   </article>
 `;
@@ -36,7 +36,7 @@ export const storefrontTemplateSource = `
     <div class="browser-grid">
       <div class="product-list">
         {{#if catalog.filteredProducts.length > 0}}
-          {{#each catalog.filteredProducts key=id}}{{> product-card this}}{{/each}}
+          {{#each catalog.filteredProducts key=id}}{{> product-card product=this formatMoney=../actions.formatMoney onSelect=../actions.selectProduct onAdd=../actions.addToCart selected=../catalog.selectedProduct.id === id}}{{/each}}
         {{else}}
           {{#if catalog.searchQuery}}
             <div class="empty-card">No products found for this search.</div>
@@ -52,7 +52,7 @@ export const storefrontTemplateSource = `
           <p>{{ catalog.selectedProduct.description }}</p>
           <dl>
             <div><dt>Category</dt><dd>{{ catalog.selectedProduct.category }}</dd></div>
-            <div><dt>Price</dt><dd>{{ formatMoney(catalog.selectedProduct.priceCents) }}</dd></div>
+            <div><dt>Price</dt><dd>{{ actions.formatMoney(catalog.selectedProduct.priceCents) }}</dd></div>
             <div><dt>Stock</dt><dd>{{ catalog.selectedProduct.stock }}</dd></div>
           </dl>
           <button class="brand-btn" type="button" on:click="actions.addSelectedToCart">Add selected item</button>

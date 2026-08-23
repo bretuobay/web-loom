@@ -8,11 +8,7 @@ export function getCachedTemplateIssues(context: Rule.RuleContext): TemplateLint
   const { sourceCode } = context;
   let issues = issuesBySource.get(sourceCode);
   if (!issues) {
-    issues = collectTemplateLintIssues(
-      context.filename,
-      sourceCode.text,
-      getTemplateCoreSettings(context.settings),
-    );
+    issues = collectTemplateLintIssues(context.filename, sourceCode.text, getTemplateCoreSettings(context.settings));
     issuesBySource.set(sourceCode, issues);
   }
   return issues;
@@ -20,7 +16,7 @@ export function getCachedTemplateIssues(context: Rule.RuleContext): TemplateLint
 
 export function createDiagnosticRule(
   codes: readonly string[],
-  options?: { requiresPartialsManifest?: boolean; requiresContextKeys?: boolean },
+  options?: { requiresPartialsManifest?: boolean; requiresContextKeys?: boolean; requiresPartialProps?: boolean },
 ): Rule.RuleModule {
   return {
     meta: {
@@ -39,6 +35,7 @@ export function createDiagnosticRule(
           const settings = getTemplateCoreSettings(context.settings);
           if (options?.requiresPartialsManifest && !settings.partials) return;
           if (options?.requiresContextKeys && !settings.contextKeys) return;
+          if (options?.requiresPartialProps && !settings.partialProps) return;
 
           for (const issue of getCachedTemplateIssues(context)) {
             if (!codes.includes(issue.diagnosticCode)) continue;
@@ -70,4 +67,5 @@ export const RULE_CODES = {
   'no-invalid-expression': ['INVALID_EXPRESSION', 'INVALID_TEMPLATE'],
   'no-unsupported-modifier': ['MODIFIER_CONFLICT', 'UNSUPPORTED_DIRECTIVE'],
   'no-unknown-context-path': ['UNKNOWN_CONTEXT_PATH'],
+  'no-invalid-partial-props': ['MISSING_PARTIAL_PROP', 'UNKNOWN_PARTIAL_PROP'],
 } as const;

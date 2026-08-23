@@ -67,10 +67,9 @@ describe('dev-mode UNRESOLVED_CONTEXT_PATH diagnostic', () => {
   });
 
   it('warns for unknown roots referenced inside {{#each}} item scopes', () => {
-    const { report, view } = mountWithDiagnostics(
-      '<ul>{{#each items$ key=id}}<li>{{ labell }}</li>{{/each}}</ul>',
-      { items$: signal([{ id: '1', label: 'one' }]) },
-    );
+    const { report, view } = mountWithDiagnostics('<ul>{{#each items$ key=id}}<li>{{ labell }}</li>{{/each}}</ul>', {
+      items$: signal([{ id: '1', label: 'one' }]),
+    });
 
     expect(report).toHaveBeenCalledTimes(1);
     expect(report.mock.calls[0]![0]).toMatchObject({ code: 'UNRESOLVED_CONTEXT_PATH' });

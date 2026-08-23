@@ -57,9 +57,7 @@ describe('analyzeTemplate', () => {
   it('warns on statically unsafe URL schemes in bound attributes', () => {
     const result = analyzeTemplate('<a :href="\'javascript:alert(1)\'">link</a>');
     expect(result.ok).toBe(true);
-    expect(result.diagnostics).toEqual([
-      expect.objectContaining({ code: 'UNSAFE_URL_SCHEME', severity: 'warning' }),
-    ]);
+    expect(result.diagnostics).toEqual([expect.objectContaining({ code: 'UNSAFE_URL_SCHEME', severity: 'warning' })]);
   });
 
   it('warns on missing partials when a partial manifest is provided', () => {
@@ -77,6 +75,60 @@ describe('analyzeTemplate', () => {
     const result = analyzeTemplate('{{> card}}', { partials: {}, strictPartials: true });
     expect(result.ok).toBe(false);
     expect(result.diagnostics[0]).toMatchObject({ code: 'MISSING_PARTIAL', severity: 'error' });
+  });
+
+  it('warns when a hash-arg call is missing a declared prop', () => {
+    const result = analyzeTemplate('{{> card count=n}}', {
+      name: 'Page',
+      partials: { card: '<span></span>' },
+      partialProps: { card: ['count', 'href'] },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        code: 'MISSING_PARTIAL_PROP',
+        severity: 'warning',
+        details: expect.objectContaining({ partial: 'card', prop: 'href' }),
+      }),
+    ]);
+  });
+
+  it('warns on unknown hash args and suggests near-miss names', () => {
+    const result = analyzeTemplate('{{> card count=n href=path hrf=path}}', {
+      partials: { card: '<span></span>' },
+      partialProps: { card: ['count', 'href'] },
+    });
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        code: 'UNKNOWN_PARTIAL_PROP',
+        message: 'Unknown prop "hrf" on partial "card". Did you mean "href"?',
+      }),
+    ]);
+  });
+
+  it('treats prop mismatches as errors when strictPartials is true', () => {
+    const result = analyzeTemplate('{{> card}}', {
+      partials: { card: '<span></span>' },
+      partialProps: { card: ['count'] },
+      strictPartials: true,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics[0]).toMatchObject({ code: 'MISSING_PARTIAL_PROP', severity: 'error' });
+  });
+
+  it('does not require listed props for the legacy context form', () => {
+    const result = analyzeTemplate('{{> card user$}}', {
+      partials: { card: '<span></span>' },
+      partialProps: { card: ['count', 'href'] },
+    });
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it('skips prop checks when the callee has no props contract', () => {
+    const result = analyzeTemplate('{{> header}}', {
+      partials: { header: '<header></header>' },
+    });
+    expect(result.diagnostics).toEqual([]);
   });
 
   it('matches browser parseTemplate structure for keyed each blocks', () => {

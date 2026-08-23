@@ -70,7 +70,7 @@ describe('formatCompileCallsInSource', () => {
   });
 
   it('no-ops files without template-core compile sites', () => {
-    const source = "export const x = 1;\n";
+    const source = 'export const x = 1;\n';
     const result = formatCompileCallsInSource(source, { filePath: 'plain.ts' });
     expect(result.changed).toBe(false);
     expect(result.source).toBe(source);

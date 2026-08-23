@@ -1,0 +1,41 @@
+{
+  "name": "@web-loom/view",
+  "version": "0.8.0",
+  "description": "Component model for Web Loom's native view: defineComponent, isolated props, and setup/dispose on template-core.",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "files": ["dist"],
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js",
+      "default": "./dist/index.es.js"
+    }
+  },
+  "dependencies": {
+    "@web-loom/template-core": "*"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "test": "vitest --watch=false",
+    "lint": "eslint src --ext .ts --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@web-loom/signals-core": "*",
+    "eslint": "^9.39.1",
+    "jsdom": "^26.1.0",
+    "typescript": "5.8.2",
+    "vite": "^6.4.3",
+    "vite-plugin-dts": "^5.0.3",
+    "vitest": "^4.1.9"
+  }
+}

@@ -1,9 +1,9 @@
 <div class="card">
-  <a href="/sensor-readings" class="card-header-link">
+  <a href="{{ href }}" class="card-header-link">
     <h3 class="card-title">Sensor Readings</h3>
   </a>
   <div class="card-content sensor-reading-card">
-    <canvas id="sensorReadingsChart" use:renderSensorReadingsChart="renderSensorReadingsChart"></canvas>
+    <canvas id="sensorReadingsChart" use:renderChart="renderChart"></canvas>
   </div>
-  <p class="card-content">Total Readings: {{ sensorReadings.data$.length }}</p>
+  <p class="card-content">Total Readings: {{ count }}</p>
 </div>

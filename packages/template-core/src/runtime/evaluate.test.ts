@@ -127,6 +127,28 @@ describe('evaluate: helper calls and this-binding', () => {
     const scope = scopeOf({ notAFunction: 5 });
     expect(() => evaluate(parseExpression('notAFunction()'), scope, {})).toThrow(TypeError);
   });
+
+  it('invokes a dotted callee with its owning object as this', () => {
+    const actions = {
+      label: 'ok',
+      format(this: { label: string }, value: unknown) {
+        return `${this.label}:${value}`;
+      },
+    };
+    const scope = scopeOf({ actions, title: 'Ada' });
+    expect(evaluate(parseExpression('actions.format(title)'), scope, {})).toBe('ok:Ada');
+  });
+
+  it('resolves a dotted callee from an ancestor scope', () => {
+    const actions = { ping: vi.fn((id: number) => id) };
+    const scope: Scope = {
+      parent: scopeOf({ actions }),
+      self: { id: 7 },
+      locals: {},
+    };
+    expect(evaluate(parseExpression('actions.ping(id)'), scope, {})).toBe(7);
+    expect(actions.ping).toHaveBeenCalledExactlyOnceWith(7);
+  });
 });
 
 describe('evaluate: unary, comparisons, logical', () => {

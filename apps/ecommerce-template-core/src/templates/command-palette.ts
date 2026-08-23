@@ -1,20 +1,33 @@
 import { declareContext } from '@web-loom/template-core';
-import type { AppContext } from '../app/context';
+import { defineComponent } from '@web-loom/view';
+import type { CommandPaletteState } from '@web-loom/ui-patterns';
 
-const partial = declareContext<AppContext>();
+export interface CommandPaletteProps {
+  palette: CommandPaletteState;
+  onClose: () => void;
+  onStop: (event: Event) => void;
+  onQuery: (event: Event) => void;
+  onKey: (event: Event) => void;
+  onExecute: (event: Event) => void;
+}
 
-export const commandPaletteTemplate = partial.compile(`{{#if state.paletteState$.isOpen}}
-  <div class="palette-backdrop" on:click="actions.closePalette">
-    <div class="palette-dialog" on:click="actions.stopEvent">
-      <input class="palette-input" autofocus :value="state.paletteState$.query"
-          on:input="setPaletteQueryFromEvent" on:keydown="handlePaletteKey"
+const card = declareContext<CommandPaletteProps>();
+
+export const commandPalette = defineComponent<CommandPaletteProps>({
+  name: 'palette',
+  props: ['palette', 'onClose', 'onStop', 'onQuery', 'onKey', 'onExecute'],
+  template: card.compile(`{{#if palette.isOpen}}
+  <div class="palette-backdrop" on:click="onClose">
+    <div class="palette-dialog" on:click="onStop">
+      <input class="palette-input" autofocus :value="palette.query"
+          on:input="onQuery" on:keydown="onKey"
           placeholder="Type a command">
       <ul class="palette-list">
-        {{#if state.paletteState$.filteredCommands.length > 0}}
-          {{#each state.paletteState$.filteredCommands key=id}}
+        {{#if palette.filteredCommands.length > 0}}
+          {{#each palette.filteredCommands key=id}}
             <li>
-              <button class="palette-item" data-command-id="{{ id }}" class:active="../state.paletteState$.selectedIndex === @index" type="button"
-                on:click="executePaletteCommand">
+              <button class="palette-item" data-command-id="{{ id }}" class:active="../palette.selectedIndex === @index" type="button"
+                on:click="onExecute">
                 <span>
                   {{ label }}
                 </span>
@@ -33,4 +46,5 @@ export const commandPaletteTemplate = partial.compile(`{{#if state.paletteState$
     </div>
   </div>
 {{/if}}
-`);
+`),
+});

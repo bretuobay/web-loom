@@ -199,10 +199,10 @@ function tokenize(source: string): Token[] {
 
 function classifyMustache(value: string): MustacheKind {
   const inner = value.slice(2, -2).trim();
-  if (/^#(?:if|each|switch|case|default)\b/.test(inner)) {
+  if (/^#(?:>|slot\b|if|each|switch|case|default)\b/.test(inner) || /^#>/.test(inner)) {
     return 'block-open';
   }
-  if (/^\/(?:if|each|switch|case|default)\b/.test(inner)) {
+  if (/^\/(?:if|each|switch|case|default|slot|[A-Za-z_][A-Za-z0-9_-]*)\b/.test(inner)) {
     return 'block-close';
   }
   if (/^else(?:\s+if\b|\s*$)/.test(inner)) {

@@ -90,6 +90,16 @@ const FRONTENDS = [
     recommended: true,
   },
   {
+    id: 'mvvm-solid',
+    displayName: 'mvvm-solid',
+    path: 'apps/mvvm-solid',
+    port: 5179,
+    framework: 'Vite + Solid',
+    notes: 'Greenhouse dashboard with a loom → Solid signal bridge.',
+    command: 'npm run dev',
+    recommended: true,
+  },
+  {
     id: 'mvvm-template-core',
     displayName: 'mvvm-template-core',
     path: 'apps/mvvm-template-core',

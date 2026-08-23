@@ -6,7 +6,7 @@ import { CatalogModel } from '../features/catalog/CatalogModel';
 import { CartModel } from '../features/cart/CartModel';
 import { TemplateAppViewModel } from '../TemplateAppViewModel';
 import type { CatalogProductDto } from '../infrastructure/api/ports/ecommerce-api-port';
-import { appShellTemplate, notFoundTemplate } from '../templates';
+import { appShell, notFound } from '../templates';
 import { createAppContext } from './context';
 import { appRoutes, createAppRouter } from './routes';
 
@@ -50,10 +50,14 @@ export function createApp(options: CreateAppOptions = {}): App {
       try {
         router = createAppRouter();
         const api = createEcommerceApi();
-        viewModel = new TemplateAppViewModel(new CatalogModel(api, options.initialProducts), new CartModel(api), router);
+        viewModel = new TemplateAppViewModel(
+          new CatalogModel(api, options.initialProducts),
+          new CartModel(api),
+          router,
+        );
         const context = createAppContext(viewModel);
 
-        shell = appShellTemplate.mount(container, context);
+        shell = appShell.mount(container, context);
 
         const outlet =
           routeContainer ?? container.querySelector('[data-template-slot="route"]') ?? createRouteSlot(container);
@@ -63,7 +67,7 @@ export function createApp(options: CreateAppOptions = {}): App {
         routerView = createRouterView(outlet, {
           router,
           routes: appRoutes,
-          notFound: notFoundTemplate,
+          notFound,
           context,
           hydrate: true,
         });

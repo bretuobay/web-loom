@@ -98,7 +98,14 @@ export type BlockRecord =
       empty?: RootTemplate;
     }
   | { kind: 'switch'; path: NodePath; source: ExpressionNode; branches: SwitchBranch[] }
-  | { kind: 'partial'; path: NodePath; name: string; context: ExpressionNode | null };
+  | {
+      kind: 'partial';
+      path: NodePath;
+      name: string;
+      context: ExpressionNode | null;
+      args?: Record<string, ExpressionNode> | null;
+      slots?: Record<string, RootTemplate>;
+    };
 
 export interface SwitchBranch {
   value: ExpressionNode | null;
@@ -134,6 +141,23 @@ export interface TemplateOptions {
   /** Throw instead of warning when a partial cannot be resolved. */
   strictPartials?: boolean;
   /**
+   * When true, this template never inherits a caller's scope when used as a
+   * partial — even if invoked as `{{> name}}` with no arguments.
+   */
+  isolated?: boolean;
+  /**
+   * Optional per-mount hook used by `@web-loom/view` `defineComponent`.
+   * Receives the evaluated props object and may return extra context plus a
+   * dispose callback that runs when the partial unmounts.
+   */
+  createContext?(props: object): { context: object; dispose?(): void };
+  /**
+   * Declared hash-arg names for this template when used as a partial.
+   * Analyze compares `{{> name count=n}}` against this list. Omitted means
+   * the call site is unchecked (legacy / open components).
+   */
+  props?: readonly string[];
+  /**
    * Enables development-only diagnostics, currently `UNRESOLVED_CONTEXT_PATH`
    * warnings when a template path's root segment does not exist on the scope
    * it resolves against. The Vite plugins turn this on in dev builds.
@@ -155,6 +179,13 @@ export interface RenderContext {
   reportDiagnostic?: (diagnostic: TemplateDiagnostic) => void;
   partialDepth?: number;
   partialStack?: string[];
+  /**
+   * Slot frames pushed while instantiating a block partial. `{{> yield}}`
+   * reads the innermost frame and binds slot markup against the caller scope.
+   */
+  slotStack?: Array<{ slots: Record<string, RootTemplate>; callerScope: Scope }>;
+  /** SSR-only slot frames; slot bodies stay as parse5 node lists. */
+  serverSlotStack?: Array<{ slots: Record<string, unknown[]>; callerScope: Scope }>;
   /** True only during the first browser binding pass over SSR-created nodes. */
   hydrating?: boolean;
 }
@@ -174,6 +205,18 @@ export interface Template<TVm extends object = object> {
   hydrate(container: Element, viewModel: TVm): Disposable;
   /** Serializes the template using the browser renderer when available. */
   renderToString(viewModel: TVm): string;
+  /** See {@link TemplateOptions.isolated}. */
+  isolated?: boolean;
+  /** See {@link TemplateOptions.createContext}. */
+  createContext?(props: object): { context: object; dispose?(): void };
+  /** See {@link TemplateOptions.props}. */
+  props?: readonly string[];
+  /**
+   * Local `{{> name}}` map for this template. Set at `compile()` or attached
+   * later (e.g. `withPartials`) so a page can import children without the
+   * global registry.
+   */
+  partials?: Record<string, PartialSource>;
 }
 
 export interface TemplateOutlet extends Disposable {
@@ -227,7 +270,14 @@ export type SerializableBlockRecord =
       source: ExpressionNode;
       branches: Array<{ value: ExpressionNode | null; template: SerializableRootTemplate }>;
     }
-  | { kind: 'partial'; path: NodePath; name: string; context: ExpressionNode | null };
+  | {
+      kind: 'partial';
+      path: NodePath;
+      name: string;
+      context: ExpressionNode | null;
+      args?: Record<string, ExpressionNode> | null;
+      slots?: Record<string, SerializableRootTemplate>;
+    };
 
 export interface PrecompileOptions {
   name?: string;
@@ -238,7 +288,13 @@ export interface PrecompileOptions {
 export interface AnalyzeOptions extends PrecompileOptions {
   /** When provided, unresolved `{{> name }}` references emit `MISSING_PARTIAL` diagnostics. */
   partials?: Record<string, PartialSource>;
-  /** Treat missing partials as errors instead of warnings during analysis. */
+  /**
+   * Declared hash-arg names per partial, used when the `partials` value is a
+   * string stub (lint/editor) or has no `Template.props`. Live `Template.props`
+   * wins when both are present.
+   */
+  partialProps?: Record<string, readonly string[]>;
+  /** Treat missing partials and prop mismatches as errors instead of warnings. */
   strictPartials?: boolean;
   /**
    * Top-level keys of the context object the template mounts against. When

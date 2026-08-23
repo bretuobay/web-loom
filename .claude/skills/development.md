@@ -45,6 +45,7 @@ Each app can be run individually:
 cd apps/mvvm-react && npm run dev
 cd apps/mvvm-angular && npm run dev
 cd apps/mvvm-vue && npm run dev
+cd apps/mvvm-solid && npm run dev
 cd apps/mvvm-lit && npm run dev
 cd apps/mvvm-vanilla && npm run dev
 cd apps/mvvm-template-core && npm run dev
@@ -153,6 +154,7 @@ rm -rf node_modules/.vite  # Clear Vite cache
 ### Port Conflicts
 
 - mvvm-react: 5173
+- mvvm-solid: 5179
 - mvvm-template-core: 5183
 - task-flow-ui: 5178
 - api: 3000
