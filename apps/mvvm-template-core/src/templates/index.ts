@@ -1,31 +1,31 @@
-import { appShellTemplate } from './app-shell';
-import { dashboardTemplate } from './dashboard';
-import { footerTemplate } from './footer';
+import { appShell } from './app-shell';
+import { dashboard } from './dashboard';
+import { footer } from './footer';
 import { greenhouseCard } from './greenhouse-card';
 import { greenhouseItem } from './greenhouse-item';
-import { greenhouseListTemplate } from './greenhouse-list';
-import { headerTemplate } from './header';
-import notFoundTemplate from './not-found.loom';
+import { greenhouseList } from './greenhouse-list';
+import { header } from './header';
+import notFound from './not-found.loom';
 import { sensorCard } from './sensor-card';
-import sensorListTemplate from './sensor-list.loom';
+import { sensorList } from './sensor-list';
 import { sensorReadingCard } from './sensor-reading-card';
-import sensorReadingListTemplate from './sensor-reading-list.loom';
+import { sensorReadingList } from './sensor-reading-list';
 import { thresholdAlertCard } from './threshold-alert-card';
-import thresholdAlertListTemplate from './threshold-alert-list.loom';
+import { thresholdAlertList } from './threshold-alert-list';
 
 export {
-  appShellTemplate,
-  dashboardTemplate,
-  footerTemplate,
+  appShell,
+  dashboard,
+  footer,
   greenhouseCard,
   greenhouseItem,
-  greenhouseListTemplate,
-  headerTemplate,
-  notFoundTemplate,
+  greenhouseList,
+  header,
+  notFound,
   sensorCard,
-  sensorListTemplate,
+  sensorList,
   sensorReadingCard,
-  sensorReadingListTemplate,
+  sensorReadingList,
   thresholdAlertCard,
-  thresholdAlertListTemplate,
+  thresholdAlertList,
 };

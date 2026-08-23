@@ -1,60 +1,19 @@
 import { createRouter, type Router } from '@web-loom/router-core';
 import { toRouteDefinitions, type TemplateRoute } from '@web-loom/template-core-router';
-import { greenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
-import { sensorViewModel } from '@repo/view-models/SensorViewModel';
-import { sensorReadingViewModel } from '@repo/view-models/SensorReadingViewModel';
-import { thresholdAlertViewModel } from '@repo/view-models/ThresholdAlertViewModel';
-import {
-  dashboardTemplate,
-  greenhouseListTemplate,
-  sensorListTemplate,
-  sensorReadingListTemplate,
-  thresholdAlertListTemplate,
-} from '../templates';
+import { dashboard, greenhouseList, sensorList, sensorReadingList, thresholdAlertList } from '../templates';
 import type { AppContext } from './context';
 
-async function loadDashboard(): Promise<void> {
-  await Promise.all([
-    greenHouseViewModel.fetchCommand.execute(),
-    sensorViewModel.fetchCommand.execute(),
-    sensorReadingViewModel.fetchCommand.execute(),
-    thresholdAlertViewModel.fetchCommand.execute(),
-  ]);
-}
-
 /**
- * The single source of truth for routing: which template renders at each
- * path and which ViewModels it needs fetched on entry. The router itself is
- * derived from this table, so paths cannot drift between router, view, and
- * data loading.
+ * The single source of truth for routing: which screen renders at each
+ * path. Each screen fetches in its own `setup`; the router only swaps views.
  */
 export const appRoutes: TemplateRoute<AppContext>[] = [
-  { path: '/', name: 'home', template: dashboardTemplate, load: loadDashboard },
-  { path: '/dashboard', name: 'dashboard', template: dashboardTemplate, load: loadDashboard },
-  {
-    path: '/greenhouses',
-    name: 'greenhouses',
-    template: greenhouseListTemplate,
-    load: () => greenHouseViewModel.fetchCommand.execute(),
-  },
-  {
-    path: '/sensors',
-    name: 'sensors',
-    template: sensorListTemplate,
-    load: () => sensorViewModel.fetchCommand.execute(),
-  },
-  {
-    path: '/sensor-readings',
-    name: 'sensor-readings',
-    template: sensorReadingListTemplate,
-    load: () => sensorReadingViewModel.fetchCommand.execute(),
-  },
-  {
-    path: '/threshold-alerts',
-    name: 'threshold-alerts',
-    template: thresholdAlertListTemplate,
-    load: () => thresholdAlertViewModel.fetchCommand.execute(),
-  },
+  { path: '/', name: 'home', template: dashboard },
+  { path: '/dashboard', name: 'dashboard', template: dashboard },
+  { path: '/greenhouses', name: 'greenhouses', template: greenhouseList },
+  { path: '/sensors', name: 'sensors', template: sensorList },
+  { path: '/sensor-readings', name: 'sensor-readings', template: sensorReadingList },
+  { path: '/threshold-alerts', name: 'threshold-alerts', template: thresholdAlertList },
 ];
 
 export function createAppRouter(): Router {

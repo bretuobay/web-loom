@@ -1,26 +1,26 @@
 import { declareContext } from '@web-loom/template-core';
 import type { AppContext } from '../app/context';
 import { appFrame } from './app-frame';
-import { footerTemplate } from './footer';
-import { headerTemplate } from './header';
+import { footer } from './footer';
+import { header } from './header';
 
 const chrome = declareContext<AppContext>();
 
-export const appShellTemplate = chrome.compile(
+export const appShell = chrome.compile(
   `{{#> app-frame links=links}}
   {{#slot header}}
-    {{> header items=navigationItems$}}
+    {{> header}}
   {{/slot}}
   {{#slot footer}}
-    {{> footer year=currentYear}}
+    {{> footer}}
   {{/slot}}
 {{/app-frame}}
 `,
   {
     partials: {
       'app-frame': appFrame,
-      header: headerTemplate,
-      footer: footerTemplate,
+      header,
+      footer,
     },
   },
 );

@@ -1,14 +1,11 @@
+import { navigationViewModel } from '@repo/shared/view-models/NavigationViewModel';
 import { defineComponent } from '@web-loom/view';
 import template from './header.loom';
 
-export interface HeaderItem {
-  id: string;
-  icon: string;
-  label: string;
-}
-
-export const headerTemplate = defineComponent<{ items: HeaderItem[] }>({
+export const header = defineComponent({
   name: 'header',
-  props: ['items'],
+  setup() {
+    return { items: navigationViewModel.navigationList.items$ };
+  },
   template,
 });

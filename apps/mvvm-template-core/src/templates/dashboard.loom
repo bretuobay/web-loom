@@ -14,7 +14,7 @@
         {{> threshold-alert-card count=thresholdAlerts.data$.length href="/threshold-alerts"}}
       </div>
       <div class="flex-item">
-        {{> sensor-reading-card count=sensorReadings.data$.length href="/sensor-readings" renderChart=renderSensorReadingsChart}}
+        {{> sensor-reading-card count=sensorReadings.data$.length href="/sensor-readings"}}
       </div>
     </div>
   {{/if}}

@@ -25,22 +25,18 @@ export default [
           'sensor-reading-card': 'src/templates/sensor-reading-card.loom',
           'threshold-alert-card': 'src/templates/threshold-alert-card.loom',
         },
-        // Top-level keys of createAppContext (src/app/context.ts) — enables
-        // no-unknown-context-path for inline compile() templates.
+        // App-context keys plus per-screen setup extras used in .loom files.
         contextKeys: [
           'greenHouses',
           'sensors',
           'sensorReadings',
           'thresholdAlerts',
-          'navigationItems$',
-          'currentYear',
-          'sizeOptions',
+          'links',
           'dashboardLoading$',
           'greenhouseForm',
           'editGreenhouse',
           'deleteGreenhouse',
-          'links',
-          'renderSensorReadingsChart',
+          'sizeOptions',
           'formatTimestamp',
         ],
       },

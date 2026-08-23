@@ -1,8 +1,10 @@
 import { defineComponent } from '@web-loom/view';
 import template from './footer.loom';
 
-export const footerTemplate = defineComponent<{ year: number }>({
+export const footer = defineComponent({
   name: 'footer',
-  props: ['year'],
+  setup() {
+    return { year: new Date().getFullYear() };
+  },
   template,
 });

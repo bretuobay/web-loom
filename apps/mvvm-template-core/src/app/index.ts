@@ -1,7 +1,7 @@
 import type { Disposable } from '@web-loom/template-core';
 import { createRouterView } from '@web-loom/template-core-router';
 import type { Router } from '@web-loom/router-core';
-import { appShellTemplate, notFoundTemplate } from '../templates';
+import { appShell, notFound } from '../templates';
 import { createAppContext } from './context';
 import { createAppRouter, appRoutes } from './routes';
 
@@ -35,17 +35,17 @@ export function createApp(): App {
       try {
         router = createAppRouter();
         const context = createAppContext(router);
-        shell = appShellTemplate.mount(container, context);
+        shell = appShell.mount(container, context);
 
         const outlet = container.querySelector('[data-template-slot="route"]');
         if (!outlet) {
-          throw new Error('The app shell template did not render a [data-template-slot="route"] element.');
+          throw new Error('The app shell did not render a [data-template-slot="route"] element.');
         }
 
         routerView = createRouterView(outlet, {
           router,
           routes: appRoutes,
-          notFound: notFoundTemplate,
+          notFound,
           context,
         });
 
