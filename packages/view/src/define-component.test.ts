@@ -49,6 +49,30 @@ describe('defineComponent', () => {
     expect(disposed).toBe(2);
   });
 
+  it('runs setup on a root mount and disposes it with the view', () => {
+    let fetched = 0;
+    let disposed = 0;
+    const page = defineComponent({
+      name: 'page',
+      template: compile('<span>{{ title }}</span>'),
+      setup() {
+        fetched += 1;
+        return {
+          dispose: () => {
+            disposed += 1;
+          },
+        };
+      },
+    });
+
+    const root = document.createElement('div');
+    const view = page.mount(root, { title: 'Ada' });
+    expect(root.textContent).toBe('Ada');
+    expect(fetched).toBe(1);
+    view.dispose();
+    expect(disposed).toBe(1);
+  });
+
   it('resolves child partials from defineComponent.partials without a global registry', () => {
     const inner = defineComponent<{ label: string }>({
       name: 'inner',

@@ -63,6 +63,12 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
     };
   }
 
+  private resolveMountModel(viewModel: TVm, bag: DisposalBag): TVm {
+    const created = this.createContext?.(asPropsObject(viewModel));
+    if (created?.dispose) bag.add(created.dispose);
+    return (created?.context ?? viewModel) as TVm;
+  }
+
   private makeRootScope(viewModel: TVm, ctx: RenderContext): Scope {
     const scope: Scope = { parent: null, self: viewModel, locals: {} };
     if (this.options.dev) {
@@ -86,7 +92,7 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
   mount(container: Element, viewModel: TVm): Disposable {
     const bag = new DisposalBag();
     const ctx = this.makeContext();
-    const scope = this.makeRootScope(viewModel, ctx);
+    const scope = this.makeRootScope(this.resolveMountModel(viewModel, bag), ctx);
     const { roots, fragment } = instantiate(this.root, scope, ctx, bag);
     container.append(fragment);
     bag.add(() => {
@@ -98,7 +104,7 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
   render(viewModel: TVm): { node: DocumentFragment; dispose(): void } {
     const bag = new DisposalBag();
     const ctx = this.makeContext();
-    const scope = this.makeRootScope(viewModel, ctx);
+    const scope = this.makeRootScope(this.resolveMountModel(viewModel, bag), ctx);
     const { roots, fragment } = instantiate(this.root, scope, ctx, bag);
     bag.add(() => {
       for (const node of roots) node.remove();
@@ -141,7 +147,7 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
     }
     const bag = new DisposalBag();
     const context = this.makeContext();
-    const scope = this.makeRootScope(viewModel, context);
+    const scope = this.makeRootScope(this.resolveMountModel(viewModel, bag), context);
     const roots = Array.from(container.childNodes);
     context.hydrating = true;
     try {
@@ -252,4 +258,8 @@ export function unregisterPartial(name: string): void {
 
 export function getGlobalTemplateRegistry(): TemplateRegistry {
   return globalRegistry;
+}
+
+function asPropsObject(value: unknown): object {
+  return value != null && typeof value === 'object' ? value : {};
 }

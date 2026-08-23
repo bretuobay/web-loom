@@ -46,6 +46,15 @@ describe('server rendering', () => {
     expect(html).not.toContain('leaked');
   });
 
+  it('runs createContext on renderToString', () => {
+    const template = compile('<span>{{ extra }}</span>', {
+      createContext(props) {
+        return { context: { ...props, extra: 'setup' } };
+      },
+    });
+    expect(template.renderToString({})).toContain('setup');
+  });
+
   it('resolves children from template.partials attached after compile', () => {
     const template = compile('{{> card}}');
     template.partials = { card: '<strong>{{ title }}</strong>' };

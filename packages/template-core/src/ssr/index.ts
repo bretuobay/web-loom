@@ -36,10 +36,16 @@ class ServerTemplate<TVm extends object> implements Template<TVm> {
   }
 
   renderToString(viewModel: TVm): string {
+    const created = this.createContext?.(asPropsObject(viewModel));
+    const resolved = (created?.context ?? viewModel) as TVm;
     const options = { ...this.options, partials: this.partials ?? this.options.partials };
-    return this.plan?.compiled === false
-      ? renderPlanToString(this.plan, viewModel, options)
-      : renderSourceToString(this.source, viewModel, options);
+    try {
+      return this.plan?.compiled === false
+        ? renderPlanToString(this.plan, resolved, options)
+        : renderSourceToString(this.source, resolved, options);
+    } finally {
+      created?.dispose?.();
+    }
   }
 }
 
@@ -74,4 +80,8 @@ export function fromPrecompiled<TVm extends object = object>(
     },
     plan.root,
   );
+}
+
+function asPropsObject(value: unknown): object {
+  return value != null && typeof value === 'object' ? value : {};
 }

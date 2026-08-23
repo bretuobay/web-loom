@@ -17,7 +17,8 @@ export interface DefineComponentOptions<TProps extends object> {
 /**
  * Marks a compiled template as an isolated component. Call sites pass named
  * hash arguments (`{{> card count=n}}`); the component never inherits the
- * caller scope. `setup` runs on each mount and its `dispose` runs on unmount.
+ * caller scope. `setup` runs on each `{{> }}` mount and on root
+ * `mount`/`hydrate`, and its `dispose` runs on unmount.
  */
 export function defineComponent<TProps extends object>(options: DefineComponentOptions<TProps>): Template<TProps> {
   const template = options.template as Template<TProps>;

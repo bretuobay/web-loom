@@ -103,6 +103,28 @@ describe('partial hash args and isolation', () => {
     expect(disposed).toBe(2);
   });
 
+  it('runs createContext on root mount and disposes it with the view', () => {
+    let setups = 0;
+    let disposed = 0;
+    const page = compile('<span>{{ title }} {{ extra }}</span>', {
+      createContext(props) {
+        setups += 1;
+        return {
+          context: { ...props, extra: 'setup' },
+          dispose: () => {
+            disposed += 1;
+          },
+        };
+      },
+    });
+    const root = document.createElement('div');
+    const view = page.mount(root, { title: 'Ada' });
+    expect(root.textContent?.trim()).toBe('Ada setup');
+    expect(setups).toBe(1);
+    view.dispose();
+    expect(disposed).toBe(1);
+  });
+
   it('resolves children from template.partials without the global registry', () => {
     const page = compile('{{> card}}');
     page.partials = { card: '<span>{{ title }}</span>' };

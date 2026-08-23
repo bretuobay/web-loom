@@ -6,8 +6,20 @@ Component model for Web Loom's native view layer. Templates stay in `@web-loom/t
 
 ```ts
 import { defineComponent } from '@web-loom/view';
-import template from './greenhouse-card.loom';
+import template from './footer.loom';
 
+export const footerTemplate = defineComponent({
+  name: 'footer',
+  setup() {
+    return { year: new Date().getFullYear() };
+  },
+  template,
+});
+```
+
+`setup` runs when the component mounts as `{{> footer}}` or as a root page (`template.mount`). It may return extra template keys plus an optional `dispose` — a natural place to start a screen's fetch. Call-site props stay explicit when the parent owns the data:
+
+```ts
 export const greenhouseCard = defineComponent<{ count: number; href: string }>({
   name: 'greenhouse-card',
   props: ['count', 'href'],
