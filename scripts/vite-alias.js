@@ -62,6 +62,7 @@ export var webLoomPackages = [
     '@web-loom/notifications-core',
     '@web-loom/platform-core',
     '@web-loom/router-core',
+    '@web-loom/view',
     '@web-loom/storage-core',
     '@web-loom/typography-core',
 ];
@@ -94,6 +95,7 @@ var packagePaths = {
     '@web-loom/notifications-core': 'packages/notifications-core/src',
     '@web-loom/platform-core': 'packages/platform-core/src',
     '@web-loom/router-core': 'packages/router-core/src',
+    '@web-loom/view': 'packages/view/src',
     '@web-loom/storage-core': 'packages/storage-core/src',
     '@web-loom/typography-core': 'packages/typography-core/src',
     // @repo packages

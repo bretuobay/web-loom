@@ -9,11 +9,21 @@ import type {
 } from '../types.js';
 
 class ServerTemplate<TVm extends object> implements Template<TVm> {
+  isolated?: boolean;
+  createContext?: Template['createContext'];
+  partials?: Template['partials'];
+  props?: readonly string[];
+
   constructor(
     private readonly source: string,
     private readonly options: TemplateOptions,
     private readonly plan?: SerializableRootTemplate,
-  ) {}
+  ) {
+    this.isolated = options.isolated;
+    this.createContext = options.createContext;
+    this.partials = options.partials;
+    this.props = options.props;
+  }
 
   mount(): Disposable {
     throw new Error('Server templates cannot mount into a browser container; use the browser compile() entrypoint.');
@@ -28,9 +38,16 @@ class ServerTemplate<TVm extends object> implements Template<TVm> {
   }
 
   renderToString(viewModel: TVm): string {
-    return this.plan?.compiled === false
-      ? renderPlanToString(this.plan, viewModel, this.options)
-      : renderSourceToString(this.source, viewModel, this.options);
+    const created = this.createContext?.(asPropsObject(viewModel));
+    const resolved = (created?.context ?? viewModel) as TVm;
+    const options = { ...this.options, partials: this.partials ?? this.options.partials };
+    try {
+      return this.plan?.compiled === false
+        ? renderPlanToString(this.plan, resolved, options)
+        : renderSourceToString(this.source, resolved, options);
+    } finally {
+      created?.dispose?.();
+    }
   }
 }
 
@@ -65,4 +82,8 @@ export function fromPrecompiled<TVm extends object = object>(
     },
     plan.root,
   );
+}
+
+function asPropsObject(value: unknown): object {
+  return value != null && typeof value === 'object' ? value : {};
 }

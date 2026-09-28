@@ -1,5 +1,5 @@
 import { TemplateSyntaxError } from '../errors.js';
-import type { PrecompileOptions, PrecompiledTemplateModule } from '../types.js';
+import type { AnalyzeOptions, PrecompiledTemplateModule } from '../types.js';
 import { analyzeTemplate } from './analyze.js';
 
 export { analyzeTemplate } from './analyze.js';
@@ -12,7 +12,7 @@ export type { AnalyzeOptions, AnalyzeResult, FormatTemplateOptions, FormatTempla
  *
  * Throws {@link TemplateSyntaxError} when analysis reports error-severity diagnostics.
  */
-export function precompileNode(source: string, options: PrecompileOptions = {}): PrecompiledTemplateModule {
+export function precompileNode(source: string, options: AnalyzeOptions = {}): PrecompiledTemplateModule {
   const result = analyzeTemplate(source, options);
   if (!result.ok) {
     const firstError = result.diagnostics.find((diagnostic) => diagnostic.severity === 'error');

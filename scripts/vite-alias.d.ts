@@ -43,12 +43,7 @@ export declare const webLoomPackages: readonly [
   '@web-loom/typography-core',
 ];
 /** All @repo/* workspace packages */
-export declare const repoPackages: readonly [
-  '@repo/models',
-  '@repo/view-models',
-  '@repo/shared',
-  '@repo/plugin-core',
-];
+export declare const repoPackages: readonly ['@repo/models', '@repo/view-models', '@repo/shared', '@repo/plugin-core'];
 /** Combined list of all workspace packages for optimizeDeps.include */
 export declare const workspacePackages: readonly [
   '@web-loom/mvvm-core',

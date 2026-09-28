@@ -12,15 +12,15 @@ Web Loom is a Turborepo monorepo demonstrating MVVM (Model-View-ViewModel) archi
 
 Detailed instructions are available in `.claude/skills/`:
 
-| Skill                        | Description                                                  |
-| ---------------------------- | ------------------------------------------------------------ |
-| **development.md**           | Dev commands, Turbo pipelines, building, linting, formatting |
-| **testing.md**               | Vitest patterns, MVVM testing, mocking strategies            |
-| **api.md**                   | Express.js API backend, SQLite, seeding                      |
-| **architecture.md**          | MVVM patterns, Models, ViewModels, Commands, signals-core     |
-| **design-theming.md**        | Design Core tokens, flat/paper UI, theming                   |
-| **package-configuration.md** | Vite/Vitest/Turbo config, aliases, TypeScript                |
-| **cross-framework.md**       | React/Angular/Vue/Lit/Vanilla integration patterns           |
+| Skill                        | Description                                                      |
+| ---------------------------- | ---------------------------------------------------------------- |
+| **development.md**           | Dev commands, Turbo pipelines, building, linting, formatting     |
+| **testing.md**               | Vitest patterns, MVVM testing, mocking strategies                |
+| **api.md**                   | Express.js API backend, SQLite, seeding                          |
+| **architecture.md**          | MVVM patterns, Models, ViewModels, Commands, signals-core        |
+| **design-theming.md**        | Design Core tokens, flat/paper UI, theming                       |
+| **package-configuration.md** | Vite/Vitest/Turbo config, aliases, TypeScript                    |
+| **cross-framework.md**       | React/Angular/Vue/Lit/Vanilla integration patterns               |
 | **versioning.md**            | Lockstep patch-only version policy for `packages/*/package.json` |
 
 ## Quick Reference
@@ -47,6 +47,7 @@ apps/
   ├── mvvm-react/              # React MVVM demo
   ├── mvvm-angular/            # Angular MVVM demo
   ├── mvvm-vue/                # Vue.js MVVM demo
+  ├── mvvm-solid/              # SolidJS MVVM demo
   ├── mvvm-vanilla/            # Vanilla JS + EJS MVVM demo
   ├── mvvm-template-core/      # Template Core (.loom) MVVM demo
   ├── mvvm-lit/                # Lit web components MVVM demo
@@ -222,6 +223,7 @@ turbo run test --filter=mvvm-react
 ## Default Ports
 
 - `mvvm-react`: 5173
+- `mvvm-solid`: 5179
 - `mvvm-template-core`: 5183
 - `task-flow-ui`: 5178
 - `api`: 3000

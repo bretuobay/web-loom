@@ -1,6 +1,8 @@
 export interface TemplateCoreLintSettings {
   /** Partial names declared in the project (values are documentation paths only). */
   partials?: Record<string, string>;
+  /** Declared hash-arg names per partial — enables `no-invalid-partial-props`. */
+  partialProps?: Record<string, readonly string[]>;
   /** Module specifiers scanned for `compile()` imports. */
   specifiers?: string[];
   /** Treat missing partials as errors during analysis. Default: true when `partials` is set. */

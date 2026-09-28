@@ -13,9 +13,10 @@ export type TypedPartialsMap<TPartials extends Record<string, object>> = {
   [K in keyof TPartials]: Template<TPartials[K]> | string;
 };
 
-export type TypedTemplateCompileOptions<
-  TPartials extends Record<string, object> = Record<string, never>,
-> = Omit<TemplateOptions, 'partials' | 'helpers'> & {
+export type TypedTemplateCompileOptions<TPartials extends Record<string, object> = Record<string, never>> = Omit<
+  TemplateOptions,
+  'partials' | 'helpers'
+> & {
   partials?: TypedPartialsMap<TPartials>;
   helpers?: HelperMap;
 };
@@ -52,10 +53,7 @@ export interface TemplateContextFactory<TContext extends object> {
     source: string,
     options?: TypedTemplateCompileOptions<TPartials>,
   ): Template<TContext>;
-  fromPrecompiled(
-    module: PrecompiledTemplateModule,
-    options?: TemplateOptions,
-  ): Template<TContext>;
+  fromPrecompiled(module: PrecompiledTemplateModule, options?: TemplateOptions): Template<TContext>;
 }
 
 /**
@@ -84,10 +82,7 @@ export function declareContext<TContext extends object>(): TemplateContextFactor
 }
 
 /** Shorthand for `declareContext<T>().compile(source, options)`. */
-export function typedCompile<TContext extends object>(
-  source: string,
-  options?: TemplateOptions,
-): Template<TContext> {
+export function typedCompile<TContext extends object>(source: string, options?: TemplateOptions): Template<TContext> {
   return compile<TContext>(source, options);
 }
 

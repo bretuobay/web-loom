@@ -225,9 +225,9 @@ function parsePathOrCall(cursor: Cursor): ExpressionNode {
 
   cursor.skipWs();
   if (cursor.peek() === '(') {
-    if (parentHops !== 0 || segments.length !== 1 || isSpecialHead) {
+    if (parentHops !== 0 || isSpecialHead) {
       throw new TemplateSyntaxError(
-        `Only a single identifier may be called (e.g. "remove(this)") — "${segments.join('.')}(...)" is not allowed in template expressions.`,
+        `Only a scope path may be called (e.g. "remove(this)" or "actions.openCart()") — "${parentHops ? '../'.repeat(parentHops) : ''}${segments.join('.')}(...)" is not allowed in template expressions.`,
       );
     }
     cursor.advance(1);
@@ -237,7 +237,7 @@ function parsePathOrCall(cursor: Cursor): ExpressionNode {
       throw new TemplateSyntaxError(`Expected ")" after arguments in "${cursor.src}" at position ${cursor.pos}`);
     }
     cursor.advance(1);
-    return { kind: 'helper-call', callee: segments[0]!, args };
+    return { kind: 'helper-call', callee: segments.join('.'), args };
   }
 
   return { kind: 'path', segments, parentHops };

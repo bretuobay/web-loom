@@ -23,8 +23,6 @@ export const headerTemplate = page.compile(\`<h1>{{ title }}</h1>\`);
 `;
     const { matches } = findCompileCalls(code, 'header.ts', SPECIFIERS);
     expect(matches).toHaveLength(1);
-    expect(code.slice(matches[0]!.templateContentStart, matches[0]!.templateContentEnd)).toBe(
-      '<h1>{{ title }}</h1>',
-    );
+    expect(code.slice(matches[0]!.templateContentStart, matches[0]!.templateContentEnd)).toBe('<h1>{{ title }}</h1>');
   });
 });

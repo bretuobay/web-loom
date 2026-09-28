@@ -46,17 +46,13 @@ export const webLoomPackages = [
   '@web-loom/router-core',
   '@web-loom/template-core',
   '@web-loom/template-core-vite-ssr',
+  '@web-loom/view',
   '@web-loom/storage-core',
   '@web-loom/typography-core',
 ] as const;
 
 /** All @repo/* workspace packages */
-export const repoPackages = [
-  '@repo/models',
-  '@repo/view-models',
-  '@repo/shared',
-  '@repo/plugin-core',
-] as const;
+export const repoPackages = ['@repo/models', '@repo/view-models', '@repo/shared', '@repo/plugin-core'] as const;
 
 /** Combined list of all workspace packages for optimizeDeps.include */
 export const workspacePackages = [...webLoomPackages, ...repoPackages] as const;
@@ -83,6 +79,7 @@ const packagePaths: Record<string, string> = {
   '@web-loom/router-core': 'packages/router-core/src',
   '@web-loom/template-core': 'packages/template-core/src',
   '@web-loom/template-core-vite-ssr': 'packages/template-core-vite-ssr/src',
+  '@web-loom/view': 'packages/view/src',
   '@web-loom/storage-core': 'packages/storage-core/src',
   '@web-loom/typography-core': 'packages/typography-core/src',
   // @repo packages

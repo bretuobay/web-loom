@@ -159,6 +159,34 @@ describe('bindEvent: call form', () => {
     expect(capturedType).toBe('click');
     bag.dispose();
   });
+
+  it('invokes a dotted callee with its owning object as this', () => {
+    const removed: unknown[] = [];
+    const actions = {
+      remove(this: { remove: (item: unknown) => void }, item: unknown) {
+        expect(this).toBe(actions);
+        removed.push(item);
+      },
+    };
+    const item = { id: 1 };
+    const scope: Scope = {
+      parent: { parent: null, self: { actions }, locals: {} },
+      self: item,
+      locals: {},
+    };
+    const el = document.createElement('button');
+    const bag = new DisposalBag();
+    bindEvent(
+      { kind: 'event', path: [0], event: 'click', handler: parseExpression('actions.remove(this)') },
+      el,
+      scope,
+      ctx(),
+      bag,
+    );
+    el.dispatchEvent(new Event('click'));
+    expect(removed).toEqual([item]);
+    bag.dispose();
+  });
 });
 
 describe('bindEvent: batching', () => {

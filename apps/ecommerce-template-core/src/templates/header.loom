@@ -8,19 +8,19 @@
     </h1>
   </div>
   <nav class="header-nav" aria-label="Primary navigation">
-    <a href="/" on:click.prevent="navigateFromClick">
+    <a href="/" on:click.prevent="onNavigate">
       Storefront
     </a>
-    <a href="/checkout" on:click.prevent="navigateFromClick">
+    <a href="/checkout" on:click.prevent="onNavigate">
       Checkout
     </a>
   </nav>
   <div class="header-actions">
-    <button class="ghost-btn" type="button" on:click="actions.openPalette">
+    <button class="ghost-btn" type="button" on:click="onOpenPalette">
       Command Menu
     </button>
-    <button class="ghost-btn" type="button" on:click="actions.toggleTheme">
-      {{#switch state.theme$}}
+    <button class="ghost-btn" type="button" on:click="onToggleTheme">
+      {{#switch theme}}
         {{#case "light"}}
           Dark
         {{/case}}
@@ -30,8 +30,8 @@
       {{/switch}}
       Theme
     </button>
-    <button class="brand-btn" type="button" on:click="actions.openCart">
-      Cart ({{ cart.itemCount }})
+    <button class="brand-btn" type="button" on:click="onOpenCart">
+      Cart ({{ cartCount }})
     </button>
   </div>
 </header>

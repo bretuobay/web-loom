@@ -36,6 +36,14 @@ watchEffect(() => {
 });
 ```
 
+### Solid
+
+```typescript
+const data = useSignal(viewModel.data$); // observe() → Solid createSignal
+onMount(() => viewModel.fetchCommand.execute());
+// <For each={data() ?? []}>{(item) => <li>{item.name}</li>}</For>
+```
+
 ### Lit
 
 ```typescript

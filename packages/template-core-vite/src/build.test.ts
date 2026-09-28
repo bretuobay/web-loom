@@ -43,7 +43,9 @@ describe('templateCorePrecompile — real Vite build', () => {
 
   it('the precompiled SSR template renders identically to the un-precompiled equivalent', async () => {
     const modulePath = join(distDir, 'template-ssr.js');
-    const built = (await import(pathToFileURL(modulePath).href)) as { ssrTemplate: { renderToString(vm: unknown): string } };
+    const built = (await import(pathToFileURL(modulePath).href)) as {
+      ssrTemplate: { renderToString(vm: unknown): string };
+    };
 
     const reference = compileSsr('<p>{{ msg }}</p>');
 

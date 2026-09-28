@@ -49,8 +49,19 @@ function serializeBlock(block: BlockRecord): SerializableBlockRecord {
         source: block.source,
         branches: block.branches.map((branch) => ({ ...branch, template: serializeRootTemplate(branch.template) })),
       };
-    case 'partial':
-      return block;
+    case 'partial': {
+      const { slots, ...rest } = block;
+      return {
+        ...rest,
+        ...(slots
+          ? {
+              slots: Object.fromEntries(
+                Object.entries(slots).map(([name, template]) => [name, serializeRootTemplate(template)]),
+              ),
+            }
+          : {}),
+      };
+    }
   }
 }
 
@@ -131,8 +142,19 @@ function deserializeBlock(block: SerializableBlockRecord): BlockRecord {
         source: block.source,
         branches: block.branches.map((branch) => ({ ...branch, template: deserializeRootTemplate(branch.template) })),
       };
-    case 'partial':
-      return block;
+    case 'partial': {
+      const { slots, ...rest } = block;
+      return {
+        ...rest,
+        ...(slots
+          ? {
+              slots: Object.fromEntries(
+                Object.entries(slots).map(([name, template]) => [name, deserializeRootTemplate(template)]),
+              ),
+            }
+          : {}),
+      };
+    }
   }
 }
 

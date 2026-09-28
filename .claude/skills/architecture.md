@@ -112,6 +112,12 @@ useEffect(() => {
 - `useSignal` composable: `shallowRef` seeded with `sig.peek()` + `observe` for updates
 - Unsubscribe in `onUnmounted`
 
+### Solid
+
+- `useSignal` hook: Solid `createSignal` seeded with `observe()` (current value + later changes)
+- View-only state (forms, filters) stays in native Solid signals; `<Show>` / `<For>` / `createMemo` for fine-grained updates
+- Fetch in `onMount`; do not call loom `.get()` inside Solid `createMemo` — the graphs do not compose
+
 ### Lit
 
 - Use `@state` decorators with `observe(sig, fn)` in `connectedCallback` (delivers the current value immediately)

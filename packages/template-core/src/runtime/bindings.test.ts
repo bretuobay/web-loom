@@ -95,7 +95,13 @@ describe('instantiate + applyBindings: end-to-end binding wiring', () => {
     const root = parseTemplate(
       '<div>{{#if a$}}<span>cond</span>{{/if}}<ul>{{#each items$ key=id}}<li>{{ text }}</li>{{/each}}</ul></div>',
     );
-    const vm = { a$: signal(true), items$: signal([{ id: 1, text: 'one' }, { id: 2, text: 'two' }]) };
+    const vm = {
+      a$: signal(true),
+      items$: signal([
+        { id: 1, text: 'one' },
+        { id: 2, text: 'two' },
+      ]),
+    };
     const scope: Scope = { parent: null, self: vm, locals: {} };
     const bag = new DisposalBag();
 

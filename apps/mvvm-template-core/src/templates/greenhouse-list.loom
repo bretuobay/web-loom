@@ -61,17 +61,7 @@
     {{#if greenHouses.data$.length > 0}}
       <ul class="card-content list">
         {{#each greenHouses.data$ key=id}}
-          <li class="list-item" style="font-size: 1.8rem; justify-content: space-between;">
-            <span>{{ name }}</span>
-            <div class="button-group">
-              <button class="button-tiny button-tiny-delete" type="button" on:click="deleteGreenhouse(this)">
-                Delete
-              </button>
-              <button class="button-tiny button-tiny-edit" type="button" on:click="editGreenhouse(this)">
-                Edit
-              </button>
-            </div>
-          </li>
+          {{> greenhouse-item item=this onEdit=../greenhouseForm.edit onDelete=../greenhouseForm.remove}}
         {{/each}}
       </ul>
     {{else}}

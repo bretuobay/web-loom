@@ -23,12 +23,12 @@ The goal is **not** to compete with React, Vue or Solid.
 
 The goal is to provide:
 
-* a lightweight rendering layer
-* native DOM rendering
-* zero Virtual DOM
-* automatic dependency tracking
-* signal-first templates
-* framework-independent rendering
+- a lightweight rendering layer
+- native DOM rendering
+- zero Virtual DOM
+- automatic dependency tracking
+- signal-first templates
+- framework-independent rendering
 
 The template engine becomes the default rendering technology inside Web Loom while every other package remains framework agnostic.
 
@@ -66,16 +66,16 @@ Just dependency-driven DOM updates.
 
 Build a template engine that
 
-* feels familiar to frontend developers
-* uses Mustache-like syntax
-* understands Signals natively
-* automatically subscribes to signals
-* updates only affected DOM nodes
-* supports nested templates
-* supports reusable components
-* works entirely with Web Loom Signals
-* requires no compiler
-* works directly in JavaScript/TypeScript
+- feels familiar to frontend developers
+- uses Mustache-like syntax
+- understands Signals natively
+- automatically subscribes to signals
+- updates only affected DOM nodes
+- supports nested templates
+- supports reusable components
+- works entirely with Web Loom Signals
+- requires no compiler
+- works directly in JavaScript/TypeScript
 
 ---
 
@@ -83,16 +83,16 @@ Build a template engine that
 
 Support
 
-* SSR
-* hydration
-* template caching
-* partials
-* reusable layouts
-* keyed iteration
-* fragments
-* slots
-* directives
-* async signals
+- SSR
+- hydration
+- template caching
+- partials
+- reusable layouts
+- keyed iteration
+- fragments
+- slots
+- directives
+- async signals
 
 ---
 
@@ -100,15 +100,15 @@ Support
 
 The engine is **not**
 
-* another frontend framework
-* a React replacement
-* JSX replacement
-* Virtual DOM implementation
-* component runtime
-* compiler
-* CSS solution
-* router
-* state management library
+- another frontend framework
+- a React replacement
+- JSX replacement
+- Virtual DOM implementation
+- component runtime
+- compiler
+- CSS solution
+- router
+- state management library
 
 Those belong elsewhere in Web Loom.
 
@@ -128,9 +128,9 @@ Example
 
 ```typescript
 const vm = {
-    firstName: signal("John"),
-    age: signal(30)
-}
+  firstName: signal('John'),
+  age: signal(30),
+};
 ```
 
 Template
@@ -142,7 +142,7 @@ Template
 Changing
 
 ```typescript
-vm.firstName.set("Alice")
+vm.firstName.set('Alice');
 ```
 
 automatically updates
@@ -168,7 +168,7 @@ Components are optional.
 Templates can render plain view models.
 
 ```typescript
-render(template, vm)
+render(template, vm);
 ```
 
 No lifecycle.
@@ -191,11 +191,11 @@ Avoid inventing a new language.
 
 Developers coming from
 
-* Mustache
-* Handlebars
-* Vue
-* Angular
-* JSX
+- Mustache
+- Handlebars
+- Vue
+- Angular
+- JSX
 
 should immediately understand templates.
 
@@ -246,7 +246,7 @@ Native Browser DOM
 ## Signal
 
 ```typescript
-title = signal("Hello")
+title = signal('Hello');
 ```
 
 ---
@@ -310,7 +310,7 @@ Equivalent to trusted HTML.
 ## Attribute Binding
 
 ```html
-<img src="{{photo}}">
+<img src="{{photo}}" />
 ```
 
 ---
@@ -318,7 +318,7 @@ Equivalent to trusted HTML.
 ## Boolean Attributes
 
 ```html
-<input disabled="{{isDisabled}}">
+<input disabled="{{isDisabled}}" />
 ```
 
 ---
@@ -326,7 +326,7 @@ Equivalent to trusted HTML.
 ## Class Binding
 
 ```html
-<div class="{{status}}">
+<div class="{{status}}"></div>
 ```
 
 ---
@@ -334,7 +334,7 @@ Equivalent to trusted HTML.
 ## Multiple Classes
 
 ```html
-<div class="card {{theme}}">
+<div class="card {{theme}}"></div>
 ```
 
 ---
@@ -342,7 +342,7 @@ Equivalent to trusted HTML.
 ## Style Binding
 
 ```html
-<div style="color: {{color}}">
+<div style="color: {{color}}"></div>
 ```
 
 ---
@@ -352,25 +352,13 @@ Equivalent to trusted HTML.
 Mustache-inspired
 
 ```html
-{{#if isLoggedIn}}
-
-Welcome
-
-{{/if}}
+{{#if isLoggedIn}} Welcome {{/if}}
 ```
 
 Else
 
 ```html
-{{#if isLoggedIn}}
-
-Welcome
-
-{{else}}
-
-Login
-
-{{/if}}
+{{#if isLoggedIn}} Welcome {{else}} Login {{/if}}
 ```
 
 ---
@@ -378,21 +366,7 @@ Login
 # 10. Switch
 
 ```html
-{{#switch status}}
-
-{{#case "loading"}}
-
-Loading...
-
-{{/case}}
-
-{{#case "success"}}
-
-Done
-
-{{/case}}
-
-{{/switch}}
+{{#switch status}} {{#case "loading"}} Loading... {{/case}} {{#case "success"}} Done {{/case}} {{/switch}}
 ```
 
 ---
@@ -401,13 +375,11 @@ Done
 
 ```html
 <ul>
+  {{#each users}}
 
-{{#each users}}
+  <li>{{name}}</li>
 
-<li>{{name}}</li>
-
-{{/each}}
-
+  {{/each}}
 </ul>
 ```
 
@@ -416,9 +388,7 @@ Done
 Keyed iteration
 
 ```html
-{{#each users key=id}}
-
-...
+{{#each users key=id}} ...
 ```
 
 ---
@@ -482,13 +452,13 @@ Template
 # 15. Event Binding
 
 ```html
-<button @click="save">
+<button @click="save"></button>
 ```
 
 Equivalent
 
 ```typescript
-vm.save()
+vm.save();
 ```
 
 ---
@@ -496,7 +466,7 @@ vm.save()
 Arguments
 
 ```html
-<button @click="remove(item)">
+<button @click="remove(item)"></button>
 ```
 
 ---
@@ -506,7 +476,7 @@ Arguments
 Optional.
 
 ```html
-<input bind:value="name">
+<input bind:value="name" />
 ```
 
 Internally
@@ -536,15 +506,7 @@ Parameters
 # 18. Slots
 
 ```html
-<layout>
-
-{{#slot content}}
-
-...
-
-{{/slot}}
-
-</layout>
+<layout> {{#slot content}} ... {{/slot}} </layout>
 ```
 
 ---
@@ -558,19 +520,7 @@ user = asyncSignal(...)
 Template
 
 ```html
-{{#await user}}
-
-Loading...
-
-{{then}}
-
-{{name}}
-
-{{catch}}
-
-Failed
-
-{{/await}}
+{{#await user}} Loading... {{then}} {{name}} {{catch}} Failed {{/await}}
 ```
 
 ---
@@ -667,12 +617,12 @@ Renderer
 
 Responsibilities
 
-* create DOM nodes
-* subscribe to signals
-* cleanup
-* keyed diff for collections
-* event delegation
-* hydration
+- create DOM nodes
+- subscribe to signals
+- cleanup
+- keyed diff for collections
+- event delegation
+- hydration
 
 ---
 
@@ -722,13 +672,13 @@ Automatic cleanup is required.
 
 # 26. Performance Goals
 
-* Zero Virtual DOM
-* O(1) signal updates
-* No component rerender
-* Fine-grained subscriptions
-* Lazy effects
-* Incremental DOM mutation
-* Efficient keyed list reconciliation
+- Zero Virtual DOM
+- O(1) signal updates
+- No component rerender
+- Fine-grained subscriptions
+- Lazy effects
+- Incremental DOM mutation
+- Efficient keyed list reconciliation
 
 ---
 
@@ -755,17 +705,17 @@ renders raw HTML and should require explicit opt-in, ideally accepting only trus
 # 28. Public API
 
 ```typescript
-const template = compile(html)
+const template = compile(html);
 
-const view = template.render(vm)
+const view = template.render(vm);
 
-container.append(view)
+container.append(view);
 ```
 
 or
 
 ```typescript
-render(template, vm, container)
+render(template, vm, container);
 ```
 
 ---
@@ -774,18 +724,14 @@ render(template, vm, container)
 
 ```typescript
 const vm = {
+  title: signal('Todos'),
 
-    title: signal("Todos"),
+  todos: signal([
+    { id: 1, text: 'Milk' },
 
-    todos: signal([
-
-        { id:1, text:"Milk" },
-
-        { id:2, text:"Coffee" }
-
-    ])
-
-}
+    { id: 2, text: 'Coffee' },
+  ]),
+};
 ```
 
 Template
@@ -794,13 +740,11 @@ Template
 <h1>{{title}}</h1>
 
 <ul>
+  {{#each todos key=id}}
 
-{{#each todos key=id}}
+  <li>{{text}}</li>
 
-<li>{{text}}</li>
-
-{{/each}}
-
+  {{/each}}
 </ul>
 ```
 
@@ -816,19 +760,19 @@ should only insert, remove, or reorder the affected `<li>` elements, preserving 
 
 # 30. Future Enhancements
 
-* Streaming SSR
-* Partial hydration
-* Islands architecture
-* Suspense
-* Portals
-* Animation directives
-* Template macros
-* Custom directives
-* Internationalization helpers
-* Accessibility directives
-* DevTools integration
-* Source maps for template debugging
-* Static analysis and linting
+- Streaming SSR
+- Partial hydration
+- Islands architecture
+- Suspense
+- Portals
+- Animation directives
+- Template macros
+- Custom directives
+- Internationalization helpers
+- Accessibility directives
+- DevTools integration
+- Source maps for template debugging
+- Static analysis and linting
 
 ---
 
@@ -836,12 +780,12 @@ should only insert, remove, or reorder the affected `<li>` elements, preserving 
 
 The template engine will be considered successful when it:
 
-* Makes Web Loom applications possible without requiring React, Vue, Solid, or another UI framework.
-* Delivers fine-grained DOM updates driven directly by Web Loom Signals.
-* Provides a familiar, declarative syntax that frontend developers can learn quickly.
-* Maintains framework independence while integrating seamlessly with the broader Web Loom ecosystem.
-* Supports server-side rendering and hydration without changing the authoring model.
-* Establishes a stable rendering foundation upon which higher-level Web Loom packages (routing, components, layouts, forms, etc.) can be built.
+- Makes Web Loom applications possible without requiring React, Vue, Solid, or another UI framework.
+- Delivers fine-grained DOM updates driven directly by Web Loom Signals.
+- Provides a familiar, declarative syntax that frontend developers can learn quickly.
+- Maintains framework independence while integrating seamlessly with the broader Web Loom ecosystem.
+- Supports server-side rendering and hydration without changing the authoring model.
+- Establishes a stable rendering foundation upon which higher-level Web Loom packages (routing, components, layouts, forms, etc.) can be built.
 
 ## 32. Alignment with TC39 Signals
 

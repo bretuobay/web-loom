@@ -1,4 +1,5 @@
 import { parseTemplate } from '../compiler/parser.js';
+import { collectStaticDiagnostics } from '../compiler/static-diagnostics.js';
 import { syntaxErrorToDiagnostic } from '../compiler/syntax-diagnostic.js';
 import { applyBindings, instantiate } from './bindings.js';
 import { DisposalBag } from './disposal.js';
@@ -6,11 +7,13 @@ import { createTemplateRegistry } from './registry.js';
 import { deserializeRootTemplate } from '../compiler/plan.js';
 import { reportDiagnostic } from './diagnostics.js';
 import type {
+  AnalyzeOptions,
   Disposable,
   RenderContext,
   RootTemplate,
   Scope,
   Template,
+  TemplateDiagnostic,
   TemplateOptions,
   TemplateRegistry,
 } from '../types.js';
@@ -29,16 +32,37 @@ import type {
 const globalRegistry = createTemplateRegistry();
 
 class TemplateImpl<TVm extends object> implements Template<TVm> {
+  isolated?: boolean;
+  createContext?: Template['createContext'];
+  partials?: Template['partials'];
+  props?: readonly string[];
+
   constructor(
     readonly root: RootTemplate,
     private readonly options: TemplateOptions,
-  ) {}
+  ) {
+    this.isolated = options.isolated;
+    this.createContext = options.createContext;
+    this.partials = options.partials;
+    this.props = options.props;
+  }
+
+  collectDiagnostics(options: AnalyzeOptions = {}): TemplateDiagnostic[] {
+    return collectStaticDiagnostics(this.root, this.options.sourceMap, {
+      name: options.name ?? this.options.name,
+      sourcePath: options.sourcePath ?? this.options.sourcePath,
+      partials: options.partials ?? this.partials,
+      partialProps: options.partialProps,
+      strictPartials: options.strictPartials ?? this.options.strictPartials,
+      contextKeys: options.contextKeys,
+    });
+  }
 
   private makeContext(): RenderContext {
     return {
       helpers: this.options.helpers ?? {},
       escape: this.options.escape ?? true,
-      partials: this.options.partials,
+      partials: this.partials,
       registry: this.options.registry ?? globalRegistry,
       templateName: this.options.name,
       strictPartials: this.options.strictPartials ?? false,
@@ -53,6 +77,12 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
       partialStack: [],
       hydrating: false,
     };
+  }
+
+  private resolveMountModel(viewModel: TVm, bag: DisposalBag): TVm {
+    const created = this.createContext?.(asPropsObject(viewModel));
+    if (created?.dispose) bag.add(created.dispose);
+    return (created?.context ?? viewModel) as TVm;
   }
 
   private makeRootScope(viewModel: TVm, ctx: RenderContext): Scope {
@@ -78,7 +108,7 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
   mount(container: Element, viewModel: TVm): Disposable {
     const bag = new DisposalBag();
     const ctx = this.makeContext();
-    const scope = this.makeRootScope(viewModel, ctx);
+    const scope = this.makeRootScope(this.resolveMountModel(viewModel, bag), ctx);
     const { roots, fragment } = instantiate(this.root, scope, ctx, bag);
     container.append(fragment);
     bag.add(() => {
@@ -90,7 +120,7 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
   render(viewModel: TVm): { node: DocumentFragment; dispose(): void } {
     const bag = new DisposalBag();
     const ctx = this.makeContext();
-    const scope = this.makeRootScope(viewModel, ctx);
+    const scope = this.makeRootScope(this.resolveMountModel(viewModel, bag), ctx);
     const { roots, fragment } = instantiate(this.root, scope, ctx, bag);
     bag.add(() => {
       for (const node of roots) node.remove();
@@ -133,7 +163,7 @@ class TemplateImpl<TVm extends object> implements Template<TVm> {
     }
     const bag = new DisposalBag();
     const context = this.makeContext();
-    const scope = this.makeRootScope(viewModel, context);
+    const scope = this.makeRootScope(this.resolveMountModel(viewModel, bag), context);
     const roots = Array.from(container.childNodes);
     context.hydrating = true;
     try {
@@ -233,6 +263,16 @@ export function getTemplateRoot(template: Template): RootTemplate {
   return template.root;
 }
 
+/**
+ * Runs the same static checks as {@link analyzeTemplate} against an already
+ * compiled browser template — used when children are attached after compile
+ * (`defineComponent({ partials })`, `withPartials`).
+ */
+export function analyzeCompiledTemplate(template: Template, options: AnalyzeOptions = {}): TemplateDiagnostic[] {
+  if (!(template instanceof TemplateImpl)) return [];
+  return template.collectDiagnostics(options);
+}
+
 /** Browser-only. Mutates the module-level {@link globalRegistry} — has no effect on SSR renders. */
 export function registerPartial(name: string, source: string | Template): void {
   globalRegistry.set(name, source);
@@ -244,4 +284,8 @@ export function unregisterPartial(name: string): void {
 
 export function getGlobalTemplateRegistry(): TemplateRegistry {
   return globalRegistry;
+}
+
+function asPropsObject(value: unknown): object {
+  return value != null && typeof value === 'object' ? value : {};
 }

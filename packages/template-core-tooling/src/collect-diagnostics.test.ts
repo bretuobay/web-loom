@@ -36,6 +36,24 @@ describe('collectSourceLinkedDiagnostics', () => {
       }),
     ]);
   });
+
+  it('reports missing hash-arg props when a props manifest is configured', () => {
+    const code = `${importPreamble}export const page = compile(\`{{> card count=n}}\`);`;
+
+    const diagnostics = collectSourceLinkedDiagnostics('/app/page.ts', code, {
+      partials: { card: 'src/card.ts' },
+      partialProps: { card: ['count', 'href'] },
+      strictPartials: true,
+    });
+
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        code: 'MISSING_PARTIAL_PROP',
+        severity: 'error',
+        line: 2,
+      }),
+    ]);
+  });
 });
 
 describe('linkTemplateDiagnosticToFile', () => {

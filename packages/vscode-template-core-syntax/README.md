@@ -2,7 +2,7 @@
 
 VS Code / Cursor extension — TextMate grammars for `@web-loom/template-core`:
 
-- **Injection grammar** — highlights `compile(\`...\`)` template literals in `.ts`/`.tsx`/`.js`/`.jsx`
+- **Injection grammar** — highlights `compile(\`...\`)`template literals in`.ts`/`.tsx`/`.js`/`.jsx`
 - **Standalone `.loom` files** — full-file highlighting for Phase 5-b template modules
 - **Problem matcher** — `template-core` for Vite `dev: 'analyze'` terminal output
 
@@ -42,7 +42,7 @@ code --install-extension packages/vscode-template-core-syntax/web-loom-template-
 cursor --install-extension packages/vscode-template-core-syntax/web-loom-template-core-syntax-0.8.0.vsix
 ```
 
-Reload the window after install. Open `header.loom` or `compile(\`...\`)` in a `.ts` file to verify highlighting.
+Reload the window after install. Open `header.loom` or `compile(\`...\`)`in a`.ts` file to verify highlighting.
 
 ### Monorepo shortcut
 
@@ -63,10 +63,10 @@ For grammar hacking without packaging:
 
 ## What gets highlighted
 
-| Surface | Grammar |
-| ------- | ------- |
+| Surface                     | Grammar                                |
+| --------------------------- | -------------------------------------- |
 | `compile(\`...\`)` in TS/JS | `inline.web-loom-template` (injection) |
-| `*.loom` files | `text.web-loom.template` |
+| `*.loom` files              | `text.web-loom.template`               |
 
 Tagged beyond built-in HTML:
 

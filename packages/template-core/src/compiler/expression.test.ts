@@ -93,11 +93,22 @@ describe('parseExpression: helper/handler calls', () => {
     });
   });
 
-  it('rejects method-call chains', () => {
-    expect(() => parseExpression('vm.remove(this)')).toThrow(TemplateSyntaxError);
+  it('parses a dotted callee', () => {
+    expect(parseExpression('actions.openCart()')).toEqual({
+      kind: 'helper-call',
+      callee: 'actions.openCart',
+      args: [],
+    });
+    expect(parseExpression('greenhouseForm.edit(this)')).toEqual({
+      kind: 'helper-call',
+      callee: 'greenhouseForm.edit',
+      args: [{ kind: 'path', segments: ['this'], parentHops: 0 }],
+    });
   });
 
-  it('rejects calling a parent-hop path', () => {
+  it('rejects calling this, $event, or a parent-hop path', () => {
+    expect(() => parseExpression('this.remove()')).toThrow(TemplateSyntaxError);
+    expect(() => parseExpression('$event.preventDefault()')).toThrow(TemplateSyntaxError);
     expect(() => parseExpression('../remove(this)')).toThrow(TemplateSyntaxError);
   });
 });

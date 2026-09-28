@@ -1,11 +1,19 @@
 import { declareContext } from '@web-loom/template-core';
-import type { AppContext } from '../app/context';
+import { defineComponent } from '@web-loom/view';
 
-const partial = declareContext<AppContext>();
+export interface ToastProps {
+  message: string;
+}
 
-export const toastTemplate = partial.compile(`<div class="toast-stack" aria-live="polite" aria-atomic="true">
+const card = declareContext<ToastProps>();
+
+export const toast = defineComponent<ToastProps>({
+  name: 'toast',
+  props: ['message'],
+  template: card.compile(`<div class="toast-stack" aria-live="polite" aria-atomic="true">
   <div class="toast-item">
-    {{ state.toastMessage$ }}
+    {{ message }}
   </div>
 </div>
-`);
+`),
+});

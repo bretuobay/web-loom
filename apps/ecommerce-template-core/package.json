@@ -27,6 +27,7 @@
     "@web-loom/store-core": "*",
     "@web-loom/template-core": "*",
     "@web-loom/template-core-router": "*",
+    "@web-loom/view": "*",
     "@web-loom/template-core-vite-ssr": "*",
     "@web-loom/ui-core": "*",
     "@web-loom/ui-patterns": "*"

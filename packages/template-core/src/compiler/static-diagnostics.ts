@@ -3,6 +3,7 @@ import type {
   BindingRecord,
   BlockRecord,
   ExpressionNode,
+  PartialSource,
   RootTemplate,
   SourceLocation,
   TemplateDiagnostic,
@@ -198,6 +199,12 @@ function collectContextPathDiagnostics(
           break;
         case 'partial':
           if (block.context) checkExpr(block.context, block.path);
+          if (block.args) {
+            for (const expr of Object.values(block.args)) checkExpr(expr, block.path);
+          }
+          if (block.slots) {
+            for (const slot of Object.values(block.slots)) walk(slot);
+          }
           break;
       }
     }
@@ -213,17 +220,22 @@ function collectBlockDiagnostics(
   diagnostics: TemplateDiagnostic[],
 ): void {
   for (const block of blocks) {
-    if (block.kind === 'partial' && options.partials !== undefined && !(block.name in options.partials)) {
-      diagnostics.push({
-        code: 'MISSING_PARTIAL',
-        severity: options.strictPartials ? 'error' : 'warning',
-        message: `Missing partial "${block.name}".`,
-        template: options.name,
-        sourcePath: options.sourcePath,
-        nodePath: block.path,
-        details: { partial: block.name },
-        ...locationForPath(sourceMap, block.path),
-      });
+    if (block.kind === 'partial' && block.name !== 'yield') {
+      const listed = options.partials !== undefined && block.name in options.partials;
+      if (options.partials !== undefined && !listed) {
+        diagnostics.push({
+          code: 'MISSING_PARTIAL',
+          severity: options.strictPartials ? 'error' : 'warning',
+          message: `Missing partial "${block.name}".`,
+          template: options.name,
+          sourcePath: options.sourcePath,
+          nodePath: block.path,
+          details: { partial: block.name },
+          ...locationForPath(sourceMap, block.path),
+        });
+      } else {
+        collectPartialPropDiagnostics(block, options.partials?.[block.name], sourceMap, options, diagnostics);
+      }
     }
 
     if (block.kind === 'if') {
@@ -244,6 +256,105 @@ function collectBlockDiagnostics(
         collectRootDiagnostics(branch.template, sourceMap, options, diagnostics);
       }
     }
+
+    if (block.kind === 'partial' && block.slots) {
+      for (const slot of Object.values(block.slots)) {
+        collectRootDiagnostics(slot, sourceMap, options, diagnostics);
+      }
+    }
+  }
+}
+
+function declaredPropsFor(
+  name: string,
+  source: PartialSource | undefined,
+  options: AnalyzeOptions,
+): readonly string[] | undefined {
+  if (source && typeof source !== 'string' && source.props !== undefined) {
+    return source.props;
+  }
+  return options.partialProps?.[name];
+}
+
+function editDistance(a: string, b: string): number {
+  const rows = a.length + 1;
+  const cols = b.length + 1;
+  const grid: number[][] = Array.from({ length: rows }, (_, i) => {
+    const row = Array.from({ length: cols }, (__, j) => (i === 0 ? j : 0));
+    row[0] = i;
+    return row;
+  });
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      grid[i]![j] = Math.min(grid[i - 1]![j]! + 1, grid[i]![j - 1]! + 1, grid[i - 1]![j - 1]! + cost);
+    }
+  }
+  return grid[a.length]![b.length]!;
+}
+
+function suggestProp(unknown: string, expected: readonly string[]): string | undefined {
+  const lower = unknown.toLowerCase();
+  const caseMatch = expected.find((key) => key.toLowerCase() === lower);
+  if (caseMatch) return caseMatch;
+  let best: string | undefined;
+  let bestDistance = Infinity;
+  for (const key of expected) {
+    const distance = editDistance(unknown, key);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = key;
+    }
+  }
+  return best && bestDistance <= 2 ? best : undefined;
+}
+
+function collectPartialPropDiagnostics(
+  block: Extract<BlockRecord, { kind: 'partial' }>,
+  source: PartialSource | undefined,
+  sourceMap: Record<string, SourceLocation> | undefined,
+  options: AnalyzeOptions,
+  diagnostics: TemplateDiagnostic[],
+): void {
+  const declared = declaredPropsFor(block.name, source, options);
+  if (!declared) return;
+
+  const argKeys = Object.keys(block.args ?? {});
+  const severity = options.strictPartials ? 'error' : 'warning';
+  const location = locationForPath(sourceMap, block.path);
+
+  for (const arg of argKeys) {
+    if (declared.includes(arg)) continue;
+    const suggestion = suggestProp(arg, declared);
+    diagnostics.push({
+      code: 'UNKNOWN_PARTIAL_PROP',
+      severity,
+      message: suggestion
+        ? `Unknown prop "${arg}" on partial "${block.name}". Did you mean "${suggestion}"?`
+        : `Unknown prop "${arg}" on partial "${block.name}". Expected: ${declared.join(', ') || '(none)'}.`,
+      template: options.name,
+      sourcePath: options.sourcePath,
+      nodePath: block.path,
+      details: { partial: block.name, prop: arg, expected: [...declared], suggestion },
+      ...location,
+    });
+  }
+
+  // Legacy `{{> name ctx}}` is an opaque object — do not require listed props.
+  if (block.context && block.args == null) return;
+
+  for (const prop of declared) {
+    if (argKeys.includes(prop)) continue;
+    diagnostics.push({
+      code: 'MISSING_PARTIAL_PROP',
+      severity,
+      message: `Missing prop "${prop}" on partial "${block.name}".`,
+      template: options.name,
+      sourcePath: options.sourcePath,
+      nodePath: block.path,
+      details: { partial: block.name, prop, expected: [...declared] },
+      ...location,
+    });
   }
 }
 

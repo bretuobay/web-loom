@@ -1,13 +1,14 @@
 # Product Requirements Document (PRD)
+
 ## Web Loom Reactive Template Engine
 
 ---
 
-| **Document Version** | 1.0 |
-|----------------------|-----|
-| **Status**           | Draft |
-| **Date**             | 2026-07-23 |
-| **Author**           | Web Loom Team |
+| **Document Version** | 1.0                         |
+| -------------------- | --------------------------- |
+| **Status**           | Draft                       |
+| **Date**             | 2026-07-23                  |
+| **Author**           | Web Loom Team               |
 | **Target Package**   | `@web-loom/template-engine` |
 
 ---
@@ -26,7 +27,7 @@ Unlike traditional template engines that re-render entire templates on data chan
 
 The frontend ecosystem is increasingly adopting signals as the foundational primitive for reactivity. The TC39 Signals proposal represents a standardization effort to bring reactive programming primitives to JavaScript, with participation from framework authors across Angular, Ember, Preact, Qwik, Solid, Svelte, Vue, and others. The proposal states:
 
-> *"The signal API here is a better fit for frameworks to build on top of, providing interoperability through common signal graph and auto-tracking mechanism."*
+> _"The signal API here is a better fit for frameworks to build on top of, providing interoperability through common signal graph and auto-tracking mechanism."_
 
 Web Loom has embraced this direction with `@web-loom/signals-core` as the foundation for its reactive MVVM architecture.
 
@@ -42,6 +43,7 @@ Web Loom's libraries are framework-agnostic and work with React, Vue, SolidJS, e
 ### 2.3 Relationship to Web Loom
 
 This template engine is a **core part of the Web Loom framework**, not a general-purpose library for other frameworks. It is designed to work with:
+
 - `@web-loom/signals-core` — the signal implementation
 - `@web-loom/mvvm-core` — the MVVM layer built on signals
 - Other Web Loom ecosystem packages
@@ -53,6 +55,7 @@ This template engine is a **core part of the Web Loom framework**, not a general
 ### 3.1 Signal-First Design
 
 Every dynamic value in a template is a signal. The engine:
+
 - Reads signal values via `.get()` (auto-tracked within reactive contexts)
 - Subscribes to signal changes via `.subscribe(fn)`
 - Uses `computed` signals for derived values
@@ -90,8 +93,7 @@ The template syntax is a **superset of Mustache**, extended with signal-specific
 **Semantics:** Renders the current value of the signal. Establishes a reactive dependency—when the signal changes, the DOM text node updates.
 
 ```html
-<span>{{ user.name$ }}</span>
-<span>{{ formatDate(createdAt$.get()) }}</span>
+<span>{{ user.name$ }}</span> <span>{{ formatDate(createdAt$.get()) }}</span>
 ```
 
 ### 4.2 Unescaped HTML
@@ -112,7 +114,7 @@ The template syntax is a **superset of Mustache**, extended with signal-specific
 
 ```html
 {{#isLoggedIn$}}
-  <p>Welcome back, {{ user.name$ }}!</p>
+<p>Welcome back, {{ user.name$ }}!</p>
 {{/isLoggedIn$}}
 ```
 
@@ -124,7 +126,7 @@ The template syntax is a **superset of Mustache**, extended with signal-specific
 
 ```html
 {{^isLoggedIn$}}
-  <a href="/login">Log in</a>
+<a href="/login">Log in</a>
 {{/isLoggedIn$}}
 ```
 
@@ -137,12 +139,13 @@ The template syntax is a **superset of Mustache**, extended with signal-specific
 ```html
 <ul>
   {{#todos$}}
-    <li>{{ text$ }}</li>
+  <li>{{ text$ }}</li>
   {{/todos$}}
 </ul>
 ```
 
 **Iteration helpers** (per item):
+
 - `{{ @index }}` — current index (0-based)
 - `{{ @first }}` — boolean, true for first item
 - `{{ @last }}` — boolean, true for last item
@@ -150,9 +153,7 @@ The template syntax is a **superset of Mustache**, extended with signal-specific
 
 ```html
 {{#items$}}
-  <li class="{{#@even}}even{{/@even}}{{#@odd}}odd{{/@odd}}">
-    {{ @index }}: {{ . }}
-  </li>
+<li class="{{#@even}}even{{/@even}}{{#@odd}}odd{{/@odd}}">{{ @index }}: {{ . }}</li>
 {{/items$}}
 ```
 
@@ -186,7 +187,7 @@ The template syntax is a **superset of Mustache**, extended with signal-specific
 
 ```html
 <button on:click="{{ increment$ }}">Count: {{ count$ }}</button>
-<input on:input="{{ updateSearch$ }}" placeholder="Search...">
+<input on:input="{{ updateSearch$ }}" placeholder="Search..." />
 ```
 
 ### 4.9 Attribute Binding
@@ -196,8 +197,7 @@ The template syntax is a **superset of Mustache**, extended with signal-specific
 **Semantics:** Binds an HTML attribute to a signal value.
 
 ```html
-<img :src="{{ imageUrl$ }}" :alt="{{ altText$ }}">
-<input :disabled="{{ isSubmitting$ }}">
+<img :src="{{ imageUrl$ }}" :alt="{{ altText$ }}" /> <input :disabled="{{ isSubmitting$ }}" />
 ```
 
 ### 4.10 Class Binding
@@ -207,9 +207,7 @@ The template syntax is a **superset of Mustache**, extended with signal-specific
 **Semantics:** Toggles a CSS class based on a boolean signal.
 
 ```html
-<div class:active="{{ isActive$ }}" class:highlight="{{ isHighlighted$ }}">
-  Content
-</div>
+<div class:active="{{ isActive$ }}" class:highlight="{{ isHighlighted$ }}">Content</div>
 ```
 
 ### 4.11 Style Binding
@@ -219,9 +217,7 @@ The template syntax is a **superset of Mustache**, extended with signal-specific
 **Semantics:** Binds a CSS property to a signal value.
 
 ```html
-<div style:color="{{ color$ }}" style:font-size="{{ fontSize$ }}px">
-  Styled content
-</div>
+<div style:color="{{ color$ }}" style:font-size="{{ fontSize$ }}px">Styled content</div>
 ```
 
 ---
@@ -232,11 +228,11 @@ The template syntax is a **superset of Mustache**, extended with signal-specific
 
 The template engine works with all signal types from `@web-loom/signals-core`:
 
-| Signal Type | Description | Usage in Template |
-|-------------|-------------|-------------------|
-| `Signal<T>` | Mutable state signal | Read with `.get()`, write via bindings |
-| `Computed<T>` | Derived value | Auto-tracks dependencies |
-| `ReadonlySignal<T>` | Read-only signal | Read with `.get()` |
+| Signal Type         | Description          | Usage in Template                      |
+| ------------------- | -------------------- | -------------------------------------- |
+| `Signal<T>`         | Mutable state signal | Read with `.get()`, write via bindings |
+| `Computed<T>`       | Derived value        | Auto-tracks dependencies               |
+| `ReadonlySignal<T>` | Read-only signal     | Read with `.get()`                     |
 
 ### 5.2 Automatic Dependency Tracking
 
@@ -263,7 +259,7 @@ import { signal } from '@web-loom/signals-core';
 class UserViewModel extends BaseViewModel {
   name$ = signal('John');
   age$ = signal(30);
-  
+
   // Computed signal from mvvm-core
   get displayName$() {
     return computed(() => `${this.name$.get()} (${this.age$.get()})`);
@@ -274,7 +270,7 @@ class UserViewModel extends BaseViewModel {
 ```html
 <div>
   <h1>{{ displayName$ }}</h1>
-  <input :value="{{ name$ }}" on:input="{{ (e) => name$.set(e.target.value) }}">
+  <input :value="{{ name$ }}" on:input="{{ (e) => name$.set(e.target.value) }}" />
 </div>
 ```
 
@@ -372,7 +368,7 @@ Renders the template with a viewModel containing signals.
 ```typescript
 const viewModel = {
   title$: signal('Hello'),
-  description$: signal('World')
+  description$: signal('World'),
 };
 
 const result = template.render(viewModel);
@@ -448,7 +444,7 @@ const template = createTemplate(`
 const viewModel = {
   count$: signal(0),
   increment$: () => viewModel.count$.set(viewModel.count$.get() + 1),
-  reset$: () => viewModel.count$.set(0)
+  reset$: () => viewModel.count$.set(0),
 };
 
 template.bind(document.getElementById('app'), viewModel);
@@ -479,21 +475,16 @@ const template = createTemplate(`
 const viewModel = {
   todos$: signal([]),
   newTodo$: signal(''),
-  
+
   addTodo$: () => {
     const text = viewModel.newTodo$.get();
     if (text.trim()) {
-      viewModel.todos$.set([
-        ...viewModel.todos$.get(),
-        { id: Date.now(), text, completed: false }
-      ]);
+      viewModel.todos$.set([...viewModel.todos$.get(), { id: Date.now(), text, completed: false }]);
       viewModel.newTodo$.set('');
     }
   },
-  
-  remaining$: computed(() => 
-    viewModel.todos$.get().filter(t => !t.completed).length
-  )
+
+  remaining$: computed(() => viewModel.todos$.get().filter((t) => !t.completed).length),
 };
 ```
 
@@ -501,18 +492,12 @@ const viewModel = {
 
 ```html
 {{#isLoading$}}
-  <div class="spinner">Loading...</div>
-{{/isLoading$}}
-
-{{^isLoading$}}
-  {{#error$}}
-    <div class="error">{{ error$ }}</div>
-  {{/error$}}
-  
-  {{^error$}}
-    <div class="content">{{ data$ }}</div>
-  {{/error$}}
-{{/isLoading$}}
+<div class="spinner">Loading...</div>
+{{/isLoading$}} {{^isLoading$}} {{#error$}}
+<div class="error">{{ error$ }}</div>
+{{/error$}} {{^error$}}
+<div class="content">{{ data$ }}</div>
+{{/error$}} {{/isLoading$}}
 ```
 
 ---
@@ -521,13 +506,13 @@ const viewModel = {
 
 The following are explicitly **out of scope**:
 
-| Item | Reason |
-|------|--------|
-| React/Vue/Solid integration | Web Loom libraries are framework-agnostic; this engine is **not** a wrapper for other frameworks |
-| Virtual DOM | Signals enable fine-grained updates without VDOM overhead |
-| Two-way data binding | Explicit event handlers provide clearer data flow |
-| Server-side rendering (primary focus) | Initial focus is client-side; SSR may be added later |
-| Legacy browser support | Modern browsers with ES6+ support only |
+| Item                                  | Reason                                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| React/Vue/Solid integration           | Web Loom libraries are framework-agnostic; this engine is **not** a wrapper for other frameworks |
+| Virtual DOM                           | Signals enable fine-grained updates without VDOM overhead                                        |
+| Two-way data binding                  | Explicit event handlers provide clearer data flow                                                |
+| Server-side rendering (primary focus) | Initial focus is client-side; SSR may be added later                                             |
+| Legacy browser support                | Modern browsers with ES6+ support only                                                           |
 
 ---
 
@@ -535,12 +520,12 @@ The following are explicitly **out of scope**:
 
 ### 10.1 Targets
 
-| Metric | Target |
-|--------|--------|
+| Metric              | Target                       |
+| ------------------- | ---------------------------- |
 | Initial render time | < 50ms for typical templates |
-| Update latency | < 16ms (single frame) |
-| Memory overhead | < 100KB per 1000 bindings |
-| Bundle size | < 20KB gzipped |
+| Update latency      | < 16ms (single frame)        |
+| Memory overhead     | < 100KB per 1000 bindings    |
+| Bundle size         | < 20KB gzipped               |
 
 ### 10.2 Optimization Strategies
 
@@ -553,22 +538,23 @@ The following are explicitly **out of scope**:
 
 ## 11. Comparison with Alternatives
 
-| Feature | Mustache | Handlebars | This Engine |
-|---------|----------|------------|-------------|
-| Signal-native | ❌ | ❌ | ✅ |
-| Fine-grained updates | ❌ | ❌ | ✅ |
-| Familiar syntax | ✅ | ✅ | ✅ |
-| Event bindings | ❌ | ❌ | ✅ |
-| Attribute binding | ❌ | ❌ | ✅ |
-| Class/style binding | ❌ | ❌ | ✅ |
-| TC39 Signals integration | ❌ | ❌ | ✅ |
-| Web Loom ecosystem | ❌ | ❌ | ✅ |
+| Feature                  | Mustache | Handlebars | This Engine |
+| ------------------------ | -------- | ---------- | ----------- |
+| Signal-native            | ❌       | ❌         | ✅          |
+| Fine-grained updates     | ❌       | ❌         | ✅          |
+| Familiar syntax          | ✅       | ✅         | ✅          |
+| Event bindings           | ❌       | ❌         | ✅          |
+| Attribute binding        | ❌       | ❌         | ✅          |
+| Class/style binding      | ❌       | ❌         | ✅          |
+| TC39 Signals integration | ❌       | ❌         | ✅          |
+| Web Loom ecosystem       | ❌       | ❌         | ✅          |
 
 ---
 
 ## 12. Roadmap
 
 ### Phase 1: Core (v1.0.0)
+
 - [ ] Parser with Mustache-like syntax
 - [ ] Signal integration with `@web-loom/signals-core`
 - [ ] Variable interpolation (`{{ }}`)
@@ -580,6 +566,7 @@ The following are explicitly **out of scope**:
 - [ ] Basic DOM update engine
 
 ### Phase 2: Advanced (v1.1.0)
+
 - [ ] Partial templates
 - [ ] Custom helpers
 - [ ] Style bindings (`style:property`)
@@ -587,6 +574,7 @@ The following are explicitly **out of scope**:
 - [ ] Optimized compilation (static analysis)
 
 ### Phase 3: Production (v2.0.0)
+
 - [ ] Server-side rendering
 - [ ] Template pre-compilation (build-time)
 - [ ] DevTools integration
@@ -633,14 +621,14 @@ Reactive properties in Web Loom use the `$` suffix convention.
 
 ### C. Glossary
 
-| Term | Definition |
-|------|------------|
-| **Signal** | A reactive container for a value that can change over time |
-| **Computed** | A derived signal that automatically updates when dependencies change |
-| **Effect** | A side effect that re-runs when tracked signals change |
-| **Mustache** | A logic-less template syntax using `{{ }}` delimiters |
-| **Fine-grained update** | Updating only the specific DOM nodes that depend on changed data |
+| Term                    | Definition                                                           |
+| ----------------------- | -------------------------------------------------------------------- |
+| **Signal**              | A reactive container for a value that can change over time           |
+| **Computed**            | A derived signal that automatically updates when dependencies change |
+| **Effect**              | A side effect that re-runs when tracked signals change               |
+| **Mustache**            | A logic-less template syntax using `{{ }}` delimiters                |
+| **Fine-grained update** | Updating only the specific DOM nodes that depend on changed data     |
 
 ---
 
-*This document is a living specification and will evolve as the template engine is developed and refined.*
+_This document is a living specification and will evolve as the template engine is developed and refined._

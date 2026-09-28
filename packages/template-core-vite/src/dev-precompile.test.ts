@@ -41,7 +41,11 @@ describe('runDevPrecompile', () => {
     const found = findCompileCalls(code, '/app/header.ts', ['@web-loom/template-core']);
 
     const result = runDevPrecompile(
-      { error: (message) => { throw new Error(message); } },
+      {
+        error: (message) => {
+          throw new Error(message);
+        },
+      },
       { cache, sourcePath: '/app/header.ts', code, found },
     );
 
@@ -57,7 +61,11 @@ describe('runDevPrecompile', () => {
       '',
     ].join('\n');
     const found = findCompileCalls(code, '/app/stable.ts', ['@web-loom/template-core']);
-    const ctx = { error: (message: string) => { throw new Error(message); } };
+    const ctx = {
+      error: (message: string) => {
+        throw new Error(message);
+      },
+    };
 
     const first = runDevPrecompile(ctx, { cache, sourcePath: '/app/stable.ts', code, found });
     const second = runDevPrecompile(ctx, { cache, sourcePath: '/app/stable.ts', code, found });

@@ -9,7 +9,9 @@ describe('formatTemplate', () => {
     expect(result.formatted).toBe(
       `<div>
   {{#if show}}
-    <p>{{ title$ }}</p>
+    <p>
+      {{ title$ }}
+    </p>
   {{/if}}
 </div>
 `,
@@ -17,18 +19,39 @@ describe('formatTemplate', () => {
   });
 
   it('places partials and else branches on their own lines', () => {
-    const source = `<main>{{> header}}{{#each items as item}}<span>{{ item }}</span>{{else}}<p>Empty</p>{{/each}}</main>`;
+    const source = `<main>{{> header}}{{#each items key=this}}<span>{{ this }}</span>{{else}}<p>Empty</p>{{/each}}</main>`;
     const result = formatTemplate(source);
     expect(result.ok).toBe(true);
     expect(result.formatted).toBe(
       `<main>
   {{> header}}
-  {{#each items as item}}
-    <span>{{ item }}</span>
-  {{else}}
-    <p>Empty</p>
+  {{#each items key=this}}
+    <span>
+      {{ this }}
+    </span>
+    {{else}}
+    <p>
+      Empty
+    </p>
   {{/each}}
 </main>
+`,
+    );
+  });
+
+  it('places block partials and slots on their own lines', () => {
+    const source = `{{#> card title=name}}Hello{{#slot footer}}<button>Edit</button>{{/slot}}{{/card}}`;
+    const result = formatTemplate(source);
+    expect(result.ok).toBe(true);
+    expect(result.formatted).toBe(
+      `{{#> card title=name}}
+  Hello
+  {{#slot footer}}
+    <button>
+      Edit
+    </button>
+  {{/slot}}
+{{/card}}
 `,
     );
   });

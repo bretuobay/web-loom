@@ -13,8 +13,9 @@ function hopScope(scope: Scope, hops: number): Scope | null {
  * `on:event="expr"`. Two forms (PRD §6.4):
  * - bare path (`on:click="increment"`) — resolved through the Scope Chain
  *   and invoked as `fn(event)`, with its owning object as `this`.
- * - call form (`on:click="remove(this)"`) — evaluated per the expression
- *   grammar with `this`, `$event`, and iteration helpers in scope.
+ * - call form (`on:click="remove(this)"` or `on:click="actions.openCart()"`) —
+ *   evaluated per the expression grammar with `this`, `$event`, and iteration
+ *   helpers in scope. Dotted callees walk the scope chain and keep `this`.
  *
  * Every handler runs inside `batch()` so multiple synchronous Signal writes
  * notify dependents once (Requirement 7.4).

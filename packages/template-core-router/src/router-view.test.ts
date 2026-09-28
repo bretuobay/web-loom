@@ -110,9 +110,7 @@ describe('createRouterView', () => {
       onLoadError,
     });
 
-    await vi.waitFor(() =>
-      expect(onLoadError).toHaveBeenCalledWith(failure, expect.objectContaining({ path: '/' })),
-    );
+    await vi.waitFor(() => expect(onLoadError).toHaveBeenCalledWith(failure, expect.objectContaining({ path: '/' })));
 
     view.dispose();
     router.destroy();

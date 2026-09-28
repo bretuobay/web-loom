@@ -1,7 +1,4 @@
-import {
-  collectSourceLinkedDiagnostics,
-  type SourceLinkedDiagnostic,
-} from '@web-loom/template-core-tooling';
+import { collectSourceLinkedDiagnostics, type SourceLinkedDiagnostic } from '@web-loom/template-core-tooling';
 import type { TemplateCoreLintSettings } from './settings.js';
 
 export type TemplateLintIssue = SourceLinkedDiagnostic & {
@@ -17,6 +14,7 @@ export function collectTemplateLintIssues(
   return collectSourceLinkedDiagnostics(filename, sourceText, {
     specifiers: settings.specifiers,
     partials: settings.partials,
+    partialProps: settings.partialProps,
     strictPartials: settings.strictPartials,
     contextKeys: settings.contextKeys,
   }).map((diagnostic) => ({

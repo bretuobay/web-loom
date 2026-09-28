@@ -16,6 +16,7 @@ Package versions had drifted inconsistently — `@web-loom/template-core` had re
 ## Enforcement
 
 `scripts/check-version-policy.mjs` (run via `npm run check-versions`, or automatically in `.github/workflows/version-policy-guard.yml` on every pull request touching `packages/*/package.json`) diffs each package's version against the PR's base branch and fails the check if:
+
 - any package's `major.minor` changed (a non-patch bump), or
 - any non-`mvvm-core`/`signals-core` package exceeds the `mvvm-core`/`signals-core` ceiling.
 

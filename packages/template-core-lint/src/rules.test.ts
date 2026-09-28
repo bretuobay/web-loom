@@ -70,6 +70,43 @@ ruleTester.run('no-unsafe-url', plugin.rules['no-unsafe-url'], {
   ],
 });
 
+ruleTester.run('no-invalid-partial-props', plugin.rules['no-invalid-partial-props'], {
+  valid: [
+    {
+      code: `${importPreamble}export const t = compile(\`{{> card count=n href=path}}\`);`,
+      settings: {
+        'template-core': {
+          partials: { card: 'card.ts' },
+          partialProps: { card: ['count', 'href'] },
+        },
+      },
+    },
+    `${importPreamble}export const t = compile(\`{{> card count=n}}\`);`,
+  ],
+  invalid: [
+    {
+      code: `${importPreamble}export const t = compile(\`{{> card count=n}}\`);`,
+      settings: {
+        'template-core': {
+          partials: { card: 'card.ts' },
+          partialProps: { card: ['count', 'href'] },
+        },
+      },
+      errors: [{ messageId: 'reported' }],
+    },
+    {
+      code: `${importPreamble}export const t = compile(\`{{> card count=n extra=x}}\`);`,
+      settings: {
+        'template-core': {
+          partials: { card: 'card.ts' },
+          partialProps: { card: ['count'] },
+        },
+      },
+      errors: [{ messageId: 'reported' }],
+    },
+  ],
+});
+
 ruleTester.run('no-unknown-context-path', plugin.rules['no-unknown-context-path'], {
   valid: [
     {

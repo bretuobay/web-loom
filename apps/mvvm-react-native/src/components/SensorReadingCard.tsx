@@ -3,8 +3,7 @@ import { View, Text, Pressable, Dimensions, StyleSheet, Platform } from 'react-n
 import Svg, { Circle, G, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import { styles as sharedStyles } from '@repo/shared';
 
-const LineChart =
-  Platform.OS === 'web' ? null : require('react-native-chart-kit').LineChart;
+const LineChart = Platform.OS === 'web' ? null : require('react-native-chart-kit').LineChart;
 
 // Suppress React Native Web warnings for chart components
 const useWebWarningSuppress = () => {
@@ -86,14 +85,7 @@ const WebLineChart = ({
     <Svg width={width} height={height} style={{ marginVertical: 8, borderRadius: 5 }}>
       {gridLines.map(({ y, value }, index) => (
         <G key={`grid-${index}`}>
-          <Line
-            x1={padding.left}
-            y1={y}
-            x2={padding.left + chartW}
-            y2={y}
-            stroke={GRID_COLOR}
-            strokeWidth={1}
-          />
+          <Line x1={padding.left} y1={y} x2={padding.left + chartW} y2={y} stroke={GRID_COLOR} strokeWidth={1} />
           <SvgText x={padding.left - 6} y={y + 4} fontSize={10} fill={LABEL_COLOR} textAnchor="end">
             {value.toFixed(2)}
           </SvgText>

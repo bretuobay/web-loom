@@ -5,12 +5,12 @@ No new syntax, no second parser — only an authoring surface and Vite loader gl
 
 ## When to use `.loom` vs strings
 
-| Use `.loom` | Keep `compile(\`...\`)` in `.ts` |
-| ----------- | -------------------------------- |
-| Large markup-heavy templates | Small inline templates |
-| Designers/editors focus on HTML | Template tightly coupled to TS module setup |
-| Want file-scoped syntax highlighting | Already satisfied by injection grammar |
-| Build should always precompile | Need `declareContext<T>()` wrapper in same file |
+| Use `.loom`                          | Keep `compile(\`...\`)`in`.ts`                  |
+| ------------------------------------ | ----------------------------------------------- |
+| Large markup-heavy templates         | Small inline templates                          |
+| Designers/editors focus on HTML      | Template tightly coupled to TS module setup     |
+| Want file-scoped syntax highlighting | Already satisfied by injection grammar          |
+| Build should always precompile       | Need `declareContext<T>()` wrapper in same file |
 
 Both styles remain valid indefinitely. The ecommerce demo uses **both**: `header.loom` plus
 string-based templates in other modules. The greenhouse demo
@@ -65,10 +65,10 @@ Default export is a `Template` instance (`compile()` in dev, `fromPrecompiled()`
 
 ## Dev vs build
 
-| Mode | Emitted module | Runtime parser |
-| ---- | -------------- | -------------- |
-| `vite dev` | `compile(source, { name, sourcePath })` | Yes (same as strings) |
-| `vite build` | `fromPrecompiled({ plan })` | No |
+| Mode         | Emitted module                          | Runtime parser        |
+| ------------ | --------------------------------------- | --------------------- |
+| `vite dev`   | `compile(source, { name, sourcePath })` | Yes (same as strings) |
+| `vite build` | `fromPrecompiled({ plan })`             | No                    |
 
 `sourcePath` is the absolute `.loom` file path — diagnostics and ESLint/analyze tooling use the
 same codes as string templates.
@@ -94,7 +94,7 @@ Manual check:
 Install the local [`vscode-template-core-syntax`](../../vscode-template-core-syntax/) extension.
 It registers:
 
-- **Injection grammar** — `compile(\`...\`)` inside `.ts`/`.tsx`
+- **Injection grammar** — `compile(\`...\`)`inside`.ts`/`.tsx`
 - **Standalone grammar** — `.loom` files (`text.web-loom.template`)
 
 ## CLI (no plugin)
