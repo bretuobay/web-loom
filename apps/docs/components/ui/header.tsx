@@ -4,7 +4,7 @@ import Logo from './logo';
 import { DOCS_SEARCH_ENTRIES, DOCS_SEARCH_FEATURED_HREFS } from './search-data';
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Docs', href: '/docs/getting-started' },
+  { label: 'Docs', href: '/docs' },
   { label: 'Blog', href: '/blog' },
   { label: 'Book', href: '/book' },
 ];

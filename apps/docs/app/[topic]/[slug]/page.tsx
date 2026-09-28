@@ -8,8 +8,7 @@ import Feedback from '@/components/ui/feedback';
 import PageNavigation from '@/components/ui/page-navigation';
 import Footer from '@/components/ui/footer';
 import SecondaryNav from '@/components/ui/secondary-nav';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
+import { absoluteUrl, SITE_URL } from '@/lib/site';
 
 export async function generateStaticParams() {
   return getDocPages().map((post) => ({
@@ -24,7 +23,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   if (!post) return;
 
   const { title, summary: description, topicTitle } = post.metadata;
-  const canonical = `${SITE_URL}/docs/${slug}`;
+  const canonical = absoluteUrl(`/docs/${slug}`);
 
   return {
     title,
@@ -51,14 +50,14 @@ export default async function SinglePost(props: { params: Promise<{ topic: strin
   const post = getDocPages().find((p) => p.slug === params.slug);
   if (!post) notFound();
 
-  const canonical = `${SITE_URL}/docs/${params.slug}`;
+  const canonical = absoluteUrl(`/docs/${params.slug}`);
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Web Loom', item: SITE_URL },
-      { '@type': 'ListItem', position: 2, name: 'Docs', item: `${SITE_URL}/docs/getting-started` },
+      { '@type': 'ListItem', position: 2, name: 'Docs', item: absoluteUrl('/docs') },
       { '@type': 'ListItem', position: 3, name: post.metadata.title, item: canonical },
     ],
   };

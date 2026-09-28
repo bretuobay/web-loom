@@ -2,17 +2,16 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getBlogPages } from '@/components/mdx/utils';
 import Footer from '@/components/ui/footer';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
+import { absoluteUrl } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Blog',
   description:
     'Deep-dives, tutorials and architectural thinking on building framework-agnostic TypeScript applications with Web Loom.',
-  alternates: { canonical: `${SITE_URL}/blog` },
+  alternates: { canonical: absoluteUrl('/blog') },
   openGraph: {
     type: 'website',
-    url: `${SITE_URL}/blog`,
+    url: absoluteUrl('/blog'),
     title: 'Web Loom Blog',
     description:
       'Deep-dives, tutorials and architectural thinking on building framework-agnostic TypeScript applications with Web Loom.',

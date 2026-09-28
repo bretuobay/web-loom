@@ -1,8 +1,7 @@
 import type { MetadataRoute } from 'next';
+import { absoluteUrl } from '@/lib/site';
 
 export const dynamic = 'force-static';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -10,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: '*',
       allow: '/',
     },
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    sitemap: absoluteUrl('/sitemap.xml'),
   };
 }

@@ -4,8 +4,7 @@ import { notFound } from 'next/navigation';
 import { getBlogPages } from '@/components/mdx/utils';
 import { CustomMDX } from '@/components/mdx/mdx';
 import Footer from '@/components/ui/footer';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
+import { absoluteUrl, SITE_URL } from '@/lib/site';
 
 export async function generateStaticParams() {
   return getBlogPages().map((post) => ({ slug: post.slug }));
@@ -16,7 +15,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const post = getBlogPages().find((p) => p.slug === slug);
   if (!post) return;
 
-  const canonical = `${SITE_URL}/blog/${slug}`;
+  const canonical = absoluteUrl(`/blog/${slug}`);
 
   return {
     // Use absolute to avoid double-appending "— Web Loom" from the template
@@ -49,14 +48,14 @@ export default async function BlogPost(props: { params: Promise<{ slug: string }
   const post = posts[index];
   const prev = index > 0 ? posts[index - 1] : null;
   const next = index < posts.length - 1 ? posts[index + 1] : null;
-  const canonical = `${SITE_URL}/blog/${slug}`;
+  const canonical = absoluteUrl(`/blog/${slug}`);
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Web Loom', item: SITE_URL },
-      { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: absoluteUrl('/blog') },
       { '@type': 'ListItem', position: 3, name: post.title, item: canonical },
     ],
   };
@@ -75,7 +74,7 @@ export default async function BlogPost(props: { params: Promise<{ slug: string }
     },
     isPartOf: {
       '@type': 'Blog',
-      '@id': `${SITE_URL}/blog`,
+      '@id': absoluteUrl('/blog'),
       name: 'Web Loom Blog',
     },
   };

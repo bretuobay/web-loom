@@ -1,24 +1,25 @@
 import type { MetadataRoute } from 'next';
-import { getDocPages } from '@/components/mdx/utils';
-import { getBlogPages } from '@/components/mdx/utils';
+import { getBlogPages, getBookPages, getDocPages } from '@/components/mdx/utils';
+import { absoluteUrl, SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-static';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
-
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
-
   const docPages = getDocPages().map((page) => ({
-    url: `${SITE_URL}/docs/${page.slug}`,
-    lastModified: page.metadata.updatedAt ? new Date(page.metadata.updatedAt) : now,
+    url: absoluteUrl(`/docs/${page.slug}`),
+    lastModified: page.metadata.updatedAt ?? page.metadata.publishedAt,
     changeFrequency: 'monthly' as const,
     priority: 0.9,
   }));
 
   const blogPages = getBlogPages().map((page) => ({
-    url: `${SITE_URL}/blog/${page.slug}`,
-    lastModified: now,
+    url: absoluteUrl(`/blog/${page.slug}`),
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
+
+  const bookPages = getBookPages().map((page) => ({
+    url: absoluteUrl(`/book/${page.slug}`),
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }));
@@ -26,17 +27,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: SITE_URL,
-      lastModified: now,
       changeFrequency: 'weekly',
       priority: 1.0,
     },
     {
-      url: `${SITE_URL}/blog`,
-      lastModified: now,
+      url: absoluteUrl('/docs'),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    ...docPages,
+    {
+      url: absoluteUrl('/blog'),
       changeFrequency: 'weekly',
       priority: 0.8,
     },
-    ...docPages,
     ...blogPages,
+    {
+      url: absoluteUrl('/book'),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    ...bookPages,
   ];
 }

@@ -2,17 +2,16 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getBookPages, type BookPage } from '@/components/mdx/utils';
 import Footer from '@/components/ui/footer';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
+import { absoluteUrl } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'MVVM in Practice — Book',
   description:
     'A practical, code-first guide to Model-View-ViewModel architecture for modern frontend development — framework-agnostic patterns that survive React, Vue, and Angular.',
-  alternates: { canonical: `${SITE_URL}/book` },
+  alternates: { canonical: absoluteUrl('/book') },
   openGraph: {
     type: 'website',
-    url: `${SITE_URL}/book`,
+    url: absoluteUrl('/book'),
     title: 'MVVM in Practice',
     description: 'A practical, code-first guide to Model-View-ViewModel architecture for modern frontend development.',
     siteName: 'Web Loom',

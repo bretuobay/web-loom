@@ -5,9 +5,9 @@ import AnimatedFrameworks from '@/components/ui/animated-frameworks';
 import MVVMLayerShowcase from '@/components/ui/mvvm-layer-showcase';
 
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/site';
 
 const GITHUB_URL = 'https://github.com/bretuobay/web-loom';
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
 const PLUGIN_DOCS_URL =
   process.env.NEXT_PUBLIC_PLUGIN_DOCS_URL ?? 'https://plugin-architectures-book.webloomframework.com';
 
@@ -192,7 +192,7 @@ export default function HomePage() {
 
           <nav className="flex items-center gap-1">
             <Link
-              href="/docs/getting-started"
+              href="/docs"
               className="px-3 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors"
             >
               Docs
@@ -762,7 +762,7 @@ export default function HomePage() {
             </span>
           </div>
           <nav className="flex items-center gap-6 text-sm text-slate-500" aria-label="Footer navigation">
-            <Link href="/docs/getting-started" className="hover:text-slate-300 transition-colors">
+            <Link href="/docs" className="hover:text-slate-300 transition-colors">
               Docs
             </Link>
             <Link href="/blog" className="hover:text-slate-300 transition-colors">

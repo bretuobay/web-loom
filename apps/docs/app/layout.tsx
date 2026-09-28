@@ -4,8 +4,7 @@ import type { Metadata } from 'next';
 import { Nothing_You_Could_Do } from 'next/font/google';
 import localFont from 'next/font/local';
 import Theme from './theme-provider';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
+import { SITE_URL } from '@/lib/site';
 
 const nycd = Nothing_You_Could_Do({
   subsets: ['latin'],
@@ -87,11 +86,9 @@ export const metadata: Metadata = {
       'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
     images: ['/opengraph-image'],
   },
-  alternates: {
-    canonical: SITE_URL,
-  },
   icons: {
-    icon: '/favicon.ico',
+    icon: [{ url: '/favicon.png', type: 'image/png', sizes: '512x512' }],
+    apple: [{ url: '/apple-touch-icon.png', type: 'image/png', sizes: '180x180' }],
   },
 };
 

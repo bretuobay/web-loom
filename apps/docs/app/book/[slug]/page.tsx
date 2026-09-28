@@ -4,8 +4,7 @@ import { notFound } from 'next/navigation';
 import { getBookPages } from '@/components/mdx/utils';
 import { CustomMDX } from '@/components/mdx/mdx';
 import Footer from '@/components/ui/footer';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webloomframework.com';
+import { absoluteUrl } from '@/lib/site';
 
 export async function generateStaticParams() {
   return getBookPages().map((ch) => ({ slug: ch.slug }));
@@ -16,7 +15,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const ch = getBookPages().find((p) => p.slug === slug);
   if (!ch) return;
 
-  const canonical = `${SITE_URL}/book/${slug}`;
+  const canonical = absoluteUrl(`/book/${slug}`);
   const description = `Chapter ${ch.number} of MVVM in Practice: ${ch.title}`;
 
   return {
