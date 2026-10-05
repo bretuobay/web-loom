@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getBlogPages } from '@/components/mdx/utils';
+import { BLOG_SERIES, getBlogPages } from '@/components/mdx/utils';
 import { CustomMDX } from '@/components/mdx/mdx';
 import Footer from '@/components/ui/footer';
 import { absoluteUrl, SITE_URL } from '@/lib/site';
@@ -28,7 +28,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
       title: post.title,
       description: post.summary,
       siteName: 'Web Loom',
-      section: post.packageName ?? 'Web Loom Blog',
+      section: post.packageName ?? BLOG_SERIES[post.series].title,
     },
     twitter: {
       card: 'summary_large_image',
@@ -40,14 +40,15 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 
 export default async function BlogPost(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
-  const posts = getBlogPages();
-  const index = posts.findIndex((p) => p.slug === slug);
+  const post = getBlogPages().find((p) => p.slug === slug);
+  if (!post) notFound();
 
-  if (index === -1) notFound();
-
-  const post = posts[index];
-  const prev = index > 0 ? posts[index - 1] : null;
-  const next = index < posts.length - 1 ? posts[index + 1] : null;
+  // Previous/next navigation stays within the post's own series
+  const seriesPosts = getBlogPages().filter((p) => p.series === post.series);
+  const index = seriesPosts.findIndex((p) => p.slug === slug);
+  const prev = index > 0 ? seriesPosts[index - 1] : null;
+  const next = index < seriesPosts.length - 1 ? seriesPosts[index + 1] : null;
+  const seriesTitle = BLOG_SERIES[post.series].title;
   const canonical = absoluteUrl(`/blog/${slug}`);
 
   const breadcrumbJsonLd = {
@@ -111,7 +112,7 @@ export default async function BlogPost(props: { params: Promise<{ slug: string }
       <header className="mb-10">
         <div className="flex items-center gap-3 mb-4">
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
-            Part {String(post.number).padStart(2, '0')}
+            {seriesTitle} · Part {post.number} of {seriesPosts.length}
           </span>
           {post.packageName && (
             <code className="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">
@@ -136,7 +137,7 @@ export default async function BlogPost(props: { params: Promise<{ slug: string }
       {(prev || next) && (
         <nav className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4">
-            Continue the series
+            Continue the series: {seriesTitle}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {prev ? (

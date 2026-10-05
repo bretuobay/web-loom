@@ -58,7 +58,61 @@ export function getDocPages() {
   return getMDXData(path.join(process.cwd(), 'content/docs'));
 }
 
+// ─── Frontmatter ──────────────────────────────────────────────────────────────
+
+/**
+ * Splits an optional leading `---` block of flat `key: value` lines from the body.
+ * Only a block at the very start of the file counts, so `---` rules in the body are left alone.
+ */
+function splitFrontmatter(raw: string): { data: Record<string, string>; content: string } {
+  const trimmed = raw.trimStart();
+  if (!trimmed.startsWith('---')) return { data: {}, content: raw };
+  const match = /---\s*([\s\S]*?)\s*---/.exec(trimmed);
+  if (!match) return { data: {}, content: raw };
+
+  const data: Record<string, string> = {};
+  for (const line of match[1].split('\n')) {
+    const separator = line.indexOf(':');
+    if (separator === -1) continue;
+    data[line.slice(0, separator).trim()] = line
+      .slice(separator + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, '');
+  }
+  return { data, content: trimmed.slice(match[0].length).trim() };
+}
+
 // ─── Blog helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Blog series, in the order the blog index lists them. A post joins a series via
+ * `series:` frontmatter; posts without it belong to the package deep-dive series.
+ */
+export const BLOG_SERIES = {
+  'introducing-web-loom': {
+    title: 'Introducing Web Loom',
+    description:
+      'Where Web Loom came from, why its reactive core moved from RxJS to signals, and what building it with AI agents taught me about patterns.',
+    featureLastPost: false,
+  },
+  'package-deep-dives': {
+    title: 'Package Deep Dives',
+    description:
+      'One article per published package — the history behind each pattern, how other platforms handle it, and how Web Loom thinks about it.',
+    featureLastPost: true,
+  },
+} as const;
+
+export type BlogSeriesId = keyof typeof BLOG_SERIES;
+
+const BLOG_SERIES_ORDER = Object.keys(BLOG_SERIES) as BlogSeriesId[];
+const DEFAULT_BLOG_SERIES: BlogSeriesId = 'package-deep-dives';
+
+function resolveBlogSeries(value: string | undefined, filename: string): BlogSeriesId {
+  if (value === undefined) return DEFAULT_BLOG_SERIES;
+  if (value in BLOG_SERIES) return value as BlogSeriesId;
+  throw new Error(`Unknown blog series "${value}" in ${filename}. Add it to BLOG_SERIES.`);
+}
 
 function getMarkdownFiles(dir: string) {
   return fs
@@ -68,7 +122,8 @@ function getMarkdownFiles(dir: string) {
 }
 
 function parseBlogContent(rawContent: string, filename: string) {
-  const lines = rawContent.split('\n');
+  const { data, content: body } = splitFrontmatter(rawContent);
+  const lines = body.split('\n');
 
   // Title: first # heading (strip backtick code-formatting for plain display)
   const titleLineIdx = lines.findIndex((l) => l.startsWith('# '));
@@ -91,18 +146,20 @@ function parseBlogContent(rawContent: string, filename: string) {
         t && !t.startsWith('#') && !t.startsWith('---') && !t.startsWith('```') && !t.startsWith('|') && t.length > 30
       );
     }) || '';
-  const summary = firstPara.replace(/\n/g, ' ').substring(0, 220) + (firstPara.length > 220 ? '…' : '');
+  const summary = data.summary ?? firstPara.replace(/\n/g, ' ').substring(0, 220) + (firstPara.length > 220 ? '…' : '');
 
-  // Article number from filename prefix (e.g. "01-mvvm-core.md" → 1)
+  // Part number within the series: `part:` frontmatter, else the filename prefix ("01-mvvm-core.md" → 1)
   const numMatch = filename.match(/^(\d+)-/);
-  const number = numMatch ? parseInt(numMatch[1], 10) : 99;
+  const number = data.part ? parseInt(data.part, 10) : numMatch ? parseInt(numMatch[1], 10) : 99;
 
   // Package name: backtick-wrapped @web-loom/... in the raw title
   // Using RegExp constructor to avoid backtick-in-template-literal issues
   const packageMatch = rawTitle.match(new RegExp('`(@web-loom/[\\w-]+)`'));
   const packageName = packageMatch ? packageMatch[1] : null;
 
-  return { title, content, summary, number, packageName };
+  const series = resolveBlogSeries(data.series, filename);
+
+  return { title, content, summary, number, packageName, series };
 }
 
 export type BlogPage = ReturnType<typeof getBlogPages>[number];
@@ -116,24 +173,6 @@ const BOOK_SECTION_FALLBACKS: Record<string, string> = {
   chapter16: 'The GreenWatch Case Study',
   chapter21: 'Enterprise Scale',
 };
-
-function parseBookChapterFrontmatter(raw: string): { title?: string; section?: string; content: string } {
-  const trimmed = raw.trimStart();
-  if (!trimmed.startsWith('---')) return { content: raw };
-  const match = /---\s*([\s\S]*?)\s*---/.exec(trimmed);
-  if (!match) return { content: raw };
-  const block = match[1];
-  const content = trimmed.slice(match[0].length).trim();
-  const title = block
-    .match(/^title:\s*(.+)$/m)?.[1]
-    ?.trim()
-    .replace(/^['"]|['"]$/g, '');
-  const section = block
-    .match(/^section:\s*(.+)$/m)?.[1]
-    ?.trim()
-    .replace(/^['"]|['"]$/g, '');
-  return { title, section, content };
-}
 
 export type BookPage = {
   slug: string;
@@ -157,7 +196,10 @@ export function getBookPages(): BookPage[] {
       const slug = path.basename(file, '.mdx');
       const number = parseInt(slug.match(/\d+/)?.[0] ?? '0', 10);
       const raw = fs.readFileSync(path.join(dir, file), 'utf-8');
-      const { title: fmTitle, section: fmSection, content } = parseBookChapterFrontmatter(raw);
+      const {
+        data: { title: fmTitle, section: fmSection },
+        content,
+      } = splitFrontmatter(raw);
 
       let title: string;
       if (fmTitle) {
@@ -175,6 +217,7 @@ export function getBookPages(): BookPage[] {
 
 // ─── Blog helpers ─────────────────────────────────────────────────────────────
 
+/** All blog posts, grouped by series (in BLOG_SERIES order) and ordered by part within each series. */
 export function getBlogPages() {
   const dir = path.join(process.cwd(), 'content/blog');
   return getMarkdownFiles(dir)
@@ -183,5 +226,16 @@ export function getBlogPages() {
       const rawContent = fs.readFileSync(path.join(dir, file), 'utf-8');
       const slug = path.basename(file, '.md');
       return { slug, ...parseBlogContent(rawContent, file) };
-    });
+    })
+    .sort((a, b) => BLOG_SERIES_ORDER.indexOf(a.series) - BLOG_SERIES_ORDER.indexOf(b.series) || a.number - b.number);
+}
+
+/** Non-empty blog series with their posts, for the blog index. */
+export function getBlogSeries() {
+  const posts = getBlogPages();
+  return BLOG_SERIES_ORDER.map((id) => ({
+    id,
+    ...BLOG_SERIES[id],
+    posts: posts.filter((post) => post.series === id),
+  })).filter((series) => series.posts.length > 0);
 }
