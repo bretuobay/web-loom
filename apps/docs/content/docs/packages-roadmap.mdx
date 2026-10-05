@@ -1,6 +1,6 @@
 ---
 title: 'Package Roadmap'
-summary: 'The full Web Loom package ecosystem — core packages implemented in this monorepo but not yet published to npm (HTTP, Storage, Router, i18n, Notifications, Error handling, Platform detection, Typography), plus the framework adapters and charting library published from the sibling web-loom-extensions repo.'
+summary: 'The full Web Loom package ecosystem — core packages implemented in this monorepo but not yet published to npm (HTTP, Storage, Router, i18n, Notifications, Error handling, Platform detection, Typography), plus the framework adapters and charting library maintained in the sibling web-loom-extensions repo.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
 ---
@@ -49,9 +49,9 @@ if (result.success) {
 }
 ```
 
-### Framework adapters (published from web-loom-extensions)
+### Framework adapters (in web-loom-extensions)
 
-`@web-loom/forms-react`, `@web-loom/forms-vue`, and `@web-loom/forms-vanilla` bind `forms-core` to a specific rendering target. They're published under the same `@web-loom/*` npm scope but sourced from `web-loom-extensions`:
+`@web-loom/forms-react`, `@web-loom/forms-vue`, and `@web-loom/forms-vanilla` bind `forms-core` to a specific rendering target. They use the same `@web-loom/*` package names but live in `web-loom-extensions` and aren't on npm yet:
 
 ```typescript
 // React
@@ -66,9 +66,9 @@ import { bindForm } from '@web-loom/forms-vanilla';
 
 ---
 
-## Media (published from web-loom-extensions)
+## Media (in web-loom-extensions)
 
-`@web-loom/media-core`, `@web-loom/media-react`, and `@web-loom/media-vue` are a framework-agnostic media player engine plus React/Vue adapters, published from `web-loom-extensions`. `media-core` mounts native `<video>`/`<audio>`/`<img>` elements, manages playback state, and exposes a typed plugin and event system:
+`@web-loom/media-core`, `@web-loom/media-react`, and `@web-loom/media-vue` are a framework-agnostic media player engine plus React/Vue adapters, maintained in `web-loom-extensions` (not yet on npm). `media-core` mounts native `<video>`/`<audio>`/`<img>` elements, manages playback state, and exposes a typed plugin and event system:
 
 ```typescript
 import { MediaCore } from '@web-loom/media-core';
@@ -385,11 +385,11 @@ contrastRatio('#006fa3', '#ffffff'); // → 5.52 (AA pass)
 
 ---
 
-## Charts (published from web-loom-extensions)
+## Charts (in web-loom-extensions)
 
 ### @web-loom/charts-core
 
-A D3-based, configuration-driven charting toolkit, published from `web-loom-extensions`. Supports line, area, and scatter series with interactive legends, crosshair overlays, tooltip management, a zoom/pan plugin, and a deep-mergeable theme system.
+A D3-based, configuration-driven charting toolkit, maintained in `web-loom-extensions` (not yet on npm). Supports line, area, and scatter series with interactive legends, crosshair overlays, tooltip management, a zoom/pan plugin, and a deep-mergeable theme system.
 
 **Features**
 
@@ -416,4 +416,4 @@ There is no fixed release schedule for the still-unpublished infrastructure pack
 
 Watch the [GitHub repository](https://github.com/bretuobay/web-loom) and the npm `@web-loom` scope for new releases. If you need one of these packages before it ships, its source is available in this monorepo and can be used directly via the workspace protocol.
 
-The Forms adapters, Media packages, and `charts-core` are already published — see the [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo for their source.
+The Forms adapters, Media packages, and `charts-core` live in the [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo and aren't on npm yet; use them from source until they're released.

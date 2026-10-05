@@ -285,3 +285,4 @@ import type {
 - **Custom equality** — both `signal()` and `computed()` accept an `equals` option; write is a no-op when `equals(prev, next)` returns true
 - **Effect cleanup** — returning a function from an effect registers it as cleanup, called before each rerun and on `dispose()`
 - **Batching** — nested `batch()` calls are safe; the flush happens once at the outermost boundary
+- **Glitch-free propagation** — a write first marks every dependent `computed` dirty, then runs effects and subscribers once each, so an effect that reads both a signal and a value derived from it never sees them out of sync. If a subscriber throws, the remaining subscribers still run and the first error is rethrown to the writer

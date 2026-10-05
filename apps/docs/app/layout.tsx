@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { Nothing_You_Could_Do } from 'next/font/google';
 import localFont from 'next/font/local';
 import Theme from './theme-provider';
-import { SITE_URL } from '@/lib/site';
+import { SITE_DESCRIPTION, SITE_URL } from '@/lib/site';
 
 const nycd = Nothing_You_Could_Do({
   subsets: ['latin'],
@@ -30,8 +30,7 @@ export const metadata: Metadata = {
     default: 'Web Loom — Framework-Agnostic MVVM Architecture',
     template: '%s — Web Loom',
   },
-  description:
-    'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
+  description: SITE_DESCRIPTION,
   keywords: [
     'MVVM',
     'TypeScript',
@@ -68,8 +67,7 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: 'Web Loom',
     title: 'Web Loom — Framework-Agnostic MVVM Architecture',
-    description:
-      'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
+    description: SITE_DESCRIPTION,
     images: [
       {
         url: '/opengraph-image',
@@ -82,8 +80,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Web Loom — Framework-Agnostic MVVM Architecture',
-    description:
-      'Framework-agnostic MVVM architecture for the modern web. 34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.',
+    description: SITE_DESCRIPTION,
     images: ['/opengraph-image'],
   },
   icons: {

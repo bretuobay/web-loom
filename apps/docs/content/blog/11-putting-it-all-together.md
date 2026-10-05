@@ -758,7 +758,7 @@ This is the promise of the architecture, stated plainly: when the framework chan
 
 ## Where Things Stand
 
-At the time of this writing, ten packages are published to npm:
+At the time of this writing, eleven `@web-loom` packages are published to npm:
 
 - `@web-loom/mvvm-core`
 - `@web-loom/signals-core`
@@ -766,14 +766,17 @@ At the time of this writing, ten packages are published to npm:
 - `@web-loom/event-bus-core`
 - `@web-loom/store-core`
 - `@web-loom/query-core`
+- `@web-loom/forms-core`
 - `@web-loom/ui-core`
 - `@web-loom/ui-patterns`
 - `@web-loom/design-core`
-- `@web-loom/mvvm-patterns`
+- `@web-loom/mcp-server`
 
-In progress: forms adapters, HTTP client, storage abstraction, router integration, i18n, notifications, error handling, platform detection.
+The `create-web-loom` starter CLI is published too (`npm create web-loom@latest`).
 
-The monorepo has demo applications for React, Angular, Vue, Lit, Marko, vanilla JavaScript, and React Native — all sharing the same ViewModels and Models, only differing in the View layer.
+In progress: `@web-loom/mvvm-patterns`, the `template-core` templating packages, HTTP client, storage abstraction, router integration, i18n, notifications, error handling, platform detection. Framework adapters for forms and media live in the sibling `web-loom-extensions` repo.
+
+The monorepo has demo applications for React, Angular, Vue, Solid, Lit, Marko, vanilla JavaScript, and React Native — all sharing the same ViewModels and Models, only differing in the View layer.
 
 ---
 
