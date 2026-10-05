@@ -1,7 +1,9 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import sitemap from '@/app/sitemap';
 import { getBlogPages, getBookPages, getDocPages } from '@/components/mdx/utils';
-import { absoluteUrl, normalizeSiteUrl } from './site';
+import { absoluteUrl, normalizeSiteUrl, PACKAGE_STATS } from './site';
 
 describe('site URL handling', () => {
   it('normalizes deployment values before they reach metadata', () => {
@@ -34,5 +36,16 @@ describe('sitemap', () => {
       expect(url).not.toContain('%20');
       expect(() => new URL(url)).not.toThrow();
     }
+  });
+});
+
+describe('package stats', () => {
+  it('total matches the workspace packages in the monorepo', () => {
+    const packagesDir = path.resolve(__dirname, '../../../packages');
+    const workspacePackages = fs
+      .readdirSync(packagesDir)
+      .filter((name) => fs.existsSync(path.join(packagesDir, name, 'package.json')));
+
+    expect(PACKAGE_STATS.total).toBe(workspacePackages.length);
   });
 });

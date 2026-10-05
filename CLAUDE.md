@@ -37,7 +37,6 @@ npm run format           # Format with Prettier
 
 # Demo runners
 npm run demo:start       # Interactive demo app selector
-npm run demo:task-flow   # Start TaskFlow UI + API together
 ```
 
 ## Monorepo Structure
@@ -54,16 +53,16 @@ apps/
   ├── mvvm-marko/              # Marko MVVM demo
   ├── mvvm-react-integrated/   # React with integrated patterns + theming
   ├── mvvm-react-native/       # React Native mobile MVVM demo
-  ├── mvvm-book/               # MVVM documentation/book app
-  ├── task-flow-ui/            # TaskFlow React app
-  ├── task-flow-api/           # TaskFlow API backend
+  ├── ecommerce-mvvm/          # React e-commerce demo on shared ViewModels
+  ├── ecommerce-template-core/ # E-commerce demo on template-core (.loom + SSR)
   ├── plugin-react/            # Plugin host application
   ├── plugin-docs/             # Plugin system documentation
   ├── api/                     # Express + SQLite backend
   └── docs/                    # Next.js documentation site
 
-packages/ (34 total)
+packages/ (37 total)
   Core Architecture:
+  ├── signals-core/         # Reactive signals (signal, computed, effect) — the reactive base
   ├── mvvm-core/            # Core MVVM library (BaseModel, BaseViewModel, Commands)
   ├── mvvm-patterns/        # MVVM design patterns
   ├── view-models/          # Shared application ViewModels (@repo/view-models)
@@ -79,8 +78,18 @@ packages/ (34 total)
   ├── event-bus-core/       # Pub-sub event bus
   ├── event-emitter-core/   # Event emitter utilities
 
-  Forms & Media:
+  Forms:
   ├── forms-core/           # Framework-agnostic form logic
+
+  Templating (native View layer):
+  ├── template-core/        # Signal-native template engine (compile/mount, no adapter)
+  ├── template-core-vite/   # Vite plugin: precompile + .loom files
+  ├── template-core-vite-ssr/ # Vite SSR server + document helpers
+  ├── template-core-router/ # router-core adapter for template-core outlets
+  ├── template-core-lint/   # ESLint plugin for compile() templates
+  ├── template-core-tooling/ # Shared AST utilities + source-linked diagnostics
+  ├── view/                 # Component model (defineComponent) on template-core
+  ├── vscode-template-core-syntax/ # VS Code grammar for template syntax
 
   Design & Theming:
   ├── design-core/          # Theme tokens and CSS utilities
@@ -96,7 +105,12 @@ packages/ (34 total)
   ├── error-core/           # Error handling utilities
   ├── notifications-core/   # Notification system
   ├── platform-core/        # Platform detection utilities
+  ├── embed-core/           # Embeddable widget SDK + host integration
   └── shared/               # Shared utilities
+
+  Tooling:
+  ├── create-web-loom/      # Starter CLI (npm create web-loom@latest)
+  ├── mcp-server/           # MCP server: scaffolding + docs for AI assistants
 
   Config:
   ├── eslint-config/        # Shared ESLint config (@repo/eslint-config)
@@ -224,10 +238,11 @@ turbo run test --filter=mvvm-react
 
 - `mvvm-react`: 5173
 - `mvvm-solid`: 5179
+- `ecommerce-mvvm`: 5180
+- `ecommerce-template-core`: 5182
 - `mvvm-template-core`: 5183
-- `task-flow-ui`: 5178
 - `api`: 3000
-- `task-flow-api`: 3001
+- `plugin-docs`: 3002
 
 ## Turbo Configuration
 

@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og';
+import { PACKAGE_STATS } from '@/lib/site';
 
 export const dynamic = 'force-static';
 export const alt = 'Web Loom — Framework-Agnostic MVVM Architecture';
@@ -84,7 +85,7 @@ export default function OGImage() {
           maxWidth: '760px',
         }}
       >
-        34 packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.
+        {PACKAGE_STATS.total} packages. One ViewModel — React, Vue, Angular, Lit, Marko, Svelte, React Native.
       </p>
 
       {/* Framework pills */}

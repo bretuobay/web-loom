@@ -5,7 +5,7 @@ import AnimatedFrameworks from '@/components/ui/animated-frameworks';
 import MVVMLayerShowcase from '@/components/ui/mvvm-layer-showcase';
 
 import type { Metadata } from 'next';
-import { SITE_URL } from '@/lib/site';
+import { PACKAGE_STATS, SITE_URL } from '@/lib/site';
 
 const GITHUB_URL = 'https://github.com/bretuobay/web-loom';
 const PLUGIN_DOCS_URL =
@@ -118,7 +118,7 @@ const spokes = [
   },
   {
     title: 'Package Roadmap',
-    description: '10 packages published on npm. 24 more in active development across forms, media, i18n, and more.',
+    description: `${PACKAGE_STATS.published} packages published on npm, with more in active development: templating, routing, i18n and more.`,
     href: '/docs/packages-roadmap',
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-blue-400">
@@ -251,7 +251,7 @@ export default function HomePage() {
             {/* Status badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 mb-10 rounded-full border border-slate-700/80 bg-slate-800/50 text-xs text-slate-400">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" aria-hidden="true" />
-              34 packages · 10 published on npm
+              {PACKAGE_STATS.total} packages · {PACKAGE_STATS.published} published on npm
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-[3.5rem] font-[650] leading-[1.07] tracking-tight mb-6">
