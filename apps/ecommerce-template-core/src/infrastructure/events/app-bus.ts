@@ -1,6 +1,6 @@
 import { createEventBus } from '@web-loom/event-bus-core';
 
-interface AppEventMap extends Record<string, any[] | undefined> {
+interface AppEventMap extends Record<string, unknown[] | undefined> {
   'catalog:reloaded': [count: number];
   'cart:item-added': [productId: string, quantity: number];
   'cart:updated': [itemCount: number, subtotalCents: number];

@@ -47,16 +47,16 @@ describe('templateCoreLoom plugin', () => {
     const plugin = templateCoreLoom();
     const file = '/app/header.loom';
     const virtualId = loomVirtualId(file);
-    const module = { id: virtualId };
+    const mod = { id: virtualId };
     const invalidateModule = vi.fn();
-    const getModuleById = vi.fn(() => module);
+    const getModuleById = vi.fn(() => mod);
     const result = (plugin.handleHotUpdate as Function)({
       file,
       server: { moduleGraph: { getModuleById, invalidateModule } },
     });
 
     expect(getModuleById).toHaveBeenCalledWith(virtualId);
-    expect(invalidateModule).toHaveBeenCalledWith(module);
-    expect(result).toEqual([module]);
+    expect(invalidateModule).toHaveBeenCalledWith(mod);
+    expect(result).toEqual([mod]);
   });
 });

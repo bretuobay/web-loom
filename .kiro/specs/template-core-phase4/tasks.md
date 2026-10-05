@@ -131,15 +131,21 @@ npm run build:server --workspace=ecommerce-template-core
 ```
 
 - [x] `@web-loom/template-core` lint, type-check, tests, benchmarks, and size budget pass.
-      (Verified 2026-08-08 — see `phase4-validation-output.log`.)
+      (Re-verified 2026-10-01.)
 - [x] `@web-loom/template-core-vite-ssr` lint, type-check, tests, and build pass.
-      (Verified 2026-08-08.)
-- [ ] `@web-loom/template-core-vite` lint, type-check, tests, and build pass.
-      (Blocked on `analyzeTemplate` DOM scope + tooling link — fixes in tree; re-run after rebuild.)
-- [ ] `@web-loom/template-core-lint` lint, type-check, tests pass.
-      (Same `analyzeTemplate` / build-deps fix.)
-- [ ] `ecommerce-template-core` type-check, tests, client build, server build, and SSR smoke test
-      pass. (type-check, test, builds pass; lint fixed via named `configs` import — re-run lint.)
+      (Re-verified 2026-10-01.)
+- [x] `@web-loom/template-core-vite` lint, type-check, tests, and build pass.
+      (Verified 2026-10-01 — fixed `@next/next/no-assign-module-variable` false positives by
+      renaming the local `module` variable to `mod` in `loom-plugin.ts` and its test.)
+- [x] `@web-loom/template-core-lint` lint, type-check, tests pass.
+      (Verified 2026-10-01 — the earlier `analyzeTemplate`/build-deps blocker was already resolved
+      by the prior rebuild; this just confirms it.)
+- [x] `ecommerce-template-core` type-check, tests, client build, server build, and SSR smoke test
+      pass. (Verified 2026-10-01 — lint fixed by removing remaining `@typescript-eslint/no-explicit-any`
+      warnings in `CartModel.ts`/`CatalogModel.ts`/`app-bus.ts`, and by adding
+      `argsIgnorePattern`/`varsIgnorePattern: '^_'` to the shared `@repo/eslint-config/base.js` so
+      intentionally-unused, underscore-prefixed params/vars stop warning repo-wide. Re-ran
+      `turbo run lint` across all 42 workspaces to confirm no regressions.)
 - [x] Existing Phase 1/2 behavior and all public APIs remain backward-compatible unless an additive
       migration is documented.
 - [x] No P3 experiment is required for the stable Phase 4 release.

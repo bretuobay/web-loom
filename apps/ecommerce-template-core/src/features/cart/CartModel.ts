@@ -1,4 +1,5 @@
 import { BaseModel } from '@web-loom/mvvm-core';
+import type { ZodSchema } from 'zod';
 import type {
   CartDto,
   CheckoutRequestDto,
@@ -8,7 +9,7 @@ import type {
 import { emptyCart } from '../../infrastructure/api/ports/ecommerce-api-port';
 import { appBus } from '../../infrastructure/events/app-bus';
 
-export class CartModel extends BaseModel<CartDto, any> {
+export class CartModel extends BaseModel<CartDto, ZodSchema<CartDto>> {
   constructor(private readonly api: EcommerceApiPort) {
     super({ initialData: emptyCart() });
   }
