@@ -65,9 +65,20 @@ priority rationale (P5-a/b/c) and `design.md` for the sequencing diagram.
 
 ## Validation checklist
 
-- [ ] No item in this file blocks or delays any Phase 4 release.
-- [ ] P5-a shipping (or not) does not imply any commitment to P5-b or P5-c.
-- [ ] If P5-b ships, both authoring styles (string and `.loom`) remain
+- [x] No item in this file blocks or delays any Phase 4 release.
+      (Confirmed 2026-10-01 — Phase 4's validation checklist is now fully green
+      independent of anything in this file; see `template-core-phase4/tasks.md`.)
+- [x] P5-a shipping (or not) does not imply any commitment to P5-b or P5-c.
+      (P5-a shipped as an unpublished, local/dev-install grammar; P5-b and P5-c
+      were separately evaluated and shipped on their own merits.)
+- [x] If P5-b ships, both authoring styles (string and `.loom`) remain
       supported — no forced migration of existing templates.
-- [ ] Any go/no-go decision from P5-c is recorded in this file's status, not
+      (Confirmed 2026-10-01 — only `header.loom` was migrated as the reference
+      integration; `app-shell.ts`, `cart-drawer.ts`, `command-palette.ts`,
+      `confirmation-dialog.ts`, `toast.ts`, `storefront-source.ts` remain plain
+      string templates. `header.ts` still exists and simply re-exports the
+      compiled `.loom` import, preserving the prior import boundary.)
+- [x] Any go/no-go decision from P5-c is recorded in this file's status, not
       left implicit.
+      (Recorded above: typed-export helper — go; shallow expression-to-context
+      checking — no-go.)

@@ -1,9 +1,10 @@
 import { BaseModel } from '@web-loom/mvvm-core';
 import { QueryCore, type EndpointState } from '@web-loom/query-core';
+import type { ZodSchema } from 'zod';
 import type { CatalogProductDto, EcommerceApiPort } from '../../infrastructure/api/ports/ecommerce-api-port';
 import { appBus } from '../../infrastructure/events/app-bus';
 
-export class CatalogModel extends BaseModel<CatalogProductDto[], any> {
+export class CatalogModel extends BaseModel<CatalogProductDto[], ZodSchema<CatalogProductDto[]>> {
   private readonly query = new QueryCore({
     cacheProvider: 'localStorage',
     defaultRefetchAfter: 2 * 60 * 1000,

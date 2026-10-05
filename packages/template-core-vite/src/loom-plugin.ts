@@ -95,10 +95,10 @@ export function templateCoreLoom(options: TemplateCoreLoomPluginOptions = {}): P
     handleHotUpdate({ file, server }) {
       if (!file.endsWith('.loom')) return;
       const virtualId = loomVirtualId(file);
-      const module = server.moduleGraph.getModuleById(virtualId);
-      if (!module) return;
-      server.moduleGraph.invalidateModule(module);
-      return [module];
+      const mod = server.moduleGraph.getModuleById(virtualId);
+      if (!mod) return;
+      server.moduleGraph.invalidateModule(mod);
+      return [mod];
     },
   };
 }
