@@ -1,5 +1,5 @@
 import { trackDep, type Trackable } from './effect-context.js';
-import { isBatching, scheduleBatchedCall } from './batch.js';
+import { propagate, type Invalidatable } from './batch.js';
 
 export type Equals<T> = (a: T, b: T) => boolean;
 
@@ -35,6 +35,7 @@ class SignalImpl<T> implements WritableSignal<T>, Trackable {
   private _value: T;
   private readonly _equals: Equals<T>;
   private _subs = new Set<() => void>();
+  private _dependents = new Set<Invalidatable>();
 
   constructor(initialValue: T, options?: SignalOptions<T>) {
     this._value = initialValue;
@@ -87,14 +88,18 @@ class SignalImpl<T> implements WritableSignal<T>, Trackable {
     this._subs.delete(fn);
   }
 
+  /** @internal */
+  _addDependent(dependent: Invalidatable): void {
+    this._dependents.add(dependent);
+  }
+
+  /** @internal */
+  _removeDependent(dependent: Invalidatable): void {
+    this._dependents.delete(dependent);
+  }
+
   private _notify(): void {
-    for (const sub of [...this._subs]) {
-      if (isBatching()) {
-        scheduleBatchedCall(sub);
-      } else {
-        sub();
-      }
-    }
+    propagate(this._dependents, this._subs);
   }
 }
 

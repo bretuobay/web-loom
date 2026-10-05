@@ -1,5 +1,6 @@
 import { type Trackable, trackDep, getCurrentEffect, setCurrentEffect } from './effect-context.js';
 import { type Equals, type ReadonlySignal } from './signal.js';
+import { propagate, type Invalidatable } from './batch.js';
 
 export interface ComputedOptions<T> {
   /** Custom equality check for the derived value. Defaults to Object.is. */
@@ -10,21 +11,20 @@ export interface ComputedOptions<T> {
 /** Type alias for a derived, read-only signal returned by computed(). */
 export type Computed<T> = ReadonlySignal<T>;
 
-class ComputedImpl<T> implements ReadonlySignal<T>, Trackable {
+class ComputedImpl<T> implements ReadonlySignal<T>, Trackable, Invalidatable {
   private _value!: T;
   private _dirty = true;
   private _initialized = false;
   private _deps = new Set<Trackable>();
   private _subs = new Set<() => void>();
+  private _dependents = new Set<Invalidatable>();
   private readonly _equals: Equals<T>;
-  private readonly _boundInvalidate: () => void;
 
   constructor(
     private readonly _compute: () => T,
     options?: ComputedOptions<T>,
   ) {
     this._equals = options?.equals ?? Object.is;
-    this._boundInvalidate = () => this._invalidate();
   }
 
   get(): T {
@@ -67,16 +67,26 @@ class ComputedImpl<T> implements ReadonlySignal<T>, Trackable {
     this._subs.delete(fn);
   }
 
+  /** @internal */
+  _addDependent(dependent: Invalidatable): void {
+    this._dependents.add(dependent);
+  }
+
+  /** @internal */
+  _removeDependent(dependent: Invalidatable): void {
+    this._dependents.delete(dependent);
+  }
+
   private _recompute(): void {
     // Unsubscribe from all stale deps — will re-collect dynamically.
-    for (const dep of this._deps) dep._removeSub(this._boundInvalidate);
+    for (const dep of this._deps) dep._removeDependent(this);
     this._deps.clear();
 
     const saved = getCurrentEffect();
     setCurrentEffect({
       addDependency: (dep: Trackable) => {
         this._deps.add(dep);
-        dep._addSub(this._boundInvalidate);
+        dep._addDependent(this);
       },
     });
 
@@ -98,12 +108,13 @@ class ComputedImpl<T> implements ReadonlySignal<T>, Trackable {
     }
   }
 
-  private _invalidate(): void {
+  /** @internal */
+  _invalidate(): void {
     if (this._dirty) return;
     this._dirty = true;
-    // Stay lazy: don't recompute here. Notify subscribers that we're dirty
-    // so effects can schedule a rerun; they'll pull the value on next get().
-    for (const sub of [...this._subs]) sub();
+    // Stay lazy: don't recompute here. Invalidate dependents and schedule
+    // effects/listeners; they'll pull the fresh value on their next get().
+    propagate(this._dependents, this._subs);
   }
 }
 
