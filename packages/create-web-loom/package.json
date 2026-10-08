@@ -13,9 +13,10 @@
     "build": "vite build",
     "dev": "vite build --watch",
     "test": "vitest run --maxWorkers=1",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
     "typescript": "*",
     "vite": "^6.4.3"
   }

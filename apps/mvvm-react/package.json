@@ -15,8 +15,8 @@
     "type-check": "tsc --build --force"
   },
   "dependencies": {
-    "@repo/shared": "*",
-    "@repo/view-models": "*",
+    "@repo/shared": "workspace:*",
+    "@repo/view-models": "workspace:*",
     "chart.js": "^4.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",

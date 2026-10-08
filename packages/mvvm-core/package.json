@@ -46,8 +46,8 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
-    "@web-loom/query-core": "*",
-    "@web-loom/signals-core": "*",
+    "@web-loom/query-core": "workspace:^",
+    "@web-loom/signals-core": "workspace:^",
     "zod": "^3.25.67"
   }
 }

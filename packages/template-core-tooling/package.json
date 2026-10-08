@@ -5,7 +5,10 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "files": ["dist", "scripts"],
+  "files": [
+    "dist",
+    "scripts"
+  ],
   "bin": {
     "template-core-format-calls": "./scripts/format-compile-calls.mjs"
   },
@@ -28,12 +31,12 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@web-loom/template-core": "*",
+    "@web-loom/template-core": "workspace:*",
     "typescript": "5.8.2"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
     "eslint": "^9.39.1",
     "vite": "^6.4.3",
     "vite-plugin-dts": "^5.0.3",

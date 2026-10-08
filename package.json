@@ -13,12 +13,12 @@
     "format:templates:check": "node packages/template-core-tooling/scripts/format-compile-calls.mjs --check",
     "format:ecommerce-templates": "tsx scripts/format-ecommerce-templates.ts",
     "format:ecommerce-templates:check": "tsx scripts/format-ecommerce-templates.ts --check",
-    "package:vscode-syntax": "npm run package:vsix --workspace=web-loom-template-core-syntax",
+    "package:vscode-syntax": "pnpm --filter web-loom-template-core-syntax run package:vsix",
     "check-types": "turbo run check-types",
     "check-versions": "node scripts/check-version-policy.mjs",
     "test": "turbo run test",
-    "deploy:plugin-docs": "turbo run build --filter=plugin-docs && npm run cf:deploy --workspace=plugin-docs",
-    "deploy:plugin-docs:preview": "turbo run build --filter=plugin-docs && npm run cf:upload --workspace=plugin-docs",
+    "deploy:plugin-docs": "turbo run build --filter=plugin-docs && pnpm --filter plugin-docs run cf:deploy",
+    "deploy:plugin-docs:preview": "turbo run build --filter=plugin-docs && pnpm --filter plugin-docs run cf:upload",
     "count-loc": "node scripts/count-loc.js",
     "count-loc:json": "node scripts/count-loc.js --json",
     "count-loc:cloc": "bash scripts/count-loc.sh",
@@ -71,11 +71,7 @@
     "@types/react": "^19.2.4",
     "@types/react-dom": "^19.2.4"
   },
-  "packageManager": "npm@10.9.2",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "packageManager": "pnpm@12.8.1",
   "dependencies": {
     "react": "19.2.3",
     "react-dom": "19.2.3",

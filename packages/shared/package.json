@@ -14,11 +14,11 @@
     "test": "echo \"No tests for @repo/shared\""
   },
   "dependencies": {
-    "@web-loom/mvvm-core": "*"
+    "@web-loom/mvvm-core": "workspace:*"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.15.3",
     "eslint": "^9.39.1",
     "typescript": "5.8.2"

@@ -45,10 +45,10 @@
     "zod": "^3.22.0"
   },
   "optionalDependencies": {
-    "@web-loom/storage-core": "*"
+    "@web-loom/storage-core": "workspace:^"
   },
   "dependencies": {
-    "@web-loom/event-emitter-core": "*",
+    "@web-loom/event-emitter-core": "workspace:^",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {

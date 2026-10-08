@@ -104,7 +104,7 @@
   ],
   "scripts": {
     "dev": "vite build --watch",
-    "build": "vite build && npm run postbuild",
+    "build": "vite build && pnpm run postbuild",
     "postbuild": "echo \"export * from './modal/index';\" > dist/modal.d.ts",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
@@ -113,11 +113,11 @@
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix",
     "format": "prettier --write .",
-    "size": "npm run build && npm run test:tree-shaking"
+    "size": "pnpm run build && pnpm run test:tree-shaking"
   },
   "dependencies": {
-    "@web-loom/event-bus-core": "*",
-    "@web-loom/store-core": "*"
+    "@web-loom/event-bus-core": "workspace:^",
+    "@web-loom/store-core": "workspace:^"
   },
   "peerDependencies": {
     "@angular/core": ">=16.0.0",

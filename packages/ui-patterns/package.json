@@ -88,12 +88,12 @@
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix",
     "format": "prettier --write .",
-    "size": "npm run build && npm run test:tree-shaking"
+    "size": "pnpm run build && pnpm run test:tree-shaking"
   },
   "dependencies": {
-    "@web-loom/event-bus-core": "*",
-    "@web-loom/store-core": "*",
-    "@web-loom/ui-core": "*"
+    "@web-loom/event-bus-core": "workspace:^",
+    "@web-loom/store-core": "workspace:^",
+    "@web-loom/ui-core": "workspace:^"
   },
   "peerDependencies": {
     "@web-loom/mvvm-core": ">=0.0.1",

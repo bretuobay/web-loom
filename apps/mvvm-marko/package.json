@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "@repo/shared": "*",
-    "@repo/view-models": "*",
-    "@web-loom/mvvm-core": "*",
+    "@repo/shared": "workspace:*",
+    "@repo/view-models": "workspace:*",
+    "@web-loom/mvvm-core": "workspace:*",
     "marko": "^6.0.132"
   },
   "devDependencies": {

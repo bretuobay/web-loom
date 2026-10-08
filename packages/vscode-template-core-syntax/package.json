@@ -22,8 +22,13 @@
     "languages": [
       {
         "id": "web-loom",
-        "aliases": ["Web Loom Template", "loom"],
-        "extensions": [".loom"],
+        "aliases": [
+          "Web Loom Template",
+          "loom"
+        ],
+        "extensions": [
+          ".loom"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -48,7 +53,9 @@
       {
         "name": "template-core",
         "owner": "template-core",
-        "fileLocation": ["absolute"],
+        "fileLocation": [
+          "absolute"
+        ],
         "severity": "error",
         "pattern": {
           "regexp": "^\\[template-core\\] (.+):(\\d+):(\\d+)(?: \\((.+)\\))?: (.+) \\[(.+)\\]$",
@@ -68,7 +75,7 @@
     "package:vsix": "node scripts/package-vsix.mjs"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
+    "@repo/eslint-config": "workspace:*",
     "@types/node": "^22.15.3",
     "@vscode/vsce": "^3.7.0",
     "eslint": "^9.39.1",

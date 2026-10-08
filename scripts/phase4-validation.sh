@@ -23,37 +23,37 @@ run_step() {
   fi
 }
 
-run_step "npm install" npm install
-run_step "build @web-loom/template-core" npm run build --workspace=@web-loom/template-core
-run_step "build @web-loom/template-core-tooling" npm run build --workspace=@web-loom/template-core-tooling
-run_step "build @web-loom/template-core-lint" npm run build --workspace=@web-loom/template-core-lint
-run_step "build @web-loom/template-core-vite" npm run build --workspace=@web-loom/template-core-vite
+run_step "pnpm install" pnpm install
+run_step "build @web-loom/template-core" pnpm --filter @web-loom/template-core run build
+run_step "build @web-loom/template-core-tooling" pnpm --filter @web-loom/template-core-tooling run build
+run_step "build @web-loom/template-core-lint" pnpm --filter @web-loom/template-core-lint run build
+run_step "build @web-loom/template-core-vite" pnpm --filter @web-loom/template-core-vite run build
 
-run_step "template-core lint" npm run lint --workspace=@web-loom/template-core
-run_step "template-core check-types" npm run check-types --workspace=@web-loom/template-core
-run_step "template-core test" npm run test --workspace=@web-loom/template-core
-run_step "template-core bench" npm run bench --workspace=@web-loom/template-core
-run_step "template-core size" npm run size --workspace=@web-loom/template-core
+run_step "template-core lint" pnpm --filter @web-loom/template-core run lint
+run_step "template-core check-types" pnpm --filter @web-loom/template-core run check-types
+run_step "template-core test" pnpm --filter @web-loom/template-core run test
+run_step "template-core bench" pnpm --filter @web-loom/template-core run bench
+run_step "template-core size" pnpm --filter @web-loom/template-core run size
 
-run_step "template-core-vite-ssr lint" npm run lint --workspace=@web-loom/template-core-vite-ssr
-run_step "template-core-vite-ssr check-types" npm run check-types --workspace=@web-loom/template-core-vite-ssr
-run_step "template-core-vite-ssr test" npm run test --workspace=@web-loom/template-core-vite-ssr
-run_step "template-core-vite-ssr build" npm run build --workspace=@web-loom/template-core-vite-ssr
+run_step "template-core-vite-ssr lint" pnpm --filter @web-loom/template-core-vite-ssr run lint
+run_step "template-core-vite-ssr check-types" pnpm --filter @web-loom/template-core-vite-ssr run check-types
+run_step "template-core-vite-ssr test" pnpm --filter @web-loom/template-core-vite-ssr run test
+run_step "template-core-vite-ssr build" pnpm --filter @web-loom/template-core-vite-ssr run build
 
-run_step "template-core-vite lint" npm run lint --workspace=@web-loom/template-core-vite
-run_step "template-core-vite check-types" npm run check-types --workspace=@web-loom/template-core-vite
-run_step "template-core-vite test" npm run test --workspace=@web-loom/template-core-vite
-run_step "template-core-vite build" npm run build --workspace=@web-loom/template-core-vite
+run_step "template-core-vite lint" pnpm --filter @web-loom/template-core-vite run lint
+run_step "template-core-vite check-types" pnpm --filter @web-loom/template-core-vite run check-types
+run_step "template-core-vite test" pnpm --filter @web-loom/template-core-vite run test
+run_step "template-core-vite build" pnpm --filter @web-loom/template-core-vite run build
 
-run_step "template-core-lint lint" npm run lint --workspace=@web-loom/template-core-lint
-run_step "template-core-lint check-types" npm run check-types --workspace=@web-loom/template-core-lint
-run_step "template-core-lint test" npm run test --workspace=@web-loom/template-core-lint
+run_step "template-core-lint lint" pnpm --filter @web-loom/template-core-lint run lint
+run_step "template-core-lint check-types" pnpm --filter @web-loom/template-core-lint run check-types
+run_step "template-core-lint test" pnpm --filter @web-loom/template-core-lint run test
 
-run_step "ecommerce-template-core type-check" npm run type-check --workspace=@web-loom/ecommerce-template-core
-run_step "ecommerce-template-core lint" npm run lint --workspace=@web-loom/ecommerce-template-core
-run_step "ecommerce-template-core test" npm run test --workspace=@web-loom/ecommerce-template-core
-run_step "ecommerce-template-core build:client" npm run build:client --workspace=@web-loom/ecommerce-template-core
-run_step "ecommerce-template-core build:server" npm run build:server --workspace=@web-loom/ecommerce-template-core
+run_step "ecommerce-template-core type-check" pnpm --filter @web-loom/ecommerce-template-core run type-check
+run_step "ecommerce-template-core lint" pnpm --filter @web-loom/ecommerce-template-core run lint
+run_step "ecommerce-template-core test" pnpm --filter @web-loom/ecommerce-template-core run test
+run_step "ecommerce-template-core build:client" pnpm --filter @web-loom/ecommerce-template-core run build:client
+run_step "ecommerce-template-core build:server" pnpm --filter @web-loom/ecommerce-template-core run build:server
 
 if [ "$OVERALL" -eq 0 ]; then
   echo "PHASE4_OVERALL: PASS" >> "$LOG"

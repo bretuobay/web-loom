@@ -11,9 +11,10 @@
     "test": "echo \"No tests for plugin-react\""
   },
   "dependencies": {
-    "@repo/plugin-core": "*",
-    "@repo/shared": "*",
-    "@repo/view-models": "*",
+    "@repo/plugin-core": "workspace:*",
+    "@repo/shared": "workspace:*",
+    "@repo/view-models": "workspace:*",
+    "@web-loom/signals-core": "workspace:*",
     "chart.js": "^4.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",

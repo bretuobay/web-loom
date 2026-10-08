@@ -24,8 +24,8 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@web-loom/mvvm-core": "*",
-    "@web-loom/signals-core": "*"
+    "@web-loom/mvvm-core": "workspace:*",
+    "@web-loom/signals-core": "workspace:*"
   },
   "peerDependencies": {},
   "devDependencies": {

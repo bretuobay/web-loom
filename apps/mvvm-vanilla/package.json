@@ -10,9 +10,9 @@
     "test": "echo \"No tests for mvvm-vanilla\""
   },
   "dependencies": {
-    "@repo/shared": "*",
-    "@repo/view-models": "*",
-    "@web-loom/router-core": "*",
+    "@repo/shared": "workspace:*",
+    "@repo/view-models": "workspace:*",
+    "@web-loom/router-core": "workspace:*",
     "chart.js": "^4.5.0",
     "ejs": "^3.1.10"
   },
