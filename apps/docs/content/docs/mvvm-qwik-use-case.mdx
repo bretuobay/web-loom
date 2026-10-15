@@ -42,7 +42,7 @@ Signals update DOM nodes in-place when `.value` changes, without re-running the 
 
 ## Connecting a ViewModel
 
-Use `useTask$` with `{ eagerness: 'load' }` for client-side-only subscription setup. This runs after the component mounts on the client and receives a `cleanup` callback for teardown:
+Set up the subscription in a task, which receives a `cleanup` callback for teardown. The example below uses `useTask$` with an `isBrowser` guard, which is what the `create-web-loom` Qwik starter does — it is a client-rendered app, so the task runs in the browser. In a server-rendered app (Qwik City), `useTask$` runs on the server during SSR and does not re-run on the client unless it tracks state, so use `useVisibleTask$` there instead:
 
 ```tsx
 import { component$, useSignal, useTask$, $ } from '@builder.io/qwik';

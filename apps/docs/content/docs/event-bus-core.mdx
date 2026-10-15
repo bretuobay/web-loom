@@ -13,7 +13,7 @@ topicSlug: 'packages'
 
 - **Type-safe**: Full TypeScript support with type inference for event names and payloads
 - **Framework-agnostic**: Works with React, Vue, Angular, Svelte, or vanilla JavaScript
-- **Lightweight**: Minimal bundle size (~1KB gzipped) with zero dependencies
+- **Lightweight**: A small layer over `@web-loom/event-emitter-core`, its only dependency
 - **Simple API**: Intuitive methods for event registration, emission, and cleanup
 - **Flexible**: Support for single and multiple event listeners
 - **Reliable**: Stable listener execution order and memory leak prevention
@@ -137,7 +137,7 @@ eventBus.off();
 
 ## Practical use cases
 
-1. **Cross-component coordination:** Share a singleton bus (e.g., `globalEventBus`) between unrelated UI fragments, such as a navigation shell and a notification toaster. Emit `notification:show` from business logic, and let a toast queue behavior attach listeners without adding props or context.
+1. **Cross-component coordination:** Create one bus with `createEventBus()` and share it (the package doesn't provide a global instance) between unrelated UI fragments, such as a navigation shell and a notification toaster. Emit `notification:show` from business logic, and let a toast queue behavior attach listeners without adding props or context.
 2. **Commands and behaviors:** Packages like `@web-loom/ui-patterns` instantiate local buses to coordinate focus, flow, and layout state without referencing DOM siblings directly.
 3. **Event aggregation:** Group multiple lower-level events into a single `orders:changed` signal so consumers can refresh views once per cycle instead of reacting to every CRUD event.
 4. **Filtered listeners:** Create helper factories that wrap `eventBus.on` but only forward payloads that match a filter (user ID, resource type).
@@ -145,5 +145,5 @@ eventBus.off();
 
 ## Where it's used
 
-- `apps/task-flow-ui` and `apps/mvvm-react-integrated` create shared providers or services that emit lifecycle, notification, and selection events without tightly coupling components.
-- `@web-loom/ui-patterns` behaviors such as `hub-and-spoke`, `modal`, `toast-queue`, and `sidebar-shell` spin up their own buses to notify siblings about state changes (selection, open/close, status updates) while staying renderer-agnostic.
+- `apps/ecommerce-mvvm` and `apps/ecommerce-template-core` create an app-wide bus (`src/infrastructure/events/app-bus.ts`) for cross-feature events without tightly coupling components.
+- `@web-loom/ui-patterns` patterns such as `master-detail`, `hub-and-spoke`, `modal`, `toast-queue`, `sidebar-shell`, `grid-layout` and `floating-action-button` spin up their own buses to notify siblings about state changes (selection, open/close, status updates) while staying renderer-agnostic.

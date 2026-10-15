@@ -261,10 +261,12 @@ ViewModels have no Marko imports and test identically to every other framework i
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
 import type { WritableSignal } from '@web-loom/signals-core';
-import { GreenHouseViewModel } from '@repo/view-models/GreenHouseViewModel';
+import { RestfulApiViewModel } from '@web-loom/mvvm-core';
 
+// @repo/view-models/GreenHouseViewModel exports an instance (greenHouseViewModel),
+// not a class, so tests build their own ViewModel around a mocked RestfulApiModel.
 it('data$ reflects the fetched list', () => {
-  const vm = new GreenHouseViewModel(mockModel);
+  const vm = new RestfulApiViewModel(mockModel);
   (mockModel.data$ as WritableSignal<any>).set([
     { id: '1', name: 'Ventura North', location: 'CA', size: '25sqm', cropType: 'Lettuce' },
   ]);

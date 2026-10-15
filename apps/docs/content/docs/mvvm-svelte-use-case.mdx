@@ -62,8 +62,9 @@ Subscribe to ViewModel signals with `observe()` in `onMount` and clean up in `on
   });
 
   onDestroy(() => {
+    // greenHouseViewModel is a shared app-lifetime singleton: release this
+    // component's subscriptions, but don't dispose the ViewModel itself.
     teardowns.forEach(teardown => teardown());
-    greenHouseViewModel.dispose();
   });
 
   function handleDelete(id: string) {

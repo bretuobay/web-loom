@@ -79,7 +79,7 @@ When a new framework emerges, you write a new adapter. The Models and ViewModels
 
 ### Signals (signals-core)
 
-`@web-loom/mvvm-core` is built on [`@web-loom/signals-core`](/docs/signals-core) — every `data$`/`isLoading$`/`error$` you'll see throughout these docs is a `ReadonlySignal<T>`: synchronous, pull-based, with automatic dependency tracking. Zero dependencies, no scheduler.
+`@web-loom/mvvm-core` is built on [`@web-loom/signals-core`](/docs/signals-core) — every `data$`/`isLoading$`/`error$` you'll see throughout these docs is a `ReadonlySignal<T>`: synchronous, pull-based, with automatic dependency tracking and no scheduler. The main entry has no runtime dependencies.
 
 ```ts
 class CounterViewModel {
@@ -101,10 +101,10 @@ RxJS is not a dependency of `mvvm-core`. If you're integrating with an existing 
 
 Commands are the primary mechanism for user actions in Web Loom. A Command wraps an async operation and exposes:
 
-- `execute()` — trigger the action
-- `isExecuting$` / `isExecuting` — loading state for spinner binding
-- `canExecute$` / `canRun` — guards (e.g. disable submit while loading)
-- `error$` / `error` — last error, if any
+- `execute(param)` — trigger the action; returns a Promise
+- `isExecuting$` — `ReadonlySignal<boolean>` for spinner binding
+- `canExecute$` — `ReadonlySignal<boolean>` guard; always `false` while the command is executing
+- `executeError$` — `ReadonlySignal` holding the last error (cleared on the next run)
 
 ```ts
 // In a ViewModel
@@ -112,22 +112,22 @@ readonly saveCommand = new Command(async () => {
   await this.model.save(this.form.values);
 });
 
-// In the View (React)
-<button
-  onClick={() => vm.saveCommand.execute()}
-  disabled={!vm.saveCommand.canExecute}
->
-  {vm.saveCommand.isExecuting ? 'Saving…' : 'Save'}
+// In the View (React) — read signals through a bridge such as useSignal
+const canSave  = useSignal(vm.saveCommand.canExecute$);
+const isSaving = useSignal(vm.saveCommand.isExecuting$);
+
+<button onClick={() => vm.saveCommand.execute().catch(() => {})} disabled={!canSave}>
+  {isSaving ? 'Saving…' : 'Save'}
 </button>
 ```
 
-Commands keep the View dumb — it never contains `try/catch`, loading flags, or validation logic.
+Commands keep loading flags and enablement out of the View. `execute()` stores a failure in `executeError$` **and re-throws it**, so handle the returned Promise's rejection (or have the Model catch its own errors).
 
 ---
 
 ## Package Ecosystem
 
-Web Loom's monorepo has more than 30 packages. The main ones, by category:
+Web Loom's monorepo has 37 packages. The main ones, by category:
 
 ### Core architecture
 - [`@web-loom/mvvm-core`](/docs/models) — BaseModel, BaseViewModel, Commands, built on signals-core
@@ -137,7 +137,7 @@ Web Loom's monorepo has more than 30 packages. The main ones, by category:
 ### Data & communication
 - [`@web-loom/query-core`](/docs/query-core) — Data fetching with caching and stale-while-revalidate
 - [`@web-loom/event-bus-core`](/docs/event-bus-core) — Typed event aggregation for cross-feature messaging
-- `@web-loom/http-core` — HTTP client abstraction
+- `@web-loom/http-core` — HTTP client abstraction (in the repo, not yet on npm)
 
 ### UI behaviors
 - [`@web-loom/ui-core`](/docs/ui-core) — Headless dialog, list, form, roving-focus behaviors
@@ -147,11 +147,11 @@ Web Loom's monorepo has more than 30 packages. The main ones, by category:
 ### Design & theming
 - [`@web-loom/design-core`](/docs/design-core) — Design tokens, CSS custom properties, theming, component library
 
-### Infrastructure
+### Infrastructure (in the repo, not yet on npm)
 - `@web-loom/router-core` — Routing state abstraction
 - `@web-loom/storage-core` — localStorage / sessionStorage abstraction
 - `@web-loom/i18n-core` — Internationalization
-- `@web-loom/plugin-core` — Plugin architecture for extensible applications
+- `@repo/plugin-core` — Plugin architecture for extensible applications (internal workspace package)
 
 ---
 
@@ -159,26 +159,17 @@ Web Loom's monorepo has more than 30 packages. The main ones, by category:
 
 **Unidirectional data flow** — state flows down (Model → ViewModel → View), actions flow up (View calls ViewModel commands). No two-way data binding at the architecture level.
 
-**Always dispose** — ViewModels register Commands and manual signal subscriptions. Call `vm.dispose()` in the component teardown hook to prevent memory leaks.
-
-```ts
-// React
-useEffect(() => {
-  vm.fetchCommand.execute();
-  return () => vm.dispose();
-}, []);
-```
+**Dispose with the owner** — ViewModels register Commands and manual signal subscriptions; `vm.dispose()` releases them. Dispose a ViewModel when whatever owns it goes away: an app-lifetime singleton is never disposed by a component, while a ViewModel created per screen is disposed in that screen's teardown. Disposal is permanent — a disposed Command's `execute()` resolves to `undefined` without running.
 
 **Business data in Models, UI state in Store** — a filter value that affects API results belongs in the Model. Whether a drawer is open belongs in the Store.
 
 **Test ViewModels independently** — because ViewModels have no framework imports, they can be unit tested with plain Vitest, no DOM or component setup required.
 
 ```ts
-it('filters tasks correctly', () => {
-  const vm = new TaskListViewModel(mockModel);
-  vm.setFilter('done');
-  expect(vm.visibleTasks.get().every(t => t.done)).toBe(true);
-  vm.dispose();
+it('derives doubled from count', () => {
+  const vm = new CounterViewModel();
+  vm.increment();
+  expect(vm.doubled.get()).toBe(2);
 });
 ```
 

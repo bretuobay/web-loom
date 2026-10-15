@@ -11,7 +11,7 @@ nextSlug: '/docs/design-core'
 
 # UI Patterns
 
-`@web-loom/ui-patterns` composes atomic behaviors from `@web-loom/ui-core` into complete, production-ready UI interaction patterns. Each pattern manages its own reactive state, exposes typed actions, and emits events — with no dependency on any UI framework.
+`@web-loom/ui-patterns` composes atomic behaviors from `@web-loom/ui-core` into complete, production-ready UI interaction patterns. Each pattern manages its own reactive state, exposes typed actions, and emits events — with no UI-framework code of its own. (It does import `@web-loom/ui-core`'s root entry, which re-exports React adapter hooks and therefore imports `react`, an optional peer dependency.)
 
 **10 patterns available:** Master-Detail, Wizard, Modal, Tabbed Interface, Sidebar Shell, Toast Queue, Command Palette, Hub-and-Spoke, Grid Layout, Floating Action Button.
 
@@ -446,14 +446,14 @@ const id = toasts.actions.addToast({
 
 ### Options
 
-- `maxVisible?: number` (default: `3`)
-- `defaultDuration?: number` — ms before auto-dismiss (default: `5000`)
+- `maxVisible?: number` (default: `3`) — stored in state, but **not currently enforced**: `toasts` holds every queued toast, so slice it in the View if you need a cap
+- `defaultDuration?: number` (default: `5000`) — stored in state, but **not currently applied**: every `addToast` call must pass its own `duration`
 - `position?: ToastPosition` (default: `'top-right'`)
 - `onToastAdded?`, `onToastRemoved?`, `onPositionChanged?`
 
 ### Toast Object
 
-- `id: string` — auto-generated UUID
+- `id: string` — auto-generated (`toast-<timestamp>-<counter>`)
 - `message: string`
 - `type: 'info' | 'success' | 'warning' | 'error'`
 - `duration: number`
@@ -465,14 +465,14 @@ const id = toasts.actions.addToast({
 
 ### State
 
-- `toasts: Toast[]` — currently visible toasts (at most `maxVisible`)
+- `toasts: Toast[]` — all queued toasts (not capped by `maxVisible`)
 - `maxVisible: number`
 - `defaultDuration: number`
 - `position: ToastPosition`
 
 ### Actions
 
-- `addToast(toast): string` — enqueue a toast, returns its `id`
+- `addToast({ message, type, duration }): string` — enqueue a toast and schedule its removal after `duration` ms; returns its `id`. `duration` is required.
 - `removeToast(id: string)` — dismiss immediately
 - `clearAllToasts()` — dismiss all
 - `setPosition(pos: ToastPosition)` — reposition the queue
@@ -481,12 +481,14 @@ const id = toasts.actions.addToast({
 
 ```typescript
 // In a ViewModel, inject the toast queue
-class GreenhouseViewModel extends BaseViewModel {
-  constructor(private toasts: ToastQueueBehavior) { super(); }
+class GreenhouseViewModel extends BaseViewModel<GreenhouseModel> {
+  constructor(model: GreenhouseModel, private toasts: ToastQueueBehavior) {
+    super(model); // BaseViewModel requires a model
+  }
 
   readonly saveCommand = new Command(async () => {
     await this.model.save();
-    this.toasts.actions.addToast({ message: 'Saved', type: 'success' });
+    this.toasts.actions.addToast({ message: 'Saved', type: 'success', duration: 3000 });
   });
 }
 ```
@@ -749,9 +751,11 @@ window.addEventListener('resize', () => {
 
 ### Events
 
-- `'item:focused'` — emits `{ index, itemId }`
-- `'item:selected'` — emits `{ itemId, selectedIds }`
-- `'breakpoint:changed'` — emits the new `Breakpoint`
+Listeners receive positional arguments:
+
+- `'item:focused'` — `(index: number, itemId: string)`
+- `'item:selected'` — `(itemId: string, selectedIds: string[])`
+- `'breakpoint:changed'` — `(breakpoint: Breakpoint, columns: number)`
 
 ### Keyboard Wiring
 
@@ -853,19 +857,18 @@ backToTop.subscribe(({ isVisible }) => {
 
 ## Event Bus Integration
 
-Patterns that emit side-channel events expose an `eventBus` property. Listener cleanup is handled automatically by `destroy()`, but you can also unsubscribe manually using the function returned by `on()`.
+Patterns that emit side-channel events expose an `eventBus` property. `eventBus.on()` returns nothing — to remove a single listener, keep a reference to it and call `eventBus.off()`.
 
 ```typescript
 const md = createMasterDetail({ items, getId });
 
 // Listen to side-channel events
-const off = md.eventBus.on('item:selected', (item) => {
-  detailPane.load(item.id);
-});
+const onSelected = (item: Greenhouse) => detailPane.load(item.id);
+md.eventBus.on('item:selected', onSelected);
 
 // Later
-off();          // unsubscribe just this listener
-md.destroy();   // unsubscribes all listeners + cleans up state
+md.eventBus.off('item:selected', onSelected); // remove just this listener
+md.destroy();                                 // tear down the pattern
 ```
 
 ---
@@ -878,18 +881,18 @@ Patterns are stateful objects, not ViewModels — but they compose cleanly with 
 import { createToastQueue, createModal, type ToastQueueBehavior, type ModalBehavior } from '@web-loom/ui-patterns';
 import { BaseViewModel, Command } from '@web-loom/mvvm-core';
 
-class GreenhouseViewModel extends BaseViewModel {
+class GreenhouseViewModel extends BaseViewModel<GreenhouseModel> {
   constructor(
-    private model: GreenhouseModel,
+    model: GreenhouseModel,
     private toasts: ToastQueueBehavior,
     private modal: ModalBehavior,
   ) {
-    super();
+    super(model);
   }
 
   readonly deleteCommand = new Command(async (id: string) => {
     await this.model.delete(id);
-    this.toasts.actions.addToast({ message: 'Deleted', type: 'success' });
+    this.toasts.actions.addToast({ message: 'Deleted', type: 'success', duration: 3000 });
   });
 
   readonly confirmDelete = (id: string) => {
@@ -958,7 +961,7 @@ export class ToastService implements OnDestroy {
 
 ## Testing
 
-Because patterns have no framework dependencies, they can be tested with plain Vitest.
+Because patterns contain no framework-specific logic, they can be tested with plain Vitest.
 
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
@@ -1004,7 +1007,7 @@ describe('createWizard', () => {
 
 ## Best Practices
 
-- **Always call `destroy()`** in component teardown — patterns set `setTimeout` timers (Toast), add `keydown` listeners (Modal), and subscribe to stores internally.
+- **Always call `destroy()`** in component teardown — patterns set `setTimeout` timers (Toast) and subscribe to stores and event buses internally. (Modal doesn't attach DOM listeners itself; wire Escape handling in your View.)
 - **One pattern instance per feature scope** — create modal or toast singletons at the app level and inject them into ViewModels. Don't create new instances per render.
 - **Use `eventBus` for cross-concern side effects** — subscribe to `'item:selected'` in a ViewModel, not in a render function.
 - **Combine patterns** — a typical dashboard composes Sidebar Shell + Tabbed Interface + Master-Detail + Toast Queue + Command Palette. Each is independent; they communicate through shared ViewModels or event bus listeners.

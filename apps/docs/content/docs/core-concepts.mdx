@@ -47,7 +47,7 @@ This is the core loop. Everything else in the library supports it.
 A **Model** is a plain TypeScript class responsible for:
 
 - Fetching, persisting, and owning raw data
-- Maintaining the three reactive streams (`data$`, `isLoading$`, `error$`)
+- Maintaining the three reactive signals (`data$`, `isLoading$`, `error$`)
 - Validating incoming data against a Zod schema
 - Never importing anything from a UI framework
 
@@ -137,12 +137,12 @@ export class GreenHouseModel extends RestfulApiModel<GreenhouseListData, typeof 
 }
 ```
 
-`RestfulApiModel` exposes Commands (`fetchCommand`, `createCommand`, `updateCommand`, `deleteCommand`) that manage loading/error state automatically.
+`RestfulApiModel` exposes async `fetch`, `create`, `update` and `delete` methods that manage `isLoading$`/`error$` automatically and apply create/update/delete optimistically. The matching Commands (`fetchCommand`, `createCommand`, …) live on `RestfulApiViewModel`, below.
 
 ### When to use which
 
 - **`BaseModel`** — custom fetch logic, non-REST APIs, GraphQL, WebSockets, local state
-- **`RestfulApiModel`** — standard REST CRUD with automatic command wiring
+- **`RestfulApiModel`** — standard REST CRUD with built-in loading/error handling and optimistic updates
 
 > `QueryStateModel` (for `@web-loom/query-core`-managed caching/deduplication) exists in `mvvm-core`'s source but is not yet exported from its public entry point. Compose `BaseModel` with `query-core` directly instead — see [Query Core](/docs/query-core).
 
@@ -196,18 +196,18 @@ class TaskListViewModel extends BaseViewModel<TaskModel> {
     new Command(async (title: string) => this.model.create(title)),
   );
 
-  constructor(private model: TaskModel) {
-    super(model);
+  constructor(model: TaskModel) {
+    super(model); // available afterwards as the protected `this.model`
   }
 }
 ```
 
 ### RestfulApiViewModel
 
-`RestfulApiViewModel<TData, TSchema>` pairs with `RestfulApiModel` and pre-wires the four CRUD Commands. Extend it when your ViewModel primarily drives a REST resource:
+`RestfulApiViewModel<TData, TSchema>` pairs with `RestfulApiModel` and pre-wires the four CRUD Commands. Extend it (or use the `createReactiveViewModel` factory) when your ViewModel primarily drives a REST resource. Note that it is a standalone class, not a `BaseViewModel` subclass:
 
 ```typescript
-import { RestfulApiViewModel, createReactiveViewModel } from '@web-loom/mvvm-core';
+import { createReactiveViewModel } from '@web-loom/mvvm-core';
 
 // Factory approach (most common in Web Loom apps)
 export const greenHouseViewModel = createReactiveViewModel({
@@ -227,7 +227,7 @@ export const greenHouseViewModel = createReactiveViewModel({
 - **`FormViewModel<TData>`** — manages form field state, dirty/valid flags, field-level errors, and a `submitCommand`
 - **`QueryableCollectionViewModel<T>`** — adds client-side text filter (debounced via `debouncedSignal`), multi-key sort, and pagination on top of a list signal
 
-> Both classes exist in `mvvm-core`'s source but are not yet exported from its public entry point — treat them as internal/unstable. For production form handling, use [`@web-loom/forms-core`](https://www.npmjs.com/package/@web-loom/forms-core) with its framework adapters instead.
+> Both classes exist in `mvvm-core`'s source but are not yet exported from its public entry point — treat them as internal/unstable. For production form handling, use [`@web-loom/forms-core`](https://www.npmjs.com/package/@web-loom/forms-core) instead (its framework adapters live in the separate `web-loom-extensions` repo and are not yet on npm).
 
 ---
 
@@ -249,7 +249,7 @@ interface ICommand<TParam = void, TResult = void> extends IDisposable {
 
 - **`canExecute$`** — `true` when the command is allowed to run. Combines the base guard, any `observesCanExecute()` conditions, and `!isExecuting`. Bind to `disabled` on a button.
 - **`isExecuting$`** — `true` while the async function is running. Bind to a spinner or loading text.
-- **`executeError$`** — emits the last thrown error, `null` after a successful execution. Bind to an error message element.
+- **`executeError$`** — holds the last thrown error; reset to `null` when the next execution starts. Bind to an error message element. The error is also re-thrown from `execute()`, so callers should handle the returned Promise's rejection.
 
 ### Basic usage
 
@@ -292,7 +292,7 @@ const deleteCommand = Command.create<string, void>()
   .withExecute(async (id) => {
     await this.model.delete(id);
   })
-  .withCanExecute(computed(() => Boolean(this.selectedId$.get())))
+  .canExecuteWhen(computed(() => Boolean(this.selectedId$.get())))
   .build();
 ```
 
@@ -360,7 +360,7 @@ When `dispose()` runs, it calls `saveCommand.dispose()` automatically. You never
 For manual subscriptions that aren't attached to Commands, use `addSubscription`:
 
 ```typescript
-constructor(private model: MyModel) {
+constructor(model: MyModel) {
   super(model);
   this.addSubscription(
     this.data$.subscribe((data) => this.computeDerivedState(data)),
@@ -495,15 +495,15 @@ If you find yourself putting `sidebarOpen` into a signal on a ViewModel, it belo
 
 ## Event Bus — Cross-Feature Communication
 
-When two features need to react to each other without being directly coupled, use `@web-loom/event-bus-core` rather than passing observables between ViewModels or calling methods across boundaries.
+When two features need to react to each other without being directly coupled, use `@web-loom/event-bus-core` rather than passing signals between ViewModels or calling methods across boundaries.
 
 ```typescript
 import { createEventBus } from '@web-loom/event-bus-core';
 
-// Define typed events
+// Define typed events — each payload is a tuple of listener arguments
 const bus = createEventBus<{
-  'greenhouse:created': { id: string; name: string };
-  'sensor:alert':       { sensorId: string; value: number };
+  'greenhouse:created': [{ id: string; name: string }];
+  'sensor:alert':       [{ sensorId: string; value: number }];
 }>();
 
 // In GreenhouseViewModel — publish after create
@@ -544,22 +544,19 @@ Tracing one cycle from user action to re-render:
          ↓
 5. ViewModel's execute function calls model.delete(id)
          ↓
-6. RestfulApiModel sends DELETE /api/greenhouses/:id
-         ↓
-7. Model sets isLoading$ = true (via setLoading)
-         ↓
-8. API responds — Model filters the item out of current data
+6. Model optimistically filters the item out of current data
    and calls setData(updatedList)
          ↓
-9. model.data$ signal updates to the new list
+7. model.data$ signal updates; vm.data$ (the same signal instance)
+   notifies its subscribers and the View re-renders without the item
          ↓
-10. vm.data$ (the same signal instance) notifies its subscribers
+8. Model sets isLoading$ = true and sends DELETE /api/greenhouses/:id
          ↓
-11. View re-renders the list without the deleted item
+9. API responds — Model sets isLoading$ = false
+   (on failure it restores the original list, sets error$, and re-throws)
          ↓
-12. Command sets isExecuting$ = false
-         ↓
-13. Model sets isLoading$ = false
+10. Command sets isExecuting$ = false
+   (on failure it also sets executeError$ and re-throws to the caller)
 ```
 
 The ViewModel never touches the DOM. The Model never imports from the framework. The View never calls `fetch` or manages loading flags.
@@ -670,12 +667,12 @@ No `TestBed`, no component mounting, no DOM. The ViewModel is a plain object.
 **Which Model base class?**
 
 - Need full control over fetch logic or a non-REST API → **`BaseModel`**
-- Standard REST CRUD with automatic commands → **`RestfulApiModel`**
+- Standard REST CRUD with built-in loading/error handling → **`RestfulApiModel`**
 
 **Which ViewModel base class?**
 
 - Generic domain logic, custom derived state → **`BaseViewModel`**
-- Driving a REST resource with standard CRUD → **`RestfulApiViewModel`** (extends `BaseViewModel`)
+- Driving a REST resource with standard CRUD → **`RestfulApiViewModel`** (a standalone class, not a `BaseViewModel` subclass)
 
 **Command vs CompositeCommand?**
 

@@ -23,6 +23,8 @@ nextSlug: '/docs/ui-patterns'
 npm install @web-loom/ui-core
 ```
 
+> The package root (`@web-loom/ui-core`) also re-exports the React adapter hooks, so it imports `react` (an optional peer dependency). In a non-React app, import behaviors from `@web-loom/ui-core/behaviors` (or a per-behavior subpath such as `@web-loom/ui-core/behaviors/dialog`), which has no framework imports.
+
 ---
 
 ## The Common Behavior Interface
@@ -208,13 +210,10 @@ const loginForm = createFormBehavior({
   validateOnBlur: true,
   fields: {
     email: {
-      validators: [
-        (v) => (!v ? 'Required' : null),
-        (v) => (!/^[^\s@]+@[^\s@]+$/.test(v) ? 'Invalid email' : null),
-      ],
+      validate: (v) => (!v ? 'Required' : !/^[^\s@]+@[^\s@]+$/.test(v) ? 'Invalid email' : null),
     },
     password: {
-      validators: [(v) => (v.length < 8 ? 'Min 8 characters' : null)],
+      validate: (v) => (v.length < 8 ? 'Min 8 characters' : null),
     },
   },
   onSubmit: async (values) => {
@@ -226,7 +225,7 @@ const loginForm = createFormBehavior({
 ### Options
 
 - `initialValues: T` — **required** — field values at mount
-- `fields?: Partial<Record<keyof T, FieldConfig>>` — per-field validator arrays
+- `fields?: Partial<Record<keyof T, FieldConfig>>` — per-field validation config
 - `validateOnChange?: boolean` (default: `false`) — validate every keystroke
 - `validateOnBlur?: boolean` (default: `true`) — validate when a field loses focus
 - `onSubmit?: (values: T) => void | Promise<void>` — called after successful validation
@@ -235,12 +234,13 @@ const loginForm = createFormBehavior({
 ### FieldConfig
 
 ```typescript
-interface FieldConfig {
-  validators?: Array<(value: any) => string | null | undefined | Promise<string | null | undefined>>;
+interface FieldConfig<T = any> {
+  validate?: (value: T) => string | null | undefined | Promise<string | null | undefined>;
+  initialValue?: T;
 }
 ```
 
-Validators receive the field's current value and return an error string, or `null`/`undefined` if valid. Both sync and `async` validators are supported.
+`validate` receives the field's current value and returns an error string, or `null`/`undefined` if valid. It may be sync or `async`. Each field has a single `validate` function — combine multiple rules inside it.
 
 ### State
 
@@ -271,8 +271,8 @@ const form = createFormBehavior({
   initialValues: { email: '', password: '' },
   validateOnBlur: true,
   fields: {
-    email:    { validators: [(v) => (!v ? 'Required' : null)] },
-    password: { validators: [(v) => (v.length < 8 ? 'Too short' : null)] },
+    email:    { validate: (v) => (!v ? 'Required' : null) },
+    password: { validate: (v) => (v.length < 8 ? 'Too short' : null) },
   },
   onSubmit: async (values) => api.login(values),
 });
@@ -447,7 +447,7 @@ toolbar.actions.moveTo(2);
 - `moveFirst()` — jump to index `0`
 - `moveLast()` — jump to the last index
 - `moveTo(index: number)` — jump to a specific index
-- `setItems(items: string[])` — replace the item list (resets `currentIndex` to `0`)
+- `setItems(items: string[])` — replace the item list (keeps `currentIndex`, clamped to the new last index)
 
 ### ARIA Toolbar Example
 
@@ -529,7 +529,7 @@ shortcuts.actions.registerShortcut({
 - `handler: () => void` — action to execute
 - `description?: string` — human-readable description (useful for a shortcut cheat sheet)
 - `preventDefault?: boolean` — call `event.preventDefault()` (default: `false`)
-- `scope?: 'global' | 'scoped'` — whether to respond when a focused input is active (default: `'global'`)
+- `scope?: 'global' | 'scoped'` — `'global'` shortcuts are always active; `'scoped'` ones are meant to be active only within a specific component boundary (default: `'global'`)
 
 ### Options
 
@@ -553,7 +553,7 @@ shortcuts.actions.registerShortcut({
 
 ### Platform Normalization
 
-`Ctrl+K` and `Cmd+K` both resolve to the same shortcut — the behavior normalises `Meta` (macOS) and `Control` (Windows/Linux) so a single registration works cross-platform.
+Key strings are normalised (`Cmd`, `Command` and `Meta` all mean the Meta key; modifier order doesn't matter), but `Ctrl+K` and `Cmd+K` remain **different** shortcuts — each modifier must match the event exactly. To support both platforms, register both combos with the same handler.
 
 ### Displaying a Shortcut Reference
 
@@ -845,7 +845,7 @@ export class SettingsDialogService implements OnDestroy {
 
 ## Testing
 
-Behaviors have no framework dependencies and are fully synchronous (except async form validators), making them easy to test with plain Vitest.
+Behaviors themselves have no framework dependencies and are fully synchronous (except async form validators), making them easy to test with plain Vitest. (Note that the package's root entry also re-exports the React adapter hooks, so it imports `react`; `react` is an optional peer dependency.)
 
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
@@ -867,7 +867,7 @@ describe('createFormBehavior', () => {
     const onSubmit = vi.fn();
     const form = createFormBehavior({
       initialValues: { email: '' },
-      fields: { email: { validators: [(v) => (!v ? 'Required' : null)] } },
+      fields: { email: { validate: (v) => (!v ? 'Required' : null) } },
       onSubmit,
     });
 
@@ -928,7 +928,7 @@ describe('createUndoRedoStack', () => {
 - **Always call `destroy()`** — every behavior registers event listeners (`KeyboardShortcuts`), `setTimeout` timers (none by default, but subclasses may add them), or store subscriptions. Failing to destroy causes memory leaks.
 - **One behavior per concern** — don't put form logic in a disclosure or selection logic in a dialog. Compose multiple small behaviors instead.
 - **Expose behaviors through ViewModels** — don't create behaviors directly inside render functions. Create them once (in a ViewModel, a service, or a module singleton) and pass them down.
-- **Use `setFieldError` for server errors** — never validate server responses inside `validators`. Call `setFieldError` after the API response so the error appears in the same `errors` map as client-side errors.
+- **Use `setFieldError` for server errors** — never validate server responses inside `validate`. Call `setFieldError` after the API response so the error appears in the same `errors` map as client-side errors.
 - **`validateOnChange` is expensive for async validators** — prefer `validateOnBlur` unless the field genuinely needs immediate feedback (e.g. a password strength meter).
 - **Roving focus needs DOM focus** — the behavior only updates state; you must call `.focus()` on the actual DOM element inside `onFocusChange`.
 

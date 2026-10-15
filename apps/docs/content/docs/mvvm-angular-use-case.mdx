@@ -676,11 +676,11 @@ export class GreenhouseListComponent implements OnInit {
 Signals enable **zoneless** change detection — Angular updates the DOM only when a signal value changes, rather than after every async operation. Since `fromLoomSignal`-bridged state is already signal-based, it works unchanged in a zoneless app. To opt in, replace `provideZoneChangeDetection` in `app.config.ts`:
 
 ```typescript
-import { provideExperimentalZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideExperimentalZonelessChangeDetection(), // replaces provideZoneChangeDetection
+    provideZonelessChangeDetection(), // replaces provideZoneChangeDetection
     provideRouter(routes),
   ],
 };
@@ -694,7 +694,7 @@ And remove `zone.js` from `angular.json` polyfills:
 
 With zoneless enabled, Zone.js is gone from the bundle. Angular only re-renders when a Signal notifies it. For ViewModel-based components using `fromLoomSignal`, this works with zero further changes.
 
-> `provideExperimentalZonelessChangeDetection` is available in Angular 18+ and stable for production use in Angular 19+. The `Experimental` prefix is a naming artifact and does not indicate instability.
+> `provideZonelessChangeDetection` is the stable API from Angular 20 onward (`apps/mvvm-angular` uses Angular 21). On Angular 18–19 the same feature was the developer-preview `provideExperimentalZonelessChangeDetection`.
 
 ---
 

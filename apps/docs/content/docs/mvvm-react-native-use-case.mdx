@@ -19,7 +19,7 @@ The only things that change are the rendering primitives — `View` instead of `
 
 ## Why It Works Without Modification
 
-ViewModels in `@web-loom/mvvm-core` are plain TypeScript classes with no DOM or browser imports. They depend on `@web-loom/signals-core` — a zero-dependency, pure-JavaScript reactive primitive — and nothing else. React Native runs a full JavaScript environment, so the ViewModels simply work, unchanged.
+ViewModels in `@web-loom/mvvm-core` are plain TypeScript classes with no DOM or browser imports. Their runtime dependencies (`@web-loom/signals-core`, `@web-loom/query-core` and `zod`) are pure JavaScript with no DOM or Node-specific APIs. React Native runs a full JavaScript environment, so the ViewModels simply work, unchanged.
 
 ```
 packages/view-models/        ← framework-agnostic TypeScript
