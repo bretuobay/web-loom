@@ -5,7 +5,9 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.es.js",
   "types": "./dist/index.d.ts",
@@ -18,8 +20,8 @@
     }
   },
   "dependencies": {
-    "@web-loom/router-core": "*",
-    "@web-loom/template-core": "*"
+    "@web-loom/router-core": "workspace:*",
+    "@web-loom/template-core": "workspace:*"
   },
   "scripts": {
     "build": "vite build",
@@ -29,8 +31,8 @@
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
     "eslint": "^9.39.1",
     "jsdom": "^26.1.0",
     "typescript": "5.8.2",

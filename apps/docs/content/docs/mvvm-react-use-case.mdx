@@ -59,7 +59,7 @@ The fix is to connect signal changes to a React re-render. `useSyncExternalStore
 
 ```typescript
 // apps/mvvm-react/src/hooks/useSignal.ts
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
 
 /**
@@ -68,14 +68,16 @@ import type { ReadonlySignal } from '@web-loom/signals-core';
  * every change via useSyncExternalStore.
  */
 export function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 ```
 
 How it works:
 
-- The first argument to `useSyncExternalStore` is a `subscribe` function — signals already expose one directly as `sig.subscribe`, so it's passed straight through
-- The second and third arguments are `getSnapshot` functions (client and server) — `sig.get` reads the current value synchronously, so no separate `initialValue` parameter is needed and there's no first-render flash of a placeholder
+- The first argument to `useSyncExternalStore` is a `subscribe` function — signals already expose one as `sig.subscribe`. It is wrapped in `useCallback` rather than passed directly: `signal()` and `computed()` are class instances, so a detached `sig.subscribe` loses `this` and throws
+- The second and third arguments are `getSnapshot` functions (client and server) — `sig.get()` (wrapped the same way) reads the current value synchronously, so no separate `initialValue` parameter is needed and there's no first-render flash of a placeholder
 - React guarantees that all components reading the same signal see a consistent snapshot within a single render
 
 Usage:
@@ -133,7 +135,7 @@ Create a fresh ViewModel per component mount using `useMemo`:
 ```tsx
 import { useMemo, useEffect } from 'react';
 import { TaskViewModel } from './TaskViewModel';
-import { TaskModel } from '@repo/models';
+import { TaskModel } from './TaskModel'; // your own BaseModel subclass
 
 function TaskDetail({ taskId }: { taskId: string }) {
   const vm = useMemo(() => new TaskViewModel(new TaskModel(taskId)), [taskId]);
@@ -152,6 +154,8 @@ function TaskDetail({ taskId }: { taskId: string }) {
 ```
 
 **When to use:** Detail pages or list items where each instance needs its own independent state. `useMemo` ensures the ViewModel is only created once per mount (not on every render), and `useEffect` disposes it when the component unmounts.
+
+> **StrictMode caveat:** in development, `<StrictMode>` runs every effect's cleanup once immediately after mount but keeps the memoized `vm`. Because disposal is permanent (a disposed Command's `execute()` resolves to `undefined` without running), the re-run effect then works with a disposed ViewModel. If you rely on StrictMode, prefer Option 1 (module-level singletons, which is what `apps/mvvm-react` does) or own per-screen ViewModels in a parent that outlives StrictMode's double-invocation.
 
 ### Option 3: Context + Provider
 
@@ -279,7 +283,7 @@ function SaveButton({ vm }: { vm: DocumentViewModel }) {
 }
 ```
 
-The View has no `try/catch`, no manual `isLoading` state, and no error tracking — the Command owns all of it.
+The View has no manual `isLoading` state and no error-tracking variables — the Command owns them. Note that `execute()` stores the error in `executeError$` **and re-throws it**, so a fire-and-forget call like `onClick={() => vm.saveCommand.execute()}` surfaces a failure as an unhandled Promise rejection; append `.catch(() => {})` when `executeError$` is your only error UI.
 
 ---
 
@@ -356,7 +360,6 @@ export function GreenhouseList() {
 ```
 
 Notice what the component does **not** contain:
-- No `try/catch` around API calls
 - No manual `isLoading` state management
 - No error tracking variables
 - No axios or fetch calls
@@ -743,7 +746,7 @@ useEffect(() => {
 
 ```tsx
 // ✅ Good — created once per mount, not on every render
-const vm = useMemo(() => new TaskViewModel(new TaskModel(id)), [id]);
+const vm = useMemo(() => new TaskViewModel(new TaskModel(id)), [id]); // TaskModel: your own model
 ```
 
 ```tsx

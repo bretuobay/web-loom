@@ -1,13 +1,13 @@
 ---
 title: 'Event Emitter Core'
-summary: 'A tiny, type-safe synchronous event emitter shared across Web Loom packages. The internal primitive behind Event Bus Core, Forms Core, Media Core, and more.'
+summary: 'A tiny, type-safe synchronous event emitter shared across Web Loom packages. The internal primitive behind Event Bus Core, Forms Core, and more.'
 topicTitle: 'Published Packages'
 topicSlug: 'packages'
 ---
 
 # Event Emitter Core
 
-`@web-loom/event-emitter-core` is a tiny, zero-dependency, type-safe synchronous event emitter. It is the internal primitive that powers the listener bookkeeping in `@web-loom/event-bus-core`, `@web-loom/forms-core`, `@web-loom/media-core`, `@web-loom/storage-core`, and `@web-loom/notifications-core`. It can also be used directly when you need a lightweight emitter without the pub-sub semantics of the Event Bus.
+`@web-loom/event-emitter-core` is a tiny, zero-dependency, type-safe synchronous event emitter. It is the internal primitive that powers the listener bookkeeping in `@web-loom/event-bus-core` and `@web-loom/forms-core`, and in the not-yet-published `embed-core`, `storage-core` and `notifications-core` (the media packages in the separate `web-loom-extensions` repo use it too). It can also be used directly when you need a lightweight emitter without the pub-sub semantics of the Event Bus.
 
 ## Features
 
@@ -246,7 +246,9 @@ bootEmitter.emit('ready'); // no-op — listener was removed
 ### Custom error handler
 
 ```typescript
-const safeEmitter = new EventEmitter<{ data: string[] }>({
+// An array payload type is spread into listener arguments, so wrap it in a tuple
+// to pass the array as one argument.
+const safeEmitter = new EventEmitter<{ data: [items: string[]] }>({
   onError: (err, name) => {
     errorReporter.capture(err, { event: String(name) });
   },
@@ -263,11 +265,11 @@ safeEmitter.emit('data', ['a', 'b']); // error is captured, not thrown
 
 ## Relationship with Event Bus Core
 
-`@web-loom/event-bus-core` is the **application-level pub-sub bus** — typed topic channels, cross-feature messaging, and a global singleton. `@web-loom/event-emitter-core` is the **low-level primitive** used internally for listener bookkeeping.
+`@web-loom/event-bus-core` is the **application-level pub-sub bus** — typed topic channels and cross-feature messaging through a bus you create once with `createEventBus()` and share. `@web-loom/event-emitter-core` is the **low-level primitive** used internally for listener bookkeeping.
 
 Use `EventEmitter` directly when:
 - You own both the emitter and the consumers (e.g., inside a class like `MediaPlayerCore`).
-- You need a per-instance emitter rather than a shared global bus.
+- You need a per-instance emitter rather than a shared application bus.
 - You want zero overhead and no bus abstraction.
 
 Use `EventBus` when:

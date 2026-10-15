@@ -35,7 +35,7 @@ const recommendedRules: Linter.RulesRecord = {
 
 export default plugin;
 
-export const configs = {
+export const configs: { recommended: Linter.Config[] } = {
   recommended: [
     {
       plugins: {

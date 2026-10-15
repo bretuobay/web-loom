@@ -5,7 +5,9 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.es.js",
   "types": "./dist/index.d.ts",
@@ -21,8 +23,8 @@
     "eslint": ">=9"
   },
   "dependencies": {
-    "@web-loom/template-core": "*",
-    "@web-loom/template-core-tooling": "*"
+    "@web-loom/template-core": "workspace:*",
+    "@web-loom/template-core-tooling": "workspace:*"
   },
   "scripts": {
     "build": "vite build",
@@ -32,8 +34,8 @@
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
     "@typescript-eslint/parser": "^8.46.0",
     "eslint": "^9.39.1",
     "jsdom": "^26.1.0",

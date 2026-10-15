@@ -221,7 +221,7 @@ const sensors = useSignal(sensorViewModel.data$);
 const isLoading = useSignal(sensorViewModel.isLoading$);
 
 // useSignal internally:
-// - Uses useSyncExternalStore(sig.subscribe, sig.get, sig.get)
+// - Uses useSyncExternalStore with bound sig.subscribe / sig.get callbacks
 // - React handles subscribe/unsubscribe timing
 ```
 

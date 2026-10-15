@@ -36,7 +36,7 @@ npm install @web-loom/query-core
 The main class you interact with. It manages all defined endpoints and global configurations.
 
 ```typescript
-import QueryCore from '@web-loom/query-core';
+import { QueryCore } from '@web-loom/query-core';
 
 const queryCore = new QueryCore({
   cacheProvider: 'indexedDB', // Default for all endpoints
@@ -130,7 +130,8 @@ await queryCore.defineEndpoint('allPosts', async () => {
 
 - Replaces the existing fetcher and configuration if the endpoint already exists.
 - Loads cached state immediately, but does not fetch until you subscribe or refetch.
-- Marks the endpoint as observed for automatic behaviors.
+- Does not by itself make the endpoint "observed": the visibility and reconnect refetches only apply to endpoints that currently have at least one subscriber.
+- It is `async` — `await` it before subscribing or refetching.
 
 **Best Practice**
 
@@ -191,7 +192,7 @@ await queryCore.refetch('users', true);
 
 **Error Handling**
 
-Wrap in `try/catch`; failures update `isError` and `error`.
+`refetch` never rejects: a failing fetcher sets `isError` and `error` on the endpoint state (and logs the error), so read failures from the state rather than wrapping the call in `try/catch`.
 
 ### invalidate(endpointKey)
 
@@ -236,7 +237,7 @@ if (state.data) {
 ## Usage Example
 
 ```typescript
-import QueryCore from '@web-loom/query-core';
+import { QueryCore } from '@web-loom/query-core';
 
 // 1. Initialize QueryCore
 const queryClient = new QueryCore({
@@ -302,8 +303,8 @@ Ideal for short-lived data, testing, or server-side rendering.
 
 - Persists data in browser `localStorage` using JSON serialization.
 - ~5–10MB quota per origin depending on the browser.
-- Synchronous API: easy to reason about but susceptible to quota errors.
-- Storage key: `querycore:${endpointKey}`.
+- Exposes the same Promise-based `CacheProvider` API as the other providers (backed by synchronous `localStorage`); susceptible to quota errors.
+- Storage key: `QueryCore_${endpointKey}`.
 
 ```typescript
 import { LocalStorageCacheProvider } from '@web-loom/query-core';
@@ -312,7 +313,7 @@ const cache = new LocalStorageCacheProvider();
 const queryCore = new QueryCore({ cacheProvider: cache });
 ```
 
-Also available per-endpoint via `defineEndpoint({ cacheProvider: 'localStorage' })`.
+Also available per endpoint via the `{ cacheProvider: 'localStorage' }` option of `defineEndpoint(key, fetcher, options)`.
 
 Use cases: user preferences, small datasets, tokens, or cross-tab syncing.
 
@@ -325,11 +326,11 @@ Use cases: user preferences, small datasets, tokens, or cross-tab syncing.
 ```typescript
 import { IndexedDBCacheProvider } from '@web-loom/query-core';
 
-const cache = new IndexedDBCacheProvider('my-app-db');
+const cache = new IndexedDBCacheProvider(); // no arguments — uses the 'QueryCoreDB' database
 const queryCore = new QueryCore({ cacheProvider: cache });
 ```
 
-Tips: give each app a unique database name, handle quota rejections, and clean stale entries periodically.
+The database name is fixed (`QueryCoreDB`), so apps on the same origin share it. Handle quota rejections and clean stale entries periodically.
 
 ### Custom Cache Providers
 
@@ -369,18 +370,18 @@ These behaviors trigger automatically for every observed endpoint.
 
 Benefit: instant hydration plus silent refreshes.
 
-### Window Focus Refetch
+### Window Visibility Refetch
 
-1. Listen for browser `focus`.
-2. Refetch observed endpoints whose data is stale.
+1. Listen for `visibilitychange` and act when the document becomes visible.
+2. Refetch endpoints that have subscribers and whose data is stale (respects `refetchAfter`).
 3. Update subscribers with the latest values.
 
 Disable per endpoint with `refetchAfter: Infinity` if you need manual control.
 
 ### Network Reconnect Refetch
 
-1. Detect the network coming online.
-2. Refetch all observed endpoints.
+1. Detect the network coming online (`online` event).
+2. Force-refetch every endpoint that has subscribers (ignores `refetchAfter`).
 3. Refresh the cache and UI.
 
 Great for mobile/offline apps recovering from dropped connections.
@@ -391,7 +392,7 @@ Great for mobile/offline apps recovering from dropped connections.
 
 ```typescript
 import { useState, useEffect, useCallback } from 'react';
-import QueryCore, { EndpointState } from '@web-loom/query-core';
+import { QueryCore, type EndpointState } from '@web-loom/query-core';
 
 function useQuery<TData>(queryCore: QueryCore, endpointKey: string) {
   const [state, setState] = useState<EndpointState<TData>>(
@@ -451,7 +452,7 @@ const UserList: FC = () => {
 - Unsubscribe/cleanup when components unmount.
 - Set `refetchAfter` based on data volatility.
 - Invalidate after destructive actions before refetching to avoid stale data.
-- Wrap refetches in `try/catch` and rely on endpoint state for error display.
+- Rely on endpoint state (`isError`/`error`) for error display — `refetch` doesn't reject.
 
 ## MVVM Core integration
 

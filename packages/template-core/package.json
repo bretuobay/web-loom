@@ -66,14 +66,14 @@
     "size": "node scripts/check-size.mjs",
     "precompile": "node scripts/precompile.mjs",
     "bench": "vitest bench --run",
-    "bench:browser": "npm run build && node benchmarks/browser/run.mjs"
+    "bench:browser": "pnpm run build && node benchmarks/browser/run.mjs"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^22.15.3",
-    "@web-loom/mvvm-core": "*",
+    "@web-loom/mvvm-core": "workspace:*",
     "eslint": "^9.39.1",
     "playwright": "^1.62.0",
     "typescript": "5.8.2",
@@ -83,7 +83,7 @@
     "zod": "^3.25.67"
   },
   "dependencies": {
-    "@web-loom/signals-core": "*",
+    "@web-loom/signals-core": "workspace:*",
     "jsdom": "^26.1.0",
     "parse5": "^7.3.0"
   }

@@ -112,7 +112,8 @@ describe('viewModelTemplate', () => {
     });
     const allCode = [reactCode, vueCode, angularCode, vanillaCode, litCode].join('\n');
 
-    expect(reactCode).toContain('useSyncExternalStore(sig.subscribe, sig.get, sig.get)');
+    expect(reactCode).toContain('useSyncExternalStore(subscribe, getSnapshot, getSnapshot)');
+    expect(reactCode).not.toContain('useSyncExternalStore(sig.subscribe');
     expect(vueCode).toContain('import { observe, type ReadonlySignal } from "@web-loom/signals-core";');
     expect(angularCode).toContain('function fromLoomSignal<T>');
     expect(vanillaCode).toContain('teardowns.forEach((teardown) => teardown())');

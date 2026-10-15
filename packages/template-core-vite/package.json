@@ -34,13 +34,13 @@
     "vite": ">=6"
   },
   "dependencies": {
-    "@web-loom/template-core": "*",
-    "@web-loom/template-core-tooling": "*",
+    "@web-loom/template-core": "workspace:*",
+    "@web-loom/template-core-tooling": "workspace:*",
     "magic-string": "^0.30.11",
     "typescript": "5.8.2"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
+    "@repo/eslint-config": "workspace:*",
     "@types/node": "^22.15.3",
     "eslint": "^9.39.1",
     "jsdom": "^26.1.0",

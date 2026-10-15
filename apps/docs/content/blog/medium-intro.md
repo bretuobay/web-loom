@@ -54,9 +54,9 @@ The result, though, is that the average web codebase has no clear architectural 
 
 Web Loom is an open-source monorepo I've been building that tries to take the MVVM approach seriously on the web and demonstrate what it looks like in practice.
 
-It currently has 34 packages in the monorepo, 10 of which are published to npm. The core idea is straightforward: only the View layer is framework-specific. Roughly 20% of a typical codebase — the components that render markup and subscribe to state changes — needs to know about React or Vue or Angular. The other 80% — Models, ViewModels, form logic, HTTP utilities, event bus, storage abstractions — can be written in plain TypeScript with no framework imports whatsoever.
+It currently has 37 packages in the monorepo; eleven are published to npm under the `@web-loom` scope, plus the `create-web-loom` starter CLI. The core idea is straightforward: only the View layer is framework-specific. Roughly 20% of a typical codebase — the components that render markup and subscribe to state changes — needs to know about React or Vue or Angular. The other 80% — Models, ViewModels, form logic, HTTP utilities, event bus, storage abstractions — can be written in plain TypeScript with no framework imports whatsoever.
 
-The monorepo demonstrates this across React, Vue, Angular, Lit, Marko, vanilla JavaScript, and React Native. The ViewModels are the same in every case. Only the subscription syntax in the View differs.
+The monorepo demonstrates this across React, Vue, Angular, Solid, Lit, Marko, vanilla JavaScript, and React Native. The ViewModels are the same in every case. Only the subscription syntax in the View differs.
 
 I want to be direct about what this is and isn't. It's an experiment and a demonstration. It's not production-proven at scale. Some of the packages are still rough. There are architectural tradeoffs I'll get to.
 
@@ -72,7 +72,7 @@ The pattern is three layers, with strict responsibilities at each boundary.
 
 **The ViewModel** knows what the View needs to display. It takes the raw data from the Model, derives the presentation state from it — formatted values, loading flags, counts, filtered lists — and exposes it as reactive signal properties. It also exposes Commands: objects that wrap async operations and manage their own loading and error state. The ViewModel has no framework imports either.
 
-**The View** is thin. It subscribes to ViewModel properties and renders them. When a user acts, it calls a ViewModel Command. The View contains no `try/catch`, no loading flags, no business logic of any kind. It's the only place where React or Vue or Angular code lives.
+**The View** is thin. It subscribes to ViewModel properties and renders them. When a user acts, it calls a ViewModel Command. The View contains no loading flags and no business logic of any kind. It's the only place where React or Vue or Angular code lives.
 
 Here's a small example of what the same ViewModel looks like wired to React and Vue:
 
@@ -86,7 +86,7 @@ class TaskListViewModel extends BaseViewModel<TaskModel> {
 
 ```tsx
 // React View
-const tasks = useSignal(vm.tasks$);
+const tasks = useSignal(vm.data$);
 const pending = useSignal(vm.pendingCount$);
 // ...
 <button onClick={() => vm.fetchCommand.execute()}>Refresh</button>;
@@ -95,12 +95,13 @@ const pending = useSignal(vm.pendingCount$);
 ```vue
 <!-- Vue View -->
 <script setup>
-observe(vm.tasks$, (v) => (tasks.value = v));
+const tasks = shallowRef(vm.data$.peek());
+observe(vm.data$, (v) => (tasks.value = v));
 onMounted(() => vm.fetchCommand.execute());
 </script>
 ```
 
-The Command pattern is worth pausing on. Rather than the View calling an async function directly and managing loading state with local `useState`, the View calls `vm.fetchCommand.execute()`. The Command exposes `isExecuting$` for the loading spinner and `executeError$` for error handling. The View just binds to those. It doesn't manage try/catch. It doesn't track loading booleans. It just subscribes and renders.
+The Command pattern is worth pausing on. Rather than the View calling an async function directly and managing loading state with local `useState`, the View calls `vm.fetchCommand.execute()`. The Command exposes `isExecuting$` for the loading spinner and `executeError$` for error handling. The View just binds to those. It doesn't track loading booleans. It just subscribes and renders (and, since `execute()` re-throws failures, decides whether to handle the rejected Promise).
 
 The testability benefit here is not theoretical. Because the ViewModel has no framework imports, you can test it with plain Vitest — no DOM, no component mounting, no test renderer. You instantiate the class, feed it data, and assert on its observable output. This is the kind of test that's fast, stable, and actually covers the logic that matters.
 
@@ -127,7 +128,7 @@ The architectural discipline that mobile platforms figured out twenty years ago 
 The packages published to npm today under the `@web-loom/` scope:
 
 - **`@web-loom/mvvm-core`** — the core library: `BaseModel`, `BaseViewModel`, `Command`, `CompositeCommand`, `RestfulApiModel`, `RestfulApiViewModel`, and the dispose pattern
-- **`@web-loom/signals-core`** — a lightweight reactive signals implementation with `signal`, `computed`, and `effect`, zero dependencies
+- **`@web-loom/signals-core`** — a lightweight reactive signals implementation with `signal`, `computed`, and `effect`; no runtime dependencies
 - **`@web-loom/query-core`** — data fetching and caching with stale-while-revalidate behaviour
 - **`@web-loom/store-core`** — a minimal store for UI-only state (theme, sidebar open/closed, active tab) with persistence adapters
 - **`@web-loom/event-bus-core`** — typed pub/sub for cross-feature communication without coupling ViewModels directly
@@ -135,11 +136,14 @@ The packages published to npm today under the `@web-loom/` scope:
 - **`@web-loom/ui-core`** — headless UI behaviours: Dialog, Form, List, roving focus — no markup, no styles
 - **`@web-loom/ui-patterns`** — composed shells: Wizard, MasterDetail, CommandPalette
 - **`@web-loom/design-core`** — design tokens, CSS custom properties, and theming utilities
-- **`@web-loom/mvvm-patterns`** — higher-level patterns: `InteractionRequest`, `ActiveAwareViewModel`
+- **`@web-loom/forms-core`** — framework-agnostic form state and Zod validation
+- **`@web-loom/mcp-server`** — an MCP server that gives AI coding assistants Web Loom scaffolding and docs
 
-Still in progress, not yet on npm: form logic, media player, HTTP utilities, storage, router, i18n, notifications, error handling, platform detection, typography, and charts. Most of the infrastructure is written and working in the monorepo; getting to a clean stable API for each package takes time.
+Plus the `create-web-loom` starter CLI (`npm create web-loom@latest`).
 
-The monorepo itself is the fullest demonstration of how these pieces fit together across React, Vue, Angular, Lit, Marko, vanilla JS, and React Native.
+Still in the monorepo but not yet on npm: higher-level MVVM patterns (`InteractionRequest`, `ActiveAwareViewModel` in `mvvm-patterns`), the `template-core` templating packages, HTTP utilities, storage, router, i18n, notifications, error handling, platform detection, and typography. Framework adapters for forms and media, and a charts library, live in the separate `web-loom-extensions` repo. Most of the infrastructure is written and working in the monorepo; getting to a clean stable API for each package takes time.
+
+The monorepo itself is the fullest demonstration of how these pieces fit together across React, Vue, Angular, Solid, Lit, Marko, vanilla JS, and React Native.
 
 ---
 

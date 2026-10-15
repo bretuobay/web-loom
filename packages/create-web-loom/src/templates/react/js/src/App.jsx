@@ -24,10 +24,12 @@ export class CounterViewModel {
   });
 }`;
 
-const hookSnippet = `import { useSyncExternalStore } from 'react';
+const hookSnippet = `import { useCallback, useSyncExternalStore } from 'react';
 
 export function useSignal(source) {
-  return useSyncExternalStore(source.subscribe, source.get, source.get);
+  const subscribe = useCallback((onStoreChange) => source.subscribe(onStoreChange), [source]);
+  const getSnapshot = useCallback(() => source.get(), [source]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }`;
 
 export default function App() {

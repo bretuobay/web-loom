@@ -130,7 +130,7 @@ class UserViewModel extends BaseViewModel<UserModel> {
 
 ### RestfulApiViewModel
 
-Extends BaseViewModel with CRUD commands for RESTful operations.
+Wraps a `RestfulApiModel` with ready-made CRUD commands and item selection. It is a standalone class — it does not extend `BaseViewModel`, so it has no `registerCommand()`/`addSubscription()`.
 
 ```typescript
 import { RestfulApiViewModel } from '@web-loom/mvvm-core';
@@ -148,7 +148,7 @@ const vm = new UserListViewModel();
 // Use commands
 await vm.fetchCommand.execute();
 await vm.createCommand.execute({ name: 'New User', email: 'new@example.com' });
-await vm.updateCommand.execute({ id: '123', name: 'Updated' });
+await vm.updateCommand.execute({ id: '123', payload: { name: 'Updated' } });
 await vm.deleteCommand.execute('123');
 
 // Clean up
@@ -223,7 +223,7 @@ todos.itemUpdated$.subscribe(({ oldItem, newItem }) => console.log('Updated:', o
 
 // Manipulate collection
 todos.add({ id: '3', text: 'Deploy', completed: false });
-todos.update((todo) => todo.id === '1', { ...todo, completed: true });
+todos.update((todo) => todo.id === '1', { id: '1', text: 'Learn MVVM', completed: true });
 todos.remove((todo) => todo.completed);
 ```
 
@@ -240,13 +240,13 @@ class UserViewModel extends RestfulApiViewModel<User[], typeof UserSchema> {
   readonly adminUsers$ = computed(() => this.data$.get()?.filter((user) => user.role === 'admin') || []);
 
   constructor() {
-    super(new UserModel());
+    super(new UserApiModel()); // must be a RestfulApiModel
   }
 
   async promoteToAdmin(userId: string): Promise<void> {
     await this.updateCommand.execute({
       id: userId,
-      data: { role: 'admin' }
+      payload: { role: 'admin' },
     });
   }
 }
@@ -257,41 +257,43 @@ vm.adminUsers$.subscribe((admins) => console.log('Admins:', admins));
 await vm.promoteToAdmin('user-123');
 ```
 
-> `FormViewModel` and `QueryableCollectionViewModel` also exist in `mvvm-core`'s source (form validation and filter/sort/paginate helpers, respectively), but like `QueryStateModel` they aren't exported from the package's public entry point yet. For form handling today, use [`@web-loom/forms-core`](/docs/getting-started#package-ecosystem) with its framework adapters; for filter/sort/pagination, derive the state yourself with `computed` over an `ObservableCollection`'s `items$`.
+> `FormViewModel` and `QueryableCollectionViewModel` also exist in `mvvm-core`'s source (form validation and filter/sort/paginate helpers, respectively), but like `QueryStateModel` they aren't exported from the package's public entry point yet. For form handling today, use [`@web-loom/forms-core`](/docs/getting-started#package-ecosystem) (its framework adapters live in the separate `web-loom-extensions` repo, not yet on npm); for filter/sort/pagination, derive the state yourself with `computed` over an `ObservableCollection`'s `items$`.
 
 ### Example 2: Master-detail commands
 
 Commands keep user actions reactive by combining `canExecute$`, `isExecuting$`, and async work into a single construct.
 
 ```typescript
+// OrderModel is a BaseModel<Order> subclass with its own async updateStatus() method
 class OrderDetailViewModel extends BaseViewModel<OrderModel> {
   private readonly isPending$ = computed(() => this.data$.get()?.status === 'pending');
   private readonly isApproved$ = computed(() => this.data$.get()?.status === 'approved');
 
   readonly approveCommand = this.registerCommand(
-    new Command(async () => this.model.update({ status: 'approved' }), this.isPending$),
+    new Command(async () => this.model.updateStatus('approved'), this.isPending$),
   );
   readonly rejectCommand = this.registerCommand(
-    new Command(async (reason: string) => this.model.update({ status: 'rejected', rejectionReason: reason }), this.isPending$),
+    new Command(async (reason: string) => this.model.updateStatus('rejected', reason), this.isPending$),
   );
   readonly cancelCommand = this.registerCommand(
-    new Command(async () => this.model.update({ status: 'cancelled' }), this.isApproved$),
+    new Command(async () => this.model.updateStatus('cancelled'), this.isApproved$),
   );
 }
 ```
 
 ## Best Practices
 
-- Dispose ViewModels and collections when components unmount to keep subscriptions from leaking.
+- Dispose ViewModels when their owner goes away. A ViewModel created for one component is disposed in that component's cleanup; an app-lifetime singleton is not. Disposal is permanent — a disposed Command's `execute()` resolves to `undefined` without running.
   ```tsx
   useEffect(() => {
     const vm = new MyViewModel();
+    void vm.fetchCommand.execute();
     return () => vm.dispose();
   }, []);
   ```
 - Define strict Zod schemas for every public model and reuse them across models, forms, and query state.
 - Build derived state with `computed()` instead of tying logic to a framework.
-- Subscribe to `error$` and command error streams to surface issues and wrap fetch calls in `try/catch` for polish.
+- Surface failures from `error$` and each command's `executeError$`. `execute()` also re-throws, so handle the returned Promise's rejection where a command can fail.
 - Register subscriptions with `this.addSubscription(sig.subscribe(fn))` inside ViewModel constructors so `dispose()` tears them down automatically — don't manage unsubscribe functions by hand.
 - Test ViewModels in isolation (mock fetchers/commands) so business logic stays predictable without rendering UI.
 - Keep ViewModels framework-agnostic and prefer `Command` instances over ad-hoc methods for actions.
@@ -303,11 +305,13 @@ Each framework needs a small bridge to read a `ReadonlySignal<T>` reactively. Se
 ### React
 
 ```tsx
-import { useSyncExternalStore, useEffect, useMemo } from 'react';
+import { useCallback, useSyncExternalStore, useEffect, useMemo } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
 
 function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 function UserList() {
@@ -318,6 +322,9 @@ function UserList() {
 
   useEffect(() => {
     vm.fetchCommand.execute();
+    // Caveat: in development, React StrictMode runs this cleanup once right after
+    // mount while keeping the memoized vm, which leaves its commands disposed.
+    // Under StrictMode, own the VM outside the component (or skip dispose here).
     return () => vm.dispose();
   }, [vm]);
 
@@ -339,12 +346,14 @@ function UserList() {
 `fromLoomSignal` bridges a Web Loom signal into a native Angular signal, torn down via `DestroyRef`:
 
 ```typescript
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { fromLoomSignal } from './utils/loom-signals';
 import { UserListViewModel } from './viewmodels/user-list.viewmodel';
 
 @Component({
   selector: 'app-user-list',
+  imports: [CommonModule],
   template: `
     <div *ngIf="isLoading()">Loading...</div>
     <div *ngIf="error() as err">Error: {{ err.message }}</div>
@@ -355,11 +364,11 @@ import { UserListViewModel } from './viewmodels/user-list.viewmodel';
   providers: [UserListViewModel],
 })
 export class UserListComponent implements OnInit, OnDestroy {
+  // Component-scoped provider above, so this instance is disposed with the component.
+  readonly vm = inject(UserListViewModel);
   readonly users = fromLoomSignal(this.vm.data$);
   readonly isLoading = fromLoomSignal(this.vm.isLoading$);
   readonly error = fromLoomSignal(this.vm.error$);
-
-  constructor(public vm: UserListViewModel) {}
 
   ngOnInit() {
     this.vm.fetchCommand.execute();

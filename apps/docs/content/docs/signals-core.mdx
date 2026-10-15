@@ -89,7 +89,7 @@ interface WritableSignal<T> {
   set(next: T): void;
   update(fn: (prev: T) => T): void;
   asReadonly(): ReadonlySignal<T>;
-  subscribe(fn: () => void): () => void;
+  subscribe(fn: (value: T) => void): () => void; // zero-argument listeners also work
 }
 ```
 
@@ -99,7 +99,7 @@ interface WritableSignal<T> {
 interface ReadonlySignal<T> {
   get(): T;
   peek(): T;
-  subscribe(fn: () => void): () => void;
+  subscribe(fn: (value: T) => void): () => void; // future changes only — no replay
 }
 ```
 
@@ -109,6 +109,7 @@ interface ReadonlySignal<T> {
 interface SignalOptions<T> {
   /** Custom equality check. Defaults to Object.is. */
   equals?: (a: T, b: T) => boolean;
+  /** Accepted for labelling; not currently read by the library. */
   debugName?: string;
 }
 ```
@@ -227,6 +228,32 @@ isSignal(42);                  // false
 isWritableSignal(signal(0));              // true
 isWritableSignal(signal(0).asReadonly()); // false
 isWritableSignal(computed(() => 1));      // false
+```
+
+### observe(sig, fn)
+
+`subscribe()` only fires on *future* changes. `observe()` calls `fn` immediately with the current value (read via `peek()`, so nothing is tracked), then on every change — the "deliver now, then on every change" semantics of an RxJS `BehaviorSubject`. It returns an unsubscribe function, and is what most framework bridges (Vue, Lit, vanilla, Solid) use.
+
+```ts
+import { signal, observe } from '@web-loom/signals-core';
+
+const count = signal(1);
+const stop = observe(count, (v) => console.log(v)); // logs 1 now
+count.set(2);                                        // logs 2
+stop();
+```
+
+### debouncedSignal(source, ms)
+
+Returns a `DebouncedSignal<T>` — a read-only signal that follows `source` but only settles after `ms` milliseconds without changes (trailing value wins). It starts at the source's current value. Call `dispose()` to clear any pending timer and detach from the source.
+
+```ts
+import { signal, debouncedSignal } from '@web-loom/signals-core';
+
+const query = signal('');
+const debouncedQuery = debouncedSignal(query, 300);
+// read debouncedQuery.get() inside computed()/effect() to react to settled input
+debouncedQuery.dispose();
 ```
 
 ---
@@ -693,19 +720,21 @@ describe('CounterViewModel', () => {
 Use `flush()` to force-process any pending batched notifications when testing code that uses `batch`:
 
 ```ts
+import { signal, batch, flush } from '@web-loom/signals-core';
+
 it('batches updates', () => {
-  const vm = new FormViewModel();
+  const name = signal('');
   const spy = vi.fn();
-  vm.name.subscribe(spy);
+  name.subscribe(spy);
 
   batch(() => {
-    vm.setName('Alice');
-    vm.setName('Bob');
+    name.set('Alice');
+    name.set('Bob');
   });
 
   flush(); // ensure notifications have propagated
   expect(spy).toHaveBeenCalledTimes(1);
-  expect(vm.name.get()).toBe('Bob');
+  expect(name.get()).toBe('Bob');
 });
 ```
 
@@ -735,6 +764,7 @@ import type {
   EffectFn,
   CleanupFn,
   EffectOptions,
+  DebouncedSignal,
 } from '@web-loom/signals-core';
 ```
 
@@ -748,7 +778,7 @@ import type {
 - Use `batch` when a single action updates more than one signal to avoid intermediate renders.
 - Use `untracked` inside effects when you need to read a signal as a snapshot without subscribing to its changes.
 - Prefer `peek()` over `get()` for reading a signal's current value inside an action that should not register a dependency.
-- Add `debugName` to signals during development to make DevTools output easier to read.
+- Use `observe()` instead of `subscribe()` when a listener needs the current value immediately.
 
 ## See Also
 

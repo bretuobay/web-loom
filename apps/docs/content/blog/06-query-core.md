@@ -20,9 +20,9 @@ Redux offered a way to cache data in a global store, but it required reducers, a
 
 Apollo Client solved this elegantly for GraphQL: every query result was cached by its query + variables, normalised into an entity store, and automatically updated when mutations returned data. The tradeoff was that it required GraphQL — you couldn't use it with REST without significant adaptation.
 
-Vercel's `swr` library (2019) brought the stale-while-revalidate pattern to React without requiring GraphQL. React Query (2020) went further, adding window focus refetching, online/offline handling, query invalidation, and mutation support. Both were React-specific.
+Vercel's `swr` library (2019) brought the stale-while-revalidate pattern to React without requiring GraphQL. React Query (late 2019) went further, adding window focus refetching, online/offline handling, query invalidation, and mutation support. Both started out React-specific.
 
-TanStack Query 5 partially decoupled from React — you can use the core without a UI framework. But the primary API is still built around React hooks.
+TanStack Query (v4 onward) split out a framework-agnostic `query-core` with adapters for several frameworks. But its primary API is still a set of per-framework hooks and composables.
 
 `@web-loom/query-core` takes the same ideas and implements them as a framework-agnostic class that fits naturally into Web Loom's Model layer.
 
@@ -51,17 +51,17 @@ Three cache providers are built in:
 ### Defining an Endpoint
 
 ```typescript
-query.defineEndpoint('products', () => fetch('/api/products').then((r) => r.json()), {
+await query.defineEndpoint('products', () => fetch('/api/products').then((r) => r.json()), {
   refetchAfter: 2 * 60_000, // 2-minute stale time
 });
 
-query.defineEndpoint('user-profile', () => fetch('/api/me').then((r) => r.json()), {
+await query.defineEndpoint('user-profile', () => fetch('/api/me').then((r) => r.json()), {
   refetchAfter: 10 * 60_000,
   cacheProvider: 'localStorage', // persist this one across sessions
 });
 ```
 
-The first argument is the cache key. The second is an async fetcher function. The third is optional options that override the global defaults.
+The first argument is the cache key. The second is an async fetcher function. The third is optional options that override the global defaults. `defineEndpoint` is async (it loads any cached state first), so await it before subscribing — subscribing to an endpoint that isn't defined yet yields an error state.
 
 ### Subscribing to State
 
@@ -72,9 +72,8 @@ const unsubscribe = query.subscribe('products', (state) => {
   if (state.isError) showError(state.error);
   if (state.data) renderProducts(state.data);
 });
-
-// Trigger initial fetch
-await query.refetch('products');
+// Subscribing triggers a fetch automatically when there's no data yet
+// or the cached data is stale — no separate refetch call needed.
 
 // Stop receiving updates
 unsubscribe();
@@ -91,9 +90,9 @@ await query.refetch('products', false);
 // Force refetch regardless of stale time
 await query.refetch('products', true);
 
-// Invalidate marks the cache as stale without refetching
-// — the next `refetch(false)` will then actually fetch
-query.invalidate('products');
+// Invalidate removes the cached entry and clears `data` in the endpoint state
+// (subscribers see data: undefined) — the next refetch then actually fetches
+await query.invalidate('products');
 
 // Get current state without subscribing
 const state = query.getState('products');
@@ -127,7 +126,8 @@ class ProductModel extends BaseModel<Product[], never> {
   constructor() {
     super({});
 
-    // Subscribe to query state and forward it to BaseModel's observables
+    // Assumes `await queryCache.defineEndpoint('products', …)` already ran at startup.
+    // Subscribe to query state and forward it to BaseModel's signals
     queryCache.subscribe('products', (state) => {
       this.setLoading(state.isLoading);
       if (state.error) this.setError(state.error);
@@ -140,14 +140,14 @@ class ProductModel extends BaseModel<Product[], never> {
   }
 
   async invalidate(): Promise<void> {
-    queryCache.invalidate('products');
+    await queryCache.invalidate('products');
   }
 }
 ```
 
 The `ProductModel` is now cache-aware. The first call to `fetchAll()` fetches from the network. Subsequent calls within the `refetchAfter` window return immediately from cache without touching the network. When a mutation elsewhere invalidates `'products'`, the next fetch goes back to the network.
 
-The ViewModel sees this through the standard `data$`, `isLoading$`, and `error$` observables — it doesn't know or care that a cache is involved.
+The ViewModel sees this through the standard `data$`, `isLoading$`, and `error$` signals — it doesn't know or care that a cache is involved.
 
 ---
 
@@ -157,12 +157,12 @@ Cache keys can be dynamic — include the parameters in the key:
 
 ```typescript
 function defineUserQuery(userId: string) {
-  queryCache.defineEndpoint(`user:${userId}`, () => fetch(`/api/users/${userId}`).then((r) => r.json()), {
+  return queryCache.defineEndpoint(`user:${userId}`, () => fetch(`/api/users/${userId}`).then((r) => r.json()), {
     refetchAfter: 5 * 60_000,
   });
 }
 
-defineUserQuery('u-123');
+await defineUserQuery('u-123');
 await queryCache.refetch('user:u-123');
 ```
 
@@ -172,18 +172,19 @@ Each `userId` gets its own cache entry. Invalidating `'user:u-123'` does not aff
 
 ## Custom Cache Providers
 
-The `CacheProvider` interface is three methods:
+The `CacheProvider` interface is three required methods plus an optional `clearAll`:
 
 ```typescript
 interface CacheProvider {
-  get<T>(key: string): Promise<CachedItem<T> | null>;
+  get<T>(key: string): Promise<CachedItem<T> | undefined>;
   set<T>(key: string, item: CachedItem<T>): Promise<void>;
-  delete(key: string): Promise<void>;
+  remove(key: string): Promise<void>;
+  clearAll?(): Promise<void>;
 }
 
 interface CachedItem<T> {
   data: T;
-  timestamp: number;
+  lastUpdated: number;
 }
 ```
 
@@ -191,10 +192,10 @@ Implement it to cache against a service worker cache, IndexedDB with custom seri
 
 ```typescript
 class ServiceWorkerCacheProvider implements CacheProvider {
-  async get<T>(key: string): Promise<CachedItem<T> | null> {
+  async get<T>(key: string): Promise<CachedItem<T> | undefined> {
     const cache = await caches.open('app-data');
     const response = await cache.match(`/cache/${key}`);
-    if (!response) return null;
+    if (!response) return undefined;
     return response.json();
   }
 
@@ -203,7 +204,7 @@ class ServiceWorkerCacheProvider implements CacheProvider {
     await cache.put(`/cache/${key}`, new Response(JSON.stringify(item)));
   }
 
-  async delete(key: string): Promise<void> {
+  async remove(key: string): Promise<void> {
     const cache = await caches.open('app-data');
     await cache.delete(`/cache/${key}`);
   }
@@ -252,7 +253,7 @@ describe('QueryCore', () => {
     const query = new QueryCore({ defaultRefetchAfter: 60_000 });
     const fetcher = vi.fn().mockResolvedValue([{ id: 1, name: 'Product' }]);
 
-    query.defineEndpoint('test', fetcher);
+    await query.defineEndpoint('test', fetcher);
     await query.refetch('test');
     await query.refetch('test', false); // should not call fetcher again
 
@@ -264,7 +265,7 @@ describe('QueryCore', () => {
     const query = new QueryCore({ defaultRefetchAfter: 60_000 });
     const fetcher = vi.fn().mockResolvedValue([]);
 
-    query.defineEndpoint('test', fetcher);
+    await query.defineEndpoint('test', fetcher);
     await query.refetch('test');
     await query.refetch('test', true); // force
 

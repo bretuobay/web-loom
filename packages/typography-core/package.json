@@ -54,6 +54,6 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
-    "@web-loom/design-core": "*"
+    "@web-loom/design-core": "workspace:*"
   }
 }

@@ -27,23 +27,24 @@ In Web Loom's architecture, the event bus is the communication layer between Vie
 ## Creating an Event Bus
 
 ```typescript
-import { createEventBus } from '@web-loom/event-bus-core';
+import { createEventBus, type EventMap } from '@web-loom/event-bus-core';
 
-// Define the application's event contract — typically in a shared file
-interface AppEventMap {
-  'cart:item-added': { productId: string; quantity: number; price: number };
-  'cart:item-removed': { productId: string };
-  'cart:cleared': void;
-  'user:logged-in': { userId: string; name: string };
-  'user:logged-out': void;
-  'order:placed': { orderId: string; total: number };
-  'notification:show': { message: string; type: 'info' | 'success' | 'error' };
+// Define the application's event contract — typically in a shared file.
+// Each value is a tuple of the arguments listeners receive ([] for no payload).
+interface AppEventMap extends EventMap {
+  'cart:item-added': [{ productId: string; quantity: number; price: number }];
+  'cart:item-removed': [{ productId: string }];
+  'cart:cleared': [];
+  'user:logged-in': [{ userId: string; name: string }];
+  'user:logged-out': [];
+  'order:placed': [{ orderId: string; total: number }];
+  'notification:show': [{ message: string; type: 'info' | 'success' | 'error' }];
 }
 
 export const appBus = createEventBus<AppEventMap>();
 ```
 
-`createEventBus<M>()` returns an `EventBus<M>` instance. It's a thin wrapper around `EventEmitter` from `event-emitter-core`, providing the same API with the same type safety.
+`createEventBus<M>()` returns an `EventBus<M>` instance. It's built on `EventEmitter` from `event-emitter-core`, but exposes a smaller API: `on` (which also accepts an array of event names), `once`, `off` and `emit`. Unlike the emitter, `on` and `once` don't return an unsubscribe function — keep a reference to the listener and call `off`.
 
 You typically export this as a singleton — one bus per application feature domain, or one bus for the whole app depending on scale.
 
@@ -140,20 +141,22 @@ For larger applications, a single global bus can become a maintenance problem �
 
 ```typescript
 // events/auth-bus.ts
-interface AuthEvents {
-  'login:success': { userId: string; role: string };
-  'login:failed': { reason: string; attempt: number };
-  logout: void;
-  'password:reset': { email: string };
+import { createEventBus, type EventMap } from '@web-loom/event-bus-core';
+
+interface AuthEvents extends EventMap {
+  'login:success': [{ userId: string; role: string }];
+  'login:failed': [{ reason: string; attempt: number }];
+  logout: [];
+  'password:reset': [{ email: string }];
 }
 export const authBus = createEventBus<AuthEvents>();
 
 // events/cart-bus.ts
-interface CartEvents {
-  'item:added': { productId: string; quantity: number };
-  'item:removed': { productId: string };
-  'checkout:started': void;
-  'order:confirmed': { orderId: string };
+interface CartEvents extends EventMap {
+  'item:added': [{ productId: string; quantity: number }];
+  'item:removed': [{ productId: string }];
+  'checkout:started': [];
+  'order:confirmed': [{ orderId: string }];
 }
 export const cartBus = createEventBus<CartEvents>();
 ```
@@ -217,7 +220,7 @@ it('emits cart:item-added with correct payload', async () => {
   const bus = createEventBus<AppEventMap>();
   const model = new CartModel(mockApi, bus);
 
-  const received: AppEventMap['cart:item-added'][] = [];
+  const received: AppEventMap['cart:item-added'][0][] = [];
   bus.on('cart:item-added', (e) => received.push(e));
 
   await model.addToCart({ id: 'p1', price: 29.99 }, 2);
@@ -267,7 +270,7 @@ npm install @web-loom/event-bus-core
 
 `@web-loom/event-emitter-core` is the only dependency — it's installed automatically.
 
-The package re-exports its types from `event-emitter-core` so you don't need to import from two places when working with both.
+The package defines its own `EventMap`, `EventBus` and `Listener` types, so you don't need to import anything from `event-emitter-core` to use the bus.
 
 ---
 

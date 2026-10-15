@@ -17,32 +17,33 @@ jobs:
         uses: actions/checkout@v4
 
       # Rollup native binaries work reliably on Node 20 & 22, NOT 23
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: 'pnpm'
 
-      # Prevent npm optional-dep failure by fully cleaning install
+      # Install workspace dependencies (frozen lockfile)
       - name: Clean install
         run: |
           rm -rf node_modules
-          rm -f package-lock.json
-          npm i
+          pnpm install --frozen-lockfile
 
       # Ensure Vite and build dependencies are properly resolved
       - name: Rebuild build dependencies
-        run: npm rebuild --workspace=@web-loom/design-core
+        run: pnpm --filter @web-loom/design-core rebuild
 
       # Generate CSS tokens before building
       - name: Generate CSS tokens
-        run: npm run generate:css --workspace=@web-loom/design-core
+        run: pnpm --filter @web-loom/design-core run generate:css
 
       - name: Run tests for @web-loom/design-core
-        run: npm test --workspace=@web-loom/design-core
+        run: pnpm --filter @web-loom/design-core test
 
       - name: Build @web-loom/design-core
-        run: npx turbo run build --filter=@web-loom/design-core # Runs 'vite build' in packages/design-core
+        run: pnpm exec turbo run build --filter=@web-loom/design-core # Runs 'vite build' in packages/design-core
 
       - name: Upload build artifacts (Optional)
         uses: actions/upload-artifact@v4

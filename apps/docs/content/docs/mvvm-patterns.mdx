@@ -14,6 +14,8 @@ topicSlug: 'packages'
 
 ## Installation
 
+> `@web-loom/mvvm-patterns` is **not yet published to npm**. It lives in the Web Loom monorepo (`packages/mvvm-patterns`); inside the workspace, depend on it with `"@web-loom/mvvm-patterns": "workspace:^"`. Once published, it will install with:
+
 ```bash
 npm install @web-loom/mvvm-patterns @web-loom/mvvm-core
 ```
@@ -47,7 +49,10 @@ The base class for all interaction requests. Wrap one inside a ViewModel and cal
 ```typescript
 import { InteractionRequest } from '@web-loom/mvvm-patterns';
 
-interface DeleteContext {
+import type { INotification } from '@web-loom/mvvm-patterns';
+
+// Context types must extend INotification ({ title?: string; content: string })
+interface DeleteContext extends INotification {
   itemName: string;
   confirmed?: boolean;
 }
@@ -57,7 +62,7 @@ class ItemViewModel extends BaseViewModel<ItemModel> {
   readonly deleteRequest = new InteractionRequest<DeleteContext>();
 
   readonly deleteCommand = new Command(async (itemName: string) => {
-    const context = await this.deleteRequest.raiseAsync({ itemName });
+    const context = await this.deleteRequest.raiseAsync({ content: `Delete ${itemName}?`, itemName });
     if (context.confirmed) {
       await this.model.delete(itemName);
     }
@@ -285,12 +290,12 @@ interface ISelectionRequest<T = string> {
 
 ## Custom Interaction Requests
 
-Extend `InteractionRequest<T>` with any context type to create domain-specific interactions.
+Extend `InteractionRequest<T>` to create domain-specific interactions. `T` must extend `INotification` (`{ title?: string; content: string }`), so every context carries at least a `content` string.
 
 ```typescript
-import { InteractionRequest } from '@web-loom/mvvm-patterns';
+import { InteractionRequest, type INotification } from '@web-loom/mvvm-patterns';
 
-interface ColorPickerContext {
+interface ColorPickerContext extends INotification {
   initialColor: string;
   selectedColor?: string;
 }
@@ -302,6 +307,7 @@ class ThemeViewModel extends BaseViewModel<ThemeModel> {
 
   readonly changeAccentCommand = new Command(async () => {
     const result = await this.colorPickerRequest.raiseAsync({
+      content: 'Pick an accent color',
       initialColor: this.model.accentColor,
     });
 
@@ -386,9 +392,10 @@ Any class can implement `IActiveAware` directly if it should not extend `ActiveA
 import type { IActiveAware } from '@web-loom/mvvm-patterns';
 import { isActiveAware } from '@web-loom/mvvm-patterns';
 
-// Type guard to check at runtime
+// Type guard to check at runtime. IActiveAware only declares isActive / isActive$;
+// activate()/deactivate() are methods of the ActiveAwareViewModel class.
 if (isActiveAware(someViewModel)) {
-  someViewModel.activate();
+  someViewModel.isActive = true;
 }
 ```
 
@@ -455,7 +462,9 @@ class TabShellViewModel extends BaseViewModel<TabModel> {
 | Member | Type | Description |
 |--------|------|-------------|
 | `requested$` | `EventSubscribable<InteractionRequestedEvent<T>>` | Fires when `raiseAsync` is called. Subscribe in the View; `.subscribe(fn)` returns a plain unsubscribe function. |
+| `raise(context, callback?)` | `void` | Emits a request event; the View calls `callback` with the response. |
 | `raiseAsync(context)` | `Promise<T>` | Emits a request event and awaits the View callback. Resolves with the (mutated) context. |
+| `dispose()` | `void` | Releases `requested$` listeners. |
 
 ### ActiveAwareViewModel
 

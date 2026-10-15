@@ -65,7 +65,7 @@ interface WritableSignal<T> {
   set(next: T): void;
   update(fn: (prev: T) => T): void;
   asReadonly(): ReadonlySignal<T>;
-  subscribe(fn: () => void): () => void;
+  subscribe(fn: (value: T) => void): () => void; // future changes only; zero-arg listeners also work
 }
 ```
 
@@ -75,7 +75,7 @@ interface WritableSignal<T> {
 interface ReadonlySignal<T> {
   get(): T;
   peek(): T;
-  subscribe(fn: () => void): () => void;
+  subscribe(fn: (value: T) => void): () => void; // future changes only; zero-arg listeners also work
 }
 ```
 
@@ -235,6 +235,40 @@ isWritableSignal(signal(0).asReadonly()); // false
 isWritableSignal(computed(() => 1)); // false
 ```
 
+### `observe(sig, fn)`
+
+Like `subscribe()`, but calls `fn` immediately with the current value (read untracked via `peek()`), then on every change — the emit-on-subscribe behaviour of an RxJS `BehaviorSubject`. Returns an unsubscribe function.
+
+```ts
+import { signal, observe } from '@web-loom/signals-core';
+
+const count = signal(1);
+const stop = observe(count, (v) => console.log(v)); // logs 1 immediately
+count.set(2); // logs 2
+stop();
+```
+
+### `debouncedSignal(source, ms)`
+
+A read-only `DebouncedSignal<T>` that follows `source` but only settles after `ms` milliseconds without changes (trailing value wins). Call `dispose()` to cancel any pending update and detach from the source.
+
+```ts
+import { signal, debouncedSignal } from '@web-loom/signals-core';
+
+const query = signal('');
+const debounced = debouncedSignal(query, 300);
+// ...
+debounced.dispose();
+```
+
+### RxJS interop (`@web-loom/signals-core/rxjs`)
+
+The main entry has no dependencies. For RxJS codebases, an optional subpath provides `toObservable(signal)` (current value first, then every change) and `fromObservable(observable, initialValue)`. It requires `rxjs` as a peer dependency:
+
+```ts
+import { toObservable, fromObservable } from '@web-loom/signals-core/rxjs';
+```
+
 ---
 
 ## Encapsulation pattern
@@ -272,6 +306,7 @@ import type {
   EffectFn,
   CleanupFn,
   EffectOptions,
+  DebouncedSignal,
 } from '@web-loom/signals-core';
 ```
 

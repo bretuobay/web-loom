@@ -71,9 +71,9 @@ Every `BaseModel` exposes three public signals:
 
 Read the current value synchronously with `.get()` (tracked, for use inside `computed()`/`effect()`) or `.peek()` (untracked). `.subscribe(fn)` only fires on *future* changes — it does not replay the current value to a new subscriber. If you need BehaviorSubject-style "deliver now, then on every change" semantics, use `observe(sig, fn)` from `@web-loom/signals-core` instead of `.subscribe()`.
 
-### Protected Methods
+### State-Update Methods
 
-Subclasses (and ViewModels, rarely) call these methods to update state:
+These methods are `public` in the class definition, but by convention only the Model itself (and its subclasses) should call them to update state:
 
 - **`setData(data)`** — update `data$` with a new value
 - **`setLoading(isLoading)`** — toggle the loading flag
@@ -202,13 +202,14 @@ This pattern keeps the UI feeling fast without requiring the ViewModel to manage
 
 ### Concrete Example: GreenHouseModel
 
-From `packages/models/src/GreenHouseModel.ts` — a minimal model managing a list of greenhouses:
+Adapted from `packages/models/src/GreenHouseModel.ts` — a minimal model managing a list of greenhouses (the real file imports its schema from `./schemas` and its fetcher/registry from local modules):
 
 ```typescript
 import { RestfulApiModel } from '@web-loom/mvvm-core';
 import { z } from 'zod';
-import { nativeFetcher } from '@repo/http';
-import { apiRegistry } from '@repo/api-registry';
+import { nativeFetcher } from './utils/fetcher';
+import { apiRegistry } from './services/services';
+import { API_BASE_URL } from './config';
 
 const CreateGreenhouseSchema = z.object({
   id: z.string().uuid().optional(),
@@ -230,7 +231,7 @@ export class GreenHouseModel extends RestfulApiModel<
   constructor() {
     super({
       baseUrl: API_BASE_URL,
-      endpoint: apiRegistry.greenhouses.path,
+      endpoint: apiRegistry.greenhouse.list.path,
       fetcher: nativeFetcher,
       schema: GreenhouseListSchema,
       initialData: [],
@@ -341,7 +342,7 @@ export class AuthModel extends RestfulApiModel<UserData, typeof UserSchema> {
 }
 ```
 
-`AuthModel` shows the pattern for adding model-specific observables (`token$`) and custom imperative methods (`signIn`, `signOut`) on top of `RestfulApiModel`.
+`AuthModel` shows the pattern for adding model-specific signals (`token$`) and custom imperative methods (`signIn`, `signOut`) on top of `RestfulApiModel`.
 
 ---
 
@@ -358,7 +359,6 @@ Until it's exported, compose `BaseModel` with `@web-loom/query-core` directly: s
 For state that never leaves the browser, extend `BaseModel` directly without HTTP concerns:
 
 ```typescript
-// From packages/mvvm-core/src/examples/
 const TodoSchema = z.object({
   id: z.string().uuid(),
   text: z.string().min(1),
@@ -366,11 +366,12 @@ const TodoSchema = z.object({
   createdAt: z.string().datetime().optional(),
 });
 
+const TodoListSchema = z.array(TodoSchema);
 type TodoData = z.infer<typeof TodoSchema>;
 
-class TodoListModel extends BaseModel<TodoData[], typeof z.array(TodoSchema)> {
+class TodoListModel extends BaseModel<TodoData[], typeof TodoListSchema> {
   constructor() {
-    super({ initialData: [], schema: z.array(TodoSchema) });
+    super({ initialData: [], schema: TodoListSchema });
   }
 
   addTodo(text: string) {
@@ -519,19 +520,23 @@ Mock the fetcher to avoid real HTTP calls:
 
 ```typescript
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { RestfulTodoListModel } from '@web-loom/mvvm-core/examples';
+import { RestfulApiModel } from '@web-loom/mvvm-core';
+import { z } from 'zod';
 
+const TodoListSchema = z.array(z.object({ id: z.string(), text: z.string(), isCompleted: z.boolean() }));
 const mockFetcher = vi.fn();
 
+// A fetcher may resolve to a Response or to already-parsed data, as here.
 const createModel = () =>
-  new RestfulTodoListModel({
+  new RestfulApiModel<z.infer<typeof TodoListSchema>, typeof TodoListSchema>({
     baseUrl: 'https://api.test.com',
     endpoint: '/todos',
     fetcher: mockFetcher,
+    schema: TodoListSchema,
     initialData: [],
   });
 
-describe('RestfulTodoListModel', () => {
+describe('RestfulApiModel (todos)', () => {
   beforeEach(() => mockFetcher.mockReset());
 
   it('fetches and populates data$', async () => {
@@ -550,7 +555,8 @@ describe('RestfulTodoListModel', () => {
     mockFetcher.mockRejectedValue(new Error('Network error'));
 
     const model = createModel();
-    await model.fetch();
+    // fetch() records the error in error$ and re-throws it
+    await expect(model.fetch()).rejects.toThrow('Network error');
 
     expect(model.error$.peek()).toBeInstanceOf(Error);
     model.dispose();
@@ -561,9 +567,9 @@ describe('RestfulTodoListModel', () => {
 
     const model = createModel();
     // Pre-populate
-    model['setData']([{ id: '1', text: 'Existing', isCompleted: false }]);
+    model.setData([{ id: '1', text: 'Existing', isCompleted: false }]);
 
-    await model.create({ text: 'New todo', isCompleted: false });
+    await expect(model.create({ text: 'New todo', isCompleted: false })).rejects.toThrow('Server error');
 
     // Should be rolled back to before the create
     const data = model.data$.peek();
@@ -622,14 +628,11 @@ class TaskModel extends RestfulApiModel<Task[], typeof TaskListSchema> {
 ### Do: Use a Single Source of Truth Per Domain
 
 ```typescript
-// ✅ Good — one AuthModel shared across ViewModels
-class AppViewModel extends BaseViewModel {
-  readonly auth = container.get(AuthModel); // singleton from DI container
-}
+// ✅ Good — one AuthModel instance shared across ViewModels
+export const authModel = new AuthModel(); // module-level singleton
 
-class ProfileViewModel extends BaseViewModel {
-  readonly auth = container.get(AuthModel); // same instance
-}
+const appViewModel = new AppViewModel(authModel);
+const profileViewModel = new ProfileViewModel(authModel); // same instance
 ```
 
 ```typescript
@@ -705,7 +708,7 @@ class UserViewModel extends BaseViewModel<UserModel> {
 
 ### Don't: Call setData/setLoading/setError from the ViewModel
 
-These are protected methods for the Model to manage its own internals. ViewModels should only read observables and call model methods.
+These methods are public, but they exist for the Model to manage its own internals. ViewModels should only read signals and call model methods.
 
 ```typescript
 // ❌ Bad

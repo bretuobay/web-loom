@@ -1,6 +1,6 @@
 ---
 title: 'ViewModels'
-summary: 'Deep dive into the ViewModel layer — BaseViewModel, Commands, RestfulApiViewModel, FormViewModel, QueryableCollectionViewModel, and real-world implementations from the Web Loom example apps.'
+summary: 'Deep dive into the ViewModel layer — BaseViewModel, Commands, RestfulApiViewModel, and real-world implementations from the Web Loom example apps.'
 topicTitle: 'MVVM Core'
 topicSlug: 'mvvm-core'
 prevTitle: 'Models'
@@ -20,9 +20,11 @@ The ViewModel sits between the Model and the View. It reads Model signals, deriv
 ## ViewModel Class Overview
 
 ```
-BaseViewModel<TModel>
-  └── RestfulApiViewModel<TData, TSchema>   — CRUD commands for REST resources
+BaseViewModel<TModel>                      — wraps any BaseModel; registerCommand / addSubscription
+RestfulApiViewModel<TData, TSchema>        — standalone class wrapping a RestfulApiModel; built-in CRUD commands
 ```
+
+The two are siblings, not parent and child: `RestfulApiViewModel` does **not** extend `BaseViewModel`, so it has no `registerCommand()`, `addSubscription()` or `validationErrors$`.
 
 > `FormViewModel<TData>` and `QueryableCollectionViewModel<T>` also exist in `mvvm-core`'s source, but aren't exported from its public entry point yet — see the note near the bottom of this page before relying on them.
 
@@ -39,8 +41,8 @@ import { BaseViewModel } from '@web-loom/mvvm-core';
 import { UserModel } from './models/UserModel';
 
 class UserProfileViewModel extends BaseViewModel<UserModel> {
-  constructor(private readonly model: UserModel) {
-    super(model);
+  constructor(model: UserModel) {
+    super(model); // stored as the protected `this.model`; don't redeclare it as a parameter property
   }
 }
 
@@ -145,16 +147,18 @@ class SaveViewModel extends BaseViewModel<DocumentModel> {
 }
 ```
 
-In the View (React):
+In the View (React), read the command's signals through a bridge such as [`useSignal`](/docs/mvvm-react-use-case):
 
 ```tsx
-<button
-  onClick={() => vm.saveCommand.execute()}
-  disabled={!vm.saveCommand.canExecute}
->
-  {vm.saveCommand.isExecuting ? 'Saving…' : 'Save'}
+const canSave  = useSignal(vm.saveCommand.canExecute$);
+const isSaving = useSignal(vm.saveCommand.isExecuting$);
+
+<button onClick={() => vm.saveCommand.execute().catch(() => {})} disabled={!canSave}>
+  {isSaving ? 'Saving…' : 'Save'}
 </button>
 ```
+
+`execute()` sets `executeError$` and re-throws when the action fails, so the View handles (or deliberately ignores) the rejected Promise.
 
 ### canExecute Conditions
 
@@ -217,7 +221,7 @@ readonly signInCommand = Command.create<SignInPayload, AuthTokenResponse>()
 
 ## RestfulApiViewModel
 
-`RestfulApiViewModel<TData, TSchema>` wraps a `RestfulApiModel` and exposes pre-built CRUD commands. For most REST resources, you extend this class rather than `BaseViewModel` directly.
+`RestfulApiViewModel<TData, TSchema>` wraps a `RestfulApiModel` and exposes pre-built CRUD commands. For most REST resources, you extend this class rather than `BaseViewModel`. It is a standalone class (not a `BaseViewModel` subclass): it exposes `data$`, `isLoading$`, `error$`, the commands below, selection, and `dispose()`.
 
 ### Built-in Commands
 
@@ -246,9 +250,9 @@ vm.selectedItem$.subscribe(item => renderDetailPanel(item));
 For simple CRUD resources, the class body can be nearly empty:
 
 ```typescript
+// packages/view-models/src/SensorViewModel.ts
 import { RestfulApiViewModel } from '@web-loom/mvvm-core';
-import { SensorModel } from '@repo/models';
-import { SensorListData, SensorListSchema } from '@repo/schemas';
+import { SensorListSchema, type SensorListData, SensorModel } from '@repo/models';
 
 export class SensorViewModel extends RestfulApiViewModel<
   SensorListData,
@@ -270,28 +274,26 @@ vm.deleteCommand.execute('sensor-uuid');
 Extend the class to add business-specific actions on top of the inherited CRUD:
 
 ```typescript
-// From packages/mvvm-core/src/examples/viewmodels/RestfulTodoViewModel.ts
-export class RestfulTodoViewModel extends RestfulApiViewModel<
-  RestfulTodoListData,
-  typeof RestfulTodoListSchema
-> {
-  // Domain-specific add command with reduced payload (no id, no timestamps)
-  readonly addTodoCommand = this.registerCommand(
-    new Command<Pick<RestfulTodoData, 'text' | 'isCompleted'>>(
-      async (payload) => {
-        await this.createCommand.execute(payload);
-      }
-    )
-  );
+export class TodoViewModel extends RestfulApiViewModel<TodoListData, typeof TodoListSchema> {
+  // Domain-specific add command with reduced payload (no id, no timestamps).
+  // RestfulApiViewModel has no registerCommand(), so dispose extra commands yourself.
+  readonly addTodoCommand = new Command<Pick<TodoData, 'text' | 'isCompleted'>>(async (payload) => {
+    await this.createCommand.execute(payload);
+  });
 
   // Toggle as a named action — clearer intent than calling updateCommand directly
   async toggleTodoCompletion(id: string) {
-    const todo = this.getCurrentItemById(id);
+    const todo = this.data$.peek()?.find((t) => t.id === id);
     if (!todo) return;
     await this.updateCommand.execute({
       id,
       payload: { isCompleted: !todo.isCompleted },
     });
+  }
+
+  override dispose() {
+    this.addTodoCommand.dispose();
+    super.dispose();
   }
 }
 ```
@@ -307,7 +309,7 @@ export class RestfulTodoViewModel extends RestfulApiViewModel<
 
 Until these are exported:
 
-- For form handling, use [`@web-loom/forms-core`](https://www.npmjs.com/package/@web-loom/forms-core) with its React/Vue/vanilla adapters.
+- For form handling, use [`@web-loom/forms-core`](https://www.npmjs.com/package/@web-loom/forms-core). Its React/Vue/vanilla adapters live in the separate `web-loom-extensions` repo and are not yet on npm.
 - For filter/sort/pagination, derive the state yourself with `computed()` and a `debouncedSignal()` over an `ObservableCollection`'s `items$`, or a plain `signal()` holding the current page/sort/filter parameters.
 
 ---
@@ -417,9 +419,10 @@ describe('TaskViewModel', () => {
     expect(spy).toHaveBeenCalledOnce();
   });
 
-  it('fetchCommand is disabled while loading', () => {
-    // Simulate loading state
-    model['setLoading'](true);
+  it('fetchCommand is disabled while it is executing', () => {
+    vi.spyOn(model, 'fetch').mockReturnValue(new Promise(() => {})); // never settles
+
+    void vm.fetchCommand.execute();
 
     expect(vm.fetchCommand.canExecute$.peek()).toBe(false);
   });
@@ -435,14 +438,17 @@ it('isAuthenticated$ is false before sign in', () => {
   vm.dispose();
 });
 
-it('isAuthenticated$ is true after successful sign in', async () => {
+it('sessionResult$ holds the sign-in response', async () => {
   const model = new AuthModel();
-  vi.spyOn(model, 'signIn').mockResolvedValue({ token: 'abc' });
+  const response = { token: 'abc' } as AuthTokenResponseData;
+  vi.spyOn(model, 'signIn').mockResolvedValue(response);
 
   const vm = new AuthViewModel(model);
   await vm.signInCommand.execute({ email: 'a@b.com', password: 'pass' });
 
-  expect(vm.isAuthenticated$.peek()).toBe(true);
+  // isAuthenticated$ follows model.token$, which the mocked signIn never sets,
+  // so assert on what the ViewModel itself records.
+  expect(vm.sessionResult$.peek()).toBe(response);
   vm.dispose();
 });
 ```
@@ -494,7 +500,7 @@ class TaskViewModel extends BaseViewModel<TaskModel> {
 }
 
 // View just binds
-<span>{vm.hasOverdueTasks ? 'Overdue!' : 'All clear'}</span>
+<span>{useSignal(vm.hasOverdueTasks$) ? 'Overdue!' : 'All clear'}</span>
 <button onClick={() => vm.markDoneCommand.execute(task.id)}>Done</button>
 ```
 

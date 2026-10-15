@@ -42,9 +42,9 @@ The web got seventeen state management libraries. Same problem. Different market
 
 ## What `@web-loom/mvvm-core` Provides
 
-The package exports six things: `BaseModel`, `BaseViewModel`, `Command`, `CompositeCommand`, `RestfulApiModel`, and `RestfulApiViewModel`. There's also `ObservableCollection` and `BusyState` for tracking complex async operations.
+The core of the package is six classes: `BaseModel`, `BaseViewModel`, `Command`, `CompositeCommand`, `RestfulApiModel`, and `RestfulApiViewModel`. It also exports `ObservableCollection`, `BusyState` for tracking complex async operations, and a few utilities such as the `createReactiveViewModel` factory.
 
-All of them are plain TypeScript classes. No framework imports. `@web-loom/signals-core` — a zero-dependency, pure-JavaScript reactive primitive — is the only dependency.
+All of them are plain TypeScript classes. No framework imports. The runtime dependencies are `@web-loom/signals-core` (a small reactive primitive with no dependencies of its own), `@web-loom/query-core` and `zod`.
 
 ### The Model
 
@@ -60,11 +60,12 @@ const TaskSchema = z.object({
   done: z.boolean(),
 });
 
+const TaskListSchema = TaskSchema.array();
 type Task = z.infer<typeof TaskSchema>;
 
-class TaskModel extends BaseModel<Task[], typeof TaskSchema> {
+class TaskModel extends BaseModel<Task[], typeof TaskListSchema> {
   constructor() {
-    super({ schema: TaskSchema.array() });
+    super({ initialData: [], schema: TaskListSchema });
   }
 
   async fetchAll(): Promise<void> {
@@ -159,11 +160,13 @@ The ViewModel sits above the framework. Connecting it means writing one thin sub
 **React:**
 
 ```tsx
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
 
 function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 function TaskList() {
@@ -244,18 +247,17 @@ describe('TaskListViewModel', () => {
     vm.dispose();
   });
 
-  it('sets loading during fetch', async () => {
+  it('reports executing while the fetch runs', async () => {
     const model = new TaskModel();
     vi.spyOn(model, 'fetchAll').mockResolvedValue(undefined);
     const vm = new TaskListViewModel(model);
 
-    const loadingStates: boolean[] = [];
-    vm.isLoading$.subscribe((v) => loadingStates.push(v));
+    const executingStates: boolean[] = [];
+    vm.fetchCommand.isExecuting$.subscribe((v) => executingStates.push(v));
 
     await vm.fetchCommand.execute();
 
-    expect(loadingStates).toContain(true);
-    expect(loadingStates[loadingStates.length - 1]).toBe(false);
+    expect(executingStates).toEqual([true, false]);
     vm.dispose();
   });
 });
@@ -272,7 +274,7 @@ One detail that separates well-structured MVVM code from messy MVVM code is cons
 1. Calls `dispose()` on each registered Command
 2. Runs every teardown registered via `addSubscription()` — the unsubscribe functions returned by any manual `sig.subscribe(...)`/`observe(...)` calls you made yourself
 
-You're expected to call `vm.dispose()` whenever a View unmounts. In React that's the return value of `useEffect`. In Vue it's `onUnmounted`. In Angular it's `ngOnDestroy`. In Web Components it's `disconnectedCallback`.
+You're expected to call `vm.dispose()` when whatever owns the ViewModel goes away — for a ViewModel created per component, when that View unmounts. In React that's the return value of `useEffect`. In Vue it's `onUnmounted`. In Angular it's `ngOnDestroy`. In Web Components it's `disconnectedCallback`. (An app-wide singleton ViewModel is never disposed by a component, because disposal is permanent.)
 
 If you forget, subscriptions keep running, event handlers keep firing, and you have a memory leak. This is true of any reactive system — signals, RxJS, MobX, Svelte stores. Web Loom makes the cleanup explicit and consistent rather than each developer reinventing a teardown strategy per component.
 
@@ -285,24 +287,31 @@ For the common case of a CRUD API, the package ships `RestfulApiModel` and `Rest
 ```typescript
 import { RestfulApiModel, RestfulApiViewModel } from '@web-loom/mvvm-core';
 
-class ProductModel extends RestfulApiModel<Product> {
+import { z } from 'zod';
+
+const ProductSchema = z.object({ id: z.string(), name: z.string(), price: z.number() });
+const ProductListSchema = z.array(ProductSchema);
+type ProductList = z.infer<typeof ProductListSchema>;
+
+class ProductModel extends RestfulApiModel<ProductList, typeof ProductListSchema> {
   constructor() {
     super({
-      fetcher: async () => {
-        const res = await fetch('/api/products');
-        return res.json();
-      },
+      baseUrl: 'https://api.example.com',
+      endpoint: '/products',
+      fetcher: (url, options) => fetch(url, options), // Response bodies are parsed for you
+      schema: ProductListSchema,
+      initialData: [],
     });
   }
 }
 
-class ProductViewModel extends RestfulApiViewModel<ProductModel> {}
+class ProductViewModel extends RestfulApiViewModel<ProductList, typeof ProductListSchema> {}
 
 const vm = new ProductViewModel(new ProductModel());
 vm.fetchCommand.execute(); // loads data, manages loading/error state
 ```
 
-`RestfulApiViewModel` comes with `fetchCommand`, `createCommand`, `updateCommand`, and `deleteCommand` pre-wired. For simpler applications, this gets you 80% of the way without writing any observable machinery yourself.
+`RestfulApiViewModel` comes with `fetchCommand`, `createCommand`, `updateCommand`, and `deleteCommand` pre-wired, and the Model applies creates, updates and deletes optimistically, rolling back on failure. For simpler applications, this gets you most of the way without writing any reactive machinery yourself. (`RestfulApiViewModel` is a standalone class, not a `BaseViewModel` subclass.)
 
 ---
 
@@ -324,12 +333,10 @@ The seam that looks like extra work on day one is the thing that makes migration
 npm install @web-loom/mvvm-core zod
 ```
 
-`@web-loom/signals-core` comes along as a dependency of `mvvm-core` — no separate install needed. TypeScript 5+ is recommended. RxJS is not required anywhere; it's only relevant if you want to bridge into an existing RxJS codebase via the optional `@web-loom/signals-core/rxjs` interop.
-
-The package is tree-shakeable — if you only use `BaseViewModel` and `Command`, that's all you'll ship.
+`@web-loom/signals-core` comes along as a dependency of `mvvm-core` — no separate install needed. TypeScript 5+ is recommended. Neither `mvvm-core` nor `signals-core` requires RxJS; it's only relevant if you want to bridge into an existing RxJS codebase via the optional `@web-loom/signals-core/rxjs` interop. (One published package, `@web-loom/forms-core`, still uses RxJS internally.)
 
 ---
 
-The rest of this series covers the packages that surround `mvvm-core`: the zero-dependency signals implementation that `mvvm-core` itself is built on, a typed event bus for cross-feature communication, a store for UI-only state, a query layer with stale-while-revalidate caching, and the higher-level MVVM patterns that handle dialogs, active-aware tabs, and other scenarios that don't fit in a plain ViewModel.
+The rest of this series covers the packages that surround `mvvm-core`: the dependency-free signals implementation that `mvvm-core` itself is built on, a typed event bus for cross-feature communication, a store for UI-only state, a query layer with stale-while-revalidate caching, and the higher-level MVVM patterns that handle dialogs, active-aware tabs, and other scenarios that don't fit in a plain ViewModel.
 
 Start with the core. Add the pieces you need.

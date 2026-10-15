@@ -5,5 +5,4 @@ set -e
 rm -rf node_modules
 rm -rf apps/*/node_modules
 rm -rf packages/*/node_modules
-rm -f package-lock.json
-npm install
+pnpm install

@@ -308,8 +308,10 @@ ${this.items.map(item => html`
 LitElement components can be tested with `@web/test-runner` or `@open-wc/testing`. But because the ViewModel has no Lit imports, ViewModel logic is tested independently with plain Vitest — no element registration, no DOM:
 
 ```typescript
+// @repo/view-models exports a ready-made greenHouseViewModel instance (built with
+// createReactiveViewModel), not a class — so tests build their own instance:
 it('filters greenhouses correctly', () => {
-  const vm = new GreenHouseViewModel(mockModel);
+  const vm = new RestfulApiViewModel(mockModel); // mockModel: a RestfulApiModel with a mocked fetcher
   (mockModel.data$ as WritableSignal<any>).set([
     { id: '1', name: 'Ventura North', size: '25sqm' },
     { id: '2', name: 'Eastfield', size: '100sqm' },

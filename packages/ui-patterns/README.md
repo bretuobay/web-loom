@@ -236,7 +236,7 @@ sidebar.destroy();
 
 ### Toast Queue Pattern
 
-Notification queue with auto-dismiss and priority support.
+Notification queue with per-toast auto-dismiss and positioning. (`maxVisible` and `defaultDuration` are stored in state but not currently enforced — pass a `duration` with every toast and cap the rendered list yourself.)
 
 ```typescript
 import { createToastQueue } from '@web-loom/ui-patterns';
@@ -315,9 +315,13 @@ palette.destroy();
 
 **Use cases**: IDE-style command palettes, quick actions, keyboard shortcuts
 
+### More Patterns
+
+The package also exports `createHubAndSpoke` (hub screen with spoke navigation, breadcrumbs and history), `createGridLayout` (responsive grid with keyboard focus and selection) and `createFloatingActionButton` (scroll-aware FAB visibility). See the [UI Patterns docs page](../../apps/docs/content/docs/ui-patterns.mdx) for their APIs.
+
 ## Event Bus Integration
 
-All patterns include an event bus for listening to pattern-specific events:
+Master-Detail, Modal, Sidebar Shell, Toast Queue, Hub-and-Spoke, Grid Layout and Floating Action Button expose an `eventBus` for pattern-specific events (`on()` returns nothing — remove listeners with `off()`):
 
 ```typescript
 const masterDetail = createMasterDetail({ ... });
@@ -440,16 +444,3 @@ import { createWizard } from '@web-loom/ui-patterns/patterns/wizard';
 ## License
 
 MIT
-
-### From the root README:
-
-#### [@web-loom/ui-patterns](packages/ui-patterns) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
-
-Composed UI patterns (Master-Detail, Wizard, Modal, Command Palette, Tabbed Interface, Sidebar Shell, Toast Queue). Built by composing ui-core behaviors.
-
-**Key features**: 7+ production patterns, event bus integration, validation support
-
-```typescript
-import { createWizard } from '@web-loom/ui-patterns';
-const wizard = createWizard({ steps: [...], onComplete: (data) => {...} });
-```

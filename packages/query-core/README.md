@@ -18,14 +18,10 @@ QueryCore is a lightweight, zero-dependency library for managing asynchronous da
 ## Installation
 
 ```bash
-# npm
-npm install query-core
-
-# yarn
-yarn add query-core
+npm install @web-loom/query-core
 ```
 
-_(Note: This assumes QueryCore will be published as an npm package. For now, you can use it directly from the `src` directory.)_
+No runtime dependencies.
 
 ## Core Concepts
 
@@ -34,7 +30,7 @@ _(Note: This assumes QueryCore will be published as an npm package. For now, you
 The main class you interact with. It manages all defined endpoints and global configurations.
 
 ```typescript
-import QueryCore from './src/QueryCore'; // Adjust path as needed
+import { QueryCore } from '@web-loom/query-core';
 
 const queryCore = new QueryCore({
   cacheProvider: 'indexedDB', // Default for all endpoints
@@ -56,7 +52,7 @@ export interface QueryCoreOptions {
 ```
 
 - `cacheProvider`: Specifies the default caching mechanism. Can be a string (`'inMemory'`, `'localStorage'`, `'indexedDB'`) or a custom object implementing the `CacheProvider` interface.
-- `defaultRefetchAfter`: A global default (in milliseconds) indicating how long data is considered fresh before a refetch is attempted upon subscription or window focus.
+- `defaultRefetchAfter`: A global default (in milliseconds) indicating how long data is considered fresh before a refetch is attempted upon subscription or when the tab becomes visible again.
 
 #### `EndpointOptions`
 
@@ -190,10 +186,10 @@ if (currentState.data) {
 }
 ```
 
-## Usage Example (Conceptual)
+## Usage Example
 
 ```typescript
-import QueryCore from './src/QueryCore';
+import { QueryCore } from '@web-loom/query-core';
 
 // 1. Initialize QueryCore
 const queryClient = new QueryCore({
@@ -276,21 +272,7 @@ const queryCore = new QueryCore({ cacheProvider: myCustomCache });
 ## Automatic Behaviors
 
 - **Stale-while-revalidate on subscribe:** If a component subscribes to an endpoint and its data is considered stale (based on `refetchAfter` and `lastUpdated`), QueryCore will automatically trigger a background refetch. The component will initially receive the stale data (if any) and then an update once the refetch completes.
-- **Refetch on window focus:** If the browser window/tab loses and then regains focus, QueryCore will refetch all currently observed (subscribed to) endpoints whose data is considered stale.
+- **Refetch on visibility change:** When the tab becomes visible again (`visibilitychange`), QueryCore refetches all currently observed (subscribed to) endpoints whose data is considered stale.
 - **Refetch on network reconnect:** If the browser goes offline and then comes back online, QueryCore will attempt to refetch all currently observed endpoints, assuming the data might be outdated.
 
 These automatic behaviors help keep application data fresh with minimal manual intervention.
-
-### From the root README:
-
-#### [@web-loom/query-core](packages/query-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
-
-Zero-dependency data fetching and caching library. Handles async data with automatic refetching and cache management.
-
-**Key features**: Automatic caching, background refetching, request deduplication
-
-```typescript
-import QueryCore from '@web-loom/query-core';
-const queryCore = new QueryCore();
-queryCore.defineEndpoint('users', () => fetch('/api/users'));
-```

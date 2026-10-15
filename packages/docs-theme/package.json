@@ -20,8 +20,14 @@
     "check-types": "tsc --noEmit",
     "test": "echo \"No tests for @repo/docs-theme\""
   },
-  "dependencies": {},
-  "devDependencies": {},
+  "dependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/typography": "^0.5.10"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/react": "19.2.4"
+  },
   "peerDependencies": {
     "@headlessui/react": "^2.1.1",
     "next": "^16.0.0",

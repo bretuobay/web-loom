@@ -187,7 +187,7 @@ Create and dispose a ViewModel per component instance:
 // composables/useTaskViewModel.ts
 import { onUnmounted } from 'vue';
 import { TaskViewModel } from './TaskViewModel';
-import { TaskModel } from '@repo/models';
+import { TaskModel } from './TaskModel'; // your own BaseModel subclass
 
 export function useTaskViewModel(taskId: string) {
   const vm = new TaskViewModel(new TaskModel(taskId));

@@ -8,9 +8,7 @@ Minimal client-side typography, color manipulation, and text animation library f
 
 ## Installation
 
-```bash
-npm install @web-loom/typography-core
-```
+> **Not yet published to npm.** `@web-loom/typography-core` is an internal package of the Web Loom monorepo. Inside the workspace, depend on it with `"@web-loom/typography-core": "workspace:^"`.
 
 ## Features
 
@@ -29,10 +27,10 @@ npm install @web-loom/typography-core
 - **AI Typography Assistant**: Suggest smart font pairings and optimization hints for each platform
 - **Typography Experiments**: Run lightweight A/B tests to compare type stacks
 - **Cross-Platform Scaling**: Generate React Native typography tokens and pixel-ratio aware sizing
-- **Color Utilities**: Lighten, darken, and compare colors with perceptual accuracy
+- **Color Utilities**: Compare colors with perceptual accuracy (lighten/darken helpers exist internally but aren't exported yet)
 - **Color Similarity**: Advanced color comparison using RGB, HSL, and LAB color spaces
 - **Text Animations**: Typewriter, fade-in, character reveal, and scale animations using Web Animations API
-- **Zero Dependencies**: Lightweight with no external dependencies
+- **Minimal Dependencies**: Its only runtime dependency is `@web-loom/design-core`
 - **Type-Safe**: Full TypeScript support
 
 ## Core APIs
@@ -87,12 +85,7 @@ const currentTheme = theme.getTheme();
 
 #### Lighten and Darken
 
-```typescript
-import { lighten, darken } from '@web-loom/typography-core';
-
-const lightBlue = lighten('#007bff', 20); // Lighten by 20%
-const darkBlue = darken('#007bff', 30); // Darken by 30%
-```
+`lighten(color, amount)` and `darken(color, amount)` are implemented in `src/color.ts` and used internally by `createTheme`, but they are **not exported** from the package entry yet, so they can't be imported from `@web-loom/typography-core`.
 
 #### Color Similarity
 
@@ -671,7 +664,10 @@ document.querySelectorAll('.feature-card').forEach((card, index) => {
 ### Accessibility-Friendly Color Contrast
 
 ```typescript
-import { lighten, darken, getHexColorSimilarityPercentage } from '@web-loom/typography-core';
+import { getHexColorSimilarityPercentage } from '@web-loom/typography-core';
+// lighten/darken are not exported yet — supply your own implementations
+declare function lighten(color: string, amount: number): string;
+declare function darken(color: string, amount: number): string;
 
 function ensureContrast(bgColor: string, textColor: string): string {
   const similarity = getHexColorSimilarityPercentage(bgColor, textColor, 'lab');
@@ -802,7 +798,7 @@ Animation types: `'typewriter'`, `'fadein'`, `'character'`, `'scale'`
 
 - ~3KB minified + gzipped
 - Tree-shakeable ESM build
-- Zero dependencies
+- One runtime dependency (`@web-loom/design-core`)
 
 ## Browser Support
 
@@ -816,11 +812,3 @@ For older browsers, consider polyfills for Web Animations API.
 ## License
 
 MIT
-
-### From the root README:
-
-#### [@web-loom/typography-core](packages/typography-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
-
-Typography and coloring utilities for design systems.
-
-**Key features**: Typography, color manipulation, theme system

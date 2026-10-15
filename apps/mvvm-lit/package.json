@@ -11,14 +11,15 @@
   },
   "dependencies": {
     "@lit-labs/router": "^0.1.3",
-    "@repo/shared": "*",
-    "@repo/view-models": "*",
+    "@repo/shared": "workspace:*",
+    "@repo/view-models": "workspace:*",
     "chart.js": "^4.5.1",
     "lit": "^3.1.4"
   },
   "devDependencies": {
     "@open-wc/testing": "^4.0.0",
     "@testing-library/jest-dom": "^6.4.6",
+    "@types/node": "^20.x.x",
     "typescript": "^5.2.2",
     "vite": "^6.4.3",
     "vitest": "^4.1.9"

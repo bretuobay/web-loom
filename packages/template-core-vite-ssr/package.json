@@ -30,7 +30,7 @@
     "vite": ">=6"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
+    "@repo/eslint-config": "workspace:*",
     "@types/node": "^22.15.3",
     "eslint": "^9.39.1",
     "typescript": "5.8.2",

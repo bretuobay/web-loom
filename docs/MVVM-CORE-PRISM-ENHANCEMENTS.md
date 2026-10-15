@@ -1,5 +1,7 @@
 # MVVM-Core Enhancement Roadmap: Prism-Inspired Features
 
+> **Historical document (2026-10).** This roadmap predates most of the work it describes, and its ❌/⚠️ status markers are out of date: `CompositeCommand`, `observesProperty`/`observesCanExecute`/`raiseCanExecuteChanged` and `BusyState` now exist in `@web-loom/mvvm-core`; `IActiveAware`/`ActiveAwareViewModel` and `InteractionRequest` in `@web-loom/mvvm-patterns`; `ErrorsContainer` and dirty tracking in `@web-loom/forms-core`. For current APIs see the docs site (`apps/docs/content/docs`) and each package's README.
+
 > **Note (2026-07):** mvvm-core's reactive substrate has migrated from RxJS to
 > `@web-loom/signals-core` (see `.kiro/specs/mvvm-core-signals-migration/`).
 > Observable-oriented roadmap items below now target signals — read

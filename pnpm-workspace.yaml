@@ -1,0 +1,14 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  esbuild: true
+  unrs-resolver: true
+  '@vscode/vsce-sign': true
+  keytar: true
+  lmdb: true
+  msgpackr-extract: true
+  sqlite3: true

@@ -11,7 +11,7 @@ Thank you for your interest in contributing to Web Loom! We welcome contribution
 ### Prerequisites
 
 - Node.js >= 18 (we recommend Node.js 23 via `nvm use 23`)
-- npm 10.9.2+
+- pnpm (the version pinned in the root `package.json` `packageManager` field; `corepack enable` picks it up)
 - Git
 
 ### Setup
@@ -27,7 +27,7 @@ Thank you for your interest in contributing to Web Loom! We welcome contribution
 2. **Install dependencies**
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Create a feature branch**
@@ -41,7 +41,7 @@ Thank you for your interest in contributing to Web Loom! We welcome contribution
 
 ### 1. Make Your Changes
 
-- **Core packages** (`packages/*-core`): Keep 100% framework-agnostic. No React, Vue, or Angular imports.
+- **Core packages** (`packages/*-core`): Keep the core logic framework-agnostic — no React, Vue, or Angular imports. (The one sanctioned exception is `ui-core`, which ships thin optional adapters under `src/adapters/`.)
 - **Framework adapters**: Framework-specific packages (React/Vue/vanilla adapters, media, charts) live in the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, which consumes this repo's `@web-loom/*` core packages as published npm dependencies. Contribute adapter code there, not here.
 - **Follow existing patterns**: Study similar implementations before adding new features.
 
@@ -52,13 +52,13 @@ All new features and bug fixes must include tests:
 ```bash
 # Run tests for specific package
 cd packages/mvvm-core
-npm test
+pnpm test
 
 # Run tests in watch mode
-npm run test:watch
+pnpm test:watch
 
 # Run with coverage
-npm run test:coverage
+pnpm test:coverage
 ```
 
 **Test Coverage Requirements**:
@@ -73,23 +73,23 @@ Before committing, ensure your code passes all checks:
 
 ```bash
 # Type checking
-npm run check-types
+pnpm check-types
 
 # Linting
-npm run lint
+pnpm lint
 
 # Formatting
-npm run format
+pnpm format
 
 # Build all packages
-npm run build
+pnpm build
 ```
 
 ### 4. Run All Tests
 
 ```bash
 # Run all tests across packages
-npm test
+pnpm test
 ```
 
 ## Code Style
@@ -99,14 +99,15 @@ npm test
 - **Strict mode**: All packages use TypeScript strict mode
 - **Explicit types**: Avoid `any`, prefer `unknown` when needed
 - **Export types**: Always export types/interfaces used in public APIs
-- **Erasable syntax**: Use `erasableSyntaxOnly: true` compatible syntax
+- **Erasable syntax**: Prefer syntax compatible with `erasableSyntaxOnly: true` (no enums, namespaces or parameter properties); the apps' tsconfigs enforce it
 
 ### Framework Agnostic Patterns
 
 **✅ DO:**
 
 ```typescript
-// Framework-agnostic behavior using signals
+// Framework-agnostic behavior using signals (illustrative — ui-core's real
+// behaviors such as createDialogBehavior are built on store-core's createStore)
 import { signal } from '@web-loom/signals-core';
 
 export function createDialog() {
@@ -206,11 +207,11 @@ and where to place framework-specific adapters.
 
 ### Before Submitting
 
-1. ✅ All tests pass (`npm test`)
-2. ✅ Type checking passes (`npm run check-types`)
-3. ✅ Linting passes (`npm run lint`)
-4. ✅ Code is formatted (`npm run format`)
-5. ✅ Build succeeds (`npm run build`)
+1. ✅ All tests pass (`pnpm test`)
+2. ✅ Type checking passes (`pnpm check-types`)
+3. ✅ Linting passes (`pnpm lint`)
+4. ✅ Code is formatted (`pnpm format`)
+5. ✅ Build succeeds (`pnpm build`)
 6. ✅ Tests added for new features/fixes
 7. ✅ Documentation updated (if applicable)
 
@@ -260,7 +261,7 @@ and where to place framework-specific adapters.
    cd packages
    mkdir your-package
    cd your-package
-   npm init --scope=@web-loom
+   pnpm init   # then set "name": "@web-loom/your-package"
    ```
 
 3. **Setup package.json**:
@@ -301,8 +302,8 @@ Use workspace protocol for internal packages:
 ```json
 {
   "dependencies": {
-    "@web-loom/mvvm-core": "*",
-    "@web-loom/event-bus-core": "*"
+    "@web-loom/mvvm-core": "workspace:^",
+    "@web-loom/event-bus-core": "workspace:^"
   }
 }
 ```
@@ -333,13 +334,13 @@ import { createDialog } from '../dialog';
 describe('createDialog', () => {
   it('should start with isOpen = false', () => {
     const dialog = createDialog();
-    expect(dialog.isOpen$.value).toBe(false);
+    expect(dialog.isOpen$.get()).toBe(false);
   });
 
   it('should open when open() is called', () => {
     const dialog = createDialog();
     dialog.open();
-    expect(dialog.isOpen$.value).toBe(true);
+    expect(dialog.isOpen$.get()).toBe(true);
   });
 });
 ```
@@ -369,11 +370,15 @@ it('should sync dialog state with React', () => {
 For complex logic, consider property-based testing:
 
 ```typescript
-import { fc, test } from 'fast-check';
+import { it, expect } from 'vitest';
+import fc from 'fast-check';
 
-test.prop([fc.integer()])('should handle any integer', (value) => {
-  const result = yourFunction(value);
-  expect(result).toBeDefined();
+it('should handle any integer', () => {
+  fc.assert(
+    fc.property(fc.integer(), (value) => {
+      expect(yourFunction(value)).toBeDefined();
+    }),
+  );
 });
 ```
 
@@ -445,7 +450,7 @@ export function createDialog(options?: DialogOptions): DialogBehavior {
 
 ## Community Guidelines
 
-- **Be respectful**: Follow our [Code of Conduct](CODE_OF_CONDUCT.md)
+- **Be respectful**: Treat everyone with courtesy and assume good intent
 - **Be patient**: Maintainers review PRs as time permits
 - **Be collaborative**: Share knowledge, help others
 - **Ask questions**: GitHub Discussions for Q&A
@@ -456,15 +461,15 @@ export function createDialog(options?: DialogOptions): DialogBehavior {
 ### Core Packages (Framework-Agnostic)
 
 - `mvvm-core`, `ui-core`, `ui-patterns`, `store-core`, `query-core`, `event-bus-core`, `plugin-core`, `router-core`, `forms-core`
-- **No framework imports allowed**
-- Use `@web-loom/signals-core` for reactivity (RxJS is legacy — only `platform-core` and parts of `forms-core` still depend on it; see [`docs/RXJS-MIGRATION-GAPS.md`](docs/RXJS-MIGRATION-GAPS.md))
+- **No framework imports allowed** in core logic (`ui-core`'s optional `src/adapters/` are the exception)
+- Use `@web-loom/signals-core` for reactivity (RxJS is legacy — only `platform-core` and parts of `forms-core` still depend on it; `ui-core`'s Angular adapter and `signals-core/rxjs` use it as an optional peer for interop; see [`docs/RXJS-MIGRATION-GAPS.md`](docs/RXJS-MIGRATION-GAPS.md))
 - Export plain objects/functions
 - Adapters go in separate packages
 
 ### Framework Adapters
 
 - `forms-react`, `forms-vue`, `forms-vanilla`, `media-core`, `media-react`, `media-vue`, `charts-core`
-- Published from the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, not this one
+- Maintained in the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, not this one (not yet on npm)
 - Must maintain same API as core
 - Test with framework's testing tools
 
@@ -479,7 +484,7 @@ export function createDialog(options?: DialogOptions): DialogBehavior {
 
 Handled by maintainers. Contributors don't need to worry about releases.
 
-For maintainers, see [RELEASING.md](RELEASING.md) (to be created).
+For maintainers: each published package has a `<package>-publish.yml` workflow in `.github/workflows/`, and versions follow the lockstep policy in `.claude/skills/versioning.md`.
 
 ## Getting Help
 

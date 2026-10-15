@@ -14,7 +14,7 @@ The term "design token" was introduced by Salesforce's Lightning Design System t
 
 The insight was that design decisions are not platform-specific. The choice "our primary brand colour is this blue" is made once. The way it's expressed in CSS versus Swift versus Android XML is a translation problem, not a design problem. Tokens are the source of truth; their platform representations are derived from it.
 
-The W3C Design Tokens Community Group has been working on a specification for a standard token format since 2021. Tools like Style Dictionary (Amazon), Theo (Salesforce), and Cobalt take token definitions in JSON or YAML and compile them to CSS variables, Sass maps, JavaScript objects, or whatever format your platform needs.
+The W3C Design Tokens Community Group has been working on a specification for a standard token format since 2019. Tools like Style Dictionary (Amazon), Theo (Salesforce), and Cobalt take token definitions in JSON or YAML and compile them to CSS variables, Sass maps, JavaScript objects, or whatever format your platform needs.
 
 `@web-loom/design-core` brings this discipline to TypeScript without an external build tool.
 
@@ -22,9 +22,9 @@ The W3C Design Tokens Community Group has been working on a specification for a 
 
 ## What the Package Provides
 
-The package is a typed TypeScript module that exports design token types and utilities. There's no runtime — the tokens are consumed at build time, and the CSS custom property declarations are what run in the browser.
+The package ships three things: the token values themselves as ready-made CSS custom-property files (`@web-loom/design-core/design-system`, or individual files under `@web-loom/design-core/css/*`), TypeScript types for every token category from the root entry, and a small runtime under `@web-loom/design-core/utils` for reading tokens and creating, injecting and switching themes.
 
-The exports cover fourteen categories:
+The types cover fifteen categories:
 
 ```typescript
 import type {
@@ -41,25 +41,24 @@ import type {
   ZIndexToken,
   BreakpointToken,
   SizingToken,
-  CursorStyleToken,
+  CursorToken,
+  FocusRingToken,
 } from '@web-loom/design-core';
 ```
 
-These types form the contract. When you define a theme, you implement these interfaces. When a component needs to reference a design value, it references a token of the appropriate type — not a raw string.
+These types describe the shape of each category (for example `RadiusToken` is `{ sm, md, lg, full }`). Individual values share a common shape, `DesignTokenValue` — `{ value, type, description? }` — with per-category specialisations such as `ColorValue` (`type: 'color'`), `SpacingValue` (`type: 'spacing'`) and `BorderRadiusValue` (`type: 'borderRadius'`). When a piece of code needs a design value, it can require a value of the appropriate type — not a raw string.
 
 ---
 
 ## Defining a Theme
 
-A theme is a TypeScript object that satisfies the token type interfaces. Two themes ship as references: "flat" (clean, modern, geometric) and "paper" (warm, slightly textured, organic).
-
-Here's a simplified custom theme:
+The package ships one default token set (the CSS files above, with light, dark and high-contrast themed colours). You can describe your own values with the same types — here's a simplified custom set:
 
 ```typescript
-import type { ColorToken, SpacingToken, RadiusToken } from '@web-loom/design-core';
+import type { ColorValue, SpacingValue, BorderRadiusValue } from '@web-loom/design-core';
 
 // Define your tokens as typed constants
-const colors: Record<string, ColorToken> = {
+const colors: Record<string, ColorValue> = {
   'color-brand-primary': { value: '#2563EB', type: 'color' },
   'color-brand-secondary': { value: '#7C3AED', type: 'color' },
   'color-surface': { value: '#FFFFFF', type: 'color' },
@@ -69,7 +68,7 @@ const colors: Record<string, ColorToken> = {
   'color-border': { value: '#E2E8F0', type: 'color' },
 };
 
-const spacing: Record<string, SpacingToken> = {
+const spacing: Record<string, SpacingValue> = {
   'space-1': { value: '4px', type: 'spacing' },
   'space-2': { value: '8px', type: 'spacing' },
   'space-3': { value: '12px', type: 'spacing' },
@@ -78,11 +77,11 @@ const spacing: Record<string, SpacingToken> = {
   'space-8': { value: '32px', type: 'spacing' },
 };
 
-const radii: Record<string, RadiusToken> = {
-  'radius-sm': { value: '4px', type: 'radius' },
-  'radius-md': { value: '8px', type: 'radius' },
-  'radius-lg': { value: '12px', type: 'radius' },
-  'radius-full': { value: '9999px', type: 'radius' },
+const radii: Record<string, BorderRadiusValue> = {
+  'radius-sm': { value: '4px', type: 'borderRadius' },
+  'radius-md': { value: '8px', type: 'borderRadius' },
+  'radius-lg': { value: '12px', type: 'borderRadius' },
+  'radius-full': { value: '9999px', type: 'borderRadius' },
 };
 ```
 
@@ -116,16 +115,20 @@ The tokens become CSS custom properties. You generate the CSS declaration block 
 }
 ```
 
-A utility in `design-core` generates this block from your token definitions:
+For the package's own tokens you don't need to generate anything — import the shipped CSS once (`import '@web-loom/design-core/design-system'`). The `utils` entry can also produce a declaration block from the built-in token set, or inject overrides as a theme:
 
 ```typescript
-import { generateCSSCustomProperties } from '@web-loom/design-core';
+import { generateCssVariablesString, createTheme, applyTheme, setTheme } from '@web-loom/design-core/utils';
 
-const css = generateCSSCustomProperties({ colors, spacing, radii });
-// → `:root { --color-brand-primary: #2563EB; ... }`
+const css = await generateCssVariablesString(':root'); // built-in tokens as one CSS rule
+// Note: generated names carry the token-file prefix (e.g. --colors-color-base-primary).
+
+const brand = createTheme('brand', { /* partial token overrides */ });
+await applyTheme(brand); // injects a [data-theme="brand"] rule
+setTheme('brand');       // sets data-theme on <html>
 ```
 
-You inject this into the document once. From that point, every component that references `var(--color-brand-primary)` in its styles is using the correct themed value.
+For a hand-written token set like the one above, emitting the `:root` block is a few lines of your own code. You inject it into the document once. From that point, every component that references `var(--color-brand-primary)` in its styles is using the correct themed value.
 
 ---
 
@@ -220,9 +223,9 @@ The tokens are the contract between design decisions and implementation. The imp
 Beyond CSS, the token types serve as guardrails in TypeScript code that needs to reference design values:
 
 ```typescript
-import type { ColorToken } from '@web-loom/design-core';
+import type { ColorValue } from '@web-loom/design-core';
 
-function applyTheme(tokens: Record<string, ColorToken>) {
+function applyColorTokens(tokens: Record<string, ColorValue>) {
   const root = document.documentElement;
   for (const [name, token] of Object.entries(tokens)) {
     root.style.setProperty(`--${name}`, token.value);
@@ -230,7 +233,7 @@ function applyTheme(tokens: Record<string, ColorToken>) {
 }
 ```
 
-When you call `applyTheme`, TypeScript verifies that every value in the record is a `ColorToken` — an object with `{ value: string, type: 'color' }`. You can't accidentally pass a spacing token where a colour token is expected.
+When you call `applyColorTokens`, TypeScript verifies that every value in the record is a `ColorValue` — an object with `{ value: string, type: 'color' }`. You can't accidentally pass a spacing token where a colour token is expected.
 
 This is the token-as-contract pattern. The type enforces that the right category of design decision is used in the right context.
 
@@ -242,7 +245,7 @@ The long-term value of a design token system is consistency across surfaces. Tod
 
 This is exactly what Salesforce, Adobe, and IBM do at scale. Their component libraries on multiple platforms share a token definition layer that's maintained by designers and expressed consistently everywhere. The token is the source of truth. The CSS variable, the Swift constant, the Android attribute — those are derived.
 
-`@web-loom/design-core` is the foundation for this approach on a smaller scale, starting with the token types and CSS generation utilities, intended to grow as the token format specification matures.
+`@web-loom/design-core` is the foundation for this approach on a smaller scale, starting with the token types, the shipped CSS variables and the theme utilities.
 
 ---
 
@@ -252,7 +255,7 @@ This is exactly what Salesforce, Adobe, and IBM do at scale. Their component lib
 npm install @web-loom/design-core
 ```
 
-No runtime dependencies. Pure TypeScript types and utility functions. Works in any JavaScript environment.
+No runtime dependencies. TypeScript types, CSS files and a small set of utilities (the theme helpers need a DOM to inject styles).
 
 ---
 

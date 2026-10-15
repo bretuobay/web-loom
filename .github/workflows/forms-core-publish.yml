@@ -18,26 +18,27 @@ jobs:
         uses: actions/checkout@v4
 
       # Rollup native binaries work reliably on Node 20 & 22, NOT 23
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
-          cache: 'npm'
+          cache: 'pnpm'
 
-      # Prevent npm optional-dep failure by fully cleaning install
+      # Install workspace dependencies (frozen lockfile)
       - name: Clean install
         run: |
           rm -rf node_modules
-          rm -f package-lock.json
-          npm i
+          pnpm install --frozen-lockfile
 
       # Ensure optional Rollup deps (native binaries) are resolved
       - name: Rebuild Rollup native deps
-        run: npm rebuild rollup --workspace=@web-loom/forms-core
+        run: pnpm --filter @web-loom/forms-core rebuild rollup
 
       - name: Build @web-loom/forms-core
-        run: npx turbo run build --filter=@web-loom/forms-core
+        run: pnpm exec turbo run build --filter=@web-loom/forms-core
 
       - name: Publish @web-loom/forms-core to npm
         env:
@@ -66,7 +67,7 @@ jobs:
             exit 0
           else
             echo "🚀 Package version $PACKAGE_VERSION is new. Attempting to publish $PACKAGE_NAME."
-            npm publish --access public --verbose
+            pnpm publish --access public --no-git-checks
           fi
 
           echo "--- Publish process completed for $PACKAGE_NAME ---"

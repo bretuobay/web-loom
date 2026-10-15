@@ -9,7 +9,9 @@
     "access": "public"
   },
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "bin": {
     "web-loom-mcp": "./dist/index.js"
   },

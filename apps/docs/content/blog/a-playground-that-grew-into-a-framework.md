@@ -77,7 +77,7 @@ I didn't try to be original about the vocabulary. Where Prism already had a good
 - Prism's `CompositeCommand` → `CompositeCommand` (`mvvm-core`)
 - Prism's `BindableBase` → `BaseModel` and `BaseViewModel` (`mvvm-core`)
 - Prism's Event Aggregator → `EventBus` (`event-bus-core`)
-- Prism's Modules → plugin modules (`plugin-core`)
+- Prism's Modules → plugin modules (`plugin-core`, an internal workspace package that isn't published)
 
 Some ideas needed adapting. Prism's _regions_, for example, became shell and layout patterns in `ui-patterns`, because the web composes screens differently from a desktop window. But anyone who has written a Prism application should feel at home quickly, and anyone who hasn't gets names that have been tested in real projects for years.
 

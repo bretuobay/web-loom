@@ -28,7 +28,7 @@ claude mcp add web-loom -- npx @web-loom/mcp-server
 claude mcp add --scope project web-loom -- npx @web-loom/mcp-server
 ```
 
-**From the monorepo** (after `npm run build`):
+**From the monorepo** (after `pnpm build`):
 
 ```bash
 claude mcp add web-loom -- node packages/mcp-server/dist/index.js
@@ -57,7 +57,7 @@ claude mcp add web-loom -- node packages/mcp-server/dist/index.js
 | `list_packages`   | Catalog of all `@web-loom/*` packages           |
 | `select_package`  | Package recommendation for a described use case |
 
-**`scaffold_restful_feature`** is the most powerful tool — it returns all four files for a complete MVVM feature in one call:
+**`scaffold_restful_feature`** is the most powerful tool — it returns all three files for a complete MVVM feature in one call:
 
 ```
 scaffold_restful_feature({
@@ -129,7 +129,7 @@ Resources expose live documentation that AI assistants can read as context.
 | `web-loom://docs/store-core`         | `@web-loom/store-core` README                        |
 | `web-loom://docs/ui-core`            | `@web-loom/ui-core` README                           |
 | `web-loom://docs/forms-core`         | `@web-loom/forms-core` README                        |
-| `web-loom://docs/plugin-core`        | `@web-loom/plugin-core` README                       |
+| `web-loom://docs/plugin-core`        | `@repo/plugin-core` README (internal, not on npm)    |
 | `web-loom://docs/event-bus-core`     | `@web-loom/event-bus-core` README                    |
 | `web-loom://docs/http-core`          | `@web-loom/http-core` README                         |
 | `web-loom://docs/router-core`        | `@web-loom/router-core` README                       |
@@ -196,7 +196,9 @@ export class ProductViewModel extends RestfulApiViewModel<ProductListData, typeo
 
 ```typescript
 function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 export function useProduct() {
@@ -215,13 +217,13 @@ export function useProduct() {
 
 ```bash
 # Build
-npm run build
+pnpm build
 
 # Watch mode
-npm run dev
+pnpm dev
 
 # Type check
-npm run check-types
+pnpm check-types
 ```
 
 The server uses Node.js stdio transport (stdin/stdout MCP protocol). It has no runtime dependency on `@web-loom/*` packages — it only generates code strings, keeping the bundle small.

@@ -38,11 +38,10 @@ const masterDetail = createMasterDetail({
 // Actions
 masterDetail.actions.selectItem(products[0]);
 masterDetail.actions.clearSelection();
-masterDetail.actions.goToPrevious();
-masterDetail.actions.goToNext();
+masterDetail.actions.setDetailView('edit'); // e.g. switch the detail panel between 'view' and 'edit'
 
 // State
-const { selectedItem, selectedId, hasPrevious, hasNext } = masterDetail.getState();
+const { items, selectedItem, detailView } = masterDetail.getState();
 
 // Events via the internal event bus
 masterDetail.eventBus.on('item:selected', (item) => updateDetailPanel(item));
@@ -54,10 +53,11 @@ masterDetail.destroy();
 
 The pattern handles:
 
-- Which item is selected
-- Previous/next navigation (keyboard arrow keys, navigation buttons)
-- Whether there's a previous or next item (for disabling navigation buttons)
-- Emitting typed events when selection changes
+- Which item is selected (via `ui-core`'s list selection)
+- Which detail view is showing
+- Emitting typed events when selection changes or is cleared
+
+Previous/next navigation isn't built in; derive it from `items` and `selectedItem` if you need it.
 
 You handle:
 
@@ -74,9 +74,10 @@ function ProductBrowser() {
   const masterDetail = useMemo(() => createMasterDetail({ items: products, getId: (p) => p.id }), [products]);
 
   useEffect(() => {
-    const unsub = masterDetail.eventBus.on('item:selected', setDetail);
+    // eventBus.on returns nothing — remove the listener with off()
+    masterDetail.eventBus.on('item:selected', setDetail);
     return () => {
-      unsub();
+      masterDetail.eventBus.off('item:selected', setDetail);
       masterDetail.destroy();
     };
   }, [masterDetail]);
@@ -112,50 +113,40 @@ import { createWizard } from '@web-loom/ui-patterns';
 
 const wizard = createWizard({
   steps: [
-    { id: 'account', label: 'Account Details', canSkip: false },
-    { id: 'profile', label: 'Profile', canSkip: true },
-    { id: 'billing', label: 'Payment', canSkip: false },
-    { id: 'review', label: 'Review & Submit', canSkip: false },
+    {
+      id: 'account',
+      label: 'Account Details',
+      // Per-step validation: return an error message, or null/undefined when valid
+      validate: (data) => (AccountSchema.safeParse(data).success ? null : 'Please complete your account details'),
+    },
+    { id: 'profile', label: 'Profile' },
+    { id: 'billing', label: 'Payment' },
+    { id: 'review', label: 'Review & Submit' },
   ],
   onComplete: async (collectedData) => {
     await api.onboard(collectedData);
   },
-  onStepChange: (from, to) => {
-    analytics.track('wizard_step', { from: from.id, to: to.id });
+  onStepChange: (stepIndex, step) => {
+    analytics.track('wizard_step', { index: stepIndex, step: step.id });
   },
 });
 
 // Navigation
-await wizard.actions.next(); // validates current step, advances if valid
-await wizard.actions.previous(); // always goes back
-wizard.actions.goToStep('profile'); // jump navigation (if allowed)
-wizard.actions.skip(); // skip current step (if canSkip)
+await wizard.actions.goToNextStep(); // validates the current step; resolves false if invalid
+wizard.actions.goToPreviousStep();
+wizard.actions.goToStep(1); // jump by index
 
-// Data collection
-wizard.actions.setStepData('account', { email: 'user@example.com', password: '...' });
+// Data collection (merged into the wizard's data)
+wizard.actions.setStepData({ email: 'user@example.com', password: '...' });
+
+// Finish
+await wizard.actions.completeWizard(); // calls onComplete with the collected data
 
 // State
-const { currentStep, steps, currentIndex, isFirstStep, isLastStep, completedSteps, collectedData, isCompleting } =
-  wizard.getState();
+const { steps, currentStepIndex, completedSteps, canProceed, data } = wizard.getState();
 ```
 
-The validation hook:
-
-```typescript
-const wizard = createWizard({
-  steps: [...],
-  validate: async (stepId, data) => {
-    if (stepId === 'account') {
-      const schema = AccountSchema;
-      const result = schema.safeParse(data);
-      if (!result.success) return result.error.flatten().fieldErrors;
-    }
-    return null; // null means valid
-  },
-});
-```
-
-`wizard.actions.next()` calls `validate(currentStep.id, stepData)` before advancing. If validation fails, it stays on the current step and returns the errors. No advance without valid data — unless the step is marked `canSkip`.
+`goToNextStep()` runs the current step's `validate(data)` before advancing. If it returns an error (or throws), the wizard stays on the current step, sets `canProceed` to `false` and resolves `false`. Steps can also define `getNextStep(data)` for branching flows. There's no built-in "skip" — model optional steps with `getNextStep` or `goToStep`.
 
 ---
 
@@ -171,21 +162,21 @@ const palette = createCommandPalette({
     {
       id: 'new-document',
       label: 'New Document',
-      group: 'File',
+      category: 'File',
       shortcut: 'Ctrl+N',
       action: () => createDocument(),
     },
     {
       id: 'export-pdf',
       label: 'Export as PDF',
-      group: 'File',
+      category: 'File',
       keywords: ['save', 'download', 'export'],
       action: () => exportAsPDF(),
     },
     {
       id: 'toggle-theme',
       label: 'Toggle Dark Mode',
-      group: 'View',
+      category: 'View',
       action: () => themeStore.actions.toggleMode(),
     },
   ],
@@ -199,24 +190,26 @@ palette.actions.close();
 
 // Navigation (keyboard integration)
 palette.actions.setQuery('new'); // fuzzy filter
-palette.actions.moveDown();
-palette.actions.moveUp();
-palette.actions.execute(); // execute selected command
+palette.actions.selectNext();
+palette.actions.selectPrevious();
+await palette.actions.executeSelected(); // execute selected command
 
 // State
 const { isOpen, query, filteredCommands, selectedIndex } = palette.getState();
 ```
 
-The built-in fuzzy search ranks results by how well the query matches the label and keywords — partial matches, character subsequences, case-insensitive. You don't implement the search; you provide the commands.
+The built-in fuzzy search ranks results by how well the query matches the label, category and keywords — partial matches, character subsequences, case-insensitive. You don't implement the search; you provide the commands.
 
 ```tsx
 function CommandPaletteOverlay() {
-  const palette = usePalette(); // your hook wrapping createCommandPalette
+  // your hook wrapping createCommandPalette: returns its state plus `actions`
+  const palette = usePalette();
+  const { actions } = palette;
 
   if (!palette.isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50" onClick={palette.close}>
+    <div className="fixed inset-0 z-50 bg-black/50" onClick={actions.close}>
       <div
         className="mx-auto mt-20 w-full max-w-lg bg-white rounded-xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -224,12 +217,12 @@ function CommandPaletteOverlay() {
         <input
           autoFocus
           value={palette.query}
-          onChange={(e) => palette.setQuery(e.target.value)}
+          onChange={(e) => actions.setQuery(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'ArrowDown') palette.moveDown();
-            if (e.key === 'ArrowUp') palette.moveUp();
-            if (e.key === 'Enter') palette.execute();
-            if (e.key === 'Escape') palette.close();
+            if (e.key === 'ArrowDown') actions.selectNext();
+            if (e.key === 'ArrowUp') actions.selectPrevious();
+            if (e.key === 'Enter') void actions.executeSelected();
+            if (e.key === 'Escape') actions.close();
           }}
           placeholder="Type a command..."
           className="w-full px-4 py-3 border-b outline-none"
@@ -239,8 +232,7 @@ function CommandPaletteOverlay() {
             <li
               key={cmd.id}
               className={i === palette.selectedIndex ? 'bg-blue-50' : ''}
-              onClick={palette.execute}
-              onMouseEnter={() => palette.setSelected(i)}
+              onClick={() => void actions.executeCommand(cmd.id)}
             >
               <span>{cmd.label}</span>
               {cmd.shortcut && <kbd>{cmd.shortcut}</kbd>}
@@ -259,18 +251,19 @@ function CommandPaletteOverlay() {
 
 ### Modal Stack
 
-Multiple overlapping modals — a confirmation dialog on top of an edit dialog. The stack manages z-index order, ensures Escape dismisses from the top, and handles focus cycling correctly.
+Multiple overlapping modals — a confirmation dialog on top of an edit dialog. The stack keeps modals ordered by priority and tells you which one is on top; your View wires Escape and backdrop clicks to `handleEscapeKey()`/`handleBackdropClick(id)`, and handles focus itself.
 
 ```typescript
 import { createModal } from '@web-loom/ui-patterns';
 
-const modal = createModal({ id: 'edit-product' });
+const modal = createModal({ onStackChange: (stack) => console.log(stack.length) });
 
-modal.actions.push({ id: 'confirm-delete', context: { productId: '123' } });
-modal.actions.pop();
-modal.actions.clear();
+modal.actions.openModal('edit-product', { productId: '123' });
+modal.actions.openModalWithConfig({ id: 'confirm-delete', content: { productId: '123' }, closeOnEscape: true });
+modal.actions.closeTopModal();
+modal.actions.closeAllModals();
 
-const { stack, topModal } = modal.getState();
+const { stack, topModalId } = modal.getState();
 ```
 
 ### Toast Queue
@@ -280,13 +273,16 @@ Time-limited notification messages with a queue to prevent overwhelming the user
 ```typescript
 import { createToastQueue } from '@web-loom/ui-patterns';
 
-const toasts = createToastQueue({ maxVisible: 3, duration: 4000 });
+const toasts = createToastQueue({ position: 'top-right' });
 
-toasts.actions.push({ message: 'Saved successfully', type: 'success' });
-toasts.actions.push({ message: 'Network error', type: 'error', duration: 8000 });
-toasts.actions.dismiss('toast-id');
+const id = toasts.actions.addToast({ message: 'Saved successfully', type: 'success', duration: 4000 });
+toasts.actions.addToast({ message: 'Network error', type: 'error', duration: 8000 });
+toasts.actions.removeToast(id);
 
-const { visibleToasts } = toasts.getState();
+const { toasts: queued } = toasts.getState();
+// Each toast is removed automatically after its own `duration`. The `maxVisible` and
+// `defaultDuration` options are stored in state but not currently enforced, so cap the
+// rendered list yourself if you need to.
 ```
 
 ### Tabbed Interface
@@ -300,15 +296,15 @@ const tabs = createTabbedInterface({
     { id: 'activity', label: 'Activity' },
     { id: 'settings', label: 'Settings' },
   ],
-  defaultTab: 'details',
-  onTabChange: (tab) => router.setParam('tab', tab.id),
+  initialActiveTabId: 'details',
+  onTabChange: (tabId) => router.setParam('tab', tabId),
 });
 
-tabs.actions.setActive('activity');
-tabs.actions.next();
-tabs.actions.previous();
+tabs.actions.activateTab('activity');
+tabs.actions.focusNextTab();
+tabs.actions.focusPreviousTab();
 
-const { activeTab, tabs: tabList } = tabs.getState();
+const { activeTabId, tabs: tabList } = tabs.getState();
 ```
 
 ### Hub and Spoke
@@ -319,14 +315,19 @@ The hub-and-spoke navigation pattern — a central hub screen with spoke pages t
 import { createHubAndSpoke } from '@web-loom/ui-patterns';
 
 const nav = createHubAndSpoke({
-  hub: { id: 'home', label: 'Home' },
-  onNavigate: (spoke) => router.push(spoke.path),
+  spokes: [
+    { id: 'settings', label: 'Settings' },
+    { id: 'billing', label: 'Billing' },
+  ],
+  onSpokeActivate: (spokeId) => router.push(`/${spokeId}`),
+  onReturnToHub: () => router.push('/'),
 });
 
-nav.actions.navigate({ id: 'settings', label: 'Settings', path: '/settings' });
-nav.actions.back();
+nav.actions.activateSpoke('settings');
+nav.actions.goBack();
+nav.actions.returnToHub();
 
-const { currentSpoke, isAtHub, breadcrumbs } = nav.getState();
+const { activeSpoke, isOnHub, breadcrumbs } = nav.getState();
 ```
 
 ---
@@ -341,7 +342,8 @@ Patterns are UI behaviour — they belong in the View layer or in a ViewModel th
 They communicate through the ViewModel when business actions need to happen:
 
 ```typescript
-import { computed } from '@web-loom/signals-core';
+import { computed, observe } from '@web-loom/signals-core';
+import { createMasterDetail, type MasterDetailBehavior } from '@web-loom/ui-patterns';
 
 class ProductBrowserViewModel extends BaseViewModel<ProductModel> {
   // Business logic
@@ -349,25 +351,23 @@ class ProductBrowserViewModel extends BaseViewModel<ProductModel> {
   readonly loadCommand = this.registerCommand(new Command(() => this.model.fetchAll()));
   readonly deleteCommand = this.registerCommand(new Command((id: string) => this.model.delete(id)));
 
-  // UI pattern — created once, lives with the ViewModel
-  readonly masterDetail = createMasterDetail({
-    items: [],
-    getId: (p: Product) => p.id,
-  });
+  // UI pattern — master-detail has no action to replace its items,
+  // so it's (re)created whenever a new product list arrives
+  masterDetail: MasterDetailBehavior<Product> | null = null;
 
   constructor(model: ProductModel) {
     super(model);
 
-    // Keep the pattern's items in sync with the model's data
     this.addSubscription(
-      this.products$.subscribe((products) => {
-        this.masterDetail.actions.setItems(products);
+      observe(this.products$, (products) => {
+        this.masterDetail?.destroy();
+        this.masterDetail = createMasterDetail({ items: products, getId: (p: Product) => p.id });
       }),
     );
   }
 
   dispose() {
-    this.masterDetail.destroy();
+    this.masterDetail?.destroy();
     super.dispose();
   }
 }

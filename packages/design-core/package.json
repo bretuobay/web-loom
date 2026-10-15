@@ -72,8 +72,8 @@
   ],
   "scripts": {
     "generate:css": "node scripts/generate-css.cjs",
-    "dev": "npm run generate:css && npx vite build --watch",
-    "build": "npm run generate:css && npx vite build",
+    "dev": "pnpm run generate:css && npx vite build --watch",
+    "build": "pnpm run generate:css && npx vite build",
     "verify:exports": "node scripts/verify-exports.mjs",
     "test": "vitest --watch=false",
     "test:watch": "vitest --watch",

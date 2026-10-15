@@ -2,7 +2,7 @@
 
 ---
 
-The event emitter is one of those ideas so fundamental to software that it's been reinvented independently across virtually every language and runtime. Java has `EventListener` and `Observer`. C# has delegates and events. Python has `EventEmitter` in asyncio. The browser has `EventTarget`. Node.js has `EventEmitter`. The concept is ancient.
+The event emitter is one of those ideas so fundamental to software that it's been reinvented independently across virtually every language and runtime. Java has `EventListener` and `Observer`. C# has delegates and events. Python has signal/slot and pub-sub libraries such as `blinker` and `pyee`. The browser has `EventTarget`. Node.js has `EventEmitter`. The concept is ancient.
 
 And yet, in JavaScript, we've never quite had a satisfying version of it. Node's `EventEmitter` is untyped — you `emit('data', value)` and `on('data', callback)` and the relationship between the event name, its payload type, and the callback signature exists only in comments and convention. The browser's `EventTarget` / `CustomEvent` combo is verbose and also untyped. The frontend community has solved this with a long succession of third-party libraries: `mitt`, `tiny-emitter`, `eventemitter3`, `nano-events` — each with slightly different APIs and tradeoffs.
 
@@ -128,7 +128,7 @@ emitter.hasListeners('user:login'); // → boolean
 emitter.eventNames(); // → Array<keyof AppEvents>
 ```
 
-These are useful for diagnostics and for building higher-level abstractions — `event-bus-core` uses them internally to avoid emitting on events with no subscribers.
+These are useful for diagnostics and for building higher-level abstractions on top of the emitter.
 
 ---
 
@@ -228,9 +228,9 @@ The `SidebarViewModel` knows about auth events without knowing about the `AuthMo
 
 **`mitt`**: Tiny (~200 bytes) and typed. Similar in spirit. No `once`. No error handling. No `listenerCount`. Good for minimal needs. `event-emitter-core` is more complete.
 
-**`eventemitter3`**: Popular, Node-compatible, performant. Not typed by design (TypeScript types are added by community packages). `event-emitter-core` is typed by design — the event map is the primary abstraction.
+**`eventemitter3`**: Popular, Node-compatible, performant. It ships TypeScript declarations with an optional generic event map, but untyped string events remain the default. In `event-emitter-core` the event map is the primary abstraction.
 
-**RxJS `Subject`**: Extremely powerful, but each event is a separate Subject — there's no shared event name registry. You'd need to build that yourself, and it pulls in RxJS as a dependency. `event-emitter-core` has zero dependencies; nothing in Web Loom requires RxJS.
+**RxJS `Subject`**: Extremely powerful, but each event is a separate Subject — there's no shared event name registry. You'd need to build that yourself, and it pulls in RxJS as a dependency. `event-emitter-core` has zero dependencies, and neither do Web Loom's core MVVM packages require RxJS (only `forms-core` and the unpublished `platform-core` still use it internally).
 
 ---
 
@@ -238,7 +238,7 @@ The `SidebarViewModel` knows about auth events without knowing about the `AuthMo
 
 The implementation uses a `Map<EventName, Set<Listener>>`. Each event name maps to a `Set` of listener functions. `emit` iterates the set, wrapping each call in a try/catch.
 
-`Set` gives you O(1) add and delete. Iterating over a snapshot (`Array.from(callbacks)`) protects against listeners that remove themselves during emission. The full implementation is under 130 lines.
+`Set` gives you O(1) add and delete. Iterating over a snapshot (`Array.from(callbacks)`) protects against listeners that remove themselves during emission. The full implementation is about 130 lines.
 
 The `EventArgs` type utility extracts the payload type from the event map:
 
@@ -260,7 +260,7 @@ This allows `void` events to be emitted with no arguments, array payloads to be 
 npm install @web-loom/event-emitter-core
 ```
 
-Zero dependencies. Works in browser, Node.js, Deno, Bun. TypeScript 4.7+ required for the conditional type machinery.
+Zero dependencies. Plain ES module with no platform-specific APIs, so it runs anywhere modern JavaScript does. TypeScript types included.
 
 ---
 

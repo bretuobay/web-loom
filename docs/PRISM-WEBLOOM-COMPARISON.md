@@ -1,5 +1,7 @@
 # Prism to Web Loom Feature Mapping
 
+> **Historical document (2026-10).** Written before mvvm-core moved from RxJS to `@web-loom/signals-core`. Its code samples use stale `@repo/*` package scopes, RxJS observables and some functions that don't exist (e.g. `createForm`, `createRoute`, `createDialog`); the DI container it describes (`SimpleDIContainer`) is internal and not exported. Use it only for the Prism-to-Web-Loom concept mapping; for current APIs see the docs site (`apps/docs/content/docs`) and each package's README.
+
 This document maps features from [Prism Library](https://prismlibrary.github.io/docs/index.html) (a WPF/Xamarin MVVM framework) to their equivalents in Web Loom (a web/mobile MVVM framework).
 
 > **Context**: While Prism targets desktop applications (WPF, Xamarin, Uno Platform), Web Loom targets web and mobile applications. Both share the MVVM architectural pattern and many similar concerns for building maintainable, testable UI applications.

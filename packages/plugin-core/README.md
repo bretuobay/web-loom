@@ -15,13 +15,7 @@ This package is designed to be decoupled from any specific UI framework, but it 
 
 Install the package using your favorite package manager:
 
-```bash
-npm install @repo/plugin-core
-```
-
-```bash
-pnpm add @repo/plugin-core
-```
+> **Not yet published to npm.** `@repo/plugin-core` is a private internal package of the Web Loom monorepo. Inside the workspace, depend on it with `"@repo/plugin-core": "workspace:^"`.
 
 ## Conceptual Structure
 
@@ -359,12 +353,4 @@ This project is licensed under the MIT License.
 
 ## Contributing
 
-Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for more details.
-
-### From the root README:
-
-#### [@web-loom/plugin-core](packages/plugin-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
-
-Framework-agnostic plugin registry and management system with lifecycle states and manifest-based configuration.
-
-**Key features**: Dynamic loading, framework adapters, type-safe manifests
+Contributions are welcome! Please see our [Contributing Guide](../../CONTRIBUTING.md) for more details.

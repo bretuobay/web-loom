@@ -1,6 +1,6 @@
 # Event Emitter Core
 
-`@web-loom/event-emitter-core` is the shared event primitive used across Web Loom packages. It replaces the ad-hoc emitters that previously lived in `forms-core`, `storage-core`, `media-core`, `notifications-core`, and even `event-bus-core`.
+`@web-loom/event-emitter-core` is the shared event primitive used across Web Loom packages. It replaces the ad-hoc emitters that previously lived in `forms-core`, `storage-core`, `notifications-core`, and even `event-bus-core` (and in `media-core`, which has since moved to the separate `web-loom-extensions` repo).
 
 ## Why a shared emitter?
 
@@ -91,7 +91,7 @@ const manager = new NotificationManager();
 manager.onPermissionChange((state) => console.log('Permission:', state));
 ```
 
-### `@web-loom/media-core`
+### `@web-loom/media-core` (now in `web-loom-extensions`)
 
 `MediaCorePlayer` funnels browser media events and plugin hooks through the emitter (`play`, `pause`, `trackchange`, etc.), enabling React/Vue adapters and plugin authors to subscribe consistently.
 

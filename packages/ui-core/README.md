@@ -14,8 +14,8 @@ npm install @web-loom/ui-core
 
 ## Features
 
-- **Framework-agnostic**: Works with React, Vue, Angular, or vanilla JS
-- **Lightweight**: Each behavior is <2KB gzipped with tree-shaking support
+- **Framework-agnostic**: Behaviors work with React, Vue, Angular, or vanilla JS (the package root also re-exports the React hooks and so imports `react`; non-React apps should import from `@web-loom/ui-core/behaviors`)
+- **Small**: Each behavior is a thin layer over `@web-loom/store-core`, with per-behavior subpath exports
 - **Type-safe**: Full TypeScript support with comprehensive type definitions
 - **Headless**: Pure logic, no styling or DOM assumptions
 - **Composable**: Behaviors can be combined to create complex patterns
@@ -363,9 +363,9 @@ For comprehensive guides including advanced usage, accessibility guidelines, and
 
 ### New Behaviors
 
-- **[Keyboard Shortcuts](./docs/KEYBOARD_SHORTCUTS.md)** - Centralized keyboard shortcut management with platform normalization
-- **[Undo/Redo Stack](./docs/UNDO_REDO_STACK.md)** - Immutable state history with undo/redo operations
-- **[Drag-and-Drop](./docs/DRAG_DROP.md)** - Framework-agnostic drag-and-drop state management
+- **[Keyboard Shortcuts](./docs/examples/KEYBOARD_SHORTCUTS.md)** - Centralized keyboard shortcut management with key-string normalization
+- **[Undo/Redo Stack](./docs/examples/UNDO_REDO_STACK.md)** - Immutable state history with undo/redo operations
+- **[Drag-and-Drop](./docs/examples/DRAG_DROP.md)** - Framework-agnostic drag-and-drop state management
 
 ### Behavior Enhancements
 
@@ -385,21 +385,8 @@ Each documentation file includes:
 
 - `@web-loom/store-core`: Reactive state management (included)
 - `@web-loom/event-bus-core`: Event system for cross-component communication (included)
+- Optional peer dependencies for the adapters: `react`, `vue`, `@angular/core`, `rxjs` (the Angular adapter uses RxJS)
 
 ## License
 
 MIT
-
-### From the root README:
-
-#### [@web-loom/ui-core](packages/ui-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
-
-Framework-agnostic headless UI behaviors (Dialog, Form, List Selection, Roving Focus, Disclosure). Pure logic with no styling assumptions, usable across all frameworks.
-
-**Key features**: Atomic behaviors, framework adapters, accessibility-first, <2KB per behavior
-
-```typescript
-import { createDialogBehavior } from '@web-loom/ui-core';
-const dialog = createDialogBehavior({ onOpen: (content) => console.log(content) });
-dialog.actions.open({ title: 'Hello' });
-```

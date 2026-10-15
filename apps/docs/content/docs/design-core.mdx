@@ -69,7 +69,7 @@ Once imported, every token is available as a CSS custom property:
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   transition: box-shadow var(--transition-duration-medium)
-    var(--transition-timing-function-ease-out);
+    var(--transition-timingFunction-ease-out);
 }
 
 [data-theme='dark'] .card {
@@ -119,7 +119,7 @@ These tokens carry a light / dark / high-contrast variant and respond to the `da
 
 - `--color-themed-light-background` — `#FFFFFF`
 - `--color-themed-light-text` — `#000000`
-- `--color-themed-dark-background` — `#111827`
+- `--color-themed-dark-background` — defined as `var(--color-neutral-900)`, a variable the stylesheet doesn't define (the gray scale is `--color-neutral-gray-*`), so it currently resolves to nothing; set it yourself (e.g. `var(--color-neutral-gray-900)`, `#111827`) if you rely on it
 - `--color-themed-dark-text` — `#FFFFFF`
 - `--color-themed-high-contrast-background` — `#000000`
 - `--color-themed-high-contrast-text` — `#FFFFFF`
@@ -233,16 +233,16 @@ CSS variable prefix: `--radius-*`
 
 ### Z-Index
 
-CSS variable prefix: `--z-index-*`
+CSS variable prefix: `--zIndex-*`
 
-- `--z-index-auto` — `auto` — browser default
-- `--z-index-0` — `0` — reset stacking context
-- `--z-index-10` — `10` — base elements
-- `--z-index-20` — `20` — dropdowns
-- `--z-index-30` — `30` — fixed / sticky headers
-- `--z-index-40` — `40` — modals
-- `--z-index-50` — `50` — tooltips / popovers
-- `--z-index-max` — `9999` — highest layer (overlays, toasts)
+- `--zIndex-auto` — `auto` — browser default
+- `--zIndex-0` — `0` — reset stacking context
+- `--zIndex-10` — `10` — base elements
+- `--zIndex-20` — `20` — dropdowns
+- `--zIndex-30` — `30` — fixed / sticky headers
+- `--zIndex-40` — `40` — modals
+- `--zIndex-50` — `50` — tooltips / popovers
+- `--zIndex-max` — `9999` — highest layer (overlays, toasts)
 
 ---
 
@@ -281,10 +281,10 @@ CSS variable prefix: `--transition-*`
 
 **Timing functions:**
 
-- `--transition-timing-function-linear` — `linear`
-- `--transition-timing-function-ease-in` — `cubic-bezier(0.4, 0, 1, 1)`
-- `--transition-timing-function-ease-out` — `cubic-bezier(0, 0, 0.2, 1)`
-- `--transition-timing-function-ease-in-out` — `cubic-bezier(0.4, 0, 0.2, 1)`
+- `--transition-timingFunction-linear` — `linear`
+- `--transition-timingFunction-ease-in` — `cubic-bezier(0.4, 0, 1, 1)`
+- `--transition-timingFunction-ease-out` — `cubic-bezier(0, 0, 0.2, 1)`
+- `--transition-timingFunction-ease-in-out` — `cubic-bezier(0.4, 0, 0.2, 1)`
 
 **Delays:**
 
@@ -297,7 +297,7 @@ Always respect `prefers-reduced-motion`:
 ```css
 .animated {
   transition: transform var(--transition-duration-medium)
-    var(--transition-timing-function-ease-out);
+    var(--transition-timingFunction-ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -359,13 +359,15 @@ getTokenVar('shadow.md');          // 'var(--shadow-md)'
 
 ### `getSafeTokenVar(path)`
 
-Async version of `getTokenVar` — validates that the token exists before returning the reference. Returns `undefined` if the path is invalid.
+Async version of `getTokenVar` — validates the path with `getTokenValue` before returning `var(--<path with dots replaced by dashes>)`. Returns `undefined` if the path is invalid.
+
+Token paths start with the token **file** name (`colors`, `spacing`, `shadows`, …) followed by the JSON path inside it. Because the generated variable name includes that prefix, the result doesn't match the variable names in the shipped CSS files (`--color-base-primary`):
 
 ```ts
 import { getSafeTokenVar } from '@web-loom/design-core/utils';
 
-const ref = await getSafeTokenVar('color.base.primary'); // 'var(--color-base-primary)'
-const bad = await getSafeTokenVar('color.does.not.exist'); // undefined
+const ref = await getSafeTokenVar('colors.color.base.primary'); // 'var(--colors-color-base-primary)'
+const bad = await getSafeTokenVar('color.base.primary');        // undefined — missing the file prefix
 ```
 
 ### `getTokenValue(path)`
@@ -375,9 +377,9 @@ Resolves a token to its raw value (async, cached after first call).
 ```ts
 import { getTokenValue } from '@web-loom/design-core/utils';
 
-const primary = await getTokenValue('color.base.primary'); // '#1E40AF'
-const padding = await getTokenValue('spacing.4');          // '16px'
-const shadow  = await getTokenValue('shadow.md');          // '0 4px 6px -1px ...'
+const primary = await getTokenValue('colors.color.base.primary'); // '#1E40AF'
+const padding = await getTokenValue('spacing.spacing.4');         // '16px'
+const shadow  = await getTokenValue('shadows.shadow.md');         // '0 4px 6px -1px ...'
 ```
 
 ### `generateCssVariablesMap()`
@@ -389,10 +391,11 @@ import { generateCssVariablesMap } from '@web-loom/design-core/utils';
 
 const map = await generateCssVariablesMap();
 // {
-//   '--color-base-primary': '#1E40AF',
-//   '--spacing-4': '16px',
-//   ... 200+ entries
+//   '--colors-color-base-primary': '#1E40AF',
+//   '--spacing-spacing-4': '16px',
+//   ...
 // }
+// Keys include the token-file prefix, so they differ from the shipped CSS files' names.
 ```
 
 ### `generateCssVariablesString(selector?)`
@@ -419,7 +422,7 @@ Returns the full resolved token tree (all 15 categories, deeply nested).
 import { getAllTokens } from '@web-loom/design-core/utils';
 
 const tokens = await getAllTokens();
-console.log(tokens.color.base.primary); // '#1E40AF'
+console.log(tokens.colors.color.base.primary); // '#1E40AF' — top-level keys are the token file names
 ```
 
 ---
@@ -547,7 +550,7 @@ Import `@web-loom/design-core/design-system` to get a lightweight CSS component 
 <!-- Card -->
 <div class="card">
   <div class="card-header">
-    <h3 class="card-title">Task Details</h3>
+    <h3>Task Details</h3>
   </div>
   <div class="card-body">
     <p>Card content here.</p>
@@ -561,12 +564,12 @@ Import `@web-loom/design-core/design-system` to get a lightweight CSS component 
 
 <!-- Input -->
 <div class="input-group">
-  <label class="label" for="name">Full name</label>
+  <label class="form-label" for="name">Full name</label>
   <input class="input" id="name" type="text" placeholder="Alice Smith" />
 </div>
 
 <!-- Loader -->
-<div class="loader loader-md"></div>
+<div class="loader"></div> <!-- sizes: loader-sm, loader-lg; variant: loader-dots -->
 ```
 
 Dark mode works automatically — just set `data-theme="dark"` on `<html>` and all component classes switch palettes with no extra class names needed.
@@ -767,7 +770,7 @@ export class BrandingModel {
   readonly primaryColor = this._primaryColor.asReadonly();
 
   async loadDefaults() {
-    const value = await getTokenValue('color.base.primary');
+    const value = await getTokenValue('colors.color.base.primary');
     if (value) this._primaryColor.set(String(value));
   }
 
@@ -832,7 +835,7 @@ import type {
 - **Import once.** Load `@web-loom/design-core/design-system` (or individual CSS files) at the application entry point — never inside components.
 - **Prefer CSS variables over utility functions in CSS.** `var(--spacing-4)` in a stylesheet is zero runtime cost. Only reach for `getTokenVar` / `getTokenValue` when you need token values in JavaScript logic.
 - **Use semantic tokens for themed values.** Prefer `--color-themed-light-background` over hardcoded hex values so theme switching works automatically without extra CSS.
-- **Call `applyTheme` once on startup.** Injecting the same theme multiple times creates duplicate `<style>` tags; call it during app initialization only.
+- **Call `applyTheme` during app initialization.** It reuses one `<style>` element per theme name (looked up by id), so repeated calls for the same theme replace rather than duplicate the injected CSS — but there's no reason to call it more than once per theme.
 - **Scope custom themes.** When `applyToRoot` is `false` (the default) each theme only activates when `data-theme="<name>"` is set, so multiple themes can coexist in the stylesheet without conflict.
 - **Respect motion preferences.** Use a `@media (prefers-reduced-motion: reduce)` block to disable animations for users who prefer reduced motion.
 - **Pair with Signals Core for reactive theming.** Drive `setTheme` from a signal so the DOM, derived computed values, and framework views all stay in sync automatically.

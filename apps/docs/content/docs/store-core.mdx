@@ -111,10 +111,10 @@ Returns a `Store` instance.
 
 ## Persistence
 
-Passing a persistence configuration to `createStore` lets you keep UI state across reloads or share it between tabs.
+Persistence lives in the `@web-loom/store-core/persist` subpath. Its `createStore` accepts an optional third argument — a persistence configuration — and then returns a `PersistedStore` (with `hydrate()` and `clearPersisted()`). The root `@web-loom/store-core` entry's `createStore` takes only two arguments.
 
 ```ts
-import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
+import { createStore, LocalStorageAdapter } from '@web-loom/store-core/persist';
 
 const preferencesStore = createStore(
   defaultPreferences,
@@ -148,7 +148,7 @@ interface PersistenceConfig<S> {
 - `key`: Storage key used by the adapter to scope your store's data.
 - `autoSync`: When `true`, `setState` automatically persists the state after every change.
 - `merge`: When `true`, hydrations merge with the incoming state instead of replacing it.
-- `serialize`/`deserialize`: Override the default JSON serializer when needed (e.g., for dates or typed data).
+- `serialize`/`deserialize`: Declared in the type, but the built-in adapters currently ignore them and always use `JSON.stringify`/`JSON.parse`. To customise serialization today, implement your own `PersistenceAdapter`.
 
 ### Built-in Adapters
 
@@ -156,10 +156,10 @@ interface PersistenceConfig<S> {
 
 - Persists state into `window.localStorage` using JSON serialization.
 - ~5–10 MB quota per origin; be mindful of size and catch quota errors.
-- Synchronous API, so writes happen immediately.
+- `localStorage` itself is synchronous, but the adapter exposes the same Promise-based `PersistenceAdapter` API as the others.
 
 ```ts
-import { LocalStorageAdapter } from '@web-loom/store-core';
+import { LocalStorageAdapter } from '@web-loom/store-core/persist';
 
 const store = createStore(
   initialState,
@@ -181,7 +181,7 @@ Use this adapter for lightweight UI preferences, auth flags, or small datasets t
 - Ideal for complex data structures that would exceed `localStorage`.
 
 ```ts
-import { IndexedDBAdapter } from '@web-loom/store-core';
+import { IndexedDBAdapter } from '@web-loom/store-core/persist';
 
 const store = createStore(
   initialState,
@@ -202,7 +202,7 @@ Tip: Give each app a unique database name, handle quota rejections, and periodic
 - Mirrors the API of other adapters but keeps data only in RAM.
 
 ```ts
-import { MemoryAdapter } from '@web-loom/store-core';
+import { MemoryAdapter } from '@web-loom/store-core/persist';
 
 const memoryAdapter = new MemoryAdapter<MyState>();
 
@@ -448,7 +448,7 @@ import type {
   State,
   PersistenceAdapter,
   PersistenceConfig,
-} from '@web-loom/store-core';
+} from '@web-loom/store-core/persist'; // the root entry exports only the non-persistence types
 ```
 
 Define states and actions explicitly to unlock IDE autocompletion and compiler checks for every `set`, `get`, and action call.

@@ -16,9 +16,9 @@ Angular 1's `$scope` was a different approach: dirty checking. Angular would com
 
 Vue 2 used `Object.defineProperty` to intercept reads and writes on reactive objects. Elegant, but it couldn't detect property additions or array mutations by index. `Vue.set()` existed specifically to paper over these limitations.
 
-Vue 3 moved to `Proxy`, which solved most of those edge cases. React introduced hooks in 2018 — `useState` and `useEffect` — which are not reactive in the signals sense. Every state update schedules a re-render of the whole component. React's model is "re-run the function," not "propagate the change to dependents."
+Vue 3 moved to `Proxy`, which solved most of those edge cases. React introduced hooks (announced in 2018, shipped in React 16.8 in early 2019) — `useState` and `useEffect` — which are not reactive in the signals sense. Every state update schedules a re-render of the whole component. React's model is "re-run the function," not "propagate the change to dependents."
 
-Svelte 5 introduced Runes (`$state`, `$derived`, `$effect`) in 2024. Preact added `@preact/signals-react`. Solid has had fine-grained signals since its inception. Angular 17 added `signal()` to its core. The entire frontend ecosystem is converging on signals.
+Svelte 5 introduced Runes (`$state`, `$derived`, `$effect`) in 2024. Preact added `@preact/signals-react`. Solid has had fine-grained signals since its inception. Angular added `signal()` to its core (developer preview in v16, stable in v17). The entire frontend ecosystem is converging on signals.
 
 The insight that's driving this convergence: when you know exactly which values a computation depends on, you can re-run only that computation when those values change — instead of re-running everything and diffing the output.
 
@@ -26,7 +26,7 @@ The insight that's driving this convergence: when you know exactly which values 
 
 ## What `@web-loom/signals-core` Provides
 
-The package has zero runtime dependencies. It's about 900 bytes minified and gzipped. It exports four things: `signal`, `computed`, `effect`, and `batch`. There are supporting utilities: `untracked`, `isSignal`, `isWritableSignal`, and `flush`.
+The main entry has zero runtime dependencies and is small — on the order of a kilobyte minified and gzipped. Its core is four functions: `signal`, `computed`, `effect`, and `batch`. Supporting utilities: `untracked`, `flush`, `isSignal`, `isWritableSignal`, `observe` and `debouncedSignal`. RxJS interop lives in a separate, optional `@web-loom/signals-core/rxjs` entry.
 
 The design is deliberately close to the TC39 Signals proposal and the patterns used in Angular, Preact, and Solid — familiar territory for engineers who've used any of those.
 
@@ -135,29 +135,29 @@ import { signal, effect } from '@web-loom/signals-core';
 
 const theme = signal<'light' | 'dark'>('light');
 
-const stop = effect(() => {
+const handle = effect(() => {
   document.documentElement.classList.toggle('dark', theme.get() === 'dark');
 });
 
 theme.set('dark'); // effect runs, adds 'dark' class
 
-stop(); // tear down the effect
+handle.dispose(); // tear down the effect
 ```
 
 Effects track dependencies automatically — any signal read inside the function body during a run becomes a dependency. If those signals change, the effect re-runs.
 
-The return value of `effect()` is a cleanup function. Always hold onto it and call it when the effect is no longer needed.
+`effect()` returns an `EffectHandle`. Always hold onto it and call its `dispose()` method when the effect is no longer needed.
 
 ```typescript
 // In a web component
 connectedCallback() {
-  this._stopEffect = effect(() => {
+  this._effect = effect(() => {
     this.innerHTML = `<p>${this.vm.message.get()}</p>`;
   });
 }
 
 disconnectedCallback() {
-  this._stopEffect();
+  this._effect.dispose();
 }
 ```
 
@@ -253,13 +253,13 @@ export function createCounter(initial = 0) {
 // Usage
 const counter = createCounter(5);
 
-const stop = effect(() => {
+const handle = effect(() => {
   console.log(`count=${counter.count.get()}, doubled=${counter.doubled.get()}`);
 });
 
 counter.increment(); // logs: count=6, doubled=12
 counter.increment(); // logs: count=7, doubled=14
-stop();
+handle.dispose();
 ```
 
 No JSX. No component lifecycle. No `useEffect`. Just reactive state that works wherever JavaScript runs.
@@ -308,7 +308,7 @@ describe('computed', () => {
 npm install @web-loom/signals-core
 ```
 
-Zero dependencies. Works in browser and Node.js environments. TypeScript types included.
+No runtime dependencies (`rxjs` is an optional peer, needed only for the `/rxjs` interop entry). Works in browser and Node.js environments. TypeScript types included.
 
 The package is aligned with the TC39 Signals proposal direction — as that proposal stabilises, the API should feel familiar. In the meantime, you get a production-ready implementation today.
 

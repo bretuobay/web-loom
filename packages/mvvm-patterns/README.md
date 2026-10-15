@@ -12,6 +12,8 @@ Application-level MVVM patterns for Web Loom, providing advanced ViewModel capab
 
 ## Installation
 
+> **Not yet published to npm.** `@web-loom/mvvm-patterns` lives in the Web Loom monorepo; inside the workspace, depend on it with `"@web-loom/mvvm-patterns": "workspace:^"`. Once published it will install with:
+
 ```bash
 npm install @web-loom/mvvm-patterns
 ```
@@ -71,12 +73,12 @@ function OrderView({ vm }: { vm: OrderViewModel }) {
 
   useEffect(() => {
     // Subscribe to confirmation requests
-    const sub = vm.confirmDelete.requested$.subscribe(event => {
+    const unsubscribe = vm.confirmDelete.requested$.subscribe(event => {
       setConfirmDialog(event.context);
       callbackRef.current = event.callback;
     });
 
-    return () => sub.unsubscribe();
+    return unsubscribe; // subscribe() returns a plain unsubscribe function
   }, [vm]);
 
   const handleConfirm = (confirmed: boolean) => {
@@ -249,10 +251,10 @@ export default {
 export class OrderComponent implements OnInit, OnDestroy {
   confirmDialog: IConfirmation | null = null;
   private callback: ((r: IConfirmation) => void) | null = null;
-  private subscription?: Subscription;
+  private unsubscribe?: () => void;
 
   ngOnInit() {
-    this.subscription = this.vm.confirmDelete.requested$.subscribe((event) => {
+    this.unsubscribe = this.vm.confirmDelete.requested$.subscribe((event) => {
       this.confirmDialog = event.context;
       this.callback = event.callback;
     });
@@ -266,7 +268,7 @@ export class OrderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.subscription?.unsubscribe();
+    this.unsubscribe?.();
     this.vm.dispose();
   }
 }
@@ -424,7 +426,7 @@ Interface for objects that track active state.
 **Properties:**
 
 - `isActive: boolean` - Gets or sets the active state
-- `isActive$: Observable<boolean>` - Observable that emits when active state changes
+- `isActive$: ReadonlySignal<boolean>` - signal that changes when the active state changes
 
 ### `ActiveAwareViewModel<TModel>`
 

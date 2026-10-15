@@ -109,7 +109,7 @@ Web Loom separates concerns at a package boundary:
 
 - `@web-loom/mvvm-core`, `@web-loom/signals-core`, `@web-loom/query-core` — plain TypeScript, zero framework imports
 - `@web-loom/ui-core`, `@web-loom/forms-core` — headless behaviors, framework-agnostic
-- Framework adapters (`@web-loom/forms-react`, `@web-loom/media-vue`, …, maintained in the [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, not yet on npm) — thin wrappers, typically under 200 lines
+- Framework adapters (`@web-loom/forms-react`, `@web-loom/media-vue`, …) — thin wrappers maintained in the separate [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, not yet on npm
 
 When a new framework emerges, you write a new adapter. The Models and ViewModels underneath stay untouched.
 
@@ -117,7 +117,7 @@ When a new framework emerges, you write a new adapter. The Models and ViewModels
 
 ## Installation
 
-Install the packages you need. At minimum, `mvvm-core` (which pulls in `@web-loom/signals-core` as a dependency) and `zod`:
+Install the packages you need. At minimum, `mvvm-core` (which pulls in `@web-loom/signals-core`, `@web-loom/query-core` and `zod` as dependencies) and `zod` itself, since your schemas import it directly:
 
 ```bash
 npm install @web-loom/mvvm-core zod
@@ -217,12 +217,14 @@ The View reads ViewModel signals (through a small per-framework bridge, since ea
 **React**
 
 ```tsx
-import { useSyncExternalStore, useEffect, useMemo } from 'react';
+import { useCallback, useSyncExternalStore, useEffect, useMemo } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
 import { taskListViewModel } from './TaskListViewModel';
 
 function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 export function TaskList() {
@@ -232,8 +234,8 @@ export function TaskList() {
   const pending  = useSignal(vm.pendingCount$);
 
   useEffect(() => {
+    // taskListViewModel is an app-lifetime singleton, so the component doesn't dispose it.
     vm.fetchCommand.execute();
-    return () => vm.dispose();
   }, []);
 
   return (
@@ -270,7 +272,6 @@ const loading = useSignal(vm.isLoading$);
 const pending = useSignal(vm.pendingCount$);
 
 onMounted(() => vm.fetchCommand.execute());
-onUnmounted(() => vm.dispose());
 </script>
 
 <template>
@@ -288,7 +289,7 @@ onUnmounted(() => vm.dispose());
 **Angular**
 
 ```typescript
-import { Component, OnInit, OnDestroy, InjectionToken, Inject } from '@angular/core';
+import { Component, OnInit, InjectionToken, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { fromLoomSignal } from './utils/loom-signals';
 import { taskListViewModel } from './TaskListViewModel';
@@ -307,14 +308,13 @@ export const TASK_VM = new InjectionToken('TASK_VM');
     <button (click)="vm.addCommand.execute('New task')">Add</button>
   `,
 })
-export class TaskListComponent implements OnInit, OnDestroy {
+export class TaskListComponent implements OnInit {
   constructor(@Inject(TASK_VM) public vm: typeof taskListViewModel) {}
 
   tasks   = fromLoomSignal(this.vm.data$);
   loading = fromLoomSignal(this.vm.isLoading$);
 
-  ngOnInit()    { this.vm.fetchCommand.execute(); }
-  ngOnDestroy() { this.vm.dispose(); }
+  ngOnInit() { this.vm.fetchCommand.execute(); }
 }
 ```
 
@@ -328,7 +328,7 @@ The ViewModel class is the same in all three cases. Only the bridge syntax diffe
 
 ### Signals
 
-`@web-loom/mvvm-core` is built on [`@web-loom/signals-core`](/docs/signals-core) — every `data$`/`isLoading$`/`error$`/`canExecute$`/`isExecuting$` you'll see throughout these docs is a `ReadonlySignal<T>`: synchronous, pull-based, with automatic dependency tracking. Zero dependencies, no scheduler.
+`@web-loom/mvvm-core` is built on [`@web-loom/signals-core`](/docs/signals-core) — every `data$`/`isLoading$`/`error$`/`canExecute$`/`isExecuting$` you'll see throughout these docs is a `ReadonlySignal<T>`: synchronous, pull-based, with automatic dependency tracking and no scheduler. The main entry has no runtime dependencies.
 
 ```typescript
 import { signal, computed } from '@web-loom/signals-core';
@@ -360,10 +360,10 @@ See [Signals Core: RxJS Interop](/docs/signals-core#rxjs-interop) for the full A
 
 Commands are the primary mechanism for user actions. A Command wraps an async operation and exposes:
 
-- `execute()` — trigger the action
-- `isExecuting$` / `isExecuting` — loading state for spinner binding
-- `canExecute$` / `canRun` — guards (e.g. disable submit while loading)
-- `error$` / `error` — last error, if any
+- `execute(param)` — trigger the action; returns a Promise
+- `isExecuting$` — `ReadonlySignal<boolean>` for spinner binding
+- `canExecute$` — `ReadonlySignal<boolean>` guard; always `false` while the command is executing
+- `executeError$` — `ReadonlySignal` holding the last error (cleared on the next run)
 
 ```typescript
 // In a ViewModel
@@ -372,15 +372,17 @@ readonly saveCommand = new Command(async () => {
 });
 
 // In the View (React)
-<button
-  onClick={() => vm.saveCommand.execute()}
-  disabled={!vm.saveCommand.canExecute}
->
-  {vm.saveCommand.isExecuting ? 'Saving…' : 'Save'}
+const canSave  = useSignal(vm.saveCommand.canExecute$);
+const isSaving = useSignal(vm.saveCommand.isExecuting$);
+const saveErr  = useSignal(vm.saveCommand.executeError$);
+
+<button onClick={() => vm.saveCommand.execute().catch(() => {})} disabled={!canSave}>
+  {isSaving ? 'Saving…' : 'Save'}
 </button>
+{saveErr && <p role="alert">Save failed</p>}
 ```
 
-Commands keep the View dumb — it never contains `try/catch`, loading flags, or validation logic.
+Commands keep loading flags and enablement out of the View. Note that `execute()` records the error in `executeError$` **and re-throws it**, so a View that calls a command whose action can fail should either handle the rejection (as above) or rely on a Model method that catches its own errors (like `fetchAll` earlier).
 
 ---
 
@@ -388,15 +390,7 @@ Commands keep the View dumb — it never contains `try/catch`, loading flags, or
 
 **Unidirectional data flow** — state flows down (Model → ViewModel → View), actions flow up (View calls ViewModel commands). No two-way data binding at the architecture level.
 
-**Always dispose** — ViewModels register Commands and manual signal subscriptions. Call `vm.dispose()` in the component teardown hook to prevent memory leaks.
-
-```typescript
-// React
-useEffect(() => {
-  vm.fetchCommand.execute();
-  return () => vm.dispose();
-}, []);
-```
+**Dispose with the owner** — ViewModels register Commands and manual signal subscriptions; `vm.dispose()` releases them. Dispose a ViewModel when whatever owns it goes away: a module-level singleton (like `taskListViewModel` above) lives for the whole app, while a ViewModel created per screen should be disposed in that screen's teardown. Disposal is permanent — a disposed Command's `execute()` resolves to `undefined` without running, so never dispose an instance that will be mounted again.
 
 **Business data in Models, UI state in Store** — a filter value that affects API results belongs in the Model. Whether a drawer is open belongs in the Store.
 
@@ -428,29 +422,29 @@ Web Loom ships packages across several categories:
 ### Data & communication
 - [`@web-loom/query-core`](/docs/query-core) — Data fetching with caching and stale-while-revalidate
 - [`@web-loom/event-bus-core`](/docs/event-bus-core) — Typed event aggregation for cross-feature messaging
-- `@web-loom/http-core` — HTTP client abstraction
+- `@web-loom/http-core` — HTTP client abstraction (in the repo, not yet on npm)
 
 ### UI behaviors
 - [`@web-loom/ui-core`](/docs/ui-core) — Headless dialog, list, form, roving-focus behaviors
 - [`@web-loom/ui-patterns`](/docs/ui-patterns) — Wizard, MasterDetail, CommandPalette shells
-- `@web-loom/forms-core` — Framework-agnostic form logic and validation
+- `@web-loom/forms-core` — Framework-agnostic form logic and validation (uses RxJS internally)
 
 ### Design & theming
 - [`@web-loom/design-core`](/docs/design-core) — Design tokens, CSS custom properties, theming, component library
 
-### Infrastructure
+### Infrastructure (in the repo, not yet on npm)
 - `@web-loom/router-core` — Routing state abstraction
 - `@web-loom/storage-core` — localStorage / sessionStorage abstraction
 - `@web-loom/i18n-core` — Internationalization
-- `@web-loom/plugin-core` — Plugin architecture for extensible applications
+- `@repo/plugin-core` — Plugin architecture for extensible applications (internal workspace package)
 
 ---
 
 ## Where to Go Next
 
 - [Core Concepts](/docs/core-concepts) — deeper dive into architecture patterns and how packages relate
-- [Models](/docs/models) — the Model layer in detail: RestfulApiModel, schemas, reactive streams
-- [ViewModels](/docs/viewmodels) — Commands, RestfulApiViewModel, FormViewModel, lifecycle
+- [Models](/docs/models) — the Model layer in detail: RestfulApiModel, schemas, reactive state
+- [ViewModels](/docs/viewmodels) — Commands, RestfulApiViewModel, lifecycle
 - [Signals Core](/docs/signals-core) — the `signal`/`computed`/`effect` primitives underlying mvvm-core
 - [MVVM in React](/docs/mvvm-react-use-case) — React-specific integration patterns
 - [MVVM in Vue](/docs/mvvm-vue-use-case) — Vue 3 composable-based integration
