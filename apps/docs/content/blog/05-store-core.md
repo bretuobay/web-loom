@@ -36,7 +36,14 @@ interface UIState {
   searchQuery: string;
 }
 
-export const uiStore = createStore<UIState, typeof actions>(
+interface UIActions {
+  setTheme: (theme: UIState['theme']) => void;
+  toggleSidebar: () => void;
+  setActiveTab: (tab: string) => void;
+  setSearchQuery: (query: string) => void;
+}
+
+export const uiStore = createStore<UIState, UIActions>(
   {
     theme: 'light',
     sidebarOpen: false,
@@ -150,10 +157,10 @@ class SidebarElement extends HTMLElement {
 
 ## Persistence
 
-For UI state that should survive page refreshes — theme preference, sidebar width, last-visited tab — you pass a persistence configuration:
+For UI state that should survive page refreshes — theme preference, sidebar width, last-visited tab — import `createStore` from the `@web-loom/store-core/persist` subpath and pass a persistence configuration as a third argument (the root entry's `createStore` takes only two):
 
 ```typescript
-import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
+import { createStore, LocalStorageAdapter } from '@web-loom/store-core/persist';
 
 const uiStore = createStore(
   { theme: 'light', sidebarOpen: false },
@@ -172,21 +179,23 @@ const uiStore = createStore(
 With persistence enabled, the store:
 
 1. Auto-hydrates from storage on creation (asynchronously)
-2. Auto-syncs to storage on every state change (fire-and-forget)
+2. Auto-syncs to storage on every state change after hydration (fire-and-forget; disable with `autoSync: false`)
+3. Returns a `PersistedStore` with `hydrate()`, `persist()` and `clearPersisted()`
 
 Three adapters are included:
 
-- **`LocalStorageAdapter`** — synchronous `localStorage`, serialised as JSON. Works for small state.
+- **`LocalStorageAdapter`** — `localStorage`, serialised as JSON, behind the same Promise-based interface. Works for small state.
 - **`IndexedDBAdapter`** — asynchronous, higher storage limits, better for larger datasets.
 - **`MemoryAdapter`** — for testing and SSR contexts where browser storage isn't available.
 
 You can implement the `PersistenceAdapter` interface for custom backends:
 
 ```typescript
-interface PersistenceAdapter {
-  save(key: string, value: unknown): Promise<void>;
-  load(key: string): Promise<unknown | null>;
+interface PersistenceAdapter<S extends State> {
+  save(key: string, state: S): Promise<void>;
+  load(key: string): Promise<S | null>;
   remove(key: string): Promise<void>;
+  has(key: string): Promise<boolean>;
 }
 ```
 
@@ -199,6 +208,9 @@ This makes it straightforward to persist to a remote API, sessionStorage, or a c
 There's no reason to use a single global UI store. Splitting stores by feature domain keeps things scoped and easy to reason about:
 
 ```typescript
+import { createStore } from '@web-loom/store-core';
+import { createStore as createPersistedStore, LocalStorageAdapter } from '@web-loom/store-core/persist';
+
 // navigation-store.ts
 export const navStore = createStore({ activeRoute: '/', breadcrumbs: [] as string[] }, (set) => ({
   navigate: (route: string) => set((s) => ({ ...s, activeRoute: route })),
@@ -206,7 +218,7 @@ export const navStore = createStore({ activeRoute: '/', breadcrumbs: [] as strin
 }));
 
 // layout-store.ts
-export const layoutStore = createStore(
+export const layoutStore = createPersistedStore(
   { sidebarOpen: true, panelWidth: 320 },
   (set) => ({
     toggleSidebar: () => set((s) => ({ ...s, sidebarOpen: !s.sidebarOpen })),
@@ -219,7 +231,7 @@ export const layoutStore = createStore(
 );
 
 // theme-store.ts
-export const themeStore = createStore(
+export const themeStore = createPersistedStore(
   { mode: 'system' as 'light' | 'dark' | 'system' },
   (set) => ({
     setMode: (mode: 'light' | 'dark' | 'system') => set((s) => ({ ...s, mode })),
@@ -287,8 +299,8 @@ When you keep this boundary clean, the architecture becomes navigable: "where do
 The store performs a shallow comparison on state updates. If your action returns a new object that's structurally identical to the old state, listeners are not notified:
 
 ```typescript
-// This fires subscribers only if `open` actually changed
-uiStore.actions.setOpen(open);
+// This fires subscribers only if `sidebarOpen` actually changed
+set((s) => ({ ...s, sidebarOpen: open }));
 
 // Returning a spread with the same values fires NO subscribers
 set((s) => ({ ...s })); // ← shallow comparison catches this, no notification

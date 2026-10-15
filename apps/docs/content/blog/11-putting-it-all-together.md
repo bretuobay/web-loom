@@ -8,7 +8,7 @@ But the real question is whether the pieces compose. Can you build something rea
 
 This final article builds a complete feature from scratch: a **Product Browser** — a master-detail list of products, searchable, with a delete-with-confirmation flow, live event updates, cached data fetching, theme support, and a command palette for power users. It's a representative slice of a real application.
 
-By the end, every package in the series will have appeared at least once.
+By the end, almost every package in the series will have appeared (the table at the end notes the one that doesn't).
 
 ---
 
@@ -46,10 +46,13 @@ Before any code, define the design tokens. These will flow through everything.
 
 ```typescript
 // src/design/tokens.ts
-import type { ColorToken, SpacingToken, RadiusToken, TypographyToken } from '@web-loom/design-core';
-import { generateCSSCustomProperties } from '@web-loom/design-core';
+import type { ColorValue, SpacingValue, BorderRadiusValue, DesignTokenValue } from '@web-loom/design-core';
 
-const colors: Record<string, ColorToken> = {
+// A few lines of our own to turn a token record into CSS declarations
+const toCss = (...groups: Record<string, DesignTokenValue>[]) =>
+  groups.flatMap((g) => Object.entries(g).map(([name, t]) => `--${name}: ${t.value};`)).join(' ');
+
+const colors: Record<string, ColorValue> = {
   'color-brand': { value: '#2563EB', type: 'color' },
   'color-surface': { value: '#FFFFFF', type: 'color' },
   'color-surface-subtle': { value: '#F8FAFC', type: 'color' },
@@ -62,7 +65,7 @@ const colors: Record<string, ColorToken> = {
   'color-success': { value: '#16A34A', type: 'color' },
 };
 
-const spacing: Record<string, SpacingToken> = {
+const spacing: Record<string, SpacingValue> = {
   'space-1': { value: '4px', type: 'spacing' },
   'space-2': { value: '8px', type: 'spacing' },
   'space-3': { value: '12px', type: 'spacing' },
@@ -71,15 +74,15 @@ const spacing: Record<string, SpacingToken> = {
   'space-8': { value: '32px', type: 'spacing' },
 };
 
-const radii: Record<string, RadiusToken> = {
-  'radius-sm': { value: '4px', type: 'radius' },
-  'radius-md': { value: '8px', type: 'radius' },
-  'radius-lg': { value: '12px', type: 'radius' },
+const radii: Record<string, BorderRadiusValue> = {
+  'radius-sm': { value: '4px', type: 'borderRadius' },
+  'radius-md': { value: '8px', type: 'borderRadius' },
+  'radius-lg': { value: '12px', type: 'borderRadius' },
 };
 
-export const lightThemeCSS = generateCSSCustomProperties({ colors, spacing, radii });
+export const lightThemeCSS = toCss(colors, spacing, radii);
 
-export const darkColors: Record<string, ColorToken> = {
+export const darkColors: Record<string, ColorValue> = {
   'color-brand': { value: '#3B82F6', type: 'color' },
   'color-surface': { value: '#0F172A', type: 'color' },
   'color-surface-subtle': { value: '#1E293B', type: 'color' },
@@ -92,7 +95,7 @@ export const darkColors: Record<string, ColorToken> = {
   'color-success': { value: '#4ADE80', type: 'color' },
 };
 
-export const darkThemeCSS = generateCSSCustomProperties({ colors: darkColors, spacing, radii });
+export const darkThemeCSS = toCss(darkColors, spacing, radii);
 ```
 
 Inject both at app startup, swapping between them via a `data-theme` attribute or `.dark` class:
@@ -116,14 +119,14 @@ Set up the application event bus before any feature code. This is the central ne
 
 ```typescript
 // src/infrastructure/bus.ts
-import { createEventBus } from '@web-loom/event-bus-core';
+import { createEventBus, type EventMap } from '@web-loom/event-bus-core';
 
 // Define all app-level events in one place
-interface AppEvents {
-  'product:deleted': { productId: string; name: string };
-  'product:updated': { productId: string };
-  'cart:item-added': { productId: string; quantity: number };
-  'auth:logout': void;
+interface AppEvents extends EventMap {
+  'product:deleted': [{ productId: string; name: string }];
+  'product:updated': [{ productId: string }];
+  'cart:item-added': [{ productId: string; quantity: number }];
+  'auth:logout': [];
 }
 
 export const appBus = createEventBus<AppEvents>();
@@ -139,7 +142,8 @@ UI state lives in a dedicated store. No framework, no context, just state.
 
 ```typescript
 // src/stores/ui-store.ts
-import { createStore, LocalStorageAdapter } from '@web-loom/store-core';
+// Persistence lives in the /persist subpath (its createStore takes a third argument)
+import { createStore, LocalStorageAdapter } from '@web-loom/store-core/persist';
 
 interface UIState {
   theme: 'light' | 'dark' | 'system';
@@ -147,7 +151,14 @@ interface UIState {
   commandPaletteOpen: boolean;
 }
 
-export const uiStore = createStore<UIState>(
+interface UIActions {
+  setTheme: (theme: UIState['theme']) => void;
+  toggleSidebar: () => void;
+  openPalette: () => void;
+  closePalette: () => void;
+}
+
+export const uiStore = createStore<UIState, UIActions>(
   {
     theme: 'system',
     sidebarOpen: true,
@@ -205,7 +216,8 @@ interface ProductModelEvents {
 // One QueryCore instance for the feature — could be app-level and shared
 const queryCache = new QueryCore({ cacheProvider: 'localStorage', defaultRefetchAfter: 5 * 60_000 });
 
-queryCache.defineEndpoint('products', async () => {
+// defineEndpoint is async — await it (top-level await in an ES module) before subscribing
+await queryCache.defineEndpoint('products', async () => {
   const res = await fetch('/api/products');
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<Product[]>;
@@ -217,7 +229,7 @@ export class ProductModel extends BaseModel<Product[], never> {
   constructor() {
     super({});
 
-    // Forward QueryCore state to BaseModel observables
+    // Forward QueryCore state to BaseModel signals
     queryCache.subscribe('products', (state) => {
       this.setLoading(state.isLoading);
       if (state.error) this.setError(state.error);
@@ -237,9 +249,9 @@ export class ProductModel extends BaseModel<Product[], never> {
     const res = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`Delete failed: HTTP ${res.status}`);
 
-    // Update local cache optimistically
+    // Update local data now that the server confirmed the delete
     this.setData(current.filter((p) => p.id !== productId));
-    queryCache.invalidate('products');
+    await queryCache.invalidate('products');
 
     // Emit typed model event
     this.events.emit('deleted', { productId, name: product.name });
@@ -268,15 +280,13 @@ The ViewModel derives what the View needs from the Model. It composes UI pattern
 import { Command } from '@web-loom/mvvm-core';
 import { ActiveAwareViewModel } from '@web-loom/mvvm-patterns';
 import { ConfirmationRequest, NotificationRequest } from '@web-loom/mvvm-patterns';
-import { createMasterDetail } from '@web-loom/ui-patterns';
 import { signal, computed } from '@web-loom/signals-core';
 import { ProductModel, Product } from './ProductModel';
 
 export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
   // --- Signals for the View ---
+  // (data$, isLoading$ and error$ are inherited from BaseViewModel)
   readonly products$ = computed(() => this.data$.get() ?? []);
-  readonly isLoading$ = this.isLoading$;
-  readonly error$ = this.error$;
 
   // --- Search signal (reactive, local UI state) ---
   private readonly _search = signal('');
@@ -288,11 +298,14 @@ export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
     return all.filter((p) => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
   });
 
-  // --- UI Pattern: MasterDetail ---
-  readonly masterDetail = createMasterDetail<Product>({
-    items: [],
-    getId: (p) => p.id,
-  });
+  // --- Selection (local UI state) ---
+  // ui-patterns' createMasterDetail has no action to replace its item list,
+  // so for a list that reloads and filters, a pair of signals is simpler.
+  private readonly _selectedId = signal<string | null>(null);
+  readonly selectedId$ = this._selectedId.asReadonly();
+  readonly selectedProduct$ = computed(
+    () => (this.data$.get() ?? []).find((p) => p.id === this._selectedId.get()) ?? null,
+  );
 
   // --- Interaction Requests ---
   readonly confirmDelete = new ConfirmationRequest();
@@ -324,16 +337,9 @@ export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
 
   constructor(model: ProductModel) {
     super(model);
-
-    // Keep MasterDetail in sync with filtered products
-    this.addSubscription(
-      this.products$.subscribe((products) => {
-        this.masterDetail.actions.setItems(products);
-      }),
-    );
   }
 
-  protected onIsActiveChanged(isActive: boolean): void {
+  protected onIsActiveChanged(isActive: boolean, _wasActive: boolean): void {
     if (isActive) {
       // Load only if we have no data yet (cache will prevent re-fetching)
       if (!this.data$.peek()) {
@@ -346,8 +352,11 @@ export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
     this._search.set(query);
   }
 
+  selectProduct(id: string | null): void {
+    this._selectedId.set(id);
+  }
+
   dispose(): void {
-    this.masterDetail.destroy();
     this.confirmDelete.dispose();
     this.notifyDeleted.dispose();
     super.dispose();
@@ -355,7 +364,7 @@ export class ProductViewModel extends ActiveAwareViewModel<ProductModel> {
 }
 ```
 
-The ViewModel has zero framework imports. It uses five `@web-loom` packages but nothing from React, Vue, or Angular. Every piece of View logic — what's selected, what's filtered, what dialog to show, whether to load — is handled here.
+The ViewModel has zero framework imports. It uses three `@web-loom` packages but nothing from React, Vue, or Angular. Every piece of View logic — what's selected, what's filtered, what dialog to show, whether to load — is handled here.
 
 ---
 
@@ -378,14 +387,14 @@ export function useProductPalette(vm: ProductViewModel) {
           {
             id: 'reload',
             label: 'Reload Products',
-            group: 'Products',
+            category: 'Products',
             shortcut: 'R',
             action: () => vm.loadCommand.execute(),
           },
           {
             id: 'toggle-theme',
             label: 'Toggle Dark Mode',
-            group: 'Appearance',
+            category: 'Appearance',
             keywords: ['dark', 'light', 'theme'],
             action: () => {
               const { theme } = uiStore.getState();
@@ -395,7 +404,7 @@ export function useProductPalette(vm: ProductViewModel) {
           {
             id: 'toggle-sidebar',
             label: 'Toggle Sidebar',
-            group: 'Layout',
+            category: 'Layout',
             action: () => uiStore.actions.toggleSidebar(),
           },
         ],
@@ -434,6 +443,7 @@ import type { ReadonlySignal } from '@web-loom/signals-core';
 import { ProductViewModel } from './ProductViewModel';
 import { ProductModel, Product } from './ProductModel';
 import { useProductPalette } from './useProductPalette';
+import { uiStore } from '../../stores/ui-store';
 import type { IConfirmation, INotification } from '@web-loom/mvvm-patterns';
 
 // --- Bridge a Web Loom signal to React ---
@@ -464,6 +474,9 @@ export function ProductBrowser() {
   const error = useSignal(vm.error$);
   const filteredProducts = useSignal(vm.filteredProducts);
   const isDeleting = useSignal(vm.deleteCommand.isExecuting$);
+  const search = useSignal(vm.search);
+  const selectedId = useSignal(vm.selectedId$);
+  const selectedProduct = useSignal(vm.selectedProduct$);
 
   // UI store
   const uiState = useSyncExternalStore(
@@ -509,7 +522,7 @@ export function ProductBrowser() {
           }}
         >
           <input
-            value={vm.search.get()}
+            value={search}
             onChange={(e) => vm.setSearch(e.target.value)}
             placeholder="Search products…"
             style={{
@@ -526,13 +539,13 @@ export function ProductBrowser() {
             {filteredProducts.map((product) => (
               <li
                 key={product.id}
-                onClick={() => vm.masterDetail.actions.selectItem(product)}
+                onClick={() => vm.selectProduct(product.id)}
                 style={{
                   padding: 'var(--space-3)',
                   borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
                   background:
-                    vm.masterDetail.getState().selectedId === product.id
+                    selectedId === product.id
                       ? 'var(--color-surface-raised)'
                       : 'transparent',
                   color: 'var(--color-text-primary)',
@@ -550,10 +563,10 @@ export function ProductBrowser() {
 
       {/* Detail panel */}
       <main style={{ flex: 1, padding: 'var(--space-8)' }}>
-        {vm.masterDetail.getState().selectedItem ? (
+        {selectedProduct ? (
           <ProductDetail
-            product={vm.masterDetail.getState().selectedItem!}
-            onDelete={() => vm.deleteCommand.execute(vm.masterDetail.getState().selectedId!)}
+            product={selectedProduct}
+            onDelete={() => vm.deleteCommand.execute(selectedProduct.id).catch(() => {})}
             isDeleting={isDeleting}
           />
         ) : (
@@ -637,15 +650,15 @@ Let's inventory what each package contributed:
 
 | Package                        | Role in this feature                                                                                                      |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `@web-loom/mvvm-core`          | `BaseModel` (ProductModel), `BaseViewModel` (ProductViewModel), `Command` (loadCommand, deleteCommand)                    |
+| `@web-loom/mvvm-core`          | `BaseModel` (ProductModel), `BaseViewModel` via `ActiveAwareViewModel` (ProductViewModel), `Command` (loadCommand, deleteCommand) |
 | `@web-loom/query-core`         | `QueryCore` caches product list, serves from cache on tab re-visit, auto-refreshes after 5 minutes                        |
 | `@web-loom/event-emitter-core` | `EventEmitter<ProductModelEvents>` on the Model for internal typed events                                                 |
 | `@web-loom/event-bus-core`     | `appBus` carries `product:deleted` to the cart feature without coupling                                                   |
 | `@web-loom/store-core`         | `uiStore` persists theme and sidebar state across sessions                                                                |
-| `@web-loom/ui-patterns`        | `createMasterDetail` manages selection state; `createCommandPalette` provides Ctrl+K functionality                        |
+| `@web-loom/ui-patterns`        | `createCommandPalette` provides Ctrl+K functionality                                                                      |
 | `@web-loom/mvvm-patterns`      | `ConfirmationRequest` decouples delete dialog from ViewModel; `ActiveAwareViewModel` pauses work when tab is inactive     |
-| `@web-loom/design-core`        | Token types and `generateCSSCustomProperties` create the CSS variable layer for theming                                   |
-| `@web-loom/signals-core`       | `signal` + `computed` power the search filter with minimal overhead                                                       |
+| `@web-loom/design-core`        | Token value types (`ColorValue`, `SpacingValue`, …) describe the CSS variable layer for theming                           |
+| `@web-loom/signals-core`       | `signal` + `computed` power the search filter and selection                                                               |
 | `@web-loom/ui-core`            | (Available for headless form behaviour on search field, table sorting — not shown in this example but a natural addition) |
 
 Notice what the View layer does not contain:
@@ -734,7 +747,7 @@ describe('Product delete flow', () => {
 });
 ```
 
-The entire delete confirmation flow — with its async Promise chain and interaction request handshake — tested in a plain Vitest file. No browser. No React renderer. Under 50 lines.
+The entire delete confirmation flow — with its async Promise chain and interaction request handshake — tested in a plain Vitest file. No browser. No React renderer. About 65 lines.
 
 ---
 
@@ -796,10 +809,10 @@ These packages are open. The monorepo is public. Feedback, questions, and critic
 
 _This article concludes the Web Loom series. Links to all articles in the series:_
 
-1. _`@web-loom/mvvm-core` — The Foundation_
-2. _`@web-loom/signals-core` — Reactivity Without a Framework_
-3. _`@web-loom/event-emitter-core` — Typed Events for TypeScript_
-4. _`@web-loom/event-bus-core` — Application-Level Pub/Sub_
+1. _`@web-loom/mvvm-core` — The Architecture Layer the Web Forgot_
+2. _`@web-loom/signals-core` — Reactive State Without the Framework Tax_
+3. _`@web-loom/event-emitter-core` — Typed Events for the Modern Web_
+4. _`@web-loom/event-bus-core` — Decoupling Features With Typed Pub/Sub_
 5. _`@web-loom/store-core` — UI State Belongs Somewhere Specific_
 6. _`@web-loom/query-core` — Data Fetching With a Memory_
 7. _`@web-loom/ui-core` — The Behaviour Layer Below Your Components_

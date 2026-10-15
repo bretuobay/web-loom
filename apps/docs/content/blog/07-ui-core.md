@@ -45,12 +45,12 @@ const dialog = createDialogBehavior({
 });
 
 // Actions
-dialog.actions.open();
+dialog.actions.open({ itemName: 'Invoice #42' }); // content is stored in state
 dialog.actions.close();
 dialog.actions.toggle();
 
 // State
-dialog.getState(); // → { isOpen: boolean, id: string }
+dialog.getState(); // → { isOpen: boolean, content: any, id: string | null }
 
 // Subscribe
 dialog.subscribe((state) => {
@@ -58,7 +58,7 @@ dialog.subscribe((state) => {
 });
 ```
 
-In React, the `useDialogBehavior` hook handles subscription and cleanup:
+In React, the `useDialogBehavior` hook handles subscription and cleanup. It returns the current state plus an `actions` object:
 
 ```tsx
 import { useDialogBehavior } from '@web-loom/ui-core';
@@ -68,13 +68,13 @@ function DeleteConfirmation() {
 
   return (
     <>
-      <button onClick={dialog.open}>Delete</button>
+      <button onClick={() => dialog.actions.open(null)}>Delete</button>
 
       {dialog.isOpen && (
         <div role="dialog" aria-modal="true" aria-labelledby="dialog-title">
           <h2 id="dialog-title">Confirm Deletion</h2>
           <p>This cannot be undone.</p>
-          <button onClick={dialog.close}>Cancel</button>
+          <button onClick={dialog.actions.close}>Cancel</button>
           <button onClick={handleConfirm}>Delete</button>
         </div>
       )}
@@ -83,76 +83,75 @@ function DeleteConfirmation() {
 }
 ```
 
-You own the markup. You choose where to put the `<div>`, what classes to apply, whether it's a portal or inline. The behaviour — `isOpen` state, `open()`, `close()` — comes from the library.
+You own the markup. You choose where to put the `<div>`, what classes to apply, whether it's a portal or inline. The behaviour — `isOpen` state and the `open(content)`, `close()` and `toggle()` actions — comes from the library.
 
 ### List Selection
 
 ```typescript
-import { createListSelectionBehavior } from '@web-loom/ui-core';
+import { createListSelection } from '@web-loom/ui-core';
 
-const list = createListSelectionBehavior({
-  mode: 'single', // or 'multiple'
-  items: products,
-  getId: (p) => p.id,
-  onSelectionChange: (selected) => {
-    vm.selectedProducts$.set(selected);
+const list = createListSelection({
+  mode: 'multi', // 'single' | 'multi' | 'range'
+  items: products.map((p) => p.id), // the behaviour works with item IDs
+  onSelectionChange: (selectedIds) => {
+    vm.setSelectedProductIds(selectedIds);
   },
 });
 
 list.actions.select('product-123');
 list.actions.deselect('product-123');
+list.actions.toggleSelection('product-456');
+list.actions.selectRange('product-1', 'product-9'); // Shift+click style
 list.actions.selectAll();
 list.actions.clearSelection();
-list.actions.toggle('product-456');
 
-const { selectedIds, selectedItems, isAllSelected } = list.getState();
+const { selectedIds, lastSelectedId, mode } = list.getState();
 ```
 
-Multi-select with keyboard support is a well-known source of accessibility bugs. Getting Shift+click range selection, Ctrl+click individual toggle, and keyboard arrow navigation correct takes a surprising amount of code. `createListSelectionBehavior` encodes these rules once and makes them available everywhere.
+Multi-select is a well-known source of bugs. Getting range selection, individual toggles and "last selected" anchoring right takes a surprising amount of code. `createListSelection` encodes these rules once; you map the selected IDs back to items in your ViewModel.
 
 ### Roving Focus
 
 The roving `tabindex` pattern is how ARIA-compliant widget toolbars, radio groups, and menu items handle keyboard navigation. Instead of every item being in the tab order, only one item at a time has `tabindex="0"` — the currently "active" item. Arrow keys move the active item; Tab moves focus out of the widget entirely.
 
 ```typescript
-import { createRovingFocusBehavior } from '@web-loom/ui-core';
+import { createRovingFocus } from '@web-loom/ui-core';
 
-const rovingFocus = createRovingFocusBehavior({
+const rovingFocus = createRovingFocus({
   orientation: 'horizontal',
-  loop: true, // wrap around at the ends
+  wrap: true, // wrap around at the ends (the default)
+  items: ['tab-1', 'tab-2', 'tab-3'],
 });
 
-// Register items (usually via refs)
-rovingFocus.actions.setItems(['tab-1', 'tab-2', 'tab-3']);
-rovingFocus.actions.setActive('tab-1');
-
 // Navigate
-rovingFocus.actions.movePrevious();
 rovingFocus.actions.moveNext();
-rovingFocus.actions.moveToFirst();
-rovingFocus.actions.moveToLast();
+rovingFocus.actions.movePrevious();
+rovingFocus.actions.moveFirst();
+rovingFocus.actions.moveLast();
+rovingFocus.actions.moveTo(1);
 
-rovingFocus.getState().activeId; // → 'tab-1'
+const { currentIndex, items } = rovingFocus.getState();
+items[currentIndex]; // → 'tab-2'
 ```
 
 ```tsx
 // In a tab bar component
 function TabBar({ tabs }: { tabs: Tab[] }) {
-  const roving = useRovingFocusBehavior({ orientation: 'horizontal', loop: true });
+  const roving = useRovingFocus({ orientation: 'horizontal', items: tabs.map((t) => t.id) });
 
   return (
     <div role="tablist">
-      {tabs.map((tab) => (
+      {tabs.map((tab, index) => (
         <button
           key={tab.id}
           role="tab"
-          tabIndex={roving.activeId === tab.id ? 0 : -1}
-          aria-selected={roving.activeId === tab.id}
+          tabIndex={roving.currentIndex === index ? 0 : -1}
+          aria-selected={roving.currentIndex === index}
           onKeyDown={(e) => {
-            if (e.key === 'ArrowRight') roving.moveNext();
-            if (e.key === 'ArrowLeft') roving.movePrevious();
+            if (e.key === 'ArrowRight') roving.actions.moveNext();
+            if (e.key === 'ArrowLeft') roving.actions.movePrevious();
           }}
-          onClick={() => roving.setActive(tab.id)}
+          onClick={() => roving.actions.moveTo(index)}
         >
           {tab.label}
         </button>
@@ -168,19 +167,17 @@ function TabBar({ tabs }: { tabs: Tab[] }) {
 import { createFormBehavior } from '@web-loom/ui-core';
 
 const form = createFormBehavior({
-  fields: ['email', 'password'],
   initialValues: { email: '', password: '' },
-  validate: (values) => {
-    const errors: Record<string, string> = {};
-    if (!values.email.includes('@')) errors.email = 'Invalid email';
-    if (values.password.length < 8) errors.password = 'Too short';
-    return errors;
+  fields: {
+    email: { validate: (v) => (!v.includes('@') ? 'Invalid email' : null) },
+    password: { validate: (v) => (v.length < 8 ? 'Too short' : null) },
   },
+  onSubmit: async (values) => api.login(values),
 });
 
-form.actions.setValue('email', 'user@example.com');
-form.actions.setTouched('email');
-form.actions.submit();
+form.actions.setFieldValue('email', 'user@example.com');
+form.actions.setFieldTouched('email', true);
+await form.actions.submitForm(); // validates, then calls onSubmit if valid
 
 const { values, errors, touched, isSubmitting, isValid } = form.getState();
 ```
@@ -191,8 +188,8 @@ The form behaviour manages field values, validation errors, touched state (wheth
 
 - **`createDisclosureBehavior`** — toggle show/hide for accordions, expandable sections, tooltips
 - **`createDragDropBehavior`** — drag-and-drop state management (drag source, drop target, dragging item)
-- **`createKeyboardShortcutsBehavior`** — register named shortcuts with callbacks, handle conflicts
-- **`createUndoRedoBehavior`** — undo/redo stack for any serialisable state
+- **`createKeyboardShortcuts`** — register key-combo shortcuts with handlers, global or scoped
+- **`createUndoRedoStack`** — undo/redo stack for any serialisable state
 
 ---
 
@@ -212,30 +209,27 @@ The tradeoff is that `ui-core` doesn't provide the full ARIA-attribute wiring th
 
 ## The Table Helper
 
-`ui-core` also exports a table helper for managing complex table state — sorting, filtering, pagination, column visibility:
+`ui-core` also exports table helpers — `useTable`, `useSorting` and `usePagination` — for deriving sorted, paginated rows. Despite the `use` prefix they are pure functions (no React hooks inside): you pass the data, the column definitions and the current sort/pagination state, and get the rows to render back. Keep that state wherever you keep UI state and call `useTable` again when it changes.
 
 ```typescript
-import { createTable } from '@web-loom/ui-core';
+import { useTable } from '@web-loom/ui-core';
 
-const table = createTable({
+const result = useTable({
   data: products,
   columns: [
-    { id: 'name', accessor: (p) => p.name, sortable: true },
-    { id: 'price', accessor: (p) => p.price, sortable: true },
-    { id: 'stock', accessor: (p) => p.stock, sortable: false },
+    { key: 'name', dataIndex: 'name', sorter: true },
+    { key: 'price', dataIndex: 'price', sorter: true },
+    { key: 'stock', dataIndex: 'stock' },
   ],
-  pageSize: 25,
+  sortState: { columnKey: 'price', order: 'descend' },
+  pagination: { pageSize: 25 },
+  paginationState: { current: 2 },
 });
 
-table.actions.sort('price', 'desc');
-table.actions.setPage(2);
-table.actions.setFilter('name', 'headphone');
-table.actions.toggleColumn('stock');
-
-const { rows, totalPages, currentPage, sortState } = table.getState();
+const { rows, total, pagination, sorting } = result;
 ```
 
-This covers the table interaction state that's tedious to implement correctly and usually ends up re-implemented in every project that has a data-heavy view.
+Sorting and pagination are covered; filtering and column visibility are left to your own code.
 
 ---
 
@@ -244,14 +238,14 @@ This covers the table interaction state that's tedious to implement correctly an
 Behaviours compose naturally because they're independent stores. A `MasterDetail` view might combine list selection with a roving focus manager and a disclosure for the detail panel:
 
 ```typescript
-const selection = createListSelectionBehavior({ mode: 'single', items, getId });
-const rovingFocus = createRovingFocusBehavior({ orientation: 'vertical' });
-const detailPanel = createDisclosureBehavior({ open: false });
+const selection = createListSelection({ mode: 'single', items: itemIds });
+const rovingFocus = createRovingFocus({ orientation: 'vertical', items: itemIds });
+const detailPanel = createDisclosureBehavior({ initialExpanded: false });
 
 // When selection changes, open the detail panel
-selection.subscribe(({ selectedItems }) => {
-  if (selectedItems.length > 0) detailPanel.actions.open();
-  else detailPanel.actions.close();
+selection.subscribe(({ selectedIds }) => {
+  if (selectedIds.length > 0) detailPanel.actions.expand();
+  else detailPanel.actions.collapse();
 });
 ```
 
@@ -275,7 +269,7 @@ This is how the platform should work. The browser gives you `<dialog>`, `role="d
 npm install @web-loom/ui-core
 ```
 
-`@web-loom/store-core` is the only dependency. React adapters (hooks) are included in the package and imported from `@web-loom/ui-core/react`.
+Runtime dependencies are `@web-loom/store-core` and `@web-loom/event-bus-core`; `react`, `vue`, `@angular/core` and `rxjs` are optional peer dependencies for the adapters. The React hooks are available from `@web-loom/ui-core/react` — and are also re-exported from the package root, which therefore imports `react`. In non-React apps, import from `@web-loom/ui-core/behaviors`.
 
 ---
 

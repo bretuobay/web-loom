@@ -128,7 +128,7 @@ So `signals-core` keeps two doors open:
 
 **Gained:**
 
-- One reactive model across the whole toolkit.
+- One reactive model across the core MVVM packages (`forms-core` and the unpublished `platform-core` still use RxJS internally).
 - Derived state that reads like ordinary code.
 - Bridges of one or two lines per framework.
 - Less disposal bookkeeping.

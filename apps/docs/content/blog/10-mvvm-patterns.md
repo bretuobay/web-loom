@@ -333,13 +333,11 @@ This is `ActiveAwareViewModel`.
 ```typescript
 interface IActiveAware {
   isActive: boolean;
-  isActive$: ReadonlySignal<boolean>;
-  activate(): void;
-  deactivate(): void;
+  readonly isActive$: ReadonlySignal<boolean>;
 }
 ```
 
-`ActiveAwareViewModel` implements `IActiveAware` on top of `BaseViewModel`. The protected `onIsActiveChanged` hook fires whenever `isActive` transitions, letting derived classes respond:
+`ActiveAwareViewModel` implements `IActiveAware` on top of `BaseViewModel` and adds `activate()`/`deactivate()` convenience methods. The protected `onIsActiveChanged(isActive, wasActive)` hook fires whenever `isActive` transitions, letting derived classes respond:
 
 ```typescript
 import { ActiveAwareViewModel } from '@web-loom/mvvm-patterns';
@@ -347,7 +345,7 @@ import { ActiveAwareViewModel } from '@web-loom/mvvm-patterns';
 class DashboardViewModel extends ActiveAwareViewModel<DashboardModel> {
   private pollingHandle?: ReturnType<typeof setInterval>;
 
-  protected onIsActiveChanged(isActive: boolean): void {
+  protected onIsActiveChanged(isActive: boolean, _wasActive: boolean): void {
     if (isActive) {
       this.startPolling();
     } else {
@@ -488,11 +486,13 @@ These two gaps — user interaction and lifecycle awareness — are the last thi
 
 ## Installing
 
+`@web-loom/mvvm-patterns` is not on npm yet — it lives in the Web Loom monorepo (`packages/mvvm-patterns`), where workspace packages depend on it with `"@web-loom/mvvm-patterns": "workspace:^"`. Once published it will install with:
+
 ```bash
 npm install @web-loom/mvvm-patterns
 ```
 
-`@web-loom/mvvm-core` and `@web-loom/signals-core` are the only dependencies — no RxJS anywhere. Both `InteractionRequest` and `ActiveAwareViewModel` are exported from the package root.
+`@web-loom/mvvm-core` and `@web-loom/signals-core` are its only dependencies — no RxJS dependency. Both `InteractionRequest` and `ActiveAwareViewModel` are exported from the package root.
 
 ---
 
