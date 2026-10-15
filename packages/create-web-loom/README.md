@@ -68,7 +68,7 @@ npm run dev
 
 ## Installed packages
 
-All currently published core packages are installed:
+These published core packages are installed (`@web-loom/forms-core` and `@web-loom/mcp-server` are published too, but not added by the starter):
 
 - `@web-loom/mvvm-core`
 - `@web-loom/store-core`
@@ -86,8 +86,8 @@ If a package is temporarily unavailable on npm, the installer retries one packag
 
 ```bash
 cd packages/create-web-loom
-npm run build
-npm run test
+pnpm build
+pnpm test
 
 # Try locally
 node dist/index.js my-test-app

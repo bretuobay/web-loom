@@ -13,9 +13,7 @@ Framework-agnostic utilities for browser notifications, toast fallbacks, permiss
 
 ## Installation
 
-```bash
-npm install @web-loom/notifications-core
-```
+> **Not yet published to npm.** `@web-loom/notifications-core` is an internal package of the Web Loom monorepo. Inside the workspace, depend on it with `"@web-loom/notifications-core": "workspace:^"`.
 
 ## Quick Start
 
@@ -39,14 +37,16 @@ async function enableNotifications() {
 
 ```ts
 import { notifications } from '@web-loom/notifications-core';
-import { toastQueue } from '@repo/ui-patterns/toast-queue';
+import { createToastQueue } from '@web-loom/ui-patterns';
+
+const toastQueue = createToastQueue();
 
 notifications.configure({
   vapidPublicKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
   serviceWorkerPath: '/sw.js',
   toastAdapter: {
     show(message, options) {
-      toastQueue.add(message, options);
+      toastQueue.actions.addToast({ message, type: 'info', duration: Number(options?.duration ?? 3000) });
     },
   },
 });

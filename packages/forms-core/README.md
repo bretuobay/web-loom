@@ -1,15 +1,14 @@
 # @web-loom/forms-core
 
-Framework-agnostic form management library for building reactive, validated forms in any frontend environment. Provides core logic for form state, field management, validation, and integration with Zod schemas. Adapters are available for React, Vue, and vanilla JS.
+Framework-agnostic form management library for building reactive, validated forms in any frontend environment. Provides core logic for form state, field management, validation, and integration with Zod schemas. Framework adapters (React, Vue, vanilla JS) live in the separate `web-loom-extensions` repo and are not yet on npm.
 
 ## Features
 
-- Pure TypeScript, no framework dependencies
+- Pure TypeScript, no framework dependencies (runtime deps: `@web-loom/event-emitter-core` and `rxjs`, used internally for dirty tracking and error containers; `zod` is a peer dependency)
 - Type-safe form state and validation
-- Zod schema integration
-- Field arrays, subscriptions, and error handling
-- Composable architecture for adapters (React, Vue, Vanilla)
-- Lightweight and tree-shakeable
+- Zod schema integration, plus async validators
+- Nested field paths, event subscriptions, and error handling
+- Field dependency, visibility and focus managers
 
 ## Installation
 
@@ -20,7 +19,7 @@ npm install @web-loom/forms-core zod
 ## Usage Example
 
 ```typescript
-import { createForm } from '@web-loom/forms-core';
+import { FormFactory } from '@web-loom/forms-core';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -28,37 +27,41 @@ const schema = z.object({
   email: z.string().email(),
 });
 
-const form = createForm({
+const form = FormFactory.create({
   schema,
-  initialValues: { name: '', email: '' },
+  defaultValues: { name: '', email: '' },
+  onSubmit: async (values) => saveContact(values),
 });
 
-form.setField('name', 'Alice');
-form.setField('email', 'alice@example.com');
+form.setFieldValue('name', 'Alice');
+form.setFieldValue('email', 'alice@example.com');
 
-form.subscribe((state) => {
+const stop = form.subscribe('stateChange', (state) => {
   // state.values, state.errors, state.touched, etc.
 });
+
+await form.submit(); // validates, then calls onSubmit when valid
+stop();
+form.destroy();
 ```
 
 ## API
 
 ### Core
 
-- `createForm(options)` — Create a reactive form instance
-- `FormController` — Main form logic
-- `FieldController` — Manage individual field state
-- `FormBinder` — Bind form to external systems
+- `FormFactory.create(config)` — create a form instance (`setFieldValue`, `setFieldTouched`, `setFieldError`, `getValues`, `validate`, `submit`, `reset`, `subscribe(event, cb)`, `subscribeToField(path, cb)`, `subscribeToErrors(cb)`, `destroy`, …)
+- `AdvancedFieldManager`, `FieldDependencyManager`, `FieldVisibilityManager`, `FieldFocusManager` — field-level helpers
+- `AsyncValidator` / `AsyncValidationManager` — debounced, cancellable async validation
 
-### Utilities
+### State and validation
 
-- `events` — Event subscription helpers
-- `path` — Path utilities for nested fields
-- `validation` — Zod integration and validation helpers
+- `DirtyTracker`, `FieldDirtyTracker` — dirty-state tracking
+- `ErrorsContainer`, `AsyncErrorsContainer` — error containers (`populateFromZodError`, `validateWithZodContainer`, `validateFieldWithZodContainer`)
+- Zod helpers (`validateWithZod`, `formatZodErrors`, …) and path utilities for nested fields
 
 ## Adapters
 
-Adapters are published as separate npm packages from the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo:
+Adapters live in the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo and are not yet on npm:
 
 - `@web-loom/forms-react`: React hooks and context
 - `@web-loom/forms-vue`: Vue 3 composables
@@ -69,7 +72,7 @@ Adapters are published as separate npm packages from the sibling [`web-loom-exte
 Vitest is used for unit tests:
 
 ```bash
-npm run test
+pnpm test
 ```
 
 ## License

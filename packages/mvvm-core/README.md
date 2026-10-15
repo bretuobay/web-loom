@@ -13,8 +13,10 @@ RxJS is no longer a dependency. For genuinely stream-shaped needs at the Model e
 ## Installation
 
 ```bash
-npm install @web-loom/mvvm-core @web-loom/signals-core zod
+npm install @web-loom/mvvm-core zod
 ```
+
+`@web-loom/signals-core` and `@web-loom/query-core` are installed automatically as dependencies; add `@web-loom/signals-core` explicitly if you import from it directly.
 
 ## Features
 
@@ -24,8 +26,7 @@ npm install @web-loom/mvvm-core @web-loom/signals-core zod
 - **RESTful APIs**: Simplified CRUD with optimistic updates and auto state management
 - **Command Pattern**: Encapsulated UI actions with auto-tracked `canExecute$` and `isExecuting$` states
 - **Observable Collections**: Reactive lists with granular change events
-- **Query Integration**: QueryStateModel for advanced caching with `@web-loom/query-core`
-- **Resource Management**: IDisposable pattern for proper cleanup
+- **Resource Management**: `dispose()` on Models, ViewModels and Commands for proper cleanup
 - **Framework Agnostic**: No UI framework dependencies
 
 ## Core Concepts
@@ -136,7 +137,7 @@ class UserViewModel extends BaseViewModel<UserModel> {
 
 ### RestfulApiViewModel
 
-Extends BaseViewModel with CRUD commands for RESTful operations.
+Wraps a `RestfulApiModel` with ready-made CRUD commands and item selection. It is a standalone class — it does not extend `BaseViewModel`, so it has no `registerCommand()`/`addSubscription()`.
 
 ```typescript
 import { RestfulApiViewModel } from '@web-loom/mvvm-core';
@@ -258,43 +259,9 @@ const array = todos.toArray();
 const count = todos.length;
 ```
 
-### QueryStateModel & QueryStateModelView
+### Query Core integration
 
-Integration with `@web-loom/query-core` for advanced caching.
-
-```typescript
-import { QueryStateModel, QueryStateModelView } from '@web-loom/mvvm-core';
-import QueryCore from '@web-loom/query-core';
-
-const queryCore = new QueryCore({ defaultRefetchAfter: 5 * 60 * 1000 });
-
-class UsersQueryModel extends QueryStateModel<User[], typeof UserSchema> {
-  constructor() {
-    super({
-      queryCore,
-      endpointKey: 'users',
-      schema: z.array(UserSchema),
-      fetcherFn: async () => {
-        const res = await fetch('https://api.example.com/users');
-        return res.json();
-      },
-    });
-  }
-}
-
-class UsersViewModel extends QueryStateModelView<User[], typeof UserSchema> {
-  constructor() {
-    super(new UsersQueryModel());
-  }
-}
-
-const vm = new UsersViewModel();
-
-vm.data$.subscribe((users) => console.log('Users:', users));
-
-await vm.refetchCommand.execute(true); // Force refetch
-await vm.invalidateCommand.execute(); // Invalidate cache
-```
+`QueryStateModel`/`QueryStateModelView` exist in this package's source but are **not exported** from its entry point yet. To use `@web-loom/query-core` today, subscribe to a `QueryCore` endpoint inside a `BaseModel` subclass and forward its state with `setData`/`setLoading`/`setError` (see the [Query Core docs](../query-core/README.md)).
 
 ## Framework Integration
 
@@ -429,70 +396,13 @@ const unsubscribe = observe(vm.data$, (users) => render(users));
 unsubscribe();
 ```
 
-## Advanced Features
+## Not Yet Exported
 
-### FormViewModel
-
-Form state management with debounced validation and dirty tracking.
-
-```typescript
-import { FormViewModel } from '@web-loom/mvvm-core';
-
-const formVm = new FormViewModel(
-  { email: '', password: '' },
-  z.object({
-    email: z.string().email(),
-    password: z.string().min(8),
-  }),
-  async (data) => api.submit(data), // optional Promise-based submit handler
-);
-
-// Reactive form state
-formVm.isValid$.subscribe((valid) => console.log('Valid:', valid));
-formVm.isDirty$.subscribe((dirty) => console.log('Dirty:', dirty));
-formVm.errors$.subscribe((errors) => console.log('Errors:', errors));
-
-// Set field values
-formVm.updateField('email', 'user@example.com');
-
-// Submit form
-await formVm.submitCommand.execute();
-```
-
-### QueryableCollectionViewModel
-
-Advanced list management with debounced filtering, sorting, and pagination.
-
-```typescript
-import { QueryableCollectionViewModel } from '@web-loom/mvvm-core';
-
-const vm = new QueryableCollectionViewModel(users, 10);
-
-vm.setFilter('alice'); // debounced text search
-vm.setSort('name', 'asc');
-vm.nextPage();
-vm.goToPage(2);
-
-vm.paginatedItems$.subscribe((items) => console.log('Page items:', items));
-console.log(vm.totalPages$.get());
-```
-
-### Dependency Injection
-
-```typescript
-import { DIContainer } from '@web-loom/mvvm-core';
-
-const container = new DIContainer();
-
-container.registerSingleton('UserService', () => new UserService());
-container.registerTransient('UserViewModel', () => new UserViewModel());
-
-const userService = container.resolve<UserService>('UserService');
-```
+`FormViewModel`, `QueryableCollectionViewModel` and a `SimpleDIContainer` also exist in this package's source but are **not exported** from `@web-loom/mvvm-core`, so they can't be imported yet. For forms, use [`@web-loom/forms-core`](../forms-core/README.md); for filtering, sorting and pagination, derive state with `computed()` (and `debouncedSignal()` from `@web-loom/signals-core`).
 
 ## Best Practices
 
-1. **Always dispose ViewModels**: Call `dispose()` when components unmount
+1. **Dispose ViewModels with their owner**: call `dispose()` when the component (or screen) that created the ViewModel goes away; disposal is permanent, so don't dispose app-lifetime singletons from a component
 2. **Use schemas for validation**: Define Zod schemas for all data types
 3. **Leverage computed signals**: Derive state with `computed(() => ...)` — dependencies are tracked automatically
 4. **Handle errors properly**: Observe `error$` and display to users
@@ -547,10 +457,12 @@ describe('UserListViewModel', () => {
 
 - `data$` / `isLoading$` / `error$`: ReadonlySignal passthroughs from the model
 - `validationErrors$`: ReadonlySignal<ZodError | null>
+- `registerCommand(cmd)` / `addSubscription(teardown)` (protected)
 - `dispose(): void`
 
-### RestfulApiViewModel
+### RestfulApiViewModel (standalone — not a BaseViewModel subclass)
 
+- `data$` / `isLoading$` / `error$`
 - `fetchCommand`: Command<string | string[] | void, void>
 - `createCommand`: Command<Partial<Item> | Partial<Item>[], void>
 - `updateCommand`: Command<{ id: string; payload: Partial<Item> }, void>
@@ -562,7 +474,7 @@ describe('UserListViewModel', () => {
 - `isExecuting$`: ReadonlySignal<boolean>
 - `canExecute$`: ReadonlySignal<boolean> (computed; false while executing)
 - `executeError$`: ReadonlySignal<any>
-- `execute(param: TParam): Promise<TResult | undefined>`
+- `execute(param: TParam): Promise<TResult | undefined>` — sets `executeError$` and re-throws on failure
 - `observesProperty(sig)` / `observesCanExecute(sig | fn)` / `raiseCanExecuteChanged()`
 - `dispose(): void`
 
@@ -571,7 +483,7 @@ describe('UserListViewModel', () => {
 Full TypeScript support with comprehensive type definitions:
 
 ```typescript
-import type { ICommand, IDisposable, IBaseModel, Fetcher, CanExecuteSource } from '@web-loom/mvvm-core';
+import type { ICommand, ICompositeCommand, IBaseModel, IObservableCollection, Fetcher } from '@web-loom/mvvm-core';
 import type { ReadonlySignal, WritableSignal } from '@web-loom/signals-core';
 ```
 
@@ -579,7 +491,7 @@ import type { ReadonlySignal, WritableSignal } from '@web-loom/signals-core';
 
 - **@web-loom/signals-core**: reactive signals substrate
 - **zod**: ^3.25.0 (schema validation)
-- **@web-loom/query-core**: (for QueryStateModel)
+- **@web-loom/query-core**: declared dependency (used by the internal, not-yet-exported `QueryStateModel`)
 - **rxjs**: not required — optional interop via `@web-loom/signals-core/rxjs`
 
 ## License

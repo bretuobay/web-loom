@@ -74,16 +74,16 @@ npm create web-loom@latest
 
 It detects your chosen framework (React, Preact, Vue, Solid, Svelte, Lit, Vanilla, or Qwik) and wires up a starter `ViewModel` plus the matching signal bridge automatically.
 
-To explore this monorepo itself — all the demo apps, `template-core`, and the ecommerce comparison — clone and install:
+To explore this monorepo itself — all the demo apps, `template-core`, and the ecommerce comparison — clone and install (the workspace uses pnpm):
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 ## Packages
 
-All packages version in lockstep, gated at **0.8.0** until the API surface is ready to commit to 1.0.0 — no package's version exceeds `mvvm-core`/`signals-core`, the two most-exercised packages in the ecosystem, and releases between now and 1.0.0 are patch-only (see [Versioning Policy](#versioning-policy)).
+All packages version in lockstep in the **0.8.x** line (currently 0.8.0; `signals-core` is at 0.8.1 in the repo) until the API surface is ready to commit to 1.0.0 — no package's version exceeds `mvvm-core`/`signals-core`, the two most-exercised packages in the ecosystem, and releases between now and 1.0.0 are patch-only (see [Versioning Policy](#versioning-policy)).
 
 ### Published
 
@@ -104,11 +104,11 @@ These are live on npm today.
 | [`@web-loom/mcp-server`](packages/mcp-server)                 | MCP server exposing scaffolding, docs, and guided patterns for `@web-loom/*`               |
 | [`create-web-loom`](packages/create-web-loom)                 | CLI scaffolder — `npm create web-loom@latest`                                              |
 
-Framework-specific adapters (React/Vue/vanilla form bindings, media players, charts) live in the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo, published under the same `@web-loom/*` npm scope.
+Framework-specific adapters (React/Vue/vanilla form bindings, media players, charts) live in the sibling [`web-loom-extensions`](https://github.com/bretuobay/web-loom-extensions) repo. They use the same `@web-loom/*` package names but are not on npm yet.
 
 ### Coming soon
 
-Fully implemented and exercised in the demo apps, but not yet published to npm — use via the workspace in the meantime.
+Implemented in this repo (most are used by the demo apps), but not yet published to npm — use via the workspace in the meantime.
 
 | Package                                                               | Description                                                                           |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -117,6 +117,8 @@ Fully implemented and exercised in the demo apps, but not yet published to npm �
 | [`@web-loom/template-core-vite-ssr`](packages/template-core-vite-ssr) | Reusable Vite SSR dev/production server for `template-core` apps                      |
 | [`@web-loom/template-core-lint`](packages/template-core-lint)         | ESLint plugin with static-analysis rules for `template-core` templates                |
 | [`@web-loom/template-core-tooling`](packages/template-core-tooling)   | Shared AST utilities and source-linked diagnostics behind the two packages above      |
+| [`@web-loom/template-core-router`](packages/template-core-router)     | `router-core` adapter for `template-core` route outlets                               |
+| [`@web-loom/view`](packages/view)                                     | Component model (`defineComponent`) on top of `template-core`                         |
 | [`@web-loom/mvvm-patterns`](packages/mvvm-patterns)                   | Application-level MVVM patterns — interaction requests, active-aware ViewModels       |
 | [`@web-loom/embed-core`](packages/embed-core)                         | Framework-agnostic embeddable widget SDK and host integration layer                   |
 
@@ -215,8 +217,6 @@ Framework-Specific Components — or template-core, directly
 
 ## Learn More
 
-- [Prism to Web Loom Feature Mapping](docs/PRISM-WEBLOOM-COMPARISON.md)
-- [MVVM-Core Enhancement Roadmap](docs/MVVM-CORE-PRISM-ENHANCEMENTS.md)
 - [White Paper: the case for framework-agnostic MVVM](paper/white-paper.md)
 - [Architecture Overview](paper/architecture-overview.md)
 - [Contributing](CONTRIBUTING.md)

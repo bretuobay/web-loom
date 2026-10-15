@@ -9,14 +9,12 @@ A lightweight, framework-agnostic internationalization (i18n) core library for m
 - Lazy loading and caching of translations
 - RTL detection
 - Intl formatters (number, date, list, plural)
-- No dependencies, cross-browser compatible
+- No third-party dependencies (declares `@web-loom/event-emitter-core`), cross-browser compatible
 - Designed for integration with React, Vue, Svelte, Angular, and more
 
 ## Installation
 
-```bash
-npm install @web-loom/i18n-core
-```
+> **Not yet published to npm.** `@web-loom/i18n-core` is an internal package of the Web Loom monorepo. Inside the workspace, depend on it with `"@web-loom/i18n-core": "workspace:^"`.
 
 ## Quick Start
 
@@ -47,7 +45,7 @@ console.log(t('hello')); // "Hello"
 ## Examples
 
 - [Basic usage](./examples/basic.ts)
-- [Build integration (Vite plugin)](./examples/build/vite-plugin.js)
+- [Framework patterns](./examples/patterns), [React](./examples/react) and [Vue](./examples/vue) examples
 
 ## License
 

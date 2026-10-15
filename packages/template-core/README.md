@@ -151,11 +151,10 @@ Because `TemplateOutlet.show()` disposes the outgoing template and mounts the in
 every call, a `use:` action on a route template's root element fires on every route-enter and
 disposes on every route-exit — the same "View mount triggers `fetchCommand.execute()`" pattern the
 framework adapters use (see the repo's `architecture.md` skill, Framework Integration Patterns),
-expressed declaratively instead of via a manual subscription. `apps/mvvm-template-core` uses exactly
-this to kick off each route's data fetch: `loadCurrentRouteData` in
-[`src/app/bindings.ts`](../../apps/mvvm-template-core/src/app/bindings.ts), wired via
-`use:loadCurrentRouteData="loadCurrentRouteData"` on each route template's root element (e.g.
-[`dashboard.loom`](../../apps/mvvm-template-core/src/templates/dashboard.loom)).
+expressed declaratively instead of via a manual subscription. `apps/mvvm-template-core` relies on the
+same mount-per-route-enter behaviour, but kicks off each route's data fetch from the route
+component's `setup()` (e.g. [`src/templates/dashboard.ts`](../../apps/mvvm-template-core/src/templates/dashboard.ts),
+which calls each ViewModel's `fetchCommand.execute()`).
 
 ## Reference application
 
@@ -354,19 +353,19 @@ reference implementation is [`apps/ecommerce-template-core`](../../apps/ecommerc
 
 ```bash
 cd packages/template-core
-npm run dev            # vite build --watch
-npm run build          # vite build
-npm run test           # vitest --watch=false
-npm run bench           # vitest bench --run — PRD §10 todo/table/SSR/precompiled benchmarks (reports, not CI-gated; jsdom isn't a real browser)
-npm run bench:browser   # real-Chromium mount/update/keyed-swap/hydration/disposal benchmarks (via Playwright)
-npm run size            # gzip-size check against the 20KB budget
-npm run lint            # eslint src
-npm run check-types     # tsc --noEmit
+pnpm dev                # vite build --watch
+pnpm build              # vite build
+pnpm test               # vitest --watch=false
+pnpm bench               # vitest bench --run — PRD §10 todo/table/SSR/precompiled benchmarks (reports, not CI-gated; jsdom isn't a real browser)
+pnpm bench:browser       # real-Chromium mount/update/keyed-swap/hydration/disposal benchmarks (via Playwright)
+pnpm size                # gzip-size check against the 20KB budget
+pnpm lint                # eslint src
+pnpm check-types         # tsc --noEmit
 ```
 
 ## Performance
 
-Snapshot from the last `npm run bench:browser` run (real Chromium, not jsdom — see PRD §10 targets).
+Snapshot from the last `pnpm bench:browser` run (real Chromium, not jsdom — see PRD §10 targets).
 This is a point-in-time recording, not a live-tracked metric: re-run the command above and update this
 table if you want a fresh number; nothing here is enforced in CI.
 

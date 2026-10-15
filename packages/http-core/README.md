@@ -4,7 +4,7 @@ A lightweight, TypeScript-first HTTP client with interceptors, automatic retries
 
 ## Features
 
-- 🚀 **Lightweight** - < 10KB gzipped, zero dependencies (except RxJS)
+- 🚀 **Lightweight** - no runtime dependencies (built on `fetch`)
 - 🔄 **Automatic Retries** - Exponential backoff with jitter
 - 🎯 **Request Interceptors** - Transform requests before sending
 - 📥 **Response Interceptors** - Transform responses after receiving
@@ -17,9 +17,7 @@ A lightweight, TypeScript-first HTTP client with interceptors, automatic retries
 
 ## Installation
 
-```bash
-npm install @web-loom/http-core
-```
+> **Not yet published to npm.** `@web-loom/http-core` is an internal package of the Web Loom monorepo. Inside the workspace, depend on it with `"@web-loom/http-core": "workspace:^"`.
 
 ## Quick Start
 

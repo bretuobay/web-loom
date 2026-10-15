@@ -166,10 +166,10 @@ frame-src https://widgets.example.com;
 
 ## Size Budgets
 
-After `npm run build --workspace=@web-loom/embed-core`, run:
+After `pnpm --filter @web-loom/embed-core build`, run:
 
 ```bash
-npm run test:size --workspace=@web-loom/embed-core
+pnpm --filter @web-loom/embed-core test:size
 ```
 
 The package checks gzip budgets for `loader`, `host`, and `widget` bundles.

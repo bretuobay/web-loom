@@ -15,11 +15,7 @@
 
 ## Installation
 
-```bash
-npm install @web-loom/storage-core
-# or
-pnpm add @web-loom/storage-core
-```
+> **Not yet published to npm.** `@web-loom/storage-core` is an internal package of the Web Loom monorepo. Inside the workspace, depend on it with `"@web-loom/storage-core": "workspace:^"`.
 
 ## Usage
 
@@ -28,7 +24,7 @@ Basic usage example:
 ```ts
 import { createStorage } from '@web-loom/storage-core';
 
-const storage = createStorage({ backend: 'indexeddb', dbName: 'my-app' });
+const storage = await createStorage({ backend: 'indexeddb', name: 'my-app' });
 await storage.set('key', 'value');
 const value = await storage.get('key');
 ```

@@ -16,9 +16,7 @@ Device & platform detection library with reactive observables for modern web app
 
 ## Installation
 
-```bash
-npm install @web-loom/platform-core
-```
+> **Not yet published to npm.** `@web-loom/platform-core` is an internal package of the Web Loom monorepo. Inside the workspace, depend on it with `"@web-loom/platform-core": "workspace:^"`.
 
 ## Quick Start
 

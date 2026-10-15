@@ -27,7 +27,7 @@ Design tokens are the single source of truth for your design system's visual pro
 **Key Features:**
 
 - **Centralized Management:** All design values are stored and managed in one place.
-- **Referenceable:** Tokens can reference other tokens, promoting consistency and easier maintenance (e.g., a `brand.primary` color token might reference a specific shade from your `blue` color palette). The utilities handle the resolution of these references automatically.
+- **Referenceable:** Tokens can reference other tokens, promoting consistency and easier maintenance (e.g., a `brand.primary` color token might reference a specific shade from your `blue` color palette). The utilities resolve these references when reading tokens (some cross-file references, such as the themed colours, currently remain unresolved).
 - **Platform Agnostic:** While this package focuses on web technologies (CSS and JavaScript), the token definitions themselves are abstract and can be transformed for other platforms.
 
 ### CSS Custom Properties
@@ -58,7 +58,7 @@ import * as DesignCore from '@web-loom/design-core';
 import { getTokenValue, createTheme, applyTheme } from '@web-loom/design-core/utils';
 
 // Type definitions only
-import type { ColorTokens, SpacingTokens } from '@web-loom/design-core/types';
+import type { ColorToken, SpacingToken } from '@web-loom/design-core/types';
 
 // CSS files
 import '@web-loom/design-core/design-system'; // All CSS
@@ -90,9 +90,9 @@ For the quickest setup, import the pre-generated CSS files:
 import '@web-loom/design-core/design-system';
 
 // Or import specific token categories
-import '@web-loom/design-core/src/css/colors.css';
-import '@web-loom/design-core/src/css/spacing.css';
-import '@web-loom/design-core/src/css/typography.css';
+import '@web-loom/design-core/css/colors.css';
+import '@web-loom/design-core/css/spacing.css';
+import '@web-loom/design-core/css/typography.css';
 ```
 
 **Note:** The utilities provided by this package are often asynchronous because they may need to dynamically load token definition files. Therefore, you'll typically use `async/await` when working with them.
@@ -228,8 +228,8 @@ Or import them in your JavaScript entry point (if your bundler supports CSS impo
 
 ```javascript
 // main.js or App.js
-import '@web-loom/design-core/src/css/colors.css';
-import '@web-loom/design-core/src/css/spacing.css';
+import '@web-loom/design-core/css/colors.css';
+import '@web-loom/design-core/css/spacing.css';
 // ... import other required token CSS files
 ```
 
@@ -327,7 +327,7 @@ getVariablesMap();
 
 ### 3. Theming
 
-The `@design-core` utilities provide a robust way to define and switch between different themes (e.g., light, dark, high contrast). Themes work by overriding specific token values.
+The `@web-loom/design-core` utilities provide a robust way to define and switch between different themes (e.g., light, dark, high contrast). Themes work by overriding specific token values.
 
 #### `createTheme(name: string, overrides: Partial<DesignTokens>): Theme`
 
@@ -469,17 +469,18 @@ You generally don't need to interact with these files directly if you're consumi
 
 ## TypeScript Types
 
-The package also exports various TypeScript types related to the design tokens and their structure (e.g., `DesignTokens`, `TokenValue`, `Theme`). These can be imported from the root of `@design-core` or directly from `@design-core/utils` for utility-specific types.
+The package also exports TypeScript types for the design tokens. Per-category token types (e.g. `ColorToken`, `SpacingToken`, `DesignTokenValue`) come from the root of `@web-loom/design-core`; utility types (`DesignTokens`, `TokenValue`, `Theme`) come from `@web-loom/design-core/utils`.
 
 ```typescript
-import { DesignTokens, ColorTokens } from '@design-core'; // Example type imports
+import type { ColorToken } from '@web-loom/design-core';
+import type { DesignTokens, Theme } from '@web-loom/design-core/utils';
 ```
 
 This provides type safety and autocompletion when working with tokens and theme objects in a TypeScript environment.
 
 ## Lightweight Design System (CSS Styles)
 
-Beyond the core tokens and utilities, `@design-core` also provides a lightweight, optional CSS-based design system built on top of these tokens. This includes pre-styled components for common UI elements.
+Beyond the core tokens and utilities, `@web-loom/design-core` also provides a lightweight, optional CSS-based design system built on top of these tokens. This includes pre-styled components for common UI elements.
 
 **Location:** `packages/design-core/src/design-system/`
 
@@ -496,7 +497,7 @@ _In your main JS/TS file:_
 ```javascript
 import '@web-loom/design-core/design-system'; // if using package exports
 // or directly:
-// import '@web-loom/design-core/src/design-system/index.css';
+// import '@web-loom/design-core/design-system';
 ```
 
 _In your HTML `head`:_
@@ -515,10 +516,10 @@ _In your JS/TS file (e.g., for a specific component or view):_
 
 ```javascript
 // Example: Only import button and card styles
-import '@web-loom/design-core/src/design-system/forms/button.css';
-import '@web-loom/design-core/src/design-system/display/card.css';
+import '@web-loom/design-core/design-system/forms/button';
+import '@web-loom/design-core/design-system/display/card';
 // Don't forget to also include base styles if not importing the full index.css
-import '@web-loom/design-core/src/design-system/base.css';
+import '@web-loom/design-core/design-system/base';
 // Or ensure all token css files from src/css/* are loaded
 ```
 
@@ -733,7 +734,7 @@ The package provides multiple entry points for different use cases:
 
 ```typescript
 // Main entry - TypeScript types
-import { ColorTokens, SpacingTokens } from '@web-loom/design-core';
+import type { ColorToken, SpacingToken } from '@web-loom/design-core';
 
 // Utils - Token utilities and theming
 import { getTokenValue, createTheme } from '@web-loom/design-core/utils';
@@ -813,8 +814,8 @@ For production, import only what you need:
 
 ```typescript
 // Import specific categories instead of all tokens
-import '@web-loom/design-core/src/css/colors.css';
-import '@web-loom/design-core/src/css/spacing.css';
+import '@web-loom/design-core/css/colors.css';
+import '@web-loom/design-core/css/spacing.css';
 // Don't import everything if you only need a few tokens
 ```
 
@@ -844,25 +845,25 @@ cd web-loom/packages/design-core
 npm install
 
 # Generate CSS files from tokens
-npm run generate:css
+pnpm generate:css
 
 # Run tests
 npm test
 
 # Run tests with coverage
-npm run test:coverage
+pnpm test:coverage
 
 # Build the package
-npm run build
+pnpm build
 
 # Lint code
-npm run lint
+pnpm lint
 ```
 
 ### Adding New Tokens
 
 1. Edit the appropriate JSON file in `src/tokens/`
-2. Run `npm run generate:css` to update CSS files
+2. Run `pnpm generate:css` to update CSS files
 3. Update TypeScript types if needed
 4. Add tests for new tokens
 5. Update documentation
@@ -971,9 +972,3 @@ Design token specifications inspired by:
 - [Design Tokens Community Group](https://design-tokens.github.io/community-group/)
 - [Style Dictionary](https://amzn.github.io/style-dictionary/)
 - [Theo](https://github.com/salesforce-ux/theo)
-
-### From the root README:
-
-#### [@web-loom/design-core](packages/design-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
-
-Theme and CSS variable utilities for design systems.

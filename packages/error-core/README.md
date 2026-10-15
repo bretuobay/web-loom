@@ -13,9 +13,7 @@ A comprehensive, framework-agnostic error handling and logging library for TypeS
 
 ## Installation
 
-```bash
-npm install @web-loom/error-core
-```
+> **Not yet published to npm.** `@web-loom/error-core` is an internal package of the Web Loom monorepo. Inside the workspace, depend on it with `"@web-loom/error-core": "workspace:^"`.
 
 ## Quick Start
 
@@ -607,38 +605,24 @@ class SlackTransport implements Transport {
 ### Bundle Size Optimization
 
 ```typescript
-// Import only what you need for optimal bundle size
-import { BaseError } from '@web-loom/error-core/dist/errors';
-import { ConsoleTransport } from '@web-loom/error-core/dist/transports';
-import { debounce } from '@web-loom/error-core/dist/utils';
+// The package exposes a single entry point (deep /dist/* imports are blocked by its
+// exports map); import named exports and let your bundler tree-shake the rest
+import { BaseError, ConsoleTransport, debounce } from '@web-loom/error-core';
 ```
 
 ## Testing
 
-### Mock Transport for Testing
+### Memory Transport for Testing
 
 ```typescript
-import { MockTransport } from '@web-loom/error-core/dist/test-utils';
+import { MemoryTransport } from '@web-loom/error-core';
 
-const mockTransport = new MockTransport();
-logger.addTransport(mockTransport);
+const memoryTransport = new MemoryTransport();
+logger.addTransport(memoryTransport);
 
 // In tests
-expect(mockTransport.getLogsByLevel('error')).toHaveLength(1);
-expect(mockTransport.logs[0].message).toContain('Expected error message');
-```
-
-### Test Utilities
-
-```typescript
-import { createTestErrorHandler } from '@web-loom/error-core/dist/test-utils';
-
-const { handler, transport } = createTestErrorHandler();
-
-handler.captureError(new Error('test error'));
-
-expect(transport.logs).toHaveLength(1);
-expect(transport.logs[0].level).toBe('error');
+expect(memoryTransport.getLogsByLevel('error')).toHaveLength(1);
+expect(memoryTransport.getLogs()[0].message).toContain('Expected error message');
 ```
 
 ## API Reference

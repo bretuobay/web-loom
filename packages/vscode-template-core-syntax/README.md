@@ -14,11 +14,11 @@ No Marketplace publish required. Build a `.vsix` and install it once:
 
 ```bash
 cd packages/vscode-template-core-syntax
-npm install
-npm run package:vsix
+pnpm install
+pnpm package:vsix
 ```
 
-This writes `web-loom-template-core-syntax-0.8.0.vsix` (~10 KB) in this folder. Packaging uses an isolated staging directory so the monorepo root is **not** bundled (avoid running raw `vsce package` in a npm workspace — it can follow symlinks and produce a 1 GB VSIX).
+This writes `web-loom-template-core-syntax-0.8.0.vsix` (~10 KB) in this folder. Packaging uses an isolated staging directory so the monorepo root is **not** bundled (avoid running raw `vsce package` in a pnpm workspace — it can follow symlinks and produce a 1 GB VSIX).
 
 ### VS Code
 
@@ -46,10 +46,10 @@ Reload the window after install. Open `header.loom` or `compile(\`...\`)`in a`.t
 
 ### Monorepo shortcut
 
-From repo root (after `npm install`):
+From repo root (after `pnpm install`):
 
 ```bash
-npm run package:vscode-syntax
+pnpm package:vscode-syntax
 ```
 
 ## Extension Development Host (F5)

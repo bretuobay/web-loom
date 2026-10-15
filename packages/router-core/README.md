@@ -93,7 +93,7 @@ const full = buildURL('/users/7', { tab: 'activity' });
 Run the Vitest suite:
 
 ```bash
-npm run test --workspace packages/router-core
+pnpm --filter @web-loom/router-core test
 ```
 
 If you see `SyntaxError: The requested module 'node:events' does not provide an export named 'EventEmitterAsyncResource'`, upgrade the local Node.js runtime to a version that exposes that API (Node 18.17+, 20+, or 22).

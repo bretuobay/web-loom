@@ -13,7 +13,7 @@ A lightweight, framework-agnostic Event Bus library for decoupled communication 
 
 - **Type-safe**: Full TypeScript support with type inference for event names and payloads
 - **Framework-agnostic**: Works with React, Vue, Angular, Svelte, or vanilla JavaScript
-- **Lightweight**: Minimal bundle size (~1KB gzipped) with zero dependencies
+- **Lightweight**: A small layer over `@web-loom/event-emitter-core`, its only dependency
 - **Simple API**: Intuitive methods for event registration, emission, and cleanup
 - **Flexible**: Support for single and multiple event listeners
 - **Reliable**: Stable listener execution order and memory leak prevention
@@ -526,7 +526,7 @@ describe('EventBus', () => {
 
 - UMD: ~2KB minified
 - ESM: ~1KB minified + gzipped
-- Zero dependencies
+- One dependency (`@web-loom/event-emitter-core`)
 
 ## Browser Support
 
@@ -535,17 +535,3 @@ Works in all modern browsers and Node.js environments that support ES2015+.
 ## License
 
 MIT
-
-### From the root README:
-
-#### [@web-loom/event-bus-core](packages/event-bus-core) ![Version](https://img.shields.io/badge/version-0.5.2-blue)
-
-Lightweight pub-sub event bus for cross-component communication. Type-safe with zero dependencies.
-
-**Key features**: <1KB gzipped, type-safe events, multiple listeners
-
-```typescript
-import { createEventBus } from '@web-loom/event-bus-core';
-const eventBus = createEventBus<AppEvents>();
-eventBus.on('user:login', (user) => console.log(user));
-```
