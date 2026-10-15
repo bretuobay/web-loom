@@ -41,7 +41,7 @@ The bridge between `@web-loom/signals-core` signals and React Native components 
 
 ```typescript
 // apps/mvvm-react-native/src/hooks/useSignal.ts
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
 
 /**
@@ -50,7 +50,9 @@ import type { ReadonlySignal } from '@web-loom/signals-core';
  * every change via useSyncExternalStore.
  */
 export function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 ```
 

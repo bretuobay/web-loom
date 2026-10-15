@@ -31,11 +31,13 @@ The `useSignal` hook is the cornerstone of React-MVVM integration. It reads a `@
 
 ```typescript
 // apps/mvvm-react/src/hooks/useSignal.ts
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
 
 export function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 ```
 
@@ -43,7 +45,7 @@ Let's break down what's happening here:
 
 **1. Snapshot Reads**: `useSyncExternalStore` calls `sig.get` to read the current value synchronously — both for the client snapshot and the (identical, since this isn't SSR-hydration-sensitive) server snapshot. No `initialValue` parameter, no first-render flash of a placeholder.
 
-**2. Subscription**: `useSyncExternalStore` calls `sig.subscribe` internally when the component mounts. `sig.subscribe` already has exactly the shape React expects — `(callback) => unsubscribeFunction` — so it's passed straight through with no wrapper.
+**2. Subscription**: `useSyncExternalStore` calls `sig.subscribe` internally when the component mounts. `sig.subscribe` already has the shape React expects — `(callback) => unsubscribeFunction`. It is still wrapped in `useCallback`: `signal()` and `computed()` are class instances, so passing the method detached would lose `this` and throw.
 
 **3. Cleanup**: React calls the unsubscribe function `sig.subscribe` returned when the component unmounts. This prevents memory leaks without any explicit cleanup code in the hook itself.
 
@@ -603,7 +605,9 @@ The `useSignal` hook handles subscription cleanup automatically via `useSyncExte
 
 ```typescript
 export function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 ```
 

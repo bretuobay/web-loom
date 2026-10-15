@@ -48,12 +48,14 @@ function factoryViewModelSetup(name: string): string {
 function reactAdapterTemplate(name: string, viewModelStyle: ViewModelStyle): string {
   const usesFactory = viewModelStyle === 'reactive-factory';
   const loadCommand = loadCommandFor(viewModelStyle);
-  return `import { useEffect, useState, useSyncExternalStore } from "react";
+  return `import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import type { ReadonlySignal } from "@web-loom/signals-core";
 ${usesFactory ? factoryViewModelSetup(name) : classViewModelSetup(name)}
 
 function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 export function use${name}() {

@@ -1,5 +1,8 @@
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 export function useSignal(source) {
-  return useSyncExternalStore(source.subscribe, source.get, source.get);
+  // Wrap the methods so `this` stays bound — signal() and computed() are class instances.
+  const subscribe = useCallback((onStoreChange) => source.subscribe(onStoreChange), [source]);
+  const getSnapshot = useCallback(() => source.get(), [source]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

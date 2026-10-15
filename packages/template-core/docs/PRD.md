@@ -18,7 +18,7 @@ the same signals:
 
 | App     | Bridge                                                                        |
 | ------- | ----------------------------------------------------------------------------- |
-| React   | `useSignal(sig)` → `useSyncExternalStore(sig.subscribe, sig.get, sig.get)`    |
+| React   | `useSignal(sig)` → `useSyncExternalStore with bound sig.subscribe / sig.get callbacks`    |
 | Vue     | `useSignal(sig)` → `shallowRef` seeded via `.peek()`, updated via `observe()` |
 | Angular | `fromLoomSignal(sig, destroyRef)` → mirrors into a native Angular `signal()`  |
 | Lit     | manual `@state()` field updated via `observe()` in `connectedCallback`        |

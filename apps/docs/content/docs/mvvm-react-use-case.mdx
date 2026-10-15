@@ -59,7 +59,7 @@ The fix is to connect signal changes to a React re-render. `useSyncExternalStore
 
 ```typescript
 // apps/mvvm-react/src/hooks/useSignal.ts
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
 
 /**
@@ -68,14 +68,16 @@ import type { ReadonlySignal } from '@web-loom/signals-core';
  * every change via useSyncExternalStore.
  */
 export function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 ```
 
 How it works:
 
-- The first argument to `useSyncExternalStore` is a `subscribe` function — signals already expose one directly as `sig.subscribe`, so it's passed straight through
-- The second and third arguments are `getSnapshot` functions (client and server) — `sig.get` reads the current value synchronously, so no separate `initialValue` parameter is needed and there's no first-render flash of a placeholder
+- The first argument to `useSyncExternalStore` is a `subscribe` function — signals already expose one as `sig.subscribe`. It is wrapped in `useCallback` rather than passed directly: `signal()` and `computed()` are class instances, so a detached `sig.subscribe` loses `this` and throws
+- The second and third arguments are `getSnapshot` functions (client and server) — `sig.get()` (wrapped the same way) reads the current value synchronously, so no separate `initialValue` parameter is needed and there's no first-render flash of a placeholder
 - React guarantees that all components reading the same signal see a consistent snapshot within a single render
 
 Usage:

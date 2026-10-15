@@ -217,12 +217,14 @@ The View reads ViewModel signals (through a small per-framework bridge, since ea
 **React**
 
 ```tsx
-import { useSyncExternalStore, useEffect, useMemo } from 'react';
+import { useCallback, useSyncExternalStore, useEffect, useMemo } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
 import { taskListViewModel } from './TaskListViewModel';
 
 function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 export function TaskList() {

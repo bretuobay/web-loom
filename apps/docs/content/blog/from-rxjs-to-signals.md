@@ -107,7 +107,9 @@ It's the same logic, now written as a single expression, with no operators. The 
 
 ```ts
 export function useSignal<T>(source: ReadonlySignal<T>): T {
-  return useSyncExternalStore(source.subscribe, source.get, source.get);
+  const subscribe = useCallback((onChange: () => void) => source.subscribe(onChange), [source]);
+  const getSnapshot = useCallback(() => source.get(), [source]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 ```
 

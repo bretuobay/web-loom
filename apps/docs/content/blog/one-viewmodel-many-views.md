@@ -56,10 +56,14 @@ A few things are worth pointing out.
 
 ## View 1: React
 
-React has a built-in hook for subscribing to external stores. A Web Loom signal already has the `subscribe` and `get` methods it expects, so the whole bridge is one line:
+React has a built-in hook for subscribing to external stores. A Web Loom signal already has the `subscribe` and `get` methods it expects. They have to be wrapped so `this` stays bound, because `signal()` and `computed()` are class instances:
 
 ```tsx
-const useSignal = <T,>(s: ReadonlySignal<T>) => useSyncExternalStore(s.subscribe, s.get, s.get);
+function useSignal<T>(s: ReadonlySignal<T>): T {
+  const subscribe = useCallback((onChange: () => void) => s.subscribe(onChange), [s]);
+  const getSnapshot = useCallback(() => s.get(), [s]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
 
 function TodoList({ vm }: { vm: TodoListViewModel }) {
   const items = useSignal(vm.items$);
@@ -129,7 +133,7 @@ It's more manual, but nothing is hidden, and it shows that there's no magic unde
 
 The Web Loom repo has demo apps for most major frameworks, and each one bridges the same signals in a few lines:
 
-- **React:** `useSignal`, built on `useSyncExternalStore(sig.subscribe, sig.get, sig.get)`.
+- **React:** `useSignal`, built on `useSyncExternalStore with bound sig.subscribe / sig.get callbacks`.
 - **Vue:** `useSignal`, built on a `shallowRef` kept in sync by `observe()`.
 - **Angular:** `fromLoomSignal(sig)`, which mirrors the value into a native Angular `signal()`.
 - **Lit:** a `@state()` field updated by `observe()` in `connectedCallback`.

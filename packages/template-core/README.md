@@ -14,7 +14,7 @@ its rendering model to the same signals:
 
 | App            | How it bridges to the ViewModel's signals                                          |
 | -------------- | ---------------------------------------------------------------------------------- |
-| `mvvm-react`   | `useSignal(sig)` → `useSyncExternalStore(sig.subscribe, sig.get, sig.get)`         |
+| `mvvm-react`   | `useSignal(sig)` → `useSyncExternalStore with bound sig.subscribe / sig.get callbacks`         |
 | `mvvm-vue`     | `useSignal(sig)` → `shallowRef` seeded via `.peek()`, kept in sync via `observe()` |
 | `mvvm-angular` | `fromLoomSignal(sig, destroyRef)` → mirrors into a native Angular `signal()`       |
 | `mvvm-lit`     | manual `@state()` field updated via `observe()` in `connectedCallback`             |

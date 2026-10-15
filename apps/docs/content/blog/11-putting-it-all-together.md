@@ -429,7 +429,7 @@ The View is thin. It subscribes, renders, and calls commands.
 
 ```tsx
 // src/features/products/ProductBrowser.tsx
-import { useMemo, useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useEffect, useState, useSyncExternalStore } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
 import { ProductViewModel } from './ProductViewModel';
 import { ProductModel, Product } from './ProductModel';
@@ -438,7 +438,9 @@ import type { IConfirmation, INotification } from '@web-loom/mvvm-patterns';
 
 // --- Bridge a Web Loom signal to React ---
 function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 export function ProductBrowser() {

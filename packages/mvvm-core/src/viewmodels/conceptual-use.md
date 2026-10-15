@@ -201,7 +201,9 @@ import React, { useEffect, useMemo } from 'react';
 // A signal is bound to React with useSyncExternalStore — no library needed.
 // See apps/mvvm-react/src/hooks/useSignal.ts for the reference implementation:
 //   export function useSignal<T>(sig: ReadonlySignal<T>): T {
-//     return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+//     const subscribe = useCallback((cb: () => void) => sig.subscribe(cb), [sig]);
+//     const getSnapshot = useCallback(() => sig.get(), [sig]);
+//     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 //   }
 import { useSignal } from '../hooks/useSignal';
 

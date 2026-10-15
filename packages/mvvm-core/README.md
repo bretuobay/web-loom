@@ -301,12 +301,14 @@ await vm.invalidateCommand.execute(); // Invalidate cache
 ### React
 
 ```tsx
-import { useMemo, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useEffect, useSyncExternalStore } from 'react';
 import type { ReadonlySignal } from '@web-loom/signals-core';
 
 // Bind a signal to React — no initial value, no first-render flash
 function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(sig.subscribe, sig.get, sig.get);
+  const subscribe = useCallback((onChange: () => void) => sig.subscribe(onChange), [sig]);
+  const getSnapshot = useCallback(() => sig.get(), [sig]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 function UserList() {
