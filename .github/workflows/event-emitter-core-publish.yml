@@ -3,11 +3,17 @@
 name: Publish - @web-loom/event-emitter-core
 
 on:
+  workflow_dispatch: # Manual re-run after a failed publish
   push:
     branches:
       - main
     paths:
       - 'packages/event-emitter-core/**'
+
+# id-token: write lets pnpm publish via npm trusted publishing (OIDC)
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   publish:

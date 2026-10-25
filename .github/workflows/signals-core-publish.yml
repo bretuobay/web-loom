@@ -3,11 +3,17 @@
 name: Publish - @web-loom/signals-core
 
 on:
+  workflow_dispatch: # Manual re-run after a failed publish
   push:
     branches:
       - main # Trigger on pushes to the main branch
     paths:
       - 'packages/signals-core/**' # Only run if signals-core files changed
+
+# id-token: write lets pnpm publish via npm trusted publishing (OIDC)
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   publish:
